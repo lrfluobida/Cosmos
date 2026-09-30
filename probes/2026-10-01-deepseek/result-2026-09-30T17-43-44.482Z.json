@@ -1,0 +1,475 @@
+{
+  "startedAt": "2026-09-30T17:43:44.483Z",
+  "requestedModel": "deepseek-flash",
+  "effort": "disabled",
+  "promptVersion": 2,
+  "priorRunsReservedCny": 0.41082,
+  "costCapCny": 10,
+  "priceBasis": "Conservative peak rates: cache miss 2, cache hit 0.04, output 8 CNY / million tokens.",
+  "sampleLimitations": [
+    "Small API and pure-rule probes, not a full game.",
+    "Serial then parallel is an unrandomized single trial; cache and load may differ."
+  ],
+  "calls": [
+    {
+      "id": "tool_request",
+      "reservedCny": 0.021574,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 0.606,
+      "firstDeltaSeconds": 0.437,
+      "firstContentSeconds": null,
+      "finishReason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 304,
+        "completion_tokens": 40,
+        "total_tokens": 344,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 304
+      },
+      "estimatedPeakCny": 0.000928,
+      "outputTokensPerWallSecond": 66.01,
+      "contentCharacters": 0,
+      "toolNames": [
+        "get_contract"
+      ]
+    },
+    {
+      "id": "tool_resume",
+      "reservedCny": 0.02225,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 0.503,
+      "firstDeltaSeconds": 0.452,
+      "firstContentSeconds": 0.452,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 381,
+        "completion_tokens": 2,
+        "total_tokens": 383,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 253
+      },
+      "estimatedPeakCny": 0.000527,
+      "outputTokensPerWallSecond": 3.98,
+      "contentCharacters": 4,
+      "toolNames": []
+    },
+    {
+      "id": "serial_board",
+      "reservedCny": 0.07233,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 1.538,
+      "firstDeltaSeconds": 0.351,
+      "firstContentSeconds": 0.351,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 280,
+        "completion_tokens": 453,
+        "total_tokens": 733,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 280
+      },
+      "estimatedPeakCny": 0.004184,
+      "outputTokensPerWallSecond": 294.54,
+      "contentCharacters": 1555,
+      "toolNames": []
+    },
+    {
+      "id": "serial_timeline",
+      "reservedCny": 0.071608,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 1.079,
+      "firstDeltaSeconds": 0.404,
+      "firstContentSeconds": 0.404,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 170,
+        "completion_tokens": 242,
+        "total_tokens": 412,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 170
+      },
+      "estimatedPeakCny": 0.002276,
+      "outputTokensPerWallSecond": 224.28,
+      "contentCharacters": 786,
+      "toolNames": []
+    },
+    {
+      "id": "parallel_board",
+      "reservedCny": 0.07233,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 1.489,
+      "firstDeltaSeconds": 0.23,
+      "firstContentSeconds": 0.23,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 280,
+        "completion_tokens": 459,
+        "total_tokens": 739,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 152
+      },
+      "estimatedPeakCny": 0.003981,
+      "outputTokensPerWallSecond": 308.26,
+      "contentCharacters": 1617,
+      "toolNames": []
+    },
+    {
+      "id": "parallel_timeline",
+      "reservedCny": 0.071608,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 1.219,
+      "firstDeltaSeconds": 0.599,
+      "firstContentSeconds": 0.599,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 170,
+        "completion_tokens": 208,
+        "total_tokens": 378,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 170
+      },
+      "estimatedPeakCny": 0.002004,
+      "outputTokensPerWallSecond": 170.63,
+      "contentCharacters": 673,
+      "toolNames": []
+    },
+    {
+      "id": "repair_board",
+      "reservedCny": 0.076498,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 1.643,
+      "firstDeltaSeconds": 0.463,
+      "firstContentSeconds": 0.463,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 839,
+        "completion_tokens": 469,
+        "total_tokens": 1308,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 583
+      },
+      "estimatedPeakCny": 0.004928,
+      "outputTokensPerWallSecond": 285.45,
+      "contentCharacters": 1617,
+      "toolNames": []
+    }
+  ],
+  "batches": [
+    {
+      "name": "serial",
+      "seconds": 2.643
+    },
+    {
+      "name": "parallel",
+      "seconds": 1.495
+    }
+  ],
+  "tests": [
+    {
+      "id": "tool_round_trip",
+      "passed": true,
+      "answer": "2500"
+    },
+    {
+      "id": "serial_board",
+      "kind": "board",
+      "sourcePath": "serial_board-2026-09-30T17-43-44.482Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": true
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "serial_timeline",
+      "kind": "timeline",
+      "sourcePath": "serial_timeline-2026-09-30T17-43-44.482Z.cjs",
+      "passed": false,
+      "checks": [
+        {
+          "name": "no_early_events",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "inclusive_boundary",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "stable_ties",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "no_duplicates",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "backward_rejected",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "copy_inputs",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "invalid_time",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        }
+      ]
+    },
+    {
+      "id": "parallel_timeline",
+      "kind": "timeline",
+      "sourcePath": "parallel_timeline-2026-09-30T17-43-44.482Z.cjs",
+      "passed": false,
+      "checks": [
+        {
+          "name": "no_early_events",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "inclusive_boundary",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "stable_ties",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "no_duplicates",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "backward_rejected",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "copy_inputs",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "invalid_time",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        }
+      ]
+    },
+    {
+      "id": "parallel_board",
+      "kind": "board",
+      "sourcePath": "parallel_board-2026-09-30T17-43-44.482Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": true
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "injected_fault_detected",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": false,
+          "error": "top-up or failed cooldown"
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": false,
+          "error": "invalid energy accepted"
+        }
+      ]
+    },
+    {
+      "id": "repair_board",
+      "sourcePath": "repaired-board-2026-09-30T17-43-44.482Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": true
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "status": "completed_with_test_failures",
+  "elapsedSeconds": 6.904,
+  "estimatedPeakCny": 0.018828,
+  "cumulativeReservedCny": 0.429648,
+  "pendingReserveCny": 0
+}

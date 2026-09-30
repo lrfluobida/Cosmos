@@ -1,0 +1,483 @@
+{
+  "startedAt": "2026-09-30T17:42:59.970Z",
+  "requestedModel": "deepseek-flash",
+  "effort": "low",
+  "promptVersion": 2,
+  "priorRunsReservedCny": 0.30038,
+  "costCapCny": 10,
+  "priceBasis": "Conservative peak rates: cache miss 2, cache hit 0.04, output 8 CNY / million tokens.",
+  "sampleLimitations": [
+    "Small API and pure-rule probes, not a full game.",
+    "Serial then parallel is an unrandomized single trial; cache and load may differ."
+  ],
+  "calls": [
+    {
+      "id": "tool_request",
+      "reservedCny": 0.021622,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 0.732,
+      "firstDeltaSeconds": 0.567,
+      "firstContentSeconds": null,
+      "finishReason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 328,
+        "completion_tokens": 47,
+        "total_tokens": 375,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 328
+      },
+      "estimatedPeakCny": 0.001032,
+      "outputTokensPerWallSecond": 64.21,
+      "contentCharacters": 0,
+      "toolNames": [
+        "get_contract"
+      ]
+    },
+    {
+      "id": "tool_resume",
+      "reservedCny": 0.022386,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 0.582,
+      "firstDeltaSeconds": 0.408,
+      "firstContentSeconds": 0.582,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 412,
+        "completion_tokens": 33,
+        "total_tokens": 445,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 30
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 156
+      },
+      "estimatedPeakCny": 0.000586,
+      "outputTokensPerWallSecond": 56.7,
+      "contentCharacters": 4,
+      "toolNames": []
+    },
+    {
+      "id": "serial_board",
+      "reservedCny": 0.072378,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 1.862,
+      "firstDeltaSeconds": 0.436,
+      "firstContentSeconds": 0.498,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 306,
+        "completion_tokens": 521,
+        "total_tokens": 827,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 306
+      },
+      "estimatedPeakCny": 0.00478,
+      "outputTokensPerWallSecond": 279.81,
+      "contentCharacters": 1808,
+      "toolNames": []
+    },
+    {
+      "id": "serial_timeline",
+      "reservedCny": 0.071656,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 5.207,
+      "firstDeltaSeconds": 0.412,
+      "firstContentSeconds": 4.608,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 196,
+        "completion_tokens": 1199,
+        "total_tokens": 1395,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 971
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 196
+      },
+      "estimatedPeakCny": 0.009984,
+      "outputTokensPerWallSecond": 230.27,
+      "contentCharacters": 758,
+      "toolNames": []
+    },
+    {
+      "id": "parallel_board",
+      "reservedCny": 0.072378,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 11.873,
+      "firstDeltaSeconds": 0.476,
+      "firstContentSeconds": 10.702,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 306,
+        "completion_tokens": 2950,
+        "total_tokens": 3256,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2474
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 178
+      },
+      "estimatedPeakCny": 0.023961,
+      "outputTokensPerWallSecond": 248.46,
+      "contentCharacters": 1689,
+      "toolNames": []
+    },
+    {
+      "id": "parallel_timeline",
+      "reservedCny": 0.071656,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 24.66,
+      "firstDeltaSeconds": 0.414,
+      "firstContentSeconds": 24.127,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 196,
+        "completion_tokens": 5642,
+        "total_tokens": 5838,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5433
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 196
+      },
+      "estimatedPeakCny": 0.045528,
+      "outputTokensPerWallSecond": 228.79,
+      "contentCharacters": 669,
+      "toolNames": []
+    },
+    {
+      "id": "repair_board",
+      "reservedCny": 0.077036,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 11.315,
+      "firstDeltaSeconds": 0.48,
+      "firstContentSeconds": 10.109,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 923,
+        "completion_tokens": 2903,
+        "total_tokens": 3826,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2389
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 667
+      },
+      "estimatedPeakCny": 0.024568,
+      "outputTokensPerWallSecond": 256.56,
+      "contentCharacters": 1812,
+      "toolNames": []
+    }
+  ],
+  "batches": [
+    {
+      "name": "serial",
+      "seconds": 7.095
+    },
+    {
+      "name": "parallel",
+      "seconds": 24.667
+    }
+  ],
+  "tests": [
+    {
+      "id": "tool_round_trip",
+      "passed": true,
+      "answer": "2500"
+    },
+    {
+      "id": "serial_board",
+      "kind": "board",
+      "sourcePath": "serial_board-2026-09-30T17-42-59.969Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": true
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "serial_timeline",
+      "kind": "timeline",
+      "sourcePath": "serial_timeline-2026-09-30T17-42-59.969Z.cjs",
+      "passed": false,
+      "checks": [
+        {
+          "name": "no_early_events",
+          "passed": true
+        },
+        {
+          "name": "inclusive_boundary",
+          "passed": true
+        },
+        {
+          "name": "stable_ties",
+          "passed": true
+        },
+        {
+          "name": "no_duplicates",
+          "passed": true
+        },
+        {
+          "name": "backward_rejected",
+          "passed": true
+        },
+        {
+          "name": "copy_inputs",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": false,
+          "error": "invalid time accepted"
+        }
+      ]
+    },
+    {
+      "id": "parallel_board",
+      "kind": "board",
+      "sourcePath": "parallel_board-2026-09-30T17-42-59.969Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": true
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "parallel_timeline",
+      "kind": "timeline",
+      "sourcePath": "parallel_timeline-2026-09-30T17-42-59.969Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "no_early_events",
+          "passed": true
+        },
+        {
+          "name": "inclusive_boundary",
+          "passed": true
+        },
+        {
+          "name": "stable_ties",
+          "passed": true
+        },
+        {
+          "name": "no_duplicates",
+          "passed": true
+        },
+        {
+          "name": "backward_rejected",
+          "passed": true
+        },
+        {
+          "name": "copy_inputs",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "injected_fault_detected",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": false,
+          "error": "top-up or failed cooldown"
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": false,
+          "error": "invalid energy accepted"
+        }
+      ]
+    },
+    {
+      "id": "repair_board",
+      "sourcePath": "repaired-board-2026-09-30T17-42-59.969Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": true
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "status": "completed_with_test_failures",
+  "elapsedSeconds": 44.403,
+  "estimatedPeakCny": 0.11044,
+  "cumulativeReservedCny": 0.41082,
+  "pendingReserveCny": 0
+}

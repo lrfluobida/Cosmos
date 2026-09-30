@@ -1,0 +1,219 @@
+{
+  "startedAt": "2026-09-30T17:47:57.206Z",
+  "requestedModel": "deepseek-flash",
+  "effort": "low",
+  "phase": "diagnostic",
+  "promptVersion": 3,
+  "priorRunsReservedCny": 0.671163,
+  "costCapCny": 10,
+  "priceBasis": "Conservative peak rates: cache miss 2, cache hit 0.04, output 8 CNY / million tokens.",
+  "sampleLimitations": [
+    "Small API and pure-rule probes, not a full game.",
+    "Serial then parallel is an unrandomized single trial; cache and load may differ."
+  ],
+  "calls": [
+    {
+      "id": "project_context_board",
+      "reservedCny": 0.160122,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 9.892,
+      "firstDeltaSeconds": 0.378,
+      "firstContentSeconds": 8.617,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 10746,
+        "completion_tokens": 2685,
+        "total_tokens": 13431,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 2147
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 10746
+      },
+      "estimatedPeakCny": 0.042972,
+      "outputTokensPerWallSecond": 271.43,
+      "contentCharacters": 1907,
+      "toolNames": []
+    },
+    {
+      "id": "targeted_timeline_repair",
+      "reservedCny": 0.073682,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 1.677,
+      "firstDeltaSeconds": 0.244,
+      "firstContentSeconds": 1.081,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 466,
+        "completion_tokens": 417,
+        "total_tokens": 883,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 185
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 466
+      },
+      "estimatedPeakCny": 0.004268,
+      "outputTokensPerWallSecond": 248.66,
+      "contentCharacters": 767,
+      "toolNames": []
+    },
+    {
+      "id": "vision_grid",
+      "reservedCny": 0.027726,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 1.453,
+      "firstDeltaSeconds": 0.297,
+      "firstContentSeconds": 1.366,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 316,
+        "completion_tokens": 342,
+        "total_tokens": 658,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 308
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 316
+      },
+      "estimatedPeakCny": 0.003368,
+      "outputTokensPerWallSecond": 235.38,
+      "contentCharacters": 61,
+      "toolNames": []
+    }
+  ],
+  "batches": [],
+  "tests": [
+    {
+      "id": "project_context_board",
+      "kind": "board",
+      "sourcePath": "project_context_board-2026-09-30T17-47-57.205Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": true
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "targeted_timeline_repair",
+      "sourcePath": "targeted-timeline-2026-09-30T17-47-57.205Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "no_early_events",
+          "passed": true
+        },
+        {
+          "name": "inclusive_boundary",
+          "passed": true
+        },
+        {
+          "name": "stable_ties",
+          "passed": true
+        },
+        {
+          "name": "no_duplicates",
+          "passed": true
+        },
+        {
+          "name": "backward_rejected",
+          "passed": true
+        },
+        {
+          "name": "copy_inputs",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "vision_grid",
+      "fixturePath": "vision-fixture-2026-09-30T17-47-57.205Z.png",
+      "passed": true,
+      "answer": {
+        "green_cells": [
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ]
+        ],
+        "red_cells": [
+          [
+            1,
+            4
+          ],
+          [
+            3,
+            2
+          ]
+        ]
+      }
+    }
+  ],
+  "status": "passed_local_rule_probe",
+  "projectContextCharacters": 18324,
+  "elapsedSeconds": 13.053,
+  "estimatedPeakCny": 0.050608,
+  "cumulativeReservedCny": 0.721771,
+  "pendingReserveCny": 0
+}

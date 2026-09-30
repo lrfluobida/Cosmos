@@ -1,0 +1,496 @@
+{
+  "startedAt": "2026-09-30T17:34:27.786Z",
+  "requestedModel": "deepseek-flash",
+  "costCapCny": 10,
+  "priceBasis": "Conservative peak rates: cache miss 2, cache hit 0.04, output 8 CNY / million tokens.",
+  "sampleLimitations": [
+    "Small API and pure-rule probes, not a full game.",
+    "Serial then parallel is an unrandomized single trial; cache and load may differ."
+  ],
+  "calls": [
+    {
+      "id": "tool_request",
+      "reservedCny": 0.021512,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 0.817,
+      "firstDeltaSeconds": 0.763,
+      "firstContentSeconds": null,
+      "finishReason": "tool_calls",
+      "usage": {
+        "prompt_tokens": 328,
+        "completion_tokens": 41,
+        "total_tokens": 369,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 328
+      },
+      "estimatedPeakCny": 0.000984,
+      "outputTokensPerWallSecond": 50.18,
+      "contentCharacters": 0,
+      "toolNames": [
+        "get_contract"
+      ]
+    },
+    {
+      "id": "tool_resume",
+      "reservedCny": 0.0222,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 0.471,
+      "firstDeltaSeconds": 0.366,
+      "firstContentSeconds": 0.457,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 406,
+        "completion_tokens": 14,
+        "total_tokens": 420,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 11
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 150
+      },
+      "estimatedPeakCny": 0.000422,
+      "outputTokensPerWallSecond": 29.72,
+      "contentCharacters": 4,
+      "toolNames": []
+    },
+    {
+      "id": "serial_board",
+      "reservedCny": 0.072114,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 33.176,
+      "firstDeltaSeconds": 0.517,
+      "firstContentSeconds": 32.01,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 282,
+        "completion_tokens": 8018,
+        "total_tokens": 8300,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7550
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 282
+      },
+      "estimatedPeakCny": 0.064708,
+      "outputTokensPerWallSecond": 241.68,
+      "contentCharacters": 1629,
+      "toolNames": []
+    },
+    {
+      "id": "serial_timeline",
+      "reservedCny": 0.071546,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 36.754,
+      "firstDeltaSeconds": 0.643,
+      "firstContentSeconds": null,
+      "finishReason": "length",
+      "usage": {
+        "prompt_tokens": 196,
+        "completion_tokens": 8192,
+        "total_tokens": 8388,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 8192
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 196
+      },
+      "estimatedPeakCny": 0.065928,
+      "outputTokensPerWallSecond": 222.89,
+      "contentCharacters": 0,
+      "toolNames": []
+    },
+    {
+      "id": "parallel_board",
+      "reservedCny": 0.072114,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 32.141,
+      "firstDeltaSeconds": 0.212,
+      "firstContentSeconds": null,
+      "finishReason": "length",
+      "usage": {
+        "prompt_tokens": 282,
+        "completion_tokens": 8192,
+        "total_tokens": 8474,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 8192
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 154
+      },
+      "estimatedPeakCny": 0.065849,
+      "outputTokensPerWallSecond": 254.88,
+      "contentCharacters": 0,
+      "toolNames": []
+    },
+    {
+      "id": "parallel_timeline",
+      "reservedCny": 0.071546,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 27.872,
+      "firstDeltaSeconds": 0.212,
+      "firstContentSeconds": 27.34,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 196,
+        "completion_tokens": 6652,
+        "total_tokens": 6848,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 6445
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 196
+      },
+      "estimatedPeakCny": 0.053608,
+      "outputTokensPerWallSecond": 238.66,
+      "contentCharacters": 661,
+      "toolNames": []
+    },
+    {
+      "id": "repair_board",
+      "reservedCny": 0.07659,
+      "status": "completed",
+      "httpStatus": 200,
+      "reportedModel": "deepseek-flash",
+      "seconds": 24.492,
+      "firstDeltaSeconds": 0.34,
+      "firstContentSeconds": 23.37,
+      "finishReason": "stop",
+      "usage": {
+        "prompt_tokens": 875,
+        "completion_tokens": 5954,
+        "total_tokens": 6829,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 5486
+        },
+        "prompt_cache_hit_tokens": 256,
+        "prompt_cache_miss_tokens": 619
+      },
+      "estimatedPeakCny": 0.04888,
+      "outputTokensPerWallSecond": 243.1,
+      "contentCharacters": 1628,
+      "toolNames": []
+    }
+  ],
+  "batches": [
+    {
+      "name": "serial",
+      "seconds": 69.942
+    },
+    {
+      "name": "parallel",
+      "seconds": 32.148
+    }
+  ],
+  "tests": [
+    {
+      "id": "tool_round_trip",
+      "passed": true,
+      "answer": "2500"
+    },
+    {
+      "id": "serial_board",
+      "kind": "board",
+      "sourcePath": "serial_board-2026-09-30T17-34-27.784Z.cjs",
+      "passed": false,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": false,
+          "error": "must allow exact boundary"
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": true
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "serial_timeline",
+      "kind": "timeline",
+      "sourcePath": "serial_timeline-2026-09-30T17-34-27.784Z.cjs",
+      "passed": false,
+      "checks": [
+        {
+          "name": "no_early_events",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "inclusive_boundary",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "stable_ties",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "no_duplicates",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "backward_rejected",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "copy_inputs",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        },
+        {
+          "name": "invalid_time",
+          "passed": false,
+          "error": "module.exports.createTimeline is not a function"
+        }
+      ]
+    },
+    {
+      "id": "parallel_timeline",
+      "kind": "timeline",
+      "sourcePath": "parallel_timeline-2026-09-30T17-34-27.784Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "no_early_events",
+          "passed": true
+        },
+        {
+          "name": "inclusive_boundary",
+          "passed": true
+        },
+        {
+          "name": "stable_ties",
+          "passed": true
+        },
+        {
+          "name": "no_duplicates",
+          "passed": true
+        },
+        {
+          "name": "backward_rejected",
+          "passed": true
+        },
+        {
+          "name": "copy_inputs",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "parallel_board",
+      "kind": "board",
+      "sourcePath": "parallel_board-2026-09-30T17-34-27.784Z.cjs",
+      "passed": false,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": false,
+          "error": "module.exports.createBoard is not a function"
+        },
+        {
+          "name": "place_cost",
+          "passed": false,
+          "error": "module.exports.createBoard is not a function"
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": false,
+          "error": "module.exports.createBoard is not a function"
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": false,
+          "error": "module.exports.createBoard is not a function"
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": false,
+          "error": "module.exports.createBoard is not a function"
+        },
+        {
+          "name": "invalid_cell",
+          "passed": false,
+          "error": "module.exports.createBoard is not a function"
+        },
+        {
+          "name": "invalid_time",
+          "passed": false,
+          "error": "module.exports.createBoard is not a function"
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": false,
+          "error": "module.exports.createBoard is not a function"
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": false,
+          "error": "module.exports.createBoard is not a function"
+        }
+      ]
+    },
+    {
+      "id": "injected_fault_detected",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": false,
+          "error": "must allow exact boundary"
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": false,
+          "error": "top-up or failed cooldown"
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": false,
+          "error": "invalid energy accepted"
+        }
+      ]
+    },
+    {
+      "id": "repair_board",
+      "sourcePath": "repaired-board-2026-09-30T17-34-27.784Z.cjs",
+      "passed": true,
+      "checks": [
+        {
+          "name": "initial",
+          "passed": true
+        },
+        {
+          "name": "place_cost",
+          "passed": true
+        },
+        {
+          "name": "cooldown_boundary",
+          "passed": true
+        },
+        {
+          "name": "occupied_before_cooldown",
+          "passed": true
+        },
+        {
+          "name": "insufficient_no_mutation",
+          "passed": true
+        },
+        {
+          "name": "invalid_cell",
+          "passed": true
+        },
+        {
+          "name": "invalid_time",
+          "passed": true
+        },
+        {
+          "name": "snapshot_copy",
+          "passed": true
+        },
+        {
+          "name": "add_energy_validation",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "status": "completed_with_test_failures",
+  "elapsedSeconds": 127.897,
+  "estimatedPeakCny": 0.30038,
+  "pendingReserveCny": 0
+}
