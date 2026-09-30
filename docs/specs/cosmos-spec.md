@@ -4,6 +4,8 @@
 
 仓库：[lrfluobida/Cosmos](https://github.com/lrfluobida/Cosmos)
 
+已发布：[spec 主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，包含 17 个原生子任务；编号与依赖见 [发布映射](github-issues.json)。
+
 ## 1. 已确认的产品目标
 
 | 编号 | 要求 |

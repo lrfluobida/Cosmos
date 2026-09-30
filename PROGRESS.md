@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-需求基线已收敛：正式单次生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。正在同步 spec 与任务卡，并发布 GitHub 主 issue 与子任务。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个已核实的原生子任务。正式单次生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。进入按依赖实施阶段。
 
 ## 用户提出的目标
 
@@ -22,8 +22,8 @@
 
 | 工作 | 状态 | 证据 / 下一步 |
 | --- | --- | --- |
-| 检查工作区与已有项目约定 | 已完成 | 初始目录为空，无 Git 仓库、remote 或现有代码 |
-| 查找 GitHub 发布位置 | 已完成 | [lrfluobida/Cosmos](https://github.com/lrfluobida/Cosmos)，已核实为空仓库、Issues 已开启，当前连接有写权限 |
+| 检查工作区与已有项目约定 | 已完成 | 初始为空目录；现已初始化 Git，文档与探针记录已推送 main，保持 UTF-8 / LF |
+| 查找 GitHub 发布位置 | 已完成 | [lrfluobida/Cosmos](https://github.com/lrfluobida/Cosmos)，使用已认证的同名账户发布；连接器的 issue 写入权限不足已由本机标准认证完成 |
 | pi SDK、扩展与子代理能力调研 | 首轮完成 | [源码与官方文档结论](docs/research/2026-09-30-feasibility.md)，技术验证尚未执行 |
 | 游戏运行、自动试玩与美术验收调研 | 首轮完成 | [候选平台、验收办法与验证任务](docs/research/2026-09-30-feasibility.md) |
 | 第 1 轮需求访谈 | 已回答 | 已记录产品、内容与美术要求、交互、资源偏好及仓库 |
@@ -37,9 +37,9 @@
 | 比较方案并记录关键决策 | 待前置决策 | 真正涉及重要取舍时再创建 ADR |
 | 编写、审查并确认 spec | v1.0 发布基线 | 结构审查通过，用户已确认 ¥200/12h 硬上限和 ¥100/6h 优化目标 |
 | 真实成本与时延探针 | 直接 API 与局部规则已测 | [31 次调用记录](probes/2026-10-01-deepseek/README.md)，高峰价保守估算 ¥0.721771；pi 集成和完整关卡仍未测 |
-| 任务拆分草案 | 已完成 | [17 项任务卡](docs/specs/cosmos-issues.md)，含父 issue 草稿、依赖、产物、验收和上下文包 |
-| 发布 spec 主 issue 和子任务 | 进行中 | 仓库 lrfluobida/Cosmos；发布后回填实际链接 |
-| 子代理逐项实施 | 待任务就绪 | 每次交接携带任务上下文、允许修改范围及验证证据 |
+| 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
+| 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
+| 子代理逐项实施 | 首批任务已就绪 | COS-01 来源调查、COS-02 契约、COS-05 通用工程；每次交接携带输入版本、修改范围与验收证据 |
 
 ## 第 1 轮：根问题与回答
 

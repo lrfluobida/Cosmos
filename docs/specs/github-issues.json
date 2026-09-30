@@ -1,0 +1,410 @@
+{
+  "repository": "lrfluobida/Cosmos",
+  "specVersion": "1.0",
+  "baselineCommit": "0239c7a0dfb3d6f38fd201a5a63308e3efcc0783",
+  "createdAt": "2026-09-30T18:14:01.409Z",
+  "status": "published",
+  "parent": {
+    "number": 1,
+    "id": 5650981546,
+    "url": "https://github.com/lrfluobida/Cosmos/issues/1"
+  },
+  "tasks": [
+    {
+      "taskId": "COS-01",
+      "priority": "P0",
+      "title": "固定参考来源与完整验收清单",
+      "number": 2,
+      "id": 5650981929,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/2",
+      "dependsOn": [],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-02",
+      "priority": "P0",
+      "title": "定义任务、上下文与共享预算契约",
+      "number": 3,
+      "id": 5650982384,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/3",
+      "dependsOn": [],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-03",
+      "priority": "P0",
+      "title": "验证指定模型与 pi provider",
+      "number": 4,
+      "id": 5650982764,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/4",
+      "dependsOn": [
+        {
+          "id": "COS-02",
+          "number": 3,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/3"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-04",
+      "priority": "P0",
+      "title": "验证原创美术与音频供应链",
+      "number": 5,
+      "id": 5650983137,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/5",
+      "dependsOn": [
+        {
+          "id": "COS-02",
+          "number": 3,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/3"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-05",
+      "priority": "P0",
+      "title": "建立 Windows CLI 与通用浏览器工程",
+      "number": 6,
+      "id": 5650983649,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/6",
+      "dependsOn": [],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-06",
+      "priority": "P0",
+      "title": "实现最小状态与预算执行器",
+      "number": 7,
+      "id": 5650984058,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/7",
+      "dependsOn": [
+        {
+          "id": "COS-02",
+          "number": 3,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/3"
+        },
+        {
+          "id": "COS-05",
+          "number": 6,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/6"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-07",
+      "priority": "P0",
+      "title": "接通运行时角色与独立评审上下文",
+      "number": 8,
+      "id": 5650984468,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/8",
+      "dependsOn": [
+        {
+          "id": "COS-02",
+          "number": 3,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/3"
+        },
+        {
+          "id": "COS-03",
+          "number": 4,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/4"
+        },
+        {
+          "id": "COS-06",
+          "number": 7,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/7"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-08",
+      "priority": "P0",
+      "title": "建立正常输入驱动的验收链路",
+      "number": 9,
+      "id": 5650984839,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/9",
+      "dependsOn": [
+        {
+          "id": "COS-02",
+          "number": 3,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/3"
+        },
+        {
+          "id": "COS-05",
+          "number": 6,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/6"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-09",
+      "priority": "P0",
+      "title": "实现产物登记与代码资产集成",
+      "number": 10,
+      "id": 5650985373,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/10",
+      "dependsOn": [
+        {
+          "id": "COS-02",
+          "number": 3,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/3"
+        },
+        {
+          "id": "COS-04",
+          "number": 5,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/5"
+        },
+        {
+          "id": "COS-05",
+          "number": 6,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/6"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-10",
+      "priority": "P0",
+      "title": "由 Cosmos 生成真实端到端切片",
+      "number": 11,
+      "id": 5650985736,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/11",
+      "dependsOn": [
+        {
+          "id": "COS-03",
+          "number": 4,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/4"
+        },
+        {
+          "id": "COS-04",
+          "number": 5,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/5"
+        },
+        {
+          "id": "COS-05",
+          "number": 6,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/6"
+        },
+        {
+          "id": "COS-06",
+          "number": 7,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/7"
+        },
+        {
+          "id": "COS-07",
+          "number": 8,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/8"
+        },
+        {
+          "id": "COS-08",
+          "number": 9,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/9"
+        },
+        {
+          "id": "COS-09",
+          "number": 10,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/10"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-11",
+      "priority": "P1",
+      "title": "实现受约束的修复与重新规划",
+      "number": 12,
+      "id": 5650986216,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/12",
+      "dependsOn": [
+        {
+          "id": "COS-10",
+          "number": 11,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/11"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-12",
+      "priority": "P1",
+      "title": "验证取消、异常退出与恢复",
+      "number": 13,
+      "id": 5650986547,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/13",
+      "dependsOn": [
+        {
+          "id": "COS-06",
+          "number": 7,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/7"
+        },
+        {
+          "id": "COS-09",
+          "number": 10,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/10"
+        },
+        {
+          "id": "COS-11",
+          "number": 12,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/12"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-13",
+      "priority": "P1",
+      "title": "验证并行调度与长时执行边界",
+      "number": 14,
+      "id": 5650986992,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/14",
+      "dependsOn": [
+        {
+          "id": "COS-07",
+          "number": 8,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/8"
+        },
+        {
+          "id": "COS-08",
+          "number": 9,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/9"
+        },
+        {
+          "id": "COS-12",
+          "number": 13,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/13"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-14",
+      "priority": "P1",
+      "title": "建立完整基准的运行时验收工具",
+      "number": 15,
+      "id": 5650987451,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/15",
+      "dependsOn": [
+        {
+          "id": "COS-01",
+          "number": 2,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/2"
+        },
+        {
+          "id": "COS-08",
+          "number": 9,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/9"
+        },
+        {
+          "id": "COS-11",
+          "number": 12,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/12"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-15",
+      "priority": "P1",
+      "title": "执行完整基准生成与自动验收",
+      "number": 16,
+      "id": 5650987830,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/16",
+      "dependsOn": [
+        {
+          "id": "COS-01",
+          "number": 2,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/2"
+        },
+        {
+          "id": "COS-10",
+          "number": 11,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/11"
+        },
+        {
+          "id": "COS-11",
+          "number": 12,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/12"
+        },
+        {
+          "id": "COS-12",
+          "number": 13,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/13"
+        },
+        {
+          "id": "COS-13",
+          "number": 14,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/14"
+        },
+        {
+          "id": "COS-14",
+          "number": 15,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/15"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-16",
+      "priority": "P2",
+      "title": "验证不同需求的有限迁移",
+      "number": 17,
+      "id": 5650988223,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/17",
+      "dependsOn": [
+        {
+          "id": "COS-10",
+          "number": 11,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/11"
+        },
+        {
+          "id": "COS-13",
+          "number": 14,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/14"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open"
+    },
+    {
+      "taskId": "COS-17",
+      "priority": "P1",
+      "title": "整理交付与用户最终试玩",
+      "number": 18,
+      "id": 5650988578,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/18",
+      "dependsOn": [
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "parentClosureAlsoRequires": [
+        "COS-16"
+      ]
+    }
+  ],
+  "verifiedNativeSubIssues": 17,
+  "completedAt": "2026-09-30T18:15:15.151Z"
+}

@@ -13,6 +13,7 @@
 
 ## 文档
 
+- [GitHub spec 与 17 个子任务](https://github.com/lrfluobida/Cosmos/issues/1)
 - [产品与执行规范](docs/specs/cosmos-spec.md)
 - [17 项任务与依赖](docs/specs/cosmos-issues.md)
 - [进度](PROGRESS.md)

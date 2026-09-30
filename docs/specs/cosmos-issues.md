@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-01 已确认实施基线，按用户已有授权发布 GitHub Issues；发布结果由主线程回填。任务 ID 是本文内的稳定编号，发布后补实际 issue 链接。
+状态：2026-10-01 已发布。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 17 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -38,23 +38,23 @@
 
 ### 子任务清单
 
-- [ ] COS-01 固定参考来源与完整验收清单
-- [ ] COS-02 定义任务、上下文与共享预算契约
-- [ ] COS-03 验证指定模型与 pi provider
-- [ ] COS-04 验证原创美术与音频供应链
-- [ ] COS-05 建立 Windows CLI 与通用浏览器工程
-- [ ] COS-06 实现最小状态与预算执行器
-- [ ] COS-07 接通运行时角色与独立评审上下文
-- [ ] COS-08 建立正常输入驱动的验收链路
-- [ ] COS-09 实现产物登记与代码资产集成
-- [ ] COS-10 由 Cosmos 生成真实端到端切片
-- [ ] COS-11 实现受约束的修复与重新规划
-- [ ] COS-12 验证取消、异常退出与恢复
-- [ ] COS-13 验证并行调度与长时执行边界
-- [ ] COS-14 建立完整基准的运行时验收工具
-- [ ] COS-15 执行完整基准生成与自动验收
-- [ ] COS-16 验证不同需求的有限迁移
-- [ ] COS-17 整理交付与用户最终试玩
+- [ ] [COS-01 固定参考来源与完整验收清单](https://github.com/lrfluobida/Cosmos/issues/2)
+- [ ] [COS-02 定义任务、上下文与共享预算契约](https://github.com/lrfluobida/Cosmos/issues/3)
+- [ ] [COS-03 验证指定模型与 pi provider](https://github.com/lrfluobida/Cosmos/issues/4)
+- [ ] [COS-04 验证原创美术与音频供应链](https://github.com/lrfluobida/Cosmos/issues/5)
+- [ ] [COS-05 建立 Windows CLI 与通用浏览器工程](https://github.com/lrfluobida/Cosmos/issues/6)
+- [ ] [COS-06 实现最小状态与预算执行器](https://github.com/lrfluobida/Cosmos/issues/7)
+- [ ] [COS-07 接通运行时角色与独立评审上下文](https://github.com/lrfluobida/Cosmos/issues/8)
+- [ ] [COS-08 建立正常输入驱动的验收链路](https://github.com/lrfluobida/Cosmos/issues/9)
+- [ ] [COS-09 实现产物登记与代码资产集成](https://github.com/lrfluobida/Cosmos/issues/10)
+- [ ] [COS-10 由 Cosmos 生成真实端到端切片](https://github.com/lrfluobida/Cosmos/issues/11)
+- [ ] [COS-11 实现受约束的修复与重新规划](https://github.com/lrfluobida/Cosmos/issues/12)
+- [ ] [COS-12 验证取消、异常退出与恢复](https://github.com/lrfluobida/Cosmos/issues/13)
+- [ ] [COS-13 验证并行调度与长时执行边界](https://github.com/lrfluobida/Cosmos/issues/14)
+- [ ] [COS-14 建立完整基准的运行时验收工具](https://github.com/lrfluobida/Cosmos/issues/15)
+- [ ] [COS-15 执行完整基准生成与自动验收](https://github.com/lrfluobida/Cosmos/issues/16)
+- [ ] [COS-16 验证不同需求的有限迁移](https://github.com/lrfluobida/Cosmos/issues/17)
+- [ ] [COS-17 整理交付与用户最终试玩](https://github.com/lrfluobida/Cosmos/issues/18)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
