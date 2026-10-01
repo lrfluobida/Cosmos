@@ -41,7 +41,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   const stop = state.stopReason;
   if (stop !== null && (!stop || !['manual', 'charge_overrun'].includes(stop.code) || !timestamp(stop.at) || typeof stop.reason !== 'string' || !stop.reason.trim())) throw new Error('Invalid intake stop reason.');
   const errors = validateLedger(state.ledger).filter(issue => !(stop?.code === 'charge_overrun' && ['budget_exceeded', 'allocation_exceeded'].includes(issue.code)));
-  if (errors.length || state.ledger.scope !== 'generation' || !state.ledger.allocations.some(item => item.taskId === state.interviewTaskId)) throw new Error('Invalid intake generation ledger.');
+  if (errors.length || state.ledger.contractVersion !== '1.0.0' || state.ledger.scope !== 'generation' || !state.ledger.allocations.some(item => item.taskId === state.interviewTaskId)) throw new Error('Invalid intake generation ledger.');
   if (!Array.isArray(state.requests) || state.requests.length > state.maxRequests || state.requests.length !== state.ledger.entries.length
     || new Set(state.requests.map(item => item.requestId)).size !== state.requests.length) throw new Error('Invalid intake admissions.');
   for (const record of state.requests) {

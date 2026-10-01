@@ -1,6 +1,6 @@
 import type { ArtifactContract, ArtifactReference, BudgetLedger, ContextPackage, EvidenceContract, ExecutionContracts, RequirementContract, RunManifest, TaskContract, ValidationIssue } from './types.ts';
 import { artifactShape, checkShape, contextShape, evidenceShape, issue, ledgerShape, referenceShape, requirementShape, runShape, taskShape } from './structure.ts';
-import { budgetSummary, DEFAULT_BUDGETS } from './budget.ts';
+import { budgetCapacity, budgetSummary, DEFAULT_BUDGETS } from './budget.ts';
 
 export function sameValue(left: unknown, right: unknown): boolean {
   if (left === right) return true;
@@ -95,7 +95,22 @@ export function validateLedger(value: unknown): ValidationIssue[] {
   const cap = ledger.scope === 'validation' ? DEFAULT_BUDGETS.validationMicroCny : DEFAULT_BUDGETS.generationMicroCny;
   if (ledger.limitMicroCny <= 0 || ledger.limitMicroCny > cap) issue(issues, '$.limitMicroCny', 'hard_limit', `The ${ledger.scope} limit must be positive and at most ${cap} micro-CNY.`);
   unique(ledger.allocations.map(item => item.taskId), '$.allocations', issues); unique(ledger.entries.map(item => item.requestId), '$.entries', issues);
-  if (ledger.allocations.reduce((sum, item) => sum + item.amountMicroCny, 0) > ledger.limitMicroCny) issue(issues, '$.allocations', 'overallocated', 'Task allocations cannot create additional budget.');
+  const summary = { ...budgetSummary(ledger), ...budgetCapacity(ledger) };
+  if (![summary.effectiveLimitMicroCny, summary.allocatedMicroCny, summary.committedMicroCny, ledger.allocations.reduce((sum, item) => sum + item.amountMicroCny, 0)].every(Number.isSafeInteger)) issue(issues, '$', 'money_overflow', 'Cumulative budget amounts must remain safe integers.');
+  if (ledger.contractVersion === '2.0.0') {
+    if (ledger.scope !== 'generation') issue(issues, '$.scope', 'continuation_scope', 'Continuation is formal generation only.');
+    unique(ledger.authorizations!.map(item => item.decisionId), '$.authorizations', issues);
+    unique(ledger.authorizations!.map(item => item.windowId), '$.authorizations', issues);
+    unique(ledger.allocationClosures!.map(item => item.taskId), '$.allocationClosures', issues);
+    for (const authorization of ledger.authorizations!) if (authorization.additionalMicroCny > DEFAULT_BUDGETS.generationMicroCny) issue(issues, '$.authorizations', 'hard_limit', 'Each additional authorization is bounded by the generation cap.');
+    for (const closure of ledger.allocationClosures!) {
+      const allocation = ledger.allocations.find(item => item.taskId === closure.taskId);
+      const entries = ledger.entries.filter(item => item.taskId === closure.taskId);
+      const spent = entries.reduce((sum, item) => sum + item.settledMicroCny, 0);
+      if (!allocation || !ledger.authorizations!.some(item => item.decisionId === closure.decisionId) || entries.some(item => item.reservedMicroCny || item.unknown || !['settled', 'cancelled'].includes(item.status)) || closure.releasedMicroCny !== allocation.amountMicroCny - spent) issue(issues, '$.allocationClosures', 'invalid_closure', 'Close a reconciled grant exactly once, releasing only its unused amount.');
+    }
+  }
+  if (summary.allocatedMicroCny > summary.effectiveLimitMicroCny) issue(issues, '$.allocations', 'overallocated', 'Task allocations cannot create additional budget.');
   ledger.entries.forEach((entry, index) => {
     const p = `$.entries[${index}]`;
     if (!ledger.allocations.some(item => item.taskId === entry.taskId)) issue(issues, p, 'allocation_missing', 'Request must use an existing task allocation.');
@@ -109,7 +124,7 @@ export function validateLedger(value: unknown): ValidationIssue[] {
     const committed = ledger.entries.filter(entry => entry.taskId === allocation.taskId).reduce((sum, entry) => sum + entry.reservedMicroCny + entry.settledMicroCny, 0);
     if (committed > allocation.amountMicroCny) issue(issues, '$.entries', 'allocation_exceeded', `Requests exceed allocation for ${allocation.taskId}.`);
   }
-  if (budgetSummary(ledger).committedMicroCny > ledger.limitMicroCny) issue(issues, '$.entries', 'budget_exceeded', 'Settled costs and outstanding reservations exceed the shared hard limit.');
+  if (summary.committedMicroCny > summary.effectiveLimitMicroCny) issue(issues, '$.entries', 'budget_exceeded', 'Settled costs and outstanding reservations exceed the shared hard limit.');
   return issues;
 }
 export function validateRun(value: unknown): ValidationIssue[] {
