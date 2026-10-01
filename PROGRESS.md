@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批开发已开始：每项任务独立 implementer 与 reviewer，同批由一个 merger 合入主分支。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批已部分合入本地 main：COS-05 通过，COS-01 来源目录与冻结检查通过但参考仍未冻结，COS-02 按独立审查意见修复中。GitHub 推送遇到连接重置，待恢复后同步。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -39,7 +39,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 直接 API 与局部规则已测 | [31 次调用记录](probes/2026-10-01-deepseek/README.md)，高峰价保守估算 ¥0.721771；pi 集成和完整关卡仍未测 |
 | 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第一批进行中 | COS-01、COS-02、COS-05 的 implementer 已在独立工作区开始；下一步各自独立 review 与批次 merger |
+| 子代理逐项实施 | 第一批部分合入 | COS-05 与 COS-01 已审查部分已合入本地 main；默认测试 23/23，COS-02 修复审查发现的两项证据与产物版本问题，远端推送待网络恢复 |
 
 ## 开发批次
 
@@ -47,11 +47,13 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 
 | 批次 | 任务 | Implementer | Reviewer | Merger | 状态 |
 | --- | --- | --- | --- | --- | --- |
-| 01 | COS-01 / #2 | cos01_implementer | cos01_reviewer | batch01_merger | 审核发现证据覆盖关联缺陷，implementer 修复中；参考冻结仍未完成 |
-| 01 | COS-02 / #3 | cos02_implementer | 实现提交后启动独立审核 | batch01_merger | 实现中 |
-| 01 | COS-05 / #6 | cos05_implementer | cos05_reviewer | batch01_merger | 1121ae2 已独立批准；CLI 7/7、浏览器 1/1，等待批次合并 |
+| 01 | COS-01 / #2 | cos01_implementer | cos01_reviewer | batch01_merger | 791472e 经修复复审批准部分交付，合并 8b64b59；参考测试 16/16，230 项中 221 项待核对；#2 保持 open |
+| 01 | COS-02 / #3 | cos02_implementer | cos02_reviewer | batch01_merger | 4942808 的独立审查发现两项 P2，implementer 修复中；尚未合并 |
+| 01 | COS-05 / #6 | cos05_implementer | cos05_reviewer | batch01_merger | 1121ae2 已独立批准，合并 5e3670e；构建、类型检查、CLI 7/7 通过，复用浏览器 1/1；推送与 #6 同步待网络恢复 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
+
+审核提交、合并提交、验证范围与待同步事项见 [第一批集成记录](docs/reviews/batch-01.md)。
 
 ## 第 1 轮：根问题与回答
 

@@ -65,7 +65,7 @@ Remove-Item Env:COSMOS_HEADED
 
 测试在临时的中文和空格目录中执行 `init → npm ci → build → preview`，通过真实鼠标输入点击精灵、移动位置、切换场景并返回，同时检查浏览器异常。预览子进程在后台隐藏运行，结束后清理进程及临时项目。截图保留在 `.cosmos/browser-evidence/`，命令输出与结果在 `.cosmos/browser-report.json` 和 `.cosmos/browser-results/`。
 
-`npm test` 使用 Node 22 的 glob 发现 `tests/**/*.test.ts`，涵盖 CLI 及合并后的契约测试；Playwright 场景使用单独的 `*.spec.ts` 入口。CLI 测试覆盖已有文件保留、junction 拒绝、错误参数、缺依赖和编译失败传播。
+`npm test` 使用 Node 22 的 glob 发现 `tests/**/*.test.ts` 和 `tests/**/*.test.mjs`，涵盖 CLI、参考冻结检查及合并后的契约测试；Playwright 场景使用单独的 `*.spec.ts` 入口。CLI 测试覆盖已有文件保留、junction 拒绝、错误参数、缺依赖和编译失败传播。
 
 `window.cosmosDebug` 通过无 setter 的 getter 返回冻结快照。它只能观测，不提供状态修改入口；浏览器验证的关键状态变化全部来自玩家可用输入。
 
