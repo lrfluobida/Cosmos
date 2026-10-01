@@ -510,8 +510,25 @@
       "reviewStatus": "DOC_PREP_READY",
       "reviewedCommit": "2f02e987b47c47347e2a43ac5021f37177fad4ad",
       "mergeCommit": "c9d1a8aa49e176fc3253ef230c35723fdc6b100c"
+    },
+    {
+      "taskId": "COS-19",
+      "priority": "P1",
+      "title": "修复原生角色交接格式与输出截断处理",
+      "number": 20,
+      "id": 5666386294,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/20",
+      "dependsOn": [],
+      "relatedTasks": [
+        "COS-07",
+        "COS-10",
+        "COS-18"
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "offline-implementation"
     }
   ],
-  "verifiedNativeSubIssues": 18,
+  "verifiedNativeSubIssues": 19,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

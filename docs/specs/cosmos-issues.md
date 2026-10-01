@@ -1,8 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-01 已发布。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 18 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-02 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 19 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
-补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，补齐产品接线的任务落点，不增加产品范围；任务卡已独立审查并发布，尚未实现或验收，保持 open。
+补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -58,6 +58,7 @@
 - [ ] [COS-16 验证不同需求的有限迁移](https://github.com/lrfluobida/Cosmos/issues/17)
 - [ ] [COS-17 整理交付与用户最终试玩](https://github.com/lrfluobida/Cosmos/issues/18)
 - [ ] [COS-18 接通 Windows 需求访谈与生成运行 CLI](https://github.com/lrfluobida/Cosmos/issues/19)
+- [ ] [COS-19 修复原生角色交接格式与输出截断处理](https://github.com/lrfluobida/Cosmos/issues/20)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -250,6 +251,16 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 通过：Windows 新目录通过公开 CLI 参数、正常 stdin 回答与确认、停止命令或信号，覆盖输入需求、访谈、展示草稿、确认、生成、查看状态、停止/恢复和交付。至少两种不同 brief 无须修改编排器即可进入各自需求；拒绝确认和修改草稿不能误启动生成；停止后不再派发，恢复保留原账本和截止时间，已通过证据按版本复用，未达标产物如实报告。
 - 验证/证据：默认测试注入 provider/host 与模拟时钟，零付费地验证真实命令入口、stdin 流程、确认来源、阶段计费及运行连续性，并保存输出和运行记录；模拟证据不冒充真实生成通过。复用 COS-10 已通过部分的证据，COS-15/16 经本入口完成真实生成与正常游戏输入验收，不为本任务无故重跑付费切片。
 - 失败/边界：未确认即生成、要求手改内部配置才能换需求、停止后继续派发、恢复重新计时或把未验收交付标为完成均失败。仅限 Windows CLI，不扩成 Web 应用、账号系统或新产品平台，不改变完整基准分母、原预算和固定验收条件。
+
+### COS-19 · P1 · 修复原生角色交接格式与输出截断处理
+
+- 关联/状态：父任务 #1；关联 COS-07 / #8、COS-10 / #11、COS-18 / #19；当前离线实施，承接原 R4/R5/R12。已发布正文见 [#20](https://github.com/lrfluobida/Cosmos/issues/20)，本卡不把关联任务新增为执行依赖。
+- 输入/问题：`cos10-reviewed-validation-1` 在固定平台 `f16c8964530fcab7cf7f9c54f0cd84ef17d4c7a4` 失败。design 已写出 17 条实现说明和 8 项玩法映射，但最终回复含前言与 JSON 围栏，整段解析失败；art 达到 16,384 输出 token 上限，被 SDK 正确拒绝，未写入或检查素材。两项均未进入 capture，通用 `insufficient_evidence` 掩盖具体原因；[失败记录](../research/2026-10-02-reviewed-experiment-failure.md) 保留原结果。
+- 输出/范围：集中解析模型消息中的原始 JSON 或唯一明确的 JSON 围栏对象；拒绝歧义、多载荷和不完整内容。磁盘 JSON 继续严格解析，现有字段、权限与验收规则不变。为已知 `PiSessionError('incomplete')` 保存明确、安全的截断诊断，保留已结算费用，禁止执行截断内容或盲目重发。
+- 输出配置：兼容地提供作者分角色上限，生产 art/coding 作者为 65,536 token，并鼓励分块写入；真实请求参数与事前费用预留使用同一配置。design、planning、review 及已有显式配置保持原边界；旧试验配置与记录不改。
+- 通过：包装格式正确的回复可进入 host 检查；非空 remaining/uncertainty、`approved` 加非空 findings 仍拒绝。损坏或歧义 JSON 不猜测修补；截断有明确原因和费用，不写成完成、不增加隐含重试。额度不足在副作用前拒绝，原费用、请求数和截止约束继续生效；离线检查不代替真实生成通过。
+- 验证/工作方式：`role_io_implementer` 负责实现，独立 reviewer 由协调者安排，本批仅 `batch07_merger` 合入。交付定向回归、实际 source commit、独立审查及进度记录；与 COS-18 修复继任任务组分开实施，协调共享 host 工厂配置位置。UTF-8、中文保护和最小修改规则适用。
+- 边界：不手工修改模型字段或旧失败结果，不重开已消费实验；本任务当前仅离线实现，后续真实验证须沿用适用账本和明确运行边界。
 
 ## 5. 任务与上下文包模板
 
