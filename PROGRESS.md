@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第三批 COS-07、COS-09 已独立复审、合入并推送 main，#8、#10 已关闭。最终组合测试 177/177、构建与类型检查通过；真实 pi 探针证据继续复用，共享验证累计估算 ¥0.735971，本批集成未新增付费调用。COS-10 的需求与验收准备提交已获独立审核，运行驱动正在接通角色调度与产物登记，尚未执行真实游戏生成；COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第四批 COS-10 驱动已独立复审、合入并推送 main；组合测试 194/194、构建与类型检查通过，#11 保持 open，状态为 `driver-merged-awaiting-live`。真实游戏生成尚未开始；共享验证累计估算仍为 ¥0.735971，本批集成未新增付费调用。第三批 #8、#10 已关闭，既有真实 pi 与媒体证据继续复用；COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -39,7 +39,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 直接 API 与 pi SDK 已测 | 31 次直接调用估算 ¥0.721771；新增 pi 6 次请求、6852ms、¥0.014200；共享账本累计 ¥0.735971，预留与未知费用为零；完整关卡仍未测 |
 | 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第三批完成 | COS-09 94c52cf 与 COS-07 3f0489d 均经修复复审后合入并推送；最终 177/177，构建与类型检查通过；#8、#10 已关闭 |
+| 子代理逐项实施 | 第四批驱动已合入，等待真实运行 | COS-10 e28df14 经浏览器环境修复复审批准，合并 29a9c69；组合 194/194、构建与类型检查通过；#11 保持 open |
 
 ## 开发批次
 
@@ -60,6 +60,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 02 | COS-04 / #5 | cos04_implementer | cos04_reviewer | batch02_merger | a7a337b 批准并合入 d89639b；7 项测试、14 帧/3 状态/5 WAV 解码和首 BGM 静音播放通过；外部费用 ¥0；#5 已关闭 |
 | 03 | COS-09 / #10 | cos09_implementer | cos09_reviewer | batch03_merger | 94c52cf 修复评审与验证尝试绑定后获批，合并 5e00bdc；10/10 产物测试、类型检查与构建通过；已推送，#10 已关闭 |
 | 03 | COS-07 / #8 | cos07_implementer | cos07_reviewer | batch03_merger | 3f0489d 修复三项发现后复审批准，合并 f779c4f；最终 177/177、构建与类型检查通过；已推送，#8 已关闭 |
+| 04 | COS-10 / #11 | cos10_implementer | cos10_reviewer | batch04_merger | e28df14 修复浏览器环境继承后获驱动集成批准，合并 29a9c69；194/194、构建与类型检查通过；已推送，真实运行未开始，#11 保持 open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -69,7 +70,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 
 [第三批执行计划](docs/plans/2026-10-01-batch-03.md) 覆盖 COS-07 角色执行、明确需求确认与 COS-09 产物集成；审核与合并证据见 [第三批集成记录](docs/reviews/batch-03.md)。复用本批验证结果，真实端到端生成由 COS-10 验证。
 
-[第四批执行计划](docs/plans/2026-10-01-batch-04.md) 覆盖 COS-10 真实生成驱动、独立评审、共享账本内的有界运行与证据发布。准备提交 `e89a323` 仅获准备阶段批准，不能据此关闭 #11。COS-11 可并行进行只读接口准备，具体修复策略仍依赖本次真实运行结果。
+[第四批执行计划](docs/plans/2026-10-01-batch-04.md) 的驱动已独立批准并合入，证据见 [第四批集成记录](docs/reviews/batch-04.md) 与 [#11 进度](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5927502879)。下一步由协调者使用临时凭据和原共享账本执行有界运行；八项固定玩法验收、附加检查、独立启动和实际费用/耗时仍待验证，驱动通过不能关闭 #11。COS-11 仅完成只读接口准备，具体修复策略依赖真实结果；COS-16 的不同机制验证仍依赖 COS-10/13。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
