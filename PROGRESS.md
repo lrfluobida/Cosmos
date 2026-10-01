@@ -71,6 +71,8 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 07 | COS-01 / #2 资源元数据补充 | feat/cos-01-resource-evidence 独立 implementer | cos01_reviewer | batch07_merger | b8790a8 获 READY，合入 2aa62fa；参考 CLI 校验通过，复用 16/16；230 项中 221 项待核对，基准仍未冻结 |
 | 07 | COS-14 / #15 验收工具草稿 | feat/cos-14-acceptance-draft 独立 implementer | cos14_reviewer | batch07_merger | 1c3e189 修复计时边界 P2 后获 READY，合入 522ae51；10/10、参考 CLI 通过；恒为 draft/blocked，#15 保持 open/preparatory，G4 仍关闭 |
 | 07 | COS-16 / #17 迁移用例文档 | feat/cos-16-transfer-case 独立 implementer | cos16_reviewer | batch07_merger | bb00583 获 READY，合入 6cc42f6；单文档源一致、UTF-8/LF 与中文复读通过；preparation-only/open，尚未生成或验收游戏 |
+| 07 | COS-10 / #11 新声明准备 | feat/cos-10-reviewed-experiment 独立 implementer | cos10_reviewer | batch07_merger | ecfc150 获 PREP_ONLY，合入 75cf405；5/5 非浏览器准入检查、严格 probes TS 与根类型检查通过；尚未执行，#11 保持 open |
+| 07 | COS-08 / #9 文本可见性修复 | fix/acceptance-visible-text 独立 implementer | cos08_reviewer | batch07_merger | cca4f10 获 READY，合入 1704d37；源一致、组合类型检查通过，复用真实 Edge 4/4；保留已完成任务状态，不代表完整视觉验收 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -92,7 +94,11 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 
 COS-16 [网格推箱子用例](probes/transfer/README.md) 已独立批准并合入 `6cc42f6`，固定 T16-01 至 T16-06 正常输入验收；地图与解法由 runtime design 产生，host 独立校验后冻结，真实浏览器关闭/重开及可信 plan 绑定接口仍待补齐。[#17 已同步](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5934548679)并保持 preparation-only/open，原账本、额度、截止与停止状态不变；本次仅文档准备，未生成游戏或启动付费试验。
 
-2026-10-02，COS-18 B 接通公开 `new/status/stop/resume`、真实 stdin 修订确认、独立运行时角色及固定产物的构建、正常输入、媒体观测、截图和评审；保留原账本、80% 提示、受限纠错与修复历史。46/46 聚焦检查与编译串行通过。复用 production-host 的真实 tsc/Vite→Edge 点击→report→registry smoke，模型/API 请求为零，报告明确 `generatedByCosmos: false` 和 test-only 媒体观测，不能当作游戏生成通过。通用 host 单批限 1–16 角色、0–16 PCM；下游修复续接、硬停止后用户追加额度/时间与完整经典适配缺口仍在，#19 保持 open。新 COS-10 experiment 尚未获本批批准或启动，旧试验、共享费用和 G3/G4 状态不变。
+2026-10-02，COS-18 B 接通公开 `new/status/stop/resume`、真实 stdin 修订确认、独立运行时角色及固定产物的构建、正常输入、媒体观测、截图和评审；保留原账本、80% 提示、受限纠错与修复历史。46/46 聚焦检查与编译串行通过。复用 production-host 的真实 tsc/Vite→Edge 点击→report→registry smoke，模型/API 请求为零，报告明确 `generatedByCosmos: false` 和 test-only 媒体观测，不能当作游戏生成通过。通用 host 单批限 1–16 角色、0–16 PCM；下游修复续接、硬停止后用户追加额度/时间与完整经典适配缺口仍在，#19 保持 open。旧试验、共享费用和 G3/G4 状态不变。
+
+新声明 `cos10-reviewed-validation-1` 已经独立审查，以 PREP_ONLY 合入 `75cf405`，尚未执行。新增实际加预留最多 ¥5、验证累计最多 ¥30，仍使用同一本 ¥150 账本与原 `2026-10-01T18:16:16.857Z` 截止；另受 45 分钟、40 请求、一次语义修复限制。所有旧条目与失败历史保留，部分 claim 也消耗唯一机会且无恢复入口。5/5 非浏览器声明/guard 检查和组合类型检查通过；作者 37/37 中包含 headless Edge contact-sheet，证据复用未重跑。协调者另行将精确 main 与执行决定写入新 origin，merger 推送后冻结 main，等待释放。
+
+同步合入 `1704d37` 修复隐藏 DOM 胜利文本可误通过的问题：文本 locator 先按 Playwright 标准可见性过滤，再在原 timeout 内读取；runner 剩余时间限制不变。独立评审通过，真实 Edge 4/4 复用，当前组合类型检查通过；完整视觉验收仍需其他证据。本次集成未启动付费 experiment、浏览器或原试验，费用估算仍为 ¥0.892282，预留/未知为零；没有新增游戏或 live gate 通过。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
