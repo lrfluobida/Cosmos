@@ -45,6 +45,8 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 
 用户要求：每个任务分别设置 implementer 和 reviewer，由同批唯一 merger 合入 main；持续推进已授权工作。
 
+第三批 COS-07 与 COS-09 已并行开始，分别负责模型提出任务计划后的角色执行，以及固定版本产物的校验、暂存与提升。计划与产物都必须经过宿主验证，模型回复本身不代表通过。
+
 第二批追加 COS-04 通用美术与音频验证，与 provider 和浏览器的审核修复并行；同批仍由 batch02_merger 唯一合并。
 
 | 批次 | 任务 | Implementer | Reviewer | Merger | 状态 |
