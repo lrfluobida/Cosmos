@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "referenceId": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+  "status": "metadata_pinned_content_pending",
+  "frozen": false,
+  "capturedAt": "2026-10-01",
+  "scope": "经典 PC 主要内容；用户指定此安装为可执行参考；GOTY 附加项单列。",
+  "installation": {
+    "path": "C:\\Program Files (x86)\\PlantsVsZombies",
+    "executable": "PlantsVsZombies.exe",
+    "fileVersion": "1.2.0.1073",
+    "productVersion": "GOTY",
+    "productName": "Plants vs. Zombies",
+    "originalFilename": "PlantsVsZombies.exe",
+    "bytes": 3838152,
+    "sha256": "c04c524c6a3720bce00b7f2900c61d5810534dabf9926641c12921f53ac29f8d",
+    "distributionChannel": null,
+    "uiLanguage": null,
+    "runtimeObserved": false,
+    "localReadmeManualLicenseFound": false
+  },
+  "inspection": {
+    "method": "只读目录枚举、EXE VersionInfo、Get-FileHash SHA256；未启动游戏、未解析 main.pak、未复制美术或音频。",
+    "commands": [
+      "Get-ChildItem -LiteralPath 'C:/Program Files (x86)/PlantsVsZombies'",
+      "(Get-Item -LiteralPath 'C:/Program Files (x86)/PlantsVsZombies/PlantsVsZombies.exe').VersionInfo | Select-Object FileVersion,ProductVersion,ProductName,OriginalFilename",
+      "Get-FileHash -LiteralPath 'C:/Program Files (x86)/PlantsVsZombies/PlantsVsZombies.exe' -Algorithm SHA256",
+      "Get-ChildItem -LiteralPath 'C:/Program Files (x86)/PlantsVsZombies' -File -Recurse | Where-Object { $_.Name -match 'readme|manual|license' }"
+    ],
+    "directoryEntries": [
+      "reanim/",
+      "bass.dll",
+      "Client_ad",
+      "main.pak",
+      "PlantsVsZombies.exe",
+      "Uninstall.exe"
+    ],
+    "encodingNote": "未发现本地 readme/manual/license 文本，因此未转码或修改任何安装文件。版本资源是二进制元数据，不作为文本文件解码。"
+  },
+  "sources": [
+    {
+      "id": "SPEC",
+      "type": "requirement",
+      "edition": "Cosmos 需求基线 v1.0",
+      "location": "docs/specs/cosmos-spec.md",
+      "anchors": {
+        "scope": "第 1 节 R13/R14/R18、第 4B 节",
+        "acceptance": "第 4.4 节、第 4B 节",
+        "budget": "第 4.5 节、第 4A 节"
+      },
+      "status": "requirement",
+      "note": "这是验收要求，不是参考游戏实际行为证据。"
+    },
+    {
+      "id": "LOCAL",
+      "type": "local_metadata",
+      "edition": "Windows PC GOTY 1.2.0.1073",
+      "location": "reference.json#/installation",
+      "anchors": {
+        "identity": "installation + inspection"
+      },
+      "status": "verified_for_edition",
+      "note": "仅证明此文件的自报版本与身份；尚未验证菜单、图鉴、玩法或发行渠道。"
+    },
+    {
+      "id": "STEAM",
+      "type": "publisher_store",
+      "edition": "Steam GOTY；页面未固定 EXE build",
+      "location": "https://store.steampowered.com/app/3590/",
+      "anchors": {
+        "counts": "About This Game / Key features: 50 levels, 49 plants, 26 zombies",
+        "modes": "About This Game / Key features: Adventure, Mini-Games, Puzzle, Survival, Zen Garden"
+      },
+      "status": "verified_for_edition",
+      "checkedAt": "2026-10-01",
+      "claims": {
+        "adventureLevels": 50,
+        "plants": 49,
+        "zombies": 26
+      },
+      "note": "汇总数量只能用于候选名册占位，不能证明本机安装名册或行为。"
+    },
+    {
+      "id": "EA-MAC",
+      "type": "publisher_readme",
+      "edition": "Mac 1.0.40；build 2012-10-17",
+      "location": "https://akamai.cdn.ea.com/eadownloads/u/f/manuals/GAME-PVZ/en_US_readme.html",
+      "anchors": {
+        "edition": "Header: Version / Build Date; SYSTEM REQUIREMENTS",
+        "adventure": "GAME MODES > Adventure",
+        "mini": "GAME MODES > Mini-games",
+        "puzzle": "GAME MODES > Puzzle",
+        "survival": "GAME MODES > Survival",
+        "garden": "GAME MODES > Zen Garden",
+        "shop": "SCORING > Crazy Dave's Shop"
+      },
+      "status": "verified_for_edition",
+      "checkedAt": "2026-10-01",
+      "claims": {
+        "miniGames": 20,
+        "vasebreakerIncludingEndless": 10,
+        "iZombieIncludingEndless": 10,
+        "survivalIncludingEndless": 11
+      },
+      "note": "页首同时有 2009 release date，不能据此当作 Windows 首发版说明。只作候选规模与核对入口，不搬入数值作为本机真值。"
+    },
+    {
+      "id": "GOTY-NEWS",
+      "type": "publisher_news",
+      "edition": "Steam GOTY 2010 announcement",
+      "location": "https://store.steampowered.com/oldnews/4183",
+      "anchors": {
+        "extras": "2010-08-10 Product Release paragraph"
+      },
+      "status": "verified_for_edition",
+      "checkedAt": "2026-10-01",
+      "claims": {
+        "separateExtras": [
+          "Steam Achievements",
+          "Steam Cloud",
+          "Zombatar"
+        ]
+      },
+      "note": "新增项单列；不能把该公告当作用户安装一定带有 Steam 功能的证明。"
+    }
+  ],
+  "blockers": [
+    {
+      "id": "B-RUNTIME",
+      "resolution": "正常启动用户指定安装，记录标题/版本界面、语言、主菜单与环境；不得只凭元数据声称可运行。"
+    },
+    {
+      "id": "B-CENSUS",
+      "resolution": "逐页记录全部关卡、模式、植物、僵尸、商店商品和变体；将候选槽位绑定真实名称、菜单位置和证据，新增遗漏项。"
+    },
+    {
+      "id": "B-RULES",
+      "resolution": "补齐每关条件、出怪规则、特殊关、二周目、无尽增长、角色行为与交互规则。"
+    },
+    {
+      "id": "B-VALUES",
+      "resolution": "按 observation-contract.md 记录关键离散值、时间样本、测量误差与证据；未知值保持 null。"
+    },
+    {
+      "id": "B-PROGRESSION",
+      "resolution": "用正常输入证明关键解锁、购买、跨关及退出重进后的存档链。"
+    },
+    {
+      "id": "B-EDITION",
+      "resolution": "核对本机 GOTY 与经典主要内容范围的差异，记录附加项与偶发 bug 的单独处置。"
+    },
+    {
+      "id": "B-REVIEW",
+      "resolution": "独立评审核实名册闭合、所有必需条目的规则/数值/证据，并明确批准冻结；校验器通过不能代替评审。"
+    }
+  ],
+  "freezeReview": null
+}
