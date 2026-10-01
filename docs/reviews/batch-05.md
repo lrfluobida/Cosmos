@@ -40,3 +40,15 @@ COS-12 Phase A commit `9370eb27` was under independent review at this handoff an
 ## Remote synchronization
 
 Command-scoped proxy push advanced main from `034b57f` to `e1467f06990cfad160f2fa8ecbae0f02de9a7538`; `ls-remote` confirmed the exact code SHA before the [COS-11 status comment](https://github.com/lrfluobida/Cosmos/issues/12#issuecomment-5928992000) was posted. The API confirmed #12 remains open. The task mapping records `offline-verified-awaiting-live`, the approved and merge SHAs, and that comment. This record and progress synchronization follow the verified code push.
+
+## COS-12 Phase A integration
+
+The independent reviewer approved `ab6a2e08d0352575989abff68b5e6f615330cf8e` as `PHASE_A_READY` after one P2 fix, with no remaining P1/P2 findings. The fix makes failed owner release retryable across OwnerLock, SnapshotStore and RunController, keeps closing objects unavailable for new work, shares concurrent close results and prevents a released owner from deleting a later owner's lock.
+
+It merged without conflicts as `7cff53794665f4f759d6973061e4dc25855269e1`, with `96b2ddcec3ba23e53d84c662efbb065e1595a6d2` as first parent and the exact approved SHA as second parent. All thirteen owned paths match the approved tree; COS-11 and the review-field clarification remain unchanged. Phase A provides ownership recovery, durable billing receipts and exact-request reconciliation, owned work draining and cancellation checks before artifact publication.
+
+The combined command `node --experimental-strip-types --test "tests/runtime/recovery/*.test.ts" "tests/runtime/*.test.ts" "tests/roles/budget.test.ts" "tests/roles/repair-*.test.ts" "tests/artifacts/*.test.ts"` passed **97/97**, with zero failures, cancellations or skips. Build and typecheck passed sequentially afterward. UTF-8/LF, Chinese fixtures and the staged diff were verified. Local TAP evidence is `.cosmos/integration/batch05-cos12-phase-a.tap`; prior reviewer-accepted 39/39 focused and 50/50 Phase A evidence is retained without duplicate runs.
+
+These checks use real temporary files and owned child processes with simulated provider receipts. No paid calls, live ledger edits, generated-game recovery or old browser/media probes ran. Phase B orchestration remains pending, so #13 stays open as `phase-a-integrated` and G3 stays closed. The old pilot remains failed and will not restart.
+
+The command-scoped proxy push and `ls-remote` confirmed code SHA `7cff53794665f4f759d6973061e4dc25855269e1` before the [Phase A status comment](https://github.com/lrfluobida/Cosmos/issues/13#issuecomment-5929123056); the API then confirmed #13 remains open. This supersedes the earlier Phase A pending-review checkpoint. `cos12_implementer` can merge the clean main baseline and implement Phase B on its own branch; independent review and root's exact-SHA handoff still precede integration by `batch05_merger`.
