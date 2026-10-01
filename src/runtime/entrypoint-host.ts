@@ -17,6 +17,7 @@ import type { AcceptanceReport } from '../acceptance/runner.ts';
 import { stopBrowserProcess } from '../acceptance/process.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { HostFailure } from './repair/feedback.ts';
+import type { RepairFeedback } from './repair/feedback.ts';
 import type { GenerationHost, HostInput } from './entrypoint.ts';
 import { executeGeneration } from './entrypoint.ts';
 import { renderDeclaredMedia, validateDesign, validateDeclaredMedia, withMediaObservations } from './entrypoint-media.ts';
@@ -150,6 +151,42 @@ export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO 
     if (!ref || task.outputs.length !== 1) throw new Error('Host output is not one of the fixed role versions.');
     return ref;
   };
+  const nextOutput = (task: TaskContract) => role(task) === 'coding' ? registry.candidateRef('game', 'v2') : registry.artifactRef(role(task) === 'design' ? 'design' : 'media', 'v2');
+  const failureSource = (taskId: string, attemptId: string): ArtifactReference => ({ artifactId: `failure-source-${taskId}`, version: attemptId, location: `failure-sources/${taskId}/${attemptId}` });
+  async function stageFeedback(feedback: RepairFeedback) {
+    const target = await safePath(root, feedback.reference.location); await mkdir(dirname(target), { recursive: true });
+    try { await publishReceipt(target, feedback); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST' || !sameValue(await json(root, feedback.reference.location), feedback)) throw error; }
+  }
+  async function preserveFailure(task: TaskContract, kind: 'missing_output' | 'invalid_json' | 'invalid_schema', message: string, files: { sourcePath: string; bytes?: Buffer }[]): Promise<never> {
+    // Decode before publishing any diagnosis. Unknown encoding/IO remains insufficient evidence.
+    for (const file of files) if (file.bytes) new TextDecoder('utf-8', { fatal: true }).decode(file.bytes);
+    const attempt = task.attempts.at(-1)!, ref = failureSource(task.taskId, attempt.attemptId), folder = await directory(root, ref.location);
+    const preserved = [];
+    for (const [index, file] of files.entries()) {
+      const snapshotPath = files.length === 1 ? 'raw.json' : `raw-${index}.txt`;
+      if (file.bytes) await writeFile(join(folder, snapshotPath), file.bytes, { flag: 'wx' });
+      preserved.push({ sourcePath: file.sourcePath, snapshotPath, present: !!file.bytes });
+    }
+    await publishReceipt(join(folder, 'manifest.json'), { formatVersion: 1, runId: task.runId, taskId: task.taskId, attemptId: attempt.attemptId,
+      sessionRef: attempt.sessionRef, inputs: task.inputs, diagnosis: { kind, message }, files: preserved });
+    const failure = new HostFailure(task.acceptance.map(item => ({ acceptanceId: item.acceptanceId, checkId: `role-output-${kind}`, classification: 'code_defect',
+      summary: message, reproduction: [...item.steps], actual: message, expected: item.expected, evidenceRefs: [`${ref.location}/manifest.json`] })));
+    failures.set(task.taskId, failure); throw failure;
+  }
+  async function readDeclaredOutput(task: TaskContract, path: string, validate: (value: unknown) => void): Promise<any> {
+    let bytes: Buffer;
+    try { bytes = await regularFile(root, path); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return preserveFailure(task, 'missing_output', `Required role output is missing: ${path}.`, [{ sourcePath: path }]);
+      throw error;
+    }
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); let value: unknown;
+    try { value = JSON.parse(text); }
+    catch { return preserveFailure(task, 'invalid_json', `Role output is UTF-8 but not valid JSON: ${path}.`, [{ sourcePath: path, bytes }]); }
+    try { validate(value); }
+    catch { return preserveFailure(task, 'invalid_schema', `Role output does not match its fixed schema or design roster: ${path}. Read the preserved raw source and the unchanged task rules.`, [{ sourcePath: path, bytes }]); }
+    return value;
+  }
   const selected = (task: TaskContract, id: string) => {
     const ref = task.inputs.find(ref => ref.artifactId === id); if (!ref) throw new Error(`Missing fixed ${id} dependency.`); return ref;
   };
@@ -191,16 +228,20 @@ export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO 
       signal.throwIfAborted(); const ref = taskOutput(task), kind = role(task);
       const origin = { kind: 'original-procedural' as const, generator: `Native ${kind} role output`, sourceRefs: [task.attempts.at(-1)!.sessionRef, ...requirement.sources.map(ref => ref.location)] };
       if (kind === 'design') {
-        const design = await json(root, 'authors/design/design.json'); validateDesign(design, gameplayIds);
+        await readDeclaredOutput(task, 'authors/design/design.json', value => validateDesign(value, gameplayIds));
         await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: 'authors/design', files: [{ source: 'design.json', destination: '_cosmos/design.json' }],
           ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: captures, metadata: { kind: 'data', provenance: origin } });
       } else if (kind === 'art') {
-        const design = await designFor(task), rendered = await renderDeclaredMedia(root, `rendered/${task.taskId}`, await json(root, 'authors/art/media.json'), design, signal);
+        const design = await designFor(task), value = await readDeclaredOutput(task, 'authors/art/media.json', value => { validateDeclaredMedia(value, design); });
+        const rendered = await renderDeclaredMedia(root, `rendered/${task.taskId}`, value, design, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: `rendered/${task.taskId}`, files: rendered.files.map(name => ({ source: name, destination: name })),
           ownership: { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }, dependencies: [...captures, selected(task, 'design')], metadata: { kind: 'media', provenance: origin, media: rendered.media } });
       } else {
-        const source = registry.artifactRef('game-source', ref.version), files = [...(await snapshot(join(root, 'authors/coding'))).keys()];
-        if (!files.includes('src/main.ts') || !files.includes('index.html') || files.some(name => name !== 'index.html' && !name.startsWith('src/'))) throw new Error('Incomplete or out-of-scope author project.');
+        const source = registry.artifactRef('game-source', ref.version), authored = await snapshot(join(root, 'authors/coding')), files = [...authored.keys()];
+        if (files.some(name => name !== 'index.html' && !name.startsWith('src/'))) throw new Error('Out-of-scope author project.');
+        const missing = ['src/main.ts', 'index.html'].filter(name => !files.includes(name));
+        if (missing.length) await preserveFailure(task, 'missing_output', `Required code outputs are missing: ${missing.join(', ')}.`,
+          [...[...authored].map(([name, bytes]) => ({ sourcePath: `authors/coding/${name}`, bytes })), ...missing.map(name => ({ sourcePath: `authors/coding/${name}` }))]);
         const inputs = [...captures, selected(task, 'design'), selected(task, 'media')], media = await registry.getCapture(selected(task, 'media'));
         await registry.registerCapture({ taskId: task.taskId, artifactRef: source, sourceRoot: 'authors/coding', files: files.map(name => ({ source: name, destination: name })),
           ownership: { writePaths: ['src', 'index.html'], readOnlyPaths: ['_cosmos'] }, dependencies: inputs, metadata: { kind: 'code', provenance: origin } });
@@ -302,10 +343,17 @@ export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO 
     async repair(task, feedback) {
       const current = await controller.read(), unallocated = current.ledger.limitMicroCny - current.ledger.allocations.reduce((sum, item) => sum + item.amountMicroCny, 0);
       if (unallocated <= 0) return null;
-      const target = await safePath(root, feedback.reference.location); await mkdir(dirname(target), { recursive: true });
-      try { await publishReceipt(target, feedback); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST' || !sameValue(await json(root, feedback.reference.location), feedback)) throw error; }
-      const kind = role(task), ref = kind === 'coding' ? registry.candidateRef('game', 'v2') : registry.artifactRef(kind === 'design' ? 'design' : 'media', 'v2');
+      await stageFeedback(feedback); const ref = nextOutput(task);
       return { outputs: [{ ...task.outputs[0], destination: ref.location }], expectedArtifacts: [ref], allocationMicroCny: unallocated };
+    },
+    async continuationTargets(sources, feedback, grants) {
+      await stageFeedback(feedback);
+      return sources.map(source => {
+        const failed = source.task.taskId === feedback.sourceTaskId, ref = nextOutput(source.task), diagnostic = failureSource(feedback.sourceTaskId, feedback.sourceAttemptId);
+        return { sourceTaskId: source.task.taskId, taskId: `${source.task.taskId.slice(0, failed ? 57 : 54)}-${failed ? 'repair' : 'successor'}`,
+          allocationMicroCny: grants[source.task.taskId], outputs: [{ ...source.task.outputs[0], destination: ref.location }], expectedArtifacts: [ref],
+          ...(failed && feedback.issues.some(issue => issue.evidenceRefs.includes(`${diagnostic.location}/manifest.json`)) ? { interfaces: [diagnostic] } : {}) };
+      });
     },
     async finish(tasks) {
       const task = tasks.find(task => role(task) === 'coding');

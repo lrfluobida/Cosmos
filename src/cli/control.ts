@@ -47,6 +47,7 @@ export async function readRunSnapshot(root: string): Promise<IntakeSnapshot | Ru
 export async function readRunStatus(root: string) {
   const snapshot = await readRunSnapshot(root), intake = snapshot.formatVersion === 'intake-1';
   const generated = intake ? null : snapshot as RunSnapshot;
+  const continuation = generated ? await readContinuationStatus(root, generated) : null;
   return { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, phase: intake ? 'intake' : 'generation', revision: snapshot.revision,
     draftRevision: intake ? snapshot.draft?.revision ?? null : null,
     confirmed: intake ? snapshot.confirmation !== null : generated!.run.humanDecisions.some(decision => decision.decisionId.startsWith('requirements-v') && decision.evidence.some(ref => ref.artifactId === 'user-confirmation')),
@@ -57,9 +58,28 @@ export async function readRunStatus(root: string) {
     settledMicroCny: snapshot.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny, 0),
     reservedMicroCny: snapshot.ledger.entries.reduce((sum, entry) => sum + entry.reservedMicroCny, 0),
     unknownRequestIds: snapshot.ledger.entries.filter(entry => entry.unknown).map(entry => entry.requestId),
-    tasks: generated?.tasks.map(task => ({ taskId: task.taskId, state: task.state, remaining: task.handoff.remaining, uncertainty: task.handoff.uncertainty, resumeFrom: task.handoff.resumeFrom })) ?? [],
+    tasks: generated?.tasks.map(task => ({ taskId: task.taskId, state: task.state, remaining: task.handoff.remaining, uncertainty: task.handoff.uncertainty, resumeFrom: task.handoff.resumeFrom,
+      supersededBy: continuation?.state === 'registered' ? continuation.replacements.find(item => item.sourceTaskId === task.taskId)?.replacementTaskId ?? null : null })) ?? [],
+    continuation,
     resumePolicy: 'Only verifiable interruptions without a durable stop may resume within their original window. Manual stop, deadline and budget stop remain final.',
   };
+}
+/** Display-only lineage. Execution separately validates contracts, origins and evidence. */
+async function readContinuationStatus(root: string, snapshot: RunSnapshot) {
+  try {
+    const plan = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, 'repair-plan.json')));
+    const replacements: { sourceTaskId: string; replacementTaskId: string }[] = plan.formatVersion === 2 ? plan.replacements : [{ sourceTaskId: plan.sourceTaskId, replacementTaskId: plan.replacementTaskId }];
+    if (!Array.isArray(replacements) || !replacements.length || replacements.length > 3 || !Array.isArray(plan.tasks)
+      || plan.formatVersion !== undefined && plan.formatVersion !== 2
+      || plan.formatVersion === 2 && (plan.runId !== snapshot.run.runId || plan.ledgerId !== snapshot.ledger.ledgerId || plan.originalStartedAt !== snapshot.run.originalStartedAt
+        || plan.originalDeadlineAt !== snapshot.run.originalDeadlineAt || plan.limitMicroCny !== snapshot.ledger.limitMicroCny)
+      || replacements.some(item => !snapshot.tasks.some(task => task.taskId === item.sourceTaskId) || !plan.tasks.some((task: any) => task.task?.taskId === item.replacementTaskId))) throw new Error('Invalid lineage');
+    const count = replacements.filter(item => snapshot.tasks.some(task => task.taskId === item.replacementTaskId)).length;
+    return { state: count === replacements.length ? 'registered' : count ? 'blocked' : 'pending_registration', replacements };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    return { state: 'blocked', replacements: [] as { sourceTaskId: string; replacementTaskId: string }[] };
+  }
 }
 interface ControlRecord { formatVersion: 1; runId: string; token: string; endpoint: string }
 async function record(root: string): Promise<ControlRecord> {
