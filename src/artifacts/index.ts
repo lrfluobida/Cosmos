@@ -1,10 +1,12 @@
-import { lstat, open, rename, writeFile } from 'node:fs/promises';
+import { lstat, rename, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import type { ArtifactReference } from '../contracts/types.ts';
 import { directory, fail, id, noConflicts, owns, pathName, regularFile, removeOwned, safePath, snapshot, text, within } from './paths.ts';
 import { validateMedia, validateMetadata } from './media.ts';
+import { OwnerLock } from '../runtime/recovery/ownership.ts';
+import { OwnedWork } from '../runtime/recovery/owned-work.ts';
 import type { AcceptedCandidate, Candidate, CandidateRequest, Capture, CaptureRequest, HostChecks, HostReview, PassedEvidence } from './types.ts';
 export type * from './types.ts';
 
@@ -25,8 +27,13 @@ export class ArtifactRegistry {
   #workspace: string;
   #root: string;
   #name: string;
+  #work: OwnedWork;
+  #signal: AbortSignal;
   #proofs = new WeakMap<PassedEvidence, { candidate: Candidate; files: Map<string, Buffer>; evidence: PassedEvidence; attemptId: string }>();
-  constructor(workspace: string, name: string) { this.#workspace = resolve(workspace); this.#name = pathName(name); this.#root = resolve(this.#workspace, name); }
+  constructor(workspace: string, name: string, signal?: AbortSignal, work?: OwnedWork) {
+    this.#workspace = resolve(workspace); this.#name = pathName(name); this.#root = resolve(this.#workspace, name);
+    this.#work = work ?? new OwnedWork(signal); this.#signal = signal ? AbortSignal.any([signal, this.#work.signal]) : this.#work.signal;
+  }
 
   artifactRef(artifactId: string, version: string): ArtifactReference {
     return { artifactId: id(artifactId), version: id(version, true), location: `${this.#name}/captures/${artifactId}/${version}/files` };
@@ -40,12 +47,17 @@ export class ArtifactRegistry {
     if (!sameRef(ref, expected)) fail('Fixed reference location does not match registry');
     return `${kind}/${ref.artifactId}/${ref.version}`;
   }
-  async #exclusive<T>(action: () => Promise<T>): Promise<T> {
-    const lock = await safePath(this.#root, '.commit.lock');
-    const handle = await open(lock, 'wx').catch((error: NodeJS.ErrnoException) => { if (error.code === 'EEXIST') fail('Registry commit is busy'); throw error; });
-    try { return await action(); }
-    finally { await handle.close(); await removeOwned(this.#root, lock); }
+  async #exclusive<T>(action: () => Promise<T>, untrackedWriters = false): Promise<T> {
+    return this.#work.run(async () => {
+      this.#signal.throwIfAborted();
+      await safePath(this.#root, '.commit.lock');
+      const lock = await OwnerLock.acquire(this.#root, '.commit.lock', untrackedWriters).catch(() => fail('Registry commit is busy or ownership is unresolved'));
+      try { this.#signal.throwIfAborted(); return await action(); }
+      finally { await lock.close(); }
+    });
   }
+  async recoverOwnership() { await safePath(this.#root, '.commit.lock'); return OwnerLock.recover(this.#root, '.commit.lock'); }
+  cancelAndDrain(reason: string, timeoutMs?: number): Promise<void> { return this.#work.cancelAndDrain(reason, timeoutMs); }
   async #commit<T>(path: string, create: (temporary: string) => Promise<T>): Promise<T> {
     const destination = await safePath(this.#root, path);
     if (await exists(destination)) fail('Immutable version already exists');
@@ -54,6 +66,7 @@ export class ArtifactRegistry {
       const result = await create(temporary);
       await directory(this.#root, path.slice(0, path.lastIndexOf('/')));
       await safePath(this.#root, path);
+      this.#signal.throwIfAborted();
       await rename(temporary, destination);
       return result;
     } finally { await removeOwned(this.#root, temporary); }
@@ -150,17 +163,21 @@ export class ArtifactRegistry {
       const candidate = await this.getCandidate(ref), project = await this.#unchangedSources(candidate);
       if (typeof checks.build !== 'function') fail('Host build callback is required');
       const build = copy(await checks.build(copy(candidate), project));
+      this.#signal.throwIfAborted();
       const passed = (result: { passed: boolean; evidenceIds: string[] }, name: string) => {
         if (!result || result.passed !== true || !Array.isArray(result.evidenceIds) || !result.evidenceIds.length || result.evidenceIds.some(id => typeof id !== 'string' || !id.trim())) fail(`${name} did not pass with host evidence`);
       };
       passed(build, 'Build');
       const acceptance = checks.acceptance ? copy(await checks.acceptance(copy(candidate), project)) : undefined;
+      this.#signal.throwIfAborted();
       if (checks.acceptance) passed(acceptance!, 'Acceptance');
       await this.#unchangedSources(candidate);
       const evidence: PassedEvidence = { candidateRef: copy(ref), attemptId, build, ...(acceptance ? { acceptance } : {}), verifiedAt: new Date().toISOString() };
-      this.#proofs.set(evidence, { candidate, files: await snapshot(project), evidence: copy(evidence), attemptId });
+      const files = await snapshot(project);
+      this.#signal.throwIfAborted();
+      this.#proofs.set(evidence, { candidate, files, evidence: copy(evidence), attemptId });
       return evidence;
-    });
+    }, true);
   }
   async promoteCandidate(ref: ArtifactReference, input: { evidence: PassedEvidence; review: HostReview }): Promise<AcceptedCandidate> {
     return this.#exclusive(async () => {
@@ -177,12 +194,15 @@ export class ArtifactRegistry {
       const files = await snapshot(await this.#unchangedSources(candidate));
       if (files.size !== proof.files.size || [...files].some(([name, bytes]) => !proof.files.get(name)?.equals(bytes))) fail('Candidate snapshot changed after verification');
       const seal = await safePath(this.#root, `${location}/sealed.json`);
+      this.#signal.throwIfAborted();
       if (!await exists(seal)) await writeJson(seal, { candidateRef: ref });
       const accepted: AcceptedCandidate = { candidateRef: copy(ref), targetRoot: candidate.targetRoot, evidence: copy(input.evidence), review, acceptedAt: new Date().toISOString() };
       const temporary = await safePath(this.#root, `tmp/current-${randomUUID()}.json`);
       try {
         await writeJson(temporary, accepted);
-        await rename(temporary, await safePath(this.#root, 'current.json'));
+        const current = await safePath(this.#root, 'current.json');
+        this.#signal.throwIfAborted();
+        await rename(temporary, current);
       } finally { await removeOwned(this.#root, temporary); }
       this.#proofs.delete(input.evidence); return accepted;
     });
@@ -195,10 +215,10 @@ export class ArtifactRegistry {
   }
 }
 
-export async function createArtifactRegistry(options: { workspaceRoot: string; registryRoot: string }): Promise<ArtifactRegistry> {
+export async function createArtifactRegistry(options: { workspaceRoot: string; registryRoot: string; signal?: AbortSignal; work?: OwnedWork }): Promise<ArtifactRegistry> {
   const workspace = resolve(options.workspaceRoot); pathName(options.registryRoot);
   await safePath(workspace); await directory(workspace, options.registryRoot);
   const root = resolve(workspace, options.registryRoot);
   for (const name of ['captures', 'candidates', 'tmp']) await directory(root, name);
-  return new ArtifactRegistry(workspace, options.registryRoot);
+  return new ArtifactRegistry(workspace, options.registryRoot, options.signal, options.work);
 }
