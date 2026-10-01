@@ -54,7 +54,10 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open"
+      "state": "open",
+      "integrationStatus": "code-integrated-live-pending",
+      "reviewedCommit": "79969d3c1e849e79b8c3e666327163a1d80d0f85",
+      "mergeCommit": "7a05b11395628f910bee8ac10dea26a154b463ff"
     },
     {
       "taskId": "COS-04",
@@ -159,7 +162,10 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open"
+      "state": "open",
+      "integrationStatus": "integration-check-failed",
+      "reviewedCommit": "2631e8c397d08f3426d5eb8e8ae8f75ebff83bb8",
+      "mergeCommit": "0b0d45528a162c3177bdb397b70c475b6e5ff528"
     },
     {
       "taskId": "COS-09",

@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批获批交付已推送 main：COS-02、COS-05 完成，COS-01 参考仍未冻结。第二批 COS-06 已独立审查并合入本地 main，完整测试 85/85、构建与类型检查通过；推送及 #7 关闭等待网络恢复。COS-03、COS-08 正按独立审核意见修复。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批获批交付已推送 main：COS-02、COS-05 完成，COS-01 参考仍未冻结。第二批 COS-03、COS-06、COS-08 已按批准提交合入本地 main。SDK 与 runtime 组合 102/102 测试通过；加入浏览器验收后 119/120 通过，卡死点击场景超出截止容差待修复，构建与类型检查通过。真实 pi 探针和远端同步待完成。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -39,7 +39,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 直接 API 与局部规则已测 | [31 次调用记录](probes/2026-10-01-deepseek/README.md)，高峰价保守估算 ¥0.721771；pi 集成和完整关卡仍未测 |
 | 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第二批部分集成 | COS-06 本地合并 f724d5f，85 项集成测试通过；COS-03、COS-08 修复取消与超时审核问题后再复审 |
+| 子代理逐项实施 | 第二批部分集成 | COS-03、COS-06 本地集成通过；COS-08 全套集成暴露截止容差失败，交回原实现者；COS-04 并行验证媒体产线 |
 
 ## 开发批次
 
@@ -52,9 +52,9 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 01 | COS-01 / #2 | cos01_implementer | cos01_reviewer | batch01_merger | 791472e 经修复复审批准部分交付，合并 8b64b59；参考测试 16/16，230 项中 221 项待核对；#2 保持 open |
 | 01 | COS-02 / #3 | cos02_implementer | cos02_reviewer | batch01_merger | 45c3cf6 修复两项 P2 后复审批准，合并 a6247ec；40 项契约测试、构建与类型检查通过；#3 已关闭 |
 | 01 | COS-05 / #6 | cos05_implementer | cos05_reviewer | batch01_merger | 1121ae2 已独立批准，合并 5e3670e；构建、类型检查、CLI 7/7 通过，复用浏览器 1/1；#6 已关闭 |
-| 02 | COS-03 / #4 | cos03_implementer | cos03_reviewer | batch02_merger | 审核发现立即取消仍派发与 SSE 全程超时缺口；原实现者修复后复审；真实 pi 探针仍待执行 |
+| 02 | COS-03 / #4 | cos03_implementer | cos03_reviewer | batch02_merger | 79969d3 修复取消与 SSE 超时后复审批准，合并 7a05b11；102/102 组合测试、构建和类型检查通过；真实 pi 探针待执行，#4 保持 open |
 | 02 | COS-06 / #7 | cos06_implementer | cos06_reviewer | batch02_merger | 1bed423 独立批准，合并 f724d5f；完整测试 85/85、构建与类型检查通过；网络故障待推送，#7 保持 open |
-| 02 | COS-08 / #9 | cos08_implementer | cos08_reviewer | batch02_merger | 审核发现渲染进程卡住时鼠标操作缺少总截止保护；原实现者修复后复审 |
+| 02 | COS-08 / #9 | cos08_implementer | cos08_reviewer | batch02_merger | 2631e8c 修复后复审批准，合并 0b0d455；组合测试 119/120，卡死点击报告耗时 4453 ms 超过 3500 ms 加 500 ms 容差；#9 保持 open，待修复复审 |
 | 02 | COS-04 / #5 | cos04_implementer | 提交后独立审核 | batch02_merger | 通用程序图层、关键姿态与合成音频验证已启动；无外部付费调用 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
