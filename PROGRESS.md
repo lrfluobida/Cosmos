@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 18 个原生子任务。COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。累计 13 次请求已结算，共享验证估算 ¥0.892282，预留与未知费用均为零；美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`，COS-11 有界协议纠错实施中。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 / #19 已发布原 R4/R11 的 Windows 访谈与生成 CLI 任务卡，尚未实现。COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 18 个原生子任务。COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。累计 13 次请求已结算，共享验证估算 ¥0.892282，预留与未知费用均为零；美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 / #19 已发布原 R4/R11 的 Windows 访谈与生成 CLI 任务卡，尚未实现。COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -39,7 +39,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 首轮生成及一次续跑失败 | 既有直接 API/pi 探针估算 ¥0.735971；新增 pilot 13 次请求共 ¥0.156311；共享账本累计 ¥0.892282，预留与未知费用为零；尚无通过游戏 |
 | 任务拆分 | 已发布 | [18 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-18 承接既有 R4/R11 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#19；18 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第五批推进 COS-11，COS-12 只读准备完成 | 第四批已交接；复用初次集成 194/194、续跑入口 roles/E2E 63/63、字段说明 38/38 与编译证据。COS-11 等待提交及独立审核，COS-12 接线等待其 API；#11 保持 open |
+| 子代理逐项实施 | 第五批 COS-11 离线集成，COS-12 分阶段推进 | COS-11 组合 roles/E2E/runtime/contracts 170/170、构建与类型检查通过；COS-12 Phase A 独立审核中，Phase B 将基于新 main 接线；#11/#12 保持 open |
 
 ## 开发批次
 
@@ -61,8 +61,8 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 03 | COS-09 / #10 | cos09_implementer | cos09_reviewer | batch03_merger | 94c52cf 修复评审与验证尝试绑定后获批，合并 5e00bdc；10/10 产物测试、类型检查与构建通过；已推送，#10 已关闭 |
 | 03 | COS-07 / #8 | cos07_implementer | cos07_reviewer | batch03_merger | 3f0489d 修复三项发现后复审批准，合并 f779c4f；最终 177/177、构建与类型检查通过；已推送，#8 已关闭 |
 | 04 | COS-10 / #11 | cos10_implementer | cos10_reviewer | batch04_merger | 驱动 e28df14 合并 29a9c69，续跑入口 f65ecc9 合并 a195173；分别通过 194/194 与受影响 63/63 检查；首轮及一次续跑失败，#11 保持 open |
-| 05 | COS-11 / #12 | cos11_implementer | 独立 reviewer 待派发 | batch05_merger | 有界修复与协议纠错实施中，尚无获批提交；保留原 pilot 失败与原额度，#12 保持 open |
-| 05 | COS-12 / #13 | cos12_implementer | 独立 reviewer 待派发 | batch05_merger | 取消、异常退出与恢复的只读准备完成；待 COS-11 API 获批后实施接线，#13 保持 open |
+| 05 | COS-11 / #12 | cos11_implementer | 独立 reviewer 最终 READY | batch05_merger | 005f51b 修复三项 P2 后获批，合并 e1467f0；170/170、构建与类型检查通过；offline-verified-awaiting-live，#12 保持 open |
+| 05 | COS-12 / #13 | cos12_implementer | 独立 reviewer 审核中 | batch05_merger | Phase A 9370eb27 未获最终集成批准，未合入；Phase B 将接入已审核 COS-11 API，#13 保持 open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -74,7 +74,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 
 [第四批执行计划](docs/plans/2026-10-01-batch-04.md) 的集成与两次失败事实见 [第四批集成记录](docs/reviews/batch-04.md) 和 [#11 续跑结果](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5928251714)。八项玩法验收、附加检查和独立启动尚未执行；保留失败产物，COS-11 基于实际协议失败提前实施有界纠错，现有 pilot 不再续跑。[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 的任务卡已独立审查并发布，作为 COS-15/16/17 的前置；COS-16 仍依赖 COS-10/13/18。
 
-[第五批执行计划](docs/plans/2026-10-01-batch-05.md) 从 `0d7fd04` 接管 main：先审查并集成 COS-11 有界修复与协议纠错，再接 COS-12 取消与恢复。每项任务保留独立 implementer/reviewer，本批仅由 batch05_merger 合入获批的准确提交。COS-13 等待 COS-12；COS-18 实现等待 COS-10/11/12/13。当前仅记录实施与验收关口，不代表生成游戏通过；共享费用仍为 ¥0.892282，付费验证仍仅由协调者执行。
+[第五批执行计划](docs/plans/2026-10-01-batch-05.md) 从 `0d7fd04` 接管 main；COS-11 已按获批准确提交离线集成，记录见 [第五批集成记录](docs/reviews/batch-05.md) 与 [#12 状态](https://github.com/lrfluobida/Cosmos/issues/12#issuecomment-5928992000)。每项任务保留独立 implementer/reviewer，本批仅由 batch05_merger 合入。COS-12 将基于新 main 完成取消与恢复接线；COS-13 等待 COS-12，COS-18 实现等待 COS-10/11/12/13。真实游戏修复仍待验证，G3 仍关闭；共享费用仍为 ¥0.892282，付费验证仍仅由协调者执行。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

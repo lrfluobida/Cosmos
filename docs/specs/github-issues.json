@@ -276,7 +276,12 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open"
+      "state": "open",
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "READY",
+      "reviewedCommit": "005f51bbe48fb2ec356d77f365e538394e37c740",
+      "mergeCommit": "e1467f06990cfad160f2fa8ecbae0f02de9a7538",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/12#issuecomment-5928992000"
     },
     {
       "taskId": "COS-12",
