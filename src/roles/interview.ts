@@ -14,6 +14,7 @@ export interface InterviewOptions {
   controller: IntakeController; roundId: string; brief: string;
   maxOutputTokens: number; requestTimeoutMs: number; estimatedMaxCostMicroCny: PiSessionOptions['estimatedMaxCostMicroCny'];
   env?: PiSessionOptions['env']; sessionFactory?: (options: PiSessionOptions) => Promise<RoleSession>;
+  capabilities?: string;
 }
 type Questions = GameDraft['questions'];
 function checkQuestions(value: unknown): asserts value is Questions {
@@ -36,7 +37,7 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
   controller.signal.throwIfAborted();
   const state = await controller.read();
   if (state.stopReason) throw new Error('Intake is stopped.');
-  const root = join(controller.root, 'intake-sessions', options.roundId), intent = { formatVersion: 1, runId: state.run.runId, ledgerId: state.ledger.ledgerId, input };
+  const root = join(controller.root, 'intake-sessions', options.roundId), intent = { formatVersion: 1, runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...(options.capabilities ? { capabilities: options.capabilities } : {}) };
   await mkdir(root, { recursive: true });
   const recorded = await optionalJson(join(root, 'intent.json'));
   if (recorded !== null) {
@@ -47,7 +48,7 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
   }
   await publishReceipt(join(root, 'intent.json'), intent);
   const session = await (options.sessionFactory ?? createPiSession)({
-    workspace: controller.root, stateDirectory: join(root, 'native'), systemPrompt,
+    workspace: controller.root, stateDirectory: join(root, 'native'), systemPrompt: `${systemPrompt}\nHost capabilities: ${options.capabilities ?? 'Only the declared normal-input acceptance vocabulary.'}`,
     context: JSON.stringify({ role: 'design-intake', runId: state.run.runId, ledgerId: state.ledger.ledgerId, input }), tools: [], modelId: 'deepseek-flash', thinkingLevel: 'low',
     maxOutputTokens: options.maxOutputTokens, maxRequests: 1, requestTimeoutMs: options.requestTimeoutMs,
     estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny, env: options.env,

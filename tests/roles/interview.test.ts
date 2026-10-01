@@ -48,10 +48,11 @@ for (const brief of ['点击星星得分', '收集宝物并躲避障碍']) test(
 
 test('reusing an exact completed interview step reads its receipt without another paid request', async t => {
   const { settings, calls } = await fixture(t);
-  const options = { ...settings, roundId: 'questions-1', brief: '点击星星得分' };
+  const options = { ...settings, roundId: 'questions-1', brief: '点击星星得分', capabilities: 'Mouse input and procedural SVG/PCM media' };
   assert.deepEqual(await interview.requestDesignQuestions(options), questions);
   assert.deepEqual(await interview.requestDesignQuestions(options), questions); assert.equal(calls(), 1);
   await assert.rejects(interview.requestDesignQuestions({ ...options, brief: '不同需求' }), /identity|input|changed/i);
+  await assert.rejects(interview.requestDesignQuestions({ ...options, capabilities: 'Different host capabilities' }), /identity|input|changed/i);
   assert.equal(calls(), 1);
 });
 

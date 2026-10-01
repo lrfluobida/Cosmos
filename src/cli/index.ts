@@ -1,18 +1,27 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { access, cp, lstat, mkdir, readFile, readdir } from 'node:fs/promises';
+import { access, cp, lstat, mkdir, readFile, readdir, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import type { Readable, Writable } from 'node:stream';
+import type { ProductHost } from './session.ts';
 
 const usage = `Usage:
   cosmos init <path>                 Copy the generic 2D project into an empty directory
   cosmos run-dir <path>              Create empty artifacts, evidence and logs directories
   cosmos build <path>                Typecheck and build an installed project
   cosmos preview <path> [--port N]   Preview its build at http://127.0.0.1:4173
+  cosmos new <run-dir> --brief <text>  Interview, confirm exact requirements, then generate
+  cosmos status <run-dir>           Read the original run identity, cost, deadline and gaps
+  cosmos stop <run-dir>             Persist a hard stop and wait for owned work to drain
+  cosmos resume <run-dir>           Recover a verifiable interruption within the original window
   cosmos --help
 
 Requires Node.js 22.22.2+. After init, run npm ci in the new project.
-These local commands do not call model APIs or start an agent run.`;
+init/run-dir/build/preview/status are local and do not call model APIs.
+new/resume may call native deepseek-flash after host prerequisites pass; intake and generation share CNY 200.
+The formal 12-hour clock activates once after exact user confirmation and environment preparation.
+Manual stop, budget stop and deadline stop are durable: resume cannot clear them or add time/budget.`;
 
 async function emptyDirectory(path: string): Promise<string> {
   const target = resolve(path);
@@ -49,9 +58,10 @@ async function localTool(project: string, relativePath: string, args: string[]):
   await access(executable).catch(() => {
     throw new Error(`Missing project dependency ${relativePath}. Run npm ci in ${project}.`);
   });
+  const { roleToolEnvironment } = await import('../roles/factory.ts');
   await new Promise<void>((resolvePromise, reject) => {
     const child = spawn(process.execPath, [executable, ...args], {
-      cwd: project, stdio: 'inherit', windowsHide: true, shell: false,
+      cwd: project, stdio: 'inherit', windowsHide: true, shell: false, env: roleToolEnvironment(),
     });
     const interrupt = () => child.kill('SIGINT');
     const terminate = () => child.kill('SIGTERM');
@@ -70,12 +80,25 @@ async function localTool(project: string, relativePath: string, args: string[]):
   });
 }
 
-async function main(args: string[]): Promise<void> {
+export async function runCli(args: string[], io: { host?: ProductHost; input?: Readable; output?: Writable } = {}): Promise<unknown> {
   if (args.length === 1 && ['--help', '-h'].includes(args[0])) {
     console.log(usage);
     return;
   }
   const [command, path, ...options] = args;
+  if (['new', 'resume', 'status', 'stop'].includes(command)) {
+    if (!path?.trim()) throw new Error(usage);
+    const output = io.output ?? process.stdout, root = resolve(path);
+    if (command === 'status' || command === 'stop') {
+      if (options.length) throw new Error(usage);
+      const control = await import('./control.ts'); const result = command === 'status' ? await control.readRunStatus(root) : await control.requestStop(root);
+      output.write(JSON.stringify(result, null, 2) + '\n'); return result;
+    }
+    if (command === 'new' ? options.length !== 2 || options[0] !== '--brief' || !options[1]?.trim() : options.length !== 0) throw new Error(usage);
+    const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)));
+    const { runProductSession } = await import('./session.ts');
+    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief: command === 'new' ? options[1] : undefined, host, input: io.input ?? process.stdin, output });
+  }
   if (!path?.trim() || !['init', 'run-dir', 'build', 'preview'].includes(command)
     || (command !== 'preview' && options.length)) throw new Error(usage);
   let port = '4173';
@@ -119,7 +142,8 @@ async function main(args: string[]): Promise<void> {
   }
 }
 
-main(process.argv.slice(2)).catch((error: unknown) => {
+const invoked = process.argv[1] ? await realpath(process.argv[1]).catch(() => resolve(process.argv[1])) : undefined;
+if (invoked && import.meta.url === pathToFileURL(invoked).href) runCli(process.argv.slice(2)).catch((error: unknown) => {
   console.error(`cosmos: ${error instanceof Error ? error.message : String(error)}`);
   process.exitCode = 1;
 });
