@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { cp, mkdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { Type } from 'typebox';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { createPiSession } from '../../src/providers/pi.ts';
@@ -15,7 +15,7 @@ import type { RunController } from '../../src/runtime/run.ts';
 import type { ArtifactReference, EvidenceContract, TaskContract } from '../../src/contracts/types.ts';
 import { createArtifactRegistry } from '../../src/artifacts/index.ts';
 import type { MediaMetadata, PassedEvidence } from '../../src/artifacts/types.ts';
-import { directory } from '../../src/artifacts/paths.ts';
+import { directory, safePath } from '../../src/artifacts/paths.ts';
 import { runAcceptance } from '../../src/acceptance/runner.ts';
 import { filteredChildEnvironment, PILOT_LIMITS, requestReservation } from './admission.ts';
 import type { PilotGuard } from './budget.ts';
@@ -24,6 +24,11 @@ import { buildProject, copyReviewInputs, files, jsonFile, serveBuild, writeJson 
 import { renderMedia, validateMediaSpec } from './media.ts';
 import { rolePolicies, stageAcceptance, validateRolePlan } from './policy.ts';
 import type { Continuation } from './continuation.ts';
+import { diagnoseBuild, diagnoseBrowser, diagnosedFailure } from './diagnostics.ts';
+import type { Diagnostics } from './diagnostics.ts';
+import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from '../../src/runtime/repair/policy.ts';
+import type { RepairFeedback } from '../../src/runtime/repair/feedback.ts';
+import { TRIAL } from './trial.ts';
 
 const ownership = { writePaths: ['.'], readOnlyPaths: [] };
 const provenance = (sourceRefs: string[], generator: string) => ({ kind: 'original-procedural' as const, sourceRefs, generator });
@@ -35,10 +40,15 @@ export async function generatePilot(options: {
   /** Offline admission/failure tests only; the production entry always uses the native SDK. */
   sessionFactory?: (config: PiSessionOptions) => Promise<RoleSession>;
   continuation?: Continuation;
+  trial?: boolean;
+  /** Trusted offline fixture adapters only; production uses the concrete host tools below. */
+  host?: { buildProject?: typeof buildProject; runAcceptance?: typeof runAcceptance };
+  repairEstimate?: { costMicroCny: number; durationMs: number; cleanupMs: number; requests: number };
 }) {
   const { root, repository, prefix, controller, guard, toolchain } = options;
+  const host = { buildProject, runAcceptance, ...options.host };
   const frozen = options.continuation?.frozen ?? await jsonFile(repository, 'probes/e2e/requirements.json');
-  const registry = await createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry' });
+  const registry = await createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', signal: guard.signal });
   const sourceRef = options.continuation?.available[0] ?? registry.artifactRef(`${prefix}-requirements`, frozen.requirementVersion);
   const baseRef = options.continuation?.available[1] ?? registry.artifactRef(`${prefix}-template`, 'v1');
   if (!options.continuation) {
@@ -75,11 +85,15 @@ export async function generatePilot(options: {
     `The generated design will be ${refs.design.location}/_cosmos/design.json. Generated media metadata will be ${refs.art.location}/public/assets/manifest.json; SVG/WAV paths in that manifest are relative to the final project root. These outputs are readable only after their declared task dependencies pass.`,
     `Generic project files are ${baseRef.location}/package.json and ${baseRef.location}/tsconfig.json. Use the unchanged baseline and put a data URI favicon in generated index.html to avoid unrelated missing-resource console errors.`,
   );
+  if (options.trial) for (const policy of Object.values(policies)) policy.rules!.push(
+    `This independent trial stops at ${guard.deadlineAt} and allows 40 total provider requests including reviews/corrections, with at most one semantic repair. The later shared-ledger deadline and the older source document's 90-minute ceiling do not extend this 60-minute trial. All frozen gameplay and host acceptance checks remain required.`,
+  );
   const prepared = new Map<string, PreparedTask>();
   const reviewRoots = new Map<string, string>();
   const media = new Map<string, MediaMetadata>();
   const pictures = new Map<string, string[]>();
   const proofs = new Map<string, PassedEvidence>();
+  const diagnostics = new Map<string, Diagnostics>();
   let checkCount = 0;
 
   async function assembleDraft(task: TaskContract, name: string) {
@@ -92,7 +106,7 @@ export async function generatePilot(options: {
     maxOutputTokens: PILOT_LIMITS.authorMaxOutputTokens, maxRequests: PILOT_LIMITS.maxRequests, requestTimeoutMs: PILOT_LIMITS.requestTimeoutMs,
     thinkingLevel: 'low', estimatedMaxCostMicroCny: requestReservation,
     sessionFactory: async config => (options.sessionFactory ?? createPiSession)({ ...config,
-      maxOutputTokens: config.systemPrompt.includes('task planner') ? PILOT_LIMITS.planningMaxOutputTokens : config.maxOutputTokens,
+      maxOutputTokens: JSON.parse(config.context).role === 'cosmos' ? PILOT_LIMITS.planningMaxOutputTokens : config.maxOutputTokens,
       budget: guard.wrap(config.budget),
     }),
     hostTools: async input => {
@@ -105,7 +119,7 @@ export async function generatePilot(options: {
           guard.signal.throwIfAborted(); if (++checkCount > 8) throw new Error('Pilot build-check limit reached');
           const task = prepared.get(input.taskId)!.task, name = `draft-${checkCount}`;
           const project = await assembleDraft(task, name);
-          const result = await buildProject(root, project, toolchain, name, guard.signal);
+          const result = await host.buildProject(root, project, toolchain, name, guard.signal);
           await writeJson(root, `checks/${name}/result.json`, result);
           return { content: [{ type: 'text', text: JSON.stringify({ passed: result.passed, diagnostics: result.results.map(r => r.stdout + r.stderr).join('\n').slice(0, 24_000) }) }], details: { passed: result.passed } };
         },
@@ -177,25 +191,29 @@ export async function generatePilot(options: {
         } else {
           const proof = await registry.verifyCandidate(output, {
             build: async (_candidate, project) => {
-              const result = await buildProject(root, project, toolchain, `${task.taskId}-final`, signal);
+              const result = await host.buildProject(root, project, toolchain, `${task.taskId}-final`, signal);
               await writeJson(root, `evidence/${task.taskId}/build.json`, result);
               details.buildLog = `evidence/${task.taskId}/build.json`;
+              const checked = diagnoseBuild(task, result, details.buildLog as string); diagnostics.set(task.taskId, checked);
               supplemental.push({ ...evidence(task, `evidence/${task.taskId}/build.json`, result.passed ? 'passed' : 'failed', 'Host typecheck/build diagnostics; gameplay verdict is in the combined host report'),
-                evidenceId: `${task.taskId}-build-log`, kind: 'log', outcome: 'observed' });
-              return { passed: result.passed, evidenceIds: [`${task.taskId}-build`] };
+                evidenceId: `${task.taskId}-build-log`, kind: 'log', outcome: 'observed', source: { artifactId: `${task.taskId}-build-report`, version: 'v1', location: `evidence/${task.taskId}/build.json` } });
+              return { passed: result.passed && checked.reportValid && !checked.issues.length, evidenceIds: [`${task.taskId}-build`] };
             },
             acceptance: async (_candidate, project) => {
               const server = await serveBuild(project);
               try {
-                const report = await runAcceptance(createPilotAcceptance(output, server.url, prefix, `${task.taskId}-browser`), {
+                const plan = createPilotAcceptance(output, server.url, prefix, `${task.taskId}-browser`);
+                const report = await host.runAcceptance(plan, {
                   evidenceRoot: join(root, 'browser-evidence'), channel: 'msedge', env: filteredChildEnvironment(process.env), timeoutMs: Math.min(frozen.limits.browserTimeoutMs, guard.remainingMs()),
                 });
                 details.browserReport = `browser-evidence/${report.reportPath}`;
+                const checked = diagnoseBrowser(task, report, plan, details.browserReport as string);
+                diagnostics.set(task.taskId, { ...checked, passedChecks: [...(diagnostics.get(task.taskId)?.passedChecks ?? []), ...checked.passedChecks] });
                 const selectedPictures = report.steps.filter(s => s.screenshot && (['胜利', '失败'].includes(String(s.actual)) || s.id.endsWith('events-defenderHits') && s.actual === 1)).slice(0, 3).map(s => `browser-evidence/${s.screenshot!}`);
-                pictures.set(task.taskId, selectedPictures);
-                for (const entry of report.evidence) supplemental.push({ ...entry, taskId: task.taskId, source: { ...entry.source, location: `browser-evidence/${entry.source.location}` },
+                pictures.set(task.taskId, checked.reportValid ? selectedPictures : []);
+                if (checked.reportValid) for (const entry of report.evidence) supplemental.push({ ...entry, taskId: task.taskId, source: { ...entry.source, location: `browser-evidence/${entry.source.location}` },
                   artifactVersions: [...task.inputs, ...task.artifacts] });
-                return { passed: report.outcome === 'passed', evidenceIds: [`${task.taskId}-browser`] };
+                return { passed: report.outcome === 'passed' && checked.reportValid && !checked.issues.length, evidenceIds: [`${task.taskId}-browser`] };
               } finally { await server.close(); }
             },
           });
@@ -218,11 +236,44 @@ export async function generatePilot(options: {
     },
   };
   const execute = (tasks: PreparedTask[], availableArtifacts: ArtifactReference[]) => executeTaskDag({ controller, requirement, tasks, sessionRoot: join(root, 'sessions'),
-    availableArtifacts, roleFactory, signal: guard.signal, ...callbacks });
+    availableArtifacts, roleFactory, signal: guard.signal, reviewProtocolCorrections: options.trial ? TRIAL.reviewProtocolCorrections : 0,
+    ...(options.trial ? { diagnoseFailure: (task: TaskContract, stage: string) => stage === 'host_verification' ? diagnosedFailure(task, diagnostics.get(task.taskId)) : undefined } : {}), ...callbacks });
   const results = await execute(planned.tasks, available);
   let coding = results.find(task => prepared.get(task.taskId)?.role === 'coding')!;
   // One explicit role repair, preserving the failed task, original guard and ledger. Earlier-role failure is reported as a gap.
-  if (!options.continuation && coding.state !== 'passed' && ['failed', 'needs_changes'].includes(coding.state)
+  if (options.trial && coding.state !== 'passed' && ['failed', 'needs_changes', 'waiting_user'].includes(coding.state)
+    && coding.attempts.length && results.filter(task => task !== coding).every(task => task.state === 'passed') && !guard.signal.aborted) {
+    const snapshot = await controller.read(), source = { ...prepared.get(coding.taskId)!, task: snapshot.tasks.find(task => task.taskId === coding.taskId)! };
+    const feedbackPath = relative(root, join(source.task.attempts.at(-1)!.sessionRef, 'failure.json')).replaceAll('\\', '/');
+    const feedback = await jsonFile(root, feedbackPath) as RepairFeedback;
+    const estimate = options.repairEstimate ?? TRIAL.repairEstimate;
+    const policy = { snapshot, requirement, history: [feedback], policy: DEFAULT_REPAIR_POLICY, now: Date.now(), estimate, cancelled: guard.signal.aborted };
+    const decision = assessRepair(policy), journal = await jsonFile(root, 'pilot-budget.json');
+    const committed = snapshot.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0);
+    const trialStop = committed + estimate.costMicroCny > PILOT_LIMITS.cumulativeMicroCny ? 'trial_budget'
+      : Date.now() + estimate.durationMs + estimate.cleanupMs >= Date.parse(guard.deadlineAt) ? 'trial_deadline'
+      : journal.requestIds.length + estimate.requests > TRIAL.maxRequests ? 'trial_requests' : null;
+    await writeJson(root, 'repair-decision.json', { ...decision, trialStop, estimate, sourceFeedback: feedback.reference,
+      action: trialStop ? 'stop' : decision.action, automaticDispatch: !trialStop && decision.action === 'repair' });
+    if (!trialStop && decision.action === 'repair') {
+      const repairedRef = registry.candidateRef(`${prefix}-game`, 'v2');
+      const repair = createLinkedRepairTask({ ...policy, source, taskId: `${prefix}-repair`, allocationMicroCny: TRIAL.allocations.repair,
+        outputs: source.task.outputs.map(output => ({ ...output, destination: repairedRef.location })), expectedArtifacts: [repairedRef] });
+      // Add only exact host evidence references so feedback-linked diagnostics can actually be read.
+      for (const evidence of source.task.evidence.filter(item => ['test_report', 'log'].includes(item.kind))) {
+        if (!repair.task.context.interfaces.some(ref => ref.artifactId === evidence.source.artifactId)) repair.task.context.interfaces.push(evidence.source);
+      }
+      await writeJson(root, 'repair-dispatch.json', { sourceTaskId: source.task.taskId, sourceAttemptId: feedback.sourceAttemptId, newTaskId: repair.task.taskId,
+        feedback: feedback.reference, expectedArtifacts: repair.expectedArtifacts, semanticRepairUsed: 1, maxSemanticRepairs: 1, deadlineAt: guard.deadlineAt });
+      const destination = await safePath(root, feedback.reference.location); await mkdir(dirname(destination), { recursive: true });
+      await cp(await safePath(root, feedbackPath), destination, { force: false, errorOnExist: true });
+      prepared.set(repair.task.taskId, repair);
+      const repaired = await execute([repair], [...available, ...results.filter(task => task.state === 'passed').flatMap(task => task.artifacts)]);
+      results.push(...repaired); coding = repaired[0];
+    }
+  }
+  // The historical entry keeps its original behavior; it remains consumed and cannot reopen the old run.
+  if (!options.trial && !options.continuation && coding.state !== 'passed' && ['failed', 'needs_changes'].includes(coding.state)
     && results.filter(task => task !== coding).every(task => task.state === 'passed') && !guard.signal.aborted) {
     const failurePath = `evidence/${coding.taskId}/repair-input.json`;
     await writeJson(root, failurePath, { state: coding.state, stateReason: coding.stateReason, handoff: coding.handoff,

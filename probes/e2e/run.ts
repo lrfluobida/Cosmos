@@ -8,9 +8,11 @@ import { generatePilot } from './driver.ts';
 import { jsonFile, prepareToolchain, runChild, writeJson } from './host.ts';
 import { cancelReplacedTasks, readContinuation } from './continuation.ts';
 import type { Continuation } from './continuation.ts';
+import { assertTrialUnused, checkTrialAdmission, claimTrial, readPreviousTrial, TRIAL } from './trial.ts';
 
 /** Explicit production entry: existing shared ledger only; secrets remain in process environment. */
-export async function runPilot(options: { repository: string; preflightOnly?: boolean; continuation?: boolean }) {
+export async function runPilot(options: { repository: string; preflightOnly?: boolean; continuation?: boolean; trial?: boolean }) {
+  if (options.trial && options.continuation) throw new Error('The new fixed trial cannot use the historical continuation entry');
   const repository = resolve(options.repository), ledgerRoot = join(repository, '.cosmos/validation-shared');
   await access(join(ledgerRoot, 'snapshot.json')); // Do not create a second ledger, even on a typo.
   const controller = await RunController.open({ root: ledgerRoot });
@@ -23,7 +25,7 @@ export async function runPilot(options: { repository: string; preflightOnly?: bo
   };
   try {
     const snapshot = await controller.read();
-    if (!options.continuation) await assertPilotNotStarted(ledgerRoot);
+    if (!options.continuation && !options.trial) await assertPilotNotStarted(ledgerRoot);
     if (snapshot.run.runId !== 'validation-2026-10-01' || snapshot.ledger.ledgerId !== 'cosmos-validation' || snapshot.run.specVersion !== '1.0') throw new Error('Expected the original shared validation run and spec');
     if (await git(['branch', '--show-current']) !== 'main') throw new Error('Run the independently reviewed integration from main');
     const head = await git(['rev-parse', 'HEAD']);
@@ -32,6 +34,30 @@ export async function runPilot(options: { repository: string; preflightOnly?: bo
     const input = { snapshot, dependencies: mapping.tasks, now: Date.now(), isAncestor: async (commit: string) => {
       const result = await runChild('git', ['merge-base', '--is-ancestor', commit, head], { cwd: repository, signal: controller.signal, timeoutMs: 15_000 }); return result.code === 0;
     } };
+    if (options.trial) {
+      const admission = await checkTrialAdmission({ ...input, platformHead: head });
+      const previous = await readPreviousTrial(repository, ledgerRoot); await assertTrialUnused(repository, ledgerRoot);
+      if (options.preflightOnly) return { outcome: 'ready', trialId: TRIAL.id, admission, previous, paidRequests: 0 };
+      if (!process.env.DEEPSEEK_API_KEY?.trim()) throw new Error('DEEPSEEK_API_KEY is required in the host environment');
+      const origin = await claimTrial({ repository, ledgerRoot, admission, previous }); root = origin.root;
+      guard = await createPilotGuard({ root, controller, deadlineAt: admission.deadlineAt, maxRequests: TRIAL.maxRequests });
+      let outcome: { outcome: string; [key: string]: unknown };
+      try {
+        const toolchain = await prepareToolchain(repository, root, guard.signal);
+        outcome = await generatePilot({ repository, root, prefix: TRIAL.id, controller, guard, toolchain,
+          childAllocationCapMicroCny: TRIAL.childAllocationMicroCny, confirmedAt: admission.startedAt, trial: true });
+      } catch (error) {
+        outcome = { outcome: 'failed', reason: guard.signal.aborted ? 'The fixed trial limit or cancellation reached' : 'Trial stopped; preserve native sessions and host feedback for diagnosis',
+          errorCategory: error instanceof Error ? error.name : 'Error' };
+      }
+      const budget = await controller.summary();
+      const report = { ...outcome, trialId: TRIAL.id, root, platformHead: head, previousFailedTrial: previous,
+        startedAt: admission.startedAt, endedAt: new Date().toISOString(), deadlineAt: admission.deadlineAt, sharedDeadlineAt: admission.sharedDeadlineAt,
+        elapsedMs: Date.now() - Date.parse(admission.startedAt), baselineCommittedMicroCny: admission.baselineCommittedMicroCny,
+        trialCommittedMicroCny: budget.committedMicroCny - admission.baselineCommittedMicroCny, budget, trialJournal: await jsonFile(root, 'pilot-budget.json'),
+        claims: 'This independent trial does not change the two prior failed results or establish the complete classic-game benchmark.' };
+      await writeJson(root, 'result.json', report); return report;
+    }
     if (options.preflightOnly && options.continuation) throw new Error('Continuation is a single explicit action');
     const admitted = options.continuation ? undefined : await preparePilot(input);
     if (options.preflightOnly) return { outcome: 'ready', platformHead: head, admission: admitted, paidRequests: 0 };
@@ -86,9 +112,9 @@ export async function runPilot(options: { repository: string; preflightOnly?: bo
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2);
-  if (args.length > 1 || args.length === 1 && !['--preflight', '--continue'].includes(args[0])) throw new Error('Usage: node --experimental-strip-types probes/e2e/run.ts [--preflight|--continue]');
+  if (args.length > 1 || args.length === 1 && !['--preflight', '--continue', '--trial', '--trial-preflight'].includes(args[0])) throw new Error('Usage: node --experimental-strip-types probes/e2e/run.ts [--preflight|--continue|--trial|--trial-preflight]');
   const repository = fileURLToPath(new URL('../../', import.meta.url));
-  runPilot({ repository, preflightOnly: args[0] === '--preflight', continuation: args[0] === '--continue' }).then(result => {
+  runPilot({ repository, preflightOnly: ['--preflight', '--trial-preflight'].includes(args[0]), continuation: args[0] === '--continue', trial: ['--trial', '--trial-preflight'].includes(args[0]) }).then(result => {
     console.log(JSON.stringify(result)); if (result.outcome === 'failed') process.exitCode = 1;
   }).catch(error => { console.error(`COS-10 stopped: ${error instanceof Error ? error.message : 'Host admission failed'}`); process.exitCode = 1; });
 }

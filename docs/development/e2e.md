@@ -130,3 +130,41 @@ node --experimental-strip-types probes/e2e/run.ts --continue
 原 reviewer 提示只声明 `findings:string[]`，没有把 findings 限定为未解决缺陷；解析器始终要求 `approved` 对应空数组、`changes_requested` 对应至少一条缺陷。现已在提示中明确同一条件：正面核对与解释不得写入 findings，真实缺陷必须保留且不得为获得空数组而隐去。解析器不变，旧 proposal 不改写、不清空。
 
 使用真实 author/reviewer 最终 JSON 在临时 controller 回放，结果为 `verifies=1, reviews=1, state=waiting_user, recordedReview=pending, evidenceCount=1, paidRequests=0`，保持原拒绝行为。四种离线协议组合分别验证正面非空批准被拒、空缺陷批准通过、空缺陷变更请求被拒、真实缺陷变更请求进入 needs_changes。提示修正不是本次 pilot 已通过的证据；后续受约束协议纠错由 COS-11 处理，不属于新增付费或再次 continuation 授权。
+
+## 固定新试验实施计划：cos10-cos11-validation-1
+
+**Goal:** 在已有协议/修复实现发生实质变化后，使用同一共享账本执行且只执行一个独立新 trial；旧 pilot 的两次失败保持不变。
+
+**Architecture:** 新 trial 使用固定身份与 write-once marker/root，复用 `generatePilot`、原 guard 和原生角色；可信主机诊断接入 COS-11 feedback/assessRepair/createLinkedRepairTask。仅允许已通过设计/美术之后的编码构建或正常输入缺陷进行一次关联修复。
+
+**Tech Stack:** 已批准的 Node/TypeScript/pi/Phaser/Playwright 与 COS-11、COS-12 Phase A 公共接口；不修改核心契约或恢复模块。
+
+- [x] 新增 `trial.ts` 的固定身份、批准祖先/原账本/旧失败引用检查、60 分钟与 40 请求限制、一次性持久标记；验证重复入口、过期及在途费用拒绝。
+- [x] 新增 `diagnostics.ts`，从确定的 TS/Vite 编译诊断和固定浏览器断言构造可信失败；失败报告中的通过步骤只作为 progress witness。
+- [x] 在 `driver.ts` 显式开启每评审 attempt 一次协议纠错，并以 COS-11 关联任务替代新 trial 的临时手写修复路径；新版本执行完整主机检查和独立评审。
+- [x] 使用真实 driver、原生会话边界注入和小型主机夹具离线验证预算、失败反馈、版本与 proof；夹具不是目标游戏生成证据。
+- [x] 对受影响测试、probes 类型、UTF-8 与差异完成检查，准备独立评审提交。
+- [ ] 独立评审合入后，仅由主代理启动这个新 trial 的付费运行。
+
+固定限制：需求仍是 cos10-pilot-v2 的八项玩法验收与全部 host checks；共享验证总限额 ¥150，全部验证实际费用加在途预留仍累计最多 ¥30。新 trial 最多 60 分钟，且不得晚于共享原截止 `2026-10-01T18:16:16.857Z`；40 请求包含规划、工具续接、评审协议纠错和语义修复。设计/美术/编码/修复 allocation 分别为 1900000/5700000/7600000/3800000 micro-CNY；仅需要修复时登记最后一项。原 COS-10 planning allocation 继续计费，所有旧分配和费用保持连续。
+
+新 marker/root 固定为 `cos10-cos11-validation-1`，不接受任意试验名；存在或部分创建即拒绝再次启动，不换目录重开。新规划、设计、媒体与代码均由 native Cosmos 重新生成。原设计、原生计划和旧评审不作为新试验输出。COS-11 尚不自动处理上游版本变更后的下游重新规划、作者 handoff 语义纠错或没有可信主机诊断的评审 prose；这些情况保存具体缺项并停止，不扩大 trial 或 repair 次数。
+
+新入口（仅主代理在独立评审合入后的干净 main 上运行）：
+
+```powershell
+node --experimental-strip-types probes/e2e/run.ts --trial-preflight
+node --experimental-strip-types probes/e2e/run.ts --trial
+```
+
+预检只检查已有账本与旧失败记录。正式入口独占创建 `.cosmos/validation-shared/cos10-cos11-validation-1.json` 和 `.cosmos/e2e/cos10-cos11-validation-1/`；marker 与 origin 用 `wx` 并同步落盘，目录的部分创建也消耗本次机会。正式起点后的工具准备、生成、修复与验收均计入新 60 分钟。旧 pilot marker、两份结果、13 请求日志及旧截止保持原样。
+
+新 origin 保存实际已批准祖先，包括 COS-11 的 reviewed/merged SHA 及其仍为 open、offline-verified 的状态，旧失败结果引用、全部历史已用金额和原共享截止。本次准备时账本已用 892282、预留/未知均为零；累计阶段余额为 29107718 micro-CNY。后续结果同时报告本 trial 消耗与共享总额，不能把 allocation 当作费用或创造新 ¥30。新试验可以有自己的 0/40 请求起点，但旧日志不重置；所有请求继续追加到同一共享账本。
+
+确定的生成源码编译诊断映射到 `build/typecheck` / `build/vite`；健康浏览器中的固定断言实际值不符映射到 `browser/<固定 step ID>`。环境退出、生命周期错误、不可用观测或版本/步骤不一致保持 `insufficient_evidence`。整体失败报告中的通过行仅作为 `HostPassedCheck`，引用该 failed 报告，不产生可完成任务的通过证书。
+
+设计和美术通过之后，仅 `assessRepair` 判定为 `repair` 的编码缺陷会派发一次新任务。主机还检查更紧的 trial 时间、40 请求和累计 ¥30；默认修复估计为 3000000 micro-CNY、10 分钟、5 秒清理和 8 个请求。`retry_service`、`collect_evidence`、`wait_user`、`replan` 都只保存决定，不在本 trial 里偷偷新增尝试。原生 feedback 字节被复制为只读接口，相关固定主机报告也加入只读引用。修复输出使用新 v2，重新完整构建/验收/评审，提升仍要求匹配的本次 proof.attemptId。
+
+离线生产 driver 回归使用原生会话边界注入和非游戏小夹具：实际 TypeScript 编译产生 TS2322，COS-11 形成反馈并创建 v2 修复任务；正确 v2 报告被接受，伪用 v1 浏览器报告被拒绝。一次错误 review JSON 在同一评审会话纠正，模拟请求数和费用连续进入 guard。另有真实 Edge 普通点击的失败用例验证浏览器诊断。上述回归不证明目标游戏已经生成、实际语义修复已经成功或新 trial 已通过。
+
+准备验证记录：e2e 与 COS-11 repair 组合共 78 项，77 项在并行批次通过；真实浏览器诊断夹具与两轮编译同时运行时触发既有 1 秒清理截止。编译全部结束后，该单项串行重跑通过（普通输入缺陷保持 failed，并得到正确诊断）。沿用已确认的资源约束：真实 browser fixture 不与 tsc/build 并行。未改 COS-08 时限或忽略清理错误。probes 专项 strict TypeScript、主 typecheck/build 与 UTF-8/LF 检查通过。
