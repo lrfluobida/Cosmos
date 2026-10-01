@@ -1,0 +1,26 @@
+{
+  "contractVersion": "1.0.0",
+  "runId": "run-1",
+  "kind": "runtime_generation",
+  "specVersion": "spec-v1",
+  "ledgerId": "ledger-1",
+  "originalStartedAt": "2026-10-01T00:00:00.000Z",
+  "originalDeadlineAt": "2026-10-01T12:00:00.000Z",
+  "state": "running",
+  "taskIds": [
+    "COS-example"
+  ],
+  "fees": {
+    "reservedMicroCny": 1000000,
+    "settledMicroCny": 0,
+    "unknownRequestIds": []
+  },
+  "artifacts": [
+    {
+      "artifactId": "game",
+      "version": "v1",
+      "location": "artifacts/game/v1"
+    }
+  ],
+  "humanDecisions": []
+}

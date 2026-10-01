@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cosmos.local/contracts/1.0.0/evidence.schema.json",
+  "title": "Cosmos evidence contract 1.0.0",
+  "$comment": "Structural validation only; apply src/contracts semantic and update validators before accepting a record.",
+  "type": "object",
+  "properties": {
+    "contractVersion": {
+      "const": "1.0.0"
+    },
+    "evidenceId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "taskId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "acceptanceIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 0
+    },
+    "kind": {
+      "$ref": "common.schema.json#/$defs/evidenceKind"
+    },
+    "source": {
+      "$ref": "common.schema.json#/$defs/artifactReference"
+    },
+    "artifactVersions": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactReference"
+      },
+      "minItems": 0
+    },
+    "outcome": {
+      "enum": [
+        "passed",
+        "failed",
+        "observed"
+      ]
+    },
+    "recordedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    }
+  },
+  "required": [
+    "contractVersion",
+    "evidenceId",
+    "taskId",
+    "acceptanceIds",
+    "kind",
+    "source",
+    "artifactVersions",
+    "outcome",
+    "recordedAt",
+    "summary"
+  ],
+  "additionalProperties": false
+}

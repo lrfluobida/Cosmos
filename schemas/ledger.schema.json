@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cosmos.local/contracts/1.0.0/ledger.schema.json",
+  "title": "Cosmos ledger contract 1.0.0",
+  "$comment": "Structural validation only; apply src/contracts semantic and update validators before accepting a record.",
+  "type": "object",
+  "properties": {
+    "contractVersion": {
+      "const": "1.0.0"
+    },
+    "ledgerId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "scope": {
+      "enum": [
+        "validation",
+        "generation"
+      ]
+    },
+    "limitMicroCny": {
+      "$ref": "common.schema.json#/$defs/money"
+    },
+    "warningThresholdPercent": {
+      "const": 80
+    },
+    "allocations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "amountMicroCny": {
+            "$ref": "common.schema.json#/$defs/money"
+          }
+        },
+        "required": [
+          "taskId",
+          "amountMicroCny"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "taskId": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "pricingVersion": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "reservedMicroCny": {
+            "$ref": "common.schema.json#/$defs/money"
+          },
+          "settledMicroCny": {
+            "$ref": "common.schema.json#/$defs/money"
+          },
+          "unknown": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "reserved",
+              "settled",
+              "unknown",
+              "cancelled"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/artifactReference"
+            },
+            "minItems": 0
+          }
+        },
+        "required": [
+          "requestId",
+          "taskId",
+          "provider",
+          "pricingVersion",
+          "reservedMicroCny",
+          "settledMicroCny",
+          "unknown",
+          "status",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "contractVersion",
+    "ledgerId",
+    "scope",
+    "limitMicroCny",
+    "warningThresholdPercent",
+    "allocations",
+    "entries"
+  ],
+  "additionalProperties": false
+}

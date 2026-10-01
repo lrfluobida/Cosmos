@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cosmos.local/contracts/1.0.0/run.schema.json",
+  "title": "Cosmos run contract 1.0.0",
+  "$comment": "Structural validation only; apply src/contracts semantic and update validators before accepting a record.",
+  "type": "object",
+  "properties": {
+    "contractVersion": {
+      "const": "1.0.0"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "kind": {
+      "$ref": "common.schema.json#/$defs/taskKind"
+    },
+    "specVersion": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "ledgerId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "originalStartedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "originalDeadlineAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "state": {
+      "$ref": "common.schema.json#/$defs/state"
+    },
+    "taskIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 1
+    },
+    "fees": {
+      "type": "object",
+      "properties": {
+        "reservedMicroCny": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "settledMicroCny": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "unknownRequestIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "reservedMicroCny",
+        "settledMicroCny",
+        "unknownRequestIds"
+      ],
+      "additionalProperties": false
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactReference"
+      },
+      "minItems": 0
+    },
+    "humanDecisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "decisionId": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "actorId": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "decidedAt": {
+            "$ref": "common.schema.json#/$defs/timestamp"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/artifactReference"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "decisionId",
+          "actorId",
+          "decidedAt",
+          "reason",
+          "evidence"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "contractVersion",
+    "runId",
+    "kind",
+    "specVersion",
+    "ledgerId",
+    "originalStartedAt",
+    "originalDeadlineAt",
+    "state",
+    "taskIds",
+    "fees",
+    "artifacts",
+    "humanDecisions"
+  ],
+  "additionalProperties": false
+}
