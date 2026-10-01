@@ -22,6 +22,7 @@ export interface AcceptanceReport {
 }
 export interface AcceptanceOptions {
   evidenceRoot: string; headless?: boolean; channel?: 'chrome' | 'msedge'; timeoutMs?: number;
+  env?: NodeJS.ProcessEnv;
 }
 
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
@@ -70,7 +71,7 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
   await writeFile(join(directory, 'plan.json'), JSON.stringify(plan, null, 2) + '\n', 'utf8');
   try {
     // launchServer owns this process tree. Its launch timeout also cancels a partial launch.
-    server = await chromium.launchServer({ headless: report.browser.headless, channel: options.channel, host: '127.0.0.1', timeout: Math.max(1, remaining(15_000)) });
+    server = await chromium.launchServer({ headless: report.browser.headless, channel: options.channel, env: options.env, host: '127.0.0.1', timeout: Math.max(1, remaining(15_000)) });
     report.cleanup.browserPid = server.process().pid ?? null;
     report.cleanup.processExited = false;
     browser = await run(() => chromium.connect(server!.wsEndpoint(), { timeout: Math.max(1, remaining(5000)) }), 5000, 'Browser connection');
