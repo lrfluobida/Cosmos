@@ -89,6 +89,13 @@ test('invalid input fails with actionable errors', async (t) => {
   assert.equal(run(['--help'], cwd).status, 0);
 });
 
+test('a linked package bin still executes the public CLI', async t => {
+  const cwd = await temporary(t), linked = join(cwd, 'linked-package');
+  await symlink(fileURLToPath(new URL('../../', import.meta.url)), linked, process.platform === 'win32' ? 'junction' : 'dir');
+  const result = spawnSync(process.execPath, ['--experimental-strip-types', join(linked, 'src/cli/index.ts'), '--help'], { cwd, encoding: 'utf8', windowsHide: true });
+  assert.equal(result.status, 0, result.stderr); assert.match(result.stdout, /cosmos new/);
+});
+
 test('build requires the project local install and propagates compilation failure', async (t) => {
   const cwd = await temporary(t);
   const target = resolve(cwd, 'project');

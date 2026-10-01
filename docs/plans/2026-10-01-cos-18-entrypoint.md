@@ -1,6 +1,6 @@
 # COS-18 CLI entrypoint implementation plan
 
-**状态：** root 已批准方案 A 及持久硬停止语义；A 段 intake/激活/访谈已实现并完成离线检查，等待独立审查；B 段 CLI/host 装配继续实施。基线 `0a10f4230c312cc9874be0e6499fd784b3ceba9c`，分支 `feat/cos-18-cli`。
+**状态：** root 已批准方案 A 及持久硬停止语义；A 段 `d80842961800da78cb4ddfcf29315f0e8ef776ef` 获独立 `PHASE_A_READY`。B 段 CLI/host 装配已实现并完成聚焦验证，等待独立审查。基线 `0a10f4230c312cc9874be0e6499fd784b3ceba9c`，分支 `feat/cos-18-cli`。
 
 **Goal:** 接通原 R4/R11 的一句话需求、design 访谈、显式确认、生成及运行控制 CLI，并完成离线验证。
 
@@ -54,7 +54,7 @@
 | `src/runtime/run-types.ts`、`src/runtime/run-validation.ts` | 若采用 A，仅新增 `generation_activated` 事件类型/校验；不改变旧 v1 RunManifest 的必填项、时间限制或更新规则。 |
 | `src/roles/interview.ts`（新增）、`src/roles/requirements.ts` | 无生成工具的 native design 访谈、草稿修订/确认绑定；保留现有 host-supplied API 兼容。 |
 | `src/cli/index.ts`、新增 `src/cli/session.ts`、`src/cli/control.ts` | 参数、stdin、当前草稿展示、host 启动与运行控制；默认生产适配器，测试显式注入假 provider/host。 |
-| `src/runtime/entrypoint.ts`、`src/runtime/entrypoint-host.ts`（新增） | 薄层装配既有规划/执行/恢复/修复；host 固定模板、工具、角色归属、验收/产物版本及交付。 |
+| `src/runtime/entrypoint.ts`、`src/runtime/entrypoint-host.ts`、`src/runtime/entrypoint-media.ts`（新增） | 薄层装配既有规划/执行/恢复/修复；host 固定模板、工具、独立 design/art/coding 归属、动态媒体渲染、验收/产物版本及交付。 |
 | `tests/runtime/intake.test.ts`、`tests/roles/interview.test.ts`、`tests/cli/session.test.ts`、`tests/cli/control.test.ts`、`tests/runtime/entrypoint.test.ts`（新增） | 账本转换、真实 stdin/命令控制、动态确认和适配器接线的离线故障测试。 |
 | `docs/development/quickstart.md`、`docs/development/roles.md`、本计划 | 支持范围、命令、阶段/计费/停止语义和验证证据。 |
 
@@ -64,14 +64,35 @@
 
 - [x] root 确认 A 的阶段转换与 stop/resume 语义，固定共享 core 归属；再开始代码实现。
 - [x] 先写 intake 测试并确认失败：已计费/unknown 持续、拒绝在途激活、一次性真实时钟激活、旧 v1 拒绝激活、并发激活、提交前后崩溃与重复打开。实现薄层后执行 `node --experimental-strip-types --test tests/runtime/intake.test.ts tests/roles/budget.test.ts tests/runtime/run.test.ts tests/runtime/recovery/receipts.test.ts tests/runtime/recovery/snapshot-crash.test.ts`，期望全部通过且零 provider 网络调用。
-- [ ] 先写访谈与 CLI 测试并确认失败：两个不同 brief、正常 stdin 回答、当前修订号确认、缺答/拒绝/EOF、改稿使旧确认失效、伪造确认字段被拒、unsupported 验收、环境未就绪不激活、生成前置缺失不调用。实现后执行 `node --experimental-strip-types --test tests/roles/interview.test.ts tests/cli/session.test.ts tests/cli/cli.test.ts`。
-- [ ] 先写 host/控制接线测试并确认失败：状态读取不取得写锁、不改变 snapshot；正确 runId 的 stop 等待 drain，错误身份/陈旧通道拒绝；崩溃恢复同计划同费用同时间；已停止/过期的原运行不被重开；冻结验收作者不可写；费用/unknown/history 连续、秘密不进入子进程或输出。实现后执行 `node --experimental-strip-types --test tests/cli/control.test.ts tests/runtime/entrypoint.test.ts`。
-- [ ] 接通现有角色、registry、host 验收和交付，保留独立评审及固定版本。仅重跑受接口变化影响的角色预算/恢复/调度契约测试，再依次执行 `npm run typecheck` 与 `npm run build`；不要与真实浏览器 fixture 并发写构建目录，不为接线重跑真实生成或既有媒体/浏览器验收。
-- [ ] 更新使用文档，逐文件复查 UTF-8、原换行与中文；执行 `git diff --check`。按可审查边界提交，给独立 reviewer 精确 SHA、命令输出和已知限制。root/merger 负责后续集成；离线结果不能标记 COS-10 游戏通过、COS-11/13 live 通过或 G3 通过。
+- [x] 先写访谈与 CLI 测试并确认失败：两个不同 brief、正常 stdin 回答、当前修订号确认、缺答/拒绝/EOF、改稿使旧确认失效、伪造确认字段被拒、unsupported 验收、环境未就绪不激活、生成前置缺失不调用。实现后执行 `node --experimental-strip-types --test tests/roles/interview.test.ts tests/cli/session.test.ts tests/cli/cli.test.ts`。
+- [x] 先写 host/控制接线测试并确认失败：状态读取不取得写锁、不改变 snapshot；正确 runId 的 stop 等待 drain，错误身份/陈旧通道拒绝；崩溃恢复同计划同费用同时间；已停止/过期的原运行不被重开；冻结验收作者不可写；费用/unknown/history 连续、秘密不进入子进程或输出。实现后执行 `node --experimental-strip-types --test tests/cli/control.test.ts tests/runtime/entrypoint.test.ts`。
+- [x] 接通现有角色、registry、host 验收和交付，保留独立评审及固定版本。仅重跑受接口变化影响的角色预算/恢复/调度契约测试，再依次执行 `npm run typecheck` 与 `npm run build`；不要与真实浏览器 fixture 并发写构建目录，不为接线重跑真实生成或既有媒体/浏览器验收。
+- [x] 更新使用文档，逐文件复查 UTF-8、原换行与中文；执行 `git diff --check`。
+- [ ] 交由独立 reviewer 审查 B 段精确 SHA、命令输出和已知限制；root/merger 负责后续集成。离线结果不能标记 COS-10 游戏通过、COS-11/13 live 通过或 G3 通过。
 
 ## 6. A 段实现与证据
 
 - `IntakeController.create/open` 只处理新 `intake-1` 快照；当前草稿与确认以不可覆盖的 source 文件落盘。`saveDraft` 增加修订号并使旧确认失效；`confirm` 必须接收当前修订号和 host 取得的真实用户决定。`activateGeneration` 在原 owner 锁中保留全部账本与请求历史，发布一个 v1 运行快照；同实例重复激活返回原结果，重开 intake 会拒绝已激活 v1。正式执行随后使用 `RunController.open`。
 - `requestDesignQuestions` / `requestDesignDraft` 通过无生成工具的 native pi 会话提出建议。每个步骤先保存输入 intent，完整回复保存后可按准确输入复用；有 intent 无回复时阻止盲目重发。两种不同 brief 的假 provider 检查证明接线使用实际输入，并经原 receipt 路径计费；未进行付费 native 效果验证。
 - 红灯证据：intake 13 项因缺少 API 失败；interview 5 项因缺少 native 入口失败。实现后的聚焦命令包含 intake/interview、原预算、RunController、receipt、snapshot crash，共 49 项通过。补充两个真实子进程的激活前/后退出场景后，新增模块共 21 项通过；重用未改代码的既有回归证据。`npm run typecheck` 和 `npm run build` 通过，UTF-8/LF 与中文复读通过。
-- 当前仅 A 段 API 就绪；公开 CLI/stdin、完整 host 装配、控制通道和交付属于 B 段。未完成的确认/source 发布或缺失 native 回复会保守阻塞，不推测用户已经确认，也不重复付费。所有测试使用临时目录和假 provider，没有访问 live 账本、旧试跑或参考游戏。任何真实验证仍须独立满足既定预算/门禁，旧过期记录保持原状。
+- A 段提供 intake API；公开 CLI/stdin、host 装配、控制通道和交付见 B 段记录。未完成的确认/source 发布或缺失 native 回复会保守阻塞，不推测用户已经确认，也不重复付费。A 段测试使用临时目录和假 provider，没有访问 live 账本、旧试跑或参考游戏。任何真实验证仍须独立满足既定预算/门禁，旧过期记录保持原状。
+
+## 7. B 段实现、验证与明确缺口
+
+- 公开入口为 `new <run-dir> --brief <text>`、`status`、`stop`、`resume`，保留链接安装的 bin 入口。草稿用普通中文展示，版本确认来自真实 stdin。状态只读；停止通过绑定 runId 的本机 owner 通道执行；终端复用持久 `budget_warning` 显示一次 80% 提示，不建立新账本。intake 和生成恢复均先核对原持久费用回执，再决定是否允许新请求。
+- 独立 design/art/coding 槽位均有固定写入范围和阶段验收；Cosmos 的计划必须覆盖全部原玩法条目并保持角色依赖。动态 SVG/WAV 渲染使用已有媒体模块；文件检查与最终游戏媒体使用观测分开。正常输入截图、媒体实际/期望记录和固定源码进入独立评审。单次协议纠错、单次有界任务修复均沿用原额度、时限和历史；修复按失败 taskId 查找原任务，已通过上游不重新调用。
+- 一组聚焦离线命令通过 61 项；随后新增 public status/stop、确认复用的 public resume、缺少执行前置时禁止访谈计费/正式计时、intake 持久回执恢复和链接安装 bin 入口检查。共 66 个不同离线检查通过；最后受影响的 CLI 与 session 两个套件 16 项通过，session 与 runtime entrypoint 的 16 项也通过。未改的旧恢复、媒体和调度证据按既有记录复用。`npm run typecheck` 与最后一次严格 `npm run build` 通过。
+
+```text
+node --experimental-strip-types --test --test-reporter=spec tests/cli/*.test.ts tests/roles/interview.test.ts tests/roles/stage-requirements.test.ts tests/roles/budget.test.ts tests/runtime/intake.test.ts tests/runtime/entrypoint.test.ts tests/runtime/entrypoint-host.test.ts tests/runtime/entrypoint-media.test.ts
+node --experimental-strip-types --test --test-reporter=spec tests/cli/control.test.ts tests/cli/session.test.ts
+node --experimental-strip-types --test --test-reporter=spec --test-name-pattern="missing execution prerequisites" tests/cli/session.test.ts
+node --experimental-strip-types --test --test-reporter=spec tests/cli/session.test.ts tests/runtime/entrypoint.test.ts
+node --experimental-strip-types --test --test-reporter=spec tests/cli/cli.test.ts tests/cli/session.test.ts
+```
+
+- root 单独安排的一项真实 production-host smoke 也通过，命令为 `node --experimental-strip-types --test --test-reporter=spec tests/runtime/entrypoint-host.smoke.ts`；该文件不被默认 `npm test` 发现。它从编译后的 host 运行真实受控 tsc/Vite 子进程、Edge runner 和 registry，测试 19.59 秒，模型/API 请求为 0。浏览器为 Edge `153.0.4234.48`，1280×720，10 个回放/观察步骤通过，浏览器进程退出已确认。
+- 通过证据保存在当前工作区 `.cosmos/cos18-host-smoke/3e6b6f21-2d93-4509-915b-03c4fbe31451/smoke-report.json` 及对应 browser/media 报告、`001-ready.png` / `003-clicked.png`。报告明确 `generatedByCosmos: false` 和 `test-only media observations`：通用模板 fixture 的计数只证明生产进程、browser、观测结构与 registry 桥接，不能证明新的运行时游戏、美术或音频已经生成并验收。COS-04 的实际媒体探针保持独立版本和证据。
+- 第一次 smoke 在构建时发现工具链复制错误地排除了依赖包自己的 `dist`；修为仅排除模板顶层 `dist` 后重跑上述单项通过。失败证据目录 `2d55d21b-09d1-4656-bbd8-0b2f86f34e45` 保留。没有重跑旧媒体 suite、旧 pilot/trial 或付费服务。
+- 当前 host 支持鼠标、图层 SVG 和合成 PCM 的有界需求；完整经典基准仍缺 COS-14 的可信适配，不减少原基准内容。运行时只读媒体计数仍须由独立评审核对真实 Phaser 事件并结合正常输入截图；听感和视觉辨识未被计数或 fixture smoke 证明。
+- `resume` 只支持原窗口内、无持久停止的可核实中断。手动 hard stop、预算或时限停止不自动恢复，CLI 暂无用户追加时间/额度的续跑入口，因此不声明 R15 全部续跑体验完成。上游修复不会静默改绑已经固定的下游依赖；不能继续的条目留在差距与原失败历史中。COS-18 整体验收、真实生成及 G3 状态仍由对应后续证据决定。

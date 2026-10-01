@@ -1,6 +1,6 @@
 # Runtime roles and bounded planning
 
-COS-07 connects the pinned native pi adapter, COS-02 contracts and the existing shared RunController. It exposes programmatic APIs; CLI integration and real game generation belong to COS-10.
+COS-07 connects the pinned native pi adapter, COS-02 contracts and the existing shared RunController. Its programmatic APIs are used by the fixed COS-10 probe and the COS-18 product CLI; their completion evidence remains separate.
 
 ## Requirement confirmation
 
@@ -19,6 +19,27 @@ const requirement = confirmRequirements(draft, userConfirmation);
 ```
 
 The host supplies the questions and acceptance draft. Missing decisions are not filled with defaults or recorded as confirmed by a model. This is an API boundary, not user authentication; callers must not fabricate confirmation.
+
+### COS-18 native intake and product host
+
+`requestDesignQuestions` and `requestDesignDraft` use native design sessions without game-generation tools. The host capability description is part of each durable input identity. Completed replies can be reused only for the exact original input; an intent without a reply blocks blind retry. The public CLI records actual stdin answers, displays the current revision in ordinary language and accepts only an explicit confirmation of that revision.
+
+`IntakeController` holds the one generation ledger before a formal deadline exists. `activateGeneration` atomically replaces that intake snapshot with a v1 run under the same exclusive owner, retaining run ID, ledger ID, allocations, charges, admissions and history. Only this transition fixes the original generation window. Existing v1 runs cannot be returned to intake. Every native intake request uses the same receipt and accounting interface as subsequent generation.
+
+The product host declares separate design, art and coding policy slots. `COSMOS-DESIGN` and `COSMOS-MEDIA` are explicit host stage criteria included in the displayed, confirmed draft; gameplay criteria are preserved separately. Design maps gameplay to rules and a dynamic character/state/audio roster. Art writes new `CharacterSpec` / `AudioSpec` data; the trusted adapter renders and validates the actual SVG/WAV files. Coding consumes those exact registered design/media versions. The planner must preserve the dependencies and role scopes.
+
+The final candidate replays the original normal-input plan with additional manifest-bound media observations. The required read-only `cosmosDebug.media` shape is:
+
+```text
+characters: [{ id, loadedFrames, states: [{ name, seen }] }]
+audio: [{ id, decoded, started }]
+```
+
+Array order follows the fixed media manifest. The values must come from actual Phaser texture/audio readiness, displayed animation transitions and successful sound starts, not declared constants. The host binds its checks to the candidate and media versions and retains each actual/expected result. Normal-input screenshots and the media report enter the independent review alongside fixed source. Read-only counters do not establish their own truth, perceptual visibility or listening quality. Missing observations prevent candidate promotion; visual recognizability and real listening remain user experience checks.
+
+`executeGeneration` assembles the existing planner, scheduler, registry, independent review and recovery journal. It explicitly allows one durable review-protocol correction, charged to the same task and original window; a valid `changes_requested` verdict is not rewritten. Recovery/protocol correction use the existing effective serial scheduling. A bounded repair finds the failed task by ID, preserves passed upstream references and keeps the original failure in `taskHistory`; final delivery evaluates the original DAG with its declared successor. A changed upstream version does not silently rebind downstream requirements or dependencies.
+
+The public `stop` persists a hard stop and waits for owned work to drain. `resume` can recover only verifiable interruptions without a stop reason inside the original window. There is no CLI continuation that adds money/time or clears manual, budget or deadline stops. This does not complete all R15 continuation experiences. At stop or failure, delivery reports preserve the current project, any accepted candidate, costs and handoff instead of declaring success.
 
 ## Native role factory
 

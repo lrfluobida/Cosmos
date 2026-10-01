@@ -2,6 +2,24 @@ import { validateRequirement } from '../contracts/index.ts';
 import type { RequirementContract } from '../contracts/index.ts';
 import { validatePlan } from '../acceptance/plan.ts';
 import type { AcceptancePlan } from '../acceptance/plan.ts';
+import { sameValue } from '../contracts/validation.ts';
+
+export const DESIGN_ACCEPTANCE_ID = 'COSMOS-DESIGN';
+export const MEDIA_ACCEPTANCE_ID = 'COSMOS-MEDIA';
+export const HOST_STAGE_ACCEPTANCE = freeze<RequirementContract['acceptance']>([
+  { acceptanceId: DESIGN_ACCEPTANCE_ID, description: '设计检查：玩法要求均有对应设计，角色动作和音频用途清楚。',
+    steps: ['检查设计内容覆盖全部已确认玩法，并由独立评审核对。'], expected: '全部玩法都有设计映射；角色、动作、音频与触发用途明确。', evidenceKinds: ['test_report'] },
+  { acceptanceId: MEDIA_ACCEPTANCE_ID, description: '美术与音频检查：独立 art 角色产出原创素材，文件与设计清单一致。',
+    steps: ['渲染 art 角色的新素材规范，核对来源、全部动作帧和音频文件，再交独立评审。'], expected: '所有设计声明的素材均已生成并通过格式、动作清单和音频检查。', evidenceKinds: ['test_report'] },
+]);
+export function gameplayAcceptance(draft: Pick<GameDraft, 'acceptance'>) {
+  return draft.acceptance.filter(item => !HOST_STAGE_ACCEPTANCE.some(stage => stage.acceptanceId === item.acceptanceId));
+}
+/** Host criteria are displayed and frozen in the same user-confirmed revision. */
+export function withHostStages(draft: GameDraft): GameDraft {
+  validateGameDraft(draft);
+  return { ...structuredClone(draft), acceptance: [...structuredClone(gameplayAcceptance(draft)), ...structuredClone(HOST_STAGE_ACCEPTANCE)] };
+}
 
 export interface GameDraft {
   brief: string;
@@ -26,11 +44,17 @@ export function validateGameDraft(value: unknown): asserts value is GameDraft {
       || !text(item.acceptanceId) || !text(item.description) || !Array.isArray(item.steps) || !item.steps.length || item.steps.some(step => !text(step))
       || !text(item.expected) || !Array.isArray(item.evidenceKinds) || !item.evidenceKinds.length || item.evidenceKinds.some(kind => !['test_report', 'screenshot', 'video', 'log', 'user_decision'].includes(kind)))) throw new Error('Invalid acceptance draft.');
   if (!draft.scenario || Object.keys(draft.scenario).some(key => !['viewport', 'steps'].includes(key))) throw new Error('Invalid scenario fields.');
+  for (const item of draft.acceptance) {
+    const stage = HOST_STAGE_ACCEPTANCE.find(stage => stage.acceptanceId === item.acceptanceId);
+    if (stage && !sameValue(stage, item)) throw new Error('Host stage acceptance cannot be redefined.');
+  }
+  const gameplay = gameplayAcceptance(draft);
+  if (!gameplay.length) throw new Error('At least one gameplay acceptance is required.');
   // Placeholder bindings validate declarative input only; they are never evidence or execution authority.
   const issues = validatePlan({ ...draft.scenario, formatVersion: '1.0.0', projectId: 'draft', taskId: 'draft', runId: 'draft', reportId: 'draft', specVersion: 'draft',
-    artifact: { artifactId: 'draft', version: 'v1', location: 'draft' }, url: 'http://127.0.0.1:1', acceptanceIds: draft.acceptance.map(item => item.acceptanceId) });
+    artifact: { artifactId: 'draft', version: 'v1', location: 'draft' }, url: 'http://127.0.0.1:1', acceptanceIds: gameplay.map(item => item.acceptanceId) });
   if (issues.length) throw new Error(`Unsupported acceptance scenario: ${issues.join('; ')}`);
-  for (const item of draft.acceptance) {
+  for (const item of gameplay) {
     const assertions = draft.scenario.steps.filter(step => (step.kind === 'assert' || step.kind === 'wait-for') && step.acceptanceId === item.acceptanceId);
     if (!assertions.some(step => (step.kind === 'assert' || step.kind === 'wait-for') && step.observation.kind !== 'debug'
       && draft.scenario.steps.slice(0, draft.scenario.steps.indexOf(step)).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind)))) {
