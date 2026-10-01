@@ -189,7 +189,29 @@ export class RunController {
     });
   }
 
-  /** Persist full COS-02 attempts, evidence and handoff without inventing an orchestrator. */
+  /** Append host-validated task drafts and allocations without changing the original budget. */
+  async registerTasks(tasks: TaskContract[]): Promise<void> {
+    const values = structuredClone(tasks);
+    return this.serial(async () => {
+      this.requireActive();
+      const next = structuredClone(this.snapshot);
+      for (const task of values) {
+        if (task.state !== 'not_started' || task.attempts.length || task.evidence.length || task.artifacts.length || task.review.verdict !== 'pending') throw new Error('Register only fresh task drafts.');
+        if (next.tasks.some(t => t.taskId === task.taskId)) throw new Error('Task already registered.');
+        const allocation = next.ledger.allocations.find(a => a.taskId === task.taskId);
+        if (allocation && allocation.amountMicroCny !== task.budget.allocationMicroCny) throw new Error('Existing allocation cannot be changed.');
+        if (!allocation) {
+          next.ledger.allocations.push({ taskId: task.taskId, amountMicroCny: task.budget.allocationMicroCny });
+          next.run.taskIds.push(task.taskId);
+        }
+        next.tasks.push(task);
+      }
+      this.event(next, 'task_saved', null, 'Planned tasks registered atomically within the original shared allocation cap.');
+      await this.commit(next);
+    });
+  }
+
+  /** Persist full COS-02 attempts, evidence and handoff. */
   async saveTask(task: TaskContract, actor: UpdateActor): Promise<void> {
     const value = structuredClone(task), trustedActor = structuredClone(actor);
     return this.serial(async () => {
