@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { SnapshotStore } from '../../../src/runtime/store.ts';
+import { RunController } from '../../../src/runtime/run.ts';
+import { OwnerLock } from '../../../src/runtime/recovery/ownership.ts';
 
 async function fixture(t: any) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-recovery-owner-'));
@@ -33,6 +35,7 @@ test('controller ownership records identity and refuses to remove a replacement 
   assert.match(owner.token, /^[\w-]+$/);
   assert.deepEqual(owner.children, []);
   await writeFile(lockPath, JSON.stringify({ ...owner, token: 'replacement' }), 'utf8');
+  await assert.rejects(store.close(), /ownership|owner/i);
   await assert.rejects(store.close(), /ownership|owner/i);
   assert.equal(JSON.parse(await readFile(lockPath, 'utf8')).token, 'replacement');
 });
@@ -77,3 +80,31 @@ test('an unresolved durable spawn intent blocks recovery even when its owner exi
   await owner.stop();
   await assert.rejects(SnapshotStore.recover(root), /pending|unresolved|child/i);
 });
+
+for (const layer of ['owner', 'store', 'controller'] as const) {
+  test(`${layer} close retries release after its child exits and shares concurrent close results`, async t => {
+    const root = await fixture(t);
+    const resource = layer === 'owner' ? await OwnerLock.acquire(root, '.controller.lock')
+      : layer === 'store' ? await SnapshotStore.acquire(root)
+      : await RunController.create({ root, runId: 'run', ledgerId: 'ledger', kind: 'evaluation', specVersion: 'v1', scope: 'validation', allocations: [{ taskId: 'writer', amountMicroCny: 1 }] });
+    const ticket = await resource.prepareOwnedChild();
+    const writer = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore', windowsHide: true, env: { SYSTEMROOT: process.env.SYSTEMROOT } });
+    const exited = once(writer, 'exit');
+    t.after(async () => { if (writer.exitCode === null && writer.signalCode === null) writer.kill(); await exited; await resource.close().catch(() => {}); });
+    await resource.registerOwnedChild(writer.pid!, ticket);
+    const original = await readFile(join(root, '.controller.lock'), 'utf8');
+    const blocked = await Promise.allSettled([resource.close(), resource.close()]);
+    assert.deepEqual(blocked.map(result => result.status), ['rejected', 'rejected']);
+    assert.equal(await readFile(join(root, '.controller.lock'), 'utf8'), original);
+    await assert.rejects(async () => resource.prepareOwnedChild(), /closed/i);
+    await assert.rejects(SnapshotStore.acquire(root), /owner/i);
+    writer.kill(); await exited;
+    await Promise.all([resource.close(), resource.close()]);
+    await assert.rejects(readFile(join(root, '.controller.lock')), /ENOENT/);
+    const successor = await SnapshotStore.acquire(root);
+    try {
+      await resource.close();
+      await assert.rejects(SnapshotStore.acquire(root), /owner/i);
+    } finally { await successor.close(); }
+  });
+}

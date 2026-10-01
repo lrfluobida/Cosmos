@@ -72,7 +72,6 @@ export class SnapshotStore {
   }
 
   async close(): Promise<void> {
-    if (this.closed) return;
     this.closed = true;
     await this.lock.close();
   }

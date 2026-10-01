@@ -250,7 +250,7 @@ export class RunController {
     this.closing = true;
     clearTimeout(this.timer);
     this.abort.abort(new Error('Run controller closed.'));
-    this.closePromise = this.pending.then(() => this.store.close());
+    this.closePromise = this.pending.then(() => this.store.close()).catch(error => { this.closePromise = undefined; throw error; });
     return this.closePromise;
   }
 

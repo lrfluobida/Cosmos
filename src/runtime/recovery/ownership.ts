@@ -40,6 +40,8 @@ export class OwnerLock {
   private record: OwnerRecord;
   private constructor(path: string, record: OwnerRecord) { this.path = path; this.record = record; }
   private closed = false;
+  private released = false;
+  private closePromise?: Promise<void>;
   private pending: Promise<unknown> = Promise.resolve();
 
   static async acquire(root: string, name: string, untrackedWriters = false): Promise<OwnerLock> {
@@ -102,12 +104,18 @@ export class OwnerLock {
     });
   }
   async close(): Promise<void> {
-    if (this.closed) return;
-    this.closed = true; await this.pending; await this.assertOwner();
-    for (const child of this.record.children) {
-      if (child.pid === null) throw new Error('Unresolved child spawn intent; retaining ownership.');
-      requireExited(child.pid, 'Owned child');
-    }
-    await unlink(this.path);
+    if (this.released) return;
+    if (this.closePromise) return this.closePromise;
+    this.closed = true;
+    this.closePromise = this.pending.then(async () => {
+      await this.assertOwner();
+      for (const child of this.record.children) {
+        if (child.pid === null) throw new Error('Unresolved child spawn intent; retaining ownership.');
+        requireExited(child.pid, 'Owned child');
+      }
+      await unlink(this.path);
+      this.released = true;
+    }).catch(error => { this.closePromise = undefined; throw error; });
+    return this.closePromise;
   }
 }
