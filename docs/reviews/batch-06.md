@@ -1,0 +1,22 @@
+# Batch 06 review and integration record
+
+Date: 2026-10-01. Sole merger: `batch06_merger`. Starting main: `3bf5ea589b4d22786b410b201131b8c09620db07`; [plan](../plans/2026-10-01-batch-06.md).
+
+## Fixed COS-10/11 trial checkpoint
+
+Root handed off independent review `READY_FOR_FIXED_TRIAL_INTEGRATION`, with no P1/P2 findings, for exact source `4fb66fa1379149fba5c27d81ffa37736580ce8c5` on `feat/cos-10-e2e`. Merge `17b41e46d03fb1cd0f1949e6c3c23d862d304d0d` has first parent plan commit `b958275` and second parent that approved SHA. It merged without conflicts over the newer COS-12 Phase B code; all eight owned files match the approved source. The merger made no implementation edits.
+
+Fresh integration evidence on Windows / Node.js 22.22.2:
+
+| Check | Result |
+| --- | --- |
+| `node --experimental-strip-types --test --test-concurrency=1 "tests/e2e/*.test.ts" "tests/roles/repair-*.test.ts" "tests/runtime/recovery/dependencies.test.ts" "tests/runtime/recovery/dag.test.ts"` | 103/103 passed; zero failures, cancellations or skips |
+| `node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck --allowImportingTsExtensions probes/e2e/run.ts` | Passed |
+| `npm run build`, then `npm run typecheck` | Both passed |
+| Approved-path comparison, UTF-8/LF and whitespace | Verified |
+
+Local TAP log: `.cosmos/integration/batch06-trial.tap`. Test files ran sequentially, followed by all compiler commands. The real Edge fixture observed an injected ordinary-input defect; scripted native-session fixtures exercised a real compiler failure, bounded repair and protocol correction. These are platform checks, not generated-game acceptance. Unchanged browser/media probes were not repeated.
+
+Release the clean pushed checkpoint to root for the one fixed `cos10-cos11-validation-1` paid trial. Freeze main code until root releases that platform HEAD. The merger has not run the trial, accessed credentials or touched the live ledger and old pilot artifacts. Recorded shared cost remains 892,282 micro-CNY; root will record any new trial cost and result separately. The original shared deadline, cumulative CNY 30 probe cap, CNY 150 ledger, failed pilot history and consumed continuation stay intact.
+
+COS-10 / #11 remains open without a passing game, COS-11 / #12 remains `offline-verified-awaiting-live`, and G3 stays closed. COS-12 / #13 remains closed. COS-13 / #14 is awaiting fixes and final independent approval; candidate `b2d5cfc` is not merged. No issue completion is claimed by this checkpoint.
