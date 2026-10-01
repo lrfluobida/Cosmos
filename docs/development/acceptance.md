@@ -91,3 +91,7 @@ node --experimental-strip-types --test tests/acceptance/fresh-build.integration.
 
 - `hang-1790834828593/frozen-click/report.json`
 - `hang-1790834832262/frozen-observation/report.json`
+
+集成时还发现 Windows `BrowserServer.kill()` 内部同步执行 `taskkill`，然后等待临时目录删除；在并发编译负载下会延后报告。一次定向诊断观察到同步调用占用 562 ms，浏览器随后退出，但 kill Promise 又等了约 643 ms 才完成。现在只对本次 BrowserServer 的 PID 异步执行有时限的 `taskkill.exe /T /F`（POSIX 为它的独立进程组），以实际进程退出作为清理证据；Playwright 临时目录删除可以继续收尾，测试仍要求工作进程自然退出。计时器也在操作开始前建立，新增模拟时钟用例验证同步准备时间消耗原有额度。
+
+未调整原有 3500 ms 配置、报告的 4000 ms 检查阈值或工作进程上限。两次只读 TypeScript 编译并行施加载荷时，deadline、hang、runner 共 13 项定向测试通过；点击／观测报告分别耗时 3115／3021 ms，均确认强制结束且 PID 已不存在。证据为 `hang-1790836006879/frozen-click/report.json` 和 `hang-1790836012525/frozen-observation/report.json`，仍位于上述 hang-v1 目录。

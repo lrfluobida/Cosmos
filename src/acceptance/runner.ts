@@ -7,6 +7,7 @@ import { input, observe } from './browser.ts';
 import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Scalar, Step } from './plan.ts';
 import { bounded, DeadlineError } from './deadline.ts';
+import { stopBrowserProcess } from './process.ts';
 
 export interface StepResult {
   id: string; kind: Step['kind']; acceptanceId?: string; outcome: 'passed' | 'failed' | 'skipped';
@@ -137,7 +138,7 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
     } catch (error) { forceClose = true; report.errors.push(`Cleanup: ${message(error)}`); }
     if (server && (server.process().exitCode === null && server.process().signalCode === null)) {
       report.cleanup.forced = true;
-      try { await bounded(() => server!.kill(), Math.max(1, Math.min(2000, lifecycleDeadline - Date.now())), 'Owned browser process termination'); }
+      try { await stopBrowserProcess(server.process(), Math.max(1, Math.min(2000, lifecycleDeadline - Date.now()))); }
       catch (error) { report.errors.push(`Forced cleanup: ${message(error)}`); }
     }
     if (server) {
