@@ -15,6 +15,8 @@ export type AuthorRole = 'cosmos' | 'design' | 'coding' | 'art';
 export type Role = AuthorRole | 'reviewer';
 export interface RoleSession {
   prompt(text: string, options?: { signal?: AbortSignal; images?: ImageContent[] }): Promise<{ text: string }>;
+  /** Host-only, idle-session boundary; native pi owns summarization and billing. */
+  compact?(signal?: AbortSignal): Promise<unknown>;
   close(): Promise<void>;
 }
 export interface RoleInput {
@@ -35,6 +37,7 @@ export interface RoleFactoryOptions {
   estimatedMaxCostMicroCny: PiSessionOptions['estimatedMaxCostMicroCny'];
   thinkingLevel?: PiSessionOptions['thinkingLevel'];
   env?: PiSessionOptions['env'];
+  compactionKeepRecentTokens?: PiSessionOptions['compactionKeepRecentTokens'];
   /** Trusted host integrations only. Mutating tools are never supplied to a reviewer. */
   hostTools?: (input: Readonly<{ role: Role; taskId: string; workspace: string; signal: AbortSignal; childEnv: NodeJS.ProcessEnv }>) => Promise<{ tool: ToolDefinition; readOnly: boolean }[]>;
   sessionFactory?: (options: PiSessionOptions) => Promise<RoleSession>;
@@ -94,15 +97,17 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const session = await (options.sessionFactory ?? createPiSession)({
       workspace, stateDirectory: input.stateDirectory, tools,
       systemPrompt: input.purpose === 'planning'
-        ? 'You are the Cosmos task planner. Return only JSON {tasks:[{taskId,role,objective,acceptanceIds,dependsOn}]}. Use only the host role policies supplied in the prompt, at most one task per role. Cover every confirmed acceptance ID. Each dependency names a task in this plan. The host binds its declared output versions as inputs after the dependency passes. You cannot choose tools, paths, budget, acceptance steps, evidence or task state. This is a proposal, not a claim that the game passes.'
+        ? 'You are the Cosmos task planner. Return only JSON {tasks:[{taskId,role,objective,acceptanceIds,dependsOn}]}. Use only the host policies supplied in the prompt. When a policy has policyId, include that policyId in its task; select each policyId at most once. Otherwise select each role at most once. Cover every confirmed acceptance ID. Each dependency names a task in this plan. The host binds its declared output versions as inputs after the dependency passes. You cannot choose tools, paths, budget, acceptance steps, evidence or task state. This is a proposal, not a claim that the game passes.'
         : reviewer
         ? 'You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. Return JSON {verdict:"approved"|"changes_requested",inputVersions:all packet inputs,evidenceIds:host evidence IDs,findings:string[]}. findings contains only unresolved actionable defects, not successful checks, positive observations or explanations. approved requires findings:[]; changes_requested requires at least one such defect with the unmet requirement and actual versus expected behavior. Do not hide actual defects to produce an empty array. Return only these JSON fields. Your verdict is a proposal checked by the host. Do not infer success from author claims.'
         : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`,
       context: JSON.stringify(packet), thinkingLevel: options.thinkingLevel ?? 'low', env: options.env,
       maxOutputTokens: options.maxOutputTokens, maxRequests: options.maxRequests, requestTimeoutMs: options.requestTimeoutMs,
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
+      compactionKeepRecentTokens: options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory }),
     });
-    return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }), close: () => session.close() };
+    return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }),
+      ...(session.compact ? { compact: (signal?: AbortSignal) => session.compact!(AbortSignal.any([input.controller.signal, ...(signal ? [signal] : [])])) } : {}), close: () => session.close() };
   };
 }
