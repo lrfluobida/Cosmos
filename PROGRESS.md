@@ -43,7 +43,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 已审 experiment 仍失败，尚无通过游戏 | 既有直接 API/pi 估算 ¥0.735971，原 pilot ¥0.156311，本次 8 请求 ¥0.224120；共享累计 ¥1.116402，预留与未知为零；原实验已消费 |
 | 任务拆分 | 已发布 | [19 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-18 承接 R4/R11，COS-19 承接 R4/R5/R12 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#20；19 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS-18 D1 只读报价已集成，D2 独立实现中，D3 未接 | D1 代表检查 3/3、构建通过，复用作者 41/41；既有 COS-19/C 证据复用；共享截止已过，真实 experiment 仍失败，#2/#11/#12/#14/#15/#17/#19/#20 保持 open |
+| 子代理逐项实施 | COS-18 D2 授权底层已部分离线集成，D3 独立实施、未验收 | D2 代表检查 7/7、0 skip，构建通过；98/70 与既有 D1/C/COS-19 证据复用；共享截止已过，真实 experiment 仍失败，#2/#11/#12/#14/#15/#17/#19/#20 保持 open |
 
 ## 开发批次
 
@@ -69,7 +69,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 05 | COS-12 / #13 | cos12_implementer | 独立 reviewer PHASE_B_READY | batch05_merger | Phase A 合并 7cff537；Phase B 128f4d1 修复 P1/P2 后获批，合并 1dc6b00；186/186、构建与类型检查通过，故障验收完成，#13 已关闭 |
 | 06 | COS-10/11 固定新 trial | feat/cos-10-e2e 独立 implementer | 独立 reviewer READY_FOR_FIXED_TRIAL_INTEGRATION / startup READY | batch06_merger | 4fb66fa 合入 17b41e4，103/103；启动恢复 841b86c 合入 7c130e7，1/1；真实 trial 启动失败且恢复过期拒绝，零请求/新增费用，#11 保持 open |
 | 06 | COS-13 / #14 | feat/cos-13-scheduler 独立 implementer | 独立 reviewer 最终 READY | batch06_merger | cf7d5f6 修复取消恢复 P2 后获批，合入 d3aab99；219 项中 218 首轮通过、Edge 单项重跑 1/1；严格类型检查/构建通过，offline-verified-awaiting-live，#14 保持 open |
-| 07 | COS-18 / #19 | feat/cos-18-cli 独立 implementer | cos18_reviewer | batch07_merger | A/B/C 已集成；D1 ea0c477 修复映射 P2 后获 D1_READY，合入 991f7f3；代表检查 3/3（0 skip）、构建通过；只读报价，D2/D3 与经典适配/真实生成仍待完成，#19 保持 open |
+| 07 | COS-18 / #19 | 独立 D1/D2 implementer | cos18_reviewer / cos18_d2_reviewer | batch07_merger | A/B/C/D1 已集成；D2 41ea1c5 修复两项 P2 后获 READY，合入 7525e63；代表检查 7/7（0 skip）、构建通过；D3 公开激活/执行/交付仍未接通，#19 保持 open |
 | 07 | COS-01 / #2 资源元数据补充 | feat/cos-01-resource-evidence 独立 implementer | cos01_reviewer | batch07_merger | b8790a8 获 READY，合入 2aa62fa；参考 CLI 校验通过，复用 16/16；230 项中 221 项待核对，基准仍未冻结 |
 | 07 | COS-14 / #15 验收工具草稿 | feat/cos-14-acceptance-draft 独立 implementer | cos14_reviewer | batch07_merger | 1c3e189 修复计时边界 P2 后获 READY，合入 522ae51；10/10、参考 CLI 通过；恒为 draft/blocked，#15 保持 open/preparatory，G4 仍关闭 |
 | 07 | COS-16 / #17 迁移用例文档 | feat/cos-16-transfer-case 独立 implementer | cos16_reviewer | batch07_merger | bb00583 获 READY，合入 6cc42f6；单文档源一致、UTF-8/LF 与中文复读通过；preparation-only/open，尚未生成或验收游戏 |
@@ -107,7 +107,9 @@ COS-19 按已发布 #20 正文补齐唯一明确模型 JSON 的解码、严格 s
 
 COS-18 C 与 COS-19 的精确组合 `b886b2f` 已独立批准并合入 `a3845a3`。一次语义修复可为合法未启动下游建立明确的 v2 继任任务，原任务、分配、费用与时间保留；诊断原文和 manifest 固定签名在恢复时核验，组原子登记/恢复，交付使用有效 DAG，status 只读展示 supersededBy，旧 B 单修复计划兼容。最终有效 DAG 全部通过才交付，继任失败不获得第二次修复。四项纯 fake 组检查、类型检查与构建通过，其余 39/72 及原 11+19 证据复用；无浏览器或 API。#19 保持 partial-offline-verified/open，完整经典适配与真实生成仍未完成；R15 代码开发已授权，按下列 D 阶段独立实施和审查。
 
-COS-18 D1 只读续跑报价已独立批准并合入 `991f7f3`：公开 `continue --quote --add-cny --add-minutes` 只为已记录硬停止或原截止已过的正式 v1 generation 生成精确 proposal；单次拟追加 ¥0–200、1–720 分钟，原硬上限和成绩不改。命令不写文件、不持锁、不调用模型、不激活窗口；validation/intake/unknown/reserved 均拒绝，到期但未记录停止明确列为待核实。三项代表检查覆盖 public 只读、循环映射拒绝和真实 Node CLI 的 snapshot/owner 标记字节、mtime、目录不变，3/3、0 skip，构建通过；作者 41/41 复用。D2 确认和原子窗口独立实现中，D3 尚未接通；纯代码授权不等于真实续跑的费用/时间授权，#19 仍 partial/open。[#19 组合进度](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5938538831) 与 [#20 角色交接修复](https://github.com/lrfluobida/Cosmos/issues/20#issuecomment-5938539844) 已同步并读回为 open。
+COS-18 D1 只读续跑报价已独立批准并合入 `991f7f3`：公开 `continue --quote --add-cny --add-minutes` 只为已记录硬停止或原截止已过的正式 v1 generation 生成精确 proposal；单次拟追加 ¥0–200、1–720 分钟，原硬上限和成绩不改。命令不写文件、不持锁、不调用模型、不激活窗口；validation/intake/unknown/reserved 均拒绝，到期但未记录停止明确列为待核实。三项代表检查覆盖 public 只读、循环映射拒绝和真实 Node CLI 的 snapshot/owner 标记字节、mtime、目录不变，3/3、0 skip，构建通过；作者 41/41 复用。D2 底层集成见下文，公开 CLI 仍只有报价；纯代码授权不等于真实续跑的费用/时间授权，#19 仍 partial/open。[#19 D1 进度](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5939261633)、[#19 组合进度](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5938538831) 与 [#20 角色交接修复](https://github.com/lrfluobida/Cosmos/issues/20#issuecomment-5938539844) 已同步并读回为 open。
+
+COS-18 D2 `41ea1c5` 经独立复审合入 `7525e63`，首次 formal v1→v2 snapshot/ledger2 在原子提交中记录完整 quote 的真实 caller 确认、旧 grant 关闭、新 grant 与窗口；身份、原截止/上限、已有停止事实和费用历史保留，同决定幂等，旧 signal 不复活，新实例必须显式指定窗口。原 overrun、第二个 v2 决定、validation/intake、unknown/reserved 与未收敛 owner 均拒绝，`artifactReuse` 明确待 D3 校验。四个 legacy DAG 入口在任何读写或调度前同步拒绝 v2，schema 按 `$id` 解析到真实 v1 绝对 URI。七项代表检查、0 skip、构建通过；98/70 原证据复用，D1 五个文件与批准源完全一致。D3 的公开激活、窗口执行/调度、继任和交付正在独立实施，尚未验收或合入；#19 保持 partial/open，不声明完整 R15 或真实生成通过。
 
 原共享验证截止 `2026-10-01T18:16:16.857Z` 已过，协调者确认之后没有 API 调用；费用估算仍为 ¥1.116402，未知/预留为零。原时钟与已消费 experiment 不重置、不重开；后续仅进行平台代码开发。
 
