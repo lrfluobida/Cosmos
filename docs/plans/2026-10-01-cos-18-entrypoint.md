@@ -129,3 +129,20 @@ root 已批准只为受修复上游影响、从未启动的下游建立新任务
 - 新增 11 项集成检查，使用实际 controller、scheduler、journal、registry 和假模型/build/browser 回调：design/art/coding 修复，固定 v2 下游，原祖先不重付，capture 后可核实中断，verify/review 缺回执阻断，successor 失败无第二次修复，未知编码不授权，缺文件保存原始事实，以及旧 B 计划兼容。每个完整三角色场景费用为 80 micro-CNY 的假调用记录，恢复不增加费用或调用；不代表真实模型价格或游戏效果。
 - 命令 `node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/entrypoint-group.test.ts` 的 11 项通过；受影响的 host、entrypoint、control 19 项也通过。仅使用临时目录；没有真实浏览器、编译子进程、API 或旧 trial 调用。原 B 进程桥接 smoke 继续按原版本复用。
 - 这段仍需独立审查；COS19 的已审核 role IO/输出上限变更合入后再执行最终组合检查。硬停止续时/加钱、真实生成/G3 与用户最终试玩均未由这些离线测试完成。
+
+## 9. Phase D：用户决定后的 continuation
+
+- **D1（本批）：只读报价。** 公开 `cosmos continue <root> --quote --add-cny <金额> --add-minutes <分钟>`，接受已经持久停止或原截止已过、费用无未知/预留的正式 generation 快照。到期但停止未落盘时明确显示 `deadline_expired_unrecorded`，等待 D2 持锁核实并记录；D1 不补写事件。显示原身份/需求/revision、原费用/上限/截止/停止原因、有效未完成任务及累计尝试、拟追加资源、待核实的 allocation 关闭明细和有限新增尝试。quoteId 绑定准确快照、参数与固定继任映射来源；输出始终是 proposal，不构成确认、收敛证明或激活。没有模型调用、owner 锁、快照写入或计时变化。金额按整数 micro-CNY；0 元可表达仅加时间，追加分钟必须为正。追加不超过 ¥200、1–720 分钟是本入口单次申请边界，原 ¥200/12h 字段不变。
+- **D2（后续独立审查）：明确授权与原子窗口。** 真实 caller 提供准确 quote 的确认；核验原 writer/子进程收敛、费用对账、固定证据及 grant 关闭条件后，才在同一权威快照追加授权、关闭记录和一次激活的执行窗口。保留原 run/ledger 身份、原时间/额度、历史请求/任务与停止事实；不复活旧 controller signal。新增实例只使用获批窗口。普通 resume 不清硬停止，陈旧报价、重复释放或丢失证明必须拒绝。
+- **D3（后续独立审查）：有界继任与交付阶段。** 复用固定已过证据；未完成任务按明确新增尝试额度建立可追溯继任，保留历史 attempts 和原上限未达标事实。最终系统交付与用户试玩等待分开，只有真实用户决定能确认体验通过。原 ¥200/12h 成绩与追加后的结果分别报告。
+- D1 只改 CLI、新增只读模块、测试和使用文档；不修改 ledger/controller/contracts 或失败 probe。validation/intake 不提供此入口，旧验证总账本/截止/一次性失败记录均不变；未来新验证窗口仍需新的明确授权。
+- 先写公开 CLI 红灯测试，再实现最小解析与只读 proposal；验证 snapshot 字节/mtime、历史、目录内容不变，host/provider/owner-lock 从未调用。覆盖参数边界、目标与 grant 明细、陈旧 basis、scope/format/停止/unknown/reserved 拒绝，以及 `continue` 不能静默进入 `resume`。
+
+### D1 接口与离线证据
+
+- 新模块 `src/runtime/continuation-quote.ts` 导出 `ContinuationQuote` 与 `buildContinuationQuote({root, additionalMicroCny, additionalDurationMs, now?})`，CLI 和后续 D2 可复用；它不依赖 CLI control、intake 或 controller，不取得锁，可在已有 owner 锁内重算。身份包含实际 snapshot 字节摘要与 revision；只判断是否已到期，当前时间不进入 quoteId，重复查看不会刷新窗口。
+- `proposed.grants` 是 `{sourceTaskId, taskId, amountMicroCny}[]`。全部只是条件提案：按有效目标原额度权重，用整数拆分原未分配额、待核实的旧任务未用额及追加额；已结算费用不释放，超旧 allocation 的事实单列阻断。新任务 ID 由原 revision/source 稳定生成，不依赖 quoteId，也不能覆盖旧 ID。D2 必须重新核验费用、原工作收敛、证据、关闭条件与真实确认，才能原子提交。
+- 最初三项公开 CLI 成功场景因缺少入口确认红灯；实现后增加金额/时长边界、未知格式/作用域、活动运行/未知费用、到期未记录停止、C3 有效映射与累计尝试、加权 grant 和缺证据/超额阻断。真实 Node 命令使用临时中文目录和既有 owner 标记，验证 snapshot/标记字节与 mtime、目录内容均未变化；模型/API 调用为 0。
+- 本段没有确认或激活接口，未实现 D2/D3；不证明硬停止后实际续跑或正式游戏已通过，也不赋予旧验证实验任何新时窗。
+- 独立审查发现初版映射可能在筛选前隐藏循环/交叉来源。先补七项反例确认红灯，再要求现有 B/C 单批 source/target 集合互斥；复用 `validateTask`、`requireOriginalTask` 核对计划任务静态契约。循环、交叉及目标/验收/额度/写范围/输入漂移均拒绝，合法映射继续通过；不把此校验说成固定产物证据已经通过。
+- 最终验证：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/cli/continuation-quote.test.ts tests/cli/control.test.ts`，D1 的 35 项与既有控制入口 6 项，共 41 项通过；同一源码也通过串行 `npm run typecheck`、`npm run build`。UTF-8/LF、中文复读和 `git diff --check` 通过。未访问真实验证目录、旧试跑、浏览器或付费服务。
