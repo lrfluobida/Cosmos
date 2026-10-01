@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import { regularFile } from '../artifacts/paths.ts';
 import { DEFAULT_BUDGETS } from '../contracts/budget.ts';
 import type { TaskState } from '../contracts/types.ts';
+import { validateTask } from '../contracts/validation.ts';
+import { requireOriginalTask } from './recovery/task-journal.ts';
 import { validateSnapshot } from './run-validation.ts';
 import type { RunSnapshot, StopReason } from './run-types.ts';
 
@@ -58,8 +60,10 @@ async function readReplacements(root: string, state: RunSnapshot) {
   try { bytes = await regularFile(root, 'repair-plan.json'); }
   catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { replacements: [] as { sourceTaskId: string; replacementTaskId: string }[], sources: [] as { path: string; sha256: string }[] }; throw error; }
   const plan = decode(bytes);
+  if (!plan || typeof plan !== 'object') throw new Error('原继任计划格式无效，无法确定续跑目标。');
   const replacements: { sourceTaskId: string; replacementTaskId: string }[] = plan.formatVersion === 2 ? plan.replacements : [{ sourceTaskId: plan.sourceTaskId, replacementTaskId: plan.replacementTaskId }];
   if (plan.formatVersion !== undefined && plan.formatVersion !== 2 || !Array.isArray(replacements) || !replacements.length || replacements.length > 3
+    || replacements.some(item => !item || typeof item.sourceTaskId !== 'string' || typeof item.replacementTaskId !== 'string')
     || !Array.isArray(plan.tasks) || plan.formatVersion === 2 && (plan.runId !== state.run.runId || plan.ledgerId !== state.ledger.ledgerId
       || plan.originalStartedAt !== state.run.originalStartedAt || plan.originalDeadlineAt !== state.run.originalDeadlineAt || plan.limitMicroCny !== state.ledger.limitMicroCny)
     || new Set(replacements.map(item => item.sourceTaskId)).size !== replacements.length || new Set(replacements.map(item => item.replacementTaskId)).size !== replacements.length
@@ -67,6 +71,17 @@ async function readReplacements(root: string, state: RunSnapshot) {
       || !state.tasks.some(task => task.taskId === item.replacementTaskId) || !plan.tasks.some((itemTask: any) => itemTask.task?.taskId === item.replacementTaskId))) {
     throw new Error('原继任计划尚未完整登记或身份不符，无法只读确定续跑目标；请保留并检查原记录。');
   }
+  // Existing B/C plans are one batch. A source cannot also be a target in that same batch.
+  const sourceIds = new Set(replacements.map(item => item.sourceTaskId));
+  if (replacements.some(item => sourceIds.has(item.replacementTaskId))) throw new Error('原继任映射存在循环或交叉，不能隐藏旧任务或重算它们的额度。');
+  try {
+    if (new Set(plan.tasks.map((item: any) => item?.task?.taskId)).size !== plan.tasks.length) throw new Error();
+    for (const item of plan.tasks) {
+      if (validateTask(item?.task).length) throw new Error();
+      const current = state.tasks.find(task => task.taskId === item.task.taskId); if (!current) throw new Error();
+      requireOriginalTask(item.task, current);
+    }
+  } catch { throw new Error('原继任计划的任务静态契约与快照不一致，无法确定续跑目标。'); }
   return { replacements, sources: [{ path: 'repair-plan.json', sha256: hash(bytes) }] };
 }
 
@@ -84,12 +99,12 @@ export async function buildContinuationQuote(options: { root: string; additional
   const { replacements, sources } = await readReplacements(root, state);
   const blockers: ContinuationQuote['blockers'] = [
     { code: 'explicit_confirmation_required', message: '这里只显示提案；尚无本报价的真实用户确认，不能激活。' },
-    { code: 'owner_quiescence_unverified', message: '尚未核验原 writer 与子进程收敛；没有 lock 文件也不是收敛证明。' },
+    { code: 'owner_quiescence_unverified', message: '需确认原运行及子进程已停止；缺少锁文件也不能证明它们已停止。' },
     { code: 'fixed_evidence_unverified', message: '尚未核验准确产物、诊断、阶段回执及最终交付证据；列出引用不代表检查通过。' },
-    { code: 'allocation_closures_unverified', message: '旧 grant 的关闭与未用额释放均待 host 核验和明确确认；当前没有重新分配额度。' },
+    { code: 'allocation_closures_unverified', message: '旧任务的未使用额度需核对并确认后才能重新分配；当前没有重新分配额度。' },
   ];
   const effectiveStop = state.stopReason ? 'durable_stop' as const : 'deadline_expired_unrecorded' as const;
-  if (!state.stopReason) blockers.push({ code: 'original_stop_not_recorded', message: '原 deadline 已过，但停止事实尚未落盘；后续 D2 必须持锁记录原停止，不得重置原时间。' });
+  if (!state.stopReason) blockers.push({ code: 'original_stop_not_recorded', message: '时间已到，激活前需核实并保存停止记录；原截止时间不会改变。' });
   const targets = state.tasks.filter(task => task.state !== 'passed' && !replacements.some(item => item.sourceTaskId === task.taskId)).map(task => {
     const history = [task]; let predecessor = replacements.find(item => item.replacementTaskId === task.taskId);
     while (predecessor) {
@@ -106,7 +121,7 @@ export async function buildContinuationQuote(options: { root: string; additional
   if (!targets.length) blockers.push({ code: 'no_unfinished_targets', message: '当前快照没有可列出的未完成任务；不能虚构新的工作或体验认可。' });
   const allocationClosures = state.ledger.allocations.map(grant => {
     const settled = state.ledger.entries.filter(entry => entry.taskId === grant.taskId).reduce((sum, entry) => sum + entry.settledMicroCny, 0);
-    if (settled > grant.amountMicroCny) blockers.push({ code: 'allocation_overrun', taskId: grant.taskId, message: '已发生费用超过该旧 grant；不能释放或掩盖超额事实。' });
+    if (settled > grant.amountMicroCny) blockers.push({ code: 'allocation_overrun', taskId: grant.taskId, message: '已发生费用超过该旧任务额度；不能释放或掩盖超额事实。' });
     return { taskId: grant.taskId, originalGrantMicroCny: grant.amountMicroCny, settledMicroCny: settled, proposedReleaseMicroCny: Math.max(0, grant.amountMicroCny - settled), verification: 'required' as const };
   });
   const unallocated = state.ledger.limitMicroCny - state.ledger.allocations.reduce((sum, grant) => sum + grant.amountMicroCny, 0);
@@ -114,13 +129,13 @@ export async function buildContinuationQuote(options: { root: string; additional
   const grants: ContinuationQuote['proposed']['grants'] = [];
   const weights = targets.map(target => state.ledger.allocations.find(grant => grant.taskId === target.sourceTaskId)!.amountMicroCny);
   if (targets.length && !blockers.some(item => item.code === 'allocation_overrun')) {
-    if (!Number.isSafeInteger(available) || available < targets.length || weights.some(weight => weight <= 0)) blockers.push({ code: 'grant_proposal_unavailable', message: '拟用额度或原权重不足，无法为每项任务提出正数 grant。' });
+    if (!Number.isSafeInteger(available) || available < targets.length || weights.some(weight => weight <= 0)) blockers.push({ code: 'grant_proposal_unavailable', message: '拟用额度或原权重不足，无法为每项任务分配正数额度。' });
     else {
       const total = weights.reduce((sum, weight) => sum + BigInt(weight), 0n); let used = 0;
       targets.forEach((target, index) => {
         const amountMicroCny = index === targets.length - 1 ? available - used : Number(BigInt(available) * BigInt(weights[index]) / total);
         const taskId = `cont-${state.revision}-${hash(target.sourceTaskId).slice(0, 20)}`;
-        if (amountMicroCny <= 0 || state.run.taskIds.includes(taskId)) blockers.push({ code: 'grant_proposal_unavailable', taskId: target.sourceTaskId, message: '拟用 grant 为零或新任务 ID 与旧记录冲突；不能覆盖历史。' });
+        if (amountMicroCny <= 0 || state.run.taskIds.includes(taskId)) blockers.push({ code: 'grant_proposal_unavailable', taskId: target.sourceTaskId, message: '拟分配额度为零或新任务 ID 与旧记录冲突；不能覆盖历史。' });
         grants.push({ sourceTaskId: target.sourceTaskId, taskId, amountMicroCny }); used += amountMicroCny;
       });
       if (blockers.some(item => item.code === 'grant_proposal_unavailable')) grants.length = 0;
@@ -129,7 +144,7 @@ export async function buildContinuationQuote(options: { root: string; additional
   const durationMs = Date.parse(state.run.originalDeadlineAt) - Date.parse(state.run.originalStartedAt);
   const quote: Omit<ContinuationQuote, 'quoteId'> = {
     formatVersion: 'continuation-quote-1', kind: 'proposal', activationAllowed: false,
-    notice: `仅为只读续跑提案，不构成确认或激活。原金额上限 ¥${cny(state.ledger.limitMicroCny)}，已结算 ¥${cny(state.run.fees.settledMicroCny)}；拟追加 ¥${cny(additionalMicroCny)} 和 ${additionalDurationMs / 60_000} 分钟，拟累计金额上限 ¥${cny(state.ledger.limitMicroCny + additionalMicroCny)}。原成绩仍按原额度与原截止时间报告；下列释放额、新 grant 与额外尝试均未生效。`,
+    notice: `仅为只读续跑提案，不构成确认或激活。原金额上限 ¥${cny(state.ledger.limitMicroCny)}，已结算 ¥${cny(state.run.fees.settledMicroCny)}；拟追加 ¥${cny(additionalMicroCny)} 和 ${additionalDurationMs / 60_000} 分钟，拟累计金额上限 ¥${cny(state.ledger.limitMicroCny + additionalMicroCny)}。请查看下列待续任务；拟释放额度、新任务额度与新增尝试均未生效，原运行结果保持不变。`,
     basis: { runId: state.run.runId, ledgerId: state.ledger.ledgerId, specVersion: state.run.specVersion, revision: state.revision, snapshotSha256: hash(bytes),
       originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt, originalLimitMicroCny: state.ledger.limitMicroCny, stopReason: structuredClone(state.stopReason) },
     effectiveStop, auxiliarySources: sources,
