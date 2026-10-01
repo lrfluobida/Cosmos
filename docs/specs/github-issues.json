@@ -255,10 +255,11 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "driver-merged-awaiting-live",
+      "integrationStatus": "live-failed",
       "reviewedCommit": "e28df14a77e8e93944515b7b6e62bd59b25001de",
       "mergeCommit": "29a9c69a78ae6270775668e4b585d68486f2248e",
-      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5927502879"
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5927502879",
+      "liveResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5928251714"
     },
     {
       "taskId": "COS-11",
@@ -395,6 +396,11 @@
           "id": "COS-14",
           "number": 15,
           "url": "https://github.com/lrfluobida/Cosmos/issues/15"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
         }
       ],
       "nativeParentLinked": true,
@@ -417,6 +423,11 @@
           "id": "COS-13",
           "number": 14,
           "url": "https://github.com/lrfluobida/Cosmos/issues/14"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
         }
       ],
       "nativeParentLinked": true,
@@ -434,6 +445,11 @@
           "id": "COS-15",
           "number": 16,
           "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
         }
       ],
       "nativeParentLinked": true,
@@ -441,8 +457,44 @@
       "parentClosureAlsoRequires": [
         "COS-16"
       ]
+    },
+    {
+      "taskId": "COS-18",
+      "priority": "P1",
+      "title": "接通 Windows 需求访谈与生成运行 CLI",
+      "number": 19,
+      "id": 5659696616,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/19",
+      "dependsOn": [
+        {
+          "id": "COS-10",
+          "number": 11,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/11"
+        },
+        {
+          "id": "COS-11",
+          "number": 12,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/12"
+        },
+        {
+          "id": "COS-12",
+          "number": 13,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/13"
+        },
+        {
+          "id": "COS-13",
+          "number": 14,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/14"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "task-card-published",
+      "reviewStatus": "DOC_PREP_READY",
+      "reviewedCommit": "2f02e987b47c47347e2a43ac5021f37177fad4ad",
+      "mergeCommit": "c9d1a8aa49e176fc3253ef230c35723fdc6b100c"
     }
   ],
-  "verifiedNativeSubIssues": 17,
+  "verifiedNativeSubIssues": 18,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

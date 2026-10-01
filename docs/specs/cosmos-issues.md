@@ -1,8 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-01 已发布。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 17 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-01 已发布。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 18 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
-补充任务：COS-18 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，补齐产品接线的任务落点，不增加产品范围；任务卡已准备，待独立审查后发布，实际 GitHub 编号与依赖映射由合并者补齐。
+补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，补齐产品接线的任务落点，不增加产品范围；任务卡已独立审查并发布，尚未实现或验收，保持 open。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -57,7 +57,7 @@
 - [ ] [COS-15 执行完整基准生成与自动验收](https://github.com/lrfluobida/Cosmos/issues/16)
 - [ ] [COS-16 验证不同需求的有限迁移](https://github.com/lrfluobida/Cosmos/issues/17)
 - [ ] [COS-17 整理交付与用户最终试玩](https://github.com/lrfluobida/Cosmos/issues/18)
-- [ ] COS-18 接通 Windows 需求访谈与生成运行 CLI（补充任务卡，待发布）
+- [ ] [COS-18 接通 Windows 需求访谈与生成运行 CLI](https://github.com/lrfluobida/Cosmos/issues/19)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 

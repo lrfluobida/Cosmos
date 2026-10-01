@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第四批 COS-10 首次驱动集成的 194/194 组合测试、构建与类型检查通过。首次真实运行在 31.195 秒后于设计交接门禁失败；6 次请求已结算，新增估算 ¥0.080447，共享验证累计 ¥0.816418，预留与未知费用均为零。原计划和设计 v1 已保留，美术、编码及玩法验收尚未执行，#11 保持 open。有界继续执行入口 `f65ecc9` 已独立批准并合入 `a195173`，受影响 roles/E2E 测试 63/63、构建与类型检查通过，等待实际续跑；原截止时间、请求计数和费用上限不变，唯一修复名额用于设计交接澄清。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 18 个原生子任务。COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。累计 13 次请求已结算，共享验证估算 ¥0.892282，预留与未知费用均为零；美术、编码及玩法验收未执行，#11 保持 open。原 pilot 保留失败，不再调用现有 `--continue`；最小评审提示修正与 COS-11 有界协议纠错已安排实施。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 / #19 已发布原 R4/R11 的 Windows 访谈与生成 CLI 任务卡，尚未实现。COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -36,10 +36,10 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 记录领域术语 | 持续更新 | [CONTEXT.md](CONTEXT.md) 已记录 Cosmos 与目标游戏 |
 | 比较方案并记录关键决策 | 待前置决策 | 真正涉及重要取舍时再创建 ADR |
 | 编写、审查并确认 spec | v1.0 发布基线 | 结构审查通过，用户已确认 ¥200/12h 硬上限和 ¥100/6h 优化目标 |
-| 真实成本与时延探针 | 直接 API 与 pi SDK 已测 | 31 次直接调用估算 ¥0.721771；新增 pi 6 次请求、6852ms、¥0.014200；共享账本累计 ¥0.735971，预留与未知费用为零；完整关卡仍未测 |
-| 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
-| 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第四批驱动已合入，等待真实运行 | COS-10 e28df14 经浏览器环境修复复审批准，合并 29a9c69；组合 194/194、构建与类型检查通过；#11 保持 open |
+| 真实成本与时延探针 | 首轮生成及一次续跑失败 | 既有直接 API/pi 探针估算 ¥0.735971；新增 pilot 13 次请求共 ¥0.156311；共享账本累计 ¥0.892282，预留与未知费用为零；尚无通过游戏 |
+| 任务拆分 | 已发布 | [18 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-18 承接既有 R4/R11 |
+| 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#19；18 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
+| 子代理逐项实施 | 第四批运行失败，协议修正待实施 | COS-10 初次集成 194/194，续跑入口集成 roles/E2E 63/63，构建与类型检查通过；真实续跑仍被评审响应契约阻断，#11 保持 open |
 
 ## 开发批次
 
@@ -60,7 +60,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 02 | COS-04 / #5 | cos04_implementer | cos04_reviewer | batch02_merger | a7a337b 批准并合入 d89639b；7 项测试、14 帧/3 状态/5 WAV 解码和首 BGM 静音播放通过；外部费用 ¥0；#5 已关闭 |
 | 03 | COS-09 / #10 | cos09_implementer | cos09_reviewer | batch03_merger | 94c52cf 修复评审与验证尝试绑定后获批，合并 5e00bdc；10/10 产物测试、类型检查与构建通过；已推送，#10 已关闭 |
 | 03 | COS-07 / #8 | cos07_implementer | cos07_reviewer | batch03_merger | 3f0489d 修复三项发现后复审批准，合并 f779c4f；最终 177/177、构建与类型检查通过；已推送，#8 已关闭 |
-| 04 | COS-10 / #11 | cos10_implementer | cos10_reviewer | batch04_merger | e28df14 修复浏览器环境继承后获驱动集成批准，合并 29a9c69；194/194、构建与类型检查通过；已推送，真实运行未开始，#11 保持 open |
+| 04 | COS-10 / #11 | cos10_implementer | cos10_reviewer | batch04_merger | 驱动 e28df14 合并 29a9c69，续跑入口 f65ecc9 合并 a195173；分别通过 194/194 与受影响 63/63 检查；首轮及一次续跑失败，#11 保持 open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -70,7 +70,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 
 [第三批执行计划](docs/plans/2026-10-01-batch-03.md) 覆盖 COS-07 角色执行、明确需求确认与 COS-09 产物集成；审核与合并证据见 [第三批集成记录](docs/reviews/batch-03.md)。复用本批验证结果，真实端到端生成由 COS-10 验证。
 
-[第四批执行计划](docs/plans/2026-10-01-batch-04.md) 的驱动已独立批准并合入，证据见 [第四批集成记录](docs/reviews/batch-04.md) 与 [#11 进度](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5927502879)。下一步由协调者使用临时凭据和原共享账本执行有界运行；八项固定玩法验收、附加检查、独立启动和实际费用/耗时仍待验证，驱动通过不能关闭 #11。COS-11 仅完成只读接口准备，具体修复策略依赖真实结果；COS-16 的不同机制验证仍依赖 COS-10/13。
+[第四批执行计划](docs/plans/2026-10-01-batch-04.md) 的集成与两次失败事实见 [第四批集成记录](docs/reviews/batch-04.md) 和 [#11 续跑结果](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5928251714)。八项玩法验收、附加检查和独立启动尚未执行；保留失败产物，COS-11 基于实际协议失败提前实施有界纠错，现有 pilot 不再续跑。[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 的任务卡已独立审查并发布，作为 COS-15/16/17 的前置；COS-16 仍依赖 COS-10/13/18。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
