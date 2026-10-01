@@ -9,7 +9,11 @@ export function decodeModelJson(text: string): unknown {
     // Braces/brackets or another code fence could hide a competing payload.
     // Reject that ambiguity instead of choosing which model answer to trust.
     const extraJson = outside.split(/\r?\n/).some(line => {
-      try { JSON.parse(line); return true; } catch { return false; }
+      // Keep quoted spaces and escapes together; JSON.parse validates each token.
+      const tokens = line.match(/"(?:\\.|[^"\\])*"|\S+/g) ?? [];
+      return tokens.length > 0 && tokens.every(token => {
+        try { JSON.parse(token); return true; } catch { return false; }
+      });
     });
     if (/[{}\[\]]|```|~~~/.test(outside) || extraJson) throw new Error('Model response contains ambiguous JSON or code blocks.');
     try { value = JSON.parse(fence[1]); }
