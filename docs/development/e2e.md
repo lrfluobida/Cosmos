@@ -207,6 +207,6 @@ node --experimental-strip-types probes/e2e/run.ts --experiment <approved-main-sh
 
 本次复用同一个 `generatePilot`、native planner/角色和主机 callback。所有游戏专属规划、设计、媒体与代码重新生成，不把旧试验产物当本次输出。新版本仍执行完整主机验收和独立评审，提升必须绑定精确 artifact 与 proof.attemptId。新 `result.json` 独立写一次，同时报告 experiment 增量和全部验证累计费用。
 
-离线测试在临时目录使用明确标注的模拟决定、账单、native 会话和非游戏小夹具：验证唯一 claim、首次请求前消费、旧入口拒绝且字节不变、完整 baseline、增量费用/原截止、命令参数限制；真实 driver 验证协议纠错及 v2 修复配置传递，并验证同一 guard 在模拟已花 ¥2.1 后阻止预计 ¥3 的 repair。该测试不启动浏览器，也不是目标游戏或付费修复已成功的证据。
+离线测试在临时目录使用明确标注的模拟决定、账单、native 会话和非游戏小夹具：验证唯一 claim、首次请求前消费、旧入口拒绝且字节不变、完整 baseline、增量费用/原截止、命令参数限制；真实 driver 验证协议纠错及 v2 修复配置传递，并验证同一 guard 在模拟已花 ¥2.1 后阻止预计 ¥3 的 repair。未运行游戏浏览器验收；媒体 contact-sheet 渲染使用 headless Edge。这些测试不是目标游戏或付费修复已成功的证据。
 
 准备验证：新增 7 项测试与受影响的原 driver/trial/continuation/startup/preparation 测试串行共 37/37 通过；全部 e2e probes 与新增测试的 strict TypeScript 检查通过。复用了原 v1→v2 编译修复和旧 proof 拒绝回归，未重跑浏览器验收或无关全套测试。
