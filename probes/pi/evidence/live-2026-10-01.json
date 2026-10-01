@@ -1,0 +1,256 @@
+{
+  "sdkVersion": "0.99.2",
+  "model": "deepseek-flash",
+  "thinkingLevel": "low",
+  "pricingVersion": "deepseek-flash-peak-cny-2026-10-01",
+  "priceSource": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+  "costKind": "conservative peak estimate from returned usage, not account receipt",
+  "maxRequests": 8,
+  "maxOutputTokens": 2048,
+  "timeoutMs": 90000,
+  "requestReservationMicroCny": 2016384,
+  "startedAt": "2026-10-01T06:16:32.449Z",
+  "checks": [
+    {
+      "id": "tool-error-write-edit",
+      "passed": true
+    },
+    {
+      "id": "native-compaction",
+      "passed": true
+    },
+    {
+      "id": "resume-marker-and-native-image-no-tools",
+      "passed": true
+    }
+  ],
+  "requests": [
+    {
+      "requestId": "610efa3c-8318-462f-9ffc-fe18bbd91268",
+      "outcome": "settled",
+      "usage": {
+        "input": 988,
+        "output": 88,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 18,
+        "totalTokens": 1076,
+        "cost": {
+          "input": 0.0002964,
+          "output": 0.00010559999999999999,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.000402
+        }
+      },
+      "responseModel": "deepseek-flash",
+      "stopReason": "toolUse",
+      "elapsedMs": 1023.2874000000002,
+      "firstResponseMs": 434.0776000000001,
+      "stage": "tools",
+      "actualCostMicroCny": 2680
+    },
+    {
+      "requestId": "8c2cfeb7-2dc1-422c-b77f-9c2a5c9de005",
+      "outcome": "settled",
+      "usage": {
+        "input": 230,
+        "output": 73,
+        "cacheRead": 896,
+        "cacheWrite": 0,
+        "reasoning": 5,
+        "totalTokens": 1199,
+        "cost": {
+          "input": 0.000069,
+          "output": 0.0000876,
+          "cacheRead": 0.000005376,
+          "cacheWrite": 0,
+          "total": 0.000161976
+        }
+      },
+      "responseModel": "deepseek-flash",
+      "stopReason": "toolUse",
+      "elapsedMs": 1077.4696,
+      "firstResponseMs": 182.70949999999993,
+      "stage": "tools",
+      "actualCostMicroCny": 1080
+    },
+    {
+      "requestId": "ec7af2f9-c198-4019-8e9c-3f4bcb45355f",
+      "outcome": "settled",
+      "usage": {
+        "input": 216,
+        "output": 89,
+        "cacheRead": 1024,
+        "cacheWrite": 0,
+        "reasoning": 8,
+        "totalTokens": 1329,
+        "cost": {
+          "input": 0.0000648,
+          "output": 0.0001068,
+          "cacheRead": 0.000006144,
+          "cacheWrite": 0,
+          "total": 0.000177744
+        }
+      },
+      "responseModel": "deepseek-flash",
+      "stopReason": "toolUse",
+      "elapsedMs": 442.5563000000002,
+      "firstResponseMs": 98.89870000000064,
+      "stage": "tools",
+      "actualCostMicroCny": 1185
+    },
+    {
+      "requestId": "30a4ab76-acca-4679-8b67-ca26ce0ae946",
+      "outcome": "settled",
+      "usage": {
+        "input": 223,
+        "output": 142,
+        "cacheRead": 1152,
+        "cacheWrite": 0,
+        "reasoning": 69,
+        "totalTokens": 1517,
+        "cost": {
+          "input": 0.0000669,
+          "output": 0.0001704,
+          "cacheRead": 0.000006912,
+          "cacheWrite": 0,
+          "total": 0.000244212
+        }
+      },
+      "responseModel": "deepseek-flash",
+      "stopReason": "stop",
+      "elapsedMs": 1038.8119000000006,
+      "firstResponseMs": 117.82720000000063,
+      "stage": "tools",
+      "actualCostMicroCny": 1629
+    },
+    {
+      "requestId": "bffc580d-923b-4899-9f7f-65d40c2f52c9",
+      "outcome": "settled",
+      "usage": {
+        "input": 515,
+        "output": 460,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 100,
+        "totalTokens": 975,
+        "cost": {
+          "input": 0.0001545,
+          "output": 0.000552,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.0007065
+        }
+      },
+      "responseModel": "deepseek-flash",
+      "stopReason": "stop",
+      "elapsedMs": 2111.0970000000007,
+      "firstResponseMs": 103.76280000000042,
+      "stage": "compaction",
+      "actualCostMicroCny": 4710
+    },
+    {
+      "requestId": "592f7c69-3835-4d27-8826-c1d1f493597d",
+      "outcome": "settled",
+      "usage": {
+        "input": 886,
+        "output": 143,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "reasoning": 100,
+        "totalTokens": 1029,
+        "cost": {
+          "input": 0.0002658,
+          "output": 0.0001716,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.0004374
+        }
+      },
+      "responseModel": "deepseek-flash",
+      "stopReason": "stop",
+      "elapsedMs": 872.9565999999995,
+      "firstResponseMs": 216.86929999999847,
+      "stage": "resume-image-no-tools",
+      "actualCostMicroCny": 2916
+    }
+  ],
+  "tools": [
+    {
+      "type": "tool_execution_start",
+      "toolName": "read",
+      "toolCallId": "call_00_T4FaUN7b25HFHmhqO9Oy3149",
+      "stage": "tools",
+      "elapsedMs": 1078.3456999999999
+    },
+    {
+      "type": "tool_execution_end",
+      "toolName": "read",
+      "toolCallId": "call_00_T4FaUN7b25HFHmhqO9Oy3149",
+      "isError": true,
+      "stage": "tools",
+      "elapsedMs": 1082.7404999999999
+    },
+    {
+      "type": "tool_execution_start",
+      "toolName": "write",
+      "toolCallId": "call_00_k1kgiguYaJ0WHH4IRTsm6233",
+      "stage": "tools",
+      "elapsedMs": 2191.2246
+    },
+    {
+      "type": "tool_execution_end",
+      "toolName": "write",
+      "toolCallId": "call_00_k1kgiguYaJ0WHH4IRTsm6233",
+      "isError": false,
+      "stage": "tools",
+      "elapsedMs": 2195.6163
+    },
+    {
+      "type": "tool_execution_start",
+      "toolName": "edit",
+      "toolCallId": "call_00_KqRopcLChtU8aq2nMpw33602",
+      "stage": "tools",
+      "elapsedMs": 2664.8546
+    },
+    {
+      "type": "tool_execution_end",
+      "toolName": "edit",
+      "toolCallId": "call_00_KqRopcLChtU8aq2nMpw33602",
+      "isError": false,
+      "stage": "tools",
+      "elapsedMs": 2670.6874000000003
+    }
+  ],
+  "outcome": "passed",
+  "visionAnswer": {
+    "marker": "中文验收A-1",
+    "green_cells": [
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "red_cells": [
+      [
+        1,
+        4
+      ],
+      [
+        3,
+        2
+      ]
+    ]
+  },
+  "elapsedMs": 6852.4565,
+  "finishedAt": "2026-10-01T06:16:39.302Z"
+}

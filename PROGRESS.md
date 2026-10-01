@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批获批交付已推送 main：COS-02、COS-05 完成，COS-01 参考仍未冻结。第二批 COS-03、COS-06、COS-08 已按批准提交合入本地 main。SDK 与 runtime 组合 102/102 测试通过；加入浏览器验收后 119/120 通过，卡死点击场景超出截止容差待修复，构建与类型检查通过。真实 pi 探针和远端同步待完成。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批获批交付已推送 main：COS-02、COS-05 完成，COS-01 参考仍未冻结。第二批 COS-03、COS-06、COS-08 已按批准提交合入本地 main。SDK/runtime 102/102 测试通过；浏览器组合 119/120，卡死点击截止容差待修复，构建与类型检查通过。真实 pi 探针已通过，媒体工具独立审核中，远端同步待完成。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -24,7 +24,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | --- | --- | --- |
 | 检查工作区与已有项目约定 | 已完成 | 初始为空目录；现已初始化 Git，文档与探针记录已推送 main，保持 UTF-8 / LF |
 | 查找 GitHub 发布位置 | 已完成 | [lrfluobida/Cosmos](https://github.com/lrfluobida/Cosmos)，使用已认证的同名账户发布；连接器的 issue 写入权限不足已由本机标准认证完成 |
-| pi SDK、扩展与子代理能力调研 | 首轮完成 | [源码与官方文档结论](docs/research/2026-09-30-feasibility.md)，技术验证尚未执行 |
+| pi SDK 接入 | 真实有界探针通过 | pi 0.99.2 原生 DeepSeek：工具错误恢复、写/编辑、压缩、恢复与图像输入 6 次请求通过；[真实报告](probes/pi/evidence/live-2026-10-01.json) |
 | 游戏运行、自动试玩与美术验收调研 | 首轮完成 | [候选平台、验收办法与验证任务](docs/research/2026-09-30-feasibility.md) |
 | 第 1 轮需求访谈 | 已回答 | 已记录产品、内容与美术要求、交互、资源偏好及仓库 |
 | 第 2 轮需求访谈 | 已回答 | 平台、时限对象、复用范围、模式范围与还原精度已确认；预算在第 3 轮确认 |
@@ -36,7 +36,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 记录领域术语 | 持续更新 | [CONTEXT.md](CONTEXT.md) 已记录 Cosmos 与目标游戏 |
 | 比较方案并记录关键决策 | 待前置决策 | 真正涉及重要取舍时再创建 ADR |
 | 编写、审查并确认 spec | v1.0 发布基线 | 结构审查通过，用户已确认 ¥200/12h 硬上限和 ¥100/6h 优化目标 |
-| 真实成本与时延探针 | 直接 API 与局部规则已测 | [31 次调用记录](probes/2026-10-01-deepseek/README.md)，高峰价保守估算 ¥0.721771；pi 集成和完整关卡仍未测 |
+| 真实成本与时延探针 | 直接 API 与 pi SDK 已测 | 31 次直接调用估算 ¥0.721771；新增 pi 6 次请求、6852ms、¥0.014200；共享账本累计 ¥0.735971，预留与未知费用为零；完整关卡仍未测 |
 | 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
 | 子代理逐项实施 | 第二批部分集成 | COS-03、COS-06 本地集成通过；COS-08 全套集成暴露截止容差失败，交回原实现者；COS-04 并行验证媒体产线 |
@@ -52,10 +52,10 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 01 | COS-01 / #2 | cos01_implementer | cos01_reviewer | batch01_merger | 791472e 经修复复审批准部分交付，合并 8b64b59；参考测试 16/16，230 项中 221 项待核对；#2 保持 open |
 | 01 | COS-02 / #3 | cos02_implementer | cos02_reviewer | batch01_merger | 45c3cf6 修复两项 P2 后复审批准，合并 a6247ec；40 项契约测试、构建与类型检查通过；#3 已关闭 |
 | 01 | COS-05 / #6 | cos05_implementer | cos05_reviewer | batch01_merger | 1121ae2 已独立批准，合并 5e3670e；构建、类型检查、CLI 7/7 通过，复用浏览器 1/1；#6 已关闭 |
-| 02 | COS-03 / #4 | cos03_implementer | cos03_reviewer | batch02_merger | 79969d3 修复取消与 SSE 超时后复审批准，合并 7a05b11；102/102 组合测试、构建和类型检查通过；真实 pi 探针待执行，#4 保持 open |
+| 02 | COS-03 / #4 | cos03_implementer | cos03_reviewer | batch02_merger | 79969d3 修复后批准并合入 7a05b11；102/102 组合检查通过；真实 pi 探针 6 次请求/3 项检查通过，待 merger 记录与远端关闭 #4 |
 | 02 | COS-06 / #7 | cos06_implementer | cos06_reviewer | batch02_merger | 1bed423 独立批准，合并 f724d5f；完整测试 85/85、构建与类型检查通过；网络故障待推送，#7 保持 open |
 | 02 | COS-08 / #9 | cos08_implementer | cos08_reviewer | batch02_merger | 2631e8c 修复后复审批准，合并 0b0d455；组合测试 119/120，卡死点击报告耗时 4453 ms 超过 3500 ms 加 500 ms 容差；#9 保持 open，待修复复审 |
-| 02 | COS-04 / #5 | cos04_implementer | 提交后独立审核 | batch02_merger | 通用程序图层、关键姿态与合成音频验证已启动；无外部付费调用 |
+| 02 | COS-04 / #5 | cos04_implementer | cos04_reviewer | batch02_merger | a7a337b 已提交，7 项测试、14 帧/3 状态/5 音频浏览器验证通过；独立审核中，外部费用 ¥0 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
