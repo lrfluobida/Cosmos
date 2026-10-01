@@ -63,6 +63,8 @@ The read-only `recoverCapture` adapter is required when reusing completed author
 
 After establishing that the previous owner and registered writers have exited, recover the controller/registry ownership as applicable and open the original `RunController`. Reconcile unknown receipts first. Call `resumeTaskDag` with the **original prepared task plan**, requirement, session root, recovery roots and correction policy. The result is `{tasks, reusedTaskIds, blocked}`. A blocked item retains its current task and data; it does not silently become a failed attempt or new work.
 
+Include every required ancestor in the recovery selection, even when its durable state is already `passed`. Recovery checks selected ancestors before their descendants and grants dependency readiness only after their checks succeed in this invocation. A blocked ancestor blocks its descendants, including historically passed intermediate tasks. Omitting an ancestor or supplying its artifact reference directly does not establish readiness. Blocked descendants are not registered or dispatched and retain their previous records; their preserved `passed` state alone must not be used as a current scheduling decision.
+
 The journal contains immutable origin, author, capture, verification and review receipts for each original task. Each phase receipt binds the original attempt ID. Origin compares the full confirmed requirement, author role/context, input and output versions, ownership, acceptance, budget, run/ledger identity, original timestamps and correction policy. Author handoff remains subject to the existing nonempty `remaining`/`uncertainty` gate; expected outputs, host evidence and independent review keep their original checks.
 
 | Observed durable boundary | Recovery action |
@@ -93,3 +95,5 @@ node --experimental-strip-types --test tests/roles/*.test.ts
 ```
 
 The existing 87 role/repair/budget checks also passed. Phase A's reviewed ownership, real gated-writer cancellation, receipt and artifact-promotion evidence is reused. The DAG providers are scripted and their ledger charges are synthetic; no provider network call, live validation ledger, old pilot continuation or reference game was used. These checks establish recovery behavior, not successful game generation. Independent review and merger integration remain the final COS-12 gate.
+
+The dependency-review regression suite adds five passing cases: blocked parent with normal/reversed selection, an omitted historical parent, propagation through a passed intermediate task, and successful parent validation releasing a child listed first. Negative cases preserve the entire original snapshot with zero downstream dispatches or new attempts. Run it with `node --experimental-strip-types --test tests/runtime/recovery/dependencies.test.ts`.

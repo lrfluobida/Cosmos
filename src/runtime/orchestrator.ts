@@ -119,7 +119,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   }
   const ordered: PreparedTask[] = [], remaining = [...prepared];
   while (remaining.length) {
-    const index = remaining.findIndex(item => item.task.dependsOn.every(dep => prior.get(dep.taskId)?.state === 'passed' || (!prepared.some(p => p.task.taskId === dep.taskId) && prior.has(dep.taskId)) || ordered.some(p => p.task.taskId === dep.taskId)));
+    const index = remaining.findIndex(item => item.task.dependsOn.every(dep => (!resume && prior.get(dep.taskId)?.state === 'passed') || (!prepared.some(p => p.task.taskId === dep.taskId) && prior.has(dep.taskId)) || ordered.some(p => p.task.taskId === dep.taskId)));
     if (index < 0) throw new Error('Dependency cycle.');
     ordered.push(remaining.splice(index, 1)[0]);
   }
@@ -127,15 +127,13 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     if (prepared[i].workspace === prepared[j].workspace && prepared[i].task.ownership.writePaths.some(a => prepared[j].task.ownership.writePaths.some(b => pathsOverlap(a, b, prepared[i].workspace)))) throw new Error('Task write paths conflict in the same workspace.');
   }
   const fresh = prepared.filter(p => !prior.has(p.task.taskId) && !blocked.has(p.task.taskId));
-  if (fresh.length) {
-    if (resume && (initial.stopReason || initial.run.state !== 'running' || initial.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0))) for (const item of fresh) blocked.set(item.task.taskId, 'Original run is stopped or has unresolved requests.');
-    else await controller.registerTasks(fresh.map(p => p.task));
-  }
+  if (fresh.length && !resume) await controller.registerTasks(fresh.map(p => p.task));
   const signal = AbortSignal.any([controller.signal, ...(options.signal ? [options.signal] : [])]);
   const available = structuredClone(options.availableArtifacts);
   const finished = new Map(prior);
   const results: TaskContract[] = [];
   const reusedTaskIds: string[] = [];
+  const validatedDependencies = new Set<string>();
   const at = () => new Date((options.now ?? Date.now)()).toISOString();
   async function save(task: TaskContract) { await controller.saveTask(task, { role: 'system', actorId: 'orchestrator' }); }
   async function validate(task: TaskContract) {
@@ -172,6 +170,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     try {
       if (resume) {
         if (blocked.has(task.taskId)) throw new RecoveryBlocked(blocked.get(task.taskId));
+        if (task.dependsOn.some(dep => !validatedDependencies.has(dep.taskId))) throw new RecoveryBlocked('Required dependency was not validated in this recovery; include every required ancestor and resolve its blocked result first.');
         if (task.state === 'passed') {
           const authored = await journal!.read<{ proposal: AuthorProposal }>('author', task.attempts.at(-1)!.attemptId);
           if (!authored) throw new RecoveryBlocked('Passed task has no matching durable author handoff.');
@@ -184,6 +183,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
           requirePassingEvidence(task, requirement, task.review.evidenceIds);
           await journal!.requireSignature(verified.signature, [...task.inputs, ...task.artifacts, ...task.evidence.map(e => e.source)]);
           reusedTaskIds.push(task.taskId);
+          validatedDependencies.add(task.taskId);
           for (const ref of task.artifacts) if (!available.some(existing => sameValue(existing, ref))) available.push(ref);
           continue;
         }
@@ -200,7 +200,9 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         task.state = 'waiting_user'; task.stateReason = 'Required dependency has not passed.';
         task.handoff.remaining = [task.objective]; await save(task); continue;
       }
-      checked(validateTaskInputs(task, available));
+      try { checked(validateTaskInputs(task, available)); }
+      catch (error) { if (resume) throw new RecoveryBlocked('Fixed task inputs are not available from validated dependencies.'); throw error; }
+      if (resume && !prior.has(task.taskId)) await controller.registerTasks([task]);
       const continuing = resume && task.attempts.length > 0;
       const attemptId = continuing ? task.attempts[0].attemptId : randomUUID(), directory = join(options.sessionRoot, attemptId);
       if (continuing && resolve(task.attempts[0].sessionRef) !== resolve(directory)) throw new RecoveryBlocked('Original attempt session location changed.');
@@ -316,7 +318,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       await validate(task);
       await controller.saveTask(task, { role: 'reviewer', actorId: review.reviewerId });
       if (task.state === 'needs_changes') await persistFeedback(task, undefined, 'independent_review', await controller.read());
-      if (task.state === 'passed') available.push(...task.artifacts);
+      if (task.state === 'passed') { available.push(...task.artifacts); validatedDependencies.add(task.taskId); }
     } catch (error) {
       if (error instanceof RecoveryBlocked) {
         blocked.set(task.taskId, error.message);
