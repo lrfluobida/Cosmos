@@ -146,7 +146,11 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open"
+      "state": "closed",
+      "integrationStatus": "complete",
+      "reviewedCommit": "3f0489df70b20c310a9630fc636afc17be59c548",
+      "mergeCommit": "f779c4fccc0ef74b63809fce598cdc3fb2e2d871",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/8#issuecomment-5926764827"
     },
     {
       "taskId": "COS-08",
