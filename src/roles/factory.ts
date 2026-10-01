@@ -15,6 +15,8 @@ export type AuthorRole = 'cosmos' | 'design' | 'coding' | 'art';
 export type Role = AuthorRole | 'reviewer';
 export interface RoleSession {
   prompt(text: string, options?: { signal?: AbortSignal; images?: ImageContent[] }): Promise<{ text: string }>;
+  /** Host-only, idle-session boundary; native pi owns summarization and billing. */
+  compact?(signal?: AbortSignal): Promise<unknown>;
   close(): Promise<void>;
 }
 export interface RoleInput {
@@ -35,6 +37,7 @@ export interface RoleFactoryOptions {
   estimatedMaxCostMicroCny: PiSessionOptions['estimatedMaxCostMicroCny'];
   thinkingLevel?: PiSessionOptions['thinkingLevel'];
   env?: PiSessionOptions['env'];
+  compactionKeepRecentTokens?: PiSessionOptions['compactionKeepRecentTokens'];
   /** Trusted host integrations only. Mutating tools are never supplied to a reviewer. */
   hostTools?: (input: Readonly<{ role: Role; taskId: string; workspace: string; signal: AbortSignal; childEnv: NodeJS.ProcessEnv }>) => Promise<{ tool: ToolDefinition; readOnly: boolean }[]>;
   sessionFactory?: (options: PiSessionOptions) => Promise<RoleSession>;
@@ -101,8 +104,10 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       context: JSON.stringify(packet), thinkingLevel: options.thinkingLevel ?? 'low', env: options.env,
       maxOutputTokens: options.maxOutputTokens, maxRequests: options.maxRequests, requestTimeoutMs: options.requestTimeoutMs,
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
+      compactionKeepRecentTokens: options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory }),
     });
-    return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }), close: () => session.close() };
+    return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }),
+      ...(session.compact ? { compact: (signal?: AbortSignal) => session.compact!(AbortSignal.any([input.controller.signal, ...(signal ? [signal] : [])])) } : {}), close: () => session.close() };
   };
 }

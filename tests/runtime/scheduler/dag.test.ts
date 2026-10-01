@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -9,6 +9,9 @@ import { executeTaskDag, resumeTaskDag } from '../../../src/runtime/orchestrator
 import type { DagOptions } from '../../../src/runtime/orchestrator.ts';
 import { createRoleBudget } from '../../../src/roles/provider-budget.ts';
 import { schedulerStatus } from '../../../src/runtime/scheduler/index.ts';
+import { waitForServiceRetry } from '../../../src/runtime/scheduler/service-backoff.ts';
+import { DEFAULT_REPAIR_POLICY } from '../../../src/runtime/repair/policy.ts';
+import { PiSessionError } from '../../../src/providers/pi.ts';
 import { requirement as requirementFixture, task as taskFixture } from '../../contracts/fixtures.ts';
 import type { TaskContract, RequirementContract } from '../../../src/contracts/index.ts';
 
@@ -44,7 +47,7 @@ async function fixture(t: test.TestContext, graph: Record<string, string[]> = { 
     capture: async task => { await writeFile(join(root, ref(task.taskId).location), `output ${task.taskId}`, 'utf8'); return { artifacts: [ref(task.taskId)], reviewWorkspace: join(root, 'review') }; },
     verify: async task => { const source = { artifactId: `report-${task.taskId}`, version: 'v1', location: `evidence/${task.taskId}.json` }; await writeFile(join(root, source.location), '{"passed":true}', 'utf8'); return [{ contractVersion: '1.0.0', evidenceId: `check-${task.taskId}`, taskId: task.taskId, acceptanceIds: task.acceptanceIds, kind: 'test_report', source, artifactVersions: [...task.inputs, ...task.artifacts], outcome: 'passed', recordedAt: new Date(clock).toISOString(), summary: '离线检查' }]; },
   };
-  return { root, controller, options, events, peak: () => peak, active: () => active, setTime: (value: number) => { clock = value; } };
+  return { root, controller, options, events, peak: () => peak, active: () => active, now: () => clock, setTime: (value: number) => { clock = value; } };
 }
 
 test('ready diamond branches actually overlap, join once after exact dependency passes', async t => {
@@ -59,12 +62,41 @@ test('ready diamond branches actually overlap, join once after exact dependency 
   assert.equal(summary.settledMicroCny, 80); assert.equal(summary.reservedMicroCny, 0);
   assert.deepEqual(summary.providers, [{ provider: 'deepseek', settledMicroCny: 80, reservedMicroCny: 0, unknownRequestIds: [] }]);
   assert.equal(summary.tasks.filter(task => task.state === 'passed' && task.evidenceIds.length === 1).length, 4);
+  assert.equal(summary.scheduling?.effectiveParallel, 2); assert.equal(summary.scheduling?.peakActiveTasks, 2);
 });
 
 for (const maxParallel of [0, 3, Infinity]) test(`rejects unsupported parallel limit before registering: ${maxParallel}`, async t => {
   const f = await fixture(t); f.options.scheduling!.maxParallel = maxParallel as 1;
   await assert.rejects(executeTaskDag(f.options), /parallel/i);
   assert.equal((await f.controller.read()).tasks.length, 0); assert.equal(f.events.length, 0);
+});
+
+test('one controller cannot run a second DAG that bypasses its parallel/resource limits', async t => {
+  const f = await fixture(t); let entered!: () => void, release!: () => void;
+  const reached = new Promise<void>(r => { entered = r; }), gate = new Promise<void>(r => { release = r; });
+  const factory = f.options.roleFactory;
+  f.options.roleFactory = async input => { const role = await factory(input); return { ...role, prompt: async (text, supplied) => { entered(); await gate; return role.prompt(text, supplied); } }; };
+  const active = executeTaskDag(f.options); await reached;
+  const other = { ...f.options, tasks: f.options.tasks.map(item => ({ ...structuredClone(item), task: { ...structuredClone(item.task), taskId: `other-${item.task.taskId}` } })) };
+  let rejected = false;
+  const timeout = setTimeout(release, 25);
+  try { await executeTaskDag(other); } catch (error) { rejected = /already.*execut|active.*DAG/i.test(String(error)); }
+  finally { clearTimeout(timeout); release(); await active; }
+  assert.equal(rejected, true);
+  assert.ok((await f.controller.read()).tasks.every(task => !task.taskId.startsWith('other-')));
+});
+
+test('a host callback that ignores cancellation reports unconfirmed drain within the cleanup bound', async t => {
+  const f = await fixture(t, { a: [] }); let entered!: () => void, release!: () => void;
+  const reached = new Promise<void>(r => { entered = r; }), gate = new Promise<void>(r => { release = r; });
+  f.options.scheduling!.drainTimeoutMs = 20;
+  f.options.roleFactory = async () => ({ actorId: 'author', contextId: 'author', close: async () => {}, prompt: async () => { entered(); await gate; return { text: JSON.stringify({ summary: 'done', remaining: [], uncertainty: [] }) }; } });
+  const running = executeTaskDag(f.options).then(() => 'returned', error => String(error));
+  await reached; await f.controller.stop('test');
+  const result = await Promise.race([running, delay(100).then(() => 'still waiting')]);
+  release(); await running;
+  assert.match(result, /did not quiesce|drain.*unconfirmed/i);
+  assert.equal((await schedulerStatus(f.controller)).scheduling?.state, 'drain_unconfirmed');
 });
 
 for (const exclusive of ['resource', 'correction'] as const) test(`explicit ${exclusive} lane serializes complete tasks`, async t => {
@@ -77,6 +109,9 @@ for (const exclusive of ['resource', 'correction'] as const) test(`explicit ${ex
   }
   const tasks = await executeTaskDag(f.options);
   assert.ok(tasks.every(task => task.state === 'passed')); assert.equal(f.peak(), 1);
+  const summary = await schedulerStatus(f.controller);
+  assert.equal(summary.scheduling?.configuredParallel, 2);
+  assert.equal(summary.scheduling?.effectiveParallel, exclusive === 'correction' ? 1 : 2);
   assert.ok(f.events.indexOf('start:b-coding-1') > f.events.indexOf(`end:a-reviewer-${exclusive === 'correction' ? 2 : 1}`));
 });
 
@@ -109,8 +144,29 @@ test('scheduled recovery reuses exact passed work and propagates current blocked
   f.options.recovery = { journalRoot: join(f.root, 'journal'), artifactRoot: f.root, recoverCapture: async task => ({ artifacts: task.artifacts, reviewWorkspace: join(f.root, 'review') }) };
   const original = await executeTaskDag(f.options); const costs = (await f.controller.read()).run.fees; const count = f.events.length;
   let result = await resumeTaskDag(f.options);
+  assert.equal((await schedulerStatus(f.controller)).scheduling?.effectiveParallel, 1);
   assert.deepEqual(result.reusedTaskIds, ['a', 'b']); assert.equal(f.events.length, count); assert.deepEqual((await f.controller.read()).run.fees, costs);
   f.options.recovery.recoverCapture = async () => null;
   result = await resumeTaskDag(f.options);
   assert.deepEqual(result.reusedTaskIds, []); assert.deepEqual(result.blocked.map(b => b.taskId), ['a', 'b']); assert.deepEqual(result.tasks, original);
+});
+
+for (const mode of ['settled', 'unknown', 'inflight', 'deadline', 'cancel', 'cancel-during', 'attempt-limit'] as const) test(`service backoff preserves COS-11 decisions and never dispatches by itself: ${mode}`, async t => {
+  const f = await fixture(t, { a: [] }); const factory = f.options.roleFactory;
+  f.options.roleFactory = async input => { const role = await factory(input); return { ...role, prompt: async (text, supplied) => { await role.prompt(text, supplied); throw new PiSessionError('provider_error', 'not persisted'); } }; };
+  const [task] = await executeTaskDag(f.options); assert.equal(task.state, 'failed');
+  const feedback = JSON.parse(await readFile(join(task.attempts[0].sessionRef, 'failure.json'), 'utf8'));
+  const original = structuredClone(task), paidCount = f.events.length; let waited = 0;
+  if (mode === 'unknown' || mode === 'inflight') {
+    await f.controller.reserve({ requestId: 'unresolved', taskId: 'a', provider: 'offline', pricingVersion: 'v1', estimatedMaxCostMicroCny: 10 });
+    await f.controller.admit('unresolved');
+    if (mode === 'unknown') await f.controller.markUnknown('unresolved', task.inputs);
+  }
+  if (mode === 'deadline') f.setTime(start + 12 * 60 * 60 * 1000 - 1500);
+  const abort = new AbortController(); if (mode === 'cancel') abort.abort();
+  const result = await waitForServiceRetry({ controller: f.controller, requirement: f.options.requirement, history: [feedback], policy: { ...DEFAULT_REPAIR_POLICY, ...(mode === 'attempt-limit' ? { maxTaskAttempts: 1 } : {}) }, estimate: { costMicroCny: 100, durationMs: 1000, cleanupMs: 100 }, backoffMs: 500, signal: abort.signal, now: f.now,
+    wait: async (ms, signal) => { signal.throwIfAborted(); waited += ms; if (mode === 'cancel-during') abort.abort(); f.setTime(f.now() + ms); } });
+  assert.equal(result.action, mode === 'settled' ? 'retry_service' : 'stop');
+  assert.equal(waited, mode === 'settled' || mode === 'cancel-during' ? 500 : 0); assert.equal(f.events.length, paidCount);
+  assert.deepEqual((await f.controller.read()).tasks[0], original);
 });

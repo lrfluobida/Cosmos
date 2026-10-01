@@ -14,7 +14,7 @@ import { buildRepairFeedback, failureRecord } from './repair/feedback.ts';
 import type { FailureStage, HostFailure } from './repair/feedback.ts';
 import { TaskJournal, RecoveryBlocked, hasHostRecord, requireOriginalTask, requireCorrectionIdentity } from './recovery/task-journal.ts';
 import type { CapturedTask, ContentSignature, RecoveryOptions, RecoveryReport } from './recovery/task-journal.ts';
-import { assertTaskWriteIsolation, scheduleTasks, validateScheduling } from './scheduler/index.ts';
+import { assertTaskWriteIsolation, scheduleTasks, validateScheduling, withDagOwner } from './scheduler/index.ts';
 import type { SchedulingOptions } from './scheduler/index.ts';
 
 export interface PreparedTask { task: TaskContract; role: AuthorRole; workspace: string; expectedArtifacts?: ArtifactReference[] }
@@ -71,13 +71,13 @@ function requirePassingEvidence(task: TaskContract, requirement: RequirementCont
 
 /** One bounded attempt per prepared task. Repairs/replanning create explicit subsequent work. */
 export async function executeTaskDag(options: DagOptions): Promise<TaskContract[]> {
-  return (await executeDag(options, false)).tasks;
+  return withDagOwner(options.controller, async () => (await executeDag(options, false)).tasks);
 }
 
 /** Resume only independently identifiable unfinished phases of the original tasks. */
 export async function resumeTaskDag(options: DagOptions): Promise<RecoveryReport> {
   if (!options.recovery) throw new Error('Recovery requires the original explicit host journal configuration.');
-  return executeDag(options, true);
+  return withDagOwner(options.controller, () => executeDag(options, true));
 }
 
 async function executeDag(options: DagOptions, resume: boolean): Promise<RecoveryReport> {
@@ -361,7 +361,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     }
   }
   if (options.scheduling) await scheduleTasks({ tasks: ordered, controller, options: options.scheduling, signal, now: options.now,
-    exclusive: resume || options.reviewProtocolCorrections === 1, execute: executeOne });
+    exclusiveReason: resume ? 'recovery' : options.reviewProtocolCorrections === 1 ? 'review_protocol_correction' : null, execute: executeOne });
   else for (const item of ordered) await executeOne(item);
   return { tasks: results, reusedTaskIds, blocked: [...blocked].map(([taskId, reason]) => ({ taskId, reason })) };
 }
