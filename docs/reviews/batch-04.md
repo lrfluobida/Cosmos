@@ -1,6 +1,6 @@
 # Batch 04 review and integration record
 
-Date: 2026-10-01. Sole merger: `batch04_merger`. COS-10 driver status: `driver-merged-awaiting-live`. The independently approved driver is integrated, verified and pushed. Real game generation has not started; COS-10 / #11 and parent #1 remain open. This integration made no paid calls; the recorded shared validation estimate remains ¥0.735971.
+Date: 2026-10-01. Sole merger: `batch04_merger`. Initial driver integration status: `driver-merged-awaiting-live`. The independently approved driver was integrated, verified and pushed before real generation started. That integration made no paid calls; its shared validation estimate was ¥0.735971. COS-10 / #11 and parent #1 remain open. The first live failure is recorded below.
 
 ## Approved commit and merge
 
@@ -49,3 +49,9 @@ COS-01 reference freezing, complete classic benchmark coverage, audio listening 
 Command-scoped `git -c http.proxy=http://127.0.0.1:7897 push origin main` advanced remote main from `41f0c4e` to code merge `29a9c69a78ae6270775668e4b585d68486f2248e`. `ls-remote` and the GitHub API confirmed that exact SHA before publishing the [COS-10 integration status](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5927502879) and [parent progress](https://github.com/lrfluobida/Cosmos/issues/1#issuecomment-5927503153). Both issues were then confirmed open. The local task mapping records `driver-merged-awaiting-live`, the reviewed SHA, the merge SHA and the status comment.
 
 This documentation update follows the verified code push. No global/system Git configuration changed, no worktree was archived and no PR was created.
+
+## First live result and bounded continuation
+
+The coordinator ran `pilot-20261001081828147` on platform `2087c39e7364fe8f345d85a53e427499afdb696e`, from `2026-10-01T08:18:34.671Z` to `08:19:05.866Z` (31.195 seconds). Six settled requests (two planning, four design) cost an estimated ¥0.080447, bringing shared validation to ¥0.816418 with zero reserved or unknown fees. Design v1 was captured, but author handoff blockers included host/downstream work, so the gate stopped before host verification. Art, coding and gameplay acceptance did not run. See the [public failure report and decision](../research/2026-10-01-first-runtime-failure.md); private results and sessions remain outside Git.
+
+One continuation is being implemented and independently reviewed; no continuation code is approved or integrated here. It must reuse the original plan/design, `09:48:34.671Z` deadline and six existing requests within the forty-request limit and cumulative actual-cost-plus-reserves cap of ¥30. The sole repair is a read-only design handoff clarification (design attempt 2/2, repair 1/1). Existing allocations remain; explicitly authorized successor allocations use shared unallocated funds and keep total allocation within ¥150. No additional coding repair is available. These are recorded continuation constraints, not evidence of a successful resumed run. #11 remains open.
