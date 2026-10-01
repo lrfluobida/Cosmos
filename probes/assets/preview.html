@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COS-04 original media probe</title>
+<style>
+  body { font: 16px system-ui; margin: 28px; background: #edf1f2; color: #203746; }
+  h1 { margin-bottom: 4px; } p { margin-top: 4px; }
+  button { padding: 8px 20px; margin: 8px 8px 16px 0; }
+  #stages { display: flex; gap: 16px; } canvas { border-radius: 12px; }
+  #sheet { margin-top: 20px; display: grid; grid-template-columns: repeat(7, 112px); gap: 8px; }
+  figure { margin: 0; text-align: center; } figure img { width: 108px; height: 108px; }
+  figure:nth-child(even) { background: #152c3b; color: #edf1f2; border-radius: 6px; }
+  figcaption { font-size: 11px; padding-bottom: 4px; } audio { width: 260px; height: 30px; }
+  .audio { display: inline-grid; margin: 12px 12px 0 0; gap: 4px; font-size: 13px; }
+</style>
+<h1>Copper Scout · original media probe</h1>
+<p>Platform capability sample · 192 × 192 transparent frames · shared anchor (96, 175)</p>
+<div id="controls"></div>
+<div id="stages"><canvas id="light" width="384" height="260"></canvas><canvas id="dark" width="384" height="260"></canvas></div>
+<output id="status"></output>
+<div id="sheet"></div>
+<div id="audio"></div>
+<script type="module">
+  import { animationFrame } from '/media/vector.js';
+  const manifest = await (await fetch('/assets/manifest.json')).json();
+  const visual = manifest.character;
+  const images = new Map();
+  for (const state of visual.states) {
+    const button = document.createElement('button'); button.textContent = state.name; button.dataset.state = state.name;
+    button.onclick = () => { active = state; since = performance.now(); visits[state.name] = []; };
+    document.querySelector('#controls').append(button);
+    for (const file of state.frames) {
+      const img = new Image(); img.src = '/assets/' + file; await img.decode(); images.set(file, img);
+      const figure = document.createElement('figure'); const caption = document.createElement('figcaption');
+      caption.textContent = file; figure.append(img.cloneNode(), caption); document.querySelector('#sheet').append(figure);
+    }
+  }
+  for (const sound of manifest.audio) {
+    const label = document.createElement('label'); label.className = 'audio'; label.textContent = sound.id;
+    const audio = document.createElement('audio'); audio.controls = true; audio.loop = sound.loop; audio.src = '/assets/' + sound.file;
+    label.append(audio); document.querySelector('#audio').append(label);
+  }
+  let active = visual.states[0], since = performance.now();
+  const visits = { idle: [], attack: [], death: [] };
+  const canvases = [...document.querySelectorAll('#stages canvas')];
+  function draw(time) {
+    // A RAF timestamp can precede an input handler or module continuation in the same frame.
+    const file = animationFrame(active, Math.max(0, time - since));
+    if (visits[active.name].at(-1) !== file) visits[active.name].push(file);
+    for (const [i, canvas] of canvases.entries()) {
+      const ctx = canvas.getContext('2d'); ctx.fillStyle = i ? '#152c3b' : '#fff8e9'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const x = canvas.width / 2, y = 222;
+      ctx.strokeStyle = i ? '#3e5869' : '#d7cebc'; ctx.beginPath(); ctx.moveTo(32, y); ctx.lineTo(canvas.width - 32, y); ctx.stroke();
+      ctx.drawImage(images.get(file), x - visual.anchor.x, y - visual.anchor.y);
+      ctx.fillStyle = '#db644e'; ctx.fillRect(x - 3, y - 1, 6, 2); ctx.fillRect(x - 1, y - 3, 2, 6);
+    }
+    document.querySelector('#status').textContent = active.name + ' / ' + file;
+    window.probe = { ready: true, active: active.name, frame: file, visits, anchor: visual.anchor };
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+</script>
+</html>
