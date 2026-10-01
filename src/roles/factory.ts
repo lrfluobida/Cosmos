@@ -32,6 +32,8 @@ export interface CreatedRole extends RoleSession { contextId: string; actorId: s
 export type RoleFactory = (input: RoleInput) => Promise<CreatedRole>;
 export interface RoleFactoryOptions {
   maxOutputTokens: number;
+  /** Explicit author overrides; planning and review retain maxOutputTokens. */
+  authorMaxOutputTokens?: Partial<Record<AuthorRole, number>>;
   maxRequests: number;
   requestTimeoutMs: number;
   estimatedMaxCostMicroCny: PiSessionOptions['estimatedMaxCostMicroCny'];
@@ -62,6 +64,8 @@ export function assertOwnership(task: TaskContract, workspace: string): void {
 
 /** Thin role construction on the pinned native pi adapter, with no inherited conversation. */
 export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
+  const authorLimits = { ...options.authorMaxOutputTokens };
+  if (Object.entries(authorLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxOutputTokens requires valid author roles and positive safe integers.');
   return async input => {
     input.controller.signal.throwIfAborted();
     const task = structuredClone(input.task), requirement = structuredClone(input.requirement);
@@ -100,9 +104,10 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         ? 'You are the Cosmos task planner. Return only JSON {tasks:[{taskId,role,objective,acceptanceIds,dependsOn}]}. Use only the host policies supplied in the prompt. When a policy has policyId, include that policyId in its task; select each policyId at most once. Otherwise select each role at most once. Cover every confirmed acceptance ID. Each dependency names a task in this plan. The host binds its declared output versions as inputs after the dependency passes. You cannot choose tools, paths, budget, acceptance steps, evidence or task state. This is a proposal, not a claim that the game passes.'
         : reviewer
         ? 'You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. Return JSON {verdict:"approved"|"changes_requested",inputVersions:all packet inputs,evidenceIds:host evidence IDs,findings:string[]}. findings contains only unresolved actionable defects, not successful checks, positive observations or explanations. approved requires findings:[]; changes_requested requires at least one such defect with the unmet requirement and actual versus expected behavior. Do not hide actual defects to produce an empty array. Return only these JSON fields. Your verdict is a proposal checked by the host. Do not infer success from author claims.'
-        : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`,
+        : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next. Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`,
       context: JSON.stringify(packet), thinkingLevel: options.thinkingLevel ?? 'low', env: options.env,
-      maxOutputTokens: options.maxOutputTokens, maxRequests: options.maxRequests, requestTimeoutMs: options.requestTimeoutMs,
+      maxOutputTokens: input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens,
+      maxRequests: options.maxRequests, requestTimeoutMs: options.requestTimeoutMs,
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory }),
