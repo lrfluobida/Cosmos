@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 import type { Observation, Scalar, Step } from './plan.ts';
 
 export async function observe(page: Page, observation: Observation, timeoutMs: number): Promise<Scalar> {
-  if (observation.kind === 'text') return page.locator(observation.selector).innerText({ timeout: timeoutMs });
+  if (observation.kind === 'text') return page.locator(observation.selector).filter({ visible: true }).innerText({ timeout: timeoutMs });
   if (observation.kind === 'visible') return page.locator(observation.selector).isVisible();
   return page.evaluate((path: string[]) => {
     const descriptor = Object.getOwnPropertyDescriptor(window, 'cosmosDebug');
