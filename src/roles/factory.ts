@@ -71,6 +71,9 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const task = structuredClone(input.task), requirement = structuredClone(input.requirement);
     const errors = [...validateTask(task), ...validateRequirement(requirement)];
     if (errors.length || task.specVersion !== requirement.specVersion) throw new Error('Invalid role task or confirmed requirements.');
+    const authority = await input.controller.executionAuthority(task.taskId);
+    input.controller.signal.throwIfAborted();
+    if (authority.windowId && !authority.admissionAllowed) throw new Error('Role task has no active execution window authority.');
     const workspace = await realpath(input.workspace);
     assertOwnership(task, workspace);
     const reviewer = input.role === 'reviewer';
@@ -96,7 +99,9 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       inputs: reviewer ? [...task.inputs, ...task.artifacts] : task.inputs,
       rules: task.context.rules, interfaces: task.context.interfaces, knownFailures: task.context.knownFailures,
       tools: tools.map(tool => tool.name), ownership: { readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths },
-      budget: { ...task.budget, committedMicroCny: snapshot.ledger.entries.filter(e => e.taskId === task.taskId).reduce((total, e) => total + e.reservedMicroCny + e.settledMicroCny, 0) },
+      budget: { ...task.budget, committedMicroCny: snapshot.ledger.entries.filter(e => e.taskId === task.taskId).reduce((total, e) => total + e.reservedMicroCny + e.settledMicroCny, 0),
+        ...(authority.windowId ? { executionWindow: { windowId: authority.windowId, deadlineAt: authority.deadlineAt,
+          effectiveLimitMicroCny: authority.effectiveLimitMicroCny, taskGrantMicroCny: authority.taskGrantMicroCny } } : {}) },
       ...(reviewer ? { evidence: task.evidence } : { outputs: task.outputs }) });
     const session = await (options.sessionFactory ?? createPiSession)({
       workspace, stateDirectory: input.stateDirectory, tools,

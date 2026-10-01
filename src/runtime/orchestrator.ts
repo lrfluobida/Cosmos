@@ -17,11 +17,15 @@ import { TaskJournal, RecoveryBlocked, hasHostRecord, requireOriginalTask, requi
 import type { CapturedTask, ContentSignature, RecoveryOptions, RecoveryReport } from './recovery/task-journal.ts';
 import { assertTaskWriteIsolation, scheduleTasks, validateScheduling, withDagOwner } from './scheduler/index.ts';
 import type { SchedulingOptions } from './scheduler/index.ts';
+import { executionWindowView, taskWindowBinding } from './execution-window.ts';
+import { requireContinuationTask } from './continuation-validation.ts';
 
 export interface PreparedTask { task: TaskContract; role: AuthorRole; workspace: string; expectedArtifacts?: ArtifactReference[] }
 export interface AuthorProposal { summary: string; remaining: string[]; uncertainty: string[] }
 export interface DagOptions {
   controller: RunController;
+  /** Exact already-authorized window. Omitted retains the original v1 execution API. */
+  windowId?: string;
   requirement: RequirementContract;
   tasks: PreparedTask[];
   sessionRoot: string;
@@ -72,15 +76,16 @@ function requirePassingEvidence(task: TaskContract, requirement: RequirementCont
 
 /** One bounded attempt per prepared task. Repairs/replanning create explicit subsequent work. */
 export async function executeTaskDag(options: DagOptions): Promise<TaskContract[]> {
-  options.controller.requireOriginalExecution();
-  return withDagOwner(options.controller, async () => (await executeDag(options, false)).tasks);
+  options.controller.requireExecutionWindow(options.windowId);
+  if (options.windowId && !options.recovery) throw new Error('Execution window requires its explicit host recovery journal.');
+  return withDagOwner(options.controller, async () => (await executeDag(options, false)).tasks, options.windowId);
 }
 
 /** Resume only independently identifiable unfinished phases of the original tasks. */
 export async function resumeTaskDag(options: DagOptions): Promise<RecoveryReport> {
-  options.controller.requireOriginalExecution();
+  options.controller.requireExecutionWindow(options.windowId);
   if (!options.recovery) throw new Error('Recovery requires the original explicit host journal configuration.');
-  return withDagOwner(options.controller, () => executeDag(options, true));
+  return withDagOwner(options.controller, () => executeDag(options, true), options.windowId);
 }
 
 async function executeDag(options: DagOptions, resume: boolean): Promise<RecoveryReport> {
@@ -102,6 +107,9 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     if (item.task.state !== 'not_started') throw new Error('Prepared tasks must be not_started.');
     if (item.task.dependsOn.some(dep => !prior.has(dep.taskId) && !prepared.some(p => p.task.taskId === dep.taskId))) throw new Error('Missing dependency task.');
     const simulation = structuredClone(initial);
+    const binding = taskWindowBinding(initial, item.task.taskId);
+    if (binding) requireContinuationTask(initial, item.task);
+    else if (options.windowId && prior.get(item.task.taskId)?.state !== 'passed') throw new Error('Execution window can only dispatch its quoted tasks or reuse historical passed evidence.');
     if (!simulation.ledger.allocations.some(a => a.taskId === item.task.taskId)) {
       simulation.ledger.allocations.push({ taskId: item.task.taskId, amountMicroCny: item.task.budget.allocationMicroCny });
       simulation.run.taskIds.push(item.task.taskId);
@@ -112,7 +120,8 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       try {
         if (!item.expectedArtifacts?.length || item.task.ownership.writePaths.some(path => pathsOverlap(path, options.recovery!.journalRoot, item.workspace))) throw new RecoveryBlocked('Recovery requires exact expected outputs and a journal outside author write paths.');
         journals.set(item.task.taskId, await TaskJournal.open(options.recovery, {
-          formatVersion: 1, runId: initial.run.runId, ledgerId: initial.ledger.ledgerId, originalStartedAt: initial.run.originalStartedAt,
+          ...(binding ? { formatVersion: 2 as const, executionWindow: binding } : { formatVersion: 1 as const }),
+          runId: initial.run.runId, ledgerId: initial.ledger.ledgerId, originalStartedAt: initial.run.originalStartedAt,
           originalDeadlineAt: initial.run.originalDeadlineAt, limitMicroCny: initial.ledger.limitMicroCny, requirement, prepared: item,
           reviewProtocolCorrections: options.reviewProtocolCorrections ?? 0, artifactRoot: options.recovery.artifactRoot, sessionRoot: resolve(options.sessionRoot),
         }, resume));
@@ -198,10 +207,12 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         }
         if (!['not_started', 'ready', 'running', 'awaiting_review'].includes(task.state)) throw new RecoveryBlocked('Task retains its prior outcome; use the existing constrained repair policy for new work.');
         const current = await controller.read();
-        if (current.stopReason || current.run.state !== 'running' || current.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new RecoveryBlocked('Original run is stopped or has unresolved requests; reconcile before dispatch.');
+        const active = executionWindowView(current).executionWindow;
+        if (active.stopReason || active.state !== 'running' || current.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new RecoveryBlocked('Execution window is stopped or has unresolved requests; reconcile before dispatch.');
         if (task.attempts.length > 1 || (task.attempts.length && (task.attempts[0].failure || !['running', 'passed'].includes(task.attempts[0].outcome)))) throw new RecoveryBlocked('Prior attempt requires its existing failure/repair path.');
         if (task.attempts.length && await hasHostRecord(task.attempts[0].sessionRef, 'failure.json')) throw new RecoveryBlocked('Existing COS-11 failure handoff must remain on its repair path.');
       }
+      if (options.windowId && !(await controller.executionAuthority(task.taskId)).admissionAllowed) throw new RecoveryBlocked('Task has no active execution window authority; historical work is read-only.');
       signal.throwIfAborted();
       task.dependsOn = task.dependsOn.map(dep => ({ ...dep, state: finished.get(dep.taskId)!.state }));
       if (task.dependsOn.some(dep => dep.state !== 'passed')) {
@@ -366,7 +377,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       finished.set(task.taskId, task); results.push(structuredClone(task));
     }
   }
-  if (options.scheduling) await scheduleTasks({ tasks: ordered, controller, options: options.scheduling, signal, now: options.now,
+  if (options.scheduling) await scheduleTasks({ tasks: ordered, controller, windowId: options.windowId, options: options.scheduling, signal, now: options.now,
     exclusiveReason: resume ? 'recovery' : options.reviewProtocolCorrections === 1 ? 'review_protocol_correction' : null, execute: executeOne });
   else for (const item of ordered) await executeOne(item);
   return { tasks: results, reusedTaskIds, blocked: [...blocked].map(([taskId, reason]) => ({ taskId, reason })) };

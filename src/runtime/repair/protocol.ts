@@ -2,6 +2,7 @@ import type { ImageContent } from '@earendil-works/pi-ai';
 import { open } from 'node:fs/promises';
 import type { CreatedRole } from '../../roles/factory.ts';
 import type { RunController } from '../run.ts';
+import { executionWindowView } from '../execution-window.ts';
 
 export class ReviewProtocolError extends Error {
   constructor() { super('Independent review did not return a valid fixed-version proposal.'); }
@@ -31,13 +32,14 @@ export async function requestReview<T>(options: {
     options.signal.throwIfAborted();
     if (response > 0) {
       const state = await options.controller.read();
+      const authority = await options.controller.executionAuthority(options.taskId), active = executionWindowView(state).executionWindow;
       const used = state.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0);
       const taskUsed = state.ledger.entries.filter(entry => entry.taskId === options.taskId).reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0);
       const allocation = state.ledger.allocations.find(entry => entry.taskId === options.taskId);
-      if (state.stopReason || state.run.state !== 'running'
-        || Date.parse(state.run.originalDeadlineAt) <= (options.now ?? Date.now)()
+      if (!authority.admissionAllowed || active.stopReason || active.state !== 'running'
+        || Date.parse(authority.deadlineAt) <= (options.now ?? Date.now)()
         || state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)
-        || used >= state.ledger.limitMicroCny || !allocation || taskUsed >= allocation.amountMicroCny) throw new ReviewProtocolError();
+        || used >= authority.effectiveLimitMicroCny || !allocation || taskUsed >= authority.taskGrantMicroCny) throw new ReviewProtocolError();
       const record: ReviewCorrectionRecord = { formatVersion: 1, taskId: options.taskId, attemptId: options.attemptId,
         reviewerId: options.reviewer.actorId, contextId: options.reviewer.contextId, used: 1,
         recordedAt: new Date((options.now ?? Date.now)()).toISOString() };

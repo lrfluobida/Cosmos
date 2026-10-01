@@ -5,6 +5,7 @@ import { directory, regularFile, safePath, snapshot, within } from '../../artifa
 import { sameValue } from '../../contracts/validation.ts';
 import type { ArtifactReference, RequirementContract, TaskContract } from '../../contracts/types.ts';
 import type { AuthorProposal, PreparedTask } from '../orchestrator.ts';
+import type { ExecutionWindowBinding } from '../execution-window.ts';
 import { publishReceipt } from './receipt-file.ts';
 
 export interface CapturedTask { artifacts: ArtifactReference[]; reviewWorkspace: string }
@@ -20,9 +21,10 @@ export interface RecoveryReport { tasks: TaskContract[]; reusedTaskIds: string[]
 export class RecoveryBlocked extends Error {}
 type Stage = 'author' | 'capture-started' | 'capture' | 'verify-started' | 'verified' | 'review-started' | 'review';
 export interface RecoveryOrigin {
-  formatVersion: 1; runId: string; ledgerId: string; originalStartedAt: string; originalDeadlineAt: string;
+  formatVersion: 1 | 2; runId: string; ledgerId: string; originalStartedAt: string; originalDeadlineAt: string;
   limitMicroCny: number; requirement: RequirementContract; prepared: PreparedTask; reviewProtocolCorrections: 0 | 1;
   artifactRoot: string; sessionRoot: string;
+  executionWindow?: ExecutionWindowBinding;
 }
 export type ContentSignature = { location: string; files: { path: string; sha256: string }[] }[];
 
@@ -33,6 +35,7 @@ export class TaskJournal {
   private taskId: string;
   private constructor(root: string, artifactRoot: string, taskId: string) { this.root = root; this.artifactRoot = artifactRoot; this.taskId = taskId; }
   static async open(options: RecoveryOptions, origin: RecoveryOrigin, resume: boolean): Promise<TaskJournal> {
+    if (origin.formatVersion === 1 ? origin.executionWindow !== undefined : origin.formatVersion !== 2 || !origin.executionWindow) throw new RecoveryBlocked('Recovery origin must bind its explicit execution window or retain v1.');
     if (!isAbsolute(options.journalRoot) || !isAbsolute(options.artifactRoot)) throw new RecoveryBlocked('Recovery requires explicit absolute host roots.');
     await safePath(options.artifactRoot);
     const artifactRoot = await realpath(options.artifactRoot);
