@@ -5,7 +5,7 @@ import type { ImageContent } from '@earendil-works/pi-ai';
 import { validateExecution, validateRequirement, validateTask, validateTaskInputs } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
 import type { ArtifactReference, EvidenceContract, RequirementContract, TaskContract } from '../contracts/index.ts';
-import type { RunController } from './run.ts';
+import type { RunController, RunSnapshot } from './run.ts';
 import { assertOwnership, pathsOverlap } from '../roles/factory.ts';
 import type { AuthorRole, CreatedRole, RoleFactory } from '../roles/factory.ts';
 import { freeze } from '../roles/requirements.ts';
@@ -105,6 +105,19 @@ export async function executeTaskDag(options: DagOptions): Promise<TaskContract[
     const current = await controller.read();
     checked(validateExecution({ requirement, task, ledger: current.ledger, run: current.run }));
   }
+  async function persistFeedback(task: TaskContract, error: unknown, stage: FailureStage, snapshot: RunSnapshot) {
+    let feedback: ReturnType<typeof buildRepairFeedback>;
+    try {
+      const diagnostic = options.diagnoseFailure?.(freeze(structuredClone(task)), stage) ?? error;
+      feedback = buildRepairFeedback(task, diagnostic, stage, snapshot);
+    } catch {
+      // Malformed host diagnostics cannot replace fixed acceptance or prevent
+      // feedback from being saved. Never persist the adapter's exception.
+      feedback = buildRepairFeedback(task, undefined, stage, snapshot);
+    }
+    await writeFile(join(task.attempts.at(-1)!.sessionRef, 'failure.json'), JSON.stringify(feedback, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
+    return feedback;
+  }
 
   for (const item of ordered) {
     const task = item.task;
@@ -171,6 +184,7 @@ export async function executeTaskDag(options: DagOptions): Promise<TaskContract[
       task.state = verdict.verdict === 'approved' ? 'passed' : 'needs_changes';
       await validate(task);
       await controller.saveTask(task, { role: 'reviewer', actorId: reviewer.actorId });
+      if (task.state === 'needs_changes') await persistFeedback(task, undefined, 'independent_review', await controller.read());
       if (task.state === 'passed') available.push(...task.artifacts);
     } catch (error) {
       // Session/provider messages may contain secrets. Persist stable categories and host-owned context only.
@@ -189,16 +203,7 @@ export async function executeTaskDag(options: DagOptions): Promise<TaskContract[
       if (validateTask(task).length) { task.artifacts = persisted.artifacts; task.evidence = persisted.evidence; }
       if (attempt && persisted.attempts.at(-1)?.outcome === 'running') {
         if (!cancelled) {
-          let feedback: ReturnType<typeof buildRepairFeedback>;
-          try {
-            const diagnostic = options.diagnoseFailure?.(freeze(structuredClone(task)), failureStage) ?? error;
-            feedback = buildRepairFeedback(task, diagnostic, failureStage, snapshot);
-          } catch {
-            // A malformed host adapter cannot replace fixed acceptance or prevent
-            // the failed attempt from being saved. Never persist its exception.
-            feedback = buildRepairFeedback(task, undefined, failureStage, snapshot);
-          }
-          await writeFile(join(attempt.sessionRef, 'failure.json'), JSON.stringify(feedback, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
+          const feedback = await persistFeedback(task, error, failureStage, snapshot);
           attempt.failure = failureRecord(feedback.issues);
         }
         attempt.endedAt = at(); attempt.outcome = cancelled ? 'cancelled' : 'failed';

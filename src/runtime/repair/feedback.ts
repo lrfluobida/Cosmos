@@ -83,6 +83,7 @@ export function buildRepairFeedback(task: TaskContract, error: unknown, stage: F
   const serviceCodes = ['timeout', 'provider_error', 'usage_unknown', 'accounting_error', 'model_mismatch'];
   const service = error instanceof PiSessionError && serviceCodes.includes(error.code);
   const actual = stage === 'author_handoff' ? 'Author handoff declares unresolved assigned work or uncertainty.'
+    : stage === 'independent_review' && task.review.verdict === 'changes_requested' ? 'Independent review requested changes; host diagnosis is required.'
     : stage === 'independent_review' ? 'No valid independent review proposal for the fixed inputs and host evidence.'
     : service ? 'Provider request failed or requires reconciliation.' : 'Host execution did not establish passing evidence.';
   const issues: HostIssue[] = error instanceof HostFailure ? structuredClone(error.issues) : task.acceptance.map(item => ({

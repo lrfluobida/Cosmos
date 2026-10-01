@@ -26,7 +26,7 @@ Before the corrective prompt, the host creates `<attempt.sessionRef>/review-corr
 
 ## Failure feedback and trusted diagnostics
 
-Each newly failed active attempt saves `<attempt.sessionRef>/failure.json`. Format 1 contains the source task/attempt/session, run/spec/original deadline, unchanged acceptance entries, exact input/output references, stable host failures and the task's recorded request charges. Provider exceptions are reduced to known category/code values; arbitrary exception messages and raw model answers are not copied into feedback.
+Each newly failed active attempt and each valid `changes_requested` review saves `<attempt.sessionRef>/failure.json`. A valid review keeps its `changes_requested` verdict, `needs_changes` task state and completed `passed` attempt with `failure: null`; the separate feedback supplies the trusted diagnosis for subsequent work. Format 1 contains the source task/attempt/session, run/spec/original deadline, unchanged acceptance entries, exact input/output references, stable host failures and the task's recorded request charges. Provider exceptions are reduced to known category/code values; arbitrary exception messages and raw model answers are not copied into feedback.
 
 `HostFailure(issues, passedChecks?)` is for trusted host adapters. Each issue contains the original `acceptanceId`, a stable host `checkId`, classification, reproduction, actual/expected results and public evidence references. A host check can throw it, or `DagOptions.diagnoseFailure(task, stage)` can derive it from the report that `verify` just produced. The callback receives a frozen task snapshot and a stable stage, never the raw exception. Invalid diagnostics fall back to an `insufficient_evidence` record without corrupting the task.
 
@@ -62,6 +62,8 @@ Progress requires current host proof that at least one previously failing `(acce
 Every decision includes unresolved gaps, current artifact references and passed task IDs to preserve. The caller saves and delivers that gap report. `replan` does not automatically launch a planner or widen the requirements.
 
 `createLinkedRepairTask` accepts the same checked inputs plus the exact source `PreparedTask`, a new task ID, explicit available allocation, and new fixed output versions/locations. It preserves role, ownership, requirements, passed dependencies and original run/ledger/deadline. It creates fresh pending evidence/review fields, adds source feedback and old artifact interfaces, and records the logical attempt in the role rules. It does not mutate the source task or register/dispatch work itself.
+
+Each artifact ID has only its current source version in the new task's interfaces; earlier versions remain recorded in the complete feedback chain. Output locations are checked against all historical input/output, interface, feedback and evidence references using normalized workspace paths, including Windows case and absolute/relative aliases. Renaming an artifact ID cannot permit overwriting an old snapshot, its parent or its subtree.
 
 Stage the fixed interfaces, then pass the returned task to `executeTaskDag` with the existing capture/verify/independent-review callbacks. A new output version always needs new host evidence and review. Existing passed tasks and their unchanged artifacts remain usable; they are not regenerated. Inputs or scope requiring changes need a separately planned contract, not a mutation of the old task.
 

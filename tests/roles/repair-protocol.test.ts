@@ -112,6 +112,11 @@ for (const mode of ['invalid-twice', 'stale', 'unknown', 'cancel', 'budget', 'de
   assert.equal(f.counts().reviewerCalls, ['remaining', 'failed-host'].includes(mode) ? 0 : ['changes', 'unknown', 'cancel', 'budget', 'deadline'].includes(mode) ? 1 : 2);
   if (mode === 'remaining') { assert.equal(f.counts().verifyCalls, 0); assert.ok(result.handoff.remaining.includes('Host verification and independent review')); }
   if (mode === 'unknown') assert.equal((await f.controller.read()).run.fees.unknownRequestIds.length, 1);
+  if (['changes', 'corrected-changes'].includes(mode)) {
+    const feedback = JSON.parse(await readFile(join(result.attempts[0].sessionRef, 'failure.json'), 'utf8'));
+    assert.match(feedback.issues[0].actual, /review requested changes/i);
+    assert.equal(feedback.issues[0].classification, 'insufficient_evidence');
+  }
 });
 
 test('default and explicit zero corrections preserve the strict one-response behavior', async t => {
@@ -164,6 +169,29 @@ test('invalid host diagnosis cannot corrupt the durable failed task', async t =>
   assert.equal(result.state, 'failed');
   assert.equal(result.attempts[0].failure?.classification, 'insufficient_evidence');
   assert.deepEqual((await f.controller.read()).tasks[0], result);
+});
+
+test('valid changes_requested persists diagnosed feedback while preserving the review verdict', async t => {
+  const f = await setup(t, 'changes');
+  let diagnoses = 0;
+  f.options.diagnoseFailure = (task, stage) => {
+    diagnoses++;
+    assert.equal(stage, 'independent_review');
+    assert.equal(task.review.verdict, 'changes_requested');
+    return new HostFailure([{ acceptanceId: 'AC-1', checkId: 'resource-input', classification: 'code_defect', summary: 'Host confirmed the reviewer finding', reproduction: ['Click the card with insufficient resources'], actual: 'No rejection response', expected: 'Resource rejection shown', evidenceRefs: [task.evidence[0].source.location] }]);
+  };
+  const [result] = await executeTaskDag(f.options);
+  assert.equal(diagnoses, 1);
+  assert.equal(result.state, 'needs_changes');
+  assert.equal(result.review.verdict, 'changes_requested');
+  assert.equal(result.attempts[0].outcome, 'passed');
+  assert.equal(result.attempts[0].failure, null);
+  assert.equal(f.counts().reviewerCalls, 1);
+  const feedback = JSON.parse(await readFile(join(result.attempts[0].sessionRef, 'failure.json'), 'utf8'));
+  assert.equal(feedback.sourceAttemptId, result.attempts[0].attemptId);
+  assert.deepEqual(feedback.artifactVersions, [...result.inputs, ...result.artifacts]);
+  assert.deepEqual(feedback.acceptance, result.acceptance);
+  assert.equal(feedback.issues[0].classification, 'code_defect');
 });
 
 for (const stale of [false, true]) test(`linked code repair gets fresh host evidence and independent review; stale evidence=${stale}`, async t => {

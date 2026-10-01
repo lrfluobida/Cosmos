@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { resolve } from 'node:path';
 import test from 'node:test';
 import { buildRepairFeedback, HostFailure } from '../../src/runtime/repair/feedback.ts';
 import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from '../../src/runtime/repair/policy.ts';
@@ -93,6 +94,12 @@ test('linked tasks retain history and fixed requirements without mutating the fa
   const proven = buildRepairFeedback(repaired, new HostFailure([issue('code_defect', 'resource')], passedChecks), 'host_verification', f.snapshot);
   assert.equal(assessRepair({ ...f.options, policy, history: [f.feedback, proven] }).action, 'repair');
   assert.equal(repaired.evidence[0].outcome, 'failed');
+  const next = createLinkedRepairTask({ ...f.options, policy, history: [f.feedback, proven], source: { task: repaired, role: 'coding', workspace: '/workspace' }, taskId: 'repair-2', allocationMicroCny: 500,
+    outputs: [{ type: 'game', schema: 'game/1', destination: 'artifacts/game/v3' }], expectedArtifacts: [artifact('game', 'v3', 'artifacts/game/v3')] });
+  assert.deepEqual(next.task.context.interfaces.filter(ref => ref.artifactId === 'game'), [artifact('game', 'v2', 'artifacts/game/v2')]);
+  assert.deepEqual(next.task.context.interfaces.filter(ref => ref.artifactId.startsWith('repair-feedback-')), [f.feedback.reference, proven.reference]);
+  assert.equal(f.feedback.artifactVersions.some(ref => ref.artifactId === 'game' && ref.version === 'v1'), true);
+  assert.equal(proven.artifactVersions.some(ref => ref.artifactId === 'game' && ref.version === 'v2'), true);
   assert.throws(() => buildRepairFeedback(repaired, new HostFailure([issue('code_defect', 'resource')], [{ acceptanceId: 'AC-1', checkId: 'start', evidenceId: 'missing-pass' }]), 'host_verification', f.snapshot), /passed.*evidence/i);
   const renamed = structuredClone(second); renamed.issues = [issue('code_defect', 'renamed-by-model')];
   assert.equal(assessRepair({ ...f.options, policy, history: [f.feedback, renamed] }).reason, 'no_progress');
@@ -106,4 +113,27 @@ test('fresh artifact version or rewritten feedback cannot hide unresolved fixed 
   assert.throws(() => assessRepair({ ...f.options, history: [scope] }), /acceptance|snapshot/i);
   assert.throws(() => createLinkedRepairTask({ ...f.options, source: { task: f.task, role: 'coding', workspace: '/workspace' }, taskId: 'repair-1', allocationMicroCny: 500,
     outputs: f.task.outputs, expectedArtifacts: f.task.artifacts }), /new.*version|version.*new/i);
+});
+
+for (const [name, id, location] of [
+  ['renamed ID', 'renamed-game', 'artifacts/game/v1'],
+  ['dot segments', 'game', 'artifacts/game/v1/../v1'],
+  ['case alias', 'renamed-game', 'ARTIFACTS/GAME/V1'],
+  ['absolute alias', 'renamed-game', resolve('/workspace', 'artifacts/game/v1')],
+  ['old subtree', 'renamed-game', 'artifacts/game/v1/assets'],
+  ['old parent', 'renamed-game', 'artifacts/game'],
+  ['fixed input', 'renamed-game', 'requirements/v1.json'],
+  ['old evidence', 'renamed-game', 'evidence/report.json'],
+  ['feedback parent', 'renamed-game', 'repair-feedback'],
+] as const) test(`repair output rejects overlap with protected snapshots: ${name}`, () => {
+  const f = setup();
+  assert.throws(() => createLinkedRepairTask({ ...f.options, source: { task: f.task, role: 'coding', workspace: '/workspace' }, taskId: 'repair-1', allocationMicroCny: 500,
+    outputs: [{ type: 'game', schema: 'game/1', destination: location }], expectedArtifacts: [artifact(id, 'v2', location)] }), /new.*version|location|overlap/i);
+});
+
+test('renamed output at a new sibling location remains valid', () => {
+  const f = setup();
+  const linked = createLinkedRepairTask({ ...f.options, source: { task: f.task, role: 'coding', workspace: '/workspace' }, taskId: 'repair-1', allocationMicroCny: 500,
+    outputs: [{ type: 'game', schema: 'game/1', destination: 'artifacts/game/v2' }], expectedArtifacts: [artifact('renamed-game', 'v2', 'artifacts/game/v2')] });
+  assert.equal(linked.expectedArtifacts![0].location, 'artifacts/game/v2');
 });

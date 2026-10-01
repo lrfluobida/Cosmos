@@ -4,7 +4,7 @@ import { sameValue } from '../../contracts/validation.ts';
 import type { ArtifactReference, RequirementContract, TaskContract } from '../../contracts/types.ts';
 import type { PreparedTask } from '../orchestrator.ts';
 import type { RunSnapshot } from '../run-types.ts';
-import { assertOwnership } from '../../roles/factory.ts';
+import { assertOwnership, pathsOverlap } from '../../roles/factory.ts';
 import { FEEDBACK_PREFIX, failureRecord, feedbackReference, validateHostIssues, validatePassedChecks } from './feedback.ts';
 import type { RepairFeedback } from './feedback.ts';
 
@@ -90,13 +90,20 @@ export function createLinkedRepairTask(options: RepairOptions & {
   if (!options.taskId.trim() || snapshot.run.taskIds.includes(options.taskId)) throw new Error('Repair requires a new task ID.');
   if (!Number.isSafeInteger(options.allocationMicroCny) || options.allocationMicroCny < options.estimate.costMicroCny
     || options.allocationMicroCny > snapshot.ledger.limitMicroCny - snapshot.ledger.allocations.reduce((sum, entry) => sum + entry.amountMicroCny, 0)) throw new Error('Repair needs an explicit available allocation; no reallocation is performed.');
+  const protectedRefs = [...options.history.flatMap(item => [...item.artifactVersions, item.reference,
+    ...snapshot.tasks.find(task => task.taskId === item.sourceTaskId)!.evidence.map(evidence => evidence.source)]), ...source.task.context.interfaces];
   if (!options.expectedArtifacts.length || options.expectedArtifacts.length !== options.outputs.length
     || validateContext({ contextId: 'outputs', rules: [], interfaces: options.expectedArtifacts, knownFailures: [], tools: [] }).length
-    || options.expectedArtifacts.some((ref, index) => ref.location !== options.outputs[index].destination || source.task.artifacts.some(old => old.artifactId === ref.artifactId && (old.version === ref.version || old.location === ref.location)))) throw new Error('Repair outputs require new fixed versions and locations.');
+    || options.expectedArtifacts.some((ref, index) => ref.location !== options.outputs[index].destination || protectedRefs.some(old => old.artifactId === ref.artifactId && old.version === ref.version
+      || pathsOverlap(old.location, ref.location, source.workspace)))) throw new Error('Repair outputs require new fixed versions and nonoverlapping locations.');
   const task = structuredClone(source.task);
   task.taskId = options.taskId; task.authorId = `author-${randomUUID()}`; task.context.contextId = `author-${randomUUID()}`;
   task.context.interfaces.push(structuredClone(current.reference));
-  for (const ref of source.task.artifacts) if (!task.context.interfaces.some(item => sameValue(item, ref))) task.context.interfaces.push(structuredClone(ref));
+  for (const ref of source.task.artifacts) {
+    const index = task.context.interfaces.findIndex(item => item.artifactId === ref.artifactId);
+    if (index < 0) task.context.interfaces.push(structuredClone(ref));
+    else task.context.interfaces[index] = structuredClone(ref);
+  }
   task.context.knownFailures.push(failureRecord(current.issues));
   task.context.rules.push(`Read the fixed repair feedback ${current.reference.location}; preserve its acceptance and source attempt. This is logical attempt ${options.history.reduce((sum, item) => sum + snapshot.tasks.find(t => t.taskId === item.sourceTaskId)!.attempts.length, 0) + 1} of ${options.policy.maxTaskAttempts}. New output versions require fresh host checks and independent review.`);
   task.outputs = structuredClone(options.outputs); task.budget.allocationMicroCny = options.allocationMicroCny;
