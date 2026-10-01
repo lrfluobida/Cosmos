@@ -16,5 +16,9 @@
     "@playwright/test": "1.63.0",
     "@types/node": "22.19.15",
     "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@earendil-works/pi-ai": "0.99.2",
+    "@earendil-works/pi-coding-agent": "0.99.2"
   }
 }
