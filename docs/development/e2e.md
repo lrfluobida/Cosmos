@@ -178,3 +178,35 @@ node --experimental-strip-types probes/e2e/run.ts --trial
 `startup-recovery-origin.json` 用 `wx` + `fsync` 先行记录原失败与平台版本、新平台版本、原 clock/counter 和未知根因。恢复时验证并复用 inputs，不覆写；使用既有安装 toolchain 和原 guard 余时，首次派发原生 planner 后仍执行完整 COS-11/registry 验收链。独立写 `startup-recovery-result.json`，不覆盖旧结果；该记录已存在、非零请求、输入不符或过期均拒绝。模型任务尚未发生，语义修复额度保持原值。
 
 启动诊断只记录固定 phase/captureRef、合法 errno/syscall、trial 根内相对 path/dest 及 guard.aborted，存入 `startup-diagnostics/initial|recovery/`。不保存异常原文、provider 信息、环境或 key。生产 bootstrap 离线回归先在注册前注入主机错误，再验证同 root 到 native 创建边界前拦停仍为零请求；旧结果、origin、journal 和输入字节不变，并覆盖非零、重复、过期、altered input、额外 `.env`/source 拒绝。
+
+## 独立开发验证声明：cos10-reviewed-validation-1
+
+本节实现可供独立评审的固定入口，当前没有新增付费执行批准。协调者须在代码评审合入后，另行给出这一次 experiment 的明确执行决定。它复用现有 COS-10 driver、主机、冻结八项玩法与全部 additionalHostChecks，以及当前已评审的 COS-11/12/13；不作为 COS-18 CLI 访谈或产品入口的真实验收。
+
+唯一入口只接受已批准的精确 main SHA 和真实协调执行决定来源，不接受自选 ID、目录、额度、次数、reset 或 recovery：
+
+```powershell
+node --experimental-strip-types probes/e2e/run.ts --experiment <approved-main-sha> <coordinator-decision-source>
+```
+
+源分支必须是干净 main，SHA 必须与显式决定相同，G2 与 COS-11/12/13 的 reviewed/merged 来源必须是当前祖先。COS-11/13 仍可处于已有 `offline-verified-awaiting-live` 状态，不伪称 closed。决定来源保存在新 origin 和本次需求确认中，不写入或伪造原 run.humanDecisions。
+
+`experiment.ts` 只声明和准入；`run.ts` 打开原共享 controller 后持锁创建 `.cosmos/validation-shared/cos10-reviewed-validation-1.json` 与 `.cosmos/e2e/cos10-reviewed-validation-1/`。marker/origin 用 `wx` 和 fsync；任一目录或 marker 已存在即永久拒绝本入口，首次 capture 前异常退出也消费机会。新入口不提供恢复。旧 `--trial`、`--continue`、`--trial-recover-startup` 的默认配置和拒绝条件保持原样。
+
+原 pilot 的两份 failed 结果与 13 请求日志，以及已过期 fixed trial 的 origin/result/空 journal 原样保留并引用。启动恢复拒绝没有 runtime receipt；origin 明确引用 commit `0a10f4230c312cc9874be0e6499fd784b3ceba9c` 的 `docs/reviews/batch-06.md`、`Fixed trial outcome and startup recovery` 节，类型为 `coordinator_record`。不创建不存在的恢复结果或把旧失败改为通过。
+
+所有原账本请求和 allocations 原样保留。新 origin 保存完整 baseline ledger、请求 ID、实际累计费用、旧失败引用、原需求版本 `cos10-pilot-v2`、实际平台 SHA 和批准祖先。预算固定如下：
+
+- 同一个 `validation-2026-10-01` / `cosmos-validation`，原 ¥150 限额与 `2026-10-01T18:16:16.857Z` 截止不变。
+- 本 experiment 新增实际费用加在途预留最多 5000000 micro-CNY；所有验证累计实际加预留仍最多 30000000。guard 每次请求使用两者中更低的绝对上限，repair 预判也读取这个 guard 上限。
+- 最多 45 分钟，且不能晚于共享原截止；40 请求包括 planning、角色工具续接、每个 review attempt 最多一次协议纠错与修复。
+- 最多一次语义修复、逻辑尝试最多两次。仍只处理设计/美术已通过后的可信编码缺陷；没有可核对主机诊断或上游失败时停止。
+- planning 继续使用已有 COS-10 allocation。design/art/coding/repair 分别为 1900000/5700000/7600000/3800000 micro-CNY，总权限上限 19000000 从共享未分配额度追加；不回收旧分配，仅需要修复时登记 repair。allocation 不是新增费用。
+
+现有 16384 输出上限下，一次带图请求保守预留为 2131072 micro-CNY；art/coding/repair 分配均能容纳这个预留，design 的当前评审不携带图片。是否还能派发取决于当时实际费用、在途状态、剩余时间和请求数；任何不满足都停止，不提高上述上限。
+
+本次复用同一个 `generatePilot`、native planner/角色和主机 callback。所有游戏专属规划、设计、媒体与代码重新生成，不把旧试验产物当本次输出。新版本仍执行完整主机验收和独立评审，提升必须绑定精确 artifact 与 proof.attemptId。新 `result.json` 独立写一次，同时报告 experiment 增量和全部验证累计费用。
+
+离线测试在临时目录使用明确标注的模拟决定、账单、native 会话和非游戏小夹具：验证唯一 claim、首次请求前消费、旧入口拒绝且字节不变、完整 baseline、增量费用/原截止、命令参数限制；真实 driver 验证协议纠错及 v2 修复配置传递，并验证同一 guard 在模拟已花 ¥2.1 后阻止预计 ¥3 的 repair。该测试不启动浏览器，也不是目标游戏或付费修复已成功的证据。
+
+准备验证：新增 7 项测试与受影响的原 driver/trial/continuation/startup/preparation 测试串行共 37/37 通过；全部 e2e probes 与新增测试的 strict TypeScript 检查通过。复用了原 v1→v2 编译修复和旧 proof 拒绝回归，未重跑浏览器验收或无关全套测试。

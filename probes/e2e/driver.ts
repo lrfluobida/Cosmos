@@ -29,6 +29,7 @@ import type { Diagnostics } from './diagnostics.ts';
 import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from '../../src/runtime/repair/policy.ts';
 import type { RepairFeedback } from '../../src/runtime/repair/feedback.ts';
 import { TRIAL } from './trial.ts';
+import type { ExperimentAdmission } from './experiment.ts';
 import { startupStep, verifyStartupInputs } from './startup.ts';
 
 const ownership = { writePaths: ['.'], readOnlyPaths: [] };
@@ -42,12 +43,17 @@ export async function generatePilot(options: {
   sessionFactory?: (config: PiSessionOptions) => Promise<RoleSession>;
   continuation?: Continuation;
   trial?: boolean;
+  experiment?: ExperimentAdmission;
   startupRecovery?: boolean;
   /** Trusted offline fixture adapters only; production uses the concrete host tools below. */
   host?: { buildProject?: typeof buildProject; runAcceptance?: typeof runAcceptance };
   repairEstimate?: { costMicroCny: number; durationMs: number; cleanupMs: number; requests: number };
 }) {
   const { root, repository, prefix, controller, guard, toolchain } = options;
+  const bounded = options.experiment?.limits ?? (options.trial ? TRIAL : undefined);
+  if (options.experiment && (options.trial || options.continuation || options.startupRecovery || prefix !== options.experiment.experimentId
+    || guard.deadlineAt !== options.experiment.deadlineAt || guard.committedCapMicroCny !== options.experiment.committedCapMicroCny
+    || options.childAllocationCapMicroCny !== options.experiment.limits.childAllocationMicroCny)) throw new Error('Experiment requires its own fixed admission and guard');
   const host = { buildProject, runAcceptance, ...options.host };
   const frozen = options.continuation?.frozen ?? await jsonFile(repository, 'probes/e2e/requirements.json');
   const startup = { root, signal: guard.signal, recovery: options.startupRecovery };
@@ -76,9 +82,12 @@ export async function generatePilot(options: {
   const available = options.continuation?.available ?? [sourceRef, baseRef];
   const draft = prepareClarification({ brief: frozen.scope, specVersion: frozen.specVersion, sources: [sourceRef], acceptance: stageAcceptance(frozen.acceptanceIds),
     questions: [{ id: 'scope', prompt: 'Which fixed pilot and normal-input acceptance should Cosmos generate?' }],
-    answers: { scope: `The already authorized ${frozen.requirementVersion} scope and all frozen acceptance checks. Root approved the v2 stage interfaces before any paid generation.` },
+    answers: { scope: options.experiment
+      ? `The unchanged ${frozen.requirementVersion} scope and all frozen acceptance checks. Coordinator execution decision source: ${options.experiment.decision.source}`
+      : `The already authorized ${frozen.requirementVersion} scope and all frozen acceptance checks. Root approved the v2 stage interfaces before any paid generation.` },
   });
-  const requirement = options.continuation?.requirement ?? confirmRequirements(draft, { confirmed: true, actorId: 'user-authorized-COS-10-coordinator', at: options.confirmedAt });
+  const requirement = options.continuation?.requirement ?? confirmRequirements(draft, { confirmed: true,
+    actorId: options.experiment ? 'coordinator-explicit-execution' : 'user-authorized-COS-10-coordinator', at: options.confirmedAt });
   if (!options.continuation) {
   await writeJson(root, 'confirmed-requirement.json', { draft, requirement });
   for (const role of ['design', 'art', 'coding']) await directory(root, `authors/${role}`);
@@ -88,13 +97,14 @@ export async function generatePilot(options: {
   }
   const refs = { design: registry.artifactRef(`${prefix}-design`, 'v1'), art: registry.artifactRef(`${prefix}-art`, 'v1'), coding: registry.candidateRef(`${prefix}-game`, 'v1') };
   const { policies, repairAllocationMicroCny } = rolePolicies(root, prefix, options.childAllocationCapMicroCny, refs, frozen.acceptanceIds);
+  if (bounded) for (const role of ['design', 'art', 'coding'] as const) policies[role].allocationMicroCny = bounded.allocations[role];
   for (const policy of Object.values(policies)) policy.rules!.push(
     `Read the fixed requirement file ${sourceRef.location}/_cosmos/requirements.json. Media format definitions are ${sourceRef.location}/_cosmos/character-format.ts and ${sourceRef.location}/_cosmos/audio-format.ts. The read tool reads files, not directories.`,
     `The generated design will be ${refs.design.location}/_cosmos/design.json. Generated media metadata will be ${refs.art.location}/public/assets/manifest.json; SVG/WAV paths in that manifest are relative to the final project root. These outputs are readable only after their declared task dependencies pass.`,
     `Generic project files are ${baseRef.location}/package.json and ${baseRef.location}/tsconfig.json. Use the unchanged baseline and put a data URI favicon in generated index.html to avoid unrelated missing-resource console errors.`,
   );
-  if (options.trial) for (const policy of Object.values(policies)) policy.rules!.push(
-    `This independent trial stops at ${guard.deadlineAt} and allows 40 total provider requests including reviews/corrections, with at most one semantic repair. The later shared-ledger deadline and the older source document's 90-minute ceiling do not extend this 60-minute trial. All frozen gameplay and host acceptance checks remain required.`,
+  if (bounded) for (const policy of Object.values(policies)) policy.rules!.push(
+    `This independent trial stops at ${guard.deadlineAt} and allows ${bounded.maxRequests} total provider requests including reviews/corrections, with at most one semantic repair. The later shared-ledger deadline and the older source document's 90-minute ceiling do not extend this ${bounded.durationMs / 60_000}-minute trial. All frozen gameplay and host acceptance checks remain required.`,
   );
   const prepared = new Map<string, PreparedTask>();
   const reviewRoots = new Map<string, string>();
@@ -244,28 +254,28 @@ export async function generatePilot(options: {
     },
   };
   const execute = (tasks: PreparedTask[], availableArtifacts: ArtifactReference[]) => executeTaskDag({ controller, requirement, tasks, sessionRoot: join(root, 'sessions'),
-    availableArtifacts, roleFactory, signal: guard.signal, reviewProtocolCorrections: options.trial ? TRIAL.reviewProtocolCorrections : 0,
-    ...(options.trial ? { diagnoseFailure: (task: TaskContract, stage: string) => stage === 'host_verification' ? diagnosedFailure(task, diagnostics.get(task.taskId)) : undefined } : {}), ...callbacks });
+    availableArtifacts, roleFactory, signal: guard.signal, reviewProtocolCorrections: bounded?.reviewProtocolCorrections ?? 0,
+    ...(bounded ? { diagnoseFailure: (task: TaskContract, stage: string) => stage === 'host_verification' ? diagnosedFailure(task, diagnostics.get(task.taskId)) : undefined } : {}), ...callbacks });
   const results = await execute(planned.tasks, available);
   let coding = results.find(task => prepared.get(task.taskId)?.role === 'coding')!;
   // One explicit role repair, preserving the failed task, original guard and ledger. Earlier-role failure is reported as a gap.
-  if (options.trial && coding.state !== 'passed' && ['failed', 'needs_changes', 'waiting_user'].includes(coding.state)
+  if (bounded && coding.state !== 'passed' && ['failed', 'needs_changes', 'waiting_user'].includes(coding.state)
     && coding.attempts.length && results.filter(task => task !== coding).every(task => task.state === 'passed') && !guard.signal.aborted) {
     const snapshot = await controller.read(), source = { ...prepared.get(coding.taskId)!, task: snapshot.tasks.find(task => task.taskId === coding.taskId)! };
     const feedbackPath = relative(root, join(source.task.attempts.at(-1)!.sessionRef, 'failure.json')).replaceAll('\\', '/');
     const feedback = await jsonFile(root, feedbackPath) as RepairFeedback;
-    const estimate = options.repairEstimate ?? TRIAL.repairEstimate;
+    const estimate = options.repairEstimate ?? bounded.repairEstimate;
     const policy = { snapshot, requirement, history: [feedback], policy: DEFAULT_REPAIR_POLICY, now: Date.now(), estimate, cancelled: guard.signal.aborted };
     const decision = assessRepair(policy), journal = await jsonFile(root, 'pilot-budget.json');
     const committed = snapshot.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0);
-    const trialStop = committed + estimate.costMicroCny > PILOT_LIMITS.cumulativeMicroCny ? 'trial_budget'
+    const trialStop = committed + estimate.costMicroCny > guard.committedCapMicroCny ? 'trial_budget'
       : Date.now() + estimate.durationMs + estimate.cleanupMs >= Date.parse(guard.deadlineAt) ? 'trial_deadline'
-      : journal.requestIds.length + estimate.requests > TRIAL.maxRequests ? 'trial_requests' : null;
+      : journal.requestIds.length + estimate.requests > bounded.maxRequests ? 'trial_requests' : null;
     await writeJson(root, 'repair-decision.json', { ...decision, trialStop, estimate, sourceFeedback: feedback.reference,
       action: trialStop ? 'stop' : decision.action, automaticDispatch: !trialStop && decision.action === 'repair' });
     if (!trialStop && decision.action === 'repair') {
       const repairedRef = registry.candidateRef(`${prefix}-game`, 'v2');
-      const repair = createLinkedRepairTask({ ...policy, source, taskId: `${prefix}-repair`, allocationMicroCny: TRIAL.allocations.repair,
+      const repair = createLinkedRepairTask({ ...policy, source, taskId: `${prefix}-repair`, allocationMicroCny: bounded.allocations.repair,
         outputs: source.task.outputs.map(output => ({ ...output, destination: repairedRef.location })), expectedArtifacts: [repairedRef] });
       // Add only exact host evidence references so feedback-linked diagnostics can actually be read.
       for (const evidence of source.task.evidence.filter(item => ['test_report', 'log'].includes(item.kind))) {
@@ -281,7 +291,7 @@ export async function generatePilot(options: {
     }
   }
   // The historical entry keeps its original behavior; it remains consumed and cannot reopen the old run.
-  if (!options.trial && !options.continuation && coding.state !== 'passed' && ['failed', 'needs_changes'].includes(coding.state)
+  if (!bounded && !options.continuation && coding.state !== 'passed' && ['failed', 'needs_changes'].includes(coding.state)
     && results.filter(task => task !== coding).every(task => task.state === 'passed') && !guard.signal.aborted) {
     const failurePath = `evidence/${coding.taskId}/repair-input.json`;
     await writeJson(root, failurePath, { state: coding.state, stateReason: coding.stateReason, handoff: coding.handoff,
