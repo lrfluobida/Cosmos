@@ -19,7 +19,11 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/2",
       "dependsOn": [],
       "nativeParentLinked": true,
-      "state": "open"
+      "state": "open",
+      "integrationStatus": "partial-provisional",
+      "reviewedCommit": "791472e497efa9b06165072799bc90d3d64bbe9c",
+      "mergeCommit": "8b64b595856fa5c68083293634544009203ea5a6",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5925396505"
     },
     {
       "taskId": "COS-02",
@@ -30,7 +34,10 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/3",
       "dependsOn": [],
       "nativeParentLinked": true,
-      "state": "open"
+      "state": "closed",
+      "reviewedCommit": "45c3cf6a47be6abea1578447faee5f82977f32de",
+      "mergeCommit": "a6247ec711f3da83f0b5f2d521f9fb1b6dac6c69",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/3#issuecomment-5925395953"
     },
     {
       "taskId": "COS-03",
@@ -75,7 +82,10 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/6",
       "dependsOn": [],
       "nativeParentLinked": true,
-      "state": "open"
+      "state": "closed",
+      "reviewedCommit": "1121ae25c071c2d7e4dd4f0c8c3440e5546efe88",
+      "mergeCommit": "5e3670efa7be5e35d22427bc50caa8c4e0063047",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/6#issuecomment-5925395392"
     },
     {
       "taskId": "COS-06",
