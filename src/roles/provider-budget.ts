@@ -21,11 +21,14 @@ export function createRoleBudget(input: { controller: RunController; taskId: str
   const requests = new Set<string>();
   return {
     async beforeRequest(request) {
+      return controller.coordinateAccounting(async () => {
       await controller.reserve({ requestId: request.requestId, taskId, provider: 'deepseek', pricingVersion: ROLE_PRICING_VERSION, estimatedMaxCostMicroCny: request.estimatedMaxCostMicroCny });
       requests.add(request.requestId);
       await controller.admit(request.requestId);
+      });
     },
     async afterResponse(response) {
+      return controller.coordinateAccounting(async () => {
       if (!requests.has(response.requestId) || !/^[\w-]+$/.test(response.requestId)) throw new Error('Response has no role admission.');
       const before = await controller.read();
       const entry = before.ledger.entries.find(e => e.requestId === response.requestId)!;
@@ -45,6 +48,7 @@ export function createRoleBudget(input: { controller: RunController; taskId: str
         catch (error) { await controller.markUnknown(response.requestId, evidence); throw error; }
         await controller.settle(response.requestId, amount, evidence);
       } else await controller.markUnknown(response.requestId, evidence);
+      });
     },
   };
 }

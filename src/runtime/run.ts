@@ -24,6 +24,7 @@ export class RunController {
   private snapshot: RunSnapshot;
   private now: () => number;
   private pending: Promise<unknown> = Promise.resolve();
+  private accounting: Promise<unknown> = Promise.resolve();
   private closing = false;
   private closePromise?: Promise<void>;
   private failed = false;
@@ -36,6 +37,15 @@ export class RunController {
   }
 
   get signal(): AbortSignal { return this.abort.signal; }
+
+  /** Host-only, non-reentrant coordination of admission or receipt settlement.
+   * Do not hold this across a provider call. Public ledger methods retain their
+   * own persistence queue; this separate queue never recursively enters serial. */
+  coordinateAccounting<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.accounting.then(operation);
+    this.accounting = result.catch(() => {});
+    return result;
+  }
 
   /** Persist before spawn; a pending ticket blocks automatic recovery after a crash. */
   prepareOwnedChild(): Promise<string> { return this.serial(async () => { this.requireActive(); return this.store.prepareOwnedChild(); }); }
