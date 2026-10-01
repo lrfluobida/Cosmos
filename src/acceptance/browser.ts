@@ -1,19 +1,10 @@
 import type { Page } from '@playwright/test';
 import type { Observation, Scalar, Step } from './plan.ts';
 
-async function bounded<T>(operation: Promise<T>, timeoutMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([operation, new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('Observation timed out')), timeoutMs);
-    })]);
-  } finally { clearTimeout(timer); }
-}
-
 export async function observe(page: Page, observation: Observation, timeoutMs: number): Promise<Scalar> {
   if (observation.kind === 'text') return page.locator(observation.selector).innerText({ timeout: timeoutMs });
   if (observation.kind === 'visible') return page.locator(observation.selector).isVisible();
-  return bounded(page.evaluate((path: string[]) => {
+  return page.evaluate((path: string[]) => {
     const descriptor = Object.getOwnPropertyDescriptor(window, 'cosmosDebug');
     if (!descriptor || descriptor.set || descriptor.writable === true || descriptor.configurable) throw new Error('cosmosDebug must be read-only and non-configurable');
     let value: unknown = descriptor.get ? descriptor.get.call(window) : descriptor.value;
@@ -25,7 +16,7 @@ export async function observe(page: Page, observation: Observation, timeoutMs: n
     }
     if (value !== null && typeof value !== 'string' && typeof value !== 'boolean' && !(typeof value === 'number' && Number.isFinite(value))) throw new Error('Observation must be a JSON scalar');
     return value as string | number | boolean | null;
-  }, observation.path), timeoutMs);
+  }, observation.path);
 }
 
 export async function input(page: Page, step: Exclude<Step, { kind: 'assert' | 'wait-for' }>): Promise<void> {

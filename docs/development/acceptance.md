@@ -37,7 +37,9 @@ if (report.outcome !== 'passed') process.exitCode = 1;
 | `assert` | `acceptanceId`、`observation`、`expected`、`timeoutMs`；读取一次并严格相等比较 |
 | `wait-for` | 同上；有界轮询直到严格相等或超时，保留最后实际值 |
 
-观测为 `{ kind: 'debug', path: ['clicks'] }`、`{ kind: 'text', selector: '#counter' }` 或 `{ kind: 'visible', selector: 'canvas' }`。期望值限 JSON 标量；可见性要求布尔值。每个显式 timeout 为 1–60000 ms；启动最多 15000 ms，鼠标目标定位最多 2000 ms，单张截图最多 5000 ms。每步失败后继续收集后续断言，任何失败、跳过、页面异常、console error 或证据收集错误都使总结果失败。无效计划与不可写／已存在的报告目录抛出异常；浏览器启动或 HTTP 启动失败在已建目录中形成失败报告。
+观测为 `{ kind: 'debug', path: ['clicks'] }`、`{ kind: 'text', selector: '#counter' }` 或 `{ kind: 'visible', selector: 'canvas' }`。期望值限 JSON 标量；可见性要求布尔值。每个显式 timeout 为 1–60000 ms；启动最多 15000 ms，鼠标输入（含目标定位）最多 2000 ms，单张截图最多 5000 ms。普通断言失败后继续收集后续断言，任何失败、跳过、页面异常、console error 或证据收集错误都使总结果失败。无效计划与不可写／已存在的报告目录抛出异常；浏览器启动或 HTTP 启动失败在已建目录中形成失败报告。
+
+`options.timeoutMs` 固定本次浏览器生命周期的总时限，默认 60000 ms，可设 1000–43200000 ms；报告保留该值。执行预留最多 3000 ms（短任务为总时限的三分之一）用于关闭浏览器和收集证据，所有协议调用均受剩余时限约束。输入、观测或截图的协议调用超时后立即停止后续步骤，跳过阻塞的最终截图，通过本次 `launchServer()` 持有的进程执行强制终止；清理本身也有界。`cleanup` 记录本次浏览器 PID、是否强制终止、是否观察到进程退出。此方法终止本次浏览器进程树，不连接既有用户会话。挂起页面可能无法完成录像，报告明确记录录像缺失并保留此前截图，随后写出日志和失败报告。总时限约束浏览器工作；最终本地文件落盘仍依赖文件系统可用。
 
 输出目录固定为：
 
@@ -77,6 +79,15 @@ node --experimental-strip-types --test tests/acceptance/fresh-build.integration.
 
 - 浏览器夹具：`input-fixture/fixture/input-fixture-v1/browser-1790833564492/`。`normal/report.json` 通过；`disabled`、`broken-response`、`overlay` 的输入断言期望 1、实际 0；`wrong-display` 内部输入断言通过，但显示期望“计数：1”、实际“计数：999”。另有页面异常、HTTP 503 和 locator 遮挡失败报告。每个场景目录含实际截图、录像与日志。
 - 新构建工程：`generic-template/phaser-template/1121ae25c071c2d7e4dd4f0c8c3440e5546efe88/fresh-1790833652150/fresh-build/`，8 步通过，记录精灵点击、移动和场景切换。源工程与构建日志：`.cosmos/acceptance-projects/fresh-1790833652150/独立 project/`。
-- 已查看错误数字截图 `wrong-display/005-display.png` 与新构建的 `008-gallery.png`，中文与实际画面正确显示。故障只存在于 `tests/acceptance/fixtures/input.html`，生产模板未修改。
+- 已查看错误数字截图 `wrong-display/005-display.png` 与新构建的 `008-gallery.png`，中文与实际画面正确显示。故障只存在于 `tests/acceptance/fixtures/`，生产模板未修改。
 
 以上属于平台验收证据，没有调用付费服务，也不是目标游戏生成结果。
+
+### 评审发现的页面死循环回归
+
+独立评审发现正常鼠标点击进入 `onclick="while(true){}"` 后，原实现会一直等待，无法写出报告。新增 `hang.test.ts` 在独立测试进程中复现：修复前触发 10 秒外部保护并失败；修复后点击死循环和 `cosmosDebug` getter 死循环均在配置的 3500 ms 生命周期时限内退出并生成失败报告，后续断言跳过，浏览器 PID 已不存在。外部保护仅为测试失效时清理测试进程树，修复后的两例均未触发。
+
+定向命令：`node --experimental-strip-types --test tests/acceptance/hang.test.ts tests/acceptance/runner.test.ts`。沿用未改变的计划／机制探针和新目录构建证据；浏览器生命周期变更重新覆盖正常输入、原有故障及录像收集。新增证据位于 `.cosmos/acceptance/hang-fixture/fixture/hang-v1/`：
+
+- `hang-1790834828593/frozen-click/report.json`
+- `hang-1790834832262/frozen-observation/report.json`

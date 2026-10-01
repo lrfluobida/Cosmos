@@ -42,6 +42,7 @@ test('real browser retains per-assertion evidence for normal input and four inde
       assert.equal(report.outcome, fault === 'normal' ? 'passed' : 'failed');
       assert.match(report.browser.version!, /^\d+\./);
       assert.equal(report.browser.headless, true);
+      assert.equal(report.cleanup.processExited, true);
       assert.deepEqual(report.browser.viewport, input.viewport);
       assert.equal(report.steps.find(step => step.id === 'ready')?.outcome, 'passed');
       if (['disabled', 'broken-response', 'overlay'].includes(fault)) {
