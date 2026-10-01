@@ -22,7 +22,7 @@ export interface StopReason {
 export interface RunEvent {
   sequence: number;
   at: string;
-  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved';
+  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved' | 'generation_activated';
   requestId: string | null;
   reason: string;
 }

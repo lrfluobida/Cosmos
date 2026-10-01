@@ -1,5 +1,43 @@
 import { validateRequirement } from '../contracts/index.ts';
 import type { RequirementContract } from '../contracts/index.ts';
+import { validatePlan } from '../acceptance/plan.ts';
+import type { AcceptancePlan } from '../acceptance/plan.ts';
+
+export interface GameDraft {
+  brief: string;
+  questions: ClarificationInput['questions'];
+  answers: ClarificationInput['answers'];
+  acceptance: RequirementContract['acceptance'];
+  scenario: Pick<AcceptancePlan, 'viewport' | 'steps'>;
+  unsupported: string[];
+}
+
+/** A proposal is data only; host identities and confirmation are never model fields. */
+export function validateGameDraft(value: unknown): asserts value is GameDraft {
+  const draft = value as GameDraft;
+  const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
+  if (!draft || typeof draft !== 'object' || Object.keys(draft).some(key => !['brief', 'questions', 'answers', 'acceptance', 'scenario', 'unsupported'].includes(key))
+    || !text(draft.brief) || !Array.isArray(draft.questions) || !draft.answers || typeof draft.answers !== 'object' || Array.isArray(draft.answers)
+    || Object.values(draft.answers).some(answer => typeof answer !== 'string') || !Array.isArray(draft.unsupported) || draft.unsupported.some(item => !text(item))) throw new Error('Invalid game draft fields.');
+  prepareClarification({ ...draft, specVersion: 'draft', sources: [] });
+  if (!Array.isArray(draft.acceptance) || !draft.acceptance.length || draft.acceptance.length > 100
+    || new Set(draft.acceptance.map(item => item?.acceptanceId)).size !== draft.acceptance.length
+    || draft.acceptance.some(item => !item || Object.keys(item).some(key => !['acceptanceId', 'description', 'steps', 'expected', 'evidenceKinds'].includes(key))
+      || !text(item.acceptanceId) || !text(item.description) || !Array.isArray(item.steps) || !item.steps.length || item.steps.some(step => !text(step))
+      || !text(item.expected) || !Array.isArray(item.evidenceKinds) || !item.evidenceKinds.length || item.evidenceKinds.some(kind => !['test_report', 'screenshot', 'video', 'log', 'user_decision'].includes(kind)))) throw new Error('Invalid acceptance draft.');
+  if (!draft.scenario || Object.keys(draft.scenario).some(key => !['viewport', 'steps'].includes(key))) throw new Error('Invalid scenario fields.');
+  // Placeholder bindings validate declarative input only; they are never evidence or execution authority.
+  const issues = validatePlan({ ...draft.scenario, formatVersion: '1.0.0', projectId: 'draft', taskId: 'draft', runId: 'draft', reportId: 'draft', specVersion: 'draft',
+    artifact: { artifactId: 'draft', version: 'v1', location: 'draft' }, url: 'http://127.0.0.1:1', acceptanceIds: draft.acceptance.map(item => item.acceptanceId) });
+  if (issues.length) throw new Error(`Unsupported acceptance scenario: ${issues.join('; ')}`);
+  for (const item of draft.acceptance) {
+    const assertions = draft.scenario.steps.filter(step => (step.kind === 'assert' || step.kind === 'wait-for') && step.acceptanceId === item.acceptanceId);
+    if (!assertions.some(step => (step.kind === 'assert' || step.kind === 'wait-for') && step.observation.kind !== 'debug'
+      && draft.scenario.steps.slice(0, draft.scenario.steps.indexOf(step)).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind)))) {
+      throw new Error(`Unsupported acceptance ${item.acceptanceId}: require player input followed by a visible assertion.`);
+    }
+  }
+}
 
 export function freeze<T>(value: T): T {
   if (value && typeof value === 'object') {
