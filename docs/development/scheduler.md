@@ -9,7 +9,7 @@
 ## Implementation and independent review batches
 
 - [x] Add failing tests for repeated-role host task slots and for a second role's admission during a normal response receipt window. Implement bounded `taskPolicies` with the legacy `roles` adapter, and one controller-owned accounting coordination queue. Commit and send the exact SHA for independent review.
-- [ ] Add failing scheduler tests for diamond dependencies, failed/blocked dependency propagation, resource conflicts, cancellation and simulated deadline. Implement `src/runtime/scheduler/` and thin `DagOptions.scheduling` integration while retaining the existing stage/recovery contracts.
+- [x] Add failing scheduler tests for diamond dependencies, failed/blocked dependency propagation, resource conflicts, cancellation and simulated deadline. Implement `src/runtime/scheduler/` and thin `DagOptions.scheduling` integration while retaining the existing stage/recovery contracts.
 - [ ] Add bounded service backoff at a quiet, reconciled boundary and native pi compaction access. Test retained fixed context and shared accounting. No blind service replay or renewal of COS-11 repair limits.
 - [ ] Run affected scheduler, roles and recovery suites, TypeScript checking and build. Reuse prior unrelated browser/artifact evidence. Re-open changed UTF-8 files and record actual results and limitations here; send exact commits for independent review and merger integration.
 
@@ -28,3 +28,13 @@ Status derives from durable tasks and the complete shared ledger: original time 
 The eight new tests first failed on the missing task-slot API and observable transient-unknown rejection. All 51 tests in `planning-slots.test.ts`, `accounting-concurrency.test.ts`, `roles.test.ts` and `budget.test.ts` now pass; `npm run typecheck` passes. The accounting test holds one response after its durable unknown commit, proves another admission waits, then checks settlement, genuinely unknown results and receipt publication failure. Two admitted reservations coexist before that response, so this does not serialize provider execution. Tests use synthetic usage only.
 
 `RunController.coordinateAccounting` is a trusted, non-reentrant host API. All concurrent paid integrations must use it around admission or response accounting, never a network call. Raw `reserve`/`admit` remain individually safe against overspending but do not automatically wait through a different integration's receipt window.
+
+## Batch B API and evidence
+
+Pass `scheduling: { maxParallel: 2, cleanupMs: 5000, resources: { taskId: ['browser'] } }` to `executeTaskDag`. Omit `scheduling` to retain the original serial behavior. Resources are exclusive for the complete task, including capture, host checks and independent review. Actual overlapping filesystem scopes are resolved through existing ancestors and rejected before task registration. Callers remain responsible for isolated workspaces and correctly declaring shared host callback resources.
+
+`resumeTaskDag` and calls with `reviewProtocolCorrections: 1` use an effective concurrency of **one** even if configured for two. This deliberate first-version limit keeps recovery preflight and the live review correction inside a quiet billing interval without weakening their unresolved-reservation checks. The correction test actually rejects the first reviewer response, accounts a second response in the same session, and proves the other task has not started. Ordinary execution without correction reaches an observed peak of two concurrent provider operations.
+
+`schedulerStatus(controller)` returns original run/ledger/time identities, all shared settled/reserved/unknown costs, per-provider totals and each durable task's state, gap, resume location and evidence IDs. It does not call a run complete merely because workers stopped.
+
+The 11 scheduler checks plus affected role, protocol-correction and recovery-DAG suites passed **90 tests**; TypeScript checking passed. The diamond test proves both branches overlap and join once after fixed-version review. Other cases cover physical path conflicts, shared resources, failed dependencies, invalid parallel limits, cancellation/drain, simulated near-12h cleanup and exact passed-task reuse with current blocked-ancestor propagation. No real 12h or network run was performed.

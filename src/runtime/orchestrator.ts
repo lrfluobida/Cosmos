@@ -14,6 +14,8 @@ import { buildRepairFeedback, failureRecord } from './repair/feedback.ts';
 import type { FailureStage, HostFailure } from './repair/feedback.ts';
 import { TaskJournal, RecoveryBlocked, hasHostRecord, requireOriginalTask, requireCorrectionIdentity } from './recovery/task-journal.ts';
 import type { CapturedTask, ContentSignature, RecoveryOptions, RecoveryReport } from './recovery/task-journal.ts';
+import { assertTaskWriteIsolation, scheduleTasks, validateScheduling } from './scheduler/index.ts';
+import type { SchedulingOptions } from './scheduler/index.ts';
 
 export interface PreparedTask { task: TaskContract; role: AuthorRole; workspace: string; expectedArtifacts?: ArtifactReference[] }
 export interface AuthorProposal { summary: string; remaining: string[]; uncertainty: string[] }
@@ -38,6 +40,8 @@ export interface DagOptions {
   diagnoseFailure?: (task: TaskContract, stage: FailureStage) => HostFailure | undefined;
   /** Explicit opt-in host receipts. Existing callers retain their original behavior. */
   recovery?: RecoveryOptions;
+  /** Explicit parallel host scheduling; omitted preserves the serial API. */
+  scheduling?: SchedulingOptions;
 }
 
 function checked(issues: { message: string }[]): void {
@@ -83,6 +87,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   checked(validateRequirement(requirement));
   const prepared = structuredClone(options.tasks);
   if (!prepared.length || prepared.length > 100 || new Set(prepared.map(p => p.task.taskId)).size !== prepared.length) throw new Error('DAG requires 1 to 100 unique tasks.');
+  if (options.scheduling) validateScheduling(prepared, options.scheduling);
   const initial = await controller.read();
   const prior = new Map(initial.tasks.map(task => [task.taskId, task]));
   const journals = new Map<string, TaskJournal>(), blocked = new Map<string, string>();
@@ -123,9 +128,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     if (index < 0) throw new Error('Dependency cycle.');
     ordered.push(remaining.splice(index, 1)[0]);
   }
-  for (let i = 0; i < prepared.length; i++) for (let j = i + 1; j < prepared.length; j++) {
-    if (prepared[i].workspace === prepared[j].workspace && prepared[i].task.ownership.writePaths.some(a => prepared[j].task.ownership.writePaths.some(b => pathsOverlap(a, b, prepared[i].workspace)))) throw new Error('Task write paths conflict in the same workspace.');
-  }
+  await assertTaskWriteIsolation(prepared);
   const fresh = prepared.filter(p => !prior.has(p.task.taskId) && !blocked.has(p.task.taskId));
   if (fresh.length && !resume) await controller.registerTasks(fresh.map(p => p.task));
   const signal = AbortSignal.any([controller.signal, ...(options.signal ? [options.signal] : [])]);
@@ -162,7 +165,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     return feedback;
   }
 
-  for (const item of ordered) {
+  async function executeOne(item: PreparedTask) {
     const task = item.task;
     const journal = journals.get(task.taskId);
     let author: CreatedRole | undefined, reviewer: CreatedRole | undefined;
@@ -185,7 +188,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
           reusedTaskIds.push(task.taskId);
           validatedDependencies.add(task.taskId);
           for (const ref of task.artifacts) if (!available.some(existing => sameValue(existing, ref))) available.push(ref);
-          continue;
+          return;
         }
         if (!['not_started', 'ready', 'running', 'awaiting_review'].includes(task.state)) throw new RecoveryBlocked('Task retains its prior outcome; use the existing constrained repair policy for new work.');
         const current = await controller.read();
@@ -198,7 +201,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       if (task.dependsOn.some(dep => dep.state !== 'passed')) {
         if (resume) throw new RecoveryBlocked('Required dependency has not passed.');
         task.state = 'waiting_user'; task.stateReason = 'Required dependency has not passed.';
-        task.handoff.remaining = [task.objective]; await save(task); continue;
+        task.handoff.remaining = [task.objective]; await save(task); return;
       }
       try { checked(validateTaskInputs(task, available)); }
       catch (error) { if (resume) throw new RecoveryBlocked('Fixed task inputs are not available from validated dependencies.'); throw error; }
@@ -324,7 +327,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         blocked.set(task.taskId, error.message);
         const persisted = (await controller.read()).tasks.find(t => t.taskId === task.taskId);
         if (persisted) Object.assign(task, persisted);
-        continue;
+        return;
       }
       // Session/provider messages may contain secrets. Persist stable categories and host-owned context only.
       const cancelled = signal.aborted;
@@ -334,7 +337,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       const persisted = snapshot.tasks.find(t => t.taskId === task.taskId)!;
       if (resume && !persisted) {
         blocked.set(task.taskId, cancelled ? 'Recovery cancelled before task registration; no work was dispatched.' : 'Recovery stopped before task registration; preserve the original origin and run state.');
-        continue;
+        return;
       }
       task.review = persisted.review;
       task.state = cancelled ? 'cancelled' : persisted.state === 'awaiting_review' ? 'waiting_user' : ['ready', 'not_started'].includes(persisted.state) ? 'waiting_user' : 'failed';
@@ -357,5 +360,8 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       finished.set(task.taskId, task); results.push(structuredClone(task));
     }
   }
+  if (options.scheduling) await scheduleTasks({ tasks: ordered, controller, options: options.scheduling, signal, now: options.now,
+    exclusive: resume || options.reviewProtocolCorrections === 1, execute: executeOne });
+  else for (const item of ordered) await executeOne(item);
   return { tasks: results, reusedTaskIds, blocked: [...blocked].map(([taskId, reason]) => ({ taskId, reason })) };
 }
