@@ -1,0 +1,26 @@
+{
+  "contractVersion": "1.0.0",
+  "ledgerId": "ledger-1",
+  "scope": "generation",
+  "limitMicroCny": 200000000,
+  "warningThresholdPercent": 80,
+  "allocations": [
+    {
+      "taskId": "COS-example",
+      "amountMicroCny": 50000000
+    }
+  ],
+  "entries": [
+    {
+      "requestId": "request-1",
+      "taskId": "COS-example",
+      "provider": "fixture-provider",
+      "pricingVersion": "2026-10-01",
+      "reservedMicroCny": 50000001,
+      "settledMicroCny": 0,
+      "unknown": false,
+      "status": "reserved",
+      "evidence": []
+    }
+  ]
+}

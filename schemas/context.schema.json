@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cosmos.local/contracts/1.0.0/context.schema.json",
+  "title": "Cosmos context contract 1.0.0",
+  "$comment": "Structural validation only; apply src/contracts semantic and update validators before accepting a record.",
+  "type": "object",
+  "properties": {
+    "contextId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 0
+    },
+    "interfaces": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactReference"
+      },
+      "minItems": 0
+    },
+    "knownFailures": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/failure"
+      },
+      "minItems": 0
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 0
+    }
+  },
+  "required": [
+    "contextId",
+    "rules",
+    "interfaces",
+    "knownFailures",
+    "tools"
+  ],
+  "additionalProperties": false
+}

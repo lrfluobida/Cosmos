@@ -1,0 +1,433 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cosmos.local/contracts/1.0.0/task.schema.json",
+  "title": "Cosmos task contract 1.0.0",
+  "$comment": "Structural validation only; apply src/contracts semantic and update validators before accepting a record.",
+  "type": "object",
+  "properties": {
+    "contractVersion": {
+      "const": "1.0.0"
+    },
+    "taskId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "kind": {
+      "$ref": "common.schema.json#/$defs/taskKind"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "specVersion": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "authorId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "acceptanceIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 1
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "requiredState": {
+            "const": "passed"
+          },
+          "state": {
+            "$ref": "common.schema.json#/$defs/state"
+          }
+        },
+        "required": [
+          "taskId",
+          "requiredState",
+          "state"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactReference"
+      },
+      "minItems": 0
+    },
+    "context": {
+      "$ref": "context.schema.json"
+    },
+    "ownership": {
+      "type": "object",
+      "properties": {
+        "writePaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0
+        },
+        "readOnlyPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "writePaths",
+        "readOnlyPaths"
+      ],
+      "additionalProperties": false
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "destination": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
+        "required": [
+          "type",
+          "schema",
+          "destination"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "acceptance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "acceptanceId": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "minItems": 1
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "evidenceDestinations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "acceptanceId",
+          "steps",
+          "expected",
+          "evidenceDestinations"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "ledgerId": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "allocationMicroCny": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "originalDeadlineAt": {
+          "$ref": "common.schema.json#/$defs/timestamp"
+        }
+      },
+      "required": [
+        "ledgerId",
+        "allocationMicroCny",
+        "originalDeadlineAt"
+      ],
+      "additionalProperties": false
+    },
+    "state": {
+      "$ref": "common.schema.json#/$defs/state"
+    },
+    "stateReason": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "sessionRef": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "startedAt": {
+            "$ref": "common.schema.json#/$defs/timestamp"
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "$ref": "common.schema.json#/$defs/timestamp"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "running",
+              "passed",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "$ref": "common.schema.json#/$defs/failure"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "attemptId",
+          "sessionRef",
+          "startedAt",
+          "endedAt",
+          "outcome",
+          "failure"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactReference"
+      },
+      "minItems": 0
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "evidence.schema.json"
+      },
+      "minItems": 0
+    },
+    "handoff": {
+      "type": "object",
+      "properties": {
+        "completed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0
+        },
+        "remaining": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0
+        },
+        "uncertainty": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0
+        },
+        "resumeFrom": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "completed",
+        "remaining",
+        "uncertainty",
+        "resumeFrom"
+      ],
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "properties": {
+        "reviewerId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contextId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inputVersions": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/artifactReference"
+          },
+          "minItems": 0
+        },
+        "verdict": {
+          "enum": [
+            "pending",
+            "approved",
+            "changes_requested"
+          ]
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "reviewerId",
+        "contextId",
+        "inputVersions",
+        "verdict",
+        "evidenceIds"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "contractVersion",
+    "taskId",
+    "kind",
+    "runId",
+    "specVersion",
+    "authorId",
+    "acceptanceIds",
+    "objective",
+    "dependsOn",
+    "inputs",
+    "context",
+    "ownership",
+    "outputs",
+    "acceptance",
+    "budget",
+    "state",
+    "stateReason",
+    "attempts",
+    "artifacts",
+    "evidence",
+    "handoff",
+    "review"
+  ],
+  "additionalProperties": false
+}

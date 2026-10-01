@@ -1,0 +1,11 @@
+{
+  "contractVersion": "1.0.0",
+  "artifactId": "game",
+  "version": "v1",
+  "location": "artifacts/game/v1",
+  "taskId": "COS-example",
+  "runId": "run-1",
+  "type": "game",
+  "schema": "game/1",
+  "dependencies": []
+}

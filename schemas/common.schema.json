@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cosmos.local/contracts/1.0.0/common.schema.json",
+  "title": "Cosmos common contract 1.0.0",
+  "$comment": "Structural validation only; apply src/contracts semantic and update validators before accepting a record.",
+  "$defs": {
+    "artifactReference": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "artifactId",
+        "version",
+        "location"
+      ],
+      "additionalProperties": false
+    },
+    "taskKind": {
+      "enum": [
+        "platform_development",
+        "runtime_generation",
+        "evaluation"
+      ]
+    },
+    "state": {
+      "enum": [
+        "not_started",
+        "ready",
+        "running",
+        "awaiting_review",
+        "needs_changes",
+        "passed",
+        "failed",
+        "waiting_user",
+        "cancelled"
+      ]
+    },
+    "evidenceKind": {
+      "enum": [
+        "test_report",
+        "screenshot",
+        "video",
+        "log",
+        "billing_receipt",
+        "user_decision"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "money": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "failure": {
+      "type": "object",
+      "properties": {
+        "classification": {
+          "enum": [
+            "code_defect",
+            "external_service",
+            "requirement_conflict",
+            "insufficient_evidence"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "reproduction": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1
+        },
+        "actual": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "expected": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "classification",
+        "summary",
+        "reproduction",
+        "actual",
+        "expected",
+        "evidenceRefs"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

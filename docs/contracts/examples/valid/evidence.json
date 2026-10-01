@@ -1,0 +1,24 @@
+{
+  "contractVersion": "1.0.0",
+  "evidenceId": "evidence-1",
+  "taskId": "COS-example",
+  "acceptanceIds": [
+    "AC-1"
+  ],
+  "kind": "test_report",
+  "source": {
+    "artifactId": "report",
+    "version": "v1",
+    "location": "evidence/report.json"
+  },
+  "artifactVersions": [
+    {
+      "artifactId": "game",
+      "version": "v1",
+      "location": "artifacts/game/v1"
+    }
+  ],
+  "outcome": "passed",
+  "recordedAt": "2026-10-01T01:00:00.000Z",
+  "summary": "离线检查通过"
+}

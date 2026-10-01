@@ -1,0 +1,11 @@
+{
+  "contextId": "author-context",
+  "rules": [
+    "保留中文内容"
+  ],
+  "interfaces": [],
+  "knownFailures": [],
+  "tools": [
+    "node"
+  ]
+}

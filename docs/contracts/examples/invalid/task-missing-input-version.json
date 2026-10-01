@@ -1,0 +1,130 @@
+{
+  "contractVersion": "1.0.0",
+  "taskId": "COS-example",
+  "kind": "runtime_generation",
+  "runId": "run-1",
+  "specVersion": "spec-v1",
+  "authorId": "author-1",
+  "acceptanceIds": [
+    "AC-1"
+  ],
+  "objective": "生成可启动游戏",
+  "dependsOn": [
+    {
+      "taskId": "COS-input",
+      "requiredState": "passed",
+      "state": "passed"
+    }
+  ],
+  "inputs": [
+    {
+      "artifactId": "requirements",
+      "location": "requirements/v1.json"
+    }
+  ],
+  "context": {
+    "contextId": "author-context",
+    "rules": [
+      "保留中文内容"
+    ],
+    "interfaces": [],
+    "knownFailures": [],
+    "tools": [
+      "node"
+    ]
+  },
+  "ownership": {
+    "writePaths": [
+      "game/"
+    ],
+    "readOnlyPaths": [
+      "requirements/"
+    ]
+  },
+  "outputs": [
+    {
+      "type": "game",
+      "schema": "game/1",
+      "destination": "artifacts/game/v1"
+    }
+  ],
+  "acceptance": [
+    {
+      "acceptanceId": "AC-1",
+      "steps": [
+        "运行启动检查"
+      ],
+      "expected": "退出码为 0",
+      "evidenceDestinations": [
+        "evidence/report.json"
+      ]
+    }
+  ],
+  "budget": {
+    "ledgerId": "ledger-1",
+    "allocationMicroCny": 50000000,
+    "originalDeadlineAt": "2026-10-01T12:00:00.000Z"
+  },
+  "state": "awaiting_review",
+  "stateReason": null,
+  "attempts": [
+    {
+      "attemptId": "attempt-1",
+      "sessionRef": "sessions/attempt-1.jsonl",
+      "startedAt": "2026-10-01T00:00:00.000Z",
+      "endedAt": "2026-10-01T01:00:00.000Z",
+      "outcome": "passed",
+      "failure": null
+    }
+  ],
+  "artifacts": [
+    {
+      "artifactId": "game",
+      "version": "v1",
+      "location": "artifacts/game/v1"
+    }
+  ],
+  "evidence": [
+    {
+      "contractVersion": "1.0.0",
+      "evidenceId": "evidence-1",
+      "taskId": "COS-example",
+      "acceptanceIds": [
+        "AC-1"
+      ],
+      "kind": "test_report",
+      "source": {
+        "artifactId": "report",
+        "version": "v1",
+        "location": "evidence/report.json"
+      },
+      "artifactVersions": [
+        {
+          "artifactId": "game",
+          "version": "v1",
+          "location": "artifacts/game/v1"
+        }
+      ],
+      "outcome": "passed",
+      "recordedAt": "2026-10-01T01:00:00.000Z",
+      "summary": "离线检查通过"
+    }
+  ],
+  "handoff": {
+    "completed": [
+      "工程与测试"
+    ],
+    "remaining": [
+      "独立评审"
+    ],
+    "uncertainty": [],
+    "resumeFrom": "artifacts/game/v1"
+  },
+  "review": {
+    "reviewerId": null,
+    "contextId": null,
+    "inputVersions": [],
+    "verdict": "pending",
+    "evidenceIds": []
+  }
+}

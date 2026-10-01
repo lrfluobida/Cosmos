@@ -1,0 +1,26 @@
+{
+  "contractVersion": "1.0.0",
+  "specVersion": "spec-v1",
+  "confirmedBy": "user-1",
+  "confirmedAt": "2026-10-01T00:00:00.000Z",
+  "sources": [
+    {
+      "artifactId": "requirements",
+      "version": "v1",
+      "location": "requirements/v1.json"
+    }
+  ],
+  "acceptance": [
+    {
+      "acceptanceId": "AC-1",
+      "description": "游戏启动",
+      "steps": [
+        "运行启动检查"
+      ],
+      "expected": "退出码为 0",
+      "evidenceKinds": [
+        "test_report"
+      ]
+    }
+  ]
+}
