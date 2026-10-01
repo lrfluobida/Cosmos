@@ -29,6 +29,7 @@ import type { Diagnostics } from './diagnostics.ts';
 import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from '../../src/runtime/repair/policy.ts';
 import type { RepairFeedback } from '../../src/runtime/repair/feedback.ts';
 import { TRIAL } from './trial.ts';
+import { startupStep, verifyStartupInputs } from './startup.ts';
 
 const ownership = { writePaths: ['.'], readOnlyPaths: [] };
 const provenance = (sourceRefs: string[], generator: string) => ({ kind: 'original-procedural' as const, sourceRefs, generator });
@@ -41,6 +42,7 @@ export async function generatePilot(options: {
   sessionFactory?: (config: PiSessionOptions) => Promise<RoleSession>;
   continuation?: Continuation;
   trial?: boolean;
+  startupRecovery?: boolean;
   /** Trusted offline fixture adapters only; production uses the concrete host tools below. */
   host?: { buildProject?: typeof buildProject; runAcceptance?: typeof runAcceptance };
   repairEstimate?: { costMicroCny: number; durationMs: number; cleanupMs: number; requests: number };
@@ -48,22 +50,28 @@ export async function generatePilot(options: {
   const { root, repository, prefix, controller, guard, toolchain } = options;
   const host = { buildProject, runAcceptance, ...options.host };
   const frozen = options.continuation?.frozen ?? await jsonFile(repository, 'probes/e2e/requirements.json');
-  const registry = await createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', signal: guard.signal });
+  const startup = { root, signal: guard.signal, recovery: options.startupRecovery };
+  const registry = await startupStep({ ...startup, phase: 'registry-create' }, () => createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', signal: guard.signal }));
   const sourceRef = options.continuation?.available[0] ?? registry.artifactRef(`${prefix}-requirements`, frozen.requirementVersion);
   const baseRef = options.continuation?.available[1] ?? registry.artifactRef(`${prefix}-template`, 'v1');
   if (!options.continuation) {
-  const inputRoot = await directory(root, 'inputs');
-  await cp(join(repository, 'probes/e2e/requirements.json'), join(inputRoot, 'requirements.json'));
-  await cp(join(repository, 'src/media/vector.ts'), join(inputRoot, 'character-format.ts'));
-  await cp(join(repository, 'src/media/audio.ts'), join(inputRoot, 'audio-format.ts'));
-  await registry.registerCapture({ taskId: 'COS-10', artifactRef: sourceRef, sourceRoot: 'inputs', ownership, dependencies: [],
+  await startupStep({ ...startup, phase: 'input-validation' }, async () => {
+    if (options.startupRecovery) await verifyStartupInputs(repository, root);
+    else {
+      const inputRoot = await directory(root, 'inputs');
+      await cp(join(repository, 'probes/e2e/requirements.json'), join(inputRoot, 'requirements.json'));
+      await cp(join(repository, 'src/media/vector.ts'), join(inputRoot, 'character-format.ts'));
+      await cp(join(repository, 'src/media/audio.ts'), join(inputRoot, 'audio-format.ts'));
+    }
+  });
+  await startupStep({ ...startup, phase: 'requirements-capture', captureRef: sourceRef }, () => registry.registerCapture({ taskId: 'COS-10', artifactRef: sourceRef, sourceRoot: 'inputs', ownership, dependencies: [],
     metadata: { kind: 'data', provenance: provenance(['probes/e2e/requirements.json', 'src/media/vector.ts', 'src/media/audio.ts'], 'Frozen user-authorized pilot input and generic media format') },
     files: ['requirements.json', 'character-format.ts', 'audio-format.ts'].map(name => ({ source: name, destination: `_cosmos/${name}` })),
-  });
-  await registry.registerCapture({ taskId: 'COS-10', artifactRef: baseRef, sourceRoot: 'toolchain', ownership, dependencies: [],
+  }));
+  await startupStep({ ...startup, phase: 'template-capture', captureRef: baseRef }, () => registry.registerCapture({ taskId: 'COS-10', artifactRef: baseRef, sourceRoot: 'toolchain', ownership, dependencies: [],
     metadata: { kind: 'code', provenance: provenance(['templates/2d'], 'Unchanged generic Phaser toolchain baseline') },
     files: ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'].map(name => ({ source: name, destination: name })),
-  });
+  }));
   }
   const available = options.continuation?.available ?? [sourceRef, baseRef];
   const draft = prepareClarification({ brief: frozen.scope, specVersion: frozen.specVersion, sources: [sourceRef], acceptance: stageAcceptance(frozen.acceptanceIds),

@@ -3,16 +3,18 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { RunController } from '../../src/runtime/run.ts';
 import { preparePilot, PILOT_LIMITS } from './admission.ts';
-import { assertPilotNotStarted, claimPilotOrigin, createPilotGuard, openPilotGuard } from './budget.ts';
+import { assertPilotNotStarted, claimPilotOrigin, createPilotGuard, openPilotGuard, openZeroRequestTrialGuard } from './budget.ts';
 import { generatePilot } from './driver.ts';
 import { jsonFile, prepareToolchain, runChild, writeJson } from './host.ts';
 import { cancelReplacedTasks, readContinuation } from './continuation.ts';
 import type { Continuation } from './continuation.ts';
 import { assertTrialUnused, checkTrialAdmission, claimTrial, readPreviousTrial, TRIAL } from './trial.ts';
+import { claimStartupRecovery, readStartupRecovery } from './startup.ts';
 
 /** Explicit production entry: existing shared ledger only; secrets remain in process environment. */
-export async function runPilot(options: { repository: string; preflightOnly?: boolean; continuation?: boolean; trial?: boolean }) {
+export async function runPilot(options: { repository: string; preflightOnly?: boolean; continuation?: boolean; trial?: boolean; trialRecoverStartup?: boolean }) {
   if (options.trial && options.continuation) throw new Error('The new fixed trial cannot use the historical continuation entry');
+  if (options.trialRecoverStartup && (options.trial || options.continuation || options.preflightOnly)) throw new Error('Startup recovery is a single explicit fixed-trial action');
   const repository = resolve(options.repository), ledgerRoot = join(repository, '.cosmos/validation-shared');
   await access(join(ledgerRoot, 'snapshot.json')); // Do not create a second ledger, even on a typo.
   const controller = await RunController.open({ root: ledgerRoot });
@@ -25,7 +27,7 @@ export async function runPilot(options: { repository: string; preflightOnly?: bo
   };
   try {
     const snapshot = await controller.read();
-    if (!options.continuation && !options.trial) await assertPilotNotStarted(ledgerRoot);
+    if (!options.continuation && !options.trial && !options.trialRecoverStartup) await assertPilotNotStarted(ledgerRoot);
     if (snapshot.run.runId !== 'validation-2026-10-01' || snapshot.ledger.ledgerId !== 'cosmos-validation' || snapshot.run.specVersion !== '1.0') throw new Error('Expected the original shared validation run and spec');
     if (await git(['branch', '--show-current']) !== 'main') throw new Error('Run the independently reviewed integration from main');
     const head = await git(['rev-parse', 'HEAD']);
@@ -34,6 +36,28 @@ export async function runPilot(options: { repository: string; preflightOnly?: bo
     const input = { snapshot, dependencies: mapping.tasks, now: Date.now(), isAncestor: async (commit: string) => {
       const result = await runChild('git', ['merge-base', '--is-ancestor', commit, head], { cwd: repository, signal: controller.signal, timeoutMs: 15_000 }); return result.code === 0;
     } };
+    if (options.trialRecoverStartup) {
+      const recovery = await readStartupRecovery(repository, ledgerRoot, controller); root = recovery.root;
+      if (!await input.isAncestor(recovery.origin.platformHead)) throw new Error('Original platform is not an ancestor of the approved startup recovery');
+      if (!process.env.DEEPSEEK_API_KEY?.trim()) throw new Error('DEEPSEEK_API_KEY is required in the host environment');
+      await claimStartupRecovery(recovery, head);
+      let outcome: { outcome: string; [key: string]: unknown };
+      try {
+        guard = await openZeroRequestTrialGuard({ root, ledgerRoot, controller, origin: recovery.origin, journal: recovery.journal });
+        outcome = await generatePilot({ repository, root, prefix: TRIAL.id, controller, guard, toolchain: join(root, 'toolchain'),
+          childAllocationCapMicroCny: TRIAL.childAllocationMicroCny, confirmedAt: recovery.origin.startedAt, trial: true, startupRecovery: true });
+      } catch (error) {
+        outcome = { outcome: 'failed', reason: guard?.signal.aborted || Date.now() >= Date.parse(recovery.origin.deadlineAt) ? 'Original trial deadline/cancellation reached' : 'Startup recovery stopped; preserve its bounded host diagnostic and native evidence',
+          errorCategory: error instanceof Error ? error.name : 'Error' };
+      }
+      const budget = await controller.summary();
+      const report = { ...outcome, trialId: TRIAL.id, root, originalResult: 'result.json', originalPlatformHead: recovery.origin.platformHead, platformHead: head,
+        startedAt: recovery.origin.startedAt, endedAt: new Date().toISOString(), deadlineAt: recovery.origin.deadlineAt, sharedDeadlineAt: recovery.origin.sharedDeadlineAt,
+        elapsedMs: Date.now() - Date.parse(recovery.origin.startedAt), baselineCommittedMicroCny: recovery.origin.baselineCommittedMicroCny,
+        trialCommittedMicroCny: budget.committedMicroCny - recovery.origin.baselineCommittedMicroCny, budget, trialJournal: await jsonFile(root, 'pilot-budget.json'),
+        claims: 'One authorized zero-request bootstrap recovery within the original trial clock; the original failed result remains unchanged.' };
+      await writeJson(root, 'startup-recovery-result.json', report); return report;
+    }
     if (options.trial) {
       const admission = await checkTrialAdmission({ ...input, platformHead: head });
       const previous = await readPreviousTrial(repository, ledgerRoot); await assertTrialUnused(repository, ledgerRoot);
@@ -112,9 +136,9 @@ export async function runPilot(options: { repository: string; preflightOnly?: bo
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2);
-  if (args.length > 1 || args.length === 1 && !['--preflight', '--continue', '--trial', '--trial-preflight'].includes(args[0])) throw new Error('Usage: node --experimental-strip-types probes/e2e/run.ts [--preflight|--continue|--trial|--trial-preflight]');
+  if (args.length > 1 || args.length === 1 && !['--preflight', '--continue', '--trial', '--trial-preflight', '--trial-recover-startup'].includes(args[0])) throw new Error('Usage: node --experimental-strip-types probes/e2e/run.ts [--preflight|--continue|--trial|--trial-preflight|--trial-recover-startup]');
   const repository = fileURLToPath(new URL('../../', import.meta.url));
-  runPilot({ repository, preflightOnly: ['--preflight', '--trial-preflight'].includes(args[0]), continuation: args[0] === '--continue', trial: ['--trial', '--trial-preflight'].includes(args[0]) }).then(result => {
+  runPilot({ repository, preflightOnly: ['--preflight', '--trial-preflight'].includes(args[0]), continuation: args[0] === '--continue', trial: ['--trial', '--trial-preflight'].includes(args[0]), trialRecoverStartup: args[0] === '--trial-recover-startup' }).then(result => {
     console.log(JSON.stringify(result)); if (result.outcome === 'failed') process.exitCode = 1;
   }).catch(error => { console.error(`COS-10 stopped: ${error instanceof Error ? error.message : 'Host admission failed'}`); process.exitCode = 1; });
 }
