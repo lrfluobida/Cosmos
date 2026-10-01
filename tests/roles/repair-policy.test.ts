@@ -42,6 +42,19 @@ test('host feedback binds exact acceptance, evidence, costs and original attempt
   assert.doesNotMatch(JSON.stringify(service), /SECRET_SENTINEL/);
 });
 
+test('typed truncated output keeps a precise safe diagnosis and its charges without service retry', () => {
+  const f = setup();
+  const feedback = buildRepairFeedback(f.task, new PiSessionError('incomplete', 'SECRET_RAW_PROVIDER_ERROR'), 'execution', f.snapshot);
+  assert.equal(feedback.issues[0].classification, 'insufficient_evidence');
+  assert.equal(feedback.issues[0].checkId, 'provider_output_truncated');
+  assert.equal(feedback.issues[0].actual, 'Provider output reached its token limit; the response is incomplete and partial tool calls were not executed.');
+  assert.deepEqual(feedback.charges, f.feedback.charges);
+  assert.equal(assessRepair({ ...f.options, history: [feedback] }).action, 'collect_evidence');
+  assert.doesNotMatch(JSON.stringify(feedback), /SECRET_RAW_PROVIDER_ERROR/);
+  const untyped = buildRepairFeedback(f.task, { code: 'incomplete', message: 'SECRET_RAW_PROVIDER_ERROR' }, 'execution', f.snapshot);
+  assert.equal(untyped.issues[0].checkId, 'execution');
+});
+
 for (const [classification, action] of [['code_defect', 'repair'], ['external_service', 'retry_service'], ['requirement_conflict', 'wait_user'], ['insufficient_evidence', 'collect_evidence']] as const) test(`routes ${classification} to ${action}`, () => {
   const f = setup();
   const feedback = buildRepairFeedback(f.task, new HostFailure([issue(classification)]), 'host_verification', f.snapshot);

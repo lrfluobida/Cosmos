@@ -9,12 +9,14 @@ import { prepareClarification, confirmRequirements } from '../../src/roles/requi
 import { createRoleFactory } from '../../src/roles/factory.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { planTaskDag } from '../../src/roles/planner.ts';
+import { PiSessionError } from '../../src/providers/pi.ts';
 import { requirement as requirementFixture, task as taskFixture, artifact } from '../contracts/fixtures.ts';
 
 const requirement = requirementFixture() as RequirementContract;
 const now = () => Date.parse('2026-10-01T01:00:00.000Z');
+const fenced = (text: string) => `Design deliverables are complete.\n\`\`\`json\n${text}\n\`\`\`\nHost verification follows.`;
 
-for (const invalid of [false, true]) test(`Cosmos plans host-scoped tasks from confirmed requirements, incomplete coverage rejected: ${invalid}`, async t => {
+for (const wrapped of [false, true]) for (const invalid of [false, true]) test(`Cosmos plans host-scoped tasks, wrapped=${wrapped}, incomplete coverage rejected=${invalid}`, async t => {
   const f = await fixture(t), seen: any[] = [];
   const factory = createRoleFactory({ maxOutputTokens: 500, maxRequests: 1, requestTimeoutMs: 1000, estimatedMaxCostMicroCny: 100,
     sessionFactory: async config => { seen.push(config); return { async prompt() {
@@ -23,7 +25,8 @@ for (const invalid of [false, true]) test(`Cosmos plans host-scoped tasks from c
       assert.ok(packet.ownership.readPaths.includes(requirement.sources[0].location));
       const source = await config.tools.find(tool => tool.name === 'read')!.execute('requirements', { path: requirement.sources[0].location }, undefined, undefined, undefined as any);
       assert.match(JSON.stringify(source), /鼠标操作/);
-      return { text: JSON.stringify({ tasks: [{ taskId: 'generated-code', role: 'coding', objective: 'Implement the confirmed interaction', acceptanceIds: invalid ? [] : ['AC-1'], dependsOn: [] }] }) };
+      const text = JSON.stringify({ tasks: [{ taskId: 'generated-code', role: 'coding', objective: 'Implement the confirmed interaction', acceptanceIds: invalid ? [] : ['AC-1'], dependsOn: [] }] });
+      return { text: wrapped ? fenced(text) : text };
     }, async close() {} }; } });
   const action = planTaskDag({ controller: f.controller, requirement, planningTaskId: 'planning', workspace: f.workspace, sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, roleFactory: factory,
     roles: { coding: { workspace: f.workspace, allocationMicroCny: 300, writePaths: ['game'], readOnlyPaths: ['requirements'], tools: ['read', 'write', 'edit'], outputs: [{ artifactId: 'game', version: 'v1', destination: 'artifacts/game/v1', type: 'game', schema: 'game/1' }] } } });
@@ -71,13 +74,13 @@ function passingEvidence(task: TaskContract): EvidenceContract[] {
   return [{ contractVersion: '1.0.0', evidenceId: `${task.taskId}-test`, taskId: task.taskId, acceptanceIds: task.acceptanceIds, kind: 'test_report', source: artifact('report', 'v1', 'evidence/test.json'), artifactVersions: [...task.inputs, artifact()], outcome: 'passed', recordedAt: new Date(now()).toISOString(), summary: '真实宿主测试通过' }];
 }
 
-function mockFactory(seen: any[], review?: (packet: any) => unknown) {
+function mockFactory(seen: any[], review?: (packet: any) => unknown, wrap = (text: string) => text) {
   return createRoleFactory({ maxOutputTokens: 512, maxRequests: 2, requestTimeoutMs: 1000, estimatedMaxCostMicroCny: 100,
     sessionFactory: async config => {
       const packet = JSON.parse(config.context); seen.push({ config, packet });
       return { async prompt(_text, { signal } = {}) {
         signal?.throwIfAborted();
-        return { text: JSON.stringify(packet.role === 'reviewer' ? review?.(packet) ?? { verdict: 'approved', inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: EvidenceContract) => e.evidenceId), findings: [] } : { summary: '代码已生成', remaining: [], uncertainty: [] }) };
+        return { text: wrap(JSON.stringify(packet.role === 'reviewer' ? review?.(packet) ?? { verdict: 'approved', inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: EvidenceContract) => e.evidenceId), findings: [] } : { summary: '代码已生成', remaining: [], uncertainty: [] })) };
       }, async close() {} };
     },
   });
@@ -236,16 +239,16 @@ test('DAG completion needs host evidence and a separate frozen review context', 
   assert.equal((await f.controller.read()).tasks[0].state, 'passed');
 });
 
-for (const sample of [
+for (const wrapped of [false, true]) for (const sample of [
   { name: 'approved-with-positive-notes', verdict: 'approved', findings: ['The schema is complete.', 'Every fixed requirement is covered.'], state: 'waiting_user', recorded: 'pending' },
   { name: 'approved-with-no-defects', verdict: 'approved', findings: [], state: 'passed', recorded: 'approved' },
   { name: 'changes-without-defects', verdict: 'changes_requested', findings: [], state: 'waiting_user', recorded: 'pending' },
   { name: 'changes-with-real-defect', verdict: 'changes_requested', findings: ['Required click behavior is missing; normal input has no effect.'], state: 'needs_changes', recorded: 'changes_requested' },
-]) test(`review findings protocol: ${sample.name}`, async t => {
+]) test(`review findings protocol: ${sample.name}, wrapped=${wrapped}`, async t => {
   const f = await fixture(t), seen: any[] = [];
   const results = await executeTaskDag({ controller: f.controller, requirement, tasks: [{ task: f.task, role: 'coding', workspace: f.workspace }],
     sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, now,
-    roleFactory: mockFactory(seen, packet => ({ verdict: sample.verdict, inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: EvidenceContract) => e.evidenceId), findings: sample.findings })),
+    roleFactory: mockFactory(seen, packet => ({ verdict: sample.verdict, inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: EvidenceContract) => e.evidenceId), findings: sample.findings }), wrapped ? fenced : undefined),
     capture: async () => ({ artifacts: [artifact()], reviewWorkspace: f.reviewWorkspace }), verify: async task => passingEvidence(task),
   });
   assert.equal(results[0].state, sample.state); assert.equal(results[0].review.verdict, sample.recorded);
@@ -280,6 +283,55 @@ test('unfinished author handoff is retained without paying for an approval attem
   assert.equal(results[0].state, 'failed');
   assert.ok(results[0].handoff.remaining.includes('还需要实现输入'));
   assert.equal(seen.length, 1);
+});
+
+for (const field of ['remaining', 'uncertainty'] as const) test(`wrapped author preserves unresolved ${field} without review`, async t => {
+  const f = await fixture(t), seen: any[] = [], base = mockFactory(seen);
+  let captures = 0;
+  const results = await executeTaskDag({ controller: f.controller, requirement, tasks: [{ task: f.task, role: 'design', workspace: f.workspace }],
+    sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, now, roleFactory: async input => {
+      const session = await base(input);
+      return { ...session, async prompt() { return { text: fenced(JSON.stringify({ summary: 'Partial work', remaining: [], uncertainty: [], [field]: ['Required work is unresolved'] })) }; } };
+    }, capture: async (_task, proposal) => { captures++; assert.deepEqual(proposal[field], ['Required work is unresolved']); return { artifacts: [artifact()], reviewWorkspace: f.reviewWorkspace }; },
+    verify: async () => { throw new Error('Unresolved handoff must not reach verification'); },
+  });
+  assert.equal(captures, 1); assert.equal(seen.length, 1); assert.equal(results[0].state, 'failed');
+  assert.ok(results[0].handoff[field].includes('Required work is unresolved'));
+});
+
+test('ambiguous author message cannot reach capture', async t => {
+  const f = await fixture(t), seen: any[] = [];
+  const results = await executeTaskDag({ controller: f.controller, requirement, tasks: [{ task: f.task, role: 'design', workspace: f.workspace }],
+    sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, now,
+    roleFactory: mockFactory(seen, undefined, text => `${fenced(text)}\n${text}`),
+    capture: async () => { assert.fail('Ambiguous response reached capture'); }, verify: async () => [],
+  });
+  assert.notEqual(results[0].state, 'passed'); assert.equal(seen.length, 1);
+});
+
+test('truncated author response persists its precise diagnosis and settled fee without capture or retry', async t => {
+  const f = await fixture(t);
+  let calls = 0;
+  const factory = createRoleFactory({ maxOutputTokens: 100, maxRequests: 1, requestTimeoutMs: 1000, estimatedMaxCostMicroCny: 200,
+    sessionFactory: async config => ({ async prompt() {
+      calls++;
+      await config.budget.beforeRequest({ requestId: 'truncated', modelId: 'deepseek-flash', maxOutputTokens: 100, inputBytes: 20, hasImages: false, estimatedMaxCostMicroCny: 200 });
+      await config.budget.afterResponse({ requestId: 'truncated', outcome: 'settled', stopReason: 'length', responseModel: 'deepseek-flash', elapsedMs: 1,
+        usage: { input: 30, output: 10, cacheRead: 0, cacheWrite: 0, totalTokens: 40, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
+      throw new PiSessionError('incomplete', 'SECRET_RAW_PROVIDER_ERROR');
+    }, async close() {} }),
+  });
+  const [result] = await executeTaskDag({ controller: f.controller, requirement, tasks: [{ task: f.task, role: 'art', workspace: f.workspace }],
+    sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, roleFactory: factory, now,
+    capture: async () => { assert.fail('Truncated response reached capture'); }, verify: async () => [],
+  });
+  assert.notEqual(result.state, 'passed'); assert.equal(calls, 1); assert.equal(result.attempts.length, 1);
+  const feedback = JSON.parse(await readFile(join(result.attempts[0].sessionRef, 'failure.json'), 'utf8'));
+  assert.equal(feedback.issues[0].checkId, 'provider_output_truncated');
+  assert.equal(feedback.issues[0].classification, 'insufficient_evidence');
+  assert.match(feedback.issues[0].actual, /token limit.*incomplete/);
+  assert.equal(feedback.charges[0].settledMicroCny, 140); assert.equal(feedback.charges[0].reservedMicroCny, 0);
+  assert.doesNotMatch(JSON.stringify(feedback), /SECRET_RAW_PROVIDER_ERROR/);
 });
 
 for (const mode of ['missing', 'stale', 'self-approval', 'unconfirmed', 'dependency', 'overlap'] as const) {

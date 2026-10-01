@@ -12,7 +12,7 @@ const proposal = { acceptance: [{ acceptanceId: 'win', description: '点击目�
     { id: 'click', kind: 'locator-click', selector: '#target', timeoutMs: 1000 },
     { id: 'win', kind: 'assert', acceptanceId: 'win', observation: { kind: 'text', selector: '#result' }, expected: '胜利', timeoutMs: 1000 },
   ] }, unsupported: [] };
-async function fixture(t: test.TestContext) {
+async function fixture(t: test.TestContext, wrapped = false) {
   assert.equal(typeof interview.requestDesignQuestions, 'function', 'Native design intake entrypoint is required');
   const root = await mkdtemp(join(tmpdir(), 'cosmos-interview-'));
   const controller = await IntakeController.create({ root, runId: 'interview', ledgerId: 'one-ledger', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 8,
@@ -29,15 +29,16 @@ async function fixture(t: test.TestContext) {
         await config.budget.beforeRequest({ requestId, modelId: 'deepseek-flash', maxOutputTokens: 2048, inputBytes: 20, hasImages: false, estimatedMaxCostMicroCny: 100 });
         await config.budget.afterResponse({ requestId, outcome: 'settled', responseModel: 'deepseek-flash', elapsedMs: 1,
           usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
-        return { text: JSON.stringify(JSON.parse(text).phase === 'questions' ? { questions } : proposal) };
+        const response = JSON.stringify(JSON.parse(text).phase === 'questions' ? { questions } : proposal);
+        return { text: wrapped ? `Design proposal follows.\n\`\`\`json\n${response}\n\`\`\`\nPlease review.` : response };
       }, async close() {},
     }),
   };
   return { root, controller, settings, calls: () => calls };
 }
 
-for (const brief of ['点击星星得分', '收集宝物并躲避障碍']) test(`native design accepts a dynamic brief: ${brief}`, async t => {
-  const { controller, settings, calls } = await fixture(t);
+for (const wrapped of [false, true]) for (const brief of ['点击星星得分', '收集宝物并躲避障碍']) test(`native design accepts a dynamic brief: ${brief}, wrapped=${wrapped}`, async t => {
+  const { controller, settings, calls } = await fixture(t, wrapped);
   const asked = await interview.requestDesignQuestions({ ...settings, roundId: 'questions-1', brief });
   assert.deepEqual(asked, questions);
   const draft = await interview.requestDesignDraft({ ...settings, roundId: 'draft-1', brief, questions: asked, answers: { win: '点击目标获胜' } });

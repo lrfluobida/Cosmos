@@ -8,7 +8,7 @@ import { jsonFile } from './host.ts';
 import { TRIAL } from './trial.ts';
 import { STARTUP_DEADLINE } from './startup.ts';
 
-export interface PilotJournal { startedAt: string; deadlineAt: string; maxRequests: number; requestIds: string[] }
+export interface PilotJournal { startedAt: string; deadlineAt: string; maxRequests: number; requestIds: string[]; committedCapMicroCny?: number }
 
 export async function assertPilotNotStarted(ledgerRoot: string): Promise<void> {
   try { await access(join(ledgerRoot, 'cos10-pilot.json')); }
@@ -24,11 +24,14 @@ export async function claimPilotOrigin(ledgerRoot: string, origin: { root: strin
 }
 
 /** A new pilot gets one write-once origin. A later process cannot reset it by rerunning this entry. */
-export async function createPilotGuard(options: { root: string; controller: RunController; deadlineAt: string; maxRequests: number }) {
+export async function createPilotGuard(options: { root: string; controller: RunController; deadlineAt: string; maxRequests: number; committedCapMicroCny?: number }) {
   const deadline = Date.parse(options.deadlineAt);
   if (!Number.isFinite(deadline) || deadline <= Date.now()) throw new Error('Pilot deadline expired');
   if (!Number.isSafeInteger(options.maxRequests) || options.maxRequests < 1 || options.maxRequests > PILOT_LIMITS.maxRequests) throw new Error('Invalid pilot request limit');
-  const journal = { startedAt: new Date().toISOString(), deadlineAt: options.deadlineAt, maxRequests: options.maxRequests, requestIds: [] as string[] };
+  if (options.committedCapMicroCny !== undefined && (!Number.isSafeInteger(options.committedCapMicroCny) || options.committedCapMicroCny <= 0
+    || options.committedCapMicroCny > PILOT_LIMITS.cumulativeMicroCny)) throw new Error('Invalid pilot cumulative budget cap');
+  const journal = { startedAt: new Date().toISOString(), deadlineAt: options.deadlineAt, maxRequests: options.maxRequests, requestIds: [] as string[],
+    ...(options.committedCapMicroCny === undefined ? {} : { committedCapMicroCny: options.committedCapMicroCny }) };
   const path = join(options.root, 'pilot-budget.json');
   await writeFile(path, JSON.stringify(journal, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
   return activeGuard(options, journal);
@@ -55,8 +58,9 @@ export async function openZeroRequestTrialGuard(options: { root: string; ledgerR
   return activeGuard({ ...options, deadlineAt: journal.deadlineAt, maxRequests: journal.maxRequests }, structuredClone(journal));
 }
 
-function activeGuard(options: { root: string; controller: RunController; deadlineAt: string; maxRequests: number }, journal: PilotJournal) {
+function activeGuard(options: { root: string; controller: RunController; deadlineAt: string; maxRequests: number; committedCapMicroCny?: number }, journal: PilotJournal) {
   const deadline = Date.parse(options.deadlineAt), path = join(options.root, 'pilot-budget.json');
+  const committedCapMicroCny = options.committedCapMicroCny ?? PILOT_LIMITS.cumulativeMicroCny;
   if (!Number.isFinite(deadline) || deadline <= Date.now()) throw new Error('Pilot deadline expired');
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(new Error('Pilot deadline cleanup reserve reached')), Math.max(0, deadline - Date.now() - 5000));
@@ -66,7 +70,7 @@ function activeGuard(options: { root: string; controller: RunController; deadlin
     const result = pending.then(action); pending = result.catch(() => {}); return result;
   };
   return {
-    signal, deadlineAt: options.deadlineAt,
+    signal, deadlineAt: options.deadlineAt, committedCapMicroCny,
     remainingMs() { signal.throwIfAborted(); const left = deadline - Date.now(); if (left <= 0) throw new Error('Pilot deadline reached'); return left; },
     close() { clearTimeout(timer); },
     wrap(budget: PiBudget): PiBudget {
@@ -79,7 +83,7 @@ function activeGuard(options: { root: string; controller: RunController; deadlin
           const snapshot = await options.controller.read();
           if (snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new Error('Reconcile existing request before serial pilot admission');
           const committed = snapshot.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0);
-          if (committed + request.estimatedMaxCostMicroCny > PILOT_LIMITS.cumulativeMicroCny) throw new Error('Pilot cumulative budget cap reached');
+          if (committed + request.estimatedMaxCostMicroCny > committedCapMicroCny) throw new Error('Pilot cumulative budget cap reached');
           journal.requestIds.push(request.requestId);
           const temporary = `${path}.tmp`;
           await writeFile(temporary, JSON.stringify(journal, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
