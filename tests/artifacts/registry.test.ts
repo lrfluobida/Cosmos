@@ -29,7 +29,7 @@ async function fixture(t: { after: (fn: () => Promise<void>) => void }) {
   const promote = async (candidate: any, build = async () => ({ passed: true, evidenceIds: ['build-log'] })) => {
     const evidence = await registry.verifyCandidate(candidate.candidateRef, { build });
     return registry.promoteCandidate(candidate.candidateRef, { evidence, review: {
-      candidateRef: candidate.candidateRef, reviewerId: 'reviewer', contextId: 'review-context', verdict: 'approved', evidenceIds: ['review-log'],
+      candidateRef: candidate.candidateRef, attemptId: evidence.attemptId, reviewerId: 'reviewer', contextId: 'review-context', verdict: 'approved', evidenceIds: ['review-log'],
     } });
   };
   return { workspaceRoot, registry, register, stage, promote };
@@ -89,7 +89,7 @@ test('failed build, forged evidence, stale review and edits after verification c
   await assert.rejects(f.promote(v2, async () => ({ passed: false, evidenceIds: ['failed-build'] })), /build/i);
   await assert.rejects(f.registry.promoteCandidate(v2.candidateRef, { evidence: { passed: true } as any, review: {} as any }), /host|evidence/i);
   const evidence = await f.registry.verifyCandidate(v2.candidateRef, { build: async () => ({ passed: true, evidenceIds: ['ok'] }) });
-  const review = { candidateRef: v1.candidateRef, reviewerId: 'reviewer', contextId: 'independent', verdict: 'approved' as const, evidenceIds: ['review'] };
+  const review = { candidateRef: v1.candidateRef, attemptId: evidence.attemptId, reviewerId: 'reviewer', contextId: 'independent', verdict: 'approved' as const, evidenceIds: ['review'] };
   await assert.rejects(f.registry.promoteCandidate(v2.candidateRef, { evidence, review }), /review|version/i);
   await writeFile(join(f.workspaceRoot, v2.targetRoot, 'unexpected.txt'), 'not reviewed', 'utf8');
   await assert.rejects(f.registry.promoteCandidate(v2.candidateRef, { evidence, review: { ...review, candidateRef: v2.candidateRef } }), /changed|snapshot/i);
@@ -158,11 +158,34 @@ test('failed re-verification invalidates old host evidence and commit lock exclu
   const evidence = await f.registry.verifyCandidate(candidate.candidateRef, { build: async () => ({ passed: true, evidenceIds: ['old-pass'] }) });
   await assert.rejects(f.registry.verifyCandidate(candidate.candidateRef, { build: async () => ({ passed: false, evidenceIds: ['new-fail'] }) }), /Build/);
   await assert.rejects(f.registry.promoteCandidate(candidate.candidateRef, { evidence, review: {
-    candidateRef: candidate.candidateRef, reviewerId: 'reviewer', contextId: 'review', verdict: 'approved', evidenceIds: ['review'],
+    candidateRef: candidate.candidateRef, attemptId: evidence.attemptId, reviewerId: 'reviewer', contextId: 'review', verdict: 'approved', evidenceIds: ['review'],
   } }), /evidence/i);
   const other = await createArtifactRegistry({ workspaceRoot: f.workspaceRoot, registryRoot: '.registry' });
   await f.registry.verifyCandidate(candidate.candidateRef, { build: async () => {
     await assert.rejects(other.registerCapture({ ...a, artifactRef: other.artifactRef('parallel', 'v1') }), /busy/i);
     return { passed: true, evidenceIds: ['exclusive-build'] };
   } });
+});
+
+test('review binds the verification attempt when the same candidate is rebuilt', async t => {
+  const f = await fixture(t); const a = await f.register();
+  const accepted = await f.stage([a], 'previous'); await f.promote(accepted);
+  const candidate = await f.stage([a]);
+  const build = (content: string) => async (_candidate: unknown, project: string) => {
+    await mkdir(join(project, 'dist'), { recursive: true });
+    await writeFile(join(project, 'dist/index.html'), content, 'utf8');
+    return { passed: true, evidenceIds: [`build-${content}`] };
+  };
+  const evidenceA = await f.registry.verifyCandidate(candidate.candidateRef, { build: build('reviewed-A') });
+  const reviewA = { candidateRef: candidate.candidateRef, attemptId: evidenceA.attemptId,
+    reviewerId: 'reviewer', contextId: 'review-context', verdict: 'approved' as const, evidenceIds: ['review-A'],
+  };
+  const evidenceB = await f.registry.verifyCandidate(candidate.candidateRef, { build: build('unreviewed-B') });
+  await assert.rejects(f.registry.promoteCandidate(candidate.candidateRef, { evidence: evidenceB, review: reviewA }), /review|attempt/i);
+  assert.deepEqual((await f.registry.current())?.candidateRef, accepted.candidateRef);
+  assert.notEqual(evidenceA.attemptId, evidenceB.attemptId);
+  const reviewB = { ...reviewA, attemptId: evidenceB.attemptId, evidenceIds: ['review-B'] };
+  await f.registry.promoteCandidate(candidate.candidateRef, { evidence: evidenceB, review: reviewB });
+  assert.deepEqual((await f.registry.current())?.candidateRef, candidate.candidateRef);
+  assert.equal(await readFile(join(f.workspaceRoot, candidate.targetRoot, 'dist/index.html'), 'utf8'), 'unreviewed-B');
 });

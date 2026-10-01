@@ -38,7 +38,8 @@ const evidence = await registry.verifyCandidate(candidate.candidateRef, {
   build: async (fixedCandidate, absoluteProjectRoot) => hostBuild(fixedCandidate, absoluteProjectRoot),
   acceptance: async (fixedCandidate, absoluteProjectRoot) => hostAcceptance(fixedCandidate, absoluteProjectRoot),
 });
-// The host supplies this verdict from an independent reviewer/context after verification.
+// The independent reviewer inspects this evidence attempt and returns
+// hostReview with candidateRef and attemptId: evidence.attemptId.
 await registry.promoteCandidate(candidate.candidateRef, { evidence, review: hostReview });
 const accepted = await registry.current();
 ```
@@ -64,7 +65,7 @@ The build callback is mandatory. Acceptance is optional for library callers and 
 
 `verifyCandidate` checks source bytes against fixed captures before and after callbacks, then records the complete candidate file set and bytes in host memory. The returned `PassedEvidence` object is an instance-local capability; deserialized or model-authored copies cannot promote. A subsequent verification attempt invalidates old evidence, including attempts by another registry instance. Modifying any source, build output, adding/removing a file or changing the candidate manifest after verification invalidates promotion. No content hashes are needed for this byte comparison.
 
-Review must identify the same candidate reference, approve it, attach evidence and use reviewer/context IDs different from the producer's. Only the trusted host may supply that review. The accepted project is sealed against further build callbacks before an atomic rename replaces `current.json`. The pointer is the promotion commit point. A failed validation, capture, stage, build, acceptance or review cannot replace the last accepted pointer or files. Old accepted versions remain readable and cannot re-enter a mutable build, including after restart.
+Review must identify the same candidate reference and `attemptId` as the returned `PassedEvidence`, approve that attempt, attach evidence and use reviewer/context IDs different from the producer's. A review from attempt A cannot approve a subsequent attempt B of the same candidate, even if the host has fresh passing evidence for B; B needs its own review. Only the trusted host may supply that review. The accepted project is sealed against further build callbacks before an atomic rename replaces `current.json`. The pointer is the promotion commit point. A failed validation, capture, stage, build, acceptance or review cannot replace the last accepted pointer or files. Old accepted versions remain readable and cannot re-enter a mutable build, including after restart.
 
 Each mutating operation takes an exclusive `.commit.lock`; contention reports `Registry commit is busy` instead of racing. Temp directories are removed on ordinary failures. If the host process is killed, uncommitted temp files or a lock may remain. The host must establish that the old process has stopped before cleaning these up; there is no timeout-based lock stealing. A crash after sealing but before the pointer commit can leave a sealed, unpromoted candidate; preserve it and use a new candidate version if the in-memory verification capability was lost. Previously accepted state and capture snapshots survive restart. Durable recovery of unpromoted verification capabilities and parallel scheduling belong to later runtime work.
 

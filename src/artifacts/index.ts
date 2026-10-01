@@ -157,7 +157,7 @@ export class ArtifactRegistry {
       const acceptance = checks.acceptance ? copy(await checks.acceptance(copy(candidate), project)) : undefined;
       if (checks.acceptance) passed(acceptance!, 'Acceptance');
       await this.#unchangedSources(candidate);
-      const evidence: PassedEvidence = { candidateRef: copy(ref), build, ...(acceptance ? { acceptance } : {}), verifiedAt: new Date().toISOString() };
+      const evidence: PassedEvidence = { candidateRef: copy(ref), attemptId, build, ...(acceptance ? { acceptance } : {}), verifiedAt: new Date().toISOString() };
       this.#proofs.set(evidence, { candidate, files: await snapshot(project), evidence: copy(evidence), attemptId });
       return evidence;
     });
@@ -168,12 +168,12 @@ export class ArtifactRegistry {
       if (!proof || !isDeepStrictEqual(proof.evidence, input.evidence) || !sameRef(proof.evidence.candidateRef, ref)) fail('Host-issued evidence for this exact candidate is required');
       const location = this.#refPath(ref, 'candidates');
       const attempt = await json<{ attemptId: string }>(this.#root, `${location}/attempt.json`);
-      if (attempt.attemptId !== proof.attemptId) fail('Host evidence was superseded by another verification attempt');
+      if (attempt.attemptId !== proof.attemptId || input.evidence.attemptId !== proof.attemptId) fail('Host evidence was superseded by another verification attempt');
       const candidate = await this.getCandidate(ref), review = copy(input.review);
       if (!isDeepStrictEqual(candidate, proof.candidate)) fail('Candidate manifest changed after verification');
-      if (!review || review.verdict !== 'approved' || !review.candidateRef || !sameRef(ref, review.candidateRef)
+      if (!review || review.verdict !== 'approved' || !review.candidateRef || !sameRef(ref, review.candidateRef) || review.attemptId !== proof.attemptId
         || !review.reviewerId || review.reviewerId === candidate.authorId || !review.contextId || review.contextId === candidate.contextId
-        || !Array.isArray(review.evidenceIds) || !review.evidenceIds.length || review.evidenceIds.some(id => typeof id !== 'string' || !id.trim())) fail('Independent host review for this exact candidate version is required');
+        || !Array.isArray(review.evidenceIds) || !review.evidenceIds.length || review.evidenceIds.some(id => typeof id !== 'string' || !id.trim())) fail('Independent host review for this exact candidate version and verification attempt is required');
       const files = await snapshot(await this.#unchangedSources(candidate));
       if (files.size !== proof.files.size || [...files].some(([name, bytes]) => !proof.files.get(name)?.equals(bytes))) fail('Candidate snapshot changed after verification');
       const seal = await safePath(this.#root, `${location}/sealed.json`);

@@ -157,7 +157,7 @@ const passed = await registry.verifyCandidate(candidateRef, {
     }
   },
 });
-const accepted = await registry.promoteCandidate(candidateRef, { evidence: passed, review: { candidateRef, reviewerId: 'probe-host-checker', contextId: 'probe-check-context', verdict: 'approved', evidenceIds: ['probe deterministic checks; independent implementation review remains separate'] } });
+const accepted = await registry.promoteCandidate(candidateRef, { evidence: passed, review: { candidateRef, attemptId: passed.attemptId, reviewerId: 'probe-host-checker', contextId: 'probe-check-context', verdict: 'approved', evidenceIds: ['probe deterministic checks; independent implementation review remains separate'] } });
 await writeFile(join(work, 'build.log'), logs.join('\n'), 'utf8');
 const report = { purpose: 'COS-09 generic platform integration, not target game generation', recordedAt: new Date().toISOString(),
   browser: { channel: 'msedge', version: browserVersion, headless: true }, node: process.version,

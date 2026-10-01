@@ -38,12 +38,15 @@ export interface Candidate extends CandidateRequest {
 export interface CheckResult { passed: boolean; evidenceIds: string[] }
 export interface PassedEvidence {
   candidateRef: ArtifactReference;
+  attemptId: string;
   build: CheckResult;
   acceptance?: CheckResult;
   verifiedAt: string;
 }
 export interface HostReview {
   candidateRef: ArtifactReference;
+  /** The exact host verification attempt inspected by this reviewer. */
+  attemptId: string;
   reviewerId: string; contextId: string;
   verdict: 'approved' | 'changes_requested';
   evidenceIds: string[];
