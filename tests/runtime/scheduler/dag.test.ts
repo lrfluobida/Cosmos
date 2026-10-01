@@ -151,6 +151,28 @@ test('scheduled recovery reuses exact passed work and propagates current blocked
   assert.deepEqual(result.reusedTaskIds, []); assert.deepEqual(result.blocked.map(b => b.taskId), ['a', 'b']); assert.deepEqual(result.tasks, original);
 });
 
+for (const scheduled of [true, false]) test(`pre-cancelled passed recovery starts no host callback and preserves its terminal record: scheduling=${scheduled}`, async t => {
+  const f = await fixture(t, { a: [] });
+  f.options.recovery = { journalRoot: join(f.root, 'journal'), artifactRoot: f.root, recoverCapture: async task => ({ artifacts: task.artifacts, reviewWorkspace: join(f.root, 'review') }) };
+  const original = await executeTaskDag(f.options), before = await f.controller.read();
+  const callsBefore = f.events.length; let callbackCalls = 0, release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  f.options.recovery.recoverCapture = async task => { callbackCalls++; await gate; return { artifacts: task.artifacts, reviewWorkspace: join(f.root, 'review') }; };
+  if (scheduled) f.options.scheduling!.drainTimeoutMs = 20; else delete f.options.scheduling;
+  const abort = new AbortController(); abort.abort(); f.options.signal = abort.signal;
+  const pending = resumeTaskDag(f.options);
+  const bounded = await Promise.race([pending.then(() => true), delay(120).then(() => false)]);
+  release(); const result = await pending;
+  assert.equal(bounded, true, 'pre-cancelled recovery must not wait for a host callback that ignores cancellation');
+  assert.equal(callbackCalls, 0); assert.equal(f.events.length, callsBefore);
+  assert.deepEqual(result.tasks, original); assert.deepEqual(result.reusedTaskIds, []);
+  assert.deepEqual(result.blocked.map(item => item.taskId), ['a']); assert.match(result.blocked[0].reason, /cancel/i);
+  const after = await f.controller.read();
+  assert.deepEqual(after.tasks, before.tasks); assert.deepEqual(after.run.fees, before.run.fees);
+  assert.equal(after.revision, before.revision);
+  if (scheduled) assert.equal((await schedulerStatus(f.controller)).scheduling?.state, 'drained');
+});
+
 for (const mode of ['settled', 'unknown', 'inflight', 'deadline', 'cancel', 'cancel-during', 'attempt-limit'] as const) test(`service backoff preserves COS-11 decisions and never dispatches by itself: ${mode}`, async t => {
   const f = await fixture(t, { a: [] }); const factory = f.options.roleFactory;
   f.options.roleFactory = async input => { const role = await factory(input); return { ...role, prompt: async (text, supplied) => { await role.prompt(text, supplied); throw new PiSessionError('provider_error', 'not persisted'); } }; };

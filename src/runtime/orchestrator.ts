@@ -144,9 +144,11 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     checked(validateExecution({ requirement, task, ledger: current.ledger, run: current.run }));
   }
   async function inspectCaptured(task: TaskContract, proposal: AuthorProposal, expected: ArtifactReference[] | undefined): Promise<CapturedTask> {
+    if (signal.aborted) throw new RecoveryBlocked('Recovery cancelled before capture inspection; no host callback was dispatched.');
     let recovered: CapturedTask | null | undefined;
     try { recovered = await options.recovery!.recoverCapture?.(freeze(structuredClone(task)), freeze(proposal), signal); }
     catch { throw new RecoveryBlocked('The host could not verify the fixed capture or its required registry authority.'); }
+    if (signal.aborted) throw new RecoveryBlocked('Recovery cancelled during capture inspection; preserve the original task result.');
     if (!recovered) throw new RecoveryBlocked('Exact completed capture or required registry authority cannot be established.');
     if (!expected || !Array.isArray(recovered.artifacts) || recovered.artifacts.length !== expected.length || expected.some(ref => !recovered!.artifacts.some(actual => sameValue(ref, actual)))) throw new RecoveryBlocked('Recovered capture differs from the planned output versions.');
     return recovered;
@@ -172,6 +174,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     let failureStage: FailureStage = 'execution';
     try {
       if (resume) {
+        if (signal.aborted) throw new RecoveryBlocked(prior.has(task.taskId) ? 'Recovery cancelled before phase dispatch; preserve the original task result.' : 'Recovery cancelled before task registration; no work was dispatched.');
         if (blocked.has(task.taskId)) throw new RecoveryBlocked(blocked.get(task.taskId));
         if (task.dependsOn.some(dep => !validatedDependencies.has(dep.taskId))) throw new RecoveryBlocked('Required dependency was not validated in this recovery; include every required ancestor and resolve its blocked result first.');
         if (task.state === 'passed') {

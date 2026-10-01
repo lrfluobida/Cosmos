@@ -58,3 +58,9 @@ npm run build
 ```
 
 All **44** affected tests passed, including 20 scheduler/backoff checks, two native SDK compaction/billing checks, existing controller concurrency and deadline checks, and the three response-accounting interleavings. New API/behavior tests were observed failing before their implementation. The earlier 90 role/protocol/recovery checks are reused because the final recovery stage rules were not changed. UTF-8 and diff checks passed; Chinese fixture text remains intact. All charges and provider responses in these tests are synthetic. Independent review and merger integration remain pending.
+
+## Independent review cancellation fix
+
+The reviewer reproduced a cancelled passed-task recovery starting `recoverCapture` before the original signal check. Recovery now checks cancellation at phase entry and immediately before/after that host callback. Cancellation returns `blocked`, preserves the passed task and its fees, and does not claim the task was reused. The same narrow check covers scheduled and serial recovery.
+
+The scheduler/recovery suites covered 42 cases: 41 passed initially, with one existing test requiring the original pre-registration cancellation reason. That text was retained; a focused rerun of the affected cancellation, drain and controller-ownership cases passed all five tests. Both new pre-cancelled passed-task cases prove zero host callback calls, bounded return, unchanged snapshot revision/tasks/fees and no reused-task claim. Existing ignoring-cancellation drain and single-controller ownership checks still pass. Typecheck and build passed. Other passing fault-injection evidence was reused; no paid or browser work was run. This fix awaits the same reviewer's recheck.
