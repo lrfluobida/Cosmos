@@ -126,3 +126,14 @@ test('checks shared run, ledger, requirements and task references together', () 
     { ...value, requirement: { ...requirement(), acceptance: [{ ...requirement().acceptance[0], expected: 'different' }] } },
   ]) rejected(validateExecution(changed));
 });
+
+test('approved evidence must satisfy kind and current versions in the same record', () => {
+  const value = { requirement: requirement(), task: passedTask(), ledger: ledger(), run: run() };
+  assert.deepEqual(validateExecution(value), []);
+  value.task.evidence[0].kind = 'log';
+  const stale = structuredClone(value.task.evidence[0]);
+  stale.evidenceId = 'old-test-report'; stale.kind = 'test_report'; stale.artifactVersions[0].version = 'old';
+  value.task.evidence.push(stale); value.task.review.evidenceIds.push(stale.evidenceId);
+  assert.deepEqual(validateTask(value.task), []);
+  assert.ok(validateExecution(value).some(issue => issue.path === '$.task.evidence'));
+});

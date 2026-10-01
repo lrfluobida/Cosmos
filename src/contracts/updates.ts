@@ -21,6 +21,14 @@ export function validateTaskUpdate(previous: unknown, next: unknown, actor: Upda
   const issues = [...validateTask(previous), ...validateTask(next)]; if (issues.length) return issues;
   const before = previous as TaskContract, after = next as TaskContract;
   transition(before.state, after.state, issues);
+  if (actor.role === 'reviewer') {
+    for (const key of Object.keys(before) as (keyof TaskContract)[]) {
+      if (!['review', 'state', 'evidence'].includes(key) && !sameValue(before[key], after[key])) issue(issues, `$.${key}`, 'reviewer_scope', 'Reviewers cannot change author-owned task content.');
+    }
+    for (const evidence of after.evidence.slice(before.evidence.length)) {
+      if (!after.review.evidenceIds.includes(evidence.evidenceId)) issue(issues, '$.evidence', 'reviewer_scope', 'New reviewer evidence must be referenced by the review.');
+    }
+  }
   fixed(before, after, ['contractVersion', 'taskId', 'kind', 'runId', 'specVersion', 'authorId', 'acceptanceIds', 'objective', 'inputs', 'ownership', 'outputs', 'acceptance', 'budget'], issues);
   if (before.context.contextId !== after.context.contextId) issue(issues, '$.context.contextId', 'immutable', 'The author context identity is fixed.');
   if (!sameValue(before.dependsOn.map(({ taskId, requiredState }) => ({ taskId, requiredState })), after.dependsOn.map(({ taskId, requiredState }) => ({ taskId, requiredState })))) issue(issues, '$.dependsOn', 'immutable', 'Dependency IDs and required states are fixed.');

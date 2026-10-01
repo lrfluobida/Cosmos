@@ -9,7 +9,43 @@ const system = { actorId: 'runtime', role: 'system' };
 function rejected(issues: unknown[]) { assert.ok(issues.length > 0, 'invalid update must have validation issues'); }
 
 test('independent reviewer can approve an evidenced awaiting-review task', () => {
-  assert.deepEqual(validateTaskUpdate(task(), passedTask(), reviewer), []);
+  const before = task(), after = passedTask(); after.handoff = structuredClone(before.handoff);
+  assert.deepEqual(validateTaskUpdate(before, after, reviewer), []);
+});
+
+test('reviewer cannot replace author artifacts and approve the replacement', () => {
+  const before = task(), after = passedTask(); after.handoff = structuredClone(before.handoff);
+  after.artifacts[0].version = 'reviewer-authored-v2';
+  const report = structuredClone(after.evidence[0]); report.evidenceId = 'reviewer-report';
+  report.artifactVersions = structuredClone(after.artifacts); after.evidence.push(report);
+  after.review.inputVersions = structuredClone([...after.inputs, ...after.artifacts]);
+  after.review.evidenceIds = [report.evidenceId];
+  assert.ok(validateTaskUpdate(before, after, reviewer).some(issue => issue.code === 'reviewer_scope'));
+});
+
+test('reviewer cannot append author attempts or change context and handoff content', () => {
+  const before = task();
+  for (const field of ['attempts', 'context', 'handoff']) {
+    const after = structuredClone(before);
+    if (field === 'attempts') after.attempts.push({ ...structuredClone(after.attempts[0]), attemptId: 'reviewer-attempt', sessionRef: 'sessions/reviewer.jsonl' });
+    if (field === 'context') after.context.rules.push('reviewer-authored rule');
+    if (field === 'handoff') after.handoff.completed.push('reviewer-authored work');
+    assert.ok(validateTaskUpdate(before, after, reviewer).some(issue => issue.code === 'reviewer_scope'), field);
+  }
+});
+
+test('reviewer may append review evidence while approving the fixed snapshot', () => {
+  const before = task(), after = passedTask(); after.handoff = structuredClone(before.handoff);
+  const report = structuredClone(after.evidence[0]); report.evidenceId = 'independent-review-report';
+  after.evidence.push(report); after.review.evidenceIds = [report.evidenceId];
+  assert.deepEqual(validateTaskUpdate(before, after, reviewer), []);
+});
+
+test('author can restart requested rework with a reset review and new persistent attempt', () => {
+  const before = passedTask(); before.state = 'needs_changes'; before.review.verdict = 'changes_requested';
+  const after: any = structuredClone(before); after.state = 'running'; after.review = structuredClone(task().review);
+  after.attempts.push({ attemptId: 'attempt-2', sessionRef: 'sessions/attempt-2.jsonl', startedAt: '2026-10-01T02:00:00.000Z', endedAt: null, outcome: 'running', failure: null });
+  assert.deepEqual(validateTaskUpdate(before, after, author), []);
 });
 
 test('author cannot approve own work by writing a different reviewer ID', () => {

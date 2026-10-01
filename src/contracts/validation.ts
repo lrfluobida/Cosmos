@@ -136,7 +136,11 @@ export function validateExecution(value: ExecutionContracts): ValidationIssue[] 
   for (const acceptance of task.acceptance) {
     const fixed = requirement.acceptance.find(item => item.acceptanceId === acceptance.acceptanceId);
     match(!!fixed && sameValue(fixed.steps, acceptance.steps) && fixed.expected === acceptance.expected, '$.task.acceptance', 'Task acceptance must match confirmed requirements.');
-    if (fixed && task.review.verdict === 'approved') match(task.evidence.some(e => task.review.evidenceIds.includes(e.evidenceId) && e.outcome === 'passed' && e.acceptanceIds.includes(acceptance.acceptanceId) && fixed.evidenceKinds.includes(e.kind)), '$.task.evidence', 'Evidence kind must satisfy the confirmed requirement.');
+    if (fixed && task.review.verdict === 'approved') match(task.evidence.some(e =>
+      task.review.evidenceIds.includes(e.evidenceId) && e.outcome === 'passed' &&
+      e.acceptanceIds.includes(acceptance.acceptanceId) && fixed.evidenceKinds.includes(e.kind) &&
+      task.artifacts.every(ref => containsRef(e.artifactVersions, ref))
+    ), '$.task.evidence', 'The same evidence must satisfy the required kind and current artifact versions.');
   }
   return issues;
 }
