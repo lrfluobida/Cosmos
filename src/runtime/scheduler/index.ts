@@ -17,6 +17,7 @@ const draining = new WeakMap<RunController, Promise<void>>();
 
 /** One DAG owner per controller; task workers inside that DAG may overlap. */
 export async function withDagOwner<T>(controller: RunController, execute: () => Promise<T>): Promise<T> {
+  controller.requireOriginalExecution();
   if (executing.has(controller)) throw new Error('An active DAG already executes on this controller.');
   executing.add(controller);
   try { return await execute(); } finally {
@@ -73,6 +74,7 @@ export async function scheduleTasks(input: {
   execute(item: PreparedTask): Promise<void>;
 }): Promise<void> {
   const { tasks, controller, options, signal } = input;
+  controller.requireOriginalExecution();
   validateScheduling(tasks, options);
   const width = input.exclusiveReason ? 1 : options.maxParallel ?? 2;
   const report: SchedulingSummary = { configuredParallel: options.maxParallel ?? 2, effectiveParallel: width, peakActiveTasks: 0, exclusiveReason: input.exclusiveReason, state: 'running' };

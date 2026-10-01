@@ -43,3 +43,31 @@
 ## 验证范围
 
 定向测试使用真实 controller、临时目录、假时钟、模拟费用及本地 Node 子进程。覆盖准确确认、陈旧或改变的提案、并发锁、提交前后退出、一次性释放、旧信号、任务与子进程窗口归属、新窗口 deadline/overcharge/对账和 v1 兼容。没有调用真实模型、浏览器或验证账本；不构成真实生成或完整游戏验收证据。
+
+### 审查修复与准确证据
+
+初始实现 `855de5cbfd558018d3877c3a785f21b4d427bdf2` 的定向命令如下，工具记录为 98 tests / 98 pass / 0 fail，`duration_ms: 3166.166`。这份已通过证据直接复用，没有为找日志再次运行这 98 项。
+
+```powershell
+node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/continuation-authority.test.ts tests/runtime/run.test.ts tests/runtime/intake.test.ts tests/budget/continuation-ledger.test.ts tests/budget/ledger.test.ts tests/contracts/updates.test.ts tests/contracts/validation.test.ts tests/contracts/examples.test.ts
+```
+
+独立审查发现两项 P2。第一项是显式打开 v2 controller 后仍可进入旧 DAG；串行路径实际调用了模拟作者并记录模拟费用，scheduler 路径还会按原截止时间停止新窗口。现在 `executeTaskDag`、`resumeTaskDag`、`scheduleTasks` 和 `withDagOwner` 在任何读取、计时器、任务或 journal 写入之前调用同步 `requireOriginalExecution()`，明确拒绝 v2。该门槛不会触发 `read()` 的自动到期逻辑，也没有接入 D3 执行。
+
+第二项是 ledger v2 的相对 schema 引用按其 `$id` 解析后会指向自身或不存在的 v2 common。引用现固定到真实 v1 schema 的绝对 URI。测试以 `$id` 建立索引，通过 `new URL(reference, base)` 解析每个引用，并确认 ledgerId、金额、allocations 和 entries 实际解析到 v1 定义。
+
+新增反例的准确命令为：
+
+```powershell
+node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec --test-name-pattern='unconnected|schema references' tests/runtime/continuation-authority.test.ts tests/contracts/examples.test.ts
+```
+
+修复前 7 项全部失败，包含实际回调及快照/目录变化；修复后 7 项全部通过，作者和 host 回调为零、快照字节与目录不变，新窗口没有被旧 scheduler 停止。
+
+修复后的受影响回归命令如下，70 tests / 70 pass / 0 fail，`duration_ms: 55428.9924`；随后 `npm run typecheck` 与 `npm run build` 均 exit 0。恢复与 ownership 测试使用真实本地 Node 子进程，费用、模型响应和时钟使用 fixture。
+
+```powershell
+node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/continuation-authority.test.ts tests/runtime/scheduler/dag.test.ts tests/runtime/recovery/dag.test.ts tests/contracts/examples.test.ts
+npm run typecheck
+npm run build
+```

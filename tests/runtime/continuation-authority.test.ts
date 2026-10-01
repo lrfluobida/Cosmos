@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -9,7 +9,9 @@ import { RunController } from '../../src/runtime/run.ts';
 import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
 import { validateSnapshot } from '../../src/runtime/run-validation.ts';
 import { SnapshotStore } from '../../src/runtime/store.ts';
-import { task as taskFixture } from '../contracts/fixtures.ts';
+import { executeTaskDag, resumeTaskDag } from '../../src/runtime/orchestrator.ts';
+import { scheduleTasks, withDagOwner } from '../../src/runtime/scheduler/index.ts';
+import { requirement as requirementFixture, task as taskFixture } from '../contracts/fixtures.ts';
 
 const start = Date.parse('2026-10-01T00:00:00.000Z');
 const receipt = [{ artifactId: 'receipt', version: 'v1', location: 'evidence/receipt.json' }];
@@ -336,3 +338,35 @@ test('snapshot format, original stop, request window and authorization facts rej
     assert.throws(() => validateSnapshot(state));
   }
 });
+
+for (const entrypoint of ['execute', 'execute-scheduled', 'resume', 'resume-scheduled', 'scheduler', 'dag-owner'] as const) {
+  test(`unconnected ${entrypoint} rejects an explicit continuation controller before any execution side effect`, async t => {
+    const f = await stopped(t);
+    f.advance(12 * 60 * 60 * 1000); // The old scheduler would use this expired original cutoff.
+    const window = await RunController.activateContinuation(f);
+    const active = await RunController.open({ root: f.root, windowId: window.windowId, now: f.now });
+    try {
+      const task = draft(f.original, window.grants[0]);
+      const prepared = { task, role: 'coding' as const, workspace: f.root };
+      let calls = 0;
+      const options = { controller: active, requirement: requirementFixture() as any, tasks: [prepared], sessionRoot: join(f.root, 'sessions'), availableArtifacts: task.inputs, now: f.now,
+        roleFactory: async () => ({ actorId: task.authorId, contextId: task.context.contextId, close: async () => {}, prompt: async () => {
+          calls++; await active.reserve(request('legacy-paid', task.taskId)); await active.admit('legacy-paid'); await active.settle('legacy-paid', 5, receipt);
+          return { text: JSON.stringify({ summary: 'offline legacy author', remaining: [], uncertainty: [] }) };
+        } }),
+        capture: async () => { calls++; throw new Error('No host execution was authorized.'); }, verify: async () => { calls++; return []; },
+        ...(entrypoint.endsWith('-scheduled') ? { scheduling: { maxParallel: 1 as const, cleanupMs: 0 } } : {}),
+        ...(entrypoint.startsWith('resume') ? { recovery: { journalRoot: join(f.root, 'journal'), artifactRoot: f.root, recoverCapture: async () => { calls++; return null; } } } : {}),
+      };
+      const before = await readFile(join(f.root, 'snapshot.json'));
+      const names = (await readdir(f.root, { recursive: true })).sort();
+      const action = entrypoint === 'scheduler' ? () => scheduleTasks({ controller: active, tasks: [prepared], options: { maxParallel: 1, cleanupMs: 0 }, exclusiveReason: null, signal: active.signal, now: f.now, execute: async () => { calls++; } })
+        : entrypoint === 'dag-owner' ? () => withDagOwner(active, async () => { calls++; })
+        : entrypoint.startsWith('resume') ? () => resumeTaskDag(options) : () => executeTaskDag(options);
+      const result = await action().then(() => '', error => String(error));
+      assert.deepEqual({ rejected: /continuation.*unsupported|unsupported.*continuation/i.test(result), calls, unchanged: before.equals(await readFile(join(f.root, 'snapshot.json'))), names: (await readdir(f.root, { recursive: true })).sort() },
+        { rejected: true, calls: 0, unchanged: true, names });
+      assert.equal(active.signal.aborted, false);
+    } finally { await active.close(); }
+  });
+}
