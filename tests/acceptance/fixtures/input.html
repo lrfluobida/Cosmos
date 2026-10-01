@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>通用输入验收夹具</title>
+<style>
+  body { margin: 32px; color: #17324d; background: #edf4f8; font: 24px system-ui; }
+  button { width: 240px; height: 100px; font: inherit; }
+  #cover { position: fixed; inset: 0; background: #cc8899aa; z-index: 10; }
+</style>
+<h1>输入与显示验收</h1>
+<button id="increment">增加计数</button>
+<p id="display">计数：0</p>
+<script>
+  // Faults belong only to this test fixture; the production template has none.
+  const fault = new URLSearchParams(location.search).get('fault');
+  let clicks = 0;
+  Object.defineProperty(window, 'cosmosDebug', { get: () => Object.freeze({ clicks }), configurable: false });
+  document.querySelector('#increment').disabled = fault === 'disabled';
+  document.querySelector('#increment').onclick = () => {
+    if (fault === 'broken-response') return;
+    clicks += 1;
+    document.querySelector('#display').textContent = `计数：${fault === 'wrong-display' ? 999 : clicks}`;
+  };
+  if (fault === 'overlay') {
+    const cover = document.createElement('div'); cover.id = 'cover'; cover.textContent = '遮挡层'; document.body.append(cover);
+  }
+  if (fault === 'pageerror') setTimeout(() => { throw new Error('fixture page failure'); }, 20);
+</script>
+</html>
