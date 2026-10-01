@@ -41,7 +41,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 首轮生成及一次续跑失败 | 既有直接 API/pi 探针估算 ¥0.735971；新增 pilot 13 次请求共 ¥0.156311；共享账本累计 ¥0.892282，预留与未知费用为零；尚无通过游戏 |
 | 任务拆分 | 已发布 | [18 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-18 承接既有 R4/R11 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#19；18 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第七批 COS-18 Phase A、COS-01 元数据与 COS-14 工具草稿已集成 | COS-18 Phase A 51/51、类型检查与构建通过；COS-14 草稿 10/10、参考 CLI 通过；#2/#11/#12/#14/#15/#19 保持 open，COS-12 / #13 已关闭 |
+| 子代理逐项实施 | 第七批 COS-18 Phase A、COS-01 元数据、COS-14 草稿与 COS-16 用例文档已集成 | COS-18 Phase A 51/51、类型检查与构建通过；COS-14 草稿 10/10、参考 CLI 通过；COS-16 仅用例准备；#2/#11/#12/#14/#15/#17/#19 保持 open，COS-12 / #13 已关闭 |
 
 ## 开发批次
 
@@ -70,6 +70,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 07 | COS-18 / #19 | feat/cos-18-cli 独立 implementer | cos18_reviewer | batch07_merger | Phase A d808429 获 PHASE_A_READY，合入 e1679dc；51/51、类型检查与构建通过；Phase B 继续实施，#19 保持 open |
 | 07 | COS-01 / #2 资源元数据补充 | feat/cos-01-resource-evidence 独立 implementer | cos01_reviewer | batch07_merger | b8790a8 获 READY，合入 2aa62fa；参考 CLI 校验通过，复用 16/16；230 项中 221 项待核对，基准仍未冻结 |
 | 07 | COS-14 / #15 验收工具草稿 | feat/cos-14-acceptance-draft 独立 implementer | cos14_reviewer | batch07_merger | 1c3e189 修复计时边界 P2 后获 READY，合入 522ae51；10/10、参考 CLI 通过；恒为 draft/blocked，#15 保持 open/preparatory，G4 仍关闭 |
+| 07 | COS-16 / #17 迁移用例文档 | feat/cos-16-transfer-case 独立 implementer | cos16_reviewer | batch07_merger | bb00583 获 READY，合入 6cc42f6；单文档源一致、UTF-8/LF 与中文复读通过；preparation-only/open，尚未生成或验收游戏 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -87,7 +88,9 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 
 [第七批执行计划](docs/plans/2026-10-01-batch-07.md) 从 `0a10f42` 接管 main，已集成独立批准的 COS-18 Phase A 与 COS-01 资源元数据补充，继续等待 Phase B 的准确提交批准；证据见 [第七批集成记录](docs/reviews/batch-07.md)。同一 runId、snapshot 与账本衔接确认前访谈和确认后生成计时。资源条目计数不替代单位名册，配置语言不代表可见语言，两轮截图失败仍无玩法证据；#2/#19 保持 open。未重开旧试验、变更共享费用或 G3 状态。
 
-第七批追加：COS-14 Phase A 验收工具草稿已合入 `522ae51`，保留完整输入清单、固定版本绑定、正常输入与机制引用分列及纯数值比较；10/10 草稿测试和参考 CLI 通过。草稿不认证证据或执行游戏，步长/等价性见证、模式 runner 与执行 adapter 仍待实现，#15 保持 open/preparatory，G4 关闭。此前 [#19 Phase A](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5933952295) 与 [#2 资源补充](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5933953194) 已同步并读回为 open。COS-18 Phase B 与 COS-16 用例文档继续等待独立批准。
+第七批追加：COS-14 Phase A 验收工具草稿已合入 `522ae51`，保留完整输入清单、固定版本绑定、正常输入与机制引用分列及纯数值比较；10/10 草稿测试和参考 CLI 通过。草稿不认证证据或执行游戏，步长/等价性见证、模式 runner 与执行 adapter 仍待实现，[#15 状态已同步](https://github.com/lrfluobida/Cosmos/issues/15#issuecomment-5934444118)，保持 open/preparatory，G4 关闭。此前 [#19 Phase A](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5933952295) 与 [#2 资源补充](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5933953194) 已同步并读回为 open。COS-18 Phase B 继续等待独立批准。
+
+COS-16 [网格推箱子用例](probes/transfer/README.md) 已独立批准并合入 `6cc42f6`，固定 T16-01 至 T16-06 正常输入验收；地图与解法由 runtime design 产生，host 独立校验后冻结，真实浏览器关闭/重开及可信 plan 绑定接口仍待补齐。#17 保持 preparation-only/open，原账本、额度、截止与停止状态不变；本次仅文档准备，未生成游戏或启动付费试验。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
