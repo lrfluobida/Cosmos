@@ -51,7 +51,7 @@
 - [ ] [COS-09 实现产物登记与代码资产集成](https://github.com/lrfluobida/Cosmos/issues/10)
 - [ ] [COS-10 由 Cosmos 生成真实端到端切片](https://github.com/lrfluobida/Cosmos/issues/11)
 - [ ] [COS-11 实现受约束的修复与重新规划](https://github.com/lrfluobida/Cosmos/issues/12)
-- [ ] [COS-12 验证取消、异常退出与恢复](https://github.com/lrfluobida/Cosmos/issues/13)
+- [x] [COS-12 验证取消、异常退出与恢复](https://github.com/lrfluobida/Cosmos/issues/13)
 - [ ] [COS-13 验证并行调度与长时执行边界](https://github.com/lrfluobida/Cosmos/issues/14)
 - [ ] [COS-14 建立完整基准的运行时验收工具](https://github.com/lrfluobida/Cosmos/issues/15)
 - [ ] [COS-15 执行完整基准生成与自动验收](https://github.com/lrfluobida/Cosmos/issues/16)

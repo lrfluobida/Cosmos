@@ -308,12 +308,12 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open",
-      "integrationStatus": "phase-a-integrated",
-      "reviewStatus": "PHASE_A_READY",
-      "reviewedCommit": "ab6a2e08d0352575989abff68b5e6f615330cf8e",
-      "mergeCommit": "7cff53794665f4f759d6973061e4dc25855269e1",
-      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/13#issuecomment-5929123056"
+      "state": "closed",
+      "integrationStatus": "integrated",
+      "reviewStatus": "PHASE_B_READY",
+      "reviewedCommit": "128f4d1604e5644cd89f00d915441a0ef178f255",
+      "mergeCommit": "1dc6b00473a23d07739fcc25599a745733309209",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/13#issuecomment-5929980089"
     },
     {
       "taskId": "COS-13",
