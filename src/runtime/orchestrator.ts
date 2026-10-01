@@ -332,6 +332,10 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       // Revert only the uncommitted verdict; prior accepted evidence and attempt history stay intact.
       const snapshot = await controller.read();
       const persisted = snapshot.tasks.find(t => t.taskId === task.taskId)!;
+      if (resume && !persisted) {
+        blocked.set(task.taskId, cancelled ? 'Recovery cancelled before task registration; no work was dispatched.' : 'Recovery stopped before task registration; preserve the original origin and run state.');
+        continue;
+      }
       task.review = persisted.review;
       task.state = cancelled ? 'cancelled' : persisted.state === 'awaiting_review' ? 'waiting_user' : ['ready', 'not_started'].includes(persisted.state) ? 'waiting_user' : 'failed';
       task.stateReason = reason;

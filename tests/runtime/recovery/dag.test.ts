@@ -108,6 +108,22 @@ test('default execution remains opt-out and never creates recovery receipts', as
   await assert.rejects(readFile(join(root, 'recovery/task-code/origin.json')), /ENOENT/);
 });
 
+test('caller cancellation after origin persistence but before task registration returns blocked without mutation', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'cosmos-recovery-unregistered-')), f = await dagFixture(root, true);
+  t.after(async () => { await f.controller.close(); await rm(root, { recursive: true, force: true }); });
+  const controller = new Proxy(f.controller, { get(target, key) {
+    if (key === 'registerTasks') return async () => { throw new Error('Fixture stopped before registration'); };
+    const value = Reflect.get(target, key); return typeof value === 'function' ? value.bind(target) : value;
+  } });
+  await assert.rejects(runtime.executeTaskDag({ ...f.options, controller }), /Fixture stopped before registration/);
+  const before = await f.controller.read(); assert.equal(before.tasks.length, 0);
+  const abort = new AbortController(); abort.abort(new Error('Caller cancelled'));
+  const result = await runtime.resumeTaskDag({ ...f.options, signal: abort.signal });
+  assert.equal(result.blocked.length, 1); assert.match(result.blocked[0].reason, /cancel.*before.*registration/i);
+  assert.equal(result.tasks[0].attempts.length, 0); assert.deepEqual(await f.calls(), []);
+  assert.deepEqual(await f.controller.read(), before);
+});
+
 for (const outcome of ['failed', 'cancelled'] as const) test(`recovery preserves a ${outcome} terminal task and its COS-11 history`, async t => {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-recovery-terminal-')), f = await dagFixture(root, true);
   t.after(async () => { await f.controller.close(); await rm(root, { recursive: true, force: true }); });
