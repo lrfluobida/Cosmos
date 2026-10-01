@@ -45,6 +45,8 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 
 用户要求：每个任务分别设置 implementer 和 reviewer，由同批唯一 merger 合入 main；持续推进已授权工作。
 
+第二批追加 COS-04 通用美术与音频验证，与 provider 和浏览器的审核修复并行；同批仍由 batch02_merger 唯一合并。
+
 | 批次 | 任务 | Implementer | Reviewer | Merger | 状态 |
 | --- | --- | --- | --- | --- | --- |
 | 01 | COS-01 / #2 | cos01_implementer | cos01_reviewer | batch01_merger | 791472e 经修复复审批准部分交付，合并 8b64b59；参考测试 16/16，230 项中 221 项待核对；#2 保持 open |
@@ -53,6 +55,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 02 | COS-03 / #4 | cos03_implementer | cos03_reviewer | batch02_merger | 审核发现立即取消仍派发与 SSE 全程超时缺口；原实现者修复后复审；真实 pi 探针仍待执行 |
 | 02 | COS-06 / #7 | cos06_implementer | cos06_reviewer | batch02_merger | 1bed423 独立批准，合并 f724d5f；完整测试 85/85、构建与类型检查通过；网络故障待推送，#7 保持 open |
 | 02 | COS-08 / #9 | cos08_implementer | cos08_reviewer | batch02_merger | 审核发现渲染进程卡住时鼠标操作缺少总截止保护；原实现者修复后复审 |
+| 02 | COS-04 / #5 | cos04_implementer | 提交后独立审核 | batch02_merger | 通用程序图层、关键姿态与合成音频验证已启动；无外部付费调用 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
