@@ -108,3 +108,10 @@ root 已批准只为受修复上游影响、从未启动的下游建立新任务
 - `buildRepairContinuation` 复用 `createLinkedRepairTask`，为其余未启动任务产生新的 task/author/context ID、固定输出版本和显式 replacement map。准确替换上游依赖、inputs 和 interfaces 的旧版本；原目标、验收与写入范围保留。来源版本不明确、输出覆盖旧位置、预算/停止/unknown/原时限不满足均拒绝。
 - 17 项轻量测试先红灯后通过，命令：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/entrypoint-successors.test.ts`。仅使用内存契约和假数据，没有 child process、renderer、browser 或 API 调用；`npm run typecheck` 通过。
 - C1 尚未接入生产执行。后续边界仍须完成：write-once 组计划的加载与校验、原始失败产物/诊断快照、journal origin 的安全准备、原子 group 注册、恢复和只读 effective/superseded 投影。不得仅凭本段纯函数测试声称下游已可恢复或 Phase C 完成。
+
+### C2：持久组计划与一次登记
+
+- `prepareRepairContinuation` 核对原 native plan、确认需求、原时间/账本身份、固定 replacement map、整数 grant、原任务与新任务契约。复用原 `TaskJournal` 校验来源；受影响旧下游不得已有作者写入、输出或阶段回执。修复原产物或 UTF-8 原始诊断必须存在，并绑定原 task/attempt/session/inputs 和可信失败反馈；开始修复前原文件与快照字节不符会阻断。
+- 先发布 write-once `repair-plan.json`，再安全补齐尚未登记的新 origin，最后通过原 `RunController.registerTasks` 一次登记全组。plan-only、部分 origin 和完整登记边界均恢复原映射，不重复分配。部分组登记、已登记任务丢失 origin、已有不明回执均保守阻断；不会合成 author/capture/verify/review 回执。
+- 最初 10 项文件/持久化测试确认缺少接口的红灯，完成后扩至 19 项通过；与 C1 合计 36 项轻量检查通过，命令：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/entrypoint-successors.test.ts tests/runtime/entrypoint-continuation.test.ts`。使用临时目录、假数据与实际快照/journal；没有子进程、浏览器或 API。`npm run typecheck`、`git diff --check`、UTF-8/LF 与中文复读通过。
+- C2 仍未接入公开运行。生产 host 的确定性诊断写入、entrypoint 新旧 repair-plan 分支、effective/superseded 状态以及 design/art/coding 执行和阶段中断测试由下一段完成。旧 B repair-plan 不迁移或回收 grant，硬停止语义不变。
