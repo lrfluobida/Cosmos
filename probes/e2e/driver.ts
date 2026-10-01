@@ -23,6 +23,7 @@ import { createPilotAcceptance } from './acceptance.ts';
 import { buildProject, copyReviewInputs, files, jsonFile, serveBuild, writeJson } from './host.ts';
 import { renderMedia, validateMediaSpec } from './media.ts';
 import { rolePolicies, stageAcceptance, validateRolePlan } from './policy.ts';
+import type { Continuation } from './continuation.ts';
 
 const ownership = { writePaths: ['.'], readOnlyPaths: [] };
 const provenance = (sourceRefs: string[], generator: string) => ({ kind: 'original-procedural' as const, sourceRefs, generator });
@@ -33,35 +34,40 @@ export async function generatePilot(options: {
   toolchain: string; childAllocationCapMicroCny: number; confirmedAt: string;
   /** Offline admission/failure tests only; the production entry always uses the native SDK. */
   sessionFactory?: (config: PiSessionOptions) => Promise<RoleSession>;
+  continuation?: Continuation;
 }) {
   const { root, repository, prefix, controller, guard, toolchain } = options;
-  const frozen = await jsonFile(repository, 'probes/e2e/requirements.json');
+  const frozen = options.continuation?.frozen ?? await jsonFile(repository, 'probes/e2e/requirements.json');
   const registry = await createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry' });
+  const sourceRef = options.continuation?.available[0] ?? registry.artifactRef(`${prefix}-requirements`, frozen.requirementVersion);
+  const baseRef = options.continuation?.available[1] ?? registry.artifactRef(`${prefix}-template`, 'v1');
+  if (!options.continuation) {
   const inputRoot = await directory(root, 'inputs');
   await cp(join(repository, 'probes/e2e/requirements.json'), join(inputRoot, 'requirements.json'));
   await cp(join(repository, 'src/media/vector.ts'), join(inputRoot, 'character-format.ts'));
   await cp(join(repository, 'src/media/audio.ts'), join(inputRoot, 'audio-format.ts'));
-  const sourceRef = registry.artifactRef(`${prefix}-requirements`, frozen.requirementVersion);
   await registry.registerCapture({ taskId: 'COS-10', artifactRef: sourceRef, sourceRoot: 'inputs', ownership, dependencies: [],
     metadata: { kind: 'data', provenance: provenance(['probes/e2e/requirements.json', 'src/media/vector.ts', 'src/media/audio.ts'], 'Frozen user-authorized pilot input and generic media format') },
     files: ['requirements.json', 'character-format.ts', 'audio-format.ts'].map(name => ({ source: name, destination: `_cosmos/${name}` })),
   });
-  const baseRef = registry.artifactRef(`${prefix}-template`, 'v1');
   await registry.registerCapture({ taskId: 'COS-10', artifactRef: baseRef, sourceRoot: 'toolchain', ownership, dependencies: [],
     metadata: { kind: 'code', provenance: provenance(['templates/2d'], 'Unchanged generic Phaser toolchain baseline') },
     files: ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'].map(name => ({ source: name, destination: name })),
   });
-  const available = [sourceRef, baseRef];
+  }
+  const available = options.continuation?.available ?? [sourceRef, baseRef];
   const draft = prepareClarification({ brief: frozen.scope, specVersion: frozen.specVersion, sources: [sourceRef], acceptance: stageAcceptance(frozen.acceptanceIds),
     questions: [{ id: 'scope', prompt: 'Which fixed pilot and normal-input acceptance should Cosmos generate?' }],
     answers: { scope: `The already authorized ${frozen.requirementVersion} scope and all frozen acceptance checks. Root approved the v2 stage interfaces before any paid generation.` },
   });
-  const requirement = confirmRequirements(draft, { confirmed: true, actorId: 'user-authorized-COS-10-coordinator', at: options.confirmedAt });
+  const requirement = options.continuation?.requirement ?? confirmRequirements(draft, { confirmed: true, actorId: 'user-authorized-COS-10-coordinator', at: options.confirmedAt });
+  if (!options.continuation) {
   await writeJson(root, 'confirmed-requirement.json', { draft, requirement });
   for (const role of ['design', 'art', 'coding']) await directory(root, `authors/${role}`);
   // Only generic source is present before native generation. It is not accepted game evidence.
   await cp(join(toolchain, 'src'), join(root, 'authors/coding/src'), { recursive: true });
   await cp(join(toolchain, 'index.html'), join(root, 'authors/coding/index.html'));
+  }
   const refs = { design: registry.artifactRef(`${prefix}-design`, 'v1'), art: registry.artifactRef(`${prefix}-art`, 'v1'), coding: registry.candidateRef(`${prefix}-game`, 'v1') };
   const { policies, repairAllocationMicroCny } = rolePolicies(root, prefix, options.childAllocationCapMicroCny, refs, frozen.acceptanceIds);
   for (const policy of Object.values(policies)) policy.rules!.push(
@@ -107,11 +113,12 @@ export async function generatePilot(options: {
     },
   });
 
-  const planned = await planTaskDag({ controller, requirement, planningTaskId: 'COS-10', workspace: root, sessionRoot: join(root, 'sessions'), availableArtifacts: available,
-    roles: policies, roleFactory, signal: guard.signal });
-  validateRolePlan(planned.tasks, prefix, frozen.acceptanceIds);
+  const planned = options.continuation ? { tasks: options.continuation.tasks, plan: options.continuation.plan }
+    : await planTaskDag({ controller, requirement, planningTaskId: 'COS-10', workspace: root, sessionRoot: join(root, 'sessions'), availableArtifacts: available,
+      roles: policies, roleFactory, signal: guard.signal });
+  if (!options.continuation) validateRolePlan(planned.tasks, prefix, frozen.acceptanceIds);
   for (const item of planned.tasks) prepared.set(item.task.taskId, item);
-  await writeJson(root, 'plan-reference.json', planned.plan);
+  if (!options.continuation) await writeJson(root, 'plan-reference.json', planned.plan);
 
   const evidence = (task: TaskContract, path: string, outcome: 'passed' | 'failed', summary: string): EvidenceContract => ({
     contractVersion: '1.0.0', evidenceId: `${task.taskId}-host`, taskId: task.taskId, acceptanceIds: task.acceptanceIds, kind: 'test_report',
@@ -123,8 +130,13 @@ export async function generatePilot(options: {
       const authorRoot = `authors/${item.role}`, inputs = task.inputs;
       const origin = provenance([task.attempts.at(-1)!.sessionRef, ...inputs.map(i => `${i.artifactId}@${i.version}`)], 'New native Cosmos role output in this timed run');
       if (item.role === 'design') {
+        if (options.continuation) {
+          // The clarification role cannot write; retain the original immutable design capture and its provenance.
+          await registry.getCapture(options.continuation.designRef);
+        } else {
         await registry.registerCapture({ taskId: task.taskId, artifactRef: output, sourceRoot: authorRoot, ownership, dependencies: inputs,
           files: [{ source: 'design.json', destination: '_cosmos/design.json' }], metadata: { kind: 'data', provenance: origin } });
+        }
       } else if (item.role === 'art') {
         const rendered = await renderMedia(root, `rendered/${task.taskId}`, await jsonFile(root, 'authors/art/mediaSpec.json'), signal);
         const selected = (await files(join(root, `rendered/${task.taskId}`))).filter(name => name !== 'contact-sheet.png');
@@ -210,7 +222,7 @@ export async function generatePilot(options: {
   const results = await execute(planned.tasks, available);
   let coding = results.find(task => prepared.get(task.taskId)?.role === 'coding')!;
   // One explicit role repair, preserving the failed task, original guard and ledger. Earlier-role failure is reported as a gap.
-  if (coding.state !== 'passed' && ['failed', 'needs_changes'].includes(coding.state)
+  if (!options.continuation && coding.state !== 'passed' && ['failed', 'needs_changes'].includes(coding.state)
     && results.filter(task => task !== coding).every(task => task.state === 'passed') && !guard.signal.aborted) {
     const failurePath = `evidence/${coding.taskId}/repair-input.json`;
     await writeJson(root, failurePath, { state: coding.state, stateReason: coding.stateReason, handoff: coding.handoff,

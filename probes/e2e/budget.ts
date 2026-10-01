@@ -1,8 +1,12 @@
 import { access, open, rename, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import type { PiBudget } from '../../src/providers/pi.ts';
 import type { RunController } from '../../src/runtime/run.ts';
+import { isDeepStrictEqual } from 'node:util';
 import { PILOT_LIMITS } from './admission.ts';
+import { jsonFile } from './host.ts';
+
+export interface PilotJournal { startedAt: string; deadlineAt: string; maxRequests: number; requestIds: string[] }
 
 export async function assertPilotNotStarted(ledgerRoot: string): Promise<void> {
   try { await access(join(ledgerRoot, 'cos10-pilot.json')); }
@@ -25,6 +29,22 @@ export async function createPilotGuard(options: { root: string; controller: RunC
   const journal = { startedAt: new Date().toISOString(), deadlineAt: options.deadlineAt, maxRequests: options.maxRequests, requestIds: [] as string[] };
   const path = join(options.root, 'pilot-budget.json');
   await writeFile(path, JSON.stringify(journal, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
+  return activeGuard(options, journal);
+}
+
+/** Called only after the one-shot continuation gate validates marker, origin, ledger and exact old journal. */
+export async function openPilotGuard(options: { root: string; ledgerRoot: string; controller: RunController; journal: PilotJournal }) {
+  const current = await jsonFile(options.root, 'pilot-budget.json');
+  if (!isDeepStrictEqual(current, options.journal)) throw new Error('Original pilot journal changed');
+  const marker = await jsonFile(options.ledgerRoot, 'cos10-pilot.json'), origin = await jsonFile(options.root, 'origin.json');
+  if (resolve(marker.root) !== resolve(options.root) || marker.startedAt !== origin.startedAt || marker.deadlineAt !== origin.deadlineAt || marker.deadlineAt !== current.deadlineAt
+    || !isDeepStrictEqual(origin.limits, PILOT_LIMITS) || current.maxRequests !== PILOT_LIMITS.maxRequests) throw new Error('Original marker, deadline or limits changed');
+  return activeGuard({ ...options, deadlineAt: current.deadlineAt, maxRequests: current.maxRequests }, structuredClone(current));
+}
+
+function activeGuard(options: { root: string; controller: RunController; deadlineAt: string; maxRequests: number }, journal: PilotJournal) {
+  const deadline = Date.parse(options.deadlineAt), path = join(options.root, 'pilot-budget.json');
+  if (!Number.isFinite(deadline) || deadline <= Date.now()) throw new Error('Pilot deadline expired');
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(new Error('Pilot deadline cleanup reserve reached')), Math.max(0, deadline - Date.now() - 5000));
   const signal = AbortSignal.any([abort.signal, options.controller.signal]);
