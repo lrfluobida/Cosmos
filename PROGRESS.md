@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个已核实的原生子任务。正式单次生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。进入按依赖实施阶段。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批开发已开始：每项任务独立 implementer 与 reviewer，同批由一个 merger 合入主分支。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -32,14 +32,26 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 原版内容与版本边界核实 | 首轮核实完成 | [内容来源与版本差异](docs/research/2026-09-30-model-budget.md)，完整规则名册仍需核对 |
 | Harness 契约与失败场景审查 | 首轮完成 | 候选契约已纳入 spec；正式实现与故障注入尚未开始 |
 | 第 3 轮需求访谈 | 已回答，预算随后更新 | 当前验证 ¥150 / 正式单次 ¥200/12h；背景音乐和关键音效；最终由用户试玩确认 |
-| 参考依据确认 | 已回答 | 用户会准备可运行的经典 PC 参考版本；具体版本在基准任务记录 |
+| 参考依据确认 | 已提供安装路径 | `C:\Program Files (x86)\PlantsVsZombies`，只读核对版本与资料，COS-01 正在记录 |
 | 记录领域术语 | 持续更新 | [CONTEXT.md](CONTEXT.md) 已记录 Cosmos 与目标游戏 |
 | 比较方案并记录关键决策 | 待前置决策 | 真正涉及重要取舍时再创建 ADR |
 | 编写、审查并确认 spec | v1.0 发布基线 | 结构审查通过，用户已确认 ¥200/12h 硬上限和 ¥100/6h 优化目标 |
 | 真实成本与时延探针 | 直接 API 与局部规则已测 | [31 次调用记录](probes/2026-10-01-deepseek/README.md)，高峰价保守估算 ¥0.721771；pi 集成和完整关卡仍未测 |
 | 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 首批任务已就绪 | COS-01 来源调查、COS-02 契约、COS-05 通用工程；每次交接携带输入版本、修改范围与验收证据 |
+| 子代理逐项实施 | 第一批进行中 | COS-01、COS-02、COS-05 的 implementer 已在独立工作区开始；下一步各自独立 review 与批次 merger |
+
+## 开发批次
+
+用户要求：每个任务分别设置 implementer 和 reviewer，由同批唯一 merger 合入 main；持续推进已授权工作。
+
+| 批次 | 任务 | Implementer | Reviewer | Merger | 状态 |
+| --- | --- | --- | --- | --- | --- |
+| 01 | COS-01 / #2 | cos01_implementer | cos01_reviewer | batch01_merger | 审核发现证据覆盖关联缺陷，implementer 修复中；参考冻结仍未完成 |
+| 01 | COS-02 / #3 | cos02_implementer | 实现提交后启动独立审核 | batch01_merger | 实现中 |
+| 01 | COS-05 / #6 | cos05_implementer | cos05_reviewer | batch01_merger | 1121ae2 已独立批准；CLI 7/7、浏览器 1/1，等待批次合并 |
+
+文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
 ## 第 1 轮：根问题与回答
 
