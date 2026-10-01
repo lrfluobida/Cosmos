@@ -40,7 +40,7 @@ async function setup(t: test.TestContext, failedId = 'design') {
   const targets = candidates.map(item => ({ sourceTaskId: item.task.taskId, taskId: `${item.task.taskId}-${item.task.taskId === failedId ? 'repair' : 'successor'}`,
     allocationMicroCny: grants[item.task.taskId], outputs: item.task.outputs.map(value => ({ ...value, destination: output(item.role, 'v2').location })), expectedArtifacts: [output(item.role, 'v2')],
     ...(item.task.taskId === failedId ? { interfaces: [diagnostic] } : {}) }));
-  const plan = successors.buildRepairContinuation({ ...f, targets });
+  const plan = await successors.sealRepairDiagnostics(root, successors.buildRepairContinuation({ ...f, targets }));
   const options = () => ({ root, controller, plan, originals: f.originals, requirement: f.requirement, originalPlan: f.originalPlan, now: f.now });
   return { ...f, root, plan, recovery, origin, diagnostic, options, current: () => controller,
     reopen: async () => { await controller.close(); controller = await RunController.open({ root, now: () => f.now }); } };
@@ -115,4 +115,23 @@ test('missing origin for an already registered task is not manufactured', async 
   await rm(join(f.root, 'journal/task-art-successor/origin.json'));
   await assert.rejects(successors.prepareRepairContinuation(f.options()), /origin/i); assert.deepEqual(await f.current().read(), before);
   await assert.rejects(readFile(join(f.root, 'journal/task-art-successor/origin.json')), { code: 'ENOENT' });
+});
+
+for (const changed of ['raw', 'manifest', 'author-workspace']) test(`started repair retains fixed diagnostic bytes while ${changed} changes are checked separately`, async t => {
+  const f = await setup(t); await successors.prepareRepairContinuation(f.options());
+  const task = (await f.current().read()).tasks.find(task => task.taskId === 'design-repair')!;
+  task.state = 'ready'; await f.current().saveTask(task, { role: 'system', actorId: 'test' });
+  task.state = 'running'; task.attempts = [{ attemptId: 'repair-attempt', sessionRef: join(f.root, 'sessions/repair-attempt'),
+    startedAt: new Date(f.now).toISOString(), endedAt: null, outcome: 'running', failure: null }];
+  await f.current().saveTask(task, { role: 'system', actorId: 'test' });
+  const before = await f.current().read();
+  if (changed === 'raw') await writeFile(join(f.root, f.diagnostic.location, 'raw.json'), '{"different":', 'utf8');
+  if (changed === 'manifest') {
+    const path = join(f.root, f.diagnostic.location, 'manifest.json'), manifest = JSON.parse(await readFile(path, 'utf8'));
+    manifest.diagnosis.message = 'Changed after repair started'; await writeFile(path, JSON.stringify(manifest), 'utf8');
+  }
+  if (changed === 'author-workspace') await writeFile(join(f.root, 'authors/design/broken.json'), '{"修复后":true}', 'utf8');
+  if (changed === 'author-workspace') await successors.prepareRepairContinuation(f.options());
+  else await assert.rejects(successors.prepareRepairContinuation(f.options()), /signature|fixed|content/i);
+  assert.deepEqual(await f.current().read(), before);
 });

@@ -48,4 +48,3 @@ export function fixture(failedId = 'design') {
     issues: [{ acceptanceId: failed.acceptanceIds[0], checkId: 'schema', ...attempt.failure! }], passedChecks: [], charges: [] };
   return { snapshot, originals, requirement, failedId, feedback, originalPlan: planRef, now };
 }
-

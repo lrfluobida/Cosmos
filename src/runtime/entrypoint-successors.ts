@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { lstat, readdir } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import { regularFile, safePath, snapshot as fileSnapshot, within } from '../artifacts/paths.ts';
@@ -33,6 +33,8 @@ export interface RepairContinuationPlan {
   /** Complete effective DAG; unchanged ancestors retain their original prepared contracts. */
   tasks: PreparedTask[];
   reviewProtocolCorrections: 1;
+  /** Sealed before publication; only the preserved diagnostic manifest and its raw files are hashed. */
+  diagnosticSignatures?: { reference: ArtifactReference; files: { path: string; sha256: string }[] }[];
 }
 export class SuccessorBlocked extends Error {}
 const blocked = (message: string): never => { throw new SuccessorBlocked(message); };
@@ -191,6 +193,34 @@ function requireDistinctOutputs(refs: ArtifactReference[], workspace: string) {
   if (refs.some((ref, index) => refs.slice(0, index).some(prior => pathsOverlap(prior.location, ref.location, workspace)))) blocked('Continuation output destinations overlap.');
 }
 
+async function diagnosticSignatures(root: string, plan: RepairContinuationPlan) {
+  const repairedId = plan.replacements.find(item => item.sourceTaskId === plan.failedTaskId)?.replacementTaskId;
+  const repaired = plan.tasks.find(item => item.task.taskId === repairedId) ?? blocked('Missing repair diagnostic owner.');
+  const references = repaired.task.context.interfaces.filter(ref => ref.artifactId === `failure-source-${plan.failedTaskId}`);
+  const signatures: NonNullable<RepairContinuationPlan['diagnosticSignatures']> = [];
+  for (const reference of references) {
+    const folder = await safePath(root, reference.location), manifestBytes = await regularFile(folder, 'manifest.json');
+    const manifest = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes));
+    if (!Array.isArray(manifest.files) || !manifest.files.length || manifest.files.some((file: any) => typeof file.present !== 'boolean')) blocked('Incomplete fixed diagnostic manifest.');
+    const files = [{ path: 'manifest.json', sha256: createHash('sha256').update(manifestBytes).digest('hex') }];
+    for (const file of manifest.files.filter((file: any) => file.present)) {
+      if (files.some(item => item.path === file.snapshotPath)) blocked('Duplicate fixed diagnostic path.');
+      const bytes = await regularFile(folder, file.snapshotPath); new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      files.push({ path: file.snapshotPath, sha256: createHash('sha256').update(bytes).digest('hex') });
+    }
+    signatures.push({ reference: structuredClone(reference), files });
+  }
+  return signatures;
+}
+
+/** Seal the narrow raw diagnostic inputs once, before the write-once group plan exists. */
+export async function sealRepairDiagnostics(root: string, plan: RepairContinuationPlan): Promise<RepairContinuationPlan> {
+  if (plan.diagnosticSignatures !== undefined || await exists(root, 'repair-plan.json')) blocked('Repair diagnostic signatures are already fixed.');
+  const state = await readJson(root, 'snapshot.json') as RunSnapshot;
+  if (plan.newTaskIds.some(id => state.tasks.some(task => task.taskId === id))) blocked('Cannot seal diagnostic content after group registration.');
+  return { ...structuredClone(plan), diagnosticSignatures: await diagnosticSignatures(root, plan) };
+}
+
 /** Checks the fixed proposal against the original contracts, even after its tasks have run. */
 function validateContinuation(plan: RepairContinuationPlan, state: RunSnapshot, originals: readonly PreparedTask[], requirement: RequirementContract, originalPlan: ArtifactReference, feedback: RepairFeedback) {
   if (plan.formatVersion !== 2 || plan.runId !== state.run.runId || plan.ledgerId !== state.ledger.ledgerId || plan.originalStartedAt !== state.run.originalStartedAt
@@ -277,6 +307,8 @@ export async function prepareRepairContinuation(options: { root: string; control
   if (prior && !sameValue(prior, plan)) blocked('Write-once repair plan changed.');
   const feedback = await readJson(root, plan.feedback.location) as RepairFeedback;
   const { additions, registered, failed } = validateContinuation(plan, state, originals, requirement, originalPlan, feedback);
+  if (registered && !prior) blocked('Registered group has no fixed repair plan.');
+  if (!Array.isArray(plan.diagnosticSignatures) || !sameValue(plan.diagnosticSignatures, await diagnosticSignatures(root, plan))) blocked('Fixed diagnostic content signature changed.');
   if (state.stopReason || state.run.state !== 'running' || state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)
     || options.now >= Date.parse(state.run.originalDeadlineAt) || !registered && options.now + additions.length * 60000 + 5000 >= Date.parse(state.run.originalDeadlineAt)) blocked('Original admission, charges or deadline block continuation.');
   const recovery = { journalRoot: join(root, 'journal'), artifactRoot: root };
