@@ -107,7 +107,10 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open"
+      "state": "open",
+      "integrationStatus": "merged-local-sync-pending",
+      "reviewedCommit": "1bed42304a1050b111d8231529e8e57e64e19c3e",
+      "mergeCommit": "f724d5ff91ac590f62d2939bd034ba9fca3bfb00"
     },
     {
       "taskId": "COS-07",
