@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, realpath, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { validateRequirement, validateTaskInputs } from '../contracts/index.ts';
+import { sameValue } from '../contracts/validation.ts';
 import type { ArtifactReference, RequirementContract, TaskContract } from '../contracts/index.ts';
 import type { RunController } from '../runtime/run.ts';
 import type { PreparedTask } from '../runtime/orchestrator.ts';
@@ -43,9 +44,11 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
   const allocation = snapshot.ledger.allocations.find(a => a.taskId === options.planningTaskId);
   if (!allocation) throw new Error('Planning needs its existing shared ledger allocation.');
   const roles = structuredClone(options.roles), available = structuredClone(options.availableArtifacts);
+  if (requirement.sources.some(source => !available.some(ref => sameValue(ref, source)))) throw new Error('Planning requires every confirmed requirement source at its exact version and location.');
   if (!Object.keys(roles).length || Object.keys(roles).some(role => !['cosmos', 'design', 'coding', 'art'].includes(role))) throw new Error('Declare host role policies before planning.');
   for (const policy of Object.values(roles)) {
     if (!Number.isSafeInteger(policy.allocationMicroCny) || policy.allocationMicroCny < 0 || !policy.outputs.length) throw new Error('Invalid host role allocation or outputs.');
+    policy.workspace = await realpath(policy.workspace);
   }
   const contextId = `planning-${randomUUID()}`, directory = join(options.sessionRoot, contextId);
   const planningTask: TaskContract = {
@@ -96,7 +99,7 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
         budget: { ...planningTask.budget, allocationMicroCny: policy.allocationMicroCny },
         handoff: { completed: [], remaining: [draft.objective], uncertainty: [], resumeFrom: null },
       };
-      assertOwnership(task);
+      assertOwnership(task, policy.workspace);
       const issues = validateTaskInputs(task, inputs);
       if (issues.length) throw new Error(`Invalid planned contract: ${issues.map(e => e.message).join('; ')}`);
       return { role: draft.role, workspace: policy.workspace, task, expectedArtifacts: outputs(draft) };

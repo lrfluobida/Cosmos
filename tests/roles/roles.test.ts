@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -17,7 +17,14 @@ const now = () => Date.parse('2026-10-01T01:00:00.000Z');
 for (const invalid of [false, true]) test(`Cosmos plans host-scoped tasks from confirmed requirements, incomplete coverage rejected: ${invalid}`, async t => {
   const f = await fixture(t), seen: any[] = [];
   const factory = createRoleFactory({ maxOutputTokens: 500, maxRequests: 1, requestTimeoutMs: 1000, estimatedMaxCostMicroCny: 100,
-    sessionFactory: async config => { seen.push(config); return { async prompt() { return { text: JSON.stringify({ tasks: [{ taskId: 'generated-code', role: 'coding', objective: 'Implement the confirmed interaction', acceptanceIds: invalid ? [] : ['AC-1'], dependsOn: [] }] }) }; }, async close() {} }; } });
+    sessionFactory: async config => { seen.push(config); return { async prompt() {
+      const packet = JSON.parse(config.context);
+      assert.deepEqual(packet.inputs, requirement.sources);
+      assert.ok(packet.ownership.readPaths.includes(requirement.sources[0].location));
+      const source = await config.tools.find(tool => tool.name === 'read')!.execute('requirements', { path: requirement.sources[0].location }, undefined, undefined, undefined as any);
+      assert.match(JSON.stringify(source), /鼠标操作/);
+      return { text: JSON.stringify({ tasks: [{ taskId: 'generated-code', role: 'coding', objective: 'Implement the confirmed interaction', acceptanceIds: invalid ? [] : ['AC-1'], dependsOn: [] }] }) };
+    }, async close() {} }; } });
   const action = planTaskDag({ controller: f.controller, requirement, planningTaskId: 'planning', workspace: f.workspace, sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, roleFactory: factory,
     roles: { coding: { workspace: f.workspace, allocationMicroCny: 300, writePaths: ['game'], readOnlyPaths: ['requirements'], tools: ['read', 'write', 'edit'], outputs: [{ artifactId: 'game', version: 'v1', destination: 'artifacts/game/v1', type: 'game', schema: 'game/1' }] } } });
   if (invalid) await assert.rejects(action, /acceptance|coverage/i);
@@ -33,10 +40,21 @@ for (const invalid of [false, true]) test(`Cosmos plans host-scoped tasks from c
   assert.equal(seen.length, 1);
 });
 
+for (const missing of [true, false]) test(`planning rejects missing or stale confirmed source before dispatch: ${missing ? 'missing' : 'stale'}`, async t => {
+  const f = await fixture(t), seen: any[] = [];
+  const factory = createRoleFactory({ maxOutputTokens: 500, maxRequests: 1, requestTimeoutMs: 1000, estimatedMaxCostMicroCny: 100,
+    sessionFactory: async config => { seen.push(config); return { async prompt() { return { text: JSON.stringify({ tasks: [{ taskId: 'generated-code', role: 'coding', objective: 'Implement', acceptanceIds: ['AC-1'], dependsOn: [] }] }) }; }, async close() {} }; } });
+  await assert.rejects(planTaskDag({ controller: f.controller, requirement, planningTaskId: 'planning', workspace: f.workspace, sessionRoot: join(f.root, 'sessions'), availableArtifacts: missing ? [] : [{ ...requirement.sources[0], version: 'old' }], roleFactory: factory,
+    roles: { coding: { workspace: f.workspace, allocationMicroCny: 300, writePaths: ['game'], readOnlyPaths: ['requirements'], tools: ['read', 'write', 'edit'], outputs: [{ artifactId: 'game', version: 'v1', destination: 'artifacts/game/v1', type: 'game', schema: 'game/1' }] } } }), /confirmed.*source|source.*version/i);
+  assert.equal(seen.length, 0);
+});
+
 async function fixture(t: test.TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-roles-'));
   const workspace = join(root, 'author'), reviewWorkspace = join(root, 'snapshot');
   await mkdir(join(workspace, 'game'), { recursive: true });
+  await mkdir(join(workspace, 'requirements'), { recursive: true });
+  await writeFile(join(workspace, 'requirements/v1.json'), JSON.stringify({ brief: '原创小游戏', answers: { controls: '鼠标操作' } }), 'utf8');
   await mkdir(join(reviewWorkspace, 'artifacts/game/v1'), { recursive: true });
   await mkdir(join(reviewWorkspace, 'requirements'), { recursive: true });
   const controller = await RunController.create({ root: join(root, 'run'), runId: 'run-1', ledgerId: 'ledger-1', kind: 'runtime_generation', specVersion: requirement.specVersion, scope: 'validation', limitMicroCny: 1000, allocations: [{ taskId: 'planning', amountMicroCny: 100 }], now });
@@ -180,6 +198,33 @@ test('native role boundary keeps author writes scoped and reviewer tools read on
   await reviewer.close();
 });
 
+for (const scope of ['absolute-input', 'absolute-write', 'absolute-read-only', 'absolute-interface'] as const) {
+  test(`ownership uses the actual workspace for mixed path forms: ${scope}`, async t => {
+    const f = await fixture(t), seen: any[] = [], factory = mockFactory(seen);
+    const fixedPath = join(f.workspace, 'game', 'fixed.json');
+    await writeFile(fixedPath, '固定输入不可覆盖', 'utf8');
+    if (scope === 'absolute-input') f.task.inputs.push(artifact('fixed', 'v1', fixedPath));
+    if (scope === 'absolute-write') { f.task.ownership.writePaths = [join(f.workspace, 'game')]; f.task.inputs.push(artifact('fixed', 'v1', 'game/fixed.json')); }
+    if (scope === 'absolute-read-only') f.task.ownership.readOnlyPaths.push(join(f.workspace, 'game'));
+    if (scope === 'absolute-interface') f.task.context.interfaces.push(artifact('fixed-api', 'v1', fixedPath));
+    await assert.rejects(async () => {
+      const role = await factory({ role: 'coding', task: f.task, requirement, workspace: f.workspace, stateDirectory: join(f.root, 'sessions'), controller: f.controller });
+      try { await seen[0].config.tools.find((tool: any) => tool.name === 'write').execute('overwrite', { path: 'game/fixed.json', content: 'overwritten' }); }
+      finally { await role.close(); }
+    }, /overlap|scope/i);
+    assert.equal(seen.length, 0);
+    assert.equal(await readFile(fixedPath, 'utf8'), '固定输入不可覆盖');
+  });
+}
+
+test('cross-task ownership rejects mixed absolute and relative overlapping writes before dispatch', async t => {
+  const f = await fixture(t), seen: any[] = [], other = structuredClone(f.task);
+  other.taskId = 'art'; other.context.contextId = 'art-context'; other.ownership.writePaths = [join(f.workspace, 'game/subdir')];
+  await assert.rejects(executeTaskDag({ controller: f.controller, requirement, tasks: [{ task: f.task, role: 'coding', workspace: f.workspace }, { task: other, role: 'art', workspace: f.workspace }], sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, roleFactory: mockFactory(seen), now,
+    capture: async () => ({ artifacts: [artifact()], reviewWorkspace: f.reviewWorkspace }), verify: async task => passingEvidence(task) }), /conflict/i);
+  assert.equal(seen.length, 0);
+});
+
 test('DAG completion needs host evidence and a separate frozen review context', async t => {
   const f = await fixture(t), seen: any[] = [];
   const results = await executeTaskDag({ controller: f.controller, requirement, tasks: [{ task: f.task, role: 'coding', workspace: f.workspace }], sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, roleFactory: mockFactory(seen), now,
@@ -189,6 +234,20 @@ test('DAG completion needs host evidence and a separate frozen review context', 
   assert.notEqual(seen[0].config.stateDirectory, seen[1].config.stateDirectory);
   assert.deepEqual(results[0].review.inputVersions, [...f.task.inputs, artifact()]);
   assert.equal((await f.controller.read()).tasks[0].state, 'passed');
+});
+
+for (const stale of [true, false]) test(`only current selected review evidence can approve while history stays intact: ${stale}`, async t => {
+  const f = await fixture(t), seen: any[] = [];
+  const results = await executeTaskDag({ controller: f.controller, requirement, tasks: [{ task: f.task, role: 'coding', workspace: f.workspace }], sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, roleFactory: mockFactory(seen, packet => ({ verdict: 'approved', inputVersions: packet.inputs, evidenceIds: [stale ? 'old-test' : 'code-test'], findings: [] })), now,
+    capture: async () => ({ artifacts: [artifact()], reviewWorkspace: f.reviewWorkspace }), verify: async task => {
+      const current = passingEvidence(task)[0], old = structuredClone(current);
+      old.evidenceId = 'old-test'; old.artifactVersions[0].version = 'old';
+      return [current, old];
+    } });
+  assert.equal(results[0].state === 'passed', !stale);
+  assert.equal(results[0].evidence.length, 2);
+  assert.equal(results[0].evidence[1].artifactVersions[0].version, 'old');
+  assert.equal((await f.controller.read()).tasks[0].evidence.length, 2);
 });
 
 test('unfinished author handoff is retained without paying for an approval attempt', async t => {

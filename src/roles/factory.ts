@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { realpath } from 'node:fs/promises';
 import { resolve, relative, isAbsolute, sep } from 'node:path';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { ImageContent } from '@earendil-works/pi-ai';
@@ -45,15 +46,15 @@ export function roleToolEnvironment(source: NodeJS.ProcessEnv = process.env): No
   return Object.fromEntries(Object.entries(source).filter(([name, value]) => allowed.has(name.toUpperCase()) && value !== undefined));
 }
 
-export function pathsOverlap(a: string, b: string): boolean {
-  const within = (left: string, right: string) => { const rel = relative(resolve(left), resolve(right)); return rel === '' || (!isAbsolute(rel) && rel !== '..' && !rel.startsWith(`..${sep}`)); };
+export function pathsOverlap(a: string, b: string, workspace: string): boolean {
+  const within = (left: string, right: string) => { const rel = relative(resolve(workspace, left), resolve(workspace, right)); return rel === '' || (!isAbsolute(rel) && rel !== '..' && !rel.startsWith(`..${sep}`)); };
   return within(a, b) || within(b, a);
 }
 
-export function assertOwnership(task: TaskContract): void {
-  if (task.ownership.writePaths.some(write => task.ownership.readOnlyPaths.some(read => pathsOverlap(write, read)))) throw new Error('Write scope overlaps a read-only path.');
+export function assertOwnership(task: TaskContract, workspace: string): void {
+  if (task.ownership.writePaths.some(write => task.ownership.readOnlyPaths.some(read => pathsOverlap(write, read, workspace)))) throw new Error('Write scope overlaps a read-only path.');
   const protectedPaths = [...task.inputs, ...task.context.interfaces].map(ref => ref.location);
-  if (task.ownership.writePaths.some(write => protectedPaths.some(read => pathsOverlap(write, read)))) throw new Error('Write scope overlaps fixed input or interface artifacts.');
+  if (task.ownership.writePaths.some(write => protectedPaths.some(read => pathsOverlap(write, read, workspace)))) throw new Error('Write scope overlaps fixed input or interface artifacts.');
 }
 
 /** Thin role construction on the pinned native pi adapter, with no inherited conversation. */
@@ -63,13 +64,14 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const task = structuredClone(input.task), requirement = structuredClone(input.requirement);
     const errors = [...validateTask(task), ...validateRequirement(requirement)];
     if (errors.length || task.specVersion !== requirement.specVersion) throw new Error('Invalid role task or confirmed requirements.');
-    assertOwnership(task);
+    const workspace = await realpath(input.workspace);
+    assertOwnership(task, workspace);
     const reviewer = input.role === 'reviewer';
     const contextId = reviewer ? `review-${randomUUID()}` : task.context.contextId;
     const actorId = reviewer ? `reviewer-${randomUUID()}` : task.authorId;
     const reads = reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
-    const fileTools = await createWorkspaceTools({ workspace: input.workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths });
-    const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace: input.workspace, signal: input.controller.signal, childEnv: roleToolEnvironment() }) ?? [];
+    const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths });
+    const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment() }) ?? [];
     const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name));
     for (const host of hostTools) {
       if (!task.context.tools.includes(host.tool.name) || (reviewer && !host.readOnly)) continue;
@@ -90,7 +92,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       budget: { ...task.budget, committedMicroCny: snapshot.ledger.entries.filter(e => e.taskId === task.taskId).reduce((total, e) => total + e.reservedMicroCny + e.settledMicroCny, 0) },
       ...(reviewer ? { evidence: task.evidence } : { outputs: task.outputs }) });
     const session = await (options.sessionFactory ?? createPiSession)({
-      workspace: input.workspace, stateDirectory: input.stateDirectory, tools,
+      workspace, stateDirectory: input.stateDirectory, tools,
       systemPrompt: input.purpose === 'planning'
         ? 'You are the Cosmos task planner. Return only JSON {tasks:[{taskId,role,objective,acceptanceIds,dependsOn}]}. Use only the host role policies supplied in the prompt, at most one task per role. Cover every confirmed acceptance ID. Each dependency names a task in this plan. The host binds its declared output versions as inputs after the dependency passes. You cannot choose tools, paths, budget, acceptance steps, evidence or task state. This is a proposal, not a claim that the game passes.'
         : reviewer

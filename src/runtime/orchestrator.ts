@@ -47,6 +47,13 @@ function parseReview(text: string, task: TaskContract) {
   return value as { verdict: 'approved' | 'changes_requested'; inputVersions: ArtifactReference[]; evidenceIds: string[]; findings: string[] };
 }
 
+function requirePassingEvidence(task: TaskContract, requirement: RequirementContract, selectedIds = task.evidence.map(e => e.evidenceId)): void {
+  for (const id of task.acceptanceIds) {
+    const accepted = requirement.acceptance.find(a => a.acceptanceId === id)!;
+    if (!task.evidence.some(e => selectedIds.includes(e.evidenceId) && e.outcome === 'passed' && e.acceptanceIds.includes(id) && accepted.evidenceKinds.includes(e.kind) && [...task.inputs, ...task.artifacts].every(ref => e.artifactVersions.some(version => sameValue(ref, version))))) throw new Error(`Missing selected host evidence for ${id} at the fixed input and output versions.`);
+  }
+}
+
 /** One bounded attempt per prepared task. Repairs/replanning create explicit subsequent work. */
 export async function executeTaskDag(options: DagOptions): Promise<TaskContract[]> {
   const { controller } = options;
@@ -57,7 +64,8 @@ export async function executeTaskDag(options: DagOptions): Promise<TaskContract[
   const initial = await controller.read();
   const prior = new Map(initial.tasks.map(task => [task.taskId, task]));
   for (const item of prepared) {
-    checked(validateTask(item.task)); assertOwnership(item.task);
+    item.workspace = await realpath(item.workspace);
+    checked(validateTask(item.task)); assertOwnership(item.task, item.workspace);
     if (!['cosmos', 'design', 'coding', 'art'].includes(item.role)) throw new Error('Invalid author role.');
     if (prior.has(item.task.taskId)) throw new Error('Task already recorded; reuse its result or create explicit new work.');
     if (item.task.state !== 'not_started') throw new Error('Prepared tasks must be not_started.');
@@ -76,7 +84,7 @@ export async function executeTaskDag(options: DagOptions): Promise<TaskContract[
     ordered.push(remaining.splice(index, 1)[0]);
   }
   for (let i = 0; i < prepared.length; i++) for (let j = i + 1; j < prepared.length; j++) {
-    if (await realpath(prepared[i].workspace) === await realpath(prepared[j].workspace) && prepared[i].task.ownership.writePaths.some(a => prepared[j].task.ownership.writePaths.some(b => pathsOverlap(a, b)))) throw new Error('Task write paths conflict in the same workspace.');
+    if (prepared[i].workspace === prepared[j].workspace && prepared[i].task.ownership.writePaths.some(a => prepared[j].task.ownership.writePaths.some(b => pathsOverlap(a, b, prepared[i].workspace)))) throw new Error('Task write paths conflict in the same workspace.');
   }
   await controller.registerTasks(prepared.map(p => p.task));
   const signal = AbortSignal.any([controller.signal, ...(options.signal ? [options.signal] : [])]);
@@ -125,10 +133,7 @@ export async function executeTaskDag(options: DagOptions): Promise<TaskContract[
       task.evidence = structuredClone(await options.verify(freeze(structuredClone(task)), signal));
       signal.throwIfAborted();
       checked(validateTask(task));
-      for (const id of task.acceptanceIds) {
-        const accepted = requirement.acceptance.find(a => a.acceptanceId === id)!;
-        if (!task.evidence.some(e => e.outcome === 'passed' && e.acceptanceIds.includes(id) && accepted.evidenceKinds.includes(e.kind) && [...task.inputs, ...task.artifacts].every(ref => e.artifactVersions.some(version => sameValue(ref, version))))) throw new Error(`Missing host evidence for ${id} at the fixed input and output versions.`);
-      }
+      requirePassingEvidence(task, requirement);
       if (await realpath(item.workspace) === await realpath(captured.reviewWorkspace)) throw new Error('Independent review requires a separate frozen snapshot workspace.');
       await save(task);
       signal.throwIfAborted();
@@ -141,6 +146,7 @@ export async function executeTaskDag(options: DagOptions): Promise<TaskContract[
       task.state = 'awaiting_review'; await save(task);
       const verdict = parseReview((await reviewer.prompt(`Review the frozen outputs against the supplied acceptance and host evidence. Return the required JSON. Image sources in attachment order: ${JSON.stringify(images.map(item => item.source))}`, { signal, images: images.length ? images.map(item => item.image) : undefined })).text, task);
       signal.throwIfAborted();
+      if (verdict.verdict === 'approved') requirePassingEvidence(task, requirement, verdict.evidenceIds);
       const attempt = task.attempts.at(-1)!;
       attempt.endedAt = at(); attempt.outcome = 'passed';
       task.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;

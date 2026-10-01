@@ -26,13 +26,15 @@ The host supplies the questions and acceptance draft. Missing decisions are not 
 
 Each role receives a newly serialized packet containing only its acceptance subset, fixed input versions, relevant interfaces/rules/failures, tool names, ownership and shared budget reference. Author summaries, handoff prose and session history are excluded from reviewer packets. Reviewer actor/context IDs and session directories differ from the author's.
 
-File tools use `createWorkspaceTools`. Author writes must stay under declared write paths; read-only paths and fixed input/interface paths cannot overlap those writes. Reviewer file tools have no writes. Host tools are additionally filtered by the task's declared names and the host's `readOnly` capability. Unknown tool names are never auto-loaded. No model tool receives RunController.
+File tools use `createWorkspaceTools`. Author writes must stay under declared write paths; read-only paths and fixed input/interface paths cannot overlap those writes. Every path comparison resolves against the role's canonical workspace, including mixed absolute/relative paths and cross-task write conflicts. Reviewer file tools have no writes. Host tools are additionally filtered by the task's declared names and the host's `readOnly` capability. Unknown tool names are never auto-loaded. No model tool receives RunController.
 
 Host tools for builds, media or browser acceptance are trusted integrations: they must enforce their own fixed arguments, file ownership, timeouts and cancellation. Every child process must receive the supplied `childEnv` (or `roleToolEnvironment()`), which allowlists ordinary OS variables and excludes model credentials. Do not use `process.env` for a child environment. Read-only declarations are host capabilities; they are not an OS sandbox guarantee. Keep run/session directories outside author write scopes and keep credentials out of tool arguments, output, prompts and artifacts.
 
 ## Production entrypoints
 
 `planTaskDag` asks Cosmos for a bounded plan derived from the confirmed requirements. The model chooses only task IDs, roles, objectives, acceptance IDs and dependencies. Host role policies supply workspaces, paths, tools, interfaces, output IDs/versions and allocations. The host rejects added authority fields, missing acceptance coverage, cycles, unknown roles, duplicate roles/tasks and excessive allocations. The initial implementation permits at most one task for each configured role.
+
+Every confirmed `RequirementContract.sources` reference must be present at the exact artifact ID, version and location in `availableArtifacts` before planning dispatches a model call. These sources enter the planning packet and read-only scopes. The host must stage the actual brief, clarification answers and confirmation source inside the planning workspace at those paths so the scoped read tool can read them. Merely listing a path does not supply its contents; integrations using a separate artifact reader must provide an equivalently safe, version-bound read capability rather than omitting the sources.
 
 Dependency output references come from the host policy, with explicit artifact ID, version and location. The host binds these into downstream TaskContract inputs. They remain unavailable until the dependency passes with those exact captured versions. There is no `latest` lookup and no model-supplied dependency state.
 
@@ -96,7 +98,7 @@ All acceptance steps and expected values are copied from the confirmed requireme
 
 Artifact and evidence locations used by file tools must resolve within each role's workspace. The host stages the corresponding snapshots at those paths. The artifact registry/integration module can implement capture; COS-07 does not copy or replace its implementation.
 
-The order is author proposal → host capture → host checks → independent review proposal → contract validation → passed. Reviewers cannot rewrite evidence, artifact versions or acceptance. A changed version, failed dependency, missing evidence, unresolved handoff, author self-approval or cancelled signal cannot pass.
+The order is author proposal → host capture → host checks → independent review proposal → contract validation → passed. Reviewers cannot rewrite evidence, artifact versions or acceptance. Approval requires the selected evidence IDs themselves to cover every acceptance item with the required evidence kind and every current input/output version. Historical evidence remains recorded but cannot substitute for current selected evidence. A changed version, failed dependency, missing evidence, unresolved handoff, author self-approval or cancelled signal cannot pass.
 
 ## Budget, stop and recovery boundary
 
