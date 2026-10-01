@@ -22,8 +22,14 @@ Phase A covers intake accounting, current-draft confirmation and same-lock one-t
 
 ## COS-01 resource metadata approval checkpoint
 
-Root handed off exact source `b8790a8f4ee71303c600db717b1dbd6210630cdf` on `feat/cos-01-resource-evidence`, independently approved by `cos01_reviewer` as `READY` without P1/P2 findings. Its actual two-file diff only updates reference inspection/sources and adds the resource research note. The author passed 16/16 reference tests and the validation CLI; the reviewer reused those tests and checked strict UTF-8/LF, JSON, the actual diff and primary format-source implementation. Integration is pending.
+Root handed off exact source `b8790a8f4ee71303c600db717b1dbd6210630cdf` on `feat/cos-01-resource-evidence`, independently approved by `cos01_reviewer` as `READY` without P1/P2 findings. Its actual two-file diff only updates reference inspection/sources and adds the resource research note. The author passed 16/16 reference tests and the validation CLI; the reviewer reused those tests and checked strict UTF-8/LF, JSON, the actual diff and primary format-source implementation.
+
+Merge `2aa62fa87e06058f1ea1473cdeaa1be44cc19c40` has first parent `2558c6402fb39cb5e3e3170a0ffee79254b08373` and second parent the exact approved source. It merged without conflicts, and both paths match that source byte for byte. The reference catalog, validator and tests are unchanged from the batch baseline, so the reviewed 16/16 test evidence is reused. Fresh `node benchmarks/classic-pc/reference/validate.mjs` passed on main and reported 230 entries and 221 unresolved entries; log: `.cosmos/integration/batch07-cos01-reference.log`. Strict UTF-8/LF, Chinese text, JSON status and whitespace checks passed. No further compiler or unrelated tests were needed for this documentation-only merge.
 
 Resource entry counts are not unit counts, the configured locale does not establish the visible language, and UTF-16 entries were not decoded. Both rounds of UI capture failed without gameplay evidence. The version identity, catalog, `frozen: false`, `runtimeObserved: false` and `uiLanguage: null` remain unchanged. COS-01 / #2 stays open and the baseline stays provisional.
 
 The batch does not change paid runtime status: shared cost is 892,282 micro-CNY with zero reserved/unknown charges; both failed pilot attempts and the expired fixed trial remain final under their original limits. COS-10 / #11, COS-11 / #12 and COS-13 / #14 remain open awaiting live evidence; COS-12 / #13 remains closed and G3 stays closed. The reference baseline remains provisional with 230 entries and 221 unknown entries.
+
+## Partial batch checkpoint
+
+COS-18 Phase A and the COS-01 metadata supplement are integrated and verified. Phase B still requires its own final exact-SHA review and root handoff. Root owns GitHub synchronization for #2 and #19; both remain open. The merger will push this documentation checkpoint and report the verified remote SHA before waiting for the remaining handoff.
