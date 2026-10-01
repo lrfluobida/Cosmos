@@ -1,0 +1,277 @@
+{
+  "generation": {
+    "generatedAt": "2026-10-01T06:16:55.315Z",
+    "node": "v22.22.2",
+    "timingsMs": {
+      "vectorAndWrite": 30.315900000000013,
+      "audioAndWrite": 36.00120000000001,
+      "total": 66.3217
+    },
+    "frames": 14,
+    "sounds": 5,
+    "externalServiceCalls": 0,
+    "externalFeesCny": 0,
+    "components": {
+      "independentParts": 18,
+      "poses": [
+        {
+          "state": "idle",
+          "frames": 4
+        },
+        {
+          "state": "attack",
+          "frames": 6
+        },
+        {
+          "state": "death",
+          "frames": 4
+        }
+      ],
+      "proceduralLayersCny": 0,
+      "paidImagesCny": 0,
+      "audioSynthesisCny": 0
+    },
+    "note": "Renderer timing excludes spec authoring, runtime model costs and integration. Shared validation ledger remains unchanged by this local probe."
+  },
+  "browser": {
+    "browser": "153.0.8010.12",
+    "platform": "win32",
+    "viewport": "1000x1000",
+    "pixels": [
+      {
+        "file": "idle-000.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 11814,
+        "partial": 646,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "idle-001.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 11942,
+        "partial": 658,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "idle-002.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 12066,
+        "partial": 683,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "idle-003.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 11942,
+        "partial": 658,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "attack-000.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 11668,
+        "partial": 659,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "attack-001.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 11309,
+        "partial": 652,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "attack-002.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 12067,
+        "partial": 723,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "attack-003.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 11800,
+        "partial": 775,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "attack-004.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 11736,
+        "partial": 674,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "attack-005.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 11814,
+        "partial": 646,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "death-000.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 11814,
+        "partial": 646,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "death-001.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 9245,
+        "partial": 9235,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "death-002.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 6260,
+        "partial": 6260,
+        "border": 0,
+        "hiddenColor": 0
+      },
+      {
+        "file": "death-003.svg",
+        "width": 192,
+        "height": 192,
+        "visible": 3261,
+        "partial": 3261,
+        "border": 0,
+        "hiddenColor": 0
+      }
+    ],
+    "states": [
+      {
+        "active": "idle",
+        "visited": [
+          "idle-000.svg",
+          "idle-001.svg",
+          "idle-002.svg",
+          "idle-003.svg",
+          "idle-000.svg"
+        ],
+        "anchor": {
+          "x": 96,
+          "y": 175
+        }
+      },
+      {
+        "active": "attack",
+        "visited": [
+          "attack-000.svg",
+          "attack-001.svg",
+          "attack-002.svg",
+          "attack-003.svg",
+          "attack-004.svg",
+          "attack-005.svg"
+        ],
+        "anchor": {
+          "x": 96,
+          "y": 175
+        }
+      },
+      {
+        "active": "death",
+        "visited": [
+          "death-000.svg",
+          "death-001.svg",
+          "death-002.svg",
+          "death-003.svg"
+        ],
+        "anchor": {
+          "x": 96,
+          "y": 175
+        }
+      }
+    ],
+    "audio": [
+      {
+        "id": "workshop-loop",
+        "duration": 8,
+        "channels": 1,
+        "sampleRate": 22050,
+        "peak": 0.274627685546875,
+        "rms": 0.09661191670975713,
+        "first": 0,
+        "last": 0,
+        "maxStep": 0.02297992818057537
+      },
+      {
+        "id": "confirm",
+        "duration": 0.24,
+        "channels": 1,
+        "sampleRate": 22050,
+        "peak": 0.17999817430973053,
+        "rms": 0.10201758903828072,
+        "first": 0,
+        "last": 0,
+        "maxStep": 0.03567567840218544
+      },
+      {
+        "id": "attack",
+        "duration": 0.2,
+        "channels": 1,
+        "sampleRate": 22050,
+        "peak": 0.27557373046875,
+        "rms": 0.10307388891172793,
+        "first": 0,
+        "last": 0,
+        "maxStep": 0.04458753764629364
+      },
+      {
+        "id": "impact",
+        "duration": 0.22,
+        "channels": 1,
+        "sampleRate": 22050,
+        "peak": 0.4676351249217987,
+        "rms": 0.163271434164159,
+        "first": 0,
+        "last": 0,
+        "maxStep": 0.009643852710723877
+      },
+      {
+        "id": "power-down",
+        "duration": 0.6,
+        "channels": 1,
+        "sampleRate": 22050,
+        "peak": 0.288970947265625,
+        "rms": 0.12225497905098469,
+        "first": 0,
+        "last": 0,
+        "maxStep": 0.017303992062807083
+      }
+    ],
+    "playback": {
+      "paused": false,
+      "readyState": 4,
+      "error": null
+    },
+    "errors": [],
+    "videoPath": ".cosmos/media/evidence/page@433d73c470db6ba0167ee2a20931a2de.webm"
+  }
+}
