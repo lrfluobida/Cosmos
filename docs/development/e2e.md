@@ -168,3 +168,13 @@ node --experimental-strip-types probes/e2e/run.ts --trial
 离线生产 driver 回归使用原生会话边界注入和非游戏小夹具：实际 TypeScript 编译产生 TS2322，COS-11 形成反馈并创建 v2 修复任务；正确 v2 报告被接受，伪用 v1 浏览器报告被拒绝。一次错误 review JSON 在同一评审会话纠正，模拟请求数和费用连续进入 guard。另有真实 Edge 普通点击的失败用例验证浏览器诊断。上述回归不证明目标游戏已经生成、实际语义修复已经成功或新 trial 已通过。
 
 准备验证记录：e2e 与 COS-11 repair 组合共 78 项，77 项在并行批次通过；真实浏览器诊断夹具与两轮编译同时运行时触发既有 1 秒清理截止。编译全部结束后，该单项串行重跑通过（普通输入缺陷保持 failed，并得到正确诊断）。沿用已确认的资源约束：真实 browser fixture 不与 tsc/build 并行。未改 COS-08 时限或忽略清理错误。probes 专项 strict TypeScript、主 typecheck/build 与 UTF-8/LF 检查通过。
+
+## 已授权的一次零请求启动恢复
+
+新 trial 在 `11:43:38.426Z` 开始，`11:43:46.630Z` 于首次输入 capture 的发布窗口失败；没有原生会话、任务或请求，原 `result.json` 保持 failed。原异常只有通用类别，无法确定 errno。系统临时目录、E 盘真实 controller/guard 副本及同父目录副本均未复现；这不证明原 capture 成功，不据此修改 signal 或增加 rename 重试。
+
+主代理在复审合入后可且只可使用 `--trial-recover-startup`。入口严格要求原 marker/origin、固定 `12:43:38.426Z` 截止与空的 0/40 journal，账本全部请求 ID 及 892282 micro-CNY 费用仍等于原 baseline，没有本 trial 的任务/会话/已发布产物、临时写入或 registry 锁。三份 inputs 与当前冻结来源逐字节一致；toolchain 的非 node_modules 文件/目录集合必须与原模板完全一致，额外 `.env`、源码、public 或配置均拒绝。vendor 仅核对原 lock、三包版本和既有工具文件，不散列整棵 node_modules。
+
+`startup-recovery-origin.json` 用 `wx` + `fsync` 先行记录原失败与平台版本、新平台版本、原 clock/counter 和未知根因。恢复时验证并复用 inputs，不覆写；使用既有安装 toolchain 和原 guard 余时，首次派发原生 planner 后仍执行完整 COS-11/registry 验收链。独立写 `startup-recovery-result.json`，不覆盖旧结果；该记录已存在、非零请求、输入不符或过期均拒绝。模型任务尚未发生，语义修复额度保持原值。
+
+启动诊断只记录固定 phase/captureRef、合法 errno/syscall、trial 根内相对 path/dest 及 guard.aborted，存入 `startup-diagnostics/initial|recovery/`。不保存异常原文、provider 信息、环境或 key。生产 bootstrap 离线回归先在注册前注入主机错误，再验证同 root 到 native 创建边界前拦停仍为零请求；旧结果、origin、journal 和输入字节不变，并覆盖非零、重复、过期、altered input、额外 `.env`/source 拒绝。

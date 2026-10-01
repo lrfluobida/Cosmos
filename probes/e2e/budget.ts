@@ -5,6 +5,8 @@ import type { RunController } from '../../src/runtime/run.ts';
 import { isDeepStrictEqual } from 'node:util';
 import { PILOT_LIMITS } from './admission.ts';
 import { jsonFile } from './host.ts';
+import { TRIAL } from './trial.ts';
+import { STARTUP_DEADLINE } from './startup.ts';
 
 export interface PilotJournal { startedAt: string; deadlineAt: string; maxRequests: number; requestIds: string[] }
 
@@ -40,6 +42,17 @@ export async function openPilotGuard(options: { root: string; ledgerRoot: string
   if (resolve(marker.root) !== resolve(options.root) || marker.startedAt !== origin.startedAt || marker.deadlineAt !== origin.deadlineAt || marker.deadlineAt !== current.deadlineAt
     || !isDeepStrictEqual(origin.limits, PILOT_LIMITS) || current.maxRequests !== PILOT_LIMITS.maxRequests) throw new Error('Original marker, deadline or limits changed');
   return activeGuard({ ...options, deadlineAt: current.deadlineAt, maxRequests: current.maxRequests }, structuredClone(current));
+}
+
+/** The one authorized bootstrap recovery reuses the exact original empty journal; it never writes a new clock/counter. */
+export async function openZeroRequestTrialGuard(options: { root: string; ledgerRoot: string; controller: RunController; origin: any; journal: PilotJournal }) {
+  const [origin, marker, journal, recovery] = await Promise.all([jsonFile(options.root, 'origin.json'), jsonFile(options.ledgerRoot, `${TRIAL.id}.json`),
+    jsonFile(options.root, 'pilot-budget.json'), jsonFile(options.root, 'startup-recovery-origin.json')]);
+  if (!isDeepStrictEqual(origin, options.origin) || !isDeepStrictEqual(origin, marker) || !isDeepStrictEqual(journal, options.journal)
+    || !isDeepStrictEqual(origin.limits, TRIAL) || !isDeepStrictEqual(recovery.originalJournal, journal)
+    || resolve(origin.root) !== resolve(options.root) || origin.deadlineAt !== STARTUP_DEADLINE || journal.deadlineAt !== STARTUP_DEADLINE
+    || recovery.deadlineAt !== STARTUP_DEADLINE || journal.maxRequests !== 40 || journal.requestIds.length !== 0) throw new Error('Original zero-request trial identity or journal changed');
+  return activeGuard({ ...options, deadlineAt: journal.deadlineAt, maxRequests: journal.maxRequests }, structuredClone(journal));
 }
 
 function activeGuard(options: { root: string; controller: RunController; deadlineAt: string; maxRequests: number }, journal: PilotJournal) {
