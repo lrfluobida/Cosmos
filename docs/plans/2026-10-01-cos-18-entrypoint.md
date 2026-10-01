@@ -95,7 +95,7 @@ node --experimental-strip-types --test --test-reporter=spec tests/cli/cli.test.t
 - 通过证据保存在当前工作区 `.cosmos/cos18-host-smoke/3e6b6f21-2d93-4509-915b-03c4fbe31451/smoke-report.json` 及对应 browser/media 报告、`001-ready.png` / `003-clicked.png`。报告明确 `generatedByCosmos: false` 和 `test-only media observations`：通用模板 fixture 的计数只证明生产进程、browser、观测结构与 registry 桥接，不能证明新的运行时游戏、美术或音频已经生成并验收。COS-04 的实际媒体探针保持独立版本和证据。
 - 第一次 smoke 在构建时发现工具链复制错误地排除了依赖包自己的 `dist`；修为仅排除模板顶层 `dist` 后重跑上述单项通过。失败证据目录 `2d55d21b-09d1-4656-bbd8-0b2f86f34e45` 保留。没有重跑旧媒体 suite、旧 pilot/trial 或付费服务。
 - 当前 host 支持鼠标、图层 SVG 和合成 PCM 的有界需求；完整经典基准仍缺 COS-14 的可信适配，不减少原基准内容。运行时只读媒体计数仍须由独立评审核对真实 Phaser 事件并结合正常输入截图；听感和视觉辨识未被计数或 fixture smoke 证明。
-- `resume` 只支持原窗口内、无持久停止的可核实中断。手动 hard stop、预算或时限停止不自动恢复，CLI 暂无用户追加时间/额度的续跑入口，因此不声明 R15 全部续跑体验完成。上游修复不会静默改绑已经固定的下游依赖；不能继续的条目留在差距与原失败历史中。COS-18 整体验收、真实生成及 G3 状态仍由对应后续证据决定。
+- `resume` 只支持原窗口内、无持久停止的可核实中断。手动 hard stop、预算或时限停止不自动恢复，CLI 暂无用户追加时间/额度的续跑入口，因此不声明 R15 全部续跑体验完成。上游修复不会静默改绑已经固定的下游依赖；Phase C 为满足条件的未启动下游创建显式继任任务，旧 B 单任务修复计划仍保留原语义。COS-18 整体验收、真实生成及 G3 状态仍由对应后续证据决定。
 
 ## 8. Phase C：未启动下游的显式继任
 
@@ -115,3 +115,17 @@ root 已批准只为受修复上游影响、从未启动的下游建立新任务
 - 先发布 write-once `repair-plan.json`，再安全补齐尚未登记的新 origin，最后通过原 `RunController.registerTasks` 一次登记全组。plan-only、部分 origin 和完整登记边界均恢复原映射，不重复分配。部分组登记、已登记任务丢失 origin、已有不明回执均保守阻断；不会合成 author/capture/verify/review 回执。
 - 最初 10 项文件/持久化测试确认缺少接口的红灯，完成后扩至 19 项通过；与 C1 合计 36 项轻量检查通过，命令：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/entrypoint-successors.test.ts tests/runtime/entrypoint-continuation.test.ts`。使用临时目录、假数据与实际快照/journal；没有子进程、浏览器或 API。`npm run typecheck`、`git diff --check`、UTF-8/LF 与中文复读通过。
 - C2 仍未接入公开运行。生产 host 的确定性诊断写入、entrypoint 新旧 repair-plan 分支、effective/superseded 状态以及 design/art/coding 执行和阶段中断测试由下一段完成。旧 B repair-plan 不迁移或回收 grant，硬停止语义不变。
+
+### C2 独立审查修复
+
+- reviewer 发现修复已开始后仅检查 raw 副本的 UTF-8，无法识别其内容改变。新增 `sealRepairDiagnostics`，首次发布组计划前只为 manifest 和它列明的 raw 副本绑定 SHA-256；已有 plan 或已登记后不能重新封存。每次恢复均检查这些固定签名；可编辑作者工作区的字节比对仍只在修复零 attempt 时执行。
+- 合法 ready→running 后修改 raw 或 manifest 的两项回归先红灯后通过；正常修改作者工作区不妨碍恢复。C1/C2 合计 39 项通过，类型与 UTF-8/LF 检查通过。顺手移除 fixture 的多余 EOF 空行，没有改执行器或账本。
+
+### C3：生产接线与组执行
+
+- `entrypoint.ts` 使用生产 host 的 `continuationTargets`，先评估全组原额度/时间，再构造固定版本、封存诊断、登记组并调用原 `resumeTaskDag`。已过祖先只核验证据；所有实际请求仍进入同一 ledger。formatVersion 2 计划恢复同一组，新 child 失败不会再次触发 semantic repair。旧 B 未带版本的单任务计划保留原分配与恢复行为。
+- `entrypoint-host.ts` 在 capture 内只把确定性缺文件、合法 UTF-8 的 JSON/schema/媒体清单错误转为 `HostFailure`；原字节、缺失事实、task/attempt/session/inputs 与诊断先写入私有固定副本。编码不明、外部 IO、缺可信证据仍阻断。无效产物不会登记成合格 asset，也不产生 gameplay pass。
+- 最终 `host.finish` 接收明确映射后的完整有效 DAG；报告与只读 status 通过 `supersededBy` 展示继任关系，原任务终态、费用与证据保持原事实。plan-only 显示待登记，部分登记或无法识别的 lineage 显示阻断，读取状态不写快照。
+- 新增 11 项集成检查，使用实际 controller、scheduler、journal、registry 和假模型/build/browser 回调：design/art/coding 修复，固定 v2 下游，原祖先不重付，capture 后可核实中断，verify/review 缺回执阻断，successor 失败无第二次修复，未知编码不授权，缺文件保存原始事实，以及旧 B 计划兼容。每个完整三角色场景费用为 80 micro-CNY 的假调用记录，恢复不增加费用或调用；不代表真实模型价格或游戏效果。
+- 命令 `node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/entrypoint-group.test.ts` 的 11 项通过；受影响的 host、entrypoint、control 19 项也通过。仅使用临时目录；没有真实浏览器、编译子进程、API 或旧 trial 调用。原 B 进程桥接 smoke 继续按原版本复用。
+- 这段仍需独立审查；COS19 的已审核 role IO/输出上限变更合入后再执行最终组合检查。硬停止续时/加钱、真实生成/G3 与用户最终试玩均未由这些离线测试完成。
