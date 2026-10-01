@@ -1,7 +1,7 @@
 {
   "formatVersion": "1.0.0",
   "specVersion": "1.0",
-  "requirementVersion": "cos10-pilot-v1",
+  "requirementVersion": "cos10-pilot-v2",
   "status": "frozen-for-runtime-generation",
   "scope": "一个原创简化三路防守关卡，仅验证 Cosmos 端到端链路；不代表经典植物大战僵尸完整基准通过。",
   "confirmation": "依据 COS-10 已授权的小切片范围冻结；运行角色不得修改需求、验收或上限。",
@@ -62,7 +62,8 @@
       "kills": "{normal: number, armored: number}; kills in this attempt",
       "events": "{defenderHits: number}; actual enemy hits received by defenders in this attempt",
       "save": "{victories: number}; value loaded from or written to localStorage",
-      "audio": "{muted: boolean}; current saved mute preference"
+      "audio": "{muted: boolean}; current saved mute preference",
+      "media": "{loadedCharacters:number,loadedAudio:number,statesSeen:{idle:boolean,attack:boolean,death:boolean},audioStarted:{bgm:boolean,place:boolean,shoot:boolean,hit:boolean,victory:boolean,defeat:boolean}}; cumulative observations from actual loads, animation transitions and sound starts, preserved across restarts within this document"
     }
   },
   "media": {
@@ -77,6 +78,8 @@
     "repair": "At most one bounded follow-up task through the original role machinery. Keep the original ledger, deadline and all failed evidence. Never manually edit generated game files to manufacture a passing result."
   },
   "acceptanceIds": ["PILOT-START", "PILOT-RESOURCE", "PILOT-COOLDOWN", "PILOT-MECHANISMS", "PILOT-VICTORY", "PILOT-DEFEAT", "PILOT-RESTART", "PILOT-SAVE"],
+  "stageAcceptanceIds": ["PILOT-DESIGN", "PILOT-MEDIA"],
+  "stageAcceptanceScope": "Design/media interface checks support role handoffs only. All eight gameplay acceptance IDs and additionalHostChecks remain mandatory for the final game candidate.",
   "additionalHostChecks": ["fresh-template provenance", "no external requests or API credentials", "fixed registered code and media versions", "visible idle/attack/death frames and original audio playback", "independent fixed-input reviewer verdict", "standalone build and startup", "request costs and complete wall time"],
   "limits": {
     "sharedValidationMicroCny": 150000000,

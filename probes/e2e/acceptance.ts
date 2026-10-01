@@ -28,6 +28,8 @@ export function createPilotAcceptance(artifact: ArtifactReference, url: string, 
   status('PILOT-START', '准备开始'); check('PILOT-START', 'state', 'title'); check('PILOT-SAVE', 'save.victories', 0);
   click('start'); status('PILOT-START', '防守中');
   check('PILOT-START', 'resources', 300); check('PILOT-START', 'audio.muted', false);
+  check('PILOT-START', 'media.loadedCharacters', 5); check('PILOT-START', 'media.loadedAudio', 6);
+  check('PILOT-START', 'media.audioStarted.bgm', true);
 
   // Spend via normal cards. No producer means the resource boundary remains stable.
   place('shooter', 0, 1);
@@ -54,6 +56,8 @@ export function createPilotAcceptance(artifact: ArtifactReference, url: string, 
   check('PILOT-VICTORY', 'state', 'victory', 60_000); status('PILOT-VICTORY', '胜利');
   check('PILOT-VICTORY', 'kills.normal', 3); check('PILOT-VICTORY', 'kills.armored', 3);
   check('PILOT-VICTORY', 'enemyCount', 0); check('PILOT-VICTORY', 'wave', 2);
+  for (const name of ['idle', 'attack', 'death']) check('PILOT-MECHANISMS', `media.statesSeen.${name}`, true);
+  for (const name of ['place', 'shoot', 'hit', 'victory']) check('PILOT-VICTORY', `media.audioStarted.${name}`, true);
   check('PILOT-SAVE', 'save.victories', 1);
   click('mute'); check('PILOT-SAVE', 'audio.muted', true);
   // A visible same-origin link performs a full document load, exercising storage persistence.
@@ -63,6 +67,7 @@ export function createPilotAcceptance(artifact: ArtifactReference, url: string, 
   click('start'); check('PILOT-DEFEAT', 'state', 'playing');
   // Deliberate failure: the player leaves the board empty and waits for an actual breach.
   check('PILOT-DEFEAT', 'state', 'defeat', 55_000); status('PILOT-DEFEAT', '失败');
+  check('PILOT-DEFEAT', 'media.audioStarted.defeat', true);
   check('PILOT-DEFEAT', 'unitCount', 0); check('PILOT-DEFEAT', 'kills.normal', 0);
   click('restart'); initial('PILOT-RESTART');
   check('PILOT-SAVE', 'save.victories', 1); check('PILOT-SAVE', 'audio.muted', true);
