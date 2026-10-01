@@ -1,0 +1,137 @@
+{
+  "purpose": "COS-09 generic platform integration, not target game generation",
+  "recordedAt": "2026-10-01T06:54:16.755Z",
+  "browser": {
+    "channel": "msedge",
+    "version": "153.0.4234.48",
+    "headless": true
+  },
+  "node": "v22.22.2",
+  "externalServiceCalls": 0,
+  "externalFeesCny": 0,
+  "candidate": {
+    "artifactId": "phaser-probe",
+    "version": "v1",
+    "location": ".cosmos/artifacts-probe/2026-10-01T06-53-58-850Z/registry/candidates/phaser-probe/v1/project"
+  },
+  "sourceArtifacts": [
+    {
+      "artifactId": "phaser-code",
+      "version": "v1",
+      "location": ".cosmos/artifacts-probe/2026-10-01T06-53-58-850Z/registry/captures/phaser-code/v1/files"
+    },
+    {
+      "artifactId": "original-media",
+      "version": "v1",
+      "location": ".cosmos/artifacts-probe/2026-10-01T06-53-58-850Z/registry/captures/original-media/v1/files"
+    }
+  ],
+  "commands": [
+    "cosmos init author",
+    "npm ci --no-audit --no-fund",
+    "cosmos build build"
+  ],
+  "observation": {
+    "ready": true,
+    "state": "death",
+    "loadedTextures": 14,
+    "loadedAudio": 5,
+    "audioStarted": [
+      "confirm",
+      "attack",
+      "power-down",
+      "workshop-loop",
+      "impact"
+    ],
+    "seen": {
+      "idle": [
+        "idle-000.svg",
+        "idle-001.svg",
+        "idle-002.svg",
+        "idle-003.svg"
+      ],
+      "attack": [
+        "attack-000.svg",
+        "attack-001.svg",
+        "attack-002.svg",
+        "attack-003.svg",
+        "attack-004.svg",
+        "attack-005.svg"
+      ],
+      "death": [
+        "death-000.svg",
+        "death-001.svg",
+        "death-002.svg",
+        "death-003.svg"
+      ]
+    },
+    "frame": "death-003.svg",
+    "origins": [
+      [
+        0.5,
+        0.9114583333333334
+      ],
+      [
+        0.5,
+        0.9114583333333334
+      ]
+    ],
+    "sizes": [
+      [
+        192,
+        192
+      ],
+      [
+        192,
+        192
+      ]
+    ],
+    "anchors": [
+      [
+        200,
+        300
+      ],
+      [
+        600,
+        300
+      ]
+    ],
+    "decodedAudio": [
+      {
+        "id": "workshop-loop",
+        "sampleRate": 48000,
+        "duration": 8,
+        "channels": 1
+      },
+      {
+        "id": "confirm",
+        "sampleRate": 48000,
+        "duration": 0.24,
+        "channels": 1
+      },
+      {
+        "id": "attack",
+        "sampleRate": 48000,
+        "duration": 0.2,
+        "channels": 1
+      },
+      {
+        "id": "impact",
+        "sampleRate": 48000,
+        "duration": 0.22,
+        "channels": 1
+      },
+      {
+        "id": "power-down",
+        "sampleRate": 48000,
+        "duration": 0.6,
+        "channels": 1
+      }
+    ],
+    "errors": []
+  },
+  "errors": [],
+  "review": "API host review gate exercised by probe checks; independent COS-09 reviewer separately inspects implementation/evidence.",
+  "audio": "All five WAVs decoded by Phaser and triggered through mouse input, muted. Human listening remains outside this automated check.",
+  "buildLog": ".cosmos/artifacts-probe/2026-10-01T06-53-58-850Z/build.log"
+}
