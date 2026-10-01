@@ -15,10 +15,12 @@ const usage = `Usage:
   cosmos status <run-dir>           Read the original run identity, cost, deadline and gaps
   cosmos stop <run-dir>             Persist a hard stop and wait for owned work to drain
   cosmos resume <run-dir>           Recover a verifiable interruption within the original window
+  cosmos continue <run-dir> --quote --add-cny <0..200> --add-minutes <1..720>
+                                   Show a read-only continuation proposal; never activate it
   cosmos --help
 
 Requires Node.js 22.22.2+. After init, run npm ci in the new project.
-init/run-dir/build/preview/status are local and do not call model APIs.
+init/run-dir/build/preview/status/continue --quote are local and do not call model APIs.
 new/resume may call native deepseek-flash after host prerequisites pass; intake and generation share CNY 200.
 The formal 12-hour clock activates once after exact user confirmation and environment preparation.
 Manual stop, budget stop and deadline stop are durable: resume cannot clear them or add time/budget.`;
@@ -86,6 +88,12 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     return;
   }
   const [command, path, ...options] = args;
+  if (command === 'continue') {
+    if (!path?.trim()) throw new Error(usage);
+    const { buildContinuationQuote, parseContinuationQuoteOptions } = await import('../runtime/continuation-quote.ts');
+    const quote = await buildContinuationQuote({ root: resolve(path), ...parseContinuationQuoteOptions(options) });
+    (io.output ?? process.stdout).write(JSON.stringify(quote, null, 2) + '\n'); return quote;
+  }
   if (['new', 'resume', 'status', 'stop'].includes(command)) {
     if (!path?.trim()) throw new Error(usage);
     const output = io.output ?? process.stdout, root = resolve(path);
