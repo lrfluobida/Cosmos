@@ -8,7 +8,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 
 第六批补充：固定新试验于 `2026-10-01T11:43:38.426Z` 开始，8.204 秒后在首次输入 capture 发布窗口失败，模型请求与新增费用均为零；原因未知。启动恢复实现虽已独立批准并合入，但实际命令被原 `12:43:38.426Z` 截止拒绝，不能再试或延时。COS-13 已独立批准并合入 `d3aab99`，状态为 `offline-verified-awaiting-live`，#14 保持 open；真实长链路尚未执行，当前无通过的生成游戏，#11/#12 与 G3 状态不变。
 
-最新结果：`cos10-reviewed-validation-1` 在 `f16c896` 上运行 92.746 秒后失败，8 次原生请求新增估算 ¥0.224120，共享累计 **¥1.116402**，预留/未知为零。design 写出文件后交接 JSON 格式解析失败，art 在 16,384 token 截断后被正确拒绝；两者各失败一次、尚未 capture，coding 因依赖失败未开始，未进入修复、独立评审或玩法验收。唯一机会已消费，不恢复或重开；[失败实证](docs/research/2026-10-02-reviewed-experiment-failure.md)。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 已发布并离线实施，修复角色交接、截断诊断与输出配置；不改变范围、预算或旧失败结论。
+最新结果：`cos10-reviewed-validation-1` 在 `f16c896` 上运行 92.746 秒后失败，8 次原生请求新增估算 ¥0.224120，共享累计 **¥1.116402**，预留/未知为零。design 写出文件后交接 JSON 格式解析失败，art 在 16,384 token 截断后被正确拒绝；两者各失败一次、尚未 capture，coding 因依赖失败未开始，未进入修复、独立评审或玩法验收。唯一机会已消费，不恢复或重开；[失败实证](docs/research/2026-10-02-reviewed-experiment-failure.md)。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 的角色交接、截断诊断与输出配置修复已独立批准并合入 `d0c39ad`，69/69 聚焦检查、类型检查与构建通过；真实生成效果尚未新实测，不改变范围、预算或旧失败结论，#20 暂保持 open。
 
 ## 用户提出的目标
 
@@ -43,7 +43,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 已审 experiment 仍失败，尚无通过游戏 | 既有直接 API/pi 估算 ¥0.735971，原 pilot ¥0.156311，本次 8 请求 ¥0.224120；共享累计 ¥1.116402，预留与未知为零；原实验已消费 |
 | 任务拆分 | 已发布 | [19 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-18 承接 R4/R11，COS-19 承接 R4/R5/R12 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#20；19 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第七批平台成果已集成，COS-19 与 COS-18 后续离线实施 | 复用 COS-18 B 46/46、类型检查、构建和 host smoke；真实 experiment 失败不改既有平台证据；#2/#11/#12/#14/#15/#17/#19/#20 保持 open，COS-12 / #13 已关闭 |
+| 子代理逐项实施 | COS-19 修复已审集成，COS-18 后续仍独立审查 | COS-19 69/69、类型检查与构建通过；复用 COS-18 B 与 host smoke；真实 experiment 仍失败，#2/#11/#12/#14/#15/#17/#19/#20 保持 open，COS-12 / #13 已关闭 |
 
 ## 开发批次
 
@@ -75,7 +75,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 07 | COS-16 / #17 迁移用例文档 | feat/cos-16-transfer-case 独立 implementer | cos16_reviewer | batch07_merger | bb00583 获 READY，合入 6cc42f6；单文档源一致、UTF-8/LF 与中文复读通过；preparation-only/open，尚未生成或验收游戏 |
 | 07 | COS-10 / #11 已审实验 | feat/cos-10-reviewed-experiment 独立 implementer | cos10_reviewer | batch07_merger | ecfc150 合入 75cf405，5/5 准入与类型检查通过；f16c896 上真实实验 92.746 秒/8 请求后失败，新增估算 ¥0.224120；唯一机会已消费，#11 保持 open |
 | 07 | COS-08 / #9 文本可见性修复 | fix/acceptance-visible-text 独立 implementer | cos08_reviewer | batch07_merger | cca4f10 获 READY，合入 1704d37；源一致、组合类型检查通过，复用真实 Edge 4/4；保留已完成任务状态，不代表完整视觉验收 |
-| 07 | COS-19 / #20 角色交接与截断处理 | role_io_implementer / fix/native-role-io | 独立 reviewer 由协调者安排 | batch07_merger | 已发布，离线实施中；未获批准或合入，不重开已消费实验 |
+| 07 | COS-19 / #20 角色交接与截断处理 | role_io_implementer / fix/native-role-io | role_io_reviewer | batch07_merger | 6397e15 修复同行多 JSON scalar 的 P2 后获 READY，合入 d0c39ad；69/69、类型检查与构建通过；offline-verified-awaiting-live，#20 暂保持 open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -103,7 +103,7 @@ COS-16 [网格推箱子用例](probes/transfer/README.md) 已独立批准并合�
 
 同步合入 `1704d37` 修复隐藏 DOM 胜利文本可误通过的问题：文本 locator 先按 Playwright 标准可见性过滤，再在原 timeout 内读取；runner 剩余时间限制不变。独立评审通过，真实 Edge 4/4 与组合类型检查继续复用；完整视觉验收仍需其他证据。[#9 修复记录](https://github.com/lrfluobida/Cosmos/issues/9#issuecomment-5936979760) 保持 closed；[#11 实验失败](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5936978319) 和 [#19 B 与缺口](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5936979272) 保持 open，没有新增游戏或 live gate 通过。
 
-COS-19 按已发布 #20 正文补齐唯一明确模型 JSON 的解码、严格 schema、安全截断诊断，以及生产 art/coding 作者 65,536 token 与同配置预留；旧显式限额、原费用和截止不变，不自动重试。COS-18 C 的下游继任任务组另行实施；未审的 `e12dcdf` 不合入。本次仅同步结果、任务卡与第 19 个子任务映射，未修改 live ledger、原试验或失败产物，未新增付费执行。
+COS-19 按已发布 #20 正文补齐唯一明确模型 JSON 的解码、严格 schema、安全截断诊断，以及生产 art/coding 作者 65,536 token 与同配置预留；其余默认 8,192 与旧 probe 显式 16,384、原费用和截止不变。typed incomplete 保留已用费用与 `insufficient_evidence`，以 `provider_output_truncated` 明确原因，不自动重试或执行截断内容。最终 `6397e15` 经复审合入 `d0c39ad`，48 项 decoder/cap 与 21 项调用方/截断检查全部通过，类型检查和构建串行通过并刷新 dist。#20 先记录为 offline-verified-awaiting-live/open，关闭由协调者按任务卡判断；代码修复不表示新游戏通过。COS-18 C 的下游继任任务组仍独立审查，未获 READY 不合入。没有付费、浏览器或已消费实验执行，账本与失败产物不变。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

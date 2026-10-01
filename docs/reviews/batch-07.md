@@ -112,3 +112,26 @@ The experiment is consumed, with no recovery or restart. The older pilot failure
 The merger fetched the actual published [COS-19 / #20 body](https://github.com/lrfluobida/Cosmos/issues/20), synchronized its task card and JSON mapping (issue ID 5666386294), and updated the current spec/task/progress counts to 19 native children. Root separately verified the native parent link. Related tasks #8/#11/#19 remain associations, not newly invented dependencies. The correction covers model JSON envelopes with strict schema, explicit safe incomplete diagnostics without retries, and compatible production art/coding 65,536-token author limits with matching pre-request reservations; existing explicit limits and budgets remain intact. It is offline implementation by `role_io_implementer`, independently reviewed before merger integration. COS-18 successor work remains separate; unreviewed `e12dcdf` is not merged.
 
 This checkpoint only records results and task metadata. UTF-8/LF, Chinese text, whitespace, JSON parsing and the 19-task/19-card/19-child counts are checked. Existing platform and browser evidence is reused without rerunning tests. No live ledger, prior trial, failed artifact, credential or paid execution was changed or created by this documentation work.
+
+The result/task checkpoint was clean and pushed as `b338565329bc31508e7999ec99a2f1ae2ea5df5a`, with local and remote heads matching.
+
+## COS-19 role I/O integration — 2026-10-02
+
+Independent `role_io_reviewer` inspected the actual 13-file implementation and reported one P2: competing JSON scalars on a single line outside the fence could be accepted. The implementer fixed that boundary in two files; the reviewer rechecked it and handed off exact `6397e15b6b75892a2b3e5804e138a12929ad0255` as `READY_FOR_ROLE_IO_INTEGRATION`, with no remaining P1/P2 findings. Author evidence includes 166/166 role/provider checks and typecheck, followed by 39/39 decoder checks after the fix, including 14 negative regressions first seen failing. The reviewer inspected native SDK parameter and reservation flow; no browser or paid validation was involved.
+
+Merge `d0c39adf08e25727ca5c2b7ee12db7c2bcf3772e` has first parent `b338565329bc31508e7999ec99a2f1ae2ea5df5a` and second parent the exact approved source. It merged without conflicts; all 13 approved paths match that source byte for byte. The merger made no implementation edits. Separate COS-18 successor work is not included.
+
+Fresh integration checks on Windows / Node.js 22.22.2:
+
+| Check | Result |
+| --- | --- |
+| `node --experimental-strip-types --test --test-concurrency=1 tests/roles/model-json.test.ts tests/roles/output-limits.test.ts` | 48/48 passed |
+| `node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern='^(typed truncated output\|truncated author response\|Cosmos plans host-scoped tasks\|review findings protocol\|wrapped author preserves\|ambiguous author message\|native design accepts a dynamic brief)' tests/roles/repair-policy.test.ts tests/roles/roles.test.ts tests/roles/interview.test.ts` | 21/21 passed |
+| `npm run typecheck`, then `npm run build` | Both passed sequentially; dist refreshed |
+| Approved paths, UTF-8/LF, Chinese text, JSON mapping and whitespace | Verified |
+
+All 69 focused checks passed without failures, cancellations or skips. Logs are `.cosmos/integration/batch07-role-io-decoder-caps.tap`, `batch07-role-io-consumers.tap`, `batch07-role-io-typecheck.log` and `batch07-role-io-build.log`. Root coordinated the compiler slot; it was released immediately after build, before this documentation work. The full 166-test suite and browser checks were not repeated.
+
+Author/reviewer/planner/interview messages share one decoder for a raw object or unique explicit JSON fence. Ambiguous/multiple payloads are refused, and existing schema, unresolved-handoff and review-findings gates remain. Typed `PiSessionError('incomplete')` produces safe `provider_output_truncated` feedback while retaining `insufficient_evidence`, settled charges and the absence of automatic retry or partial-tool execution. `authorMaxOutputTokens` is opt-in; the production host configures art/coding at 65,536, while other modes retain 8,192 and legacy explicit 16,384 limits remain unchanged. Native request and reservation calculations use the same cap, and insufficient funds reject before provider side effects.
+
+COS-19 / #20 is recorded as open and `offline-verified-awaiting-live`; root will decide issue closure against its acceptance conditions. No new real generation has measured the effect. COS-10 / #11 remains failed, the one-shot experiment remains consumed, G3/G4 stay closed, and the shared estimate remains CNY 1.116402 with no reserved/unknown charges. The live ledger, old trials and failed results were not modified; no paid call or browser was launched. Unapproved COS-18 successor branches remain outside main.

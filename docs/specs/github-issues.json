@@ -526,7 +526,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "offline-implementation"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "READY_FOR_ROLE_IO_INTEGRATION",
+      "reviewedCommit": "6397e15b6b75892a2b3e5804e138a12929ad0255",
+      "mergeCommit": "d0c39adf08e25727ca5c2b7ee12db7c2bcf3772e"
     }
   ],
   "verifiedNativeSubIssues": 19,
