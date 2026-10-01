@@ -1,6 +1,6 @@
 # COS-18 CLI entrypoint implementation plan
 
-**状态：** root 已批准方案 A 及持久硬停止语义；A 段 `d80842961800da78cb4ddfcf29315f0e8ef776ef` 获独立 `PHASE_A_READY`。B 段 CLI/host 装配已实现并完成聚焦验证，等待独立审查。基线 `0a10f4230c312cc9874be0e6499fd784b3ceba9c`，分支 `feat/cos-18-cli`。
+**状态：** root 已批准方案 A 及持久硬停止语义；A 段 `d80842961800da78cb4ddfcf29315f0e8ef776ef` 获独立 `PHASE_A_READY`。B 段最终 `6111f6fa13b42acb4678fedd59a44847fd874d98` 经独立审查并合入，Phase C 从 `f09dcb0563a539cd031b4e6cf5ddaf285eac00fb` 在 `feat/cos-18-successors` 继续未启动下游的显式继任。A/B 原基线为 `0a10f4230c312cc9874be0e6499fd784b3ceba9c`。
 
 **Goal:** 接通原 R4/R11 的一句话需求、design 访谈、显式确认、生成及运行控制 CLI，并完成离线验证。
 
@@ -96,3 +96,15 @@ node --experimental-strip-types --test --test-reporter=spec tests/cli/cli.test.t
 - 第一次 smoke 在构建时发现工具链复制错误地排除了依赖包自己的 `dist`；修为仅排除模板顶层 `dist` 后重跑上述单项通过。失败证据目录 `2d55d21b-09d1-4656-bbd8-0b2f86f34e45` 保留。没有重跑旧媒体 suite、旧 pilot/trial 或付费服务。
 - 当前 host 支持鼠标、图层 SVG 和合成 PCM 的有界需求；完整经典基准仍缺 COS-14 的可信适配，不减少原基准内容。运行时只读媒体计数仍须由独立评审核对真实 Phaser 事件并结合正常输入截图；听感和视觉辨识未被计数或 fixture smoke 证明。
 - `resume` 只支持原窗口内、无持久停止的可核实中断。手动 hard stop、预算或时限停止不自动恢复，CLI 暂无用户追加时间/额度的续跑入口，因此不声明 R15 全部续跑体验完成。上游修复不会静默改绑已经固定的下游依赖；不能继续的条目留在差距与原失败历史中。COS-18 整体验收、真实生成及 G3 状态仍由对应后续证据决定。
+
+## 8. Phase C：未启动下游的显式继任
+
+root 已批准只为受修复上游影响、从未启动的下游建立新任务，保留原任务、原 native plan、原 allocations 和失败记录。全组共用原账本与截止时间；仅最初失败任务消耗一次 semantic repair。硬停止的加时/加钱续跑不在本阶段范围。
+
+### C1：纯计划与资格边界
+
+- 新增 `src/runtime/entrypoint-successors.ts`，只产生有限 design/art/coding DAG 的计划数据，不派发、写 journal 或登记预算。`findUnstartedSuccessors` 要求下游处于未启动或仅因原依赖失败而等待，且没有 attempt、request、artifact、evidence 或 review 记录；原计划/验收发生漂移即拒绝。
+- `allocateRepairGrants` 仅按涉及角色原分配权重拆分原未分配金额，使用整数 micro-CNY，旧 allocations 不变。默认剩余 ¥36 在 design 修复场景分别分为 ¥6.75、¥11.25、¥18；任何成员无法获得正 grant 时整组阻塞。
+- `buildRepairContinuation` 复用 `createLinkedRepairTask`，为其余未启动任务产生新的 task/author/context ID、固定输出版本和显式 replacement map。准确替换上游依赖、inputs 和 interfaces 的旧版本；原目标、验收与写入范围保留。来源版本不明确、输出覆盖旧位置、预算/停止/unknown/原时限不满足均拒绝。
+- 17 项轻量测试先红灯后通过，命令：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/entrypoint-successors.test.ts`。仅使用内存契约和假数据，没有 child process、renderer、browser 或 API 调用；`npm run typecheck` 通过。
+- C1 尚未接入生产执行。后续边界仍须完成：write-once 组计划的加载与校验、原始失败产物/诊断快照、journal origin 的安全准备、原子 group 注册、恢复和只读 effective/superseded 投影。不得仅凭本段纯函数测试声称下游已可恢复或 Phase C 完成。
