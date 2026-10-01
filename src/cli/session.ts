@@ -79,7 +79,8 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         const requirement = confirmRequirements({ ...draft, specVersion: snapshot.run.specVersion, sources: source.evidence }, confirmed);
         say(`恢复原运行 ${snapshot.run.runId}；费用与截止时间保持连续。`);
         lines.close();
-        return await host.execute({ root, requirement, draft, resume: true, notify: say });
+        const result = await host.execute({ root, requirement, draft, resume: true, notify: say });
+        say(JSON.stringify(result, null, 2)); return result;
       }
       await recoverRunOwner(root);
       intake = await IntakeController.open({ root });

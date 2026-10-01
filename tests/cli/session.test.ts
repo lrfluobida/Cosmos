@@ -57,13 +57,15 @@ test('stdin EOF never becomes an implied confirmation', async t => {
 test('public resume reuses the recorded confirmation and original identity without a new interview', async t => {
   const initial = await childSession(t, '点击星星得分', '获胜\nconfirm 1\n'); assert.equal(initial.code, 0, initial.stderr);
   const previous = JSON.parse(await readFile(join(initial.root, 'executed.json'), 'utf8')), snapshot = await readFile(join(initial.root, 'snapshot.json'), 'utf8');
-  let resumed = false; const output = new PassThrough(); output.resume();
+  let resumed = false, stdout = ''; const output = new PassThrough(); output.on('data', chunk => { stdout += chunk; });
+  const result = { outcome: 'incomplete', delivery: 'registry/candidates/game/v2/project', report: 'delivery/report-fixture.json', gaps: ['音频体验尚待确认'] };
   await runCli(['resume', initial.root], { input: Readable.from([]), output, host: {
     async prepare() { throw new Error('Generation resume must not repeat intake preparation'); },
     async questions() { throw new Error('Do not interview again'); }, async draft() { throw new Error('Do not draft again'); },
-    async execute(input) { assert.equal(input.resume, true); assert.deepEqual(input.requirement, previous.requirement); assert.deepEqual(input.draft, previous.draft); resumed = true; return { outcome: 'fixture' }; },
+    async execute(input) { assert.equal(input.resume, true); assert.deepEqual(input.requirement, previous.requirement); assert.deepEqual(input.draft, previous.draft); resumed = true; return result; },
   } });
   assert.equal(resumed, true); assert.equal(await readFile(join(initial.root, 'snapshot.json'), 'utf8'), snapshot);
+  for (const value of [result.outcome, result.delivery, result.report, result.gaps[0]]) assert.ok(stdout.includes(value), `resume stdout must show ${value}`);
 });
 
 test('missing execution prerequisites stop the public flow before interview billing or formal timing', async t => {
