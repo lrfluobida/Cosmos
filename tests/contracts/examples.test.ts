@@ -26,20 +26,31 @@ test('documented invalid examples are rejected for their advertised reason', () 
 
 test('schema references resolve locally and declare closed required object fields', () => {
   const directory = new URL('../../schemas/', import.meta.url);
-  const schemas = new Map(readdirSync(directory).filter(name => name.endsWith('.schema.json')).map(name => [name, read(`../../schemas/${name}`)]));
-  function inspect(value: any): void {
+  const documents = readdirSync(directory).filter(name => name.endsWith('.schema.json')).map(name => read(`../../schemas/${name}`));
+  const schemas = new Map(documents.map(schema => [schema.$id, schema]));
+  function dereference(reference: string, base: string): { value: any; base: string } {
+    const uri = new URL(reference, base), pointer = uri.hash;
+    uri.hash = '';
+    let target = schemas.get(uri.href); assert.ok(target, `Unresolved schema URI: ${uri.href}`);
+    if (pointer) for (const segment of pointer.slice(2).split('/')) target = target[decodeURIComponent(segment).replace(/~1/g, '/').replace(/~0/g, '~')];
+    assert.ok(target, `${base} -> ${reference}`);
+    return { value: target, base: uri.href };
+  }
+  function inspect(value: any, base: string): void {
     if (!value || typeof value !== 'object') return;
-    if (value.$ref) {
-      const [file, pointer] = value.$ref.split('#');
-      let target = schemas.get(file); assert.ok(target, value.$ref);
-      if (pointer) for (const segment of pointer.slice(1).split('/')) target = target[segment];
-      assert.ok(target, value.$ref);
-    }
+    if (value.$id) base = new URL(value.$id, base).href;
+    if (value.$ref) dereference(value.$ref, base);
     if (value.type === 'object') {
       assert.equal(value.additionalProperties, false);
       assert.deepEqual(value.required, Object.keys(value.properties));
     }
-    for (const child of Object.values(value)) inspect(child);
+    for (const child of Object.values(value)) inspect(child, base);
   }
-  for (const schema of schemas.values()) inspect(schema);
+  for (const schema of schemas.values()) inspect(schema, schema.$id);
+  const continuation = schemas.get('https://cosmos.local/contracts/2.0.0/ledger.schema.json');
+  for (const [name, type] of [['ledgerId', 'string'], ['limitMicroCny', 'integer'], ['allocations', 'array'], ['entries', 'array']] as const) {
+    const target = dereference(continuation.properties[name].$ref, continuation.$id);
+    assert.equal(target.value.type, type, `${name} must resolve to the original schema, not itself`);
+    assert.ok(target.base.startsWith('https://cosmos.local/contracts/1.0.0/'));
+  }
 });

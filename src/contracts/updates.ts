@@ -49,12 +49,15 @@ export function validateTaskUpdate(previous: unknown, next: unknown, actor: Upda
   if (['passed', 'failed', 'cancelled'].includes(before.state) && !sameValue(before, after)) issue(issues, '$', 'terminal_record', 'Terminal tasks are immutable; create a linked new task for new work.');
   return issues;
 }
-export function validateLedgerUpdate(previous: unknown, next: unknown, actor: UpdateActor): ValidationIssue[] {
-  const issues = [...validateLedger(previous), ...validateLedger(next)]; if (issues.length) return issues;
+export function validateLedgerUpdate(previous: unknown, next: unknown, actor: UpdateActor, options: { continuationUpgrade?: boolean; allowOverrunFacts?: boolean } = {}): ValidationIssue[] {
+  const issues = [...validateLedger(previous), ...validateLedger(next)].filter(item => !(options.allowOverrunFacts && ['budget_exceeded', 'allocation_exceeded'].includes(item.code))); if (issues.length) return issues;
   const before = previous as BudgetLedger, after = next as BudgetLedger;
   if (!sameValue(before, after) && actor.role !== 'system') issue(issues, '$', 'ledger_authority', 'Only the budget service may update the shared ledger.');
-  fixed(before, after, ['contractVersion', 'ledgerId', 'scope', 'limitMicroCny', 'warningThresholdPercent'], issues);
+  fixed(before, after, ['ledgerId', 'scope', 'limitMicroCny', 'warningThresholdPercent'], issues);
+  if (!(options.continuationUpgrade && before.contractVersion === '1.0.0' && after.contractVersion === '2.0.0' && before.scope === 'generation')) fixed(before, after, ['contractVersion'], issues);
   appendOnly(before.allocations, after.allocations, '$.allocations', issues);
+  appendOnly(before.authorizations ?? [], after.authorizations ?? [], '$.authorizations', issues);
+  appendOnly(before.allocationClosures ?? [], after.allocationClosures ?? [], '$.allocationClosures', issues);
   for (const entry of before.entries) {
     const current = after.entries.find(item => item.requestId === entry.requestId);
     if (!current) { issue(issues, '$.entries', 'history_changed', 'A recorded request cannot be removed.'); continue; }

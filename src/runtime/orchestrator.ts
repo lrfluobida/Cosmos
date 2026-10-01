@@ -72,11 +72,13 @@ function requirePassingEvidence(task: TaskContract, requirement: RequirementCont
 
 /** One bounded attempt per prepared task. Repairs/replanning create explicit subsequent work. */
 export async function executeTaskDag(options: DagOptions): Promise<TaskContract[]> {
+  options.controller.requireOriginalExecution();
   return withDagOwner(options.controller, async () => (await executeDag(options, false)).tasks);
 }
 
 /** Resume only independently identifiable unfinished phases of the original tasks. */
 export async function resumeTaskDag(options: DagOptions): Promise<RecoveryReport> {
+  options.controller.requireOriginalExecution();
   if (!options.recovery) throw new Error('Recovery requires the original explicit host journal configuration.');
   return withDagOwner(options.controller, () => executeDag(options, true));
 }

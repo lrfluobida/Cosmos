@@ -10,13 +10,20 @@ export const DEFAULT_BUDGETS = Object.freeze({
 });
 
 /** Call after validateLedger. This summary does not reserve funds or authorize dispatch. */
+export function budgetCapacity(ledger: BudgetLedger) {
+  const effectiveLimitMicroCny = ledger.limitMicroCny + (ledger.authorizations ?? []).reduce((sum, item) => sum + item.additionalMicroCny, 0);
+  const allocatedMicroCny = ledger.allocations.reduce((sum, item) => sum + item.amountMicroCny, 0) - (ledger.allocationClosures ?? []).reduce((sum, item) => sum + item.releasedMicroCny, 0);
+  return { effectiveLimitMicroCny, allocatedMicroCny };
+}
+
 export function budgetSummary(ledger: BudgetLedger) {
   const committedMicroCny = ledger.entries.reduce((sum, entry) => sum + entry.reservedMicroCny + entry.settledMicroCny, 0);
+  const { effectiveLimitMicroCny } = budgetCapacity(ledger);
   return {
     committedMicroCny,
-    availableMicroCny: ledger.limitMicroCny - committedMicroCny,
-    warning: committedMicroCny >= ledger.limitMicroCny * ledger.warningThresholdPercent / 100,
-    exhausted: committedMicroCny >= ledger.limitMicroCny,
+    availableMicroCny: effectiveLimitMicroCny - committedMicroCny,
+    warning: committedMicroCny >= effectiveLimitMicroCny * ledger.warningThresholdPercent / 100,
+    exhausted: committedMicroCny >= effectiveLimitMicroCny,
     reconciliationRequired: ledger.entries.some(entry => entry.unknown),
   };
 }

@@ -1,12 +1,14 @@
-import { DEFAULT_BUDGETS, budgetSummary, validateRunUpdate, validateTaskUpdate } from '../contracts/index.ts';
+import { DEFAULT_BUDGETS, budgetCapacity, budgetSummary, validateLedgerUpdate, validateRunUpdate, validateTaskUpdate } from '../contracts/index.ts';
 import type { ArtifactReference, BudgetLedger, LedgerEntry, TaskContract, TaskKind, UpdateActor } from '../contracts/index.ts';
 import { appendEvidence, evidenceReferences, findRequest, money, nonEmpty, requireOpen, reserveEntry, settleEntry } from '../budget/ledger.ts';
 import { SnapshotStore } from './store.ts';
 import { validateSnapshot } from './run-validation.ts';
-import type { ImportedCharge, RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
+import { activateContinuation } from './continuation-authority.ts';
+import { requireContinuationTask } from './continuation-validation.ts';
+import type { ExecutionAuthority, ExecutionWindow, ImportedCharge, RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
 export type { ImportedCharge, RequestInput, RunSnapshot } from './run-types.ts';
 
-export interface OpenRunOptions { root: string; now?: () => number }
+export interface OpenRunOptions { root: string; now?: () => number; windowId?: string }
 export interface CreateRunOptions extends OpenRunOptions {
   runId: string;
   ledgerId: string;
@@ -20,6 +22,7 @@ export interface CreateRunOptions extends OpenRunOptions {
 
 /** Trusted local controller. Agents receive hooks, never the mutable controller state. */
 export class RunController {
+  static activateContinuation = activateContinuation;
   private store: SnapshotStore;
   private snapshot: RunSnapshot;
   private now: () => number;
@@ -30,13 +33,21 @@ export class RunController {
   private failed = false;
   private abort = new AbortController();
   private timer?: ReturnType<typeof setTimeout>;
+  private readonly windowId?: string;
+  private childTasks = new Map<string, string>();
 
-  private constructor(store: SnapshotStore, snapshot: RunSnapshot, now: () => number) {
+  private constructor(store: SnapshotStore, snapshot: RunSnapshot, now: () => number, windowId?: string) {
     this.store = store; this.snapshot = snapshot; this.now = now;
-    if (snapshot.stopReason) this.abort.abort(snapshot.stopReason);
+    this.windowId = windowId;
+    if (this.activeStop()) this.abort.abort(this.activeStop());
   }
 
   get signal(): AbortSignal { return this.abort.signal; }
+
+  /** Legacy executors must reject before read() can expire or otherwise mutate a window. */
+  requireOriginalExecution(): void {
+    if (this.snapshot.formatVersion !== 1) throw new Error('Continuation execution is unsupported by this legacy entrypoint.');
+  }
 
   /** Host-only, non-reentrant coordination of admission or receipt settlement.
    * Do not hold this across a provider call. Public ledger methods retain their
@@ -48,9 +59,26 @@ export class RunController {
   }
 
   /** Persist before spawn; a pending ticket blocks automatic recovery after a crash. */
-  prepareOwnedChild(): Promise<string> { return this.serial(async () => { this.requireActive(); return this.store.prepareOwnedChild(); }); }
+  prepareOwnedChild(authority?: { taskId: string; windowId: string }): Promise<string> {
+    return this.serial(async () => {
+      this.requireActive();
+      if (this.windowId) {
+        if (!authority || authority.windowId !== this.windowId) throw new Error('Owned child requires its explicit task and window authority.');
+        this.requireTaskAuthority(authority.taskId);
+      }
+      const ticket = await this.store.prepareOwnedChild();
+      if (authority && this.windowId) this.childTasks.set(ticket, authority.taskId);
+      return ticket;
+    });
+  }
   /** Bind the waiting child before releasing its startup barrier or allowing writes. */
-  registerOwnedChild(pid: number, ticket: string): Promise<void> { return this.serial(() => this.store.registerOwnedChild(pid, ticket)); }
+  registerOwnedChild(pid: number, ticket: string): Promise<void> {
+    return this.serial(async () => {
+      // Retain the PID even when authority expired, so close/recovery cannot lose a writer.
+      await this.store.registerOwnedChild(pid, ticket);
+      if (this.windowId) { this.requireActive(); this.requireTaskAuthority(this.childTasks.get(ticket) ?? ''); }
+    });
+  }
 
   static async create(options: CreateRunOptions): Promise<RunController> {
     const input = { ...options, allocations: structuredClone(options.allocations) };
@@ -82,7 +110,8 @@ export class RunController {
     try {
       const snapshot = await store.read();
       validateSnapshot(snapshot);
-      const controller = new RunController(store, snapshot, options.now ?? Date.now);
+      if (snapshot.formatVersion === 2 ? options.windowId !== snapshot.continuation!.currentWindowId : options.windowId !== undefined) throw new Error('Continuation snapshot requires its explicit current execution window; ordinary execution entrypoints are unsupported.');
+      const controller = new RunController(store, snapshot, options.now ?? Date.now, options.windowId);
       const next = structuredClone(snapshot);
       for (const record of next.requests) {
         const entry = findRequest(next.ledger, record.requestId);
@@ -100,6 +129,11 @@ export class RunController {
 
   async read(): Promise<RunSnapshot> { return this.serial(async () => structuredClone(this.snapshot)); }
 
+  /** One authority view for all window-aware host admission paths. */
+  executionAuthority(taskId: string): Promise<ExecutionAuthority> {
+    return this.serial(async () => this.taskAuthority(taskId));
+  }
+
   async summary() {
     const { run, ledger, stopReason } = await this.read();
     return {
@@ -113,9 +147,10 @@ export class RunController {
     const request = structuredClone(input);
     return this.serial(async () => {
       this.requireActive();
+      this.requireTaskAuthority(request.taskId);
       const next = structuredClone(this.snapshot);
       const entry = reserveEntry(next.ledger, request);
-      next.requests.push({ requestId: request.requestId, admittedAt: null });
+      next.requests.push({ requestId: request.requestId, admittedAt: null, ...(this.windowId ? { windowId: this.windowId } : {}) });
       this.event(next, 'reserved', request.requestId, 'Maximum known cost reserved before dispatch.');
       await this.commit(next);
       return structuredClone(entry);
@@ -126,6 +161,9 @@ export class RunController {
   async admit(requestId: string): Promise<void> {
     return this.serial(async () => {
       this.requireActive();
+      const entry = findRequest(this.snapshot.ledger, requestId);
+      this.requireTaskAuthority(entry.taskId);
+      if (this.snapshot.requests.find(record => record.requestId === requestId)?.windowId !== this.windowId) throw new Error('Request belongs to another execution window.');
       if (budgetSummary(this.snapshot.ledger).reconciliationRequired) throw new Error('Reconciliation required before paid admission.');
       const next = structuredClone(this.snapshot);
       requireOpen(findRequest(next.ledger, requestId));
@@ -149,7 +187,7 @@ export class RunController {
       this.event(next, 'settled', requestId, 'Provider cost reconciled against evidence.');
       if (overrun) this.halt(next, 'charge_overrun', `Actual charge exceeded the reservation for ${requestId}.`);
       await this.commit(next);
-      return { halted: next.stopReason !== null };
+      return { halted: this.activeStop(next) !== null };
     });
   }
 
@@ -193,6 +231,7 @@ export class RunController {
         return;
       }
       const next = structuredClone(this.snapshot);
+      if (this.windowId) throw new Error('Historical imports must be reconciled before continuation; closed grants cannot receive new charges.');
       if (!next.ledger.allocations.some(a => a.taskId === charge.taskId)) throw new Error('Imported charge requires an existing shared task allocation.');
       next.ledger.entries.push({ requestId: charge.requestId, taskId: charge.taskId, provider: charge.provider, pricingVersion: charge.pricingVersion, settledMicroCny: charge.actualCostMicroCny, reservedMicroCny: 0, status: 'settled', unknown: false, evidence: charge.evidence });
       next.requests.push({ requestId: charge.requestId, admittedAt: null });
@@ -211,6 +250,7 @@ export class RunController {
       this.requireActive();
       const next = structuredClone(this.snapshot);
       for (const task of values) {
+        if (this.windowId) requireContinuationTask(next, task);
         if (task.state !== 'not_started' || task.attempts.length || task.evidence.length || task.artifacts.length || task.review.verdict !== 'pending') throw new Error('Register only fresh task drafts.');
         if (next.tasks.some(t => t.taskId === task.taskId)) throw new Error('Task already registered.');
         const allocation = next.ledger.allocations.find(a => a.taskId === task.taskId);
@@ -232,6 +272,12 @@ export class RunController {
     return this.serial(async () => {
       const next = structuredClone(this.snapshot);
       const previous = next.tasks.find(t => t.taskId === value.taskId);
+      if (this.windowId) {
+        requireContinuationTask(next, value);
+        if (!previous) throw new Error('Use registerTasks for a fresh continuation task.');
+        if (this.activeStop() && (!['cancelled', 'failed', 'waiting_user'].includes(value.state) || value.attempts.some(attempt => attempt.outcome === 'running')
+          || value.attempts.length !== previous.attempts.length || value.attempts.some((attempt, i) => attempt.attemptId !== previous.attempts[i].attemptId))) throw new Error('Stopped window permits only finalizing existing attempts; it cannot start another attempt.');
+      }
       if (previous) {
         const issues = validateTaskUpdate(previous, value, trustedActor);
         if (issues.length) throw new Error(`Invalid task update: ${issues.map(i => i.message).join('; ')}`);
@@ -248,7 +294,7 @@ export class RunController {
   async stop(reason: string): Promise<void> {
     return this.serial(async () => {
       nonEmpty(reason, 'Stop reason');
-      if (this.snapshot.stopReason) return;
+      if (this.activeStop()) return;
       const next = structuredClone(this.snapshot);
       this.halt(next, 'manual', reason);
       await this.commit(next);
@@ -282,12 +328,44 @@ export class RunController {
   }
 
   private requireActive(): void {
-    if (this.snapshot.stopReason) throw new Error(`Run stopped: ${this.snapshot.stopReason.code}: ${this.snapshot.stopReason.reason}`);
+    const stop = this.activeStop();
+    if (stop) throw new Error(`Run stopped: ${stop.code}: ${stop.reason}`);
+  }
+
+  private window(state = this.snapshot): ExecutionWindow | undefined {
+    if (!this.windowId) return undefined;
+    const window = state.continuation?.windows.find(item => item.windowId === this.windowId);
+    if (!window || state.continuation?.currentWindowId !== this.windowId) throw new Error('Execution window authority is no longer current.');
+    return window;
+  }
+
+  private activeStop(state = this.snapshot): StopReason | null {
+    const window = this.window(state); return window ? window.stopReason : state.stopReason;
+  }
+
+  private deadlineAt(): string { return this.window()?.deadlineAt ?? this.snapshot.run.originalDeadlineAt; }
+
+  private taskAuthority(taskId: string): ExecutionAuthority {
+    const grant = this.snapshot.ledger.allocations.find(item => item.taskId === taskId);
+    const task = this.snapshot.tasks.find(item => item.taskId === taskId);
+    const window = this.window();
+    const eligible = !window || !!task && window.grants.some(item => item.taskId === taskId) && ['not_started', 'ready', 'running', 'awaiting_review'].includes(task.state) && task.attempts.length <= 1;
+    return { windowId: this.windowId ?? null, deadlineAt: this.deadlineAt(), effectiveLimitMicroCny: budgetCapacity(this.snapshot.ledger).effectiveLimitMicroCny,
+      taskGrantMicroCny: grant?.amountMicroCny ?? 0, admissionAllowed: !!grant && eligible && !this.activeStop() && this.now() < Date.parse(this.deadlineAt()) && !this.snapshot.ledger.allocationClosures?.some(item => item.taskId === taskId) && !budgetSummary(this.snapshot.ledger).reconciliationRequired };
+  }
+
+  private requireTaskAuthority(taskId: string): void {
+    if (!this.windowId) return;
+    if (budgetSummary(this.snapshot.ledger).reconciliationRequired) throw new Error('Reconciliation required before further execution admission.');
+    if (!this.taskAuthority(taskId).admissionAllowed) throw new Error('Task is not registered with active execution authority, or its grant is closed.');
   }
 
   private halt(next: RunSnapshot, code: StopReason['code'], reason: string): void {
     // An overcharge discovered after another stop remains an explicit durable incident.
-    if (!next.stopReason || code === 'charge_overrun') next.stopReason = { code, reason, at: this.at() };
+    const window = this.window(next);
+    if (window) {
+      if (!window.stopReason || code === 'charge_overrun') window.stopReason = { code, reason, at: this.at() };
+    } else if (!next.stopReason || code === 'charge_overrun') next.stopReason = { code, reason, at: this.at() };
     next.run.state = 'waiting_user';
     for (const entry of next.ledger.entries) {
       if (entry.status !== 'reserved') continue;
@@ -299,20 +377,20 @@ export class RunController {
       }
       this.event(next, admitted ? 'unknown' : 'cancelled', entry.requestId, admitted ? 'Stop cannot prove that a dispatched request was free.' : 'Runtime admission history proves the request was never dispatched.');
     }
-    this.event(next, 'stopped', null, reason);
+    this.event(next, window ? 'window_stopped' : 'stopped', null, reason);
   }
 
   private async expire(): Promise<void> {
-    if (!this.snapshot.stopReason && this.now() >= Date.parse(this.snapshot.run.originalDeadlineAt)) {
+    if (!this.activeStop() && this.now() >= Date.parse(this.deadlineAt())) {
       const next = structuredClone(this.snapshot);
-      this.halt(next, 'deadline', 'Original hard deadline reached.');
+      this.halt(next, 'deadline', this.windowId ? 'Execution window hard deadline reached.' : 'Original hard deadline reached.');
       await this.commit(next);
     }
   }
 
   private armDeadline(): void {
-    if (this.snapshot.stopReason) return;
-    const delay = Math.max(1, Date.parse(this.snapshot.run.originalDeadlineAt) - this.now());
+    if (this.activeStop()) return;
+    const delay = Math.max(1, Date.parse(this.deadlineAt()) - this.now());
     this.timer = setTimeout(() => {
       void this.serial(async () => { this.armDeadline(); }).catch(() => { this.abort.abort(new Error('Deadline persistence failed.')); });
     }, delay);
@@ -329,10 +407,11 @@ export class RunController {
     if (budgetSummary(next.ledger).warning && !next.events.some(e => e.type === 'budget_warning')) this.event(next, 'budget_warning', null, 'Settled and reserved exposure reached 80% of the shared budget.');
     validateSnapshot(next);
     const issues = validateRunUpdate(this.snapshot.run, next.run, { role: 'system', actorId: 'runtime' });
+    if (next.formatVersion === 2) issues.push(...validateLedgerUpdate(this.snapshot.ledger, next.ledger, { role: 'system', actorId: 'runtime' }, { allowOverrunFacts: this.activeStop(next)?.code === 'charge_overrun' }));
     if (issues.length) throw new Error(`Invalid run update: ${issues.map(i => i.message).join('; ')}`);
     try { await this.store.write(next); }
     catch (error) { this.failed = true; clearTimeout(this.timer); this.abort.abort(error); throw error; }
     this.snapshot = next;
-    if (next.stopReason) { clearTimeout(this.timer); this.abort.abort(next.stopReason); }
+    if (this.activeStop(next)) { clearTimeout(this.timer); this.abort.abort(this.activeStop(next)); }
   }
 }
