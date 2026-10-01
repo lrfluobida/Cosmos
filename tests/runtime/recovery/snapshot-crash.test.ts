@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+import { SnapshotStore } from '../../../src/runtime/store.ts';
+import { RunController } from '../../../src/runtime/run.ts';
+
+for (const boundary of ['before', 'after'] as const) test(`process exit ${boundary} snapshot commit reopens one complete original run`, async t => {
+  const root = await mkdtemp(join(tmpdir(), 'cosmos-recovery-snapshot-'));
+  let controller: RunController | undefined;
+  t.after(async () => { await controller?.close(); await rm(root, { recursive: true, force: true }); });
+  const source = `import {RunController} from ${JSON.stringify(new URL('../../../src/runtime/run.ts', import.meta.url).href)};
+import {SnapshotStore} from ${JSON.stringify(new URL('../../../src/runtime/store.ts', import.meta.url).href)};
+const run=await RunController.create({root:process.argv[1],runId:'original',ledgerId:'ledger',kind:'evaluation',specVersion:'v1',scope:'validation',allocations:[{taskId:'task',amountMicroCny:100}],now:()=>${Date.parse('2026-10-01T01:00:00.000Z')}});
+const original=SnapshotStore.prototype.write;
+SnapshotStore.prototype.write=async function(value){if(process.argv[2]==='before')process.exit(23);await original.call(this,value);process.exit(23);};
+await run.reserve({requestId:'one',taskId:'task',provider:'offline',pricingVersion:'v1',estimatedMaxCostMicroCny:50});`;
+  const child = spawn(process.execPath, ['--experimental-strip-types', '--input-type=module', '-e', source, root, boundary], { stdio: 'ignore', windowsHide: true, env: { SYSTEMROOT: process.env.SYSTEMROOT } });
+  assert.equal((await once(child, 'close'))[0], 23);
+  await SnapshotStore.recover(root);
+  controller = await RunController.open({ root, now: () => Date.parse('2026-10-01T01:01:00.000Z') });
+  const state = await controller.read();
+  assert.equal(state.run.runId, 'original'); assert.equal(state.run.ledgerId, 'ledger');
+  assert.equal(state.run.originalStartedAt, '2026-10-01T01:00:00.000Z'); assert.equal(state.run.originalDeadlineAt, '2026-10-01T13:00:00.000Z');
+  assert.equal(state.ledger.entries.length, boundary === 'before' ? 0 : 1);
+  assert.equal(state.run.fees.reservedMicroCny, boundary === 'before' ? 0 : 50);
+  assert.equal(state.revision, boundary === 'before' ? 1 : 2);
+});
