@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批获批交付已合入并推送 main：COS-02、COS-05 通过并关闭对应 issue；COS-01 来源目录与冻结检查通过，参考仍未冻结，#2 保持 open。完整测试 63/63、构建与类型检查通过。第二批 COS-03 已启动。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批获批交付已合入并推送 main：COS-02、COS-05 完成，COS-01 参考仍未冻结。第一批完整测试 63/63、构建与类型检查通过。第二批 COS-03、COS-06、COS-08 已在独立工作区启动。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -16,7 +16,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 - 已确认首版形态：Windows 命令行 Cosmos，交付浏览器游戏与完整源码。
 - 已确认复用与范围：允许通用模板，游戏专属实现由 Cosmos 生成；经典 PC 版主要内容全纳入，GOTY 新增项另列；关键数值对齐并规定容差。
 - 初步角色设想：Cosmos-agent 负责任务拆解、安排、结果收集与审查；coding-agent 开发代码；design-agent 设计玩法并通过提问完善需求；art-agent 负责美术。
-- 当前优先事项是调研、穿刺和 spec；角色边界、验收定义及技术方案仍在讨论。
+- 当前优先事项是按已发布任务实施、独立审核和批次合并；技术缺口通过有界验证解决。
 
 ## 工作清单
 
@@ -39,7 +39,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 直接 API 与局部规则已测 | [31 次调用记录](probes/2026-10-01-deepseek/README.md)，高峰价保守估算 ¥0.721771；pi 集成和完整关卡仍未测 |
 | 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第一批获批交付已推送，第二批启动 | COS-02、COS-05 完成，COS-01 部分交付保持 provisional；默认测试 63/63；COS-03 已启动，COS-06/08 待调度 |
+| 子代理逐项实施 | 第二批进行中 | COS-03 pi SDK、COS-06 持久预算与状态、COS-08 浏览器验收并行实现；每项提交后独立审核 |
 
 ## 开发批次
 
@@ -51,12 +51,16 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 01 | COS-02 / #3 | cos02_implementer | cos02_reviewer | batch01_merger | 45c3cf6 修复两项 P2 后复审批准，合并 a6247ec；40 项契约测试、构建与类型检查通过；#3 已关闭 |
 | 01 | COS-05 / #6 | cos05_implementer | cos05_reviewer | batch01_merger | 1121ae2 已独立批准，合并 5e3670e；构建、类型检查、CLI 7/7 通过，复用浏览器 1/1；#6 已关闭 |
 | 02 | COS-03 / #4 | cos03_implementer | 提交后独立审核 | batch02_merger | 已从第一批 main 开始，复用空闲工作区并保留原分支 |
+| 02 | COS-06 / #7 | cos06_implementer | cos06_reviewer | batch02_merger | 1bed423 已提交，22 项离线测试和类型构建通过；独立审核中 |
+| 02 | COS-08 / #9 | cos08_implementer | 提交后独立审核 | batch02_merger | 正常鼠标输入、失败场景与证据报告实现中 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
 审核提交、合并提交、验证范围与待同步事项见 [第一批集成记录](docs/reviews/batch-01.md)。
 
-后续文件归属与验收步骤见 [第二批执行计划](docs/plans/2026-10-01-batch-02.md)；COS-06 与 COS-08 待调度。
+后续文件归属与验收步骤见 [第二批执行计划](docs/plans/2026-10-01-batch-02.md)。
+
+参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
 ## 第 1 轮：根问题与回答
 
