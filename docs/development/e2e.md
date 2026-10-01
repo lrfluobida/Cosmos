@@ -1,8 +1,10 @@
 # COS-10 端到端切片：冻结需求与执行准备
 
-**状态：首次运行在设计 handoff 阶段失败，等待续跑功能评审。** COS-07 与 COS-09 已独立评审并合入。运行入口已经接通原生角色、产物登记、构建、正常输入和独立评审；目标游戏尚未生成或验收通过，COS-10 仍未完成。
+**状态：一次性续跑在评审 JSON 协议检查处未通过。** COS-07 与 COS-09 已独立评审并合入。目标游戏尚未生成或验收通过，COS-10 仍未完成；已使用的 continuation 入口不能再次调用。
 
 续跑补充（2026-10-01）：首次真实运行的原生规划和设计已产生，6 个请求均由 `deepseek-flash` 返回并结算；新增 80447 micro-CNY，共享累计 816418。设计作者把尚未进行的宿主/下游工作写入阻断 handoff，导致捕获完成后未进入主机验收。原失败记录保留，游戏尚未生成或通过。下面的一次性续跑仅处理这个已定位的形态。
+
+第二次结果：只读设计澄清进入主机验收并取得一条 passed 证据，但评审返回 `approved` 和 10 条正面核对说明。版本引用与 evidenceIds 正确，`parseReview` 仍拒绝 approved 与非空 findings 的组合；任务保持 `waiting_user`，review 未持久批准。总请求为 13，共享累计 892282 micro-CNY，预留和未知费用均为零；原 `09:48:34.671Z` 截止时间及两次失败记录保持不变。
 
 ## 已冻结的输入
 
@@ -122,3 +124,9 @@ node --experimental-strip-types probes/e2e/run.ts --continue
 本次经协调者明确授权调整内部继任分配：新 design 为 500000 micro-CNY，art 为 5779208，coding 为 7705611，合计 13984819；旧 55411221 分配原样保留，新 shared allocation 合计 69396040，仍小于 150000000。被替换任务的旧额度不再由本入口派发，记录保留供审计。allocation 是任务权限上限，不是已发生或已预留费用；此调整没有增加用户费用硬上限。
 
 `openPilotGuard` 在共享 controller 持锁期间读取并校验既有 journal，保留原 6/40 计数并仅追加请求 ID；不重建账本、不重跑 planning、不重置起点。共享实际费用加在途预留仍逐请求受累计 ¥30 限制，原截止仍是 `2026-10-01T09:48:34.671Z`，平台修复期间的时间也计入。后续写 `continuation-result.json`，原 `result.json` 不覆盖。任一步失败保留现状，不提供第二次 continuation 或通用进程恢复。
+
+## 评审协议提示修正
+
+原 reviewer 提示只声明 `findings:string[]`，没有把 findings 限定为未解决缺陷；解析器始终要求 `approved` 对应空数组、`changes_requested` 对应至少一条缺陷。现已在提示中明确同一条件：正面核对与解释不得写入 findings，真实缺陷必须保留且不得为获得空数组而隐去。解析器不变，旧 proposal 不改写、不清空。
+
+使用真实 author/reviewer 最终 JSON 在临时 controller 回放，结果为 `verifies=1, reviews=1, state=waiting_user, recordedReview=pending, evidenceCount=1, paidRequests=0`，保持原拒绝行为。四种离线协议组合分别验证正面非空批准被拒、空缺陷批准通过、空缺陷变更请求被拒、真实缺陷变更请求进入 needs_changes。提示修正不是本次 pilot 已通过的证据；后续受约束协议纠错由 COS-11 处理，不属于新增付费或再次 continuation 授权。

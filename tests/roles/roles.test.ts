@@ -236,6 +236,27 @@ test('DAG completion needs host evidence and a separate frozen review context', 
   assert.equal((await f.controller.read()).tasks[0].state, 'passed');
 });
 
+for (const sample of [
+  { name: 'approved-with-positive-notes', verdict: 'approved', findings: ['The schema is complete.', 'Every fixed requirement is covered.'], state: 'waiting_user', recorded: 'pending' },
+  { name: 'approved-with-no-defects', verdict: 'approved', findings: [], state: 'passed', recorded: 'approved' },
+  { name: 'changes-without-defects', verdict: 'changes_requested', findings: [], state: 'waiting_user', recorded: 'pending' },
+  { name: 'changes-with-real-defect', verdict: 'changes_requested', findings: ['Required click behavior is missing; normal input has no effect.'], state: 'needs_changes', recorded: 'changes_requested' },
+]) test(`review findings protocol: ${sample.name}`, async t => {
+  const f = await fixture(t), seen: any[] = [];
+  const results = await executeTaskDag({ controller: f.controller, requirement, tasks: [{ task: f.task, role: 'coding', workspace: f.workspace }],
+    sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, now,
+    roleFactory: mockFactory(seen, packet => ({ verdict: sample.verdict, inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: EvidenceContract) => e.evidenceId), findings: sample.findings })),
+    capture: async () => ({ artifacts: [artifact()], reviewWorkspace: f.reviewWorkspace }), verify: async task => passingEvidence(task),
+  });
+  assert.equal(results[0].state, sample.state); assert.equal(results[0].review.verdict, sample.recorded);
+  assert.equal(results[0].evidence.length, 1); assert.equal(results[0].evidence[0].outcome, 'passed');
+  const prompt = seen.find(item => item.packet.role === 'reviewer').config.systemPrompt;
+  assert.match(prompt, /findings contains only unresolved actionable defects/);
+  assert.match(prompt, /approved requires findings:\[\]/);
+  assert.match(prompt, /changes_requested requires at least one such defect/);
+  assert.match(prompt, /Do not hide actual defects/);
+});
+
 for (const stale of [true, false]) test(`only current selected review evidence can approve while history stays intact: ${stale}`, async t => {
   const f = await fixture(t), seen: any[] = [];
   const results = await executeTaskDag({ controller: f.controller, requirement, tasks: [{ task: f.task, role: 'coding', workspace: f.workspace }], sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, roleFactory: mockFactory(seen, packet => ({ verdict: 'approved', inputVersions: packet.inputs, evidenceIds: [stale ? 'old-test' : 'code-test'], findings: [] })), now,
