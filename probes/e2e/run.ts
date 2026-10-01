@@ -10,11 +10,14 @@ import { cancelReplacedTasks, readContinuation } from './continuation.ts';
 import type { Continuation } from './continuation.ts';
 import { assertTrialUnused, checkTrialAdmission, claimTrial, readPreviousTrial, TRIAL } from './trial.ts';
 import { claimStartupRecovery, readStartupRecovery } from './startup.ts';
+import { checkExperimentAdmission, claimExperiment, readExperimentHistory, EXPERIMENT, STARTUP_REJECTION_SOURCE } from './experiment.ts';
+import type { ExperimentDecision } from './experiment.ts';
 
 /** Explicit production entry: existing shared ledger only; secrets remain in process environment. */
-export async function runPilot(options: { repository: string; preflightOnly?: boolean; continuation?: boolean; trial?: boolean; trialRecoverStartup?: boolean }) {
+export async function runPilot(options: { repository: string; preflightOnly?: boolean; continuation?: boolean; trial?: boolean; trialRecoverStartup?: boolean; experimentDecision?: ExperimentDecision }) {
   if (options.trial && options.continuation) throw new Error('The new fixed trial cannot use the historical continuation entry');
   if (options.trialRecoverStartup && (options.trial || options.continuation || options.preflightOnly)) throw new Error('Startup recovery is a single explicit fixed-trial action');
+  if (options.experimentDecision && (options.trial || options.continuation || options.preflightOnly || options.trialRecoverStartup)) throw new Error('Experiment execution cannot use a historical entry');
   const repository = resolve(options.repository), ledgerRoot = join(repository, '.cosmos/validation-shared');
   await access(join(ledgerRoot, 'snapshot.json')); // Do not create a second ledger, even on a typo.
   const controller = await RunController.open({ root: ledgerRoot });
@@ -27,7 +30,7 @@ export async function runPilot(options: { repository: string; preflightOnly?: bo
   };
   try {
     const snapshot = await controller.read();
-    if (!options.continuation && !options.trial && !options.trialRecoverStartup) await assertPilotNotStarted(ledgerRoot);
+    if (!options.continuation && !options.trial && !options.trialRecoverStartup && !options.experimentDecision) await assertPilotNotStarted(ledgerRoot);
     if (snapshot.run.runId !== 'validation-2026-10-01' || snapshot.ledger.ledgerId !== 'cosmos-validation' || snapshot.run.specVersion !== '1.0') throw new Error('Expected the original shared validation run and spec');
     if (await git(['branch', '--show-current']) !== 'main') throw new Error('Run the independently reviewed integration from main');
     const head = await git(['rev-parse', 'HEAD']);
@@ -36,6 +39,32 @@ export async function runPilot(options: { repository: string; preflightOnly?: bo
     const input = { snapshot, dependencies: mapping.tasks, now: Date.now(), isAncestor: async (commit: string) => {
       const result = await runChild('git', ['merge-base', '--is-ancestor', commit, head], { cwd: repository, signal: controller.signal, timeoutMs: 15_000 }); return result.code === 0;
     } };
+    if (options.experimentDecision) {
+      const admission = await checkExperimentAdmission({ ...input, platformHead: head, decision: options.experimentDecision });
+      const history = await readExperimentHistory(repository, ledgerRoot, input.now);
+      await git(['cat-file', '-e', `${STARTUP_REJECTION_SOURCE.commit}:${STARTUP_REJECTION_SOURCE.path}`]);
+      if (!process.env.DEEPSEEK_API_KEY?.trim()) throw new Error('DEEPSEEK_API_KEY is required in the host environment');
+      const origin = await claimExperiment({ repository, ledgerRoot, controller, admission, history }); root = origin.root;
+      let outcome: { outcome: string; [key: string]: unknown };
+      try {
+        guard = await createPilotGuard({ root, controller, deadlineAt: admission.deadlineAt, maxRequests: EXPERIMENT.maxRequests, committedCapMicroCny: admission.committedCapMicroCny });
+        const toolchain = await prepareToolchain(repository, root, guard.signal);
+        outcome = await generatePilot({ repository, root, prefix: EXPERIMENT.id, controller, guard, toolchain,
+          childAllocationCapMicroCny: EXPERIMENT.childAllocationMicroCny, confirmedAt: admission.startedAt, experiment: admission });
+      } catch (error) {
+        outcome = { outcome: 'failed', reason: guard?.signal.aborted || Date.now() >= Date.parse(admission.deadlineAt)
+          ? 'Experiment deadline/cancellation reached' : 'Experiment stopped; preserve its native sessions and bounded host evidence',
+        errorCategory: error instanceof Error ? error.name : 'Error' };
+      }
+      const budget = await controller.summary();
+      const report = { ...outcome, experimentId: EXPERIMENT.id, root, origin: 'origin.json', platformHead: head,
+        startedAt: admission.startedAt, endedAt: new Date().toISOString(), deadlineAt: admission.deadlineAt, sharedDeadlineAt: admission.sharedDeadlineAt,
+        elapsedMs: Date.now() - Date.parse(admission.startedAt), baselineCommittedMicroCny: admission.baselineCommittedMicroCny,
+        experimentCommittedMicroCny: budget.committedMicroCny - admission.baselineCommittedMicroCny, committedCapMicroCny: admission.committedCapMicroCny,
+        budget, experimentJournal: guard ? await jsonFile(root, 'pilot-budget.json') : null,
+        claims: 'One explicitly authorized COS-10/COS-11 development experiment. Historical failures remain unchanged; this is not COS-18 CLI acceptance.' };
+      await writeJson(root, 'result.json', report); return report;
+    }
     if (options.trialRecoverStartup) {
       const recovery = await readStartupRecovery(repository, ledgerRoot, controller); root = recovery.root;
       if (!await input.isAncestor(recovery.origin.platformHead)) throw new Error('Original platform is not an ancestor of the approved startup recovery');
@@ -134,11 +163,20 @@ export async function runPilot(options: { repository: string; preflightOnly?: bo
   } finally { guard?.close(); await controller.close(); }
 }
 
+export function parsePilotArguments(args: string[]): Omit<Parameters<typeof runPilot>[0], 'repository'> {
+  if (args[0] === '--experiment') {
+    if (args.length !== 3 || !/^[a-f0-9]{40}$/.test(args[1]) || !args[2].trim() || args[2].length > 2000) throw new Error('Usage: --experiment <approved-main-sha> <coordinator-decision-source>');
+    return { experimentDecision: { approvedPlatformHead: args[1], source: args[2] } };
+  }
+  if (args.length > 1 || args.length === 1 && !['--preflight', '--continue', '--trial', '--trial-preflight', '--trial-recover-startup'].includes(args[0])) throw new Error('Usage: node --experimental-strip-types probes/e2e/run.ts [--preflight|--continue|--trial|--trial-preflight|--trial-recover-startup|--experiment <approved-main-sha> <coordinator-decision-source>]');
+  return { preflightOnly: ['--preflight', '--trial-preflight'].includes(args[0]), continuation: args[0] === '--continue', trial: ['--trial', '--trial-preflight'].includes(args[0]), trialRecoverStartup: args[0] === '--trial-recover-startup' };
+}
+
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2);
-  if (args.length > 1 || args.length === 1 && !['--preflight', '--continue', '--trial', '--trial-preflight', '--trial-recover-startup'].includes(args[0])) throw new Error('Usage: node --experimental-strip-types probes/e2e/run.ts [--preflight|--continue|--trial|--trial-preflight|--trial-recover-startup]');
+  const options = parsePilotArguments(args);
   const repository = fileURLToPath(new URL('../../', import.meta.url));
-  runPilot({ repository, preflightOnly: ['--preflight', '--trial-preflight'].includes(args[0]), continuation: args[0] === '--continue', trial: ['--trial', '--trial-preflight'].includes(args[0]), trialRecoverStartup: args[0] === '--trial-recover-startup' }).then(result => {
+  runPilot({ repository, ...options }).then(result => {
     console.log(JSON.stringify(result)); if (result.outcome === 'failed') process.exitCode = 1;
   }).catch(error => { console.error(`COS-10 stopped: ${error instanceof Error ? error.message : 'Host admission failed'}`); process.exitCode = 1; });
 }
