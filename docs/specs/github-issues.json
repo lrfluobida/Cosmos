@@ -506,10 +506,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "task-card-published",
-      "reviewStatus": "DOC_PREP_READY",
-      "reviewedCommit": "2f02e987b47c47347e2a43ac5021f37177fad4ad",
-      "mergeCommit": "c9d1a8aa49e176fc3253ef230c35723fdc6b100c"
+      "integrationStatus": "partial-offline-verified",
+      "reviewStatus": "COMBINED_READY",
+      "reviewedCommit": "b886b2fe128891bafa11e57d42df60bb15601795",
+      "mergeCommit": "a3845a323f70b2faf0220eb4695a53219afd4180"
     },
     {
       "taskId": "COS-19",
