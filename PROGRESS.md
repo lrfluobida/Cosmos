@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 18 个原生子任务。COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。累计 13 次请求已结算，共享验证估算 ¥0.892282，预留与未知费用均为零；美术、编码及玩法验收未执行，#11 保持 open。原 pilot 保留失败，不再调用现有 `--continue`；最小评审提示修正与 COS-11 有界协议纠错已安排实施。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 / #19 已发布原 R4/R11 的 Windows 访谈与生成 CLI 任务卡，尚未实现。COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 18 个原生子任务。COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。累计 13 次请求已结算，共享验证估算 ¥0.892282，预留与未知费用均为零；美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`，COS-11 有界协议纠错实施中。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 / #19 已发布原 R4/R11 的 Windows 访谈与生成 CLI 任务卡，尚未实现。COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -39,7 +39,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 首轮生成及一次续跑失败 | 既有直接 API/pi 探针估算 ¥0.735971；新增 pilot 13 次请求共 ¥0.156311；共享账本累计 ¥0.892282，预留与未知费用为零；尚无通过游戏 |
 | 任务拆分 | 已发布 | [18 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-18 承接既有 R4/R11 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#19；18 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第四批运行失败，协议修正待实施 | COS-10 初次集成 194/194，续跑入口集成 roles/E2E 63/63，构建与类型检查通过；真实续跑仍被评审响应契约阻断，#11 保持 open |
+| 子代理逐项实施 | 第四批字段说明补齐，原 pilot 仍失败 | 初次集成 194/194、续跑入口 roles/E2E 63/63；评审字段说明修正复用获批的 38/38 与编译证据。COS-11 有界纠错实施中，#11 保持 open |
 
 ## 开发批次
 
