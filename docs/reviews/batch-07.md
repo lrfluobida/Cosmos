@@ -1,6 +1,6 @@
 # Batch 07 review and integration record
 
-Date: 2026-10-01. Sole merger: `batch07_merger`. Starting main: `0a10f4230c312cc9874be0e6499fd784b3ceba9c`; [plan](../plans/2026-10-01-batch-07.md).
+Dates: 2026-10-01 to 2026-10-02. Sole merger: `batch07_merger`. Starting main: `0a10f4230c312cc9874be0e6499fd784b3ceba9c`; [plan](../plans/2026-10-01-batch-07.md).
 
 ## COS-18 Phase A approval checkpoint
 
@@ -32,7 +32,7 @@ The batch does not change paid runtime status: shared cost is 892,282 micro-CNY 
 
 ## Partial batch checkpoint
 
-COS-18 Phase A and the COS-01 metadata supplement were pushed as clean checkpoint `562d77522aeb32afc0d710ebb0f75fc24eb6e9d4`; local HEAD, origin/main and `ls-remote` matched. Root synchronized and read back [#19 Phase A integration](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5933952295) and [#2 resource supplement](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5933953194), both open. Phase B still requires its own final exact-SHA review and root handoff.
+COS-18 Phase A and the COS-01 metadata supplement were pushed as clean checkpoint `562d77522aeb32afc0d710ebb0f75fc24eb6e9d4`; local HEAD, origin/main and `ls-remote` matched. Root synchronized and read back [#19 Phase A integration](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5933952295) and [#2 resource supplement](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5933953194), both open. Phase B was still pending at this checkpoint.
 
 ## COS-14 Phase A preparatory integration
 
@@ -42,7 +42,7 @@ Merge `522ae51ca34716db7c62675277e71d293bd45fea` has first parent `562d77522aeb3
 
 Fresh `node --experimental-strip-types --test tests/benchmark/draft.test.mjs` passed 10/10 with zero failures, cancellations or skips. `node benchmarks/classic-pc/reference/validate.mjs` passed and reported 230 entries / 221 unresolved. Logs are `.cosmos/integration/batch07-cos14-draft.tap` and `batch07-cos14-reference.log`. Approved-path, strict UTF-8/LF, Chinese text and whitespace checks passed. The unaffected 16 reference tests and compiler evidence are reused; no build, typecheck, browser/media run or paid call was repeated.
 
-The draft retains the complete supplied catalog and checks declared reference/target/run/spec bindings. Normal-input plans and mechanism references remain separate; comparisons are pure calculations. Results always remain `phase: draft`, `acceptance: blocked`. Evidence authentication, actual game execution, trusted step/equivalence records and mode runners remain missing. COS-14 / #15 remains open/preparatory, G4 stays closed, and the reference remains provisional at 230 entries / 221 unresolved. COS-18 Phase B still awaits its exact approved SHA. This checkpoint does not change the shared ledger, old trials or any live gate.
+The draft retains the complete supplied catalog and checks declared reference/target/run/spec bindings. Normal-input plans and mechanism references remain separate; comparisons are pure calculations. Results always remain `phase: draft`, `acceptance: blocked`. Evidence authentication, actual game execution, trusted step/equivalence records and mode runners remain missing. COS-14 / #15 remains open/preparatory, G4 stays closed, and the reference remains provisional at 230 entries / 221 unresolved. COS-18 Phase B was still pending at this checkpoint. This checkpoint does not change the shared ledger, old trials or any live gate.
 
 This checkpoint was pushed as `47c985c201ffd7f6e01289ddc3cb827278d38468`, with clean main and matching remote SHA. Root synchronized [#15 preparatory integration](https://github.com/lrfluobida/Cosmos/issues/15#issuecomment-5934444118), keeping it open.
 
@@ -52,4 +52,28 @@ Root handed off exact source `bb00583ccdaed9dfffd8fe31206de71ff0468fee` on `feat
 
 Merge `6cc42f67941b39ef26ca3b31c2d379a5bfeda411` has first parent `47c985c201ffd7f6e01289ddc3cb827278d38468` and second parent the exact approved source. It merged without conflicts, and the document matches the approved source byte for byte. Strict UTF-8/LF, Chinese re-read and whitespace checks passed. Source, benchmark and test paths are unchanged; no code tests, typecheck, build or browser checks were run for this documentation-only change.
 
-Maps and solutions must come from runtime design within the original generation clock and budget. The host must independently validate and freeze the plan; normal mouse input and a real browser process close/reopen are required. Trusted plan binding and isolated-profile lifecycle adapters remain gaps. COS-16 / #17 stays preparation-only/open, awaiting COS-10/13/18 and original-run admission. No game generation, paid call, trial restart, ledger change or deadline extension was performed. COS-18 Phase B remains pending final review and exact-SHA handoff.
+Maps and solutions must come from runtime design within the original generation clock and budget. The host must independently validate and freeze the plan; normal mouse input and a real browser process close/reopen are required. Trusted plan binding and isolated-profile lifecycle adapters remain gaps. COS-16 / #17 stays preparation-only/open, awaiting COS-10/13/18 and original-run admission. No game generation, paid call, trial restart, ledger change or deadline extension was performed. COS-18 Phase B was still pending at this checkpoint.
+
+The clean checkpoint was pushed as `5f7590b8096d70407352828b0752ac63fe333dbe`; HEAD, origin/main and `ls-remote` matched. Root synchronized [#17 case preparation](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5934548679), keeping it open.
+
+## COS-18 Phase B partial integration — 2026-10-02
+
+Root handed off exact source `6111f6fa13b42acb4678fedd59a44847fd874d98` on `feat/cos-18-cli` with independent `PHASE_B_READY`. `cos18_reviewer` inspected the actual 20-file diff and related planner, registry, ownership and OwnedWork interfaces. The sole P2 finding was missing public resume delivery output; its two-file fix was independently re-reviewed, with no remaining P1/P2 findings. Author evidence includes 66 distinct offline checks, the affected session suite at 8/8 after the fix, typecheck and the latest build.
+
+Merge `f79aa4d295950d1104c6776897f4032614688ea3` has first parent `5f7590b8096d70407352828b0752ac63fe333dbe` and second parent the exact approved source. It merged without conflicts; all 20 approved paths match byte for byte. The merger made no implementation edits or changes in the author's worktree.
+
+Fresh integration checks on Windows / Node.js 22.22.2:
+
+| Check | Result |
+| --- | --- |
+| `node --experimental-strip-types --test --test-concurrency=1 tests/cli/cli.test.ts tests/cli/control.test.ts tests/cli/session.test.ts tests/roles/interview.test.ts tests/roles/stage-requirements.test.ts tests/runtime/entrypoint.test.ts tests/runtime/entrypoint-host.test.ts tests/runtime/entrypoint-media.test.ts` | 46/46 passed; zero failures, cancellations or skips |
+| `npm run typecheck`, then `npm run build` | Both passed sequentially after tests |
+| Approved paths, strict UTF-8/LF, Chinese text and whitespace | Verified |
+
+Logs are `.cosmos/integration/batch07-cos18-b.tap`, `batch07-cos18-b-typecheck.log` and `batch07-cos18-b-build.log`. Root first confirmed the concurrent COS-10 heavy checks had finished; all integration checks then ran serially, and the shared slot was released. Unchanged intake/budget, full scheduler, E2E browser and old media suites were reused.
+
+The approved production-host smoke is reused, not rerun. It used compiled production host, actual controlled tsc/Vite processes, normal Edge clicks, reports and registry promotion with zero model/API requests (reported duration 19.59 seconds). The merger read the saved `smoke-report.json` under `E:/CodexData/.codex/worktrees/cos-04-media/Cosmos/.cosmos/cos18-host-smoke/3e6b6f21-2d93-4509-915b-03c4fbe31451`. It explicitly records `generatedByCosmos: false` and a generic template with test-only media observations. Root inspected the clicked screenshot. This proves host integration, not runtime generation or new media acceptance. The first failed smoke `2d55d21b-09d1-4656-bbd8-0b2f86f34e45` remains preserved: copying had excluded dependency `dist` directories; the approved fix excludes only the template's top-level `dist`.
+
+Phase B connects public `new/status/stop/resume`, real stdin confirmation of the exact revision, same-ledger activation, independent Cosmos/design/art/coding stages, capture/build, normal-input and media observations, screenshots and independent review. It retains one durable review protocol correction, repair by failed task ID with passed upstream work/history preserved, the 80% warning, fixed fees/unknown charges/original times/stop state, source isolation and restricted child environments.
+
+COS-18 / #19 remains open and only this phase is approved. Legal downstream successors after an upstream repair are not yet wired; a user-authorized time/budget continuation entry after hard stop is missing (R15); the full classic adapter remains COS-14 work. The generic host supports 1–16 characters and 0–16 PCM clips per batch. The shared validation estimate stays 892,282 micro-CNY with zero reserved/unknown charges. G3/G4, all prior failed or expired trials and remaining live gates are unchanged. The new COS-10 experiment is not included or started by this integration; no paid, live-ledger or reference operation was performed.
