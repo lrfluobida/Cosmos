@@ -52,3 +52,25 @@ The combined command `node --experimental-strip-types --test "tests/runtime/reco
 These checks use real temporary files and owned child processes with simulated provider receipts. No paid calls, live ledger edits, generated-game recovery or old browser/media probes ran. Phase B orchestration remains pending, so #13 stays open as `phase-a-integrated` and G3 stays closed. The old pilot remains failed and will not restart.
 
 The command-scoped proxy push and `ls-remote` confirmed code SHA `7cff53794665f4f759d6973061e4dc25855269e1` before the [Phase A status comment](https://github.com/lrfluobida/Cosmos/issues/13#issuecomment-5929123056); the API then confirmed #13 remains open. This supersedes the earlier Phase A pending-review checkpoint. `cos12_implementer` can merge the clean main baseline and implement Phase B on its own branch; independent review and root's exact-SHA handoff still precede integration by `batch05_merger`.
+
+## COS-12 Phase B integration and task completion
+
+The independent reviewer approved `128f4d1604e5644cd89f00d915441a0ef178f255` as `PHASE_B_READY` after the dependency-propagation P1 and pre-registration cancellation P2 were fixed. Full initial review and both affected-change reviews left no blocking findings. Current-invocation validation now establishes ancestor readiness before descendant dispatch; blocked or omitted ancestors propagate through passed intermediate tasks. Cancellation after origin persistence but before registration returns blocked without mutating the snapshot.
+
+The exact SHA merged without conflicts as `1dc6b00473a23d07739fcc25599a745733309209`, with `c9aab3239a43806f008d7fef18c2ae3e4bd25bef` as first parent and the approved SHA as second parent. All nine Phase B paths match the approved source; the merger made no implementation edits.
+
+The combined command `node --experimental-strip-types --test "tests/runtime/recovery/*.test.ts" "tests/runtime/*.test.ts" "tests/roles/*.test.ts" "tests/artifacts/*.test.ts" "tests/e2e/*.test.ts"` passed **186/186**, with zero failures, cancellations or skips. Build and typecheck then passed sequentially. UTF-8/LF, Chinese fixtures and the staged diff were verified. Local TAP evidence is `.cosmos/integration/batch05-cos12-phase-b.tap`. The combined check covers both phases and COS-11; unchanged generic media and real-browser probes were not rerun.
+
+| Task-card boundary | Evidence and scope |
+| --- | --- |
+| Cancel during generation | An actual registered gated writer drains before stop acknowledgement; no later delivery write is accepted, and prior accepted artifacts survive. |
+| Exit around durable state | Separate Node processes exit at author/capture/verification/review boundaries and immediately before/after snapshot commit; reopening preserves one complete original revision. |
+| Paid result lost or not settled | Scripted providers and synthetic charges exercise unknown reservations and exact durable receipt reconciliation; unresolved or conflicting results block new paid admission. |
+| Completed artifact not registered | Exact origin/version/content/manifest checks recover an already published capture without reauthoring, then perform only unfinished stages. |
+| Repeat recovery and dependency selection | Passed work is reused without author/build/review calls; attempts, corrections, terminal records, fees and deadline remain continuous. Blocked or missing ancestors prevent all descendant dispatch in normal, reversed and transitive cases. |
+
+Recovery remains opt-in and requires protected host journals, exact fixed references and a read-only manifest/provenance adapter. Lost author responses, incomplete verification/review receipts, uncertain ownership or writers, changed content/contracts, missing registry promotion authority, unknown charges and stopped/expired runs remain blocked. Arbitrary detached work, reconstruction of lost in-memory promotion proofs and power-loss recovery are unsupported. These limits preserve evidence and exposure rather than infer success.
+
+The API confirmed [#13 closed as completed](https://github.com/lrfluobida/Cosmos/issues/13#issuecomment-5929980089) at `2026-10-01T11:00:20Z`, after proxy push and `ls-remote` verified code SHA `1dc6b00473a23d07739fcc25599a745733309209`. This closes the COS-12 platform fault-injection task; actual local processes/files, scripted providers and a simulated deadline are explicitly distinguished in the report. No paid call or live game recovery occurred, and no live ledger or original pilot artifact changed. COS-10 remains unpassed, COS-11 still awaits live evidence, and G3 remains closed.
+
+COS-13 may now start from this reviewed recovery API on a separate implementer branch with an independent reviewer. The current main write segment is released after documentation synchronization; subsequent integration remains with the sole batch merger after root supplies the approved exact SHA. The earlier Phase A-only checkpoint is superseded by this completion record.
