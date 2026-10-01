@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第一批获批交付已推送 main：COS-02、COS-05 完成，COS-01 参考仍未冻结。第二批 COS-03、COS-06、COS-08 已按批准提交合入本地 main。SDK/runtime 102/102 测试通过；浏览器组合 119/120，卡死点击截止容差待修复，构建与类型检查通过。真实 pi 探针已通过，媒体工具独立审核中，远端同步待完成。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第二批 COS-03、COS-04、COS-06、COS-08 已独立审查、合入并推送 main，对应 #4、#5、#7、#9 已关闭。最终测试 128/128、构建与类型检查通过；真实 pi 探针通过，共享验证累计估算 ¥0.735971。COS-01 参考仍未冻结；第三批开始角色执行与产物集成。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -12,7 +12,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 - 已确认产品边界：可扩展的 2D 游戏 agent，先攻克类《植物大战僵尸》。
 - 首个能力目标：百分百还原原版核心玩法和内容规模；原创美术可简化，但角色需与原作一一对应，界面布局大体相似。
 - 已确认交互方式：前期集中提问并确认需求，执行中自主推进，仅遇到预算或关键决策问题时找用户；重点做好 harness engineering。
-- 已确认资源偏好：正式单次生成验证 ¥200/12h 硬上限，优化目标 ¥100/6h，计时包含修复、自动验收、打包和启动检查；质量 > 成本 > 速度；本地 RTX 3060 6GB，可考虑云端资源；指定 DeepSeek v4.1 Flash，API 标识 `deepseek-flash`，pi 接入待验证。
+- 已确认资源偏好：正式单次生成验证 ¥200/12h 硬上限，优化目标 ¥100/6h，计时包含修复、自动验收、打包和启动检查；质量 > 成本 > 速度；本地 RTX 3060 6GB，可考虑云端资源；指定 DeepSeek v4.1 Flash，API 标识 `deepseek-flash`，pi 有界接入验证通过。
 - 已确认首版形态：Windows 命令行 Cosmos，交付浏览器游戏与完整源码。
 - 已确认复用与范围：允许通用模板，游戏专属实现由 Cosmos 生成；经典 PC 版主要内容全纳入，GOTY 新增项另列；关键数值对齐并规定容差。
 - 初步角色设想：Cosmos-agent 负责任务拆解、安排、结果收集与审查；coding-agent 开发代码；design-agent 设计玩法并通过提问完善需求；art-agent 负责美术。
@@ -28,9 +28,9 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 游戏运行、自动试玩与美术验收调研 | 首轮完成 | [候选平台、验收办法与验证任务](docs/research/2026-09-30-feasibility.md) |
 | 第 1 轮需求访谈 | 已回答 | 已记录产品、内容与美术要求、交互、资源偏好及仓库 |
 | 第 2 轮需求访谈 | 已回答 | 平台、时限对象、复用范围、模式范围与还原精度已确认；预算在第 3 轮确认 |
-| DeepSeek 与美术能力核实 | 模型直接 API 已测，美术待测 | [31 次模型调用](probes/2026-10-01-deepseek/README.md)，pi 集成与媒体产线仍需验证 |
+| DeepSeek 与美术能力核实 | pi 与本地媒体探针通过 | [真实 pi 报告](probes/pi/evidence/live-2026-10-01.json)；[媒体探针](probes/assets/README.md) 导入 14 帧/3 状态并解码 5 WAV，首个 BGM 静音播放；Phaser 接入与听感验收后续完成 |
 | 原版内容与版本边界核实 | 首轮核实完成 | [内容来源与版本差异](docs/research/2026-09-30-model-budget.md)，完整规则名册仍需核对 |
-| Harness 契约与失败场景审查 | COS-02 完成，COS-06 本地集成通过 | 版本化契约与独立评审检查已合入；COS-06 增加持久账本、原子预留、未知费用阻断与截止中止；22 项新增测试通过 |
+| Harness 契约与失败场景审查 | COS-02、COS-06 完成 | 版本化契约与独立评审检查已合入；COS-06 增加持久账本、原子预留、未知费用阻断与截止中止；22 项新增测试通过 |
 | 第 3 轮需求访谈 | 已回答，预算随后更新 | 当前验证 ¥150 / 正式单次 ¥200/12h；背景音乐和关键音效；最终由用户试玩确认 |
 | 参考依据确认 | 已提供安装路径 | `C:\Program Files (x86)\PlantsVsZombies`，只读核对版本与资料，COS-01 正在记录 |
 | 记录领域术语 | 持续更新 | [CONTEXT.md](CONTEXT.md) 已记录 Cosmos 与目标游戏 |
@@ -39,7 +39,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 直接 API 与 pi SDK 已测 | 31 次直接调用估算 ¥0.721771；新增 pi 6 次请求、6852ms、¥0.014200；共享账本累计 ¥0.735971，预留与未知费用为零；完整关卡仍未测 |
 | 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第二批部分集成 | COS-03、COS-06 本地集成通过；COS-08 全套集成暴露截止容差失败，交回原实现者；COS-04 并行验证媒体产线 |
+| 子代理逐项实施 | 第二批完成，第三批启动 | COS-03/04/06/08 获批并推送；COS-08 截止失败经原实现者修复及独立复审后通过；最终 128/128，COS-07 角色执行已开始 |
 
 ## 开发批次
 
@@ -52,16 +52,18 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 01 | COS-01 / #2 | cos01_implementer | cos01_reviewer | batch01_merger | 791472e 经修复复审批准部分交付，合并 8b64b59；参考测试 16/16，230 项中 221 项待核对；#2 保持 open |
 | 01 | COS-02 / #3 | cos02_implementer | cos02_reviewer | batch01_merger | 45c3cf6 修复两项 P2 后复审批准，合并 a6247ec；40 项契约测试、构建与类型检查通过；#3 已关闭 |
 | 01 | COS-05 / #6 | cos05_implementer | cos05_reviewer | batch01_merger | 1121ae2 已独立批准，合并 5e3670e；构建、类型检查、CLI 7/7 通过，复用浏览器 1/1；#6 已关闭 |
-| 02 | COS-03 / #4 | cos03_implementer | cos03_reviewer | batch02_merger | 79969d3 修复后批准并合入 7a05b11；102/102 组合检查通过；真实 pi 探针 6 次请求/3 项检查通过，待 merger 记录与远端关闭 #4 |
-| 02 | COS-06 / #7 | cos06_implementer | cos06_reviewer | batch02_merger | 1bed423 独立批准，合并 f724d5f；完整测试 85/85、构建与类型检查通过；网络故障待推送，#7 保持 open |
-| 02 | COS-08 / #9 | cos08_implementer | cos08_reviewer | batch02_merger | 2631e8c 修复后复审批准，合并 0b0d455；组合测试 119/120，卡死点击报告耗时 4453 ms 超过 3500 ms 加 500 ms 容差；#9 保持 open，待修复复审 |
-| 02 | COS-04 / #5 | cos04_implementer | cos04_reviewer | batch02_merger | a7a337b 已提交，7 项测试、14 帧/3 状态/5 音频浏览器验证通过；独立审核中，外部费用 ¥0 |
+| 02 | COS-03 / #4 | cos03_implementer | cos03_reviewer | batch02_merger | 79969d3 批准并合入 7a05b11；真实 pi 6 次请求/3 项检查通过；已推送，#4 已关闭 |
+| 02 | COS-06 / #7 | cos06_implementer | cos06_reviewer | batch02_merger | 1bed423 批准并合入 f724d5f；22 项运行/预算测试及共享真实账本验证通过；已推送，#7 已关闭 |
+| 02 | COS-08 / #9 | cos08_implementer | cos08_reviewer | batch02_merger | fa6a0ae 修复同步进程清理并复审批准，合并 331bdd4；最终卡死点击 2879 ms、观测 2737 ms，128/128 组合测试通过；#9 已关闭 |
+| 02 | COS-04 / #5 | cos04_implementer | cos04_reviewer | batch02_merger | a7a337b 批准并合入 d89639b；7 项测试、14 帧/3 状态/5 WAV 解码和首 BGM 静音播放通过；外部费用 ¥0；#5 已关闭 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
 审核提交、合并提交、验证范围与待同步事项见 [第一批集成记录](docs/reviews/batch-01.md)。
 
 后续文件归属与验收步骤见 [第二批执行计划](docs/plans/2026-10-01-batch-02.md)，审核和同步状态见 [第二批集成记录](docs/reviews/batch-02.md)。
+
+[第三批执行计划](docs/plans/2026-10-01-batch-03.md) 覆盖 COS-07 角色执行、明确需求确认与 COS-09 产物集成；复用本批验证结果，真实端到端生成由 COS-10 验证。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

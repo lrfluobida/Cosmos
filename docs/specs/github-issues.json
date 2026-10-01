@@ -54,10 +54,11 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open",
-      "integrationStatus": "code-integrated-live-pending",
+      "state": "closed",
+      "integrationStatus": "complete",
       "reviewedCommit": "79969d3c1e849e79b8c3e666327163a1d80d0f85",
-      "mergeCommit": "7a05b11395628f910bee8ac10dea26a154b463ff"
+      "mergeCommit": "7a05b11395628f910bee8ac10dea26a154b463ff",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/4#issuecomment-5926104056"
     },
     {
       "taskId": "COS-04",
@@ -74,7 +75,11 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open"
+      "state": "closed",
+      "integrationStatus": "complete",
+      "reviewedCommit": "a7a337be00568de2bc7703748336c13faa5aa0be",
+      "mergeCommit": "d89639b095e025f1fdc523de66a1ce109c5ee4c1",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/5#issuecomment-5926104505"
     },
     {
       "taskId": "COS-05",
@@ -110,10 +115,11 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open",
-      "integrationStatus": "merged-local-sync-pending",
+      "state": "closed",
+      "integrationStatus": "complete",
       "reviewedCommit": "1bed42304a1050b111d8231529e8e57e64e19c3e",
-      "mergeCommit": "f724d5ff91ac590f62d2939bd034ba9fca3bfb00"
+      "mergeCommit": "f724d5ff91ac590f62d2939bd034ba9fca3bfb00",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/7#issuecomment-5926104994"
     },
     {
       "taskId": "COS-07",
@@ -162,10 +168,11 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open",
-      "integrationStatus": "integration-check-failed",
-      "reviewedCommit": "2631e8c397d08f3426d5eb8e8ae8f75ebff83bb8",
-      "mergeCommit": "0b0d45528a162c3177bdb397b70c475b6e5ff528"
+      "state": "closed",
+      "integrationStatus": "complete",
+      "reviewedCommit": "fa6a0aed2dd97faa8399c1983306a4a4341f27b9",
+      "mergeCommit": "331bdd4d3802d333540ea7c84e4235bf71c67b43",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/9#issuecomment-5926105479"
     },
     {
       "taskId": "COS-09",
