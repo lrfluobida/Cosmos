@@ -9,6 +9,7 @@ import { createRoleBudget } from './provider-budget.ts';
 import { prepareClarification, validateGameDraft } from './requirements.ts';
 import type { GameDraft } from './requirements.ts';
 import type { RoleSession } from './factory.ts';
+import { decodeModelJson } from './protocol.ts';
 
 export interface InterviewOptions {
   controller: IntakeController; roundId: string; brief: string;
@@ -58,7 +59,7 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
     const result = await session.prompt(JSON.stringify(input), { signal: controller.signal });
     controller.signal.throwIfAborted();
     if (result.text.length > 128000) throw new Error('Interview proposal exceeds its output bound.');
-    const proposal: unknown = JSON.parse(result.text);
+    const proposal = decodeModelJson(result.text);
     await publishReceipt(join(root, 'reply.json'), { intent, proposal });
     return proposal;
   } finally { await session.close(); }

@@ -9,6 +9,7 @@ import type { PreparedTask } from '../runtime/orchestrator.ts';
 import { assertOwnership } from './factory.ts';
 import type { AuthorRole, RoleFactory } from './factory.ts';
 import { freeze } from './requirements.ts';
+import { decodeModelJson } from './protocol.ts';
 
 export interface PlanningRolePolicy {
   workspace: string;
@@ -77,7 +78,7 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
     const policies = slots.map(policy => ({ ...(options.taskPolicies ? { policyId: policy.policyId } : {}), role: policy.role, outputs: policy.outputs, writePaths: policy.writePaths, rules: policy.rules ?? [] }));
     const response = await session.prompt(`Plan only within these host policies: ${JSON.stringify(policies)}. Task IDs must match /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/. Return the required task draft JSON.`, { signal });
     signal.throwIfAborted();
-    const value = JSON.parse(response.text) as { tasks: Draft[] };
+    const value = decodeModelJson(response.text) as { tasks: Draft[] };
     if (!value || Object.keys(value).some(key => key !== 'tasks') || !Array.isArray(value.tasks) || !value.tasks.length || value.tasks.length > slots.length) throw new Error('Invalid bounded task plan.');
     const drafts = value.tasks;
     for (const draft of drafts) {

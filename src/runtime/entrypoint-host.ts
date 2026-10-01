@@ -186,7 +186,7 @@ export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO 
         || !exact(coding.task.dependsOn.map(item => item.taskId), [design.task.taskId, art.task.taskId])) throw new Error('The plan must preserve distinct design, art and coding responsibilities and fixed dependency versions.');
       tasks.forEach(item => taskOutput(item.task));
     },
-    roleFactory: createRoleFactory({ maxOutputTokens: 8192, maxRequests: 16, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation }),
+    roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: 16, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation }),
     async capture(task, _proposal, signal) {
       signal.throwIfAborted(); const ref = taskOutput(task), kind = role(task);
       const origin = { kind: 'original-procedural' as const, generator: `Native ${kind} role output`, sourceRefs: [task.attempts.at(-1)!.sessionRef, ...requirement.sources.map(ref => ref.location)] };
