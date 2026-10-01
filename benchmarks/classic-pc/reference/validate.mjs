@@ -13,6 +13,14 @@ const essential = ['ENV-DAY', 'ENV-NIGHT', 'ENV-POOL', 'ENV-FOG', 'ENV-ROOF',
 const evidenceKinds = ['normal_input', 'deterministic_rule'];
 const policyIds = ['CORRESPONDENCE', 'LAYOUT', 'ART', 'AUDIO', 'STARTUP', 'OFFLINE',
   'PERFORMANCE', 'STABILITY', 'USER-ACCEPTANCE'];
+const measurementCategories = {
+  'VALUE-PLANTS': ['plants'],
+  'VALUE-ZOMBIES': ['zombies'],
+  'VALUE-WAVES': ['adventure', 'mini_games', 'vasebreaker', 'i_zombie', 'survival', 'special_levels', 'endless'],
+  'VALUE-ECONOMY': ['plants', 'zombies', 'adventure', 'mini_games', 'vasebreaker', 'i_zombie', 'survival', 'endless', 'garden', 'shop', 'unlocks', 'core_rules'],
+  'VALUE-STATUS': ['plants', 'zombies', 'environments', 'core_rules', 'special_levels', 'garden'],
+  'VALUE-ENDLESS': ['endless'],
+};
 
 // Structural guard only. Independent review must judge factual truth and full census closure.
 export function validate(reference, catalog) {
@@ -23,6 +31,14 @@ export function validate(reference, catalog) {
   const entries = list(catalog.entries);
   const sources = new Map(list(reference.sources).map(x => [x.id, x]));
   const evidence = new Map(list(catalog.evidence).map(x => [x.id, x]));
+  const checkCoverage = (refs, entryIds, label) => {
+    for (const kind of evidenceKinds) {
+      check(list(refs).some(id => {
+        const item = evidence.get(id);
+        return item?.kind === kind && entryIds.every(entryId => list(item.entryIds).includes(entryId));
+      }), `${label} evidence coverage ${kind}: ${entryIds.join('/')}`);
+    }
+  };
   const ids = new Set(entries.map(x => x.id));
   const frozen = reference.frozen === true || catalog.frozen === true || catalog.status === 'frozen';
   check(reference.schemaVersion === 1 && catalog.schemaVersion === 1, 'unsupported schemaVersion');
@@ -88,8 +104,20 @@ export function validate(reference, catalog) {
       check(Number.isFinite(value.value) && nonempty(value.unit) && nonempty(value.metric) && nonempty(value.method), `invalid verified measurement ${value.id}`);
       check(['exact', 'timing'].includes(value.tolerance), `invalid measurement tolerance ${value.id}`);
       check(list(value.evidenceRefs).length > 0 && value.evidenceRefs.every(id => evidence.has(id)), `missing measurement evidence ${value.id}`);
+      const entity = entries.find(x => x.id === value.entityId);
+      check(entity && measurementCategories[value.entryId]?.includes(entity.category), `invalid measurement entityId ${value.id}`);
+      checkCoverage(value.evidenceRefs, [value.entryId, value.entityId], 'measurement');
     }
     if (frozen) check(value.status === 'verified_for_reference', `unresolved measurement ${value.id}`);
+  }
+  const pairs = new Set();
+  for (const pair of list(catalog.interactions)) {
+    check(entries.some(x => x.id === pair.plantId && x.category === 'plants') && entries.some(x => x.id === pair.zombieId && x.category === 'zombies'), 'invalid interaction unit');
+    check(nonempty(pair.rule) && list(pair.evidenceRefs).length > 0 && pair.evidenceRefs.every(id => evidence.has(id)), 'missing interaction rule/evidence');
+    checkCoverage(pair.evidenceRefs, ['INTERACTIONS', pair.plantId, pair.zombieId], 'interaction');
+    const key = `${pair.plantId}/${pair.zombieId}`;
+    check(!pairs.has(key), `duplicate interaction ${key}`);
+    pairs.add(key);
   }
   if (frozen) {
     check(reference.installation?.runtimeObserved === true, 'reference runtime observation missing');
@@ -99,14 +127,6 @@ export function validate(reference, catalog) {
     check(reference.freezeReview?.status === 'approved' && nonempty(reference.freezeReview?.reviewer) && nonempty(reference.freezeReview?.evidencePath), 'independent freeze review missing');
     for (const row of entries.filter(x => x.category === 'critical_values')) {
       check(measurements.some(x => x.entryId === row.id && x.status === 'verified_for_reference'), `missing measurements ${row.id}`);
-    }
-    const pairs = new Set();
-    for (const pair of list(catalog.interactions)) {
-      check(entries.some(x => x.id === pair.plantId && x.category === 'plants') && entries.some(x => x.id === pair.zombieId && x.category === 'zombies'), 'invalid interaction unit');
-      check(nonempty(pair.rule) && list(pair.evidenceRefs).length > 0 && pair.evidenceRefs.every(id => evidence.has(id)), 'missing interaction rule/evidence');
-      const key = `${pair.plantId}/${pair.zombieId}`;
-      check(!pairs.has(key), `duplicate interaction ${key}`);
-      pairs.add(key);
     }
     for (const plant of entries.filter(x => x.category === 'plants')) {
       for (const zombie of entries.filter(x => x.category === 'zombies')) check(pairs.has(`${plant.id}/${zombie.id}`), `unresolved interaction ${plant.id}/${zombie.id}`);
