@@ -1,6 +1,6 @@
 # COS-18 CLI entrypoint implementation plan
 
-**状态：** 架构提案，等待 root 确认；尚未修改运行代码。基线 `0a10f4230c312cc9874be0e6499fd784b3ceba9c`，分支 `feat/cos-18-cli`。
+**状态：** root 已批准方案 A 及持久硬停止语义；A 段 intake/激活/访谈已实现并完成离线检查，等待独立审查；B 段 CLI/host 装配继续实施。基线 `0a10f4230c312cc9874be0e6499fd784b3ceba9c`，分支 `feat/cos-18-cli`。
 
 **Goal:** 接通原 R4/R11 的一句话需求、design 访谈、显式确认、生成及运行控制 CLI，并完成离线验证。
 
@@ -42,7 +42,7 @@
 - `status` 从规范路径只读读取原子快照并校验格式，不调用会持锁、对账或触发截止写入的 `RunController.open`。显示 intake/生成阶段、确认修订号、原时间、费用/预留/unknown、任务与交付差距；没有通过证据时不显示完成。
 - 活跃 owner 持有本地控制通道，控制消息绑定 runId 和当前 owner 身份。`stop` 只通知 owner，由 owner 调用现有 `cancelAndDrain` 并保存结果；只有子任务/写入收敛后才确认停止。控制目录不在作者写范围，陈旧 owner 或超时不得被当作停止成功。无需 Web 服务或新进程调度系统。
 - `resume` 先用现有 ownership recovery 确认旧 owner/写入进程已退出，再核对同一路径的 receipt、计划和固定版本；generation 走 `resumeTaskDag`，复用已通过证据。丢失回复、未知费用或无法证明完成的阶段仍阻塞，不能增加一次盲目调用。
-- **待 root 确认的停止语义：** 现有 `RunController.stop` 是持久终止；`resumeTaskDag` 遇到任何 stopReason 都拒绝派发。因此默认建议保留该语义：resume 可恢复未持久停止的崩溃运行，手动停止/硬截止返回原状态与具体拒绝原因。若本次要求“stop 后显式 resume 继续”，需另行批准一个仅针对本 CLI 手动停止的窄恢复接口；它只能在原截止未到、费用已对账、旧 owner 已收敛时追加用户续跑决定，保留旧停止事件和全部 task/attempt 终态，不重置时限或修复次数。该接口不能解除 deadline、charge_overrun 或旧 trial/pilot 的停止，也不能把已有 cancelled task 改回运行；无法由原恢复/修复契约继续时仍阻塞。此项未确定前不修改 run.ts 或既有恢复判定。
+- **已批准的停止语义：** `RunController.stop` 是持久硬停止；`resumeTaskDag` 遇到任何 stopReason 都拒绝派发。resume 仅恢复未持久停止、仍在原窗口内的可核实中断，手动停止、硬截止或费用超限均保留原状态并报告具体拒绝原因。本版不支持手动 stop 后直接 resume；不得宣称该场景通过。未来追加额度或延时属于用户的新决定，本版不提供清除停止、续时或重置任务终态的接口。
 - 不把模型凭据交给游戏/构建进程、控制消息、草稿或日志；继续使用现有白名单子进程环境和可信参数数组。复用已经通过的源码与资产快照，输出交付位置、同版本客观报告和待用户体验确认状态。
 
 ## 4. 文件归属与共享 core 边界
@@ -62,11 +62,16 @@
 
 ## 5. 实施与离线验证顺序
 
-- [ ] root 确认 A 的阶段转换与 stop/resume 语义，固定共享 core 归属；再开始代码实现。
-- [ ] 先写 intake 测试并确认失败：已计费/unknown 持续、拒绝在途激活、一次性真实时钟激活、旧 v1 拒绝激活、并发激活、提交前后崩溃与重复打开。实现薄层后执行 `node --experimental-strip-types --test tests/runtime/intake.test.ts tests/roles/budget.test.ts tests/runtime/run.test.ts tests/runtime/recovery/receipts.test.ts tests/runtime/recovery/snapshot-crash.test.ts`，期望全部通过且零 provider 网络调用。
+- [x] root 确认 A 的阶段转换与 stop/resume 语义，固定共享 core 归属；再开始代码实现。
+- [x] 先写 intake 测试并确认失败：已计费/unknown 持续、拒绝在途激活、一次性真实时钟激活、旧 v1 拒绝激活、并发激活、提交前后崩溃与重复打开。实现薄层后执行 `node --experimental-strip-types --test tests/runtime/intake.test.ts tests/roles/budget.test.ts tests/runtime/run.test.ts tests/runtime/recovery/receipts.test.ts tests/runtime/recovery/snapshot-crash.test.ts`，期望全部通过且零 provider 网络调用。
 - [ ] 先写访谈与 CLI 测试并确认失败：两个不同 brief、正常 stdin 回答、当前修订号确认、缺答/拒绝/EOF、改稿使旧确认失效、伪造确认字段被拒、unsupported 验收、环境未就绪不激活、生成前置缺失不调用。实现后执行 `node --experimental-strip-types --test tests/roles/interview.test.ts tests/cli/session.test.ts tests/cli/cli.test.ts`。
 - [ ] 先写 host/控制接线测试并确认失败：状态读取不取得写锁、不改变 snapshot；正确 runId 的 stop 等待 drain，错误身份/陈旧通道拒绝；崩溃恢复同计划同费用同时间；已停止/过期的原运行不被重开；冻结验收作者不可写；费用/unknown/history 连续、秘密不进入子进程或输出。实现后执行 `node --experimental-strip-types --test tests/cli/control.test.ts tests/runtime/entrypoint.test.ts`。
 - [ ] 接通现有角色、registry、host 验收和交付，保留独立评审及固定版本。仅重跑受接口变化影响的角色预算/恢复/调度契约测试，再依次执行 `npm run typecheck` 与 `npm run build`；不要与真实浏览器 fixture 并发写构建目录，不为接线重跑真实生成或既有媒体/浏览器验收。
 - [ ] 更新使用文档，逐文件复查 UTF-8、原换行与中文；执行 `git diff --check`。按可审查边界提交，给独立 reviewer 精确 SHA、命令输出和已知限制。root/merger 负责后续集成；离线结果不能标记 COS-10 游戏通过、COS-11/13 live 通过或 G3 通过。
 
-本轮只准备此计划，不调用模型或运行测试。任何新增真实验证仍需要独立满足既定预算/门禁，旧已过期记录保持原状。
+## 6. A 段实现与证据
+
+- `IntakeController.create/open` 只处理新 `intake-1` 快照；当前草稿与确认以不可覆盖的 source 文件落盘。`saveDraft` 增加修订号并使旧确认失效；`confirm` 必须接收当前修订号和 host 取得的真实用户决定。`activateGeneration` 在原 owner 锁中保留全部账本与请求历史，发布一个 v1 运行快照；同实例重复激活返回原结果，重开 intake 会拒绝已激活 v1。正式执行随后使用 `RunController.open`。
+- `requestDesignQuestions` / `requestDesignDraft` 通过无生成工具的 native pi 会话提出建议。每个步骤先保存输入 intent，完整回复保存后可按准确输入复用；有 intent 无回复时阻止盲目重发。两种不同 brief 的假 provider 检查证明接线使用实际输入，并经原 receipt 路径计费；未进行付费 native 效果验证。
+- 红灯证据：intake 13 项因缺少 API 失败；interview 5 项因缺少 native 入口失败。实现后的聚焦命令包含 intake/interview、原预算、RunController、receipt、snapshot crash，共 49 项通过。补充两个真实子进程的激活前/后退出场景后，新增模块共 21 项通过；重用未改代码的既有回归证据。`npm run typecheck` 和 `npm run build` 通过，UTF-8/LF 与中文复读通过。
+- 当前仅 A 段 API 就绪；公开 CLI/stdin、完整 host 装配、控制通道和交付属于 B 段。未完成的确认/source 发布或缺失 native 回复会保守阻塞，不推测用户已经确认，也不重复付费。所有测试使用临时目录和假 provider，没有访问 live 账本、旧试跑或参考游戏。任何真实验证仍须独立满足既定预算/门禁，旧过期记录保持原状。

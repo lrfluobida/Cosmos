@@ -4,6 +4,12 @@ import type { PiBudget, PiResponse } from '../providers/pi.ts';
 import type { RunController } from '../runtime/run.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
 
+/** Billing needs an identity and durable admissions, not a fabricated timed run. */
+export interface AccountingController extends Pick<RunController, 'coordinateAccounting' | 'reserve' | 'admit' | 'markUnknown' | 'settle' | 'cancel'> {
+  read(): Promise<{ revision: number; run: { runId: string }; ledger: import('../contracts/index.ts').BudgetLedger;
+    requests: { requestId: string; admittedAt: string | null }[] }>;
+}
+
 export const ROLE_PRICING_VERSION = 'deepseek-flash-peak-cny-2026-10-01';
 /** Pinned CNY peak rates per million tokens: uncached 2, cached 0.04, output 8. */
 export function usageCostMicroCny(usage: NonNullable<PiResponse['usage']>): number {
@@ -16,7 +22,7 @@ export function usageCostMicroCny(usage: NonNullable<PiResponse['usage']>): numb
 }
 
 /** Uses the existing run only. Every SDK request, including compaction, gets durable admission. */
-export function createRoleBudget(input: { controller: RunController; taskId: string; evidenceDirectory: string }): PiBudget {
+export function createRoleBudget(input: { controller: AccountingController; taskId: string; evidenceDirectory: string }): PiBudget {
   const { controller, taskId, evidenceDirectory } = input;
   const requests = new Set<string>();
   return {
@@ -55,7 +61,7 @@ export function createRoleBudget(input: { controller: RunController; taskId: str
 
 export interface ReceiptRecovery { status: 'settled' | 'cancelled' | 'already_closed' | 'pending'; reason?: string }
 /** Reconcile a host-owned receipt for an existing admission; never sends a request. */
-export async function reconcileRoleReceipt(input: { controller: RunController; requestId: string; evidenceDirectory: string }): Promise<ReceiptRecovery> {
+export async function reconcileRoleReceipt(input: { controller: AccountingController; requestId: string; evidenceDirectory: string }): Promise<ReceiptRecovery> {
   const { controller, requestId, evidenceDirectory } = input;
   const pending = (reason: string): ReceiptRecovery => ({ status: 'pending', reason });
   if (!/^[\w-]+$/.test(requestId)) return pending('Invalid request identity.');
