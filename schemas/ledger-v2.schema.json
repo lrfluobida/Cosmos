@@ -6,12 +6,12 @@
   "type": "object",
   "properties": {
     "contractVersion": { "const": "2.0.0" },
-    "ledgerId": { "$ref": "ledger.schema.json#/properties/ledgerId" },
+    "ledgerId": { "$ref": "https://cosmos.local/contracts/1.0.0/ledger.schema.json#/properties/ledgerId" },
     "scope": { "const": "generation" },
-    "limitMicroCny": { "$ref": "common.schema.json#/$defs/money" },
+    "limitMicroCny": { "$ref": "https://cosmos.local/contracts/1.0.0/common.schema.json#/$defs/money" },
     "warningThresholdPercent": { "const": 80 },
-    "allocations": { "$ref": "ledger.schema.json#/properties/allocations" },
-    "entries": { "$ref": "ledger.schema.json#/properties/entries" },
+    "allocations": { "$ref": "https://cosmos.local/contracts/1.0.0/ledger.schema.json#/properties/allocations" },
+    "entries": { "$ref": "https://cosmos.local/contracts/1.0.0/ledger.schema.json#/properties/entries" },
     "authorizations": {
       "type": "array", "minItems": 1,
       "items": {
@@ -19,7 +19,7 @@
         "properties": {
           "decisionId": { "type": "string", "minLength": 1, "pattern": "\\S" },
           "windowId": { "type": "string", "minLength": 1, "pattern": "\\S" },
-          "additionalMicroCny": { "$ref": "common.schema.json#/$defs/money" }
+          "additionalMicroCny": { "$ref": "https://cosmos.local/contracts/1.0.0/common.schema.json#/$defs/money" }
         },
         "required": ["decisionId", "windowId", "additionalMicroCny"],
         "additionalProperties": false
@@ -32,7 +32,7 @@
         "properties": {
           "taskId": { "type": "string", "minLength": 1, "pattern": "\\S" },
           "decisionId": { "type": "string", "minLength": 1, "pattern": "\\S" },
-          "releasedMicroCny": { "$ref": "common.schema.json#/$defs/money" }
+          "releasedMicroCny": { "$ref": "https://cosmos.local/contracts/1.0.0/common.schema.json#/$defs/money" }
         },
         "required": ["taskId", "decisionId", "releasedMicroCny"],
         "additionalProperties": false

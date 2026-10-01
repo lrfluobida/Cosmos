@@ -44,6 +44,11 @@ export class RunController {
 
   get signal(): AbortSignal { return this.abort.signal; }
 
+  /** Legacy executors must reject before read() can expire or otherwise mutate a window. */
+  requireOriginalExecution(): void {
+    if (this.snapshot.formatVersion !== 1) throw new Error('Continuation execution is unsupported by this legacy entrypoint.');
+  }
+
   /** Host-only, non-reentrant coordination of admission or receipt settlement.
    * Do not hold this across a provider call. Public ledger methods retain their
    * own persistence queue; this separate queue never recursively enters serial. */
