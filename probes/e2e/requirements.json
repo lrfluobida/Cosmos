@@ -1,0 +1,91 @@
+{
+  "formatVersion": "1.0.0",
+  "specVersion": "1.0",
+  "requirementVersion": "cos10-pilot-v1",
+  "status": "frozen-for-runtime-generation",
+  "scope": "一个原创简化三路防守关卡，仅验证 Cosmos 端到端链路；不代表经典植物大战僵尸完整基准通过。",
+  "confirmation": "依据 COS-10 已授权的小切片范围冻结；运行角色不得修改需求、验收或上限。",
+  "title": "星庭守望",
+  "language": "zh-CN",
+  "engine": "Phaser from the unchanged generic templates/2d dependency baseline",
+  "input": "Mouse only. Every test placement uses the same visible cards and board as a human player.",
+  "world": {
+    "logicalWidth": 1280,
+    "logicalHeight": 720,
+    "lanes": 3,
+    "columns": 6,
+    "board": { "left": 250, "top": 210, "cellWidth": 140, "cellHeight": 110 },
+    "enemySpawnX": 1160,
+    "defeatX": 220,
+    "seed": 20261001,
+    "speed": "Real elapsed time at 1x in both the delivered game and browser acceptance; no test-only mode or alternate simulation."
+  },
+  "rules": [
+    "标题页提供开始游戏。初始资源为 300，无自动天空资源；玩家点击卡牌再点击空格放置。资源与冷却均为共享正常规则。",
+    "辉晶台 producer：费用 50，生命 100，卡牌冷却 2000ms；放置后每 4000ms 自动增加 25 资源。",
+    "光矢塔 shooter：费用 100，生命 100，卡牌冷却 2000ms；本路右侧有敌人时每 800ms 发射可见投射物，伤害 25，速度 500 逻辑像素/秒。",
+    "星盾 defender：费用 75，生命 500，卡牌冷却 2000ms；阻挡并承受同路敌人的近战伤害。",
+    "游荡者 normal：生命 100，速度 30 逻辑像素/秒；重甲者 armored：生命 250，同速且外形具有明显装甲。两者接触防守单位时停止移动，每 1000ms 造成 25 伤害，目标死亡后继续前进。",
+    "恰好两波、六个敌人：第一波 normal 在开局第 10、12、14 秒依次进入上、中、下路；第二波 armored 在第 28、30、32 秒按同样顺序进入。",
+    "敌人从 x=1160 向左移动；任一存活敌人到达 x<=220 时失败。全部六个敌人消灭且没有存活敌人后胜利。未消灭全部敌人不得因计时结束直接获胜。",
+    "冷却未结束时点击格子不得扣资源或放置，显示冷却提示；资源不足时不得扣资源或放置，显示资源不足。卡牌保持可点击，以便给出拒绝原因。",
+    "格子已有单位时不得叠放或扣费；有效放置清除上一次拒绝原因，冷却与资源同时不满足时优先提示冷却。",
+    "运行中、胜利和失败界面都提供重新开始：清空战场、波次、计时、投射物和冷却，恢复资源 300；保存的胜利次数与静音偏好保留。",
+    "胜利时 localStorage 保存累计胜利次数；静音偏好变化时立即保存。返回标题是同源整页导航，重新载入后从存档显示胜利次数与静音偏好，不自动开始关卡。"
+  ],
+  "ui": {
+    "selectors": {
+      "start": "[data-testid=\"start\"]",
+      "restart": "[data-testid=\"restart\"]",
+      "producer": "[data-testid=\"card-producer\"]",
+      "shooter": "[data-testid=\"card-shooter\"]",
+      "defender": "[data-testid=\"card-defender\"]",
+      "mute": "[data-testid=\"mute\"]",
+      "returnTitle": "[data-testid=\"return-title\"]",
+      "status": "[data-testid=\"status\"]",
+      "resource": "[data-testid=\"resource\"]"
+    },
+    "contract": "Exactly one Phaser canvas with FIT scaling and 1280x720 logical coordinates. Card/status controls are visible ordinary HTML controls outside the board, with the selectors above. Show Chinese title, rules, resources, cooldowns, wave progress and victory/defeat. Status text is 准备开始, 防守中, 胜利 or 失败. Return-title is a same-origin anchor that performs full-page navigation."
+  },
+  "observation": {
+    "interface": "window.cosmosDebug is a non-configurable read-only getter returning a fresh recursively frozen JSON data snapshot. No functions, setters, commands or mutable references are exposed. Its values come from actual game state, never from the test sequence.",
+    "fields": {
+      "state": "title | playing | victory | defeat",
+      "resources": "integer current resources",
+      "unitCount": "integer live friendly units",
+      "enemyCount": "integer live enemies",
+      "projectileCount": "integer live projectiles",
+      "wave": "0 before first wave, 1 or 2 during the level",
+      "lastRejection": "none | cooldown | resources | occupied",
+      "cooldowns": "{producer: boolean, shooter: boolean, defender: boolean}; true means ready",
+      "placed": "{producer: number, shooter: number, defender: number}; successful placements in this attempt",
+      "kills": "{normal: number, armored: number}; kills in this attempt",
+      "events": "{defenderHits: number}; actual enemy hits received by defenders in this attempt",
+      "save": "{victories: number}; value loaded from or written to localStorage",
+      "audio": "{muted: boolean}; current saved mute preference"
+    }
+  },
+  "media": {
+    "source": "art-agent generates new CharacterSpec and AudioSpec JSON during this run. Host renders it with src/media/vector.ts and src/media/audio.ts. Do not copy prior probe characters or reference-game files.",
+    "characters": "Five original identifiable characters for producer, shooter, defender, normal and armored. Each uses at least two visibly distinct frames in idle, attack and death; death does not loop. Actual game states select the corresponding animations.",
+    "audio": "One original looping BGM and original place, shoot, hit, victory and defeat SFX. Audio begins after the player's start click, plays at the specified action and obeys mute. No voice, external network dependency or reference-game audio.",
+    "output": "Generated mediaSpec.json plus renderer-produced SVG frames, WAV files and manifests under public/assets. coding-agent consumes exactly the registered media interface and fixed versions."
+  },
+  "generation": {
+    "entry": "Cosmos requirements confirmation -> native Cosmos planTaskDag -> scoped design/coding/art roles -> host registered captures -> fixed candidate -> host build/browser acceptance -> independent fixed-input review -> promoteCandidate",
+    "ownership": "The model generates all game-specific source, level data and media specifications. Host code only supplies requirements, generic template/tools, rendering, capture, build, acceptance and accounting.",
+    "repair": "At most one bounded follow-up task through the original role machinery. Keep the original ledger, deadline and all failed evidence. Never manually edit generated game files to manufacture a passing result."
+  },
+  "acceptanceIds": ["PILOT-START", "PILOT-RESOURCE", "PILOT-COOLDOWN", "PILOT-MECHANISMS", "PILOT-VICTORY", "PILOT-DEFEAT", "PILOT-RESTART", "PILOT-SAVE"],
+  "additionalHostChecks": ["fresh-template provenance", "no external requests or API credentials", "fixed registered code and media versions", "visible idle/attack/death frames and original audio playback", "independent fixed-input reviewer verdict", "standalone build and startup", "request costs and complete wall time"],
+  "limits": {
+    "sharedValidationMicroCny": 150000000,
+    "pilotCumulativeMicroCny": 30000000,
+    "wallTimeMs": 5400000,
+    "maxRequests": 40,
+    "maxRepairTasks": 1,
+    "maxTaskAttempts": 2,
+    "maxPlannedTasks": 3,
+    "browserTimeoutMs": 180000
+  }
+}
