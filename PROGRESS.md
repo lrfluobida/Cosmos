@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第二批 COS-03、COS-04、COS-06、COS-08 已完成；第三批 COS-09 已独立复审、合入并推送 main，#10 已关闭，COS-07 已独立复审批准，等待集成。新增产物测试 10/10、构建与类型检查通过，未改变的第二批 128/128 证据继续复用；真实 pi 探针通过，共享验证累计估算 ¥0.735971。COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 17 个原生子任务。第三批 COS-07、COS-09 已独立复审、合入并推送 main，#8、#10 已关闭。最终组合测试 177/177、构建与类型检查通过；真实 pi 探针证据继续复用，共享验证累计估算 ¥0.735971，本批集成未新增付费调用。COS-10 可基于已合入平台开展真实端到端验证；COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
 
 ## 用户提出的目标
 
@@ -39,13 +39,13 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 直接 API 与 pi SDK 已测 | 31 次直接调用估算 ¥0.721771；新增 pi 6 次请求、6852ms、¥0.014200；共享账本累计 ¥0.735971，预留与未知费用为零；完整关卡仍未测 |
 | 任务拆分 | 已发布 | [17 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#18；原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 第二批完成，第三批部分合入 | COS-09 94c52cf 经修复复审后合入并推送，产物测试 10/10 通过；COS-07 3f0489d 已独立复审批准，等待集成 |
+| 子代理逐项实施 | 第三批完成 | COS-09 94c52cf 与 COS-07 3f0489d 均经修复复审后合入并推送；最终 177/177，构建与类型检查通过；#8、#10 已关闭 |
 
 ## 开发批次
 
 用户要求：每个任务分别设置 implementer 和 reviewer，由同批唯一 merger 合入 main；持续推进已授权工作。
 
-第三批 COS-09 已完成固定版本产物的校验、暂存与提升，COS-07 的模型任务计划与角色执行已独立复审批准，等待集成。计划与产物都必须经过宿主验证，模型回复本身不代表通过。
+第三批 COS-09 已完成固定版本产物的校验、暂存与提升，COS-07 已完成明确需求确认、模型任务计划与受限角色执行，两项均经独立复审、集成验证后推送。计划与产物都必须经过宿主验证，模型回复本身不代表通过；真实游戏生成由 COS-10 验证。
 
 第二批追加 COS-04 通用美术与音频验证，与 provider 和浏览器的审核修复并行；同批仍由 batch02_merger 唯一合并。
 
@@ -59,7 +59,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 02 | COS-08 / #9 | cos08_implementer | cos08_reviewer | batch02_merger | fa6a0ae 修复同步进程清理并复审批准，合并 331bdd4；最终卡死点击 2879 ms、观测 2737 ms，128/128 组合测试通过；#9 已关闭 |
 | 02 | COS-04 / #5 | cos04_implementer | cos04_reviewer | batch02_merger | a7a337b 批准并合入 d89639b；7 项测试、14 帧/3 状态/5 WAV 解码和首 BGM 静音播放通过；外部费用 ¥0；#5 已关闭 |
 | 03 | COS-09 / #10 | cos09_implementer | cos09_reviewer | batch03_merger | 94c52cf 修复评审与验证尝试绑定后获批，合并 5e00bdc；10/10 产物测试、类型检查与构建通过；已推送，#10 已关闭 |
-| 03 | COS-07 / #8 | cos07_implementer | cos07_reviewer | batch03_merger | 3f0489d 已独立复审批准；等待集成，#8 保持 open |
+| 03 | COS-07 / #8 | cos07_implementer | cos07_reviewer | batch03_merger | 3f0489d 修复三项发现后复审批准，合并 f779c4f；最终 177/177、构建与类型检查通过；已推送，#8 已关闭 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
