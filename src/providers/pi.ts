@@ -99,10 +99,13 @@ export async function createPiSession(config: PiSessionOptions) {
   const originalStream = modelRuntime.streamSimple.bind(modelRuntime);
   let requests = 0;
   let failure: PiSessionError | undefined;
+  let callerSignal: AbortSignal | undefined;
   let closed = false;
   const records: PiResponse[] = [];
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
+  const throwIfFailed = () => { if (failure) throw failure; };
   modelRuntime.streamSimple = (requestModel, context, options) => lazyStream(requestModel, async () => {
+    throwIfFailed();
     if (requestModel.provider !== 'deepseek' || requestModel.id !== DEEPSEEK_MODEL) throw fail('model_mismatch', 'Unexpected model route');
     if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled');
     if (++requests > config.maxRequests) throw fail('request_limit', 'Session request limit reached');
@@ -146,11 +149,20 @@ export async function createPiSession(config: PiSessionOptions) {
       catch { throw fail('accounting_error', 'Request accounting failed; session cannot continue'); }
     }
     async function* guardedStream(): AsyncGenerator<AssistantMessageEvent> {
+      const deadline = new AbortController();
+      const signal = AbortSignal.any([deadline.signal, ...(options?.signal ? [options.signal] : []), ...(callerSignal ? [callerSignal] : [])]);
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       try {
-        if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled before dispatch');
+        throwIfFailed();
+        if (closed || signal.aborted) throw fail('cancelled', 'Session was cancelled before dispatch');
+        // The SDK's HTTP timeout ends at response headers; retain a deadline through the body stream.
+        timeout = setTimeout(() => {
+          fail('timeout', 'Provider stream exceeded requestTimeoutMs');
+          deadline.abort();
+        }, config.requestTimeoutMs);
         sent = true;
         const stream = originalStream(requestModel, context, {
-          ...options, maxTokens: config.maxOutputTokens, maxRetries: 0, timeoutMs: config.requestTimeoutMs,
+          ...options, signal, maxTokens: config.maxOutputTokens, maxRetries: 0, timeoutMs: config.requestTimeoutMs,
           onProviderStreamEvent: async (data, model) => {
             firstResponseMs ??= performance.now() - started;
             if (data && typeof data === 'object') {
@@ -164,6 +176,7 @@ export async function createPiSession(config: PiSessionOptions) {
         });
         for await (const event of stream) {
           if (event.type === 'done' || event.type === 'error') {
+            clearTimeout(timeout);
             const message = event.type === 'done' ? event.message : event.error;
             await report(message);
             if (responseModel && responseModel !== DEEPSEEK_MODEL) fail('model_mismatch', 'Provider returned an unexpected model');
@@ -183,7 +196,9 @@ export async function createPiSession(config: PiSessionOptions) {
         if (!reported) throw fail('provider_error', 'Provider stream ended without a final result');
       } catch (error) {
         await report();
-        throw failure ?? fail(options?.signal?.aborted ? 'cancelled' : 'provider_error', 'Provider request failed');
+        throw failure ?? fail(signal.aborted ? 'cancelled' : 'provider_error', 'Provider request failed');
+      } finally {
+        clearTimeout(timeout);
       }
     }
     return guardedStream();
@@ -221,6 +236,7 @@ export async function createPiSession(config: PiSessionOptions) {
     if (busy) throw new PiSessionError('busy', 'Session already has an active operation');
     if (signal?.aborted) throw new PiSessionError('cancelled', 'Operation was cancelled');
     busy = true;
+    callerSignal = signal;
     const abort = () => { fail('cancelled', 'Operation was cancelled'); void session.abort(); };
     signal?.addEventListener('abort', abort, { once: true });
     try {
@@ -229,6 +245,7 @@ export async function createPiSession(config: PiSessionOptions) {
       return result;
     } finally {
       signal?.removeEventListener('abort', abort);
+      callerSignal = undefined;
       busy = false;
     }
   }

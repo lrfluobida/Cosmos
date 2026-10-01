@@ -225,3 +225,49 @@ test('cancellation during admission reports not_sent and never dispatches', asyn
   assert.equal(f.requests.length, 0);
   assert.equal(f.settlements[0].outcome, 'not_sent');
 });
+
+test('immediate caller cancellation prevents SDK startup from admitting or dispatching', async t => {
+  const f = await fixture(t, [reply('must not arrive')]);
+  const session = await f.create();
+  const controller = new AbortController();
+  const pending = session.prompt('cancel immediately', { signal: controller.signal });
+  controller.abort();
+  await assert.rejects(pending, { code: 'cancelled' });
+  assert.equal(f.admissions.length, 0);
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.settlements.length, 0);
+});
+
+test('request deadline aborts a stalled SSE body, retains unknown cost and blocks tools', async t => {
+  let transportAborted = false;
+  const f = await fixture(t, [async (request: Request) => {
+    const partial = call('write', { path: 'output.txt', content: 'must not be written' });
+    const chunk = { model: 'deepseek-flash', choices: [{ index: 0, ...partial, finish_reason: null }] };
+    const body = new ReadableStream({ start(controller) {
+      controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\n`));
+      request.signal.addEventListener('abort', () => {
+        transportAborted = true;
+        controller.error(new DOMException('Aborted', 'AbortError'));
+      }, { once: true });
+    } });
+    return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
+  }]);
+  const session = await f.create({ requestTimeoutMs: 50 });
+  const pending = session.prompt('stream forever').then(() => undefined, error => error);
+  let fallbackTimer: ReturnType<typeof setTimeout>;
+  const fallback = new Promise<'still pending'>(resolve => { fallbackTimer = setTimeout(() => resolve('still pending'), 300); });
+  const result = await Promise.race([pending, fallback]);
+  clearTimeout(fallbackTimer!);
+  if (result === 'still pending') await session.cancel();
+  await pending;
+  assert.notEqual(result, 'still pending', 'requestTimeoutMs must bound response-body streaming');
+  assert.equal(result.code, 'timeout');
+  assert.equal(transportAborted, true);
+  assert.equal(f.admissions.length, 1);
+  assert.equal(f.requests.length, 1);
+  assert.equal(f.settlements.length, 1);
+  assert.equal(f.settlements[0].outcome, 'unknown');
+  assert.ok(Number.isFinite(f.settlements[0].firstResponseMs));
+  await assert.rejects(session.prompt('retry'), { code: 'timeout' });
+  await assert.rejects(readFile(join(f.workspace, 'output.txt')), { code: 'ENOENT' });
+});
