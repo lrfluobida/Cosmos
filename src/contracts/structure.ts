@@ -50,11 +50,20 @@ export const taskShape = object({
   handoff: object({ completed: strings, remaining: strings, uncertainty: strings, resumeFrom: nullable(text) }),
   review: object({ reviewerId: nullable(text), contextId: nullable(text), inputVersions: references, verdict: enumeration(['pending', 'approved', 'changes_requested']), evidenceIds: strings }),
 });
-export const ledgerShape = object({
-  contractVersion: version, ledgerId: text, scope: enumeration(['validation', 'generation']), limitMicroCny: money, warningThresholdPercent: enumeration([80]),
+const ledgerFields = {
+  ledgerId: text, scope: enumeration(['validation', 'generation']), limitMicroCny: money, warningThresholdPercent: enumeration([80]),
   allocations: array(object({ taskId: text, amountMicroCny: money })),
   entries: array(object({ requestId: text, taskId: text, provider: text, pricingVersion: text, reservedMicroCny: money, settledMicroCny: money, unknown: boolean, status: enumeration(['reserved', 'settled', 'unknown', 'cancelled']), evidence: references })),
+};
+const originalLedgerShape = object({ contractVersion: version, ...ledgerFields });
+const continuationLedgerShape = object({
+  contractVersion: enumeration(['2.0.0']), ...ledgerFields,
+  authorizations: array(object({ decisionId: text, windowId: text, additionalMicroCny: money }), 1),
+  allocationClosures: array(object({ taskId: text, decisionId: text, releasedMicroCny: money })),
 });
+export const ledgerShape: Check = (value, path, issues) => {
+  ((value as { contractVersion?: unknown })?.contractVersion === '2.0.0' ? continuationLedgerShape : originalLedgerShape)(value, path, issues);
+};
 export const runShape = object({
   contractVersion: version, runId: text, kind, specVersion: text, ledgerId: text, originalStartedAt: timestamp, originalDeadlineAt: timestamp, state, taskIds: nonEmptyStrings,
   fees: object({ reservedMicroCny: money, settledMicroCny: money, unknownRequestIds: strings }), artifacts: references,

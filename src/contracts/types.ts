@@ -92,13 +92,16 @@ export interface LedgerEntry {
   evidence: ArtifactReference[];
 }
 export interface BudgetLedger {
-  contractVersion: ContractVersion;
+  contractVersion: ContractVersion | '2.0.0';
   ledgerId: string;
   scope: 'validation' | 'generation';
   limitMicroCny: number;
   warningThresholdPercent: 80;
   allocations: { taskId: string; amountMicroCny: number }[];
   entries: LedgerEntry[];
+  /** Present only in the explicitly versioned continuation ledger. Original limits and grants remain fixed. */
+  authorizations?: { decisionId: string; windowId: string; additionalMicroCny: number }[];
+  allocationClosures?: { taskId: string; decisionId: string; releasedMicroCny: number }[];
 }
 export interface RunManifest {
   contractVersion: ContractVersion;

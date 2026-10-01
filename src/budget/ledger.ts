@@ -39,6 +39,7 @@ export function reserveEntry(ledger: BudgetLedger, input: RequestInput): LedgerE
   money(input.estimatedMaxCostMicroCny, true);
   for (const key of ['requestId', 'taskId', 'provider', 'pricingVersion'] as const) nonEmpty(input[key], key);
   if (ledger.entries.some(entry => entry.requestId === input.requestId)) throw new Error(`Request ID already exists: ${input.requestId}`);
+  if (ledger.allocationClosures?.some(item => item.taskId === input.taskId)) throw new Error('Task grant is permanently closed.');
   const summary = budgetSummary(ledger);
   if (summary.reconciliationRequired) throw new Error('Reconciliation required before further paid requests.');
   if (input.estimatedMaxCostMicroCny > summary.availableMicroCny) throw new Error('Shared budget is insufficient.');
