@@ -130,6 +130,19 @@ test('timing uses the larger of five percent and one step with inclusive boundar
   assert.equal(compareTiming(quantity(0), quantity(2), quantity(2)).judgment, 'matches');
 });
 
+for (const { name, step, lower, upper, below, above } of [
+  { name: 'five percent', step: 0.001, lower: 0.95, upper: 1.05, below: 0.9499999999999998, above: 1.0500000000000003 },
+  { name: 'one step', step: 0.1, lower: 0.9, upper: 1.1, below: 0.8999999999999999, above: 1.1000000000000003 },
+]) test(`timing retains decimal ${name} endpoints without admitting adjacent outside values`, () => {
+  for (const [actual, expected] of [[lower, 'matches'], [upper, 'matches'], [below, 'mismatch'], [above, 'mismatch']]) {
+    const seconds = compareTiming(quantity(1, 's'), quantity(actual, 's'), quantity(step, 's'));
+    const milliseconds = compareTiming(quantity(1000), quantity(actual * 1000), quantity(step * 1000));
+    assert.equal(seconds.judgment, expected, `${name}: ${actual} s`);
+    assert.equal(milliseconds.judgment, expected, `${name}: ${actual * 1000} ms`);
+    assert.equal(seconds.judgment, milliseconds.judgment);
+  }
+});
+
 test('timing rejects missing steps, mismatched units and invalid durations before arithmetic', () => {
   for (const args of [
     [quantity(1, 's'), quantity(1000, 'ms'), quantity(1, 'ms')],

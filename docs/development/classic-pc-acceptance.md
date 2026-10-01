@@ -39,7 +39,7 @@ compareTiming({ value: 100, unit: 'ms' }, { value: 105, unit: 'ms' }, { value: 2
 
 `compareExact` 对有限数字、字符串或布尔值严格比较；单位必须相同，`7` 与 `'7'` 不相等。`null`、缺值、非有限数字和对象均为 `invalid_input`，不会将未知数值当作已核实。
 
-`compareTiming` 先要求三个值都是有限非负数字、步长严格大于零、单位完全相同且为 `ms`、`s` 或 `min`。不自动换算单位。随后使用 `abs(actual-reference) <= max(abs(reference)*0.05, recordedStep)`；边界含等号，测量误差不加进容差。输出只可能是 `matches`、`mismatch`、`invalid_input`。
+`compareTiming` 先要求三个值都是有限非负数字、步长严格大于零、单位完全相同且为 `ms`、`s` 或 `min`。不自动换算单位。随后使用 `abs(actual-reference) <= max(abs(reference)*0.05, recordedStep)`；边界含等号，测量误差不加进容差。实现直接比较 `reference-tolerance <= actual <= reference+tolerance`，避免先相减导致小数端点误判；不额外添加 epsilon 或扩大容差。返回的 `difference` 保留浮点计算值，仅用于观察。输出只可能是 `matches`、`mismatch`、`invalid_input`。
 
 比较结果不生成 `EvidenceContract`，不证明输入数值来自实测。`recordedStep` 目前是纯函数参数；将来的可信 host adapter 必须从本次执行记录和同一生产模拟的等价性证据取得步长，并与 reference、工程、run 绑定。不能直接读取游戏作者验收请求里的步长。当前缺少该见证，所以草稿始终阻塞，不能用任意大步长使游戏通过。
 
@@ -66,6 +66,8 @@ compareTiming({ value: 100, unit: 'ms' }, { value: 105, unit: 'ms' }, { value: 2
 node --experimental-strip-types --test tests/benchmark/draft.test.mjs tests/reference/validate.test.mjs
 ```
 
-八个草稿测试使用合成计划与数值，检查完整分母、移除模式、伪造冻结、缺映射、重复或未知 ID、版本混用、错误输入归属、机制与输入分离，以及离散/计时边界和非法单位。既有参考、runner 和核心契约未修改，沿用其通过证据；本测试不是游戏运行、完整基准或用户试玩通过证明。
+初版八个草稿测试使用合成计划与数值，检查完整分母、移除模式、伪造冻结、缺映射、重复或未知 ID、版本混用、错误输入归属、机制与输入分离，以及离散/计时边界和非法单位。既有参考、runner 和核心契约未修改，沿用其通过证据；本测试不是游戏运行、完整基准或用户试玩通过证明。
 
 2026-10-01，Windows / Node 22.22.2：上述命令 24/24 通过（8 个草稿测试、16 个参考测试）；新增两个 `.mjs` 的 `node --check` 和根目录 `npm run typecheck` 通过。根 TypeScript 配置仅覆盖 `src/`，草稿模块的实际加载与行为由这 8 个测试验证。新增三份文件通过严格 UTF-8 解码，中文文档已复读。
+
+同日独立评审发现小数秒边界误判。新增 5% 与一步长的两个回归测试，先分别复现 `0.95 s` 下界、`1.1 s` 上界失败；修复后 `node --experimental-strip-types --test --test-name-pattern="timing" tests/benchmark/draft.test.mjs` 的 4 个计时测试通过，覆盖上下界、紧邻边界外的值及等价毫秒结果。其余未变代码沿用上述证据。草稿仍为 `draft/blocked`。

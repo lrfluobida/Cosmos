@@ -107,5 +107,7 @@ export function compareTiming(reference, actual, recordedStep) {
     || recordedStep.unit !== reference.unit || recordedStep.value <= 0) return { judgment: 'invalid_input' };
   const difference = Math.abs(actual.value - reference.value);
   const tolerance = Math.max(Math.abs(reference.value) * 0.05, recordedStep.value);
-  return { judgment: difference <= tolerance ? 'matches' : 'mismatch', difference, tolerance };
+  // Compare inclusive endpoints directly; subtraction can round a boundary difference upward.
+  const matches = actual.value >= reference.value - tolerance && actual.value <= reference.value + tolerance;
+  return { judgment: matches ? 'matches' : 'mismatch', difference, tolerance };
 }
