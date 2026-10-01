@@ -32,4 +32,14 @@ The batch does not change paid runtime status: shared cost is 892,282 micro-CNY 
 
 ## Partial batch checkpoint
 
-COS-18 Phase A and the COS-01 metadata supplement are integrated and verified. Phase B still requires its own final exact-SHA review and root handoff. Root owns GitHub synchronization for #2 and #19; both remain open. The merger will push this documentation checkpoint and report the verified remote SHA before waiting for the remaining handoff.
+COS-18 Phase A and the COS-01 metadata supplement were pushed as clean checkpoint `562d77522aeb32afc0d710ebb0f75fc24eb6e9d4`; local HEAD, origin/main and `ls-remote` matched. Root synchronized and read back [#19 Phase A integration](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5933952295) and [#2 resource supplement](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5933953194), both open. Phase B still requires its own final exact-SHA review and root handoff.
+
+## COS-14 Phase A preparatory integration
+
+Root handed off exact source `1c3e1899406b7f596ae27d1a5339110349763a45` on `feat/cos-14-acceptance-draft`. Independent `cos14_reviewer` inspected the actual diff in two rounds and gave final READY after the sole P2 floating-point timing-boundary issue was fixed. The approved fix compares inclusive interval endpoints without adding epsilon. Author evidence includes the original 8 draft plus 16 reference tests (24/24), syntax/type checks, UTF-8 review and four focused timing checks after the fix.
+
+Merge `522ae51ca34716db7c62675277e71d293bd45fea` has first parent `562d77522aeb32afc0d710ebb0f75fc24eb6e9d4` and second parent the exact approved source. It merged without conflicts; all three new paths match the approved source byte for byte. Reference metadata/catalog/validator, core source and reference tests are unchanged from the prior checkpoint. The merger made no implementation edits.
+
+Fresh `node --experimental-strip-types --test tests/benchmark/draft.test.mjs` passed 10/10 with zero failures, cancellations or skips. `node benchmarks/classic-pc/reference/validate.mjs` passed and reported 230 entries / 221 unresolved. Logs are `.cosmos/integration/batch07-cos14-draft.tap` and `batch07-cos14-reference.log`. Approved-path, strict UTF-8/LF, Chinese text and whitespace checks passed. The unaffected 16 reference tests and compiler evidence are reused; no build, typecheck, browser/media run or paid call was repeated.
+
+The draft retains the complete supplied catalog and checks declared reference/target/run/spec bindings. Normal-input plans and mechanism references remain separate; comparisons are pure calculations. Results always remain `phase: draft`, `acceptance: blocked`. Evidence authentication, actual game execution, trusted step/equivalence records and mode runners remain missing. COS-14 / #15 remains open/preparatory, G4 stays closed, and the reference remains provisional at 230 entries / 221 unresolved. COS-18 Phase B and COS-16 case documentation still await their exact approved SHAs. This checkpoint does not change the shared ledger, old trials or any live gate.
