@@ -17,7 +17,7 @@ import { createArtifactRegistry } from '../../src/artifacts/index.ts';
 import type { MediaMetadata, PassedEvidence } from '../../src/artifacts/types.ts';
 import { directory } from '../../src/artifacts/paths.ts';
 import { runAcceptance } from '../../src/acceptance/runner.ts';
-import { PILOT_LIMITS, requestReservation } from './admission.ts';
+import { filteredChildEnvironment, PILOT_LIMITS, requestReservation } from './admission.ts';
 import type { PilotGuard } from './budget.ts';
 import { createPilotAcceptance } from './acceptance.ts';
 import { buildProject, copyReviewInputs, files, jsonFile, serveBuild, writeJson } from './host.ts';
@@ -176,7 +176,7 @@ export async function generatePilot(options: {
               const server = await serveBuild(project);
               try {
                 const report = await runAcceptance(createPilotAcceptance(output, server.url, prefix, `${task.taskId}-browser`), {
-                  evidenceRoot: join(root, 'browser-evidence'), channel: 'msedge', timeoutMs: Math.min(frozen.limits.browserTimeoutMs, guard.remainingMs()),
+                  evidenceRoot: join(root, 'browser-evidence'), channel: 'msedge', env: filteredChildEnvironment(process.env), timeoutMs: Math.min(frozen.limits.browserTimeoutMs, guard.remainingMs()),
                 });
                 details.browserReport = `browser-evidence/${report.reportPath}`;
                 const selectedPictures = report.steps.filter(s => s.screenshot && (['胜利', '失败'].includes(String(s.actual)) || s.id.endsWith('events-defenderHits') && s.actual === 1)).slice(0, 3).map(s => `browser-evidence/${s.screenshot!}`);
