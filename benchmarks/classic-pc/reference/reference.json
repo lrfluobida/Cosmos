@@ -20,7 +20,7 @@
     "localReadmeManualLicenseFound": false
   },
   "inspection": {
-    "method": "只读目录枚举、EXE VersionInfo、Get-FileHash SHA256；未启动游戏、未解析 main.pak、未复制美术或音频。",
+    "method": "首轮只读目录枚举、EXE VersionInfo 与 SHA256；后续在内存中读取 main.pak 目录和有效 UTF-8 配置/资源清单。未修改安装、解码 UTF-16 文本或复制美术、音频。窗口观察的独立报告见 windowObservation。",
     "commands": [
       "Get-ChildItem -LiteralPath 'C:/Program Files (x86)/PlantsVsZombies'",
       "(Get-Item -LiteralPath 'C:/Program Files (x86)/PlantsVsZombies/PlantsVsZombies.exe').VersionInfo | Select-Object FileVersion,ProductVersion,ProductName,OriginalFilename",
@@ -35,7 +35,36 @@
       "PlantsVsZombies.exe",
       "Uninstall.exe"
     ],
-    "encodingNote": "未发现本地 readme/manual/license 文本，因此未转码或修改任何安装文件。版本资源是二进制元数据，不作为文本文件解码。"
+    "encodingNote": "安装目录未发现文件名含 readme/manual/license 的独立文件。包内 default.xml、resources.xml 等通过严格 UTF-8 检查；LawnStrings.txt 与 ZombatarTOS.txt 的 BOM 为 FF FE，严格 UTF-8 检查失败，未继续解码其文本或转码。",
+    "resourceArchive": {
+      "observedAt": "2026-10-01",
+      "file": "main.pak",
+      "bytes": 46055633,
+      "rawHeaderHex": "37bd374df7f7f7f7",
+      "decodedMagic": "0xbac04ac0",
+      "formatVersion": 0,
+      "entryCount": 1223,
+      "bodyOffset": 55104,
+      "directoryAndPayloadBytes": 46055633,
+      "compiledReanimEntryCount": 144,
+      "details": "docs/research/2026-10-01-reference-resources.md",
+      "note": "记录调查时安装随附资源包的目录事实；资源和动画条目数量不等于模式、单位名册或可达内容数量。"
+    },
+    "windowObservation": {
+      "source": "协调代理已完成的工具观察报告；本批未重试",
+      "latestReportedAt": "2026-10-01 约 22:43，Asia/Shanghai",
+      "retestReason": "computer-use 插件更新到 26.928.21956 后的一次有界重测",
+      "reportedWindowId": 460320,
+      "reportedTitle": "Plants vs. Zombies GOTY",
+      "reportedExecutable": "C:\\Program Files (x86)\\PlantsVsZombies\\PlantsVsZombies.exe",
+      "captureErrors": [
+        "FrameArrived timed out: timed out waiting on channel",
+        "window capture timed out: timed out waiting on channel"
+      ],
+      "accessibleTreeSummary": "include_screenshot:false 仅返回窗口、标题栏、系统菜单、最小化、禁用的最大化和关闭，没有游戏内容。",
+      "contentObserved": false,
+      "note": "启动前无目标窗口；启动后唯一目标窗口标题与路径一致。两次捕获失败后停止，没有点击游戏内容；正常 Alt+F4 后目标窗口列表为空。窗口标题和窗口控件不构成主菜单、图鉴、玩法或可见语言证据，runtimeObserved 保持 false。"
+    }
   },
   "sources": [
     {
@@ -61,6 +90,22 @@
       },
       "status": "verified_for_edition",
       "note": "仅证明此文件的自报版本与身份；尚未验证菜单、图鉴、玩法或发行渠道。"
+    },
+    {
+      "id": "LOCAL-PAK",
+      "type": "local_archive_metadata",
+      "edition": "用户指定安装随附 main.pak；同目录 EXE 标注 PC GOTY 1.2.0.1073",
+      "location": "docs/research/2026-10-01-reference-resources.md",
+      "anchors": {
+        "directory": "第 2 节：目录条目、数据区偏移与长度闭合",
+        "utf8_resources": "第 3 节：resources.xml 资源组、default.xml 配置语言",
+        "encoding": "第 4 节：UTF-16LE BOM 与停止边界",
+        "window": "第 5 节：已报告窗口观察与捕获失败"
+      },
+      "status": "verified_for_edition",
+      "checkedAt": "2026-10-01",
+      "formatSource": "https://raw.githubusercontent.com/nathaniel-daniel/popcap-pak-rs/master/popcap-pak/src/reader.rs",
+      "note": "仅确认资源包静态元数据及 UTF-8 配置事实；格式依据来自读取库维护者源码，不是 PopCap 官方规则来源。Chinese_China 是配置值；未获得正常输入、实际可见语言、完整名册或机制数值证据。"
     },
     {
       "id": "STEAM",
