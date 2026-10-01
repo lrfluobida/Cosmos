@@ -2,33 +2,32 @@ import { randomUUID } from 'node:crypto';
 import { lstat, mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/promises';
 import type { FileHandle } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
+import { OwnerLock } from './recovery/ownership.ts';
 
 /** One exclusive controller per explicit run root. Stale ownership fails closed. */
 export class SnapshotStore {
   readonly root: string;
-  private lock: FileHandle;
+  private lock: OwnerLock;
   private closed = false;
   private failed = false;
 
-  private constructor(root: string, lock: FileHandle) { this.root = root; this.lock = lock; }
+  private constructor(root: string, lock: OwnerLock) { this.root = root; this.lock = lock; }
 
   static async acquire(root: string): Promise<SnapshotStore> {
     if (!isAbsolute(root)) throw new Error('Run root must be an explicit absolute path.');
     await mkdir(root, { recursive: true });
     if ((await lstat(root)).isSymbolicLink()) throw new Error('Run root cannot be a symbolic link.');
     const canonical = await realpath(root);
-    let lock: FileHandle;
-    try { lock = await open(join(canonical, '.controller.lock'), 'wx'); }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'EEXIST') throw new Error('Run already has a controller owner; inspect stale ownership before recovery.');
-      throw error;
-    }
-    try {
-      await lock.writeFile(JSON.stringify({ pid: process.pid, acquiredAt: new Date().toISOString() }) + '\n', 'utf8');
-      await lock.sync();
-      return new SnapshotStore(canonical, lock);
-    } catch (error) { await lock.close(); await unlink(join(canonical, '.controller.lock')); throw error; }
+    return new SnapshotStore(canonical, await OwnerLock.acquire(canonical, '.controller.lock'));
   }
+
+  static async recover(root: string) {
+    if (!isAbsolute(root) || (await lstat(root)).isSymbolicLink()) throw new Error('Recovery requires an explicit regular run root.');
+    return OwnerLock.recover(await realpath(root), '.controller.lock');
+  }
+
+  prepareOwnedChild(): Promise<string> { this.assertWritable(); return this.lock.prepareOwnedChild(); }
+  registerOwnedChild(pid: number, ticket: string): Promise<void> { this.assertWritable(); return this.lock.registerOwnedChild(pid, ticket); }
 
   private async checkTarget(): Promise<boolean> {
     try {
@@ -73,9 +72,7 @@ export class SnapshotStore {
   }
 
   async close(): Promise<void> {
-    if (this.closed) return;
     this.closed = true;
     await this.lock.close();
-    await unlink(join(this.root, '.controller.lock'));
   }
 }

@@ -37,6 +37,11 @@ export class RunController {
 
   get signal(): AbortSignal { return this.abort.signal; }
 
+  /** Persist before spawn; a pending ticket blocks automatic recovery after a crash. */
+  prepareOwnedChild(): Promise<string> { return this.serial(async () => { this.requireActive(); return this.store.prepareOwnedChild(); }); }
+  /** Bind the waiting child before releasing its startup barrier or allowing writes. */
+  registerOwnedChild(pid: number, ticket: string): Promise<void> { return this.serial(() => this.store.registerOwnedChild(pid, ticket)); }
+
   static async create(options: CreateRunOptions): Promise<RunController> {
     const input = { ...options, allocations: structuredClone(options.allocations) };
     const now = input.now ?? Date.now;
@@ -245,7 +250,7 @@ export class RunController {
     this.closing = true;
     clearTimeout(this.timer);
     this.abort.abort(new Error('Run controller closed.'));
-    this.closePromise = this.pending.then(() => this.store.close());
+    this.closePromise = this.pending.then(() => this.store.close()).catch(error => { this.closePromise = undefined; throw error; });
     return this.closePromise;
   }
 
