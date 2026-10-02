@@ -10,6 +10,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import { startControl, requestStop, readRunStatus } from '../../src/cli/control.ts';
 import { RunController } from '../../src/runtime/run.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
 import { task as taskFixture } from '../contracts/fixtures.ts';
 
@@ -98,7 +99,7 @@ test('an acknowledgement for a different window is rejected', async t => {
 test('missing owner marker alone cannot prove a closed window is drained', async t => {
   const f = await fixture(t); await f.controller.close();
   const before = await readFile(join(f.root, 'snapshot.json'));
-  await assert.rejects(requestStop(f.root, f.windowId), /owner|quiescence|unconfirmed/i);
+  await assert.rejects(requestStop(f.root, f.windowId), /owner|quiescence|unconfirmed|idle|proof/i);
   assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before);
 });
 
@@ -106,6 +107,35 @@ test('live owner without a channel remains unconfirmed instead of being forcibly
   const f = await fixture(t), before = await readFile(join(f.root, 'snapshot.json'));
   await assert.rejects(requestStop(f.root, f.windowId), /alive|owner|unconfirmed/i);
   assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before);
+});
+
+test('normal drained close permits the explicit idle window stop without an owner marker', async t => {
+  const f = await fixture(t);
+  const before = await f.controller.read();
+  await f.controller.closeAfterDrain(new OwnedWork(f.controller.signal));
+  await assert.rejects(readFile(join(f.root, '.controller.lock')), /ENOENT/);
+  assert.deepEqual(await requestStop(f.root, f.windowId), { runId: 'run-1', windowId: f.windowId, stopped: true });
+  const after = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+  assert.deepEqual(after.ledger, before.ledger); assert.deepEqual(after.tasks, before.tasks);
+  assert.deepEqual(after.stopReason, before.stopReason);
+  assert.equal(after.run.originalDeadlineAt, before.run.originalDeadlineAt);
+  assert.equal(after.continuation.windows[0].stopReason.code, 'manual');
+  await assert.rejects(readFile(join(f.root, '.controller.lock')), /ENOENT/);
+});
+
+for (const changed of ['forged-receipt', 'changed-bytes', 'consumed-anchor', 'wrong-window'] as const) test(`idle control rejects ${changed} without snapshot or receipt changes`, async t => {
+  const f = await fixture(t); await f.controller.closeAfterDrain(new OwnedWork(f.controller.signal));
+  const file = join(f.root, 'snapshot.json'), state = JSON.parse(await readFile(file, 'utf8'));
+  const receiptPath = join(f.root, 'idle-receipts', f.windowId, `revision-${state.revision}.json`);
+  if (changed === 'forged-receipt') await writeFile(receiptPath, '{}', 'utf8');
+  if (changed === 'changed-bytes') await writeFile(file, Buffer.concat([await readFile(file), Buffer.from('\n')]));
+  if (changed === 'consumed-anchor') {
+    const reopened = await RunController.open({ root: f.root, windowId: f.windowId }); await reopened.close();
+  }
+  const before = await readFile(file), receipt = await readFile(receiptPath);
+  await assert.rejects(requestStop(f.root, changed === 'wrong-window' ? 'wrong-window' : f.windowId), /window|idle|receipt|proof|unconfirmed/i);
+  assert.deepEqual(await readFile(file), before); assert.deepEqual(await readFile(receiptPath), receipt);
+  await assert.rejects(readFile(join(f.root, '.controller.lock')), /ENOENT/);
 });
 
 async function crashedOwner(root: string, mode: 'plain' | 'unresolved' | 'untracked' | 'child' = 'plain', childPid?: number) {

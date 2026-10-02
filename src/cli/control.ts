@@ -159,7 +159,7 @@ export async function startControl(root: string, runId: string, stopAndDrain: ()
 async function stopRecoveredWindow(root: string, snapshot: RunSnapshot, windowId: string): Promise<ControlAck> {
   const registry = await lstat(await safePath(root, 'registry/.commit.lock')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
   if (registry) throw new Error('Registry writer ownership is unresolved; stop or drain is unconfirmed.');
-  if (!await recoverRunOwner(root)) throw new Error('Missing owner marker cannot prove writer quiescence; stop or drain is unconfirmed.');
+  if (!await recoverRunOwner(root)) return RunController.stopIdleWindow({ root, windowId, reason: 'CLI user stopped the verified idle execution window.' });
   const current = await readRunSnapshot(root); requireWindow(current, windowId);
   if (current.run.runId !== snapshot.run.runId) throw new Error('Run identity changed before owner recovery.');
   const controller = await RunController.open({ root, windowId });
