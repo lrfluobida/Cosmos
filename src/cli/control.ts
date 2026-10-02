@@ -98,6 +98,7 @@ interface ControlRecord { formatVersion: 1 | 2; runId: string; token: string; en
 interface ControlAck { runId: string; stopped: true; windowId?: string }
 class ControlUnavailable extends Error {}
 function requireWindow(snapshot: IntakeSnapshot | RunSnapshot, windowId?: string): void {
+  if (snapshot.formatVersion === 3) throw new Error('Validation profile requires its explicit case control entrypoint.');
   if (snapshot.formatVersion === 2) {
     if (!windowId || snapshot.continuation!.currentWindowId !== windowId) throw new Error('Stop requires the explicit current execution window.');
   } else if (windowId !== undefined) throw new Error('Original run does not have this execution window.');
