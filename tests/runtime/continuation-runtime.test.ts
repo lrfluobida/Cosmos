@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 import { executeTaskDag, resumeTaskDag } from '../../src/runtime/orchestrator.ts';
@@ -65,5 +65,60 @@ test('explicit window execution still requires a journal and quoted source contr
   await assert.rejects(executeTaskDag({ ...f.options(), tasks: [f.next], recovery: undefined }), /journal/i);
   const changed = structuredClone(f.next); changed.task.objective = 'Unquoted work';
   await assert.rejects(resumeTaskDag({ ...f.options(), tasks: [f.originals[0], changed] }), /quoted|objective|source/i);
+  assert.deepEqual(await f.state(), before); assert.deepEqual(f.calls, calls);
+});
+
+test('fresh execute cannot bypass a missing ancestor DAG and changed ancestor evidence by supplying its artifact refs', async t => {
+  const f = await runtimeFixture(t, { prepareNew: false }), ancestor = f.original.tasks.find(task => task.taskId === 'design-task')!;
+  await writeFile(join(f.root, ancestor.evidence[0].source.location), '{"changed":true}', 'utf8');
+  const before = await f.state(), calls = [...f.calls], files = (await readdir(f.root, { recursive: true })).sort();
+  const attempt = await executeTaskDag({ ...f.options(), tasks: [f.next], scheduling: undefined, availableArtifacts: [...f.requirement.sources, ...ancestor.artifacts] })
+    .then(tasks => ({ tasks, error: undefined as unknown }), error => ({ tasks: [], error }));
+  assert.ok(attempt.error, JSON.stringify({ states: attempt.tasks.map(task => task.state), ancestorRecoveryChecks: f.recoveryChecks.length,
+    newRoleCalls: f.calls.slice(calls.length).filter(call => /^(design|coding|reviewer):/.test(call)).length }));
+  assert.deepEqual(await f.state(), before); assert.deepEqual(f.calls, calls); assert.deepEqual((await readdir(f.root, { recursive: true })).sort(), files);
+  assert.equal((await f.state()).tasks.some(task => task.taskId === f.next.task.taskId), false);
+});
+
+for (const mode of ['deleted-edge', 'deleted-input', 'changed-input-version']) test(`window resume rejects ${mode} in a quoted successor before a new request`, async t => {
+  const f = await runtimeFixture(t, { alterNewTask: task => {
+    if (mode === 'deleted-edge') { task.dependsOn = []; task.inputs = task.inputs.filter(ref => ref.artifactId !== 'design'); }
+    if (mode === 'deleted-input') task.inputs = task.inputs.filter(ref => ref.artifactId !== 'design');
+    if (mode === 'changed-input-version') task.inputs.find(ref => ref.artifactId === 'design')!.version = 'unquoted-v2';
+  } });
+  const before = await f.state(), calls = [...f.calls], files = (await readdir(f.root, { recursive: true })).sort();
+  await assert.rejects(resumeTaskDag({ ...f.options(), tasks: mode === 'deleted-edge' ? [f.next] : f.options().tasks,
+    availableArtifacts: f.next.task.inputs }), /depend|input|source|binding/i);
+  assert.deepEqual(await f.state(), before); assert.deepEqual(f.calls, calls); assert.deepEqual((await readdir(f.root, { recursive: true })).sort(), files);
+  assert.equal((await f.state()).tasks.find(task => task.taskId === f.next.task.taskId)!.attempts.length, 0);
+});
+
+test('a full window resume rejects changed passed-ancestor evidence before registering an unstarted successor', async t => {
+  const f = await runtimeFixture(t, { prepareNew: false }), ancestor = f.original.tasks.find(task => task.taskId === 'design-task')!;
+  await writeFile(join(f.root, ancestor.evidence[0].source.location), '{"changed":true}', 'utf8');
+  const before = await f.state(), calls = [...f.calls], files = (await readdir(f.root, { recursive: true })).sort();
+  await assert.rejects(resumeTaskDag(f.options()), /content|signature|evidence|ancestor/i);
+  assert.deepEqual(await f.state(), before); assert.deepEqual(f.calls, calls); assert.deepEqual((await readdir(f.root, { recursive: true })).sort(), files);
+});
+
+test('resume also rejects omission of an unchanged passed ancestor before a fresh task or journal can be registered', async t => {
+  const f = await runtimeFixture(t, { prepareNew: false }), ancestor = f.original.tasks.find(task => task.taskId === 'design-task')!;
+  const before = await f.state(), files = (await readdir(f.root, { recursive: true })).sort(), calls = [...f.calls];
+  await assert.rejects(resumeTaskDag({ ...f.options(), tasks: [f.next], availableArtifacts: [...f.requirement.sources, ...ancestor.artifacts] }), /complete.*DAG|include dependency/i);
+  assert.deepEqual(await f.state(), before); assert.deepEqual(f.calls, calls); assert.deepEqual((await readdir(f.root, { recursive: true })).sort(), files);
+});
+
+test('quoted upstream successors bind a new fixed version and complete their dependent within the same window', async t => {
+  const f = await runtimeFixture(t, { failDesign: true }), before = await f.state();
+  const result = await resumeTaskDag(f.options()); assert.deepEqual(result.blocked, []); assert.deepEqual(result.tasks.map(task => task.state), ['passed', 'passed']);
+  const parent = f.additions.find(item => item.role === 'design')!;
+  assert.equal(f.next.task.dependsOn[0].taskId, parent.task.taskId); assert.deepEqual(f.next.task.inputs.find(ref => ref.artifactId === 'design'), parent.expectedArtifacts![0]);
+  assert.equal(parent.expectedArtifacts![0].version, 'continued-v1'); assert.deepEqual((await f.state()).tasks.slice(0, before.tasks.length - 2), before.tasks.slice(0, before.tasks.length - 2));
+  assert.ok((await f.state()).requests.slice(before.requests.length).every(request => request.windowId === f.window.windowId));
+});
+
+test('a window call cannot silently omit another quoted successor from its complete DAG', async t => {
+  const f = await runtimeFixture(t, { failDesign: true }), before = await f.state(), calls = [...f.calls];
+  await assert.rejects(resumeTaskDag({ ...f.options(), tasks: [f.additions.find(item => item.role === 'design')!] }), /complete|quoted/i);
   assert.deepEqual(await f.state(), before); assert.deepEqual(f.calls, calls);
 });

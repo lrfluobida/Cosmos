@@ -14,7 +14,7 @@ import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts'
 import { TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
 
 /** Offline contract fixture only: no API, compiler, browser or generated game. */
-export async function runtimeFixture(t: test.TestContext) {
+export async function runtimeFixture(t: test.TestContext, configure: { prepareNew?: boolean; failDesign?: boolean; alterNewTask?: (task: TaskContract) => void } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-window-runtime-'));
   let time = Date.now() - 13 * 60 * 60 * 1000; const now = () => time;
   const requirement = requirementFixture() as RequirementContract;
@@ -24,7 +24,7 @@ export async function runtimeFixture(t: test.TestContext) {
     scope: 'generation', limitMicroCny: 10_000, allocations: [{ taskId: 'design-task', amountMicroCny: 1_000 }, { taskId: 'code-task', amountMicroCny: 1_000 }], now });
   t.after(async () => { await controller.close().catch(() => {}); await rm(root, { recursive: true, force: true }); });
   await mkdir(join(root, 'requirements')); await writeFile(join(root, 'requirements/v1.json'), JSON.stringify(requirement), 'utf8');
-  const started = await controller.read(), calls: string[] = [], packets: any[] = [];
+  const started = await controller.read(), calls: string[] = [], packets: any[] = [], recoveryChecks: string[] = [];
   const originals: PreparedTask[] = ['design', 'code'].map(role => {
     const task = taskFixture() as TaskContract, output = registry.artifactRef(role, 'v1');
     Object.assign(task, { taskId: `${role}-task`, authorId: `author-${role}`, objective: `Offline ${role} fixture`,
@@ -57,6 +57,7 @@ export async function runtimeFixture(t: test.TestContext) {
   const reference = (task: TaskContract) => ({ artifactId: task.acceptanceIds[0] === 'AC-design' ? 'design' : 'code',
     version: task.taskId.startsWith('cont-') ? 'continued-v1' : 'v1', location: task.outputs[0].destination });
   const recovery = { journalRoot: join(root, 'journal'), artifactRoot: root, recoverCapture: async (task: TaskContract) => {
+    recoveryChecks.push(task.taskId);
     try {
       const capture = await registry.getCapture(reference(task));
       if (capture.taskId !== task.taskId || !capture.metadata.provenance.sourceRefs.includes(task.attempts.at(-1)!.sessionRef)) return null;
@@ -77,30 +78,39 @@ export async function runtimeFixture(t: test.TestContext) {
       const source = { artifactId: `${task.taskId}-report`, version: 'v1', location: `evidence/${task.taskId}.json` };
       await mkdir(join(root, 'evidence'), { recursive: true }); await writeFile(join(root, source.location), JSON.stringify({ fakeBuild: true, fakeBrowser: true, taskId: task.taskId }), 'utf8');
       return [{ contractVersion: '1.0.0', evidenceId: `${task.taskId}-check`, taskId: task.taskId, acceptanceIds: task.acceptanceIds, kind: 'test_report', source,
-        artifactVersions: [...task.inputs, ...task.artifacts], outcome: task.taskId === 'code-task' ? 'failed' : 'passed', recordedAt: new Date(now()).toISOString(), summary: 'Offline host fixture only' }] as EvidenceContract[];
+        artifactVersions: [...task.inputs, ...task.artifacts], outcome: task.taskId === (configure.failDesign ? 'design-task' : 'code-task') ? 'failed' : 'passed', recordedAt: new Date(now()).toISOString(), summary: 'Offline host fixture only' }] as EvidenceContract[];
     },
   };
   const common = { requirement, sessionRoot: join(root, 'sessions'), availableArtifacts: requirement.sources, reviewProtocolCorrections: 1 as const, recovery, now, ...callbacks };
   const result = await executeTaskDag({ ...common, controller, tasks: originals });
-  assert.deepEqual(result.map(task => task.state), ['passed', 'failed']); await controller.stop('Original fixture stopped before explicit authorization');
+  assert.deepEqual(result.map(task => task.state), configure.failDesign ? ['failed', 'waiting_user'] : ['passed', 'failed']); await controller.stop('Original fixture stopped before explicit authorization');
   const original = await controller.read(); await controller.close(); time += 13 * 60 * 60 * 1000;
   const quote = await buildContinuationQuote({ root, additionalMicroCny: 1_000, additionalDurationMs: 60_000, now: now() });
   const confirmation = { decisionId: 'runtime-decision', actorId: 'offline-user', decidedAt: new Date(now()).toISOString(), source: { artifactId: 'continuation-confirmation', version: 'v1', location: 'confirmation.json' } };
   await writeFile(join(root, confirmation.source.location), JSON.stringify({ formatVersion: 'continuation-confirmation-1', ...confirmation, source: undefined, confirmed: true, quote }), 'utf8');
   const window = await RunController.activateContinuation({ root, quote, confirmation, now });
   controller = await RunController.open({ root, windowId: window.windowId, now });
-  const grant = window.grants[0], task = structuredClone(originals[1].task), workspace = join(root, 'continued-workspace'); await mkdir(workspace);
-  task.taskId = grant.taskId; task.authorId = 'new-author'; task.context.contextId = 'new-context'; task.budget.allocationMicroCny = grant.amountMicroCny;
-  const ref = registry.artifactRef('code', 'continued-v1'); task.outputs[0].destination = ref.location;
-  const next: PreparedTask = { ...originals[1], task, workspace, expectedArtifacts: [ref] };
+  const workspace = join(root, 'continued-workspace'); await mkdir(workspace);
+  const additions: PreparedTask[] = window.grants.map(grant => {
+    const prior = originals.find(item => item.task.taskId === grant.sourceTaskId)!, task = structuredClone(prior.task);
+    task.taskId = grant.taskId; task.authorId = `${grant.taskId}-author`; task.context.contextId = `${grant.taskId}-context`; task.budget.allocationMicroCny = grant.amountMicroCny;
+    const ref = registry.artifactRef(prior.role === 'design' ? 'design' : 'code', 'continued-v1'); task.outputs[0].destination = ref.location;
+    task.dependsOn = task.dependsOn.map(dep => ({ ...dep, taskId: window.grants.find(item => item.sourceTaskId === dep.taskId)?.taskId ?? dep.taskId }));
+    task.inputs = task.inputs.map(ref => window.grants.some(item => item.sourceTaskId === 'design-task') && ref.artifactId === 'design' ? registry.artifactRef('design', 'continued-v1') : ref);
+    configure.alterNewTask?.(task);
+    return { ...prior, task, workspace, expectedArtifacts: [ref] };
+  });
+  const next = additions.find(item => item.role === 'coding')!;
   const binding = { windowId: window.windowId, decisionId: window.decisionId, quoteId: quote.quoteId, startedAt: window.startedAt, deadlineAt: window.deadlineAt,
     effectiveLimitMicroCny: quote.proposed.totalLimitMicroCny };
-  await TaskJournal.open(recovery, { formatVersion: 2, runId: original.run.runId, ledgerId: original.ledger.ledgerId, originalStartedAt: original.run.originalStartedAt,
-    originalDeadlineAt: original.run.originalDeadlineAt, limitMicroCny: original.ledger.limitMicroCny, requirement, prepared: next, reviewProtocolCorrections: 1,
-    artifactRoot: root, sessionRoot: common.sessionRoot, executionWindow: binding } as any, false);
-  await controller.registerTasks([next.task]);
-  const options = () => ({ ...common, controller, tasks: [originals[0], next], scheduling: { maxParallel: 2 as const }, windowId: window.windowId });
-  return { root, original, window, next, originals, packets, calls, options, controller, roleFactory, requirement, common,
+  if (configure.prepareNew !== false) {
+    for (const prepared of additions) await TaskJournal.open(recovery, { formatVersion: 2, runId: original.run.runId, ledgerId: original.ledger.ledgerId, originalStartedAt: original.run.originalStartedAt,
+      originalDeadlineAt: original.run.originalDeadlineAt, limitMicroCny: original.ledger.limitMicroCny, requirement, prepared, reviewProtocolCorrections: 1,
+      artifactRoot: root, sessionRoot: common.sessionRoot, executionWindow: binding } as any, false);
+    await controller.registerTasks(additions.map(item => item.task));
+  }
+  const options = () => ({ ...common, controller, tasks: [...originals.filter(item => original.tasks.find(task => task.taskId === item.task.taskId)!.state === 'passed'), ...additions], scheduling: { maxParallel: 2 as const }, windowId: window.windowId });
+  return { root, original, window, next, additions, originals, packets, calls, recoveryChecks, options, controller, roleFactory, requirement, common,
     reopen: async () => { await controller.close(); controller = await RunController.open({ root, windowId: window.windowId, now }); },
     state: () => controller.read(), advance: (ms: number) => { time += ms; },
     originalTaskBytes: () => readFile(join(root, 'journal/task-design-task/origin.json'), 'utf8') };

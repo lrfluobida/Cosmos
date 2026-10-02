@@ -161,3 +161,10 @@ root 已批准只为受修复上游影响、从未启动的下游建立新任务
 - 最初五项真实 controller/registry 管线测试确认红灯，完成后共八项通过。假 provider 使用真实角色预算回执，假 build/browser 回调提供固定 fixture 证据；新任务含一次严格 review 协议纠错，共三个新请求，旧 passed 任务、原停止事实、原费用和原输出版本保留。重复恢复无新请求，`artifactReuse: pending_task_validation` 不被全局改成已通过。错/缺 window、错 origin、缺 journal 和静态契约漂移均拒绝。
 - 验证命令：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/continuation-runtime.test.ts`（8 项）；同命令用 `--test-name-pattern="unconnected" tests/runtime/continuation-authority.test.ts`（D2 旧入口 6 项）；同命令运行 `tests/roles/roles.test.ts tests/roles/repair-protocol.test.ts tests/runtime/recovery/dependencies.test.ts tests/runtime/scheduler/dag.test.ts tests/cli/control.test.ts`（102 项）。最终串行 `npm run typecheck`、`npm run build` 通过；UTF-8/LF、中文复读与 diff 检查通过。
 - 依赖为已审核 D2 `41ea1c52df95252e0886a3268df290024d5768db`，无冲突合入；D3a 对 run.ts 只增加上述六行身份断言，不修改 D2 账本或授权语义。本段尚未接公开 continuation/确认，也未实现生产 host 的新 workspace/input 镜像和固定新产物布局；D3b/D3c 仍须完成。没有真实 API、浏览器、旧 smoke/trial 或真实验证目录操作。
+
+### D3a 审查修复：祖先核验必须先于新阶段
+
+- reviewer 在 `1f50298` 复现：v2 的 fresh execute 可只提供新任务及旧 artifact refs，绕过旧 passed 祖先的 journal/registry/signature 检查，即使祖先报告文件已改变仍能付费执行并通过。修复后 `executeTaskDag` 保留 v1 路径，v2 首次及后续执行都必须使用完整 DAG 的 `resumeTaskDag`，不能由调用方声明祖先可信。
+- 新增窄只读 `continuation-inputs.ts`：全部 quote successors 与必要祖先必须出现在 DAG；新任务保留原 source 拓扑，按固定 B/C 映射及 quote grants 显式替换依赖。原 inputs 和 interfaces 只能按无歧义的固定输出版本重绑；删除边/输入、改版本或省略任务均拒绝。B/C 映射必须匹配已确认 quote 中的内容摘要，不改旧计划、D2 账本或确认权限。
+- v2 在开始任何新阶段前，先复用原恢复逻辑核验全部 passed 祖先的 journal、registry provenance、验收证据与内容签名。新任务尚未登记时，缺失/漂移祖先也不会新增 task、journal 或请求。旧 v1 的恢复行为保留。
+- 最初五项反例确认红灯，随后补出的“只执行部分 quote 任务”反例也先红后绿。合法新上游版本→下游的真 controller/registry 管线继续通过。最终命令：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/continuation-runtime.test.ts tests/runtime/recovery/dependencies.test.ts`，16 项窗口管线与 5 项 v1 依赖恢复，共 21 项通过；同一源码 `npm run typecheck`、`npm run build` 通过。没有重复已稳定的 102/6 项，也没有 API、真实浏览器、真实运行或旧 trial 操作。

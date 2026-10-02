@@ -19,6 +19,7 @@ import { assertTaskWriteIsolation, scheduleTasks, validateScheduling, withDagOwn
 import type { SchedulingOptions } from './scheduler/index.ts';
 import { executionWindowView, taskWindowBinding } from './execution-window.ts';
 import { requireContinuationTask } from './continuation-validation.ts';
+import { requireContinuationInputs } from './continuation-inputs.ts';
 
 export interface PreparedTask { task: TaskContract; role: AuthorRole; workspace: string; expectedArtifacts?: ArtifactReference[] }
 export interface AuthorProposal { summary: string; remaining: string[]; uncertainty: string[] }
@@ -74,10 +75,10 @@ function requirePassingEvidence(task: TaskContract, requirement: RequirementCont
   }
 }
 
-/** One bounded attempt per prepared task. Repairs/replanning create explicit subsequent work. */
+/** Original v1 execution. Windows use complete-DAG recovery checks even for a first attempt. */
 export async function executeTaskDag(options: DagOptions): Promise<TaskContract[]> {
   options.controller.requireExecutionWindow(options.windowId);
-  if (options.windowId && !options.recovery) throw new Error('Execution window requires its explicit host recovery journal.');
+  if (options.windowId) throw new Error('Execution window requires resumeTaskDag with a complete dependency DAG and host recovery journal.');
   return withDagOwner(options.controller, async () => (await executeDag(options, false)).tasks, options.windowId);
 }
 
@@ -97,6 +98,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   if (!prepared.length || prepared.length > 100 || new Set(prepared.map(p => p.task.taskId)).size !== prepared.length) throw new Error('DAG requires 1 to 100 unique tasks.');
   if (options.scheduling) validateScheduling(prepared, options.scheduling);
   const initial = await controller.read();
+  if (options.windowId) await requireContinuationInputs(initial, prepared, options.recovery!.artifactRoot);
   const prior = new Map(initial.tasks.map(task => [task.taskId, task]));
   const journals = new Map<string, TaskJournal>(), blocked = new Map<string, string>();
   for (const item of prepared) {
@@ -179,6 +181,27 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     return feedback;
   }
 
+  async function reusePassed(item: PreparedTask) {
+    const task = item.task, journal = journals.get(task.taskId)!;
+    if (blocked.has(task.taskId)) throw new RecoveryBlocked(blocked.get(task.taskId));
+    if (task.dependsOn.some(dep => !validatedDependencies.has(dep.taskId))) throw new RecoveryBlocked('Passed ancestor dependencies were not validated.');
+    const authored = await journal.read<{ proposal: AuthorProposal }>('author', task.attempts.at(-1)!.attemptId);
+    if (!authored) throw new RecoveryBlocked('Passed task has no matching durable author handoff.');
+    let proposal: AuthorProposal;
+    try { proposal = parseProposal(JSON.stringify(authored.proposal)); }
+    catch { throw new RecoveryBlocked('Passed task author handoff cannot be verified.'); }
+    await inspectCaptured(task, proposal, item.expectedArtifacts);
+    const verified = await journal.read<{ evidence: EvidenceContract[]; signature: ContentSignature }>('verified', task.attempts.at(-1)!.attemptId);
+    if (!verified || !sameValue(verified.evidence, task.evidence)) throw new RecoveryBlocked('Passed task has no matching durable host evidence.');
+    requirePassingEvidence(task, requirement, task.review.evidenceIds);
+    await journal.requireSignature(verified.signature, [...task.inputs, ...task.artifacts, ...task.evidence.map(e => e.source)]);
+    reusedTaskIds.push(task.taskId); validatedDependencies.add(task.taskId);
+    for (const ref of task.artifacts) if (!available.some(existing => sameValue(existing, ref))) available.push(ref);
+  }
+
+  // A v2 call validates every reused ancestor before any new task phase can register, write or charge.
+  if (options.windowId && !signal.aborted) for (const item of ordered) if (item.task.state === 'passed') await reusePassed(item);
+
   async function executeOne(item: PreparedTask) {
     const task = item.task;
     const journal = journals.get(task.taskId);
@@ -190,19 +213,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         if (blocked.has(task.taskId)) throw new RecoveryBlocked(blocked.get(task.taskId));
         if (task.dependsOn.some(dep => !validatedDependencies.has(dep.taskId))) throw new RecoveryBlocked('Required dependency was not validated in this recovery; include every required ancestor and resolve its blocked result first.');
         if (task.state === 'passed') {
-          const authored = await journal!.read<{ proposal: AuthorProposal }>('author', task.attempts.at(-1)!.attemptId);
-          if (!authored) throw new RecoveryBlocked('Passed task has no matching durable author handoff.');
-          let proposal: AuthorProposal;
-          try { proposal = parseProposal(JSON.stringify(authored.proposal)); }
-          catch { throw new RecoveryBlocked('Passed task author handoff cannot be verified.'); }
-          await inspectCaptured(task, proposal, item.expectedArtifacts);
-          const verified = await journal!.read<{ evidence: EvidenceContract[]; signature: ContentSignature }>('verified', task.attempts.at(-1)!.attemptId);
-          if (!verified || !sameValue(verified.evidence, task.evidence)) throw new RecoveryBlocked('Passed task has no matching durable host evidence.');
-          requirePassingEvidence(task, requirement, task.review.evidenceIds);
-          await journal!.requireSignature(verified.signature, [...task.inputs, ...task.artifacts, ...task.evidence.map(e => e.source)]);
-          reusedTaskIds.push(task.taskId);
-          validatedDependencies.add(task.taskId);
-          for (const ref of task.artifacts) if (!available.some(existing => sameValue(existing, ref))) available.push(ref);
+          if (!validatedDependencies.has(task.taskId)) await reusePassed(item);
           return;
         }
         if (!['not_started', 'ready', 'running', 'awaiting_review'].includes(task.state)) throw new RecoveryBlocked('Task retains its prior outcome; use the existing constrained repair policy for new work.');
