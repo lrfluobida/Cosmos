@@ -7,7 +7,8 @@
   "parent": {
     "number": 1,
     "id": 5650981546,
-    "url": "https://github.com/lrfluobida/Cosmos/issues/1"
+    "url": "https://github.com/lrfluobida/Cosmos/issues/1",
+    "childCount": 20
   },
   "tasks": [
     {
@@ -530,8 +531,74 @@
       "reviewStatus": "READY_FOR_ROLE_IO_INTEGRATION",
       "reviewedCommit": "6397e15b6b75892a2b3e5804e138a12929ad0255",
       "mergeCommit": "d0c39adf08e25727ca5c2b7ee12db7c2bcf3772e"
+    },
+    {
+      "taskId": "COS-20",
+      "title": "区分开发验证窗口与正式生成时限",
+      "number": 21,
+      "id": 5674280617,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/21",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-06",
+          "number": 7,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/7"
+        },
+        {
+          "id": "COS-07",
+          "number": 8,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/8"
+        },
+        {
+          "id": "COS-08",
+          "number": 9,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/9"
+        },
+        {
+          "id": "COS-09",
+          "number": 10,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/10"
+        },
+        {
+          "id": "COS-11",
+          "number": 12,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/12"
+        },
+        {
+          "id": "COS-12",
+          "number": 13,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/13"
+        },
+        {
+          "id": "COS-13",
+          "number": 14,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/14"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-19",
+          "number": 20,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/20"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-10",
+          "number": 11,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/11"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "source-preparation"
     }
   ],
-  "verifiedNativeSubIssues": 19,
+  "verifiedNativeSubIssues": 20,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

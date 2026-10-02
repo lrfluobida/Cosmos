@@ -1,8 +1,10 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-02 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 19 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-02 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 20 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
+
+新补充：[COS-20 / #21](https://github.com/lrfluobida/Cosmos/issues/21) 在原开发验证授权和预算内准备显式 validation profile 与新有界 case；源代码审查、集成及准入完成后才由协调者执行。正式生成 ¥200/12h、验证合计 ¥150 和首批累计 ¥30 保持不变；原窗口和已消费 case 不重开。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -59,6 +61,7 @@
 - [ ] [COS-17 整理交付与用户最终试玩](https://github.com/lrfluobida/Cosmos/issues/18)
 - [ ] [COS-18 接通 Windows 需求访谈与生成运行 CLI](https://github.com/lrfluobida/Cosmos/issues/19)
 - [ ] [COS-19 修复原生角色交接格式与输出截断处理](https://github.com/lrfluobida/Cosmos/issues/20)
+- [ ] [COS-20 区分开发验证窗口与正式生成时限](https://github.com/lrfluobida/Cosmos/issues/21)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -261,6 +264,17 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 通过：包装格式正确的回复可进入 host 检查；非空 remaining/uncertainty、`approved` 加非空 findings 仍拒绝。损坏或歧义 JSON 不猜测修补；截断有明确原因和费用，不写成完成、不增加隐含重试。额度不足在副作用前拒绝，原费用、请求数和截止约束继续生效；离线检查不代替真实生成通过。
 - 验证/工作方式：`role_io_implementer` 负责实现，独立 reviewer 由协调者安排，本批仅 `batch07_merger` 合入。交付定向回归、实际 source commit、独立审查及进度记录；与 COS-18 修复继任任务组分开实施，协调共享 host 工厂配置位置。UTF-8、中文保护和最小修改规则适用。
 - 边界：不手工修改模型字段或旧失败结果，不重开已消费实验；本任务当前仅离线实现，后续真实验证须沿用适用账本和明确运行边界。
+
+### COS-20 · 区分开发验证窗口与正式生成时限
+
+- 状态/源级前置：已发布 [#21](https://github.com/lrfluobida/Cosmos/issues/21)，当前为源码准备。前置只要求 COS-06/07/08/09/11/12/13/18/19 对应源码已独立审查并集成，不要求这些任务的全部 live/完整产品验收通过。COS-10 的实际验证是本任务产出，不作为循环前置；[映射](github-issues.json) 分列 sourcePrerequisites 与 validationOutputsFor。
+- 已有授权：CONTEXT 的生成运行排除平台开发；R6 的正式 ¥200/12h 与 R7 的开发验证合计 ¥150 分开。沿用用户验证预算、凭据提供及持续推进授权，由可信 coordinator 为更严格的新 case 记录真实 `operator_validation` 决定，不自动套用 formal human quote，不伪造 GameDraft 确认或 run.humanDecisions。
+- 输出/范围：同一权威 snapshot/runId/ledgerId 的显式 validation profile、新独立 opt-in driver/声明、定向测试、开发说明与进度；CONTEXT 术语和 ADR 由专属作者另行提交审查。原 start/deadline/stop、费用、请求、任务、allocations 和失败 case 保留；旧 v1、formal v2 及旧实验入口不得自动获得新权限，不使用假时钟或 deadline 投影。
+- case 与准入：首例冻结 COS-10 evaluation 输入，固定新 caseId/windowId、准确已审 main SHA、输入 hash 和真实操作授权来源。claim 即消费，重复调用不刷新身份、时钟或计数；旧三个已消费/过期 case 保留。环境、未知费用、writer 未收敛、陈旧 SHA/输入/报价、已 claim、超额或到期均在新副作用前拒绝。
+- 预算：本 case 实际加预留增量最多 ¥5、45 分钟、40 次调用、一次语义修复；planning、角色、review、纠错与 compaction 全部计费计数。验证累计首批 ¥30、合计 ¥150 不变；首例仅从原未分配额安排新 grants，不回收旧 allocations。
+- 接线：复用 RunController 记账、owner/child、request receipt、createRoleBudget/PilotGuard 准入；每次请求绑定真实 validation case/window，当前时钟明确读取新窗口，原字段保留历史含义。新路径使用固定 evaluation 输入，跳过模拟访谈和自行 `confirmed:true`；规划使用独立真实 grant，不制造 passed planning 阶段。新 art/coding 作者 65,536 输出 token 与 reservation 同配置；旧 probe 显式 16,384 不变。
+- 验证/工作方式：先固定窄 profile、授权记录和计费 API，再接 driver；两项分别有专属 implementer/独立 reviewer，仍由 batch07_merger 唯一合入。离线覆盖历史不变、无 fake human proof、case/window 权限、原子 claim/幂等、未知费用/并发/截止拒绝、全调用计数、cap/reservation 一致及旧入口拒绝。源码、离线验证和实际准入全部就绪后才由 coordinator 在原授权内执行；真实报告如实记录通过或失败与费用，不计作完整经典基准或用户体验通过。
+- 当前边界：任务发布和本次文档登记不启动付费调用，不改真实账本或旧失败产物。UTF-8、中文保护及 key 不落盘规则适用。
 
 ## 5. 任务与上下文包模板
 
