@@ -22,7 +22,7 @@ export interface RecoveryOptions {
 }
 export interface RecoveryReport { tasks: TaskContract[]; reusedTaskIds: string[]; blocked: { taskId: string; reason: string }[] }
 export class RecoveryBlocked extends Error {}
-type Stage = 'author' | 'capture-started' | 'capture' | 'verify-started' | 'verified' | 'review-started' | 'review';
+type Stage = 'author' | 'capture-started' | 'capture' | 'verify-started' | 'verified' | 'review-started' | 'review' | 'failure-snapshot';
 export interface RecoveryOrigin {
   formatVersion: 1 | 2 | 3; runId: string; ledgerId: string; originalStartedAt: string; originalDeadlineAt: string;
   limitMicroCny: number; requirement: ExecutionRequirement; prepared: PreparedTask; reviewProtocolCorrections: 0 | 1;

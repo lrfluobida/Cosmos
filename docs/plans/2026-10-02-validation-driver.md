@@ -38,3 +38,12 @@
 - 新 `validation-driver.ts` 当前只装配 actual readScope：固定 repository/root/case，真实 Git+九文件、原 operator regular bytes/sha/JSON、registered planning input 的 provenance/type/file-set/bytes，以及 `stageAcceptance` 全文。它只读且接受现有 runtime scope 的信号与五秒边界；不构造真人确认或 passing evidence。
 - root 穿刺发现 host 字符串 passed 不足以报告成功。四个 stopped/expired/unknown/missing accepted 反例先红后绿；wrapper 自身结束前检查当前窗口和费用、匹配真实 registry.current，清理后再检查时间与费用，原停止理由/未知预留保留。真实游戏 proof、完整 AC 和独立 review 仍属待接原生 host。
 - 验证：`tests/e2e/validation-run.test.ts` 9 项、`tests/e2e/validation-scope.test.ts` 1 项均通过；初始入口四项缺接口红灯，完成门槛四项误 passed 红灯均有记录。真实 Git 只操作临时 repo，ledger 为明确 fixture；无 key/session/真实验证根读取或模型/browser调用。显式 strict noEmit 覆盖两个新 probe 和三个 test/fixture，最终 exit 0；没有无关根 build。
+
+## 原生 worker、反馈认证及公开 flags 收尾
+
+- 已合入已审 main `6695cea`，复用 planning child purpose 修复。新增 validation-host/worker 装配原 toolchain/build/renderMedia/runAcceptance；旧 driver 仅扩明确 validation 分支与受控 IO 参数，不复制执行器。原生准备在 claim 前只读，case 目录与全部工作在 claim 后，45 分钟包含启动/工具链/检查/修复/清理。公开 run.ts 两个严格 flags 固定 native host，无 fixture/root/reset/time 参数。
+- 新分支读 actual scope，跳过旧模拟访谈包装，planning ID/三 role ID/额度来自同声明；validationCase deadline 单列到模型规则与 packet。正常输入 plan 仅换当前实际 taskId，原 8 AC/媒体/步骤不变，legacy COS-10 标识保留旧路径。
+- 写入 failure-snapshot 新 journal stage，记录原真实 feedback 字节摘要与当时 input/artifact/evidence 全文件签名；它不是 passing evidence。driver 验原 author/capture/失败快照、原 immutable 文件、原 session 和 registry/code 来源后才 wx stage、claim 及创建新 repair workspace/context/v2。保存失败或源码/evidence/dist 漂移不领 repair。只 coding code_defect 一次，design/art 失败和无可信诊断的评审意见报告差距。
+- 最终 fake native flow 在 `9a91f75` 时间戳修复后 passed（40.47s，9 假请求、一次评审格式纠错、一项 coding repair，原失败与旧 authors/v1 留存）；public routing/早失败检查通过。新增失败快照测试 7/7，旧 preparation/diagnostics 11/11（包含一次额外 Edge 诊断 fixture 1.83s，已退出）。不以这些 fake 成绩冒充真实游戏生成。
+- 唯一新实际 generic smoke 1/1，test34.08s/runner37.02s：planning owned bootstrap、coding 实际 build/正常点击、registry proof、art render 按序，0 model request/generatedByCosmos:false，Edge PID 19764 已退出，owner 已关闭。完整证据保留在 `.cosmos/validation-host-smoke-47f42edc-82d2-4450-85b2-21c796117ecf/`。没有真实验证账本或旧 consumed case 操作。
+- 本段通过 `npm run build` 与显式 `tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --types node`（新 probes/native tests/worker smoke/repair test）。源码仍须独立审查及 merger 主线组合核对；真实付费 case 留给协调方在最终 main 新 preflight 后执行。

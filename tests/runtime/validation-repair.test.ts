@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 import { planTaskDag } from '../../src/roles/planner.ts';
@@ -7,12 +7,17 @@ import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from '../../src/runtime/repair/policy.ts';
 import { HostFailure } from '../../src/runtime/repair/feedback.ts';
 import { validationRoutingFixture } from './validation-routing.fixture.ts';
+import { TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
 
 async function failed(t: test.TestContext) {
   const f = await validationRoutingFixture(t), plan = await planTaskDag(f.planning as any);
   const results = await executeTaskDag({ controller: f.controller, validation: f.binding, requirement: f.requirement, tasks: plan.tasks,
     sessionRoot: f.planning.sessionRoot, availableArtifacts: [f.source], roleFactory: f.roleFactory, capture: f.capture,
-    verify: async task => (await f.verify(task)).map(evidence => ({ ...evidence, outcome: task.taskId.endsWith('-coding') ? 'failed' : evidence.outcome })),
+    verify: async task => {
+      const evidence = await f.verify(task);
+      if (task.taskId.endsWith('-coding')) { await mkdir(join(f.artifactRoot, task.artifacts[0].location, 'dist')); await writeFile(join(f.artifactRoot, task.artifacts[0].location, 'dist/index.html'), 'Offline added build output', 'utf8'); }
+      return evidence.map(item => ({ ...item, outcome: task.taskId.endsWith('-coding') ? 'failed' : item.outcome }));
+    },
     diagnoseFailure: task => new HostFailure([{ acceptanceId: task.acceptanceIds[0], checkId: 'offline-code', classification: 'code_defect', summary: 'Offline source fixture defect',
       reproduction: ['Read the offline failed host report'], actual: 'Offline failure', expected: 'Offline check passes', evidenceRefs: task.evidence.map(item => item.source.location) }]),
     recovery: f.recovery, reviewProtocolCorrections: 1 });
@@ -34,6 +39,32 @@ test('validation repair evaluates its real case deadline and retained repair gra
   assert.deepEqual(repair.task.acceptance, f.source.task.acceptance); assert.equal(repair.task.budget.originalDeadlineAt, snapshot.run.originalDeadlineAt);
   assert.deepEqual(current.stopReason, snapshot.stopReason); assert.deepEqual(current.ledger, snapshot.ledger);
   await assert.rejects(f.controller.claimValidationRepair({ sourceTaskId: current.validation!.cases[0].quote.declaration.grants.art.taskId, feedback: f.feedback.reference }), /already/);
+});
+
+for (const changed of ['source', 'evidence', 'dist'] as const) test(`full failure snapshot rejects changed ${changed} before a repair claim`, async t => {
+  const f = await failed(t), task = f.source.task, folder = join(f.recovery.journalRoot, `task-${task.taskId}`), origin = JSON.parse(await readFile(join(folder, 'origin.json'), 'utf8'));
+  const journal = await TaskJournal.open(f.recovery, origin, true), failedSnapshot: any = await journal.read('failure-snapshot', task.attempts[0].attemptId);
+  assert.ok(failedSnapshot.signature.some((entry: any) => entry.files.some((file: any) => file.path === 'dist/index.html')));
+  const path = changed === 'source' ? `${task.artifacts[0].location}/fixture.txt` : changed === 'dist' ? `${task.artifacts[0].location}/dist/index.html` : task.evidence[0].source.location;
+  await writeFile(join(f.artifactRoot, path), 'Changed after recorded host failure', 'utf8');
+  await assert.rejects(async () => {
+    await journal.requireSignature(failedSnapshot.signature, [...task.inputs, ...task.artifacts, ...task.evidence.map(evidence => evidence.source)]);
+    await f.controller.claimValidationRepair({ sourceTaskId: task.taskId, feedback: f.feedback.reference });
+  }, /content changed|missing/i);
+  assert.equal((await f.controller.read()).validation!.cases[0].repair, null);
+});
+
+test('failure snapshot persistence failure preserves raw feedback but cannot add its repair reference or claim', async t => {
+  const f = await validationRoutingFixture(t), plan = await planTaskDag(f.planning as any);
+  await assert.rejects(executeTaskDag({ controller: f.controller, validation: f.binding, requirement: f.requirement, tasks: plan.tasks,
+    sessionRoot: f.planning.sessionRoot, availableArtifacts: [f.source], roleFactory: f.roleFactory, capture: f.capture,
+    verify: async task => {
+      const evidence = await f.verify(task);
+      if (task.taskId.endsWith('-coding')) { await mkdir(join(f.recovery.journalRoot, `task-${task.taskId}`, 'failure-snapshot.json')); return evidence.map(item => ({ ...item, outcome: 'failed' as const })); }
+      return evidence;
+    }, recovery: f.recovery, reviewProtocolCorrections: 1 }), /EEXIST/);
+  const state = await f.controller.read(), task = state.tasks.find(task => task.taskId.endsWith('-coding'))!;
+  assert.ok(await readFile(join(task.attempts[0].sessionRef, 'failure.json'))); assert.equal(task.attempts[0].failure, null); assert.equal(state.validation!.cases[0].repair, null);
 });
 
 test('validation repair cannot use legacy policy authority or another case and cannot ignore the actual case cutoff', async t => {

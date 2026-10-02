@@ -9,11 +9,12 @@ import { createRoleFactory } from '../../src/roles/factory.ts';
 import type { RoleSession } from '../../src/roles/factory.ts';
 import { prepareClarification, confirmRequirements } from '../../src/roles/requirements.ts';
 import { planTaskDag } from '../../src/roles/planner.ts';
-import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
+import { executeTaskDag, resumeTaskDag } from '../../src/runtime/orchestrator.ts';
 import type { PreparedTask } from '../../src/runtime/orchestrator.ts';
 import type { RunController } from '../../src/runtime/run.ts';
 import type { ArtifactReference, EvidenceContract, TaskContract } from '../../src/contracts/types.ts';
 import { createArtifactRegistry } from '../../src/artifacts/index.ts';
+import type { ArtifactRegistry } from '../../src/artifacts/index.ts';
 import type { MediaMetadata, PassedEvidence } from '../../src/artifacts/types.ts';
 import { directory, safePath } from '../../src/artifacts/paths.ts';
 import { runAcceptance } from '../../src/acceptance/runner.ts';
@@ -31,6 +32,11 @@ import type { RepairFeedback } from '../../src/runtime/repair/feedback.ts';
 import { TRIAL } from './trial.ts';
 import type { ExperimentAdmission } from './experiment.ts';
 import { startupStep, verifyStartupInputs } from './startup.ts';
+import type { ValidationCaseWindow } from '../../src/runtime/validation-types.ts';
+import type { ValidationExecutionBinding } from '../../src/runtime/validation-scope.ts';
+import type { ValidationRequirement } from '../../src/roles/execution-input.ts';
+import type { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+import { sameValue } from '../../src/contracts/validation.ts';
 
 const ownership = { writePaths: ['.'], readOnlyPaths: [] };
 const provenance = (sourceRefs: string[], generator: string) => ({ kind: 'original-procedural' as const, sourceRefs, generator });
@@ -45,19 +51,28 @@ export async function generatePilot(options: {
   trial?: boolean;
   experiment?: ExperimentAdmission;
   startupRecovery?: boolean;
+  validation?: { window: ValidationCaseWindow; binding: ValidationExecutionBinding; work: OwnedWork;
+    prepareRepair(source: PreparedTask, original: PreparedTask, requirement: ValidationRequirement, registry: ArtifactRegistry): Promise<PreparedTask | null> };
   /** Trusted offline fixture adapters only; production uses the concrete host tools below. */
-  host?: { buildProject?: typeof buildProject; runAcceptance?: typeof runAcceptance };
+  host?: { buildProject?: (root: string, project: string, toolchain: string, name: string, signal: AbortSignal, taskId?: string) => ReturnType<typeof buildProject>;
+    runAcceptance?: (plan: Parameters<typeof runAcceptance>[0], options: Parameters<typeof runAcceptance>[1], taskId?: string) => ReturnType<typeof runAcceptance>;
+    renderMedia?: (root: string, folder: string, value: unknown, signal: AbortSignal, taskId?: string) => ReturnType<typeof renderMedia> };
   repairEstimate?: { costMicroCny: number; durationMs: number; cleanupMs: number; requests: number };
 }) {
   const { root, repository, prefix, controller, guard, toolchain } = options;
+  const validation = options.validation;
+  if (validation) {
+    controller.requireValidationCase(validation.window.caseId, validation.window.windowId);
+    if (options.trial || options.experiment || options.continuation || options.startupRecovery || prefix !== validation.window.caseId || guard.deadlineAt !== validation.window.deadlineAt) throw new Error('Validation case cannot use a historical pilot execution path.');
+  }
   const bounded = options.experiment?.limits ?? (options.trial ? TRIAL : undefined);
   if (options.experiment && (options.trial || options.continuation || options.startupRecovery || prefix !== options.experiment.experimentId
     || guard.deadlineAt !== options.experiment.deadlineAt || guard.committedCapMicroCny !== options.experiment.committedCapMicroCny
     || options.childAllocationCapMicroCny !== options.experiment.limits.childAllocationMicroCny)) throw new Error('Experiment requires its own fixed admission and guard');
-  const host = { buildProject, runAcceptance, ...options.host };
+  const host = { buildProject, runAcceptance, renderMedia, ...options.host };
   const frozen = options.continuation?.frozen ?? await jsonFile(repository, 'probes/e2e/requirements.json');
   const startup = { root, signal: guard.signal, recovery: options.startupRecovery };
-  const registry = await startupStep({ ...startup, phase: 'registry-create' }, () => createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', signal: guard.signal }));
+  const registry = await startupStep({ ...startup, phase: 'registry-create' }, () => createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', signal: guard.signal, ...(validation ? { work: validation.work } : {}) }));
   const sourceRef = options.continuation?.available[0] ?? registry.artifactRef(`${prefix}-requirements`, frozen.requirementVersion);
   const baseRef = options.continuation?.available[1] ?? registry.artifactRef(`${prefix}-template`, 'v1');
   if (!options.continuation) {
@@ -70,26 +85,27 @@ export async function generatePilot(options: {
       await cp(join(repository, 'src/media/audio.ts'), join(inputRoot, 'audio-format.ts'));
     }
   });
-  await startupStep({ ...startup, phase: 'requirements-capture', captureRef: sourceRef }, () => registry.registerCapture({ taskId: 'COS-10', artifactRef: sourceRef, sourceRoot: 'inputs', ownership, dependencies: [],
-    metadata: { kind: 'data', provenance: provenance(['probes/e2e/requirements.json', 'src/media/vector.ts', 'src/media/audio.ts'], 'Frozen user-authorized pilot input and generic media format') },
+  await startupStep({ ...startup, phase: 'requirements-capture', captureRef: sourceRef }, () => registry.registerCapture({ taskId: validation?.window.quote.declaration.grants.planning.taskId ?? 'COS-10', artifactRef: sourceRef, sourceRoot: 'inputs', ownership, dependencies: [],
+    metadata: { kind: 'data', provenance: provenance(['probes/e2e/requirements.json', 'src/media/vector.ts', 'src/media/audio.ts'], validation ? 'Frozen validation input and generic media format' : 'Frozen user-authorized pilot input and generic media format') },
     files: ['requirements.json', 'character-format.ts', 'audio-format.ts'].map(name => ({ source: name, destination: `_cosmos/${name}` })),
   }));
-  await startupStep({ ...startup, phase: 'template-capture', captureRef: baseRef }, () => registry.registerCapture({ taskId: 'COS-10', artifactRef: baseRef, sourceRoot: 'toolchain', ownership, dependencies: [],
+  await startupStep({ ...startup, phase: 'template-capture', captureRef: baseRef }, () => registry.registerCapture({ taskId: validation?.window.quote.declaration.grants.planning.taskId ?? 'COS-10', artifactRef: baseRef, sourceRoot: 'toolchain', ownership, dependencies: [],
     metadata: { kind: 'code', provenance: provenance(['templates/2d'], 'Unchanged generic Phaser toolchain baseline') },
     files: ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'].map(name => ({ source: name, destination: name })),
   }));
   }
   const available = options.continuation?.available ?? [sourceRef, baseRef];
-  const draft = prepareClarification({ brief: frozen.scope, specVersion: frozen.specVersion, sources: [sourceRef], acceptance: stageAcceptance(frozen.acceptanceIds),
+  const draft = validation ? undefined : prepareClarification({ brief: frozen.scope, specVersion: frozen.specVersion, sources: [sourceRef], acceptance: stageAcceptance(frozen.acceptanceIds),
     questions: [{ id: 'scope', prompt: 'Which fixed pilot and normal-input acceptance should Cosmos generate?' }],
     answers: { scope: options.experiment
       ? `The unchanged ${frozen.requirementVersion} scope and all frozen acceptance checks. Coordinator execution decision source: ${options.experiment.decision.source}`
       : `The already authorized ${frozen.requirementVersion} scope and all frozen acceptance checks. Root approved the v2 stage interfaces before any paid generation.` },
   });
-  const requirement = options.continuation?.requirement ?? confirmRequirements(draft, { confirmed: true,
+  const requirement = validation ? (await validation.binding.readScope(guard.signal)).requirement : options.continuation?.requirement ?? confirmRequirements(draft!, { confirmed: true,
     actorId: options.experiment ? 'coordinator-explicit-execution' : 'user-authorized-COS-10-coordinator', at: options.confirmedAt });
   if (!options.continuation) {
-  await writeJson(root, 'confirmed-requirement.json', { draft, requirement });
+  if (validation) await writeJson(root, 'validation-requirement.json', requirement);
+  else await writeJson(root, 'confirmed-requirement.json', { draft, requirement });
   for (const role of ['design', 'art', 'coding']) await directory(root, `authors/${role}`);
   // Only generic source is present before native generation. It is not accepted game evidence.
   await cp(join(toolchain, 'src'), join(root, 'authors/coding/src'), { recursive: true });
@@ -98,6 +114,11 @@ export async function generatePilot(options: {
   const refs = { design: registry.artifactRef(`${prefix}-design`, 'v1'), art: registry.artifactRef(`${prefix}-art`, 'v1'), coding: registry.candidateRef(`${prefix}-game`, 'v1') };
   const { policies, repairAllocationMicroCny } = rolePolicies(root, prefix, options.childAllocationCapMicroCny, refs, frozen.acceptanceIds);
   if (bounded) for (const role of ['design', 'art', 'coding'] as const) policies[role].allocationMicroCny = bounded.allocations[role];
+  if (validation) for (const role of ['design', 'art', 'coding'] as const) {
+    policies[role].allocationMicroCny = validation.window.quote.declaration.grants[role].amountMicroCny;
+    policies[role].rules!.push(`Use exactly taskId ${validation.window.quote.declaration.grants[role].taskId} for this ${role} role. The three task IDs are ${['design', 'art', 'coding'].map(name => validation.window.quote.declaration.grants[name as 'design' | 'art' | 'coding'].taskId).join(', ')}. Coding must depend on both the declared design and art task IDs; do not invent other IDs or grants.`);
+    policies[role].rules!.push(`This operator_validation case ends at ${validation.window.deadlineAt}. Use the durable validationCase execution deadline; originalDeadlineAt is historical only and no formal window is extended. This case allows CNY ${validation.window.quote.declaration.limits.incrementalMicroCny / 1_000_000} incremental cost, ${validation.window.quote.declaration.limits.durationMs / 60000} minutes, ${validation.window.quote.declaration.limits.maxRequests} requests including reviews, corrections and compaction, and at most one coding repair. Preserve all fixed acceptance.`);
+  }
   for (const policy of Object.values(policies)) policy.rules!.push(
     `Read the fixed requirement file ${sourceRef.location}/_cosmos/requirements.json. Media format definitions are ${sourceRef.location}/_cosmos/character-format.ts and ${sourceRef.location}/_cosmos/audio-format.ts. The read tool reads files, not directories.`,
     `The generated design will be ${refs.design.location}/_cosmos/design.json. Generated media metadata will be ${refs.art.location}/public/assets/manifest.json; SVG/WAV paths in that manifest are relative to the final project root. These outputs are readable only after their declared task dependencies pass.`,
@@ -117,14 +138,16 @@ export async function generatePilot(options: {
   async function assembleDraft(task: TaskContract, name: string) {
     const path = await directory(root, `checks/${name}/project`);
     for (const input of task.inputs) await cp(join(root, input.location), path, { recursive: true });
-    await cp(join(root, 'authors/coding'), path, { recursive: true });
+    await cp(join(prepared.get(task.taskId)!.workspace, 'authors/coding'), path, { recursive: true });
     return path;
   }
   const roleFactory = createRoleFactory({
-    maxOutputTokens: PILOT_LIMITS.authorMaxOutputTokens, maxRequests: PILOT_LIMITS.maxRequests, requestTimeoutMs: PILOT_LIMITS.requestTimeoutMs,
+    maxOutputTokens: validation?.window.quote.declaration.outputTokens.design ?? PILOT_LIMITS.authorMaxOutputTokens,
+    maxRequests: validation?.window.quote.declaration.limits.maxRequests ?? PILOT_LIMITS.maxRequests, requestTimeoutMs: PILOT_LIMITS.requestTimeoutMs,
+    ...(validation ? { authorMaxOutputTokens: { art: validation.window.quote.declaration.outputTokens.art, coding: validation.window.quote.declaration.outputTokens.coding } } : {}),
     thinkingLevel: 'low', estimatedMaxCostMicroCny: requestReservation,
     sessionFactory: async config => (options.sessionFactory ?? createPiSession)({ ...config,
-      maxOutputTokens: JSON.parse(config.context).role === 'cosmos' ? PILOT_LIMITS.planningMaxOutputTokens : config.maxOutputTokens,
+      maxOutputTokens: !validation && JSON.parse(config.context).role === 'cosmos' ? PILOT_LIMITS.planningMaxOutputTokens : config.maxOutputTokens,
       budget: guard.wrap(config.budget),
     }),
     hostTools: async input => {
@@ -137,7 +160,7 @@ export async function generatePilot(options: {
           guard.signal.throwIfAborted(); if (++checkCount > 8) throw new Error('Pilot build-check limit reached');
           const task = prepared.get(input.taskId)!.task, name = `draft-${checkCount}`;
           const project = await assembleDraft(task, name);
-          const result = await host.buildProject(root, project, toolchain, name, guard.signal);
+          const result = await host.buildProject(root, project, toolchain, name, guard.signal, task.taskId);
           await writeJson(root, `checks/${name}/result.json`, result);
           return { content: [{ type: 'text', text: JSON.stringify({ passed: result.passed, diagnostics: result.results.map(r => r.stdout + r.stderr).join('\n').slice(0, 24_000) }) }], details: { passed: result.passed } };
         },
@@ -146,7 +169,7 @@ export async function generatePilot(options: {
   });
 
   const planned = options.continuation ? { tasks: options.continuation.tasks, plan: options.continuation.plan }
-    : await planTaskDag({ controller, requirement, planningTaskId: 'COS-10', workspace: root, sessionRoot: join(root, 'sessions'), availableArtifacts: available,
+    : await planTaskDag({ controller, requirement, validation: validation?.binding, planningTaskId: validation?.window.quote.declaration.grants.planning.taskId ?? 'COS-10', workspace: root, sessionRoot: join(root, 'sessions'), availableArtifacts: available,
       roles: policies, roleFactory, signal: guard.signal });
   if (!options.continuation) validateRolePlan(planned.tasks, prefix, frozen.acceptanceIds);
   for (const item of planned.tasks) prepared.set(item.task.taskId, item);
@@ -159,7 +182,7 @@ export async function generatePilot(options: {
   const callbacks = {
     async capture(task: TaskContract, _proposal: unknown, signal: AbortSignal) {
       signal.throwIfAborted(); const item = prepared.get(task.taskId)!; const output = item.expectedArtifacts![0];
-      const authorRoot = `authors/${item.role}`, inputs = task.inputs;
+      const authorRoot = relative(root, join(item.workspace, `authors/${item.role}`)).replaceAll('\\', '/'), inputs = task.inputs;
       const origin = provenance([task.attempts.at(-1)!.sessionRef, ...inputs.map(i => `${i.artifactId}@${i.version}`)], 'New native Cosmos role output in this timed run');
       if (item.role === 'design') {
         if (options.continuation) {
@@ -170,7 +193,7 @@ export async function generatePilot(options: {
           files: [{ source: 'design.json', destination: '_cosmos/design.json' }], metadata: { kind: 'data', provenance: origin } });
         }
       } else if (item.role === 'art') {
-        const rendered = await renderMedia(root, `rendered/${task.taskId}`, await jsonFile(root, 'authors/art/mediaSpec.json'), signal);
+        const rendered = await host.renderMedia(root, `rendered/${task.taskId}`, await jsonFile(item.workspace, 'authors/art/mediaSpec.json'), signal, task.taskId);
         const selected = (await files(join(root, `rendered/${task.taskId}`))).filter(name => name !== 'contact-sheet.png');
         await registry.registerCapture({ taskId: task.taskId, artifactRef: output, sourceRoot: `rendered/${task.taskId}`, ownership, dependencies: inputs,
           files: selected.map(name => ({ source: name, destination: name })), metadata: { kind: 'media', provenance: { ...origin, generator: 'Native art role MediaSpec + Cosmos bounded vector/PCM renderers' }, media: rendered.media } });
@@ -209,7 +232,7 @@ export async function generatePilot(options: {
         } else {
           const proof = await registry.verifyCandidate(output, {
             build: async (_candidate, project) => {
-              const result = await host.buildProject(root, project, toolchain, `${task.taskId}-final`, signal);
+              const result = await host.buildProject(root, project, toolchain, `${task.taskId}-final`, signal, task.taskId);
               await writeJson(root, `evidence/${task.taskId}/build.json`, result);
               details.buildLog = `evidence/${task.taskId}/build.json`;
               const checked = diagnoseBuild(task, result, details.buildLog as string); diagnostics.set(task.taskId, checked);
@@ -221,9 +244,10 @@ export async function generatePilot(options: {
               const server = await serveBuild(project);
               try {
                 const plan = createPilotAcceptance(output, server.url, prefix, `${task.taskId}-browser`);
+                if (validation) plan.taskId = task.taskId;
                 const report = await host.runAcceptance(plan, {
                   evidenceRoot: join(root, 'browser-evidence'), channel: 'msedge', env: filteredChildEnvironment(process.env), timeoutMs: Math.min(frozen.limits.browserTimeoutMs, guard.remainingMs()),
-                });
+                }, task.taskId);
                 details.browserReport = `browser-evidence/${report.reportPath}`;
                 const checked = diagnoseBrowser(task, report, plan, details.browserReport as string);
                 diagnostics.set(task.taskId, { ...checked, passedChecks: [...(diagnostics.get(task.taskId)?.passedChecks ?? []), ...checked.passedChecks] });
@@ -239,7 +263,7 @@ export async function generatePilot(options: {
           details.additionalHostChecks = { source: 'New native author session outputs captured in registry', offline: 'Browser blocks non-project network requests', media: 'Frozen load/state/audio observations plus fixed SVG/WAV interface and reviewer image inspection', standalone: 'Fresh build directory from pinned generic dependencies; candidate includes source, lockfile and dist' };
         }
         passed = true; details.outcome = 'passed';
-      } catch (error) { details.failure = error instanceof Error ? error.message : 'Host check failed'; }
+      } catch (error) { details.failure = validation ? 'Host check did not establish acceptance; inspect fixed host reports.' : error instanceof Error ? error.message : 'Host check failed'; }
       await writeJson(root, reportPath, details);
       const result = [evidence(task, reportPath, passed ? 'passed' : 'failed', `${item.role} host validation: ${passed ? 'passed' : 'failed'}; see exact fixed-version report`), ...supplemental];
       for (const [index, path] of (pictures.get(task.taskId) ?? []).entries()) if (!result.some(e => e.source.location === path)) result.push({ ...result[0], evidenceId: `${task.taskId}-image-${index}`, kind: 'screenshot', outcome: 'observed', source: { artifactId: `${task.taskId}-image-${index}`, version: 'v1', location: path }, summary: 'Host-rendered image of this captured version' });
@@ -253,11 +277,31 @@ export async function generatePilot(options: {
       }));
     },
   };
-  const execute = (tasks: PreparedTask[], availableArtifacts: ArtifactReference[]) => executeTaskDag({ controller, requirement, tasks, sessionRoot: join(root, 'sessions'),
-    availableArtifacts, roleFactory, signal: guard.signal, reviewProtocolCorrections: bounded?.reviewProtocolCorrections ?? 0,
-    ...(bounded ? { diagnoseFailure: (task: TaskContract, stage: string) => stage === 'host_verification' ? diagnosedFailure(task, diagnostics.get(task.taskId)) : undefined } : {}), ...callbacks });
+  const recovery = { artifactRoot: root, journalRoot: join(root, 'journal'), recoverCapture: async (task: TaskContract) => {
+    const item = prepared.get(task.taskId), ref = item?.expectedArtifacts?.[0]; if (!item || !ref || !sameValue(task.artifacts, [ref])) return null;
+    try {
+      const capture = await registry.getCapture(item.role === 'coding' ? registry.artifactRef(`${prefix}-code`, ref.version) : ref);
+      if (capture.taskId !== task.taskId || !capture.metadata.provenance.sourceRefs.includes(task.attempts.at(-1)!.sessionRef) || !sameValue(capture.dependencies, task.inputs)) return null;
+      if (item.role === 'coding') { const candidate = await registry.getCandidate(ref); if (candidate.taskId !== task.taskId || candidate.authorId !== task.authorId || candidate.contextId !== task.context.contextId) return null; }
+      return { artifacts: [ref], reviewWorkspace: join(root, `reviews/${task.taskId}`) };
+    } catch { return null; }
+  } };
+  const execution = (tasks: PreparedTask[], availableArtifacts: ArtifactReference[]) => ({ controller, requirement, validation: validation?.binding, tasks, sessionRoot: join(root, 'sessions'),
+    availableArtifacts, roleFactory, signal: guard.signal, reviewProtocolCorrections: (validation?.window.quote.declaration.limits.reviewProtocolCorrections ?? bounded?.reviewProtocolCorrections ?? 0) as 0 | 1,
+    ...((bounded || validation) ? { diagnoseFailure: (task: TaskContract, stage: string) => stage === 'host_verification' ? diagnosedFailure(task, diagnostics.get(task.taskId)) : undefined } : {}),
+    ...(validation ? { recovery } : {}), ...callbacks });
+  const execute = (tasks: PreparedTask[], availableArtifacts: ArtifactReference[]) => executeTaskDag(execution(tasks, availableArtifacts));
   const results = await execute(planned.tasks, available);
   let coding = results.find(task => prepared.get(task.taskId)?.role === 'coding')!;
+  if (validation && ['failed', 'needs_changes'].includes(coding.state) && results.filter(task => task !== coding).every(task => task.state === 'passed') && !guard.signal.aborted) {
+    const source = { ...prepared.get(coding.taskId)!, task: (await controller.read()).tasks.find(task => task.taskId === coding.taskId)! };
+    const repair = await validation.prepareRepair(source, prepared.get(coding.taskId)!, requirement as ValidationRequirement, registry);
+    if (repair) {
+      prepared.set(repair.task.taskId, repair);
+      const resumed = await resumeTaskDag(execution([...planned.tasks.filter(item => item.task.taskId !== coding.taskId), repair], available));
+      const repaired = resumed.tasks.find(task => task.taskId === repair.task.taskId); if (repaired) { results.push(repaired); coding = repaired; }
+    }
+  }
   // One explicit role repair, preserving the failed task, original guard and ledger. Earlier-role failure is reported as a gap.
   if (bounded && coding.state !== 'passed' && ['failed', 'needs_changes', 'waiting_user'].includes(coding.state)
     && coding.attempts.length && results.filter(task => task !== coding).every(task => task.state === 'passed') && !guard.signal.aborted) {
@@ -291,7 +335,7 @@ export async function generatePilot(options: {
     }
   }
   // The historical entry keeps its original behavior; it remains consumed and cannot reopen the old run.
-  if (!bounded && !options.continuation && coding.state !== 'passed' && ['failed', 'needs_changes'].includes(coding.state)
+  if (!validation && !bounded && !options.continuation && coding.state !== 'passed' && ['failed', 'needs_changes'].includes(coding.state)
     && results.filter(task => task !== coding).every(task => task.state === 'passed') && !guard.signal.aborted) {
     const failurePath = `evidence/${coding.taskId}/repair-input.json`;
     await writeJson(root, failurePath, { state: coding.state, stateReason: coding.stateReason, handoff: coding.handoff,

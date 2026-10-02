@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, realpath, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import type { ImageContent } from '@earendil-works/pi-ai';
@@ -202,7 +202,13 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       // feedback from being saved. Never persist the adapter's exception.
       feedback = buildRepairFeedback(task, undefined, stage, snapshot);
     }
-    await writeFile(join(task.attempts.at(-1)!.sessionRef, 'failure.json'), JSON.stringify(feedback, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
+    const bytes = JSON.stringify(feedback, null, 2) + '\n', attempt = task.attempts.at(-1)!;
+    await writeFile(join(attempt.sessionRef, 'failure.json'), bytes, { encoding: 'utf8', flag: 'wx' });
+    if (options.validation && ['host_verification', 'independent_review'].includes(stage)) {
+      const journal = journals.get(task.taskId)!;
+      await journal.write('failure-snapshot', attempt.attemptId, { taskId: task.taskId, attemptId: attempt.attemptId, feedback: feedback.reference,
+        feedbackSha256: createHash('sha256').update(bytes).digest('hex'), signature: await journal.signature([...task.inputs, ...task.artifacts, ...task.evidence.map(evidence => evidence.source)]) });
+    }
     return feedback;
   }
 
