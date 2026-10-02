@@ -1,0 +1,217 @@
+{
+  "format": "cosmos-static-zombie-health-v1",
+  "evidenceKind": "source_correlated_static_instructions",
+  "reference": {
+    "exePath": "C:\\Program Files (x86)\\PlantsVsZombies\\PlantsVsZombies.exe",
+    "sha256": "c04c524c6a3720bce00b7f2900c61d5810534dabf9926641c12921f53ac29f8d",
+    "bytes": 3838152,
+    "recordedVersionMetadata": {
+      "fileVersion": "1.2.0.1073",
+      "productVersion": "GOTY",
+      "source": "reference.json#/installation; previously inspected metadata bound by the exact SHA-256, not decoded by this collector"
+    },
+    "runtimeObserved": false
+  },
+  "pe": {
+    "fileOffset": "0x100",
+    "machine": "0x14c",
+    "magic": "0x10b",
+    "imageBase": "0x400000",
+    "text": {
+      "virtualSize": "0x3084a6",
+      "rva": "0x1000",
+      "rawSize": "0x308600",
+      "rawOffset": "0x400"
+    }
+  },
+  "region": {
+    "section": ".text",
+    "startPreferredVa": "0x557c90",
+    "endExclusivePreferredVa": "0x559b34",
+    "startFileOffset": "0x157090",
+    "endExclusiveFileOffset": "0x158f34"
+  },
+  "observations": [
+    {
+      "id": "region-prologue",
+      "preferredVa": "0x557c90",
+      "fileOffset": "0x157090",
+      "bytesHex": "558bec83e4f88b450c83ec1c5356ba2100000057"
+    },
+    {
+      "id": "esi-zero",
+      "preferredVa": "0x557cb1",
+      "fileOffset": "0x1570b1",
+      "bytesHex": "33f6"
+    },
+    {
+      "id": "shield-register-store",
+      "preferredVa": "0x557e99",
+      "fileOffset": "0x157299",
+      "bytesHex": "89b3dc000000"
+    },
+    {
+      "id": "helmet-register-store",
+      "preferredVa": "0x557e9f",
+      "fileOffset": "0x15729f",
+      "bytesHex": "89b3d0000000"
+    },
+    {
+      "id": "default-body-store",
+      "preferredVa": "0x557f50",
+      "fileOffset": "0x157350",
+      "bytesHex": "c783c80000000e010000"
+    },
+    {
+      "id": "definition-call",
+      "preferredVa": "0x557f6a",
+      "fileOffset": "0x15736a",
+      "bytesHex": "e851fcffff"
+    },
+    {
+      "id": "definition-index-and-address",
+      "preferredVa": "0x557bc5",
+      "fileOffset": "0x156fc5",
+      "bytesHex": "8d04cd000000002bc1390c85d89676008d0485d8967600"
+    },
+    {
+      "id": "type-2-compare",
+      "preferredVa": "0x557fa5",
+      "fileOffset": "0x1573a5",
+      "bytesHex": "83f902753b"
+    },
+    {
+      "id": "type-2-helmet-store",
+      "preferredVa": "0x557fd6",
+      "fileOffset": "0x1573d6",
+      "bytesHex": "c783d000000072010000"
+    },
+    {
+      "id": "type-6-compare",
+      "preferredVa": "0x558025",
+      "fileOffset": "0x157425",
+      "bytesHex": "83f9067526"
+    },
+    {
+      "id": "type-6-shield-store",
+      "preferredVa": "0x558036",
+      "fileOffset": "0x157436",
+      "bytesHex": "c783dc0000004c040000"
+    },
+    {
+      "id": "max-field-loads",
+      "preferredVa": "0x559a4a",
+      "fileOffset": "0x158e4a",
+      "bytesHex": "8b83d00000008b93c80000008b8bdc000000"
+    },
+    {
+      "id": "max-helmet-store",
+      "preferredVa": "0x559a5c",
+      "fileOffset": "0x158e5c",
+      "bytesHex": "8983d4000000"
+    },
+    {
+      "id": "max-body-store",
+      "preferredVa": "0x559a68",
+      "fileOffset": "0x158e68",
+      "bytesHex": "8993cc000000"
+    },
+    {
+      "id": "max-shield-store",
+      "preferredVa": "0x559a74",
+      "fileOffset": "0x158e74",
+      "bytesHex": "898be0000000"
+    },
+    {
+      "id": "region-return",
+      "preferredVa": "0x559b0b",
+      "fileOffset": "0x158f0b",
+      "bytesHex": "5f5e5b8be55dc21400"
+    },
+    {
+      "id": "region-assertion-end",
+      "preferredVa": "0x559b2d",
+      "fileOffset": "0x158f2d",
+      "bytesHex": "ff15fca27000cc"
+    }
+  ],
+  "immediateStores": [
+    {
+      "sampleId": "default-body-store",
+      "baseRegister": "ebx",
+      "destinationOffset": "0xc8",
+      "immediate": 270
+    },
+    {
+      "sampleId": "type-2-helmet-store",
+      "baseRegister": "ebx",
+      "destinationOffset": "0xd0",
+      "immediate": 370
+    },
+    {
+      "sampleId": "type-6-shield-store",
+      "baseRegister": "ebx",
+      "destinationOffset": "0xdc",
+      "immediate": 1100
+    }
+  ],
+  "definitionLink": {
+    "callSampleId": "definition-call",
+    "targetPreferredVa": "0x557bc0",
+    "tablePreferredVa": "0x7696d8"
+  },
+  "sourceInference": {
+    "repository": "Patoke/re-plants-vs-zombies",
+    "commit": "c4692036c5e11d227c8fb7c593b734dac96da028",
+    "layout": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/Lawn/Zombie.h#L132",
+    "initialization": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/Lawn/Zombie.cpp#L87",
+    "definitionLookup": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/Lawn/Zombie.cpp#L71",
+    "maxCopies": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/Lawn/Zombie.cpp#L877",
+    "inferredMethod": "Zombie::ZombieInitialize",
+    "memberNames": [
+      {
+        "offset": "0xc8",
+        "name": "mBodyHealth"
+      },
+      {
+        "offset": "0xcc",
+        "name": "mBodyMaxHealth"
+      },
+      {
+        "offset": "0xd0",
+        "name": "mHelmHealth"
+      },
+      {
+        "offset": "0xd4",
+        "name": "mHelmMaxHealth"
+      },
+      {
+        "offset": "0xdc",
+        "name": "mShieldHealth"
+      },
+      {
+        "offset": "0xe0",
+        "name": "mShieldMaxHealth"
+      }
+    ],
+    "types": [
+      {
+        "id": 2,
+        "sourceName": "ZOMBIE_TRAFFIC_CONE"
+      },
+      {
+        "id": 6,
+        "sourceName": "ZOMBIE_DOOR"
+      }
+    ],
+    "registerStores": "The prior disassembly and source correlation identify esi-zero followed by +0xdc/+0xd0 stores as initial shield/helmet zeroing.",
+    "maxCopyInterpretation": "The checked load/store samples correspond to +0xd0 -> +0xd4, +0xc8 -> +0xcc, +0xdc -> +0xe0.",
+    "note": "Method, member and type names are source inferences. Prior objdump research establishes the region and branches; this collector checks fixed byte samples, without disassembly, a uniqueness search, network comparison or runtime execution."
+  },
+  "notEstablished": [
+    "final effective HP, combined durability or death threshold",
+    "all later type and mode overrides or scaling",
+    "damage, speed, targeting or interactions",
+    "classic edition equivalence, runtime acceptance or benchmark freeze"
+  ]
+}
