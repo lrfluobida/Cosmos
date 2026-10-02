@@ -43,7 +43,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 已审 experiment 仍失败，尚无通过游戏 | 既有直接 API/pi 估算 ¥0.735971，原 pilot ¥0.156311，本次 8 请求 ¥0.224120；共享累计 ¥1.116402，预留与未知为零；原实验已消费 |
 | 任务拆分 | 已发布 | [20 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7 开发验证与正式生成边界 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#21；20 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 首个正式续跑窗口、COS-20 validation 权限与声明/input/身份 reader、COS-01 静态证据已审集成 | V1 主线 5/5、0 skip 及严格构建通过；执行 driver 与真实 identity 接线未完成，未运行新 case；COS-18 仍 partial/open，#2/#21 保持 open |
+| 子代理逐项实施 | 首个正式续跑窗口、COS-20 权限/声明/身份 reader/输入数据模块、COS-01 静态证据已审集成 | V1 主线 5/5 与严格构建、V2c 纯数据 2/2 通过，均 0 skip；执行管线与真实 identity 接线未完成，未运行新 case；COS-18 仍 partial/open，#2/#21 保持 open |
 
 ## 开发批次
 
@@ -76,7 +76,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 07 | COS-10 / #11 已审实验 | feat/cos-10-reviewed-experiment 独立 implementer | cos10_reviewer | batch07_merger | ecfc150 合入 75cf405，5/5 准入与类型检查通过；f16c896 上真实实验 92.746 秒/8 请求后失败，新增估算 ¥0.224120；唯一机会已消费，#11 保持 open |
 | 07 | COS-08 / #9 文本可见性修复 | fix/acceptance-visible-text 独立 implementer | cos08_reviewer | batch07_merger | cca4f10 获 READY，合入 1704d37；源一致、组合类型检查通过，复用真实 Edge 4/4；保留已完成任务状态，不代表完整视觉验收 |
 | 07 | COS-19 / #20 角色交接与截断处理 | role_io_implementer / fix/native-role-io | role_io_reviewer | batch07_merger | 6397e15 修复同行多 JSON scalar 的 P2 后获 READY，合入 d0c39ad；69/69、类型检查与构建通过；offline-verified-awaiting-live，#20 暂保持 open |
-| 07 | COS-20 / #21 开发验证窗口 | 专属 core/driver implementer | 各自独立 reviewer | batch07_merger | V2a 6754bd3 合入 f3217df；V2b 26fcfae 合入 26da1a2；V1 d46294d 获 READY，合入 43f3ba5，主线 5/5、0 skip 与严格构建通过；权限层离线集成，driver 待接，#21 open |
+| 07 | COS-20 / #21 开发验证窗口 | 专属 core/driver implementer | 各自独立 reviewer | batch07_merger | V2a 6754bd3 合入 f3217df；V2b 26fcfae 合入 26da1a2；V1 d46294d 合入 43f3ba5；V2c 数据 30bd06c 获 READY，合入 a6aa1ac，主线纯数据 2/2、0 skip；权限与数据层离线集成，driver 待接，#21 open |
 | 07 | COS-01 / #2 静态基础值证据 | codex/cos-01-static-plants implementer | cos18_reviewer | batch07_merger | fdd64c8 获 STATIC_SOURCE_READY，合入 80d4d75；三路径完全一致，JSON 53×9 结构检查通过；复用采集与独立样本证据，基准仍未冻结 |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
@@ -136,6 +136,8 @@ COS-20 V2a `6754bd3` 已独立批准并合入 `f3217df`，六个路径包含作�
 COS-20 V2b `26fcfae` 获独立 `V2B_SOURCE_READY` 并合入 `26da1a2`。reader 两轮读取真实 main/HEAD/status、隐藏 index 标志及固定输入；主线 clean 无写、skip-worktree 隐藏改动拒绝两项检查通过（2/2、0 skip）。复用作者原 10 项、修复两反例及显式 strict 类型证据；仅身份读取离线就绪，profile/执行 driver 未接、新 case 未 claim/执行。共享真实估算仍 ¥1.116402、reserved/unknown 为零，原过期窗口、旧失败、G3/G4 状态不变。Root 已同步读回 [COS-18 状态](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5948068412) 与 [COS-20 V2a 状态](https://github.com/lrfluobida/Cosmos/issues/21#issuecomment-5948069088)。
 
 COS-20 V1 `d46294d` 获独立 `V1_SOURCE_READY` 后合入 `43f3ba5`，12 个批准路径一致。主线 3 个新 profile 与 v1/v2 各 1 项代表检查共 5/5、0 skip，严格构建通过；复用作者 27 项、两项有界崩溃、7 项旧入口及显式测试类型证据。profile 3 沿原 ledger 1.0.0/¥150 记账，保留原历史/时钟/grants；case 限额 ¥5/45 分钟/40 请求/一次修复，过期 accountingOnly 只对账，unknown 阻断新准入。真实 identity reader 与执行 driver 尚未接线，反馈实际文件/provenance 和旧 artifactRoot 收敛仍由 V2 验证，不把固定引用或 ledgerRoot registry 检查当完整证明。#21 仍 open，未 claim/运行新 case；共享估算 ¥1.116402、零预留/未知、旧失败及 G3/G4 不变。Root 已同步读回 [COS-01 静态证据](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5948580887) 与 [COS-20 identity 结果](https://github.com/lrfluobida/Cosmos/issues/21#issuecomment-5948581401)。
+
+V1 checkpoint `afbbd15` 已干净推送。随后 COS-20 V2c 仅数据层 `30bd06c` 获独立 `V2C_DATA_SOURCE_READY` 并合入 `a6aa1ac`，四路径一致；主线纯数据代表 2/2、0 skip，复用作者 9 项及显式 module/test strict 类型证据。新模块保持完整 acceptance 和 operator 来源，深冻结副本；旧 human schema 未改，不制造 confirmed*、GameDraft、预算或时钟。形状合法不证明真实固定范围、来源文件或权限；已有 core/reader 仍未接 native factory/planner/orchestrator/driver，#21 保持 open，无新 case 或费用，历史与 G3/G4 不变。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

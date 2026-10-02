@@ -311,3 +311,19 @@ The selected run reported 5 tests, 5 passed, 0 failed/cancelled/skipped, duratio
 Profile 3 uses the original ledger 1.0.0 and CNY 150 total, retaining historical tasks/allocations/fees/times. A case is capped at CNY 5 actual plus reserved, 45 minutes, 40 calls and one repair. Exact operator source/quote precedes atomic claim; no human confirmation is fabricated. Known reservations may coexist within all caps; unknown billing blocks new work. Stopped/expired accountingOnly permits reconciliation but no new execution admission. Core repair checks fixed reference relationships, while V2 must authenticate actual files/provenance. The ledgerRoot registry check does not prove every old artifactRoot is quiescent.
 
 V1 authority/accounting is offline integrated; the real V2b identity reader and paid driver remain unwired, and V2c is unreviewed. COS-20 / #21 remains open and G3/G4 remain closed. No case was claimed or run, no real key/root was read, and the shared estimate remains CNY 1.116402 with zero reserved/unknown charges. Original deadlines, failed/consumed cases and reference state remain unchanged. UTF-8/LF, Chinese re-read, JSON/count and whitespace checks passed.
+
+The V1 checkpoint was clean and pushed as `afbbd15b9e800d6410354fbfa3b7641c7c5ab2d6`, with HEAD, origin/main and remote main matching.
+
+## COS-20 V2c execution-input data integration — 2026-10-02
+
+Independent `cos20_v1_reviewer` reviewed the actual four-path spec/quality diff of `30bd06ca0e23e124da9eb4fdd4f13b021767a2cd` and returned `V2C_DATA_SOURCE_READY`, with no P1/P2. Three independent pure checks passed with zero skips; the author's nine red-to-green checks and explicit strict module/test type check are reused. Merge `a6aa1ac9d3ec8dcc8fcc7fb468ce1f604e868412` has first parent `afbbd15b9e800d6410354fbfa3b7641c7c5ab2d6` and second parent the exact approved source. All four paths match byte for byte, with no conflicts or merger implementation edits.
+
+Fresh main check:
+
+```powershell
+node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern='^(validation execution data preserves|validation checks complete acceptance)' tests/roles/execution-input.test.ts
+```
+
+Result: 2 tests, 2 passed, 0 failed/cancelled/skipped, duration 194.3536 ms. The checks cover complete acceptance/operator data without human confirmation and acceptance shape/uniqueness while explicitly showing that a different valid shape is not authenticated scope. Log: `.cosmos/integration/batch07-cos20-v2c-data-selected.tap`. No ledger, provider, file writer, process fixture or browser ran. Module dependencies, contract schema, fixtures and type configuration match source; no existing caller changed or imports the new module. The previous main build and author's explicit strict module/test noEmit evidence are reused, without claiming a new dist build.
+
+V2c now supplies only the detached, deep-frozen validation data contract. Legacy human validation remains intact; there are no fabricated confirmed fields, GameDraft, budget or clock fields. Passing shape checks does not prove fixed acceptance scope, source-file provenance or execution authority. Core and the identity reader are on main, but native factory/planner/orchestrator/driver remain unwired. #21 stays open; no case was claimed or run. UTF-8/LF, Chinese re-read, JSON/count and whitespace checks passed. Real estimated charges remain CNY 1.116402 with zero reserved/unknown; original histories, consumed failures, reference and G3/G4 states are unchanged.

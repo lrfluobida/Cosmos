@@ -597,10 +597,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "validation-authority-offline-verified-driver-pending",
-      "reviewStatus": "V1_SOURCE_READY",
-      "reviewedCommit": "d46294d3d710da98052fa5a4a403a2029bff2d13",
-      "mergeCommit": "43f3ba5095af77881c28001d00a22d692c638e42"
+      "integrationStatus": "validation-authority-and-input-offline-verified-driver-pending",
+      "reviewStatus": "V2C_DATA_SOURCE_READY",
+      "reviewedCommit": "30bd06ca0e23e124da9eb4fdd4f13b021767a2cd",
+      "mergeCommit": "a6aa1ac9d3ec8dcc8fcc7fb468ce1f604e868412"
     }
   ],
   "verifiedNativeSubIssues": 20,
