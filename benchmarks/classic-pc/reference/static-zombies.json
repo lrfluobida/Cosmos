@@ -1,0 +1,519 @@
+{
+  "format": "cosmos-static-zombie-definitions-v1",
+  "evidenceKind": "static_binary_observation",
+  "reference": {
+    "exePath": "C:\\Program Files (x86)\\PlantsVsZombies\\PlantsVsZombies.exe",
+    "sha256": "c04c524c6a3720bce00b7f2900c61d5810534dabf9926641c12921f53ac29f8d",
+    "bytes": 3838152,
+    "recordedVersionMetadata": {
+      "fileVersion": "1.2.0.1073",
+      "productVersion": "GOTY",
+      "source": "reference.json#/installation; previously inspected metadata bound by the exact SHA-256, not decoded by this collector"
+    },
+    "runtimeObserved": false
+  },
+  "pe": {
+    "fileOffset": "0x100",
+    "machine": "0x14c",
+    "magic": "0x10b",
+    "imageBase": "0x400000",
+    "sections": [
+      {
+        "name": ".text",
+        "virtualSize": "0x3084a6",
+        "rva": "0x1000",
+        "rawSize": "0x308600",
+        "rawOffset": "0x400"
+      },
+      {
+        "name": ".rdata",
+        "virtualSize": "0x59f2c",
+        "rva": "0x30a000",
+        "rawSize": "0x5a000",
+        "rawOffset": "0x308a00"
+      },
+      {
+        "name": ".data",
+        "virtualSize": "0xd615c",
+        "rva": "0x364000",
+        "rawSize": "0xf800",
+        "rawOffset": "0x362a00"
+      },
+      {
+        "name": ".rsrc",
+        "virtualSize": "0x36144",
+        "rva": "0x43b000",
+        "rawSize": "0x36200",
+        "rawOffset": "0x372200"
+      }
+    ]
+  },
+  "table": {
+    "section": ".data",
+    "fileOffset": "0x3680d8",
+    "rva": "0x3696d8",
+    "preferredVa": "0x7696d8",
+    "strideBytes": 28,
+    "strideHex": "0x1c",
+    "rowCount": 34,
+    "wordSizeBytes": 4,
+    "byteOrder": "little-endian",
+    "rows": [
+      {
+        "fileOffset": "0x3680d8",
+        "words": [
+          0,
+          21,
+          1,
+          1,
+          1,
+          4000,
+          7578272
+        ]
+      },
+      {
+        "fileOffset": "0x3680f4",
+        "words": [
+          1,
+          21,
+          1,
+          1,
+          1,
+          0,
+          7578260
+        ]
+      },
+      {
+        "fileOffset": "0x368110",
+        "words": [
+          2,
+          21,
+          2,
+          3,
+          1,
+          4000,
+          7578244
+        ]
+      },
+      {
+        "fileOffset": "0x36812c",
+        "words": [
+          3,
+          53,
+          2,
+          6,
+          5,
+          2000,
+          7578220
+        ]
+      },
+      {
+        "fileOffset": "0x368148",
+        "words": [
+          4,
+          21,
+          4,
+          8,
+          1,
+          3000,
+          7578200
+        ]
+      },
+      {
+        "fileOffset": "0x368164",
+        "words": [
+          5,
+          30,
+          2,
+          11,
+          1,
+          1000,
+          7578180
+        ]
+      },
+      {
+        "fileOffset": "0x368180",
+        "words": [
+          6,
+          21,
+          4,
+          13,
+          5,
+          3500,
+          7578160
+        ]
+      },
+      {
+        "fileOffset": "0x36819c",
+        "words": [
+          7,
+          29,
+          7,
+          16,
+          5,
+          2000,
+          7578144
+        ]
+      },
+      {
+        "fileOffset": "0x3681b8",
+        "words": [
+          8,
+          141,
+          5,
+          18,
+          5,
+          1000,
+          7578128
+        ]
+      },
+      {
+        "fileOffset": "0x3681d4",
+        "words": [
+          9,
+          142,
+          1,
+          18,
+          1,
+          0,
+          7578112
+        ]
+      },
+      {
+        "fileOffset": "0x3681f0",
+        "words": [
+          10,
+          21,
+          1,
+          21,
+          5,
+          0,
+          7578092
+        ]
+      },
+      {
+        "fileOffset": "0x36820c",
+        "words": [
+          11,
+          63,
+          3,
+          23,
+          10,
+          2000,
+          7578076
+        ]
+      },
+      {
+        "fileOffset": "0x368228",
+        "words": [
+          12,
+          31,
+          7,
+          26,
+          10,
+          2000,
+          7578068
+        ]
+      },
+      {
+        "fileOffset": "0x368244",
+        "words": [
+          13,
+          61,
+          3,
+          26,
+          10,
+          2000,
+          7578048
+        ]
+      },
+      {
+        "fileOffset": "0x368260",
+        "words": [
+          14,
+          59,
+          3,
+          28,
+          10,
+          1500,
+          7578024
+        ]
+      },
+      {
+        "fileOffset": "0x36827c",
+        "words": [
+          15,
+          62,
+          3,
+          31,
+          10,
+          1000,
+          7578000
+        ]
+      },
+      {
+        "fileOffset": "0x368298",
+        "words": [
+          16,
+          54,
+          2,
+          33,
+          10,
+          2000,
+          7577984
+        ]
+      },
+      {
+        "fileOffset": "0x3682b4",
+        "words": [
+          17,
+          57,
+          4,
+          36,
+          10,
+          1000,
+          7577968
+        ]
+      },
+      {
+        "fileOffset": "0x3682d0",
+        "words": [
+          18,
+          60,
+          4,
+          38,
+          10,
+          1000,
+          7577956
+        ]
+      },
+      {
+        "fileOffset": "0x3682ec",
+        "words": [
+          19,
+          92,
+          4,
+          40,
+          1,
+          1,
+          7577944
+        ]
+      },
+      {
+        "fileOffset": "0x368308",
+        "words": [
+          20,
+          64,
+          3,
+          41,
+          10,
+          1000,
+          7577928
+        ]
+      },
+      {
+        "fileOffset": "0x368324",
+        "words": [
+          21,
+          66,
+          4,
+          43,
+          10,
+          1000,
+          7577912
+        ]
+      },
+      {
+        "fileOffset": "0x368340",
+        "words": [
+          22,
+          65,
+          5,
+          46,
+          10,
+          1500,
+          7577896
+        ]
+      },
+      {
+        "fileOffset": "0x36835c",
+        "words": [
+          23,
+          55,
+          10,
+          48,
+          15,
+          1500,
+          7577884
+        ]
+      },
+      {
+        "fileOffset": "0x368378",
+        "words": [
+          24,
+          56,
+          10,
+          48,
+          1,
+          0,
+          7577880
+        ]
+      },
+      {
+        "fileOffset": "0x368394",
+        "words": [
+          25,
+          72,
+          10,
+          50,
+          1,
+          0,
+          7577872
+        ]
+      },
+      {
+        "fileOffset": "0x3683b0",
+        "words": [
+          26,
+          21,
+          1,
+          99,
+          1,
+          4000,
+          7578272
+        ]
+      },
+      {
+        "fileOffset": "0x3683cc",
+        "words": [
+          27,
+          21,
+          4,
+          99,
+          1,
+          3000,
+          7578272
+        ]
+      },
+      {
+        "fileOffset": "0x3683e8",
+        "words": [
+          28,
+          21,
+          3,
+          99,
+          10,
+          1000,
+          7578272
+        ]
+      },
+      {
+        "fileOffset": "0x368404",
+        "words": [
+          29,
+          21,
+          3,
+          99,
+          10,
+          2000,
+          7578272
+        ]
+      },
+      {
+        "fileOffset": "0x368420",
+        "words": [
+          30,
+          21,
+          3,
+          99,
+          10,
+          2000,
+          7578272
+        ]
+      },
+      {
+        "fileOffset": "0x36843c",
+        "words": [
+          31,
+          21,
+          4,
+          99,
+          10,
+          2000,
+          7578272
+        ]
+      },
+      {
+        "fileOffset": "0x368458",
+        "words": [
+          32,
+          55,
+          10,
+          48,
+          15,
+          6000,
+          7577852
+        ]
+      },
+      {
+        "fileOffset": "0x368474",
+        "words": [
+          33,
+          21,
+          1,
+          1,
+          1,
+          0,
+          7577828
+        ]
+      }
+    ]
+  },
+  "sourceInference": {
+    "repository": "Patoke/re-plants-vs-zombies",
+    "commit": "c4692036c5e11d227c8fb7c593b734dac96da028",
+    "layout": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/Lawn/Zombie.h#L404",
+    "definitions": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/Lawn/Zombie.cpp#L20",
+    "typeEnum": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/ConstEnums.h#L1347",
+    "wordMeanings": [
+      {
+        "offset": "0x00",
+        "name": "mZombieType"
+      },
+      {
+        "offset": "0x04",
+        "name": "mReanimationType",
+        "note": "Raw enum value observed; not numerically source-compared in the scoped research."
+      },
+      {
+        "offset": "0x08",
+        "name": "mZombieValue"
+      },
+      {
+        "offset": "0x0c",
+        "name": "mStartingLevel"
+      },
+      {
+        "offset": "0x10",
+        "name": "mFirstAllowedWave"
+      },
+      {
+        "offset": "0x14",
+        "name": "mPickWeight"
+      },
+      {
+        "offset": "0x18",
+        "name": "mZombieName",
+        "note": "Pointer range checked; pointed-to text not decoded."
+      }
+    ],
+    "note": "Field names and roles are source inferences. The prior 170-field source comparison and unique table search are recorded in docs/research/2026-10-02-static-zombie-definitions.md; this collector performs no network comparison or table search."
+  },
+  "notEstablished": [
+    "complete classic content or selectable zombie denominator",
+    "actual spawn rules, mode choices or wave composition",
+    "health, damage, speed, targeting or interactions",
+    "numeric source equivalence of the reanimation enum at +0x04",
+    "classic edition equivalence, runtime acceptance or benchmark freeze"
+  ]
+}
