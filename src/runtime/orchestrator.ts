@@ -416,6 +416,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         if (!cancelled) {
           const feedback = await persistFeedback(task, error, failureStage, snapshot);
           attempt.failure = failureRecord(feedback.issues);
+          if (options.validation && !attempt.failure.evidenceRefs.includes(feedback.reference.location)) attempt.failure.evidenceRefs.push(feedback.reference.location);
         }
         attempt.endedAt = at(); attempt.outcome = cancelled ? 'cancelled' : 'failed';
       }

@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { validateContext, validateExecution, validateTask } from '../../contracts/index.ts';
+import { validateContext, validateTask } from '../../contracts/index.ts';
 import { sameValue } from '../../contracts/validation.ts';
-import type { ArtifactReference, RequirementContract, TaskContract } from '../../contracts/types.ts';
+import type { ArtifactReference, TaskContract } from '../../contracts/types.ts';
+import { isValidationRequirement, validateExecutionInput } from '../../roles/execution-input.ts';
+import type { ExecutionRequirement } from '../../roles/execution-input.ts';
+import { currentValidationCase, validationUsage } from '../validation-validation.ts';
 import type { PreparedTask } from '../orchestrator.ts';
 import type { RunSnapshot } from '../run-types.ts';
 import { assertOwnership, pathsOverlap } from '../../roles/factory.ts';
@@ -12,7 +15,8 @@ export interface RepairPolicy { maxRepairTasks: number; maxTaskAttempts: number;
 /** Conservative initial policy; live game-repair effectiveness is unverified. */
 export const DEFAULT_REPAIR_POLICY: Readonly<RepairPolicy> = Object.freeze({ maxRepairTasks: 1, maxTaskAttempts: 2, maxNoProgressRounds: 1 });
 export interface RepairOptions {
-  snapshot: RunSnapshot; requirement: RequirementContract; history: RepairFeedback[];
+  snapshot: RunSnapshot; requirement: ExecutionRequirement; history: RepairFeedback[];
+  validation?: { caseId: string; windowId: string };
   policy: RepairPolicy; now: number; cancelled?: boolean;
   estimate: { costMicroCny: number; durationMs: number; cleanupMs: number };
 }
@@ -20,6 +24,16 @@ export interface RepairDecision {
   action: 'repair' | 'retry_service' | 'collect_evidence' | 'wait_user' | 'stop' | 'replan';
   reason: string; gaps: RepairFeedback['issues']; artifactVersions: ArtifactReference[];
   preservedPassedTaskIds: string[];
+}
+
+function validationWindow(options: RepairOptions) {
+  if (!options.validation) { if (options.snapshot.formatVersion === 3 || isValidationRequirement(options.requirement)) throw new Error('Validation repair requires its explicit case profile.'); return undefined; }
+  const window = currentValidationCase(options.snapshot), { requirement } = options;
+  if (!isValidationRequirement(requirement) || window.caseId !== options.validation.caseId || window.windowId !== options.validation.windowId
+    || requirement.validation.caseId !== window.caseId || requirement.validation.windowId !== window.windowId
+    || requirement.validation.runId !== options.snapshot.run.runId || requirement.validation.ledgerId !== options.snapshot.ledger.ledgerId
+    || options.policy.maxRepairTasks !== window.quote.declaration.limits.maxRepairTasks || options.policy.maxTaskAttempts !== window.quote.declaration.limits.maxTaskAttempts) throw new Error('Validation repair case or policy differs from its declaration.');
+  return window;
 }
 
 function checkHistory(options: RepairOptions): TaskContract[] {
@@ -47,20 +61,25 @@ function checkHistory(options: RepairOptions): TaskContract[] {
  * native provider requests must still reserve and admit through RunController. */
 export function assessRepair(options: RepairOptions): RepairDecision {
   const { snapshot, history, policy, estimate, now } = options;
+  const window = validationWindow(options);
   if (![policy.maxRepairTasks, policy.maxTaskAttempts, policy.maxNoProgressRounds, estimate.costMicroCny, estimate.durationMs, estimate.cleanupMs, now].every(value => Number.isSafeInteger(value) && value >= 0)
     || policy.maxTaskAttempts < 1 || policy.maxNoProgressRounds < 1 || estimate.durationMs < 1) throw new Error('Invalid bounded repair policy or estimate.');
   const tasks = checkHistory(options), current = history.at(-1)!;
   const decision = (action: RepairDecision['action'], reason: string): RepairDecision => ({ action, reason,
     gaps: structuredClone(current.issues), artifactVersions: structuredClone(current.artifactVersions), preservedPassedTaskIds: snapshot.tasks.filter(task => task.state === 'passed').map(task => task.taskId) });
-  if (options.cancelled || snapshot.stopReason || snapshot.run.state !== 'running') return decision('stop', 'cancelled');
+  if (options.cancelled || (window ? window.stopReason : snapshot.stopReason || snapshot.run.state !== 'running')) return decision('stop', 'cancelled');
   if (snapshot.ledger.entries.some(entry => entry.unknown || entry.status === 'unknown' || entry.reservedMicroCny > 0)) return decision('stop', 'unknown_charges');
-  if (now + estimate.durationMs + estimate.cleanupMs >= Date.parse(snapshot.run.originalDeadlineAt)) return decision('stop', 'deadline');
+  if (now + estimate.durationMs + estimate.cleanupMs >= Date.parse(window?.deadlineAt ?? snapshot.run.originalDeadlineAt)) return decision('stop', 'deadline');
   if (tasks.reduce((sum, task) => sum + task.attempts.length, 0) >= policy.maxTaskAttempts) return decision('stop', 'attempt_limit');
   if (history.length - 1 >= policy.maxRepairTasks) return decision('stop', 'repair_limit');
+  if (window && (history.length !== 1 || history[0].sourceTaskId !== window.quote.declaration.grants.coding.taskId
+    || window.repair && window.repair.sourceTaskId !== history[0].sourceTaskId)) return decision('stop', 'repair_limit');
   if (snapshot.tasks.some(task => !tasks.includes(task) && task.context.interfaces.some(ref => sameValue(ref, current.reference)))) return decision('stop', 'already_dispatched');
   const committed = snapshot.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0);
-  const unallocated = snapshot.ledger.limitMicroCny - snapshot.ledger.allocations.reduce((sum, entry) => sum + entry.amountMicroCny, 0);
-  if (estimate.costMicroCny > snapshot.ledger.limitMicroCny - committed || estimate.costMicroCny > unallocated) return decision('stop', 'budget');
+  const capacity = window ? Math.min(window.quote.declaration.grants.repair.amountMicroCny - snapshot.ledger.entries.filter(entry => entry.taskId === window.quote.declaration.grants.repair.taskId).reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0),
+    window.quote.declaration.limits.cumulativeMicroCny - committed, window.quote.declaration.limits.incrementalMicroCny - validationUsage(snapshot, window).caseCommittedMicroCny)
+    : snapshot.ledger.limitMicroCny - snapshot.ledger.allocations.reduce((sum, entry) => sum + entry.amountMicroCny, 0);
+  if (estimate.costMicroCny > snapshot.ledger.limitMicroCny - committed || estimate.costMicroCny > capacity) return decision('stop', 'budget');
   let unchanged = 0;
   for (let index = history.length - 1; index > 0; index--) {
     const keys = (item: RepairFeedback) => new Set(item.issues.map(issue => JSON.stringify([issue.acceptanceId, issue.checkId])));
@@ -86,10 +105,12 @@ export function createLinkedRepairTask(options: RepairOptions & {
   const decision = assessRepair(options);
   if (!['repair', 'retry_service'].includes(decision.action)) throw new Error(`Repair dispatch blocked: ${decision.reason}.`);
   const { snapshot, source } = options, current = options.history.at(-1)!;
+  const window = validationWindow(options);
   if (!sameValue(source.task, snapshot.tasks.find(task => task.taskId === current.sourceTaskId))) throw new Error('Use the exact persisted source task.');
-  if (!options.taskId.trim() || snapshot.run.taskIds.includes(options.taskId)) throw new Error('Repair requires a new task ID.');
+  if (!options.taskId.trim() || (window ? !window.repair || window.repair.taskId !== options.taskId || !sameValue(window.repair.feedback, current.reference)
+    || window.repair.sourceTaskId !== source.task.taskId || snapshot.tasks.some(task => task.taskId === options.taskId) : snapshot.run.taskIds.includes(options.taskId))) throw new Error('Repair requires its new claimed task ID.');
   if (!Number.isSafeInteger(options.allocationMicroCny) || options.allocationMicroCny < options.estimate.costMicroCny
-    || options.allocationMicroCny > snapshot.ledger.limitMicroCny - snapshot.ledger.allocations.reduce((sum, entry) => sum + entry.amountMicroCny, 0)) throw new Error('Repair needs an explicit available allocation; no reallocation is performed.');
+    || (window ? options.allocationMicroCny !== window.quote.declaration.grants.repair.amountMicroCny : options.allocationMicroCny > snapshot.ledger.limitMicroCny - snapshot.ledger.allocations.reduce((sum, entry) => sum + entry.amountMicroCny, 0))) throw new Error('Repair needs an explicit available allocation; no reallocation is performed.');
   const protectedRefs = [...options.history.flatMap(item => [...item.artifactVersions, item.reference,
     ...snapshot.tasks.find(task => task.taskId === item.sourceTaskId)!.evidence.map(evidence => evidence.source)]), ...source.task.context.interfaces];
   if (!options.expectedArtifacts.length || options.expectedArtifacts.length !== options.outputs.length
@@ -114,8 +135,8 @@ export function createLinkedRepairTask(options: RepairOptions & {
   task.handoff = { completed: [], remaining: [task.objective], uncertainty: [], resumeFrom: current.reference.location };
   assertOwnership(task, source.workspace);
   const ledger = structuredClone(snapshot.ledger), run = structuredClone(snapshot.run);
-  ledger.allocations.push({ taskId: task.taskId, amountMicroCny: task.budget.allocationMicroCny }); run.taskIds.push(task.taskId);
-  const issues = validateExecution({ requirement: options.requirement, task, ledger, run });
+  if (!window) { ledger.allocations.push({ taskId: task.taskId, amountMicroCny: task.budget.allocationMicroCny }); run.taskIds.push(task.taskId); }
+  const issues = validateExecutionInput({ requirement: options.requirement, task, ledger, run });
   if (issues.length) throw new Error(`Invalid linked repair task: ${issues.map(issue => issue.message).join('; ')}`);
   return { task, role: source.role, workspace: source.workspace, expectedArtifacts: structuredClone(options.expectedArtifacts) };
 }

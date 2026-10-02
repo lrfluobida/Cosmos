@@ -41,3 +41,11 @@ planner、角色工厂和原串行 DAG 已增加显式 validation binding。可�
 若 reserve 成功但 admit 拒绝，SDK 尚未收到允许发送的返回：hook 保存 `admission_rejected_before_provider_dispatch` 的 host `not_sent` receipt 后按零费用取消；保存失败保留预留或未知 exposure，并阻断后续付费。已返回 hook 后真实发出的请求仍按原响应回执处理，未知费用不会自动清除。
 
 离线证据：`tests/runtime/validation-routing.test.ts` 23/23；`tests/roles/roles.test.ts tests/roles/repair-protocol.test.ts tests/runtime/recovery/dependencies.test.ts` 74/74；`tests/runtime/continuation-runtime.test.ts` 中 `explicit v2 pipeline|v2 role construction` 两个代表 2/2。均用 `node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec`，仅最后代表组增加 `--test-name-pattern`。源码 strict build 与 routing 测试显式 strict noEmit 通过。所有新 fixture 标明 `generatedByCosmos:false`，没有模型网络调用、真实浏览器、游戏编译或旧 case 重跑；并不证明新付费 driver 或生成游戏通过。
+
+## 共用 worker 与一次修复的基础
+
+正式 host 和待接入的验证 host 共用 `runOwnedNode`：在原 controller 持久记录 spawn intent 和 launcher PID 后才启动固定 Node worker，使用真实任务/窗口权限、信号、剩余时间与既有进程树清理。IPC 保持至 worker 退出；Windows owner 异常退出时 launcher 清理 worker 树。helper 不替代原 browser runner 对自身清理的检查，也不允许将任意孤儿进程当作已结束。
+
+repair policy 已识别显式 validation case，以本次 deadline 和预分配 repair grant 作判断；原 stop/deadline 永久保留。一次 coding 修复必须使用已 claim 的新 ID/context/输出版本和同一验收，design/art 早失败只报告差距。只有原失败回执写入成功才记录固定 feedback 引用，保存失败不会 claim。实际 driver 仍需认证反馈文件的内容、版本和来源；单凭引用相等不够。
+
+本步新增 3 项实际 Node child 检查与 3 项 validation repair 检查通过；另有 24 项旧修复策略及 2 项正式 host 定向回归通过。strict build 和新测试显式 strict noEmit 通过，所有 child fixture PID 已退出；无浏览器、API 或真实 case 操作。工具链 planning child 的 core purpose 修复由独立 V1 作者负责；固定 entry、实际 readScope、owned host worker 与反馈文件认证仍待下一步接通。

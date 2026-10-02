@@ -21,3 +21,12 @@
 - `createRoleBudget` 把实际 PiRequest 的模型、输出上限、字节和图像标志随 case/window/purpose 传入原 reserve/admit。角色 SDK 配置直接取声明权限：planning 4096、design/reviewer 16384、art/coding 65536。reserve 已成功而 admit 在 SDK 发出请求前失败时，先落真实 host `not_sent` 证据再取消预留；证据保存失败则留存 exposure 待核实，不制造 provider usage。
 - 新接线两项正向先红后绿，两个 admission 未发送边界及捕获中断各先红后绿。最终 23 项 `validation-routing.test.ts` 通过，涵盖真 controller/registry、fake SDK/build/browser、完整三角色+一次评审格式纠错、计费/compaction/不重付、全文 AC/operator 来源漂移、旧 profile 拒绝、DAG owner、取消/超时及迟到结果。受影响角色/planner/协议/依赖恢复 74 项及两个 v2 管线代表通过；源码 `npm run build` 与新测试显式 strict noEmit 通过。
 - 该小步没有修改 B private core、正式 CLI/host 或旧 probe；尚未接 `validation-run/validation-driver`、原生 host 子进程归属和 coding-only 一次 semantic repair。首个固定 case 沿旧 bounded pilot 范围：design/art 失败报告差距，不新增上游重规划或替换下游任务。后续须核真实反馈文件、原失败任务与 registry，不能让旧 policy 的 original stop 冒充当前 case 时钟。
+
+## 共用子进程与修复策略小步
+
+- 从正式 host 抽出 `recovery/owned-command.ts`，正式 host 只留薄 wrapper，验证 host 后续使用同一 helper。helper 根据明确 formal 或 validation case/task/window 向真实 controller 查询权限、deadline 与已知费用，原 `prepareOwnedChild` 先落 ticket、spawn gate launcher、登记 PID，最后才向 worker 发送 start。保持环境白名单、无 shell、Windows 隐藏窗口、输出与时间上限；不新建 owner 或 executor。
+- launcher 保持与 owner 的 IPC。Windows owner 丢失时 launcher 用原 `stopBrowserProcess` 清 worker 树并等待退出；父侧取消/超时沿原树清理并等待 close，POSIX 断连使用所属进程组终止。正常 helper 成功仅表示可信 worker 正常退出，浏览器及其内部资源仍须由原 runner 的 finally/cleanup 报告证明；不能由任意 worker PID 退出推出所有外部子进程都已结束。未登记 PID 的未知 spawn intent 保留原恢复拒绝语义。
+- 原 repair policy 新增显式 validation 分支：按真实 case stop/deadline、已声明 repair grant 和累计/增量 exposure 评估一次 coding 修复，保留原始 run 时间与停止；不伪造 active v1。`createLinkedRepairTask` 复用原独立 context、固定新版本、验收及失败历史，只接受 core 已 claim 的唯一 repair ID。完整实际反馈文件与 registry 认证仍由下一 driver 完成，policy 本身是纯判断。
+- validation 失败回执成功持久化之后，才把该回执的固定引用加入同 attempt 的 failure evidenceRefs；旧 v1/v2 不变。写入失败不会补引用或 claim；这不是 passing evidence。
+- 证据：`tests/runtime/owned-command.test.ts` 三项真实 Node child 先红后绿，覆盖登记前禁写、validation coding 取消 worker/孙进程退出、父死断 IPC 清理并保留崩溃 owner；所有 fixture PID 退出。`validation-repair.test.ts` 三项通过（两个先红后绿及一个回执保存失败）；旧 `repair-policy.test.ts` 24 项、正式 `entrypoint-host.test.ts` 两项定向代表通过。`npm run build` 与两项新 test 显式 strict noEmit 通过，无浏览器/游戏编译/API。
+- planning bootstrap 的 core child purpose 修复由 B 独占，候选 `3704bdd` 尚未作为本提交依赖；本提交不绕过它，也不表示 validation 工具链启动或 fixed driver 已完成。
