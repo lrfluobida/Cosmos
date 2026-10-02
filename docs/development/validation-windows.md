@@ -36,3 +36,11 @@ SnapshotStore 遇现存 `.controller.lock` 一律拒绝，沿原 OwnerLock.close
 - `npm run typecheck` 首轮有 8 个局部类型收窄错误；将 throw helper 改为显式 function 后通过。最终 `npm run build` exit 0（6.775 秒）；`node node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --skipLibCheck --types node tests/runtime/validation-window.test.ts` exit 0（5.753 秒）。未重复旧完整 suite、旧实际进程组或浏览器 smoke。
 
 V2 尚须接入真实 operator 输入、无假人确认的 validation requirement 类型、planner/roles/reviewer/correction/compaction metadata、真实 identity reader、session receipts、固定产物与本窗口停止/清理。reviewProtocolCorrections 的一次协议修正由 V2 驱动执行，本层所有实际请求计入同一个 40 次上限。本步不声称这些接线已完成。
+
+## Planning child 准入修复候选
+
+原 child 准入固定使用 author purpose，合法 planning grant 因 purpose 不匹配而无法取得 ticket。修复只按当前声明的 taskId 选择 planning purpose，其余角色仍走原 author 检查；不登记虚假 planning task，不增加 owner 或 child 权限接口。旧 task、错误 window、未登记角色、unknown 费用及 accountingOnly 仍拒绝。纯 FS 用例先复现原错误，再验证修复。
+
+- `node --experimental-strip-types --test --test-name-pattern="planning child ticket|unknown billing prevents|expired case reopens" tests/runtime/validation-window.test.ts`：3/3 通过、0 skipped，2.838 秒。
+- `node --experimental-strip-types --test --test-name-pattern="planning child registers" tests/runtime/validation-window.test.ts`：1/1 通过、0 skipped，2.723 秒。唯一真实 Node child 使用 stdin barrier、SYSTEMROOT-only 环境、windowsHide 和 10 秒上限；原 controller 持久登记 ticket/PID 后释放，exit 0 且 PID 探测为 ESRCH，原 owner lock 正常移除。快照、费用和任务完全不变。
+- `npm run typecheck` 及上文新测试文件的显式 strict noEmit 均 exit 0（7.955 / 6.324 秒）。复用原 V1 证据；未重跑旧 suite、崩溃组、浏览器或付费验证。此小修复仍待独立评审，V2 driver 接线另行审查。

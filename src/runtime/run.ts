@@ -503,7 +503,7 @@ export class RunController {
   private requireTaskAuthority(taskId: string): void {
     if (this.snapshot.formatVersion === 3) {
       if (this.snapshot.ledger.entries.some(entry => entry.unknown)) throw new Error('Unknown requests require reconciliation before owned child dispatch.');
-      const authority = this.validationTaskAuthority(taskId, 'author');
+      const authority = this.validationTaskAuthority(taskId, validationRole(this.validationWindow(), taskId) === 'planning' ? 'planning' : 'author');
       if (!authority.executionAllowed) throw new Error('Task has no validation execution authority.');
       return;
     }
