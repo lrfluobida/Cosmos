@@ -264,8 +264,8 @@
       "liveResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5928251714",
       "fixedTrialStatus": "startup-failed-and-expired",
       "fixedTrialResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5931925580",
-      "nativeValidationCaseId": "cos20-native-validation-1",
-      "nativeValidationStatus": "startup-failed-and-consumed"
+      "nativeValidationCaseId": "cos20-native-validation-2",
+      "nativeValidationStatus": "request-limit-exhausted"
     },
     {
       "taskId": "COS-11",
@@ -599,11 +599,11 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "source-ready-newcase2-awaiting-paid",
+      "integrationStatus": "source-ready-real-case2-failed",
+      "liveValidationStatus": "request-limit-exhausted",
       "reviewStatus": "CASE_TWO_SOURCE_READY",
       "reviewedCommit": "b3ab706ce8b9dccfb54cb701fcc3700d1703869e",
       "mergeCommit": "89085f3a5bf23699006a07c4e4e11641f430358e",
-      "nextValidationCaseId": "cos20-native-validation-2",
       "nativeValidationCase": {
         "caseId": "cos20-native-validation-1",
         "status": "startup-failed-and-consumed",
@@ -618,6 +618,48 @@
         "unknownMicroCny": 0,
         "failure": "template-capture-rename-EPERM",
         "guardAborted": false
+      },
+      "nativeValidationCase2": {
+        "caseId": "cos20-native-validation-2",
+        "status": "failed-and-consumed",
+        "failure": "request-limit-exhausted",
+        "sourcePlatformSha": "f5522e8b6f15862aee39ee9d457c7f6f19ba69de",
+        "startedAt": "2026-10-02T15:39:49.986Z",
+        "deadline": "2026-10-02T16:24:49.986Z",
+        "endedAt": "2026-10-02T15:46:42.301Z",
+        "durationMs": 412315,
+        "sdkRequests": 40,
+        "maxSdkRequests": 40,
+        "additionalEstimatedMicroCny": 857751,
+        "sharedEstimatedMicroCny": 1974153,
+        "reservedMicroCny": 0,
+        "unknownMicroCny": 0,
+        "settledLedgerEntries": 40,
+        "snapshotFormatVersion": 3,
+        "snapshotRevision": 312,
+        "stopReason": "manual",
+        "semanticRepairClaims": 0,
+        "acceptedCandidate": false,
+        "roleSdkRequests": {
+          "planning": 1,
+          "design": 8,
+          "art": 24,
+          "coding": 7
+        },
+        "roleEstimatedMicroCny": {
+          "planning": 14268,
+          "design": 83234,
+          "art": 473575,
+          "coding": 286674
+        },
+        "roleCalls": {
+          "designAuthor": 4,
+          "designReviewer": 4,
+          "artAuthor": 16,
+          "artReviewer": 8,
+          "codingAuthor": 7,
+          "codingNextRequestRejectedBeforeSend": true
+        }
       }
     },
     {
@@ -655,7 +697,8 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "offline-verified-awaiting-live",
+      "integrationStatus": "complete",
+      "liveValidationStatus": "source-and-live-publication-verified",
       "reviewStatus": "WINDOWS_PUBLICATION_SOURCE_READY",
       "reviewedCommit": "1d0312224ef7d3ed66858fb07204674a4eae6593",
       "mergeCommit": "99e6d8772fdea0e794ada7f8da9ef57ec7d1153d"
