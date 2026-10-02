@@ -1,10 +1,12 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-02 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 20 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-02 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 21 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
 新补充：[COS-20 / #21](https://github.com/lrfluobida/Cosmos/issues/21) 在原开发验证授权和预算内准备显式 validation profile 与新有界 case；源代码审查、集成及准入完成后才由协调者执行。正式生成 ¥200/12h、验证合计 ¥150 和首批累计 ¥30 保持不变；原窗口和已消费 case 不重开。
+
+失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -62,6 +64,7 @@
 - [ ] [COS-18 接通 Windows 需求访谈与生成运行 CLI](https://github.com/lrfluobida/Cosmos/issues/19)
 - [ ] [COS-19 修复原生角色交接格式与输出截断处理](https://github.com/lrfluobida/Cosmos/issues/20)
 - [ ] [COS-20 区分开发验证窗口与正式生成时限](https://github.com/lrfluobida/Cosmos/issues/21)
+- [ ] [COS-21 诊断并修复 Windows 产物目录原子发布失败](https://github.com/lrfluobida/Cosmos/issues/22)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -89,6 +92,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 本次进展：静态基础值证据 `fdd64c8` 已独立审查并合入 `80d4d75`；记录 53 行 × 9 DWORD，字段语义与源码推导分开。53 行不代表可选植物分母，launchRate 不按秒解释；catalog 仍为 230 项、221 项待核实，未冻结，#2 保持 open。
 - 后续静态证据：Zombie 定义表 `e292b49` 已获独立批准并合入 `73cf4fe`，34 行 × 7 DWORD 原始值与源码语义推导分列；34 含特殊项/Zombatar，不是经典分母。mZombieValue 不是 HP，基础关卡/波次/权重不证明实际出怪；原 catalog、未知项及未冻结状态保持不变。
 - 初始化 HP 静态证据：`a1c1371` 已获独立批准并合入 `80794c3`，保存 17 处短指令样本和 270/370/1100 三处立即数赋值；语义仍属源码推导，最终有效 HP、完整分支及经典等价性未验证，230/221 与未冻结状态不变。
+- 投射物静态证据：`3a20bae` 获独立 PROJECTILE_STATIC_SOURCE_READY 并合入 `89f8162`，保存 14×3 原始 DWORD 与 11 处短指令样本；普通豌豆基础字段 20 不证明最终命中伤害。非 UTF-8 cpp 已停止读取，只用 UTF-8 头文件推导字段，护甲、倍率、交互、运行与经典等价性仍未知，230/221 与未冻结状态不变。
 - 依赖/状态：来源调查就绪；版本核对等待用户准备可运行经典 PC 参考版。清单冻结引用最终 spec 第 4B 节标准。
 - 输入：用户提供的可运行参考版、spec 已定模式范围、现有调研与来源资料；精确版本由本任务记录。
 - 输出/范围：`docs/benchmark/` 下版本标识、来源台账、完整内容矩阵、数值与计时表、排除项和待核实项；不写游戏实现。
@@ -270,9 +274,9 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-20 · 区分开发验证窗口与正式生成时限
 
-- 本次进展：native fixed driver `732f3d1` 获独立 NATIVE_DRIVER_SOURCE_READY 并合入 `92e183a`，公开 flags、原账本 owned workers、完整失败快照/反馈认证与一次 coding repair 已离线接通。主线两个代表 2/2、0 skip 和严格构建通过，显式 probe 类型及真实零模型通用 smoke 证据复用。状态为 offline-source-ready-awaiting-real-case，#21 保持 open；最终 docs main 清推后冻结，由 root 重做准确 SHA 免费准入并执行有界真实 case，结束前不改 main。
+- 本次进展：native fixed driver `732f3d1` 获独立 NATIVE_DRIVER_SOURCE_READY 并合入 `92e183a`，公开 flags、原账本 owned workers、完整失败快照/反馈认证与一次 coding repair 已离线接通。主线两个代表 2/2、0 skip 和严格构建通过，显式 probe 类型及真实零模型通用 smoke 证据复用。首个真实 `cos20-native-validation-1` 于 `2026-10-02T11:58:02.694Z` 开始，原定 `12:43:02.694Z` 截止，`11:58:09.818Z` 以 manual stop 结束，7.124 秒、零 SDK 请求、零新增费用；bootstrap/requirements capture 通过，template capture 原子 rename 报 EPERM，guardAborted:false，原因未确定。case 已消费，结果与 marker 保留；#21 为 source-ready-real-startup-failed/open，COS-10 与 G3/G4 未通过。协调者已解除本次 main 冻结，完整安全元数据见 [进度](../../PROGRESS.md)。
 - 结束时间边界补充：已审 `9a91f75` 合入 `58b6e59`，允许同一次正常 stop/event 的真实时间先后差，保留外部 stop 和唯一事件门槛；主线跨时间戳回归 1/1、0 skip。旧 SHA 的免费 preflight 不能作为新 main 的付费准入，仍须最终 native main 重新免费核对。
-- 状态/源级前置：已发布 [#21](https://github.com/lrfluobida/Cosmos/issues/21)，当前为源码准备。前置只要求 COS-06/07/08/09/11/12/13/18/19 对应源码已独立审查并集成，不要求这些任务的全部 live/完整产品验收通过。COS-10 的实际验证是本任务产出，不作为循环前置；[映射](github-issues.json) 分列 sourcePrerequisites 与 validationOutputsFor。
+- 状态/源级前置：已发布 [#21](https://github.com/lrfluobida/Cosmos/issues/21)，源码已就绪，真实启动失败由 COS-21 诊断。前置只要求 COS-06/07/08/09/11/12/13/18/19 对应源码已独立审查并集成，不要求这些任务的全部 live/完整产品验收通过。COS-10 的实际验证是本任务产出，不作为循环前置；[映射](github-issues.json) 分列 sourcePrerequisites 与 validationOutputsFor。
 - 已有授权：CONTEXT 的生成运行排除平台开发；R6 的正式 ¥200/12h 与 R7 的开发验证合计 ¥150 分开。沿用用户验证预算、凭据提供及持续推进授权，由可信 coordinator 为更严格的新 case 记录真实 `operator_validation` 决定，不自动套用 formal human quote，不伪造 GameDraft 确认或 run.humanDecisions。
 - 输出/范围：同一权威 snapshot/runId/ledgerId 的显式 validation profile、新独立 opt-in driver/声明、定向测试、开发说明与进度；CONTEXT 术语和 ADR 由专属作者另行提交审查。原 start/deadline/stop、费用、请求、任务、allocations 和失败 case 保留；旧 v1、formal v2 及旧实验入口不得自动获得新权限，不使用假时钟或 deadline 投影。
 - case 与准入：首例冻结 COS-10 evaluation 输入，固定新 caseId/windowId、准确已审 main SHA、输入 hash 和真实操作授权来源。claim 即消费，重复调用不刷新身份、时钟或计数；旧三个已消费/过期 case 保留。环境、未知费用、writer 未收敛、陈旧 SHA/输入/报价、已 claim、超额或到期均在新副作用前拒绝。
@@ -280,6 +284,16 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 接线：复用 RunController 记账、owner/child、request receipt、createRoleBudget/PilotGuard 准入；每次请求绑定真实 validation case/window，当前时钟明确读取新窗口，原字段保留历史含义。新路径使用固定 evaluation 输入，跳过模拟访谈和自行 `confirmed:true`；规划使用独立真实 grant，不制造 passed planning 阶段。新 art/coding 作者 65,536 输出 token 与 reservation 同配置；旧 probe 显式 16,384 不变。
 - 验证/工作方式：先固定窄 profile、授权记录和计费 API，再接 driver；两项分别有专属 implementer/独立 reviewer，仍由 batch07_merger 唯一合入。离线覆盖历史不变、无 fake human proof、case/window 权限、原子 claim/幂等、未知费用/并发/截止拒绝、全调用计数、cap/reservation 一致及旧入口拒绝。源码、离线验证和实际准入全部就绪后才由 coordinator 在原授权内执行；真实报告如实记录通过或失败与费用，不计作完整经典基准或用户体验通过。
 - 当前边界：任务发布和本次文档登记不启动付费调用，不改真实账本或旧失败产物。UTF-8、中文保护及 key 不落盘规则适用。
+
+### COS-21 · P1 · 诊断并修复 Windows 产物目录原子发布失败
+
+- 依赖/状态：已发布 [#22](https://github.com/lrfluobida/Cosmos/issues/22)，为第 21 个原生子任务，保持 open。源级前置为 COS-09/COS-20 已独立审查并集成的源码；验证产出反馈 COS-10/COS-20，不要求其失败任务先关闭，不形成循环验收依赖。
+- 实际失败：首个 native case 的 owned bootstrap exit 0、npm ci 18 packages/5 秒、requirements capture 成功；template capture 在 registry 临时目录向不可变 captures 版本目录 rename 时 EPERM，guardAborted:false。7.124 秒、零模型请求与零新增费用；不能据此确认杀毒软件、文件 watcher 或永久 ACL 为原因。
+- 输出/范围：`src/artifacts/` 原子 publication/capture 的最小修复、定向故障复现与回归、诊断报告及进度；host glue 仅在根因证据要求时修改。先进行免费真实 Windows 文件系统诊断，保留能在修复前失败的复现证据，不改全局 ACL 或系统保护。
+- 工作：若证据表明临时 FileShare 拒绝，采用有界原子 rename 重试；保持 owner、路径与不可变 destination 检查，遵守 AbortSignal。永久拒绝、目标已存在、取消或达到边界均安全失败，不覆盖已发布版本，不暴露半成品。
+- 通过/证据：最小修复经过专属 implementer 与独立 reviewer，固定 SHA 的真实项目 publisher 免费验证通过；临时拒绝恢复、永久拒绝、目标存在及取消的定向证据齐备。成功发布不等同于生成游戏或 G3/G4 通过。
+- 后续真实 case：修复及独立审查完成后，另备已审新声明和真实 operator 决定；仍受验证合计 ¥150、首批累计 ¥30、新 case 最多新增实际加预留 ¥5/45 分钟/40 请求/一次 coding repair 约束。case2 尚未就绪，不启动；case1 的消费、失败结果、原日期与费用保留，不重开或改名复用。
+- 验证/工作方式：`cos21_implementer` 独立分支和 managed worktree 实施，独立 reviewer 检查实际 diff 与证据；本批仅 `batch08_merger` 合入 main。UTF-8、中文保护、key 不落盘与参考安装只读规则继续适用。
 
 ## 5. 任务与上下文包模板
 
