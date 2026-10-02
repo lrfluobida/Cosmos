@@ -45,7 +45,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | native case1 启动失败，尚无通过游戏 | 既有共享累计 ¥1.116402；case1 零请求/零新增费用，预留与未知为零；旧实验与 case1 均已消费 |
 | 任务拆分 | 已发布 | [21 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#22；21 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS-20 source-ready-real-startup-failed，COS-21 offline-verified-awaiting-live | COS-21 修复 1d03122 已独立批准合入 99e6d87，主线两项代表 2/2、0 skip 与类型检查通过；原 native 构建证据复用。case1 已消费，case2 尚未运行，新声明待独立审查；COS-18 partial/open，#2/#21/#22 open |
+| 子代理逐项实施 | COS-20 source-ready-newcase2-awaiting-paid，COS-21 offline-verified-awaiting-live | COS-21 修复 1d03122 已独立批准合入 99e6d87；case2 声明/准入 b3ab706 已独立批准合入 89085f3，主线零调用新 claim/历史保持与 case1 未停止拒绝 2/2、0 skip。case1 已消费，case2 尚未运行；COS-18 partial/open，#2/#21/#22 open |
 
 ## 开发批次
 
@@ -84,6 +84,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 07 | COS-01 / #2 初始 HP 静态证据 | static-health implementer | cos01_health_reviewer | batch07_merger | a1c1371 获 HEALTH_STATIC_SOURCE_READY，合入 80794c3；三路径一致，保存 JSON 17 样本/3 立即数结构通过；复用只读采集与独立指令样本，未冻结 |
 | 08 | COS-01 / #2 投射物静态证据 | codex/cos-01-static-projectiles implementer | cos01_projectiles_reviewer | batch08_merger | 3a20bae 获 PROJECTILE_STATIC_SOURCE_READY，合入 89f8162；三路径一致，保存 JSON 14×3 与 11 短样本检查通过；复用作者及 reviewer 证据，230/221 未冻结 |
 | 08 | COS-21 / #22 Windows 原子发布修复 | cos21_implementer | cos21_reviewer | batch08_merger | 1d03122 获 WINDOWS_PUBLICATION_SOURCE_READY，合入 99e6d87；三路径一致，主线延迟/不可覆盖 2/2、0 skip 与类型检查通过；offline-verified-awaiting-live/open |
+| 08 | COS-20 / #21 Case2 声明与准入 | codex/validation-case-two implementer | 独立 case2 reviewer | batch08_merger | b3ab706 获 CASE_TWO_SOURCE_READY，合入 89085f3；八路径一致，主线零调用新 claim/历史保持与 case1 未停止拒绝 2/2、0 skip；source-ready-newcase2-awaiting-paid/open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -178,6 +179,14 @@ COS-21 `1d03122` 经独立 WINDOWS_PUBLICATION_SOURCE_READY 合入 `99e6d87`，�
 本地原子发布仅对 Windows EPERM 最多六次尝试，等待 25/50/100/200/400 ms 共 775 ms，单调一秒窗口限制重试派发；每次检查 temp/destination 的安全路径、不可变目标不存在、commit owner 原字节未变及原 AbortSignal。延迟 event loop 到限或异步 guard 返回后到限均返回原 EPERM，不再 rename。主线仅重跑新延迟用例与不可覆盖代表共 2/2、0 skip（1153.5 ms/92.7 ms），一次 `npm run typecheck` 通过；复用作者 registry 18、恢复 4、类型/测试 noEmit 与 reviewer 真实锁、边界和短重试证据，未重复完整套件、PS child、smoke 或根构建。
 
 COS-21 映射为 offline-verified-awaiting-live/open，保存准确批准与 merge SHA；root 将在最终 main 执行独立于原 snapshot 的真实 E: 工作目录免费 publisher 检查。case2 声明另行实施和独立审查，尚未真实运行，后续 quote 必须包含本次 fixed source 祖先。COS-20 source-ready-real-startup-failed、case1 消费/失败、1,116,402 micro-CNY、原时钟/allocations 与 G3/G4 未通过均保持；本轮没有付费调用或私有账本、凭据、session 读取。
+
+Case2 声明与免费准入 `b3ab706` 经独立 CASE_TWO_SOURCE_READY 合入 `89085f3`，八个批准路径与源逐字节一致。固定新 `cos20-native-validation-2`，不重开已消费 case1；免费 prepare 要求 profile 3、current case1 已明确 stop、COS-21 精确 WINDOWS_PUBLICATION_SOURCE_READY/已集成状态/reviewed 与 merge 双 SHA 都属于准确 main，closed 无法绕过。实际 core 合成/停止 case1 的临时 Git/FS fixture 检查两例通过（2/2、0 skip，13.103 秒）：零调用新 claim 保留旧案例/decisions/费用/requests/grants/原时钟/stop 并幂等；case1 未停止时在 host、receipt、claim 与新写入前拒绝。
+
+作者声明 9、入口 25（23 首轮通过、两费用 fixture 修正后定向 2/2）、11 新门槛先红后绿、scope/quote/flags 代表 3 和显式 probe/tests noEmit 证据复用；独立 reviewer 四项 4/4、0 skip 复用。main 的 package/lock/tsconfig 与批准源一致，未重复 compiler、根构建、完整 fake flow、worker、Browser 或 smoke。runtime core/host/driver、模板、需求、caps、五 grants 总额 ¥21、模型与输出额度均未改；新窗口仍最多实际加预留 ¥5/45 分钟/40 调用/一次 coding repair，共享 ¥150、首批 ¥30 保持。
+
+COS-20 当前 source-ready-newcase2-awaiting-paid/open；原真实 case1 的 `efb5170`、开始/截止/结束、7.124 秒、零新增费/请求、manual stop/消费与失败 marker 全部保留，累计仍 ¥1.116402、零 reserved/unknown，原时钟与 allocations 不重置。COS-21 修复源码已 READY，fresh real case2 尚未运行，COS-10 与 G3/G4 未通过。最终文档 main 干净推送后冻结：root 须按最新准确 SHA 做免费只读 preflight，核实际 Windows publisher 与原共享余额准入后，以临时内存凭据执行 native case2；真实 operator 决定由可信协调者记录，不伪造 human GameDraft 确认。case2 结束并由 root 明确解除前，任何 docs/source/reference 均不改 main。
+
+Root 已补充实际 E: 工作目录免费 publisher 通过证据：`8aced7c` 的相同 `1d03122` 源码在新 ignored `.cosmos/diagnostics/windows-publication-fixed-8b80f87b-92e6-4964-9b52-4b3d2973b30e/` 使用实际 ArtifactRegistry，先 capture requirements 三文件，再 capture template 四文件。真实 PS/.NET FileShare.ReadWrite 无 Delete 句柄持有 template capture.json，首次真实 rename 返回 EPERM/syscall rename；释放句柄并确认 child exit 0/ESRCH 后，第二次 atomic rename 成功，template capture metadata 存在、registry/tmp 清空。Node 0.833 秒/exit 0/model 0，`diagnostic-result.json` 已保存；原 shared snapshot 的 bytes/mtime 前后相同，未读取 key、未重开 case1、case2 未 claim。本文按协调者提供的安全元数据登记，作者未读取私有账本或重复 free publisher。该证据可复用于当前 case2 准入，原 case1 具体 locker 仍未知，不声明真实 native case2 或游戏已通过；最新 main 的只读 preflight 与后续付费结果仍由 root 执行和记录。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
