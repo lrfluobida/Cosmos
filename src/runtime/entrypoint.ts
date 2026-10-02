@@ -251,7 +251,7 @@ async function executeContinuation(options: GenerationOptions) {
         originalResult: { outcome: 'not_met', originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt,
           limitMicroCny: state.ledger.limitMicroCny, settledMicroCny: window.quote.original.settledMicroCny, stopReason: state.stopReason },
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff,
-          supersededBy: plan?.replacements.find(item => item.sourceTaskId === task.taskId)?.replacementTaskId ?? null })),
+          supersededBy: plan?.replacements.find(item => item.sourceTaskId === task.taskId && state.tasks.some(target => target.taskId === item.replacementTaskId))?.replacementTaskId ?? null })),
         status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
       await mkdir(join(root, 'delivery'), { recursive: true }); const report = `delivery/report-${randomUUID()}.json`;
       await publishReceipt(join(root, report), outcome); return { ...outcome, report };

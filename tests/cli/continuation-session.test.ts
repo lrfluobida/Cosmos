@@ -27,6 +27,7 @@ test('public continue collects exact stdin confirmation, delivers a first window
   assert.deepEqual(state.ledger.entries.slice(0, f.original.ledger.entries.length), f.original.ledger.entries);
   assert.ok(state.requests.slice(f.original.requests.length).every((request: any) => request.windowId === window.windowId));
   assert.equal(state.run.humanDecisions.at(-1).actorId, 'local-user'); assert.equal(result.originalResult.outcome, 'not_met'); assert.equal(result.windowId, window.windowId);
+  assert.equal(result.taskHistory.find((task: any) => task.taskId === 'code-task').supersededBy, window.grants[0].taskId);
   assert.equal(await readFile(join(f.root, 'authors/coding/index.html'), 'utf8'), '<div>旧未完成产物</div>');
   assert.equal(f.calls.slice(before.length).filter(call => call.startsWith('coding:')).length, 1); assert.equal(f.calls.slice(before.length).filter(call => /^(design|art):/.test(call)).length, 0);
   const calls = [...f.calls], fees = state.run.fees, plan = await readFile(join(f.root, `continuations/${window.decisionId}/plan.json`), 'utf8');
@@ -39,6 +40,24 @@ test('public continue collects exact stdin confirmation, delivers a first window
   const final = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
   assert.deepEqual(final.run.fees, fees); assert.deepEqual(final.stopReason, f.original.stopReason);
   await assert.rejects(runCli(['resume', f.root, '--window', window.windowId], { ...streams(), host: f.host }), /持久停止/);
+});
+
+test('preparation failure never reports an unregistered continuation replacement as superseding the original task', async t => {
+  const f = await continuationSessionFixture(t), calls = [...f.calls];
+  const ancestor = f.original.tasks.find((task: any) => task.taskId === 'design-task');
+  await writeFile(join(f.root, ancestor.evidence[0].source.location), '{"changed":true}', 'utf8');
+  let activated: any;
+  const host = { ...f.host, execute: async (input: any) => {
+    activated = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+    return f.host.execute(input);
+  } };
+  const result: any = await runCli(args(f.root), { ...streams(id => `confirm ${id}\n`), host });
+  assert.equal(result.outcome, 'incomplete'); assert.deepEqual(f.calls, calls);
+  const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+  assert.deepEqual(state.tasks, activated.tasks); assert.deepEqual(state.ledger, activated.ledger); assert.deepEqual(state.continuation, activated.continuation);
+  assert.equal(state.tasks.some((task: any) => task.taskId === state.continuation.windows[0].grants[0].taskId), false);
+  assert.equal(result.taskHistory.find((task: any) => task.taskId === 'code-task').supersededBy, null);
+  assert.ok(result.taskHistory.every((task: any) => task.supersededBy === null || state.tasks.some((target: any) => target.taskId === task.supersededBy)));
 });
 
 for (const mode of ['cancel', 'eof', 'not-ready', 'not-ready-after-confirm', 'stale', 'changed-source', 'wrong-confirmation'] as const) test(`public continue ${mode} does not activate or charge`, async t => {
