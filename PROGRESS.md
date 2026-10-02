@@ -43,7 +43,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 已审 experiment 仍失败，尚无通过游戏 | 既有直接 API/pi 估算 ¥0.735971，原 pilot ¥0.156311，本次 8 请求 ¥0.224120；共享累计 ¥1.116402，预留与未知为零；原实验已消费 |
 | 任务拆分 | 已发布 | [20 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7 开发验证与正式生成边界 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#21；20 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 首个正式续跑窗口源码已集成，COS-20 开发验证窗口准备中 | `bacb22d` 已推送，原 8/8、严格构建与 B2 smoke 证据复用；COS-20 先做独立 core/driver 审查，未运行新 case，#19/#21 保持 open |
+| 子代理逐项实施 | 首个正式续跑窗口源码已集成，COS-20 V2a 声明/input 已审集成 | V2a 主线 3/3、0 skip，复用作者显式 strict probe 类型证据；profile/driver 未接，未运行新 case；COS-18 仍 partial/open，#21 保持 open |
 
 ## 开发批次
 
@@ -76,7 +76,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 07 | COS-10 / #11 已审实验 | feat/cos-10-reviewed-experiment 独立 implementer | cos10_reviewer | batch07_merger | ecfc150 合入 75cf405，5/5 准入与类型检查通过；f16c896 上真实实验 92.746 秒/8 请求后失败，新增估算 ¥0.224120；唯一机会已消费，#11 保持 open |
 | 07 | COS-08 / #9 文本可见性修复 | fix/acceptance-visible-text 独立 implementer | cos08_reviewer | batch07_merger | cca4f10 获 READY，合入 1704d37；源一致、组合类型检查通过，复用真实 Edge 4/4；保留已完成任务状态，不代表完整视觉验收 |
 | 07 | COS-19 / #20 角色交接与截断处理 | role_io_implementer / fix/native-role-io | role_io_reviewer | batch07_merger | 6397e15 修复同行多 JSON scalar 的 P2 后获 READY，合入 d0c39ad；69/69、类型检查与构建通过；offline-verified-awaiting-live，#20 暂保持 open |
-| 07 | COS-20 / #21 开发验证窗口 | 专属 core/driver implementer 由 root 安排 | 各自独立 reviewer | batch07_merger | 任务卡和原生父子关系已发布；源码准备，未启动新 case；COS-10 真实验证为产出，不作循环前置 |
+| 07 | COS-20 / #21 开发验证窗口 | 专属 core/driver implementer | 各自独立 reviewer | batch07_merger | V2a 6754bd3 获 READY，合入 f3217df；主线 3/3、显式 probe 类型证据复用；仅声明/input 离线就绪，profile/driver 待接，#21 open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -127,6 +127,8 @@ D3c 首次 formal 追加窗口已完成免费代码实现、独立审查和主�
 [COS-20 / #21](https://github.com/lrfluobida/Cosmos/issues/21) 已发布为第 20 个原生子任务，区分正式生成 ¥200/12h 与平台开发验证合计 ¥150。用户原验证预算、凭据提供及持续推进授权支持可信 coordinator 在原额度内选择更严格的新开发 case：最多新增实际加预留 ¥5、45 分钟、40 调用、一次语义修复，首批累计 ¥30 不变。必须先完成 profile/driver 源码独立审查、集成和实际准入，之后才由 root 执行；本次文档登记没有运行新 case。
 
 新路径沿用同一权威 snapshot/run/ledger，追加真实操作来源、准确已审 SHA、新 case/window 与固定 COS-10 输入 hash；原日期、stop、费用、requests、allocations 和失败 case 保留，不伪造用户 GameDraft/humanDecisions，不用假时钟或改名重开旧 case。首例仅用原未分配额安排 grants；协调者已只读确认 65,403,960 micro-CNY，本次未读取真实账本。COS-06/07/08/09/11/12/13/18/19 的已审已集成源码是前置，COS-10 实际验证是产出，避免循环依赖。CONTEXT/ADR 留给后续作者独立审查，本 checkpoint 只更新任务卡、映射与进度。
+
+COS-20 V2a `6754bd3` 已独立批准并合入 `f3217df`，六个路径包含作者已审的 CONTEXT/ADR0001、说明、固定声明/input 模块与测试。主线三项纯解析/文件检查通过、0 skip；相同 Node/TypeScript、依赖与固定输入下复用作者 9/9 及显式 strict probe/test noEmit 证据，未运行不覆盖 probes 的根构建。声明固定 `cos20-native-validation-1`，候选 grants 共 ¥21（planning ¥2），实际加预留仍最多 ¥5；固定 COS-10 v2 和八个模板文件，拒绝额外/漂移输入，不生成确认、窗口或费用。仅声明/input 离线就绪，profile V1 未获本批批准，driver 尚未接通；#21 保持 open，没有 claim 或执行新 case，真实费用和旧日期/失败记录均不变。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
