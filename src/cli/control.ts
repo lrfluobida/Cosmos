@@ -25,6 +25,11 @@ export async function startBudgetWarnings(root: string, notify: (message: string
     try { await publishReceipt(path, { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, eventSequence: warning.sequence }); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === 'EEXIST') return; throw error; }
     const summary = budgetSummary(snapshot.ledger);
+    if (snapshot.formatVersion === 2) {
+      const effective = executionWindowView(snapshot).executionWindow.effectiveLimitMicroCny;
+      notify(`费用提示：已出现 80% 预算告警；当前剩余额度 ¥${(summary.availableMicroCny / 1_000_000).toFixed(6)}，当前有效总上限 ¥${(effective / 1_000_000).toFixed(2)}（原上限 ¥${(snapshot.ledger.limitMicroCny / 1_000_000).toFixed(2)}）。`);
+      return;
+    }
     notify(`费用提示：已结算与预留合计达到 80%；当前剩余额度 ¥${(summary.availableMicroCny / 1_000_000).toFixed(6)}，总上限 ¥${(snapshot.ledger.limitMicroCny / 1_000_000).toFixed(2)}。`);
   };
   await tick();
@@ -52,6 +57,8 @@ export async function readRunStatus(root: string) {
   const generated = intake ? null : snapshot as RunSnapshot;
   const view = generated ? executionWindowView(generated) : null;
   const continuation = generated ? await readContinuationStatus(root, generated) : null;
+  const window = generated?.continuation?.windows.find(item => item.windowId === generated.continuation?.currentWindowId);
+  const successors = new Map((window?.grants ?? []).filter(grant => generated!.tasks.some(task => task.taskId === grant.taskId)).map(grant => [grant.sourceTaskId, grant.taskId]));
   return { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, phase: intake ? 'intake' : 'generation', revision: snapshot.revision,
     draftRevision: intake ? snapshot.draft?.revision ?? null : null,
     confirmed: intake ? snapshot.confirmation !== null : generated!.run.humanDecisions.some(decision => decision.decisionId.startsWith('requirements-v') && decision.evidence.some(ref => ref.artifactId === 'user-confirmation')),
@@ -65,7 +72,7 @@ export async function readRunStatus(root: string) {
     reservedMicroCny: snapshot.ledger.entries.reduce((sum, entry) => sum + entry.reservedMicroCny, 0),
     unknownRequestIds: snapshot.ledger.entries.filter(entry => entry.unknown).map(entry => entry.requestId),
     tasks: generated?.tasks.map(task => ({ taskId: task.taskId, state: task.state, remaining: task.handoff.remaining, uncertainty: task.handoff.uncertainty, resumeFrom: task.handoff.resumeFrom,
-      supersededBy: continuation?.state === 'registered' ? continuation.replacements.find(item => item.sourceTaskId === task.taskId)?.replacementTaskId ?? null : null })) ?? [],
+      supersededBy: successors.get(task.taskId) ?? (continuation?.state === 'registered' ? continuation.replacements.find(item => item.sourceTaskId === task.taskId)?.replacementTaskId ?? null : null) })) ?? [],
     continuation,
     resumePolicy: 'Only verifiable interruptions without a durable stop may resume within their original window. Manual stop, deadline and budget stop remain final.',
   };
@@ -191,6 +198,11 @@ export async function requestStop(root: string, windowId?: string): Promise<Cont
       try { const result = JSON.parse(output); if (result.runId !== current.runId || result.stopped !== true || result.windowId !== windowId) throw new Error('Unconfirmed stop or drain.'); accept(result); }
       catch { reject(new Error('Stop or drain is unconfirmed; inspect the original run.')); }
     });
+  }).then(async result => {
+    if (!windowId) return result;
+    const durable = await readRunSnapshot(root);
+    if (durable.run.runId !== current.runId) throw new Error('Stop or drain is unconfirmed; run identity changed after acknowledgement.');
+    return acknowledged(durable, windowId);
   }).catch(error => {
     if (snapshot.formatVersion === 2 && error instanceof ControlUnavailable) return stopRecoveredWindow(root, snapshot, windowId!);
     throw error;
