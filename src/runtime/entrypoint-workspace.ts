@@ -33,6 +33,12 @@ async function checkMirror(workspace: string, input: FixedInput, complete: boole
   const info = await lstat(path).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
   if (!info) { if (complete) throw new Error('Fixed input mirror is incomplete.'); return; }
   if (info.isDirectory() !== input.directory) throw new Error('Fixed input mirror path conflicts with its source type.');
+  for (const name of input.files.keys()) {
+    signal.throwIfAborted();
+    const target = await safePath(workspace, name ? `${input.location}/${name}` : input.location);
+    const leaf = await lstat(target).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
+    if (leaf && (!leaf.isFile() || leaf.nlink !== 1)) throw new Error('Fixed input mirror planned file conflicts with an existing non-independent file or directory.');
+  }
   const files = input.directory ? await snapshot(path) : new Map([['', await regularFile(workspace, input.location)]]);
   for (const [name, bytes] of files) {
     signal.throwIfAborted();

@@ -75,6 +75,18 @@ for (const conflict of ['content', 'extra-file'] as const) test(`refuses ${confl
   assert.deepEqual(await fileState(options.workspace), before);
 });
 
+for (const conflict of ['directory-at-file', 'file-at-parent'] as const) test(`preflights ${conflict} before copying an earlier missing requirement`, async t => {
+  const { options } = await fixture(t);
+  if (conflict === 'directory-at-file') await mkdir(join(options.workspace, `${capture}/_cosmos/design.json`), { recursive: true });
+  else await put(options.workspace, `${capture}/_cosmos`, 'existing file occupies a planned parent directory');
+  const before = await fileState(options.workspace);
+  const source = await readFile(join(options.artifactRoot, `${capture}/_cosmos/design.json`));
+  await assert.rejects(materializeTaskInputs(options), /conflict|regular|directory|unexpected/i);
+  assert.deepEqual(await fileState(options.workspace), before);
+  await assert.rejects(lstat(join(options.workspace, options.requirement.sources[0].location)), /ENOENT/);
+  assert.deepEqual(await readFile(join(options.artifactRoot, `${capture}/_cosmos/design.json`)), source);
+});
+
 test('workspace must be the isolated continuation workspace inside the same absolute run root', async t => {
   const { root, options } = await fixture(t);
   for (const workspace of [root, join(root, 'authors/design'), join(root, 'continuations/decision-1/other'), join(root, '../escaped-workspace'), 'relative/workspace']) {

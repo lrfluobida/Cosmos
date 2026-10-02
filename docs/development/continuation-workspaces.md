@@ -21,3 +21,11 @@ node --experimental-strip-types --experimental-test-isolation=none --test --test
 ```
 
 使用真实临时文件、中文、二进制、junction、硬链接和文件监听，覆盖来源 bytes/mtime 不变、独立复制、重复与并发调用、补缺失、冲突拒绝、路径和写区限制、编码、取消以及复制期间来源改变。先确认缺少复制行为的两项红灯，再实现；无常见文本后缀的编码反例也先红后修。最终 12 tests / 12 pass / 0 fail，`duration_ms: 875.9275`；单独 `npm run typecheck` exit 0。测试没有 provider、API、浏览器或编译子进程调用，不复跑 D2 的 98/70 项证据。本步未重跑 build，组合构建由 merger 负责。
+
+独立审查发现：目标目录中若有空目录占据待写文件位置，文件集合检查会漏过它，导致其他缺失文件先被复制。新增反例确认该问题后，预检逐一检查全部计划文件的既有叶节点与父路径类型，先拒绝文件/目录冲突。不会禁止无关空目录或删除既有文件。目录占文件、文件占父目录以及受影响的并发、内容冲突、额外文件和链接回归共 6 项通过，`duration_ms: 614.6171`；其余既有证据复用。
+
+修复后的 `npm run typecheck` exit 0；未重复 build。
+
+```powershell
+node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec --test-name-pattern='preflights|refuses|repeated|source links' tests/runtime/entrypoint-workspace.test.ts
+```
