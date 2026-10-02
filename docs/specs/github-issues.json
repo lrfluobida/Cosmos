@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 20
+    "childCount": 21
   },
   "tasks": [
     {
@@ -22,9 +22,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-provisional",
-      "reviewStatus": "HEALTH_STATIC_SOURCE_READY",
-      "reviewedCommit": "a1c1371a03b26ef0bf88bf0c3a851b00c8e46eed",
-      "mergeCommit": "80794c3776a716fb082eda70b4c7d645645ae251",
+      "reviewStatus": "PROJECTILE_STATIC_SOURCE_READY",
+      "reviewedCommit": "3a20bae1e7f78133d893b353257de51366e7aba8",
+      "mergeCommit": "89f816240f1c56ce0595250e33fec61ba8deb99d",
       "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5925396505"
     },
     {
@@ -263,7 +263,9 @@
       "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5927502879",
       "liveResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5928251714",
       "fixedTrialStatus": "startup-failed-and-expired",
-      "fixedTrialResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5931925580"
+      "fixedTrialResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5931925580",
+      "nativeValidationCaseId": "cos20-native-validation-1",
+      "nativeValidationStatus": "startup-failed-and-consumed"
     },
     {
       "taskId": "COS-11",
@@ -597,12 +599,64 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "offline-source-ready-awaiting-real-case",
+      "integrationStatus": "source-ready-real-startup-failed",
       "reviewStatus": "NATIVE_DRIVER_SOURCE_READY",
       "reviewedCommit": "732f3d1ea134457da74aa39f7b962b921e6eff75",
-      "mergeCommit": "92e183afa5d8532e99108764bb419bcd14084c62"
+      "mergeCommit": "92e183afa5d8532e99108764bb419bcd14084c62",
+      "nativeValidationCase": {
+        "caseId": "cos20-native-validation-1",
+        "status": "startup-failed-and-consumed",
+        "startedAt": "2026-10-02T11:58:02.694Z",
+        "deadline": "2026-10-02T12:43:02.694Z",
+        "endedAt": "2026-10-02T11:58:09.818Z",
+        "durationMs": 7124,
+        "sdkRequests": 0,
+        "additionalEstimatedMicroCny": 0,
+        "sharedEstimatedMicroCny": 1116402,
+        "reservedMicroCny": 0,
+        "unknownMicroCny": 0,
+        "failure": "template-capture-rename-EPERM",
+        "guardAborted": false
+      }
+    },
+    {
+      "taskId": "COS-21",
+      "priority": "P1",
+      "title": "诊断并修复 Windows 产物目录原子发布失败",
+      "number": 22,
+      "id": 5677200875,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/22",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-09",
+          "number": 10,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/10"
+        },
+        {
+          "id": "COS-20",
+          "number": 21,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/21"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-10",
+          "number": 11,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/11"
+        },
+        {
+          "id": "COS-20",
+          "number": 21,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/21"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "diagnosis-in-progress"
     }
   ],
-  "verifiedNativeSubIssues": 20,
+  "verifiedNativeSubIssues": 21,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
