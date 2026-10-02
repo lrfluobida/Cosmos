@@ -1,6 +1,7 @@
-import { validateRequirement } from '../contracts/index.ts';
-import type { ArtifactReference, RequirementContract, ValidationIssue } from '../contracts/index.ts';
+import { validateExecution, validateLedger, validateRequirement, validateRun, validateTask } from '../contracts/index.ts';
+import type { ArtifactReference, BudgetLedger, RequirementContract, RunManifest, TaskContract, ValidationIssue } from '../contracts/index.ts';
 import { checkShape, referenceShape } from '../contracts/structure.ts';
+import { sameValue } from '../contracts/validation.ts';
 import { freeze } from './requirements.ts';
 
 export interface ValidationRequirement {
@@ -77,4 +78,27 @@ export function createValidationRequirement(input: unknown): ValidationRequireme
   const issues = validateExecutionRequirement(result, 'operator_validation');
   if (issues.length) throw new Error(`Invalid validation requirement: ${issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
   return freeze(result as ValidationRequirement);
+}
+
+/** Keep the existing task/ledger/run checks without constructing a fictitious human requirement. */
+export function validateExecutionInput(value: { requirement: ExecutionRequirement; task: TaskContract; ledger: BudgetLedger; run: RunManifest }): ValidationIssue[] {
+  const { requirement, task, ledger, run } = value;
+  if (!isValidationRequirement(requirement)) return validateExecution({ ...value, requirement });
+  const issues = [...validateExecutionRequirement(requirement, 'operator_validation'), ...validateTask(task), ...validateLedger(ledger), ...validateRun(run)];
+  if (issues.length) return issues;
+  const match = (condition: boolean, path: string) => { if (!condition) issues.push({ path, code: 'validation_contract', message: 'Validation execution contract differs from its fixed input or shared run.' }); };
+  match(run.kind === 'evaluation' && task.kind === run.kind && ledger.scope === 'validation' && task.runId === run.runId && requirement.validation.runId === run.runId && run.taskIds.includes(task.taskId), '$.task.runId');
+  match(task.specVersion === requirement.specVersion && run.specVersion === requirement.specVersion, '$.task.specVersion');
+  match(task.budget.ledgerId === ledger.ledgerId && run.ledgerId === ledger.ledgerId && requirement.validation.ledgerId === ledger.ledgerId, '$.task.budget.ledgerId');
+  match(task.budget.originalDeadlineAt === run.originalDeadlineAt, '$.task.budget.originalDeadlineAt');
+  match(ledger.allocations.some(item => item.taskId === task.taskId && item.amountMicroCny === task.budget.allocationMicroCny), '$.task.budget.allocationMicroCny');
+  match(run.fees.reservedMicroCny === ledger.entries.reduce((sum, item) => sum + item.reservedMicroCny, 0) && run.fees.settledMicroCny === ledger.entries.reduce((sum, item) => sum + item.settledMicroCny, 0)
+    && sameValue([...run.fees.unknownRequestIds].sort(), ledger.entries.filter(item => item.unknown).map(item => item.requestId).sort()), '$.run.fees');
+  for (const item of task.acceptance) {
+    const fixed = requirement.acceptance.find(acceptance => acceptance.acceptanceId === item.acceptanceId);
+    match(!!fixed && sameValue(fixed.steps, item.steps) && fixed.expected === item.expected, '$.task.acceptance');
+    if (fixed && task.review.verdict === 'approved') match(task.evidence.some(evidence => task.review.evidenceIds.includes(evidence.evidenceId) && evidence.outcome === 'passed'
+      && evidence.acceptanceIds.includes(item.acceptanceId) && fixed.evidenceKinds.includes(evidence.kind) && task.artifacts.every(ref => evidence.artifactVersions.some(version => sameValue(ref, version)))), '$.task.evidence');
+  }
+  return issues;
 }

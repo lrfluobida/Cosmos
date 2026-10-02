@@ -17,8 +17,9 @@ const executing = new WeakSet<RunController>();
 const draining = new WeakMap<RunController, Promise<void>>();
 
 /** One DAG owner per controller; task workers inside that DAG may overlap. */
-export async function withDagOwner<T>(controller: RunController, execute: () => Promise<T>, windowId?: string): Promise<T> {
-  controller.requireExecutionWindow(windowId);
+export async function withDagOwner<T>(controller: RunController, execute: () => Promise<T>, windowId?: string, validation?: { caseId: string; windowId: string }): Promise<T> {
+  if (validation) { if (windowId !== undefined) throw new Error('Choose one explicit execution profile.'); controller.requireValidationCase(validation.caseId, validation.windowId); }
+  else controller.requireExecutionWindow(windowId);
   if (executing.has(controller)) throw new Error('An active DAG already executes on this controller.');
   executing.add(controller);
   try { return await execute(); } finally {

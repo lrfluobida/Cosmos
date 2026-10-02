@@ -5,11 +5,18 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { ImageContent } from '@earendil-works/pi-ai';
 import { createPiSession, createWorkspaceTools } from '../providers/pi.ts';
 import type { PiSessionOptions } from '../providers/pi.ts';
-import { validateRequirement, validateTask } from '../contracts/index.ts';
-import type { RequirementContract, TaskContract } from '../contracts/index.ts';
+import { validateTask } from '../contracts/index.ts';
+import { sameValue } from '../contracts/validation.ts';
+import type { TaskContract } from '../contracts/index.ts';
 import type { RunController } from '../runtime/run.ts';
 import { createRoleBudget } from './provider-budget.ts';
 import { freeze } from './requirements.ts';
+import { validateExecutionInput, validateExecutionRequirement } from './execution-input.ts';
+import type { ExecutionRequirement } from './execution-input.ts';
+import { requireValidationScope } from '../runtime/validation-scope.ts';
+import type { ValidationExecutionBinding } from '../runtime/validation-scope.ts';
+import { validationRole } from '../runtime/validation-validation.ts';
+import { requireOriginalTask } from '../runtime/recovery/task-journal.ts';
 
 export type AuthorRole = 'cosmos' | 'design' | 'coding' | 'art';
 export type Role = AuthorRole | 'reviewer';
@@ -23,7 +30,8 @@ export interface RoleInput {
   role: Role;
   purpose?: 'planning';
   task: TaskContract;
-  requirement: RequirementContract;
+  requirement: ExecutionRequirement;
+  validation?: ValidationExecutionBinding;
   workspace: string;
   stateDirectory: string;
   controller: RunController;
@@ -69,11 +77,23 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   return async input => {
     input.controller.signal.throwIfAborted();
     const task = structuredClone(input.task), requirement = structuredClone(input.requirement);
-    const errors = [...validateTask(task), ...validateRequirement(requirement)];
+    const errors = [...validateTask(task), ...validateExecutionRequirement(requirement, input.validation ? 'operator_validation' : 'human')];
     if (errors.length || task.specVersion !== requirement.specVersion) throw new Error('Invalid role task or confirmed requirements.');
-    const authority = await input.controller.executionAuthority(task.taskId);
+    const scope = input.validation ? await requireValidationScope(input.controller, requirement, input.validation) : undefined;
+    const purpose = input.purpose === 'planning' ? 'planning' : input.role === 'reviewer' ? 'reviewer' : 'author';
+    const validation = input.validation ? await input.controller.validationAuthority(task.taskId, purpose) : undefined;
+    const authority = validation ? undefined : await input.controller.executionAuthority(task.taskId);
     input.controller.signal.throwIfAborted();
-    if (authority.windowId && !authority.admissionAllowed) throw new Error('Role task has no active execution window authority.');
+    if (validation ? !validation.admissionAllowed : authority!.windowId && !authority!.admissionAllowed) throw new Error('Role task has no active execution window authority.');
+    if (scope) {
+      let assigned = validationRole(scope.window, task.taskId);
+      if (assigned === 'repair') assigned = validationRole(scope.window, scope.window.repair!.sourceTaskId);
+      if ((purpose === 'planning' ? input.role !== 'cosmos' || assigned !== 'planning' : input.role !== 'reviewer' && input.role !== assigned)
+        || validateExecutionInput({ requirement, task, ledger: scope.snapshot.ledger, run: scope.snapshot.run }).length) throw new Error('Validation role differs from its declared grant or fixed scope.');
+      if (purpose === 'planning') {
+        if (!sameValue([...task.acceptanceIds].sort(), requirement.acceptance.map(item => item.acceptanceId).sort())) throw new Error('Validation planning must retain every fixed acceptance item.');
+      } else requireOriginalTask(scope.snapshot.tasks.find(item => item.taskId === task.taskId)!, task);
+    }
     const workspace = await realpath(input.workspace);
     assertOwnership(task, workspace);
     const reviewer = input.role === 'reviewer';
@@ -100,8 +120,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       rules: task.context.rules, interfaces: task.context.interfaces, knownFailures: task.context.knownFailures,
       tools: tools.map(tool => tool.name), ownership: { readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths },
       budget: { ...task.budget, committedMicroCny: snapshot.ledger.entries.filter(e => e.taskId === task.taskId).reduce((total, e) => total + e.reservedMicroCny + e.settledMicroCny, 0),
-        ...(authority.windowId ? { executionWindow: { windowId: authority.windowId, deadlineAt: authority.deadlineAt,
-          effectiveLimitMicroCny: authority.effectiveLimitMicroCny, taskGrantMicroCny: authority.taskGrantMicroCny } } : {}) },
+        ...(validation ? { validationCase: { ...validation } } : authority!.windowId ? { executionWindow: { windowId: authority!.windowId, deadlineAt: authority!.deadlineAt,
+          effectiveLimitMicroCny: authority!.effectiveLimitMicroCny, taskGrantMicroCny: authority!.taskGrantMicroCny } } : {}) },
       ...(reviewer ? { evidence: task.evidence } : { outputs: task.outputs }) });
     const session = await (options.sessionFactory ?? createPiSession)({
       workspace, stateDirectory: input.stateDirectory, tools,
@@ -111,11 +131,12 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         ? 'You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. Return JSON {verdict:"approved"|"changes_requested",inputVersions:all packet inputs,evidenceIds:host evidence IDs,findings:string[]}. findings contains only unresolved actionable defects, not successful checks, positive observations or explanations. approved requires findings:[]; changes_requested requires at least one such defect with the unmet requirement and actual versus expected behavior. Do not hide actual defects to produce an empty array. Return only these JSON fields. Your verdict is a proposal checked by the host. Do not infer success from author claims.'
         : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next. Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`,
       context: JSON.stringify(packet), thinkingLevel: options.thinkingLevel ?? 'low', env: options.env,
-      maxOutputTokens: input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens,
+      maxOutputTokens: validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
       maxRequests: options.maxRequests, requestTimeoutMs: options.requestTimeoutMs,
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: options.compactionKeepRecentTokens,
-      budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory }),
+      budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
+        ...(validation ? { validation: { caseId: validation.caseId, windowId: validation.windowId, purpose } } : {}) }),
     });
     return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }),
       ...(session.compact ? { compact: (signal?: AbortSignal) => session.compact!(AbortSignal.any([input.controller.signal, ...(signal ? [signal] : [])])) } : {}), close: () => session.close() };
