@@ -17,11 +17,16 @@ const usage = `Usage:
   cosmos resume <run-dir>           Recover a verifiable interruption within the original window
   cosmos continue <run-dir> --quote --add-cny <0..200> --add-minutes <1..720>
                                    Show a read-only continuation proposal; never activate it
+  cosmos continue <run-dir> --add-cny <0..200> --add-minutes <1..720>
+                                   Confirm the exact proposal through stdin and use its first window
+  cosmos resume <run-dir> --window <id>  Resume only the same authorized window
+  cosmos stop <run-dir> --window <id>    Stop the selected authorized window
   cosmos --help
 
 Requires Node.js 22.22.2+. After init, run npm ci in the new project.
 init/run-dir/build/preview/status/continue --quote are local and do not call model APIs.
-new/resume may call native deepseek-flash after host prerequisites pass; intake and generation share CNY 200.
+new/resume/confirmed continue may call native deepseek-flash after host prerequisites pass.
+Intake and original generation share CNY 200; a separately confirmed first window keeps that ledger and records its additions.
 The formal 12-hour clock activates once after exact user confirmation and environment preparation.
 Manual stop, budget stop and deadline stop are durable: resume cannot clear them or add time/budget.`;
 
@@ -91,19 +96,24 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
   if (command === 'continue') {
     if (!path?.trim()) throw new Error(usage);
     const { buildContinuationQuote, parseContinuationQuoteOptions } = await import('../runtime/continuation-quote.ts');
-    const quote = await buildContinuationQuote({ root: resolve(path), ...parseContinuationQuoteOptions(options) });
-    (io.output ?? process.stdout).write(JSON.stringify(quote, null, 2) + '\n'); return quote;
+    const quoteOnly = options.includes('--quote'), requested = parseContinuationQuoteOptions(quoteOnly ? options : ['--quote', ...options]);
+    if (quoteOnly) { const quote = await buildContinuationQuote({ root: resolve(path), ...requested }); (io.output ?? process.stdout).write(JSON.stringify(quote, null, 2) + '\n'); return quote; }
+    const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)));
+    const { runContinuationSession } = await import('./continuation-session.ts');
+    return runContinuationSession({ root: resolve(path), ...requested, host, input: io.input ?? process.stdin, output: io.output ?? process.stdout });
   }
   if (['new', 'resume', 'status', 'stop'].includes(command)) {
     if (!path?.trim()) throw new Error(usage);
     const output = io.output ?? process.stdout, root = resolve(path);
+    const windowId = options.length === 2 && options[0] === '--window' && options[1]?.trim() ? options[1] : undefined;
     if (command === 'status' || command === 'stop') {
-      if (options.length) throw new Error(usage);
-      const control = await import('./control.ts'); const result = command === 'status' ? await control.readRunStatus(root) : await control.requestStop(root);
+      if (options.length && (command !== 'stop' || !windowId)) throw new Error(usage);
+      const control = await import('./control.ts'); const result = command === 'status' ? await control.readRunStatus(root) : await control.requestStop(root, windowId);
       output.write(JSON.stringify(result, null, 2) + '\n'); return result;
     }
-    if (command === 'new' ? options.length !== 2 || options[0] !== '--brief' || !options[1]?.trim() : options.length !== 0) throw new Error(usage);
+    if (command === 'new' ? options.length !== 2 || options[0] !== '--brief' || !options[1]?.trim() : options.length !== 0 && !windowId) throw new Error(usage);
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)));
+    if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, host, input: io.input ?? process.stdin, output });
     const { runProductSession } = await import('./session.ts');
     return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief: command === 'new' ? options[1] : undefined, host, input: io.input ?? process.stdin, output });
   }

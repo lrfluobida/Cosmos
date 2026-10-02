@@ -168,3 +168,19 @@ root 已批准只为受修复上游影响、从未启动的下游建立新任务
 - 新增窄只读 `continuation-inputs.ts`：全部 quote successors 与必要祖先必须出现在 DAG；新任务保留原 source 拓扑，按固定 B/C 映射及 quote grants 显式替换依赖。原 inputs 和 interfaces 只能按无歧义的固定输出版本重绑；删除边/输入、改版本或省略任务均拒绝。B/C 映射必须匹配已确认 quote 中的内容摘要，不改旧计划、D2 账本或确认权限。
 - v2 在开始任何新阶段前，先复用原恢复逻辑核验全部 passed 祖先的 journal、registry provenance、验收证据与内容签名。新任务尚未登记时，缺失/漂移祖先也不会新增 task、journal 或请求。旧 v1 的恢复行为保留。
 - 最初五项反例确认红灯，随后补出的“只执行部分 quote 任务”反例也先红后绿。合法新上游版本→下游的真 controller/registry 管线继续通过。最终命令：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/continuation-runtime.test.ts tests/runtime/recovery/dependencies.test.ts`，16 项窗口管线与 5 项 v1 依赖恢复，共 21 项通过；同一源码 `npm run typecheck`、`npm run build` 通过。没有重复已稳定的 102/6 项，也没有 API、真实浏览器、真实运行或旧 trial 操作。
+
+### D3c 当前实施边界
+
+- 新增有限续跑计划模块，固定保存 `continuations/<decision>/plan.json`；来源为原 execution/native plan、B/C 映射和 D2 已确认窗口。保留原任务目标、验收、ownership；新 ID/grant 严格取 quote，新 context/workspace/version 独立。新 origin/登记之前核对原 origin 与所有 passed 祖先的 registry、证据和内容签名；缺计划或部分 origin 只在无请求、attempt、阶段回执或新输出时补齐，不重获时间。
+- 新增 CLI continuation 会话；`continue --quote` 不变，交互 continue 先免费检查前置，再展示准确报价。仅真实 stdin 的 `confirm <quoteId>` 产生完整确认来源并激活；取消、EOF、陈旧报价或前置失败不激活。`resume --window` 读取原确认/原计划继续同窗口，保持中央 `sessions/<attempt>` 回执路径；新窗口只有一次 author attempt，无自动语义修复。
+- control 的管道消息、状态和结果绑定 windowId。没有活跃 owner 时，经原 ownership recovery 确认退出，或核验真实 drain/关闭后发布的同快照空闲证明，再停止所选窗口；活 owner 或未知子进程不假报停止。报告分列原上限未达标事实与新增窗口结果，最终试玩仍未确认。
+- 本作者修改 CLI/session/entrypoint、新计划模块和其测试/文档；`entrypoint-host.ts`、control 及其测试由 B 作者独立实现和审查。只支持 formal 首个窗口，多次不同 decision、validation 新窗口及最终试玩持久阶段仍不在本段。
+
+### D3c 接线与离线证据
+
+- 公开命令复用 D1 的金额/时间解析、D2 的准确确认和原子激活、D3a 的完整 DAG 恢复核验，以及 B2 的固定 workspace/产物适配；没有第二账本或新的执行引擎。实际 stdin 确认来源按 decision 保存，生成前置在展示和激活前再次检查；陈旧快照或原确认文件改变均拒绝。`resume --window` 沿已记录时窗恢复，不重新激活。
+- 新 `continuation-plan.ts` 固定原 execution/native plan 与 B/C 来源、准确 quote grants、新 context/workspace/version 和完整拓扑。旧已过任务先经 journal/provenance/signature 核验；仅零执行证据的新任务可补齐 plan/origin/原子登记。已登记任务缺 plan/origin、已有未知 phase 回执或作者部分输出均拒绝；原任务、旧未完成文件、ledger entries 与原时间不改。
+- continuation teardown 在整段 OwnedWork（含报告）结束后先关闭通知与控制通道，再调用已审 `closeAfterDrain`。活动 `stop --window` 等待任务取消写入及 drain 后返回 ACK，随后关闭 pipe 并发布空闲证明；正常关闭后 `stop` 复用 B 的 proof 消费接口。原始未达标结果单列，新窗口即使通过也只显示等待用户体验确认。
+- 新计划最初五项接口缺失红灯后通过，扩展为 10 项：固定计划、祖先证据漂移、plan-only、origin 部分发布、原子登记前后中断、已登记缺 origin/plan、未知部分产物/阶段回执及来源字节漂移。公开 CLI 最初五项缺入口红灯后通过，现为 14 项：准确 stdin、取消/EOF/前后 readiness/陈旧信息/错误确认、激活后缺 plan、错窗口/普通 resume 拒绝、未知费用不重发、活动及空闲停止、design/art 取消后下游新版本、单次失败不自动重试。停止接线另有两个缺 receipt 红灯再通过的记录。
+- 命令：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/runtime/continuation-plan.test.ts`（10/10）；同命令 `tests/cli/continuation-session.test.ts`（14/14）；同命令 `tests/cli/session.test.ts tests/cli/continuation-quote.test.ts tests/runtime/entrypoint.test.ts`（51/51）。最后源码 `npm run build`（含 strict TypeScript）通过。真实 controller、预算 hooks、journal、registry 配合明确 fake provider/build/browser；保留中央 session 回执，同窗口恢复不重付已过祖先。旧 D1 用例含一次只读 Node CLI 子进程；未运行游戏编译、真实浏览器、API、旧 trial 或真实验证目录。
+- 基线含已审 host `38da6e0`、idle core `2c32091` 及 B 控制候选 `f31b223`；控制候选独立审查与本段独立审查均由 merger 核定后才进入 main。本段不等同于真实游戏生成/G3 或用户试玩通过；多次追加、validation 续窗、最终试玩等待的持久计时阶段仍保留缺口。

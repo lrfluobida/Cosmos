@@ -11,18 +11,26 @@ import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
 import { confirmRequirements, gameplayAcceptance, HOST_STAGE_ACCEPTANCE } from '../roles/requirements.ts';
 import type { GameDraft } from '../roles/requirements.ts';
 import { readRunSnapshot, recoverRunOwner, startBudgetWarnings, startControl } from './control.ts';
+import type { RunSnapshot } from '../runtime/run-types.ts';
 
 export interface ProductHost {
   prepare(root: string, signal?: AbortSignal): Promise<{ environmentReady: boolean; executionReady: boolean; reason?: string }>;
   questions(input: { controller: IntakeController; roundId: string; brief: string }): Promise<GameDraft['questions']>;
   draft(input: { controller: IntakeController; roundId: string; brief: string; questions: GameDraft['questions']; answers: GameDraft['answers'] }): Promise<GameDraft>;
-  execute(input: { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; notify?: (message: string) => void }): Promise<unknown>;
+  execute(input: { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; notify?: (message: string) => void }): Promise<unknown>;
 }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> {
   try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
 }
 const draftPayload = ({ revision: _revision, source: _source, ...draft }: StoredDraft): GameDraft => draft;
+export async function readConfirmedGeneration(root: string, snapshot: RunSnapshot) {
+  const source = snapshot.run.humanDecisions.find(decision => decision.decisionId.startsWith('requirements-v'));
+  if (!source || source.evidence.length !== 2 || source.evidence[0].artifactId !== 'requirement-draft' || source.evidence[1].artifactId !== 'user-confirmation') throw new Error('No original CLI requirement confirmation to resume.');
+  const draft = await json(root, source.evidence[0].location), confirmed = await json(root, source.evidence[1].location);
+  if (confirmed.runId !== snapshot.run.runId || confirmed.actorId !== source.actorId || confirmed.at !== source.decidedAt) throw new Error('Original confirmation identity changed.');
+  return { draft, requirement: confirmRequirements({ ...draft, specVersion: snapshot.run.specVersion, sources: source.evidence }, confirmed) };
+}
 function displayDraft(draft: StoredDraft): string {
   const lines = [`草稿 v${draft.revision}`, `游戏需求：${draft.brief}`, '已回答的问题：', ...draft.questions.map(question => `- ${question.prompt} ${draft.answers[question.id] ?? '尚未回答'}`), '玩法要求：'];
   for (const item of gameplayAcceptance(draft)) lines.push(`- ${item.description}`, `  操作：${item.steps.join('；')}`, `  期望：${item.expected}`);
@@ -69,14 +77,11 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       await publishReceipt(join(root, 'intake-origin.json'), { runId, brief: options.brief });
     } else {
       const snapshot = await readRunSnapshot(root);
+      if (snapshot.formatVersion === 2) throw new Error('This run has an authorized continuation window; select it explicitly with resume --window <id>.');
       if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
       if (snapshot.formatVersion === 1) {
         if (Date.now() >= Date.parse(snapshot.run.originalDeadlineAt)) throw new Error('Original deadline expired; resume cannot extend it.');
-        const source = snapshot.run.humanDecisions.find(decision => decision.decisionId.startsWith('requirements-v'));
-        if (!source || source.evidence.length !== 2 || source.evidence[0].artifactId !== 'requirement-draft' || source.evidence[1].artifactId !== 'user-confirmation') throw new Error('No original CLI requirement confirmation to resume.');
-        const draft = await json(root, source.evidence[0].location), confirmed = await json(root, source.evidence[1].location);
-        if (confirmed.runId !== snapshot.run.runId || confirmed.actorId !== source.actorId || confirmed.at !== source.decidedAt) throw new Error('Original confirmation identity changed.');
-        const requirement = confirmRequirements({ ...draft, specVersion: snapshot.run.specVersion, sources: source.evidence }, confirmed);
+        const { draft, requirement } = await readConfirmedGeneration(root, snapshot);
         say(`恢复原运行 ${snapshot.run.runId}；费用与截止时间保持连续。`);
         lines.close();
         const result = await host.execute({ root, requirement, draft, resume: true, notify: say });

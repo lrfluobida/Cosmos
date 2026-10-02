@@ -25,6 +25,9 @@ import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from './r
 import type { RepairFeedback } from './repair/feedback.ts';
 import { allocateRepairGrants, buildRepairContinuation, findUnstartedSuccessors, prepareRepairContinuation, sealRepairDiagnostics, SuccessorBlocked } from './entrypoint-successors.ts';
 import type { RepairContinuationPlan, SuccessorTarget, TaskReplacement } from './entrypoint-successors.ts';
+import { loadContinuationPlan, prepareContinuationPlan } from './continuation-plan.ts';
+import type { ContinuationPlan } from './continuation-plan.ts';
+import { executionWindowView } from './execution-window.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
@@ -34,8 +37,8 @@ export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
   continuationTargets?(sources: PreparedTask[], feedback: RepairFeedback, grants: Record<string, number>): Promise<SuccessorTarget[] | null>;
 }
-export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork }
-export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
+export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; binding?: { windowId: string; tasks: PreparedTask[] } }
+export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> { try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
 
@@ -59,6 +62,7 @@ export async function reconcileEntryReceipts(root: string, controller: Accountin
 
 /** Thin assembly of the existing planner, scheduler, recovery and bounded repair policy. */
 export async function executeGeneration(options: GenerationOptions) {
+  if (options.windowId) return executeContinuation(options);
   const root = resolve(options.root), requirement = structuredClone(options.requirement), draft = structuredClone(options.draft);
   validateGameDraft(draft);
   if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Generation requires the exact confirmed acceptance.');
@@ -192,5 +196,68 @@ export async function executeGeneration(options: GenerationOptions) {
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
     await warnings?.close(); await control?.close(); await controller.close();
+  }
+}
+
+/** One existing explicit window, using the same executor and the host's fixed complete binding. */
+async function executeContinuation(options: GenerationOptions) {
+  const root = resolve(options.root), windowId = options.windowId!, requirement = structuredClone(options.requirement), draft = structuredClone(options.draft);
+  validateGameDraft(draft);
+  if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Continuation requires the original confirmed acceptance.');
+  const original = await readRunSnapshot(root);
+  if (original.formatVersion !== 2 || original.continuation?.currentWindowId !== windowId) throw new Error('Wrong continuation execution window.');
+  const window = original.continuation.windows.find(item => item.windowId === windowId)!;
+  if (window.stopReason) throw new Error(`Execution window is stopped: ${window.stopReason.code}.`);
+  if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))
+    || !sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Original requirement confirmation changed.');
+  await recoverRunOwner(root);
+  const controller = await RunController.open({ root, windowId }), work = new OwnedWork(controller.signal);
+  let control: Awaited<ReturnType<typeof startControl>> | undefined, warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined;
+  let host: GenerationHost | undefined, plan: ContinuationPlan | undefined;
+  const stop = () => cancelAndDrain(controller, work, 'CLI user requested a durable window stop.');
+  const interrupt = () => { void stop().catch(() => {}); };
+  try {
+    controller.signal.throwIfAborted();
+    control = await startControl(root, original.run.runId, stop, windowId); process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
+    if (options.notify) warnings = await startBudgetWarnings(root, options.notify);
+    return await work.run(async signal => {
+      let reusedTaskIds: string[] = [], blocked: { taskId: string; reason: string }[] = [], final: { delivery?: string; gaps: string[] } = { gaps: [] };
+      try {
+        await reconcileEntryReceipts(root, controller);
+        plan = await loadContinuationPlan({ root, controller, requirement, windowId });
+        host = await options.createHost({ root, controller, requirement, draft, work, resume: true, binding: { windowId, tasks: plan.tasks } });
+        if (host.capability !== plan.capability || !sameValue(host.availableArtifacts, plan.availableArtifacts)) throw new RecoveryBlocked('Original host capability or available input versions changed.');
+        host.validateTasks?.(plan.tasks);
+        await prepareContinuationPlan({ root, controller, requirement, windowId, plan, recoverCapture: host.recoverCapture });
+        const result = await resumeTaskDag({ controller, windowId, requirement, tasks: plan.tasks, sessionRoot: join(root, 'sessions'), availableArtifacts: plan.availableArtifacts,
+          roleFactory: host.roleFactory, preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure,
+          reviewProtocolCorrections: plan.reviewProtocolCorrections, signal, scheduling: { maxParallel: 2, resources: Object.fromEntries(plan.tasks.map(item => [item.task.taskId, ['browser-build-promotion']])) },
+          recovery: { journalRoot: join(root, 'journal'), artifactRoot: root, recoverCapture: host.recoverCapture } });
+        reusedTaskIds = result.reusedTaskIds; blocked = result.blocked;
+      } catch (error) {
+        final.gaps.push(error instanceof RecoveryBlocked ? error.message : 'Continuation did not complete; preserve the original plan, session receipts and handoff before retrying.');
+      }
+      const state = await controller.read(), active = executionWindowView(state).executionWindow;
+      const effective = plan?.tasks.map(item => state.tasks.find(task => task.taskId === item.task.taskId)).filter((task): task is TaskContract => !!task) ?? [];
+      if (host) {
+        const delivered = await host.finish(effective).catch(() => ({ gaps: ['Accepted candidate and original host proof cannot be established.'] }));
+        final = { ...delivered, gaps: [...final.gaps, ...delivered.gaps] };
+      }
+      const gaps = [...final.gaps, ...blocked.map(item => `${item.taskId}: ${item.reason}`), ...effective.filter(task => task.state !== 'passed').flatMap(task => task.handoff.remaining),
+        ...(active.stopReason ? [`${active.stopReason.code}: ${active.stopReason.reason}`] : [])];
+      const passed = !active.stopReason && !gaps.length && !!final.delivery && !!plan && effective.length === plan.tasks.length && effective.every(task => task.state === 'passed');
+      const outcome = { outcome: passed ? 'awaiting_user_experience' : 'incomplete', runId: state.run.runId, ledgerId: state.ledger.ledgerId, windowId,
+        decisionId: window.decisionId, currentProject: root, ...final, gaps, reusedTaskIds,
+        originalResult: { outcome: 'not_met', originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt,
+          limitMicroCny: state.ledger.limitMicroCny, settledMicroCny: window.quote.original.settledMicroCny, stopReason: state.stopReason },
+        taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff,
+          supersededBy: plan?.replacements.find(item => item.sourceTaskId === task.taskId && state.tasks.some(target => target.taskId === item.replacementTaskId))?.replacementTaskId ?? null })),
+        status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
+      await mkdir(join(root, 'delivery'), { recursive: true }); const report = `delivery/report-${randomUUID()}.json`;
+      await publishReceipt(join(root, report), outcome); return { ...outcome, report };
+    });
+  } finally {
+    process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
+    await warnings?.close(); await control?.close(); await controller.closeAfterDrain(work);
   }
 }
