@@ -4,13 +4,14 @@ import { lstat, rename, unlink, writeFile } from 'node:fs/promises';
 import { createConnection, createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { regularFile } from '../artifacts/paths.ts';
+import { regularFile, safePath } from '../artifacts/paths.ts';
 import { budgetSummary } from '../contracts/index.ts';
 import { validateIntakeSnapshot } from '../runtime/intake.ts';
 import type { IntakeSnapshot } from '../runtime/intake.ts';
 import { validateSnapshot } from '../runtime/run-validation.ts';
 import type { RunSnapshot } from '../runtime/run-types.ts';
 import { SnapshotStore } from '../runtime/store.ts';
+import { RunController } from '../runtime/run.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
 import { executionWindowView } from '../runtime/execution-window.ts';
 
@@ -34,9 +35,10 @@ export async function startBudgetWarnings(root: string, notify: (message: string
   return { async close() { closed = true; clearInterval(timer); await active; } };
 }
 
-export async function recoverRunOwner(root: string): Promise<void> {
+export async function recoverRunOwner(root: string): Promise<boolean> {
   const lock = await lstat(join(root, '.controller.lock')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
-  if (lock) await SnapshotStore.recover(root);
+  if (!lock) return false;
+  await SnapshotStore.recover(root); return true;
 }
 
 export async function readRunSnapshot(root: string): Promise<IntakeSnapshot | RunSnapshot> {
@@ -85,21 +87,40 @@ async function readContinuationStatus(root: string, snapshot: RunSnapshot) {
     return { state: 'blocked', replacements: [] as { sourceTaskId: string; replacementTaskId: string }[] };
   }
 }
-interface ControlRecord { formatVersion: 1; runId: string; token: string; endpoint: string }
-async function record(root: string): Promise<ControlRecord> {
+interface ControlRecord { formatVersion: 1 | 2; runId: string; token: string; endpoint: string; windowId?: string }
+interface ControlAck { runId: string; stopped: true; windowId?: string }
+class ControlUnavailable extends Error {}
+function requireWindow(snapshot: IntakeSnapshot | RunSnapshot, windowId?: string): void {
+  if (snapshot.formatVersion === 2) {
+    if (!windowId || snapshot.continuation!.currentWindowId !== windowId) throw new Error('Stop requires the explicit current execution window.');
+  } else if (windowId !== undefined) throw new Error('Original run does not have this execution window.');
+}
+function acknowledged(snapshot: IntakeSnapshot | RunSnapshot, windowId?: string): ControlAck {
+  requireWindow(snapshot, windowId);
+  const stop = snapshot.formatVersion === 2 ? executionWindowView(snapshot).executionWindow.stopReason : snapshot.stopReason;
+  if (!stop) throw new Error('Stop did not become durable in the requested window.');
+  return { runId: snapshot.run.runId, stopped: true, ...(windowId ? { windowId } : {}) };
+}
+async function record(root: string): Promise<ControlRecord | null> {
   try {
     const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, 'cli-control.json')));
-    if (value.formatVersion !== 1 || typeof value.runId !== 'string' || !/^[\da-f-]{36}$/.test(value.token)
+    if (![1, 2].includes(value.formatVersion) || typeof value.runId !== 'string' || !/^[\da-f-]{36}$/.test(value.token)
+      || (value.formatVersion === 1 ? value.windowId !== undefined : typeof value.windowId !== 'string' || !value.windowId.trim())
       || value.endpoint !== endpoint(value.token)) throw new Error('Invalid control record');
     return value;
-  } catch { throw new Error('No active owner control channel; inspect status and use crash recovery when eligible.'); }
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw new Error('Invalid owner control channel; stop or drain is unconfirmed.');
+  }
 }
 const endpoint = (token: string) => process.platform === 'win32' ? `\\\\.\\pipe\\cosmos-${token}` : join(tmpdir(), `cosmos-${token}.sock`);
 
 /** Call only while this host owns the run controller. The author never receives this channel. */
-export async function startControl(root: string, runId: string, stopAndDrain: () => Promise<void>) {
+export async function startControl(root: string, runId: string, stopAndDrain: () => Promise<void>, windowId?: string) {
   root = resolve(root);
-  const value: ControlRecord = { formatVersion: 1, runId, token: randomUUID(), endpoint: '' }; value.endpoint = endpoint(value.token);
+  const snapshot = await readRunSnapshot(root); requireWindow(snapshot, windowId);
+  if (snapshot.run.runId !== runId) throw new Error('Control channel belongs to another run.');
+  const value: ControlRecord = { formatVersion: windowId ? 2 : 1, runId, token: randomUUID(), endpoint: '', ...(windowId ? { windowId } : {}) }; value.endpoint = endpoint(value.token);
   const server = createServer(socket => {
     socket.setEncoding('utf8'); socket.setTimeout(5000, () => socket.destroy());
     let input = '', handled = false;
@@ -112,13 +133,15 @@ export async function startControl(root: string, runId: string, stopAndDrain: ()
       void (async () => {
         try {
           const message = JSON.parse(input);
-          if (message.runId !== runId || message.token !== value.token || message.command !== 'stop') throw new Error('Invalid control identity.');
+          if (message.runId !== runId || message.token !== value.token || message.command !== 'stop' || message.windowId !== windowId) throw new Error('Invalid control identity or window.');
+          const latest = await readRunSnapshot(root); requireWindow(latest, windowId);
+          if (latest.run.runId !== runId) throw new Error('Control run identity changed.');
           socket.setTimeout(0);
           await stopAndDrain();
-          const state = await readRunStatus(root);
-          if (!state.stopped) throw new Error('Stop did not become durable.');
-          socket.end(JSON.stringify({ runId, stopped: true }) + '\n');
-        } catch { socket.end(JSON.stringify({ error: 'Stop or drain is unconfirmed; inspect the original run.' }) + '\n'); }
+          const state = await readRunSnapshot(root);
+          if (state.run.runId !== runId) throw new Error('Control run identity changed.');
+          socket.end(JSON.stringify(acknowledged(state, windowId)) + '\n');
+        } catch { socket.end(JSON.stringify({ ...(windowId ? { runId, windowId } : {}), error: 'Stop or drain is unconfirmed; inspect the requested run window.' }) + '\n'); }
       })();
     });
   });
@@ -133,20 +156,43 @@ export async function startControl(root: string, runId: string, stopAndDrain: ()
   } };
 }
 
-export async function requestStop(root: string): Promise<{ runId: string; stopped: true }> {
+async function stopRecoveredWindow(root: string, snapshot: RunSnapshot, windowId: string): Promise<ControlAck> {
+  const registry = await lstat(await safePath(root, 'registry/.commit.lock')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
+  if (registry) throw new Error('Registry writer ownership is unresolved; stop or drain is unconfirmed.');
+  if (!await recoverRunOwner(root)) throw new Error('Missing owner marker cannot prove writer quiescence; stop or drain is unconfirmed.');
+  const current = await readRunSnapshot(root); requireWindow(current, windowId);
+  if (current.run.runId !== snapshot.run.runId) throw new Error('Run identity changed before owner recovery.');
+  const controller = await RunController.open({ root, windowId });
+  try { await controller.stop('CLI user stopped the recovered execution window.'); return acknowledged(await controller.read(), windowId); }
+  finally { await controller.close(); }
+}
+
+export async function requestStop(root: string, windowId?: string): Promise<ControlAck> {
   root = resolve(root);
-  const current = await record(root), snapshot = await readRunSnapshot(root);
+  const snapshot = await readRunSnapshot(root); requireWindow(snapshot, windowId);
+  const current = await record(root);
+  if (!current) {
+    if (snapshot.formatVersion === 2) return stopRecoveredWindow(root, snapshot, windowId!);
+    throw new Error('No active owner control channel; inspect status and use crash recovery when eligible.');
+  }
   if (current.runId !== snapshot.run.runId) throw new Error('Control channel belongs to another run.');
-  return new Promise((accept, reject) => {
-    const socket = createConnection(current.endpoint); socket.setEncoding('utf8'); let output = '';
+  if (current.windowId !== windowId) throw new Error('Control channel belongs to another execution window.');
+  return new Promise<ControlAck>((accept, reject) => {
+    const socket = createConnection(current.endpoint); socket.setEncoding('utf8'); let output = '', connected = false;
     const timeout = setTimeout(() => socket.destroy(new Error('Stop drain is unconfirmed; owner did not acknowledge.')), 15000);
-    socket.on('connect', () => socket.write(JSON.stringify({ command: 'stop', runId: current.runId, token: current.token }) + '\n'));
+    socket.on('connect', () => { connected = true; socket.write(JSON.stringify({ command: 'stop', runId: current.runId, token: current.token, ...(windowId ? { windowId } : {}) }) + '\n'); });
     socket.on('data', part => { output += part; if (output.length > 4096) socket.destroy(new Error('Invalid control response.')); });
-    socket.on('error', () => { clearTimeout(timeout); reject(new Error('Stop or drain is unconfirmed; no active owner acknowledgement.')); });
+    socket.on('error', (error: NodeJS.ErrnoException) => {
+      clearTimeout(timeout);
+      reject(!connected && ['ENOENT', 'ECONNREFUSED'].includes(error.code ?? '') ? new ControlUnavailable('No active owner control channel.') : new Error('Stop or drain is unconfirmed; no active owner acknowledgement.'));
+    });
     socket.on('end', () => {
       clearTimeout(timeout);
-      try { const result = JSON.parse(output); if (result.runId !== current.runId || result.stopped !== true) throw new Error('Unconfirmed stop or drain.'); accept(result); }
+      try { const result = JSON.parse(output); if (result.runId !== current.runId || result.stopped !== true || result.windowId !== windowId) throw new Error('Unconfirmed stop or drain.'); accept(result); }
       catch { reject(new Error('Stop or drain is unconfirmed; inspect the original run.')); }
     });
+  }).catch(error => {
+    if (snapshot.formatVersion === 2 && error instanceof ControlUnavailable) return stopRecoveredWindow(root, snapshot, windowId!);
+    throw error;
   });
 }

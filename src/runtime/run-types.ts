@@ -23,7 +23,7 @@ export interface StopReason {
 export interface RunEvent {
   sequence: number;
   at: string;
-  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved' | 'generation_activated' | 'continuation_activated' | 'window_stopped';
+  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved' | 'generation_activated' | 'continuation_activated' | 'window_stopped' | 'window_owner_drained' | 'window_owner_resumed';
   requestId: string | null;
   reason: string;
 }
