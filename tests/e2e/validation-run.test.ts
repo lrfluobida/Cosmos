@@ -5,48 +5,122 @@ import test from 'node:test';
 import { validationRunFixture } from './validation-run.fixture.ts';
 import { VALIDATION_CASE } from '../../probes/e2e/validation-declaration.ts';
 import { ArtifactRegistry, createArtifactRegistry } from '../../src/artifacts/index.ts';
+import { RunController } from '../../src/runtime/run.ts';
+import { prepareValidationCase } from '../../src/runtime/validation-window.ts';
 import * as entry from '../../probes/e2e/validation-run.ts';
 
 test('actual main preflight preserves snapshot bytes, mtime and roots without opening an owner or preparing a host', async t => {
   assert.equal(typeof entry.preflightValidationRun, 'function'); const f = await validationRunFixture(t), path = join(f.ledgerRoot, 'snapshot.json');
   const before = await readFile(path), stamp = (await stat(path)).mtimeMs, names = await readdir(f.ledgerRoot);
   const result = await entry.preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] });
-  assert.equal(result.outcome, 'ready'); assert.equal(result.quote.activationAllowed, false); assert.equal(result.quote.basis.stopReason, null);
+  assert.equal(result.outcome, 'ready'); assert.equal(result.quote.activationAllowed, false); assert.equal(result.quote.basis.stopReason?.code, 'deadline');
+  assert.equal(result.quote.basis.allocatedMicroCny, 105_596_040); assert.equal(result.quote.declaration.caseId, 'cos20-native-validation-2');
+  assert.equal(result.quote.basis.originalStartedAt, f.originalSnapshot.run.originalStartedAt);
   assert.equal(result.quote.basis.committedMicroCny, 1_116_402); assert.equal(result.quote.basis.originalDeadlineAt, '2026-10-01T18:16:16.857Z');
   assert.deepEqual(await readFile(path), before); assert.equal((await stat(path)).mtimeMs, stamp); assert.deepEqual(await readdir(f.ledgerRoot), names);
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
 test('credential or host prerequisites fail before receipt, case claim or clock writes', async t => {
-  assert.equal(typeof entry.runValidationWithHost, 'function'); const f = await validationRunFixture(t), before = await readFile(join(f.ledgerRoot, 'snapshot.json'));
+  assert.equal(typeof entry.runValidationWithHost, 'function'); const f = await validationRunFixture(t), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), names = await readdir(f.ledgerRoot);
   let executed = 0;
   await assert.rejects(entry.runValidationWithHost({ repository: f.repository, args: f.args, host: {
     prepare: async () => { throw new Error('Offline unavailable credential/environment'); }, execute: async () => { executed++; return { outcome: 'failed', gaps: ['Offline fixture only'] }; },
   } }), /prerequisite|credential|environment/i);
   assert.equal(executed, 0); assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), before);
-  assert.deepEqual(await readdir(f.ledgerRoot), ['snapshot.json']); await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
+  assert.deepEqual(await readdir(f.ledgerRoot), names); await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
 test('startup failure after exact operator claim consumes the case with zero model requests and a safe preserved report', async t => {
   assert.equal(typeof entry.runValidationWithHost, 'function'); const f = await validationRunFixture(t), before = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8'));
+  assert.ok(f.caseOne); const originalOperatorBytes = await readFile(join(f.ledgerRoot, f.caseOne.decision.source.location));
   let prepared = 0, executed = 0;
   const result = await entry.runValidationWithHost({ repository: f.repository, args: f.args, host: {
     prepare: async () => { prepared++; }, execute: async () => { executed++; throw new Error('Offline private exception must not be reported'); },
   } });
   assert.equal(result.outcome, 'failed'); assert.equal('requestsUsed' in result && result.requestsUsed, 0); assert.equal('caseCommittedMicroCny' in result && result.caseCommittedMicroCny, 0); assert.equal(prepared, 1); assert.equal(executed, 1);
   assert.equal(JSON.stringify(result).includes('private exception'), false);
-  const state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8')), window = state.validation.cases[0];
+  const state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8')), window = state.validation.cases.find((item: any) => item.caseId === VALIDATION_CASE.caseId);
   assert.deepEqual(state.ledger.entries, before.ledger.entries); assert.deepEqual(state.run.humanDecisions, []); assert.equal(state.run.originalDeadlineAt, before.run.originalDeadlineAt);
   const receipt = JSON.parse(await readFile(join(f.ledgerRoot, window.operatorDecision.source.location), 'utf8'));
   assert.equal(receipt.kind, 'operator_validation'); assert.deepEqual(receipt.quote, window.quote); assert.equal(Object.hasOwn(receipt, 'confirmed'), false);
   assert.equal(window.stopReason.code, 'manual'); await assert.rejects(readFile(join(f.ledgerRoot, '.controller.lock')), { code: 'ENOENT' });
+  assert.ok(f.caseOne); assert.equal(state.validation.currentCaseId, window.caseId); assert.equal(state.validation.cases.length, 2);
+  assert.notEqual(window.windowId, f.caseOne.window.windowId); assert.notEqual(window.startedAt, f.caseOne.window.startedAt);
+  assert.equal(Date.parse(window.deadlineAt) - Date.parse(window.startedAt), VALIDATION_CASE.limits.durationMs);
+  assert.notEqual(window.operatorDecision.decisionId, f.caseOne.decision.decisionId);
+  assert.deepEqual(state.validation.cases[0], before.validation.cases[0]); assert.deepEqual(state.run, { ...before.run,
+    taskIds: [...before.run.taskIds, ...Object.values(VALIDATION_CASE.grants).map(grant => grant.taskId)] });
+  assert.deepEqual(state.stopReason, before.stopReason); assert.deepEqual(state.requests, before.requests); assert.deepEqual(state.tasks, before.tasks);
+  assert.deepEqual(state.events.slice(0, before.events.length), before.events);
+  assert.deepEqual(state.ledger.allocations, [...before.ledger.allocations, ...Object.values(VALIDATION_CASE.grants)]);
+  assert.deepEqual(await RunController.claimValidationCase(f.caseOne), before.validation.cases[0], 'Exact case 1 decision stays idempotent and cannot reopen it');
   const final = await readFile(join(f.ledgerRoot, 'snapshot.json'));
+  await assert.rejects(prepareValidationCase({ ...f.caseOne, declaration: f.caseOne.declaration }), /claimed|reset|rename/i);
+  const claim = { ...f.caseOne, now: Date.now, quote: window.quote, decision: { ...window.operatorDecision } }; delete (claim.decision as any).sourceSha256;
+  assert.deepEqual(await RunController.claimValidationCase(claim), window, 'Exact case 2 decision stays idempotent after zero-call failure');
+  assert.deepEqual(await readFile(join(f.ledgerRoot, f.caseOne.decision.source.location)), originalOperatorBytes);
+  const changedDecision = { ...f.caseOne.decision, decisionId: 'offline-case-one-restart', source: { ...f.caseOne.decision.source, location: 'offline-rejected-restart.json' } };
+  await writeFile(join(f.ledgerRoot, changedDecision.source.location), JSON.stringify({ formatVersion: 'operator-validation-decision-1', kind: changedDecision.kind,
+    decisionId: changedDecision.decisionId, actorId: changedDecision.actorId, decidedAt: changedDecision.decidedAt, sourceRefs: changedDecision.sourceRefs, quote: f.caseOne.quote }), 'utf8');
+  await assert.rejects(RunController.claimValidationCase({ ...f.caseOne, decision: changedDecision }), /claimed|reset|rename/i);
   await assert.rejects(entry.runValidationWithHost({ repository: f.repository, args: f.args, host: { prepare: async () => {}, execute: async () => ({ outcome: 'failed', gaps: ['Offline fixture only'] }) } }), /claimed|consumed|case|root/i);
   assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), final);
 });
 
+for (const caseOne of ['absent', 'unstopped'] as const) test(`case 2 requires the original case 1 stopped profile: ${caseOne}`, async t => {
+  const f = await validationRunFixture(t, { caseOne }), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), names = await readdir(f.ledgerRoot);
+  let prepared = 0;
+  await assert.rejects(entry.runValidationWithHost({ repository: f.repository, args: f.args, host: {
+    prepare: async () => { prepared++; }, execute: async () => ({ outcome: 'failed', gaps: ['Offline fixture must not execute'] }),
+  } }), /case 1.*stopped|stopped.*case 1/i);
+  assert.equal(prepared, 0); assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), before); assert.deepEqual(await readdir(f.ledgerRoot), names);
+  await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
+});
+
+for (const exposure of ['reserved', 'unknown'] as const) test(`case 2 refuses ${exposure} case 1 charges before host preparation or new writes`, async t => {
+  const f = await validationRunFixture(t, { exposure }), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), names = await readdir(f.ledgerRoot);
+  let prepared = 0;
+  await assert.rejects(entry.runValidationWithHost({ repository: f.repository, args: f.args, host: {
+    prepare: async () => { prepared++; }, execute: async () => ({ outcome: 'failed', gaps: ['Offline fixture must not execute'] }),
+  } }), /unknown|reserved|reconciliation/i);
+  assert.equal(prepared, 0); assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), before); assert.deepEqual(await readdir(f.ledgerRoot), names);
+  await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
+});
+
+for (const fault of ['missing', 'duplicate', 'not-ready', 'closed-not-ready', 'wrong-marker', 'not-integrated', 'reviewed-not-ancestor', 'merge-not-ancestor'] as const) test(`COS21 ${fault} refuses case 2 before host preparation or writes`, async t => {
+  const f = await validationRunFixture(t), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), names = await readdir(f.ledgerRoot);
+  const item = f.mapping.tasks.find(item => item.taskId === 'COS-21')!;
+  if (fault === 'missing') f.mapping.tasks = f.mapping.tasks.filter(task => task !== item);
+  else if (fault === 'duplicate') f.mapping.tasks.push({ ...item });
+  else if (fault === 'not-ready' || fault === 'closed-not-ready') { item.reviewStatus = 'NOT_READY'; if (fault === 'closed-not-ready') item.state = 'closed'; }
+  else if (fault === 'wrong-marker') item.reviewStatus = 'SOURCE_READY';
+  else if (fault === 'not-integrated') item.integrationStatus = 'diagnosis-in-progress';
+  else {
+    await f.git('switch', '-c', 'offline-unmerged-source'); await f.git('commit', '--allow-empty', '-m', 'Offline unmerged Windows source');
+    const unmerged = await f.git('rev-parse', 'HEAD'); await f.git('switch', 'main');
+    item[fault === 'reviewed-not-ancestor' ? 'reviewedCommit' : 'mergeCommit'] = unmerged;
+  }
+  await writeFile(join(f.repository, 'docs/specs/github-issues.json'), JSON.stringify(f.mapping), 'utf8'); await f.git('add', '.'); await f.git('commit', '-m', `Offline COS21 ${fault}`);
+  const head = await f.git('rev-parse', 'HEAD'); let prepared = 0;
+  await assert.rejects(entry.runValidationWithHost({ repository: f.repository, args: ['--validation-case', head, f.args[2]], host: {
+    prepare: async () => { prepared++; }, execute: async () => ({ outcome: 'failed', gaps: ['Offline fixture must not execute'] }),
+  } }), /COS-21|reviewed|integrated/i);
+  assert.equal(prepared, 0); assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), before); assert.deepEqual(await readdir(f.ledgerRoot), names);
+  await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
+});
+
+test('COS21 source-integrated readiness also permits a free quote without live COS10 or COS20 closure', async t => {
+  const f = await validationRunFixture(t), before = await readFile(join(f.ledgerRoot, 'snapshot.json'));
+  f.mapping.tasks.find(item => item.taskId === 'COS-21')!.integrationStatus = 'source-integrated';
+  await writeFile(join(f.repository, 'docs/specs/github-issues.json'), JSON.stringify(f.mapping), 'utf8'); await f.git('add', '.'); await f.git('commit', '-m', 'Offline Windows source integrated');
+  const head = await f.git('rev-parse', 'HEAD'), result = await entry.preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', head] });
+  assert.equal(result.outcome, 'ready'); assert.equal(result.paidRequests, 0); assert.ok(result.sourceApprovals.some(item => item.taskId === 'COS-21'));
+  assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), before);
+});
+
 test('source prerequisite state and ancestry are both required without demanding live COS10 completion', async t => {
-  const f = await validationRunFixture(t), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), path = join(f.repository, 'docs/specs/github-issues.json');
+  const f = await validationRunFixture(t), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), names = await readdir(f.ledgerRoot), path = join(f.repository, 'docs/specs/github-issues.json');
   f.mapping.tasks[0].reviewStatus = 'NOT_READY';
   await writeFile(path, JSON.stringify(f.mapping), 'utf8'); await f.git('add', '.'); await f.git('commit', '-m', 'Offline missing source review');
   let head = await f.git('rev-parse', 'HEAD');
@@ -54,7 +128,7 @@ test('source prerequisite state and ancestry are both required without demanding
   f.mapping.tasks[0].reviewStatus = 'SOURCE_READY'; f.mapping.tasks[0].reviewedCommit = '0'.repeat(40);
   await writeFile(path, JSON.stringify(f.mapping), 'utf8'); await f.git('add', '.'); await f.git('commit', '-m', 'Offline missing reviewed ancestor'); head = await f.git('rev-parse', 'HEAD');
   await assert.rejects(entry.preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', head] }), /reviewed|source|integrated/i);
-  assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), before); assert.deepEqual(await readdir(f.ledgerRoot), ['snapshot.json']);
+  assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), before); assert.deepEqual(await readdir(f.ledgerRoot), names);
 });
 
 for (const boundary of ['stopped', 'expired', 'unknown', 'missing-accepted'] as const) test(`host passed cannot override ${boundary} facts at the entry finish boundary`, async t => {
@@ -71,7 +145,7 @@ for (const boundary of ['stopped', 'expired', 'unknown', 'missing-accepted'] as 
   } } });
   assert.equal(result.outcome, 'failed'); assert.ok('gaps' in result && result.gaps.length > 0);
   const state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8'));
-  if (boundary === 'stopped') assert.equal(state.validation.cases[0].stopReason.reason, 'Offline stop before host completion');
+  if (boundary === 'stopped') assert.equal(state.validation.cases.at(-1).stopReason.reason, 'Offline stop before host completion');
   if (boundary === 'unknown') { assert.equal(state.ledger.entries.at(-1).unknown, true); assert.equal(state.ledger.entries.at(-1).reservedMicroCny, 8); }
 });
 
@@ -105,9 +179,9 @@ for (const stopDuringRead of [true, false, 'split-timestamps'] as const) test(`f
   } } });
   assert.equal(result.outcome, stopDuringRead === true ? 'failed' : 'passed');
   const state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8'));
-  if (stopDuringRead === true) { assert.ok('gaps' in result && result.gaps.length); assert.equal(state.validation.cases[0].stopReason.reason, 'Offline coordinator stopped during accepted-candidate read'); }
-  else assert.equal(state.validation.cases[0].stopReason.reason, 'This one-shot validation case finished; its identity remains consumed.');
-  if (stopDuringRead === 'split-timestamps') assert.ok(Date.parse(state.validation.cases[0].stopReason.at) < Date.parse(state.events.at(-1).at));
+  if (stopDuringRead === true) { assert.ok('gaps' in result && result.gaps.length); assert.equal(state.validation.cases.at(-1).stopReason.reason, 'Offline coordinator stopped during accepted-candidate read'); }
+  else assert.equal(state.validation.cases.at(-1).stopReason.reason, 'This one-shot validation case finished; its identity remains consumed.');
+  if (stopDuringRead === 'split-timestamps') assert.ok(Date.parse(state.validation.cases.at(-1).stopReason.at) < Date.parse(state.events.at(-1).at));
 });
 
 test('preflight refuses changed source approvals and an already created case root before writes', async t => {

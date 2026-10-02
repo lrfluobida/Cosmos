@@ -2,7 +2,7 @@
 
 本段准备声明和固定输入校验，尚未接入窗口激活或实际执行。它不读取真实验证快照、会话或模型配置，也不产生游戏需求确认、已通过阶段、计时或费用记录。
 
-- 声明：`probes/e2e/validation-declaration.ts` 固定 `cos20-native-validation-1`。单例增量 ¥5、45 分钟、40 次调用、一次语义修复；规划、评审、格式纠正和压缩共同计数。共享生命周期 ¥150 与首批累计 ¥30 同时约束。
+- 声明：`probes/e2e/validation-declaration.ts` 当前固定 `cos20-native-validation-2`。单例增量 ¥5、45 分钟、40 次调用、一次语义修复；规划、评审、格式纠正和压缩共同计数。共享生命周期 ¥150 与首批累计 ¥30 同时约束。
 - 新 planning grant 为 ¥2；design/art/coding/repair 分别为 ¥1.9/5.7/7.6/3.8，总计 ¥21，仅可使用旧账本未分配额度。旧 allocations、费用、首窗截止、停止和失败事实留存。claim 后即消费新 case ID，包括零请求启动失败；旧三个实验 ID 不重开。
 - 模型固定 `deepseek-flash`。新原生 art/coding 作者明确选用 65536 输出上限；design/reviewer 保留 16384，planning 保留 4096。接线必须从同一声明读取上限，并让已有 `requestReservation` 按 SDK 实际请求大小预留；旧 probe 常量保持不变。
 - `validation-input.ts` 核对既有 COS10 `cos10-pilot-v2` 文件及八个已跟踪通用模板文件的固定字节摘要。排除构建目录和依赖目录，额外模板源文件、缺文件、内容或编码改变均拒绝。返回 `validation-case-input`，不把原固定范围伪装成刚完成的真人访谈。
@@ -89,3 +89,13 @@ node --experimental-strip-types probes/e2e/run.ts --validation-case <准确已�
 - 旧 preparation/diagnostics 11/11；其中完整 diagnostics 文件额外包含一次 1.83 秒的真实 Edge 小 fixture，已退出，未重跑整套旧 formal smoke。源码 strict build 和 native probe/test/smoke 显式 strict noEmit 通过；UTF-8/LF 与中文复读保留。
 
 当前仍是待独立审查的源码候选，未执行真实新 case，实际模型费为 0。真实运行由协调方在最终 source READY、合入 main 后重新做准确 SHA preflight；此前 main 的只读 quote 不随新源码沿用。完整经典基准、正式生成 ¥200/12h 成绩和用户最终试玩均不由这些离线/通用 smoke 通过。
+
+## 第二个有界 native case 的声明与准入
+
+当前入口声明 `cos20-native-validation-2`，全部 grant ID 从该 ID 派生；沿用相同 `cos10-pilot-v2`、九个冻结输入文件、模型、输出上限和资源约束。五项新 grants 总计 ¥21，仅追加到原未分配额；原 case 1 的 grants、费用、窗口、operator 决定、manual stop 和失败结果保留。case 2 是独立窗口，claim 后立即消费，包括零请求启动失败；精确已消费决定的 core 幂等读取不会重新开启窗口，公开入口仍拒绝重跑。
+
+免费准入要求原 snapshot 为 profile 3，当前 `cos20-native-validation-1` 已明确停止；仅过期而未保存停止记录也拒绝。额外源级前置 COS21 必须具有 `WINDOWS_PUBLICATION_SOURCE_READY`、已集成状态（包含 `offline-verified-awaiting-live` 或 `source-integrated`）以及属于准确 main SHA 的 reviewedCommit/mergeCommit，任务 closed 不能绕过这项门槛。COS10/COS20 的实际验收仍为本次验证产出。原未结算或预留费用继续阻止准入；这些检查都在 host 准备、operator receipt、claim、凭据读取与新 case 写入之前。
+
+本段免费测试仅使用临时真实 Git 仓库、固定输入副本和实际 `RunController` 创建/领取/停止的合成 case 1；不读取真实账本、历史 case、模型会话或凭据，不伪造真人确认或生成结果。它检查新 clock/grants/operator 与旧记录分离、历史字段不变、一次消费与 core 幂等、未知/预留费用拒绝，以及 COS21 未审、错 marker、未集成或任一 SHA 不属于 main 时零新副作用。唯一原生 host 和严格公开 flags 保持原接线；真实 case 2 留给协调方在两项源码独立审查并合入 main、实际 Windows publisher 免费检查和最终准确 SHA preflight 通过后执行。
+
+验证证据：声明 9/9；入口 25 项中 23 项首次通过，修正两个费用 fixture 后定向 2/2；只读 quote、完整范围 reader 和公开 flags 代表 3/3。声明的三个 ID 断言及入口的 11 项新门槛先红后绿。费用 fixture 仅模拟 admission intent 和未对账预留，实际 provider 从未调用；未派发的 reservation 会由 core 正常取消，已模拟 admission 的预留在 stop 后保留为 unknown。两个 probe 与相关 test/fixture 的显式 strict noEmit 通过，UTF-8/LF 与中文复读正确；未重复旧 fake native 全流程或实际 browser smoke。

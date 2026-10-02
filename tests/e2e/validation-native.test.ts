@@ -34,7 +34,7 @@ test('fixed driver skips human confirmation and retains failed early native-role
   }) } });
   assert.equal(result.outcome, 'failed'); assert.equal(requests, 2);
   const snapshot = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8'));
-  assert.equal(snapshot.validation.cases[0].repair, null); assert.equal(snapshot.run.humanDecisions.length, 0);
+  assert.equal(snapshot.validation.cases.at(-1).repair, null); assert.equal(snapshot.run.humanDecisions.length, 0);
   assert.equal(snapshot.requests.filter((request: any) => request.validation).length, 2);
   assert.ok(snapshot.tasks.find((task: any) => task.taskId.endsWith('-design')).state !== 'passed');
   assert.equal(snapshot.tasks.find((task: any) => task.taskId.endsWith('-coding')).attempts.length, 0);
@@ -60,7 +60,7 @@ test('fixed native assembly authenticates post-build failure including dist and 
   } } });
   const state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8')), source = state.tasks.find((task: any) => task.taskId.endsWith('-coding')), repair = state.tasks.find((task: any) => task.taskId.endsWith('-repair'));
   assert.equal(failure, undefined); assert.equal(result.outcome, 'passed', JSON.stringify({ gaps: 'gaps' in result ? result.gaps : [], tasks: state.tasks.map((task: any) => ({ taskId: task.taskId, state: task.state, reason: task.stateReason, failure: task.attempts[0]?.failure?.classification })) }));
-  assert.equal(source.state, 'failed'); assert.equal(repair.state, 'passed'); assert.equal(repair.attempts.length, 1); assert.equal(state.validation.cases[0].repair.taskId, repair.taskId);
+  assert.equal(source.state, 'failed'); assert.equal(repair.state, 'passed'); assert.equal(repair.attempts.length, 1); assert.equal(state.validation.cases.at(-1).repair.taskId, repair.taskId);
   assert.equal(fixture!.calls.filter(call => call.role === 'coding').length, 2); assert.equal(fixture!.calls.length, 9);
   assert.ok(fixture!.calls.filter(call => ['coding', 'art'].includes(call.role)).every(call => call.cap === 65536));
   assert.equal(await readFile(join(f.caseRoot, 'authors/coding/src/main.ts'), 'utf8'), 'export const fixture = 1; // generatedByCosmos:false\n');
