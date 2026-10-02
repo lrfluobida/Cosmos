@@ -68,17 +68,21 @@ export class ArtifactRegistry {
       await directory(this.#root, path.slice(0, path.lastIndexOf('/')));
       const owner = await regularFile(this.#root, '.commit.lock'), retryDelays = [25, 50, 100, 200, 400];
       const cutoff = performance.now() + 1000;
+      let retryError: unknown;
       for (let attempt = 0; ; attempt++) {
         this.#signal.throwIfAborted();
+        if (attempt > 0 && performance.now() >= cutoff) throw retryError;
         await safePath(this.#root, temporaryName); await safePath(this.#root, path);
         if (await exists(destination)) fail('Immutable version already exists');
         if (!(await regularFile(this.#root, '.commit.lock')).equals(owner)) fail('Registry commit ownership changed');
         this.#signal.throwIfAborted();
+        if (attempt > 0 && performance.now() >= cutoff) throw retryError;
         try { await rename(temporary, destination); return result; }
         catch (error) {
           const wait = retryDelays[attempt];
           if (process.platform !== 'win32' || (error as NodeJS.ErrnoException)?.code !== 'EPERM'
             || wait === undefined || performance.now() + wait >= cutoff) throw error;
+          retryError = error;
           await delay(wait, undefined, { signal: this.#signal });
         }
       }

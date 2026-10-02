@@ -159,3 +159,20 @@ test('a junction introduced during the Windows publication wait stops retry', { 
   assert.equal(await fs.readFile(join(f.workspaceRoot, 'author/keep.txt'), 'utf8'), 'keep');
   assert.deepEqual(await fs.readdir(join(f.workspaceRoot, 'registry/tmp')), []);
 });
+
+test('a delayed retry timer cannot publish after the Windows retry cutoff', { skip: process.platform !== 'win32' }, async t => {
+  const f = await fixture(t), error = sharingDenied(), original = fs.rename; let attempts = 0;
+  t.mock.method(fs, 'rename', async (source: string, destination: string) => {
+    attempts++;
+    if (attempts === 1) {
+      setTimeout(() => { const until = performance.now() + 1100; while (performance.now() < until) {} }, 1);
+      throw error;
+    }
+    return original(source, destination);
+  });
+  syncBuiltinESMExports(); t.after(async () => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+  await assert.rejects(f.register(), candidate => candidate === error);
+  assert.equal(attempts, 1);
+  await assert.rejects(fs.lstat(f.destination), { code: 'ENOENT' });
+  assert.deepEqual(await fs.readdir(join(f.workspaceRoot, 'registry/tmp')), []);
+});
