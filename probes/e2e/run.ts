@@ -172,11 +172,23 @@ export function parsePilotArguments(args: string[]): Omit<Parameters<typeof runP
   return { preflightOnly: ['--preflight', '--trial-preflight'].includes(args[0]), continuation: args[0] === '--continue', trial: ['--trial', '--trial-preflight'].includes(args[0]), trialRecoverStartup: args[0] === '--trial-recover-startup' };
 }
 
+/** Two strict opt-in validation flags bind the fixed native host; legacy flags retain their original gates. */
+export async function runPilotEntry(args: string[], repository: string) {
+  if (['--validation-preflight', '--validation-case'].includes(args[0])) {
+    const { parseValidationEntry } = await import('./validation-declaration.ts');
+    const intent = parseValidationEntry(args);
+    const { preflightValidationRun, runValidationWithHost } = await import('./validation-run.ts');
+    if (intent.preflightOnly) return preflightValidationRun({ repository, args });
+    const { createNativeValidationHost } = await import('./validation-host.ts');
+    return runValidationWithHost({ repository, args, host: createNativeValidationHost() });
+  }
+  return runPilot({ repository, ...parsePilotArguments(args) });
+}
+
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const args = process.argv.slice(2);
-  const options = parsePilotArguments(args);
   const repository = fileURLToPath(new URL('../../', import.meta.url));
-  runPilot({ repository, ...options }).then(result => {
+  runPilotEntry(args, repository).then(result => {
     console.log(JSON.stringify(result)); if (result.outcome === 'failed') process.exitCode = 1;
   }).catch(error => { console.error(`COS-10 stopped: ${error instanceof Error ? error.message : 'Host admission failed'}`); process.exitCode = 1; });
 }

@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { join, resolve } from 'node:path';
+import { cp, mkdir, open } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { ArtifactRegistry } from '../../src/artifacts/index.ts';
-import { regularFile } from '../../src/artifacts/paths.ts';
+import { directory, regularFile, safePath } from '../../src/artifacts/paths.ts';
 import { sameValue } from '../../src/contracts/validation.ts';
 import { createValidationRequirement } from '../../src/roles/execution-input.ts';
 import type { ValidationCaseWindow } from '../../src/runtime/validation-types.ts';
@@ -10,6 +11,20 @@ import { VALIDATION_CASE } from './validation-declaration.ts';
 import { createValidationIdentityReader } from './validation-identity.ts';
 import { readValidationInput } from './validation-input.ts';
 import { stageAcceptance } from './policy.ts';
+import type { ValidationHostInput, ValidationHostResult } from './validation-run.ts';
+import type { ValidationHostIO } from './validation-host.ts';
+import type { PiSessionOptions } from '../../src/providers/pi.ts';
+import type { RoleSession } from '../../src/roles/factory.ts';
+import type { PreparedTask } from '../../src/runtime/orchestrator.ts';
+import type { ValidationRequirement } from '../../src/roles/execution-input.ts';
+import type { RepairFeedback } from '../../src/runtime/repair/feedback.ts';
+import { failureRecord, feedbackReference } from '../../src/runtime/repair/feedback.ts';
+import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from '../../src/runtime/repair/policy.ts';
+import { TaskJournal, requireOriginalTask } from '../../src/runtime/recovery/task-journal.ts';
+import type { ContentSignature } from '../../src/runtime/recovery/task-journal.ts';
+import { requireValidationScope, validationJournalBinding } from '../../src/runtime/validation-scope.ts';
+import { generatePilot } from './driver.ts';
+import { copyReviewInputs, writeJson } from './host.ts';
 
 const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
@@ -49,4 +64,84 @@ export function createValidationScopeReader(input: { repository: string; ledgerR
     return { requirement: createValidationRequirement({ specVersion: frozen.requirements.specVersion, sources, acceptance: stageAcceptance(frozen.requirements.acceptanceIds),
       validation: { runId: window.quote.basis.runId, ledgerId: window.quote.basis.ledgerId, caseId: window.caseId, windowId: window.windowId, ...identity, decision } }), operatorReceipt };
   } };
+}
+
+/** Same native planner, roles and host pipeline. Optional session factory is for explicit offline tests only. */
+export async function generateValidationCase(input: ValidationHostInput, io: ValidationHostIO, sessionFactory?: (config: PiSessionOptions) => Promise<RoleSession>): Promise<ValidationHostResult> {
+  const { controller, window, root } = input;
+  controller.requireValidationCase(window.caseId, window.windowId);
+  if (!sameValue(window.quote.declaration, VALIDATION_CASE)) throw new Error('Only the reviewed fixed validation declaration can execute.');
+  const binding = createValidationScopeReader(input), toolchain = await io.bootstrap();
+  const guard = { signal: input.signal, deadlineAt: window.deadlineAt,
+    committedCapMicroCny: Math.min(VALIDATION_CASE.limits.cumulativeMicroCny, window.quote.basis.committedMicroCny + VALIDATION_CASE.limits.incrementalMicroCny),
+    remainingMs() { input.signal.throwIfAborted(); const remaining = Date.parse(window.deadlineAt) - Date.now() - 5000; if (remaining <= 0) throw new Error('Validation cleanup cutoff reached.'); return remaining; },
+    close() {}, wrap<T>(budget: T): T { return budget; } };
+  const result = await generatePilot({ repository: input.repository, root, prefix: window.caseId, controller, guard, toolchain,
+    childAllocationCapMicroCny: Object.entries(VALIDATION_CASE.grants).filter(([role]) => role !== 'planning').reduce((sum, [, grant]) => sum + grant.amountMicroCny, 0), confirmedAt: window.startedAt,
+    sessionFactory, validation: { window, binding, work: input.work, prepareRepair: (source, original, requirement, registry) => prepareValidationRepair(input, binding, source, original, requirement, registry) },
+    host: {
+      buildProject: (_root, project, _toolchain, name, signal, taskId) => io.build(project, name, signal, taskId!),
+      renderMedia: (_root, folder, value, signal, taskId) => io.media(folder, value, signal, taskId!),
+      runAcceptance: (plan, _options, taskId) => io.play(plan as import('../../src/acceptance/plan.ts').AcceptancePlan, input.signal, taskId!),
+    },
+  });
+  return { outcome: result.outcome === 'passed' ? 'passed' : 'failed', tasks: result.tasks, plan: result.plan,
+    gaps: result.outcome === 'passed' ? [] : [result.remaining ?? 'No complete accepted candidate; preserve original role failures and case evidence.'],
+    ...(result.accepted ? { accepted: result.accepted.candidateRef } : {}) };
+}
+
+/** Authenticate the real host failure before consuming the one predeclared coding repair. */
+async function prepareValidationRepair(input: ValidationHostInput, binding: ValidationExecutionBinding, source: PreparedTask, original: PreparedTask,
+  requirement: ValidationRequirement, registry: ArtifactRegistry): Promise<PreparedTask | null> {
+  const { root, controller } = input, { snapshot, window } = await requireValidationScope(controller, requirement, binding);
+  const task = snapshot.tasks.find(task => task.taskId === source.task.taskId)!; requireOriginalTask(original.task, task);
+  if (task.taskId !== VALIDATION_CASE.grants.coding.taskId || !['failed', 'needs_changes'].includes(task.state) || task.attempts.length !== 1
+    || !task.attempts[0].endedAt || !sameValue(task, source.task) || window.repair) return null;
+  const attempt = task.attempts[0], session = `sessions/${attempt.attemptId}`;
+  if (resolve(attempt.sessionRef) !== resolve(root, session)) throw new Error('Failure session is outside the fixed case sessions.');
+  const bytes = await regularFile(root, `${session}/failure.json`), feedback = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) as RepairFeedback;
+  if (!sameValue(feedback.reference, feedbackReference(task)) || feedback.sourceAttemptId !== attempt.attemptId || feedback.sourceTaskId !== task.taskId || feedback.sessionRef !== attempt.sessionRef
+    || feedback.runId !== snapshot.run.runId || feedback.specVersion !== requirement.specVersion || feedback.originalDeadlineAt !== snapshot.run.originalDeadlineAt
+    || !sameValue(feedback.acceptance, task.acceptance) || !sameValue(feedback.artifactVersions, [...task.inputs, ...task.artifacts])) throw new Error('Original failure feedback does not bind the exact source attempt and scope.');
+  const estimate = { costMicroCny: 3_000_000, durationMs: 10 * 60 * 1000, cleanupMs: 5000 };
+  const policy = { snapshot, requirement, validation: binding, history: [feedback], policy: DEFAULT_REPAIR_POLICY, now: Date.now(), estimate, cancelled: input.signal.aborted };
+  const assessment = assessRepair(policy), authority = await controller.validationAuthority(task.taskId, 'reviewer');
+  if (assessment.action !== 'repair' || authority.requestsRemaining < 8) { await writeJson(root, 'repair-decision.json', { action: 'stop', reason: assessment.reason, gaps: assessment.gaps, estimate }); return null; }
+  if (attempt.outcome !== 'failed' || attempt.failure?.classification !== 'code_defect') return null;
+  const recordedFailure = failureRecord(feedback.issues); if (!recordedFailure.evidenceRefs.includes(feedback.reference.location)) recordedFailure.evidenceRefs.push(feedback.reference.location);
+  if (!sameValue(recordedFailure, attempt.failure)) throw new Error('Failure classification differs from the persisted attempt.');
+  const recovery = { artifactRoot: root, journalRoot: join(root, 'journal') };
+  const origin = { formatVersion: 3 as const, validationCase: validationJournalBinding(window), runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId,
+    originalStartedAt: snapshot.run.originalStartedAt, originalDeadlineAt: snapshot.run.originalDeadlineAt, limitMicroCny: snapshot.ledger.limitMicroCny,
+    requirement, prepared: original, reviewProtocolCorrections: 1 as const, artifactRoot: root, sessionRoot: join(root, 'sessions') };
+  const journal = await TaskJournal.open(recovery, origin, true), author = await journal.read<{ signature: ContentSignature }>('author', attempt.attemptId);
+  const captured = await journal.read<{ captured: { artifacts: typeof task.artifacts }; signature: ContentSignature }>('capture', attempt.attemptId);
+  if (!author || !captured || !sameValue(captured.captured.artifacts, task.artifacts)) throw new Error('Failure author/capture receipts are incomplete.');
+  await journal.requireSignature(author.signature, task.inputs);
+  const failed = await journal.read<{ taskId: string; attemptId: string; feedback: RepairFeedback['reference']; feedbackSha256: string; signature: ContentSignature }>('failure-snapshot', attempt.attemptId);
+  if (!failed || failed.taskId !== task.taskId || failed.attemptId !== attempt.attemptId || failed.feedbackSha256 !== hash(bytes) || !sameValue(failed.feedback, feedback.reference)) throw new Error('Failure source signature does not bind the durable feedback.');
+  await journal.requireSignature(failed.signature, [...task.inputs, ...task.artifacts, ...task.evidence.map(evidence => evidence.source)]);
+  for (const original of captured.signature) for (const file of original.files) {
+    const location = `${original.location}${file.path ? '/' + file.path : ''}`;
+    if (hash(await regularFile(root, location)) !== file.sha256) throw new Error('An original captured input or source file changed before repair.');
+  }
+  const candidate = await registry.getCandidate(task.artifacts[0]), codeRef = registry.artifactRef(`${window.caseId}-code`, task.artifacts[0].version), code = await registry.getCapture(codeRef);
+  if (candidate.taskId !== task.taskId || candidate.authorId !== task.authorId || candidate.contextId !== task.context.contextId || !sameValue(candidate.inputs, [...task.inputs, codeRef])
+    || code.taskId !== task.taskId || !sameValue(code.dependencies, task.inputs) || !code.metadata.provenance.sourceRefs.includes(attempt.sessionRef)) throw new Error('Failure candidate or code provenance changed.');
+  const destination = await safePath(root, feedback.reference.location); await mkdir(dirname(destination), { recursive: true });
+  const staged = await open(destination, 'wx'); try { await staged.writeFile(bytes); await staged.sync(); } finally { await staged.close(); }
+  if (!(await regularFile(root, feedback.reference.location)).equals(bytes)) throw new Error('Staged repair feedback differs from its exact source bytes.');
+  await controller.claimValidationRepair({ sourceTaskId: task.taskId, feedback: feedback.reference });
+  const state = await controller.read(), repairedRef = registry.candidateRef(`${window.caseId}-game`, 'v2');
+  const repair = createLinkedRepairTask({ ...policy, snapshot: state, source, taskId: VALIDATION_CASE.grants.repair.taskId, allocationMicroCny: VALIDATION_CASE.grants.repair.amountMicroCny,
+    outputs: task.outputs.map(output => ({ ...output, destination: repairedRef.location })), expectedArtifacts: [repairedRef] });
+  repair.workspace = await directory(root, 'repair-workspace');
+  for (const evidence of task.evidence.filter(evidence => ['test_report', 'log'].includes(evidence.kind))) if (!repair.task.context.interfaces.some(ref => ref.artifactId === evidence.source.artifactId)) repair.task.context.interfaces.push(evidence.source);
+  await copyReviewInputs(root, repair.workspace, [...repair.task.inputs, ...repair.task.context.interfaces]);
+  await directory(repair.workspace, 'authors');
+  await cp(join(root, codeRef.location), join(repair.workspace, 'authors/coding'), { recursive: true, errorOnExist: true, force: false });
+  await writeJson(root, 'repair-dispatch.json', { sourceTaskId: task.taskId, sourceAttemptId: attempt.attemptId, newTaskId: repair.task.taskId, feedback: feedback.reference,
+    sourceSha256: hash(bytes), expectedArtifacts: repair.expectedArtifacts, semanticRepairUsed: 1, maxSemanticRepairs: 1, deadlineAt: window.deadlineAt });
+  await TaskJournal.open(recovery, { ...origin, prepared: repair }, false); await controller.registerTasks([repair.task]);
+  return repair;
 }

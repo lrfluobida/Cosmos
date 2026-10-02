@@ -65,3 +65,27 @@ repair policy 已识别显式 validation case，以本次 deadline 和预分配 
 完成竞态修复：独立审查复现了读取已提升候选期间收到真实 stop 却仍报告 passed。入口现在在该 await 后重读窗口；在没有 await 的同一步观察 controller 尚未 aborted、case 尚未停止，再发起自己的正常结束 stop，并以之后新增的唯一停止事件及时间核对，而非仅比较理由字符串。drain 后再次检查候选引用、费用和截止，外部停止不会被覆盖。真实 registry 提升 fixture 的竞态反例先红后绿，正常结束正例及旧 stopped/unknown 两项邻接检查通过；fixture 不是原生生成或游戏通过证据。
 
 正常结束补充：core 对 stop 和 event 分别读取时间，二者不保证同一毫秒。验证保留上述信号/事件边界，仅要求 stop 时间不晚于对应新事件；强制真实时钟跨过 3ms 的正常提升 fixture 先红后绿，外部停止竞态仍拒绝。没有修改 core 时钟、原截止或停止事实。
+
+## 原生固定入口候选
+
+本段将两个严格参数绑定到唯一原生 host，供独立审查并合入 main 后使用：
+
+```powershell
+node --experimental-strip-types probes/e2e/run.ts --validation-preflight <准确已审main-SHA>
+node --experimental-strip-types probes/e2e/run.ts --validation-case <准确已审main-SHA> "真实协调方授权来源引用"
+```
+
+只读 preflight 路径不加载收费准备；执行路径在 claim 前仅检查环境内存中的凭据、已安装 SDK/Playwright 与 root lock 版本、npm 和 Windows Edge。没有 CLI/env fixture 开关、自选 case/root/clock 或 reset；旧 flags、旧 16384 probe 常量、冻结 COS10 JSON 和模板均不变。领取后才复制和安装工具链，bootstrap、build、renderMedia、normal-input runner 都通过共享 gated Node helper，由原账本 owner 以真实 planning/art/coding/repair task/window 登记。worker 使用过滤环境，不能取得模型密钥；旧 host 的正常关闭及进程树清理继续生效。
+
+新 validation 分支复用旧 pilot callbacks，跳过模拟访谈和自行 confirmed:true，保存显式 validation-requirement。规划提示固定三个声明 ID/grant，角色规则明确当前 validationCase 截止与 5 元/45 分钟/40 请求，原 originalDeadlineAt 只留历史。browser plan 仅在新分支绑定当前 coding/repair taskId，原八项玩法、媒体观测、步骤及版本不变。成功仍须全部 host 检查、独立 reviewer 和同 registry 的真实 proof/promotion。
+
+仅 coding 的可信 code_defect 且 design/art 已过时可领一次修复。独立 review 的 changes_requested 只有同时具备可信 host code_defect 诊断才进入语义修复，其余 insufficient_evidence 安全报告差距，不保证所有软性评审问题自动修复。driver 读取原 session 的严格 UTF-8 feedback，核对 task/attempt/完整 AC/输入与产物版本、author/capture journal、immutable 原文件、registry 来源；再核对 validation 专用 write-once failure-snapshot，含合法 build 新增 dist 的当前完整文件集合和证据，最后按原字节 wx stage feedback、claim 唯一 repair。新 workspace/context/v2 保留旧 authors/v1/failure；任何签名漂移或快照存储失败均不 dispatch。
+
+### 本段离线与真实工具证据
+
+- 假 SDK 完整路径最终在时间戳修复后 **passed**：9 个假请求（含一次 design review 格式纠正），design/art 通过、原 coding 失败、新 coding repair 通过并得到 registry v2 promotion；原 authors/v1 留存。该次目标检查 40.47 秒，配套 public flag 检查也通过。早期 design 失败路径只发出 planning/design 两个假请求，后续角色和 repair 不启动。所有 fixture 都是非可玩通用数据，`generatedByCosmos:false`。
+- 失败快照 7/7 通过：完整 dist、source/evidence/dist 漂移拒 claim、快照或原 feedback 存储失败零 claim，以及旧停止/当前 case 策略边界。
+- 单次实际通用 smoke 1/1：test 34.08 秒、Node 总 37.02 秒，按 owned bootstrap → build → 正常鼠标点击 → art fixture render 串行；modelRequests=0，真实 browser PID 19764 退出，原 owner 关闭。证据保留于 `.cosmos/validation-host-smoke-47f42edc-82d2-4450-85b2-21c796117ecf/`（`smoke-report.json`、`owner-closed.json`、正常输入截图、worker 记录）。它只证明通用模板/fixture 媒体的进程与 registry 桥接，不证明 COS10 八项目标玩法、目标素材导入、听感或生成能力通过。
+- 旧 preparation/diagnostics 11/11；其中完整 diagnostics 文件额外包含一次 1.83 秒的真实 Edge 小 fixture，已退出，未重跑整套旧 formal smoke。源码 strict build 和 native probe/test/smoke 显式 strict noEmit 通过；UTF-8/LF 与中文复读保留。
+
+当前仍是待独立审查的源码候选，未执行真实新 case，实际模型费为 0。真实运行由协调方在最终 source READY、合入 main 后重新做准确 SHA preflight；此前 main 的只读 quote 不随新源码沿用。完整经典基准、正式生成 ¥200/12h 成绩和用户最终试玩均不由这些离线/通用 smoke 通过。
