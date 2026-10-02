@@ -75,7 +75,7 @@ for (const boundary of ['stopped', 'expired', 'unknown', 'missing-accepted'] as 
   if (boundary === 'unknown') { assert.equal(state.ledger.entries.at(-1).unknown, true); assert.equal(state.ledger.entries.at(-1).reservedMicroCny, 8); }
 });
 
-for (const stopDuringRead of [true, false]) test(`finish authenticates a real promoted fixture across its awaited read; concurrent stop=${stopDuringRead}`, async t => {
+for (const stopDuringRead of [true, false, 'split-timestamps'] as const) test(`finish authenticates a real promoted fixture across its awaited read; concurrent stop=${stopDuringRead}`, async t => {
   const f = await validationRunFixture(t);
   const result = await entry.runValidationWithHost({ repository: f.repository, args: f.args, host: { prepare: async () => {}, execute: async input => {
     const registry = await createArtifactRegistry({ workspaceRoot: input.root, registryRoot: 'registry' }), captured = registry.artifactRef('offline-source', 'v1'), candidate = registry.candidateRef('offline-candidate', 'v1');
@@ -86,7 +86,14 @@ for (const stopDuringRead of [true, false]) test(`finish authenticates a real pr
       inputs: [captured], expectedDeps: [captured], ownership: { writePaths: ['.'], readOnlyPaths: [] } });
     const proof = await registry.verifyCandidate(candidate, { build: async () => ({ passed: true, evidenceIds: ['offline-build'] }), acceptance: async () => ({ passed: true, evidenceIds: ['offline-check'] }) });
     await registry.promoteCandidate(candidate, { evidence: proof, review: { candidateRef: candidate, attemptId: proof.attemptId, reviewerId: 'offline-reviewer', contextId: 'offline-review-context', verdict: 'approved', evidenceIds: ['offline-build', 'offline-check'] } });
-    if (stopDuringRead) {
+    if (stopDuringRead === 'split-timestamps') {
+      const runtime = input.controller as any, event = runtime.event.bind(runtime);
+      t.mock.method(runtime, 'event', (...args: any[]) => {
+        if (args[1] === 'validation_case_stopped') { const until = Date.now() + 3; while (Date.now() < until) { /* Force a real clock tick between the two existing at() calls. */ } }
+        return event(...args);
+      });
+    }
+    if (stopDuringRead === true) {
       const current = ArtifactRegistry.prototype.current; let stopped = false;
       t.mock.method(ArtifactRegistry.prototype, 'current', async function (this: ArtifactRegistry) {
         const value = await current.call(this);
@@ -96,10 +103,11 @@ for (const stopDuringRead of [true, false]) test(`finish authenticates a real pr
     }
     return { outcome: 'passed', accepted: candidate, gaps: [] };
   } } });
-  assert.equal(result.outcome, stopDuringRead ? 'failed' : 'passed');
+  assert.equal(result.outcome, stopDuringRead === true ? 'failed' : 'passed');
   const state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8'));
-  if (stopDuringRead) { assert.ok('gaps' in result && result.gaps.length); assert.equal(state.validation.cases[0].stopReason.reason, 'Offline coordinator stopped during accepted-candidate read'); }
+  if (stopDuringRead === true) { assert.ok('gaps' in result && result.gaps.length); assert.equal(state.validation.cases[0].stopReason.reason, 'Offline coordinator stopped during accepted-candidate read'); }
   else assert.equal(state.validation.cases[0].stopReason.reason, 'This one-shot validation case finished; its identity remains consumed.');
+  if (stopDuringRead === 'split-timestamps') assert.ok(Date.parse(state.validation.cases[0].stopReason.at) < Date.parse(state.events.at(-1).at));
 });
 
 test('preflight refuses changed source approvals and an already created case root before writes', async t => {

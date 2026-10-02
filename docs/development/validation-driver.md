@@ -63,3 +63,5 @@ repair policy 已识别显式 validation case，以本次 deadline 和预分配 
 离线证据：9 项临时真实 Git/原账本 fixture 的入口测试通过（包含 4 个 host 误报 passed 的先红后绿边界），1 项真实输入 reader 与 registry 检查通过，全部零模型调用。对两个新 probe 和三个 fixture/test 文件的显式 strict noEmit 通过。尚无 public paid flag、native host、owned bootstrap/build/render/browser 装配或完整反馈文件认证；不得把本步作为实际生成通过。
 
 完成竞态修复：独立审查复现了读取已提升候选期间收到真实 stop 却仍报告 passed。入口现在在该 await 后重读窗口；在没有 await 的同一步观察 controller 尚未 aborted、case 尚未停止，再发起自己的正常结束 stop，并以之后新增的唯一停止事件及时间核对，而非仅比较理由字符串。drain 后再次检查候选引用、费用和截止，外部停止不会被覆盖。真实 registry 提升 fixture 的竞态反例先红后绿，正常结束正例及旧 stopped/unknown 两项邻接检查通过；fixture 不是原生生成或游戏通过证据。
+
+正常结束补充：core 对 stop 和 event 分别读取时间，二者不保证同一毫秒。验证保留上述信号/事件边界，仅要求 stop 时间不晚于对应新事件；强制真实时钟跨过 3ms 的正常提升 fixture 先红后绿，外部停止竞态仍拒绝。没有修改 core 时钟、原截止或停止事实。

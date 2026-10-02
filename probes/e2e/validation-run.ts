@@ -122,7 +122,7 @@ export async function runValidationWithHost(options: { repository: string; args:
     const state = await controller.read(), view = validationCaseView(state);
     const finishEvents = state.events.slice(beforeOwnStop.events.length).filter(event => event.type === 'validation_case_stopped');
     if (!ownsFinishStop || finishEvents.length !== 1 || view.validationCase.stopReason?.code !== 'manual'
-      || view.validationCase.stopReason.at !== finishEvents[0].at || view.validationCase.stopReason.reason !== finishEvents[0].reason) finishGaps.push('A separate case stop occurred before normal completion.');
+      || Date.parse(view.validationCase.stopReason.at) > Date.parse(finishEvents[0].at) || view.validationCase.stopReason.reason !== finishEvents[0].reason) finishGaps.push('A separate case stop occurred before normal completion.');
     if (Date.now() >= Date.parse(window.deadlineAt)) finishGaps.push('Validation cleanup reached the case deadline.');
     if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) finishGaps.push('Validation cleanup left fees requiring reconciliation.');
     if (view.validationCase.caseCommittedMicroCny > VALIDATION_CASE.limits.incrementalMicroCny || view.validationCase.committedMicroCny > VALIDATION_CASE.limits.cumulativeMicroCny
