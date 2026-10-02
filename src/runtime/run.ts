@@ -49,6 +49,12 @@ export class RunController {
     if (this.snapshot.formatVersion !== 1) throw new Error('Continuation execution is unsupported by this legacy entrypoint.');
   }
 
+  /** Identity check only: no read/expiration side effect and no new admission authority. */
+  requireExecutionWindow(windowId?: string): void {
+    if (windowId === undefined) { this.requireOriginalExecution(); return; }
+    if (this.snapshot.formatVersion !== 2 || windowId !== this.windowId || windowId !== this.snapshot.continuation?.currentWindowId) throw new Error('Explicit current execution window does not match this controller.');
+  }
+
   /** Host-only, non-reentrant coordination of admission or receipt settlement.
    * Do not hold this across a provider call. Public ledger methods retain their
    * own persistence queue; this separate queue never recursively enters serial. */

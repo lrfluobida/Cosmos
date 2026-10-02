@@ -5,6 +5,7 @@ import type { RunController } from '../run.ts';
 import { pathsOverlap } from '../../roles/factory.ts';
 import { budgetSummary } from '../../contracts/index.ts';
 import { OwnedWork } from '../recovery/owned-work.ts';
+import { executionWindowView } from '../execution-window.ts';
 
 interface SchedulingSummary {
   configuredParallel: number; effectiveParallel: number; peakActiveTasks: number;
@@ -16,8 +17,8 @@ const executing = new WeakSet<RunController>();
 const draining = new WeakMap<RunController, Promise<void>>();
 
 /** One DAG owner per controller; task workers inside that DAG may overlap. */
-export async function withDagOwner<T>(controller: RunController, execute: () => Promise<T>): Promise<T> {
-  controller.requireOriginalExecution();
+export async function withDagOwner<T>(controller: RunController, execute: () => Promise<T>, windowId?: string): Promise<T> {
+  controller.requireExecutionWindow(windowId);
   if (executing.has(controller)) throw new Error('An active DAG already executes on this controller.');
   executing.add(controller);
   try { return await execute(); } finally {
@@ -70,17 +71,18 @@ export function validateScheduling(tasks: PreparedTask[], options: SchedulingOpt
  * bypass a blocked result from the current recovery. */
 export async function scheduleTasks(input: {
   tasks: PreparedTask[]; controller: RunController; options: SchedulingOptions;
+  windowId?: string;
   exclusiveReason: SchedulingSummary['exclusiveReason']; signal: AbortSignal; now?: () => number;
   execute(item: PreparedTask): Promise<void>;
 }): Promise<void> {
   const { tasks, controller, options, signal } = input;
-  controller.requireOriginalExecution();
+  controller.requireExecutionWindow(input.windowId);
   validateScheduling(tasks, options);
   const width = input.exclusiveReason ? 1 : options.maxParallel ?? 2;
   const report: SchedulingSummary = { configuredParallel: options.maxParallel ?? 2, effectiveParallel: width, peakActiveTasks: 0, exclusiveReason: input.exclusiveReason, state: 'running' };
   schedules.set(controller, report);
   const now = input.now ?? Date.now;
-  const cutoff = Date.parse((await controller.read()).run.originalDeadlineAt) - (options.cleanupMs ?? 5000);
+  const cutoff = Date.parse(executionWindowView(await controller.read()).executionWindow.deadlineAt) - (options.cleanupMs ?? 5000);
   const pending = [...tasks], done = new Set<string>(), resources = new Set<string>();
   const active = new Map<string, Promise<{ id: string; error?: unknown }>>();
   const work = new OwnedWork(signal);
@@ -88,7 +90,7 @@ export async function scheduleTasks(input: {
   const cancelled = new Promise<null>(resolve => { notifyAbort = () => resolve(null); });
   signal.addEventListener('abort', notifyAbort, { once: true });
   let timerFailure: unknown;
-  const stopAtCutoff = async () => { if (!signal.aborted && now() >= cutoff) await controller.stop('Scheduler reserved the remaining original time for cancellation and saving work.'); };
+  const stopAtCutoff = async () => { if (!signal.aborted && now() >= cutoff) await controller.stop('Scheduler reserved the remaining execution time for cancellation and saving work.'); };
   const timer = setTimeout(() => { void stopAtCutoff().catch(error => { timerFailure = error; }); }, Math.max(1, cutoff - now()));
   timer.unref();
   const resourcesByTask = new Map(Object.entries(options.resources ?? {}));
@@ -146,12 +148,13 @@ export async function scheduleTasks(input: {
 
 /** Human/CLI status from the original durable run; no completion inference. */
 export async function schedulerStatus(controller: RunController) {
-  const snapshot = await controller.read(), { run, ledger, stopReason } = snapshot;
+  const snapshot = await controller.read(), { run, ledger } = snapshot, view = executionWindowView(snapshot);
   const providers = [...new Set(snapshot.ledger.entries.map(entry => entry.provider))].map(provider => {
     const entries = snapshot.ledger.entries.filter(entry => entry.provider === provider);
     return { provider, settledMicroCny: entries.reduce((n, e) => n + e.settledMicroCny, 0), reservedMicroCny: entries.reduce((n, e) => n + e.reservedMicroCny, 0), unknownRequestIds: entries.filter(e => e.unknown).map(e => e.requestId) };
   });
-  return { runId: run.runId, ledgerId: ledger.ledgerId, state: run.state, originalStartedAt: run.originalStartedAt, originalDeadlineAt: run.originalDeadlineAt,
-    limitMicroCny: ledger.limitMicroCny, ...run.fees, ...budgetSummary(ledger), stopReason, scheduling: structuredClone(schedules.get(controller) ?? null),
+  return { runId: run.runId, ledgerId: ledger.ledgerId, state: view.executionWindow.state, originalStartedAt: run.originalStartedAt, originalDeadlineAt: run.originalDeadlineAt,
+    limitMicroCny: ledger.limitMicroCny, ...run.fees, ...budgetSummary(ledger), original: view.original, executionWindow: view.executionWindow,
+    stopReason: view.executionWindow.stopReason, scheduling: structuredClone(schedules.get(controller) ?? null),
     providers, tasks: snapshot.tasks.map(task => ({ taskId: task.taskId, state: task.state, reason: task.stateReason, remaining: task.handoff.remaining, uncertainty: task.handoff.uncertainty, resumeFrom: task.handoff.resumeFrom, artifacts: task.artifacts, evidenceIds: task.evidence.map(e => e.evidenceId) })) };
 }

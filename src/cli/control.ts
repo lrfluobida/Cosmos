@@ -12,6 +12,7 @@ import { validateSnapshot } from '../runtime/run-validation.ts';
 import type { RunSnapshot } from '../runtime/run-types.ts';
 import { SnapshotStore } from '../runtime/store.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
+import { executionWindowView } from '../runtime/execution-window.ts';
 
 /** Reuses the durable warning event; notification state never changes the ledger. */
 export async function startBudgetWarnings(root: string, notify: (message: string) => void, intervalMs = 1000) {
@@ -47,13 +48,16 @@ export async function readRunSnapshot(root: string): Promise<IntakeSnapshot | Ru
 export async function readRunStatus(root: string) {
   const snapshot = await readRunSnapshot(root), intake = snapshot.formatVersion === 'intake-1';
   const generated = intake ? null : snapshot as RunSnapshot;
+  const view = generated ? executionWindowView(generated) : null;
   const continuation = generated ? await readContinuationStatus(root, generated) : null;
   return { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, phase: intake ? 'intake' : 'generation', revision: snapshot.revision,
     draftRevision: intake ? snapshot.draft?.revision ?? null : null,
     confirmed: intake ? snapshot.confirmation !== null : generated!.run.humanDecisions.some(decision => decision.decisionId.startsWith('requirements-v') && decision.evidence.some(ref => ref.artifactId === 'user-confirmation')),
     originalStartedAt: generated?.run.originalStartedAt ?? null, originalDeadlineAt: generated?.run.originalDeadlineAt ?? null,
-    state: generated?.run.state ?? (snapshot.stopReason ? 'waiting_user' : 'intake'), stopped: snapshot.stopReason !== null, stopReason: snapshot.stopReason,
-    expired: generated ? Date.now() >= Date.parse(generated.run.originalDeadlineAt) : false,
+    state: view?.executionWindow.state ?? (snapshot.stopReason ? 'waiting_user' : 'intake'), stopped: (view?.executionWindow.stopReason ?? (view ? null : snapshot.stopReason)) !== null,
+    stopReason: view ? view.executionWindow.stopReason : snapshot.stopReason,
+    original: view?.original ?? null, executionWindow: view?.executionWindow ?? null,
+    expired: view ? Date.now() >= Date.parse(view.executionWindow.deadlineAt) : false,
     limitMicroCny: snapshot.ledger.limitMicroCny, ...budgetSummary(snapshot.ledger),
     settledMicroCny: snapshot.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny, 0),
     reservedMicroCny: snapshot.ledger.entries.reduce((sum, entry) => sum + entry.reservedMicroCny, 0),
