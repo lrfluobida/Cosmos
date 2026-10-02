@@ -49,3 +49,15 @@ planner、角色工厂和原串行 DAG 已增加显式 validation binding。可�
 repair policy 已识别显式 validation case，以本次 deadline 和预分配 repair grant 作判断；原 stop/deadline 永久保留。一次 coding 修复必须使用已 claim 的新 ID/context/输出版本和同一验收，design/art 早失败只报告差距。只有原失败回执写入成功才记录固定 feedback 引用，保存失败不会 claim。实际 driver 仍需认证反馈文件的内容、版本和来源；单凭引用相等不够。
 
 本步新增 3 项实际 Node child 检查与 3 项 validation repair 检查通过；另有 24 项旧修复策略及 2 项正式 host 定向回归通过。strict build 和新测试显式 strict noEmit 通过，所有 child fixture PID 已退出；无浏览器、API 或真实 case 操作。工具链 planning child 的 core purpose 修复由独立 V1 作者负责；固定 entry、实际 readScope、owned host worker 与反馈文件认证仍待下一步接通。
+
+## 固定入口准备与真实范围读取
+
+`validation-run.ts` 提供内部主机 API，尚未把新 flags 接到旧 `run.ts`。`preflightValidationRun` 只读核实际 main/准确 SHA/脏工作区与隐藏 index 标志、源级前置的审查/集成祖先、冻结输入、固定原账本及原费用，再生成 core 的未激活 quote；不打开 controller、不写停止、锁、receipt 或案例目录。COS10 实测通过不作为循环前置，已消费或存在案例目录/marker、原 writer 未收敛、未知费用、过期的错误入口等继续拒绝。
+
+`runValidationWithHost` 接受可信 host 的免费只读准备与执行能力，供下一原生装配固定绑定；CLI/环境没有替换 host 的开关。免费准备后重核准确 quote，保存真实协调方传入来源的 `operator_validation` receipt，再 claim/open 同一账本的案例。45 分钟从 claim 开始，包含之后的案例目录、工具链、运行、检查和清理；启动零请求失败也消费 case 并保存安全类别报告。原费用、时间、失败和 humanDecisions 保持原事实。
+
+完成时，wrapper 在自己的单例结束 stop 之前检查现有 case stop、截止与 5 秒清理余量、已结算加预留/未知费用和三层费用上限；host 返回 passed 还须与 registry 当前已提升候选引用匹配。清理后再核截止和费用，不以本次正常结束记录覆盖先前停止，也不将未知费用清零。原生 host 下一步仍必须实际证明完整玩法/媒体 AC、独立评审与 promotion；wrapper 的候选引用检查不能代替这些证据。
+
+`validation-driver.ts` 当前仅提供固定 `createValidationScopeReader`。它真实重读冻结九文件及 SHA 下的 `stageAcceptance`，核 operator 原字节/hash/完整 quote JSON，检查 planning 输入 capture 的固定位置、类型、来源、文件集合及实际内容；相同验收 ID、弱化 steps/expected/evidenceKinds、未登记输入或改变的来源均拒绝。它不接受调用方传入已认可的 scope。
+
+离线证据：9 项临时真实 Git/原账本 fixture 的入口测试通过（包含 4 个 host 误报 passed 的先红后绿边界），1 项真实输入 reader 与 registry 检查通过，全部零模型调用。对两个新 probe 和三个 fixture/test 文件的显式 strict noEmit 通过。尚无 public paid flag、native host、owned bootstrap/build/render/browser 装配或完整反馈文件认证；不得把本步作为实际生成通过。

@@ -30,3 +30,11 @@
 - validation 失败回执成功持久化之后，才把该回执的固定引用加入同 attempt 的 failure evidenceRefs；旧 v1/v2 不变。写入失败不会补引用或 claim；这不是 passing evidence。
 - 证据：`tests/runtime/owned-command.test.ts` 三项真实 Node child 先红后绿，覆盖登记前禁写、validation coding 取消 worker/孙进程退出、父死断 IPC 清理并保留崩溃 owner；所有 fixture PID 退出。`validation-repair.test.ts` 三项通过（两个先红后绿及一个回执保存失败）；旧 `repair-policy.test.ts` 24 项、正式 `entrypoint-host.test.ts` 两项定向代表通过。`npm run build` 与两项新 test 显式 strict noEmit 通过，无浏览器/游戏编译/API。
 - planning bootstrap 的 core child purpose 修复由 B 独占，候选 `3704bdd` 尚未作为本提交依赖；本提交不绕过它，也不表示 validation 工具链启动或 fixed driver 已完成。
+
+## 固定入口准备与 scope 小步
+
+- 新 `validation-run.ts` 的只读 preflight 直接读原 snapshot，不调用旧 `RunController.open`。实际 main/SHA/index/dirty、源级 READY+祖先、冻结输入、原 ledger 身份/历史费用及 core quote 均核实；不创建 owner、目录、receipt 或停止事件。任务前置只要求源代码就绪，避免把 COS10 实测结果作为自身循环前置。
+- 可信 host.prepare 只做免费只读准备；重核 quote 后才持久 operator 来源、claim/open 和创建案例目录。单例 OwnedWork 覆盖执行，结束停止、drain、报告和 owner 关闭保留同一账本事实。未完成启动仍消费该 case；原生 host 尚未绑定，新 flags 暂未公开到旧 `run.ts`，测试 host 不可由 CLI/环境选择。
+- 新 `validation-driver.ts` 当前只装配 actual readScope：固定 repository/root/case，真实 Git+九文件、原 operator regular bytes/sha/JSON、registered planning input 的 provenance/type/file-set/bytes，以及 `stageAcceptance` 全文。它只读且接受现有 runtime scope 的信号与五秒边界；不构造真人确认或 passing evidence。
+- root 穿刺发现 host 字符串 passed 不足以报告成功。四个 stopped/expired/unknown/missing accepted 反例先红后绿；wrapper 自身结束前检查当前窗口和费用、匹配真实 registry.current，清理后再检查时间与费用，原停止理由/未知预留保留。真实游戏 proof、完整 AC 和独立 review 仍属待接原生 host。
+- 验证：`tests/e2e/validation-run.test.ts` 9 项、`tests/e2e/validation-scope.test.ts` 1 项均通过；初始入口四项缺接口红灯，完成门槛四项误 passed 红灯均有记录。真实 Git 只操作临时 repo，ledger 为明确 fixture；无 key/session/真实验证根读取或模型/browser调用。显式 strict noEmit 覆盖两个新 probe 和三个 test/fixture，最终 exit 0；没有无关根 build。
