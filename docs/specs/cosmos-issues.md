@@ -270,7 +270,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-20 · 区分开发验证窗口与正式生成时限
 
-- 本次进展：权限、routing、shared helper/repair 及 entry/scope 已审集成；entry/scope `37e0418` 合入 `7aacad1`，主线两项 Git/finish 代表 2/2、0 skip，显式 probe 类型证据复用。只读准入及固定范围认证离线就绪，native fixed host、公开 flags、owned workers 和完整反馈文件认证仍待接通；未 claim 或运行真实新 case，#21 保持 open。
+- 本次进展：native fixed driver `732f3d1` 获独立 NATIVE_DRIVER_SOURCE_READY 并合入 `92e183a`，公开 flags、原账本 owned workers、完整失败快照/反馈认证与一次 coding repair 已离线接通。主线两个代表 2/2、0 skip 和严格构建通过，显式 probe 类型及真实零模型通用 smoke 证据复用。状态为 offline-source-ready-awaiting-real-case，#21 保持 open；最终 docs main 清推后冻结，由 root 重做准确 SHA 免费准入并执行有界真实 case，结束前不改 main。
 - 结束时间边界补充：已审 `9a91f75` 合入 `58b6e59`，允许同一次正常 stop/event 的真实时间先后差，保留外部 stop 和唯一事件门槛；主线跨时间戳回归 1/1、0 skip。旧 SHA 的免费 preflight 不能作为新 main 的付费准入，仍须最终 native main 重新免费核对。
 - 状态/源级前置：已发布 [#21](https://github.com/lrfluobida/Cosmos/issues/21)，当前为源码准备。前置只要求 COS-06/07/08/09/11/12/13/18/19 对应源码已独立审查并集成，不要求这些任务的全部 live/完整产品验收通过。COS-10 的实际验证是本任务产出，不作为循环前置；[映射](github-issues.json) 分列 sourcePrerequisites 与 validationOutputsFor。
 - 已有授权：CONTEXT 的生成运行排除平台开发；R6 的正式 ¥200/12h 与 R7 的开发验证合计 ¥150 分开。沿用用户验证预算、凭据提供及持续推进授权，由可信 coordinator 为更严格的新 case 记录真实 `operator_validation` 决定，不自动套用 formal human quote，不伪造 GameDraft 确认或 run.humanDecisions。

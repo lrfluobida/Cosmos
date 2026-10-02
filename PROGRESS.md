@@ -43,7 +43,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 已审 experiment 仍失败，尚无通过游戏 | 既有直接 API/pi 估算 ¥0.735971，原 pilot ¥0.156311，本次 8 请求 ¥0.224120；共享累计 ¥1.116402，预留与未知为零；原实验已消费 |
 | 任务拆分 | 已发布 | [20 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7 开发验证与正式生成边界 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#21；20 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | 首个正式续跑窗口、COS-20 entry/scope 及此前权限/routing、COS-01 静态证据已审集成 | entry/scope 主线 2/2、0 skip，显式 probe 类型证据复用；native fixed host/公开 flags/owned workers/完整反馈认证待接；未运行真实新 case，COS-18 partial/open，#2/#21 open |
+| 子代理逐项实施 | COS-20 native fixed driver 已审集成，等待真实有界 case | main 公开 flags/失败快照漂移 2/2、0 skip，严格构建通过；复用显式 probe 类型与零模型通用 smoke，清推后冻结 main 供 root 重新准入；COS-18 partial/open，#2/#21 open |
 
 ## 开发批次
 
@@ -76,7 +76,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 07 | COS-10 / #11 已审实验 | feat/cos-10-reviewed-experiment 独立 implementer | cos10_reviewer | batch07_merger | ecfc150 合入 75cf405，5/5 准入与类型检查通过；f16c896 上真实实验 92.746 秒/8 请求后失败，新增估算 ¥0.224120；唯一机会已消费，#11 保持 open |
 | 07 | COS-08 / #9 文本可见性修复 | fix/acceptance-visible-text 独立 implementer | cos08_reviewer | batch07_merger | cca4f10 获 READY，合入 1704d37；源一致、组合类型检查通过，复用真实 Edge 4/4；保留已完成任务状态，不代表完整视觉验收 |
 | 07 | COS-19 / #20 角色交接与截断处理 | role_io_implementer / fix/native-role-io | role_io_reviewer | batch07_merger | 6397e15 修复同行多 JSON scalar 的 P2 后获 READY，合入 d0c39ad；69/69、类型检查与构建通过；offline-verified-awaiting-live，#20 暂保持 open |
-| 07 | COS-20 / #21 开发验证窗口 | 专属 core/driver implementer | 各自独立 reviewer | batch07_merger | 此前权限/routing/helper/repair 已集成；entry/scope 37e0418 获 ENTRY_SCOPE_SOURCE_READY，合入 7aacad1，主线 2/2、0 skip；native host/公开 flags/worker/完整反馈认证仍待接，#21 open |
+| 07 | COS-20 / #21 开发验证窗口 | 专属 core/driver implementer | 各自独立 reviewer | batch07_merger | native 732f3d1 获 NATIVE_DRIVER_SOURCE_READY，合入 92e183a；主线 2/2、0 skip 与严格构建通过，probe 类型/通用 smoke 复用；offline-source-ready-awaiting-real-case，#21 open |
 | 07 | COS-01 / #2 静态基础值证据 | codex/cos-01-static-plants implementer | cos18_reviewer | batch07_merger | fdd64c8 获 STATIC_SOURCE_READY，合入 80d4d75；三路径完全一致，JSON 53×9 结构检查通过；复用采集与独立样本证据，基准仍未冻结 |
 | 07 | COS-01 / #2 Zombie 静态证据 | codex/cos-01-static-zombies implementer | cos01_zombies_reviewer | batch07_merger | e292b49 获 ZOMBIE_STATIC_SOURCE_READY，合入 73cf4fe；三路径一致，JSON 34×7/ID/偏移检查通过；复用采集及独立样本，230/221 与未冻结状态不变 |
 | 07 | COS-01 / #2 初始 HP 静态证据 | static-health implementer | cos01_health_reviewer | batch07_merger | a1c1371 获 HEALTH_STATIC_SOURCE_READY，合入 80794c3；三路径一致，保存 JSON 17 样本/3 立即数结构通过；复用只读采集与独立指令样本，未冻结 |
@@ -156,6 +156,10 @@ COS-20 entry/scope `37e0418` 经 finish-stop 竞态 P2 修复复审后获独立 
 Root 已同步读回 [HP 静态证据](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5950233739) 和 [COS-20 routing/core/helper](https://github.com/lrfluobida/Cosmos/issues/21#issuecomment-5950234444)。#21 保持 open，未 claim/运行真实新 case，共享估算 ¥1.116402、零预留/未知、旧失败和 G3/G4 状态不变。
 
 Entry 时间边界修复 `9a91f75` 获独立 ENTRY_SCOPE_SOURCE_READY 并合入 `58b6e59`：core 分别读取 stop/event 时间，允许前者早于对应唯一新事件，避免正常结束相差毫秒被误判；同步 abort、外部 stop、promotion 和 drain 后费用/截止核验仍保留。主线强制真实 3ms 跨时钟正常 fixture 1/1、0 skip，复用独立竞态及显式 probe 类型证据。Root 在此前已审 `ec9de7a` 完成真实只读 preflight READY：revision 130、baseline 1,116,402 micro-CNY、九个源码前置祖先已审，原 snapshot bytes/mtime 不变，paidRequests 0，未 claim；详见批次记录。该 quote 绑定旧 SHA，不能用于新 main 付费运行；最终 native main 须重新免费核对。native host/公开 flags/worker/完整反馈认证仍待接，#21 open，真实费用与旧历史不变。
+
+COS-20 native driver `732f3d1` 经独立完整 13 路径审查获 READY，合入 `92e183a`，批准源码逐字节一致。主线公开 flags 拒 fixture/root 开关与 dist 漂移拒 repair 两项 2/2、0 skip，严格构建通过并刷新 dist；复用作者 native probes/tests/smoke 显式 strict 类型证据。两个严格 validation flags 只绑定原生 host；免费准备在 claim 前核环境/锁定依赖，claim 后 bootstrap/build/media/play 共用原 owned helper 与八项 AC。真实 UTF-8 feedback、task/attempt/完整输入产物/费用/来源及 write-once failure-snapshot 认证后才可 wx stage、claim 唯一 coding repair，新 workspace/context/v2 保留旧失败/v1；无可信 host code_defect 的 changes_requested 仍报告差距。
+
+复用的完整 fake 路径含 9 个假请求、一次 review 协议纠正和原 coding 失败→fresh repair 通过/真实 registry v2 promotion。单次真实通用 worker smoke 1/1（test 34.08 秒，Node 37.02 秒），all PIDs 退出、owner 释放；generatedByCosmos:false/modelRequests:0，不证明目标游戏通过。#21 为 offline-source-ready-awaiting-real-case，G3/G4 未通过，共享估算仍 ¥1.116402、零未知/预留。Root 报告只读余额检查满足本 case ¥5 覆盖，不记录账户金额。最终 docs HEAD 清推后 main 冻结：root 须按该准确 SHA 重做免费 preflight，再按 ¥150/首批 ¥30/本次 ¥5、45 分钟、40 调用、一次修复边界执行首个真实 case；结束并明确释放前不合参考/doc 或其他源。旧三个失败/已消费案例、原日期及参考 230/221 未冻结状态保留，旧 quote 不复用。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
