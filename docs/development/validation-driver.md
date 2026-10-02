@@ -23,3 +23,11 @@
 审查修复：普通 Git status 会隐藏标有 `assume-unchanged` 或 `skip-worktree` 的实际改动。reader 在前后两轮检查中只读查询 `git ls-files -v -z`，发现任一隐藏标志便拒绝；不会清除标志或刷新 index，带这些标志的干净或稀疏 checkout 也不用于本验证。两个真实 Git 反例先红后绿，且拒绝前后全部文件与 index 字节/mtime 不变；原 10 项证据复用。
 
 本段只新增身份读取，没有接入运行权限、执行输入契约或 paid driver。10 项测试使用真实临时 Git 仓库与冻结输入副本，覆盖 clean 读取无写（含 index 字节/mtime）、错误 SHA、错误分支/游离 HEAD、脏输入/源码、未跟踪源码、已提交输入漂移、后续 commit、取消及并发源码变化；不读取真实账本、历史 case 或会话。
+
+## V2c 首步：显式验证执行输入
+
+`src/roles/execution-input.ts` 定义原真人 `RequirementContract` 与 `ValidationRequirement` 的联合类型。新验证数据保存 specVersion/sources/完整 acceptance，以及 run/ledger/case/window、平台 SHA、冻结输入 hash 和 operator 决定的 `source`/`sourceRefs`；不制造 confirmedBy、confirmedAt、GameDraft、humanDecisions，也不添加预算或时间字段。构造器只校验并深冻结数据，旧 `validateRequirement` 完全保留，显式 profile 不接受另一种输入。
+
+这只是形状校验，不证明来源、固定范围或权限。后续入口须从冻结 evaluation 输入及原 `stageAcceptance` 构造要求，核对完整 steps/expected/evidenceKinds，再与真实持久 case/window、operator 来源文件、registry 及 controller 权限核对，不能凭相同 acceptance ID 或调用方字符串放行。详见 [接线计划](../plans/2026-10-02-validation-driver.md)。本步 9 项纯数据回归先红后绿，fixture 明确 `generatedByCosmos:false`，没有运行 core、账本、provider、文件 writer 或游戏。
+
+验证命令：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/roles/execution-input.test.ts`（9/9）；对新模块与该测试执行 `tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --types node` 通过。本提交未合入 V1 core 依赖，未重复已有运行测试。
