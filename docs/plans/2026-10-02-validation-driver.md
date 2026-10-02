@@ -47,3 +47,7 @@
 - 最终 fake native flow 在 `9a91f75` 时间戳修复后 passed（40.47s，9 假请求、一次评审格式纠错、一项 coding repair，原失败与旧 authors/v1 留存）；public routing/早失败检查通过。新增失败快照测试 7/7，旧 preparation/diagnostics 11/11（包含一次额外 Edge 诊断 fixture 1.83s，已退出）。不以这些 fake 成绩冒充真实游戏生成。
 - 唯一新实际 generic smoke 1/1，test34.08s/runner37.02s：planning owned bootstrap、coding 实际 build/正常点击、registry proof、art render 按序，0 model request/generatedByCosmos:false，Edge PID 19764 已退出，owner 已关闭。完整证据保留在 `.cosmos/validation-host-smoke-47f42edc-82d2-4450-85b2-21c796117ecf/`。没有真实验证账本或旧 consumed case 操作。
 - 本段通过 `npm run build` 与显式 `tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --types node`（新 probes/native tests/worker smoke/repair test）。源码仍须独立审查及 merger 主线组合核对；真实付费 case 留给协调方在最终 main 新 preflight 后执行。
+
+## Case 2 声明与免费准入
+
+- [ ] 专属 implementer 在复用 managed worktree 的 `codex/validation-case-two` 分支仅更新固定声明为 `cos20-native-validation-2` 和入口门槛；相同冻结输入、caps、¥150/¥30/¥5、45 分钟/40 调用/一次 coding repair 保留。fixture 用真实 core 合成并停止 case 1，保留旧字段和 grant 前缀，先红后绿验证一次消费、幂等及拒绝路径。入口要求已停止 case 1 与 COS21 独立 `WINDOWS_PUBLICATION_SOURCE_READY`、正确集成状态及两项 main 祖先提交；不等待 COS10/COS20 实际结果关闭。独立 reviewer 检查实际 diff 后，仅 batch08_merger 合入；协调方随后检查实际 Windows publisher 和最终 main preflight，才执行真实 case 2。
