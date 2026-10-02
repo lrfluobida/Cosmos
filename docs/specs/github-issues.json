@@ -507,9 +507,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "reviewStatus": "D2_READY",
-      "reviewedCommit": "41ea1c52df95252e0886a3268df290024d5768db",
-      "mergeCommit": "7525e63d87099d951c9b7e805277fa2b4c89456d"
+      "reviewStatus": "D3B1_READY",
+      "reviewedCommit": "bc044d0c09af912ddd394357da16b7641923c3e5",
+      "mergeCommit": "cfd18550f70d52090fc7cd4386b923e68108c23e"
     },
     {
       "taskId": "COS-19",
