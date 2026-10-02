@@ -1,0 +1,68 @@
+import type { ArtifactReference } from '../contracts/index.ts';
+import type { StopReason } from './run-types.ts';
+
+export type ValidationRole = 'planning' | 'design' | 'art' | 'coding' | 'repair';
+export type ValidationPurpose = 'planning' | 'author' | 'reviewer';
+
+/** A reviewed host declaration, never an execution permission by itself. */
+export interface ValidationDeclaration {
+  readonly formatVersion: 'validation-declaration-1'; readonly profile: 'operator_validation'; readonly caseId: string;
+  readonly sourceModel: 'deepseek-flash';
+  readonly limits: {
+    readonly lifetimeMicroCny: number; readonly cumulativeMicroCny: number; readonly incrementalMicroCny: number;
+    readonly durationMs: number; readonly maxRequests: number; readonly maxRepairTasks: number;
+    readonly maxTaskAttempts: number; readonly reviewProtocolCorrections: number;
+  };
+  readonly grants: Readonly<Record<ValidationRole, { readonly taskId: string; readonly amountMicroCny: number }>>;
+  readonly outputTokens: Readonly<Record<'planning' | 'design' | 'art' | 'coding' | 'reviewer', number>>;
+  readonly inputs: {
+    readonly requirements: { readonly version: string; readonly path: string; readonly sha256: string };
+    readonly template: { readonly sha256: string; readonly files: readonly { readonly path: string; readonly sha256: string }[] };
+  };
+}
+
+export interface ValidationIdentity { reviewedPlatformSha: string; frozenCaseInputHash: string }
+/** Trusted, read-only, non-reentrant observer of actual repository identity and frozen inputs. */
+export type ValidationIdentityReader = (signal: AbortSignal) => Promise<ValidationIdentity>;
+export interface ValidationContextOptions {
+  root: string; repositoryRoot: string; identityReader: ValidationIdentityReader;
+  /** A caller may shorten the 5 second maximum; never enlarge it. */
+  identityTimeoutMs?: number; now?: () => number; signal?: AbortSignal;
+}
+export interface ValidationCaseQuote {
+  formatVersion: 'validation-case-quote-1'; profile: 'operator_validation'; activationAllowed: false; quoteId: string;
+  declaration: ValidationDeclaration; identity: ValidationIdentity;
+  requirements: { specVersion: string; requirementVersion: string; acceptanceIds: string[]; stageAcceptanceIds: string[] };
+  basis: {
+    runId: string; ledgerId: string; specVersion: string; revision: number; snapshotSha256: string;
+    originalStartedAt: string; originalDeadlineAt: string; originalLimitMicroCny: number; stopReason: StopReason | null;
+    committedMicroCny: number; allocatedMicroCny: number; requestIds: string[];
+  };
+}
+export interface OperatorValidationDecision {
+  kind: 'operator_validation'; decisionId: string; actorId: string; decidedAt: string;
+  /** Exact operator decision receipt, separate from human requirement confirmations. */
+  source: ArtifactReference; sourceRefs: ArtifactReference[];
+}
+export interface ValidationCaseWindow {
+  caseId: string; windowId: string; claimedAt: string; startedAt: string; deadlineAt: string; stopReason: StopReason | null;
+  quote: ValidationCaseQuote;
+  operatorDecision: OperatorValidationDecision & { sourceSha256: string };
+  repair: { sourceTaskId: string; taskId: string; claimedAt: string; feedback: ArtifactReference } | null;
+}
+export interface ValidationProfile {
+  profile: 'operator_validation'; currentCaseId: string; cases: ValidationCaseWindow[];
+}
+export interface ValidationRequestMetadata {
+  caseId: string; windowId: string; purpose: ValidationPurpose;
+  modelId: 'deepseek-flash'; maxOutputTokens: number; inputBytes: number; hasImages: boolean;
+}
+export interface ValidationAuthority {
+  profile: 'operator_validation'; caseId: string; windowId: string; deadlineAt: string; purpose: ValidationPurpose;
+  taskId: string; taskGrantMicroCny: number; maxOutputTokens: number;
+  lifetimeLimitMicroCny: number; cumulativeLimitMicroCny: number; incrementalLimitMicroCny: number;
+  committedMicroCny: number; caseCommittedMicroCny: number; remainingMicroCny: number;
+  requestsUsed: number; requestsRemaining: number; executionAllowed: boolean; admissionAllowed: boolean;
+}
+export interface OpenValidationCaseOptions extends ValidationContextOptions { caseId: string; windowId: string; accountingOnly?: boolean }
+export interface ClaimValidationCaseOptions extends ValidationContextOptions { quote: ValidationCaseQuote; decision: OperatorValidationDecision }
