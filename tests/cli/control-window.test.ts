@@ -8,12 +8,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
-import { startControl, requestStop, readRunStatus } from '../../src/cli/control.ts';
+import { startBudgetWarnings, startControl, requestStop, readRunStatus } from '../../src/cli/control.ts';
 import { RunController } from '../../src/runtime/run.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
 import { task as taskFixture } from '../contracts/fixtures.ts';
 
-async function fixture(t: test.TestContext) {
+async function fixture(t: test.TestContext, additionalMicroCny = 0) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-window-control-'));
   const original = await RunController.create({ root, runId: 'run-1', ledgerId: 'ledger-1', kind: 'runtime_generation', specVersion: 'spec-v1', scope: 'generation', limitMicroCny: 10_000, allocations: [{ taskId: 'source', amountMicroCny: 10_000 }] });
   const task = taskFixture();
@@ -21,7 +22,7 @@ async function fixture(t: test.TestContext) {
   task.budget = { ...task.budget, allocationMicroCny: 10_000, originalDeadlineAt: (await original.read()).run.originalDeadlineAt };
   await original.registerTasks([task as any]); await original.stop('Original stop is retained');
   const old = await original.read(); await original.close();
-  const quote = await buildContinuationQuote({ root, additionalMicroCny: 0, additionalDurationMs: 60_000 });
+  const quote = await buildContinuationQuote({ root, additionalMicroCny, additionalDurationMs: 60_000 });
   const confirmation = { decisionId: 'offline-control-decision', actorId: 'offline-user', decidedAt: new Date().toISOString(), source: { artifactId: 'confirmation', version: 'v1', location: 'confirmation.json' } };
   await writeFile(join(root, confirmation.source.location), JSON.stringify({ formatVersion: 'continuation-confirmation-1', decisionId: confirmation.decisionId, actorId: confirmation.actorId, decidedAt: confirmation.decidedAt, confirmed: true, quote }), 'utf8');
   const window = await RunController.activateContinuation({ root, quote, confirmation }), controller = await RunController.open({ root, windowId: window.windowId });
@@ -95,10 +96,68 @@ test('an acknowledgement for a different window is rejected', async t => {
   assert.equal((await readRunStatus(f.root)).stopped, false);
 });
 
+test('matching window ACK without a durable window stop is rejected without changing the snapshot', async t => {
+  const f = await fixture(t), token = randomUUID(), before = await readFile(join(f.root, 'snapshot.json'));
+  const endpoint = process.platform === 'win32' ? `\\\\.\\pipe\\cosmos-${token}` : join(tmpdir(), `cosmos-${token}.sock`);
+  const server = createServer(socket => socket.once('data', () => socket.end(JSON.stringify({ runId: 'run-1', windowId: f.windowId, stopped: true }) + '\n')));
+  server.listen(endpoint); await once(server, 'listening');
+  await writeFile(join(f.root, 'cli-control.json'), JSON.stringify({ formatVersion: 2, runId: 'run-1', windowId: f.windowId, token, endpoint }), 'utf8');
+  try { await assert.rejects(requestStop(f.root, f.windowId), /unconfirmed|durable|stop/i); }
+  finally { await new Promise<void>((done, reject) => server.close(error => error ? reject(error) : done())); }
+  assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before);
+  assert.equal((await readRunStatus(f.root)).stopped, false);
+});
+
+async function registerSuccessor(f: Awaited<ReturnType<typeof fixture>>) {
+  const snapshot = await f.controller.read(), grant = snapshot.continuation!.windows[0].grants[0];
+  const task = structuredClone(snapshot.tasks.find(task => task.taskId === grant.sourceTaskId)!);
+  task.taskId = grant.taskId; task.authorId = 'continuation-author'; task.context.contextId = 'continuation-context'; task.budget.allocationMicroCny = grant.amountMicroCny;
+  await f.controller.registerTasks([task]); return task;
+}
+
+test('current window grants project supersededBy only after the exact successor is registered', async t => {
+  const f = await fixture(t), before = await f.controller.read();
+  assert.equal((await readRunStatus(f.root)).tasks.find(task => task.taskId === 'source')?.supersededBy, null);
+  const successor = await registerSuccessor(f), bytes = await readFile(join(f.root, 'snapshot.json'));
+  const status = await readRunStatus(f.root), source = status.tasks.find(task => task.taskId === 'source')!;
+  assert.equal(source.supersededBy, successor.taskId); assert.equal(source.state, before.tasks[0].state);
+  assert.deepEqual(status.original?.stopReason, before.stopReason); assert.equal(status.settledMicroCny, before.run.fees.settledMicroCny);
+  assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), bytes);
+});
+
+test('legacy repair lineage remains visible without changing original task states or fees', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'cosmos-legacy-lineage-'));
+  const controller = await RunController.create({ root, runId: 'run-1', ledgerId: 'ledger-1', kind: 'runtime_generation', specVersion: 'spec-v1', scope: 'generation', limitMicroCny: 1000,
+    allocations: [{ taskId: 'source', amountMicroCny: 100 }, { taskId: 'repair', amountMicroCny: 100 }] });
+  try {
+    const initial = await controller.read();
+    const tasks = ['source', 'repair'].map(taskId => {
+      const task = taskFixture(); Object.assign(task, { taskId, dependsOn: [], state: 'not_started', stateReason: null, attempts: [], artifacts: [], evidence: [] });
+      task.budget = { ...task.budget, allocationMicroCny: 100, originalDeadlineAt: initial.run.originalDeadlineAt }; return task as any;
+    });
+    await controller.registerTasks(tasks);
+    await writeFile(join(root, 'repair-plan.json'), JSON.stringify({ sourceTaskId: 'source', replacementTaskId: 'repair', tasks: [{ task: tasks[1] }] }), 'utf8');
+    const bytes = await readFile(join(root, 'snapshot.json')), status = await readRunStatus(root);
+    assert.equal(status.tasks.find(task => task.taskId === 'source')?.supersededBy, 'repair');
+    assert.equal(status.tasks.find(task => task.taskId === 'source')?.state, 'not_started'); assert.equal(status.settledMicroCny, 0);
+    assert.equal(status.continuation?.state, 'registered'); assert.deepEqual(await readFile(join(root, 'snapshot.json')), bytes);
+  } finally { await controller.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test('effective continuation budget warning shows the increased cap and original limit once', async t => {
+  const f = await fixture(t, 10_000), successor = await registerSuccessor(f), output: string[] = [];
+  await f.controller.reserve({ requestId: 'threshold', taskId: successor.taskId, provider: 'offline', pricingVersion: 'fixture', estimatedMaxCostMicroCny: 16_000 });
+  const before = await readFile(join(f.root, 'snapshot.json'));
+  const warnings = await startBudgetWarnings(f.root, message => output.push(message)); await warnings.close();
+  const again = await startBudgetWarnings(f.root, message => output.push(message)); await again.close();
+  assert.equal(output.length, 1); assert.match(output[0], /有效总上限 ¥0\.02/); assert.match(output[0], /原上限 ¥0\.01/); assert.match(output[0], /剩余额度 ¥0\.004000/);
+  assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before);
+});
+
 test('missing owner marker alone cannot prove a closed window is drained', async t => {
   const f = await fixture(t); await f.controller.close();
   const before = await readFile(join(f.root, 'snapshot.json'));
-  await assert.rejects(requestStop(f.root, f.windowId), /owner|quiescence|unconfirmed/i);
+  await assert.rejects(requestStop(f.root, f.windowId), /owner|quiescence|unconfirmed|idle|proof/i);
   assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before);
 });
 
@@ -106,6 +165,35 @@ test('live owner without a channel remains unconfirmed instead of being forcibly
   const f = await fixture(t), before = await readFile(join(f.root, 'snapshot.json'));
   await assert.rejects(requestStop(f.root, f.windowId), /alive|owner|unconfirmed/i);
   assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before);
+});
+
+test('normal drained close permits the explicit idle window stop without an owner marker', async t => {
+  const f = await fixture(t);
+  const before = await f.controller.read();
+  await f.controller.closeAfterDrain(new OwnedWork(f.controller.signal));
+  await assert.rejects(readFile(join(f.root, '.controller.lock')), /ENOENT/);
+  assert.deepEqual(await requestStop(f.root, f.windowId), { runId: 'run-1', windowId: f.windowId, stopped: true });
+  const after = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+  assert.deepEqual(after.ledger, before.ledger); assert.deepEqual(after.tasks, before.tasks);
+  assert.deepEqual(after.stopReason, before.stopReason);
+  assert.equal(after.run.originalDeadlineAt, before.run.originalDeadlineAt);
+  assert.equal(after.continuation.windows[0].stopReason.code, 'manual');
+  await assert.rejects(readFile(join(f.root, '.controller.lock')), /ENOENT/);
+});
+
+for (const changed of ['forged-receipt', 'changed-bytes', 'consumed-anchor', 'wrong-window'] as const) test(`idle control rejects ${changed} without snapshot or receipt changes`, async t => {
+  const f = await fixture(t); await f.controller.closeAfterDrain(new OwnedWork(f.controller.signal));
+  const file = join(f.root, 'snapshot.json'), state = JSON.parse(await readFile(file, 'utf8'));
+  const receiptPath = join(f.root, 'idle-receipts', f.windowId, `revision-${state.revision}.json`);
+  if (changed === 'forged-receipt') await writeFile(receiptPath, '{}', 'utf8');
+  if (changed === 'changed-bytes') await writeFile(file, Buffer.concat([await readFile(file), Buffer.from('\n')]));
+  if (changed === 'consumed-anchor') {
+    const reopened = await RunController.open({ root: f.root, windowId: f.windowId }); await reopened.close();
+  }
+  const before = await readFile(file), receipt = await readFile(receiptPath);
+  await assert.rejects(requestStop(f.root, changed === 'wrong-window' ? 'wrong-window' : f.windowId), /window|idle|receipt|proof|unconfirmed/i);
+  assert.deepEqual(await readFile(file), before); assert.deepEqual(await readFile(receiptPath), receipt);
+  await assert.rejects(readFile(join(f.root, '.controller.lock')), /ENOENT/);
 });
 
 async function crashedOwner(root: string, mode: 'plain' | 'unresolved' | 'untracked' | 'child' = 'plain', childPid?: number) {
