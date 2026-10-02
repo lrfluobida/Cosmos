@@ -40,6 +40,7 @@ interface Draft { taskId: string; policyId?: string; role: AuthorRole; objective
 
 /** One native Cosmos planning session, then host binding of all authority-bearing fields. */
 export async function planTaskDag(options: PlanOptions): Promise<{ tasks: PreparedTask[]; plan: ArtifactReference; sessionDirectory: string }> {
+  options.controller.requireOriginalExecution();
   const requirement = freeze(structuredClone(options.requirement));
   const errors = validateRequirement(requirement);
   if (errors.length) throw new Error('Planning requires an explicitly confirmed valid requirement.');

@@ -290,3 +290,24 @@ node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern=
 Result: 2 tests, 2 passed, 0 failed/cancelled/skipped; duration 2649.7645 ms. The selected cases verify clean reads leave files/index unchanged and hidden source changes are refused without rewriting flags. Log: `.cosmos/integration/batch07-cos20-v2b-selected.tap`. The tests used temporary Git repositories and fixed input copies; no compiler, browser, provider or real validation root was used. Exact dependencies and frozen inputs match approved source, so the author's original ten tests, two repaired cases and explicit strict probe/test noEmit evidence are reused. Root build does not cover probes and was not repeated or claimed.
 
 UTF-8/LF, Chinese re-read, JSON mapping/counts, source identity and whitespace checks passed. COS-20 / #21 remains open with only declaration/input/identity reading offline verified; profile and executing driver are not connected, and no case was claimed or executed. Estimated real cost remains CNY 1.116402 with zero reserved/unknown charges. Historical deadlines, consumed failures, original formal results, reference status and G3/G4 remain unchanged.
+
+The combined static/V2b checkpoint was clean and pushed as `a95d329a08ccd899eac6a6b64be5986bdaf39bbf`, with HEAD, origin/main and remote main matching. Root posted/read back [COS-01 static evidence](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5948580887) and [COS-20 identity evidence](https://github.com/lrfluobida/Cosmos/issues/21#issuecomment-5948581401).
+
+## COS-20 V1 authority integration — 2026-10-02
+
+Fresh independent reviewer `cos20_v1_reviewer` approved `d46294d3d710da98052fa5a4a403a2029bff2d13` as `V1_SOURCE_READY` after actual spec/quality review of 12 paths, with no reproducible P1/P2. The reviewer independently passed three claim/history, expired-accounting and dispatch/overcharge examples (0 skipped). The author's 27 new pure checks, two bounded process-crash checks, seven affected v1/v2 examples, build and explicit strict new-test type evidence are reused.
+
+Merge `43f3ba5095af77881c28001d00a22d692c638e42` has parents `a95d329a08ccd899eac6a6b64be5986bdaf39bbf` and exact source `d46294d3d710da98052fa5a4a403a2029bff2d13`. It had no conflicts; all 12 approved paths matched immediately after merge. The subsequent documentation commit updates only the first status paragraph in `docs/development/validation-windows.md` plus progress/task/integration records; it is not claimed as an unchanged source-document mirror. No merger implementation edits or V2c source are included.
+
+Fresh main verification, in sequence:
+
+```powershell
+node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern='^(operator claim preserves|expired case reopens|legacy planner, control and display|concurrent reservations cannot|one exact confirmation)' tests/runtime/validation-window.test.ts tests/runtime/run.test.ts tests/runtime/continuation-authority.test.ts
+npm run build
+```
+
+The selected run reported 5 tests, 5 passed, 0 failed/cancelled/skipped, duration 5993.3677 ms. Three profile examples cover preserved history/one case clock, accounting-only expiry and legacy side-effect refusal; one v1 and one v2 example cover shared reservations and atomic formal continuation. Strict build passed and refreshed dist. Logs are `.cosmos/integration/batch07-cos20-v1-selected.tap` and `batch07-cos20-v1-build.log`. The compiler slot was released immediately; no old complete suite, crash group, browser or paid request was repeated.
+
+Profile 3 uses the original ledger 1.0.0 and CNY 150 total, retaining historical tasks/allocations/fees/times. A case is capped at CNY 5 actual plus reserved, 45 minutes, 40 calls and one repair. Exact operator source/quote precedes atomic claim; no human confirmation is fabricated. Known reservations may coexist within all caps; unknown billing blocks new work. Stopped/expired accountingOnly permits reconciliation but no new execution admission. Core repair checks fixed reference relationships, while V2 must authenticate actual files/provenance. The ledgerRoot registry check does not prove every old artifactRoot is quiescent.
+
+V1 authority/accounting is offline integrated; the real V2b identity reader and paid driver remain unwired, and V2c is unreviewed. COS-20 / #21 remains open and G3/G4 remain closed. No case was claimed or run, no real key/root was read, and the shared estimate remains CNY 1.116402 with zero reserved/unknown charges. Original deadlines, failed/consumed cases and reference state remain unchanged. UTF-8/LF, Chinese re-read, JSON/count and whitespace checks passed.

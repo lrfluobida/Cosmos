@@ -6,6 +6,10 @@ import { appendEvidence, evidenceReferences, findRequest, money, nonEmpty, requi
 import { SnapshotStore } from './store.ts';
 import { validateSnapshot } from './run-validation.ts';
 import { activateContinuation } from './continuation-authority.ts';
+import { claimValidationCase, verifyOperatorDecision, verifyValidationIdentity } from './validation-window.ts';
+import { currentValidationCase, requireValidationRepairSource, requireValidationTask, validationOutputCap, validationReservation, validationRole, validationUsage } from './validation-validation.ts';
+import { sameValue } from '../contracts/validation.ts';
+import type { OpenValidationCaseOptions, ValidationAuthority, ValidationCaseWindow, ValidationPurpose, ValidationRequestMetadata } from './validation-types.ts';
 import { requireContinuationTask } from './continuation-validation.ts';
 import { OwnedWork } from './recovery/owned-work.ts';
 import { idleAnchor, idleHash, publishWindowIdle, requireNoRegistryWriter, requireWindowIdle } from './window-idle.ts';
@@ -27,6 +31,7 @@ export interface CreateRunOptions extends OpenRunOptions {
 /** Trusted local controller. Agents receive hooks, never the mutable controller state. */
 export class RunController {
   static activateContinuation = activateContinuation;
+  static claimValidationCase = claimValidationCase;
   private store: SnapshotStore;
   private snapshot: RunSnapshot;
   private now: () => number;
@@ -39,14 +44,19 @@ export class RunController {
   private timer?: ReturnType<typeof setTimeout>;
   private readonly windowId?: string;
   private childTasks = new Map<string, string>();
+  private readonly validationContext?: OpenValidationCaseOptions;
+  private readonly combinedSignal?: AbortSignal;
 
-  private constructor(store: SnapshotStore, snapshot: RunSnapshot, now: () => number, windowId?: string) {
+  private constructor(store: SnapshotStore, snapshot: RunSnapshot, now: () => number, windowId?: string, validationContext?: OpenValidationCaseOptions) {
     this.store = store; this.snapshot = snapshot; this.now = now;
     this.windowId = windowId;
+    this.validationContext = validationContext;
+    if (validationContext?.signal) this.combinedSignal = AbortSignal.any([this.abort.signal, validationContext.signal]);
     if (this.activeStop()) this.abort.abort(this.activeStop());
+    if (validationContext?.accountingOnly) this.abort.abort(new Error('Accounting-only validation owner cannot dispatch work.'));
   }
 
-  get signal(): AbortSignal { return this.abort.signal; }
+  get signal(): AbortSignal { return this.combinedSignal ?? this.abort.signal; }
 
   /** Legacy executors must reject before read() can expire or otherwise mutate a window. */
   requireOriginalExecution(): void {
@@ -57,6 +67,13 @@ export class RunController {
   requireExecutionWindow(windowId?: string): void {
     if (windowId === undefined) { this.requireOriginalExecution(); return; }
     if (this.snapshot.formatVersion !== 2 || windowId !== this.windowId || windowId !== this.snapshot.continuation?.currentWindowId) throw new Error('Explicit current execution window does not match this controller.');
+  }
+
+  requireValidationCase(caseId: string, windowId: string): void {
+    const current = this.validationWindow();
+    if (caseId !== current.caseId || windowId !== current.windowId) throw new Error('Explicit validation case/window does not match this controller.');
+    this.requireActive();
+    if (this.now() >= Date.parse(current.deadlineAt)) throw new Error('Validation case deadline expired.');
   }
 
   /** Host-only, non-reentrant coordination of admission or receipt settlement.
@@ -120,6 +137,7 @@ export class RunController {
     try {
       const snapshot = await store.read();
       validateSnapshot(snapshot);
+      if (snapshot.formatVersion === 3) throw new Error('Validation profile requires explicit openValidationCase; legacy and formal entrypoints are unsupported.');
       if (snapshot.formatVersion === 2 ? options.windowId !== snapshot.continuation!.currentWindowId : options.windowId !== undefined) throw new Error('Continuation snapshot requires its explicit current execution window; ordinary execution entrypoints are unsupported.');
       const controller = new RunController(store, snapshot, options.now ?? Date.now, options.windowId);
       const next = structuredClone(snapshot);
@@ -139,11 +157,60 @@ export class RunController {
     } catch (error) { await store.close(); throw error; }
   }
 
+  static async openValidationCase(options: OpenValidationCaseOptions): Promise<RunController> {
+    const store = await SnapshotStore.acquire(options.root);
+    try {
+      const snapshot = await store.read(); validateSnapshot(snapshot);
+      const window = currentValidationCase(snapshot), now = options.now ?? Date.now;
+      if (window.caseId !== options.caseId || window.windowId !== options.windowId) throw new Error('Wrong validation case or window.');
+      if (!options.accountingOnly && (window.stopReason || now() >= Date.parse(window.deadlineAt))) throw new Error('Validation case is stopped or its deadline expired.');
+      await requireNoRegistryWriter(store.root);
+      await verifyValidationIdentity(options, window.quote.declaration, window.quote.identity, options.accountingOnly ? undefined : window.deadlineAt);
+      const { sourceSha256, ...decision } = window.operatorDecision;
+      if ((await verifyOperatorDecision(store.root, window.quote, decision, now())).sourceSha256 !== sourceSha256) throw new Error('Operator validation source changed.');
+      const context: OpenValidationCaseOptions = { root: store.root, repositoryRoot: options.repositoryRoot, caseId: options.caseId, windowId: options.windowId,
+        identityReader: options.identityReader, identityTimeoutMs: options.identityTimeoutMs, accountingOnly: options.accountingOnly, now, signal: options.signal };
+      const controller = new RunController(store, snapshot, now, window.windowId, context), next = structuredClone(snapshot);
+      for (const record of next.requests) {
+        const entry = findRequest(next.ledger, record.requestId);
+        if (record.admittedAt && entry.status === 'reserved') { entry.status = 'unknown'; entry.unknown = true; controller.event(next, 'unknown', entry.requestId, 'Validation owner reopened without a durable response; reconcile before new dispatch.'); }
+      }
+      if (next.events.length !== snapshot.events.length) await controller.commit(next);
+      await controller.expire();
+      if (!options.accountingOnly) controller.armDeadline();
+      return controller;
+    } catch (error) { await store.close(); throw error; }
+  }
+
   async read(): Promise<RunSnapshot> { return this.serial(async () => structuredClone(this.snapshot)); }
 
   /** One authority view for all window-aware host admission paths. */
   executionAuthority(taskId: string): Promise<ExecutionAuthority> {
+    if (this.snapshot.formatVersion === 3) return Promise.reject(new Error('Validation profile requires validationAuthority; the legacy SDK path is unsupported.'));
     return this.serial(async () => this.taskAuthority(taskId));
+  }
+
+  validationAuthority(taskId: string, purpose: ValidationPurpose): Promise<ValidationAuthority> {
+    this.validationWindow();
+    return this.serial(async () => this.validationTaskAuthority(taskId, purpose));
+  }
+
+  async claimValidationRepair(input: { sourceTaskId: string; feedback: ArtifactReference }): Promise<NonNullable<ValidationCaseWindow['repair']>> {
+    const request = structuredClone(input);
+    return this.serial(async () => {
+      this.requireActive(); const window = this.validationWindow();
+      if (window.repair) {
+        if (window.repair.sourceTaskId !== request.sourceTaskId || !sameValue(window.repair.feedback, request.feedback)) throw new Error('Semantic repair was already claimed for another source or feedback.');
+        return structuredClone(window.repair);
+      }
+      if (window.quote.declaration.limits.maxRepairTasks !== 1) throw new Error('This case does not permit a semantic repair.');
+      requireValidationRepairSource(this.snapshot, request.sourceTaskId, request.feedback);
+      await this.checkValidationIdentity();
+      const next = structuredClone(this.snapshot), current = this.validationWindow(next);
+      current.repair = { ...request, taskId: current.quote.declaration.grants.repair.taskId, claimedAt: this.at() };
+      this.event(next, 'validation_repair_claimed', null, `One distinct repair task claimed for ${request.sourceTaskId}.`);
+      await this.commit(next); return structuredClone(current.repair);
+    });
   }
 
   async summary() {
@@ -159,10 +226,21 @@ export class RunController {
     const request = structuredClone(input);
     return this.serial(async () => {
       this.requireActive();
-      this.requireTaskAuthority(request.taskId);
+      if (this.snapshot.formatVersion === 3) {
+        this.requireValidationRequest(request.taskId, request.validation);
+        if (request.provider !== 'deepseek' || request.pricingVersion !== 'deepseek-flash-peak-cny-2026-10-01') throw new Error('Validation provider or pricing changed.');
+        if (this.snapshot.ledger.entries.some(entry => entry.unknown)) throw new Error('Reconcile unknown requests before validation admission.');
+        const authority = this.validationTaskAuthority(request.taskId, request.validation!.purpose);
+        if (!authority.admissionAllowed) throw new Error('Validation request ceiling, budget or task admission is unavailable.');
+        if (request.estimatedMaxCostMicroCny < validationReservation(request.validation!) || request.estimatedMaxCostMicroCny > authority.remainingMicroCny) throw new Error('Validation reservation does not fit the actual output cap or remaining case budget.');
+        await this.checkValidationIdentity();
+      } else {
+        if (request.validation) throw new Error('Validation metadata requires the explicit validation profile.');
+        this.requireTaskAuthority(request.taskId);
+      }
       const next = structuredClone(this.snapshot);
       const entry = reserveEntry(next.ledger, request);
-      next.requests.push({ requestId: request.requestId, admittedAt: null, ...(this.windowId ? { windowId: this.windowId } : {}) });
+      next.requests.push({ requestId: request.requestId, admittedAt: null, ...(this.windowId ? { windowId: this.windowId } : {}), ...(request.validation ? { validation: request.validation } : {}) });
       this.event(next, 'reserved', request.requestId, 'Maximum known cost reserved before dispatch.');
       await this.commit(next);
       return structuredClone(entry);
@@ -174,7 +252,12 @@ export class RunController {
     return this.serial(async () => {
       this.requireActive();
       const entry = findRequest(this.snapshot.ledger, requestId);
-      this.requireTaskAuthority(entry.taskId);
+      if (this.snapshot.formatVersion === 3) {
+        this.requireValidationRequest(entry.taskId, this.snapshot.requests.find(record => record.requestId === requestId)?.validation);
+        requireOpen(entry);
+        if (this.snapshot.requests.find(record => record.requestId === requestId)?.admittedAt) throw new Error('Validation request already admitted.');
+        await this.checkValidationIdentity();
+      } else this.requireTaskAuthority(entry.taskId);
       if (this.snapshot.requests.find(record => record.requestId === requestId)?.windowId !== this.windowId) throw new Error('Request belongs to another execution window.');
       if (budgetSummary(this.snapshot.ledger).reconciliationRequired) throw new Error('Reconciliation required before paid admission.');
       const next = structuredClone(this.snapshot);
@@ -262,7 +345,8 @@ export class RunController {
       this.requireActive();
       const next = structuredClone(this.snapshot);
       for (const task of values) {
-        if (this.windowId) requireContinuationTask(next, task);
+        if (next.formatVersion === 3) requireValidationTask(next, task);
+        else if (this.windowId) requireContinuationTask(next, task);
         if (task.state !== 'not_started' || task.attempts.length || task.evidence.length || task.artifacts.length || task.review.verdict !== 'pending') throw new Error('Register only fresh task drafts.');
         if (next.tasks.some(t => t.taskId === task.taskId)) throw new Error('Task already registered.');
         const allocation = next.ledger.allocations.find(a => a.taskId === task.taskId);
@@ -285,7 +369,10 @@ export class RunController {
       const next = structuredClone(this.snapshot);
       const previous = next.tasks.find(t => t.taskId === value.taskId);
       if (this.windowId) {
-        requireContinuationTask(next, value);
+        if (next.formatVersion === 3) {
+          if (this.validationContext?.accountingOnly) throw new Error('Accounting-only validation cannot write task or attempt history.');
+          requireValidationTask(next, value);
+        } else requireContinuationTask(next, value);
         if (!previous) throw new Error('Use registerTasks for a fresh continuation task.');
         if (this.activeStop() && (!['cancelled', 'failed', 'waiting_user'].includes(value.state) || value.attempts.some(attempt => attempt.outcome === 'running')
           || value.attempts.length !== previous.attempts.length || value.attempts.some((attempt, i) => attempt.attemptId !== previous.attempts[i].attemptId))) throw new Error('Stopped window permits only finalizing existing attempts; it cannot start another attempt.');
@@ -304,6 +391,7 @@ export class RunController {
   }
 
   async stop(reason: string): Promise<void> {
+    if (this.snapshot.formatVersion === 3) { nonEmpty(reason, 'Stop reason'); this.abort.abort(new Error(reason)); }
     return this.serial(async () => {
       nonEmpty(reason, 'Stop reason');
       if (this.activeStop()) return;
@@ -377,12 +465,21 @@ export class RunController {
   }
 
   private requireActive(): void {
+    if (this.validationContext?.accountingOnly) throw new Error('Accounting-only validation owner cannot dispatch work.');
     const stop = this.activeStop();
     if (stop) throw new Error(`Run stopped: ${stop.code}: ${stop.reason}`);
+    this.signal.throwIfAborted();
   }
 
-  private window(state = this.snapshot): ExecutionWindow | undefined {
+  private validationWindow(state = this.snapshot): ValidationCaseWindow {
+    const window = currentValidationCase(state);
+    if (!this.validationContext || this.validationContext.caseId !== window.caseId || this.windowId !== window.windowId) throw new Error('Validation case authority is not bound to this instance.');
+    return window;
+  }
+
+  private window(state = this.snapshot): ExecutionWindow | ValidationCaseWindow | undefined {
     if (!this.windowId) return undefined;
+    if (state.formatVersion === 3) return this.validationWindow(state);
     const window = state.continuation?.windows.find(item => item.windowId === this.windowId);
     if (!window || state.continuation?.currentWindowId !== this.windowId) throw new Error('Execution window authority is no longer current.');
     return window;
@@ -397,16 +494,55 @@ export class RunController {
   private taskAuthority(taskId: string): ExecutionAuthority {
     const grant = this.snapshot.ledger.allocations.find(item => item.taskId === taskId);
     const task = this.snapshot.tasks.find(item => item.taskId === taskId);
-    const window = this.window();
+    const window = this.snapshot.formatVersion === 2 ? this.window() as ExecutionWindow : undefined;
     const eligible = !window || !!task && window.grants.some(item => item.taskId === taskId) && ['not_started', 'ready', 'running', 'awaiting_review'].includes(task.state) && task.attempts.length <= 1;
     return { windowId: this.windowId ?? null, deadlineAt: this.deadlineAt(), effectiveLimitMicroCny: budgetCapacity(this.snapshot.ledger).effectiveLimitMicroCny,
       taskGrantMicroCny: grant?.amountMicroCny ?? 0, admissionAllowed: !!grant && eligible && !this.activeStop() && this.now() < Date.parse(this.deadlineAt()) && !this.snapshot.ledger.allocationClosures?.some(item => item.taskId === taskId) && !budgetSummary(this.snapshot.ledger).reconciliationRequired };
   }
 
   private requireTaskAuthority(taskId: string): void {
+    if (this.snapshot.formatVersion === 3) {
+      if (this.snapshot.ledger.entries.some(entry => entry.unknown)) throw new Error('Unknown requests require reconciliation before owned child dispatch.');
+      const authority = this.validationTaskAuthority(taskId, 'author');
+      if (!authority.executionAllowed) throw new Error('Task has no validation execution authority.');
+      return;
+    }
     if (!this.windowId) return;
     if (budgetSummary(this.snapshot.ledger).reconciliationRequired) throw new Error('Reconciliation required before further execution admission.');
     if (!this.taskAuthority(taskId).admissionAllowed) throw new Error('Task is not registered with active execution authority, or its grant is closed.');
+  }
+
+  private validationTaskAuthority(taskId: string, purpose: ValidationPurpose): ValidationAuthority {
+    const window = this.validationWindow(), d = window.quote.declaration, role = validationRole(window, taskId);
+    const maxOutputTokens = validationOutputCap(window, taskId, purpose);
+    if (!role) throw new Error('Unknown validation case task grant.');
+    const task = this.snapshot.tasks.find(item => item.taskId === taskId), usage = validationUsage(this.snapshot, window);
+    const taskCommitted = this.snapshot.ledger.entries.filter(entry => entry.taskId === taskId).reduce((sum, entry) => sum + entry.reservedMicroCny + entry.settledMicroCny, 0);
+    const remainingMicroCny = Math.max(0, Math.min(d.limits.lifetimeMicroCny - usage.committedMicroCny, d.limits.cumulativeMicroCny - usage.committedMicroCny,
+      d.limits.incrementalMicroCny - usage.caseCommittedMicroCny, d.grants[role].amountMicroCny - taskCommitted));
+    const executionAllowed = !this.validationContext!.accountingOnly && !this.signal.aborted && !window.stopReason && this.now() < Date.parse(window.deadlineAt)
+      && (role === 'planning' || !!task && ['not_started', 'ready', 'running', 'awaiting_review'].includes(task.state));
+    const purposeAllowed = purpose !== 'author' || !task?.attempts.some(attempt => attempt.outcome !== 'running');
+    return { profile: 'operator_validation', caseId: window.caseId, windowId: window.windowId, deadlineAt: window.deadlineAt, purpose, taskId,
+      taskGrantMicroCny: d.grants[role].amountMicroCny, maxOutputTokens, lifetimeLimitMicroCny: d.limits.lifetimeMicroCny, cumulativeLimitMicroCny: d.limits.cumulativeMicroCny,
+      incrementalLimitMicroCny: d.limits.incrementalMicroCny, ...usage, remainingMicroCny, requestsRemaining: Math.max(0, d.limits.maxRequests - usage.requestsUsed), executionAllowed,
+      admissionAllowed: executionAllowed && purposeAllowed && usage.requestsUsed < d.limits.maxRequests && remainingMicroCny > 0 && !this.snapshot.ledger.entries.some(entry => entry.unknown) };
+  }
+
+  private requireValidationRequest(taskId: string, metadata?: ValidationRequestMetadata): void {
+    const window = this.validationWindow();
+    if (!metadata || metadata.caseId !== window.caseId || metadata.windowId !== window.windowId || metadata.modelId !== window.quote.declaration.sourceModel) throw new Error('Validation request metadata has the wrong case, window or model.');
+    if (metadata.maxOutputTokens > validationOutputCap(window, taskId, metadata.purpose)) throw new Error('Validation request exceeds its reviewed output token cap.');
+    validationReservation(metadata);
+    if (metadata.purpose === 'author' && this.snapshot.tasks.find(task => task.taskId === taskId)?.attempts.some(attempt => attempt.outcome !== 'running')) throw new Error('A finished author attempt cannot dispatch another author request.');
+    if (!this.validationTaskAuthority(taskId, metadata.purpose).executionAllowed) throw new Error('Validation task has no active purpose authority.');
+  }
+
+  private async checkValidationIdentity(): Promise<void> {
+    const window = this.validationWindow();
+    try { await verifyValidationIdentity({ ...this.validationContext!, signal: this.signal }, window.quote.declaration, window.quote.identity, window.deadlineAt); }
+    finally { await this.expire(); }
+    this.requireActive();
   }
 
   private halt(next: RunSnapshot, code: StopReason['code'], reason: string): void {
@@ -426,7 +562,7 @@ export class RunController {
       }
       this.event(next, admitted ? 'unknown' : 'cancelled', entry.requestId, admitted ? 'Stop cannot prove that a dispatched request was free.' : 'Runtime admission history proves the request was never dispatched.');
     }
-    this.event(next, window ? 'window_stopped' : 'stopped', null, reason);
+    this.event(next, next.formatVersion === 3 ? 'validation_case_stopped' : window ? 'window_stopped' : 'stopped', null, reason);
   }
 
   private async expire(): Promise<void> {
@@ -456,7 +592,7 @@ export class RunController {
     if (budgetSummary(next.ledger).warning && !next.events.some(e => e.type === 'budget_warning')) this.event(next, 'budget_warning', null, 'Settled and reserved exposure reached 80% of the shared budget.');
     validateSnapshot(next);
     const issues = validateRunUpdate(this.snapshot.run, next.run, { role: 'system', actorId: 'runtime' });
-    if (next.formatVersion === 2) issues.push(...validateLedgerUpdate(this.snapshot.ledger, next.ledger, { role: 'system', actorId: 'runtime' }, { allowOverrunFacts: this.activeStop(next)?.code === 'charge_overrun' }));
+    if (next.formatVersion !== 1) issues.push(...validateLedgerUpdate(this.snapshot.ledger, next.ledger, { role: 'system', actorId: 'runtime' }, { allowOverrunFacts: this.activeStop(next)?.code === 'charge_overrun' }));
     if (issues.length) throw new Error(`Invalid run update: ${issues.map(i => i.message).join('; ')}`);
     try { await this.store.write(next); }
     catch (error) { this.failed = true; clearTimeout(this.timer); this.abort.abort(error); throw error; }
