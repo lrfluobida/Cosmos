@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+import { regularFile } from '../artifacts/paths.ts';
 import { DEFAULT_BUDGETS, budgetCapacity, budgetSummary, validateLedgerUpdate, validateRunUpdate, validateTaskUpdate } from '../contracts/index.ts';
 import type { ArtifactReference, BudgetLedger, LedgerEntry, TaskContract, TaskKind, UpdateActor } from '../contracts/index.ts';
 import { appendEvidence, evidenceReferences, findRequest, money, nonEmpty, requireOpen, reserveEntry, settleEntry } from '../budget/ledger.ts';
@@ -5,6 +7,8 @@ import { SnapshotStore } from './store.ts';
 import { validateSnapshot } from './run-validation.ts';
 import { activateContinuation } from './continuation-authority.ts';
 import { requireContinuationTask } from './continuation-validation.ts';
+import { OwnedWork } from './recovery/owned-work.ts';
+import { idleAnchor, idleHash, publishWindowIdle, requireNoRegistryWriter, requireWindowIdle } from './window-idle.ts';
 import type { ExecutionAuthority, ExecutionWindow, ImportedCharge, RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
 export type { ImportedCharge, RequestInput, RunSnapshot } from './run-types.ts';
 
@@ -119,6 +123,8 @@ export class RunController {
       if (snapshot.formatVersion === 2 ? options.windowId !== snapshot.continuation!.currentWindowId : options.windowId !== undefined) throw new Error('Continuation snapshot requires its explicit current execution window; ordinary execution entrypoints are unsupported.');
       const controller = new RunController(store, snapshot, options.now ?? Date.now, options.windowId);
       const next = structuredClone(snapshot);
+      const anchor = idleAnchor(next);
+      if (anchor) controller.event(next, 'window_owner_resumed', null, JSON.stringify({ windowId: anchor.windowId, anchorSequence: anchor.sequence }));
       for (const record of next.requests) {
         const entry = findRequest(next.ledger, record.requestId);
         if (record.admittedAt && entry.status === 'reserved') {
@@ -305,6 +311,43 @@ export class RunController {
       this.halt(next, 'manual', reason);
       await this.commit(next);
     });
+  }
+
+  /** An idle receipt proves lifecycle convergence only, never new execution authority. */
+  static async stopIdleWindow(options: { root: string; windowId: string; reason?: string; now?: () => number }): Promise<{ runId: string; windowId: string; stopped: true }> {
+    const store = await SnapshotStore.acquire(options.root);
+    let controller: RunController | undefined;
+    try {
+      const state = await store.read(); validateSnapshot(state);
+      await requireWindowIdle(store.root, state, options.windowId);
+      controller = new RunController(store, state, options.now ?? Date.now, options.windowId);
+      await controller.stop(options.reason ?? 'User requested an idle window stop.');
+      return { runId: state.run.runId, windowId: options.windowId, stopped: true };
+    } finally { if (controller) await controller.close(); else await store.close(); }
+  }
+
+  /** Drain real host work, retain a private nonce through owner close, then publish proof. */
+  async closeAfterDrain(work: OwnedWork): Promise<void> {
+    this.requireExecutionWindow(this.windowId);
+    if (!this.windowId || !(work instanceof OwnedWork) || this.closing || this.failed) throw new Error('Idle close requires a current window and its open owned work.');
+    await work.cancelAndDrain('Window owner is closing.');
+    await this.accounting;
+    await requireNoRegistryWriter(this.store.root);
+    if (this.closing || this.failed) throw new Error('Window owner closed before idle proof was prepared.');
+    this.closing = true; clearTimeout(this.timer);
+    const nonce = randomBytes(32).toString('hex');
+    const anchored = this.pending.then(async () => {
+      if (this.failed) throw new Error('Window persistence failed before idle proof.');
+      await this.expire();
+      const next = structuredClone(this.snapshot);
+      this.event(next, 'window_owner_drained', null, JSON.stringify({ windowId: this.windowId, nonceSha256: idleHash(nonce) }));
+      await this.commit(next);
+      return { state: structuredClone(this.snapshot), bytes: await regularFile(this.store.root, 'snapshot.json') };
+    });
+    this.pending = anchored.catch(() => {});
+    const proof = await anchored;
+    await this.close();
+    await publishWindowIdle(this.store.root, proof.state, nonce, proof.bytes);
   }
 
   async close(): Promise<void> {
