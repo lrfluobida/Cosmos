@@ -26,7 +26,7 @@ import type { RepairFeedback } from './repair/feedback.ts';
 import { allocateRepairGrants, buildRepairContinuation, findUnstartedSuccessors, prepareRepairContinuation, sealRepairDiagnostics, SuccessorBlocked } from './entrypoint-successors.ts';
 import type { RepairContinuationPlan, SuccessorTarget, TaskReplacement } from './entrypoint-successors.ts';
 
-export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure'> {
+export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
   validateTasks?(tasks: PreparedTask[]): void;
   recoverCapture: NonNullable<RecoveryOptions['recoverCapture']>;
@@ -98,7 +98,7 @@ export async function executeGeneration(options: GenerationOptions) {
       phase = options.resume ? 'recovery' : 'execution';
       const run = (tasks: PreparedTask[], resume: boolean, availableArtifacts = execution.availableArtifacts) => {
         const common: DagOptions = { controller, requirement, tasks, sessionRoot: join(root, 'sessions'), availableArtifacts,
-          roleFactory: host.roleFactory, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure, signal,
+          roleFactory: host.roleFactory, preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure, signal,
           reviewProtocolCorrections: 1,
           scheduling: { maxParallel: 2, resources: Object.fromEntries(tasks.map(item => [item.task.taskId, ['browser-build-promotion']])) },
           recovery: { journalRoot: join(root, 'journal'), artifactRoot: root, recoverCapture: host.recoverCapture } };
