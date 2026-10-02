@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 19 个原生子任务。COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 Phase A/B 已分别合入 `e1679dc` / `f79aa4d`；Phase C 与 COS-19 的批准组合已合入 `a3845a3`，四项有效任务图检查、类型检查与构建通过。上游修复后的合法下游继任已离线接通，硬停止后追加额度/时间、完整经典适配及真实生成仍未完成，#19 保持 open。COS-01 参考仍未冻结。正式生成验证硬上限 ¥200/12h，优化目标 ¥100/6h。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 19 个原生子任务。COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；D3b2/D3c 的首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过。多次追加决定、validation 续窗、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
 
 第六批补充：固定新试验于 `2026-10-01T11:43:38.426Z` 开始，8.204 秒后在首次输入 capture 发布窗口失败，模型请求与新增费用均为零；原因未知。启动恢复实现虽已独立批准并合入，但实际命令被原 `12:43:38.426Z` 截止拒绝，不能再试或延时。COS-13 已独立批准并合入 `d3aab99`，状态为 `offline-verified-awaiting-live`，#14 保持 open；真实长链路尚未执行，当前无通过的生成游戏，#11/#12 与 G3 状态不变。
 
@@ -43,7 +43,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | 已审 experiment 仍失败，尚无通过游戏 | 既有直接 API/pi 估算 ¥0.735971，原 pilot ¥0.156311，本次 8 请求 ¥0.224120；共享累计 ¥1.116402，预留与未知为零；原实验已消费 |
 | 任务拆分 | 已发布 | [19 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-18 承接 R4/R11，COS-19 承接 R4/R5/R12 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#20；19 项原生父子关系已核实；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS-18 D3b2 host 已审集成，D3c 公开接线持续实施 | host 代表检查 4/4、构建与零 API 实机 smoke 通过；只证明通用夹具接线，公开续跑尚未完成，共享截止已过，真实 experiment 仍失败，#19 保持 open |
+| 子代理逐项实施 | D3b2/D3c 首次正式生成续跑代码已审集成 | 最终 19 个路径组合独立核验，主线 8/8、0 skip 和严格构建通过；复用 B2 零 API 实机 smoke 及作者证据；真实生成/完整基准未通过，#19 保持 partial/open |
 
 ## 开发批次
 
@@ -69,7 +69,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 05 | COS-12 / #13 | cos12_implementer | 独立 reviewer PHASE_B_READY | batch05_merger | Phase A 合并 7cff537；Phase B 128f4d1 修复 P1/P2 后获批，合并 1dc6b00；186/186、构建与类型检查通过，故障验收完成，#13 已关闭 |
 | 06 | COS-10/11 固定新 trial | feat/cos-10-e2e 独立 implementer | 独立 reviewer READY_FOR_FIXED_TRIAL_INTEGRATION / startup READY | batch06_merger | 4fb66fa 合入 17b41e4，103/103；启动恢复 841b86c 合入 7c130e7，1/1；真实 trial 启动失败且恢复过期拒绝，零请求/新增费用，#11 保持 open |
 | 06 | COS-13 / #14 | feat/cos-13-scheduler 独立 implementer | 独立 reviewer 最终 READY | batch06_merger | cf7d5f6 修复取消恢复 P2 后获批，合入 d3aab99；219 项中 218 首轮通过、Edge 单项重跑 1/1；严格类型检查/构建通过，offline-verified-awaiting-live，#14 保持 open |
-| 07 | COS-18 / #19 | 独立 A/B implementer | cos18_reviewer / cos18_d2_reviewer | batch07_merger | D3a/B1 已集成；preAuthor 9134e59 合入 cb16fa4，B2 38da6e0 合入 9b9e350；4/4、构建和实机 smoke 1/1；D3c 继续实施，#19 保持 partial/open |
+| 07 | COS-18 / #19 | 独立 A/B implementer | cos18_reviewer / cos18_d2_reviewer | batch07_merger | B2 与 smoke 已过；idle 2c32091、control ab67c1d、C 92a7e6e 分别批准后，组合 73ec63a 获 COMBINED_SOURCE_READY；主线 8/8、严格构建通过；首个正式追加窗口已离线接通，#19 仍 partial/open |
 | 07 | COS-01 / #2 资源元数据补充 | feat/cos-01-resource-evidence 独立 implementer | cos01_reviewer | batch07_merger | b8790a8 获 READY，合入 2aa62fa；参考 CLI 校验通过，复用 16/16；230 项中 221 项待核对，基准仍未冻结 |
 | 07 | COS-14 / #15 验收工具草稿 | feat/cos-14-acceptance-draft 独立 implementer | cos14_reviewer | batch07_merger | 1c3e189 修复计时边界 P2 后获 READY，合入 522ae51；10/10、参考 CLI 通过；恒为 draft/blocked，#15 保持 open/preparatory，G4 仍关闭 |
 | 07 | COS-16 / #17 迁移用例文档 | feat/cos-16-transfer-case 独立 implementer | cos16_reviewer | batch07_merger | bb00583 获 READY，合入 6cc42f6；单文档源一致、UTF-8/LF 与中文复读通过；preparation-only/open，尚未生成或验收游戏 |
@@ -115,7 +115,13 @@ COS-18 D2 `41ea1c5` 经独立复审合入 `7525e63`，首次 formal v1→v2 snap
 
 D3a `696a0eb` 和 D3b1 `bc044d0` 已分别独立批准并合入 `9b49ea9` / `cfd1855`。窗口只能经完整 DAG resume，全部报价目标、固定依赖和旧通过祖先证据先核验；固定输入镜像先检查所有目标父路径/叶节点，保持中文与二进制字节，复制本身不构成产物认证。六项代表检查、0 skip、构建通过。两位专属作者继续 D3b2 host 和 D3c public 接线，准备钩子由 orchestrator 作者独占、host 由另一作者独占，编译/进程检查串行安排；未审实现不进 main。真实窗口、费用和旧失败事实不改。
 
-preAuthor `9134e59` 与 D3b2 host `38da6e0` 已分别独立批准，合入 `cb16fa4` / `9b9e350`。准备发生在固定证据核验后、attempt 前；新作者区、准确产物引用和真实 task/window 子进程权限接通，原 authors 不变，当前窗停止阻止提升，WeakMap proof 不能从 JSON 伪造。主线四项代表检查和构建通过。实机 smoke 首次因主工作区未装模板 TypeScript 依赖在构建阶段失败，证据保留；离线安装既有 lockfile 后，同一源码复验 1/1，Edge 十步骤、普通点击计数 1、报告与提升通过，浏览器退出和 owner 释放已核实。报告明确 `generatedByCosmos:false`、模型请求 0、合成账本 entries 0、通用模板/test-only 媒体及离线 verdict；不作为游戏生成通过。D3c 公开确认/恢复/交付继续免费代码实施。
+preAuthor `9134e59` 与 D3b2 host `38da6e0` 已分别独立批准，合入 `cb16fa4` / `9b9e350`。准备发生在固定证据核验后、attempt 前；新作者区、准确产物引用和真实 task/window 子进程权限接通，原 authors 不变，当前窗停止阻止提升，WeakMap proof 不能从 JSON 伪造。主线四项代表检查和构建通过。实机 smoke 首次因主工作区未装模板 TypeScript 依赖在构建阶段失败，证据保留；离线安装既有 lockfile 后，同一源码复验 1/1，Edge 十步骤、普通点击计数 1、报告与提升通过，浏览器退出和 owner 释放已核实。报告明确 `generatedByCosmos:false`、模型请求 0、合成账本 entries 0、通用模板/test-only 媒体及离线 verdict；不作为游戏生成通过。后续 D3c 的组合结果见下条，未重复此实机 smoke。
+
+D3c 首次 formal 追加窗口已完成免费代码实现、独立审查和主线集成：idle core `2c32091` 合入 `3dabb9b`，控制最终修订 `ab67c1d` 合入 `293bd95`，公开流程 `92a7e6e` 合入 `73ec63a`。两个 P2 均经原作者回归修复和复审：同窗口假 ACK 需重读持久停止事实；准备失败不得报告未登记继任关系。最终组合19个路径均与批准源一致、三次remerge diff为空，独立获 COMBINED_SOURCE_READY；主线8/8、0 skip和严格构建通过。作者75项、core17项及控制证据复用；控制阶段实际22项中曾因筛选误包含而重复5项旧进程测试，均已退出且本轮未再跑。
+
+公开 `continue` 先免费前置检查并展示准确 quote，只有真实 stdin 的 `confirm <quoteId>` 才保存完整来源并激活；取消、EOF、陈旧数据或前置失败不激活/付费。固定 plan 使用准确新 task/grant/context/version/workspace，只有可证零既往工作时补齐准备，同一 window resume 不重计时/增费；已过祖先先认证，旧 partial 保留，新失败不领取第二 attempt/语义修复。停止绑定当前window并等待drain；正常无owner路径使用controller锚定且成功close后发布的准确idle证明。status/report只投影已登记继任，预算提示分列effective与original，原¥200/12h结果永久单列not_met。所有验证均为合成账本和明确夹具，没有开启真实续跑或改变真实费用。
+
+剩余边界：仅首个formal追加窗口；多不同decision、validation追加窗口、最终用户试玩持久阶段、完整经典适配及真实生成仍未完成。G3/G4仍关闭，共享原窗已过期、已消费实验仍失败，估算¥1.116402且未知/预留为零。新真实验证的时间/费用决定及参考UTF-16只读例外留待用户明确授权；本轮未创建这些授权，reference仍230项/221待核实、未冻结。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

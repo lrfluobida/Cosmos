@@ -207,3 +207,36 @@ The rerun passed 1/1 (0 skipped), test duration 17.080 seconds / suite 19.818 se
 Only isolated synthetic smoke state was created. No shared validation ledger, consumed trial, key or reference game was used. Heavy/browser checks ran serially and the slot was released afterward. COS-18 remains partial/open while D3c public confirmation, recovery and delivery wiring continues; the original shared expiry, estimated CNY 1.116402 and all live gates remain unchanged.
 
 The host author updated only `docs/development/continuation-host.md` in `bdb0b1da1a9e82590f2bdc43b06992ca28c6b7c6` to record the retained environment failure and successful smoke. The original independent reviewer approved that exact documentation delta; no code, test, build or smoke was repeated. D3c control-pipe/window-stop work is split to the B author in `src/cli/control.ts` and dedicated tests, while the A author retains plan/entrypoint/session/index; the agreed optional-window control API preserves v1 behavior. Both require independent exact-SHA approval before main integration.
+
+The B2 checkpoint was clean and pushed as `d5596fc664df70afc43109a23d1606e46a6f1027`, with remote SHA confirmed.
+
+## D3c first-window public continuation — 2026-10-02
+
+Three independently reviewed sources are combined:
+
+| Scope | Approved source | Merge |
+| --- | --- | --- |
+| Drained-window core, `IDLE_CORE_READY` | `2c32091c56244208c58154f3e88bc887c1ecc941` | `3dabb9b8d83029e057855498f4e5b9b1aa84bb62` |
+| Window control, final READY | `ab67c1d47a04b14af0837a5f8bb1ff1088184ae4` | `293bd9592926746d5bad86e8024009c9443e45e6` |
+| Public continuation, C-scope READY | `92a7e6e3c0b9c8d9885c5755b937d7bb0f7253b0` | `73ec63a99a29725d90a6c4437ae6c26be3fd233f` |
+
+The core review verified real drain, accounting/registry checks, the closing queue barrier and a nonce-hash lifecycle anchor. Only successful owner close with unchanged snapshot bytes publishes the matching idle receipt; an ordinary later open consumes its anchor. Idle stop validates the anchored exact-state receipt under exclusive ownership before constructing a controller that may expire the window. Failed close, unfinished child/write, stale/forged/window-mismatched proof cannot create a successful stop. Author 12 idle plus 5 preAuthor checks are reused. The author's initial core build included C work in progress; the final main build below verifies the actual integrated tree.
+
+The B review found one P2 in `f31b223`: a same-window response could claim stopped without a durable stop. `ab67c1d` fixes the client by re-reading the validated run/current window/stop state after the matching ACK; the server still awaits drain. The same delta adds registered-target-only window lineage and effective-budget/original-limit warning text, preserving v1 text and once-only semantics. Seven selected checks passed with zero skips. Earlier B validation actually ran 22 checks because a selection expression unintentionally included five prior local-process cases; all 22 passed and every fixture process exited. This duplication is recorded explicitly, and that process group was not repeated during integration.
+
+The C review found one P2 in `5edd227`: a preparation failure could report an unregistered successor as already replacing a source. `92a7e6e` adds snapshot-task membership before report projection. The new failed-preparation case first reproduced the error, then passed alongside a normal registered report (2/2); 75 existing C checks and one strengthened nonzero-fee check are reused. Original six fake charges remain, only the two new fake role/review calls add 20 micro-CNY, and same-window resume adds none. These are isolated synthetic amounts, not live validation spending.
+
+After all three merges, an independent reviewer gave `COMBINED_SOURCE_READY` for exact `73ec63a99a29725d90a6c4437ae6c26be3fd233f`. All nine core/control paths match `ab67c1d`, all ten C paths match `92a7e6e`, all changes since `d5596fc` are within those 19 approved paths, and all three remerge diffs are empty. No manual conflict resolution or merger implementation edits occurred. Both P2 fixes, window interfaces and source boundaries remain intact.
+
+Fresh main validation:
+
+```powershell
+node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern='^(public continue collects exact|preparation failure never reports|active public stop waits|a new window task failure|matching window ACK|current window grants|effective continuation budget warning|normal drained close permits)' tests/cli/continuation-session.test.ts tests/cli/control-window.test.ts
+npm run build
+```
+
+The selection reported 8 tests / 8 passed / 0 failed / 0 cancelled / 0 skipped. Build passed and refreshed dist, including strict TypeScript checking. Logs: `.cosmos/integration/batch07-d3c-combined.tap` and `batch07-d3c-combined-build.log`. These checks used real temporary controller/registry/journal state, local pipe/stdin fixtures and fake providers/build/browser callbacks. No old 75/22 suite, child-process group, B2 real smoke or provider request was repeated. The shared heavy-check slot was released after build. UTF-8/LF, Chinese text, JSON mapping and whitespace checks passed.
+
+The integrated public flow performs free readiness checks, displays the exact quote and requires `confirm <quoteId>` on stdin before saving the full confirmation and activating the first formal window. Cancellation, EOF, stale inputs and failed readiness do not activate or spend. The fixed plan uses quote task IDs/grants, fresh contexts/versions/workspaces and original ownership, acceptance and topology. Only verifiable zero-prior-work preparation can complete missing plan/origin/registration steps. Passed ancestors are checked at the original artifact root; old partial files remain. Resume stays in the same window without a fresh quote/clock/fee, and a failed new task gets no second attempt or semantic repair. Window-bound stop waits for owned cleanup, or uses proved stale-owner/idle recovery. Report and status expose only registered successor relationships, and the original hard-limit result remains separately `not_met`.
+
+The authorized D3b2/D3c code work is integrated and verified; COS-18 / #19 remains partial/open. Scope is the first formal continuation window. Multiple distinct decisions, validation-window continuation, the durable final-user-experience phase, the complete classic adapter and real generation remain incomplete. G3/G4 and the failed/consumed experiments are unchanged; the original validation window remains expired and estimated live cost stays CNY 1.116402 with zero reserved/unknown charges. No key, real ledger or reference installation was touched. A new live validation window/resource allowance and the pending reference UTF-16 read exception require explicit human decisions; neither was created by this work.
