@@ -1,15 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, realpath, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { validateRequirement, validateTaskInputs } from '../contracts/index.ts';
+import { validateTaskInputs } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
-import type { ArtifactReference, RequirementContract, TaskContract } from '../contracts/index.ts';
+import type { ArtifactReference, TaskContract } from '../contracts/index.ts';
 import type { RunController } from '../runtime/run.ts';
 import type { PreparedTask } from '../runtime/orchestrator.ts';
 import { assertOwnership } from './factory.ts';
 import type { AuthorRole, RoleFactory } from './factory.ts';
 import { freeze } from './requirements.ts';
 import { decodeModelJson } from './protocol.ts';
+import { validateExecutionRequirement } from './execution-input.ts';
+import type { ExecutionRequirement } from './execution-input.ts';
+import { requireValidationScope } from '../runtime/validation-scope.ts';
+import type { ValidationExecutionBinding } from '../runtime/validation-scope.ts';
+import { requireValidationTask } from '../runtime/validation-validation.ts';
 
 export interface PlanningRolePolicy {
   workspace: string;
@@ -24,7 +29,8 @@ export interface PlanningRolePolicy {
 export interface PlanningTaskPolicy extends PlanningRolePolicy { policyId: string; role: AuthorRole }
 export interface PlanOptions {
   controller: RunController;
-  requirement: RequirementContract;
+  requirement: ExecutionRequirement;
+  validation?: ValidationExecutionBinding;
   /** Predeclared in the same ledger, so planning cannot create a second budget. */
   planningTaskId: string;
   workspace: string;
@@ -40,20 +46,27 @@ interface Draft { taskId: string; policyId?: string; role: AuthorRole; objective
 
 /** One native Cosmos planning session, then host binding of all authority-bearing fields. */
 export async function planTaskDag(options: PlanOptions): Promise<{ tasks: PreparedTask[]; plan: ArtifactReference; sessionDirectory: string }> {
-  options.controller.requireOriginalExecution();
+  if (options.validation) options.controller.requireValidationCase(options.validation.caseId, options.validation.windowId);
+  else options.controller.requireOriginalExecution();
   const requirement = freeze(structuredClone(options.requirement));
-  const errors = validateRequirement(requirement);
+  const errors = validateExecutionRequirement(requirement, options.validation ? 'operator_validation' : 'human');
   if (errors.length) throw new Error('Planning requires an explicitly confirmed valid requirement.');
-  const snapshot = await options.controller.read();
+  const scope = options.validation ? await requireValidationScope(options.controller, requirement, options.validation) : undefined;
+  const snapshot = scope?.snapshot ?? await options.controller.read();
   if (snapshot.run.specVersion !== requirement.specVersion) throw new Error('Planning must use the original run requirement version.');
   const allocation = snapshot.ledger.allocations.find(a => a.taskId === options.planningTaskId);
   if (!allocation) throw new Error('Planning needs its existing shared ledger allocation.');
+  if (scope && (options.planningTaskId !== scope.window.quote.declaration.grants.planning.taskId
+    || snapshot.ledger.entries.some(entry => entry.taskId === options.planningTaskId)
+    || Object.values(scope.window.quote.declaration.grants).some(grant => snapshot.tasks.some(task => task.taskId === grant.taskId)))) throw new Error('Validation planning uses its fresh declared grant once; preserve any prior planning result.');
   if (Boolean(options.roles) === Boolean(options.taskPolicies)) throw new Error('Declare either role policies or task policy slots.');
   const slots = structuredClone(options.taskPolicies ?? Object.entries(options.roles!).map(([role, policy]) => ({ ...policy, role: role as AuthorRole, policyId: role })));
   const available = structuredClone(options.availableArtifacts);
   if (requirement.sources.some(source => !available.some(ref => sameValue(ref, source)))) throw new Error('Planning requires every confirmed requirement source at its exact version and location.');
   if (!slots.length || slots.length > 100 || new Set(slots.map(p => p.policyId)).size !== slots.length
     || slots.some(p => !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(p.policyId) || !['cosmos', 'design', 'coding', 'art'].includes(p.role))) throw new Error('Declare 1 to 100 unique host policy slots before planning.');
+  if (scope && (slots.length !== 3 || !['design', 'art', 'coding'].every(role => slots.filter(slot => slot.role === role).length === 1)
+    || slots.some(slot => slot.allocationMicroCny !== scope.window.quote.declaration.grants[slot.role as 'design' | 'art' | 'coding']?.amountMicroCny))) throw new Error('Validation planning requires the three fixed role grants.');
   const policiesById = new Map(slots.map(policy => [policy.policyId, policy]));
   const policyFor = (draft: Draft) => policiesById.get(options.taskPolicies ? draft.policyId! : draft.role);
   for (const policy of slots) {
@@ -74,9 +87,10 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
   const signal = AbortSignal.any([options.controller.signal, ...(options.signal ? [options.signal] : [])]);
   signal.throwIfAborted();
   await mkdir(directory, { recursive: true });
-  const session = await options.roleFactory({ role: 'cosmos', purpose: 'planning', task: planningTask, requirement, workspace: options.workspace, stateDirectory: directory, controller: options.controller });
+  const session = await options.roleFactory({ role: 'cosmos', purpose: 'planning', task: planningTask, requirement, validation: options.validation, workspace: options.workspace, stateDirectory: directory, controller: options.controller });
   try {
-    const policies = slots.map(policy => ({ ...(options.taskPolicies ? { policyId: policy.policyId } : {}), role: policy.role, outputs: policy.outputs, writePaths: policy.writePaths, rules: policy.rules ?? [] }));
+    const policies = slots.map(policy => ({ ...(options.taskPolicies ? { policyId: policy.policyId } : {}), role: policy.role, outputs: policy.outputs, writePaths: policy.writePaths, rules: policy.rules ?? [],
+      ...(scope ? { taskId: scope.window.quote.declaration.grants[policy.role as 'design' | 'art' | 'coding'].taskId } : {}) }));
     const response = await session.prompt(`Plan only within these host policies: ${JSON.stringify(policies)}. Task IDs must match /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/. Return the required task draft JSON.`, { signal });
     signal.throwIfAborted();
     const value = decodeModelJson(response.text) as { tasks: Draft[] };
@@ -85,7 +99,12 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
     for (const draft of drafts) {
       if (!draft || Object.keys(draft).some(key => !['taskId', 'role', 'objective', 'acceptanceIds', 'dependsOn', ...(options.taskPolicies ? ['policyId'] : [])].includes(key)) || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(draft.taskId) || !policyFor(draft) || policyFor(draft)!.role !== draft.role || typeof draft.objective !== 'string' || !draft.objective.trim() || !Array.isArray(draft.acceptanceIds) || !draft.acceptanceIds.length || draft.acceptanceIds.some(id => !requirement.acceptance.some(a => a.acceptanceId === id)) || !Array.isArray(draft.dependsOn) || draft.dependsOn.some(id => !drafts.some(d => d.taskId === id) || id === draft.taskId)) throw new Error('Invalid task draft or acceptance coverage.');
     }
-    if (new Set(drafts.map(d => d.taskId)).size !== drafts.length || new Set(drafts.map(d => policyFor(d)!.policyId)).size !== drafts.length || drafts.some(d => snapshot.run.taskIds.includes(d.taskId))) throw new Error('Plan tasks and policy slots must be unique and new.');
+    if (new Set(drafts.map(d => d.taskId)).size !== drafts.length || new Set(drafts.map(d => policyFor(d)!.policyId)).size !== drafts.length
+      || drafts.some(d => scope ? d.taskId !== scope.window.quote.declaration.grants[d.role as 'design' | 'art' | 'coding']?.taskId : snapshot.run.taskIds.includes(d.taskId))) throw new Error('Plan tasks and policy slots must be unique and new.');
+    if (scope) {
+      const coding = drafts.find(draft => draft.role === 'coding');
+      if (drafts.length !== 3 || !coding || ['design', 'art'].some(role => !coding.dependsOn.includes(scope.window.quote.declaration.grants[role as 'design' | 'art'].taskId))) throw new Error('Validation coding must consume the fixed design and art tasks.');
+    }
     if (requirement.acceptance.some(a => !drafts.some(d => d.acceptanceIds.includes(a.acceptanceId)))) throw new Error('Plan acceptance coverage is incomplete.');
     const visited = new Set<string>();
     while (visited.size < drafts.length) {
@@ -93,7 +112,7 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
       if (!ready) throw new Error('Task plan has a dependency cycle.');
       visited.add(ready.taskId);
     }
-    const total = drafts.reduce((sum, d) => sum + policyFor(d)!.allocationMicroCny, snapshot.ledger.allocations.reduce((sum, a) => sum + a.amountMicroCny, 0));
+    const total = drafts.reduce((sum, d) => sum + (scope ? 0 : policyFor(d)!.allocationMicroCny), snapshot.ledger.allocations.reduce((sum, a) => sum + a.amountMicroCny, 0));
     if (total > snapshot.ledger.limitMicroCny) throw new Error('Plan exceeds unallocated shared budget.');
     const outputs = (draft: Draft) => policyFor(draft)!.outputs.map(output => ({ artifactId: output.artifactId, version: output.version, location: output.destination }));
     const tasks: PreparedTask[] = drafts.map(draft => {
@@ -110,6 +129,7 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
         handoff: { completed: [], remaining: [draft.objective], uncertainty: [], resumeFrom: null },
       };
       assertOwnership(task, policy.workspace);
+      if (scope) requireValidationTask(snapshot, task);
       const issues = validateTaskInputs(task, inputs);
       if (issues.length) throw new Error(`Invalid planned contract: ${issues.map(e => e.message).join('; ')}`);
       return { role: draft.role, workspace: policy.workspace, task, expectedArtifacts: outputs(draft) };

@@ -13,3 +13,11 @@
 - 后续再用真实 controller + fake provider/build/browser 验证同账本请求归属、真实当前窗口、输出上限/reservation 一致、旧任务禁止派发、一次修复、停止与中断收敛；实际 core 的 quote/claim/identity/gates 由 V1 证据复用，仅测新接线。
 - 根 build 不覆盖 probes；新 probe 模块需显式 strict noEmit。编译、真实子进程与浏览器先协调；本 implementer 不读取真实验证目录、session 或模型配置，不调用付费服务。
 - B 独占 runtime validation core、run/run-types/run-validation/execution-window 及 legacy gate；本步不修改这些路径。V1 `d46294d` 已独立 SOURCE_READY，本步仅只读核对其 API；后续 routing 以 merger 的已审主线 checkpoint 为依赖。
+
+## V2c 运行时路由小步
+
+- 已无冲突合入 V1 主线 checkpoint `afbbd15`。新增 `validation-scope.ts`，由明确 case/window 和可信只读 `readScope` 返回完整验证要求及真实 operator receipt 字节；在 planner、roleFactory、DAG、每个新 task phase 和评审格式纠错前核对持久窗口、完整要求、原决定 JSON/hash。读取最多 5 秒并保留清理时间，停止或超时后的迟到结果不授权。该回调与 capture/verify 同属可信 host，不能自证任意恶意 callback；固定 driver 的实际 reader 下一步接入，Git/input 身份仍由 core 每次 reserve/admit 复核。
+- 复用原 planner 和串行 DAG；validation 禁止 scheduling 配置，`withDagOwner` 仅新增显式 case/window guard，继续共用原 WeakSet。规划只使用已声明 planning grant，不保存已通过的伪任务；三角色 ID、grant 和 coding 的 design/art 依赖由主机检查。profile 3 journal 明列 validation window，历史 deadline 留原值；部分捕获恢复复用固定来源和内容签名，未启动下游保留未启动及阻断，不重付作者。
+- `createRoleBudget` 把实际 PiRequest 的模型、输出上限、字节和图像标志随 case/window/purpose 传入原 reserve/admit。角色 SDK 配置直接取声明权限：planning 4096、design/reviewer 16384、art/coding 65536。reserve 已成功而 admit 在 SDK 发出请求前失败时，先落真实 host `not_sent` 证据再取消预留；证据保存失败则留存 exposure 待核实，不制造 provider usage。
+- 新接线两项正向先红后绿，两个 admission 未发送边界及捕获中断各先红后绿。最终 23 项 `validation-routing.test.ts` 通过，涵盖真 controller/registry、fake SDK/build/browser、完整三角色+一次评审格式纠错、计费/compaction/不重付、全文 AC/operator 来源漂移、旧 profile 拒绝、DAG owner、取消/超时及迟到结果。受影响角色/planner/协议/依赖恢复 74 项及两个 v2 管线代表通过；源码 `npm run build` 与新测试显式 strict noEmit 通过。
+- 该小步没有修改 B private core、正式 CLI/host 或旧 probe；尚未接 `validation-run/validation-driver`、原生 host 子进程归属和 coding-only 一次 semantic repair。首个固定 case 沿旧 bounded pilot 范围：design/art 失败报告差距，不新增上游重规划或替换下游任务。后续须核真实反馈文件、原失败任务与 registry，不能让旧 policy 的 original stop 冒充当前 case 时钟。

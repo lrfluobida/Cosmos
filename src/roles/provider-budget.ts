@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type { PiBudget, PiResponse } from '../providers/pi.ts';
 import type { RunController } from '../runtime/run.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
+import type { ValidationPurpose } from '../runtime/validation-types.ts';
 
 /** Billing needs an identity and durable admissions, not a fabricated timed run. */
 export interface AccountingController extends Pick<RunController, 'coordinateAccounting' | 'reserve' | 'admit' | 'markUnknown' | 'settle' | 'cancel'> {
@@ -22,15 +23,31 @@ export function usageCostMicroCny(usage: NonNullable<PiResponse['usage']>): numb
 }
 
 /** Uses the existing run only. Every SDK request, including compaction, gets durable admission. */
-export function createRoleBudget(input: { controller: AccountingController; taskId: string; evidenceDirectory: string }): PiBudget {
+export function createRoleBudget(input: { controller: AccountingController; taskId: string; evidenceDirectory: string; validation?: { caseId: string; windowId: string; purpose: ValidationPurpose } }): PiBudget {
   const { controller, taskId, evidenceDirectory } = input;
+  const validation = input.validation && structuredClone(input.validation);
   const requests = new Set<string>();
   return {
     async beforeRequest(request) {
       return controller.coordinateAccounting(async () => {
-      await controller.reserve({ requestId: request.requestId, taskId, provider: 'deepseek', pricingVersion: ROLE_PRICING_VERSION, estimatedMaxCostMicroCny: request.estimatedMaxCostMicroCny });
+      if (validation && !/^[\w-]+$/.test(request.requestId)) throw new Error('Invalid validation SDK request identity.');
+      await controller.reserve({ requestId: request.requestId, taskId, provider: 'deepseek', pricingVersion: ROLE_PRICING_VERSION, estimatedMaxCostMicroCny: request.estimatedMaxCostMicroCny,
+        ...(validation ? { validation: { ...validation, modelId: request.modelId, maxOutputTokens: request.maxOutputTokens, inputBytes: request.inputBytes, hasImages: request.hasImages } } : {}) });
+      try { await controller.admit(request.requestId); }
+      catch (error) {
+        if (validation) {
+          // The SDK cannot dispatch until this hook returns. This is host lifecycle evidence, not provider usage.
+          const before = await controller.read(), entry = before.ledger.entries.find(entry => entry.requestId === request.requestId)!;
+          await mkdir(evidenceDirectory, { recursive: true });
+          const location = join(evidenceDirectory, `billing-${request.requestId}.json`);
+          await publishReceipt(location, { formatVersion: 1, requestId: request.requestId, outcome: 'not_sent', elapsedMs: 0,
+            notSentReason: 'admission_rejected_before_provider_dispatch', runId: before.run.runId, ledgerId: before.ledger.ledgerId, taskId,
+            provider: entry.provider, pricingVersion: entry.pricingVersion, admittedAt: before.requests.find(record => record.requestId === request.requestId)!.admittedAt });
+          if (entry.status !== 'cancelled') await controller.cancel(request.requestId, [{ artifactId: `billing-${request.requestId}`, version: 'v1', location }], { provenNoCost: true });
+        }
+        throw error;
+      }
       requests.add(request.requestId);
-      await controller.admit(request.requestId);
       });
     },
     async afterResponse(response) {

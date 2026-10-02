@@ -3,6 +3,9 @@ import { open } from 'node:fs/promises';
 import type { CreatedRole } from '../../roles/factory.ts';
 import type { RunController } from '../run.ts';
 import { executionWindowView } from '../execution-window.ts';
+import { requireValidationScope } from '../validation-scope.ts';
+import type { ValidationExecutionBinding } from '../validation-scope.ts';
+import type { ExecutionRequirement } from '../../roles/execution-input.ts';
 
 export class ReviewProtocolError extends Error {
   constructor() { super('Independent review did not return a valid fixed-version proposal.'); }
@@ -26,20 +29,23 @@ export async function requestReview<T>(options: {
   attemptId: string; correctionRecordPath: string;
   prompt: string; images?: ImageContent[]; signal: AbortSignal;
   maxCorrections: 0 | 1; parse: (text: string) => T; now?: () => number;
+  validation?: { binding: ValidationExecutionBinding; requirement: ExecutionRequirement };
 }): Promise<T> {
   validateProtocolCorrections(options.maxCorrections);
   for (let response = 0; response <= options.maxCorrections; response++) {
     options.signal.throwIfAborted();
     if (response > 0) {
+      if (options.validation) await requireValidationScope(options.controller, options.validation.requirement, options.validation.binding);
       const state = await options.controller.read();
-      const authority = await options.controller.executionAuthority(options.taskId), active = executionWindowView(state).executionWindow;
+      const validation = options.validation ? await options.controller.validationAuthority(options.taskId, 'reviewer') : undefined;
+      const authority = validation ?? await options.controller.executionAuthority(options.taskId), active = validation ? null : executionWindowView(state).executionWindow;
       const used = state.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0);
       const taskUsed = state.ledger.entries.filter(entry => entry.taskId === options.taskId).reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0);
       const allocation = state.ledger.allocations.find(entry => entry.taskId === options.taskId);
-      if (!authority.admissionAllowed || active.stopReason || active.state !== 'running'
+      if (!authority.admissionAllowed || active && (active.stopReason || active.state !== 'running')
         || Date.parse(authority.deadlineAt) <= (options.now ?? Date.now)()
         || state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)
-        || used >= authority.effectiveLimitMicroCny || !allocation || taskUsed >= authority.taskGrantMicroCny) throw new ReviewProtocolError();
+        || (validation ? validation.remainingMicroCny <= 0 : used >= ('effectiveLimitMicroCny' in authority ? authority.effectiveLimitMicroCny : 0)) || !allocation || taskUsed >= authority.taskGrantMicroCny) throw new ReviewProtocolError();
       const record: ReviewCorrectionRecord = { formatVersion: 1, taskId: options.taskId, attemptId: options.attemptId,
         reviewerId: options.reviewer.actorId, contextId: options.reviewer.contextId, used: 1,
         recordedAt: new Date((options.now ?? Date.now)()).toISOString() };
