@@ -1,0 +1,277 @@
+{
+  "format": "cosmos-static-projectile-definitions-v1",
+  "evidenceKind": "source_correlated_static_binary_observation",
+  "reference": {
+    "exePath": "C:\\Program Files (x86)\\PlantsVsZombies\\PlantsVsZombies.exe",
+    "sha256": "c04c524c6a3720bce00b7f2900c61d5810534dabf9926641c12921f53ac29f8d",
+    "bytes": 3838152,
+    "recordedVersionMetadata": {
+      "fileVersion": "1.2.0.1073",
+      "productVersion": "GOTY",
+      "source": "reference.json#/installation; previously inspected metadata bound by the exact SHA-256, not decoded by this collector"
+    },
+    "runtimeObserved": false
+  },
+  "pe": {
+    "fileOffset": "0x100",
+    "machine": "0x14c",
+    "magic": "0x10b",
+    "imageBase": "0x400000",
+    "sections": [
+      {
+        "name": ".data",
+        "virtualSize": "0xd615c",
+        "rva": "0x364000",
+        "rawSize": "0xf800",
+        "rawOffset": "0x362a00"
+      },
+      {
+        "name": ".text",
+        "virtualSize": "0x3084a6",
+        "rva": "0x1000",
+        "rawSize": "0x308600",
+        "rawOffset": "0x400"
+      }
+    ]
+  },
+  "table": {
+    "section": ".data",
+    "fileOffset": "0x36af50",
+    "rva": "0x36c550",
+    "preferredVa": "0x76c550",
+    "strideBytes": 12,
+    "strideHex": "0xc",
+    "rowCount": 14,
+    "wordSizeBytes": 4,
+    "byteOrder": "little-endian",
+    "rows": [
+      {
+        "fileOffset": "0x36af50",
+        "words": [
+          0,
+          0,
+          20
+        ]
+      },
+      {
+        "fileOffset": "0x36af5c",
+        "words": [
+          1,
+          0,
+          20
+        ]
+      },
+      {
+        "fileOffset": "0x36af68",
+        "words": [
+          2,
+          0,
+          40
+        ]
+      },
+      {
+        "fileOffset": "0x36af74",
+        "words": [
+          3,
+          0,
+          80
+        ]
+      },
+      {
+        "fileOffset": "0x36af80",
+        "words": [
+          4,
+          0,
+          20
+        ]
+      },
+      {
+        "fileOffset": "0x36af8c",
+        "words": [
+          5,
+          0,
+          80
+        ]
+      },
+      {
+        "fileOffset": "0x36af98",
+        "words": [
+          6,
+          0,
+          40
+        ]
+      },
+      {
+        "fileOffset": "0x36afa4",
+        "words": [
+          7,
+          0,
+          20
+        ]
+      },
+      {
+        "fileOffset": "0x36afb0",
+        "words": [
+          8,
+          0,
+          20
+        ]
+      },
+      {
+        "fileOffset": "0x36afbc",
+        "words": [
+          9,
+          0,
+          75
+        ]
+      },
+      {
+        "fileOffset": "0x36afc8",
+        "words": [
+          10,
+          0,
+          20
+        ]
+      },
+      {
+        "fileOffset": "0x36afd4",
+        "words": [
+          11,
+          0,
+          300
+        ]
+      },
+      {
+        "fileOffset": "0x36afe0",
+        "words": [
+          12,
+          0,
+          40
+        ]
+      },
+      {
+        "fileOffset": "0x36afec",
+        "words": [
+          13,
+          0,
+          20
+        ]
+      }
+    ]
+  },
+  "instructionObservations": [
+    {
+      "id": "definition-type-load",
+      "preferredVa": "0x493c30",
+      "fileOffset": "0x93030",
+      "bytesHex": "8b485c"
+    },
+    {
+      "id": "definition-type-times-three",
+      "preferredVa": "0x493c33",
+      "fileOffset": "0x93033",
+      "bytesHex": "8d0449"
+    },
+    {
+      "id": "definition-type-compare",
+      "preferredVa": "0x493c36",
+      "fileOffset": "0x93036",
+      "bytesHex": "390c8550c57600"
+    },
+    {
+      "id": "definition-address",
+      "preferredVa": "0x493c3d",
+      "fileOffset": "0x9303d",
+      "bytesHex": "8d048550c57600"
+    },
+    {
+      "id": "definition-success-branch",
+      "preferredVa": "0x493c44",
+      "fileOffset": "0x93044",
+      "bytesHex": "7423"
+    },
+    {
+      "id": "definition-return",
+      "preferredVa": "0x493c69",
+      "fileOffset": "0x93069",
+      "bytesHex": "c3"
+    },
+    {
+      "id": "consumer-type-load",
+      "preferredVa": "0x4924c9",
+      "fileOffset": "0x918c9",
+      "bytesHex": "8b475c"
+    },
+    {
+      "id": "consumer-type-times-three",
+      "preferredVa": "0x4924cc",
+      "fileOffset": "0x918cc",
+      "bytesHex": "8d1c40"
+    },
+    {
+      "id": "consumer-type-compare",
+      "preferredVa": "0x4924cf",
+      "fileOffset": "0x918cf",
+      "bytesHex": "39049d50c57600"
+    },
+    {
+      "id": "consumer-address",
+      "preferredVa": "0x4924d6",
+      "fileOffset": "0x918d6",
+      "bytesHex": "8d1c9d50c57600"
+    },
+    {
+      "id": "consumer-record-read",
+      "preferredVa": "0x492549",
+      "fileOffset": "0x91949",
+      "bytesHex": "8b6b08"
+    }
+  ],
+  "sourceInference": {
+    "repository": "Patoke/re-plants-vs-zombies",
+    "commit": "c4692036c5e11d227c8fb7c593b734dac96da028",
+    "layout": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/Lawn/Projectile.h#L15",
+    "typeField": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/Lawn/Projectile.h#L41",
+    "typeEnum": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/ConstEnums.h#L781",
+    "methodDeclaration": "https://github.com/Patoke/re-plants-vs-zombies/blob/c4692036c5e11d227c8fb7c593b734dac96da028/Lawn/Projectile.h#L72",
+    "wordMeanings": [
+      {
+        "offset": "0x00",
+        "name": "mProjectileType"
+      },
+      {
+        "offset": "0x04",
+        "name": "mImageRow"
+      },
+      {
+        "offset": "0x08",
+        "name": "mDamage"
+      }
+    ],
+    "ordinaryPea": {
+      "typeId": 0,
+      "sourceName": "PROJECTILE_PEA",
+      "basicFieldValue": 20
+    },
+    "objectTypeOffset": "0x5c",
+    "inferredLookupMethod": "Projectile::GetProjectileDef",
+    "numericCppComparisonPerformed": false,
+    "ordinaryPeaHitPathObserved": false,
+    "note": "Prior research found two tables by contiguous IDs. The checked type indexing, table address and record +8 read bind this candidate; this collector repeats neither the search nor disassembly. Member, type and method names come from UTF-8 headers, not runtime symbols."
+  },
+  "encodingLimitation": {
+    "sourceFile": "Lawn/Projectile.cpp",
+    "commit": "c4692036c5e11d227c8fb7c593b734dac96da028",
+    "priorUtf8FailureByteOffset": 4780,
+    "priorInvalidByteHex": "bd",
+    "decoded": false,
+    "note": "Strict UTF-8 failed in prior research; reading stopped. No alternative decoder or source presentation was used. This collector reads no external source files."
+  },
+  "notEstablished": [
+    "cpp table count or full numeric source comparison",
+    "ordinary pea normal hit path or final damage",
+    "armor, multipliers, freezing, splash or death thresholds",
+    "speed, targeting or interactions",
+    "complete content denominator, classic edition equivalence, runtime acceptance or benchmark freeze"
+  ]
+}
