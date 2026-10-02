@@ -270,7 +270,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-20 · 区分开发验证窗口与正式生成时限
 
-- 本次进展：V2a/b、V1 权限层、V2c 数据及运行时 routing 已审集成；routing `aa413a5` 合入 `21256ae`，主线 3 新+1 旧代表共 4/4、0 skip 与严格构建通过。完整固定验收/operator 来源、同账本 SDK metadata 和串行 DAG/journal 已离线接通；公开固定 driver、owned host、coding-only 一次语义修复仍待完成，planning owned-child 缺口另行修复中。未 claim 或运行新 case，#21 保持 open。
+- 本次进展：V2a/b、V1、V2c routing、planning child 修复及 shared helper/repair 基础已审集成；`3704bdd` 合入 `c73431c`（主线 1/1、类型检查），`8ac0467` 合入 `032b7e4`（主线 2/2、严格构建），均 0 skip。实际固定 driver、验证 host worker 与反馈文件内容/版本/来源认证仍待接通；未 claim 或运行新 case，#21 保持 open。
 - 状态/源级前置：已发布 [#21](https://github.com/lrfluobida/Cosmos/issues/21)，当前为源码准备。前置只要求 COS-06/07/08/09/11/12/13/18/19 对应源码已独立审查并集成，不要求这些任务的全部 live/完整产品验收通过。COS-10 的实际验证是本任务产出，不作为循环前置；[映射](github-issues.json) 分列 sourcePrerequisites 与 validationOutputsFor。
 - 已有授权：CONTEXT 的生成运行排除平台开发；R6 的正式 ¥200/12h 与 R7 的开发验证合计 ¥150 分开。沿用用户验证预算、凭据提供及持续推进授权，由可信 coordinator 为更严格的新 case 记录真实 `operator_validation` 决定，不自动套用 formal human quote，不伪造 GameDraft 确认或 run.humanDecisions。
 - 输出/范围：同一权威 snapshot/runId/ledgerId 的显式 validation profile、新独立 opt-in driver/声明、定向测试、开发说明与进度；CONTEXT 术语和 ADR 由专属作者另行提交审查。原 start/deadline/stop、费用、请求、任务、allocations 和失败 case 保留；旧 v1、formal v2 及旧实验入口不得自动获得新权限，不使用假时钟或 deadline 投影。

@@ -360,3 +360,41 @@ Result: 4 tests, 4 passed, 0 failed/cancelled/skipped, duration 8449.1441 ms. Th
 Routing binds the original ledger to explicit validation scope/owner checks, full acceptance/operator bytes, serial DAG and journal. Actual SDK caps/input metadata, review correction and compaction remain counted. A reserve followed by refused admit releases exposure only after a durable host not_sent receipt; publication failure retains exposure. Public fixed driver, owned host and coding-only one-repair flow remain missing. The planning owned-child core bug is under separate repair; its unreviewed fix and the shared owned helper are excluded. This checkpoint does not prove actual startup or generated-game success.
 
 Health evidence remains short static instruction observations with separate source inference, not final effective HP, exhaustive branch coverage or classic equivalence. COS-01 stays partial/open and catalog 230/221 remains unfrozen with accepted status unchanged. COS-20 / #21 stays open, G3/G4 closed; no new case was claimed. UTF-8/LF, Chinese re-read, JSON/count and whitespace checks passed. Estimated real fees remain CNY 1.116402 with zero reserved/unknown; original failed cases and dates are unchanged.
+
+The routing/health checkpoint was clean and pushed as `29d2b260f95a25255fe49193a6602e959b7eb99c`, with local and remote heads matching.
+
+## Validation planning-child fix — 2026-10-02
+
+Independent `cos20_v1_reviewer` approved exact `3704bdd98f06092d98ebef3e8ef3f26abb6b8595` as `PLANNING_CHILD_SOURCE_READY`, with no P1/P2 after actual three-file review. The runtime delta selects planning purpose only when the declared grant maps to planning; every other task still uses author checks. It adds no authority interface or paid purpose. Independent pure-FS tests passed 2/2, zero skips, covering ticket/wrong task/window and unknown fees. The author also supplied three-FS red-to-green checks, one bounded real child (ticket/PID persisted before stdin release, exit 0/ESRCH, owner closed, unchanged snapshot/fees/tasks), typecheck and explicit strict test typing. That evidence is reused.
+
+Merge `c73431cb0e5d2bb4b0e91ef5496dab7d9d64125a` has parents `29d2b260f95a25255fe49193a6602e959b7eb99c` and the exact approved source. It merged without conflicts, and all three paths match approved bytes. No shared owned helper, repair WIP or other unreviewed source was included.
+
+Fresh main verification:
+
+```powershell
+node --experimental-strip-types --test --test-name-pattern='^planning child ticket uses' tests/runtime/validation-window.test.ts
+npm run typecheck
+```
+
+The pure-FS representative reported 1 test, 1 passed, 0 failed/cancelled/skipped, duration 2735.7488 ms. It checks the exact planning ticket without a fake task, refuses wrong task/window and preserves snapshot state. Root typecheck passed; no additional build was run and dist remains from the preceding routing build. Logs: `.cosmos/integration/batch07-cos20-planning-child-selected.tap` and `batch07-cos20-planning-child-typecheck.log`. The short compiler slot was released immediately. No real child, prior 27-case/crash group, browser or API check was repeated.
+
+UTF-8/LF, Chinese re-read, JSON/count, exact-source and whitespace checks passed. The planning bootstrap authority bug is fixed offline; actual fixed-driver/owned-host startup and generated-game acceptance remain unverified. COS-20 / #21 stays open, G3/G4 closed; no case was claimed/run and shared estimated fees remain CNY 1.116402 with zero reserved/unknown. Historical failures and dates are unchanged. The forthcoming health-specific GitHub comment has not been posted at this checkpoint and is not claimed as synchronized.
+
+## Shared owned commands and validation repair — 2026-10-02
+
+Before the planning documentation was committed/pushed, root handed off fresh independent `SHARED_HOST_REPAIR_SOURCE_READY` for exact `8ac046744c66c340b20ce8d0a7b6b07dee554cb0`. `cos20_routing_reviewer` reviewed all eight actual paths for spec/quality, found no P1/P2 and independently passed the three repair examples (zero skips). Author evidence includes three real owned-child red-to-green cases (registration gate, worker/grandchild cancellation, owner-death IPC cleanup with all fixture PIDs exited), three repair checks, 24 old-policy and two formal-host representatives, build and explicit typing for both new tests. These results are reused.
+
+Merge `032b7e451cb9b18fb49f56cacc8653abae19f8c5` has parents `c73431cb0e5d2bb4b0e91ef5496dab7d9d64125a` and the exact approved helper/repair source. It merged without conflicts. All eight helper/repair paths and all three planning-child paths remain byte-identical to their approved sources; the merger made no implementation edits and did not include the author's next-step WIP.
+
+Fresh combined-main verification:
+
+```powershell
+node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern='^(validation repair evaluates|delivery requires the independent verdict)' tests/runtime/validation-repair.test.ts tests/runtime/entrypoint-host.test.ts
+npm run build
+```
+
+Result: 2 tests, 2 passed, 0 failed/cancelled/skipped, duration 7093.6288 ms. The repair example uses real temporary controller/ledger state to preserve old stop/ledger, use the current case clock/preallocated grant and create only the claimed repair ID; the formal-host example retains independent verdict/exact host-proof requirements with fake IO. Strict combined build passed and refreshed dist after the earlier planning-only noEmit check. Logs: `.cosmos/integration/batch07-cos20-shared-repair-selected.tap` and `batch07-cos20-shared-repair-build.log`. The compiler slot was immediately released. The three real-child cases, 24 old-policy suite and browser checks were not repeated; no API or live case ran.
+
+Formal host now delegates to the shared runOwnedNode helper, preserving original controller ticket/PID registration before worker start, bounded time/output, allowlisted environment, no shell and hidden Windows launch. IPC loss cleans the worker tree; this does not replace the browser runner's own cleanup proof. Validation repair uses the existing ledger and current case clock/grant, preserving history and requiring durable wx failure-receipt publication before its actual fixed reference is saved. Actual feedback bytes/version/provenance authentication remains the driver's responsibility. Planning-child authority is now present from the preceding independently approved core fix; no fake planning task is introduced.
+
+Actual fixed driver, validation owned worker and feedback-file authentication remain incomplete. COS-20 / #21 stays open; this is offline source integration, not native game success or paid admission. UTF-8/LF, Chinese re-read, JSON/count and whitespace checks passed. No new case was claimed/run, estimated real cost remains CNY 1.116402 with zero reserved/unknown, and original failures, deadlines, reference state and G3/G4 remain unchanged. Root will publish/read back the combined routing/core/helper and health comments later; no unavailable link is invented here.
