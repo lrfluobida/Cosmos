@@ -32,6 +32,8 @@ export interface DagOptions {
   sessionRoot: string;
   availableArtifacts: ArtifactReference[];
   roleFactory: RoleFactory;
+  /** Host prepares fixed inputs only for a fresh author, before recording its attempt. */
+  preAuthor?: (task: Readonly<TaskContract>, signal: AbortSignal) => Promise<void>;
   /** Trusted host snapshots the outputs and supplies a separate frozen reviewer workspace. */
   capture(task: TaskContract, proposal: AuthorProposal, signal: AbortSignal): Promise<{ artifacts: ArtifactReference[]; reviewWorkspace: string }>;
   /** Host executes real checks and returns evidence for the captured versions, never model assertions. */
@@ -257,6 +259,13 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
           if (task.artifacts.length && !sameValue(task.artifacts, captured.artifacts)) throw new RecoveryBlocked('Capture conflicts with already recorded task artifacts.');
         } catch (error) { throw error instanceof RecoveryBlocked ? error : new RecoveryBlocked('Author or capture receipt cannot be validated.'); }
       } else {
+        if (options.preAuthor) {
+          try {
+            signal.throwIfAborted();
+            await options.preAuthor(freeze(structuredClone(task)), signal);
+            signal.throwIfAborted();
+          } catch { throw new RecoveryBlocked('Author preparation did not complete; no attempt was started.'); }
+        }
         task.state = 'ready'; await save(task);
         signal.throwIfAborted();
         await mkdir(directory, { recursive: true });
