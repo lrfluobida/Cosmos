@@ -330,7 +330,41 @@ test('unknown billing prevents new owned child dispatch while retaining its regi
   await f.controller.reserve(f.request('unknown-child')); await f.controller.admit('unknown-child'); await f.controller.markUnknown('unknown-child', priorReceipt);
   const before = await readFile(join(f.root, '.controller.lock'));
   await assert.rejects(f.controller.prepareOwnedChild({ taskId: task.taskId, windowId: f.window.windowId }), /unknown|reconcil/i);
+  await assert.rejects(f.controller.prepareOwnedChild({ taskId: f.declaration.grants.planning.taskId, windowId: f.window.windowId }), /unknown|reconcil/i);
   assert.deepEqual(await readFile(join(f.root, '.controller.lock')), before);
+});
+
+test('planning child ticket uses its declared grant without author task or wider task authority', async t => {
+  const f = await opened(t), before = await f.controller.read(), owner = await readFile(join(f.root, '.controller.lock'));
+  for (const taskId of ['legacy', 'unknown', f.declaration.grants.art.taskId]) {
+    await assert.rejects(f.controller.prepareOwnedChild({ taskId, windowId: f.window.windowId }), /grant|purpose|planning|authority/i);
+  }
+  await assert.rejects(f.controller.prepareOwnedChild({ taskId: f.declaration.grants.planning.taskId, windowId: 'wrong' }), /window/i);
+  assert.deepEqual(await readFile(join(f.root, '.controller.lock')), owner);
+  const ticket = await f.controller.prepareOwnedChild({ taskId: f.declaration.grants.planning.taskId, windowId: f.window.windowId });
+  assert.deepEqual(JSON.parse(await readFile(join(f.root, '.controller.lock'), 'utf8')).children, [{ ticket, pid: null }]);
+  assert.deepEqual(await f.controller.read(), before);
+  await assert.rejects(f.controller.close(), /spawn|intent/i);
+});
+
+test('planning child registers a bounded real Node process and closes its original owner after exit', async t => {
+  const f = await opened(t), before = await f.controller.read();
+  const ticket = await f.controller.prepareOwnedChild({ taskId: f.declaration.grants.planning.taskId, windowId: f.window.windowId });
+  const child = spawn(process.execPath, ['-e', "process.stdin.once('data',()=>process.exit(0));process.stdin.resume();"],
+    { stdio: ['pipe', 'ignore', 'ignore'], windowsHide: true, env: { SYSTEMROOT: process.env.SYSTEMROOT } });
+  const exit = once(child, 'close'), timer = setTimeout(() => { child.kill(); }, 10_000);
+  try {
+    await f.controller.registerOwnedChild(child.pid!, ticket);
+    assert.deepEqual(JSON.parse(await readFile(join(f.root, '.controller.lock'), 'utf8')).children, [{ ticket, pid: child.pid }]);
+    child.stdin!.end('exit'); assert.equal((await exit)[0], 0);
+    assert.throws(() => process.kill(child.pid!, 0), { code: 'ESRCH' });
+    assert.deepEqual(await f.controller.read(), before);
+    await f.controller.close();
+    await assert.rejects(readFile(join(f.root, '.controller.lock')), { code: 'ENOENT' });
+  } finally {
+    clearTimeout(timer);
+    if (child.exitCode === null && child.signalCode === null) { child.kill(); await exit; }
+  }
 });
 
 test('identity is rechecked at dispatch and the 5 yuan case cap retains truthful overcharge facts', async t => {

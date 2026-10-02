@@ -311,3 +311,90 @@ The selected run reported 5 tests, 5 passed, 0 failed/cancelled/skipped, duratio
 Profile 3 uses the original ledger 1.0.0 and CNY 150 total, retaining historical tasks/allocations/fees/times. A case is capped at CNY 5 actual plus reserved, 45 minutes, 40 calls and one repair. Exact operator source/quote precedes atomic claim; no human confirmation is fabricated. Known reservations may coexist within all caps; unknown billing blocks new work. Stopped/expired accountingOnly permits reconciliation but no new execution admission. Core repair checks fixed reference relationships, while V2 must authenticate actual files/provenance. The ledgerRoot registry check does not prove every old artifactRoot is quiescent.
 
 V1 authority/accounting is offline integrated; the real V2b identity reader and paid driver remain unwired, and V2c is unreviewed. COS-20 / #21 remains open and G3/G4 remain closed. No case was claimed or run, no real key/root was read, and the shared estimate remains CNY 1.116402 with zero reserved/unknown charges. Original deadlines, failed/consumed cases and reference state remain unchanged. UTF-8/LF, Chinese re-read, JSON/count and whitespace checks passed.
+
+The V1 checkpoint was clean and pushed as `afbbd15b9e800d6410354fbfa3b7641c7c5ab2d6`, with HEAD, origin/main and remote main matching.
+
+## COS-20 V2c execution-input data integration — 2026-10-02
+
+Independent `cos20_v1_reviewer` reviewed the actual four-path spec/quality diff of `30bd06ca0e23e124da9eb4fdd4f13b021767a2cd` and returned `V2C_DATA_SOURCE_READY`, with no P1/P2. Three independent pure checks passed with zero skips; the author's nine red-to-green checks and explicit strict module/test type check are reused. Merge `a6aa1ac9d3ec8dcc8fcc7fb468ce1f604e868412` has first parent `afbbd15b9e800d6410354fbfa3b7641c7c5ab2d6` and second parent the exact approved source. All four paths match byte for byte, with no conflicts or merger implementation edits.
+
+Fresh main check:
+
+```powershell
+node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern='^(validation execution data preserves|validation checks complete acceptance)' tests/roles/execution-input.test.ts
+```
+
+Result: 2 tests, 2 passed, 0 failed/cancelled/skipped, duration 194.3536 ms. The checks cover complete acceptance/operator data without human confirmation and acceptance shape/uniqueness while explicitly showing that a different valid shape is not authenticated scope. Log: `.cosmos/integration/batch07-cos20-v2c-data-selected.tap`. No ledger, provider, file writer, process fixture or browser ran. Module dependencies, contract schema, fixtures and type configuration match source; no existing caller changed or imports the new module. The previous main build and author's explicit strict module/test noEmit evidence are reused, without claiming a new dist build.
+
+V2c now supplies only the detached, deep-frozen validation data contract. Legacy human validation remains intact; there are no fabricated confirmed fields, GameDraft, budget or clock fields. Passing shape checks does not prove fixed acceptance scope, source-file provenance or execution authority. Core and the identity reader are on main, but native factory/planner/orchestrator/driver remain unwired. #21 stays open; no case was claimed or run. UTF-8/LF, Chinese re-read, JSON/count and whitespace checks passed. Real estimated charges remain CNY 1.116402 with zero reserved/unknown; original histories, consumed failures, reference and G3/G4 states are unchanged.
+
+The V2c data checkpoint was clean and pushed as `e1419d8fa55715395e39c4385e88fb9006abc690`, with HEAD, origin/main and remote main matching. Root posted/read back [COS-20 core and data progress](https://github.com/lrfluobida/Cosmos/issues/21#issuecomment-5949151327).
+
+## COS-01 Zombie static evidence integration — 2026-10-02
+
+Fresh independent `cos01_zombies_reviewer` returned `ZOMBIE_STATIC_SOURCE_READY` for exact `e292b4939ddbb6815cc68fe4075ec94e0d9d0c32` after the three-path spec/quality review, with no P1/P2. The reviewer independently checked PE/data/rdata bounds, samples 0/19/33, 34×7 structure and the following non-table row. The author's complete read-only collection, unchanged EXE fingerprint/stat evidence, unknown-build rejection and prior 170 numeric source matches are reused; the merger did not rerun collection or research.
+
+Merge `73cf4fea46a87ed6f34a2fcb2124c08ca3b89a3a` has parents `e1419d8fa55715395e39c4385e88fb9006abc690` and the approved source. It merged without conflicts; all three paths match byte for byte. Main parsed saved JSON and checked 34 rows, seven u32 values per row, IDs 0..33, offsets starting at `0x3680d8` with stride 28 and `runtimeObserved:false`. Existing reference metadata/catalog, plant evidence, runtime and probes remain unchanged. UTF-8/LF, Chinese re-read, JSON mapping/count and whitespace checks passed; no build, typecheck, old tests, browser, asset copy or API call ran.
+
+The data distinguishes raw observations from source inference. Animation enumeration at +04 is not source-matched and the +18 name pointer is not decoded. mZombieValue is not HP; startingLevel/firstAllowedWave/pickWeight do not establish real waves or probabilities. The 34 entries include special variants/Zombatar and do not freeze a classic selectable/content denominator. HP/damage/speed/interactions/runtime and classic equivalence remain unknown. COS-01 / #2 stays partial/open, with catalog 230 entries and 221 unresolved, no new accepted status and no freeze. Unreviewed routing is excluded; COS-20 / #21 stays open with no new case. Shared estimated real cost remains CNY 1.116402, zero reserved/unknown; prior failures and G3/G4 are unchanged.
+
+The Zombie checkpoint was clean and pushed as `bbbb9797c2ee003705b543c5f5ffcbbc9e8c47fc`, with local/remote heads matching. Root posted/read back its [COS-01 result](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5949484132).
+
+## Validation routing and static health integration — 2026-10-02
+
+Fresh `cos20_routing_reviewer` approved exact `aa413a57fff0170d99191b08218fa37007312f50` as `ROUTING_SOURCE_READY` after actual 13-path spec/quality review, without P1/P2. Independent five-case evidence covers SDK caps, steps drift, journal resume, refused admission/not_sent receipt and retained exposure on receipt failure. Author 23 routing, 74 affected old and two v2 representative results plus build/explicit strict test typing are reused. Its dependency merge `2d203264ec5cbb9dd7e4982f4fd9d796d945fa74` contains only already-reviewed data/core parents and has no remerge diff. Main merge is `21256aebe8bb210bfe891bbf1cd6718adde50b77`, directly after `bbbb9797c2ee003705b543c5f5ffcbbc9e8c47fc`.
+
+Fresh `cos01_health_reviewer` approved exact `a1c1371a03b26ef0bf88bf0c3a851b00c8e46eed` as `HEALTH_STATIC_SOURCE_READY`. It independently checked selected objdump ranges for 270/370/1100 stores, type comparisons, definition-table call and max-field copies against saved bytes. The author's 17-sample collection, unknown-build refusal, JSON/stdout identity and unchanged EXE hash/stat evidence are reused. Main merge is `80794c3776a716fb082eda70b4c7d645645ae251`, directly after the routing merge. Both merges were conflict-free, all 13+3 paths match approved sources, and no merger implementation edits were made.
+
+Main parsed saved health JSON: 17 unique observations, valid hex bytes and file/VA offsets, runtimeObserved false, and three immediate stores whose saved byte operands match 270/370/1100 and the destination offsets. Reference/catalog and core run/run-types/run-validation paths remained unchanged. No installed EXE, full function region, collector or earlier 170/318 comparisons was reread or rerun.
+
+After root released the shared heavy-check slot, main ran in sequence:
+
+```powershell
+node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern='^(native planning and the original serial DAG|capture interruption uses the bound journal|planning refuses steps drift|DAG completion needs host evidence)' tests/runtime/validation-routing.test.ts tests/roles/roles.test.ts
+npm run build
+```
+
+Result: 4 tests, 4 passed, 0 failed/cancelled/skipped, duration 8449.1441 ms. Three new examples cover full native-role routing/caps, complete-step drift refusal and capture/journal resume without another author charge; one old example retains evidence/independent-review completion requirements. Strict build passed and refreshed dist; the slot was immediately released. Logs: `.cosmos/integration/batch07-cos20-routing-selected.tap` and `batch07-cos20-routing-build.log`. Fake providers/capture/verify callbacks were used; no browser, model API, owned-process fixture or live case ran.
+
+Routing binds the original ledger to explicit validation scope/owner checks, full acceptance/operator bytes, serial DAG and journal. Actual SDK caps/input metadata, review correction and compaction remain counted. A reserve followed by refused admit releases exposure only after a durable host not_sent receipt; publication failure retains exposure. Public fixed driver, owned host and coding-only one-repair flow remain missing. The planning owned-child core bug is under separate repair; its unreviewed fix and the shared owned helper are excluded. This checkpoint does not prove actual startup or generated-game success.
+
+Health evidence remains short static instruction observations with separate source inference, not final effective HP, exhaustive branch coverage or classic equivalence. COS-01 stays partial/open and catalog 230/221 remains unfrozen with accepted status unchanged. COS-20 / #21 stays open, G3/G4 closed; no new case was claimed. UTF-8/LF, Chinese re-read, JSON/count and whitespace checks passed. Estimated real fees remain CNY 1.116402 with zero reserved/unknown; original failed cases and dates are unchanged.
+
+The routing/health checkpoint was clean and pushed as `29d2b260f95a25255fe49193a6602e959b7eb99c`, with local and remote heads matching.
+
+## Validation planning-child fix — 2026-10-02
+
+Independent `cos20_v1_reviewer` approved exact `3704bdd98f06092d98ebef3e8ef3f26abb6b8595` as `PLANNING_CHILD_SOURCE_READY`, with no P1/P2 after actual three-file review. The runtime delta selects planning purpose only when the declared grant maps to planning; every other task still uses author checks. It adds no authority interface or paid purpose. Independent pure-FS tests passed 2/2, zero skips, covering ticket/wrong task/window and unknown fees. The author also supplied three-FS red-to-green checks, one bounded real child (ticket/PID persisted before stdin release, exit 0/ESRCH, owner closed, unchanged snapshot/fees/tasks), typecheck and explicit strict test typing. That evidence is reused.
+
+Merge `c73431cb0e5d2bb4b0e91ef5496dab7d9d64125a` has parents `29d2b260f95a25255fe49193a6602e959b7eb99c` and the exact approved source. It merged without conflicts, and all three paths match approved bytes. No shared owned helper, repair WIP or other unreviewed source was included.
+
+Fresh main verification:
+
+```powershell
+node --experimental-strip-types --test --test-name-pattern='^planning child ticket uses' tests/runtime/validation-window.test.ts
+npm run typecheck
+```
+
+The pure-FS representative reported 1 test, 1 passed, 0 failed/cancelled/skipped, duration 2735.7488 ms. It checks the exact planning ticket without a fake task, refuses wrong task/window and preserves snapshot state. Root typecheck passed; no additional build was run and dist remains from the preceding routing build. Logs: `.cosmos/integration/batch07-cos20-planning-child-selected.tap` and `batch07-cos20-planning-child-typecheck.log`. The short compiler slot was released immediately. No real child, prior 27-case/crash group, browser or API check was repeated.
+
+UTF-8/LF, Chinese re-read, JSON/count, exact-source and whitespace checks passed. The planning bootstrap authority bug is fixed offline; actual fixed-driver/owned-host startup and generated-game acceptance remain unverified. COS-20 / #21 stays open, G3/G4 closed; no case was claimed/run and shared estimated fees remain CNY 1.116402 with zero reserved/unknown. Historical failures and dates are unchanged. The forthcoming health-specific GitHub comment has not been posted at this checkpoint and is not claimed as synchronized.
+
+## Shared owned commands and validation repair — 2026-10-02
+
+Before the planning documentation was committed/pushed, root handed off fresh independent `SHARED_HOST_REPAIR_SOURCE_READY` for exact `8ac046744c66c340b20ce8d0a7b6b07dee554cb0`. `cos20_routing_reviewer` reviewed all eight actual paths for spec/quality, found no P1/P2 and independently passed the three repair examples (zero skips). Author evidence includes three real owned-child red-to-green cases (registration gate, worker/grandchild cancellation, owner-death IPC cleanup with all fixture PIDs exited), three repair checks, 24 old-policy and two formal-host representatives, build and explicit typing for both new tests. These results are reused.
+
+Merge `032b7e451cb9b18fb49f56cacc8653abae19f8c5` has parents `c73431cb0e5d2bb4b0e91ef5496dab7d9d64125a` and the exact approved helper/repair source. It merged without conflicts. All eight helper/repair paths and all three planning-child paths remain byte-identical to their approved sources; the merger made no implementation edits and did not include the author's next-step WIP.
+
+Fresh combined-main verification:
+
+```powershell
+node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern='^(validation repair evaluates|delivery requires the independent verdict)' tests/runtime/validation-repair.test.ts tests/runtime/entrypoint-host.test.ts
+npm run build
+```
+
+Result: 2 tests, 2 passed, 0 failed/cancelled/skipped, duration 7093.6288 ms. The repair example uses real temporary controller/ledger state to preserve old stop/ledger, use the current case clock/preallocated grant and create only the claimed repair ID; the formal-host example retains independent verdict/exact host-proof requirements with fake IO. Strict combined build passed and refreshed dist after the earlier planning-only noEmit check. Logs: `.cosmos/integration/batch07-cos20-shared-repair-selected.tap` and `batch07-cos20-shared-repair-build.log`. The compiler slot was immediately released. The three real-child cases, 24 old-policy suite and browser checks were not repeated; no API or live case ran.
+
+Formal host now delegates to the shared runOwnedNode helper, preserving original controller ticket/PID registration before worker start, bounded time/output, allowlisted environment, no shell and hidden Windows launch. IPC loss cleans the worker tree; this does not replace the browser runner's own cleanup proof. Validation repair uses the existing ledger and current case clock/grant, preserving history and requiring durable wx failure-receipt publication before its actual fixed reference is saved. Actual feedback bytes/version/provenance authentication remains the driver's responsibility. Planning-child authority is now present from the preceding independently approved core fix; no fake planning task is introduced.
+
+Actual fixed driver, validation owned worker and feedback-file authentication remain incomplete. COS-20 / #21 stays open; this is offline source integration, not native game success or paid admission. UTF-8/LF, Chinese re-read, JSON/count and whitespace checks passed. No new case was claimed/run, estimated real cost remains CNY 1.116402 with zero reserved/unknown, and original failures, deadlines, reference state and G3/G4 remain unchanged. Root will publish/read back the combined routing/core/helper and health comments later; no unavailable link is invented here.
