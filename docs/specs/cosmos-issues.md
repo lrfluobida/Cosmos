@@ -88,6 +88,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 - 本次进展：静态基础值证据 `fdd64c8` 已独立审查并合入 `80d4d75`；记录 53 行 × 9 DWORD，字段语义与源码推导分开。53 行不代表可选植物分母，launchRate 不按秒解释；catalog 仍为 230 项、221 项待核实，未冻结，#2 保持 open。
 - 后续静态证据：Zombie 定义表 `e292b49` 已获独立批准并合入 `73cf4fe`，34 行 × 7 DWORD 原始值与源码语义推导分列；34 含特殊项/Zombatar，不是经典分母。mZombieValue 不是 HP，基础关卡/波次/权重不证明实际出怪；原 catalog、未知项及未冻结状态保持不变。
+- 初始化 HP 静态证据：`a1c1371` 已获独立批准并合入 `80794c3`，保存 17 处短指令样本和 270/370/1100 三处立即数赋值；语义仍属源码推导，最终有效 HP、完整分支及经典等价性未验证，230/221 与未冻结状态不变。
 - 依赖/状态：来源调查就绪；版本核对等待用户准备可运行经典 PC 参考版。清单冻结引用最终 spec 第 4B 节标准。
 - 输入：用户提供的可运行参考版、spec 已定模式范围、现有调研与来源资料；精确版本由本任务记录。
 - 输出/范围：`docs/benchmark/` 下版本标识、来源台账、完整内容矩阵、数值与计时表、排除项和待核实项；不写游戏实现。
@@ -269,7 +270,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-20 · 区分开发验证窗口与正式生成时限
 
-- 本次进展：V2a 声明/input、V2b 身份 reader、V1 权限层及 V2c 独立输入数据模块已审集成；V2c `30bd06c` 合入 `a6aa1ac`，主线纯数据 2/2、0 skip，复用显式类型证据。形状校验不证明固定范围或执行权限；factory/planner/orchestrator/driver 尚未接线，未 claim 或运行新 case，#21 保持 open。
+- 本次进展：V2a/b、V1 权限层、V2c 数据及运行时 routing 已审集成；routing `aa413a5` 合入 `21256ae`，主线 3 新+1 旧代表共 4/4、0 skip 与严格构建通过。完整固定验收/operator 来源、同账本 SDK metadata 和串行 DAG/journal 已离线接通；公开固定 driver、owned host、coding-only 一次语义修复仍待完成，planning owned-child 缺口另行修复中。未 claim 或运行新 case，#21 保持 open。
 - 状态/源级前置：已发布 [#21](https://github.com/lrfluobida/Cosmos/issues/21)，当前为源码准备。前置只要求 COS-06/07/08/09/11/12/13/18/19 对应源码已独立审查并集成，不要求这些任务的全部 live/完整产品验收通过。COS-10 的实际验证是本任务产出，不作为循环前置；[映射](github-issues.json) 分列 sourcePrerequisites 与 validationOutputsFor。
 - 已有授权：CONTEXT 的生成运行排除平台开发；R6 的正式 ¥200/12h 与 R7 的开发验证合计 ¥150 分开。沿用用户验证预算、凭据提供及持续推进授权，由可信 coordinator 为更严格的新 case 记录真实 `operator_validation` 决定，不自动套用 formal human quote，不伪造 GameDraft 确认或 run.humanDecisions。
 - 输出/范围：同一权威 snapshot/runId/ledgerId 的显式 validation profile、新独立 opt-in driver/声明、定向测试、开发说明与进度；CONTEXT 术语和 ADR 由专属作者另行提交审查。原 start/deadline/stop、费用、请求、任务、allocations 和失败 case 保留；旧 v1、formal v2 及旧实验入口不得自动获得新权限，不使用假时钟或 deadline 投影。

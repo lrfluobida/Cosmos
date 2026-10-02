@@ -22,9 +22,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-provisional",
-      "reviewStatus": "ZOMBIE_STATIC_SOURCE_READY",
-      "reviewedCommit": "e292b4939ddbb6815cc68fe4075ec94e0d9d0c32",
-      "mergeCommit": "73cf4fea46a87ed6f34a2fcb2124c08ca3b89a3a",
+      "reviewStatus": "HEALTH_STATIC_SOURCE_READY",
+      "reviewedCommit": "a1c1371a03b26ef0bf88bf0c3a851b00c8e46eed",
+      "mergeCommit": "80794c3776a716fb082eda70b4c7d645645ae251",
       "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5925396505"
     },
     {
@@ -597,10 +597,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "validation-authority-and-input-offline-verified-driver-pending",
-      "reviewStatus": "V2C_DATA_SOURCE_READY",
-      "reviewedCommit": "30bd06ca0e23e124da9eb4fdd4f13b021767a2cd",
-      "mergeCommit": "a6aa1ac9d3ec8dcc8fcc7fb468ce1f604e868412"
+      "integrationStatus": "validation-routing-offline-verified-driver-pending",
+      "reviewStatus": "ROUTING_SOURCE_READY",
+      "reviewedCommit": "aa413a57fff0170d99191b08218fa37007312f50",
+      "mergeCommit": "21256aebe8bb210bfe891bbf1cd6718adde50b77"
     }
   ],
   "verifiedNativeSubIssues": 20,
