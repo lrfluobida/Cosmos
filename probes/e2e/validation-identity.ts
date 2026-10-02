@@ -30,6 +30,8 @@ export function createValidationIdentityReader(options: { repository: string; re
     const inspect = async () => {
       const branch = await git('symbolic-ref', '--quiet', '--short', 'HEAD');
       const head = await git('rev-parse', 'HEAD');
+      const index = await git('ls-files', '-v', '-z');
+      if (index.split('\0').some(entry => /^[a-zS] /.test(entry))) throw new Error('Validation identity rejects assume-unchanged or skip-worktree index flags.');
       const status = await git('status', '--porcelain=v1', '--untracked-files=all', '--ignore-submodules=none');
       if (branch !== 'main' || head !== expectedHead || status) throw new Error('Validation identity requires the reviewed HEAD on clean main, including untracked source.');
       return { branch, head, status };

@@ -91,3 +91,13 @@ test('source changes concurrent with the reader are rejected', async t => {
   await writeFile(join(f.root, 'src/platform.ts'), '// Concurrent offline change\n', 'utf8');
   await assert.rejects(pending, /changed|dirty|clean|identity/i);
 });
+
+for (const flag of ['--assume-unchanged', '--skip-worktree']) test(`hidden index ${flag} cannot conceal changed platform source`, async t => {
+  const f = await fixture(t);
+  await f.git('update-index', flag, 'src/platform.ts');
+  await writeFile(join(f.root, 'src/platform.ts'), '// Hidden offline source change\n', 'utf8');
+  assert.equal(await f.git('status', '--porcelain=v1', '--untracked-files=all'), '', 'Reproduce Git status hiding the actual change');
+  const before = await files(f.root);
+  await assert.rejects(f.read(signal()), /index|assume|skip.worktree/i);
+  assert.deepEqual(await files(f.root), before, 'Refusal must not clear or rewrite index flags');
+});
