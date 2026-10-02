@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { validationRunFixture } from './validation-run.fixture.ts';
 import { VALIDATION_CASE } from '../../probes/e2e/validation-declaration.ts';
+import { ArtifactRegistry, createArtifactRegistry } from '../../src/artifacts/index.ts';
 import * as entry from '../../probes/e2e/validation-run.ts';
 
 test('actual main preflight preserves snapshot bytes, mtime and roots without opening an owner or preparing a host', async t => {
@@ -72,6 +73,33 @@ for (const boundary of ['stopped', 'expired', 'unknown', 'missing-accepted'] as 
   const state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8'));
   if (boundary === 'stopped') assert.equal(state.validation.cases[0].stopReason.reason, 'Offline stop before host completion');
   if (boundary === 'unknown') { assert.equal(state.ledger.entries.at(-1).unknown, true); assert.equal(state.ledger.entries.at(-1).reservedMicroCny, 8); }
+});
+
+for (const stopDuringRead of [true, false]) test(`finish authenticates a real promoted fixture across its awaited read; concurrent stop=${stopDuringRead}`, async t => {
+  const f = await validationRunFixture(t);
+  const result = await entry.runValidationWithHost({ repository: f.repository, args: f.args, host: { prepare: async () => {}, execute: async input => {
+    const registry = await createArtifactRegistry({ workspaceRoot: input.root, registryRoot: 'registry' }), captured = registry.artifactRef('offline-source', 'v1'), candidate = registry.candidateRef('offline-candidate', 'v1');
+    await mkdir(join(input.root, 'offline')); await writeFile(join(input.root, 'offline/fixture.txt'), 'generatedByCosmos:false; no playable game', 'utf8');
+    await registry.registerCapture({ taskId: 'offline', artifactRef: captured, sourceRoot: 'offline', files: [{ source: 'fixture.txt', destination: 'fixture.txt' }], ownership: { writePaths: ['.'], readOnlyPaths: [] }, dependencies: [],
+      metadata: { kind: 'code', provenance: { kind: 'original-procedural', generator: 'Offline finish-boundary fixture only', sourceRefs: ['offline-fixture'] } } });
+    await registry.stageCandidate({ taskId: 'offline', authorId: 'offline-author', contextId: 'offline-author-context', candidateRef: candidate, targetRoot: candidate.location,
+      inputs: [captured], expectedDeps: [captured], ownership: { writePaths: ['.'], readOnlyPaths: [] } });
+    const proof = await registry.verifyCandidate(candidate, { build: async () => ({ passed: true, evidenceIds: ['offline-build'] }), acceptance: async () => ({ passed: true, evidenceIds: ['offline-check'] }) });
+    await registry.promoteCandidate(candidate, { evidence: proof, review: { candidateRef: candidate, attemptId: proof.attemptId, reviewerId: 'offline-reviewer', contextId: 'offline-review-context', verdict: 'approved', evidenceIds: ['offline-build', 'offline-check'] } });
+    if (stopDuringRead) {
+      const current = ArtifactRegistry.prototype.current; let stopped = false;
+      t.mock.method(ArtifactRegistry.prototype, 'current', async function (this: ArtifactRegistry) {
+        const value = await current.call(this);
+        if (!stopped) { stopped = true; await input.controller.stop('Offline coordinator stopped during accepted-candidate read'); }
+        return value;
+      });
+    }
+    return { outcome: 'passed', accepted: candidate, gaps: [] };
+  } } });
+  assert.equal(result.outcome, stopDuringRead ? 'failed' : 'passed');
+  const state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8'));
+  if (stopDuringRead) { assert.ok('gaps' in result && result.gaps.length); assert.equal(state.validation.cases[0].stopReason.reason, 'Offline coordinator stopped during accepted-candidate read'); }
+  else assert.equal(state.validation.cases[0].stopReason.reason, 'This one-shot validation case finished; its identity remains consumed.');
 });
 
 test('preflight refuses changed source approvals and an already created case root before writes', async t => {

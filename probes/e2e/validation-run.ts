@@ -107,8 +107,22 @@ export async function runValidationWithHost(options: { repository: string; args:
       const accepted = await new ArtifactRegistry(caseRoot, 'registry').current().catch(() => null);
       if (!result.accepted || !accepted || !sameValue(accepted.candidateRef, result.accepted)) finishGaps.push('No matching accepted candidate promotion is available.');
     }
+    const beforeOwnStop = await controller.read(), closingCase = validationCaseView(beforeOwnStop).validationCase;
+    if (Date.now() + 5000 >= Date.parse(window.deadlineAt)) finishGaps.push('The case lost its cleanup margin while reading promotion.');
+    if (beforeOwnStop.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) finishGaps.push('Fees became unresolved while reading promotion.');
+    if (closingCase.caseCommittedMicroCny > VALIDATION_CASE.limits.incrementalMicroCny || closingCase.committedMicroCny > VALIDATION_CASE.limits.cumulativeMicroCny
+      || closingCase.committedMicroCny > VALIDATION_CASE.limits.lifetimeMicroCny) finishGaps.push('Fees exceeded a validation limit while reading promotion.');
+    // v3 stop aborts synchronously before queuing persistence. No await may separate this observation from our own call.
+    const ownsFinishStop = !controller.signal.aborted && closingCase.stopReason === null;
     await cancelAndDrain(controller, work, 'This one-shot validation case finished; its identity remains consumed.');
+    if (result.outcome === 'passed') {
+      const accepted = await new ArtifactRegistry(caseRoot, 'registry').current().catch(() => null);
+      if (!result.accepted || !accepted || !sameValue(accepted.candidateRef, result.accepted)) finishGaps.push('Accepted candidate promotion changed during completion.');
+    }
     const state = await controller.read(), view = validationCaseView(state);
+    const finishEvents = state.events.slice(beforeOwnStop.events.length).filter(event => event.type === 'validation_case_stopped');
+    if (!ownsFinishStop || finishEvents.length !== 1 || view.validationCase.stopReason?.code !== 'manual'
+      || view.validationCase.stopReason.at !== finishEvents[0].at || view.validationCase.stopReason.reason !== finishEvents[0].reason) finishGaps.push('A separate case stop occurred before normal completion.');
     if (Date.now() >= Date.parse(window.deadlineAt)) finishGaps.push('Validation cleanup reached the case deadline.');
     if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) finishGaps.push('Validation cleanup left fees requiring reconciliation.');
     if (view.validationCase.caseCommittedMicroCny > VALIDATION_CASE.limits.incrementalMicroCny || view.validationCase.committedMicroCny > VALIDATION_CASE.limits.cumulativeMicroCny

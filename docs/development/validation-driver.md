@@ -61,3 +61,5 @@ repair policy 已识别显式 validation case，以本次 deadline 和预分配 
 `validation-driver.ts` 当前仅提供固定 `createValidationScopeReader`。它真实重读冻结九文件及 SHA 下的 `stageAcceptance`，核 operator 原字节/hash/完整 quote JSON，检查 planning 输入 capture 的固定位置、类型、来源、文件集合及实际内容；相同验收 ID、弱化 steps/expected/evidenceKinds、未登记输入或改变的来源均拒绝。它不接受调用方传入已认可的 scope。
 
 离线证据：9 项临时真实 Git/原账本 fixture 的入口测试通过（包含 4 个 host 误报 passed 的先红后绿边界），1 项真实输入 reader 与 registry 检查通过，全部零模型调用。对两个新 probe 和三个 fixture/test 文件的显式 strict noEmit 通过。尚无 public paid flag、native host、owned bootstrap/build/render/browser 装配或完整反馈文件认证；不得把本步作为实际生成通过。
+
+完成竞态修复：独立审查复现了读取已提升候选期间收到真实 stop 却仍报告 passed。入口现在在该 await 后重读窗口；在没有 await 的同一步观察 controller 尚未 aborted、case 尚未停止，再发起自己的正常结束 stop，并以之后新增的唯一停止事件及时间核对，而非仅比较理由字符串。drain 后再次检查候选引用、费用和截止，外部停止不会被覆盖。真实 registry 提升 fixture 的竞态反例先红后绿，正常结束正例及旧 stopped/unknown 两项邻接检查通过；fixture 不是原生生成或游戏通过证据。
