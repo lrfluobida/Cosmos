@@ -69,12 +69,17 @@ Review must identify the same candidate reference and `attemptId` as the returne
 
 Each mutating operation takes an exclusive `.commit.lock`; contention reports `Registry commit is busy` instead of racing. Temp directories are removed on ordinary failures. If the host process is killed, uncommitted temp files or a lock may remain. The host must establish that the old process has stopped before cleaning these up; there is no timeout-based lock stealing. A crash after sealing but before the pointer commit can leave a sealed, unpromoted candidate; preserve it and use a new candidate version if the in-memory verification capability was lost. Previously accepted state and capture snapshots survive restart. Durable recovery of unpromoted verification capabilities and parallel scheduling belong to later runtime work.
 
+On Windows, an open file handle without `FileShare.Delete` can deny the atomic temporary-directory rename with `EPERM`, even when the immutable destination is absent. Capture and stage publication allow at most six attempts for this error, with 25/50/100/200/400 ms abortable delays and a one-second retry window. Before each attempt, the host rechecks the temporary and destination paths, absent immutable destination, unchanged commit owner and original cancellation signal. Other errors, an existing version, changed owner or unsafe path stop publication; persistent `EPERM` remains a failure. This retries only the local atomic rename and does not repeat model calls or extend a run/case deadline. If persistent sharing also blocks temporary-file cleanup, preserve the remaining host-owned temporary files for diagnosis after the owning process has stopped.
+
+The focused `registry-publication.test.ts` uses a real Windows file handle to produce `EPERM / syscall=rename` at `ArtifactRegistry.#commit`, then releases that handle and checks publication. It also covers bounded persistent denial, cancellation during the delay, an appearing immutable version, ownership change, junction change and immediate failure for other errors. This establishes a reproducible sharing failure pattern; it does not identify the process responsible for the earlier native template-capture failure. A separate zero-model diagnostic successfully published requirements and template captures under the real E: workspace at that time. Consumed validation cases retain their original failure and cannot be reopened by this fix.
+
 ## Evidence and scope
 
 Run the focused suite with:
 
 ```powershell
 node --experimental-strip-types --test tests/artifacts/registry.test.ts
+node --experimental-strip-types --test tests/artifacts/registry-publication.test.ts
 npm run typecheck
 npm run build
 ```

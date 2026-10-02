@@ -2,6 +2,7 @@ import { lstat, rename, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
+import { setTimeout as delay } from 'node:timers/promises';
 import type { ArtifactReference } from '../contracts/types.ts';
 import { directory, fail, id, noConflicts, owns, pathName, regularFile, removeOwned, safePath, snapshot, text, within } from './paths.ts';
 import { validateMedia, validateMetadata } from './media.ts';
@@ -61,14 +62,30 @@ export class ArtifactRegistry {
   async #commit<T>(path: string, create: (temporary: string) => Promise<T>): Promise<T> {
     const destination = await safePath(this.#root, path);
     if (await exists(destination)) fail('Immutable version already exists');
-    const temporary = await directory(this.#root, `tmp/${randomUUID()}`);
+    const temporaryName = `tmp/${randomUUID()}`, temporary = await directory(this.#root, temporaryName);
     try {
       const result = await create(temporary);
       await directory(this.#root, path.slice(0, path.lastIndexOf('/')));
-      await safePath(this.#root, path);
-      this.#signal.throwIfAborted();
-      await rename(temporary, destination);
-      return result;
+      const owner = await regularFile(this.#root, '.commit.lock'), retryDelays = [25, 50, 100, 200, 400];
+      const cutoff = performance.now() + 1000;
+      let retryError: unknown;
+      for (let attempt = 0; ; attempt++) {
+        this.#signal.throwIfAborted();
+        if (attempt > 0 && performance.now() >= cutoff) throw retryError;
+        await safePath(this.#root, temporaryName); await safePath(this.#root, path);
+        if (await exists(destination)) fail('Immutable version already exists');
+        if (!(await regularFile(this.#root, '.commit.lock')).equals(owner)) fail('Registry commit ownership changed');
+        this.#signal.throwIfAborted();
+        if (attempt > 0 && performance.now() >= cutoff) throw retryError;
+        try { await rename(temporary, destination); return result; }
+        catch (error) {
+          const wait = retryDelays[attempt];
+          if (process.platform !== 'win32' || (error as NodeJS.ErrnoException)?.code !== 'EPERM'
+            || wait === undefined || performance.now() + wait >= cutoff) throw error;
+          retryError = error;
+          await delay(wait, undefined, { signal: this.#signal });
+        }
+      }
     } finally { await removeOwned(this.#root, temporary); }
   }
   async getCapture(ref: ArtifactReference): Promise<Capture> {
