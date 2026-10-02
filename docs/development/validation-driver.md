@@ -13,3 +13,13 @@
 付费运行仍须源码独立 READY、合入 main 且实际准入通过，由协调方执行；声明、参数解析和本段测试均不构成一次已执行实验。
 
 本段验证：`node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/e2e/validation-declaration.test.ts`，9 项先红后绿。另对两个新 probe 模块及测试运行显式 `tsc --noEmit --strict --skipLibCheck --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --types node`，通过；根项目 build 不包含 probe，因此未用它代替此类型检查。测试仅复制临时固定输入、改变副本并检查拒绝，不创建模型会话、浏览器、子进程或生成游戏，亦不访问真实验证目录。
+
+## V2b：真实源码身份读取
+
+`validation-identity.ts` 的 `createValidationIdentityReader({ repository, reviewedPlatformSha })` 返回接收 `AbortSignal` 的只读 reader，供后续 core 在 claim/open/每次 reserve/admit 调用。它核对真实仓库根、实际 main 分支、HEAD 和包含未跟踪文件的 Git status，再完整读取冻结输入，并重复分支/HEAD/status 检查；调用方不能通过传入“已验证”标志替代这些检查。
+
+每次读取重新检查源码，返回实际 `reviewedPlatformSha` 与 `sha256(JSON.stringify(VALIDATION_CASE.inputs))`。Git 使用原有有界 `runChild` 和环境白名单；参数以数组传递，关闭可选 index 写锁、fsmonitor 和 untracked cache。忽略 Git 已忽略的产物；源码变化、脏工作区、额外未跟踪源码或固定输入漂移均拒绝。检查预算最多 5 秒，也接受 core 更早的取消，Git 终止仍等待原有受控清理，不把超时当作成功。
+
+审查修复：普通 Git status 会隐藏标有 `assume-unchanged` 或 `skip-worktree` 的实际改动。reader 在前后两轮检查中只读查询 `git ls-files -v -z`，发现任一隐藏标志便拒绝；不会清除标志或刷新 index，带这些标志的干净或稀疏 checkout 也不用于本验证。两个真实 Git 反例先红后绿，且拒绝前后全部文件与 index 字节/mtime 不变；原 10 项证据复用。
+
+本段只新增身份读取，没有接入运行权限、执行输入契约或 paid driver。10 项测试使用真实临时 Git 仓库与冻结输入副本，覆盖 clean 读取无写（含 index 字节/mtime）、错误 SHA、错误分支/游离 HEAD、脏输入/源码、未跟踪源码、已提交输入漂移、后续 commit、取消及并发源码变化；不读取真实账本、历史 case 或会话。
