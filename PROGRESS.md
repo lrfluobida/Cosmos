@@ -45,7 +45,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | native case1 启动失败，尚无通过游戏 | 既有共享累计 ¥1.116402；case1 零请求/零新增费用，预留与未知为零；旧实验与 case1 均已消费 |
 | 任务拆分 | 已发布 | [21 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#22；21 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS-20 source-ready-real-startup-failed，COS-21 免费诊断中 | 原 native 源码、2/2 与严格构建证据复用；case1 已结束并解除 main 冻结，修复需独立审查后合入，case2 声明与执行尚未就绪；COS-18 partial/open，#2/#21/#22 open |
+| 子代理逐项实施 | COS-20 source-ready-real-startup-failed，COS-21 offline-verified-awaiting-live | COS-21 修复 1d03122 已独立批准合入 99e6d87，主线两项代表 2/2、0 skip 与类型检查通过；原 native 构建证据复用。case1 已消费，case2 尚未运行，新声明待独立审查；COS-18 partial/open，#2/#21/#22 open |
 
 ## 开发批次
 
@@ -83,6 +83,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 07 | COS-01 / #2 Zombie 静态证据 | codex/cos-01-static-zombies implementer | cos01_zombies_reviewer | batch07_merger | e292b49 获 ZOMBIE_STATIC_SOURCE_READY，合入 73cf4fe；三路径一致，JSON 34×7/ID/偏移检查通过；复用采集及独立样本，230/221 与未冻结状态不变 |
 | 07 | COS-01 / #2 初始 HP 静态证据 | static-health implementer | cos01_health_reviewer | batch07_merger | a1c1371 获 HEALTH_STATIC_SOURCE_READY，合入 80794c3；三路径一致，保存 JSON 17 样本/3 立即数结构通过；复用只读采集与独立指令样本，未冻结 |
 | 08 | COS-01 / #2 投射物静态证据 | codex/cos-01-static-projectiles implementer | cos01_projectiles_reviewer | batch08_merger | 3a20bae 获 PROJECTILE_STATIC_SOURCE_READY，合入 89f8162；三路径一致，保存 JSON 14×3 与 11 短样本检查通过；复用作者及 reviewer 证据，230/221 未冻结 |
+| 08 | COS-21 / #22 Windows 原子发布修复 | cos21_implementer | cos21_reviewer | batch08_merger | 1d03122 获 WINDOWS_PUBLICATION_SOURCE_READY，合入 99e6d87；三路径一致，主线延迟/不可覆盖 2/2、0 skip 与类型检查通过；offline-verified-awaiting-live/open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -171,6 +172,12 @@ COS-20 native driver `732f3d1` 经独立完整 13 路径审查获 READY，合入
 [COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 已由 root 发布、关联原生父 #1 并精确读回（id 5677200875，childCount 21）。任务承接原 R5/R11 的 Windows 产物原子发布失败，免费实际文件系统诊断、最小修复、独立审查与真实项目 publisher 免费检查由专属作者推进；源级前置 COS-09/COS-20，产出反馈 COS-10/COS-20，不要求失败任务先关闭。新 case2 的独立已审声明与真实 operator 决定尚未就绪，不开始付费执行；原验证 ¥150、首批 ¥30 与新 case ¥5/45 分钟/40 请求/一次 coding repair 边界保持，旧日期、费用与失败保留。
 
 COS-01 投射物静态证据 `3a20bae` 经独立 PROJECTILE_STATIC_SOURCE_READY 合入 `89f8162`，仅三个新增路径。主线保存 JSON 14×3、ID/偏移、11 处短指令、UTF-8/LF 与批准路径逐字节一致检查通过；复用作者采集/未知 build 拒绝/stdout 一致/EXE 未变及 reviewer 短样本，没有重读 EXE、重跑 collector、旧表/HP 研究或根构建。非 UTF-8 cpp byte 4780/BD 已停止读取，字段只由 UTF-8 头文件推导；普通豌豆基础字段 20 不证明最终伤害或正常命中路径，护甲/倍率/交互/运行/经典等价性仍未知。catalog 230/221、accepted、完整分母与未冻结状态保持，#2 partial/open。
+
+COS-21 `1d03122` 经独立 WINDOWS_PUBLICATION_SOURCE_READY 合入 `99e6d87`，仅 `src/artifacts/index.ts`、`tests/artifacts/registry-publication.test.ts`、`docs/development/artifacts.md` 三个批准路径，主线逐字节一致。真实 Windows 无 Delete 共享句柄的两次 RED 重现同类 EPERM/atomic rename，释放句柄后 native GREEN；这证明确定性共享占用模式，原失败具体 locker、杀毒软件、文件 watcher 或 ACL 来源仍未知，不能宣称消除所有 EPERM。
+
+本地原子发布仅对 Windows EPERM 最多六次尝试，等待 25/50/100/200/400 ms 共 775 ms，单调一秒窗口限制重试派发；每次检查 temp/destination 的安全路径、不可变目标不存在、commit owner 原字节未变及原 AbortSignal。延迟 event loop 到限或异步 guard 返回后到限均返回原 EPERM，不再 rename。主线仅重跑新延迟用例与不可覆盖代表共 2/2、0 skip（1153.5 ms/92.7 ms），一次 `npm run typecheck` 通过；复用作者 registry 18、恢复 4、类型/测试 noEmit 与 reviewer 真实锁、边界和短重试证据，未重复完整套件、PS child、smoke 或根构建。
+
+COS-21 映射为 offline-verified-awaiting-live/open，保存准确批准与 merge SHA；root 将在最终 main 执行独立于原 snapshot 的真实 E: 工作目录免费 publisher 检查。case2 声明另行实施和独立审查，尚未真实运行，后续 quote 必须包含本次 fixed source 祖先。COS-20 source-ready-real-startup-failed、case1 消费/失败、1,116,402 micro-CNY、原时钟/allocations 与 G3/G4 未通过均保持；本轮没有付费调用或私有账本、凭据、session 读取。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

@@ -654,7 +654,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "diagnosis-in-progress"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "WINDOWS_PUBLICATION_SOURCE_READY",
+      "reviewedCommit": "1d0312224ef7d3ed66858fb07204674a4eae6593",
+      "mergeCommit": "99e6d8772fdea0e794ada7f8da9ef57ec7d1153d"
     }
   ],
   "verifiedNativeSubIssues": 21,
