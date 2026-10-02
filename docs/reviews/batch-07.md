@@ -270,3 +270,23 @@ Main matches the approved package/lock/tsconfig, template and frozen requirement
 The immutable declaration names `cos20-native-validation-1`, preserves the CNY 150/30/5, 45-minute/40-call/one-repair limits and declares separate planning/design/art/coding/repair grants totaling CNY 21 from unallocated capacity. This grant ceiling is not new spending. Art/coding use 65,536 output tokens; design/reviewer remain 16,384, planning 4,096, and legacy probe constants stay unchanged. Input validation pins the COS-10 v2 file and eight generic-template files, returning evaluation data without human confirmation, window or charge records. The old `run.ts` does not accept the new parser flags yet.
 
 COS-20 / #21 stays open with only declaration/input offline verification. Profile V1 and driver wiring still await separate implementation/review; no new case was claimed or run. The real estimate remains CNY 1.116402 with zero reserved/unknown charges, and old timestamps, consumed experiments and reference state are unchanged. No key, real runtime root or paid service was accessed by this integration.
+
+The V2a documentation checkpoint was clean and pushed as `6691bf958ea4bc72e08356329730b7767ec09fce`. Root posted and read back [COS-18's current partial status](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-5948068412) and [COS-20 V2a's offline result](https://github.com/lrfluobida/Cosmos/issues/21#issuecomment-5948069088).
+
+## Static reference evidence and V2b identity reader — 2026-10-02
+
+Independent `STATIC_SOURCE_READY` source `fdd64c853a5c55818eebd13fd210303a7c86a02d` merged as `80d4d7558a75464041360ae9d5926ede6af2631c`, directly after `6691bf9`. Its only three paths are the static plant collector, saved JSON and research note. No conflict resolution or implementation edits were needed, and all three paths match the approved source byte for byte. Main parsed the saved JSON and checked 53 rows, nine DWORD values per row and seed ordinals 0 through 52. Reference metadata and catalog match prior main exactly.
+
+The author recorded a full 53×9 collection, unknown-build refusal, unchanged EXE hash/size/mtime/ctime and reused the prior 318-field source comparison. The independent reviewer checked the executable fingerprint/PE/data bounds and seeds 0/48/52 against the saved data. That evidence is reused; the merger did not read the installed EXE, rerun collection or repeat source research. Raw static observations and inferred field meanings remain separate. The 53 definitions are not 53 selectable plants, and launchRate is not a seconds value. COS-01 / #2 stays open/provisional; 230 catalog entries, 221 unresolved entries and the unfrozen state are unchanged.
+
+Independent `V2B_SOURCE_READY` source `26fcfae05778c3a2df512beb9e2cea5dfac5d5cf` then merged as `26da1a22f5a41fa6fec841e8e1c01c362346eb69`. Its three approved paths (identity module/test and driver notes) match exactly, with no conflicts or extra source changes. The review's hidden-index P2 was fixed in the author branch: two real Git counterexamples became passing, and the reviewer independently passed both without changes to index/file bytes or mtimes. The reader checks main/HEAD/status and fixed inputs twice, rejects assume-unchanged/skip-worktree flags, uses bounded read-only Git with cancellation and an environment allowlist, and returns source/input identity only.
+
+Fresh main command:
+
+```powershell
+node --experimental-strip-types --test --test-concurrency=1 --test-name-pattern='^(clean actual main|hidden index --skip-worktree)' tests/e2e/validation-identity.test.ts
+```
+
+Result: 2 tests, 2 passed, 0 failed/cancelled/skipped; duration 2649.7645 ms. The selected cases verify clean reads leave files/index unchanged and hidden source changes are refused without rewriting flags. Log: `.cosmos/integration/batch07-cos20-v2b-selected.tap`. The tests used temporary Git repositories and fixed input copies; no compiler, browser, provider or real validation root was used. Exact dependencies and frozen inputs match approved source, so the author's original ten tests, two repaired cases and explicit strict probe/test noEmit evidence are reused. Root build does not cover probes and was not repeated or claimed.
+
+UTF-8/LF, Chinese re-read, JSON mapping/counts, source identity and whitespace checks passed. COS-20 / #21 remains open with only declaration/input/identity reading offline verified; profile and executing driver are not connected, and no case was claimed or executed. Estimated real cost remains CNY 1.116402 with zero reserved/unknown charges. Historical deadlines, consumed failures, original formal results, reference status and G3/G4 remain unchanged.

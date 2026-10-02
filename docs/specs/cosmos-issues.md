@@ -86,6 +86,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-01 · P0 · 固定参考来源与完整验收清单
 
+- 本次进展：静态基础值证据 `fdd64c8` 已独立审查并合入 `80d4d75`；记录 53 行 × 9 DWORD，字段语义与源码推导分开。53 行不代表可选植物分母，launchRate 不按秒解释；catalog 仍为 230 项、221 项待核实，未冻结，#2 保持 open。
 - 依赖/状态：来源调查就绪；版本核对等待用户准备可运行经典 PC 参考版。清单冻结引用最终 spec 第 4B 节标准。
 - 输入：用户提供的可运行参考版、spec 已定模式范围、现有调研与来源资料；精确版本由本任务记录。
 - 输出/范围：`docs/benchmark/` 下版本标识、来源台账、完整内容矩阵、数值与计时表、排除项和待核实项；不写游戏实现。
@@ -267,6 +268,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-20 · 区分开发验证窗口与正式生成时限
 
+- 本次进展：V2a 声明/input 与 V2b 真实源码身份 reader 已审集成；V2b `26fcfae` 合入 `26da1a2`，主线两个临时 Git 检查通过。profile 与执行 driver 尚未接通，未 claim 或运行新 case，#21 保持 open。
 - 状态/源级前置：已发布 [#21](https://github.com/lrfluobida/Cosmos/issues/21)，当前为源码准备。前置只要求 COS-06/07/08/09/11/12/13/18/19 对应源码已独立审查并集成，不要求这些任务的全部 live/完整产品验收通过。COS-10 的实际验证是本任务产出，不作为循环前置；[映射](github-issues.json) 分列 sourcePrerequisites 与 validationOutputsFor。
 - 已有授权：CONTEXT 的生成运行排除平台开发；R6 的正式 ¥200/12h 与 R7 的开发验证合计 ¥150 分开。沿用用户验证预算、凭据提供及持续推进授权，由可信 coordinator 为更严格的新 case 记录真实 `operator_validation` 决定，不自动套用 formal human quote，不伪造 GameDraft 确认或 run.humanDecisions。
 - 输出/范围：同一权威 snapshot/runId/ledgerId 的显式 validation profile、新独立 opt-in driver/声明、定向测试、开发说明与进度；CONTEXT 术语和 ADR 由专属作者另行提交审查。原 start/deadline/stop、费用、请求、任务、allocations 和失败 case 保留；旧 v1、formal v2 及旧实验入口不得自动获得新权限，不使用假时钟或 deadline 投影。
