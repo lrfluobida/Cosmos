@@ -155,6 +155,8 @@ COS-20 entry/scope `37e0418` 经 finish-stop 竞态 P2 修复复审后获独立 
 
 Root 已同步读回 [HP 静态证据](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5950233739) 和 [COS-20 routing/core/helper](https://github.com/lrfluobida/Cosmos/issues/21#issuecomment-5950234444)。#21 保持 open，未 claim/运行真实新 case，共享估算 ¥1.116402、零预留/未知、旧失败和 G3/G4 状态不变。
 
+Entry 时间边界修复 `9a91f75` 获独立 ENTRY_SCOPE_SOURCE_READY 并合入 `58b6e59`：core 分别读取 stop/event 时间，允许前者早于对应唯一新事件，避免正常结束相差毫秒被误判；同步 abort、外部 stop、promotion 和 drain 后费用/截止核验仍保留。主线强制真实 3ms 跨时钟正常 fixture 1/1、0 skip，复用独立竞态及显式 probe 类型证据。Root 在此前已审 `ec9de7a` 完成真实只读 preflight READY：revision 130、baseline 1,116,402 micro-CNY、九个源码前置祖先已审，原 snapshot bytes/mtime 不变，paidRequests 0，未 claim；详见批次记录。该 quote 绑定旧 SHA，不能用于新 main 付费运行；最终 native main 须重新免费核对。native host/公开 flags/worker/完整反馈认证仍待接，#21 open，真实费用与旧历史不变。
+
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
 参考观察补充（协调者已完成，未重跑）：`2026-10-01T18:20:50Z` 开始时无游戏窗口，root 启动后得到窗口 `18351992`，只读控件焦点为 0；Tab 触发焦点变化后 capture 仍报 `window capture timed out`，刷新 binding 再试仍同错。正常 Alt+F4 后窗口列表为空；未获得游戏画面或玩法证据，安装与素材未改，reference catalog 保持原样与未冻结状态。

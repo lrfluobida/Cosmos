@@ -599,8 +599,8 @@
       "state": "open",
       "integrationStatus": "validation-entry-scope-offline-verified-native-host-pending",
       "reviewStatus": "ENTRY_SCOPE_SOURCE_READY",
-      "reviewedCommit": "37e041881971b4a117cebebdf2b6267bf435e2f2",
-      "mergeCommit": "7aacad13fd2e2547b17f93e93b37d37e6198cd3f"
+      "reviewedCommit": "9a91f756cede13a1cc9e5f85a25adacc32b581fa",
+      "mergeCommit": "58b6e59acbf07f874ad265b180384ceb7458df8f"
     }
   ],
   "verifiedNativeSubIssues": 20,
