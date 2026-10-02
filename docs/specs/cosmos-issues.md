@@ -289,6 +289,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 ### COS-21 · P1 · 诊断并修复 Windows 产物目录原子发布失败
 
 - 源码进展：`1d03122` 经独立 WINDOWS_PUBLICATION_SOURCE_READY 合入 `99e6d87`，仅修改 registry 原子提交、定向测试和开发说明三个路径。真实 Windows 无 Delete 共享句柄可复现相同 EPERM/rename，释放后原生发布成功；原 case1 的具体占用进程仍未知。仅 Windows EPERM 最多六次尝试、25/50/100/200/400 ms 等待，单调一秒重试派发窗口；每次复核路径、不可变目标、owner 原字节与取消，延迟 timer 或异步 guard 返回后到限不再 rename。主线延迟与不可覆盖两项 2/2、0 skip，类型检查通过；复用作者和独立 reviewer 既有证据，状态为 offline-verified-awaiting-live/open。最终 main 的真实项目免费 publisher 检查由 root 执行，fresh case2 尚未运行。
+- 免费实机证据：root 在 `8aced7c`（相同 fixed source `1d03122`）的实际 E: 工作目录用真实 ArtifactRegistry 发布 requirements 三文件、template 四文件；template capture.json 的真实 PS/.NET FileShare.ReadWrite 无 Delete 句柄使首次 rename 报 EPERM，释放句柄并确认 child exit 0/ESRCH 后，第二次原子 rename 成功，capture metadata 存在且 tmp 清空。Node 0.833 秒/exit 0/model 0，原 shared snapshot 字节和 mtime 未变；记录来自协调者安全元数据，未重跑。原 case1 占用来源仍未知，case2 未 claim，保持 open 与原失败历史；本机诊断结果见进度记录。
 - 依赖/状态：已发布 [#22](https://github.com/lrfluobida/Cosmos/issues/22)，为第 21 个原生子任务，保持 open。源级前置为 COS-09/COS-20 已独立审查并集成的源码；验证产出反馈 COS-10/COS-20，不要求其失败任务先关闭，不形成循环验收依赖。
 - 实际失败：首个 native case 的 owned bootstrap exit 0、npm ci 18 packages/5 秒、requirements capture 成功；template capture 在 registry 临时目录向不可变 captures 版本目录 rename 时 EPERM，guardAborted:false。7.124 秒、零模型请求与零新增费用；不能据此确认杀毒软件、文件 watcher 或永久 ACL 为原因。
 - 输出/范围：`src/artifacts/` 原子 publication/capture 的最小修复、定向故障复现与回归、诊断报告及进度；host glue 仅在根因证据要求时修改。先进行免费真实 Windows 文件系统诊断，保留能在修复前失败的复现证据，不改全局 ACL 或系统保护。

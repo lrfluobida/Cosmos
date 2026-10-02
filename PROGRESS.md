@@ -186,6 +186,8 @@ Case2 声明与免费准入 `b3ab706` 经独立 CASE_TWO_SOURCE_READY 合入 `89
 
 COS-20 当前 source-ready-newcase2-awaiting-paid/open；原真实 case1 的 `efb5170`、开始/截止/结束、7.124 秒、零新增费/请求、manual stop/消费与失败 marker 全部保留，累计仍 ¥1.116402、零 reserved/unknown，原时钟与 allocations 不重置。COS-21 修复源码已 READY，fresh real case2 尚未运行，COS-10 与 G3/G4 未通过。最终文档 main 干净推送后冻结：root 须按最新准确 SHA 做免费只读 preflight，核实际 Windows publisher 与原共享余额准入后，以临时内存凭据执行 native case2；真实 operator 决定由可信协调者记录，不伪造 human GameDraft 确认。case2 结束并由 root 明确解除前，任何 docs/source/reference 均不改 main。
 
+Root 已补充实际 E: 工作目录免费 publisher 通过证据：`8aced7c` 的相同 `1d03122` 源码在新 ignored `.cosmos/diagnostics/windows-publication-fixed-8b80f87b-92e6-4964-9b52-4b3d2973b30e/` 使用实际 ArtifactRegistry，先 capture requirements 三文件，再 capture template 四文件。真实 PS/.NET FileShare.ReadWrite 无 Delete 句柄持有 template capture.json，首次真实 rename 返回 EPERM/syscall rename；释放句柄并确认 child exit 0/ESRCH 后，第二次 atomic rename 成功，template capture metadata 存在、registry/tmp 清空。Node 0.833 秒/exit 0/model 0，`diagnostic-result.json` 已保存；原 shared snapshot 的 bytes/mtime 前后相同，未读取 key、未重开 case1、case2 未 claim。本文按协调者提供的安全元数据登记，作者未读取私有账本或重复 free publisher。该证据可复用于当前 case2 准入，原 case1 具体 locker 仍未知，不声明真实 native case2 或游戏已通过；最新 main 的只读 preflight 与后续付费结果仍由 root 执行和记录。
+
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
 参考观察补充（协调者已完成，未重跑）：`2026-10-01T18:20:50Z` 开始时无游戏窗口，root 启动后得到窗口 `18351992`，只读控件焦点为 0；Tab 触发焦点变化后 capture 仍报 `window capture timed out`，刷新 binding 再试仍同错。正常 Alt+F4 后窗口列表为空；未获得游戏画面或玩法证据，安装与素材未改，reference catalog 保持原样与未冻结状态。
