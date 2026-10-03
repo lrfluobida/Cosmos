@@ -49,6 +49,7 @@ test('production flag routing exposes only readonly preflight or the fixed nativ
   await assert.rejects(runPilotEntry([...f.args, '--fixture'], f.repository), /Usage/);
   await assert.rejects(runPilotEntry([...f.args, '--root', f.caseRoot], f.repository), /Usage/);
   await assert.rejects(runPilotEntry([...f.args, '--host-evidenced-coding-handoff', '0'], f.repository), /Usage/);
+  await assert.rejects(runPilotEntry([...f.args, '--browser-defect-classification', '0'], f.repository), /Usage/);
   await assert.rejects(runPilotEntry(['--validation-case', f.head], f.repository), /Usage/);
   assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), before);
 });
