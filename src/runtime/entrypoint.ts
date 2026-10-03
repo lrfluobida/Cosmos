@@ -1,6 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import { mkdir, readdir } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { readdir } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import type { ArtifactReference, RequirementContract, TaskContract } from '../contracts/index.ts';
 import { validateRequirement } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
@@ -28,12 +27,14 @@ import type { RepairContinuationPlan, SuccessorTarget, TaskReplacement } from '.
 import { loadContinuationPlan, prepareContinuationPlan } from './continuation-plan.ts';
 import type { ContinuationPlan } from './continuation-plan.ts';
 import { executionWindowView } from './execution-window.ts';
+import type { AcceptedCandidate } from '../artifacts/index.ts';
+import { deliveryTaskProofs, publishGenerationReport } from './experience.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
   validateTasks?(tasks: PreparedTask[]): void;
   recoverCapture: NonNullable<RecoveryOptions['recoverCapture']>;
-  finish(tasks: TaskContract[]): Promise<{ delivery?: string; gaps: string[] }>;
+  finish(tasks: TaskContract[]): Promise<{ delivery?: string; gaps: string[]; acceptedCandidate?: AcceptedCandidate }>;
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
   continuationTargets?(sources: PreparedTask[], feedback: RepairFeedback, grants: Record<string, number>): Promise<SuccessorTarget[] | null>;
 }
@@ -182,17 +183,15 @@ export async function executeGeneration(options: GenerationOptions) {
         gaps: [...final.gaps, ...result.blocked.map(item => `${item.taskId}: ${item.reason}`), ...effective.filter(task => task.state !== 'passed').flatMap(task => task.handoff.remaining)],
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff,
           supersededBy: replacements.find(replacement => replacement.sourceTaskId === task.taskId)?.replacementTaskId ?? null })), replacement: replacement ?? continuation?.replacements[0] ?? null, replacements,
-        reusedTaskIds: result.reusedTaskIds, status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
+        reusedTaskIds: result.reusedTaskIds, effectiveTasks: deliveryTaskProofs(effective), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
     }).catch(async error => {
       const state = await controller.read(), final = await host.finish(state.tasks).catch(() => ({ gaps: ['No accepted candidate can be established.'] }));
       return { ...final, outcome: 'incomplete', runId: state.run.runId, ledgerId: state.ledger.ledgerId, currentProject: root,
         gaps: [...final.gaps, state.stopReason ? `${state.stopReason.code}: ${state.stopReason.reason}` : error instanceof SuccessorBlocked || error instanceof RecoveryBlocked ? error.message : `${phase} did not complete; inspect the preserved host/session handoff before retrying.`],
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff })),
-        replacement: null, reusedTaskIds: [], status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
+        replacement: null, reusedTaskIds: [], effectiveTasks: deliveryTaskProofs(state.tasks), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
     });
-    await mkdir(join(root, 'delivery'), { recursive: true });
-    const report = `delivery/report-${randomUUID()}.json`; await publishReceipt(join(root, report), outcome);
-    return { ...outcome, report };
+    return await publishGenerationReport(root, outcome, { capability: host.capability, requirement, unsupported: draft.unsupported });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
     await warnings?.close(); await control?.close(); await controller.close();
@@ -221,7 +220,7 @@ async function executeContinuation(options: GenerationOptions) {
     control = await startControl(root, original.run.runId, stop, windowId); process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
     if (options.notify) warnings = await startBudgetWarnings(root, options.notify);
     return await work.run(async signal => {
-      let reusedTaskIds: string[] = [], blocked: { taskId: string; reason: string }[] = [], final: { delivery?: string; gaps: string[] } = { gaps: [] };
+      let reusedTaskIds: string[] = [], blocked: { taskId: string; reason: string }[] = [], final: { delivery?: string; gaps: string[]; acceptedCandidate?: AcceptedCandidate } = { gaps: [] };
       try {
         await reconcileEntryReceipts(root, controller);
         plan = await loadContinuationPlan({ root, controller, requirement, windowId });
@@ -252,9 +251,8 @@ async function executeContinuation(options: GenerationOptions) {
           limitMicroCny: state.ledger.limitMicroCny, settledMicroCny: window.quote.original.settledMicroCny, stopReason: state.stopReason },
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff,
           supersededBy: plan?.replacements.find(item => item.sourceTaskId === task.taskId && state.tasks.some(target => target.taskId === item.replacementTaskId))?.replacementTaskId ?? null })),
-        status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
-      await mkdir(join(root, 'delivery'), { recursive: true }); const report = `delivery/report-${randomUUID()}.json`;
-      await publishReceipt(join(root, report), outcome); return { ...outcome, report };
+        effectiveTasks: deliveryTaskProofs(effective), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
+      return await publishGenerationReport(root, outcome, { capability: host?.capability ?? 'unavailable', requirement, unsupported: draft.unsupported });
     });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);

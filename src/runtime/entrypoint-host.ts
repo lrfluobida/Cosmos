@@ -415,7 +415,7 @@ export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO;
       if (proof) await registry.promoteCandidate(ref, { evidence: proof, review: { candidateRef: ref, attemptId: proof.attemptId, reviewerId: task.review.reviewerId!, contextId: task.review.contextId!, verdict: 'approved', evidenceIds: task.review.evidenceIds } });
       const accepted = await registry.current();
       if (!accepted || !sameValue(accepted.candidateRef, ref)) return { gaps: ['Candidate promotion cannot be established; preserve the original version and evidence.'] };
-      return { delivery: accepted.targetRoot, gaps: [], mediaUsage: `evidence/${task.taskId}/media-usage.json` };
+      return { delivery: accepted.targetRoot, gaps: [], acceptedCandidate: accepted, mediaUsage: `evidence/${task.taskId}/media-usage.json` };
     },
   };
   if (binding) {
