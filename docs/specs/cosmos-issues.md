@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-03 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 30 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-03 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 31 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：真实 case6 的只读职责澄清发生，但 coding 未决项仍在早期 author_handoff 被拒，原 run 没进入 host/browser/独立 coding review。未改原生生成 v1 候选的免费 postfailure Edge 诊断通过原鼠标计划 111 步，不改原 failed/consumed 结果；新 [COS-30 / #31](https://github.com/lrfluobida/Cosmos/issues/31) 准备主机证据与逐项独立评审，源码未 READY，不重开六个旧案例或增加预算。
+调用实验：真实 case6 只读职责澄清后仍在 author_handoff 失败，原 run 没进入 host/browser/独立 coding review；未改原生生成 v1 的免费 Edge 111 步诊断通过，不改 failed/consumed。新 [COS-30 / #31](https://github.com/lrfluobida/Cosmos/issues/31) 与 [COS-31 / #32](https://github.com/lrfluobida/Cosmos/issues/32) 准备主机证据/逐项独立评审和独立 case7，源码未 READY；第四笔 C6 未用容量 closure 已完成，不重开旧案例或追加预算。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -76,6 +76,7 @@
 - [ ] [COS-28 只读澄清编码交接中的作者职责与主机验收](https://github.com/lrfluobida/Cosmos/issues/29)
 - [ ] [COS-29 验证交接职责澄清后的完整原生生成](https://github.com/lrfluobida/Cosmos/issues/30)
 - [ ] [COS-30 用主机证据和独立评审处理编码交接未决项](https://github.com/lrfluobida/Cosmos/issues/31)
+- [ ] [COS-31 验证主机证据驱动的完整原生生成](https://github.com/lrfluobida/Cosmos/issues/32)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -384,7 +385,8 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - Case6 执行前准入/closure3（历史）：root 于 `2026-10-03T10:17:11.499Z` 在 source `8fc7ce5` 免费关闭 C5 五 grants 未用 20,098,959 micro-CNY，revision 555→556、ledger3，closed 总数 25/decisions3；allocated 106,534,098→86,435,139、unallocated 43,465,902→63,564,861，费用 2,955,501/unknown reserved0 不变，旧 prefix 保持。Node 3.836 秒/exit0/model0/owner released；在该时点 Case6 尚未 claim，原 C5 manual-stopped 不重开，后续 guards 检查 prior1..5/current5/25closures。
 - Case6 真实结果：准确 `7e51632`，`2026-10-03T11:22:00.263Z` 开始、原定 `12:07:00.263Z` 截止、`11:32:19.891Z` 结束，619,628 ms。66 请求新增保守峰值估算 ¥1.280416、共享 ¥4.235917、unknown/reserved0、snapshot841/ledger3；planning3/23,792、design10/99,404、art22/530,791、coding31/626,429 micro-CNY。design/art 一 attempt passed，coding 一 attempt failed/insufficient_evidence/author_handoff；readonly scope clarification 实际发生，共享 slot 被区分，原三 concerns 完整保留，一项转 summary，仍有胜利 pacing 和是否必须 runtime fetch manifest 两 uncertainty，remaining0。真实作者 TypeScript/Vite 成功、v1 capture 存在，但原 run 没进入 host/browser/独立 coding review，accepted null/semanticrepair0；manual finish/结果已消费，不重开。Node28236 dead/exit1/keyclear/locks absent 后 root 明确解除冻结。
 - 独立免费 postfailure 实证：root 克隆原 immutable v1 到本机 `.cosmos/diagnostics/case6-host-diagnostic-61d2d518-1bce-4268-a37e-86fcc6ad7ac7`，以原 host build 与未修改 normal mouse plan 在真实 Edge29728 运行，build passed、111 步 passed/0 failed/0 skip/no errors，约96.4秒正常退出、forcedfalse；原 candidate file list/每文件 SHA 和 shared snapshot bytes 不变，0 model/0 fee。原生生成候选游戏实际完成固定玩法诊断，包含胜利/失败可见状态；这是独立诊断，不 resume/promote 或改 C6 failed/consumed，不等于正式 native run accepted、独立 code review 或完整 classic benchmark，诊断耗时不并入旧声明结果。
-- 当前边界：六案例和三 closures 历史保持，当前 snapshot841/费用4,235,917/unknown reserved0。C6 五 grants 潜在未用容量 19,719,584 micro-CNY 尚未关闭归还，closed 仍25/decisions3，不写成已释放或清费。COS30 源码未 READY，后续 case7 将由 root 另行登记，当前不创建新 case7 或第31个任务；G3/G4 与最终体验未通过。
+- Closure4 前边界（历史）：C6 原 run 结束时 snapshot841/费用4,235,917/unknown reserved0，三 closures/25 grants 保持，C6 潜在unused19,719,584 尚未归还；当时 COS30 未 READY，case7 尚未登记。随后 root 第四次免费 closure 仅关闭 C6 五 grants，原 paid failed/consumed 与 free111 证据不变，未清费、刷新时钟或新 claim。
+- 第四笔真实 closure/当前边界：root 在 source `7e51632` 于 `2026-10-03T14:22:19.998Z` 应用 real coordinator/operator_validation_allocation_closure，revision841→842/ledger3不变，只新关闭 C6 五grants/released19,719,584，总closed30/four decisions；allocated107,435,139→87,715,555，unallocated42,564,861→62,284,445，费用4,235,917/unknown reserved0保持。所有原run/tasks/sixcases/times/quotes/operator/human/artifact refs、旧ledgerfees/allocamounts、25closures/3audits/events prefix原样。Node5.021秒/exit0/model0/owner released，free postdeadline 不复活旧run或追加¥150；root解除短冻结。COS30/COS31 source仍未READY，case7仅issue/ownedauthor已登记，未实际claim/paid，G3/G4/体验未通过。
 
 ### COS-30 · 用主机证据和独立评审处理编码交接未决项
 
@@ -392,6 +394,13 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 工作方式/范围：专属作者先 ≤300词设计交 root 审阅，再实现新 validation-only coding explicit opt-in；不授予六个旧案例新权限。只在 strict 原 remaining0 后 capture 固定版本，保留完整原 concerns，包括已转 summary 的内容，再执行全部原 host AC/additional checks，即使 uncertainties pending；genuine unfinished remaining 仍立即失败，不改 old case6 game 或 raw proposal。
 - 通过/证据：只有实际全部 host 检查和独立 coding review 对每项 concern 提供绑定当前版本、准确 ID/ref/evidence 的 ConcernResolution，才可记录通过。漏项、错 ID/ref/version、未解决或 durable 证据不足一律失败；不可自动清数组、降低 AC/review 或用免费 C6 诊断替代新版本证据。
 - 失败/约束：host 真失败且 code_defect 可沿既有一次 coding repair，未决语义不能伪装成已修复。不增加 semantic repair，不向作者另起 LLM clarify loop，不手改游戏；SOURCE_NOT_READY 时不合 main，未来新 case 单独获得准确 source/main/preflight/operator/freeze 后执行。
+
+### COS-31 · 验证主机证据驱动的完整原生生成
+
+- 依赖/状态：已发布 [#32](https://github.com/lrfluobida/Cosmos/issues/32)，id5689873259，第31个原生子任务、父checkbox已读回；in-progress/open/SOURCE_NOT_READY，source未独批，actualcase7未claim/paid。Source前置COS-20..30为独立已审集成源码，精确approval marker及reviewedCommit/mergeCommit双frozen-main祖先，不要求failed任务closed；产出反馈COS-10/COS-20。
+- 输入/约束：newfixed `cos20-native-validation-7`，declaration-v2/80/同9inputs/model/outputcaps/五grants¥21/newcase¥5/45分钟/一次codingrepair/shared¥150/首批¥30保持；nativepolicy强固定 authorProtocolCorrections:1、codingHandoffClarifications:1、hostEvidencedCodingHandoff:1。旧六cases/声明/hash/quotes/40或80/日期/费用/permission保持，不修改原C6game或用free111改其accepted状态。
+- 准入/证据：Current仍manual-stopped6、prior1..6均停止收敛，30closed grants/four真实closure记录精确认证；新COS29 CASE_SIX_SOURCE_READY及COS30最终HOST_EVIDENCED_HANDOFF精确审批/双SHA须通过，SOURCE_NOT_READY不准执行。Source30接口待独审集成，caller和新decl只预备；最终source/docs批准后root fresh exactmain quote/资金/operator/freeze再执行。
+- 通过/边界：全部原HostAC/additionalchecks、按每个concern绑定当前版本证据的独立review、normal input/accepted candidate齐备才写native通过，不以旧free诊断或fixture代替新版本证据。当前仅issue/author登记，源码未READY，不开启新paidwindow或假human决定，G3/G4与完整classic/用户体验仍未通过。
 
 ## 5. 任务与上下文包模板
 
