@@ -335,9 +335,9 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-25 · 验证作者只读格式纠正后的完整原生生成
 
-- 依赖/状态：已发布 [#26](https://github.com/lrfluobida/Cosmos/issues/26)，id 5687112557，第 25 个原生子任务；registered/not-started/open。源级前置要求 COS-20/21/22/23/24 的准确源码 SHA 必须已独立审查并集成，不要求失败的运行任务先完成；验证产出反馈 COS-10/COS-20，不形成完成状态的循环门槛。COS-23/COS-24 源码尚未批准，case4 未就绪。
+- 依赖/状态：已发布 [#26](https://github.com/lrfluobida/Cosmos/issues/26)，id 5687112557，第 25 个原生子任务；registered/not-started/open。若准备 case4，COS-20/21/22/23/24 均须匹配各自独立审查批准的精确 reviewStatus marker，不以泛化“已集成”替代，且每项 reviewedCommit 与 mergeCommit 两个准确 SHA 都须为冻结 main 的祖先；不要求失败的运行任务先完成。验证产出反馈 COS-10/COS-20，不形成完成状态的循环门槛；COS-23/COS-24 源码尚未批准，case4 未就绪。
 - 输入/范围：固定新 `cos20-native-validation-4`，沿用 declaration-v2/80 请求、固定 inputs/model/output caps、五 grants 总额 ¥21、case ¥5/45 分钟/一次语义 coding repair、共享 ¥150/首批 ¥30；新 native host 显式设置 authorProtocolCorrections:1。旧三个案例的声明/hash、quotes、40 或 80 次上限、日期、费用、已消费身份和全部历史保持，不重开或手改生成游戏。
-- 准入：已有三个案例全部 stopped/drained、请求费用已知，仅精确归还未用任务分配容量后准备免费源码 preflight。格式纠正必须通过真实 SDK 的只读工具权限实现，最多一次且计入同一请求/费用，不伪造 human/GameDraft 或语义完整性。
+- 准入：已有三个案例全部 stopped/drained、请求费用已知，仅精确归还未用任务分配容量后准备免费源码 preflight。每个 author attempt 在原同一 SDK session 内最多一次真正只读格式纠正，通过 SDK 实际关闭 mutating tools 实现；新增实际纠正及 compaction 调用均按原 purpose 计入既有 80 请求和费用硬上限。保留原语义及 remaining/uncertainty，不增加 coding repair，不伪造 human/GameDraft 或语义完整性。
 - 通过/证据：准确源码与前置产物先独立审查、集成，root 按最新 main 免费只读核对并记录真实 operator 决定；冻结准确 main 后由 root 执行新 case。真实交接、capture、构建、正常输入验收与独立 accepted candidate 齐备才记通过；失败保留真实费用、结果与差距，G3/G4 和完整目标仍未通过。
 - 当前边界：本次仅 issue 登记，未合入未审源码，未开启真实 closure/case4 或付费调用，不冻结 main；后续全部源码就绪和准入通过后另行冻结，结束并明确释放前不改 main。
 
