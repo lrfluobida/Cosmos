@@ -55,6 +55,8 @@ export async function generatePilot(options: {
   authorProtocolCorrections?: 0 | 1;
   /** Validation-only coding clarification sharing the single author follow-up slot. */
   codingHandoffClarifications?: 0 | 1;
+  /** Explicit validation-only host evidence and independent coding concern resolution. */
+  hostEvidencedCodingHandoff?: 0 | 1;
   validation?: { window: ValidationCaseWindow; binding: ValidationExecutionBinding; work: OwnedWork;
     prepareRepair(source: PreparedTask, original: PreparedTask, requirement: ValidationRequirement, registry: ArtifactRegistry): Promise<PreparedTask | null> };
   /** Trusted offline fixture adapters only; production uses the concrete host tools below. */
@@ -68,6 +70,8 @@ export async function generatePilot(options: {
   if (options.authorProtocolCorrections === 1 && !options.validation) throw new Error('Pilot author correction requires explicit validation recovery.');
   if (![0, 1].includes(options.codingHandoffClarifications ?? 0)) throw new Error('Coding handoff clarifications must be 0 or 1.');
   if (options.codingHandoffClarifications === 1 && !options.validation) throw new Error('Pilot coding handoff clarification requires explicit validation recovery.');
+  if (![0, 1].includes(options.hostEvidencedCodingHandoff ?? 0)) throw new Error('Host evidenced coding handoff must be 0 or 1.');
+  if (options.hostEvidencedCodingHandoff === 1 && !options.validation) throw new Error('Pilot host evidenced coding handoff requires explicit validation recovery.');
   const validation = options.validation;
   if (validation) {
     controller.requireValidationCase(validation.window.caseId, validation.window.windowId);
@@ -297,6 +301,7 @@ export async function generatePilot(options: {
   const execution = (tasks: PreparedTask[], availableArtifacts: ArtifactReference[]) => ({ controller, requirement, validation: validation?.binding, tasks, sessionRoot: join(root, 'sessions'),
     ...(options.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: options.authorProtocolCorrections } : {}),
     ...(options.codingHandoffClarifications === 1 ? { codingHandoffClarifications: 1 as const } : {}),
+    ...(options.hostEvidencedCodingHandoff === 1 ? { hostEvidencedCodingHandoff: 1 as const } : {}),
     availableArtifacts, roleFactory, signal: guard.signal, reviewProtocolCorrections: (validation?.window.quote.declaration.limits.reviewProtocolCorrections ?? bounded?.reviewProtocolCorrections ?? 0) as 0 | 1,
     ...((bounded || validation) ? { diagnoseFailure: (task: TaskContract, stage: string) => stage === 'host_verification' ? diagnosedFailure(task, diagnostics.get(task.taskId)) : undefined } : {}),
     ...(validation ? { recovery } : {}), ...callbacks });

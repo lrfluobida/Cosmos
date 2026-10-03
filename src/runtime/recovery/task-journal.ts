@@ -22,7 +22,7 @@ export interface RecoveryOptions {
 }
 export interface RecoveryReport { tasks: TaskContract[]; reusedTaskIds: string[]; blocked: { taskId: string; reason: string }[] }
 export class RecoveryBlocked extends Error {}
-type Stage = 'author' | 'author-correction-started' | 'author-correction-response' | 'capture-started' | 'capture' | 'verify-started' | 'verified' | 'review-started' | 'review' | 'failure-snapshot';
+type Stage = 'author' | 'author-correction-started' | 'author-correction-response' | 'capture-started' | 'capture' | 'coding-concerns' | 'verify-started' | 'verified' | 'review-started' | 'review' | 'failure-snapshot';
 export interface RecoveryOrigin {
   formatVersion: 1 | 2 | 3; runId: string; ledgerId: string; originalStartedAt: string; originalDeadlineAt: string;
   limitMicroCny: number; requirement: ExecutionRequirement; prepared: PreparedTask; reviewProtocolCorrections: 0 | 1;
@@ -31,6 +31,8 @@ export interface RecoveryOrigin {
   authorProtocolCorrections?: 0 | 1;
   /** Only enabled validation callers record the new policy; zero/omission retain old origin bytes. */
   codingHandoffClarifications?: 1;
+  /** Validation-only host evidence ordering. Omission retains historical origin bytes. */
+  hostEvidencedCodingHandoff?: 1;
   executionWindow?: ExecutionWindowBinding;
   validationCase?: ValidationJournalBinding;
 }
