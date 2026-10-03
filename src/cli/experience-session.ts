@@ -11,16 +11,21 @@ export async function runExperienceSession(options: { root: string; input: Reada
   for (const item of binding.acceptanceScope.acceptance) output.write(`- ${item.description}\n`);
   output.write('未覆盖范围：\n'); for (const item of binding.acceptanceScope.notCovered) output.write(`- ${item}\n`);
   const lines = createInterface({ input: options.input, crlfDelay: Infinity, terminal: false }), iterator = lines[Symbol.asyncIterator]();
-  let cancelled = false;
-  const interrupt = () => { cancelled = true; lines.close(); };
+  const cancellation = new AbortController();
+  const interrupt = () => { cancellation.abort(); lines.close(); };
   process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
   try {
     output.write('完成当前版本试玩后，认可请输入 approve，拒绝请输入 reject，退出请输入 cancel。\n');
     const answer = await iterator.next();
-    if (cancelled || answer.done || !['approve', 'reject'].includes(answer.value.trim())) {
+    if (cancellation.signal.aborted || answer.done || !['approve', 'reject'].includes(answer.value.trim())) {
       output.write('未记录体验决定。\n'); return { outcome: 'unconfirmed' };
     }
-    const result = await recordExperience(root, binding, answer.value);
+    let result;
+    try { result = await recordExperience(root, binding, answer.value, cancellation.signal); }
+    catch (error) {
+      if (error !== cancellation.signal.reason) throw error;
+      output.write('未记录体验决定。\n'); return { outcome: 'unconfirmed' };
+    }
     output.write(result.userExperience === 'approved' ? '体验已通过；当前报告范围内交付完成。\n' : '体验已拒绝；当前交付仍待完成。\n');
     return result;
   } finally { lines.close(); process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt); }

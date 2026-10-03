@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, open, readFile, readdir, rm, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -10,6 +10,8 @@ import { runCli } from '../../src/cli/index.ts';
 import { readRunStatus } from '../../src/cli/control.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { publishGenerationReport } from '../../src/runtime/experience.ts';
+import { OwnerLock } from '../../src/runtime/recovery/ownership.ts';
+import { publishReceipt } from '../../src/runtime/recovery/receipt-file.ts';
 import type { RequirementContract, TaskContract } from '../../src/contracts/index.ts';
 import { passedTask } from '../contracts/fixtures.ts';
 
@@ -135,4 +137,51 @@ test('repeated decisions are idempotent, conflicts and forged source do not over
   assert.equal((await readRunStatus(f.root)).delivery?.userExperience, 'not_confirmed');
   assert.equal((await f.command('approve')).result.finalCompletion, 'complete_for_report_scope');
   assert.equal((await readdir(join(f.root, 'delivery/experience'))).length, 2);
+});
+
+for (const point of ['run-owner', 'registry-owner', 'receipt-sync']) test(`interrupt at ${point} cancels before receipt publication and releases owned locks`, async t => {
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+    const f = await fixture(t), snapshot = await readFile(join(f.root, 'snapshot.json')), marker = await readFile(join(f.root, 'delivery/current-report.json'));
+    const probe = await open(join(f.root, 'sync-probe.tmp'), 'wx'), prototype = Object.getPrototypeOf(probe), sync = prototype.sync;
+    await probe.close(); await unlink(join(f.root, 'sync-probe.tmp'));
+    const acquire = OwnerLock.acquire; let armed = false, interrupted = false;
+    OwnerLock.acquire = async function(root, name, ...args) {
+      const owner = await acquire.call(this, root, name, ...args);
+      if (point === 'run-owner' && name === '.controller.lock' || point === 'registry-owner' && name === '.commit.lock') { interrupted = true; process.emit(signal); }
+      if (point === 'receipt-sync' && name === '.commit.lock') armed = true;
+      return owner;
+    };
+    prototype.sync = async function() { await sync.call(this); if (armed) { armed = false; interrupted = true; process.emit(signal); } };
+    try { assert.equal((await f.command('approve')).result.outcome, 'unconfirmed'); }
+    finally { OwnerLock.acquire = acquire; prototype.sync = sync; }
+    assert.equal(interrupted, true, 'The cancellation must occur inside commit, after explicit stdin');
+    assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), snapshot); assert.deepEqual(await readFile(join(f.root, 'delivery/current-report.json')), marker);
+    for (const path of ['.controller.lock', 'registry/.commit.lock']) await assert.rejects(readFile(join(f.root, path)), { code: 'ENOENT' });
+    const receipts = await readdir(join(f.root, 'delivery/experience')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
+    assert.deepEqual(receipts, [], 'Cancellation cannot leave a decision or partial receipt');
+    assert.equal((await readRunStatus(f.root)).delivery?.userExperience, 'not_confirmed');
+  }
+});
+
+test('receipt publisher keeps legacy write-once behavior and cleans aborted synced temporary bytes before linking', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'cosmos-receipt-cancel-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const path = join(root, 'receipt.json'); await publishReceipt(path, { original: true }); const bytes = await readFile(path);
+  await assert.rejects(publishReceipt(path, { replaced: true }), { code: 'EEXIST' }); assert.deepEqual(await readFile(path), bytes);
+  const probe = await open(join(root, 'sync-probe.tmp'), 'wx'), prototype = Object.getPrototypeOf(probe), sync = prototype.sync;
+  await probe.close(); await unlink(join(root, 'sync-probe.tmp')); const cancellation = new AbortController();
+  prototype.sync = async function() { await sync.call(this); cancellation.abort(); };
+  try { await assert.rejects(publishReceipt(join(root, 'cancelled.json'), { decision: 'approved' }, cancellation.signal), error => error === cancellation.signal.reason); }
+  finally { prototype.sync = sync; }
+  assert.deepEqual(await readdir(root), ['receipt.json']); assert.deepEqual(await readFile(path), bytes);
+});
+
+test('late interruption after atomic receipt publication returns and recovers the committed decision', async t => {
+  const f = await fixture(t), before = await readFile(join(f.root, 'snapshot.json')), close = OwnerLock.prototype.close; let interrupted = false;
+  OwnerLock.prototype.close = async function() { await close.call(this); if (!interrupted) { interrupted = true; process.emit('SIGTERM'); } };
+  let result: any;
+  try { result = (await f.command('approve')).result; } finally { OwnerLock.prototype.close = close; }
+  assert.equal(interrupted, true); assert.equal(result.userExperience, 'approved'); assert.equal(result.finalCompletion, 'complete_for_report_scope');
+  assert.equal((await readRunStatus(f.root)).delivery?.userExperience, 'approved'); assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before);
+  const files = await readdir(join(f.root, 'delivery/experience')), path = join(f.root, 'delivery/experience', files[0]), bytes = await readFile(path); assert.equal(files.length, 1);
+  await f.command('approve'); assert.deepEqual(await readFile(path), bytes);
 });

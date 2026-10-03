@@ -127,21 +127,29 @@ export async function readExperienceStatus(root: string) {
 }
 
 /** Called only by the stdin collector. One complete write-once receipt is the durable decision. */
-export async function recordExperience(root: string, expected: ExperienceBinding, rawInput: string) {
+export async function recordExperience(root: string, expected: ExperienceBinding, rawInput: string, signal?: AbortSignal) {
+  signal?.throwIfAborted();
   const action = rawInput.trim();
   if (!['approve', 'reject'].includes(action) || rawInput.length > 4096) throw new Error('An explicit experience stdin decision is required.');
   root = resolve(root); await safePath(root, '.controller.lock');
+  signal?.throwIfAborted();
   const runOwner = await OwnerLock.acquire(root, '.controller.lock');
   let registryOwner: OwnerLock | undefined;
   try {
-    await safePath(root, 'registry/.commit.lock'); registryOwner = await OwnerLock.acquire(join(root, 'registry'), '.commit.lock');
+    signal?.throwIfAborted();
+    await safePath(root, 'registry/.commit.lock'); signal?.throwIfAborted();
+    registryOwner = await OwnerLock.acquire(join(root, 'registry'), '.commit.lock'); signal?.throwIfAborted();
     const current = await loadExperienceBinding(root);
+    signal?.throwIfAborted();
     if (!sameValue(current, expected)) throw new Error('Current report or candidate changed while waiting; view and try the current version before deciding.');
     const existing = await receipt(root, current), decision = action === 'approve' ? 'approved' : 'rejected';
+    signal?.throwIfAborted();
     if (existing) { if (existing.decision !== decision) throw new Error('Experience decision conflicts with the immutable original receipt.'); return view(current, existing); }
     const id = bindingId(current), value: ExperienceReceipt = { formatVersion: 'user-experience-1', bindingId: id, binding: current, actorId: 'local-user', decidedAt: new Date().toISOString(),
       decision, source: { kind: 'cli-stdin', command: 'experience', rawInput } };
-    await directory(root, 'delivery/experience'); await publishReceipt(await safePath(root, `delivery/experience/${id}.json`), value);
+    await directory(root, 'delivery/experience'); signal?.throwIfAborted();
+    const path = await safePath(root, `delivery/experience/${id}.json`); signal?.throwIfAborted();
+    await publishReceipt(path, value, signal);
     return view(current, value);
   } finally { try { await registryOwner?.close(); } finally { await runOwner.close(); } }
 }
