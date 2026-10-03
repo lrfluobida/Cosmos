@@ -67,7 +67,7 @@ export function createValidationScopeReader(input: { repository: string; ledgerR
 }
 
 /** Same native planner, roles and host pipeline. Optional session factory is for explicit offline tests only. */
-export async function generateValidationCase(input: ValidationHostInput, io: ValidationHostIO, sessionFactory?: (config: PiSessionOptions) => Promise<RoleSession>): Promise<ValidationHostResult> {
+export async function generateValidationCase(input: ValidationHostInput, io: ValidationHostIO, sessionFactory?: (config: PiSessionOptions) => Promise<RoleSession>, policy: { authorProtocolCorrections?: 0 | 1 } = {}): Promise<ValidationHostResult> {
   const { controller, window, root } = input;
   controller.requireValidationCase(window.caseId, window.windowId);
   if (!sameValue(window.quote.declaration, VALIDATION_CASE)) throw new Error('Only the reviewed fixed validation declaration can execute.');
@@ -77,8 +77,9 @@ export async function generateValidationCase(input: ValidationHostInput, io: Val
     remainingMs() { input.signal.throwIfAborted(); const remaining = Date.parse(window.deadlineAt) - Date.now() - 5000; if (remaining <= 0) throw new Error('Validation cleanup cutoff reached.'); return remaining; },
     close() {}, wrap<T>(budget: T): T { return budget; } };
   const result = await generatePilot({ repository: input.repository, root, prefix: window.caseId, controller, guard, toolchain,
+    ...(policy.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: policy.authorProtocolCorrections } : {}),
     childAllocationCapMicroCny: Object.entries(VALIDATION_CASE.grants).filter(([role]) => role !== 'planning').reduce((sum, [, grant]) => sum + grant.amountMicroCny, 0), confirmedAt: window.startedAt,
-    sessionFactory, validation: { window, binding, work: input.work, prepareRepair: (source, original, requirement, registry) => prepareValidationRepair(input, binding, source, original, requirement, registry) },
+    sessionFactory, validation: { window, binding, work: input.work, prepareRepair: (source, original, requirement, registry) => prepareValidationRepair(input, binding, source, original, requirement, registry, policy.authorProtocolCorrections) },
     host: {
       buildProject: (_root, project, _toolchain, name, signal, taskId) => io.build(project, name, signal, taskId!),
       renderMedia: (_root, folder, value, signal, taskId) => io.media(folder, value, signal, taskId!),
@@ -92,7 +93,7 @@ export async function generateValidationCase(input: ValidationHostInput, io: Val
 
 /** Authenticate the real host failure before consuming the one predeclared coding repair. */
 async function prepareValidationRepair(input: ValidationHostInput, binding: ValidationExecutionBinding, source: PreparedTask, original: PreparedTask,
-  requirement: ValidationRequirement, registry: ArtifactRegistry): Promise<PreparedTask | null> {
+  requirement: ValidationRequirement, registry: ArtifactRegistry, authorProtocolCorrections?: 0 | 1): Promise<PreparedTask | null> {
   const { root, controller } = input, { snapshot, window } = await requireValidationScope(controller, requirement, binding);
   const task = snapshot.tasks.find(task => task.taskId === source.task.taskId)!; requireOriginalTask(original.task, task);
   if (task.taskId !== VALIDATION_CASE.grants.coding.taskId || !['failed', 'needs_changes'].includes(task.state) || task.attempts.length !== 1
@@ -113,7 +114,8 @@ async function prepareValidationRepair(input: ValidationHostInput, binding: Vali
   const recovery = { artifactRoot: root, journalRoot: join(root, 'journal') };
   const origin = { formatVersion: 3 as const, validationCase: validationJournalBinding(window), runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId,
     originalStartedAt: snapshot.run.originalStartedAt, originalDeadlineAt: snapshot.run.originalDeadlineAt, limitMicroCny: snapshot.ledger.limitMicroCny,
-    requirement, prepared: original, reviewProtocolCorrections: 1 as const, artifactRoot: root, sessionRoot: join(root, 'sessions') };
+    requirement, prepared: original, reviewProtocolCorrections: 1 as const, artifactRoot: root, sessionRoot: join(root, 'sessions'),
+    ...(authorProtocolCorrections !== undefined ? { authorProtocolCorrections } : {}) };
   const journal = await TaskJournal.open(recovery, origin, true), author = await journal.read<{ signature: ContentSignature }>('author', attempt.attemptId);
   const captured = await journal.read<{ captured: { artifacts: typeof task.artifacts }; signature: ContentSignature }>('capture', attempt.attemptId);
   if (!author || !captured || !sameValue(captured.captured.artifacts, task.artifacts)) throw new Error('Failure author/capture receipts are incomplete.');
