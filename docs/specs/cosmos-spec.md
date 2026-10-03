@@ -8,7 +8,7 @@
 
 ## 1. 已确认的产品目标
 
-COS-26/COS-27 已审集成并执行真实 case5，规划容量组件经实测，design/art 通过；coding 项目检查通过且 v1 已捕获，但因交接职责不确定性失败，host 验证、浏览器和独立 coding review 未运行，未形成 accepted game。三次真实免费未用容量 closure 已完成，原费用和五案例历史保持；COS-28/COS-29 在实施新职责澄清与 case6，尚未 SOURCE_READY 或执行。源码或局部构建通过不代表目标游戏通过，进展见 [进度记录](../../PROGRESS.md)。
+COS-26/COS-27 已审集成并执行真实 case5，规划容量组件经实测，design/art 通过；coding 项目检查通过且 v1 已捕获，但因交接职责不确定性失败，host 验证、浏览器和独立 coding review 未运行，未形成 accepted game。三次真实免费未用容量 closure 已完成，原费用和五案例历史保持；COS-28 职责澄清与 COS-29 独立 case6 源码已审集成，尚未实际 case6 claim 或执行。源码或局部构建通过不代表目标游戏通过，进展见 [进度记录](../../PROGRESS.md)。
 
 | 编号 | 要求 |
 | --- | --- |
