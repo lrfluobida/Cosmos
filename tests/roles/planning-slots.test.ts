@@ -17,7 +17,7 @@ for (const mode of ['valid', 'duplicate-slot', 'authority', 'wrong-role', 'over-
   const drafts = taskPolicies.map((p, i) => ({ taskId: `code-${p.policyId}`, policyId: mode === 'duplicate-slot' ? 'one' : p.policyId, role: mode === 'wrong-role' ? 'art' : p.role, objective: `Generate ${p.policyId}`, acceptanceIds: ['AC-1'], dependsOn: i ? ['code-one'] : [], ...(mode === 'authority' ? { allocationMicroCny: 999 } : {}) }));
   const action = planTaskDag({ controller, requirement, planningTaskId: 'planning', workspace: root, sessionRoot: join(root, 'sessions'), availableArtifacts: requirement.sources, taskPolicies,
     roleFactory: async () => ({ actorId: 'planner', contextId: 'planner', prompt: async () => ({ text: JSON.stringify({ tasks: drafts }) }), close: async () => {} }) });
-  if (mode !== 'valid') { await assert.rejects(action, /policy|slot|draft|budget|unique/i); return; }
+  if (mode !== 'valid') { await assert.rejects(action, mode === 'over-budget' ? /Plan exceeds unallocated shared budget\./ : /policy|slot|draft|budget|unique/i); return; }
   const result = await action;
   assert.deepEqual(result.tasks.map(p => p.role), ['coding', 'coding']);
   assert.deepEqual(result.tasks.map(p => p.task.ownership.writePaths), [['game/one'], ['game/two']]);
