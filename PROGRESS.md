@@ -51,7 +51,7 @@ Case3 结果：`cos20-native-validation-3` 在准确 `c78b12c` 上于 `2026-10-0
 | 真实成本与时延探针 | native case4 规划 host 有效容量核算失败，尚无通过游戏 | case4 planning 1 请求新增保守峰值估算 ¥0.011432，共享累计 ¥2.054460，unknown/reserved 零；四案例已消费，旧案例和 closure1 保留，closure2 仅归还 C4 未用容量 |
 | 任务拆分 | 已发布 | [27 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#28；27 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS-25 源码 offline-verified-awaiting-live/open，实际 case4 规划 host 失败 | CASE_FOUR_SOURCE_READY/bc97d7d/4039844 审批保留，actualValidationFailure 单列；COS-26 6f6960b 候选已审、未集成，COS-27 in-progress/SOURCE_NOT_READY，第二次 closure 已完成、case5 未执行，G3/G4 未通过 |
+| 子代理逐项实施 | COS-25 源码 offline-verified-awaiting-live/open，实际 case4 规划 host 失败 | CASE_FOUR_SOURCE_READY/bc97d7d/4039844 审批保留，actualValidationFailure 单列；COS-26/COS-27 已审联合集成、offline-verified-awaiting-live/open，第二次 closure 已完成、case5 未执行，G3/G4 未通过 |
 
 ## 开发批次
 
@@ -96,6 +96,8 @@ Case3 结果：`cos20-native-validation-3` 在准确 `c78b12c` 上于 `2026-10-0
 | 08 | COS-24 / #25 未用分配容量归还 | codex/validation-allocation-closure implementer | cos24_reviewer | batch08_merger | 最终 ee4ef28 获 VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY，合入 98aa9cc；18 路径一致，联合 strict noEmit 和 v3 新 case/隔离代表通过；offline-verified-awaiting-live/open |
 | 08 | COS-25 / #26 Case4 独立入口 | codex/validation-case-four implementer | 独立 case4 source reviewer | batch08_merger | be02266 获 CASE_FOUR_SOURCE_READY，合入 b3901ca；八路径一致，新入口只读历史/漂移拒绝 2/2、0 skip；offline-verified-awaiting-live/open |
 | 08 | COS-25 / #26 COS22 源级失败态准入修复 | 原 codex/validation-case-four implementer | 原独立 case4 reviewer | batch08_merger | bc97d7d 增量获 CASE_FOUR_SOURCE_READY，合入 4039844；四路径一致，复用 public shape RED→2 GREEN 与独立 2/2；源码时点免费 preflight READY，仍待最终 main 新 quote |
+| 08 | COS-26 / #27 有效分配容量核算 | codex/planning-effective-capacity implementer | 独立 COS26 reviewer | batch08_merger | 6f6960b 获 PLANNING_EFFECTIVE_CAPACITY_SOURCE_READY，合入 4098683；五路径一致，联合 strict noEmit 与 v3 planner 代表通过；offline-verified-awaiting-live/open |
+| 08 | COS-27 / #28 Case5 独立入口 | codex/validation-case-five implementer | 独立 COS27 reviewer | batch08_merger | 8348495 获 CASE_FIVE_SOURCE_READY，合入 0efc5ec；七逻辑/八物理路径（含重命名）一致，联合 strict noEmit 与 compatibility/history 代表通过；offline-verified-awaiting-live/open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -263,11 +265,17 @@ Case4 执行前准入记录（历史）：当前 COS-25 offline-verified-awaitin
 
 [COS-10 case4 结果](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5967241823) 与 [COS-25 case4 结果](https://github.com/lrfluobida/Cosmos/issues/26#issuecomment-5967242082) 已由 root POST 并精确读回；旧 C3 结果链接保留在历史而非新 C4 result。Root 已发布并精确读回原生子任务 [COS-26 / #27](https://github.com/lrfluobida/Cosmos/issues/27)（id 5687873042）和 [COS-27 / #28](https://github.com/lrfluobida/Cosmos/issues/28)（id 5687874167），父 checkbox 与 27 个子任务 #2–#28 核对。COS-26 source 前置 06/07/20/24、输出 10/20/25；COS-27 source 前置 20/21/22/23/24/25/26、输出 10/20，均为已审集成源码门槛，不以失败任务 closed 作为循环条件。
 
-COS-26 候选 `6f6960b89daaea3dde9032ae620a76fa7b9ce138` 已获独立 PLANNING_EFFECTIVE_CAPACITY_SOURCE_READY，独立六代表/作者六项及 strict types 证据可复用，尚未 main 集成、没有 mergeCommit，本轮不代其改实现或提前编译。COS-27 in-progress/open、SOURCE_NOT_READY，专属作者准备新固定 `cos20-native-validation-5`，同 inputs/declaration-v2/80/model/output caps/五 grants ¥21/case ¥5/45 分钟/一次 coding repair/共享 ¥150/首批 ¥30/native authorProtocolCorrections:1；尚未源码批准、claim 或 paid。等待其独立批准后由唯一 merger 联合集成，当前只文档登记。
+COS-26/COS-27 源码集成前记录（历史）：COS-26 候选 `6f6960b89daaea3dde9032ae620a76fa7b9ce138` 已获独立 PLANNING_EFFECTIVE_CAPACITY_SOURCE_READY，独立六代表/作者六项及 strict types 证据可复用，尚未 main 集成、没有 mergeCommit，本轮不代其改实现或提前编译。COS-27 in-progress/open、SOURCE_NOT_READY，专属作者准备新固定 `cos20-native-validation-5`，同 inputs/declaration-v2/80/model/output caps/五 grants ¥21/case ¥5/45 分钟/一次 coding repair/共享 ¥150/首批 ¥30/native authorProtocolCorrections:1；尚未源码批准、claim 或 paid。等待其独立批准后由唯一 merger 联合集成，当前只文档登记。
 
 Root 于 `2026-10-03T08:45:43.574Z` 在准确 `b0cf64f59505acf7f2e115e6d874552725f12a12` 完成免费 second closure：quote `vacq1-c399333f1956c1e73a5226662893db1cd4df081e872bdea00f243abd94306167`，真实 coordinator 决定 `operator-allocation-closure-e7b12ab3-79d2-4b75-afe9-55a41f74889e`、kind operator_validation_allocation_closure。仅关闭 C4 五 grants 未用 20,988,568 micro-CNY，closure 总数 20/decisions 2；原三案例 15 closures/62,073,374 不重执行。revision 345→346、ledger 3.0.0 不变，allocated 106,522,666→85,534,098、unallocated 43,477,334→64,465,902；共享估算费用 2,054,460、unknown/reserved 零完全保持。
 
 Second closure 保持原 run/tasks/四 cases/requests/operator/human/date 等字段、原 ledger entries/allocation amounts 与第一笔 closure 的 15 record/events 前缀逐项 DeepEqual，仅追加 C4 closure 决定和记录；current 仍为 stopped case4，不是新 case5。Node 3.906 秒/exit 0/owner released、模型请求 0，root 明确解除本次短 main 冻结。未清费、未提升 ¥150 或复活 closed IDs；case5 仍待源码独立批准和新真实准入。本作者只依据安全 metadata 登记，未访问私有账本/session/key 或调用模型，未编译/测试/修改 main，候选四 docs 待 root 安排 fresh 独立审查。
+
+COS-26 `6f6960b89daaea3dde9032ae620a76fa7b9ce138` 经独立 PLANNING_EFFECTIVE_CAPACITY_SOURCE_READY 合入 `409868335cb45ee2f50e065f92ac0f4cd9419208`；COS-27 `8348495794da8e49bed1129fe4b02a8a920505fb` 经独立 CASE_FIVE_SOURCE_READY 合入 `0efc5ec905786358dc4d43a646d34c17dbf11b26`。两链五 + 七逻辑路径无碰撞；case-four 测试 gitmv 为 case-five 按旧/新路径一起核对，共 13 物理路径准确匹配批准版本，旧路径删除、UTF-8/LF/diffcheck 通过。Source 已清推，local/remote/origin main 精确 `0efc5ec`、工作树干净；先保留 b9fe411 文档候选，再在独立 worktree 同步已审源码，未 blind reset 或先合未审文档。
+
+一次联合 strict/NodeNext/noEmit 覆盖 src、相关 probes 与两组新 tests/fixtures，exit 0；仅三项跨组合 pure FS 代表 3/3、0 skip：closed-grant 有效容量 planner 317 ms、显式 fresh-core 无历史/closures/额外费用兼容 fixture 898 ms、case5 只读 preflight/history/mtime 7.694 秒。作者/独立 reviewer 固定证据复用，未重复 80 次循环、43 秒 full flow、Browser、child 或真实 API；未代修改实现，组合没有失败。原 docs reviewer 对四文档仅两处历史语境 P2，现只给 COS23 同步证据加执行前限定，并让 COS25 source 状态指向已失败/消费的真实 C4 结果，其余旧事实复用。
+
+COS-26/COS-27 当前 offline-verified-awaiting-live/open，保存各自精确 marker/source/merge SHA；planner 采用原 budgetCapacity 有效分配基数，固定新 `cos20-native-validation-5`、v2/80、既有 inputs/model/output caps/五 grants ¥21/新 case ¥5/45 分钟/一次 coding repair/共享 ¥150/首批 ¥30/native authorProtocolCorrections:1 保持。两笔 closure 已完成、snapshot revision 346、费用 2,054,460 micro-CNY、unknown/reserved 零、20 closures/2 decisions 和四个失败案例原历史保持；case5 尚未真实 claim 或 paid，G3/G4 未通过。最终四文档独立批准并清推后，root 仍须 latest main 实际只读 preflight、资金核对、真实 operator 决定和准确冻结，结束并明确解除前不改主线；本增量候选尚未 main 集成。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

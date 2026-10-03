@@ -1032,9 +1032,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "candidate-reviewed-awaiting-integration",
+      "integrationStatus": "offline-verified-awaiting-live",
       "reviewStatus": "PLANNING_EFFECTIVE_CAPACITY_SOURCE_READY",
-      "reviewedCommit": "6f6960b89daaea3dde9032ae620a76fa7b9ce138"
+      "reviewedCommit": "6f6960b89daaea3dde9032ae620a76fa7b9ce138",
+      "mergeCommit": "409868335cb45ee2f50e065f92ac0f4cd9419208"
     },
     {
       "taskId": "COS-27",
@@ -1059,8 +1060,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "CASE_FIVE_SOURCE_READY",
+      "reviewedCommit": "8348495794da8e49bed1129fe4b02a8a920505fb",
+      "mergeCommit": "0efc5ec905786358dc4d43a646d34c17dbf11b26"
     }
   ],
   "verifiedNativeSubIssues": 27,
