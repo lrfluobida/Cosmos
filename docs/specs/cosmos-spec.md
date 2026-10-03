@@ -4,11 +4,11 @@
 
 仓库：[lrfluobida/Cosmos](https://github.com/lrfluobida/Cosmos)
 
-已发布：[spec 主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，包含 31 个原生子任务；编号与依赖见 [发布映射](github-issues.json)。COS-19 承接原 R4/R5/R12 的角色交接与截断处理，COS-20 区分已有 R6/R7 的正式生成时限与开发验证窗口，COS-21 承接原 R5/R11 的 Windows 产物目录原子发布失败，COS-22 验证更高调用上限下的完整原生生成；COS-23/COS-24 处理真实失败暴露的作者格式交接和已停止案例未用分配额度，COS-25 验证作者只读格式纠正后的完整原生生成。COS-26/COS-27 承接有效容量修复，COS-28/COS-29 承接职责澄清和 case6，COS-30 用主机证据/独立评审处理未决项，COS-31 登记证据驱动的独立 case7 验证，不改变产品范围或预算。
+已发布：[spec 主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，包含 33 个原生子任务；编号与依赖见 [发布映射](github-issues.json)。COS-19 承接原 R4/R5/R12 的角色交接与截断处理，COS-20 区分已有 R6/R7 的正式生成时限与开发验证窗口，COS-21 承接原 R5/R11 的 Windows 产物目录原子发布失败，COS-22 验证更高调用上限下的完整原生生成；COS-23/COS-24 处理真实失败暴露的作者格式交接和已停止案例未用分配额度，COS-25 验证作者只读格式纠正后的完整原生生成。COS-26/COS-27 承接有效容量修复，COS-28/COS-29 承接职责澄清和 case6，COS-30 用主机证据/独立评审处理未决项，COS-31 登记证据驱动的独立 case7 验证，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，不改变产品范围或预算。
 
 ## 1. 已确认的产品目标
 
-Case6 因 coding author_handoff 未决项失败，readonly clarification 发生，原生 run 未进入 host/browser/独立 coding review，仍未 accepted。Root 免费 postfailure 诊断克隆未修改的原生生成 v1 候选，在真实 Edge 通过原鼠标计划 111 步固定玩法诊断，原run仍失败、未 resume/promote，不能替代 native accepted/独立评审/完整经典基准。四次免费未用容量 closure 已完成，原费用与六案例历史保持；COS-30 主机证据/ConcernResolution 与 COS-31 caller 源码均已独立批准、集成，case7 未 claim 或 paid，进展见 [进度记录](../../PROGRESS.md)。
+Case6 因 coding author_handoff 未决项失败，readonly clarification 发生，原生 run 未进入 host/browser/独立 coding review，仍未 accepted。Root 免费 postfailure 诊断克隆未修改的原生生成 v1 候选，在真实 Edge 通过原鼠标计划 111 步固定玩法诊断，原run仍失败、未 resume/promote，不能替代 native accepted/独立评审/完整经典基准。最新Case7构建与v1 capture通过并进入host/browser，但005步及HUD元素错误导致insufficient_evidence，后续计划skipped、未独立codingreview/repair/accepted；54请求新增¥1.223114、共享¥5.459031。五次免费未用容量closure已完成，旧六案例/费用历史保持；COS-30/COS-31原源码审批仍offline-verified-awaiting-live/open，新case8未claim，进展见 [进度记录](../../PROGRESS.md)。
 
 | 编号 | 要求 |
 | --- | --- |
