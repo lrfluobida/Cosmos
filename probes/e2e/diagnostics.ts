@@ -5,6 +5,7 @@ import type { AcceptanceReport } from '../../src/acceptance/runner.ts';
 import { HostFailure } from '../../src/runtime/repair/feedback.ts';
 import type { HostIssue, HostPassedCheck } from '../../src/runtime/repair/feedback.ts';
 import type { buildProject } from './host.ts';
+import { completedObservation, deliveredInputs, isProjectException } from '../../src/acceptance/failure-facts.ts';
 
 export interface Diagnostics {
   reportValid: boolean;
@@ -35,6 +36,35 @@ export function diagnoseBuild(task: TaskContract, result: Awaited<ReturnType<typ
   return { reportValid: true, passedChecks, issues: [] };
 }
 
+function validBrowserFailureFacts(report: AcceptanceReport, plan: AcceptancePlan): boolean {
+  const facts = report.failureFacts;
+  if (!facts || facts.formatVersion !== 1 || !Array.isArray(facts.errors) || facts.errors.length !== report.errors.length
+    || report.cleanup.processExited !== true || report.steps.some(row => !['assert', 'wait-for'].includes(row.kind) && row.outcome === 'failed')) return false;
+  const stopped = facts.termination?.kind === 'observation_budget' || facts.termination?.kind === 'project_mismatch' ? facts.termination : null;
+  const local = stopped?.kind === 'observation_budget' ? stopped : null;
+  if (facts.termination !== null && !stopped || report.cleanup.forced !== !!local) return false;
+  const stopIndex = stopped && 'stepId' in stopped ? plan.steps.findIndex(step => step.id === stopped.stepId && ['assert', 'wait-for'].includes(step.kind)) : -1;
+  if (stopped && (stopIndex < 0 || report.steps[stopIndex].outcome !== 'failed' || report.steps[stopIndex].failure !== (local ? 'observation_budget' : 'mismatch')
+    || report.steps[stopIndex].actual === null || report.steps[stopIndex].actual === report.steps[stopIndex].expected || !completedObservation(report.steps[stopIndex])
+    || !deliveredInputs(report, plan, stopIndex) || report.steps.slice(0, stopIndex).some(row => row.outcome === 'skipped')
+    || report.steps.slice(stopIndex + 1).some(row => row.outcome !== 'skipped'))) return false;
+  if (!stopped && report.steps.some(row => row.outcome === 'skipped')) return false;
+  let projectExceptions = 0, localBudgets = 0, terminationEvidence = 0;
+  const exceptionIds = new Set<number>();
+  for (const [index, fact] of facts.errors.entries()) {
+    if (!fact || fact.errorIndex !== index || fact.error !== report.errors[index]) return false;
+    if (fact.kind === 'page_exception') {
+      const source = fact.exception;
+      if (!isProjectException(source, plan.url) || exceptionIds.has(source.exceptionId)) return false;
+      exceptionIds.add(source.exceptionId);
+      projectExceptions++;
+    } else if (fact.kind === 'observation_budget' && local && fact.stepId === local.stepId) localBudgets++;
+    else if (fact.kind === 'termination_evidence' && local && fact.stepId === local.stepId) terminationEvidence++;
+    else return false;
+  }
+  return (projectExceptions > 0 || !stopped && facts.errors.length === 0) && localBudgets === (local ? 1 : 0) && terminationEvidence <= (local ? 1 : 0);
+}
+
 /** The host matches every row to its frozen plan. A failed whole report stays failed. */
 export function diagnoseBrowser(task: TaskContract, report: AcceptanceReport, expectedPlan: AcceptancePlan, path: string): Diagnostics {
   const invalid = (actual: string): Diagnostics => ({ reportValid: false, passedChecks: [], issues: [issue(task, path, 'browser/report', 'insufficient_evidence', actual, 'A complete report for the exact frozen plan and candidate is required.')] });
@@ -46,14 +76,17 @@ export function diagnoseBrowser(task: TaskContract, report: AcceptanceReport, ex
     if ((step.kind === 'assert' || step.kind === 'wait-for') && row.outcome === 'passed' && row.actual !== step.expected) return invalid('A passed check contradicts its observed value.');
   }
   const issues: HostIssue[] = [], passedChecks: Diagnostics['passedChecks'] = [];
-  const environmentFailed = !report.browser.version || report.cleanup.forced || report.errors.length > 0;
+  const environmentFailed = !report.browser.version || report.cleanup.processExited === false
+    || (report.failureFacts !== undefined ? !validBrowserFailureFacts(report, expectedPlan) : report.cleanup.forced || report.errors.length > 0);
   if (environmentFailed) issues.push(issue(task, path, 'browser/lifecycle', 'insufficient_evidence', 'Browser startup, runtime, deadline or cleanup reported an error.', 'Establish a healthy browser execution before classifying game defects.'));
   for (const [index, row] of report.steps.entries()) {
     const step = expectedPlan.steps[index];
     if (step.kind === 'assert' || step.kind === 'wait-for') {
       if (row.outcome === 'passed' && row.actual === step.expected) passedChecks.push({ acceptanceId: step.acceptanceId, checkId: `browser/${step.id}` });
       else if (row.outcome === 'failed') {
-        const observedMismatch = !environmentFailed && row.actual !== step.expected && row.actual !== null;
+        const observedMismatch = !environmentFailed && row.actual !== step.expected && row.actual !== null
+          && (!report.failureFacts || (row.failure === 'mismatch' || row.failure === 'observation_budget') && completedObservation(row))
+          && (!report.errors.length || deliveredInputs(report, expectedPlan, index));
         const reproduction = expectedPlan.steps.slice(0, index + 1).filter(s => ['mouse-click', 'locator-click'].includes(s.kind)).map(s => JSON.stringify(s));
         issues.push(issue(task, path, `browser/${step.id}`, observedMismatch ? 'code_defect' : 'insufficient_evidence',
           observedMismatch ? `Observed ${JSON.stringify(row.actual)}.` : 'The frozen observation did not produce a reliable matching value.', `Expected ${JSON.stringify(step.expected)}.`, step.acceptanceId,
