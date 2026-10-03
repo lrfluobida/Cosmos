@@ -57,7 +57,7 @@ export async function verifyValidationIdentity(options: ValidationContextOptions
 }
 
 function eligible(state: RunSnapshot, declaration: ValidationDeclaration, now: number): void {
-  if (![1, 3].includes(state.formatVersion) || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || state.ledger.contractVersion !== '1.0.0' || state.ledger.limitMicroCny !== declaration.limits.lifetimeMicroCny) throw new Error('Use the original shared validation ledger; formal generation is not this profile.');
+  if (![1, 3].includes(state.formatVersion) || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== declaration.limits.lifetimeMicroCny) throw new Error('Use the original shared validation ledger; formal generation is not this profile.');
   if (state.stopReason?.code === 'charge_overrun' || state.validation?.cases.some(item => item.stopReason?.code === 'charge_overrun')) throw new Error('Historical validation overrun requires separate resolution.');
   if (state.ledger.entries.some(entry => entry.reservedMicroCny || entry.unknown || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Unknown or reserved historical charges require reconciliation.');
   if (state.formatVersion === 1 && !state.stopReason && now < Date.parse(state.run.originalDeadlineAt)) throw new Error('Original validation window is still active.');

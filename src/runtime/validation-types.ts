@@ -1,5 +1,5 @@
-import type { ArtifactReference } from '../contracts/index.ts';
-import type { StopReason } from './run-types.ts';
+import type { ArtifactReference, BudgetLedger, LedgerEntry } from '../contracts/index.ts';
+import type { RunSnapshot, StopReason } from './run-types.ts';
 
 export type ValidationRole = 'planning' | 'design' | 'art' | 'coding' | 'repair';
 export type ValidationPurpose = 'planning' | 'author' | 'reviewer';
@@ -66,3 +66,32 @@ export interface ValidationAuthority {
 }
 export interface OpenValidationCaseOptions extends ValidationContextOptions { caseId: string; windowId: string; accountingOnly?: boolean }
 export interface ClaimValidationCaseOptions extends ValidationContextOptions { quote: ValidationCaseQuote; decision: OperatorValidationDecision }
+
+export interface ValidationAllocationClosureQuote {
+  formatVersion: 'validation-allocation-closure-quote-1'; profile: 'operator_validation_allocation_closure'; activationAllowed: false; quoteId: string;
+  identity: ValidationIdentity;
+  basis: {
+    runId: string; ledgerId: string; specVersion: string; revision: number; snapshotSha256: string; currentCaseId: string;
+    originalStartedAt: string; originalDeadlineAt: string; originalLimitMicroCny: number; stopReason: StopReason | null;
+    allocatedMicroCny: number; committedMicroCny: number;
+    allocations: BudgetLedger['allocations']; entries: LedgerEntry[]; requests: RunSnapshot['requests'];
+  };
+  cases: {
+    caseId: string; artifactRoot: string; windowId: string; stopReason: StopReason;
+    originalQuoteId: string; originalOperatorSourceSha256: string; taskIds: string[]; requestIds: string[];
+  }[];
+  closures: { caseId: string; taskId: string; allocatedMicroCny: number; spentMicroCny: number; releasedMicroCny: number }[];
+  releasedMicroCny: number; allocatedAfterMicroCny: number;
+}
+export interface OperatorValidationAllocationClosureDecision {
+  kind: 'operator_validation_allocation_closure'; decisionId: string; actorId: string; decidedAt: string;
+  source: ArtifactReference; sourceRefs: ArtifactReference[];
+}
+export interface ValidationAllocationClosureReceipt {
+  appliedAt: string; quote: ValidationAllocationClosureQuote;
+  operatorDecision: OperatorValidationAllocationClosureDecision & { sourceSha256: string };
+}
+export interface PrepareValidationAllocationClosureOptions extends ValidationContextOptions { caseIds: string[] }
+export interface ApplyValidationAllocationClosureOptions extends ValidationContextOptions {
+  quote: ValidationAllocationClosureQuote; decision: OperatorValidationAllocationClosureDecision;
+}

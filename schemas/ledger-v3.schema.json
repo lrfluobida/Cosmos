@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cosmos.local/contracts/3.0.0/ledger.schema.json",
+  "title": "Cosmos validation allocation closure ledger contract 3.0.0",
+  "$comment": "Validation only. Original limit, grants and request facts remain immutable; closures release exact unused allocation capacity without additional authorization money.",
+  "type": "object",
+  "properties": {
+    "contractVersion": { "const": "3.0.0" },
+    "ledgerId": { "$ref": "https://cosmos.local/contracts/1.0.0/ledger.schema.json#/properties/ledgerId" },
+    "scope": { "const": "validation" },
+    "limitMicroCny": { "$ref": "https://cosmos.local/contracts/1.0.0/common.schema.json#/$defs/money" },
+    "warningThresholdPercent": { "const": 80 },
+    "allocations": { "$ref": "https://cosmos.local/contracts/1.0.0/ledger.schema.json#/properties/allocations" },
+    "entries": { "$ref": "https://cosmos.local/contracts/1.0.0/ledger.schema.json#/properties/entries" },
+    "allocationClosures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "decisionId": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "releasedMicroCny": { "$ref": "https://cosmos.local/contracts/1.0.0/common.schema.json#/$defs/money" }
+        },
+        "required": ["taskId", "decisionId", "releasedMicroCny"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["contractVersion", "ledgerId", "scope", "limitMicroCny", "warningThresholdPercent", "allocations", "entries", "allocationClosures"],
+  "additionalProperties": false
+}

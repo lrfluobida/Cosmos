@@ -61,8 +61,13 @@ const continuationLedgerShape = object({
   authorizations: array(object({ decisionId: text, windowId: text, additionalMicroCny: money }), 1),
   allocationClosures: array(object({ taskId: text, decisionId: text, releasedMicroCny: money })),
 });
+const validationClosureLedgerShape = object({
+  contractVersion: enumeration(['3.0.0']), ...ledgerFields,
+  allocationClosures: array(object({ taskId: text, decisionId: text, releasedMicroCny: money })),
+});
 export const ledgerShape: Check = (value, path, issues) => {
-  ((value as { contractVersion?: unknown })?.contractVersion === '2.0.0' ? continuationLedgerShape : originalLedgerShape)(value, path, issues);
+  const version = (value as { contractVersion?: unknown })?.contractVersion;
+  (version === '3.0.0' ? validationClosureLedgerShape : version === '2.0.0' ? continuationLedgerShape : originalLedgerShape)(value, path, issues);
 };
 export const runShape = object({
   contractVersion: version, runId: text, kind, specVersion: text, ledgerId: text, originalStartedAt: timestamp, originalDeadlineAt: timestamp, state, taskIds: nonEmptyStrings,
