@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 33
+    "childCount": 34
   },
   "tasks": [
     {
@@ -1519,8 +1519,11 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "BROWSER_DEFECT_CLASSIFICATION_SOURCE_READY",
+      "reviewedCommit": "af883ba936806003034ea5015dfc3d1ce11939a8",
+      "mergeCommit": "bc24755518abe5c2f8c02e6fbf1add6414c72f33",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/33#issuecomment-5972022726"
     },
     {
       "taskId": "COS-33",
@@ -1551,10 +1554,36 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "CASE_EIGHT_SOURCE_READY",
+      "reviewedCommit": "d5df6e3d7ed8258356af4316d496acdb5e1f99c9",
+      "mergeCommit": "887d51459ef8e5b55a9ed10a6f83a45fd6017567",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/34#issuecomment-5972107850"
+    },
+    {
+      "taskId": "COS-34",
+      "title": "持久化最终用户体验决定并绑定交付版本",
+      "number": 35,
+      "id": 5692013242,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/35",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        { "id": "COS-08", "number": 9, "url": "https://github.com/lrfluobida/Cosmos/issues/9" },
+        { "id": "COS-11", "number": 12, "url": "https://github.com/lrfluobida/Cosmos/issues/12" },
+        { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" }
+      ],
+      "validationOutputsFor": [
+        { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" },
+        { "id": "COS-17", "number": 18, "url": "https://github.com/lrfluobida/Cosmos/issues/18" },
+        { "id": "COS-15", "number": 16, "url": "https://github.com/lrfluobida/Cosmos/issues/16" }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
       "integrationStatus": "in-progress",
       "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 33,
+  "verifiedNativeSubIssues": 34,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
