@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-03 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 22 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-03 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 24 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：[COS-22 / #23](https://github.com/lrfluobida/Cosmos/issues/23) 承接 case2 的 40 次请求耗尽，独立 case3/version 2/80 次声明已审集成；费用、时限、范围和旧案例记录保持，尚未真实 claim 或付费执行。
+调用实验：[COS-22 / #23](https://github.com/lrfluobida/Cosmos/issues/23) 承接 case2 的 40 次请求耗尽，独立 case3/version 2/80 次声明已审集成；真实 case3 在设计作者最终交接格式处失败，5 次请求，未触及调用/金额/时限上限。新增 [COS-23 / #24](https://github.com/lrfluobida/Cosmos/issues/24) 准备一次只读格式纠正，[COS-24 / #25](https://github.com/lrfluobida/Cosmos/issues/25) 准备已停止案例未用任务分配额度的版本化归还；两项均未源码 READY 或执行，不增加验证预算。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -68,6 +68,8 @@
 - [ ] [COS-20 区分开发验证窗口与正式生成时限](https://github.com/lrfluobida/Cosmos/issues/21)
 - [x] [COS-21 诊断并修复 Windows 产物目录原子发布失败](https://github.com/lrfluobida/Cosmos/issues/22)
 - [ ] [COS-22 验证更高调用上限下的完整原生生成](https://github.com/lrfluobida/Cosmos/issues/23)
+- [ ] [COS-23 为原生作者交接增加一次只读格式纠正](https://github.com/lrfluobida/Cosmos/issues/24)
+- [ ] [COS-24 归还已停止验证案例的未用任务分配额度](https://github.com/lrfluobida/Cosmos/issues/25)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -307,12 +309,28 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 ### COS-22 · 验证更高调用上限下的完整原生生成
 
 - 源码进展：`27c81b3` 经独立 VERSIONED_CASE_THREE_SOURCE_READY 合入 `474a6a9`，十个批准路径仅涵盖 version 2 声明、core 类型/版本门槛、case3 准入与相关 tests/fixtures/说明。固定新 `cos20-native-validation-3`、validation-declaration-2/80 请求；version 1 仍最多 40，未知版本和 version 2 的 81 拒绝，旧两 case 的 quote/hash、费用、grants、时钟与消费结果保留。主线版本边界和只读 case3 quote/历史保持代表共 2/2、0 skip，一次源码类型检查通过；作者和 reviewer 已过证据复用，未重复根构建或全流程。
-- 依赖/状态：已发布 [#23](https://github.com/lrfluobida/Cosmos/issues/23)，id 5680389595，第 22 个原生子任务，现为 offline-verified-awaiting-live/open。源级前置仅要求 COS-20/COS-21 对应源码已独立审查并集成；实际验证产出反馈 COS-10/COS-20，不要求失败的 COS-20 先关闭，不形成循环验收依赖。COS-20 保留 CASE_TWO_SOURCE_READY/b3ab706/89085f3 与独立 case2 失败，COS-21 保留 complete/closed/WINDOWS_PUBLICATION_SOURCE_READY；closed 不绕过准确审批标记与两项 main 祖先 SHA。
+- 依赖/状态：已发布 [#23](https://github.com/lrfluobida/Cosmos/issues/23)，id 5680389595，第 22 个原生子任务，现为 actual-validation-failed-author-handoff/open，源码 VERSIONED_CASE_THREE_SOURCE_READY/27c81b3/474a6a9 保留。源级前置仅要求 COS-20/COS-21 对应源码已独立审查并集成；实际验证产出反馈 COS-10/COS-20，不要求失败的 COS-20 先关闭，不形成循环验收依赖。COS-20 保留 CASE_TWO_SOURCE_READY/b3ab706/89085f3 与独立 case2 失败，COS-21 保留 complete/closed/WINDOWS_PUBLICATION_SOURCE_READY；closed 不绕过准确审批标记与两项 main 祖先 SHA。
+- Case3 真实结果：准确 `c78b12c` 上于 `2026-10-03T05:23:54.699Z` 开始，原定 `06:08:54.699Z` 截止，`05:24:45.981Z` 结束，51,282 ms；planning 2/design author 3 共 5/80 请求，新增保守峰值估算 ¥0.068875、共享累计 ¥2.043028、reserved/unknown 零。design 一次 attempt 写出 summary/17 notes/8 AC mapping，最终 1,549 bytes 作者 prose 无 JSON fence，被严格 decoder 以 `Model response requires one complete JSON object` 拒绝；回复包含 remaining/uncertainty 字样，未 host capture 或独立 review，不能声明内容通过。classification 为 insufficient_evidence/early execution，art/coding 未开始，accepted candidate 无、semantic repair 未 claim，非上限耗尽；case3 manual finish/结果/marker 已消费，主线冻结解除，旧两 case 历史与费用保留。
 - 失败依据：case2 上游 planning 1/design 8/art 24 合计 33 次请求，coding 仅余 7 次，未到 handoff/capture/build 即耗尽 40 次上限。费用 ¥0.857751 和耗时 6 分 52.315 秒均未触及 ¥5/45 分钟；该 40 次上限是协调者的内部有界选择。
 - 输出/范围：新独立 case3 的 version 2 声明、80 次请求准入及源级校验、定向测试和真实结果报告；仅修改必要的声明/入口与校验，不手工完成角色专属游戏代码或资产，不扩大 native/roles 范围。
 - 工作/约束：旧 version 1 的 case1/case2 永远保持 40 次及原 quote/hash、费用、grants、时钟、结果和已消费身份；新 version 2/80 次仅赋予新 case3。沿用固定输入、模型、输出 caps、五 grants 总额 ¥21、新 case 实际加预留 ¥5/45 分钟/一次 coding repair、共享验证 ¥150/首批 ¥30，不增加预算或修改旧记录。
 - 通过/证据：新源码有专属 implementer 与独立 reviewer，固定 SHA 集成后重新免费核对真实 preflight，可信 coordinator 记录独立 operator 决定并执行；真实 coding handoff/capture、构建、正常输入验收与独立 accepted candidate 均有证据才记录切片通过。源码或局部 host 通过不能代替目标游戏通过；未达标时如实保存失败、费用与差距。
-- 当前边界：case3 声明和校验已独立批准并集成，尚未真实 claim 或付费执行；runtime host/driver、固定输入、模型、角色输出 caps 与既有金额/时间含义保持。已消费 case1/case2 不重开，真实切片未通过，G3/G4 未通过，不扩大正式 ¥200/12h 或完整基准范围。最终文档 main 干净推送后冻结，root 按最新准确 SHA 免费只读 preflight、共享资金准入和真实 operator 决定执行 case3；结束并明确解除前不改 main 的 docs/source/reference。
+- Case3 执行前边界（历史）：case3 声明和校验已独立批准并集成，当时尚未真实 claim 或付费执行；runtime host/driver、固定输入、模型、角色输出 caps 与既有金额/时间含义保持。已消费 case1/case2 不重开，真实切片未通过，G3/G4 未通过，不扩大正式 ¥200/12h 或完整基准范围。最终文档 main 干净推送后冻结，root 按最新准确 SHA 免费只读 preflight、共享资金准入和真实 operator 决定执行 case3；结束并明确解除前不改 main 的 docs/source/reference。
+
+### COS-23 · 为原生作者交接增加一次只读格式纠正
+
+- 依赖/状态：已发布 [#24](https://github.com/lrfluobida/Cosmos/issues/24)，id 5686944546，原生关联父 #1；open/not-started，源码未 READY。源级前置 COS-07/COS-20 已审集成源码，验证产出反馈 COS-10/COS-20，不要求失败运行先关闭。
+- 输入/范围：case3 的作者交接格式失败、严格 response schema 与已有原生 SDK 会话；保存原始失败回复，最多增加一次真正 SDK 的只读格式纠正，限定必要作者交接代码、测试与说明，不修改游戏或资产。
+- 工作/约束：所有格式纠正调用计入同一 paid/request 上限，保留原语义和非空 remaining/uncertainty；不得伪造空未决项、猜测 schema 字段或用人工 JSON 冒充模型产物。通过 pi/SDK 实际关闭 write/edit 等 mutating tools，不能仅依靠 prompt 承诺只读；不增加语义修复次数。
+- 通过/证据：固定原始回复、SDK 实际工具权限、费用/请求计数和严格 schema 结果可复查；有效格式仅允许继续真实 host 检查，语义不完整、歧义或第二次格式失败仍失败。源码有独立 reviewer，未来真实 case 另行准入，不重开消费的 case3，不将格式纠正写成内容已验收。
+
+### COS-24 · 归还已停止验证案例的未用任务分配额度
+
+- 依赖/状态：已发布 [#25](https://github.com/lrfluobida/Cosmos/issues/25)，id 5686944963，原生关联父 #1；open/not-started，版本化方案待只读调研和独立源码审查。源级前置 COS-06/COS-20 已审集成源码，产出反馈 COS-20/COS-23，不要求运行任务完成形成循环。
+- 具体阻塞：协调者提供当前 allocated 147,596,040 micro-CNY、actual 2,043,028、reserved/unknown 零，unallocated 2,403,960，不足下一个五 grants 共 ¥21 的 envelope。归还对象是已停止案例未花的任务 grant capacity，已结算费用仍累计，不归零或提升 ¥150 总额。
+- 输出/约束：追加版本化 allocation closure，仅对已停止、owner/child 已 drain、请求已知并结算的 grants 精确归还未用部分。保留原 allocation amounts、实际 fees、quote/hash、operator 决定、日期与全部历史；关闭的旧 grant ID 永久拒绝新增派发。共享 ¥150/首批 ¥30、新 case ¥5/45 分钟/80 请求/一次 coding repair 保持，不制造追加预算或 human 确认。
+- 操作契约：免费只读 closure quote 绑定真实当前源码 SHA、原 snapshot bytes/revision、拟关闭 IDs/amounts、旧案例和 requests；可信真实 operator receipt 绑定准确 quote，变更在原子提交中记录、同操作幂等。陈旧状态、未收敛 owner、在途/未知费用或无法核对的未用额拒绝；未来 paid case 仅由 root 单独准入执行。
+- 通过/证据：独立审查实际源码与定向故障证据，证明仅释放未用分配容量、旧收费/时钟/请求权限不变、永久旧 ID 拒派及原子/幂等/陈旧 quote 拒绝。新方案、closure 和 case4 均尚未实施或运行；文档登记不修改真实账本，不声称额度已归还或游戏已通过。
 
 ## 5. 任务与上下文包模板
 
