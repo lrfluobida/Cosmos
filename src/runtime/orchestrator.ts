@@ -53,6 +53,8 @@ export interface DagOptions {
   reviewProtocolCorrections?: 0 | 1;
   /** Explicit single format correction in the original live author; durable recovery is required. */
   authorProtocolCorrections?: 0 | 1;
+  /** Validation-only read-only coding scope clarification; shares the author format slot. */
+  codingHandoffClarifications?: 0 | 1;
   /** Trusted report adapter only. Receives fixed task data, never raw exceptions. */
   diagnoseFailure?: (task: TaskContract, stage: FailureStage) => HostFailure | undefined;
   /** Explicit opt-in host receipts. Existing callers retain their original behavior. */
@@ -112,6 +114,8 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   if (![0, 1].includes(options.authorProtocolCorrections ?? 0)) throw new Error('Author protocol corrections must be 0 or 1.');
   if (options.authorProtocolCorrections === 1 && !options.recovery) throw new Error('Author protocol correction requires durable host receipts.');
   if (options.authorProtocolCorrections === 1 && options.scheduling) throw new Error('Author protocol correction requires serial host scheduling.');
+  if (![0, 1].includes(options.codingHandoffClarifications ?? 0)) throw new Error('Coding handoff clarifications must be 0 or 1.');
+  if (options.codingHandoffClarifications === 1 && (!options.validation || !options.recovery || options.scheduling)) throw new Error('Coding handoff clarification requires explicit serial validation and durable host receipts.');
   const requirement = freeze(structuredClone(options.requirement));
   checked(validateExecutionRequirement(requirement, options.validation ? 'operator_validation' : 'human'));
   const prepared = structuredClone(options.tasks);
@@ -152,13 +156,14 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     if (options.recovery) {
       try {
         if (!item.expectedArtifacts?.length || item.task.ownership.writePaths.some(path => pathsOverlap(path, options.recovery!.journalRoot, item.workspace))) throw new RecoveryBlocked('Recovery requires exact expected outputs and a journal outside author write paths.');
-        if (options.authorProtocolCorrections === 1 && item.task.ownership.writePaths.some(path => pathsOverlap(path, options.sessionRoot, item.workspace))) throw new RecoveryBlocked('Author correction requires native session state outside author output paths.');
+        if ((options.authorProtocolCorrections === 1 || options.codingHandoffClarifications === 1) && item.task.ownership.writePaths.some(path => pathsOverlap(path, options.sessionRoot, item.workspace))) throw new RecoveryBlocked('Author correction requires native session state outside author output paths.');
         journals.set(item.task.taskId, await TaskJournal.open(options.recovery, {
           ...(options.validation ? { formatVersion: 3 as const, validationCase: validationJournalBinding(currentValidationCase(initial)) } : binding ? { formatVersion: 2 as const, executionWindow: binding } : { formatVersion: 1 as const }),
           runId: initial.run.runId, ledgerId: initial.ledger.ledgerId, originalStartedAt: initial.run.originalStartedAt,
           originalDeadlineAt: initial.run.originalDeadlineAt, limitMicroCny: initial.ledger.limitMicroCny, requirement, prepared: item,
           reviewProtocolCorrections: options.reviewProtocolCorrections ?? 0, artifactRoot: options.recovery.artifactRoot, sessionRoot: resolve(options.sessionRoot),
           ...(options.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: options.authorProtocolCorrections } : {}),
+          ...(options.codingHandoffClarifications === 1 ? { codingHandoffClarifications: 1 as const } : {}),
         }, resume));
         const current = prior.get(item.task.taskId);
         if (resume && current) requireOriginalTask(item.task, current);
@@ -286,8 +291,9 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         try {
           let authored = await journal!.read<{ proposal: AuthorProposal; signature: ContentSignature }>('author', attemptId);
           let recoveredCorrection = false;
-          if (options.authorProtocolCorrections === 1 && (!authored || !await journal!.read('capture-started', attemptId))) {
-            const corrected = await recoverAuthorProposal({ journal: journal!, task, workspace: item.workspace, parse: parseProposal });
+          if ((options.authorProtocolCorrections === 1 || options.codingHandoffClarifications === 1) && (!authored || !await journal!.read('capture-started', attemptId))) {
+            const corrected = await recoverAuthorProposal({ journal: journal!, task, workspace: item.workspace, parse: parseProposal,
+              allowCodingScope: options.codingHandoffClarifications === 1 && item.role === 'coding' && !!options.validation });
             if (corrected) {
               if (authored && !sameValue(authored, corrected)) throw new RecoveryBlocked('Author handoff conflicts with its correction response.');
               if (!authored) { await journal!.write('author', attemptId, corrected); authored = corrected; }
@@ -332,6 +338,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         failureStage = 'author_handoff';
         proposal = await requestAuthorProposal({ author, controller, task, workspace: item.workspace, journal, signal,
           maxCorrections: options.authorProtocolCorrections ?? 0, parse: parseProposal, now: options.now,
+          role: item.role, maxScopeClarifications: options.codingHandoffClarifications ?? 0,
           ...(options.validation ? { validation: { binding: options.validation, requirement } } : {}) });
         if (journal) await journal.write('author', attemptId, { proposal, signature: await journal.signature(task.inputs) });
         await author.close(); author = undefined;

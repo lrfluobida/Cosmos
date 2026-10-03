@@ -29,6 +29,8 @@ export interface RecoveryOrigin {
   artifactRoot: string; sessionRoot: string;
   /** Omission preserves historical origin bytes and disables author corrections. */
   authorProtocolCorrections?: 0 | 1;
+  /** Only enabled validation callers record the new policy; zero/omission retain old origin bytes. */
+  codingHandoffClarifications?: 1;
   executionWindow?: ExecutionWindowBinding;
   validationCase?: ValidationJournalBinding;
 }
