@@ -1,6 +1,6 @@
 import { freeze } from '../../src/roles/requirements.ts';
 
-const caseId = 'cos20-native-validation-4';
+const caseId = 'cos20-native-validation-5';
 /** A source-reviewed declaration; importing or parsing it never grants execution authority. */
 export const VALIDATION_CASE = freeze({
   formatVersion: 'validation-declaration-2', profile: 'operator_validation', caseId, sourceModel: 'deepseek-flash',

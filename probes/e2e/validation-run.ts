@@ -17,9 +17,10 @@ import { VALIDATION_CASE, parseValidationEntry } from './validation-declaration.
 import { createValidationIdentityReader } from './validation-identity.ts';
 import { runChild } from './host.ts';
 
-const SOURCE_PREREQUISITES = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24'];
+const SOURCE_PREREQUISITES = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24', 'COS-25', 'COS-26'];
 const SOURCE_MARKERS: Record<string, string> = { 'COS-20': 'CASE_TWO_SOURCE_READY', 'COS-21': 'WINDOWS_PUBLICATION_SOURCE_READY',
-  'COS-22': 'VERSIONED_CASE_THREE_SOURCE_READY', 'COS-23': 'AUTHOR_PROTOCOL_SOURCE_READY', 'COS-24': 'VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY' };
+  'COS-22': 'VERSIONED_CASE_THREE_SOURCE_READY', 'COS-23': 'AUTHOR_PROTOCOL_SOURCE_READY', 'COS-24': 'VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY',
+  'COS-25': 'CASE_FOUR_SOURCE_READY', 'COS-26': 'PLANNING_EFFECTIVE_CAPACITY_SOURCE_READY' };
 const SOURCE_READY = ['READY', 'SOURCE_READY', 'COMBINED_SOURCE_READY', 'PHASE_B_READY', 'READY_FOR_ROLE_IO_INTEGRATION'];
 async function absent(repository: string, path: string, label: string): Promise<void> {
   try { await lstat(await safePath(repository, path)); }
@@ -39,12 +40,13 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   const caseOne = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-1');
   const caseTwo = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-2');
   const caseThree = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-3');
-  if (state.formatVersion !== 3 || !caseOne?.stopReason || !caseTwo?.stopReason || !caseThree?.stopReason || state.validation?.cases.length !== 3
-    || state.validation.currentCaseId !== caseThree.caseId) throw new Error('Case 4 requires original case 1 and case 2 history and current case 3 to be explicitly stopped in its existing validation profile.');
+  const caseFour = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-4');
+  if (state.formatVersion !== 3 || !caseOne?.stopReason || !caseTwo?.stopReason || !caseThree?.stopReason || !caseFour?.stopReason || state.validation?.cases.length !== 4
+    || state.validation.currentCaseId !== caseFour.caseId) throw new Error('Case 5 requires original case 1, case 2, case 3 and current case 4 to be explicitly stopped in its existing validation profile.');
   if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Unknown or reserved historical charges require reconciliation.');
-  const previousCases = [caseOne, caseTwo, caseThree], taskIds = previousCases.flatMap(window => VALIDATION_ROLES.map(role => window.quote.declaration.grants[role].taskId));
-  if (state.ledger.contractVersion !== '3.0.0' || state.ledger.allocationClosures?.length !== 15
-    || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error('Case 4 requires audited allocation closure of all fifteen previous case grants.');
+  const previousCases = [caseOne, caseTwo, caseThree, caseFour], taskIds = previousCases.flatMap(window => VALIDATION_ROLES.map(role => window.quote.declaration.grants[role].taskId));
+  if (state.ledger.contractVersion !== '3.0.0' || state.ledger.allocationClosures?.length !== 20
+    || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error('Case 5 requires audited allocation closure of all twenty previous case grants.');
   const caseRoots = new Map<string, string>();
   for (const window of previousCases) {
     const path = `.cosmos/e2e/${window.caseId}`, root = await safePath(repository, path);
@@ -77,7 +79,7 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
         : item.state === 'closed' || SOURCE_READY.includes(item.reviewStatus) && ['integrated', 'partial-offline-verified', 'offline-verified-awaiting-live', 'complete'].includes(item.integrationStatus))) throw new Error(`${taskId} requires independently reviewed and integrated source.`);
     approvals.push({ taskId, reviewedCommit: item.reviewedCommit, mergeCommit: item.mergeCommit });
   }
-  for (const sha of new Set([...approvals.flatMap(item => [item.reviewedCommit, item.mergeCommit]), ...closureSources])) {
+  for (const sha of new Set([...approvals.flatMap(item => [item.reviewedCommit, item.mergeCommit]), ...closureSources, ...previousCases.map(window => window.quote.identity.reviewedPlatformSha)])) {
     const result = await runChild('git', ['--no-optional-locks', 'merge-base', '--is-ancestor', sha, intent.reviewedPlatformSha], { cwd: repository, signal, timeoutMs: 5000 });
     if (result.code !== 0) throw new Error('Required reviewed source is not integrated in this exact platform SHA.');
   }
