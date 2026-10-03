@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 22
+    "childCount": 24
   },
   "tasks": [
     {
@@ -266,7 +266,9 @@
       "fixedTrialResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5931925580",
       "nativeValidationCaseId": "cos20-native-validation-2",
       "nativeValidationStatus": "request-limit-exhausted",
-      "nativeValidationResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5965622790"
+      "nativeValidationResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5965622790",
+      "latestLiveValidationCaseId": "cos20-native-validation-3",
+      "latestLiveValidationStatus": "author-handoff-failed"
     },
     {
       "taskId": "COS-11",
@@ -602,6 +604,8 @@
       "state": "open",
       "integrationStatus": "offline-verified-awaiting-live",
       "liveValidationStatus": "request-limit-exhausted",
+      "latestLiveValidationCaseId": "cos20-native-validation-3",
+      "latestLiveValidationStatus": "author-handoff-failed",
       "reviewStatus": "CASE_TWO_SOURCE_READY",
       "reviewedCommit": "b3ab706ce8b9dccfb54cb701fcc3700d1703869e",
       "mergeCommit": "89085f3a5bf23699006a07c4e4e11641f430358e",
@@ -741,12 +745,93 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "offline-verified-awaiting-live",
+      "integrationStatus": "actual-validation-failed-author-handoff",
+      "liveValidationStatus": "author-handoff-failed",
       "reviewStatus": "VERSIONED_CASE_THREE_SOURCE_READY",
       "reviewedCommit": "27c81b327164f1318e0352193d72d923a54f77bd",
-      "mergeCommit": "474a6a9f634a72eb33c26734cf4596aa26dff4ac"
+      "mergeCommit": "474a6a9f634a72eb33c26734cf4596aa26dff4ac",
+      "nativeValidationCase3": {
+        "caseId": "cos20-native-validation-3",
+        "declarationFormatVersion": "validation-declaration-2",
+        "status": "failed-and-consumed",
+        "failure": "author-handoff-failed",
+        "failureClassification": "insufficient_evidence",
+        "sourcePlatformSha": "c78b12c548ed8c072ac52a41f056e7c807c7190d",
+        "startedAt": "2026-10-03T05:23:54.699Z",
+        "deadline": "2026-10-03T06:08:54.699Z",
+        "endedAt": "2026-10-03T05:24:45.981Z",
+        "durationMs": 51282,
+        "sdkRequests": 5,
+        "maxSdkRequests": 80,
+        "additionalEstimatedMicroCny": 68875,
+        "sharedEstimatedMicroCny": 2043028,
+        "reservedMicroCny": 0,
+        "unknownMicroCny": 0,
+        "snapshotRevision": 338,
+        "stopReason": "manual",
+        "semanticRepairClaims": 0,
+        "acceptedCandidate": false,
+        "roleSdkRequests": {
+          "planning": 2,
+          "designAuthor": 3,
+          "art": 0,
+          "coding": 0
+        },
+        "roleAttempts": {
+          "design": 1,
+          "art": 0,
+          "coding": 0
+        },
+        "authorHandoff": {
+          "rawReplyBytes": 1549,
+          "jsonFencePresent": false,
+          "decoderError": "Model response requires one complete JSON object",
+          "hostCapturePerformed": false,
+          "independentReviewPerformed": false
+        }
+      }
+    },
+    {
+      "taskId": "COS-23",
+      "title": "为原生作者交接增加一次只读格式纠正",
+      "number": 24,
+      "id": 5686944546,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/24",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        { "id": "COS-07", "number": 8, "url": "https://github.com/lrfluobida/Cosmos/issues/8" },
+        { "id": "COS-20", "number": 21, "url": "https://github.com/lrfluobida/Cosmos/issues/21" }
+      ],
+      "validationOutputsFor": [
+        { "id": "COS-10", "number": 11, "url": "https://github.com/lrfluobida/Cosmos/issues/11" },
+        { "id": "COS-20", "number": 21, "url": "https://github.com/lrfluobida/Cosmos/issues/21" }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "not-started"
+    },
+    {
+      "taskId": "COS-24",
+      "title": "归还已停止验证案例的未用任务分配额度",
+      "number": 25,
+      "id": 5686944963,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/25",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        { "id": "COS-06", "number": 7, "url": "https://github.com/lrfluobida/Cosmos/issues/7" },
+        { "id": "COS-20", "number": 21, "url": "https://github.com/lrfluobida/Cosmos/issues/21" }
+      ],
+      "validationOutputsFor": [
+        { "id": "COS-20", "number": 21, "url": "https://github.com/lrfluobida/Cosmos/issues/21" },
+        { "id": "COS-23", "number": 24, "url": "https://github.com/lrfluobida/Cosmos/issues/24" }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "not-started"
     }
   ],
-  "verifiedNativeSubIssues": 22,
+  "verifiedNativeSubIssues": 24,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
