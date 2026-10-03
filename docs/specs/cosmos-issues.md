@@ -339,12 +339,13 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-25 · 验证作者只读格式纠正后的完整原生生成
 
-- 源码进展：`be02266a5f171ddc5383e02a55d3e231bb9dbe7c` 获独立 CASE_FOUR_SOURCE_READY 合入 `b3901caf3f3cecd141b1003b3f91e4574cc898c4`，八条批准路径逐字节一致，UTF-8/LF/diffcheck 通过。主线只读历史保持与 source/closure receipt/audit 漂移拒绝两项 2/2、0 skip；相同 base 的作者声明/入口/相关显式 strict 类型和独立五风险代表证据复用，未重复构建、类型检查或 native 流程。
+- 首轮源码进展：`be02266a5f171ddc5383e02a55d3e231bb9dbe7c` 获独立 CASE_FOUR_SOURCE_READY 合入 `b3901caf3f3cecd141b1003b3f91e4574cc898c4`，八条批准路径逐字节一致，UTF-8/LF/diffcheck 通过。主线只读历史保持与 source/closure receipt/audit 漂移拒绝两项 2/2、0 skip；相同 base 的作者声明/入口/相关显式 strict 类型和独立五风险代表证据复用，未重复构建、类型检查或 native 流程。
+- 最新门槛修复：首次 `15f3375` 免费实际 preflight 被 COS-22 已审源码的 actual-validation-failed-author-handoff/open 状态误拒；零 claim/写入/model，snapshot revision 339 与费用 2,043,028 micro-CNY 保持。原作者最小修复 `bc97d7d191fbd6c03d22d506943f469e9717441c` 经原 reviewer 增量 CASE_FOUR_SOURCE_READY 合入 `403984489725b4272ef8739e86d640cdd86ce1f8`，四路径逐字节一致；仅已知 COS-22 失败态配合精确 marker、唯一记录与 source/merge 双祖先准入，unknown 状态或 COS-23 借用该状态仍拒绝，不改历史失败为通过。真实 public metadata shape 的 RED→2 GREEN 和独立 2/2、0 skip、strict probe/tests 类型证据复用，未重复编译或全矩阵；最新源码已清推，root 在 source403 上实际免费 preflight READY（4.600 秒/model 0、14 项 source approvals、原 bytes/mtime 保持），最终文档 main 仍需新 quote/operator/freeze。
 - 依赖/状态：已发布 [#26](https://github.com/lrfluobida/Cosmos/issues/26)，id 5687112557，第 25 个原生子任务；offline-verified-awaiting-live/open、CASE_FOUR_SOURCE_READY。若准备 case4，COS-20/21/22/23/24 均须匹配各自独立审查批准的精确 reviewStatus marker，不以泛化“已集成”替代，且每项 reviewedCommit 与 mergeCommit 两个准确 SHA 都须为冻结 main 的祖先；不要求失败的运行任务先完成。验证产出反馈 COS-10/COS-20，不形成完成状态的循环门槛；全部前置源码已审集成，真实 case4 尚未 claim 或执行。
 - 输入/范围：固定新 `cos20-native-validation-4`，沿用 declaration-v2/80 请求、固定 inputs/model/output caps、五 grants 总额 ¥21、case ¥5/45 分钟/一次语义 coding repair、共享 ¥150/首批 ¥30；新 native host 显式设置 authorProtocolCorrections:1。旧三个案例的声明/hash、quotes、40 或 80 次上限、日期、费用、已消费身份和全部历史保持，不重开或手改生成游戏。
 - 准入：已有三个案例全部 stopped/drained、请求费用已知，仅精确归还未用任务分配容量后准备免费源码 preflight。每个 author attempt 在原同一 SDK session 内最多一次真正只读格式纠正，通过 SDK 实际关闭 mutating tools 实现；新增实际纠正及 compaction 调用均按原 purpose 计入既有 80 请求和费用硬上限。保留原语义及 remaining/uncertainty，不增加 coding repair，不伪造 human/GameDraft 或语义完整性。
 - 通过/证据：准确源码与前置产物先独立审查、集成，root 按最新 main 免费只读核对并记录真实 operator 决定；冻结准确 main 后由 root 执行新 case。真实交接、capture、构建、正常输入验收与独立 accepted candidate 齐备才记通过；失败保留真实费用、结果与差距，G3/G4 和完整目标仍未通过。
-- 当前边界：case4 源码已独立审查并集成，真实 allocation closure 已由 root 完成；case4 尚未真实 claim、paid、游戏验收或体验通过。等待最终 main 元数据、准确 SHA 免费只读 preflight、资金准入与真实 operator 决定，再冻结准确 main 由 root 执行；结束并明确释放前不改 main。旧三案例、真实 closure、累计费用 ¥2.043028 与 snapshot revision 339 保持，G3/G4 未通过。
+- 当前边界：case4 入口及 COS-22 源级状态门槛修复已独立审查并集成，真实 allocation closure 已由 root 完成；case4 尚未真实 claim、paid、游戏验收或体验通过。首次免费 preflight 的短冻结已解除，等待最终 main 元数据、最新准确 SHA 重新免费只读 preflight、资金准入与真实 operator 决定，再冻结准确 main 由 root 执行；结束并明确释放前不改 main。旧三案例、真实 closure、累计费用 ¥2.043028 与 snapshot revision 339 保持，G3/G4 未通过。
 
 ## 5. 任务与上下文包模板
 

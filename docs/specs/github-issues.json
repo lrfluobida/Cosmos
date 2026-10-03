@@ -897,8 +897,35 @@
       "state": "open",
       "integrationStatus": "offline-verified-awaiting-live",
       "reviewStatus": "CASE_FOUR_SOURCE_READY",
-      "reviewedCommit": "be02266a5f171ddc5383e02a55d3e231bb9dbe7c",
-      "mergeCommit": "b3901caf3f3cecd141b1003b3f91e4574cc898c4"
+      "reviewedCommit": "bc97d7d191fbd6c03d22d506943f469e9717441c",
+      "mergeCommit": "403984489725b4272ef8739e86d640cdd86ce1f8",
+      "sourceApprovalHistory": [
+        {
+          "reviewStatus": "CASE_FOUR_SOURCE_READY",
+          "reviewedCommit": "be02266a5f171ddc5383e02a55d3e231bb9dbe7c",
+          "mergeCommit": "b3901caf3f3cecd141b1003b3f91e4574cc898c4"
+        }
+      ],
+      "sourcePreflight": {
+        "sourcePlatformSha": "403984489725b4272ef8739e86d640cdd86ce1f8",
+        "outcome": "ready",
+        "quoteId": "vq1-aeffbe5d1cd9880336534b9d7d4702d21460bbf4f9dc996dbe552eae9a947881",
+        "durationMs": 4600,
+        "modelRequests": 0,
+        "snapshotRevision": 339,
+        "committedMicroCny": 2043028,
+        "allocatedMicroCny": 85522666,
+        "incrementalLimitMicroCny": 5000000,
+        "durationLimitMs": 2700000,
+        "maxRequests": 80,
+        "sourceApprovalCount": 14,
+        "originalSnapshotBytesAndMtimeEqual": true,
+        "caseRootCreated": false,
+        "caseMarkerCreated": false,
+        "sharedOwnerCreated": false,
+        "caseClaimed": false,
+        "finalDocsMainRequiresFreshQuote": true
+      }
     }
   ],
   "verifiedNativeSubIssues": 25,

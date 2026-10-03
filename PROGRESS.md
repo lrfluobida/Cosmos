@@ -93,6 +93,7 @@ Case2 结果：`cos20-native-validation-2` 在准确 `f5522e8` 上于 `2026-10-0
 | 08 | COS-23 / #24 一次作者格式纠正 | codex/author-handoff-correction implementer | cos23_reviewer | batch08_merger | d334c82 获 AUTHOR_PROTOCOL_SOURCE_READY，合入 d49d132；13 路径一致，联合 strict noEmit 和组合恢复代表通过；offline-verified-awaiting-live/open |
 | 08 | COS-24 / #25 未用分配容量归还 | codex/validation-allocation-closure implementer | cos24_reviewer | batch08_merger | 最终 ee4ef28 获 VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY，合入 98aa9cc；18 路径一致，联合 strict noEmit 和 v3 新 case/隔离代表通过；offline-verified-awaiting-live/open |
 | 08 | COS-25 / #26 Case4 独立入口 | codex/validation-case-four implementer | 独立 case4 source reviewer | batch08_merger | be02266 获 CASE_FOUR_SOURCE_READY，合入 b3901ca；八路径一致，新入口只读历史/漂移拒绝 2/2、0 skip；offline-verified-awaiting-live/open |
+| 08 | COS-25 / #26 COS22 源级失败态准入修复 | 原 codex/validation-case-four implementer | 原独立 case4 reviewer | batch08_merger | bc97d7d 增量获 CASE_FOUR_SOURCE_READY，合入 4039844；四路径一致，复用 public shape RED→2 GREEN 与独立 2/2；源码时点免费 preflight READY，仍待最终 main 新 quote |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -242,7 +243,17 @@ COS-25 源码审查前记录（历史）：[COS-23 源码进展](https://github.
 
 COS-25 `be02266a5f171ddc5383e02a55d3e231bb9dbe7c` 经独立 CASE_FOUR_SOURCE_READY 合入 `b3901caf3f3cecd141b1003b3f91e4574cc898c4`，八条批准路径逐字节一致、UTF-8/LF/diffcheck 通过，source 已清推、local/remote/origin 精确一致。主线新入口两代表 2/2、0 skip：只读 case4 preflight 保留历史并接受祖先源码的真实 closure 记录（临时 fixture 6.144 秒），历史 receipt/closure audit/旧 owner 漂移拒绝（4.253 秒）。作者声明 9、新 entry 9/旧 10、三个 probe/四 tests 的显式 strict noEmit，以及独立五风险代表证据复用；base 与组合源码相同，未重复 root build、typecheck、native/worker/Browser 或 paid 流程。
 
-COS-25 当前 offline-verified-awaiting-live/open，保存精确 CASE_FOUR_SOURCE_READY、source be02266/merge b3901ca；前置 COS-20/21/22/23/24 精确 marker 与 source/merge 祖先不变，真实 allocation closure 已由 root 完成并记录，但 case4 尚未真实 claim、paid、游戏验收或体验通过。等待最终 main metadata、准确 SHA 免费只读 preflight、资金准入与真实 operator 决定，再冻结准确 main 执行；结束并明确释放前不改主线。原 actualAllocationClosure/snapshot revision 339、费用 2,043,028 micro-CNY 和前三例历史保持，G3/G4 未通过。本修订只在同 docs 分支，当前未审文档不合 main，交原 reviewer 增量复核。
+首次实际 preflight 前记录（历史）：COS-25 当前 offline-verified-awaiting-live/open，保存精确 CASE_FOUR_SOURCE_READY、source be02266/merge b3901ca；前置 COS-20/21/22/23/24 精确 marker 与 source/merge 祖先不变，真实 allocation closure 已由 root 完成并记录，但 case4 尚未真实 claim、paid、游戏验收或体验通过。等待最终 main metadata、准确 SHA 免费只读 preflight、资金准入与真实 operator 决定，再冻结准确 main 执行；结束并明确释放前不改主线。原 actualAllocationClosure/snapshot revision 339、费用 2,043,028 micro-CNY 和前三例历史保持，G3/G4 未通过。本修订只在同 docs 分支，当前未审文档不合 main，交原 reviewer 增量复核。
+
+首次免费实际 preflight（历史）：root 在准确 `15f337526aa960a26af4be2bcce5518b7d74eb7a` 核对时，被 COS-22 的 source gate 拒绝。COS-22 的 VERSIONED_CASE_THREE_SOURCE_READY、批准源码 `27c81b3` 与合并 `474a6a9` 均已审并属于 main 祖先，但实际失败状态 actual-validation-failed-author-handoff/open 未被新 generic status list 接受；源级前置要求已审源码，不要求失败运行验收先通过。原作者将最小修正入口并用真实 public metadata shape 复现 RED，再由原 reviewer 增量复核；不修改历史失败状态或 metadata 绕过门槛，不集成未审源码。
+
+此次实际核对保持 snapshot revision 339、已用估算 2,043,028 micro-CNY、current stopped case3，case4 root/marker/owner 均不存在，未 claim、写入或 paid，模型请求 0。Root 的免费账户 GET 确认 CNY 可覆盖本 case ¥5 且 deepseek-flash 路由可用，临时凭据已清除，并明确解除本次 main 冻结。case4 仍等待准确 fixed source/文档重新审查、准入和冻结；本作者按 root 安全元数据登记，未改真实账本、session、key 或主线。
+
+COS-25 最新增量 `bc97d7d191fbd6c03d22d506943f469e9717441c` 经原 reviewer CASE_FOUR_SOURCE_READY 合入 `403984489725b4272ef8739e86d640cdd86ce1f8`，四条批准路径逐字节一致、UTF-8/LF/diffcheck 通过；原首轮 be02266/b3901ca 审批保留在 sourceApprovalHistory 和进度。修复只对 COS-22 已知 actual-validation-failed-author-handoff/open 配合精确 VERSIONED_CASE_THREE_SOURCE_READY、唯一任务与 source/merge 双祖先允许源级前置；unknown 状态和 COS-23 借用仍拒，不修改历史失败为通过。真实 public metadata shape 的 RED→2 GREEN、原 reviewer 2/2、0 skip 和作者 strict probe/tests noEmit 证据复用，没有重编译、全矩阵、Browser 或 native 运行；source 已精确清推 local/remote/origin 4039844。
+
+Root 在准确 source `403984489725b4272ef8739e86d640cdd86ce1f8` 完成免费真实 preflight READY，4.600 秒/model 0，quote `vq1-aeffbe5d1cd9880336534b9d7d4702d21460bbf4f9dc996dbe552eae9a947881`；revision 339、committed 2,043,028 micro-CNY、allocated 85,522,666，limits incremental 5,000,000/duration 2,700,000 ms/maxRequests 80。14 项 source approvals（COS-06..09/11..13/18..24）通过，原 snapshot bytes/mtime 完全不变，C4 root/marker/shared owner 均无 created；未 claim、写入、paid 或生成游戏。该 quote 只绑定 source403 时点，不能沿用到最终文档 main，root 仍须 latest exact SHA 新免费 quote/资金核对/真实 operator 决定，再冻结并执行，结束前不改主线。
+
+当前 COS-25 offline-verified-awaiting-live/open，reviewStatus 保持 CASE_FOUR_SOURCE_READY，最新 reviewedCommit bc97d7d/mergeCommit 4039844；旧 be02266/b3901ca 与所有其他任务、真实 closure、费用 2,043,028 micro-CNY、revision 339 和前三例历史保持。case4 未真实 claim 或付费，G3/G4 未通过，本轮冻结已解除；这四 docs 仅为同 managed worktree 的待审提交，交原 reviewer 做本增量检查，不合未审文档或读取实际私有 ledger/session/key。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
