@@ -8,6 +8,8 @@ import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Scalar, Step } from './plan.ts';
 import { bounded, DeadlineError } from './deadline.ts';
 import { stopBrowserProcess } from './process.ts';
+import { attributePageErrors, projectMismatchCanStop } from './failure-facts.ts';
+import type { PageError, RuntimeException } from './failure-facts.ts';
 
 export interface StepResult {
   id: string; kind: Step['kind']; acceptanceId?: string; outcome: 'passed' | 'failed' | 'skipped';
@@ -17,16 +19,11 @@ export interface StepResult {
 }
 export interface BrowserFailureFacts {
   formatVersion: 1;
-  termination: { kind: 'observation_budget'; stepId: string } | { kind: 'lifecycle' } | null;
+  termination: { kind: 'observation_budget'; stepId: string } | { kind: 'project_mismatch'; stepId: string } | { kind: 'lifecycle' } | null;
   errors: {
     errorIndex: number; error: string; kind: 'page_exception' | 'observation_budget' | 'termination_evidence' | 'lifecycle' | 'unknown'; stepId?: string;
     exception?: { exceptionId: number; sourceURL: string; line: number; column: number };
   }[];
-}
-interface RuntimeException {
-  exceptionId: number; url?: string; lineNumber: number; columnNumber: number;
-  exception?: { description?: string };
-  stackTrace?: { callFrames: { url: string; lineNumber: number; columnNumber: number }[] };
 }
 export interface AcceptanceReport {
   formatVersion: '1.0.0'; kind: 'normal_browser_input'; plan: AcceptancePlan;
@@ -69,7 +66,7 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
     failureFacts.errors.push({ errorIndex: report.errors.length, error, kind, ...(stepId ? { stepId } : {}) });
     report.errors.push(error);
   };
-  const pageErrors: { errorIndex: number; name: string; message: string }[] = [], exceptions: RuntimeException[] = [];
+  const pageErrors: PageError[] = [], exceptions: RuntimeException[] = [];
   const logs: { at: string; kind: string; message: string }[] = [];
   const log = (kind: string, text: string) => logs.push({ at: new Date().toISOString(), kind, message: text });
   let server: BrowserServer | undefined, browser: Browser | undefined, context: BrowserContext | undefined, page: Page | undefined, video: Video | null = null;
@@ -163,9 +160,14 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
         result.outcome = 'failed'; result.error = message(error);
         result.failure ??= isCheck(step) ? 'observation_error' : error instanceof DeadlineError ? 'deadline' : 'input';
         if (error instanceof DeadlineError) { forceClose = true; throw error; }
+        if (result.failure === 'mismatch') {
+          attributePageErrors(failureFacts, pageErrors, exceptions);
+          if (Date.now() < deadline && projectMismatchCanStop(report, index)) failureFacts.termination = { kind: 'project_mismatch', stepId: step.id };
+        }
       }
       log('step', JSON.stringify(result));
       if (isCheck(step) || result.outcome === 'failed') result.screenshot = await screenshot(`${String(index + 1).padStart(3, '0')}-${step.id}.png`);
+      if (failureFacts.termination?.kind === 'project_mismatch') break;
     }
   } catch (error) {
     if (error instanceof DeadlineError) { forceClose = true; failureFacts.termination ??= { kind: 'lifecycle' }; }
@@ -200,17 +202,7 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
       recordError('Video unavailable after forced browser termination; earlier screenshots retained', local ? 'termination_evidence' : 'lifecycle', local?.stepId);
     }
   }
-  // Pair independent browser events uniquely; Error.stack and message wording do not establish source ownership.
-  for (const pageError of pageErrors) {
-    const matches = (detail: RuntimeException, item = pageError) => detail.exception?.description === `${item.name}: ${item.message}`
-      || detail.exception?.description?.startsWith(`${item.name}: ${item.message}\n`);
-    const candidates = exceptions.filter(detail => matches(detail));
-    if (candidates.length !== 1 || pageErrors.filter(item => matches(candidates[0], item)).length !== 1) continue;
-    const detail = candidates[0], frame = detail.stackTrace?.callFrames[0], sourceURL = detail.url || frame?.url;
-    if (!sourceURL) continue;
-    Object.assign(failureFacts.errors[pageError.errorIndex], { kind: 'page_exception', exception: { exceptionId: detail.exceptionId, sourceURL,
-      line: detail.url ? detail.lineNumber : frame!.lineNumber, column: detail.url ? detail.columnNumber : frame!.columnNumber } });
-  }
+  attributePageErrors(failureFacts, pageErrors, exceptions);
   report.endedAt = new Date().toISOString();
   report.outcome = !report.errors.length && report.steps.every(step => step.outcome === 'passed') ? 'passed' : 'failed';
   log('errors', JSON.stringify(report.errors));

@@ -5,6 +5,7 @@ import type { AcceptanceReport } from '../../src/acceptance/runner.ts';
 import { HostFailure } from '../../src/runtime/repair/feedback.ts';
 import type { HostIssue, HostPassedCheck } from '../../src/runtime/repair/feedback.ts';
 import type { buildProject } from './host.ts';
+import { completedObservation, deliveredInputs, isProjectException } from '../../src/acceptance/failure-facts.ts';
 
 export interface Diagnostics {
   reportValid: boolean;
@@ -35,45 +36,33 @@ export function diagnoseBuild(task: TaskContract, result: Awaited<ReturnType<typ
   return { reportValid: true, passedChecks, issues: [] };
 }
 
-const completedObservation = (row: AcceptanceReport['steps'][number]) => Number.isSafeInteger(row.observation?.completed) && (row.observation?.completed ?? 0) > 0;
-
-function scopedBrowserFailure(report: AcceptanceReport, plan: AcceptancePlan): boolean {
+function validBrowserFailureFacts(report: AcceptanceReport, plan: AcceptancePlan): boolean {
   const facts = report.failureFacts;
   if (!facts || facts.formatVersion !== 1 || !Array.isArray(facts.errors) || facts.errors.length !== report.errors.length
     || report.cleanup.processExited !== true || report.steps.some(row => !['assert', 'wait-for'].includes(row.kind) && row.outcome === 'failed')) return false;
-  const local = facts.termination?.kind === 'observation_budget' ? facts.termination : null;
-  if (facts.termination && !local || report.cleanup.forced !== !!local) return false;
-  const localIndex = local ? plan.steps.findIndex(step => step.id === local.stepId && ['assert', 'wait-for'].includes(step.kind)) : -1;
-  if (local && (localIndex < 0 || report.steps[localIndex].outcome !== 'failed' || report.steps[localIndex].failure !== 'observation_budget'
-    || report.steps[localIndex].actual === null || !completedObservation(report.steps[localIndex])
-    || report.steps.slice(localIndex + 1).some(row => row.outcome !== 'skipped'))) return false;
-  if (!local && report.steps.some(row => row.outcome === 'skipped')) return false;
+  const stopped = facts.termination?.kind === 'observation_budget' || facts.termination?.kind === 'project_mismatch' ? facts.termination : null;
+  const local = stopped?.kind === 'observation_budget' ? stopped : null;
+  if (facts.termination !== null && !stopped || report.cleanup.forced !== !!local) return false;
+  const stopIndex = stopped && 'stepId' in stopped ? plan.steps.findIndex(step => step.id === stopped.stepId && ['assert', 'wait-for'].includes(step.kind)) : -1;
+  if (stopped && (stopIndex < 0 || report.steps[stopIndex].outcome !== 'failed' || report.steps[stopIndex].failure !== (local ? 'observation_budget' : 'mismatch')
+    || report.steps[stopIndex].actual === null || report.steps[stopIndex].actual === report.steps[stopIndex].expected || !completedObservation(report.steps[stopIndex])
+    || !deliveredInputs(report, plan, stopIndex) || report.steps.slice(0, stopIndex).some(row => row.outcome === 'skipped')
+    || report.steps.slice(stopIndex + 1).some(row => row.outcome !== 'skipped'))) return false;
+  if (!stopped && report.steps.some(row => row.outcome === 'skipped')) return false;
   let projectExceptions = 0, localBudgets = 0, terminationEvidence = 0;
   const exceptionIds = new Set<number>();
   for (const [index, fact] of facts.errors.entries()) {
     if (!fact || fact.errorIndex !== index || fact.error !== report.errors[index]) return false;
     if (fact.kind === 'page_exception') {
       const source = fact.exception;
-      if (!source || !Number.isSafeInteger(source.exceptionId) || source.exceptionId < 0 || !Number.isSafeInteger(source.line) || source.line < 0
-        || !Number.isSafeInteger(source.column) || source.column < 0 || exceptionIds.has(source.exceptionId)) return false;
+      if (!isProjectException(source, plan.url) || exceptionIds.has(source.exceptionId)) return false;
       exceptionIds.add(source.exceptionId);
-      try {
-        const url = new URL(source.sourceURL), project = new URL(plan.url);
-        if (url.origin !== project.origin || url.username || url.password || /(?:^|\/)(?:node_modules|@[^/]*)(?:\/|$)/.test(url.pathname)
-          || !(url.pathname === project.pathname || /\.(?:[cm]?js|tsx?|html)$/.test(url.pathname))) return false;
-      } catch { return false; }
       projectExceptions++;
     } else if (fact.kind === 'observation_budget' && local && fact.stepId === local.stepId) localBudgets++;
     else if (fact.kind === 'termination_evidence' && local && fact.stepId === local.stepId) terminationEvidence++;
     else return false;
   }
-  return projectExceptions > 0 && localBudgets === (local ? 1 : 0) && terminationEvidence <= (local ? 1 : 0);
-}
-
-function deliveredInputs(report: AcceptanceReport, plan: AcceptancePlan, index: number): boolean {
-  const inputs = plan.steps.slice(0, index).map((step, at) => ({ step, row: report.steps[at] })).filter(({ step }) => !['assert', 'wait-for'].includes(step.kind));
-  return inputs.some(({ step }) => ['mouse-click', 'locator-click'].includes(step.kind))
-    && inputs.every(({ row }) => row.outcome === 'passed' && row.actual === 'input delivered');
+  return (projectExceptions > 0 || !stopped && facts.errors.length === 0) && localBudgets === (local ? 1 : 0) && terminationEvidence <= (local ? 1 : 0);
 }
 
 /** The host matches every row to its frozen plan. A failed whole report stays failed. */
@@ -87,8 +76,8 @@ export function diagnoseBrowser(task: TaskContract, report: AcceptanceReport, ex
     if ((step.kind === 'assert' || step.kind === 'wait-for') && row.outcome === 'passed' && row.actual !== step.expected) return invalid('A passed check contradicts its observed value.');
   }
   const issues: HostIssue[] = [], passedChecks: Diagnostics['passedChecks'] = [];
-  const environmentFailed = !report.browser.version || report.cleanup.processExited === false || !!report.failureFacts && report.cleanup.processExited !== true
-    || (report.cleanup.forced || report.errors.length > 0) && !scopedBrowserFailure(report, expectedPlan);
+  const environmentFailed = !report.browser.version || report.cleanup.processExited === false
+    || (report.failureFacts !== undefined ? !validBrowserFailureFacts(report, expectedPlan) : report.cleanup.forced || report.errors.length > 0);
   if (environmentFailed) issues.push(issue(task, path, 'browser/lifecycle', 'insufficient_evidence', 'Browser startup, runtime, deadline or cleanup reported an error.', 'Establish a healthy browser execution before classifying game defects.'));
   for (const [index, row] of report.steps.entries()) {
     const step = expectedPlan.steps[index];
