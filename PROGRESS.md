@@ -49,7 +49,7 @@ Case2 结果：`cos20-native-validation-2` 在准确 `f5522e8` 上于 `2026-10-0
 | 真实成本与时延探针 | native case3 作者交接失败，尚无通过游戏 | case3 5 请求新增保守峰值估算 ¥0.068875，共享累计 ¥2.043028，预留与未知为零；case1/case2 结果和费用保留，三个 case 均已消费 |
 | 任务拆分 | 已发布 | [25 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#26；25 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS-22 actual-validation-failed-author-handoff/open，COS-23/COS-24 offline-verified-awaiting-live/open | case3 design 最终 prose 被严格 decoder 拒绝，未 host capture/review；art/coding 未开始，原 source 审批保留。COS-20 source CASE_TWO_SOURCE_READY 和 COS-21 complete/closed 保持；COS-25/#26 in-progress/open、SOURCE_NOT_READY，case4 未 READY 或执行，G3/G4 未通过 |
+| 子代理逐项实施 | COS-22 actual-validation-failed-author-handoff/open，COS-23/COS-24 offline-verified-awaiting-live/open | case3 design 最终 prose 被严格 decoder 拒绝，未 host capture/review；art/coding 未开始，原 source 审批保留。COS-20 source CASE_TWO_SOURCE_READY 和 COS-21 complete/closed 保持；COS-25/#26 offline-verified-awaiting-live/open、CASE_FOUR_SOURCE_READY，case4 未真实 claim 或执行，G3/G4 未通过 |
 
 ## 开发批次
 
@@ -92,6 +92,7 @@ Case2 结果：`cos20-native-validation-2` 在准确 `f5522e8` 上于 `2026-10-0
 | 08 | COS-22 / #23 Case3 版本化声明与准入 | codex/validation-case-three implementer | cos22_reviewer | batch08_merger | 27c81b3 获 VERSIONED_CASE_THREE_SOURCE_READY，合入 474a6a9；十路径一致，主线版本边界/只读 quote 历史保持 2/2、0 skip 与源码类型检查通过；offline-verified-awaiting-live/open |
 | 08 | COS-23 / #24 一次作者格式纠正 | codex/author-handoff-correction implementer | cos23_reviewer | batch08_merger | d334c82 获 AUTHOR_PROTOCOL_SOURCE_READY，合入 d49d132；13 路径一致，联合 strict noEmit 和组合恢复代表通过；offline-verified-awaiting-live/open |
 | 08 | COS-24 / #25 未用分配容量归还 | codex/validation-allocation-closure implementer | cos24_reviewer | batch08_merger | 最终 ee4ef28 获 VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY，合入 98aa9cc；18 路径一致，联合 strict noEmit 和 v3 新 case/隔离代表通过；offline-verified-awaiting-live/open |
+| 08 | COS-25 / #26 Case4 独立入口 | codex/validation-case-four implementer | 独立 case4 source reviewer | batch08_merger | be02266 获 CASE_FOUR_SOURCE_READY，合入 b3901ca；八路径一致，新入口只读历史/漂移拒绝 2/2、0 skip；offline-verified-awaiting-live/open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -237,7 +238,11 @@ Root 已在准确 `98aa9ccc18fa7192a693930d53550dce3a91ae18` 完成真实免费 
 
 15 个旧 grants 仅关闭未用容量，released 62,073,374 micro-CNY，effective allocated 147,596,040→85,522,666，unallocated 2,403,960→64,477,334；保守峰值费用 2,043,028 micro-CNY 完全不变，reserved/unknown 零。原 run/tasks/validation 的三个 cases/requests/stop/原 clock 等逐项 DeepEqual；除显式 contractVersion 升级外，原 ledger 字段、entries、allocation amounts 保持，旧 events prefix 原样，仅追加一个 event 和真实 receipt。Owner 已释放、无 `.controller.lock`，Node 6.733 秒/exit 0，模型请求 0，无新游戏或 paid case。最初核对脚本引用不存在的 settled 字段，在 quote 前即断言停止、零写入；核实 actual API 改为 entries sum 后才执行上述成功操作，这不是 runtime/source 缺陷或第二次实际 closure。
 
-[COS-23 源码进展](https://github.com/lrfluobida/Cosmos/issues/24#issuecomment-5966532371) 与 [COS-24 实际 closure 结果](https://github.com/lrfluobida/Cosmos/issues/25#issuecomment-5966532705) 已由 root 发布并精确读回。COS-23 保持 offline-verified-awaiting-live/open 与 AUTHOR_PROTOCOL_SOURCE_READY；COS-24 integrationStatus 同样保持 offline-verified-awaiting-live/open 与 VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY，精确 source/merge 不变，actualAllocationClosure/liveValidationStatus 单列已 apply/awaiting-fresh-native-claim。COS-25 仍 in-progress/open、SOURCE_NOT_READY，case4 尚未 claim 或付费；前三真实失败及原额度/历史保持，G3/G4 和游戏目标未通过。此次四 docs 仍是独立 worktree 的待审候选，不合 main，root 稍后安排 fresh 独立审查。
+COS-25 源码审查前记录（历史）：[COS-23 源码进展](https://github.com/lrfluobida/Cosmos/issues/24#issuecomment-5966532371) 与 [COS-24 实际 closure 结果](https://github.com/lrfluobida/Cosmos/issues/25#issuecomment-5966532705) 已由 root 发布并精确读回。COS-23 保持 offline-verified-awaiting-live/open 与 AUTHOR_PROTOCOL_SOURCE_READY；COS-24 integrationStatus 同样保持 offline-verified-awaiting-live/open 与 VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY，精确 source/merge 不变，actualAllocationClosure/liveValidationStatus 单列已 apply/awaiting-fresh-native-claim。COS-25 仍 in-progress/open、SOURCE_NOT_READY，case4 尚未 claim 或付费；前三真实失败及原额度/历史保持，G3/G4 和游戏目标未通过。此次四 docs 仍是独立 worktree 的待审候选，不合 main，root 稍后安排 fresh 独立审查。
+
+COS-25 `be02266a5f171ddc5383e02a55d3e231bb9dbe7c` 经独立 CASE_FOUR_SOURCE_READY 合入 `b3901caf3f3cecd141b1003b3f91e4574cc898c4`，八条批准路径逐字节一致、UTF-8/LF/diffcheck 通过，source 已清推、local/remote/origin 精确一致。主线新入口两代表 2/2、0 skip：只读 case4 preflight 保留历史并接受祖先源码的真实 closure 记录（临时 fixture 6.144 秒），历史 receipt/closure audit/旧 owner 漂移拒绝（4.253 秒）。作者声明 9、新 entry 9/旧 10、三个 probe/四 tests 的显式 strict noEmit，以及独立五风险代表证据复用；base 与组合源码相同，未重复 root build、typecheck、native/worker/Browser 或 paid 流程。
+
+COS-25 当前 offline-verified-awaiting-live/open，保存精确 CASE_FOUR_SOURCE_READY、source be02266/merge b3901ca；前置 COS-20/21/22/23/24 精确 marker 与 source/merge 祖先不变，真实 allocation closure 已由 root 完成并记录，但 case4 尚未真实 claim、paid、游戏验收或体验通过。等待最终 main metadata、准确 SHA 免费只读 preflight、资金准入与真实 operator 决定，再冻结准确 main 执行；结束并明确释放前不改主线。原 actualAllocationClosure/snapshot revision 339、费用 2,043,028 micro-CNY 和前三例历史保持，G3/G4 未通过。本修订只在同 docs 分支，当前未审文档不合 main，交原 reviewer 增量复核。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
