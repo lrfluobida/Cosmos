@@ -6,7 +6,7 @@ export type ValidationPurpose = 'planning' | 'author' | 'reviewer';
 
 /** A reviewed host declaration, never an execution permission by itself. */
 export interface ValidationDeclaration {
-  readonly formatVersion: 'validation-declaration-1'; readonly profile: 'operator_validation'; readonly caseId: string;
+  readonly formatVersion: 'validation-declaration-1' | 'validation-declaration-2'; readonly profile: 'operator_validation'; readonly caseId: string;
   readonly sourceModel: 'deepseek-flash';
   readonly limits: {
     readonly lifetimeMicroCny: number; readonly cumulativeMicroCny: number; readonly incrementalMicroCny: number;

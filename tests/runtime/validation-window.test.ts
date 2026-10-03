@@ -16,12 +16,13 @@ import { requestStop } from '../../src/cli/control.ts';
 import { SnapshotStore } from '../../src/runtime/store.ts';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { validateValidationDeclaration } from '../../src/runtime/validation-validation.ts';
 
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
 const start = Date.parse('2026-10-01T00:00:00.000Z');
 const priorReceipt = [{ artifactId: 'prior-receipt', version: 'v1', location: 'prior-receipt.json' }];
 
-async function fixture(t: test.TestContext, legacyRunning = false) {
+async function fixture(t: test.TestContext, legacyRunning = false, envelope?: { formatVersion: ValidationDeclaration['formatVersion']; maxRequests: number }) {
   const base = await mkdtemp(join(tmpdir(), 'cosmos-validation-window-')), root = join(base, 'ledger'), repositoryRoot = join(base, 'platform');
   let clock = start;
   const now = () => clock;
@@ -47,6 +48,7 @@ async function fixture(t: test.TestContext, legacyRunning = false) {
     outputTokens: { planning: 4096, design: 16384, art: 65536, coding: 65536, reviewer: 16384 },
     inputs: { requirements: { version: 'fixture-v1', path: 'requirements.json', sha256: hash(requirements) }, template: { sha256: hash(JSON.stringify(files)), files } },
   };
+  if (envelope) { Object.assign(declaration, { formatVersion: envelope.formatVersion }); Object.assign(declaration.limits, { maxRequests: envelope.maxRequests }); }
   let identity = { reviewedPlatformSha: 'a'.repeat(40), frozenCaseInputHash: validationInputHash(declaration) };
   const context = { root, repositoryRoot, identityReader: async (_signal: AbortSignal) => ({ ...identity }), now };
   const quote = await prepareValidationCase({ ...context, declaration });
@@ -97,8 +99,8 @@ test('65k author caps use the actual reservation and concurrent role grants cann
   assert.equal((await f.controller.read()).run.fees.reservedMicroCny, 3_000_000);
 });
 
-async function opened(t: test.TestContext) {
-  const f = await fixture(t), window = await RunController.claimValidationCase(f);
+async function opened(t: test.TestContext, envelope?: { formatVersion: ValidationDeclaration['formatVersion']; maxRequests: number }) {
+  const f = await fixture(t, false, envelope), window = await RunController.claimValidationCase(f);
   const controller = f.track(await RunController.openValidationCase({ ...f, caseId: window.caseId, windowId: window.windowId }));
   const request = (requestId: string, maxOutputTokens = 1, estimatedMaxCostMicroCny = maxOutputTokens * 8) => ({ requestId, taskId: f.declaration.grants.planning.taskId, provider: 'deepseek', pricingVersion: 'deepseek-flash-peak-cny-2026-10-01', estimatedMaxCostMicroCny,
     validation: { caseId: window.caseId, windowId: window.windowId, purpose: 'planning' as const, modelId: 'deepseek-flash' as const, maxOutputTokens, inputBytes: 0, hasImages: false } });
@@ -156,6 +158,56 @@ test('every accepted SDK request consumes the case count even when cancelled or 
   assert.deepEqual(await f.controller.read(), before);
   const authority = await f.controller.validationAuthority(f.declaration.grants.planning.taskId, 'planning');
   assert.equal(authority.requestsUsed, 40); assert.equal(authority.requestsRemaining, 0); assert.equal(authority.admissionAllowed, false);
+});
+
+test('declaration versions retain v1 forty and allow only v2 up to eighty requests', async t => {
+  const f = await fixture(t), changed = (formatVersion: string, maxRequests: number) => ({ ...structuredClone(f.declaration), formatVersion,
+    limits: { ...f.declaration.limits, maxRequests } });
+  assert.doesNotThrow(() => validateValidationDeclaration(changed('validation-declaration-1', 40)));
+  for (const maxRequests of [41, 80]) assert.throws(() => validateValidationDeclaration(changed('validation-declaration-1', maxRequests)), /limits|authorization/i);
+  assert.doesNotThrow(() => validateValidationDeclaration(changed('validation-declaration-2', 80)));
+  assert.throws(() => validateValidationDeclaration(changed('validation-declaration-2', 81)), /limits|authorization/i);
+  assert.throws(() => validateValidationDeclaration(changed('validation-declaration-3', 40)), /unsupported/i);
+  for (const limits of [{ incrementalMicroCny: 5_000_001 }, { cumulativeMicroCny: 30_000_001 }, { lifetimeMicroCny: 150_000_001 },
+    { durationMs: 2_700_001 }, { maxRepairTasks: 2 }]) {
+    const value = changed('validation-declaration-2', 80); Object.assign(value.limits, limits);
+    assert.throws(() => validateValidationDeclaration(value), /limits|authorization/i);
+  }
+});
+
+test('v2 actual SDK admission counts eighty requests including cancellations and rejects eighty-one', async t => {
+  const f = await opened(t, { formatVersion: 'validation-declaration-2', maxRequests: 80 });
+  const budget = createRoleBudget({ controller: f.controller, taskId: f.declaration.grants.planning.taskId, evidenceDirectory: join(f.root, 'receipts'),
+    validation: { caseId: f.window.caseId, windowId: f.window.windowId, purpose: 'planning' } });
+  for (let index = 0; index < 80; index++) {
+    const requestId = `v2-request-${index}`;
+    await budget.beforeRequest({ requestId, modelId: 'deepseek-flash', inputBytes: 0, hasImages: false, maxOutputTokens: 1, estimatedMaxCostMicroCny: 8 });
+    await budget.afterResponse(index % 2 ? { requestId, outcome: 'not_sent', elapsedMs: 1 } : { requestId, outcome: 'settled', responseModel: 'deepseek-flash', elapsedMs: 1,
+      usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
+  }
+  const before = await f.controller.read();
+  await assert.rejects(budget.beforeRequest({ requestId: 'v2-eighty-one', modelId: 'deepseek-flash', inputBytes: 0, hasImages: false, maxOutputTokens: 1, estimatedMaxCostMicroCny: 8 }), /request|ceiling|limit/i);
+  assert.deepEqual(await f.controller.read(), before);
+  const authority = await f.controller.validationAuthority(f.declaration.grants.planning.taskId, 'planning');
+  assert.equal(authority.requestsUsed, 80); assert.equal(authority.requestsRemaining, 0); assert.equal(authority.admissionAllowed, false);
+});
+
+test('v2 SDK requests still obey role output caps, the shared five yuan exposure and deadline', async t => {
+  const f = await opened(t, { formatVersion: 'validation-declaration-2', maxRequests: 80 }), art = roleTask(f, 'art'), coding = roleTask(f, 'coding');
+  await f.controller.registerTasks([art, coding]);
+  const budget = (task: TaskContract) => createRoleBudget({ controller: f.controller, taskId: task.taskId, evidenceDirectory: join(f.root, `receipts-${task.taskId}`),
+    validation: { caseId: f.window.caseId, windowId: f.window.windowId, purpose: 'author' } });
+  const artBudget = budget(art), codingBudget = budget(coding), request = (requestId: string, inputBytes: number, maxOutputTokens = 1) => ({ requestId, inputBytes, maxOutputTokens,
+    modelId: 'deepseek-flash' as const, hasImages: false, estimatedMaxCostMicroCny: inputBytes * 2 + maxOutputTokens * 8 });
+  await assert.rejects(artBudget.beforeRequest(request('v2-overcap', 0, 65537)), /output|cap/i);
+  await artBudget.beforeRequest(request('v2-art-exposure', 1_499_996));
+  const before = await f.controller.read();
+  await assert.rejects(codingBudget.beforeRequest(request('v2-coding-exposure', 1_499_996)), /budget|limit|exposure/i);
+  assert.deepEqual(await f.controller.read(), before);
+  await artBudget.afterResponse({ requestId: 'v2-art-exposure', outcome: 'not_sent', elapsedMs: 1 });
+  f.advance(2_700_000);
+  await assert.rejects(codingBudget.beforeRequest(request('v2-expired', 0)), /deadline|expired|stopped/i);
+  assert.equal((await f.controller.read()).requests.length, before.requests.length);
 });
 
 test('wrong case/purpose/model, unknown charges and changed source refuse new admission without new requests', async t => {

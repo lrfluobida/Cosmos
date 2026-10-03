@@ -20,11 +20,11 @@ function fields(value: unknown, keys: string[]): void {
 export function validateValidationDeclaration(value: unknown): asserts value is ValidationDeclaration {
   const d = value as ValidationDeclaration;
   fields(d, ['formatVersion', 'profile', 'caseId', 'sourceModel', 'limits', 'grants', 'outputTokens', 'inputs']);
-  if (d.formatVersion !== 'validation-declaration-1' || d.profile !== 'operator_validation' || !/^cos20-[a-z0-9][a-z0-9-]{0,40}$/.test(d.caseId) || d.sourceModel !== 'deepseek-flash') fail('Unsupported profile, consumed legacy case identity or model.');
+  if (!['validation-declaration-1', 'validation-declaration-2'].includes(d.formatVersion) || d.profile !== 'operator_validation' || !/^cos20-[a-z0-9][a-z0-9-]{0,40}$/.test(d.caseId) || d.sourceModel !== 'deepseek-flash') fail('Unsupported profile, consumed legacy case identity or model.');
   fields(d.limits, ['lifetimeMicroCny', 'cumulativeMicroCny', 'incrementalMicroCny', 'durationMs', 'maxRequests', 'maxRepairTasks', 'maxTaskAttempts', 'reviewProtocolCorrections']);
   const l = d.limits;
   if (l.lifetimeMicroCny !== 150_000_000 || l.cumulativeMicroCny !== 30_000_000 || !integer(l.incrementalMicroCny, 1) || l.incrementalMicroCny > 5_000_000
-    || !integer(l.durationMs, 1) || l.durationMs > 2_700_000 || !integer(l.maxRequests, 1) || l.maxRequests > 40
+    || !integer(l.durationMs, 1) || l.durationMs > 2_700_000 || !integer(l.maxRequests, 1) || l.maxRequests > (d.formatVersion === 'validation-declaration-1' ? 40 : 80)
     || !integer(l.maxRepairTasks) || l.maxRepairTasks > 1 || l.maxTaskAttempts !== 2 || !integer(l.reviewProtocolCorrections) || l.reviewProtocolCorrections > 1) fail('Limits exceed the fixed validation authorization.');
   fields(d.grants, [...VALIDATION_ROLES]);
   const amounts = { planning: 2_000_000, design: 1_900_000, art: 5_700_000, coding: 7_600_000, repair: 3_800_000 };

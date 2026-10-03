@@ -2,7 +2,7 @@
 
 本段准备声明和固定输入校验，尚未接入窗口激活或实际执行。它不读取真实验证快照、会话或模型配置，也不产生游戏需求确认、已通过阶段、计时或费用记录。
 
-- 声明：`probes/e2e/validation-declaration.ts` 当前固定 `cos20-native-validation-2`。单例增量 ¥5、45 分钟、40 次调用、一次语义修复；规划、评审、格式纠正和压缩共同计数。共享生命周期 ¥150 与首批累计 ¥30 同时约束。
+- 声明：`probes/e2e/validation-declaration.ts` 当前固定 `cos20-native-validation-3`，格式为 `validation-declaration-2`。单例增量 ¥5、45 分钟、80 次调用、一次语义修复；规划、评审、格式纠正和压缩共同计数。共享生命周期 ¥150 与首批累计 ¥30 同时约束；历史声明 v1 的上限仍为 40 次。
 - 新 planning grant 为 ¥2；design/art/coding/repair 分别为 ¥1.9/5.7/7.6/3.8，总计 ¥21，仅可使用旧账本未分配额度。旧 allocations、费用、首窗截止、停止和失败事实留存。claim 后即消费新 case ID，包括零请求启动失败；旧三个实验 ID 不重开。
 - 模型固定 `deepseek-flash`。新原生 art/coding 作者明确选用 65536 输出上限；design/reviewer 保留 16384，planning 保留 4096。接线必须从同一声明读取上限，并让已有 `requestReservation` 按 SDK 实际请求大小预留；旧 probe 常量保持不变。
 - `validation-input.ts` 核对既有 COS10 `cos10-pilot-v2` 文件及八个已跟踪通用模板文件的固定字节摘要。排除构建目录和依赖目录，额外模板源文件、缺文件、内容或编码改变均拒绝。返回 `validation-case-input`，不把原固定范围伪装成刚完成的真人访谈。
@@ -77,7 +77,7 @@ node --experimental-strip-types probes/e2e/run.ts --validation-case <准确已�
 
 只读 preflight 路径不加载收费准备；执行路径在 claim 前仅检查环境内存中的凭据、已安装 SDK/Playwright 与 root lock 版本、npm 和 Windows Edge。没有 CLI/env fixture 开关、自选 case/root/clock 或 reset；旧 flags、旧 16384 probe 常量、冻结 COS10 JSON 和模板均不变。领取后才复制和安装工具链，bootstrap、build、renderMedia、normal-input runner 都通过共享 gated Node helper，由原账本 owner 以真实 planning/art/coding/repair task/window 登记。worker 使用过滤环境，不能取得模型密钥；旧 host 的正常关闭及进程树清理继续生效。
 
-新 validation 分支复用旧 pilot callbacks，跳过模拟访谈和自行 confirmed:true，保存显式 validation-requirement。规划提示固定三个声明 ID/grant，角色规则明确当前 validationCase 截止与 5 元/45 分钟/40 请求，原 originalDeadlineAt 只留历史。browser plan 仅在新分支绑定当前 coding/repair taskId，原八项玩法、媒体观测、步骤及版本不变。成功仍须全部 host 检查、独立 reviewer 和同 registry 的真实 proof/promotion。
+新 validation 分支复用旧 pilot callbacks，跳过模拟访谈和自行 confirmed:true，保存显式 validation-requirement。规划提示固定三个声明 ID/grant，角色规则从当前声明读取 validationCase 截止与 5 元/45 分钟/80 请求，原 originalDeadlineAt 只留历史。browser plan 仅在新分支绑定当前 coding/repair taskId，原八项玩法、媒体观测、步骤及版本不变。成功仍须全部 host 检查、独立 reviewer 和同 registry 的真实 proof/promotion。
 
 仅 coding 的可信 code_defect 且 design/art 已过时可领一次修复。独立 review 的 changes_requested 只有同时具备可信 host code_defect 诊断才进入语义修复，其余 insufficient_evidence 安全报告差距，不保证所有软性评审问题自动修复。driver 读取原 session 的严格 UTF-8 feedback，核对 task/attempt/完整 AC/输入与产物版本、author/capture journal、immutable 原文件、registry 来源；再核对 validation 专用 write-once failure-snapshot，含合法 build 新增 dist 的当前完整文件集合和证据，最后按原字节 wx stage feedback、claim 唯一 repair。新 workspace/context/v2 保留旧 authors/v1/failure；任何签名漂移或快照存储失败均不 dispatch。
 
@@ -92,10 +92,20 @@ node --experimental-strip-types probes/e2e/run.ts --validation-case <准确已�
 
 ## 第二个有界 native case 的声明与准入
 
-当前入口声明 `cos20-native-validation-2`，全部 grant ID 从该 ID 派生；沿用相同 `cos10-pilot-v2`、九个冻结输入文件、模型、输出上限和资源约束。五项新 grants 总计 ¥21，仅追加到原未分配额；原 case 1 的 grants、费用、窗口、operator 决定、manual stop 和失败结果保留。case 2 是独立窗口，claim 后立即消费，包括零请求启动失败；精确已消费决定的 core 幂等读取不会重新开启窗口，公开入口仍拒绝重跑。
+当时入口声明 `cos20-native-validation-2`，全部 grant ID 从该 ID 派生；沿用相同 `cos10-pilot-v2`、九个冻结输入文件、模型、输出上限和资源约束。五项新 grants 总计 ¥21，仅追加到原未分配额；原 case 1 的 grants、费用、窗口、operator 决定、manual stop 和失败结果保留。case 2 是独立窗口，claim 后立即消费，包括零请求启动失败；精确已消费决定的 core 幂等读取不会重新开启窗口，公开入口仍拒绝重跑。
 
 免费准入要求原 snapshot 为 profile 3，当前 `cos20-native-validation-1` 已明确停止；仅过期而未保存停止记录也拒绝。额外源级前置 COS21 必须具有 `WINDOWS_PUBLICATION_SOURCE_READY`、已集成状态（包含 `offline-verified-awaiting-live` 或 `source-integrated`）以及属于准确 main SHA 的 reviewedCommit/mergeCommit，任务 closed 不能绕过这项门槛。COS10/COS20 的实际验收仍为本次验证产出。原未结算或预留费用继续阻止准入；这些检查都在 host 准备、operator receipt、claim、凭据读取与新 case 写入之前。
 
 本段免费测试仅使用临时真实 Git 仓库、固定输入副本和实际 `RunController` 创建/领取/停止的合成 case 1；不读取真实账本、历史 case、模型会话或凭据，不伪造真人确认或生成结果。它检查新 clock/grants/operator 与旧记录分离、历史字段不变、一次消费与 core 幂等、未知/预留费用拒绝，以及 COS21 未审、错 marker、未集成或任一 SHA 不属于 main 时零新副作用。唯一原生 host 和严格公开 flags 保持原接线；真实 case 2 留给协调方在两项源码独立审查并合入 main、实际 Windows publisher 免费检查和最终准确 SHA preflight 通过后执行。
 
 验证证据：声明 9/9；入口 25 项中 23 项首次通过，修正两个费用 fixture 后定向 2/2；只读 quote、完整范围 reader 和公开 flags 代表 3/3。声明的三个 ID 断言及入口的 11 项新门槛先红后绿。费用 fixture 仅模拟 admission intent 和未对账预留，实际 provider 从未调用；未派发的 reservation 会由 core 正常取消，已模拟 admission 的预留在 stop 后保留为 unknown。两个 probe 与相关 test/fixture 的显式 strict noEmit 通过，UTF-8/LF 与中文复读正确；未重复旧 fake native 全流程或实际 browser smoke。
+
+## 第三个有界 native case 的请求包络
+
+COS-22 将新独立 case 固定为 `cos20-native-validation-3`、声明 v2、最多 80 请求。core 按声明版本分别限制 v1 40 次、v2 80 次，未知版本拒绝；历史 case 1/2 的声明、quote hash、费用、请求、grants、operator 决定和时钟保留。新五项 grants 共 ¥21，从同一账本未分配额追加；金额、45 分钟、模型、输出上限、冻结输入、完整验收和一次 coding repair 沿用原约束。每次 SDK `beforeRequest` 仍通过原 reserve/admit，取消、零费用响应、工具续接、评审、纠错和 compaction 均占用同一计数。
+
+免费入口要求原 profile 3 中 case 1 历史保留，current case 2 已明确停止，全部历史费用已对账。COS20 需精确 `CASE_TWO_SOURCE_READY`，COS21 需精确 `WINDOWS_PUBLICATION_SOURCE_READY`；两者均需已集成状态及 reviewedCommit/mergeCommit 同时属于准确 main SHA 的祖先，closed 不替代这些条件。COS22 本身由独立审查和 merger 的准确主线提交授权，不要求自身或 COS10/COS20 的实际验收先关闭。公开 flags 仍只提供固定 case 的 preflight/运行入口。
+
+新增免费 fixture 在临时 Git/文件系统用实际 core 创建、领取和停止两个显式 v1/40 的历史 case；合成 case 2 保存 40 个记账意图和 ¥0.857751 费用样本，实际 API 为零。历史身份先由真实 Git reader 核实，然后固定用于合成记账；公开 preflight 仍实时检查 Git。fixture 不读取真实账本、模型会话或凭据，不提供真人确认或游戏通过证据。实际 case 3 由协调者在源码独立批准并合入 main 后，重新核对准确 SHA、最新只读 quote 和资金，再启动。
+
+源码候选证据：新声明/输入 9/9，受影响 core/SDK 边界 4/4，入口历史与源级门槛 26/26；缺失 case 1 但保留已停止 case 2 的强化 fixture 定向 1/1，公开 flags 与完整 scope reader 2/2，均为零 API。新 ID/version/v2 准入先观察到 5 项预期失败，缺少已停止 case 2 门槛先观察到缺失拒绝，再做最小实现；source noEmit 与相关 probe/test 显式 strict noEmit 通过。源码仍待独立审查和主线集成，实际 case 3 尚未执行；未重复未变化的 native 全流程、浏览器或 Windows publisher 验证。
