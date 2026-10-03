@@ -6,6 +6,44 @@ import { createHash } from 'node:crypto';
 import { validationRunFixture } from './validation-run.fixture.ts';
 import { preflightValidationRun, runValidationWithHost } from '../../probes/e2e/validation-run.ts';
 
+test('COS22 approved source with the recorded failed author handoff permits only a free side-effect-free quote', async t => {
+  const f = await validationRunFixture(t, { cos22RunFailed: true }), path = join(f.ledgerRoot, 'snapshot.json');
+  const before = await readFile(path), stamp = (await stat(path)).mtimeMs, names = await readdir(f.ledgerRoot);
+  const item = f.mapping.tasks.find(item => item.taskId === 'COS-22')!;
+  assert.equal(item.state, 'open'); assert.equal(item.reviewStatus, 'VERSIONED_CASE_THREE_SOURCE_READY');
+  assert.equal(item.integrationStatus, 'actual-validation-failed-author-handoff');
+  let prepared = 0, executed = 0;
+  try {
+    const result = await runValidationWithHost({ repository: f.repository, args: ['--validation-preflight', f.head], host: {
+      prepare: async () => { prepared++; }, execute: async () => { executed++; return { outcome: 'failed', gaps: ['Offline fixture must not execute'] }; },
+    } });
+    assert.equal(result.outcome, 'ready'); assert.ok('paidRequests' in result && result.paidRequests === 0);
+  } finally {
+    assert.equal(prepared, 0); assert.equal(executed, 0); assert.deepEqual(await readFile(path), before);
+    assert.equal((await stat(path)).mtimeMs, stamp); assert.deepEqual(await readdir(f.ledgerRoot), names);
+    await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
+  }
+});
+
+test('COS22 failed-run source still requires its precise marker and each SHA and leaves other source gates unchanged', async t => {
+  const f = await validationRunFixture(t, { cos22RunFailed: true }), path = join(f.ledgerRoot, 'snapshot.json'), before = await readFile(path), names = await readdir(f.ledgerRoot);
+  const mappingPath = join(f.repository, 'docs/specs/github-issues.json'), approved = structuredClone(f.mapping);
+  for (const fault of ['reviewStatus', 'reviewedCommit', 'mergeCommit', 'unknown-cos22-result', 'cos23-failed-result'] as const) {
+    f.mapping = structuredClone(approved);
+    const item = f.mapping.tasks.find(item => item.taskId === (fault === 'cos23-failed-result' ? 'COS-23' : 'COS-22'))!;
+    if (fault === 'unknown-cos22-result') item.integrationStatus = 'unknown-validation-result';
+    else if (fault === 'cos23-failed-result') item.integrationStatus = 'actual-validation-failed-author-handoff';
+    else delete (item as any)[fault];
+    await writeFile(mappingPath, JSON.stringify(f.mapping), 'utf8'); await f.git('add', '.'); await f.git('commit', '-m', `Offline source prerequisite ${fault}`);
+    const head = await f.git('rev-parse', 'HEAD'); let prepared = 0, executed = 0;
+    await assert.rejects(runValidationWithHost({ repository: f.repository, args: ['--validation-case', head, f.args[2]], host: {
+      prepare: async () => { prepared++; }, execute: async () => { executed++; return { outcome: 'failed', gaps: ['Offline fixture must not execute'] }; },
+    } }), /COS-22|COS-23|reviewed|integrated|source/i);
+    assert.equal(prepared, 0); assert.equal(executed, 0); assert.deepEqual(await readFile(path), before); assert.deepEqual(await readdir(f.ledgerRoot), names);
+    await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
+  }
+});
+
 for (const caseThree of ['absent', 'unstopped'] as const) test(`case four requires explicitly stopped current case three: ${caseThree}`, async t => {
   const f = await validationRunFixture(t, { caseThree, closure: 'none' });
   const path = join(f.ledgerRoot, 'snapshot.json'), before = await readFile(path), names = await readdir(f.ledgerRoot);

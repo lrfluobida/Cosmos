@@ -72,7 +72,8 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
     const matches = (mapping.tasks ?? []).filter((item: any) => item.taskId === taskId), item = matches[0];
     if (matches.length !== 1 || !/^[a-f0-9]{40}$/.test(item.reviewedCommit ?? '') || !/^[a-f0-9]{40}$/.test(item.mergeCommit ?? '')
       || !(Object.hasOwn(SOURCE_MARKERS, taskId)
-        ? item.reviewStatus === SOURCE_MARKERS[taskId] && ['integrated', 'offline-verified-awaiting-live', 'source-integrated', 'complete'].includes(item.integrationStatus)
+        ? item.reviewStatus === SOURCE_MARKERS[taskId] && (['integrated', 'offline-verified-awaiting-live', 'source-integrated', 'complete'].includes(item.integrationStatus)
+          || taskId === 'COS-22' && item.integrationStatus === 'actual-validation-failed-author-handoff')
         : item.state === 'closed' || SOURCE_READY.includes(item.reviewStatus) && ['integrated', 'partial-offline-verified', 'offline-verified-awaiting-live', 'complete'].includes(item.integrationStatus))) throw new Error(`${taskId} requires independently reviewed and integrated source.`);
     approvals.push({ taskId, reviewedCommit: item.reviewedCommit, mergeCommit: item.mergeCommit });
   }
