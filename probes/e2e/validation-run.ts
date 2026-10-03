@@ -16,7 +16,7 @@ import { VALIDATION_CASE, parseValidationEntry } from './validation-declaration.
 import { createValidationIdentityReader } from './validation-identity.ts';
 import { runChild } from './host.ts';
 
-const SOURCE_PREREQUISITES = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-21'];
+const SOURCE_PREREQUISITES = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21'];
 const SOURCE_READY = ['READY', 'SOURCE_READY', 'COMBINED_SOURCE_READY', 'PHASE_B_READY', 'READY_FOR_ROLE_IO_INTEGRATION'];
 async function absent(repository: string, path: string, label: string): Promise<void> {
   try { await lstat(await safePath(repository, path)); }
@@ -34,7 +34,8 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   if (state.run.runId !== 'validation-2026-10-01' || state.ledger.ledgerId !== 'cosmos-validation' || state.run.specVersion !== '1.0'
     || state.run.originalDeadlineAt !== '2026-10-01T18:16:16.857Z' || !state.ledger.entries.some(entry => entry.requestId === 'prior-deepseek-direct-probes' && entry.status === 'settled' && entry.settledMicroCny >= 721_771)) throw new Error('The fixed original validation ledger and historical charges are required.');
   const caseOne = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-1');
-  if (state.formatVersion !== 3 || !caseOne?.stopReason || state.validation?.currentCaseId !== caseOne.caseId) throw new Error('Case 2 requires original case 1 to be explicitly stopped in its existing validation profile.');
+  const caseTwo = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-2');
+  if (state.formatVersion !== 3 || !caseOne?.stopReason || !caseTwo?.stopReason || state.validation?.currentCaseId !== caseTwo.caseId) throw new Error('Case 3 requires original case 1 history and current case 2 to be explicitly stopped in its existing validation profile.');
   const identityReader = createValidationIdentityReader({ repository, reviewedPlatformSha: intent.reviewedPlatformSha });
   await identityReader(signal);
   const mapping = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(repository, 'docs/specs/github-issues.json')));
@@ -42,8 +43,8 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   for (const taskId of SOURCE_PREREQUISITES) {
     const matches = (mapping.tasks ?? []).filter((item: any) => item.taskId === taskId), item = matches[0];
     if (matches.length !== 1 || !/^[a-f0-9]{40}$/.test(item.reviewedCommit ?? '') || !/^[a-f0-9]{40}$/.test(item.mergeCommit ?? '')
-      || !(taskId === 'COS-21'
-        ? item.reviewStatus === 'WINDOWS_PUBLICATION_SOURCE_READY' && ['integrated', 'offline-verified-awaiting-live', 'source-integrated', 'complete'].includes(item.integrationStatus)
+      || !(['COS-20', 'COS-21'].includes(taskId)
+        ? item.reviewStatus === (taskId === 'COS-21' ? 'WINDOWS_PUBLICATION_SOURCE_READY' : 'CASE_TWO_SOURCE_READY') && ['integrated', 'offline-verified-awaiting-live', 'source-integrated', 'complete'].includes(item.integrationStatus)
         : item.state === 'closed' || SOURCE_READY.includes(item.reviewStatus) && ['integrated', 'partial-offline-verified', 'offline-verified-awaiting-live', 'complete'].includes(item.integrationStatus))) throw new Error(`${taskId} requires independently reviewed and integrated source.`);
     approvals.push({ taskId, reviewedCommit: item.reviewedCommit, mergeCommit: item.mergeCommit });
   }

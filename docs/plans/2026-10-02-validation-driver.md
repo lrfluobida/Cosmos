@@ -51,3 +51,9 @@
 ## Case 2 声明与免费准入
 
 - [ ] 专属 implementer 在复用 managed worktree 的 `codex/validation-case-two` 分支仅更新固定声明为 `cos20-native-validation-2` 和入口门槛；相同冻结输入、caps、¥150/¥30/¥5、45 分钟/40 调用/一次 coding repair 保留。fixture 用真实 core 合成并停止 case 1，保留旧字段和 grant 前缀，先红后绿验证一次消费、幂等及拒绝路径。入口要求已停止 case 1 与 COS21 独立 `WINDOWS_PUBLICATION_SOURCE_READY`、正确集成状态及两项 main 祖先提交；不等待 COS10/COS20 实际结果关闭。独立 reviewer 检查实际 diff 后，仅 batch08_merger 合入；协调方随后检查实际 Windows publisher 和最终 main preflight，才执行真实 case 2。
+
+## COS-22 / Case 3 请求包络
+
+- [ ] `codex/validation-case-three` 复用干净 managed worktree，从已审 `f5522e8` 主线开始。最小 core 改动仅允许声明 v2 最多 80 请求，v1 的 40 次与未知版本拒绝保留；固定新 case 3、同账本新 ¥21 grants，原 ¥5/45 分钟/¥30/¥150、caps、输入及完整验收保留。
+- [ ] 入口要求历史 case 1 存在、current case 2 已明确停止、费用已对账；COS20/COS21 精确 source marker、集成状态和两项 main 祖先 SHA 均通过。零 API 临时 core/Git/FS fixture 明确 seed 两个 v1/40 历史 case，核对 quote/决定/grant/fee/request/clock 前缀及一次消费；先红后绿检查新 ID/version、80/81、旧 40/41、保留预算和拒绝路径。
+- [ ] 专属 implementer 提交准确 SHA、定向测试与 strict noEmit 证据，交独立 reviewer；仅 batch08_merger 合入 main。复用未变更的 browser/registry/native 完整路径证据，协调者核对最终 main、最新只读 quote 和资金后运行真实 case 3。源码候选和合成 fixture 不声明真实生成通过。

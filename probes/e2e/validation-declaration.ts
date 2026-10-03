@@ -1,11 +1,11 @@
 import { freeze } from '../../src/roles/requirements.ts';
 
-const caseId = 'cos20-native-validation-2';
+const caseId = 'cos20-native-validation-3';
 /** A source-reviewed declaration; importing or parsing it never grants execution authority. */
 export const VALIDATION_CASE = freeze({
-  formatVersion: 'validation-declaration-1', profile: 'operator_validation', caseId, sourceModel: 'deepseek-flash',
+  formatVersion: 'validation-declaration-2', profile: 'operator_validation', caseId, sourceModel: 'deepseek-flash',
   limits: { lifetimeMicroCny: 150_000_000, cumulativeMicroCny: 30_000_000, incrementalMicroCny: 5_000_000,
-    durationMs: 45 * 60 * 1000, maxRequests: 40, maxRepairTasks: 1, maxTaskAttempts: 2, reviewProtocolCorrections: 1 },
+    durationMs: 45 * 60 * 1000, maxRequests: 80, maxRepairTasks: 1, maxTaskAttempts: 2, reviewProtocolCorrections: 1 },
   grants: {
     planning: { taskId: `${caseId}-planning`, amountMicroCny: 2_000_000 },
     design: { taskId: `${caseId}-design`, amountMicroCny: 1_900_000 },
