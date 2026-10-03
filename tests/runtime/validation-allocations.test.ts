@@ -6,9 +6,11 @@ import { budgetCapacity, budgetSummary } from '../../src/contracts/index.ts';
 import { reserveEntry } from '../../src/budget/ledger.ts';
 import { SnapshotStore } from '../../src/runtime/store.ts';
 import { validateSnapshot } from '../../src/runtime/run-validation.ts';
+import { RunController } from '../../src/runtime/run.ts';
+import { prepareValidationCase } from '../../src/runtime/validation-window.ts';
 import { allocationFixture, closureDecision } from './validation-allocations.fixture.ts';
+import * as api from '../../src/runtime/validation-allocations.ts';
 
-const api: any = await import('../../src/runtime/validation-allocations.ts').catch(() => ({}));
 function requireApi() {
   assert.equal(typeof api.prepareValidationAllocationClosure, 'function', 'Read-only allocation closure quote API is required');
   assert.equal(typeof api.applyValidationAllocationClosure, 'function', 'Atomic allocation closure API is required');
@@ -17,6 +19,7 @@ function requireApi() {
 
 test('read-only quote and atomic closure preserve three stopped case histories and actual fees', async t => {
   const { prepareValidationAllocationClosure, applyValidationAllocationClosure } = requireApi(), f = await allocationFixture(t);
+  f.advance(7 * 24 * 60 * 60 * 1000); // Expired paid clocks never limit this free closure operation.
   assert.deepEqual(budgetCapacity(f.original.ledger), { effectiveLimitMicroCny: 150_000_000, allocatedMicroCny: 147_596_040 });
   const quote = await prepareValidationAllocationClosure({ ...f, caseIds: f.caseIds });
   assert.equal(quote.releasedMicroCny, 62_073_374); assert.equal(quote.closures.length, 15);
@@ -28,10 +31,11 @@ test('read-only quote and atomic closure preserve three stopped case histories a
   assert.equal(next.ledger.contractVersion, '3.0.0'); assert.equal(next.formatVersion, 3);
   assert.deepEqual(budgetCapacity(next.ledger), { effectiveLimitMicroCny: 150_000_000, allocatedMicroCny: 85_522_666 });
   assert.equal(budgetSummary(next.ledger).committedMicroCny, 2_043_028);
-  for (const key of ['run', 'tasks', 'requests', 'stopReason', 'validation']) assert.deepEqual(next[key], f.original[key]);
+  for (const key of ['run', 'tasks', 'requests', 'stopReason', 'validation'] as const) assert.deepEqual(next[key], f.original[key]);
   assert.deepEqual(next.ledger.allocations, f.original.ledger.allocations); assert.deepEqual(next.ledger.entries, f.original.ledger.entries);
   assert.deepEqual(next.events.slice(0, f.original.events.length), f.original.events);
   assert.equal(next.revision, f.original.revision + 1); assert.equal(next.events.length, f.original.events.length + 1);
+  assert.ok(next.allocationClosureDecisions); assert.ok(next.ledger.allocationClosures);
   assert.equal(next.allocationClosureDecisions.length, 1); assert.deepEqual(next.allocationClosureDecisions[0], receipt);
   for (const closure of next.ledger.allocationClosures) assert.throws(() => reserveEntry(next.ledger, { requestId: `deny-${closure.taskId}`, taskId: closure.taskId,
     provider: 'fixture', pricingVersion: 'v1', estimatedMaxCostMicroCny: 1 }), /closed/i);
@@ -144,4 +148,50 @@ test('committed closure snapshots reject detached decisions, rewritten grant amo
       state.requests.push(request); state.ledger.entries.push(entry);
     },
   ]) { const bad = structuredClone(next); change(bad); assert.throws(() => validateSnapshot(bad), /closure|validation|original|grant|history/i); }
+});
+
+test('fresh bounded case fits released capacity in the same ledger and keeps stopped grant IDs closed', async t => {
+  const { prepareValidationAllocationClosure, applyValidationAllocationClosure } = requireApi(), f = await allocationFixture(t), declaration = f.declaration('cos20-next-fixture');
+  await assert.rejects(prepareValidationCase({ ...f, declaration }), /unallocated|insufficient/i);
+  const closureQuote = await prepareValidationAllocationClosure({ ...f, caseIds: f.caseIds }), closureOperator = await closureDecision(f, closureQuote);
+  await applyValidationAllocationClosure({ ...f, quote: closureQuote, decision: closureOperator });
+  const closed = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+  assert.equal(typeof RunController.prepareValidationAllocationClosure, 'function'); assert.equal(typeof RunController.applyValidationAllocationClosure, 'function');
+  const quote = await prepareValidationCase({ ...f, declaration });
+  assert.equal(quote.basis.allocatedMicroCny, 85_522_666); assert.equal(quote.basis.committedMicroCny, 2_043_028);
+  const decision = { kind: 'operator_validation' as const, decisionId: 'next-offline-case', actorId: 'offline-coordinator', decidedAt: new Date(f.now()).toISOString(),
+    source: { artifactId: 'next-offline-case', version: 'v1', location: 'next-operator.json' }, sourceRefs: closureOperator.sourceRefs };
+  await writeFile(join(f.root, decision.source.location), JSON.stringify({ formatVersion: 'operator-validation-decision-1', kind: decision.kind, decisionId: decision.decisionId,
+    actorId: decision.actorId, decidedAt: decision.decidedAt, sourceRefs: decision.sourceRefs, quote }), 'utf8');
+  const window = await RunController.claimValidationCase({ ...f, quote, decision });
+  await mkdir(join(f.repositoryRoot, '.cosmos/e2e', window.caseId, 'registry'), { recursive: true });
+  const claimed = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+  assert.deepEqual(budgetCapacity(claimed.ledger), { effectiveLimitMicroCny: 150_000_000, allocatedMicroCny: 106_522_666 });
+  assert.equal(claimed.ledger.ledgerId, f.original.ledger.ledgerId); assert.equal(claimed.run.runId, f.original.run.runId);
+  assert.deepEqual(claimed.validation.cases.slice(0, 3), f.original.validation.cases); assert.deepEqual(claimed.allocationClosureDecisions, closed.allocationClosureDecisions);
+  assert.deepEqual(claimed.ledger.entries, f.original.ledger.entries); assert.deepEqual(claimed.run.fees, f.original.run.fees);
+  assert.deepEqual(claimed.run.humanDecisions, f.original.run.humanDecisions); assert.equal(claimed.run.originalDeadlineAt, f.original.run.originalDeadlineAt);
+  assert.deepEqual(window.quote.declaration.limits, declaration.limits); assert.equal(window.quote.declaration.limits.maxRequests, 80);
+  await assert.rejects(RunController.open(f), /validation|profile/i);
+  const owner = await RunController.openValidationCase({ ...f, caseId: window.caseId, windowId: window.windowId });
+  try {
+    const request = { requestId: 'fresh-planning', taskId: declaration.grants.planning.taskId, provider: 'deepseek', pricingVersion: 'deepseek-flash-peak-cny-2026-10-01', estimatedMaxCostMicroCny: 8,
+      validation: { caseId: window.caseId, windowId: window.windowId, purpose: 'planning' as const, modelId: 'deepseek-flash' as const, maxOutputTokens: 1, inputBytes: 0, hasImages: false } };
+    await assert.rejects(owner.reserve({ ...request, taskId: f.original.validation.cases[0].quote.declaration.grants.planning.taskId }), /grant|purpose|closed/i);
+    assert.equal((await owner.read()).ledger.entries.length, f.original.ledger.entries.length);
+    await owner.reserve(request); await owner.admit(request.requestId); await owner.settle(request.requestId, 1, [{ artifactId: 'offline-next-billing', version: 'v1', location: 'offline-next-billing.json' }]);
+    assert.equal((await owner.read()).run.fees.settledMicroCny, 2_043_029);
+    assert.equal((await owner.validationAuthority(declaration.grants.planning.taskId, 'planning')).requestsRemaining, 79);
+    await owner.stop('Stopped next fixture');
+  } finally { await owner.close(); }
+  const after = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8')); validateSnapshot(after);
+  assert.deepEqual(after.ledger.entries.slice(0, f.original.ledger.entries.length), f.original.ledger.entries);
+  const secondQuote = await prepareValidationAllocationClosure({ ...f, caseIds: [window.caseId] }), secondDecision = await closureDecision(f, secondQuote);
+  secondDecision.decisionId = 'closure-2'; secondDecision.source = { ...secondDecision.source, artifactId: 'closure-2', location: 'closure-2.json' };
+  await writeFile(join(f.root, secondDecision.source.location), JSON.stringify({ formatVersion: 'operator-validation-allocation-closure-decision-1', kind: secondDecision.kind,
+    decisionId: secondDecision.decisionId, actorId: secondDecision.actorId, decidedAt: secondDecision.decidedAt, sourceRefs: secondDecision.sourceRefs, quote: secondQuote }), 'utf8');
+  await applyValidationAllocationClosure({ ...f, quote: secondQuote, decision: secondDecision });
+  const twice = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8')); validateSnapshot(twice);
+  assert.ok(twice.allocationClosureDecisions);
+  assert.equal(twice.allocationClosureDecisions.length, 2); assert.equal(budgetCapacity(twice.ledger).allocatedMicroCny, 85_522_667);
 });

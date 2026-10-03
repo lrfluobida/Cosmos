@@ -7,6 +7,7 @@ import { SnapshotStore } from './store.ts';
 import { validateSnapshot } from './run-validation.ts';
 import { activateContinuation } from './continuation-authority.ts';
 import { claimValidationCase, verifyOperatorDecision, verifyValidationIdentity } from './validation-window.ts';
+import { applyValidationAllocationClosure, prepareValidationAllocationClosure } from './validation-allocations.ts';
 import { currentValidationCase, requireValidationRepairSource, requireValidationTask, validationOutputCap, validationReservation, validationRole, validationUsage } from './validation-validation.ts';
 import { sameValue } from '../contracts/validation.ts';
 import type { OpenValidationCaseOptions, ValidationAuthority, ValidationCaseWindow, ValidationPurpose, ValidationRequestMetadata } from './validation-types.ts';
@@ -32,6 +33,8 @@ export interface CreateRunOptions extends OpenRunOptions {
 export class RunController {
   static activateContinuation = activateContinuation;
   static claimValidationCase = claimValidationCase;
+  static prepareValidationAllocationClosure = prepareValidationAllocationClosure;
+  static applyValidationAllocationClosure = applyValidationAllocationClosure;
   private store: SnapshotStore;
   private snapshot: RunSnapshot;
   private now: () => number;

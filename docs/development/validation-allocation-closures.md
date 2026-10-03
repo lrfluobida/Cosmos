@@ -26,6 +26,6 @@ Application takes that quote and decision plus the same context. It acquires the
 
 The temporary test fixture closes fifteen grants from three stopped cases. Their original 63,000,000 allocation minus actual 926,626 spending releases 62,073,374 capacity. The legacy allocation of 84,596,040 stays open; effective allocation becomes 85,522,666. Total actual spending stays 2,043,028 and the original 150,000,000 limit, first-phase 30,000,000 ceiling, historical clocks, case quotes and request counts remain fixed. This is fixture evidence; real ledger closure remains a coordinator operation after source review and integration.
 
-Stage 1 supplies schema, quote and atomic closure. A fresh case claim against ledger v3 requires the separate Stage 2 validation-window integration; Stage 1 alone is insufficient to run a new case.
+Stage 2 connects this ledger version to the existing validation case claim. `RunController.prepareValidationAllocationClosure` and `RunController.applyValidationAllocationClosure` expose the same free operations. A fresh case still requires its own exact operator validation quote and receipt, preserves the reviewed declaration limits, and consumes the existing `budgetCapacity` result. Historical closed grant IDs cannot dispatch through the fresh case owner. Ordinary/formal controller entrypoints continue to reject validation profile snapshots.
 
 Focused tests: `node --experimental-strip-types --test tests/budget/validation-ledger.test.ts tests/runtime/validation-allocations.test.ts`.
