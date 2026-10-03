@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 33
+    "childCount": 34
   },
   "tasks": [
     {
@@ -1519,8 +1519,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "BROWSER_DEFECT_CLASSIFICATION_SOURCE_READY",
+      "reviewedCommit": "af883ba936806003034ea5015dfc3d1ce11939a8",
+      "mergeCommit": "bc24755518abe5c2f8c02e6fbf1add6414c72f33"
     },
     {
       "taskId": "COS-33",
@@ -1553,8 +1555,31 @@
       "state": "open",
       "integrationStatus": "in-progress",
       "reviewStatus": "SOURCE_NOT_READY"
+    },
+    {
+      "taskId": "COS-34",
+      "title": "持久化最终用户体验决定并绑定交付版本",
+      "number": 35,
+      "id": 5692013242,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/35",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        { "id": "COS-08", "number": 9, "url": "https://github.com/lrfluobida/Cosmos/issues/9" },
+        { "id": "COS-11", "number": 12, "url": "https://github.com/lrfluobida/Cosmos/issues/12" },
+        { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" }
+      ],
+      "validationOutputsFor": [
+        { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" },
+        { "id": "COS-17", "number": 18, "url": "https://github.com/lrfluobida/Cosmos/issues/18" },
+        { "id": "COS-15", "number": 16, "url": "https://github.com/lrfluobida/Cosmos/issues/16" }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 33,
+  "verifiedNativeSubIssues": 34,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
