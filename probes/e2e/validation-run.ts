@@ -7,7 +7,8 @@ import { sameValue } from '../../src/contracts/validation.ts';
 import type { ArtifactReference, TaskContract } from '../../src/contracts/index.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { validateSnapshot } from '../../src/runtime/run-validation.ts';
-import { prepareValidationCase } from '../../src/runtime/validation-window.ts';
+import { prepareValidationCase, verifyOperatorDecision } from '../../src/runtime/validation-window.ts';
+import { VALIDATION_ROLES, validationHash, validationInputHash } from '../../src/runtime/validation-validation.ts';
 import { validationCaseView } from '../../src/runtime/execution-window.ts';
 import type { ValidationCaseQuote, ValidationCaseWindow } from '../../src/runtime/validation-types.ts';
 import { OwnedWork, cancelAndDrain } from '../../src/runtime/recovery/owned-work.ts';
@@ -16,7 +17,9 @@ import { VALIDATION_CASE, parseValidationEntry } from './validation-declaration.
 import { createValidationIdentityReader } from './validation-identity.ts';
 import { runChild } from './host.ts';
 
-const SOURCE_PREREQUISITES = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21'];
+const SOURCE_PREREQUISITES = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24'];
+const SOURCE_MARKERS: Record<string, string> = { 'COS-20': 'CASE_TWO_SOURCE_READY', 'COS-21': 'WINDOWS_PUBLICATION_SOURCE_READY',
+  'COS-22': 'VERSIONED_CASE_THREE_SOURCE_READY', 'COS-23': 'AUTHOR_PROTOCOL_SOURCE_READY', 'COS-24': 'VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY' };
 const SOURCE_READY = ['READY', 'SOURCE_READY', 'COMBINED_SOURCE_READY', 'PHASE_B_READY', 'READY_FOR_ROLE_IO_INTEGRATION'];
 async function absent(repository: string, path: string, label: string): Promise<void> {
   try { await lstat(await safePath(repository, path)); }
@@ -35,7 +38,32 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
     || state.run.originalDeadlineAt !== '2026-10-01T18:16:16.857Z' || !state.ledger.entries.some(entry => entry.requestId === 'prior-deepseek-direct-probes' && entry.status === 'settled' && entry.settledMicroCny >= 721_771)) throw new Error('The fixed original validation ledger and historical charges are required.');
   const caseOne = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-1');
   const caseTwo = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-2');
-  if (state.formatVersion !== 3 || !caseOne?.stopReason || !caseTwo?.stopReason || state.validation?.currentCaseId !== caseTwo.caseId) throw new Error('Case 3 requires original case 1 history and current case 2 to be explicitly stopped in its existing validation profile.');
+  const caseThree = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-3');
+  if (state.formatVersion !== 3 || !caseOne?.stopReason || !caseTwo?.stopReason || !caseThree?.stopReason || state.validation?.cases.length !== 3
+    || state.validation.currentCaseId !== caseThree.caseId) throw new Error('Case 4 requires original case 1 and case 2 history and current case 3 to be explicitly stopped in its existing validation profile.');
+  if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Unknown or reserved historical charges require reconciliation.');
+  const previousCases = [caseOne, caseTwo, caseThree], taskIds = previousCases.flatMap(window => VALIDATION_ROLES.map(role => window.quote.declaration.grants[role].taskId));
+  if (state.ledger.contractVersion !== '3.0.0' || state.ledger.allocationClosures?.length !== 15
+    || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error('Case 4 requires audited allocation closure of all fifteen previous case grants.');
+  const caseRoots = new Map<string, string>();
+  for (const window of previousCases) {
+    const path = `.cosmos/e2e/${window.caseId}`, root = await safePath(repository, path);
+    if (!(await lstat(root)).isDirectory()) throw new Error('Historical validation case root must be an existing directory.');
+    for (const lock of ['.controller.lock', 'registry/.commit.lock']) await absent(repository, `${path}/${lock}`, 'Historical case writer ownership');
+    caseRoots.set(window.caseId, root);
+    const { sourceSha256, ...decision } = window.operatorDecision;
+    if ((await verifyOperatorDecision(ledgerRoot, window.quote, decision, Date.now())).sourceSha256 !== sourceSha256) throw new Error('Historical operator validation source changed.');
+  }
+  const closureSources: string[] = [];
+  for (const receipt of state.allocationClosureDecisions!) {
+    const { sourceSha256, ...decision } = receipt.operatorDecision, bytes = await regularFile(ledgerRoot, decision.source.location);
+    const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    if (validationHash(bytes) !== sourceSha256 || !sameValue(value, { formatVersion: 'operator-validation-allocation-closure-decision-1', kind: decision.kind,
+      decisionId: decision.decisionId, actorId: decision.actorId, decidedAt: decision.decidedAt, sourceRefs: decision.sourceRefs, quote: receipt.quote })
+      || receipt.quote.identity.frozenCaseInputHash !== validationInputHash(VALIDATION_CASE)
+      || receipt.quote.cases.some(item => item.artifactRoot !== caseRoots.get(item.caseId))) throw new Error('Historical allocation closure source, receipt or fixed case root changed.');
+    closureSources.push(receipt.quote.identity.reviewedPlatformSha);
+  }
   const identityReader = createValidationIdentityReader({ repository, reviewedPlatformSha: intent.reviewedPlatformSha });
   await identityReader(signal);
   const mapping = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(repository, 'docs/specs/github-issues.json')));
@@ -43,12 +71,12 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   for (const taskId of SOURCE_PREREQUISITES) {
     const matches = (mapping.tasks ?? []).filter((item: any) => item.taskId === taskId), item = matches[0];
     if (matches.length !== 1 || !/^[a-f0-9]{40}$/.test(item.reviewedCommit ?? '') || !/^[a-f0-9]{40}$/.test(item.mergeCommit ?? '')
-      || !(['COS-20', 'COS-21'].includes(taskId)
-        ? item.reviewStatus === (taskId === 'COS-21' ? 'WINDOWS_PUBLICATION_SOURCE_READY' : 'CASE_TWO_SOURCE_READY') && ['integrated', 'offline-verified-awaiting-live', 'source-integrated', 'complete'].includes(item.integrationStatus)
+      || !(Object.hasOwn(SOURCE_MARKERS, taskId)
+        ? item.reviewStatus === SOURCE_MARKERS[taskId] && ['integrated', 'offline-verified-awaiting-live', 'source-integrated', 'complete'].includes(item.integrationStatus)
         : item.state === 'closed' || SOURCE_READY.includes(item.reviewStatus) && ['integrated', 'partial-offline-verified', 'offline-verified-awaiting-live', 'complete'].includes(item.integrationStatus))) throw new Error(`${taskId} requires independently reviewed and integrated source.`);
     approvals.push({ taskId, reviewedCommit: item.reviewedCommit, mergeCommit: item.mergeCommit });
   }
-  for (const sha of new Set(approvals.flatMap(item => [item.reviewedCommit, item.mergeCommit]))) {
+  for (const sha of new Set([...approvals.flatMap(item => [item.reviewedCommit, item.mergeCommit]), ...closureSources])) {
     const result = await runChild('git', ['--no-optional-locks', 'merge-base', '--is-ancestor', sha, intent.reviewedPlatformSha], { cwd: repository, signal, timeoutMs: 5000 });
     if (result.code !== 0) throw new Error('Required reviewed source is not integrated in this exact platform SHA.');
   }

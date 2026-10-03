@@ -11,13 +11,13 @@ import { VALIDATION_CASE } from '../../probes/e2e/validation-declaration.ts';
 import { createValidationIdentityReader } from '../../probes/e2e/validation-identity.ts';
 import { runChild } from '../../probes/e2e/host.ts';
 
-/** Synthetic v1 history through the actual core; no provider, human confirmation or real case files. */
-async function seedPriorCase(repository: string, root: string, head: string, number: 1 | 2, options: { stop: boolean; exposure?: 'reserved' | 'unknown' }) {
-  const caseId = `cos20-native-validation-${number}`, declaration: ValidationDeclaration = { ...structuredClone(VALIDATION_CASE), formatVersion: 'validation-declaration-1', caseId,
-    limits: { ...VALIDATION_CASE.limits, maxRequests: 40 },
+/** Synthetic historical declarations through the actual core; no provider, human confirmation or real case files. */
+async function seedPriorCase(repository: string, root: string, head: string, number: 1 | 2 | 3, options: { stop: boolean; exposure?: 'reserved' | 'unknown' }) {
+  const caseId = `cos20-native-validation-${number}`, declaration: ValidationDeclaration = { ...structuredClone(VALIDATION_CASE), formatVersion: number === 3 ? 'validation-declaration-2' : 'validation-declaration-1', caseId,
+    limits: { ...VALIDATION_CASE.limits, maxRequests: number === 3 ? 80 : 40 },
     grants: Object.fromEntries(Object.entries(VALIDATION_CASE.grants).map(([role, grant]) => [role, { ...grant, taskId: `${caseId}-${role}` }])) as ValidationDeclaration['grants'] };
-  const label = number === 1 ? 'one' : 'two';
-  let clock = Date.parse(number === 1 ? '2026-10-02T11:58:02.694Z' : '2026-10-02T15:39:49.986Z');
+  const label = ['one', 'two', 'three'][number - 1];
+  let clock = Date.parse(['2026-10-02T11:58:02.694Z', '2026-10-02T15:39:49.986Z', '2026-10-03T00:00:00.000Z'][number - 1]);
   const identity = await createValidationIdentityReader({ repository, reviewedPlatformSha: head })(new AbortController().signal);
   const context = { root, repositoryRoot: repository, identityReader: async () => structuredClone(identity), now: () => clock };
   const quote = await prepareValidationCase({ ...context, declaration }), decision = { kind: 'operator_validation' as const, decisionId: `offline-case-${label}-operator`, actorId: 'offline-coordinator',
@@ -31,13 +31,11 @@ async function seedPriorCase(repository: string, root: string, head: string, num
     const request = (requestId: string, estimatedMaxCostMicroCny = 8) => ({ requestId, taskId: declaration.grants.planning.taskId, provider: 'deepseek',
       pricingVersion: 'deepseek-flash-peak-cny-2026-10-01', estimatedMaxCostMicroCny,
       validation: { caseId, windowId: window.windowId, purpose: 'planning' as const, modelId: 'deepseek-flash' as const, maxOutputTokens: 1, inputBytes: 0, hasImages: false } });
-    if (number === 2) {
-      // Data-only accounting samples. These synthetic intents never dispatch to a provider.
-      for (let index = 0; index < (options.exposure ? 39 : 40); index++) {
-        const requestId = `offline-case-two-${index}`, amount = index === 0 ? 857_751 : 0;
-        await controller.reserve(request(requestId, Math.max(8, amount))); await controller.admit(requestId);
-        await controller.settle(requestId, amount, [{ artifactId: 'offline-synthetic-accounting', version: 'v1', location: 'offline.json' }]);
-      }
+    if (number > 1) {
+      // One accounting sample per case; request exhaustion was already verified separately.
+      const requestId = `offline-case-${label}-sample`, amount = number === 2 ? 857_751 : 68_875;
+      await controller.reserve(request(requestId, amount)); await controller.admit(requestId);
+      await controller.settle(requestId, amount, [{ artifactId: 'offline-synthetic-accounting', version: 'v1', location: 'offline.json' }]);
     }
     if (options.exposure) {
       const requestId = `offline-case-${label}-${options.exposure}`;
@@ -46,14 +44,15 @@ async function seedPriorCase(repository: string, root: string, head: string, num
       await controller.admit(requestId);
       if (options.exposure === 'unknown') await controller.markUnknown(requestId, [{ artifactId: 'offline-synthetic-accounting', version: 'v1', location: 'offline.json' }]);
     }
-    clock = Date.parse(number === 1 ? '2026-10-02T11:58:09.818Z' : '2026-10-02T15:46:42.301Z');
+    clock += 1000;
     if (options.stop) await controller.stop(`OFFLINE synthetic case ${number} failure; zero API requests.`);
   } finally { await controller.close(); }
+  await mkdir(join(repository, '.cosmos/e2e', caseId, 'registry'), { recursive: true });
   return { ...context, declaration, quote, decision, window };
 }
 
 /** Offline temporary repository and historical ledger facts, never a real authorization or generated game. */
-export async function validationRunFixture(t: test.TestContext, options: { caseOne?: 'absent' | 'unstopped'; caseTwo?: 'absent' | 'unstopped'; exposure?: 'reserved' | 'unknown' } = {}) {
+export async function validationRunFixture(t: test.TestContext, options: { caseOne?: 'absent' | 'unstopped'; caseTwo?: 'absent' | 'unstopped'; caseThree?: 'absent' | 'unstopped'; exposure?: 'reserved' | 'unknown'; closure?: 'none' | 'first-two' } = {}) {
   const repository = await mkdtemp(join(tmpdir(), 'cosmos-validation-entry-')), original = fileURLToPath(new URL('../../', import.meta.url));
   t.after(() => rm(repository, { recursive: true, force: true }));
   const git = async (...args: string[]) => {
@@ -66,8 +65,9 @@ export async function validationRunFixture(t: test.TestContext, options: { caseO
     await mkdir(dirname(join(repository, file.path)), { recursive: true }); await writeFile(join(repository, file.path), await readFile(join(original, file.path)));
   }
   await writeFile(join(repository, '.gitignore'), '.cosmos/\n', 'utf8'); await git('add', '.'); await git('commit', '-m', 'Offline frozen source');
-  const ancestor = await git('rev-parse', 'HEAD'), dependencies = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21'];
-  const mapping = { tasks: dependencies.map(taskId => ({ taskId, state: 'open', reviewStatus: taskId === 'COS-21' ? 'WINDOWS_PUBLICATION_SOURCE_READY' : taskId === 'COS-20' ? 'CASE_TWO_SOURCE_READY' : 'SOURCE_READY',
+  const ancestor = await git('rev-parse', 'HEAD'), dependencies = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24'];
+  const markers: Record<string, string> = { 'COS-20': 'CASE_TWO_SOURCE_READY', 'COS-21': 'WINDOWS_PUBLICATION_SOURCE_READY', 'COS-22': 'VERSIONED_CASE_THREE_SOURCE_READY', 'COS-23': 'AUTHOR_PROTOCOL_SOURCE_READY', 'COS-24': 'VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY' };
+  const mapping = { tasks: dependencies.map(taskId => ({ taskId, state: 'open', reviewStatus: markers[taskId] ?? 'SOURCE_READY',
     integrationStatus: 'offline-verified-awaiting-live', reviewedCommit: ancestor, mergeCommit: ancestor })) };
   await mkdir(join(repository, 'docs/specs'), { recursive: true }); await writeFile(join(repository, 'docs/specs/github-issues.json'), JSON.stringify(mapping), 'utf8');
   await git('add', '.'); await git('commit', '-m', 'Offline source approvals'); const head = await git('rev-parse', 'HEAD');
@@ -78,7 +78,19 @@ export async function validationRunFixture(t: test.TestContext, options: { caseO
     evidence: [{ artifactId: 'offline-prior', version: 'v1', location: 'offline-source.json' }] });
   const originalSnapshot = await old.read(); await old.close();
   const caseOne = options.caseOne === 'absent' ? null : await seedPriorCase(repository, ledgerRoot, head, 1, { stop: options.caseOne !== 'unstopped' });
-  const caseTwo = options.caseOne === 'unstopped' || options.caseTwo === 'absent' ? null : await seedPriorCase(repository, ledgerRoot, head, 2, { stop: options.caseTwo !== 'unstopped', exposure: options.exposure });
-  return { repository, ledgerRoot, caseRoot, head, git, mapping, originalSnapshot, caseOne, caseTwo,
+  const caseTwo = options.caseOne === 'unstopped' || options.caseTwo === 'absent' ? null : await seedPriorCase(repository, ledgerRoot, head, 2, { stop: options.caseTwo !== 'unstopped' });
+  const caseThree = options.caseOne === 'unstopped' || options.caseTwo === 'unstopped' || options.caseThree === 'absent' ? null : await seedPriorCase(repository, ledgerRoot, head, 3, { stop: options.caseThree !== 'unstopped', exposure: options.exposure });
+  if (caseOne && caseTwo && caseThree && options.caseThree !== 'unstopped' && !options.exposure && options.closure !== 'none') {
+    const { prepareValidationAllocationClosure, applyValidationAllocationClosure } = await import('../../src/runtime/validation-allocations.ts');
+    const identity = await createValidationIdentityReader({ repository, reviewedPlatformSha: head })(new AbortController().signal);
+    const identityReader = async () => structuredClone(identity), context = { root: ledgerRoot, repositoryRoot: repository, identityReader };
+    const quote = await prepareValidationAllocationClosure({ ...context, caseIds: [caseOne, caseTwo, ...(options.closure === 'first-two' ? [] : [caseThree])].map(item => item.window.caseId) });
+    const decision = { kind: 'operator_validation_allocation_closure' as const, decisionId: 'offline-allocation-closure', actorId: 'offline-coordinator', decidedAt: new Date().toISOString(),
+      source: { artifactId: 'offline-closure-source', version: 'v1', location: 'offline-closure-source.json' }, sourceRefs: [{ artifactId: 'offline-standing-validation', version: head, location: 'OFFLINE fixture only; generatedByCosmos:false' }] };
+    await writeFile(join(ledgerRoot, decision.source.location), JSON.stringify({ formatVersion: 'operator-validation-allocation-closure-decision-1', kind: decision.kind,
+      decisionId: decision.decisionId, actorId: decision.actorId, decidedAt: decision.decidedAt, sourceRefs: decision.sourceRefs, quote }), 'utf8');
+    await applyValidationAllocationClosure({ ...context, quote, decision });
+  }
+  return { repository, ledgerRoot, caseRoot, head, git, mapping, originalSnapshot, caseOne, caseTwo, caseThree,
     args: ['--validation-case', head, 'OFFLINE fixture coordinator standing authorization source; generatedByCosmos:false'] };
 }
