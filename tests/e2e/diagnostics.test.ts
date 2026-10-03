@@ -4,14 +4,19 @@ import { createServer } from 'node:http';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { task as taskFixture } from '../contracts/fixtures.ts';
+import { task as taskFixture, requirement as requirementFixture, ledger as ledgerFixture, run as runFixture } from '../contracts/fixtures.ts';
 import type { TaskContract } from '../../src/contracts/types.ts';
-import type { AcceptanceReport } from '../../src/acceptance/runner.ts';
+import type { AcceptanceReport, BrowserFailureFacts } from '../../src/acceptance/runner.ts';
 import { createPilotAcceptance } from '../../probes/e2e/acceptance.ts';
 import { diagnoseBuild, diagnoseBrowser, diagnosedFailure } from '../../probes/e2e/diagnostics.ts';
 import { runAcceptance } from '../../src/acceptance/runner.ts';
 import type { AcceptancePlan } from '../../src/acceptance/plan.ts';
 import { filteredChildEnvironment } from '../../probes/e2e/admission.ts';
+import { buildRepairFeedback, failureRecord } from '../../src/runtime/repair/feedback.ts';
+import { assessRepair, DEFAULT_REPAIR_POLICY } from '../../src/runtime/repair/policy.ts';
+import type { RunSnapshot } from '../../src/runtime/run-types.ts';
+import type { RequirementContract } from '../../src/contracts/types.ts';
+import { fileURLToPath } from 'node:url';
 
 test('compiler source facts establish defects while environment text does not', () => {
   const task = taskFixture() as TaskContract; task.acceptanceIds = ['PILOT-START'];
@@ -53,6 +58,123 @@ test('stale versions, whole-browser deadline and unavailable observations cannot
   assert.ok(diagnoseBrowser(task, report, plan, 'timeout.json').issues.every(issue => issue.classification === 'insufficient_evidence'));
   report.errors = []; failed.actual = null;
   assert.equal(diagnoseBrowser(task, report, plan, 'missing.json').issues[0].classification, 'insufficient_evidence');
+});
+
+function attributedBrowser() {
+  const fixture = browser(), { report, plan, failed } = fixture, index = report.steps.indexOf(failed);
+  Object.assign(report.cleanup, { forced: true, processExited: true });
+  failed.failure = 'observation_budget'; failed.observation = { completed: 1 };
+  report.steps.slice(index + 1).forEach(row => { row.outcome = 'skipped'; row.actual = null; });
+  report.errors = ['Page: HUD element [data-testid="wave"] is missing', `Browser startup/execution: Observation ${failed.id}: timed out after 3 ms`,
+    'Video unavailable after forced browser termination; earlier screenshots retained'];
+  report.failureFacts = { formatVersion: 1, termination: { kind: 'observation_budget', stepId: failed.id }, errors: [
+    { errorIndex: 0, error: report.errors[0], kind: 'page_exception', exception: { exceptionId: 1, sourceURL: `${plan.url}/src/hud.js`, line: 29, column: 8 } },
+    { errorIndex: 1, error: report.errors[1], kind: 'observation_budget', stepId: failed.id },
+    { errorIndex: 2, error: report.errors[2], kind: 'termination_evidence', stepId: failed.id },
+  ] };
+  return fixture;
+}
+
+test('attributable project exceptions and a closed local observation race retain a code defect', () => {
+  const { task, plan, report, failed } = attributedBrowser(), before = structuredClone(report);
+  const diagnostic = diagnoseBrowser(task, report, plan, 'browser.json');
+  assert.equal(diagnostic.reportValid, true);
+  assert.equal(diagnostic.issues.length, 1);
+  assert.equal(diagnostic.issues[0].classification, 'code_defect');
+  assert.equal(diagnostic.issues[0].checkId, `browser/${failed.id}`);
+  assert.deepEqual(report, before);
+});
+
+test('attributable project exceptions with graceful exit preserve a reliable mismatch', () => {
+  const { task, plan, report, failed } = attributedBrowser();
+  report.cleanup.forced = false; report.errors = report.errors.slice(0, 1);
+  report.failureFacts!.errors = report.failureFacts!.errors.slice(0, 1);
+  report.failureFacts!.termination = null; failed.failure = 'mismatch';
+  report.steps.slice(report.steps.indexOf(failed) + 1).forEach(row => { row.outcome = 'passed'; row.actual = row.expected; });
+  assert.equal(diagnoseBrowser(task, report, plan, 'browser.json').issues[0].classification, 'code_defect');
+});
+
+for (const changed of ['legacy', 'unknown', 'global', 'crash', 'cleanup', 'nonexit', 'missing-exit', 'foreign', 'no-url', 'bad-location', 'unmatched', 'no-actual', 'observation-error', 'undelivered', 'wrong-step', 'duplicate-exception', 'invalid-completed'] as const)
+  test(`closed local observation evidence remains conservative for ${changed}`, () => {
+    const { task, plan, report, failed } = attributedBrowser(), facts = report.failureFacts!;
+    if (changed === 'legacy') delete report.failureFacts;
+    if (['unknown', 'global', 'crash', 'cleanup'].includes(changed)) {
+      report.errors.push(changed === 'unknown' ? 'Page: another unassociated error' : changed);
+      facts.errors.push({ errorIndex: report.errors.length - 1, error: report.errors.at(-1)!, kind: changed === 'unknown' ? 'unknown' : 'lifecycle' });
+    }
+    if (changed === 'nonexit') report.cleanup.processExited = false;
+    if (changed === 'missing-exit') report.cleanup.processExited = null;
+    if (changed === 'foreign') facts.errors[0].exception!.sourceURL = 'https://external.invalid/hud.js';
+    if (changed === 'no-url') facts.errors[0].exception!.sourceURL = '';
+    if (changed === 'bad-location') facts.errors[0].exception!.line = -1;
+    if (changed === 'unmatched') facts.errors[0].error = 'another raw error';
+    if (changed === 'no-actual') failed.actual = null;
+    if (changed === 'observation-error') failed.failure = 'observation_error';
+    if (changed === 'undelivered') { const input = report.steps.find(row => row.kind === 'mouse-click')!; input.outcome = 'failed'; input.actual = null; }
+    if (changed === 'wrong-step') (facts.termination as Extract<BrowserFailureFacts['termination'], { kind: 'observation_budget' }>).stepId = 'another-check';
+    if (changed === 'duplicate-exception') {
+      report.errors.push('Page: duplicate exception');
+      facts.errors.push({ ...facts.errors[0], errorIndex: report.errors.length - 1, error: report.errors.at(-1)! });
+    }
+    if (changed === 'invalid-completed') failed.observation!.completed = -1;
+    assert.ok(diagnoseBrowser(task, report, plan, 'browser.json').issues.every(issue => issue.classification === 'insufficient_evidence'));
+  });
+
+test('attributable browser failure enters the existing bounded code repair policy', () => {
+  const { task, plan, report } = attributedBrowser();
+  task.dependsOn = []; task.state = 'failed'; task.stateReason = 'Host check failed'; task.attempts[0].outcome = 'failed';
+  task.acceptance = task.acceptanceIds.map(acceptanceId => ({ ...task.acceptance[0], acceptanceId }));
+  const requirement = requirementFixture() as RequirementContract;
+  requirement.acceptance = task.acceptance.map(item => ({ ...requirement.acceptance[0], ...item }));
+  const snapshot = { formatVersion: 1, revision: 1, run: runFixture(), ledger: ledgerFixture(), tasks: [task], requests: [], stopReason: null, events: [] } as RunSnapshot;
+  snapshot.ledger.entries = []; snapshot.run.fees = { settledMicroCny: 0, reservedMicroCny: 0, unknownRequestIds: [] };
+  const diagnostic = diagnoseBrowser(task, report, plan, 'browser.json'), failure = diagnosedFailure(task, diagnostic)!;
+  task.attempts[0].failure = failureRecord(failure.issues);
+  const feedback = buildRepairFeedback(task, failure, 'host_verification', snapshot);
+  const decision = assessRepair({ snapshot, requirement, history: [feedback], policy: DEFAULT_REPAIR_POLICY,
+    now: Date.parse('2026-10-01T01:00:00Z'), estimate: { costMicroCny: 100, durationMs: 1000, cleanupMs: 100 } });
+  assert.equal(decision.action, 'repair'); assert.equal(decision.reason, 'code_defect');
+  assert.equal(DEFAULT_REPAIR_POLICY.maxRepairTasks, 1); assert.equal(task.state, 'failed'); assert.equal(report.outcome, 'failed');
+});
+
+test('actual Edge attributes a HUD exception and cancels a local observation race after normal input', { timeout: 30_000 }, async t => {
+  // Diagnostic instrumentation delays a later read; this fixture is not a generated-game acceptance result.
+  const html = '<!doctype html><meta charset="utf-8"><strong id="status">准备开始</strong><strong id="wave">0/2</strong><button id="start">开始游戏</button>'
+    + '<script>let reads=0;Object.defineProperty(window,"cosmosDebug",{configurable:false,get(){'
+    + 'if(++reads>1){const until=performance.now()+500;while(performance.now()<until){}}'
+    + 'return Object.freeze({status:document.querySelector("#status").textContent});}})</script><script src="/src/hud.js"></script>';
+  const hud = 'const wave=document.querySelector(\'[data-testid="wave"]\');if(wave===null)throw new Error(\'HUD element [data-testid="wave"] is missing\');'
+    + 'document.querySelector("#start").addEventListener("click",()=>{document.querySelector("#status").textContent="防守中"})';
+  const server = createServer((request, response) => {
+    response.setHeader('Content-Type', request.url === '/src/hud.js' ? 'text/javascript; charset=utf-8' : 'text/html; charset=utf-8');
+    response.end(request.url === '/src/hud.js' ? hud : html);
+  });
+  await new Promise<void>(done => server.listen(0, '127.0.0.1', done));
+  t.after(async () => { server.closeAllConnections(); await new Promise<void>(done => server.close(() => done())); });
+  const address = server.address(); assert.ok(address && typeof address !== 'string');
+  const plan: AcceptancePlan = { formatVersion: '1.0.0', projectId: 'cos32-fixture', taskId: 'fixture-code', runId: `offline-${Date.now()}`, reportId: 'hud-local-budget', specVersion: '1.0',
+    artifact: { artifactId: 'hud-fixture', version: 'v1', location: 'tests/e2e/diagnostics.test.ts' }, url: `http://127.0.0.1:${address.port}/`,
+    viewport: { width: 1280, height: 720 }, acceptanceIds: ['PILOT-START'], steps: [
+      { id: 'ready', kind: 'assert', acceptanceId: 'PILOT-START', observation: { kind: 'text', selector: '#status' }, expected: '准备开始', timeoutMs: 1000 },
+      { id: 'start', kind: 'mouse-click', selector: '#start', x: 0.5, y: 0.5 },
+      { id: 'status', kind: 'wait-for', acceptanceId: 'PILOT-START', observation: { kind: 'debug', path: ['status'] }, expected: '防守中', timeoutMs: 150 },
+      { id: 'after-race', kind: 'mouse-click', selector: '#start', x: 0.5, y: 0.5 },
+    ] };
+  const evidenceRoot = new URL('../../.cosmos/diagnostics/', import.meta.url);
+  const report = await runAcceptance(plan, { evidenceRoot: fileURLToPath(evidenceRoot), channel: 'msedge', env: filteredChildEnvironment(process.env), timeoutMs: 15_000 });
+  console.log(`COS32 Edge fixture: ${JSON.stringify({ version: report.browser.version, cleanup: report.cleanup, errors: report.errors, failureFacts: report.failureFacts, reportPath: report.reportPath })}`);
+  assert.equal(report.outcome, 'failed'); assert.equal(report.steps[1].actual, 'input delivered');
+  assert.equal(report.steps[2].failure, 'observation_budget'); assert.equal(report.steps[2].actual, '准备开始');
+  assert.equal(report.steps[3].outcome, 'skipped'); assert.equal(report.cleanup.forced, true); assert.equal(report.cleanup.processExited, true);
+  assert.throws(() => process.kill(report.cleanup.browserPid!, 0));
+  assert.equal(report.failureFacts!.errors[0].kind, 'page_exception');
+  assert.equal(report.failureFacts!.errors[0].exception!.sourceURL, `${plan.url}src/hud.js`);
+  const task = taskFixture() as TaskContract; task.acceptanceIds = plan.acceptanceIds;
+  const diagnostic = diagnoseBrowser(task, report, plan, report.reportPath);
+  assert.equal(diagnostic.issues.length, 1); assert.equal(diagnostic.issues[0].classification, 'code_defect');
+  assert.equal(diagnostic.issues[0].checkId, 'browser/status');
+  const persisted = JSON.parse(await readFile(new URL(report.reportPath, evidenceRoot), 'utf8'));
+  assert.deepEqual(persisted, report); assert.equal(persisted.outcome, 'failed');
 });
 
 test('actual normal-input browser failure maps to a stable defect while passed readiness is only a progress witness', { timeout: 30_000 }, async t => {
