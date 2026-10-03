@@ -24,7 +24,7 @@ import { executionWindowView, taskWindowBinding } from './execution-window.ts';
 import { requireContinuationTask } from './continuation-validation.ts';
 import { requireContinuationInputs } from './continuation-inputs.ts';
 import { validateExecutionInput, validateExecutionRequirement } from '../roles/execution-input.ts';
-import type { ExecutionRequirement } from '../roles/execution-input.ts';
+import type { ExecutionRequirement, ValidationRequirement } from '../roles/execution-input.ts';
 import { requireValidationScope, validationJournalBinding } from './validation-scope.ts';
 import type { ValidationExecutionBinding } from './validation-scope.ts';
 import { currentValidationCase, requireValidationTask, validationRole } from './validation-validation.ts';
@@ -457,14 +457,28 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       if (verdict.verdict === 'approved') requirePassingEvidence(task, requirement, verdict.evidenceIds);
       const attempt = task.attempts.at(-1)!;
       if (continuing && attempt.outcome === 'passed' && attempt.endedAt !== review.completedAt) throw new RecoveryBlocked('Completed attempt time conflicts with the original verdict receipt.');
-      attempt.endedAt = review.completedAt; attempt.outcome = 'passed';
-      task.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;
-      if (codingConcerns && verdict.verdict === 'approved') task.handoff.uncertainty = [];
-      await save(task);
-      task.review = { reviewerId: review.reviewerId, contextId: review.contextId, inputVersions: verdict.inputVersions, verdict: verdict.verdict, evidenceIds: verdict.evidenceIds };
-      task.state = verdict.verdict === 'approved' ? 'passed' : 'needs_changes';
-      await validate(task);
-      await controller.saveTask(task, { role: 'reviewer', actorId: review.reviewerId });
+      if (codingConcerns) {
+        const expectedPrevious = structuredClone(task), completion = structuredClone(task);
+        completion.attempts.at(-1)!.endedAt = review.completedAt; completion.attempts.at(-1)!.outcome = 'passed';
+        completion.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;
+        if (verdict.verdict === 'approved') completion.handoff.uncertainty = [];
+        const reviewed = structuredClone(completion);
+        reviewed.review = { reviewerId: review.reviewerId, contextId: review.contextId, inputVersions: verdict.inputVersions, verdict: verdict.verdict, evidenceIds: verdict.evidenceIds };
+        reviewed.state = verdict.verdict === 'approved' ? 'passed' : 'needs_changes';
+        await validate(reviewed);
+        await controller.saveValidationReviewCompletion({ caseId: options.validation!.caseId, windowId: options.validation!.windowId,
+          requirement: requirement as ValidationRequirement, expectedPrevious, completion, reviewed,
+          reviewerId: review.reviewerId, contextId: review.contextId });
+        Object.assign(task, reviewed);
+      } else {
+        attempt.endedAt = review.completedAt; attempt.outcome = 'passed';
+        task.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;
+        await save(task);
+        task.review = { reviewerId: review.reviewerId, contextId: review.contextId, inputVersions: verdict.inputVersions, verdict: verdict.verdict, evidenceIds: verdict.evidenceIds };
+        task.state = verdict.verdict === 'approved' ? 'passed' : 'needs_changes';
+        await validate(task);
+        await controller.saveTask(task, { role: 'reviewer', actorId: review.reviewerId });
+      }
       if (task.state === 'needs_changes') await persistFeedback(task, undefined, 'independent_review', await controller.read());
       if (task.state === 'passed') { available.push(...task.artifacts); validatedDependencies.add(task.taskId); }
     } catch (error) {

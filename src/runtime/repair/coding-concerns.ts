@@ -76,6 +76,7 @@ export function parseCodingConcernReview(text: string, task: TaskContract, requi
   const value = decodeModelJson(text) as ReviewProposal;
   if (!value || Object.keys(value).some(key => !['verdict', 'inputVersions', 'evidenceIds', 'findings', 'concernResolutions'].includes(key))) throw new Error('Invalid coding concern review fields.');
   const { concernResolutions, ...base } = value; parseOriginal(JSON.stringify(base), task);
+  if (new Set(value.evidenceIds).size !== value.evidenceIds.length) throw new Error('Coding concern review evidence IDs must be unique.');
   requireCodingHostEvidence(task, packet.capturedAt);
   if (!Array.isArray(concernResolutions) || concernResolutions.length !== packet.concerns.length) throw new Error('Independent review must address every original coding concern.');
   const seen = new Set<string>();

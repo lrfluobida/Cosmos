@@ -10,6 +10,8 @@ import { claimValidationCase, verifyOperatorDecision, verifyValidationIdentity }
 import { applyValidationAllocationClosure, prepareValidationAllocationClosure } from './validation-allocations.ts';
 import { currentValidationCase, requireValidationRepairSource, requireValidationTask, validationOutputCap, validationReservation, validationRole, validationUsage } from './validation-validation.ts';
 import { sameValue } from '../contracts/validation.ts';
+import { validateExecutionInput } from '../roles/execution-input.ts';
+import type { ValidationRequirement } from '../roles/execution-input.ts';
 import type { OpenValidationCaseOptions, ValidationAuthority, ValidationCaseWindow, ValidationPurpose, ValidationRequestMetadata } from './validation-types.ts';
 import { requireContinuationTask } from './continuation-validation.ts';
 import { OwnedWork } from './recovery/owned-work.ts';
@@ -389,6 +391,42 @@ export class RunController {
         next.tasks.push(value);
       }
       this.event(next, 'task_saved', null, `Task contract persisted: ${value.taskId}`);
+      await this.commit(next);
+    });
+  }
+
+  /** Complete only the current validation coding review. Both existing actor
+   * transitions are checked before the single final snapshot publication. */
+  async saveValidationReviewCompletion(input: {
+    caseId: string; windowId: string; requirement: ValidationRequirement;
+    expectedPrevious: TaskContract; completion: TaskContract; reviewed: TaskContract; reviewerId: string; contextId: string;
+  }): Promise<void> {
+    const value = structuredClone(input);
+    return this.serial(async () => {
+      if (this.snapshot.formatVersion !== 3 || !this.validationContext || this.validationContext.accountingOnly) throw new Error('Atomic review completion requires the active validation owner.');
+      this.requireValidationCase(value.caseId, value.windowId);
+      const next = structuredClone(this.snapshot), window = currentValidationCase(next), previous = next.tasks.find(task => task.taskId === value.expectedPrevious.taskId);
+      const role = validationRole(window, value.expectedPrevious.taskId), { sourceSha256: _hash, ...decision } = window.operatorDecision;
+      if (!previous || !sameValue(previous, value.expectedPrevious) || previous.state !== 'awaiting_review' || previous.review.verdict !== 'pending'
+        || previous.attempts.at(-1)?.outcome !== 'running' || !(role === 'coding' || role === 'repair' && window.repair?.sourceTaskId === window.quote.declaration.grants.coding.taskId)
+        || !this.validationTaskAuthority(previous.taskId, 'reviewer').executionAllowed || next.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new Error('Atomic coding completion requires the exact pending task and reconciled current case.');
+      const data = value.requirement.validation;
+      if (!data || data.runId !== next.run.runId || data.ledgerId !== next.ledger.ledgerId || data.caseId !== window.caseId || data.windowId !== window.windowId
+        || data.reviewedPlatformSha !== window.quote.identity.reviewedPlatformSha || data.frozenCaseInputHash !== window.quote.identity.frozenCaseInputHash
+        || !sameValue(data.decision, decision)) throw new Error('Atomic coding completion requires its exact fixed validation requirement.');
+      if (!value.reviewerId.trim() || !value.contextId.trim() || value.reviewerId === previous.authorId || value.contextId === previous.context.contextId
+        || value.reviewed.review.reviewerId !== value.reviewerId || value.reviewed.review.contextId !== value.contextId
+        || !['passed', 'needs_changes'].includes(value.reviewed.state) || (value.reviewed.state === 'passed') !== (value.reviewed.review.verdict === 'approved')
+        || value.completion.attempts.at(-1)?.outcome !== 'passed' || !sameValue(value.reviewed.evidence, previous.evidence)) throw new Error('Atomic coding completion requires the exact independent final review.');
+      for (const key of Object.keys(previous) as (keyof TaskContract)[]) if (!['attempts', 'handoff'].includes(key) && !sameValue(value.completion[key], previous[key])) throw new Error('Atomic completion can only finalize the pending attempt and handoff.');
+      if (!sameValue(value.completion.handoff.completed, previous.handoff.completed) || value.completion.handoff.resumeFrom !== previous.handoff.resumeFrom) throw new Error('Atomic completion must retain the original author handoff.');
+      requireValidationTask(next, value.completion); requireValidationTask(next, value.reviewed);
+      const issues = [...validateTaskUpdate(previous, value.completion, { role: 'system', actorId: 'orchestrator' }),
+        ...validateTaskUpdate(value.completion, value.reviewed, { role: 'reviewer', actorId: value.reviewerId }),
+        ...validateExecutionInput({ requirement: value.requirement, task: value.reviewed, ledger: next.ledger, run: next.run })];
+      if (issues.length) throw new Error(`Invalid atomic coding review completion: ${issues.map(issue => issue.message).join('; ')}`);
+      next.tasks[next.tasks.indexOf(previous)] = value.reviewed;
+      this.event(next, 'task_saved', null, `Task contract persisted: ${previous.taskId}`);
       await this.commit(next);
     });
   }

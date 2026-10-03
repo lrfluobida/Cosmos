@@ -34,7 +34,7 @@ test('typed resolutions accept current passed host evidence and explicit current
 
 for (const defect of ['missing', 'duplicate', 'wrong-id', 'wrong-text', 'empty-rationale', 'unknown-ac', 'duplicate-ac', 'wrong-version',
   'old-window-evidence', 'before-capture', 'future-proof', 'wrong-source', 'unknown-evidence', 'unselected-evidence', 'observed-proof', 'failed-host', 'unresolved', 'extra-field',
-  'fixed-output', 'fixed-old-source', 'fixed-evidence', 'empty-proof', 'malformed'] as const) test(`concern resolution rejects ${defect}`, () => {
+  'fixed-output', 'fixed-old-source', 'fixed-evidence', 'empty-proof', 'malformed', 'duplicate-top-evidence'] as const) test(`concern resolution rejects ${defect}`, () => {
   const f = setup(), row = f.verdict.concernResolutions![0];
   if (defect === 'missing') f.verdict.concernResolutions = [];
   else if (defect === 'duplicate') f.verdict.concernResolutions!.push(structuredClone(row));
@@ -60,6 +60,7 @@ for (const defect of ['missing', 'duplicate', 'wrong-id', 'wrong-text', 'empty-r
     else if (defect === 'fixed-old-source') row.inputVersions = [{ ...f.requirement.sources[0], version: 'old' }];
     else row.evidenceIds = ['evidence-1'];
   } else if (defect === 'empty-proof') { row.evidenceIds = []; row.evidenceRefs = []; }
+  else if (defect === 'duplicate-top-evidence') f.verdict.evidenceIds.push('evidence-1');
   else (f.verdict as any).concernResolutions = [null];
   assert.throws(() => f.parse());
 });

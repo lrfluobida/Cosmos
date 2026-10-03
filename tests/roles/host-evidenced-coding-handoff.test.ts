@@ -9,6 +9,8 @@ import { planTaskDag } from '../../src/roles/planner.ts';
 import { createRoleBudget } from '../../src/roles/provider-budget.ts';
 import { requestReservation } from '../../probes/e2e/admission.ts';
 import { RecoveryBlocked, TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
+import { SnapshotStore } from '../../src/runtime/store.ts';
+import type { RunSnapshot } from '../../src/runtime/run.ts';
 import { HostFailure } from '../../src/runtime/repair/feedback.ts';
 import { assessRepair, DEFAULT_REPAIR_POLICY } from '../../src/runtime/repair/policy.ts';
 import { validationRoutingFixture } from '../runtime/validation-routing.fixture.ts';
@@ -51,8 +53,11 @@ async function setup(t: test.TestContext, mode = 'approved', enabled?: 0 | 1) {
       if (input.role !== 'reviewer' || !input.task.taskId.endsWith('-coding')) return role;
       stages.push('review');
       assert.deepEqual(input.task.handoff.uncertainty, mode === 'scope' ? [...native.uncertainty, movedConcern] : native.uncertainty);
-      return { ...role, ...(mode === 'review-context' ? { contextId: input.task.context.contextId } : mode === 'review-author' ? { actorId: input.task.authorId } : {}), async prompt(text, supplied) {
+      return { ...role, ...(mode === 'review-context' ? { contextId: input.task.context.contextId } : mode === 'review-author' ? { actorId: input.task.authorId } : mode === 'invalid-final' ? { actorId: '' } : {}), async prompt(text, supplied) {
         reviewCalls++; await role.prompt(text, supplied);
+        const current = (await f.controller.read()).tasks.find(task => task.taskId === input.task.taskId)!;
+        assert.deepEqual(current.handoff.uncertainty, mode === 'scope' ? [...native.uncertainty, movedConcern] : native.uncertainty);
+        assert.equal(current.attempts.at(-1)!.outcome, 'running');
         const packet = (input as any).codingConcernReview;
         const concernResolutions = packet?.concerns.map((concern: any) => ({ concernId: concern.concernId, concernText: concern.text,
           status: mode === 'unresolved' || mode === 'requested' ? 'unresolved' : 'resolved', basis: 'host_evidence',
@@ -61,7 +66,8 @@ async function setup(t: test.TestContext, mode = 'approved', enabled?: 0 | 1) {
           evidenceIds: input.task.evidence.filter(e => e.outcome === 'passed').map(e => e.evidenceId),
           evidenceRefs: input.task.evidence.filter(e => e.outcome === 'passed').map(e => e.source) }));
         return { text: mode === 'invalid-json' ? '{}' : JSON.stringify({ verdict: mode === 'requested' ? 'changes_requested' : 'approved', inputVersions: [...input.task.inputs, ...input.task.artifacts],
-          evidenceIds: input.task.evidence.map(e => e.evidenceId), findings: mode === 'requested' ? ['Current concern remains unresolved.'] : [], ...(mode === 'missing-resolutions' ? {} : { concernResolutions }) }) };
+          evidenceIds: mode === 'duplicate-evidence' || mode === 'duplicate-corrected' && reviewCalls === 1 ? [input.task.evidence[0].evidenceId, input.task.evidence[0].evidenceId] : input.task.evidence.map(e => e.evidenceId),
+          findings: mode === 'requested' ? ['Current concern remains unresolved.'] : [], ...(mode === 'missing-resolutions' ? {} : { concernResolutions }) }) };
       } };
     },
     capture: async task => { if (task.taskId.endsWith('-coding')) stages.push('capture'); return f.capture(task); },
@@ -151,4 +157,65 @@ test('passed concern mapping tampering cannot bypass stored review during reuse'
 test('pending unknown author charge blocks capture and host activity under the new policy', async t => {
   const f = await setup(t, 'unknown-charge', 1); await executeTaskDag(f.options);
   assert.deepEqual(f.stages, []); assert.equal(f.counts().reviewCalls, 0);
+});
+
+for (const mode of ['duplicate-evidence', 'duplicate-corrected', 'invalid-final']) test(`new policy keeps raw pending concerns until a valid final decision: ${mode}`, async t => {
+  const f = await setup(t, mode, 1); await executeTaskDag(f.options); const task = await f.coding();
+  if (mode === 'duplicate-corrected') {
+    assert.equal(task.state, 'passed'); assert.equal(f.counts().reviewCalls, 2); assert.deepEqual(task.handoff.uncertainty, []);
+  } else {
+    assert.equal(task.state, 'waiting_user'); assert.equal(task.review.verdict, 'pending');
+    assert.notEqual(task.attempts.at(-1)!.outcome, 'passed'); assert.deepEqual(task.handoff.uncertainty.slice(0, native.uncertainty.length), native.uncertainty);
+    if (mode === 'duplicate-evidence') assert.equal(f.counts().reviewCalls, 2);
+  }
+});
+
+test('valid new coding completion publishes attempt, concern resolution and independent verdict together', async t => {
+  const f = await setup(t, 'approved', 1), write = SnapshotStore.prototype.write;
+  const snapshots: any[] = [];
+  t.mock.method(SnapshotStore.prototype, 'write', async function(this: SnapshotStore, value: Parameters<SnapshotStore['write']>[0]) {
+    await write.call(this, value);
+    const task = (value as RunSnapshot).tasks.find(task => task.taskId.endsWith('-coding'));
+    if (task) snapshots.push(structuredClone(task));
+  });
+  await executeTaskDag(f.options); assert.equal((await f.coding()).state, 'passed');
+  const completed = snapshots.filter(task => task.attempts.at(-1)?.outcome === 'passed'); assert.equal(completed.length, 1);
+  assert.equal(completed[0].review.verdict, 'approved'); assert.equal(completed[0].state, 'passed'); assert.deepEqual(completed[0].handoff.uncertainty, []);
+});
+
+test('atomic coding completion rejects stale task, authority, identity and final contracts without a snapshot write', async t => {
+  const f = await setup(t, 'approved', 1), write = TaskJournal.prototype.write;
+  const crash = mock.method(TaskJournal.prototype, 'write', async function(this: TaskJournal, name: Parameters<TaskJournal['write']>[0], attemptId: string, value: any) {
+    await write.call(this, name, attemptId, value);
+    if (name === 'review' && value.verdict?.concernResolutions) throw new RecoveryBlocked('Offline interruption before final transaction.');
+  });
+  await executeTaskDag(f.options); crash.mock.restore();
+  const pending = await f.coding(), review = (await f.receipt('review')).value;
+  const completion = structuredClone(pending);
+  completion.attempts.at(-1)!.endedAt = review.completedAt; completion.attempts.at(-1)!.outcome = 'passed'; completion.handoff.remaining = []; completion.handoff.uncertainty = [];
+  const reviewed = structuredClone(completion);
+  reviewed.review = { reviewerId: review.reviewerId, contextId: review.contextId, inputVersions: review.verdict.inputVersions, verdict: 'approved', evidenceIds: review.verdict.evidenceIds }; reviewed.state = 'passed';
+  const input = { caseId: f.window.caseId, windowId: f.window.windowId, requirement: f.requirement, expectedPrevious: pending, completion, reviewed,
+    reviewerId: review.reviewerId, contextId: review.contextId };
+  const before = await f.controller.read();
+  for (const mode of ['stale-task', 'case', 'window', 'role', 'actor', 'context', 'requirement', 'system-scope', 'final-contract']) {
+    const invalid = structuredClone(input);
+    if (mode === 'stale-task') invalid.expectedPrevious.handoff.uncertainty = [];
+    else if (mode === 'case') invalid.caseId = 'old-case';
+    else if (mode === 'window') invalid.windowId = 'old-window';
+    else if (mode === 'role') invalid.expectedPrevious = before.tasks.find(task => task.taskId.endsWith('-design'))!;
+    else if (mode === 'actor') invalid.reviewerId = pending.authorId;
+    else if (mode === 'context') invalid.contextId = pending.context.contextId;
+    else if (mode === 'requirement') invalid.requirement.validation.frozenCaseInputHash = 'changed';
+    else if (mode === 'system-scope') invalid.completion.evidence = [];
+    else invalid.reviewed.review.evidenceIds.push(invalid.reviewed.review.evidenceIds[0]);
+    await assert.rejects(f.controller.saveValidationReviewCompletion(invalid)); assert.deepEqual(await f.controller.read(), before);
+  }
+  const budget = createRoleBudget({ controller: f.controller, taskId: pending.taskId, evidenceDirectory: pending.attempts[0].sessionRef,
+    validation: { caseId: f.window.caseId, windowId: f.window.windowId, purpose: 'reviewer' } });
+  const request = { requestId: 'offline-completion-pending', modelId: 'deepseek-flash' as const, maxOutputTokens: 16384, inputBytes: 100, hasImages: false };
+  await budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: requestReservation(request) });
+  const unresolved = await f.controller.read(); await assert.rejects(f.controller.saveValidationReviewCompletion(input)); assert.deepEqual(await f.controller.read(), unresolved);
+  await f.controller.stop('Offline cancelled completion');
+  const stopped = await f.controller.read(); await assert.rejects(f.controller.saveValidationReviewCompletion(input)); assert.deepEqual(await f.controller.read(), stopped);
 });
