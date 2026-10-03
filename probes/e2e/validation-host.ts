@@ -72,6 +72,6 @@ export function createNativeValidationHost(): ValidationRunHost {
       if (!(await Promise.all(edge.map(path => access(path).then(() => true, () => false)))).some(Boolean)) throw new Error('The fixed validation browser is unavailable.');
       await regularFile(repository, 'templates/2d/package-lock.json');
     },
-    execute: input => generateValidationCase(input, createValidationHostIO(input), undefined, { authorProtocolCorrections: 1 }),
+    execute: input => generateValidationCase(input, createValidationHostIO(input), undefined, { authorProtocolCorrections: 1, codingHandoffClarifications: 1 }),
   };
 }

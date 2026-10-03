@@ -14,10 +14,10 @@ test('actual main preflight preserves snapshot bytes, mtime and roots without op
   const before = await readFile(path), stamp = (await stat(path)).mtimeMs, names = await readdir(f.ledgerRoot);
   const result = await entry.preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] });
   assert.equal(result.outcome, 'ready'); assert.equal(result.quote.activationAllowed, false); assert.equal(result.quote.basis.stopReason?.code, 'deadline');
-  assert.equal(result.quote.basis.allocatedMicroCny, 85_534_098); assert.equal(result.quote.declaration.caseId, 'cos20-native-validation-5');
+  assert.equal(result.quote.basis.allocatedMicroCny, 86_435_139); assert.equal(result.quote.declaration.caseId, 'cos20-native-validation-6');
   assert.equal(result.quote.declaration.formatVersion, 'validation-declaration-2'); assert.equal(result.quote.declaration.limits.maxRequests, 80);
   assert.equal(result.quote.basis.originalStartedAt, f.originalSnapshot.run.originalStartedAt);
-  assert.equal(result.quote.basis.committedMicroCny, 2_054_460); assert.equal(result.quote.basis.originalDeadlineAt, '2026-10-01T18:16:16.857Z');
+  assert.equal(result.quote.basis.committedMicroCny, 2_955_501); assert.equal(result.quote.basis.originalDeadlineAt, '2026-10-01T18:16:16.857Z');
   assert.deepEqual(await readFile(path), before); assert.equal((await stat(path)).mtimeMs, stamp); assert.deepEqual(await readdir(f.ledgerRoot), names);
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
@@ -34,7 +34,7 @@ test('credential or host prerequisites fail before receipt, case claim or clock 
 
 test('startup failure after exact operator claim consumes the case with zero model requests and a safe preserved report', async t => {
   assert.equal(typeof entry.runValidationWithHost, 'function'); const f = await validationRunFixture(t), before = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8'));
-  assert.ok(f.caseOne); assert.ok(f.caseTwo); assert.ok(f.caseThree); assert.ok(f.caseFour);
+  assert.ok(f.caseOne); assert.ok(f.caseTwo); assert.ok(f.caseThree); assert.ok(f.caseFour); assert.ok(f.caseFive);
   const originalOperatorBytes = await readFile(join(f.ledgerRoot, f.caseOne.decision.source.location)), secondOperatorBytes = await readFile(join(f.ledgerRoot, f.caseTwo.decision.source.location));
   let prepared = 0, executed = 0;
   const result = await entry.runValidationWithHost({ repository: f.repository, args: f.args, host: {
@@ -44,17 +44,18 @@ test('startup failure after exact operator claim consumes the case with zero mod
   assert.equal(JSON.stringify(result).includes('private exception'), false);
   const state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8')), window = state.validation.cases.find((item: any) => item.caseId === VALIDATION_CASE.caseId);
   assert.deepEqual(state.ledger.entries, before.ledger.entries); assert.deepEqual(state.run.humanDecisions, []); assert.equal(state.run.originalDeadlineAt, before.run.originalDeadlineAt);
+  assert.deepEqual(state.ledger.allocationClosures, before.ledger.allocationClosures); assert.deepEqual(state.allocationClosureDecisions, before.allocationClosureDecisions);
   const receipt = JSON.parse(await readFile(join(f.ledgerRoot, window.operatorDecision.source.location), 'utf8'));
   assert.equal(receipt.kind, 'operator_validation'); assert.deepEqual(receipt.quote, window.quote); assert.equal(Object.hasOwn(receipt, 'confirmed'), false);
   assert.equal(window.stopReason.code, 'manual'); await assert.rejects(readFile(join(f.ledgerRoot, '.controller.lock')), { code: 'ENOENT' });
-  assert.ok(f.caseOne); assert.equal(state.validation.currentCaseId, window.caseId); assert.equal(state.validation.cases.length, 5);
-  for (const prior of [f.caseOne, f.caseTwo, f.caseThree, f.caseFour]) {
+  assert.ok(f.caseOne); assert.equal(state.validation.currentCaseId, window.caseId); assert.equal(state.validation.cases.length, 6);
+  for (const prior of [f.caseOne, f.caseTwo, f.caseThree, f.caseFour, f.caseFive]) {
     assert.notEqual(window.windowId, prior.window.windowId); assert.notEqual(window.startedAt, prior.window.startedAt);
-    assert.equal(prior.declaration.formatVersion, [f.caseThree, f.caseFour].includes(prior) ? 'validation-declaration-2' : 'validation-declaration-1'); assert.equal(prior.declaration.limits.maxRequests, [f.caseThree, f.caseFour].includes(prior) ? 80 : 40);
+    assert.equal(prior.declaration.formatVersion, [f.caseThree, f.caseFour, f.caseFive].includes(prior) ? 'validation-declaration-2' : 'validation-declaration-1'); assert.equal(prior.declaration.limits.maxRequests, [f.caseThree, f.caseFour, f.caseFive].includes(prior) ? 80 : 40);
   }
   assert.equal(Date.parse(window.deadlineAt) - Date.parse(window.startedAt), VALIDATION_CASE.limits.durationMs);
   assert.notEqual(window.operatorDecision.decisionId, f.caseOne.decision.decisionId);
-  assert.deepEqual(state.validation.cases.slice(0, 4), before.validation.cases); assert.deepEqual(state.run, { ...before.run,
+  assert.deepEqual(state.validation.cases.slice(0, 5), before.validation.cases); assert.deepEqual(state.run, { ...before.run,
     taskIds: [...before.run.taskIds, ...Object.values(VALIDATION_CASE.grants).map(grant => grant.taskId)] });
   assert.deepEqual(state.stopReason, before.stopReason); assert.deepEqual(state.requests, before.requests); assert.deepEqual(state.tasks, before.tasks);
   assert.deepEqual(state.events.slice(0, before.events.length), before.events);
@@ -62,14 +63,17 @@ test('startup failure after exact operator claim consumes the case with zero mod
   assert.deepEqual(await RunController.claimValidationCase(f.caseOne), before.validation.cases[0], 'Exact case 1 decision stays idempotent and cannot reopen it');
   assert.deepEqual(await RunController.claimValidationCase(f.caseTwo), before.validation.cases[1], 'Exact case 2 decision stays idempotent and cannot reopen it');
   assert.deepEqual(await RunController.claimValidationCase(f.caseFour), before.validation.cases[3], 'Exact consumed case 4 decision stays idempotent and cannot reopen it');
+  assert.deepEqual(await RunController.claimValidationCase(f.caseFive), before.validation.cases[4], 'Exact consumed case 5 decision stays idempotent and cannot reopen it');
   const final = await readFile(join(f.ledgerRoot, 'snapshot.json'));
   await assert.rejects(prepareValidationCase({ ...f.caseOne, declaration: f.caseOne.declaration }), /claimed|reset|rename/i);
   await assert.rejects(prepareValidationCase({ ...f.caseFour, declaration: f.caseFour.declaration }), /claimed|reset|rename/i);
+  await assert.rejects(prepareValidationCase({ ...f.caseFive, declaration: f.caseFive.declaration }), /claimed|reset|rename/i);
   const claim = { ...f.caseOne, now: Date.now, quote: window.quote, decision: { ...window.operatorDecision } }; delete (claim.decision as any).sourceSha256;
-  assert.deepEqual(await RunController.claimValidationCase(claim), window, 'Exact case 5 decision stays idempotent after zero-call failure');
+  assert.deepEqual(await RunController.claimValidationCase(claim), window, 'Exact case 6 decision stays idempotent after zero-call failure');
   assert.deepEqual(await readFile(join(f.ledgerRoot, f.caseOne.decision.source.location)), originalOperatorBytes);
   assert.deepEqual(await readFile(join(f.ledgerRoot, f.caseTwo.decision.source.location)), secondOperatorBytes);
   assert.deepEqual(JSON.parse(await readFile(join(f.ledgerRoot, f.caseFour.decision.source.location), 'utf8')).quote, before.validation.cases[3].quote);
+  assert.deepEqual(JSON.parse(await readFile(join(f.ledgerRoot, f.caseFive.decision.source.location), 'utf8')).quote, before.validation.cases[4].quote);
   const changedDecision = { ...f.caseOne.decision, decisionId: 'offline-case-one-restart', source: { ...f.caseOne.decision.source, location: 'offline-rejected-restart.json' } };
   await writeFile(join(f.ledgerRoot, changedDecision.source.location), JSON.stringify({ formatVersion: 'operator-validation-decision-1', kind: changedDecision.kind,
     decisionId: changedDecision.decisionId, actorId: changedDecision.actorId, decidedAt: changedDecision.decidedAt, sourceRefs: changedDecision.sourceRefs, quote: f.caseOne.quote }), 'utf8');
@@ -78,9 +82,9 @@ test('startup failure after exact operator claim consumes the case with zero mod
   assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), final);
 });
 
-for (const caseOne of ['absent', 'unstopped'] as const) test(`case 5 requires original case 1 history and stopped case 4 profile: ${caseOne}`, async t => {
+for (const caseOne of ['absent', 'unstopped'] as const) test(`case 6 requires original case 1 history and stopped case 5 profile: ${caseOne}`, async t => {
   const f = await validationRunFixture(t, { caseOne }), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), names = await readdir(f.ledgerRoot);
-  if (caseOne === 'absent') { assert.ok(f.caseThree); assert.ok(f.caseFour); assert.equal(JSON.parse(before.toString('utf8')).validation.currentCaseId, f.caseFour.window.caseId); }
+  if (caseOne === 'absent') { assert.ok(f.caseThree); assert.ok(f.caseFour); assert.ok(f.caseFive); assert.equal(JSON.parse(before.toString('utf8')).validation.currentCaseId, f.caseFive.window.caseId); }
   let prepared = 0;
   await assert.rejects(entry.runValidationWithHost({ repository: f.repository, args: f.args, host: {
     prepare: async () => { prepared++; }, execute: async () => ({ outcome: 'failed', gaps: ['Offline fixture must not execute'] }),
@@ -89,7 +93,7 @@ for (const caseOne of ['absent', 'unstopped'] as const) test(`case 5 requires or
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-for (const caseTwo of ['absent', 'unstopped'] as const) test(`case 5 requires original case 2 explicitly stopped: ${caseTwo}`, async t => {
+for (const caseTwo of ['absent', 'unstopped'] as const) test(`case 6 requires original case 2 explicitly stopped: ${caseTwo}`, async t => {
   const f = await validationRunFixture(t, { caseTwo }), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), names = await readdir(f.ledgerRoot);
   let prepared = 0;
   await assert.rejects(entry.runValidationWithHost({ repository: f.repository, args: f.args, host: {
@@ -99,7 +103,7 @@ for (const caseTwo of ['absent', 'unstopped'] as const) test(`case 5 requires or
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-for (const exposure of ['reserved', 'unknown'] as const) test(`case 5 refuses ${exposure} historical charges before host preparation or new writes`, async t => {
+for (const exposure of ['reserved', 'unknown'] as const) test(`case 6 refuses ${exposure} historical charges before host preparation or new writes`, async t => {
   const f = await validationRunFixture(t, { exposure }), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), names = await readdir(f.ledgerRoot);
   let prepared = 0;
   await assert.rejects(entry.runValidationWithHost({ repository: f.repository, args: f.args, host: {
@@ -109,7 +113,7 @@ for (const exposure of ['reserved', 'unknown'] as const) test(`case 5 refuses ${
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-for (const prerequisite of ['COS-20', 'COS-21']) for (const fault of ['missing', 'duplicate', 'not-ready', 'closed-not-ready', 'wrong-marker', 'not-integrated', 'reviewed-not-ancestor', 'merge-not-ancestor'] as const) test(`${prerequisite} ${fault} refuses case 5 before host preparation or writes`, async t => {
+for (const prerequisite of ['COS-20', 'COS-21']) for (const fault of ['missing', 'duplicate', 'not-ready', 'closed-not-ready', 'wrong-marker', 'not-integrated', 'reviewed-not-ancestor', 'merge-not-ancestor'] as const) test(`${prerequisite} ${fault} refuses case 6 before host preparation or writes`, async t => {
   const f = await validationRunFixture(t), before = await readFile(join(f.ledgerRoot, 'snapshot.json')), names = await readdir(f.ledgerRoot);
   const item = f.mapping.tasks.find(item => item.taskId === prerequisite)!;
   if (fault === 'missing') f.mapping.tasks = f.mapping.tasks.filter(task => task !== item);
