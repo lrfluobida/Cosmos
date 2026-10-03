@@ -47,7 +47,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 真实成本与时延探针 | native case2 请求上限耗尽失败，尚无通过游戏 | case2 40 请求新增保守峰值估算 ¥0.857751，共享累计 ¥1.974153，预留与未知为零；case1 零新增费用，两个 case 与旧实验均已消费 |
 | 任务拆分 | 已发布 | [22 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#23；22 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS-20 offline-verified-awaiting-live，COS-21 complete | 已审 source 与 checks 复用；case2 耗尽 40 请求，design/art passed，coding 未完成。COS-21 source-and-live-publication-verified，#22 已关闭；COS-22/#23 open/not-started，case3 新声明尚未审或执行；COS-18 partial/open，#2/#21 open |
+| 子代理逐项实施 | COS-20 offline-verified-awaiting-live，COS-21 complete | 已审 source 与 checks 复用；case2 耗尽 40 请求，design/art passed，coding 未完成。COS-21 source-and-live-publication-verified，#22 已关闭；COS-22/#23 offline-verified-awaiting-live/open，case3 新声明已审集成，尚未真实 claim 或执行；COS-18 partial/open，#2/#21 open |
 
 ## 开发批次
 
@@ -87,6 +87,7 @@ Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues
 | 08 | COS-01 / #2 投射物静态证据 | codex/cos-01-static-projectiles implementer | cos01_projectiles_reviewer | batch08_merger | 3a20bae 获 PROJECTILE_STATIC_SOURCE_READY，合入 89f8162；三路径一致，保存 JSON 14×3 与 11 短样本检查通过；复用作者及 reviewer 证据，230/221 未冻结 |
 | 08 | COS-21 / #22 Windows 原子发布修复 | cos21_implementer | cos21_reviewer | batch08_merger | 1d03122 获 WINDOWS_PUBLICATION_SOURCE_READY，合入 99e6d87；三路径一致，主线延迟/不可覆盖 2/2、0 skip 与类型检查通过；offline-verified-awaiting-live/open |
 | 08 | COS-20 / #21 Case2 声明与准入 | codex/validation-case-two implementer | 独立 case2 reviewer | batch08_merger | b3ab706 获 CASE_TWO_SOURCE_READY，合入 89085f3；八路径一致，主线零调用新 claim/历史保持与 case1 未停止拒绝 2/2、0 skip；source-ready-newcase2-awaiting-paid/open |
+| 08 | COS-22 / #23 Case3 版本化声明与准入 | codex/validation-case-three implementer | cos22_reviewer | batch08_merger | 27c81b3 获 VERSIONED_CASE_THREE_SOURCE_READY，合入 474a6a9；十路径一致，主线版本边界/只读 quote 历史保持 2/2、0 skip 与源码类型检查通过；offline-verified-awaiting-live/open |
 
 文件归属、测试步骤与合并关口见 [第一批执行计划](docs/plans/2026-10-01-batch-01.md)。
 
@@ -196,11 +197,17 @@ Case2 执行前记录（历史）：Root 已补充实际 E: 工作目录免费 p
 
 本次失败为 request-limit-exhausted：40 次是协调者早期选择的有界准入，不是用户金额或 45 分钟硬上限；费用 ¥0.857751 < ¥5，耗时 6 分 52.315 秒 < 45 分钟。design/art 的真实 host 与独立 review passed，coding 未能在剩余调用内走到 handoff/build。COS-10/COS-20 仍 open/failed，G3/G4 与父 #1 完整目标未通过。Windows publication 的 startup、requirements/template capture 及后续 design/art captures 在实际 case2 全部正常；结合已审最小修复、真实 E: held-handle publisher 和既有边界证据，COS-21 component complete/source-and-live-publication-verified。映射 integrationStatus 使用已获准入支持的 `complete`，reviewStatus 保持准确 WINDOWS_PUBLICATION_SOURCE_READY；原 case1 的具体锁进程仍未知，root 已同步并精确读回 #22 completed/closed。
 
-后续仅准备新独立 case3 的 version 2 声明和请求上限 80 的源级校验，仍沿 ¥5/45 分钟、共享 ¥150/首批 ¥30 与一次 coding repair；尚无已审新源码或新 paid run。旧 case1/case2 的 40 次 quote、已消费结果及费用不修改，不自动恢复；下一任务范围由 root 另行登记，未审源码不写成 READY，未来付费前再次冻结准确 main。
+COS-22 登记时记录（历史）：后续仅准备新独立 case3 的 version 2 声明和请求上限 80 的源级校验，仍沿 ¥5/45 分钟、共享 ¥150/首批 ¥30 与一次 coding repair；尚无已审新源码或新 paid run。旧 case1/case2 的 40 次 quote、已消费结果及费用不修改，不自动恢复；下一任务范围由 root 另行登记，未审源码不写成 READY，未来付费前再次冻结准确 main。
 
 Root 已同步并精确读回 [COS-10 case2 结果](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5965622790)、[COS-20 case2 结果](https://github.com/lrfluobida/Cosmos/issues/21#issuecomment-5965623143) 和 [COS-21 完成证据](https://github.com/lrfluobida/Cosmos/issues/22#issuecomment-5956839404)；#22 GET 确认为 closed/state_reason:completed。关闭仅覆盖 Windows 共享占用模式的 registry 修复及真实 publication 验证，原 case1 locker 仍未知，不代表游戏验收通过。COS-20 源码 integrationStatus 使用通用 offline-verified-awaiting-live，保留 CASE_TWO_SOURCE_READY、b3ab706/89085f3 源码与合并 SHA；实际 case2 的 request-limit-exhausted 结果单列，不因源码状态而改成通过。
 
-[COS-22 / #23](https://github.com/lrfluobida/Cosmos/issues/23) 已由 root 发布、原生关联父 #1 并精确读回（id 5680389595，childCount 22），父正文追加相应 checkbox。任务验证更高调用上限下的完整原生生成；源级前置 COS-20/COS-21 已审集成源码，产出反馈 COS-10/COS-20，不要求失败的 COS-20 先关闭。当前 open/not-started，case3 version 2/80 次声明与准入尚未独立批准或执行；固定输入、模型、输出 caps、五 grants 总额 ¥21、¥5/45 分钟/一次 coding repair、共享 ¥150/首批 ¥30 保持。旧 version 1 的两 case 永远保持 40 次及原 quote/hash、费用、grants、时钟、失败与已消费结果，不全局提高旧记录或手写游戏补足失败。
+COS-22 登记时记录（历史）：[COS-22 / #23](https://github.com/lrfluobida/Cosmos/issues/23) 已由 root 发布、原生关联父 #1 并精确读回（id 5680389595，childCount 22），父正文追加相应 checkbox。任务验证更高调用上限下的完整原生生成；源级前置 COS-20/COS-21 已审集成源码，产出反馈 COS-10/COS-20，不要求失败的 COS-20 先关闭。当前 open/not-started，case3 version 2/80 次声明与准入尚未独立批准或执行；固定输入、模型、输出 caps、五 grants 总额 ¥21、¥5/45 分钟/一次 coding repair、共享 ¥150/首批 ¥30 保持。旧 version 1 的两 case 永远保持 40 次及原 quote/hash、费用、grants、时钟、失败与已消费结果，不全局提高旧记录或手写游戏补足失败。
+
+COS-22 case3 源码 `27c81b327164f1318e0352193d72d923a54f77bd` 经独立 VERSIONED_CASE_THREE_SOURCE_READY 合入 `474a6a9f634a72eb33c26734cf4596aa26dff4ac`，十个批准路径逐字节一致。core 声明类型支持 version 1/2，version 1 永远最多 40、version 2 最多 80，未知版本拒绝；固定新 `cos20-native-validation-3` 使用 validation-declaration-2/80 请求，相同 ¥5/45 分钟/共享 ¥150/首批 ¥30/一次 coding repair、五 grants ¥21、输入/DeepSeek/输出 caps 保持。case3 免费入口要求旧 case1 历史存在且已 stop、current case2 已明确 stop；COS-20 必须为 CASE_TWO_SOURCE_READY/b3ab706/89085f3 已集成祖先，COS-21 为 WINDOWS_PUBLICATION_SOURCE_READY/1d03122/99e6d87 已集成祖先，closed 不能绕过来源门槛。
+
+主线只重跑 version 1/2 请求边界与只读 case3 preflight/原 snapshot bytes/mtime/历史保持两个代表，各 1/1、0 skip（case 72.3 ms/6.575 秒），一次 `npm run typecheck` 通过。作者 9 声明、4 runtime、26 entry 与补充旧 case1 缺失拒绝、flags/scope 代表 2，以及独立 reviewer 4/4、0 skip 证据复用；相关 probe/test 显式 strict 类型证据在相同源码/依赖下复用，不以根构建代替。未重跑全套、fake flow、worker、Browser 或 PS child，未改游戏/host/native engine/资产/完整 AC，没有新增 API 或私有账本/凭据/session 访问。
+
+COS-22 当前 offline-verified-awaiting-live/open，审批和准确 source/merge SHA 只记入该独立任务；COS-20 的 CASE_TWO_SOURCE_READY/b3ab706/89085f3、offline-verified-awaiting-live 及真实 case2 request-limit-exhausted 结果保持，COS-21 complete/closed 保持。原 case1 完整对象、case2 40 次/857,751 micro-CNY/412,315 ms/manual stop/已消费结果与共享 1,974,153 micro-CNY、grants、原时钟和 quote/hash 均不改；G3/G4 与生成目标未通过，case3 尚未真实 claim 或执行。最终文档 main 干净推送后冻结，root 按最新准确 SHA 做免费只读 preflight、官方 CNY 资金准入与真实 operator 决定，以临时内存凭据执行 fixed case3；case3 结束并由 root 明确解除前，不合入任何 docs/source/reference。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

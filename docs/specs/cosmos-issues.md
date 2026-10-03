@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：[COS-22 / #23](https://github.com/lrfluobida/Cosmos/issues/23) 承接 case2 的 40 次请求耗尽，另备独立 case3/version 2/80 次上限；费用、时限、范围和旧案例记录保持，源码尚未批准，未付费执行。
+调用实验：[COS-22 / #23](https://github.com/lrfluobida/Cosmos/issues/23) 承接 case2 的 40 次请求耗尽，独立 case3/version 2/80 次声明已审集成；费用、时限、范围和旧案例记录保持，尚未真实 claim 或付费执行。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -280,7 +280,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 首例结果：native fixed driver `732f3d1` 获独立 NATIVE_DRIVER_SOURCE_READY 并合入 `92e183a`，公开 flags、原账本 owned workers、完整失败快照/反馈认证与一次 coding repair 已离线接通。主线两个代表 2/2、0 skip 和严格构建通过，显式 probe 类型及真实零模型通用 smoke 证据复用。首个真实 `cos20-native-validation-1` 于 `2026-10-02T11:58:02.694Z` 开始，原定 `12:43:02.694Z` 截止，`11:58:09.818Z` 以 manual stop 结束，7.124 秒、零 SDK 请求、零新增费用；bootstrap/requirements capture 通过，template capture 原子 rename 报 EPERM，guardAborted:false，原因未确定。case 已消费，结果与 marker 保留；当时 #21 为 source-ready-real-startup-failed/open，COS-10 与 G3/G4 未通过。协调者已解除首例 main 冻结，完整安全元数据见 [进度](../../PROGRESS.md)。
 - Case2 源码：`b3ab706` 经独立 CASE_TWO_SOURCE_READY 合入 `89085f3`，八个批准路径仅更新独立 `cos20-native-validation-2` 声明、免费准入、相关 fixture/tests 和说明。要求已有 profile 3 的 current case1 已明确停止，COS-21 必须具有精确 WINDOWS_PUBLICATION_SOURCE_READY、已集成状态与 reviewed/merge 两个 main 祖先 SHA，closed 不能绕过；该条件引用已集成源码，不要求 COS-10/COS-20 实际验收先关闭。主线零调用新 claim/历史保持与 case1 未停止拒绝两项 2/2、0 skip；相同依赖的显式 probe/test 类型及其余已通过证据复用。当时 COS-20 为 source-ready-newcase2-awaiting-paid/open，新 case 尚未执行；最终文档 main 清推后冻结，root 完成真实 Windows publisher 免费检查及准确 SHA preflight 后才按原额度执行，结束并明确解除前不改 main。
 - Case2 真实结果：准确 `f5522e8` 上于 `2026-10-02T15:39:49.986Z` 开始、原定 `16:24:49.986Z` 截止，`15:46:42.301Z` 结束，412,315 ms；40/40 实际 SDK 请求耗尽，新费用保守峰值估算 ¥0.857751、共享累计 ¥1.974153、预留/未知零。design/art 真实 host 与独立 review passed，coding 7 次请求后下一次被拒，未 capture/build/check_project/browser、无独立 accepted candidate、semantic repair 未 claim。case2 manual stop/结果/marker 已消费，本轮 main 已解冻；COS-20 源码 integrationStatus 为 offline-verified-awaiting-live，liveValidationStatus 为 request-limit-exhausted，保持 open，COS-10、G3/G4 与父完整目标仍未通过，原 case1 对象/费用/时钟/grants 保留。
-- 下一步边界：原 40 请求是协调者的有界选择，本次费用与 45 分钟均未到限；上游耗用 33 次后 coding 仅剩 7 次。拟另备独立 case3 version 2/80 请求声明与源级校验，仍守 ¥5/45 分钟、验证 ¥150/首批 ¥30/一次 coding repair；尚未源码批准或付费执行，不修改旧两 case 的 40 次 quotes，不重开已消费案例。
+- Case3 源码实施前记录（历史）：原 40 请求是协调者的有界选择，本次费用与 45 分钟均未到限；上游耗用 33 次后 coding 仅剩 7 次。拟另备独立 case3 version 2/80 请求声明与源级校验，仍守 ¥5/45 分钟、验证 ¥150/首批 ¥30/一次 coding repair；尚未源码批准或付费执行，不修改旧两 case 的 40 次 quotes，不重开已消费案例。
 - 结束时间边界补充：已审 `9a91f75` 合入 `58b6e59`，允许同一次正常 stop/event 的真实时间先后差，保留外部 stop 和唯一事件门槛；主线跨时间戳回归 1/1、0 skip。旧 SHA 的免费 preflight 不能作为新 main 的付费准入，仍须最终 native main 重新免费核对。
 - 状态/源级前置：已发布 [#21](https://github.com/lrfluobida/Cosmos/issues/21)，源码已就绪，真实启动失败由 COS-21 诊断。前置只要求 COS-06/07/08/09/11/12/13/18/19 对应源码已独立审查并集成，不要求这些任务的全部 live/完整产品验收通过。COS-10 的实际验证是本任务产出，不作为循环前置；[映射](github-issues.json) 分列 sourcePrerequisites 与 validationOutputsFor。
 - 已有授权：CONTEXT 的生成运行排除平台开发；R6 的正式 ¥200/12h 与 R7 的开发验证合计 ¥150 分开。沿用用户验证预算、凭据提供及持续推进授权，由可信 coordinator 为更严格的新 case 记录真实 `operator_validation` 决定，不自动套用 formal human quote，不伪造 GameDraft 确认或 run.humanDecisions。
@@ -306,12 +306,13 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-22 · 验证更高调用上限下的完整原生生成
 
-- 依赖/状态：已发布 [#23](https://github.com/lrfluobida/Cosmos/issues/23)，id 5680389595，第 22 个原生子任务，保持 open/not-started。源级前置仅要求 COS-20/COS-21 对应源码已独立审查并集成；实际验证产出反馈 COS-10/COS-20，不要求失败的 COS-20 先关闭，不形成循环验收依赖。
+- 源码进展：`27c81b3` 经独立 VERSIONED_CASE_THREE_SOURCE_READY 合入 `474a6a9`，十个批准路径仅涵盖 version 2 声明、core 类型/版本门槛、case3 准入与相关 tests/fixtures/说明。固定新 `cos20-native-validation-3`、validation-declaration-2/80 请求；version 1 仍最多 40，未知版本和 version 2 的 81 拒绝，旧两 case 的 quote/hash、费用、grants、时钟与消费结果保留。主线版本边界和只读 case3 quote/历史保持代表共 2/2、0 skip，一次源码类型检查通过；作者和 reviewer 已过证据复用，未重复根构建或全流程。
+- 依赖/状态：已发布 [#23](https://github.com/lrfluobida/Cosmos/issues/23)，id 5680389595，第 22 个原生子任务，现为 offline-verified-awaiting-live/open。源级前置仅要求 COS-20/COS-21 对应源码已独立审查并集成；实际验证产出反馈 COS-10/COS-20，不要求失败的 COS-20 先关闭，不形成循环验收依赖。COS-20 保留 CASE_TWO_SOURCE_READY/b3ab706/89085f3 与独立 case2 失败，COS-21 保留 complete/closed/WINDOWS_PUBLICATION_SOURCE_READY；closed 不绕过准确审批标记与两项 main 祖先 SHA。
 - 失败依据：case2 上游 planning 1/design 8/art 24 合计 33 次请求，coding 仅余 7 次，未到 handoff/capture/build 即耗尽 40 次上限。费用 ¥0.857751 和耗时 6 分 52.315 秒均未触及 ¥5/45 分钟；该 40 次上限是协调者的内部有界选择。
 - 输出/范围：新独立 case3 的 version 2 声明、80 次请求准入及源级校验、定向测试和真实结果报告；仅修改必要的声明/入口与校验，不手工完成角色专属游戏代码或资产，不扩大 native/roles 范围。
 - 工作/约束：旧 version 1 的 case1/case2 永远保持 40 次及原 quote/hash、费用、grants、时钟、结果和已消费身份；新 version 2/80 次仅赋予新 case3。沿用固定输入、模型、输出 caps、五 grants 总额 ¥21、新 case 实际加预留 ¥5/45 分钟/一次 coding repair、共享验证 ¥150/首批 ¥30，不增加预算或修改旧记录。
 - 通过/证据：新源码有专属 implementer 与独立 reviewer，固定 SHA 集成后重新免费核对真实 preflight，可信 coordinator 记录独立 operator 决定并执行；真实 coding handoff/capture、构建、正常输入验收与独立 accepted candidate 均有证据才记录切片通过。源码或局部 host 通过不能代替目标游戏通过；未达标时如实保存失败、费用与差距。
-- 当前边界：case3 声明和校验尚未独立批准，未 READY、未付费执行；已消费 case1/case2 不重开，不扩大正式 ¥200/12h 或完整基准范围。仍由本批唯一 merger 集成已审提交，后续付费前冻结最终准确 main。
+- 当前边界：case3 声明和校验已独立批准并集成，尚未真实 claim 或付费执行；runtime host/driver、固定输入、模型、角色输出 caps 与既有金额/时间含义保持。已消费 case1/case2 不重开，真实切片未通过，G3/G4 未通过，不扩大正式 ¥200/12h 或完整基准范围。最终文档 main 干净推送后冻结，root 按最新准确 SHA 免费只读 preflight、共享资金准入和真实 operator 决定执行 case3；结束并明确解除前不改 main 的 docs/source/reference。
 
 ## 5. 任务与上下文包模板
 
