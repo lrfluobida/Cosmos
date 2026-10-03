@@ -10,7 +10,7 @@ import { validationInputHash } from '../../src/runtime/validation-validation.ts'
 
 test('explicit fresh-core fixture has no historical cases, closures or additional charges', async t => {
   const f = await validationRunFixture(t, { caseOne: 'absent', caseTwo: 'absent' }), state = JSON.parse(await readFile(join(f.ledgerRoot, 'snapshot.json'), 'utf8'));
-  assert.equal(f.caseOne, null); assert.equal(f.caseTwo, null); assert.equal(f.caseThree, null); assert.equal(f.caseFour, null); assert.equal(f.caseFive, null);
+  assert.equal(f.caseOne, null); assert.equal(f.caseTwo, null); assert.equal(f.caseThree, null); assert.equal(f.caseFour, null); assert.equal(f.caseFive, null); assert.equal(f.caseSix, null);
   assert.equal(state.validation, undefined); assert.equal(state.allocationClosureDecisions, undefined);
   assert.deepEqual(state.ledger.allocations, [{ taskId: 'prior', amountMicroCny: 84_596_040 }]);
   assert.equal(state.ledger.entries.length, 1); assert.equal(state.ledger.entries[0].settledMicroCny, 1_116_402);
@@ -55,7 +55,7 @@ test('COS22 failed-run source still requires its precise marker and each SHA and
   }
 });
 
-for (const caseThree of ['absent', 'unstopped'] as const) test(`case six requires explicitly stopped historical case three: ${caseThree}`, async t => {
+for (const caseThree of ['absent', 'unstopped'] as const) test(`case seven requires explicitly stopped historical case three: ${caseThree}`, async t => {
   const f = await validationRunFixture(t, { caseThree, closure: 'none' });
   const path = join(f.ledgerRoot, 'snapshot.json'), before = await readFile(path), names = await readdir(f.ledgerRoot);
   let prepared = 0;
@@ -66,9 +66,9 @@ for (const caseThree of ['absent', 'unstopped'] as const) test(`case six require
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-test('case six refuses missing or junction historical roots, shared owners, repeated root/marker and insufficient free capacity', async t => {
+test('case seven refuses missing or junction historical roots, shared owners, repeated root/marker and insufficient free capacity', async t => {
   const f = await validationRunFixture(t), path = join(f.ledgerRoot, 'snapshot.json'), original = await readFile(path);
-  const oldRoot = join(f.repository, '.cosmos/e2e/cos20-native-validation-5'), parked = `${oldRoot}-offline-parked`;
+  const oldRoot = join(f.repository, '.cosmos/e2e/cos20-native-validation-6'), parked = `${oldRoot}-offline-parked`;
   await rename(oldRoot, parked);
   await assert.rejects(preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] }), /root|case|ENOENT/i);
   await symlink(parked, oldRoot, 'junction');
@@ -79,7 +79,7 @@ test('case six refuses missing or junction historical roots, shared owners, repe
     await assert.rejects(preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] }), /owner|writer|already|restart/i);
     await rmdir(target);
   }
-  const marker = join(f.ledgerRoot, 'cos20-native-validation-6.json'); await writeFile(marker, 'offline consumed marker', 'utf8');
+  const marker = join(f.ledgerRoot, 'cos20-native-validation-7.json'); await writeFile(marker, 'offline consumed marker', 'utf8');
   await assert.rejects(preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] }), /marker|already|restart/i);
   await import('node:fs/promises').then(fs => fs.unlink(marker));
   const state = JSON.parse(original.toString('utf8'));
@@ -92,48 +92,50 @@ test('case six refuses missing or junction historical roots, shared owners, repe
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-test('case six free preflight preserves all five histories and accepts ancestral applied closure sources', async t => {
+test('case seven free preflight preserves all six histories and accepts ancestral applied closure sources', async t => {
   const f = await validationRunFixture(t), path = join(f.ledgerRoot, 'snapshot.json');
   const before = await readFile(path), state = JSON.parse(before.toString('utf8')), stamp = (await stat(path)).mtimeMs, names = await readdir(f.ledgerRoot);
   await f.git('commit', '--allow-empty', '-m', 'Offline later reviewed entry source'); const head = await f.git('rev-parse', 'HEAD');
   const result = await preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', head] });
-  assert.equal(result.quote.declaration.caseId, 'cos20-native-validation-6'); assert.equal(result.quote.identity.reviewedPlatformSha, head);
+  assert.equal(result.quote.declaration.caseId, 'cos20-native-validation-7'); assert.equal(result.quote.identity.reviewedPlatformSha, head);
   assert.equal(result.quote.identity.frozenCaseInputHash, validationInputHash(VALIDATION_CASE));
   assert.notEqual(state.allocationClosureDecisions[0].quote.identity.reviewedPlatformSha, head);
-  assert.equal(state.ledger.allocationClosures.length, 25); assert.equal(result.quote.basis.allocatedMicroCny, 86_435_139);
-  assert.equal(result.quote.basis.committedMicroCny, 2_955_501); assert.equal(result.paidRequests, 0);
-  assert.equal(result.sourceApprovals.length, 18);
-  assert.equal(state.allocationClosureDecisions.length, 3);
-  assert.deepEqual(state.allocationClosureDecisions.map((item: any) => item.quote.cases.length), [3, 1, 1]);
+  assert.equal(state.ledger.allocationClosures.length, 30); assert.equal(result.quote.basis.allocatedMicroCny, 87_715_555);
+  assert.equal(result.quote.basis.committedMicroCny, 4_235_917); assert.equal(result.paidRequests, 0);
+  assert.equal(result.sourceApprovals.length, 20);
+  assert.equal(state.allocationClosureDecisions.length, 4);
+  assert.deepEqual(state.allocationClosureDecisions.map((item: any) => item.quote.cases.length), [3, 1, 1, 1]);
   assert.equal(state.allocationClosureDecisions[1].quote.releasedMicroCny, 20_988_568);
   assert.equal(state.allocationClosureDecisions[2].quote.releasedMicroCny, 20_098_959);
+  assert.equal(state.allocationClosureDecisions[3].quote.releasedMicroCny, 19_719_584);
   assert.deepEqual(state.validation.cases.map((item: any) => [item.quote.declaration.formatVersion, item.quote.declaration.limits.maxRequests]),
-    [['validation-declaration-1', 40], ['validation-declaration-1', 40], ['validation-declaration-2', 80], ['validation-declaration-2', 80], ['validation-declaration-2', 80]]);
+    [['validation-declaration-1', 40], ['validation-declaration-1', 40], ['validation-declaration-2', 80], ['validation-declaration-2', 80], ['validation-declaration-2', 80], ['validation-declaration-2', 80]]);
   assert.equal(f.mapping.tasks.find(item => item.taskId === 'COS-25')!.integrationStatus, 'offline-verified-awaiting-live');
   assert.equal(f.mapping.tasks.find(item => item.taskId === 'COS-27')!.integrationStatus, 'offline-verified-awaiting-live');
+  assert.equal(f.mapping.tasks.find(item => item.taskId === 'COS-29')!.integrationStatus, 'offline-verified-awaiting-live');
   assert.deepEqual(await readFile(path), before); assert.equal((await stat(path)).mtimeMs, stamp); assert.deepEqual(await readdir(f.ledgerRoot), names);
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-for (const closure of ['none', 'first-two', 'first-three', 'first-four'] as const) test(`case six refuses ${closure} allocation closure before host preparation or writes`, async t => {
+for (const closure of ['none', 'first-two', 'first-three', 'first-four', 'first-five'] as const) test(`case seven refuses ${closure} allocation closure before host preparation or writes`, async t => {
   const f = await validationRunFixture(t, { closure }), before = await readFile(join(f.ledgerRoot, 'snapshot.json'));
   let prepared = 0;
   await assert.rejects(runValidationWithHost({ repository: f.repository, args: f.args, host: {
     prepare: async () => { prepared++; }, execute: async () => ({ outcome: 'failed', gaps: ['Offline fixture must not execute'] }),
-  } }), /allocation|closure|case 4|case 5/i);
+  } }), /allocation|closure|case 4|case 5|case 6/i);
   assert.equal(prepared, 0); assert.deepEqual(await readFile(join(f.ledgerRoot, 'snapshot.json')), before);
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-test('case six refuses historical receipt drift, closure audit drift and unresolved old root owners', async t => {
+test('case seven refuses historical receipt drift, closure audit drift and unresolved old root owners', async t => {
   const f = await validationRunFixture(t), path = join(f.ledgerRoot, 'snapshot.json'), original = await readFile(path), state = JSON.parse(original.toString('utf8'));
-  const old = join(f.ledgerRoot, f.caseFive!.decision.source.location), closure = join(f.ledgerRoot, state.allocationClosureDecisions[2].operatorDecision.source.location);
+  const old = join(f.ledgerRoot, f.caseSix!.decision.source.location), closure = join(f.ledgerRoot, state.allocationClosureDecisions[3].operatorDecision.source.location);
   for (const target of [old, closure]) {
     const bytes = await readFile(target); await writeFile(target, Buffer.concat([bytes, Buffer.from('\n')]));
     await assert.rejects(preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] }), /source|receipt|closure|historical/i);
     await writeFile(target, bytes);
   }
-  for (const caseNumber of [1, 2, 3, 4, 5]) for (const lock of ['.controller.lock', 'registry/.commit.lock']) {
+  for (const caseNumber of [1, 2, 3, 4, 5, 6]) for (const lock of ['.controller.lock', 'registry/.commit.lock']) {
     const target = join(f.repository, `.cosmos/e2e/cos20-native-validation-${caseNumber}`, lock);
     await mkdir(target);
     await assert.rejects(preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] }), /owner|writer|unresolved/i);
@@ -146,7 +148,7 @@ test('case six refuses historical receipt drift, closure audit drift and unresol
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-for (const taskId of ['COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24', 'COS-25', 'COS-26', 'COS-27', 'COS-28']) test(`case six requires ${taskId} precise source marker and both integrated source ancestors`, async t => {
+for (const taskId of ['COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24', 'COS-25', 'COS-26', 'COS-27', 'COS-28', 'COS-29', 'COS-30']) test(`case seven requires ${taskId} precise source marker and both integrated source ancestors`, async t => {
   const f = await validationRunFixture(t), path = join(f.ledgerRoot, 'snapshot.json'), before = await readFile(path), mappingPath = join(f.repository, 'docs/specs/github-issues.json');
   await f.git('switch', '-c', 'offline-unmerged-source'); await f.git('commit', '--allow-empty', '-m', 'Offline unmerged source');
   const unmerged = await f.git('rev-parse', 'HEAD'); await f.git('switch', 'main');
@@ -167,7 +169,7 @@ for (const taskId of ['COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24', 'COS-25'
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-for (const caseFour of ['absent', 'unstopped'] as const) test(`case six requires explicitly stopped historical case four: ${caseFour}`, async t => {
+for (const caseFour of ['absent', 'unstopped'] as const) test(`case seven requires explicitly stopped historical case four: ${caseFour}`, async t => {
   const f = await validationRunFixture(t, { caseFour }), path = join(f.ledgerRoot, 'snapshot.json'), before = await readFile(path), names = await readdir(f.ledgerRoot);
   let prepared = 0;
   await assert.rejects(runValidationWithHost({ repository: f.repository, args: f.args, host: {
@@ -177,7 +179,7 @@ for (const caseFour of ['absent', 'unstopped'] as const) test(`case six requires
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-for (const caseFive of ['absent', 'unstopped'] as const) test(`case six requires explicitly stopped current case five: ${caseFive}`, async t => {
+for (const caseFive of ['absent', 'unstopped'] as const) test(`case seven requires explicitly stopped historical case five: ${caseFive}`, async t => {
   const f = await validationRunFixture(t, { caseFive }), path = join(f.ledgerRoot, 'snapshot.json'), before = await readFile(path), names = await readdir(f.ledgerRoot);
   let prepared = 0;
   await assert.rejects(runValidationWithHost({ repository: f.repository, args: f.args, host: {
@@ -187,27 +189,37 @@ for (const caseFive of ['absent', 'unstopped'] as const) test(`case six requires
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-test('case six refuses a stopped five-case history whose current identity is still case four', async t => {
+for (const caseSix of ['absent', 'unstopped'] as const) test(`case seven requires explicitly stopped current case six: ${caseSix}`, async t => {
+  const f = await validationRunFixture(t, { caseSix }), path = join(f.ledgerRoot, 'snapshot.json'), before = await readFile(path), names = await readdir(f.ledgerRoot);
+  let prepared = 0;
+  await assert.rejects(runValidationWithHost({ repository: f.repository, args: f.args, host: {
+    prepare: async () => { prepared++; }, execute: async () => ({ outcome: 'failed', gaps: ['Offline fixture must not execute'] }),
+  } }), /case 6|case six/i);
+  assert.equal(prepared, 0); assert.deepEqual(await readFile(path), before); assert.deepEqual(await readdir(f.ledgerRoot), names);
+  await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
+});
+
+test('case seven refuses a stopped six-case history whose current identity is still case five', async t => {
   const f = await validationRunFixture(t), path = join(f.ledgerRoot, 'snapshot.json'), state = JSON.parse(await readFile(path, 'utf8'));
-  state.validation.currentCaseId = 'cos20-native-validation-4'; await writeFile(path, JSON.stringify(state), 'utf8');
+  state.validation.currentCaseId = 'cos20-native-validation-5'; await writeFile(path, JSON.stringify(state), 'utf8');
   const before = await readFile(path), names = await readdir(f.ledgerRoot);
-  await assert.rejects(preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] }), /case 5|current/i);
+  await assert.rejects(preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] }), /case 6|current/i);
   assert.deepEqual(await readFile(path), before); assert.deepEqual(await readdir(f.ledgerRoot), names);
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-test('case six refuses authentic historical operator quotes from an unmerged source', async t => {
+test('case seven refuses authentic historical operator quotes from an unmerged source', async t => {
   const f = await validationRunFixture(t, { historicalSourceUnmerged: true }), path = join(f.ledgerRoot, 'snapshot.json'), before = await readFile(path), names = await readdir(f.ledgerRoot);
   await assert.rejects(preflightValidationRun({ repository: f.repository, args: ['--validation-preflight', f.head] }), /source|integrated|ancestor/i);
   assert.deepEqual(await readFile(path), before); assert.deepEqual(await readdir(f.ledgerRoot), names);
   await assert.rejects(readdir(f.caseRoot), { code: 'ENOENT' });
 });
 
-test('case six refuses the fifth-case closure source outside frozen main ancestry even with matching audit and receipt hashes', async t => {
+test('case seven refuses the sixth-case closure source outside frozen main ancestry even with matching audit and receipt hashes', async t => {
   const f = await validationRunFixture(t), path = join(f.ledgerRoot, 'snapshot.json'), state = JSON.parse(await readFile(path, 'utf8'));
   await f.git('switch', '-c', 'offline-unmerged-closure-source'); await f.git('commit', '--allow-empty', '-m', 'Offline unmerged closure source');
   const unmerged = await f.git('rev-parse', 'HEAD'); await f.git('switch', 'main');
-  const receipt = state.allocationClosureDecisions[2], quote = receipt.quote, hash = (value: string) => createHash('sha256').update(value).digest('hex');
+  const receipt = state.allocationClosureDecisions[3], quote = receipt.quote, hash = (value: string) => createHash('sha256').update(value).digest('hex');
   quote.identity.reviewedPlatformSha = unmerged; const { quoteId, ...payload } = quote; quote.quoteId = `vacq1-${hash(JSON.stringify(payload))}`;
   const decision = receipt.operatorDecision, source = JSON.stringify({ formatVersion: 'operator-validation-allocation-closure-decision-1', kind: decision.kind,
     decisionId: decision.decisionId, actorId: decision.actorId, decidedAt: decision.decidedAt, sourceRefs: decision.sourceRefs, quote });
