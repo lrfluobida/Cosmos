@@ -13,6 +13,7 @@ const usage = `Usage:
   cosmos preview <path> [--port N]   Preview its build at http://127.0.0.1:4173
   cosmos new <run-dir> --brief <text>  Interview, confirm exact requirements, then generate
   cosmos status <run-dir>           Read the original run identity, cost, deadline and gaps
+  cosmos experience <run-dir>       Review the current delivery and record a final stdin playtest decision
   cosmos stop <run-dir>             Persist a hard stop and wait for owned work to drain
   cosmos resume <run-dir>           Recover a verifiable interruption within the original window
   cosmos continue <run-dir> --quote --add-cny <0..200> --add-minutes <1..720>
@@ -24,7 +25,7 @@ const usage = `Usage:
   cosmos --help
 
 Requires Node.js 22.22.2+. After init, run npm ci in the new project.
-init/run-dir/build/preview/status/continue --quote are local and do not call model APIs.
+init/run-dir/build/preview/status/experience/continue --quote are local and do not call model APIs.
 new/resume/confirmed continue may call native deepseek-flash after host prerequisites pass.
 Intake and original generation share CNY 200; a separately confirmed first window keeps that ledger and records its additions.
 The formal 12-hour clock activates once after exact user confirmation and environment preparation.
@@ -93,6 +94,11 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     return;
   }
   const [command, path, ...options] = args;
+  if (command === 'experience') {
+    if (!path?.trim() || options.length) throw new Error(usage);
+    const { runExperienceSession } = await import('./experience-session.ts');
+    return runExperienceSession({ root: resolve(path), input: io.input ?? process.stdin, output: io.output ?? process.stdout });
+  }
   if (command === 'continue') {
     if (!path?.trim()) throw new Error(usage);
     const { buildContinuationQuote, parseContinuationQuoteOptions } = await import('../runtime/continuation-quote.ts');

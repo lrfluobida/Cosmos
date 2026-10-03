@@ -57,6 +57,7 @@ export async function readRunStatus(root: string) {
   const generated = intake ? null : snapshot as RunSnapshot;
   const view = generated ? executionWindowView(generated) : null;
   const continuation = generated ? await readContinuationStatus(root, generated) : null;
+  const delivery = generated ? await (await import('../runtime/experience.ts')).readExperienceStatus(root) : null;
   const window = generated?.continuation?.windows.find(item => item.windowId === generated.continuation?.currentWindowId);
   const successors = new Map((window?.grants ?? []).filter(grant => generated!.tasks.some(task => task.taskId === grant.taskId)).map(grant => [grant.sourceTaskId, grant.taskId]));
   return { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, phase: intake ? 'intake' : 'generation', revision: snapshot.revision,
@@ -73,7 +74,7 @@ export async function readRunStatus(root: string) {
     unknownRequestIds: snapshot.ledger.entries.filter(entry => entry.unknown).map(entry => entry.requestId),
     tasks: generated?.tasks.map(task => ({ taskId: task.taskId, state: task.state, remaining: task.handoff.remaining, uncertainty: task.handoff.uncertainty, resumeFrom: task.handoff.resumeFrom,
       supersededBy: successors.get(task.taskId) ?? (continuation?.state === 'registered' ? continuation.replacements.find(item => item.sourceTaskId === task.taskId)?.replacementTaskId ?? null : null) })) ?? [],
-    continuation,
+    continuation, delivery,
     resumePolicy: 'Only verifiable interruptions without a durable stop may resume within their original window. Manual stop, deadline and budget stop remain final.',
   };
 }
