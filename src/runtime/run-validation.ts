@@ -3,6 +3,7 @@ import type { RunSnapshot } from './run-types.ts';
 import { validateContinuation } from './continuation-validation.ts';
 import { idleAnchor } from './window-idle.ts';
 import { validateValidationProfile } from './validation-validation.ts';
+import { validateValidationAllocationClosures } from './validation-allocation-validation.ts';
 
 function timestamp(value: unknown): boolean {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -41,11 +42,12 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
   }
   const eventTypes = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'imported', 'budget_warning', 'stopped', 'task_saved', 'generation_activated',
     ...(state.formatVersion === 2 ? ['continuation_activated', 'window_stopped', 'window_owner_drained', 'window_owner_resumed'] : []),
-    ...(state.formatVersion === 3 ? ['validation_case_claimed', 'validation_case_stopped', 'validation_repair_claimed'] : [])];
+    ...(state.formatVersion === 3 ? ['validation_case_claimed', 'validation_case_stopped', 'validation_repair_claimed', 'validation_allocation_closed'] : [])];
   if (!state.events.length || state.events[0].type !== 'created') throw new Error('Missing snapshot creation history.');
   state.events.forEach((event, i) => {
     if (!event || event.sequence !== i + 1 || !timestamp(event.at) || !eventTypes.includes(event.type) || typeof event.reason !== 'string' || (event.requestId !== null && !ledger.entries.some(entry => entry.requestId === event.requestId))) throw new Error('Invalid snapshot event history.');
   });
   validateValidationProfile(state);
+  validateValidationAllocationClosures(state);
   if (state.formatVersion !== 3) { validateContinuation(state); idleAnchor(state); }
 }

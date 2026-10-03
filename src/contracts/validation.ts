@@ -110,6 +110,17 @@ export function validateLedger(value: unknown): ValidationIssue[] {
       if (!allocation || !ledger.authorizations!.some(item => item.decisionId === closure.decisionId) || entries.some(item => item.reservedMicroCny || item.unknown || !['settled', 'cancelled'].includes(item.status)) || closure.releasedMicroCny !== allocation.amountMicroCny - spent) issue(issues, '$.allocationClosures', 'invalid_closure', 'Close a reconciled grant exactly once, releasing only its unused amount.');
     }
   }
+  if (ledger.contractVersion === '3.0.0') {
+    if (ledger.scope !== 'validation') issue(issues, '$.scope', 'validation_closure_scope', 'Allocation closure v3 is validation only.');
+    unique(ledger.allocationClosures!.map(item => item.taskId), '$.allocationClosures', issues);
+    for (const closure of ledger.allocationClosures!) {
+      const allocation = ledger.allocations.find(item => item.taskId === closure.taskId);
+      const entries = ledger.entries.filter(item => item.taskId === closure.taskId);
+      const spent = entries.reduce((sum, item) => sum + item.settledMicroCny, 0);
+      if (!allocation || entries.some(item => item.reservedMicroCny || item.unknown || !['settled', 'cancelled'].includes(item.status))
+        || closure.releasedMicroCny !== allocation.amountMicroCny - spent) issue(issues, '$.allocationClosures', 'invalid_closure', 'Close a reconciled validation grant exactly once, releasing only its unused amount.');
+    }
+  }
   if (summary.allocatedMicroCny > summary.effectiveLimitMicroCny) issue(issues, '$.allocations', 'overallocated', 'Task allocations cannot create additional budget.');
   ledger.entries.forEach((entry, index) => {
     const p = `$.entries[${index}]`;

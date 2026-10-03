@@ -98,7 +98,7 @@ export function requireValidationRepairSource(state: RunSnapshot, sourceTaskId: 
 
 export function validateValidationProfile(state: RunSnapshot): void {
   if (state.formatVersion !== 3) { if (state.validation !== undefined || state.requests.some(record => record.validation !== undefined)) fail('Legacy snapshots cannot contain operator validation authority.'); return; }
-  if (state.continuation !== undefined || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || state.ledger.contractVersion !== '1.0.0' || state.ledger.limitMicroCny !== 150_000_000
+  if (state.continuation !== undefined || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== 150_000_000
     || state.validation?.profile !== 'operator_validation' || !Array.isArray(state.validation.cases) || !state.validation.cases.length) fail('Invalid validation profile or shared ledger.');
   const cases = state.validation.cases;
   for (const key of ['caseId', 'windowId'] as const) if (new Set(cases.map(item => item[key])).size !== cases.length) fail('Case claims cannot be repeated or renamed.');
