@@ -814,7 +814,8 @@
       "integrationStatus": "offline-verified-awaiting-live",
       "reviewStatus": "AUTHOR_PROTOCOL_SOURCE_READY",
       "reviewedCommit": "d334c82a71aaf160bc81578860234085b07e4a1a",
-      "mergeCommit": "d49d132c0d991daac8879d014c50b7ada69daed3"
+      "mergeCommit": "d49d132c0d991daac8879d014c50b7ada69daed3",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/24#issuecomment-5966532371"
     },
     {
       "taskId": "COS-24",
@@ -837,7 +838,41 @@
       "integrationStatus": "offline-verified-awaiting-live",
       "reviewStatus": "VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY",
       "reviewedCommit": "ee4ef2810c1b337aced6637b4a71b90ad90e6626",
-      "mergeCommit": "98aa9ccc18fa7192a693930d53550dce3a91ae18"
+      "mergeCommit": "98aa9ccc18fa7192a693930d53550dce3a91ae18",
+      "liveValidationStatus": "allocation-closure-applied-awaiting-fresh-native-claim",
+      "liveResultComment": "https://github.com/lrfluobida/Cosmos/issues/25#issuecomment-5966532705",
+      "actualAllocationClosure": {
+        "sourcePlatformSha": "98aa9ccc18fa7192a693930d53550dce3a91ae18",
+        "quoteId": "vacq1-2a910f734049d8a4219bb3200fcfe80e688b8800425a450c1581cf119633113c",
+        "decisionId": "operator-allocation-closure-90df97d8-853f-426f-8219-fc3a14c962ff",
+        "decisionKind": "operator_validation_allocation_closure",
+        "actorId": "coordinator",
+        "appliedAt": "2026-10-03T06:52:44.358Z",
+        "snapshotRevisionBefore": 338,
+        "snapshotRevisionAfter": 339,
+        "ledgerContractVersionBefore": "1.0.0",
+        "ledgerContractVersionAfter": "3.0.0",
+        "closedGrants": 15,
+        "releasedCapacityMicroCny": 62073374,
+        "effectiveAllocatedMicroCnyBefore": 147596040,
+        "effectiveAllocatedMicroCnyAfter": 85522666,
+        "unallocatedMicroCnyBefore": 2403960,
+        "unallocatedMicroCnyAfter": 64477334,
+        "sharedEstimatedMicroCnyBefore": 2043028,
+        "sharedEstimatedMicroCnyAfter": 2043028,
+        "reservedMicroCny": 0,
+        "unknownMicroCny": 0,
+        "modelRequests": 0,
+        "ownerReleased": true,
+        "originalRunTasksCasesRequestsStopClocksEqual": true,
+        "originalLedgerFieldsExceptContractVersionEqual": true,
+        "originalLedgerEntriesEqual": true,
+        "originalAllocationAmountsEqual": true,
+        "originalEventPrefixEqual": true,
+        "appendedEvents": 1,
+        "exitCode": 0,
+        "nodeElapsedMs": 6733
+      }
     },
     {
       "taskId": "COS-25",
