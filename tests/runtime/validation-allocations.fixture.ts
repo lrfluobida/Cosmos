@@ -10,7 +10,7 @@ import type { ValidationDeclaration } from '../../src/runtime/validation-types.t
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
 const evidence = [{ artifactId: 'offline-billing', version: 'v1', location: 'offline-billing.json' }];
 
-export async function allocationFixture(t: test.TestContext) {
+export async function allocationFixture(t: test.TestContext, acceptanceIds = ['game']) {
   const base = await mkdtemp(join(tmpdir(), 'cosmos-allocation-closure-')), root = join(base, 'ledger'), repositoryRoot = join(base, 'repository');
   t.after(() => rm(base, { recursive: true, force: true }));
   let clock = Date.parse('2026-10-01T06:16:16.857Z'), platformSha = 'a'.repeat(40);
@@ -20,7 +20,7 @@ export async function allocationFixture(t: test.TestContext) {
   await controller.importSettled({ requestId: 'legacy-spent', taskId: 'legacy', provider: 'fixture', pricingVersion: 'v1', actualCostMicroCny: 1_116_402, evidence });
   await controller.close(); clock += 12 * 60 * 60 * 1000 + 1;
   await mkdir(join(repositoryRoot, 'template'), { recursive: true });
-  const requirements = JSON.stringify({ specVersion: '1.0', requirementVersion: 'fixture-v1', acceptanceIds: ['game'], stageAcceptanceIds: ['design', 'art'], rule: '保留原始验收与费用' });
+  const requirements = JSON.stringify({ specVersion: '1.0', requirementVersion: 'fixture-v1', acceptanceIds, stageAcceptanceIds: ['design', 'art'], rule: '保留原始验收与费用' });
   const template = '{"fixture":true}\n', files = [{ path: 'template/package.json', sha256: hash(template) }];
   await writeFile(join(repositoryRoot, 'requirements.json'), requirements, 'utf8'); await writeFile(join(repositoryRoot, files[0].path), template, 'utf8');
   const declaration = (caseId: string, version: 1 | 2 = 2): ValidationDeclaration => ({

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, realpath, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { validateTaskInputs } from '../contracts/index.ts';
+import { budgetCapacity, validateTaskInputs } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
 import type { ArtifactReference, TaskContract } from '../contracts/index.ts';
 import type { RunController } from '../runtime/run.ts';
@@ -112,7 +112,7 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
       if (!ready) throw new Error('Task plan has a dependency cycle.');
       visited.add(ready.taskId);
     }
-    const total = drafts.reduce((sum, d) => sum + (scope ? 0 : policyFor(d)!.allocationMicroCny), snapshot.ledger.allocations.reduce((sum, a) => sum + a.amountMicroCny, 0));
+    const total = drafts.reduce((sum, d) => sum + (scope ? 0 : policyFor(d)!.allocationMicroCny), budgetCapacity(snapshot.ledger).allocatedMicroCny);
     if (total > snapshot.ledger.limitMicroCny) throw new Error('Plan exceeds unallocated shared budget.');
     const outputs = (draft: Draft) => policyFor(draft)!.outputs.map(output => ({ artifactId: output.artifactId, version: output.version, location: output.destination }));
     const tasks: PreparedTask[] = drafts.map(draft => {
