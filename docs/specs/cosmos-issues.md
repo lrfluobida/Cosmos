@@ -345,7 +345,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 操作契约：免费只读 closure quote 绑定真实当前源码 SHA、原 snapshot bytes/revision、拟关闭 IDs/amounts、旧案例和 requests；可信真实 operator receipt 绑定准确 quote，变更在原子提交中记录、同操作幂等。陈旧状态、未收敛 owner、在途/未知费用或无法核对的未用额拒绝；未来 paid case 仅由 root 单独准入执行。
 - 通过/证据：两链无路径碰撞，联合源码/changed probes/new tests 一次显式 strict noEmit 通过；恢复响应中断、新 v3 case capacity 与 generation scope/额外钱拒绝三代表 3/3、0 skip。作者及独立 reviewer 原 evidence 复用，未重全套、wrapper、80 次循环、Browser 或 child；源码已独立批准，实际 closure 和 paid case 结果另行记录，文档登记不修改真实账本或声明游戏已通过。
 
-- 第五笔真实closure：root在source `2404982d075cf7f69c914eb1ad41e9162807747c` 于`2026-10-03T16:17:34.316Z`应用realcoordinator/operator_validation_allocation_closure；revision1079→1080/ledger3保持，仅新关闭C7五grants/released19,776,886，累计35closed/5audits。Allocated108,715,555→88,938,669/unallocated41,284,445→61,061,331，shared费用5,459,031/unknownreserved0不变；run/tasks/requests/stop/seven histories、ledger entries/allocamounts、旧30closures/4receipts/events-prefix逐项deepEqual。Node3.285秒/exit0/model0/ownerReleased，不清费或刷新旧窗口，current为stopped7、新case8未claim；quote/decision精确值见mapping actualAllocationClosure5，前四笔原记录保持。
+- 第五笔真实closure：root在source `2404982d075cf7f69c914eb1ad41e9162807747c` 于`2026-10-03T16:17:34.316Z`应用realcoordinator/operator_validation_allocation_closure；revision1079→1080/ledger3保持，仅新关闭C7五grants/released19,776,886，累计35closed/5audits。Allocated108,715,555→88,938,669/unallocated41,284,445→61,061,331，shared费用5,459,031/unknownreserved0不变；run/tasks/requests/stop/seven histories、ledger entries/allocamounts、旧30closures/4receipts/events-prefix逐项deepEqual。Node3.284秒/exit0/model0/ownerReleased，不清费或刷新旧窗口，current为stopped7、新case8未claim；quote/decision精确值见mapping actualAllocationClosure5，前四笔原记录保持。
 
 ### COS-25 · 验证作者只读格式纠正后的完整原生生成
 
