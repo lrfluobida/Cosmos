@@ -8,7 +8,7 @@
 
 ## 1. 已确认的产品目标
 
-Case6 因 coding author_handoff 未决项失败，readonly clarification 发生，原生 run 未进入 host/browser/独立 coding review，仍未 accepted。Root 免费 postfailure 诊断克隆未修改的原生生成 v1 候选，在真实 Edge 通过原鼠标计划 111 步固定玩法诊断，原run仍失败、未 resume/promote，不能替代 native accepted/独立评审/完整经典基准。最新Case7构建与v1 capture通过并进入host/browser，但005步及HUD元素错误导致insufficient_evidence，后续计划skipped、未独立codingreview/repair/accepted；54请求新增¥1.223114、共享¥5.459031。五次免费未用容量closure已完成，旧六案例/费用历史保持；COS-30/COS-31原源码审批仍offline-verified-awaiting-live/open，COS32源码已独审集成、COS33/COS34尚未独批，新case8未claim，进展见 [进度记录](../../PROGRESS.md)。
+Case6 因 coding author_handoff 未决项失败，readonly clarification 发生，原生 run 未进入 host/browser/独立 coding review，仍未 accepted。Root 免费 postfailure 诊断克隆未修改的原生生成 v1 候选，在真实 Edge 通过原鼠标计划 111 步固定玩法诊断，原run仍失败、未 resume/promote，不能替代 native accepted/独立评审/完整经典基准。最新Case7构建与v1 capture通过并进入host/browser，但005步及HUD元素错误导致insufficient_evidence，后续计划skipped、未独立codingreview/repair/accepted；54请求新增¥1.223114、共享¥5.459031。五次免费未用容量closure已完成，旧六案例/费用历史保持；COS-30/COS-31原源码审批仍offline-verified-awaiting-live/open，COS32/COS33源码已独审集成、COS34尚未独批，新case8未claim，进展见 [进度记录](../../PROGRESS.md)。
 
 | 编号 | 要求 |
 | --- | --- |

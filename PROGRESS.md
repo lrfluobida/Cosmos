@@ -59,7 +59,7 @@ Case6 结果：`cos20-native-validation-6` 在准确 `7e51632` 于 `2026-10-03T1
 | 真实成本与时延探针 | native C7 browser 失败，C6 免费候选游戏固定诊断通过 | C7 54 请求新增保守峰值估算 ¥1.223114，共享 ¥5.459031，unknown/reserved0；七案例已停止，五 closures/35 grants 已归还未用容量，旧结果不重开 |
 | 任务拆分 | 已发布 | [34 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#35；34 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS-29/30/31/32 source offline-verified-awaiting-live/open，实际 C7 browser 失败 | 原源码审批保持；C6 免费 Edge111 步诊断不改原run失败；C7 host/browser路径已进入，但无独立codingreview/accepted，G3/G4 未通过，COS33/COS34仍SOURCE_NOT_READY，新case8未claim |
+| 子代理逐项实施 | COS-29/30/31/32/33 source offline-verified-awaiting-live/open，实际 C7 browser 失败 | 原源码审批保持；C6 免费 Edge111 步诊断不改原run失败；C7 host/browser路径已进入，但无独立codingreview/accepted，G3/G4 未通过，COS34仍SOURCE_NOT_READY，新case8未claim |
 
 ## 开发批次
 
@@ -349,9 +349,15 @@ COS32/33登记时的历史：C7实际失败和closure5已由root发布并精确�
 
 ### COS32 归类源码审批与 COS34 最终体验登记
 
-独审 BROWSER_DEFECT_CLASSIFICATION_SOURCE_READY 批准 `af883ba936806003034ea5015dfc3d1ce11939a8`（父 `2031bd073cb3ecd126c875daa7194ee1957fd0af`），唯一merger合入并清推 `bc24755518abe5c2f8c02e6fbf1add6414c72f33`。四批准路径字节一致、UTF8/LF/中文保持/diffcheck通过；作者23pure/首P2修正10pure/termination20/shared6、两不同真实Edge fixture各1/1与初次/增量types证据复用，独审增量6/6、2.92秒、0skip/exit0，联合仅局部观察race归类代表1/1、0skip（7.2949ms）。没有新Edge/compiler/provider或长driver；保存的两份实际报告在新可信事实下诊断为code_defect（1），原C7保存报告仍为insufficient_evidence（2），未回写旧C7结果/费用/closure5。COS32 integrationStatus仍offline-verified-awaiting-live/open，新case8未claim/paid。
+独审 BROWSER_DEFECT_CLASSIFICATION_SOURCE_READY 批准 `af883ba936806003034ea5015dfc3d1ce11939a8`（父 `2031bd073cb3ecd126c875daa7194ee1957fd0af`），唯一merger合入并清推 `bc24755518abe5c2f8c02e6fbf1add6414c72f33`。四批准路径字节一致、UTF8/LF/中文保持/diffcheck通过；作者23pure/首P2修正10pure/termination20/shared6、两不同真实Edge fixture各1/1与初次/增量types证据复用，独审增量6/6、2.92秒、0skip/exit0，联合仅局部观察race归类代表1/1、0skip（7.2949ms）。没有新Edge/compiler/provider或长driver；保存的两份实际报告在新可信事实下诊断为code_defect（1），原C7保存报告仍为insufficient_evidence（2），未回写旧C7结果/费用/closure5。COS32 integrationStatus仍offline-verified-awaiting-live/open，新case8未claim/paid。 [COS32公共源码审批](https://github.com/lrfluobida/Cosmos/issues/33#issuecomment-5972022726) 已由root发布并精确读回。
 
-Root发布并精确读回[COS34/#35](https://github.com/lrfluobida/Cosmos/issues/35)（id5692013242，持久化最终用户体验决定并绑定交付版本）；native parent共34children #2–#35/父checkbox已核。Source前置COS08/11/18已审源码，COS18部分源码stage不要求closed，输出18/17/15；in-progress/open/SOURCE_NOT_READY。≤300词方案已批准，正式generation用户仅approve/reject/cancel，host内部绑定交付hash/report/currentcandidate/attempt与独立review、owner短锁/write-once receipt；保留待体验阶段，generation而非validation，决定入口0模型/0费用，不fakehuman。源码仍专属分支pure TDD，未独审集成或真实用户认可；COS33 caller候选尚待独审，source-not-ready，七案例费用5459031/closure5/revision1080与C6 free111、COS30/31审批保持。本轮只有owned四docs待审候选，不合main或读取私有状态。
+COS34登记与COS33批准前记录（历史）：Root发布并精确读回[COS34/#35](https://github.com/lrfluobida/Cosmos/issues/35)（id5692013242，持久化最终用户体验决定并绑定交付版本）；native parent共34children #2–#35/父checkbox已核。Source前置COS08/11/18已审源码，COS18部分源码stage不要求closed，输出18/17/15；in-progress/open/SOURCE_NOT_READY。≤300词方案已批准，正式generation用户仅approve/reject/cancel，host内部绑定交付hash/report/currentcandidate/attempt与独立review、owner短锁/write-once receipt；保留待体验阶段，generation而非validation，决定入口0模型/0费用，不fakehuman。源码仍专属分支pure TDD，未独审集成或真实用户认可；COS33 caller候选尚待独审，source-not-ready，七案例费用5459031/closure5/revision1080与C6 free111、COS30/31审批保持。本轮只有owned四docs待审候选，不合main或读取私有状态。
+
+### COS33 独立 case8 源码审批与集成
+
+独审 CASE_EIGHT_SOURCE_READY 批准 `d5df6e3d7ed8258356af4316d496acdb5e1f99c9`（base `bc24755518abe5c2f8c02e6fbf1add6414c72f33`），唯一merger合入并清推 `887d51459ef8e5b55a9ed10a6f83a45fd6017567`，offline-verified-awaiting-live/open。八逻辑/九物理批准路径（含test git mv）字节一致、UTF8/LF/中文保持/diffcheck通过，authorProtocolCorrections/codingHandoffClarifications/hostEvidencedCodingHandoff 均保持1，host文件原字节保持。复用作者31focused/唯一strict7.202秒/importClosure exit0、独审pureFS6/6/0skip（71.592秒）；联合仅固定声明代表1/1、0skip（2.0592ms），没有再跑6/31矩阵、compiler或Browser。 [COS33公共源码审批](https://github.com/lrfluobida/Cosmos/issues/34#issuecomment-5972107850) 已由root发布并精确读回。
+
+新fixedcase8/v2/80与同9inputs/model/caps/五grants¥21/newcase¥5/45分钟/一次repair/shared¥150/首30保持，旧七案例和35closed/五真实closure记录认证，COS31/COS32精确marker与source+merge祖先要求保持。源码已批准不表示case8已claim、付费或游戏通过；最终四docs尚待独审，root之后须以最终准确main重新免费preflight/资金/真实coordinator决定并冻结再执行。COS34仍in-progress/open/SOURCE_NOT_READY，无真实用户体验决定；C7原failed/费用5459031/revision1080/closure5及C6 free111与其他审批历史保持，G3/G4未通过。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

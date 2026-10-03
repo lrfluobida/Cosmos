@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：真实Case7已进入host/browser，但第005步和HUD元素错误导致insufficient_evidence，后续skipped、无独立codingreview/repair/accepted；54请求新增¥1.223114、共享¥5.459031。Case6原paid run仍author_handoff失败，未改v1的独立免费Edge111步诊断保持通过。COS30/COS31源码审批与offline-verified-awaiting-live/open保持；第五笔C7未用容量closure已完成，不重开旧案例或追加预算，新case8未claim；COS32源码已独审集成，COS33/COS34仍SOURCE_NOT_READY。
+调用实验：真实Case7已进入host/browser，但第005步和HUD元素错误导致insufficient_evidence，后续skipped、无独立codingreview/repair/accepted；54请求新增¥1.223114、共享¥5.459031。Case6原paid run仍author_handoff失败，未改v1的独立免费Edge111步诊断保持通过。COS30/COS31源码审批与offline-verified-awaiting-live/open保持；第五笔C7未用容量closure已完成，不重开旧案例或追加预算，新case8未claim；COS32/COS33源码已独审集成，COS34仍SOURCE_NOT_READY。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -411,17 +411,17 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-32 · 区分游戏断言超时与浏览器故障并触发有界修复
 
-- 依赖/状态：已发布 [#33](https://github.com/lrfluobida/Cosmos/issues/33)，id5691425244，第32个原生子任务、父checkbox/原生关联已精确读回；offline-verified-awaiting-live/open。独审 BROWSER_DEFECT_CLASSIFICATION_SOURCE_READY 批准 `af883ba936806003034ea5015dfc3d1ce11939a8`（父 `2031bd073cb3ecd126c875daa7194ee1957fd0af`），合入 `bc24755518abe5c2f8c02e6fbf1add6414c72f33`；source前置COS-07/08/11/13/20/30为独立已审集成源码，验证产出COS-10/COS-20/COS-31，不要求失败任务closed。
+- 依赖/状态：已发布 [#33](https://github.com/lrfluobida/Cosmos/issues/33)，id5691425244，第32个原生子任务、父checkbox/原生关联已精确读回；offline-verified-awaiting-live/open。独审 BROWSER_DEFECT_CLASSIFICATION_SOURCE_READY 批准 `af883ba936806003034ea5015dfc3d1ce11939a8`（父 `2031bd073cb3ecd126c875daa7194ee1957fd0af`），合入 `bc24755518abe5c2f8c02e6fbf1add6414c72f33`；source前置COS-07/08/11/13/20/30为独立已审集成源码，验证产出COS-10/COS-20/COS-31，不要求失败任务closed。 [公共源码审批](https://github.com/lrfluobida/Cosmos/issues/33#issuecomment-5972022726) 已精确读回。
 - 输入/范围：C7实际第005步失败、HUD selector缺失、局部等待超时与强制退出记录；作者先≤300词设计交root审阅，再以TDD修runner/diagnostics的失败分类与既有有界repair路由。原C7生成文件及报告保持，不手改旧游戏。
 - 通过/约束：区分游戏断言超时和真实浏览器故障，保留足以判断原因的pageerror/步骤/进程证据；可判定的游戏缺陷反馈沿已有一次coding repair，不能因清理时强制退出而抹掉已有游戏错误，也不将真实浏览器/基础设施故障假归为已修复。原HostAC、独立review、金额/请求/截止和unknown费用守卫保持，不新增semantic repair或把部分计划写为通过。
 - 源码证据/当前边界：四批准路径逐字节一致、UTF8/LF/中文/diffcheck通过；复用作者23pure、首P2修正10pure、termination20/shared6、两不同真实Edge fixture各1/1及初次/增量types证据，独审增量6/6、2.92秒、0skip/exit0。联合仅运行局部观察race归类代表1/1、0skip（7.2949ms），未重复Edge/compiler/长driver。两实际保存报告在新可信事实下诊断为code_defect（1），原C7保存报告仍为insufficient_evidence（2）；原C7失败、费用和closure5不被回写，新case8仍须caller自身独审、最终metadata/preflight/operator/freeze后才能执行。
 
 ### COS-33 · 验证浏览器缺陷反馈后的完整原生生成
 
-- 依赖/状态：已发布 [#34](https://github.com/lrfluobida/Cosmos/issues/34)，id5691425850，第33个原生子任务、父checkbox/原生关联已精确读回；in-progress/open/SOURCE_NOT_READY。source前置COS-20..32的精确审批marker/reviewedCommit/mergeCommit均须独立已审并为冻结main祖先，验证产出COS-10/COS-20，不要求failed任务完成关闭。
-- 输入/范围：固定全新 `cos20-native-validation-8`，沿用declaration-v2/80、同9inputs/model/outputcaps、五grants合¥21、新case¥5/45分钟/一次codingrepair、shared¥150/首批¥30；当前prior1..7已停止，35closed grants/五笔真实closure记录须精确认证，COS31/COS32 source已独审集成，caller自身未独批时不claim或paid。
-- 准入/验收：作者仅准备pureFS声明、caller和七历史/35closures/五audits/source门槛；独立source和docs批准后root用准确finalmain做免费preflight/资金核对/真实coordinator决定并冻结，再执行。全部原HostAC/additionalchecks、逐concern当前版本证据的独立review与normal-input/accepted candidate齐备才记通过，保留真实失败与有界repair证据。
-- 当前边界：源码未独批，无case8 root/marker/paid结果，不重开C7、修改原game、清费用或扩总额。C7 failed、C6 free111诊断及旧七历史与closures均保持，G3/G4和完整classic/用户体验未通过。
+- 依赖/状态：已发布 [#34](https://github.com/lrfluobida/Cosmos/issues/34)，id5691425850，第33个原生子任务、父checkbox/原生关联已精确读回；offline-verified-awaiting-live/open。独审 CASE_EIGHT_SOURCE_READY 批准 `d5df6e3d7ed8258356af4316d496acdb5e1f99c9`（base `bc24755518abe5c2f8c02e6fbf1add6414c72f33`），合入 `887d51459ef8e5b55a9ed10a6f83a45fd6017567`；source前置COS-20..32的精确审批marker/reviewedCommit/mergeCommit均须独立已审并为冻结main祖先，验证产出COS-10/COS-20，不要求failed任务完成关闭。 [公共源码审批](https://github.com/lrfluobida/Cosmos/issues/34#issuecomment-5972107850) 已精确读回。
+- 输入/范围：固定全新 `cos20-native-validation-8`，沿用declaration-v2/80、同9inputs/model/outputcaps、五grants合¥21、新case¥5/45分钟/一次codingrepair、shared¥150/首批¥30；当前prior1..7已停止，35closed grants/五笔真实closure记录须精确认证，COS31/COS32及caller源码已独审集成，尚未claim或paid。
+- 准入/验收：pureFS声明、caller和七历史/35closures/五audits/source门槛已独审通过；作者31focused与唯一strict7.202秒/importClosure exit0、独审6/6/0skip（71.592秒）复用。八逻辑/九物理批准路径（含test git mv）字节一致、UTF8/LF/中文保持/diffcheck通过，authorProtocolCorrections/codingHandoffClarifications/hostEvidencedCodingHandoff 均保持1，host文件原字节保持；联合固定声明代表1/1、0skip（2.0592ms），未重矩阵/compiler/Browser。最终docs批准后root用准确finalmain做免费preflight/资金核对/真实coordinator决定并冻结，再执行；全部原HostAC/additionalchecks、逐concern当前版本证据的独立review与normal-input/accepted candidate齐备才记通过，保留真实失败与有界repair证据。
+- 当前边界：源码已独审集成，仍无case8 root/marker/paid结果，不重开C7、修改原game、清费用或扩总额。C7 failed、C6 free111诊断及旧七历史与closures均保持，G3/G4和完整classic/用户体验未通过。
 
 ### COS-34 · 持久化最终用户体验决定并绑定交付版本
 

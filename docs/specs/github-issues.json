@@ -1522,7 +1522,8 @@
       "integrationStatus": "offline-verified-awaiting-live",
       "reviewStatus": "BROWSER_DEFECT_CLASSIFICATION_SOURCE_READY",
       "reviewedCommit": "af883ba936806003034ea5015dfc3d1ce11939a8",
-      "mergeCommit": "bc24755518abe5c2f8c02e6fbf1add6414c72f33"
+      "mergeCommit": "bc24755518abe5c2f8c02e6fbf1add6414c72f33",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/33#issuecomment-5972022726"
     },
     {
       "taskId": "COS-33",
@@ -1553,8 +1554,11 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "CASE_EIGHT_SOURCE_READY",
+      "reviewedCommit": "d5df6e3d7ed8258356af4316d496acdb5e1f99c9",
+      "mergeCommit": "887d51459ef8e5b55a9ed10a6f83a45fd6017567",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/34#issuecomment-5972107850"
     },
     {
       "taskId": "COS-34",
