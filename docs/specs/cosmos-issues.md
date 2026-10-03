@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-03 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 27 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-03 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 29 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：[COS-23 / #24](https://github.com/lrfluobida/Cosmos/issues/24)、[COS-24 / #25](https://github.com/lrfluobida/Cosmos/issues/25)、[COS-25 / #26](https://github.com/lrfluobida/Cosmos/issues/26) 源码已审集成，两次真实 closure 已完成。Case4 规划 JSON 合法，却在 host 的分配总额守卫失败；新 [COS-26 / #27](https://github.com/lrfluobida/Cosmos/issues/27) 有效容量核算修复与 [COS-27 / #28](https://github.com/lrfluobida/Cosmos/issues/28) 独立 case5 入口已独立批准、联合集成，尚未实际 case5 claim 或执行，不增加预算或重开旧案例。
+调用实验：真实 case5 已在 [COS-26 / #27](https://github.com/lrfluobida/Cosmos/issues/27)/[COS-27 / #28](https://github.com/lrfluobida/Cosmos/issues/28) 已审源码上执行，design/art 通过，coding 在 author_handoff 的职责不确定性处失败，未进入 host/browser/独立 coding review。三笔未用容量 closure 已完成；新 [COS-28 / #29](https://github.com/lrfluobida/Cosmos/issues/29) 职责澄清与 [COS-29 / #30](https://github.com/lrfluobida/Cosmos/issues/30) 独立 case6 源码已审集成，尚未实际 claim 或执行，不重开五个旧案例或增加预算。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -73,6 +73,8 @@
 - [ ] [COS-25 验证作者只读格式纠正后的完整原生生成](https://github.com/lrfluobida/Cosmos/issues/26)
 - [ ] [COS-26 让原生规划按已关闭任务后的有效分配容量核算](https://github.com/lrfluobida/Cosmos/issues/27)
 - [ ] [COS-27 验证有效分配核算修复后的完整原生生成](https://github.com/lrfluobida/Cosmos/issues/28)
+- [ ] [COS-28 只读澄清编码交接中的作者职责与主机验收](https://github.com/lrfluobida/Cosmos/issues/29)
+- [ ] [COS-29 验证交接职责澄清后的完整原生生成](https://github.com/lrfluobida/Cosmos/issues/30)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -354,16 +356,32 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 - 依赖/状态：已发布 [#27](https://github.com/lrfluobida/Cosmos/issues/27)，id 5687873042，原生关联父 #1；offline-verified-awaiting-live/open，6f6960b89daaea3dde9032ae620a76fa7b9ce138 获独立 PLANNING_EFFECTIVE_CAPACITY_SOURCE_READY 合入 409868335cb45ee2f50e065f92ac0f4cd9419208。源级前置 COS-06/07/20/24 已审集成源码，产出反馈 COS-10/COS-20/COS-25，不要求失败运行先关闭。
 - 集成证据：五条批准路径逐字节一致，独立六代表及作者六项/strict types 证据复用；与 COS-27 无路径碰撞，联合 strict noEmit 及有效 v3 planner/fresh-core compatibility/case5 只读历史三项代表 3/3、0 skip，不写实际 case5 通过。
+- 实际组件证据：真实 case5 planning 通过并继续到 design/art/coding，验证已关闭 grants 后的有效容量核算可用；liveValidationStatus 单列 source-and-live-planning-capacity-verified，原 source marker/SHA/offline/open 保持，组件实测不代替游戏通过。
 - 失败依据/范围：case4 原规划结构合法，失败为 host 读取 gross allocations 168,596,040 而未扣已关闭未用容量；有效 budgetCapacity 为 106,522,666，仍小于原 ¥150 上限。仅最小修改原生 planner 的容量基数与必要定向测试/说明，不改模型 proposal、生成游戏、角色额度、旧 ledger entries/allocations 或已结算费用。
 - 通过/约束：验证 closure 前后有效容量、旧关闭 grant ID 权限及原 v1/formal v2 预算语义保持；独立 reviewer 检查实际源码与证据后，由本批唯一 merger 集成。局部修复通过不表示实际生成通过；case4 已消费，不重开，原 80/¥5/45 分钟/一次 coding repair 与共享 ¥150/首批 ¥30 不变。
 
 ### COS-27 · 验证有效分配核算修复后的完整原生生成
 
-- 源码进展/依赖：已发布 [#28](https://github.com/lrfluobida/Cosmos/issues/28)，id 5687874167，原生关联父 #1；offline-verified-awaiting-live/open，8348495794da8e49bed1129fe4b02a8a920505fb 获独立 CASE_FIVE_SOURCE_READY 合入 0efc5ec905786358dc4d43a646d34c17dbf11b26。七项逻辑/八条物理批准路径（含 case-four 测试重命名为 case-five）精确一致，源码已清推；实际 case5 尚未 claim 或付费执行。源级前置 COS-20/21/22/23/24/25/26 匹配精确 marker 与 source/merge 双 main 祖先，不要求失败任务完成，验证产出反馈 COS-10/COS-20。
+- 源码进展/依赖：已发布 [#28](https://github.com/lrfluobida/Cosmos/issues/28)，id 5687874167，原生关联父 #1；offline-verified-awaiting-live/open，8348495794da8e49bed1129fe4b02a8a920505fb 获独立 CASE_FIVE_SOURCE_READY 合入 0efc5ec905786358dc4d43a646d34c17dbf11b26。七项逻辑/八条物理批准路径（含 case-four 测试重命名为 case-five）精确一致，source 审批保留；case5 已真实失败并消费，actualValidationFailure 单列。源级前置 COS-20/21/22/23/24/25/26 匹配精确 marker 与 source/merge 双 main 祖先，不要求失败任务完成，验证产出反馈 COS-10/COS-20。
 - 输入/约束：新固定 `cos20-native-validation-5`，同固定 inputs、declaration-v2/80、model/output caps、五 grants ¥21、case ¥5/45 分钟/一次 coding repair、共享 ¥150/首批 ¥30，新 native host authorProtocolCorrections:1；旧四案例历史、声明/quotes/hash、40 或 80 次、日期、费用和结果保持，不伪造 human 或手写游戏补足失败。
-- 下一次准入准备：root 已于 `2026-10-03T08:45:43.574Z` 通过已有 closure API 仅关闭 case4 五 grants 未用的 20,988,568 micro-CNY，revision 345→346、ledger 3.0.0 保持、closure 共 20/decisions 2，unallocated 为 64,465,902。旧三 case 的 15 closures/62,073,374 不重复归还，费用 2,054,460/unknown reserved 零不变，原 run/tasks/四 cases/requests/entries/allocations/第一笔 closure 与事件前缀保持；Node 3.906 秒/exit 0/model 0/owner released。Current 仍是 stopped case4，不是 case5；源码就绪后仍须新准确 quote/operator/freeze，不清零旧 fees 或重派 closed IDs。
-- 通过/证据：源码由专属 implementer 与独立 reviewer，固定版本集成后 root 重做免费精确 preflight/资金核对/真实 operator 决定，冻结最终 main 再执行。真实角色交接/capture/build/正常输入与独立 accepted candidate 齐备才记录通过；case5 未 claim，G3/G4 与完整目标未通过。
-- 当前边界：独立六风险代表及作者声明 9/entry 11/旧 7/补充 2/fresh fixture 1/strict types 证据复用，组合无碰撞、一次联合 strict noEmit 和三 pure FS 代表通过，不重复 80 请求循环、43 秒全流程、Browser 或 child。最终文档批准、清推后仍须最新 main 实际免费 preflight/资金/operator 与准确冻结，结束并明确解除前不改 main；当前没有新 paid/game passed，费用 2,054,460 micro-CNY、snapshot revision 346、20 closures/2 decisions 和四案例历史保持。
+- Case5 执行前准入准备（历史）：root 已于 `2026-10-03T08:45:43.574Z` 通过已有 closure API 仅关闭 case4 五 grants 未用的 20,988,568 micro-CNY，revision 345→346、ledger 3.0.0 保持、closure 共 20/decisions 2，unallocated 为 64,465,902。旧三 case 的 15 closures/62,073,374 不重复归还，费用 2,054,460/unknown reserved 零不变，原 run/tasks/四 cases/requests/entries/allocations/第一笔 closure 与事件前缀保持；Node 3.906 秒/exit 0/model 0/owner released。在 closure2 的上述时点，current 仍是 stopped case4，当时 case5 尚未开始；源码就绪后仍须新准确 quote/operator/freeze，不清零旧 fees 或重派 closed IDs。
+- Case5 执行前证据/边界（历史）：源码由专属 implementer 与独立 reviewer，固定版本集成后 root 重做免费精确 preflight/资金核对/真实 operator 决定，冻结最终 main 再执行；当时 case5 未 claim，费用 2,054,460 micro-CNY、snapshot revision 346、20 closures/2 decisions。独立六风险代表及作者证据、一次联合 strict noEmit 与三 pure FS 代表复用；真实角色交接/capture/build/正常输入与独立 accepted candidate 齐备才记录通过，G3/G4 未通过。
+- Case5 真实结果：source `8fc7ce5`，quote `vq1-3eec2ee59c21dda34a1d5ea6a0772f8662eec4328179d04c2883cfe7334b6c5f`；`2026-10-03T09:28:05.370Z` 开始、原定 `10:13:05.370Z` 截止、`09:35:55.652Z` 结束，470,282 ms。47 请求新增保守峰值估算 ¥0.901041、共享 ¥2.955501、unknown/reserved 零，结束时 snapshot revision 555/ledger 3.0.0；planning 1/13,572、design 11/160,804、art 11/269,665、coding 24/457,000 micro-CNY。design/art 一次 attempt passed，coding 一次 failed/checkId author_handoff/insufficient_evidence；原 remaining []、两项 uncertainty 指向 host SVG/WAV 实际加载与隐藏 normal mouse occupied/cooldown 场景，误将 host-owned observation 当 author blocking，非 JSON protocol failure。
+- 证据边界：真实 coding check_project 记录六次，TypeScript/Vite 检查通过，immutable v1 candidate 已 capture；host verify/browser/独立 coding review 未运行、accepted null/semantic repair 0，不能写 game passed 或人工删除 uncertainty。原 raw proposal/game 保留，case5 manual finish/结果/marker 已消费；parent Node 23096 dead/exit 1/key cleared、controller/registry locks absent，root 明确解除 main 冻结。其后第三笔免费 closure 仅关闭 case5 未用容量，revision 556，不刷新原 deadline 或重开窗口。
+
+### COS-28 · 只读澄清编码交接中的作者职责与主机验收
+
+- 源码进展/状态：已发布 [#29](https://github.com/lrfluobida/Cosmos/issues/29)，id 5688544970，原生关联父 #1；offline-verified-awaiting-live/open。625f4b33d32110a7dbed6f2d3d0bcf3dbe448a87 获独立 HANDOFF_SCOPE_CLARIFICATION_SOURCE_READY 合入 846e94cf558863f9b6829a8b875b0955f1af7938，九条批准路径精确一致、UTF-8/LF/diffcheck 通过。原 source scope 七代表/legacy 两代表与作者 35/一次 coding repair 转发/strict types 证据复用，主线只跑共享 slot 一项 pure FS 代表 1/1、0 skip，不重复长 fake flow 或编译；尚无真实 case6 结果。源级前置 COS-07/20/23，验证产出 COS-10/20/27，不要求失败运行先关闭。
+- 输入/范围：只在 validation 新 coding opt-in 的合法 JSON、remaining 为空、职责 uncertainty 触发原同一 SDK session 的真正只读 scope clarification；短设计最多 300 词先交 root 批准，原始回复/哈希/签名/身份和 durable 状态保留，不修改 actual case5 game 或原回复。
+- 约束：format correction 与 scope clarification 每个 attempt 共享 ONE extra provider slot，不额外增加模型/语义 coding repair 权限；实际请求/compaction 按原 purpose 计入既有 80 次和费用。SDK 实际关闭 mutating tools，unknown 费用/中断不得重复付费；原 flag0 和五个历史案例权限保持。
+- 通过/证据：不得伪造清空 genuine unresolved/remaining/uncertainty，真正未完成继续失败。澄清仅区分作者职责与主机验收，host 全 AC 与独立 review 不减少，格式或澄清本身不宣布游戏通过；实现、定向证据和独立审查齐备后才由唯一 merger 集成。
+
+### COS-29 · 验证交接职责澄清后的完整原生生成
+
+- 源码进展/状态：已发布 [#30](https://github.com/lrfluobida/Cosmos/issues/30)，id 5688546212，原生关联父 #1；offline-verified-awaiting-live/open。56919a3e4265bfe5d42345c1e5cd32cb8049dd20 获独立 CASE_SIX_SOURCE_READY 合入 89d4fc0ba991bb446139e7e4465b524b5f91e1ee，八项逻辑/九条物理批准路径（含 case-five 测试 gitmv 为 case-six）字节一致、UTF-8/LF/diffcheck 通过。Source28 相同已审 base 上作者 decl/history/sourceFS/entry/hash/CLI 与 strict types、独立六风险代表证据复用，主线固定声明和只读五历史两个代表 2/2、0 skip；未重编译或广矩阵。源级前置 COS-20..28 精确 marker 与 source/merge 双 main 祖先，不要求失败任务 completed；验证产出 COS-10/COS-20，实际 case6 未 claim 或 paid。
+- 输入/约束：新固定 `cos20-native-validation-6`，同 inputs/declaration-v2/80/model/output caps/五 grants ¥21/新 case ¥5/45 分钟/一次 coding repair/共享 ¥150/首批 ¥30；新 native caller 显式 codingHandoffClarifications:1，和 format correction 共享一次额外 slot。五个旧案例源码/声明/hash/quotes/费用/日期/40 或 80 次/消费结果保持，不伪造 human 或手改 game。
+- 准入准备/真实 closure3：root 已于 `2026-10-03T10:17:11.499Z` 在 source `8fc7ce5` 免费关闭 C5 五 grants 未用 20,098,959 micro-CNY，revision 555→556、ledger3，closed 总数 25/decisions3；allocated 106,534,098→86,435,139、unallocated 43,465,902→63,564,861，费用 2,955,501/unknown reserved0 不变。旧 20 closures/2 decisions/events 前缀和全部 case/entries/allocations 严格保持，Node 3.836 秒/exit0/model0/owner released，原 C5 deadline 已过且 manual-stopped 不重开。Case6 still unclaimed，后续 source/main/hash/receipt guards 必须精确检查 prior 1..5 stopped/current5 和 25 closures。
+- 当前边界：root 免费归还未用 capacity，case6 源码已独立批准并集成，但不表示新 run 已开始、退款或提升 ¥150。最终四文档独立批准、清推后，root 仍须最新准确 main 实际 preflight/资金核对/真实 operator 决定与冻结，结束并明确解除前不改主线。五案例、三笔 closures、费用 2,955,501 micro-CNY 与 snapshot revision 556 保持；真实角色交接/host/browser/独立 accepted candidate 未过不写游戏完成，G3/G4 仍未通过。
 
 ## 5. 任务与上下文包模板
 
