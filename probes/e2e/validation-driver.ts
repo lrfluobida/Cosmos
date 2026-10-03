@@ -67,7 +67,7 @@ export function createValidationScopeReader(input: { repository: string; ledgerR
 }
 
 /** Same native planner, roles and host pipeline. Optional session factory is for explicit offline tests only. */
-export async function generateValidationCase(input: ValidationHostInput, io: ValidationHostIO, sessionFactory?: (config: PiSessionOptions) => Promise<RoleSession>, policy: { authorProtocolCorrections?: 0 | 1; codingHandoffClarifications?: 0 | 1 } = {}): Promise<ValidationHostResult> {
+export async function generateValidationCase(input: ValidationHostInput, io: ValidationHostIO, sessionFactory?: (config: PiSessionOptions) => Promise<RoleSession>, policy: { authorProtocolCorrections?: 0 | 1; codingHandoffClarifications?: 0 | 1; hostEvidencedCodingHandoff?: 0 | 1 } = {}): Promise<ValidationHostResult> {
   const { controller, window, root } = input;
   controller.requireValidationCase(window.caseId, window.windowId);
   if (!sameValue(window.quote.declaration, VALIDATION_CASE)) throw new Error('Only the reviewed fixed validation declaration can execute.');
@@ -79,6 +79,7 @@ export async function generateValidationCase(input: ValidationHostInput, io: Val
   const result = await generatePilot({ repository: input.repository, root, prefix: window.caseId, controller, guard, toolchain,
     ...(policy.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: policy.authorProtocolCorrections } : {}),
     ...(policy.codingHandoffClarifications === 1 ? { codingHandoffClarifications: 1 as const } : {}),
+    ...(policy.hostEvidencedCodingHandoff === 1 ? { hostEvidencedCodingHandoff: 1 as const } : {}),
     childAllocationCapMicroCny: Object.entries(VALIDATION_CASE.grants).filter(([role]) => role !== 'planning').reduce((sum, [, grant]) => sum + grant.amountMicroCny, 0), confirmedAt: window.startedAt,
     sessionFactory, validation: { window, binding, work: input.work, prepareRepair: (source, original, requirement, registry) => prepareValidationRepair(input, binding, source, original, requirement, registry, policy) },
     host: {
@@ -94,7 +95,7 @@ export async function generateValidationCase(input: ValidationHostInput, io: Val
 
 /** Authenticate the real host failure before consuming the one predeclared coding repair. */
 async function prepareValidationRepair(input: ValidationHostInput, binding: ValidationExecutionBinding, source: PreparedTask, original: PreparedTask,
-  requirement: ValidationRequirement, registry: ArtifactRegistry, authorPolicy: { authorProtocolCorrections?: 0 | 1; codingHandoffClarifications?: 0 | 1 }): Promise<PreparedTask | null> {
+  requirement: ValidationRequirement, registry: ArtifactRegistry, authorPolicy: { authorProtocolCorrections?: 0 | 1; codingHandoffClarifications?: 0 | 1; hostEvidencedCodingHandoff?: 0 | 1 }): Promise<PreparedTask | null> {
   const { root, controller } = input, { snapshot, window } = await requireValidationScope(controller, requirement, binding);
   const task = snapshot.tasks.find(task => task.taskId === source.task.taskId)!; requireOriginalTask(original.task, task);
   if (task.taskId !== VALIDATION_CASE.grants.coding.taskId || !['failed', 'needs_changes'].includes(task.state) || task.attempts.length !== 1
@@ -117,7 +118,8 @@ async function prepareValidationRepair(input: ValidationHostInput, binding: Vali
     originalStartedAt: snapshot.run.originalStartedAt, originalDeadlineAt: snapshot.run.originalDeadlineAt, limitMicroCny: snapshot.ledger.limitMicroCny,
     requirement, prepared: original, reviewProtocolCorrections: 1 as const, artifactRoot: root, sessionRoot: join(root, 'sessions'),
     ...(authorPolicy.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: authorPolicy.authorProtocolCorrections } : {}),
-    ...(authorPolicy.codingHandoffClarifications === 1 ? { codingHandoffClarifications: 1 as const } : {}) };
+    ...(authorPolicy.codingHandoffClarifications === 1 ? { codingHandoffClarifications: 1 as const } : {}),
+    ...(authorPolicy.hostEvidencedCodingHandoff === 1 ? { hostEvidencedCodingHandoff: 1 as const } : {}) };
   const journal = await TaskJournal.open(recovery, origin, true), author = await journal.read<{ signature: ContentSignature }>('author', attempt.attemptId);
   const captured = await journal.read<{ captured: { artifacts: typeof task.artifacts }; signature: ContentSignature }>('capture', attempt.attemptId);
   if (!author || !captured || !sameValue(captured.captured.artifacts, task.artifacts)) throw new Error('Failure author/capture receipts are incomplete.');

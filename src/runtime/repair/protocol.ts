@@ -29,6 +29,8 @@ export async function requestReview<T>(options: {
   attemptId: string; correctionRecordPath: string;
   prompt: string; images?: ImageContent[]; signal: AbortSignal;
   maxCorrections: 0 | 1; parse: (text: string) => T; now?: () => number;
+  /** Explicit specialized schema in the same single correction slot. */
+  correctionPrompt?: string;
   validation?: { binding: ValidationExecutionBinding; requirement: ExecutionRequirement };
 }): Promise<T> {
   validateProtocolCorrections(options.maxCorrections);
@@ -57,7 +59,7 @@ export async function requestReview<T>(options: {
     }
     options.signal.throwIfAborted();
     // Provider/timeout/admission failures are not parse failures and never retry here.
-    const answer = await options.reviewer.prompt(response === 0 ? options.prompt : correction, { signal: options.signal, ...(response === 0 && options.images ? { images: options.images } : {}) });
+    const answer = await options.reviewer.prompt(response === 0 ? options.prompt : options.correctionPrompt ?? correction, { signal: options.signal, ...(response === 0 && options.images ? { images: options.images } : {}) });
     options.signal.throwIfAborted();
     try { return options.parse(answer.text); }
     catch { if (response === options.maxCorrections) throw new ReviewProtocolError(); }

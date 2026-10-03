@@ -12,6 +12,8 @@ import { freeze } from '../roles/requirements.ts';
 import { decodeModelJson } from '../roles/protocol.ts';
 import { requestReview, validateProtocolCorrections } from './repair/protocol.ts';
 import { requestAuthorProposal, recoverAuthorProposal } from './repair/author-protocol.ts';
+import { codingConcernPacket, codingConcernReviewProtocol, parseCodingConcernReview, requireCodingHostEvidence } from './repair/coding-concerns.ts';
+import type { CodingConcernReview, ReviewProposal } from './repair/coding-concerns.ts';
 import { buildRepairFeedback, failureRecord } from './repair/feedback.ts';
 import type { FailureStage, HostFailure } from './repair/feedback.ts';
 import { TaskJournal, RecoveryBlocked, hasHostRecord, requireOriginalTask, requireCorrectionIdentity } from './recovery/task-journal.ts';
@@ -22,7 +24,7 @@ import { executionWindowView, taskWindowBinding } from './execution-window.ts';
 import { requireContinuationTask } from './continuation-validation.ts';
 import { requireContinuationInputs } from './continuation-inputs.ts';
 import { validateExecutionInput, validateExecutionRequirement } from '../roles/execution-input.ts';
-import type { ExecutionRequirement } from '../roles/execution-input.ts';
+import type { ExecutionRequirement, ValidationRequirement } from '../roles/execution-input.ts';
 import { requireValidationScope, validationJournalBinding } from './validation-scope.ts';
 import type { ValidationExecutionBinding } from './validation-scope.ts';
 import { currentValidationCase, requireValidationTask, validationRole } from './validation-validation.ts';
@@ -55,6 +57,8 @@ export interface DagOptions {
   authorProtocolCorrections?: 0 | 1;
   /** Validation-only read-only coding scope clarification; shares the author format slot. */
   codingHandoffClarifications?: 0 | 1;
+  /** Validation-only coding host checks precede explicit independent concern resolution. */
+  hostEvidencedCodingHandoff?: 0 | 1;
   /** Trusted report adapter only. Receives fixed task data, never raw exceptions. */
   diagnoseFailure?: (task: TaskContract, stage: FailureStage) => HostFailure | undefined;
   /** Explicit opt-in host receipts. Existing callers retain their original behavior. */
@@ -116,6 +120,8 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   if (options.authorProtocolCorrections === 1 && options.scheduling) throw new Error('Author protocol correction requires serial host scheduling.');
   if (![0, 1].includes(options.codingHandoffClarifications ?? 0)) throw new Error('Coding handoff clarifications must be 0 or 1.');
   if (options.codingHandoffClarifications === 1 && (!options.validation || !options.recovery || options.scheduling)) throw new Error('Coding handoff clarification requires explicit serial validation and durable host receipts.');
+  if (![0, 1].includes(options.hostEvidencedCodingHandoff ?? 0)) throw new Error('Host evidenced coding handoff must be 0 or 1.');
+  if (options.hostEvidencedCodingHandoff === 1 && (!options.validation || !options.recovery || options.scheduling)) throw new Error('Host evidenced coding handoff requires explicit serial validation and durable host receipts.');
   const requirement = freeze(structuredClone(options.requirement));
   checked(validateExecutionRequirement(requirement, options.validation ? 'operator_validation' : 'human'));
   const prepared = structuredClone(options.tasks);
@@ -164,6 +170,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
           reviewProtocolCorrections: options.reviewProtocolCorrections ?? 0, artifactRoot: options.recovery.artifactRoot, sessionRoot: resolve(options.sessionRoot),
           ...(options.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: options.authorProtocolCorrections } : {}),
           ...(options.codingHandoffClarifications === 1 ? { codingHandoffClarifications: 1 as const } : {}),
+          ...(options.hostEvidencedCodingHandoff === 1 ? { hostEvidencedCodingHandoff: 1 as const } : {}),
         }, resume));
         const current = prior.get(item.task.taskId);
         if (resume && current) requireOriginalTask(item.task, current);
@@ -194,6 +201,11 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   async function validate(task: TaskContract) {
     const current = await controller.read();
     checked(validateExecutionInput({ requirement, task, ledger: current.ledger, run: current.run }));
+  }
+  async function requireCodingPhase(task: TaskContract) {
+    const { snapshot } = await requireValidationScope(controller, requirement, options.validation!);
+    const authority = await controller.validationAuthority(task.taskId, 'reviewer');
+    if (!authority.executionAllowed || snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new RecoveryBlocked('Coding phase has no active case authority or has unresolved charges; no host or reviewer work was dispatched.');
   }
   async function inspectCaptured(task: TaskContract, proposal: AuthorProposal, expected: ArtifactReference[] | undefined): Promise<CapturedTask> {
     if (signal.aborted) throw new RecoveryBlocked('Recovery cancelled before capture inspection; no host callback was dispatched.');
@@ -239,6 +251,22 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     if (!verified || !sameValue(verified.evidence, task.evidence)) throw new RecoveryBlocked('Passed task has no matching durable host evidence.');
     requirePassingEvidence(task, requirement, task.review.evidenceIds);
     await journal.requireSignature(verified.signature, [...task.inputs, ...task.artifacts, ...task.evidence.map(e => e.source)]);
+    if (options.hostEvidencedCodingHandoff === 1 && item.role === 'coding') {
+      const packet = await codingConcernPacket({ task, proposal, requirement, journal, workspace: item.workspace, parseProposal,
+        allowScope: options.codingHandoffClarifications === 1, reuse: true });
+      const attemptId = task.attempts.at(-1)!.attemptId;
+      const review = await journal.read<{ verdict: ReviewProposal; reviewerId: string; contextId: string; completedAt: string; signature: ContentSignature }>('review', attemptId);
+      const started = await journal.read<{ reviewerId: string; contextId: string }>('review-started', attemptId);
+      if (!review || !started || review.reviewerId !== task.review.reviewerId || review.contextId !== task.review.contextId
+        || started.reviewerId !== review.reviewerId || started.contextId !== review.contextId || review.reviewerId === task.authorId || review.contextId === task.context.contextId
+        || review.completedAt !== task.attempts.at(-1)!.endedAt || task.handoff.uncertainty.length) throw new RecoveryBlocked('Passed coding task lacks its exact independent concern verdict.');
+      try { parseCodingConcernReview(JSON.stringify(review.verdict), task, requirement, packet, parseReview); }
+      catch { throw new RecoveryBlocked('Passed coding concern verdict cannot be verified.'); }
+      const { verdict, inputVersions, evidenceIds } = review.verdict;
+      if (verdict !== 'approved' || !sameValue(inputVersions, task.review.inputVersions) || !sameValue(evidenceIds, task.review.evidenceIds)) throw new RecoveryBlocked('Passed coding concern verdict differs from the recorded review.');
+      await requireCorrectionIdentity(task.attempts.at(-1)!.sessionRef, { taskId: task.taskId, attemptId, reviewerId: review.reviewerId, contextId: review.contextId });
+      await journal.requireSignature(review.signature, [...task.inputs, ...task.artifacts, ...task.evidence.map(e => e.source)]);
+    }
     reusedTaskIds.push(task.taskId); validatedDependencies.add(task.taskId);
     for (const ref of task.artifacts) if (!available.some(existing => sameValue(existing, ref))) available.push(ref);
   }
@@ -303,7 +331,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
           if (!authored) throw new RecoveryBlocked('Author response is not durably recorded; do not repeat paid generation.');
           proposal = parseProposal(JSON.stringify(authored.proposal));
           await journal!.requireSignature(authored.signature, task.inputs);
-          let capture = await journal!.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', attemptId);
+          let capture = await journal!.read<{ captured: CapturedTask; signature: ContentSignature; capturedAt?: string }>('capture', attemptId);
           const captureStarted = await journal!.read('capture-started', attemptId);
           if (!capture && !captureStarted && !recoveredCorrection) throw new RecoveryBlocked('Capture was never durably started; no completed output can be inferred.');
           if (!capture && !captureStarted) await journal!.write('capture-started', attemptId, {});
@@ -311,7 +339,8 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
             ? await options.capture(freeze(structuredClone(task)), freeze(proposal), signal)
             : await inspectCaptured(task, proposal, item.expectedArtifacts);
           if (!capture) {
-            capture = { captured: recovered, signature: await journal!.signature(recovered.artifacts) };
+            capture = { captured: recovered, signature: await journal!.signature(recovered.artifacts),
+              ...(options.hostEvidencedCodingHandoff === 1 && item.role === 'coding' ? { capturedAt: at() } : {}) };
             await journal!.write('capture', attemptId, capture);
           }
           if (!sameValue(recovered, capture.captured)) throw new RecoveryBlocked('Recovered capture differs from its durable snapshot handoff.');
@@ -343,6 +372,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         if (journal) await journal.write('author', attemptId, { proposal, signature: await journal.signature(task.inputs) });
         await author.close(); author = undefined;
         signal.throwIfAborted();
+        if (options.hostEvidencedCodingHandoff === 1 && item.role === 'coding') await requireCodingPhase(task);
         if (journal) await journal.write('capture-started', attemptId, {});
         captured = await options.capture(freeze(structuredClone(task)), freeze(proposal), signal);
       }
@@ -351,13 +381,21 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       if (!continuing || !hadArtifacts) task.handoff = { completed: [proposal.summary], remaining: ['Host verification and independent review', ...proposal.remaining], uncertainty: [...proposal.uncertainty], resumeFrom: task.artifacts[0]?.location ?? directory };
       checked(validateTask(task));
       if (item.expectedArtifacts && (item.expectedArtifacts.length !== task.artifacts.length || item.expectedArtifacts.some(ref => !task.artifacts.some(actual => sameValue(ref, actual))))) throw new Error('Captured outputs do not match the fixed planned artifact versions.');
-      if (journal && !continuing) await journal.write('capture', attemptId, { captured, signature: await journal.signature(task.artifacts) });
+      if (journal && !continuing) await journal.write('capture', attemptId, { captured, signature: await journal.signature(task.artifacts),
+        ...(options.hostEvidencedCodingHandoff === 1 && item.role === 'coding' ? { capturedAt: at() } : {}) });
+      let codingConcerns: CodingConcernReview | undefined;
+      if (options.hostEvidencedCodingHandoff === 1 && item.role === 'coding' && !proposal.remaining.length) {
+        codingConcerns = await codingConcernPacket({ task, proposal, requirement, journal: journal!, workspace: item.workspace, parseProposal,
+          allowScope: options.codingHandoffClarifications === 1 });
+        task.handoff.uncertainty = codingConcerns.concerns.map(concern => concern.text);
+      }
       if (!sameValue(task, (await controller.read()).tasks.find(t => t.taskId === task.taskId))) await save(task);
       signal.throwIfAborted();
       if (!task.artifacts.length) throw new Error('Host capture returned no versioned output artifacts.');
       failureStage = 'author_handoff';
-      if (proposal.remaining.length || proposal.uncertainty.length) throw new Error('Author handoff still has unresolved assigned work or uncertainty.');
+      if (proposal.remaining.length || proposal.uncertainty.length && !codingConcerns) throw new Error('Author handoff still has unresolved assigned work or uncertainty.');
       failureStage = 'host_verification';
+      if (codingConcerns) await requireCodingPhase(task);
       const verified = continuing ? await journal!.read<{ evidence: EvidenceContract[]; signature: ContentSignature }>('verified', attemptId) : null;
       if (verified) {
         if (!Array.isArray(verified.evidence) || !Array.isArray(verified.signature)) throw new RecoveryBlocked('Incomplete host evidence receipt.');
@@ -370,18 +408,19 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         task.evidence = structuredClone(await options.verify(freeze(structuredClone(task)), signal));
       }
       signal.throwIfAborted();
-      try { checked(validateTask(task)); requirePassingEvidence(task, requirement); }
+      try { checked(validateTask(task)); requirePassingEvidence(task, requirement); if (codingConcerns) requireCodingHostEvidence(task, codingConcerns.capturedAt); }
       catch (error) { if (verified) throw new RecoveryBlocked('Recovered host evidence does not satisfy the original acceptance.'); throw error; }
       if (await realpath(item.workspace) === await realpath(captured.reviewWorkspace)) throw new Error('Independent review requires a separate frozen snapshot workspace.');
       if (journal && !verified) await journal.write('verified', attemptId, { evidence: task.evidence, signature: await journal.signature([...task.inputs, ...task.artifacts, ...task.evidence.map(e => e.source)]) });
       if (!sameValue(task, (await controller.read()).tasks.find(t => t.taskId === task.taskId))) await save(task);
       signal.throwIfAborted();
       failureStage = 'independent_review';
-      type ReviewReceipt = { verdict: ReturnType<typeof parseReview>; reviewerId: string; contextId: string; completedAt: string; signature: ContentSignature };
+      const parseVerdict = (text: string) => codingConcerns ? parseCodingConcernReview(text, task, requirement, codingConcerns, parseReview) : parseReview(text, task);
+      type ReviewReceipt = { verdict: ReviewProposal; reviewerId: string; contextId: string; completedAt: string; signature: ContentSignature };
       let review = continuing ? await journal!.read<ReviewReceipt>('review', attemptId) : null;
       if (review) {
         try {
-          parseReview(JSON.stringify(review.verdict), task);
+          parseVerdict(JSON.stringify(review.verdict));
           if (!review.reviewerId?.trim() || !review.contextId?.trim() || review.reviewerId === task.authorId || review.contextId === task.context.contextId
             || !Number.isFinite(Date.parse(review.completedAt)) || new Date(review.completedAt).toISOString() !== review.completedAt) throw new Error();
           const started = await journal!.read<{ reviewerId: string; contextId: string }>('review-started', attemptId);
@@ -395,14 +434,17 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         const imageSources = [...task.inputs, ...task.artifacts, ...task.evidence.map(e => e.source)];
         if (images.length > 8 || images.some(item => !imageSources.some(ref => sameValue(ref, item.source)) || item.image.type !== 'image' || !['image/png', 'image/jpeg', 'image/webp'].includes(item.image.mimeType) || typeof item.image.data !== 'string' || !item.image.data.length || item.image.data.length > 8_000_000)) throw new Error('Review images require bounded bytes and fixed artifact or evidence sources.');
         signal.throwIfAborted();
-        reviewer = await options.roleFactory({ role: 'reviewer', task: freeze(structuredClone(task)), requirement, validation: options.validation, workspace: captured.reviewWorkspace, stateDirectory: join(directory, 'review'), controller });
+        if (codingConcerns) await requireCodingPhase(task);
+        reviewer = await options.roleFactory({ role: 'reviewer', task: freeze(structuredClone(task)), requirement, validation: options.validation, workspace: captured.reviewWorkspace, stateDirectory: join(directory, 'review'), controller,
+          ...(codingConcerns ? { codingConcernReview: freeze(structuredClone(codingConcerns)) } : {}) });
         if (reviewer.actorId === task.authorId || reviewer.contextId === task.context.contextId) throw new Error('Reviewer must have an independent actor and context.');
         task.state = 'awaiting_review'; await save(task);
         if (journal) await journal.write('review-started', attemptId, { reviewerId: reviewer.actorId, contextId: reviewer.contextId });
         const verdict = await requestReview({ reviewer, controller, taskId: task.taskId, signal, now: options.now, validation: options.validation ? { binding: options.validation, requirement } : undefined,
           attemptId, correctionRecordPath: join(directory, 'review-correction.json'),
-          maxCorrections: options.reviewProtocolCorrections ?? 0, parse: text => parseReview(text, task),
-          prompt: `Review the frozen outputs against the supplied acceptance and host evidence. Return the required JSON. Image sources in attachment order: ${JSON.stringify(images.map(item => item.source))}`,
+          maxCorrections: options.reviewProtocolCorrections ?? 0, parse: parseVerdict,
+          ...(codingConcerns ? { correctionPrompt: `${codingConcernReviewProtocol} This is the only protocol correction allowed in this same reviewer session.` } : {}),
+          prompt: `Review the frozen outputs against the supplied acceptance and host evidence. ${codingConcerns ? codingConcernReviewProtocol : 'Return the required JSON.'} Image sources in attachment order: ${JSON.stringify(images.map(item => item.source))}`,
           images: images.length ? images.map(item => item.image) : undefined });
         if (verdict.verdict === 'approved') requirePassingEvidence(task, requirement, verdict.evidenceIds);
         const fixed = journal ? await journal.read<{ signature: ContentSignature }>('verified', attemptId) : null;
@@ -415,13 +457,28 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       if (verdict.verdict === 'approved') requirePassingEvidence(task, requirement, verdict.evidenceIds);
       const attempt = task.attempts.at(-1)!;
       if (continuing && attempt.outcome === 'passed' && attempt.endedAt !== review.completedAt) throw new RecoveryBlocked('Completed attempt time conflicts with the original verdict receipt.');
-      attempt.endedAt = review.completedAt; attempt.outcome = 'passed';
-      task.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;
-      await save(task);
-      task.review = { reviewerId: review.reviewerId, contextId: review.contextId, inputVersions: verdict.inputVersions, verdict: verdict.verdict, evidenceIds: verdict.evidenceIds };
-      task.state = verdict.verdict === 'approved' ? 'passed' : 'needs_changes';
-      await validate(task);
-      await controller.saveTask(task, { role: 'reviewer', actorId: review.reviewerId });
+      if (codingConcerns) {
+        const expectedPrevious = structuredClone(task), completion = structuredClone(task);
+        completion.attempts.at(-1)!.endedAt = review.completedAt; completion.attempts.at(-1)!.outcome = 'passed';
+        completion.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;
+        if (verdict.verdict === 'approved') completion.handoff.uncertainty = [];
+        const reviewed = structuredClone(completion);
+        reviewed.review = { reviewerId: review.reviewerId, contextId: review.contextId, inputVersions: verdict.inputVersions, verdict: verdict.verdict, evidenceIds: verdict.evidenceIds };
+        reviewed.state = verdict.verdict === 'approved' ? 'passed' : 'needs_changes';
+        await validate(reviewed);
+        await controller.saveValidationReviewCompletion({ caseId: options.validation!.caseId, windowId: options.validation!.windowId,
+          requirement: requirement as ValidationRequirement, expectedPrevious, completion, reviewed,
+          reviewerId: review.reviewerId, contextId: review.contextId });
+        Object.assign(task, reviewed);
+      } else {
+        attempt.endedAt = review.completedAt; attempt.outcome = 'passed';
+        task.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;
+        await save(task);
+        task.review = { reviewerId: review.reviewerId, contextId: review.contextId, inputVersions: verdict.inputVersions, verdict: verdict.verdict, evidenceIds: verdict.evidenceIds };
+        task.state = verdict.verdict === 'approved' ? 'passed' : 'needs_changes';
+        await validate(task);
+        await controller.saveTask(task, { role: 'reviewer', actorId: review.reviewerId });
+      }
       if (task.state === 'needs_changes') await persistFeedback(task, undefined, 'independent_review', await controller.read());
       if (task.state === 'passed') { available.push(...task.artifacts); validatedDependencies.add(task.taskId); }
     } catch (error) {
