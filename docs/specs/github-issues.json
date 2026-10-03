@@ -1388,8 +1388,11 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "CASE_SEVEN_SOURCE_READY",
+      "reviewedCommit": "8a07e66d065ba6ddec719ea29e6b519898276c23",
+      "mergeCommit": "21218fd0624034f6d8abad38bd7de2cc8341606c",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/32#issuecomment-5970626041"
     }
   ],
   "verifiedNativeSubIssues": 31,
