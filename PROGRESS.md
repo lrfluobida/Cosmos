@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 24 个原生子任务。COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 25 个原生子任务。COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
 
 第六批补充：固定新试验于 `2026-10-01T11:43:38.426Z` 开始，8.204 秒后在首次输入 capture 发布窗口失败，模型请求与新增费用均为零；原因未知。启动恢复实现虽已独立批准并合入，但实际命令被原 `12:43:38.426Z` 截止拒绝，不能再试或延时。COS-13 已独立批准并合入 `d3aab99`，状态为 `offline-verified-awaiting-live`，#14 保持 open；真实长链路尚未执行，当前无通过的生成游戏，#11/#12 与 G3 状态不变。
 
@@ -47,9 +47,9 @@ Case2 结果：`cos20-native-validation-2` 在准确 `f5522e8` 上于 `2026-10-0
 | 比较方案并记录关键决策 | 待前置决策 | 真正涉及重要取舍时再创建 ADR |
 | 编写、审查并确认 spec | v1.0 发布基线 | 结构审查通过，用户已确认 ¥200/12h 硬上限和 ¥100/6h 优化目标 |
 | 真实成本与时延探针 | native case3 作者交接失败，尚无通过游戏 | case3 5 请求新增保守峰值估算 ¥0.068875，共享累计 ¥2.043028，预留与未知为零；case1/case2 结果和费用保留，三个 case 均已消费 |
-| 任务拆分 | 已发布 | [24 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还 |
-| 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#25；24 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS-22 actual-validation-failed-author-handoff/open，COS-23/COS-24 待实施 | case3 design 最终 prose 被严格 decoder 拒绝，未 host capture/review；art/coding 未开始，原 source 审批保留。COS-20 source CASE_TWO_SOURCE_READY 和 COS-21 complete/closed 保持；新两任务/下个 case 均未 READY 或执行，G3/G4 未通过 |
+| 任务拆分 | 已发布 | [25 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证 |
+| 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#26；25 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
+| 子代理逐项实施 | COS-22 actual-validation-failed-author-handoff/open，COS-23/COS-24 源码实施中、SOURCE_NOT_READY | case3 design 最终 prose 被严格 decoder 拒绝，未 host capture/review；art/coding 未开始，原 source 审批保留。COS-20 source CASE_TWO_SOURCE_READY 和 COS-21 complete/closed 保持；COS-25/#26 registered/not-started/open，case4 未 READY 或执行，G3/G4 未通过 |
 
 ## 开发批次
 
@@ -215,9 +215,13 @@ Case3 执行前记录（历史）：COS-22 当前 offline-verified-awaiting-live
 
 design 实际写出 summary/17 notes/8 AC mapping，但最终作者 1,549 bytes prose 无 JSON fence，含 remaining/uncertainty 字样，被严格 final handoff decoder 以 `Model response requires one complete JSON object` 拒绝。未到 host capture 或独立 review，不证明设计内容、结构值或游戏已通过；classification 为 insufficient_evidence/early execution。此失败未触 80 次、¥5 或 45 分钟限制；COS-22 actual-validation-failed-author-handoff/open，源码审批 VERSIONED_CASE_THREE_SOURCE_READY/27c81b3/474a6a9 保留，COS-20 CASE_TWO_SOURCE_READY/b3ab706/89085f3 原审批保持，最新实际 case3 失败单列，G3/G4 未通过。
 
-Root 已发布并精确读回 [COS-23 / #24](https://github.com/lrfluobida/Cosmos/issues/24)（id 5686944546）和 [COS-24 / #25](https://github.com/lrfluobida/Cosmos/issues/25)（id 5686944963），原生关联父 #1，childCount 24。前者最多增加一次真正 SDK 的只读作者格式纠正，保留原回复和 strict schema/语义 uncertainty，用 pi/SDK 实际关闭 mutating tools，调用计入原费用和请求、不增加语义修复；source 前置 COS-07/COS-20，产出反馈 COS-10/COS-20。后者处理已停止/drained/known-settled 案例的未用任务 grant capacity；source 前置 COS-06/COS-20，产出反馈 COS-20/COS-23，不要求失败任务完成形成循环。两任务当前 open/not-started，方案/源码待实施审查，没有新 READY、allocation closure 或 case4 执行。
+COS-23/COS-24 登记时记录（历史）：Root 已发布并精确读回 [COS-23 / #24](https://github.com/lrfluobida/Cosmos/issues/24)（id 5686944546）和 [COS-24 / #25](https://github.com/lrfluobida/Cosmos/issues/25)（id 5686944963），原生关联父 #1，childCount 24。前者最多增加一次真正 SDK 的只读作者格式纠正，保留原回复和 strict schema/语义 uncertainty，用 pi/SDK 实际关闭 mutating tools，调用计入原费用和请求、不增加语义修复；source 前置 COS-07/COS-20，产出反馈 COS-10/COS-20。后者处理已停止/drained/known-settled 案例的未用任务 grant capacity；source 前置 COS-06/COS-20，产出反馈 COS-20/COS-23，不要求失败任务完成形成循环。两任务当前 open/not-started，方案/源码待实施审查，没有新 READY、allocation closure 或 case4 执行。
 
-分配阻塞由协调者安全元数据确认：allocated 147,596,040 micro-CNY、实际累计 2,043,028、reserved/unknown 零、unallocated 2,403,960，不足新五 grants 共 ¥21 的 envelope。COS-24 将追加版本化 allocation closure，精确归还已停止且收敛案例未花的分配容量，永久关闭旧 grant ID 新派发；原 amounts、settled fees、quotes/operator 决定、日期/请求/历史保留。只读 exact closure quote 绑定真实当前代码/原 snapshot bytes/revision/拟关闭 IDs+amounts/旧案例+requests，由真实 operator receipt 原子提交、同操作幂等，状态漂移或未知费用拒绝。金额不是已结算费用退款，不清零账目或增加 ¥150；共享 ¥150/首批 ¥30/新 case ¥5/45 分钟/80 请求/一次 coding repair 保持。具体 ledger format 尚待只读调研，文档登记不修改实际私有账本、凭据或 session，不声称已经归还容量或生成通过。
+COS-24 需求登记时记录（历史）：分配阻塞由协调者安全元数据确认：allocated 147,596,040 micro-CNY、实际累计 2,043,028、reserved/unknown 零、unallocated 2,403,960，不足新五 grants 共 ¥21 的 envelope。COS-24 将追加版本化 allocation closure，精确归还已停止且收敛案例未花的分配容量，永久关闭旧 grant ID 新派发；原 amounts、settled fees、quotes/operator 决定、日期/请求/历史保留。只读 exact closure quote 绑定真实当前代码/原 snapshot bytes/revision/拟关闭 IDs+amounts/旧案例+requests，由真实 operator receipt 原子提交、同操作幂等，状态漂移或未知费用拒绝。金额不是已结算费用退款，不清零账目或增加 ¥150；共享 ¥150/首批 ¥30/新 case ¥5/45 分钟/80 请求/一次 coding repair 保持。具体 ledger format 尚待只读调研，文档登记不修改实际私有账本、凭据或 session，不声称已经归还容量或生成通过。
+
+Root 已同步并精确读回 [COS-10 case3 结果](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5966131791) 与 [COS-22 case3 结果](https://github.com/lrfluobida/Cosmos/issues/23#issuecomment-5966131994)；原 case3 失败/已消费、费用 ¥0.068875、共享 ¥2.043028、时钟和 caps 保持。COS-23 在 cos05、COS-24 在 cos04 的独立 managed worktree 实施源码，当前 in-progress/open、SOURCE_NOT_READY，无批准 SHA，未合入主线或运行真实 closure。
+
+[COS-25 / #26](https://github.com/lrfluobida/Cosmos/issues/26) 已由 root 发布并精确读回（id 5687112557），原生关联父 #1；flatten 后实际子任务 25 项、编号 #2–#26，父 checkbox 已核对。该任务登记独立 `cos20-native-validation-4`，沿用 declaration-v2/80、同固定输入/模型/output caps、五 grants ¥21、新 case ¥5/45 分钟/一次语义 coding repair、共享 ¥150/首批 ¥30；新 native host 显式 authorProtocolCorrections:1。前置 COS-20/21/22/23/24 只要求准确独立已审且集成源码，旧三个案例 stopped/drained 并仅精确归还未用容量后，root 另做免费源码 preflight、真实 operator 决定和准确 main 冻结，再执行付费 case。旧声明/hash/quotes/40 或 80 次/日期/费用和已消费历史保持，不伪造 human 记录或手改游戏。COS-25 当前 registered/not-started/open，源码和 case4 尚未就绪；本次仅文档待审提交，不启动 paid、不归还真实额度、不合未审源码、不冻结 main。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
