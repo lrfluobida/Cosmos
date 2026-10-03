@@ -52,7 +52,7 @@ async function seedPriorCase(repository: string, root: string, head: string, num
 }
 
 /** Offline temporary repository and historical ledger facts, never a real authorization or generated game. */
-export async function validationRunFixture(t: test.TestContext, options: { caseOne?: 'absent' | 'unstopped'; caseTwo?: 'absent' | 'unstopped'; caseThree?: 'absent' | 'unstopped'; exposure?: 'reserved' | 'unknown'; closure?: 'none' | 'first-two' } = {}) {
+export async function validationRunFixture(t: test.TestContext, options: { caseOne?: 'absent' | 'unstopped'; caseTwo?: 'absent' | 'unstopped'; caseThree?: 'absent' | 'unstopped'; exposure?: 'reserved' | 'unknown'; closure?: 'none' | 'first-two'; cos22RunFailed?: boolean } = {}) {
   const repository = await mkdtemp(join(tmpdir(), 'cosmos-validation-entry-')), original = fileURLToPath(new URL('../../', import.meta.url));
   t.after(() => rm(repository, { recursive: true, force: true }));
   const git = async (...args: string[]) => {
@@ -68,7 +68,7 @@ export async function validationRunFixture(t: test.TestContext, options: { caseO
   const ancestor = await git('rev-parse', 'HEAD'), dependencies = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24'];
   const markers: Record<string, string> = { 'COS-20': 'CASE_TWO_SOURCE_READY', 'COS-21': 'WINDOWS_PUBLICATION_SOURCE_READY', 'COS-22': 'VERSIONED_CASE_THREE_SOURCE_READY', 'COS-23': 'AUTHOR_PROTOCOL_SOURCE_READY', 'COS-24': 'VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY' };
   const mapping = { tasks: dependencies.map(taskId => ({ taskId, state: 'open', reviewStatus: markers[taskId] ?? 'SOURCE_READY',
-    integrationStatus: 'offline-verified-awaiting-live', reviewedCommit: ancestor, mergeCommit: ancestor })) };
+    integrationStatus: taskId === 'COS-22' && options.cos22RunFailed ? 'actual-validation-failed-author-handoff' : 'offline-verified-awaiting-live', reviewedCommit: ancestor, mergeCommit: ancestor })) };
   await mkdir(join(repository, 'docs/specs'), { recursive: true }); await writeFile(join(repository, 'docs/specs/github-issues.json'), JSON.stringify(mapping), 'utf8');
   await git('add', '.'); await git('commit', '-m', 'Offline source approvals'); const head = await git('rev-parse', 'HEAD');
   const ledgerRoot = join(repository, '.cosmos/validation-shared'), caseRoot = join(repository, '.cosmos/e2e', VALIDATION_CASE.caseId);
