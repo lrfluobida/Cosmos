@@ -811,8 +811,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "AUTHOR_PROTOCOL_SOURCE_READY",
+      "reviewedCommit": "d334c82a71aaf160bc81578860234085b07e4a1a",
+      "mergeCommit": "d49d132c0d991daac8879d014c50b7ada69daed3"
     },
     {
       "taskId": "COS-24",
@@ -832,8 +834,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY",
+      "reviewedCommit": "ee4ef2810c1b337aced6637b4a71b90ad90e6626",
+      "mergeCommit": "98aa9ccc18fa7192a693930d53550dce3a91ae18"
     },
     {
       "taskId": "COS-25",
@@ -856,7 +860,8 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "not-started"
+      "integrationStatus": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
   "verifiedNativeSubIssues": 25,
