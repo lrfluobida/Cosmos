@@ -741,7 +741,10 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "not-started"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "VERSIONED_CASE_THREE_SOURCE_READY",
+      "reviewedCommit": "27c81b327164f1318e0352193d72d923a54f77bd",
+      "mergeCommit": "474a6a9f634a72eb33c26734cf4596aa26dff4ac"
     }
   ],
   "verifiedNativeSubIssues": 22,
