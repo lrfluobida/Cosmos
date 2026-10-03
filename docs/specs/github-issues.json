@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 29
+    "childCount": 30
   },
   "tasks": [
     {
@@ -267,9 +267,8 @@
       "nativeValidationCaseId": "cos20-native-validation-2",
       "nativeValidationStatus": "request-limit-exhausted",
       "nativeValidationResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5965622790",
-      "latestLiveValidationCaseId": "cos20-native-validation-5",
+      "latestLiveValidationCaseId": "cos20-native-validation-6",
       "latestLiveValidationStatus": "coding-author-handoff-insufficient-evidence",
-      "latestLiveValidationResultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5968250963",
       "liveValidationHistory": [
         {
           "caseId": "cos20-native-validation-3",
@@ -280,6 +279,11 @@
           "caseId": "cos20-native-validation-4",
           "status": "planner-gross-allocation-rejected",
           "resultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5967241823"
+        },
+        {
+          "caseId": "cos20-native-validation-5",
+          "status": "coding-author-handoff-insufficient-evidence",
+          "resultComment": "https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5968250963"
         }
       ]
     },
@@ -617,7 +621,7 @@
       "state": "open",
       "integrationStatus": "offline-verified-awaiting-live",
       "liveValidationStatus": "request-limit-exhausted",
-      "latestLiveValidationCaseId": "cos20-native-validation-5",
+      "latestLiveValidationCaseId": "cos20-native-validation-6",
       "latestLiveValidationStatus": "coding-author-handoff-insufficient-evidence",
       "reviewStatus": "CASE_TWO_SOURCE_READY",
       "reviewedCommit": "b3ab706ce8b9dccfb54cb701fcc3700d1703869e",
@@ -1177,7 +1181,9 @@
       "integrationStatus": "offline-verified-awaiting-live",
       "reviewStatus": "HANDOFF_SCOPE_CLARIFICATION_SOURCE_READY",
       "reviewedCommit": "625f4b33d32110a7dbed6f2d3d0bcf3dbe448a87",
-      "mergeCommit": "846e94cf558863f9b6829a8b875b0955f1af7938"
+      "mergeCommit": "846e94cf558863f9b6829a8b875b0955f1af7938",
+      "liveValidationStatus": "read-only-scope-clarification-observed",
+      "liveValidationCaseId": "cos20-native-validation-6"
     },
     {
       "taskId": "COS-29",
@@ -1207,9 +1213,115 @@
       "integrationStatus": "offline-verified-awaiting-live",
       "reviewStatus": "CASE_SIX_SOURCE_READY",
       "reviewedCommit": "56919a3e4265bfe5d42345c1e5cd32cb8049dd20",
-      "mergeCommit": "89d4fc0ba991bb446139e7e4465b524b5f91e1ee"
+      "mergeCommit": "89d4fc0ba991bb446139e7e4465b524b5f91e1ee",
+      "actualValidationFailure": "coding-author-handoff-insufficient-evidence",
+      "nativeValidationCase6": {
+        "caseId": "cos20-native-validation-6",
+        "sourcePlatformSha": "7e5163270519e20e4d1bda9dc1c8dc5e475785ae",
+        "status": "failed-and-consumed",
+        "failure": "coding-author-handoff-insufficient-evidence",
+        "checkId": "author_handoff",
+        "failureClassification": "insufficient_evidence",
+        "startedAt": "2026-10-03T11:22:00.263Z",
+        "deadline": "2026-10-03T12:07:00.263Z",
+        "endedAt": "2026-10-03T11:32:19.891Z",
+        "durationMs": 619628,
+        "sdkRequests": 66,
+        "maxSdkRequests": 80,
+        "incrementalLimitMicroCny": 5000000,
+        "durationLimitMs": 2700000,
+        "additionalEstimatedMicroCny": 1280416,
+        "sharedEstimatedMicroCny": 4235917,
+        "reservedMicroCny": 0,
+        "unknownMicroCny": 0,
+        "snapshotRevision": 841,
+        "ledgerContractVersion": "3.0.0",
+        "stopReason": "manual",
+        "semanticRepairClaims": 0,
+        "acceptedCandidate": false,
+        "roleSdkRequests": { "planning": 3, "design": 10, "art": 22, "coding": 31 },
+        "roleEstimatedMicroCny": { "planning": 23792, "design": 99404, "art": 530791, "coding": 626429 },
+        "roleAttempts": { "design": 1, "art": 1, "coding": 1 },
+        "roleOutcomes": { "design": "passed", "art": "passed", "coding": "failed" },
+        "codingTypeScriptAndVitePassed": true,
+        "immutableCandidateCaptured": true,
+        "candidateVersion": "v1",
+        "hostVerificationPerformed": false,
+        "browserAcceptancePerformed": false,
+        "independentCodingReviewPerformed": false,
+        "codingHandoff": {
+          "remainingCount": 0,
+          "originalConcernCount": 3,
+          "allOriginalConcernsPreserved": true,
+          "oneConcernMovedToSummary": true,
+          "finalUncertaintyCount": 2,
+          "uncertaintyTopics": ["victory pacing", "whether runtime manifest fetch is required"],
+          "readOnlyScopeClarificationOccurred": true,
+          "sharedExtraSlotObserved": true
+        },
+        "nativePid": 28236,
+        "nativeExitCode": 1,
+        "credentialCleared": true,
+        "controllerAndRegistryLocksAbsent": true,
+        "unusedCase6GrantsClosed": false,
+        "potentialUnusedCapacityMicroCny": 19719584
+      },
+      "postFailureHostDiagnostic": {
+        "diagnosticId": "case6-host-diagnostic-61d2d518-1bce-4268-a37e-86fcc6ad7ac7",
+        "diagnosticRoot": ".cosmos/diagnostics/case6-host-diagnostic-61d2d518-1bce-4268-a37e-86fcc6ad7ac7",
+        "reportPath": ".cosmos/diagnostics/case6-host-diagnostic-61d2d518-1bce-4268-a37e-86fcc6ad7ac7/evidence/cos10-pilot/cos20-native-validation-6-game/v1/case6-host-diagnostic-61d2d518-1bce-4268-a37e-86fcc6ad7ac7/normal-input-diagnostic/report.json",
+        "candidateVersion": "v1",
+        "hostBuildPassed": true,
+        "originalNormalMousePlanUnmodified": true,
+        "browser": "Edge",
+        "browserPid": 29728,
+        "passedSteps": 111,
+        "failedSteps": 0,
+        "skippedSteps": 0,
+        "errorCount": 0,
+        "durationSecondsApprox": 96.4,
+        "browserExitedNormally": true,
+        "forcedTermination": false,
+        "originalCandidateFileListAndEveryShaUnchanged": true,
+        "sharedSnapshotBytesUnchanged": true,
+        "modelRequests": 0,
+        "additionalEstimatedMicroCny": 0,
+        "victoryScreenshotName": "066-066-visible-status.png",
+        "failureScreenshotName": "089-089-visible-status.png",
+        "nativeGeneratedCandidateCompletedFixedGameplayDiagnostic": true,
+        "nativeResultRemainsFailedConsumed": true,
+        "nativeRunAccepted": false,
+        "fullClassicBenchmarkPassed": false,
+        "resumeOrPromotePerformed": false,
+        "diagnosticTimeAddedToNativeRun": false
+      }
+    },
+    {
+      "taskId": "COS-30",
+      "title": "用主机证据和独立评审处理编码交接未决项",
+      "number": 31,
+      "id": 5689492852,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/31",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        { "id": "COS-07", "number": 8, "url": "https://github.com/lrfluobida/Cosmos/issues/8" },
+        { "id": "COS-08", "number": 9, "url": "https://github.com/lrfluobida/Cosmos/issues/9" },
+        { "id": "COS-20", "number": 21, "url": "https://github.com/lrfluobida/Cosmos/issues/21" },
+        { "id": "COS-23", "number": 24, "url": "https://github.com/lrfluobida/Cosmos/issues/24" },
+        { "id": "COS-28", "number": 29, "url": "https://github.com/lrfluobida/Cosmos/issues/29" }
+      ],
+      "validationOutputsFor": [
+        { "id": "COS-10", "number": 11, "url": "https://github.com/lrfluobida/Cosmos/issues/11" },
+        { "id": "COS-20", "number": 21, "url": "https://github.com/lrfluobida/Cosmos/issues/21" },
+        { "id": "COS-29", "number": 30, "url": "https://github.com/lrfluobida/Cosmos/issues/30" }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 29,
+  "verifiedNativeSubIssues": 30,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

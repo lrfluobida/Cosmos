@@ -4,11 +4,11 @@
 
 仓库：[lrfluobida/Cosmos](https://github.com/lrfluobida/Cosmos)
 
-已发布：[spec 主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，包含 29 个原生子任务；编号与依赖见 [发布映射](github-issues.json)。COS-19 承接原 R4/R5/R12 的角色交接与截断处理，COS-20 区分已有 R6/R7 的正式生成时限与开发验证窗口，COS-21 承接原 R5/R11 的 Windows 产物目录原子发布失败，COS-22 验证更高调用上限下的完整原生生成；COS-23/COS-24 处理真实失败暴露的作者格式交接和已停止案例未用分配额度，COS-25 验证作者只读格式纠正后的完整原生生成。COS-26/COS-27 承接有效分配容量修复及独立原生验证，COS-28/COS-29 承接编码交接职责澄清和新独立 case6，不改变产品范围或预算。
+已发布：[spec 主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，包含 30 个原生子任务；编号与依赖见 [发布映射](github-issues.json)。COS-19 承接原 R4/R5/R12 的角色交接与截断处理，COS-20 区分已有 R6/R7 的正式生成时限与开发验证窗口，COS-21 承接原 R5/R11 的 Windows 产物目录原子发布失败，COS-22 验证更高调用上限下的完整原生生成；COS-23/COS-24 处理真实失败暴露的作者格式交接和已停止案例未用分配额度，COS-25 验证作者只读格式纠正后的完整原生生成。COS-26/COS-27 承接有效分配容量修复及独立原生验证，COS-28/COS-29 承接职责澄清和 case6，COS-30 用主机证据与独立评审处理编码交接未决项，不改变产品范围或预算。
 
 ## 1. 已确认的产品目标
 
-COS-26/COS-27 已审集成并执行真实 case5，规划容量组件经实测，design/art 通过；coding 项目检查通过且 v1 已捕获，但因交接职责不确定性失败，host 验证、浏览器和独立 coding review 未运行，未形成 accepted game。三次真实免费未用容量 closure 已完成，原费用和五案例历史保持；COS-28 职责澄清与 COS-29 独立 case6 源码已审集成，尚未实际 case6 claim 或执行。源码或局部构建通过不代表目标游戏通过，进展见 [进度记录](../../PROGRESS.md)。
+Case6 已真实执行并因 coding author_handoff 未决项失败，readonly clarification 发生，原生 run 未进入 host/browser/独立 coding review，仍未 accepted。Root 免费 postfailure 诊断克隆未修改的原生生成 v1 候选，以原 host build 和未改的 normal mouse plan 在真实 Edge 通过 111 步固定玩法诊断；此证明候选游戏可完成该诊断，未 resume/promote 或改原 run 结果，不能替代正式 native accepted、独立评审或完整经典基准。COS-30 正准备主机证据/逐项独立 ConcernResolution，源码未 READY；六案例与原费用历史保持，进展见 [进度记录](../../PROGRESS.md)。
 
 | 编号 | 要求 |
 | --- | --- |
@@ -181,7 +181,7 @@ Cosmos 为评审创建独立上下文，由评审读取固定要求与交付物�
 
 每项实际 issue 需要明确输入、输出、依赖、文件范围和验收证据。纯调查完成、验证通过、正式功能完成应使用不同的完成条件。
 
-具体拆分见 [29 项任务卡与依赖关口](cosmos-issues.md)。平台实施可与参考资料核对并行；完整基准验收工具的最终版本与完整生成必须等待基准冻结。正式生成的最终打包和干净目录启动检查计入同一次 ¥200/12h；只有等待用户试玩单独记录。父任务完成还需要小型不同机制迁移验证通过，其付费验证共享 ¥150 余额。
+具体拆分见 [30 项任务卡与依赖关口](cosmos-issues.md)。平台实施可与参考资料核对并行；完整基准验收工具的最终版本与完整生成必须等待基准冻结。正式生成的最终打包和干净目录启动检查计入同一次 ¥200/12h；只有等待用户试玩单独记录。父任务完成还需要小型不同机制迁移验证通过，其付费验证共享 ¥150 余额。
 
 ## 7. 执行前置与验证关口
 
