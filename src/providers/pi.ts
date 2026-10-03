@@ -100,6 +100,7 @@ export async function createPiSession(config: PiSessionOptions) {
   let requests = 0;
   let failure: PiSessionError | undefined;
   let callerSignal: AbortSignal | undefined;
+  let readonlyRequests: number | undefined;
   let closed = false;
   const records: PiResponse[] = [];
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
@@ -108,6 +109,7 @@ export async function createPiSession(config: PiSessionOptions) {
     throwIfFailed();
     if (requestModel.provider !== 'deepseek' || requestModel.id !== DEEPSEEK_MODEL) throw fail('model_mismatch', 'Unexpected model route');
     if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled');
+    if (readonlyRequests !== undefined && ++readonlyRequests > 1) throw fail('request_limit', 'Format correction permits one provider request');
     if (++requests > config.maxRequests) throw fail('request_limit', 'Session request limit reached');
     const request: Omit<PiRequest, 'estimatedMaxCostMicroCny'> = {
       requestId: randomUUID(), modelId: DEEPSEEK_MODEL, maxOutputTokens: config.maxOutputTokens,
@@ -230,12 +232,15 @@ export async function createPiSession(config: PiSessionOptions) {
     throw new Error('SDK model fallback is forbidden');
   }
   let busy = false;
+  let operationDone: Promise<void> | undefined;
   async function run<T>(action: () => Promise<T>, signal?: AbortSignal) {
     if (closed) throw new PiSessionError('closed', 'Session is closed');
     if (failure) throw failure;
     if (busy) throw new PiSessionError('busy', 'Session already has an active operation');
     if (signal?.aborted) throw new PiSessionError('cancelled', 'Operation was cancelled');
     busy = true;
+    let finish!: () => void;
+    operationDone = new Promise<void>(resolve => { finish = resolve; });
     callerSignal = signal;
     const abort = () => { fail('cancelled', 'Operation was cancelled'); void session.abort(); };
     signal?.addEventListener('abort', abort, { once: true });
@@ -247,6 +252,7 @@ export async function createPiSession(config: PiSessionOptions) {
       signal?.removeEventListener('abort', abort);
       callerSignal = undefined;
       busy = false;
+      finish(); operationDone = undefined;
     }
   }
   return {
@@ -257,6 +263,27 @@ export async function createPiSession(config: PiSessionOptions) {
       return run(async () => {
         await session.prompt(text, { images: options.images, expandPromptTemplates: false });
         return { text: session.getLastAssistantText() ?? '', requests: records.slice() };
+      }, options.signal);
+    },
+    /** Host-only format turn. The existing native session, request guards and history remain authoritative. */
+    readonlyPrompt(text: string, options: { signal?: AbortSignal } = {}) {
+      return run(async () => {
+        if (!session.isIdle || session.getAllTools().some(tool => tool.exposure === 'codemode' || tool.exposure === 'deferred')) {
+          throw new PiSessionError('readonly_unavailable', 'Native tool registry cannot isolate a read-only format turn');
+        }
+        const active = session.getActiveToolNames();
+        try {
+          // Formatting needs only facts already in this session, so grant no callable tools.
+          session.setActiveToolsByName([]);
+          if (session.getActiveToolNames().length || session.getCallableToolNames().length) throw new PiSessionError('readonly_unavailable', 'Native tools remain callable');
+          readonlyRequests = 0;
+          await session.prompt(text, { expandPromptTemplates: false });
+          return { text: session.getLastAssistantText() ?? '', requests: records.slice() };
+        } finally {
+          readonlyRequests = undefined;
+          if (!session.isIdle) await session.abort();
+          if (!closed) session.setActiveToolsByName(active);
+        }
       }, options.signal);
     },
     compact(signal?: AbortSignal) {
@@ -270,6 +297,7 @@ export async function createPiSession(config: PiSessionOptions) {
       if (closed) return;
       closed = true;
       await session.abort();
+      await operationDone;
       session.dispose();
     },
   };

@@ -22,6 +22,8 @@ export type AuthorRole = 'cosmos' | 'design' | 'coding' | 'art';
 export type Role = AuthorRole | 'reviewer';
 export interface RoleSession {
   prompt(text: string, options?: { signal?: AbortSignal; images?: ImageContent[] }): Promise<{ text: string }>;
+  /** Host-only format correction with native tool execution disabled. */
+  readonlyPrompt?(text: string, options?: { signal?: AbortSignal }): Promise<{ text: string }>;
   /** Host-only, idle-session boundary; native pi owns summarization and billing. */
   compact?(signal?: AbortSignal): Promise<unknown>;
   close(): Promise<void>;
@@ -139,6 +141,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         ...(validation ? { validation: { caseId: validation.caseId, windowId: validation.windowId, purpose } } : {}) }),
     });
     return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }),
+      ...(session.readonlyPrompt ? { readonlyPrompt: (text: string, supplied: { signal?: AbortSignal } = {}) => session.readonlyPrompt!(text, { signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }) } : {}),
       ...(session.compact ? { compact: (signal?: AbortSignal) => session.compact!(AbortSignal.any([input.controller.signal, ...(signal ? [signal] : [])])) } : {}), close: () => session.close() };
   };
 }

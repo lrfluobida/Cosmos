@@ -271,3 +271,53 @@ test('request deadline aborts a stalled SSE body, retains unknown cost and block
   await assert.rejects(session.prompt('retry'), { code: 'timeout' });
   await assert.rejects(readFile(join(f.workspace, 'output.txt')), { code: 'ENOENT' });
 });
+
+test('one native read-only turn keeps the conversation and restores the author tool loadout', async t => {
+  const f = await fixture(t, [reply('original facts'), reply('{"summary":"facts","remaining":[],"uncertainty":[]}'), call('write', { path: 'output.txt', content: '恢复中文\n' }), reply()]);
+  const session = await f.create();
+  await session.prompt('author');
+  await session.readonlyPrompt('only reformat');
+  assert.equal(f.requests[1].tools, undefined);
+  assert.match(JSON.stringify(f.requests[1].messages), /original facts/);
+  assert.equal(f.admissions.length, 2);
+  await session.prompt('continue author');
+  assert.equal(await readFile(join(f.workspace, 'output.txt'), 'utf8'), '恢复中文\n');
+  assert.equal(f.requests[2].tools.some((tool: any) => tool.function.name === 'write'), true);
+});
+
+for (const name of ['write', 'edit', 'check_project']) test(`native format turn cannot execute ${name} or create an extra provider turn`, async t => {
+  const f = await fixture(t, [call(name, name === 'edit' ? { path: 'output.txt', oldText: '原文', newText: 'bad' } : { path: 'output.txt', content: 'bad' })]);
+  await writeFile(join(f.workspace, 'output.txt'), '原文\n', 'utf8');
+  let hostCalls = 0;
+  const host = { ...f.config.tools[0], name: 'check_project', async execute() { hostCalls++; await writeFile(join(f.workspace, 'output.txt'), 'bad', 'utf8'); return { content: [], details: {} }; } };
+  const session = await f.create({ tools: [...f.config.tools, host] });
+  await assert.rejects(session.readonlyPrompt('only reformat'), { code: 'request_limit' });
+  assert.equal(f.requests.length, 1);
+  assert.equal(f.admissions.length, 1);
+  assert.equal(f.requests[0].tools, undefined);
+  assert.equal(hostCalls, 0);
+  assert.equal(await readFile(join(f.workspace, 'output.txt'), 'utf8'), '原文\n');
+});
+
+for (const exposure of ['codemode', 'deferred'] as const) test(`native format turn refuses callable inactive ${exposure} tools before admission`, async t => {
+  const f = await fixture(t, []);
+  const session = await f.create({ tools: [{ ...f.config.tools.find(tool => tool.name === 'write')!, exposure }] });
+  await assert.rejects(session.readonlyPrompt('only reformat'), { code: 'readonly_unavailable' });
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.admissions.length, 0);
+});
+
+test('a concurrent author operation cannot overlap a native format turn; close waits for settlement', async t => {
+  let enter!: () => void, release!: () => void;
+  const started = new Promise<void>(resolve => { enter = resolve; });
+  const ready = new Promise<void>(resolve => { release = resolve; });
+  const f = await fixture(t, [async () => { enter(); await ready; const chunk = { model: 'deepseek-flash', choices: [{ index: 0, ...reply('facts') }], usage }; return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } }); }]);
+  const session = await f.create();
+  const pending = session.readonlyPrompt('format').catch(error => error);
+  await started;
+  await assert.rejects(session.prompt('overlap'), { code: 'busy' });
+  await assert.rejects(session.compact(), { code: 'busy' });
+  const closing = session.close(); release(); await closing; await pending;
+  await assert.rejects(session.readonlyPrompt('after close'), { code: 'closed' });
+  assert.equal(f.requests.length, 1);
+});

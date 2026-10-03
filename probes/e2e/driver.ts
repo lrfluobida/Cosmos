@@ -51,6 +51,8 @@ export async function generatePilot(options: {
   trial?: boolean;
   experiment?: ExperimentAdmission;
   startupRecovery?: boolean;
+  /** New host callers may opt into a single durable author format correction. Historical callers omit it. */
+  authorProtocolCorrections?: 0 | 1;
   validation?: { window: ValidationCaseWindow; binding: ValidationExecutionBinding; work: OwnedWork;
     prepareRepair(source: PreparedTask, original: PreparedTask, requirement: ValidationRequirement, registry: ArtifactRegistry): Promise<PreparedTask | null> };
   /** Trusted offline fixture adapters only; production uses the concrete host tools below. */
@@ -60,6 +62,8 @@ export async function generatePilot(options: {
   repairEstimate?: { costMicroCny: number; durationMs: number; cleanupMs: number; requests: number };
 }) {
   const { root, repository, prefix, controller, guard, toolchain } = options;
+  if (![0, 1].includes(options.authorProtocolCorrections ?? 0)) throw new Error('Author protocol corrections must be 0 or 1.');
+  if (options.authorProtocolCorrections === 1 && !options.validation) throw new Error('Pilot author correction requires explicit validation recovery.');
   const validation = options.validation;
   if (validation) {
     controller.requireValidationCase(validation.window.caseId, validation.window.windowId);
@@ -287,6 +291,7 @@ export async function generatePilot(options: {
     } catch { return null; }
   } };
   const execution = (tasks: PreparedTask[], availableArtifacts: ArtifactReference[]) => ({ controller, requirement, validation: validation?.binding, tasks, sessionRoot: join(root, 'sessions'),
+    ...(options.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: options.authorProtocolCorrections } : {}),
     availableArtifacts, roleFactory, signal: guard.signal, reviewProtocolCorrections: (validation?.window.quote.declaration.limits.reviewProtocolCorrections ?? bounded?.reviewProtocolCorrections ?? 0) as 0 | 1,
     ...((bounded || validation) ? { diagnoseFailure: (task: TaskContract, stage: string) => stage === 'host_verification' ? diagnosedFailure(task, diagnostics.get(task.taskId)) : undefined } : {}),
     ...(validation ? { recovery } : {}), ...callbacks });

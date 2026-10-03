@@ -22,11 +22,13 @@ export interface RecoveryOptions {
 }
 export interface RecoveryReport { tasks: TaskContract[]; reusedTaskIds: string[]; blocked: { taskId: string; reason: string }[] }
 export class RecoveryBlocked extends Error {}
-type Stage = 'author' | 'capture-started' | 'capture' | 'verify-started' | 'verified' | 'review-started' | 'review' | 'failure-snapshot';
+type Stage = 'author' | 'author-correction-started' | 'author-correction-response' | 'capture-started' | 'capture' | 'verify-started' | 'verified' | 'review-started' | 'review' | 'failure-snapshot';
 export interface RecoveryOrigin {
   formatVersion: 1 | 2 | 3; runId: string; ledgerId: string; originalStartedAt: string; originalDeadlineAt: string;
   limitMicroCny: number; requirement: ExecutionRequirement; prepared: PreparedTask; reviewProtocolCorrections: 0 | 1;
   artifactRoot: string; sessionRoot: string;
+  /** Omission preserves historical origin bytes and disables author corrections. */
+  authorProtocolCorrections?: 0 | 1;
   executionWindow?: ExecutionWindowBinding;
   validationCase?: ValidationJournalBinding;
 }
@@ -87,6 +89,19 @@ export class TaskJournal {
     try { if (sameValue(value, await this.signature(references))) return; }
     catch { /* A missing file is also an unprovable fixed version. */ }
     throw new RecoveryBlocked('Fixed recovery input, artifact or evidence content changed or is missing.');
+  }
+  async workspaceSignature(workspace: string, writePaths: string[]): Promise<ContentSignature> {
+    const result: ContentSignature = [];
+    for (const path of [...new Set(writePaths)].sort()) {
+      const location = await safePath(workspace, path);
+      const info = await lstat(location).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
+      const files = !info ? new Map<string, Buffer>() : info.isDirectory() ? await snapshot(location) : new Map([['', await regularFile(workspace, path)]]);
+      result.push({ location, files: [...files].sort(([a], [b]) => a.localeCompare(b)).map(([path, bytes]) => ({ path, sha256: createHash('sha256').update(bytes).digest('hex') })) });
+    }
+    return result;
+  }
+  async requireWorkspaceSignature(value: ContentSignature, workspace: string, writePaths: string[]): Promise<void> {
+    if (!sameValue(value, await this.workspaceSignature(workspace, writePaths))) throw new RecoveryBlocked('Author workspace changed during or after its read-only correction.');
   }
 }
 

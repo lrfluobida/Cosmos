@@ -2,6 +2,7 @@ import { validateContext, validateTask } from '../../contracts/index.ts';
 import { sameValue } from '../../contracts/validation.ts';
 import type { ArtifactReference, FailureRecord, TaskContract } from '../../contracts/types.ts';
 import { PiSessionError } from '../../providers/pi.ts';
+import { AuthorProtocolError } from './author-protocol.ts';
 import type { RunSnapshot } from '../run-types.ts';
 
 export interface HostIssue extends FailureRecord { acceptanceId: string; checkId: string }
@@ -83,13 +84,16 @@ export function buildRepairFeedback(task: TaskContract, error: unknown, stage: F
   const serviceCodes = ['timeout', 'provider_error', 'usage_unknown', 'accounting_error', 'model_mismatch'];
   const service = error instanceof PiSessionError && serviceCodes.includes(error.code);
   const incomplete = error instanceof PiSessionError && error.code === 'incomplete';
-  const actual = incomplete ? 'Provider output reached its token limit; the response is incomplete and partial tool calls were not executed.'
+  const protocol = error instanceof AuthorProtocolError;
+  const actual = protocol ? `Author protocol_failure: ${error.code}; no valid strict handoff was established.`
+    : incomplete ? 'Provider output reached its token limit; the response is incomplete and partial tool calls were not executed.'
+    : service ? 'Provider request failed or requires reconciliation.'
     : stage === 'author_handoff' ? 'Author handoff declares unresolved assigned work or uncertainty.'
     : stage === 'independent_review' && task.review.verdict === 'changes_requested' ? 'Independent review requested changes; host diagnosis is required.'
     : stage === 'independent_review' ? 'No valid independent review proposal for the fixed inputs and host evidence.'
-    : service ? 'Provider request failed or requires reconciliation.' : 'Host execution did not establish passing evidence.';
+    : 'Host execution did not establish passing evidence.';
   const issues: HostIssue[] = error instanceof HostFailure ? structuredClone(error.issues) : task.acceptance.map(item => ({
-    acceptanceId: item.acceptanceId, checkId: incomplete ? 'provider_output_truncated' : service ? error.code : stage,
+    acceptanceId: item.acceptanceId, checkId: protocol ? 'author_protocol' : incomplete ? 'provider_output_truncated' : service ? error.code : stage,
     classification: service ? 'external_service' : 'insufficient_evidence', summary: actual,
     reproduction: [...item.steps], actual, expected: item.expected, evidenceRefs: task.evidence.filter(e => e.acceptanceIds.includes(item.acceptanceId)).map(e => e.source.location),
   }));

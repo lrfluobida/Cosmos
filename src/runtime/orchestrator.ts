@@ -11,6 +11,7 @@ import type { AuthorRole, CreatedRole, RoleFactory } from '../roles/factory.ts';
 import { freeze } from '../roles/requirements.ts';
 import { decodeModelJson } from '../roles/protocol.ts';
 import { requestReview, validateProtocolCorrections } from './repair/protocol.ts';
+import { requestAuthorProposal, recoverAuthorProposal } from './repair/author-protocol.ts';
 import { buildRepairFeedback, failureRecord } from './repair/feedback.ts';
 import type { FailureStage, HostFailure } from './repair/feedback.ts';
 import { TaskJournal, RecoveryBlocked, hasHostRecord, requireOriginalTask, requireCorrectionIdentity } from './recovery/task-journal.ts';
@@ -50,6 +51,8 @@ export interface DagOptions {
   now?: () => number;
   /** Opt-in correction of review JSON only, within the same live reviewer session. */
   reviewProtocolCorrections?: 0 | 1;
+  /** Explicit single format correction in the original live author; durable recovery is required. */
+  authorProtocolCorrections?: 0 | 1;
   /** Trusted report adapter only. Receives fixed task data, never raw exceptions. */
   diagnoseFailure?: (task: TaskContract, stage: FailureStage) => HostFailure | undefined;
   /** Explicit opt-in host receipts. Existing callers retain their original behavior. */
@@ -106,6 +109,9 @@ async function checkProfile(options: DagOptions): Promise<void> {
 async function executeDag(options: DagOptions, resume: boolean): Promise<RecoveryReport> {
   const { controller } = options;
   validateProtocolCorrections(options.reviewProtocolCorrections ?? 0);
+  if (![0, 1].includes(options.authorProtocolCorrections ?? 0)) throw new Error('Author protocol corrections must be 0 or 1.');
+  if (options.authorProtocolCorrections === 1 && !options.recovery) throw new Error('Author protocol correction requires durable host receipts.');
+  if (options.authorProtocolCorrections === 1 && options.scheduling) throw new Error('Author protocol correction requires serial host scheduling.');
   const requirement = freeze(structuredClone(options.requirement));
   checked(validateExecutionRequirement(requirement, options.validation ? 'operator_validation' : 'human'));
   const prepared = structuredClone(options.tasks);
@@ -146,11 +152,13 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     if (options.recovery) {
       try {
         if (!item.expectedArtifacts?.length || item.task.ownership.writePaths.some(path => pathsOverlap(path, options.recovery!.journalRoot, item.workspace))) throw new RecoveryBlocked('Recovery requires exact expected outputs and a journal outside author write paths.');
+        if (options.authorProtocolCorrections === 1 && item.task.ownership.writePaths.some(path => pathsOverlap(path, options.sessionRoot, item.workspace))) throw new RecoveryBlocked('Author correction requires native session state outside author output paths.');
         journals.set(item.task.taskId, await TaskJournal.open(options.recovery, {
           ...(options.validation ? { formatVersion: 3 as const, validationCase: validationJournalBinding(currentValidationCase(initial)) } : binding ? { formatVersion: 2 as const, executionWindow: binding } : { formatVersion: 1 as const }),
           runId: initial.run.runId, ledgerId: initial.ledger.ledgerId, originalStartedAt: initial.run.originalStartedAt,
           originalDeadlineAt: initial.run.originalDeadlineAt, limitMicroCny: initial.ledger.limitMicroCny, requirement, prepared: item,
           reviewProtocolCorrections: options.reviewProtocolCorrections ?? 0, artifactRoot: options.recovery.artifactRoot, sessionRoot: resolve(options.sessionRoot),
+          ...(options.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: options.authorProtocolCorrections } : {}),
         }, resume));
         const current = prior.get(item.task.taskId);
         if (resume && current) requireOriginalTask(item.task, current);
@@ -276,13 +284,26 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       let proposal: AuthorProposal, captured: CapturedTask;
       if (continuing) {
         try {
-          const authored = await journal!.read<{ proposal: AuthorProposal; signature: ContentSignature }>('author', attemptId);
+          let authored = await journal!.read<{ proposal: AuthorProposal; signature: ContentSignature }>('author', attemptId);
+          let recoveredCorrection = false;
+          if (options.authorProtocolCorrections === 1 && (!authored || !await journal!.read('capture-started', attemptId))) {
+            const corrected = await recoverAuthorProposal({ journal: journal!, task, workspace: item.workspace, parse: parseProposal });
+            if (corrected) {
+              if (authored && !sameValue(authored, corrected)) throw new RecoveryBlocked('Author handoff conflicts with its correction response.');
+              if (!authored) { await journal!.write('author', attemptId, corrected); authored = corrected; }
+              recoveredCorrection = true;
+            }
+          }
           if (!authored) throw new RecoveryBlocked('Author response is not durably recorded; do not repeat paid generation.');
           proposal = parseProposal(JSON.stringify(authored.proposal));
           await journal!.requireSignature(authored.signature, task.inputs);
           let capture = await journal!.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', attemptId);
-          if (!capture && !await journal!.read('capture-started', attemptId)) throw new RecoveryBlocked('Capture was never durably started; no completed output can be inferred.');
-          const recovered = await inspectCaptured(task, proposal, item.expectedArtifacts);
+          const captureStarted = await journal!.read('capture-started', attemptId);
+          if (!capture && !captureStarted && !recoveredCorrection) throw new RecoveryBlocked('Capture was never durably started; no completed output can be inferred.');
+          if (!capture && !captureStarted) await journal!.write('capture-started', attemptId, {});
+          const recovered = !capture && !captureStarted && recoveredCorrection
+            ? await options.capture(freeze(structuredClone(task)), freeze(proposal), signal)
+            : await inspectCaptured(task, proposal, item.expectedArtifacts);
           if (!capture) {
             capture = { captured: recovered, signature: await journal!.signature(recovered.artifacts) };
             await journal!.write('capture', attemptId, capture);
@@ -308,7 +329,10 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         await save(task);
         signal.throwIfAborted();
         author = await options.roleFactory({ role: item.role, task: freeze(structuredClone(task)), requirement, validation: options.validation, workspace: item.workspace, stateDirectory: join(directory, 'author'), controller });
-        proposal = parseProposal((await author.prompt('Execute this scoped task and return the required JSON proposal.', { signal })).text);
+        failureStage = 'author_handoff';
+        proposal = await requestAuthorProposal({ author, controller, task, workspace: item.workspace, journal, signal,
+          maxCorrections: options.authorProtocolCorrections ?? 0, parse: parseProposal, now: options.now,
+          ...(options.validation ? { validation: { binding: options.validation, requirement } } : {}) });
         if (journal) await journal.write('author', attemptId, { proposal, signature: await journal.signature(task.inputs) });
         await author.close(); author = undefined;
         signal.throwIfAborted();
