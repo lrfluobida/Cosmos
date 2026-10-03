@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：真实 case6 只读职责澄清后仍在 author_handoff 失败，原 run 没进入 host/browser/独立 coding review；未改原生生成 v1 的免费 Edge 111 步诊断通过，不改 failed/consumed。[COS-30 / #31](https://github.com/lrfluobida/Cosmos/issues/31) 主机证据/逐项独立评审源码已独立批准并集成，[COS-31 / #32](https://github.com/lrfluobida/Cosmos/issues/32) 仍在准备 case7 caller、未批准；第四笔 C6 未用容量 closure 已完成，不重开旧案例或追加预算。
+调用实验：真实 case6 只读职责澄清后仍在 author_handoff 失败，原 run 没进入 host/browser/独立 coding review；未改原生生成 v1 的免费 Edge 111 步诊断通过，不改 failed/consumed。[COS-30 / #31](https://github.com/lrfluobida/Cosmos/issues/31) 主机证据/逐项独立评审与 [COS-31 / #32](https://github.com/lrfluobida/Cosmos/issues/32) case7 caller 源码均已独立批准并集成，case7 尚未 claim/paid；第四笔 C6 未用容量 closure 已完成，不重开旧案例或追加预算。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -105,7 +105,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 后续静态证据：Zombie 定义表 `e292b49` 已获独立批准并合入 `73cf4fe`，34 行 × 7 DWORD 原始值与源码语义推导分列；34 含特殊项/Zombatar，不是经典分母。mZombieValue 不是 HP，基础关卡/波次/权重不证明实际出怪；原 catalog、未知项及未冻结状态保持不变。
 - 初始化 HP 静态证据：`a1c1371` 已获独立批准并合入 `80794c3`，保存 17 处短指令样本和 270/370/1100 三处立即数赋值；语义仍属源码推导，最终有效 HP、完整分支及经典等价性未验证，230/221 与未冻结状态不变。
 - 投射物静态证据：`3a20bae` 获独立 PROJECTILE_STATIC_SOURCE_READY 并合入 `89f8162`，保存 14×3 原始 DWORD 与 11 处短指令样本；普通豌豆基础字段 20 不证明最终命中伤害。非 UTF-8 cpp 已停止读取，只用 UTF-8 头文件推导字段，护甲、倍率、交互、运行与经典等价性仍未知，230/221 与未冻结状态不变。
-- 依赖/状态：来源调查就绪；版本核对等待用户准备可运行经典 PC 参考版。清单冻结引用最终 spec 第 4B 节标准。
+- 依赖/状态：用户已提供安装来源，`reference.json` 已固定 GOTY 1.2.0.1073 与文件 hash，状态 metadata_pinned_content_pending；外部前提仍是可见、可留证的正常输入观察通道及可达未解锁内容，目前 native capture 不可用，尚未 verified_for_reference 或内容冻结。清单冻结引用最终 spec 第 4B 节标准。
 - 输入：用户提供的可运行参考版、spec 已定模式范围、现有调研与来源资料；精确版本由本任务记录。
 - 输出/范围：`docs/benchmark/` 下版本标识、来源台账、完整内容矩阵、数值与计时表、排除项和待核实项；不写游戏实现。
 - 工作：核对 50 冒险关与全部主要模式；逐项记录版本、来源位置和可信状态，区分原始事实、推导与未知。
@@ -393,14 +393,14 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 依赖/状态：已发布 [#31](https://github.com/lrfluobida/Cosmos/issues/31)，id 5689492852，第30个原生子任务、父 checkbox 已核对；offline-verified-awaiting-live/open。`90e4557e8e31fd48081613fbcc5da4651557e906`（父 `e6993c3ccee7c10a38d104d9dfd3e847dafbcc26`）获独立 HOST_EVIDENCED_HANDOFF_SOURCE_READY，合入 `8d23a9e8319a7d1b235e1c0abaa6ba0a7ea10e62`，十二批准路径精确一致、UTF8/LF/中文/diffcheck通过。source 前置 COS-07/08/20/23/28 已审集成源码，验证产出 COS-10/COS-20/COS-29，不要求失败任务完成形成循环；[公共进展](https://github.com/lrfluobida/Cosmos/issues/31#issuecomment-5970378743) 已精确读回。
 - 工作方式/范围：专属作者先 ≤300词设计交 root 审阅，再实现新 validation-only coding explicit opt-in；不授予六个旧案例新权限。只在 strict 原 remaining0 后 capture 固定版本，保留完整原 concerns，包括已转 summary 的内容，再执行全部原 host AC/additional checks，即使 uncertainties pending；genuine unfinished remaining 仍立即失败，不改 old case6 game 或 raw proposal。
 - 通过/证据：只有实际全部 host 检查和独立 coding review 对每项 concern 提供绑定当前版本、准确 ID/ref/evidence 的 ConcernResolution，才可记录通过。漏项、错 ID/ref/version、未解决或 durable 证据不足一律失败；不可自动清数组、降低 AC/review 或用免费 C6 诊断替代新版本证据。
-- 失败/约束：host 真失败且 code_defect 可沿既有一次 coding repair，未决语义不能伪装成已修复。不增加 semantic repair，不向作者另起 LLM clarify loop，不手改游戏；未来新 case 单独获得准确 source/main/preflight/operator/freeze 后执行。独立增量4/4、7.26秒及作者集中类型/受影响单测复用；主线只跑编码完成、concern resolution 和独立 verdict 单次原子发布 pure FS 代表1/1、0skip（1223.9ms），未重compiler/大矩阵/48秒driver。源码批准不表示nativeCase7通过，caller尚未独批。
+- 失败/约束：host 真失败且 code_defect 可沿既有一次 coding repair，未决语义不能伪装成已修复。不增加 semantic repair，不向作者另起 LLM clarify loop，不手改游戏；未来新 case 单独获得准确 source/main/preflight/operator/freeze 后执行。独立增量4/4、7.26秒及作者集中类型/受影响单测复用；主线只跑编码完成、concern resolution 和独立 verdict 单次原子发布 pure FS 代表1/1、0skip（1223.9ms），未重compiler/大矩阵/48秒driver。源码批准不表示nativeCase7通过；COS30 集成时 caller 尚未独批的状态仅为历史，后续审批见 COS31。
 
 ### COS-31 · 验证主机证据驱动的完整原生生成
 
-- 依赖/状态：已发布 [#32](https://github.com/lrfluobida/Cosmos/issues/32)，id5689873259，第31个原生子任务、父checkbox已读回；in-progress/open/SOURCE_NOT_READY，source未独批，actualcase7未claim/paid。Source前置COS-20..30为独立已审集成源码，精确approval marker及reviewedCommit/mergeCommit双frozen-main祖先，不要求failed任务closed；产出反馈COS-10/COS-20。
+- 依赖/状态：已发布 [#32](https://github.com/lrfluobida/Cosmos/issues/32)，id5689873259，第31个原生子任务、父checkbox已读回；offline-verified-awaiting-live/open。`8a07e66d065ba6ddec719ea29e6b519898276c23`（base `8d23a9e8319a7d1b235e1c0abaa6ba0a7ea10e62`）获独立 CASE_SEVEN_SOURCE_READY，合入 `21218fd0624034f6d8abad38bd7de2cc8341606c`，actualcase7未claim/paid；[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/32#issuecomment-5970626041) 已精确读回。Source前置COS-20..30为独立已审集成源码，精确approval marker及reviewedCommit/mergeCommit双frozen-main祖先，不要求failed任务closed；产出反馈COS-10/COS-20。
 - 输入/约束：newfixed `cos20-native-validation-7`，declaration-v2/80/同9inputs/model/outputcaps/五grants¥21/newcase¥5/45分钟/一次codingrepair/shared¥150/首批¥30保持；nativepolicy强固定 authorProtocolCorrections:1、codingHandoffClarifications:1、hostEvidencedCodingHandoff:1。旧六cases/声明/hash/quotes/40或80/日期/费用/permission保持，不修改原C6game或用free111改其accepted状态。
-- 准入/证据：Current仍manual-stopped6、prior1..6均停止收敛，30closed grants/four真实closure记录精确认证；COS29 CASE_SIX_SOURCE_READY及COS30 HOST_EVIDENCED_HANDOFF_SOURCE_READY 精确审批/source+merge双SHA须通过，SOURCE_NOT_READY不准执行。Source30接口已独审集成，caller和新decl仍待自身独批；最终source/docs批准后root fresh exactmain quote/资金/operator/freeze再执行。
-- 通过/边界：全部原HostAC/additionalchecks、按每个concern绑定当前版本证据的独立review、normal input/accepted candidate齐备才写native通过，不以旧free诊断或fixture代替新版本证据。当前仅issue/author登记，源码未READY，不开启新paidwindow或假human决定，G3/G4与完整classic/用户体验仍未通过。
+- 准入/证据：Current仍manual-stopped6、prior1..6均停止收敛，30closed grants/four真实closure记录精确认证；COS29 CASE_SIX_SOURCE_READY及COS30 HOST_EVIDENCED_HANDOFF_SOURCE_READY 精确审批/source+merge双SHA须通过，SOURCE_NOT_READY不准执行。Source30接口、caller和新decl均已独审集成；复用作者31focused与唯一strict noEmit、独审tempFS6/6/0skip，九逻辑/十物理批准路径字节一致、UTF8/noBOM/LF/diffcheck通过，联合固定声明/opt-in policy代表1/1/0skip（1.7087ms）。最终文档批准后root fresh exactmain quote/资金/operator/freeze再执行。
+- 通过/边界：全部原HostAC/additionalchecks、按每个concern绑定当前版本证据的独立review、normal input/accepted candidate齐备才写native通过，不以旧free诊断或fixture代替新版本证据。当前源码已READY，case7尚未claim/paid，不假human决定，G3/G4与完整classic/用户体验仍未通过。
 
 ## 5. 任务与上下文包模板
 

@@ -8,7 +8,7 @@
 
 ## 1. 已确认的产品目标
 
-Case6 因 coding author_handoff 未决项失败，readonly clarification 发生，原生 run 未进入 host/browser/独立 coding review，仍未 accepted。Root 免费 postfailure 诊断克隆未修改的原生生成 v1 候选，在真实 Edge 通过原鼠标计划 111 步固定玩法诊断，原run仍失败、未 resume/promote，不能替代 native accepted/独立评审/完整经典基准。四次免费未用容量 closure 已完成，原费用与六案例历史保持；COS-30 主机证据/ConcernResolution 源码已独立批准、集成，COS-31 caller 尚未批准、case7 未 claim 或 paid，进展见 [进度记录](../../PROGRESS.md)。
+Case6 因 coding author_handoff 未决项失败，readonly clarification 发生，原生 run 未进入 host/browser/独立 coding review，仍未 accepted。Root 免费 postfailure 诊断克隆未修改的原生生成 v1 候选，在真实 Edge 通过原鼠标计划 111 步固定玩法诊断，原run仍失败、未 resume/promote，不能替代 native accepted/独立评审/完整经典基准。四次免费未用容量 closure 已完成，原费用与六案例历史保持；COS-30 主机证据/ConcernResolution 与 COS-31 caller 源码均已独立批准、集成，case7 未 claim 或 paid，进展见 [进度记录](../../PROGRESS.md)。
 
 | 编号 | 要求 |
 | --- | --- |
