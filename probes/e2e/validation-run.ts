@@ -17,11 +17,12 @@ import { VALIDATION_CASE, parseValidationEntry } from './validation-declaration.
 import { createValidationIdentityReader } from './validation-identity.ts';
 import { runChild } from './host.ts';
 
-const SOURCE_PREREQUISITES = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24', 'COS-25', 'COS-26', 'COS-27', 'COS-28'];
+const SOURCE_PREREQUISITES = ['COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', 'COS-20', 'COS-21', 'COS-22', 'COS-23', 'COS-24', 'COS-25', 'COS-26', 'COS-27', 'COS-28', 'COS-29', 'COS-30'];
 const SOURCE_MARKERS: Record<string, string> = { 'COS-20': 'CASE_TWO_SOURCE_READY', 'COS-21': 'WINDOWS_PUBLICATION_SOURCE_READY',
   'COS-22': 'VERSIONED_CASE_THREE_SOURCE_READY', 'COS-23': 'AUTHOR_PROTOCOL_SOURCE_READY', 'COS-24': 'VALIDATION_ALLOCATION_CLOSURE_SOURCE_READY',
   'COS-25': 'CASE_FOUR_SOURCE_READY', 'COS-26': 'PLANNING_EFFECTIVE_CAPACITY_SOURCE_READY', 'COS-27': 'CASE_FIVE_SOURCE_READY',
-  'COS-28': 'HANDOFF_SCOPE_CLARIFICATION_SOURCE_READY' };
+  'COS-28': 'HANDOFF_SCOPE_CLARIFICATION_SOURCE_READY', 'COS-29': 'CASE_SIX_SOURCE_READY',
+  'COS-30': 'HOST_EVIDENCED_HANDOFF_SOURCE_READY' };
 const SOURCE_READY = ['READY', 'SOURCE_READY', 'COMBINED_SOURCE_READY', 'PHASE_B_READY', 'READY_FOR_ROLE_IO_INTEGRATION'];
 async function absent(repository: string, path: string, label: string): Promise<void> {
   try { await lstat(await safePath(repository, path)); }
@@ -43,12 +44,13 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   const caseThree = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-3');
   const caseFour = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-4');
   const caseFive = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-5');
-  if (state.formatVersion !== 3 || !caseOne?.stopReason || !caseTwo?.stopReason || !caseThree?.stopReason || !caseFour?.stopReason || !caseFive?.stopReason || state.validation?.cases.length !== 5
-    || state.validation.currentCaseId !== caseFive.caseId) throw new Error('Case 6 requires original case 1, case 2, case 3, case 4 and current case 5 to be explicitly stopped in its existing validation profile.');
+  const caseSix = state.validation?.cases.find(item => item.caseId === 'cos20-native-validation-6');
+  if (state.formatVersion !== 3 || !caseOne?.stopReason || !caseTwo?.stopReason || !caseThree?.stopReason || !caseFour?.stopReason || !caseFive?.stopReason || !caseSix?.stopReason || state.validation?.cases.length !== 6
+    || state.validation.currentCaseId !== caseSix.caseId) throw new Error('Case 7 requires original case 1, case 2, case 3, case 4, case 5 and current case 6 to be explicitly stopped in its existing validation profile.');
   if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Unknown or reserved historical charges require reconciliation.');
-  const previousCases = [caseOne, caseTwo, caseThree, caseFour, caseFive], taskIds = previousCases.flatMap(window => VALIDATION_ROLES.map(role => window.quote.declaration.grants[role].taskId));
-  if (state.ledger.contractVersion !== '3.0.0' || state.ledger.allocationClosures?.length !== 25
-    || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error('Case 6 requires audited allocation closure of all twenty-five previous case grants.');
+  const previousCases = [caseOne, caseTwo, caseThree, caseFour, caseFive, caseSix], taskIds = previousCases.flatMap(window => VALIDATION_ROLES.map(role => window.quote.declaration.grants[role].taskId));
+  if (state.ledger.contractVersion !== '3.0.0' || state.ledger.allocationClosures?.length !== 30
+    || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error('Case 7 requires audited allocation closure of all thirty previous case grants.');
   const caseRoots = new Map<string, string>();
   for (const window of previousCases) {
     const path = `.cosmos/e2e/${window.caseId}`, root = await safePath(repository, path);
