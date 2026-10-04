@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 39 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 40 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
+调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 consumer尚未READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -85,6 +85,7 @@
 - [ ] [COS-37 通过隔离 profile 和同 origin 验证真实浏览器进程重开](https://github.com/lrfluobida/Cosmos/issues/38)
 - [ ] [COS-38 连接运行时关卡设计与固定角色输入](https://github.com/lrfluobida/Cosmos/issues/39)
 - [ ] [COS-39 记录持久浏览器失败事实并保守分类](https://github.com/lrfluobida/Cosmos/issues/40)
+- [ ] [COS-40 接通持久浏览器与生成媒体的完整验收](https://github.com/lrfluobida/Cosmos/issues/41)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -480,6 +481,13 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 范围/工作：受控phase/error packet、persistent raw/evidence与owned exit核对，probe保守聚合复用Source32；不修改COS38 host/binding/wrapper，不连接media/actual entry。仅四source/test路径与计划范围，不因缓存旧正文拓为完整consumer或新增修复授权。
 - 分类/边界：legacy、坏facts、unknown、global deadline、cancel、binding变化或exit证据不足均insufficient_evidence；真实early settled mismatch可code_defect，但完整series仍failed，不制造未执行witness或丢掉原始失败证据。只保守记录和分类，design semanticrevision/完整persistent媒体consumer与付费入口留后继。
 - 源码证据/当前状态：五批准路径字节一致、无38碰撞、UTF8/LF/中文/diffcheck通过；nested exception.sourceURL coercion P2由strict schema关闭，独审增量2/2/0skip（3074.0187ms），作者12probe/17jointpure/strict证据复用。联合仅nested exception types/declared error fields分类代表1/1、0skip（140.2498ms），未Edge/大matrix/重复compiler。仍零paid/preparation_only/not_executable，实际迁移/human NONE；不读Rootprivate/触preview，不改八案例/费用/caps/旧时钟，C8接受v2/旧七失败/C6free111/closure6保持，不新增修复或实际window授权。
+
+### COS-40 · 接通持久浏览器与生成媒体的完整验收
+
+- 依赖/状态：已发布 [#41](https://github.com/lrfluobida/Cosmos/issues/41)，id5697434114，第40个原生子任务、父checkbox/原生关联由root REST精确读回；in-progress/open/SOURCE_NOT_READY。source输入COS-35/36/37/38/39已审对应源码、COS16 frozen contract与COS18 partial source，outputs16/18，不以完整任务closed造循环；未来独审marker TRANSFER_PERSISTENT_MEDIA_CONSUMER_SOURCE_READY，当前无批准source/merge SHA。
+- Consumer范围：仅可信host显式opt-in，actual candidate build后挂载original stable origin，接八段persistent consumer/Source39保守diagnostics/生成media readonly样本union；loadedFrame取max而非sum，bool取OR且须带真实witness。提前冻结真实task IDs并兼容legacy default，不修改IR/200steps/sixAC；default prepared failed/no fallback保持，不允许模型换验收器/profile/origin。
+- 验收/修复边界：exact independent review/proof/promotion绑定同一候选，沿原唯一coding repair权限，v2仍使用同map/等价期望；collector坏packet/null/env/缺exit都insufficient_evidence，健康全系列结果为false才可按可信事实归为coding defect。保留原OwnedWork envelope/controller tickets、PID在CDP前登记，不伪造未执行witness或提前promotion。
+- 当前状态：design semanticrevision和actual paid entry仍留后继；本项零paid、不改真实八cases/fees/window/caps/原分母，COS16原¥10/shared150/首30不变。实际迁移/human NONE，C8 v2接受、原v1失败/旧七历史/C6free111/closure6保持，未独审不得READY或合main。
 
 ## 5. 任务与上下文包模板
 
