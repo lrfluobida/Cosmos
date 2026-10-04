@@ -73,7 +73,7 @@ Case8 结果（迁移执行前历史）：`cos20-native-validation-8` 在准确 
 | 真实成本与时延探针 | C8 v2有界单关已接受，迁移C2设计schema失败 | 当前10cases/revision1488/ledger4/shared¥7.184253、unknown/reserved0；C2 15SDK/282562ms/新增¥0.161528，closure8后50closed/八audits。C1规划失败/closure7和原C8历史保持 |
 | 任务拆分 | 已发布 | [47 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入，COS-44 明确原生规划policyId契约，COS-45 准备第二迁移案例与剩余额度准入，COS-46 提供设计标识符约束与只读自检，COS-47 准备带自检的第三迁移案例 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#48；47 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..46 source 已审集成，迁移C2设计标识符失败，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47实施中/SOURCE_NOT_READY，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..47 source 已审集成，迁移C2设计标识符失败，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47第三案例源码已审集成、实际C3 NONE，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -547,7 +547,7 @@ Scope只在host design/art提示明确 `^[a-z][a-z0-9-]{0,47}$` 与DOS reserved�
 
 ### COS47 带设计输出自检的第三迁移案例登记
 
-Root正式POST+GET精确读回[COS47/#48](https://github.com/lrfluobida/Cosmos/issues/48)（id5700732521，准备带设计输出自检的第三个原生迁移案例），native parent47children #2–#48/新checkbox追加、旧46及三个closed[x]原样。cos47_implementer从 `2227b348f0b54ab12085f08d051acdd930462a42` 正式实施，managed branch由作者选择；in-progress/open/SOURCE_NOT_READY，未来marker TRANSFER_CASE_THREE_SOURCE_READY，无批准SHA/实际C3。
+COS47注册时历史：Root正式POST+GET精确读回[COS47/#48](https://github.com/lrfluobida/Cosmos/issues/48)（id5700732521，准备带设计输出自检的第三个原生迁移案例），native parent47children #2–#48/新checkbox追加、旧46及三个closed[x]原样。当时cos47_implementer从 `2227b348f0b54ab12085f08d051acdd930462a42` 正式实施，managed branch由作者选择；in-progress/open/SOURCE_NOT_READY，未来marker TRANSFER_CASE_THREE_SOURCE_READY，无批准SHA/实际C3。
 
 固定准备 `cos20-transfer-validation-3`、declaration3/quote2/same hash `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`、¥5/45分钟/80全部SDK calls/design原semantic一次/coding一次repair。新vector369692/1054678/2800000/2800000/2800000合9824370，精确出自原10m−groupSpent175630；历史rolefees planning30308/design145322/others0须单独认证，equalTotal wrongRole也拒绝，不再领新10或静默rebalance。
 
@@ -556,6 +556,14 @@ Root正式POST+GET精确读回[COS47/#48](https://github.com/lrfluobida/Cosmos/i
 Fresh只读准入须核ledger4/10 consumed stopped/currentC2/two delegations/50closed八audits/groupnet allocated committed175630/remaining9824370、sourcefirstparentref1414/first授权与membersC1C2；八old receipts各用own currentCase decl/inputhash/source/roots/quote/祖先，第八笔为C2而非C8。Root/marker空、writer收敛/unknown0及pending46均在prepare/claim前拒绝。计划pure TDD验证vector/hash/rolefee负例/十history八audit/pending46/new planning/fullscope/atomic append与历史共享capacity保真，旧C1/C2默认入口拒case3baseline；不重复Edge/80大矩阵。46 readonly与41 semantic沿同SDKsession/grant/clock，capture strict不变。
 
 本次只注册新C3 source task，不含human adapter或其他未来任务；actual C3/paid NONE。原46task objects、C1/C2失败/C8 accepted/G3 complete、10cases/ledger4 revision1488/global7184253/50closed八audits/group175630+9824370/原parent10m/ref1414/150首30/formal20012与human NONE/fullclassic未知保持。四docs候选待独审，未合main或触private/preview。
+
+### Source47 第三迁移案例源码审批
+
+独审 TRANSFER_CASE_THREE_SOURCE_READY 批准 `d178b09b18f959acf912a228040568f05342c977`（base2227b34），合入清推 `7bff7128b91ab706f50326ebe4d053358ee0ad74`，offline-verified-awaiting-live/open、implementationPhase source-integrated。[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/48#issuecomment-5981888496)已由Root POST+GET精确读回。九批准paths字节一致、UTF8/noBOM/LF/中文/diffcheck通过；private三个source-known profiles/C1C2 default bytes/原文件和README前缀保持，与注册四docs无碰撞。
+
+作者5项pure聚焦/旧C1+C2默认入口代表及strict7.749秒证据复用；独审两个新增负例2/2（45.383秒）验证pending46零effects和sameTotal wrongRole拒绝，原atomic/bootstrap/DAG/rolebudget/Edge通过证据复用。联合只新fixedinput/remaining-role vector代表1/1、0skip（37.0198ms），未45/78秒矩阵/旧compiler/真实Browser重复。
+
+当前只批准source准备，实际C3未claim/生成/模型，46只读工具审批和合成组合不等于新Native使用。原46任务对象、C1/C2失败/C8/G3、10cases/ledger4 revision1488/shared7184253/50closed八audits/groupnet175630/rem9824370/parent10m ref1414/human NONE保持；same f52输入和vector369692+1054678+3×2800000=9824370、original grant/caps150首30/formal20012不改。四docs待独审再合，Root之后须以finalmain fresh quote/免费资金与路由/operator/source-mainfreeze按¥5/45分钟/80执行，不复用源码时点旧quote或续已消费C2。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
