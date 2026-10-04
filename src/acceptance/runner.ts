@@ -1,13 +1,14 @@
 import { chromium } from '@playwright/test';
 import type { Browser, BrowserContext, BrowserServer, Page, Video } from '@playwright/test';
+import type { ChildProcess } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import type { EvidenceContract } from '../contracts/types.ts';
 import { input, observe } from './browser.ts';
 import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Scalar, Step } from './plan.ts';
-import { bounded, DeadlineError } from './deadline.ts';
-import { stopBrowserProcess } from './process.ts';
+import { bounded, DeadlineError, AcceptanceCancelledError } from './deadline.ts';
+import { stopBrowserProcess, browserProcessAbsent } from './process.ts';
 import { attributePageErrors, projectMismatchCanStop } from './failure-facts.ts';
 import type { PageError, RuntimeException } from './failure-facts.ts';
 
@@ -32,6 +33,20 @@ export interface AcceptanceReport {
   timeoutMs: number; cleanup: { browserPid: number | null; forced: boolean; processExited: boolean | null };
   steps: StepResult[]; errors: string[]; files: string[]; reportPath: string; evidence: EvidenceContract[];
   failureFacts?: BrowserFailureFacts;
+  session?: PersistentBrowserIdentity;
+}
+export interface PersistentBrowserIdentity {
+  browserPid: number; profile: string; commandLineProfile: string; origin: string;
+  closeEvent: boolean; exitConfirmed: boolean; exitCode: number | null; signalCode: NodeJS.Signals | null;
+  cdp?: { browserProcessIds: number[]; profileArguments: string[] }; environmentKeys?: string[];
+}
+/** Trusted host transport only; never accepted as game/model plan data. */
+export interface OwnedAcceptanceLifecycle {
+  deadlineAt: number; signal?: AbortSignal;
+  open(directory: string, timeoutMs: number): Promise<{ browser: Browser; context: BrowserContext }>;
+  process(): ChildProcess | undefined;
+  close(timeoutMs: number): Promise<void>;
+  identity(): PersistentBrowserIdentity | undefined;
 }
 export interface AcceptanceOptions {
   evidenceRoot: string; headless?: boolean; channel?: 'chrome' | 'msedge'; timeoutMs?: number;
@@ -43,6 +58,13 @@ const isCheck = (step: Step): step is Extract<Step, { kind: 'assert' | 'wait-for
 
 /** The trusted coordinator binds artifact to URL and owns its server. Each report ID is write-once. */
 export async function runAcceptance(value: unknown, options: AcceptanceOptions): Promise<AcceptanceReport> {
+  return runAcceptanceInternal(value, options);
+}
+export async function runAcceptanceInOwnedSession(value: unknown, options: AcceptanceOptions, lifecycle: OwnedAcceptanceLifecycle): Promise<AcceptanceReport> {
+  if (!Number.isSafeInteger(lifecycle.deadlineAt)) throw new Error('An absolute lifecycle deadline is required');
+  return runAcceptanceInternal(value, options, lifecycle);
+}
+async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions, lifecycle?: OwnedAcceptanceLifecycle): Promise<AcceptanceReport> {
   const issues = validatePlan(value);
   if (issues.length) throw new Error(`Invalid acceptance plan:\n${issues.join('\n')}`);
   const timeoutMs = options.timeoutMs ?? 60_000;
@@ -71,11 +93,11 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
   const log = (kind: string, text: string) => logs.push({ at: new Date().toISOString(), kind, message: text });
   let server: BrowserServer | undefined, browser: Browser | undefined, context: BrowserContext | undefined, page: Page | undefined, video: Video | null = null;
   let forceClose = false;
-  const lifecycleDeadline = Date.now() + timeoutMs;
+  const lifecycleDeadline = lifecycle?.deadlineAt ?? Date.now() + timeoutMs;
   const cleanupReserveMs = Math.min(3000, Math.floor(timeoutMs / 3));
   const deadline = lifecycleDeadline - cleanupReserveMs;
   const remaining = (limit: number) => Math.min(limit, deadline - Date.now());
-  const run = <T>(operation: () => Promise<T>, limit: number, label: string) => bounded(operation, remaining(limit), label);
+  const run = <T>(operation: () => Promise<T>, limit: number, label: string) => bounded(operation, remaining(limit), label, lifecycle?.signal);
   const screenshot = async (name: string) => {
     if (!page || page.isClosed() || forceClose) return null;
     try {
@@ -89,13 +111,20 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
   };
   await writeFile(join(directory, 'plan.json'), JSON.stringify(plan, null, 2) + '\n', 'utf8');
   try {
-    // launchServer owns this process tree. Its launch timeout also cancels a partial launch.
-    server = await chromium.launchServer({ headless: report.browser.headless, channel: options.channel, env: options.env, host: '127.0.0.1', timeout: Math.max(1, remaining(15_000)) });
-    report.cleanup.browserPid = server.process().pid ?? null;
-    report.cleanup.processExited = false;
-    browser = await run(() => chromium.connect(server!.wsEndpoint(), { timeout: Math.max(1, remaining(5000)) }), 5000, 'Browser connection');
-    report.browser.version = browser.version();
-    context = await run(() => browser!.newContext({ viewport: plan.viewport, recordVideo: { dir: directory, size: plan.viewport }, serviceWorkers: 'block' }), 5000, 'Context creation');
+    if (lifecycle) {
+      ({ browser, context } = await run(() => lifecycle.open(directory, Math.max(1, remaining(15_000))), 15_000, 'Persistent browser launch'));
+      report.cleanup.browserPid = lifecycle.process()?.pid ?? null;
+      report.cleanup.processExited = false;
+    } else {
+      // launchServer owns this process tree. Its launch timeout also cancels a partial launch.
+      server = await chromium.launchServer({ headless: report.browser.headless, channel: options.channel, env: options.env, host: '127.0.0.1', timeout: Math.max(1, remaining(15_000)) });
+      report.cleanup.browserPid = server.process().pid ?? null;
+      report.cleanup.processExited = false;
+      browser = await run(() => chromium.connect(server!.wsEndpoint(), { timeout: Math.max(1, remaining(5000)) }), 5000, 'Browser connection');
+      report.browser.version = browser.version();
+      context = await run(() => browser!.newContext({ viewport: plan.viewport, recordVideo: { dir: directory, size: plan.viewport }, serviceWorkers: 'block' }), 5000, 'Context creation');
+    }
+    if (lifecycle) report.browser.version = browser!.version();
     const origin = new URL(plan.url).origin;
     await run(() => context!.route('**/*', async route => {
       const target = new URL(route.request().url());
@@ -103,6 +132,10 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
       else { recordError(`Blocked non-project request: ${target.origin}`); await route.abort(); }
     }), 2000, 'Route setup');
     page = await run(() => context!.newPage(), 5000, 'Page creation'); video = page.video();
+    if (lifecycle) {
+      await run(() => page!.setViewportSize(plan.viewport), 2000, 'Persistent viewport');
+      await run(() => page!.screencast.start({ path: join(directory, 'browser.webm'), size: plan.viewport }), 5000, 'Persistent video start');
+    }
     page.setDefaultTimeout(2000);
     page.on('console', event => {
       log(`console.${event.type()}`, event.text());
@@ -159,7 +192,7 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
       } catch (error) {
         result.outcome = 'failed'; result.error = message(error);
         result.failure ??= isCheck(step) ? 'observation_error' : error instanceof DeadlineError ? 'deadline' : 'input';
-        if (error instanceof DeadlineError) { forceClose = true; throw error; }
+        if (error instanceof DeadlineError || error instanceof AcceptanceCancelledError) { forceClose = true; throw error; }
         if (result.failure === 'mismatch') {
           attributePageErrors(failureFacts, pageErrors, exceptions);
           if (Date.now() < deadline && projectMismatchCanStop(report, index)) failureFacts.termination = { kind: 'project_mismatch', stepId: step.id };
@@ -170,7 +203,7 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
       if (failureFacts.termination?.kind === 'project_mismatch') break;
     }
   } catch (error) {
-    if (error instanceof DeadlineError) { forceClose = true; failureFacts.termination ??= { kind: 'lifecycle' }; }
+    if (error instanceof DeadlineError || error instanceof AcceptanceCancelledError) { forceClose = true; failureFacts.termination ??= { kind: 'lifecycle' }; }
     if (Date.now() >= deadline) failureFacts.termination = { kind: 'lifecycle' };
     const local = failureFacts.termination?.kind === 'observation_budget' ? failureFacts.termination : null;
     recordError(`Browser startup/execution: ${message(error)}`, local ? 'observation_budget' : 'lifecycle', local?.stepId);
@@ -180,7 +213,13 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
     const gracefulDeadline = lifecycleDeadline - Math.min(1000, cleanupReserveMs);
     const cleanup = <T>(operation: () => Promise<T>, label: string) => bounded(operation, Math.min(1000, gracefulDeadline - Date.now()), label);
     if (!forceClose) try {
-      if (context) await cleanup(() => context!.close(), 'Context cleanup');
+      if (lifecycle) {
+        if (page && !page.isClosed()) {
+          await cleanup(() => page!.screencast.stop(), 'Persistent video collection');
+          report.files.push(path('browser.webm'));
+        }
+        await cleanup(() => lifecycle.close(Math.max(1, gracefulDeadline - Date.now())), 'Persistent browser close');
+      } else if (context) await cleanup(() => context!.close(), 'Context cleanup');
       if (video) {
         await cleanup(() => video!.saveAs(join(directory, 'browser.webm')), 'Video collection');
         report.files.push(path('browser.webm'));
@@ -188,21 +227,33 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
       if (browser) await cleanup(() => browser!.close(), 'Client cleanup');
       if (server) await cleanup(() => server!.close(), 'Server cleanup');
     } catch (error) { forceClose = true; failureFacts.termination = { kind: 'lifecycle' }; recordError(`Cleanup: ${message(error)}`); }
-    if (server && (server.process().exitCode === null && server.process().signalCode === null)) {
+    const owned = lifecycle?.process() ?? server?.process();
+    if (owned && (owned.exitCode === null && owned.signalCode === null)) {
       report.cleanup.forced = true;
-      try { await stopBrowserProcess(server.process(), Math.max(1, Math.min(2000, lifecycleDeadline - Date.now()))); }
+      try { await stopBrowserProcess(owned, Math.max(1, Math.min(2000, lifecycleDeadline - Date.now()))); }
       catch (error) { recordError(`Forced cleanup: ${message(error)}`); }
     }
-    if (server) {
-      report.cleanup.processExited = server.process().exitCode !== null || server.process().signalCode !== null;
+    if (owned) {
+      report.cleanup.browserPid = owned.pid ?? null;
+      report.cleanup.processExited = owned.exitCode !== null || owned.signalCode !== null;
+      if (lifecycle) {
+        const identity = lifecycle.identity();
+        if (identity) {
+          identity.exitCode = owned.exitCode; identity.signalCode = owned.signalCode;
+          identity.exitConfirmed = report.cleanup.processExited && identity.closeEvent && browserProcessAbsent(identity.browserPid);
+          report.session = structuredClone(identity);
+          report.cleanup.processExited = identity.exitConfirmed;
+        } else report.cleanup.processExited = false;
+      }
       if (!report.cleanup.processExited) recordError('Owned browser process did not exit');
     }
-    if (forceClose && video) {
+    if (forceClose && (video || lifecycle)) {
       const local = failureFacts.termination?.kind === 'observation_budget' ? failureFacts.termination : null;
       recordError('Video unavailable after forced browser termination; earlier screenshots retained', local ? 'termination_evidence' : 'lifecycle', local?.stepId);
     }
   }
   attributePageErrors(failureFacts, pageErrors, exceptions);
+  if (lifecycle?.signal?.aborted) recordError('Acceptance cancelled', 'lifecycle');
   report.endedAt = new Date().toISOString();
   report.outcome = !report.errors.length && report.steps.every(step => step.outcome === 'passed') ? 'passed' : 'failed';
   log('errors', JSON.stringify(report.errors));
@@ -215,5 +266,13 @@ export async function runAcceptance(value: unknown, options: AcceptanceOptions):
     recordedAt: report.endedAt, summary: file.endsWith('report.json') ? `Normal browser input: ${report.outcome}` : 'Recorded browser evidence; see report assertions for verdicts',
   }));
   await writeFile(join(directory, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
+  if (lifecycle && report.outcome === 'passed' && (lifecycle.signal?.aborted || Date.now() >= lifecycleDeadline)) {
+    recordError(lifecycle.signal?.aborted ? 'Acceptance cancelled during report publication' : 'Original deadline reached during report publication', 'lifecycle');
+    failureFacts.termination = { kind: 'lifecycle' }; report.outcome = 'failed'; report.endedAt = new Date().toISOString();
+    for (const item of report.evidence) if (item.source.location.endsWith('report.json')) item.outcome = 'failed';
+    log('errors', JSON.stringify(report.errors));
+    await writeFile(join(directory, 'browser.log'), logs.map(entry => JSON.stringify(entry)).join('\n') + '\n', 'utf8');
+    await writeFile(join(directory, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
+  }
   return report;
 }
