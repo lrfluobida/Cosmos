@@ -45,3 +45,17 @@ Started and completed times come from the host wall clock. The record binds the 
 - `node node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --skipLibCheck --allowImportingTsExtensions --verbatimModuleSyntax --types node probes/transfer/design-validation.ts probes/transfer/runtime-host.ts tests/transfer/design-feedback-review.test.ts tests/transfer/design-feedback.test.ts`: exit 0, 7.3164474 seconds on the final helper.
 
 The prior default preparation, complete consumer, permission, manual-stop and incremental-edit positives remain applicable. They were not repeated. This correction is synthetic-only and zero paid; the same independent reviewer must approve the affected diff before sole-merger integration.
+
+## Cold history correction on 2a59304
+
+The same reviewer found a remaining P2: a cold host could recover an invalid-to-valid capture after only the first failed diagnosis and its self-digest were changed. The final capture anchored only the second complete result. A narrow RED on unchanged 2a59304 first recovered the exact baseline, then forged the first diagnosis and reproduced the unexpected four-artifact recovery (expected null), 8793.5398 ms.
+
+The second started record now names the first complete result-byte digest. records() requires that predecessor to match the actual first receipt; the second result already binds the complete started record. The existing final capture provenance therefore anchors both rounds. Changing the first result breaks the predecessor; rebuilding both rounds changes the final result digest and fails the existing capture-provenance comparison. No oracle, new hashing framework, role permission, default host, session or ledger change is involved. Original failed bytes and diagnostics remain immutable in normal execution.
+
+- `node --experimental-strip-types --experimental-test-module-mocks --test --test-name-pattern='cold history correction|same-byte concurrent|real canonical' tests/transfer/design-feedback-review.test.ts`: 4/4 passed, 0 skipped, 24170.2654 ms. Both cold-history variants first prove ordinary cold recovery, then reject either first-only corruption or a rebuilt second-round chain; additional role calls remain zero. Same-byte oracle calls remain zero and canonical source-owned times still pass.
+- `node --experimental-strip-types --test --test-name-pattern='exhausted|started without result|unknown authority' tests/transfer/design-feedback.test.ts`: affected 3/3 passed, 0 skipped, 8383.6234 ms.
+- The stopped-author cached-pass control passed 1/1, 0 skipped, 4507.9873 ms with `--test-name-pattern='cold history correction a stopped'` and the module-counter flag. A cached pass never bypasses original stop authority and adds no oracle call.
+- The review test file now enables its counter only with the explicit Node experimental mock flag, so ordinary test discovery still loads correctly. The plain strip-types command with `--test-name-pattern='cold history correction.*first-only'` passed 1/1, 0 skipped, 8243.058 ms. Only the dedicated counter test requires that flag.
+- The same narrow strict source/test command recorded above exited 0 on the final helper/tests in 7.1717311 seconds. Prior 9/7, full consumer and browser evidence is reused.
+
+Only helper, review test and this plan changed. The same reviewer must inspect the incremental chain diff before sole-merger integration; this remains synthetic-only and zero paid.

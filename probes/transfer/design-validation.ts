@@ -32,6 +32,7 @@ interface Started {
   formatVersion: 'transfer-design-check-started/1'; binding: Binding; check: 1 | 2;
   startedAt: string;
   authority: { sourceVersion: string; caseId: string; windowId: string; startedAt: string; deadlineAt: string };
+  previousReceipt?: string;
   raw: { location: string; present: boolean; sha256: string | null };
 }
 interface Completed {
@@ -103,6 +104,7 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
     requireThat(startBytes && resultBytes, 'design validation started without a complete result; outcome is unknown');
     const started = decode(startBytes) as Started, saved = decode(resultBytes) as Completed;
     const expected: Started = { formatVersion: 'transfer-design-check-started/1', binding: fixed, check, startedAt: started.startedAt, authority: await authority(),
+      ...(check === 2 ? { previousReceipt: started.previousReceipt } : {}),
       raw: { location: rawPath, present: !!bytes, sha256: bytes ? sha(bytes) : null } };
     requireThat(isDeepStrictEqual(started, expected), 'design validation raw bytes, inputs or attempt binding changed');
     requireThat(canonicalTime(started.startedAt) && canonicalTime(saved.completedAt) && canonicalTime(fixed.attemptStartedAt)
@@ -119,6 +121,7 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
   async function records(fixed: Binding) {
     const first = await audit(fixed, 1), second = await audit(fixed, 2);
     requireThat(!second || first && !first.result.passed && first.result.rewritesRemaining === 1, 'design validation rewrite was not authorized');
+    requireThat(!second || first && second.started.previousReceipt === first.receipt, 'design validation previous receipt changed');
     requireThat(!second || first && Date.parse(first.completed.completedAt) <= Date.parse(second.started.startedAt), 'design validation rewrite timestamp precedes its original result');
     return { first, second, last: second ?? first };
   }
@@ -140,6 +143,7 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
     const check = first ? 2 : 1;
     const folder = path(fixed, check, 'started.json').split('/').slice(0, -1).join('/'); await directory(ctx.root, folder);
     const started: Started = { formatVersion: 'transfer-design-check-started/1', binding: fixed, check, startedAt: new Date().toISOString(), authority: await authority(),
+      ...(first ? { previousReceipt: first.receipt } : {}),
       raw: { location: path(fixed, check, 'raw.json'), present: !!bytes, sha256: bytes ? sha(bytes) : null } };
     await publishReceipt(join(ctx.root, path(fixed, check, 'started.json')), started, signal);
     if (bytes) await writeFile(join(ctx.root, started.raw.location), bytes, { flag: 'wx', signal });

@@ -8,8 +8,9 @@ import * as oracle from '../../probes/transfer/oracle.ts';
 import type { TestContext } from 'node:test';
 
 let oracleCalls = 0;
+const instrumentOracle = process.execArgv.includes('--experimental-test-module-mocks');
 // Only count actual calls; every invocation forwards the real normative oracle.
-mock.module(new URL('../../probes/transfer/oracle.ts', import.meta.url), { namedExports: { ...oracle,
+if (instrumentOracle) mock.module(new URL('../../probes/transfer/oracle.ts', import.meta.url), { namedExports: { ...oracle,
   validateTransferDesign: (...args: Parameters<typeof oracle.validateTransferDesign>) => { oracleCalls++; return oracle.validateTransferDesign(...args); } } });
 const { createTransferRuntimeHost } = await import('../../probes/transfer/runtime-host.ts');
 
@@ -29,8 +30,15 @@ async function run(t: TestContext, action: (config: any, f: Awaited<ReturnType<t
   return { ...f, host, tasks, result };
 }
 const folder = (f: Awaited<ReturnType<typeof run>>) => join(f.root, 'host-transfer-design-validation', f.result[0].taskId, f.result[0].attempts[0].attemptId);
+async function coldRecover(f: Awaited<ReturnType<typeof run>>) {
+  const reopened = await createTransferRuntimeHost({ ...f.input, resume: true });
+  try {
+    assert.ok(reopened.validateTasks); reopened.validateTasks(f.tasks);
+    return await reopened.recoverCapture(f.result[0], { summary: 'Synthetic', remaining: [], uncertainty: [] }, f.controller.signal);
+  } finally { await reopened.closePreparation(); }
+}
 
-test('COS41 review correction same-byte concurrent reads perform zero additional oracle calls', async t => {
+test('COS41 review correction same-byte concurrent reads perform zero additional oracle calls', { skip: !instrumentOracle }, async t => {
   const f = await run(t, async (config, fixture) => {
     const path = join(config.workspace, 'authors/design/transfer-design.json'), good = await readFile(path), bad = JSON.parse(good.toString('utf8'));
     bad.map.boxes.pop(); await writeFile(path, JSON.stringify(bad), 'utf8');
@@ -100,4 +108,38 @@ for (const changed of ['missing', 'noncanonical', 'reversed', 'deadline', 'windo
   assert.ok(reopened.validateTasks); reopened.validateTasks(f.tasks);
   assert.equal(await reopened.recoverCapture(f.result[0], { summary: 'Synthetic', remaining: [], uncertainty: [] }, f.controller.signal), null);
   assert.equal(f.calls.length, count);
+});
+
+for (const changed of ['first-only', 'rebuilt-chain'] as const) test(`COS41 cold history correction ${changed} forged first diagnosis blocks recovery`, async t => {
+  const f = await run(t, async config => {
+    const path = join(config.workspace, 'authors/design/transfer-design.json'), good = await readFile(path), bad = JSON.parse(good.toString('utf8'));
+    bad.map.boxes.pop(); await writeFile(path, JSON.stringify(bad), 'utf8'); assert.equal((await check(config)()).passed, false);
+    await writeFile(path, good); assert.equal((await check(config)()).passed, true);
+  });
+  assert.equal(f.result[0].state, 'passed');
+  const count = f.calls.length;
+  assert.deepEqual((await coldRecover(f))?.artifacts, f.result[0].artifacts);
+  const firstPath = join(folder(f), 'check-1-result.json'), first = JSON.parse(await readFile(firstPath, 'utf8'));
+  first.result.diagnosis.message = 'Forged historical invalid diagnosis'; first.resultSha256 = hash(JSON.stringify(first.result));
+  await writeFile(firstPath, JSON.stringify(first), 'utf8');
+  if (changed === 'rebuilt-chain') {
+    const startPath = join(folder(f), 'check-2-started.json'), start = JSON.parse(await readFile(startPath, 'utf8'));
+    start.previousReceipt = 'host-transfer-design-validation/' + f.result[0].taskId + '/' + f.result[0].attempts[0].attemptId + '/check-1-result.json#sha256=' + hash(await readFile(firstPath));
+    await writeFile(startPath, JSON.stringify(start), 'utf8');
+    const resultPath = join(folder(f), 'check-2-result.json'), second = JSON.parse(await readFile(resultPath, 'utf8'));
+    second.startedSha256 = hash(JSON.stringify(start)); await writeFile(resultPath, JSON.stringify(second), 'utf8');
+  }
+  assert.equal(await coldRecover(f), null); assert.equal(f.calls.length, count);
+});
+
+test('COS41 cold history correction a stopped author cannot read a cached pass', async t => {
+  let stoppedCheckCompleted = false;
+  await assert.rejects(run(t, async (config, f) => {
+    const validate = check(config); assert.equal((await validate()).passed, true);
+    const before = oracleCalls; await f.controller.stop('Synthetic manual stop after validation');
+    await assert.rejects(validate(), error => f.controller.signal.aborted && error === f.controller.signal.reason
+      || error instanceof Error && /authority|abort|cancel|stopped/i.test(error.message));
+    assert.equal(oracleCalls, before); stoppedCheckCompleted = true;
+  }));
+  assert.equal(stoppedCheckCompleted, true);
 });
