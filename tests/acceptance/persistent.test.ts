@@ -149,3 +149,84 @@ test('COS-36 reader preserves the immutable preparation draft and its exact eigh
   assert.deepEqual(result.scope.acceptanceIds, draft.acceptanceIds);
   draft.checkpoint.sameOrigin = false; assert.throws(() => consumer.transferPersistentSeries(draft, 'a'.repeat(40), 'series'));
 });
+
+test('COS39 returned failed segments record the actual report, exit and evidence boundary', async () => {
+  for (const fault of ['mismatch', 'plan', 'exit', 'exit-code', 'exit-flag', 'raw', 'video', 'lifecycle', 'execute']) {
+    const root = await mkdtemp(join(tmpdir(), 'cos39-facts-')); let calls = 0;
+    try {
+      const report = await api.executePersistentSeries(series(), { evidenceRoot: root, deadlineAt: Date.now() + 10_000, verifyBinding: async () => {} },
+        async (p: AcceptancePlan, lifecycle: any) => {
+          calls++;
+          if (fault === 'execute') throw new Error('Expected game value; observed wrong value');
+          const r = await fakeReport(p, root, lifecycle.profile, 3001);
+          r.outcome = 'failed'; Object.assign(r.steps[1], { outcome: 'failed', actual: 'wrong', error: 'fixed mismatch', failure: 'mismatch' });
+          if (fault === 'plan') r.plan.artifact.version = 'wrong';
+          if (fault === 'exit') r.session!.exitConfirmed = false;
+          if (fault === 'exit-code') delete (r.session as any).exitCode;
+          if (fault === 'exit-flag') (r.session as any).closeEvent = 'true';
+          if (fault === 'lifecycle') { r.errors.push('arbitrary text'); r.failureFacts!.errors.push({ errorIndex: 0, error: 'arbitrary text', kind: 'unknown' }); }
+          await writeFile(join(root, r.reportPath), JSON.stringify(r), 'utf8');
+          if (fault === 'raw') await writeFile(join(root, r.reportPath), '{}', 'utf8');
+          if (fault === 'video') await writeFile(join(root, 'restore/browser.webm'), '', 'utf8');
+          return r;
+        });
+      assert.equal(report.outcome, 'failed'); assert.equal(calls, 1); assert.equal(report.checkpoint.outcome, 'skipped');
+      const facts = (report as any).failureFacts;
+      assert.equal(facts?.formatVersion, 1);
+      assert.equal(facts.errors.length, report.errors.length);
+      assert.equal(facts.errors[0].errorIndex, 0); assert.equal(facts.errors[0].error, report.errors[0]);
+      assert.equal(facts.errors[0].segmentId, 'restore');
+      const expected = fault === 'plan' ? ['segment_report', 'invalid_segment'] : fault.startsWith('exit') ? ['segment_report', 'owned_exit']
+        : ['raw', 'video'].includes(fault) ? ['evidence', 'evidence'] : fault === 'execute' ? ['execute', 'unknown'] : ['segment_report', 'segment_failed'];
+      assert.deepEqual([facts.errors[0].phase, facts.errors[0].kind], expected, fault);
+      assert.deepEqual(JSON.parse(await readFile(join(root, report.reportPath), 'utf8')), report);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  }
+});
+
+test('COS39 typed guards retain cancellation, deadline and binding sources without parsing text', async () => {
+  for (const fault of ['cancel', 'deadline', 'binding', 'profile']) {
+    const root = await mkdtemp(join(tmpdir(), 'cos39-guard-')), controller = new AbortController(); let checks = 0, calls = 0;
+    try {
+      const report = await api.executePersistentSeries(series(), { evidenceRoot: root, deadlineAt: Date.now() + (fault === 'deadline' ? 2200 : 10_000),
+        signal: controller.signal, verifyBinding: async () => { if (++checks === 3 && fault === 'binding') throw new Error('acceptance cancelled'); } },
+        async (p: AcceptancePlan, lifecycle: any) => {
+          calls++; const result = await fakeReport(p, root, lifecycle.profile, 3001);
+          if (fault === 'cancel') controller.abort();
+          if (fault === 'profile') await writeFile(join(lifecycle.profile, '..', '.owner'), 'changed', 'utf8');
+          if (fault === 'deadline') await new Promise(resolveWait => setTimeout(resolveWait, 2250));
+          return result;
+        });
+      assert.equal(calls, 1); assert.equal(report.outcome, 'failed');
+      const fact = (report as any).failureFacts?.errors[0];
+      assert.equal(fact?.phase, 'guard'); assert.equal(fact.kind, fault === 'cancel' ? 'cancelled' : fault === 'profile' ? 'private_profile' : fault);
+      assert.equal(fact.error, report.errors[0]);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  }
+});
+
+test('COS39 publication drains binding and cancellation for failed and passed series', async () => {
+  for (const failed of [false, true]) for (const fault of ['cancel', 'binding']) {
+    const root = await mkdtemp(join(tmpdir(), 'cos39-publication-')), controller = new AbortController(); let checks = 0, calls = 0;
+    try {
+      const report = await api.executePersistentSeries(series(), { evidenceRoot: root, deadlineAt: Date.now() + 10_000, signal: controller.signal,
+        verifyBinding: async () => {
+          if (++checks === (failed ? 4 : 7)) {
+            if (fault === 'cancel') controller.abort(); else throw new Error('Expected game value; observed wrong value');
+          }
+        } }, async (p: AcceptancePlan, lifecycle: any) => {
+          const result = await fakeReport(p, root, lifecycle.profile, 3000 + ++calls);
+          if (failed) {
+            result.outcome = 'failed'; Object.assign(result.steps[1], { outcome: 'failed', actual: 'wrong', error: 'fixed mismatch', failure: 'mismatch' });
+            await writeFile(join(root, result.reportPath), JSON.stringify(result), 'utf8');
+          }
+          return result;
+        });
+      assert.equal(report.outcome, 'failed', `${failed}/${fault}`); assert.equal(calls, failed ? 1 : 2);
+      const fact = (report as any).failureFacts?.errors.at(-1);
+      assert.equal(fact?.phase, 'final_publication'); assert.equal(fact.kind, fault === 'cancel' ? 'cancelled' : 'binding');
+      assert.equal(fact.errorIndex, report.errors.length - 1); assert.equal(fact.error, report.errors.at(-1));
+      assert.deepEqual(JSON.parse(await readFile(join(root, report.reportPath), 'utf8')), report);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  }
+});

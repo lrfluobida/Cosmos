@@ -27,13 +27,23 @@ export interface PersistentAcceptanceSeries {
 export interface PersistentAcceptanceOptions extends AcceptanceOptions {
   deadlineAt: number; signal?: AbortSignal; verifyBinding: () => Promise<void>;
 }
+export interface PersistentFailureFacts {
+  formatVersion: 1;
+  errors: {
+    errorIndex: number; error: string;
+    phase: 'private_profile' | 'guard' | 'execute' | 'segment_report' | 'evidence' | 'checkpoint' | 'final_publication';
+    kind: 'private_profile' | 'cancelled' | 'deadline' | 'binding' | 'invalid_segment' | 'owned_exit' | 'segment_failed'
+      | 'evidence' | 'checkpoint' | 'publication' | 'unknown';
+    segmentId?: string;
+  }[];
+}
 export interface PersistentAcceptanceReport {
   formatVersion: '1.0.0'; kind: 'persistent_profile_process_reopen'; capability: typeof PERSISTENT_PROFILE_CAPABILITY;
   series: PersistentAcceptanceSeries; deadlineAt: number; startedAt: string; endedAt: string; outcome: 'passed' | 'failed';
   profileRoot: string; segments: { id: string; report: AcceptanceReport }[];
   checkpoint: { outcome: 'passed' | 'failed' | 'skipped'; expected: string; actual: string | null; savedActual: string | null;
     before: PersistentBrowserIdentity | null; after: PersistentBrowserIdentity | null };
-  errors: string[]; reportPath: string;
+  errors: string[]; reportPath: string; failureFacts?: PersistentFailureFacts;
 }
 function requireThat(valid: unknown, message: string): asserts valid { if (!valid) throw new Error('Persistent acceptance: ' + message); }
 const identifier = (value: unknown) => typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(value)
@@ -111,15 +121,29 @@ export function assertPersistentIdentity(processes: unknown, args: unknown, pid:
   requireThat(profiles.length === 1 && profiles[0] === '--user-data-dir=' + profile, 'browser profile identity differs from owned profile');
   return { browserPid: pid, commandLineProfile: profile };
 }
-function passedReport(report: AcceptanceReport, plan: AcceptancePlan, profile: string) {
+function exactSegment(report: AcceptanceReport, plan: AcceptancePlan) {
+  requireThat(report?.formatVersion === '1.0.0' && report.kind === 'normal_browser_input' && isDeepStrictEqual(report.plan, plan)
+    && Array.isArray(report.steps) && report.steps.length === plan.steps.length && report.steps.every((row, index) => {
+      const step = plan.steps[index];
+      return row.id === step.id && row.kind === step.kind && row.expected === ('expected' in step ? step.expected : 'input delivered')
+        && row.acceptanceId === ('acceptanceId' in step ? step.acceptanceId : undefined);
+    }), 'segment did not pass its exact fixed plan');
+}
+function ownedExit(report: AcceptanceReport, plan: AcceptancePlan, profile: string) {
   const identity = report.session;
+  requireThat(identity && Number.isSafeInteger(identity.browserPid) && identity.browserPid > 0 && identity.browserPid === report.cleanup.browserPid
+    && identity.profile === profile && identity.commandLineProfile === profile && identity.origin === new URL(plan.url).origin
+    && report.cleanup.processExited === true && identity.closeEvent === true && identity.exitConfirmed === true
+    && (identity.exitCode === null || Number.isSafeInteger(identity.exitCode))
+    && (identity.signalCode === null || typeof identity.signalCode === 'string' && /^SIG[A-Z0-9]+$/.test(identity.signalCode))
+    && (identity.exitCode !== null || identity.signalCode !== null), 'complete owned process exit/profile identity is unproven');
+}
+function passedReport(report: AcceptanceReport, plan: AcceptancePlan, profile: string) {
   requireThat(isDeepStrictEqual(report.plan, plan) && report.outcome === 'passed' && !report.errors.length
     && report.steps.length === plan.steps.length && report.steps.every((row, index) => row.id === plan.steps[index].id && row.outcome === 'passed'
       && row.error === null && row.actual === row.expected), 'segment did not pass its exact fixed plan');
   requireThat(report.failureFacts?.termination === null && !report.failureFacts.errors.length, 'unknown or lifecycle errors stop the series');
-  requireThat(identity && identity.browserPid === report.cleanup.browserPid && identity.profile === profile && identity.commandLineProfile === profile
-    && identity.origin === new URL(plan.url).origin && report.cleanup.processExited === true && identity.closeEvent && identity.exitConfirmed
-    && (identity.exitCode !== null || identity.signalCode !== null), 'complete owned process exit/profile identity is unproven');
+  ownedExit(report, plan, profile);
 }
 async function evidenceFiles(report: AcceptanceReport, root: string) {
   for (const extension of ['.png', '.webm', '.log', 'report.json'])
@@ -156,36 +180,66 @@ export async function executePersistentSeries(value: unknown, options: Persisten
   const reportPath = [first.projectId, first.artifact.artifactId, first.artifact.version, first.runId, series.reportId, 'report.json'].join('/');
   const folder = await safePath(options.evidenceRoot, reportPath.slice(0, -'/report.json'.length));
   await mkdir(join(folder, '..'), { recursive: true }); await mkdir(folder);
-  // Neither the caller nor model can choose a profile or reuse an existing browser directory.
-  const profileRoot = await mkdtemp(join(tmpdir(), 'cosmos-browser-'));
-  await safePath(profileRoot);
-  const owner = randomUUID(); await writeFile(join(profileRoot, '.owner'), owner, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+  const owner = randomUUID(); let profileRoot = '';
+  const failureFacts: PersistentFailureFacts = { formatVersion: 1, errors: [] };
   const report: PersistentAcceptanceReport = { formatVersion: '1.0.0', kind: 'persistent_profile_process_reopen', capability: PERSISTENT_PROFILE_CAPABILITY,
     series, deadlineAt: options.deadlineAt, startedAt: new Date(start).toISOString(), endedAt: '', outcome: 'failed', profileRoot, segments: [],
-    checkpoint: { outcome: 'skipped', expected: series.checkpoint.expected, actual: null, savedActual: null, before: null, after: null }, errors: [], reportPath };
+    checkpoint: { outcome: 'skipped', expected: series.checkpoint.expected, actual: null, savedActual: null, before: null, after: null }, errors: [], reportPath, failureFacts };
   let profile = '';
-  const guard = async (launch = false) => {
+  let phase: PersistentFailureFacts['errors'][number]['phase'] = 'private_profile';
+  let kind: PersistentFailureFacts['errors'][number]['kind'] = 'private_profile', segmentId: string | undefined;
+  const at = (nextPhase: typeof phase, nextKind: typeof kind) => { phase = nextPhase; kind = nextKind; };
+  const recordError = (error: unknown) => {
+    const text = error instanceof Error ? error.message : String(error);
+    failureFacts.errors.push({ errorIndex: report.errors.length, error: text, phase, kind, ...(segmentId ? { segmentId } : {}) });
+    report.errors.push(text);
+  };
+  const guard = async (launch = false, publication = false) => {
+    const currentPhase = publication ? 'final_publication' : 'guard';
+    at(currentPhase, 'cancelled');
     if (options.signal?.aborted) throw new AcceptanceCancelledError('acceptance cancelled');
+    at(currentPhase, 'deadline');
     if (options.deadlineAt - Date.now() <= (launch ? cleanupReserveMs + 1000 : 0)) throw new DeadlineError('original deadline leaves no safe browser launch/cleanup time');
+    at(currentPhase, 'private_profile');
+    requireThat(!!profileRoot, 'private profile root is unavailable');
     await safePath(profileRoot);
     requireThat((await regularFile(profileRoot, '.owner')).toString('utf8') === owner, 'private profile root ownership changed');
-    await bounded(options.verifyBinding, options.deadlineAt - Date.now(), 'Host binding guard', options.signal);
-    if (options.signal?.aborted || options.deadlineAt - Date.now() <= (launch ? cleanupReserveMs + 1000 : 0)) throw new DeadlineError('cancelled or original deadline reached');
+    at(currentPhase, 'binding');
+    try { await bounded(options.verifyBinding, options.deadlineAt - Date.now(), 'Host binding guard', options.signal); }
+    catch (error) {
+      if (error instanceof AcceptanceCancelledError) kind = 'cancelled'; else if (error instanceof DeadlineError) kind = 'deadline';
+      throw error;
+    }
+    at(currentPhase, 'cancelled');
+    if (options.signal?.aborted) throw new AcceptanceCancelledError('cancelled or original deadline reached');
+    at(currentPhase, 'deadline');
+    if (options.deadlineAt - Date.now() <= (launch ? cleanupReserveMs + 1000 : 0)) throw new DeadlineError('cancelled or original deadline reached');
   };
   try {
+    // Neither the caller nor model can choose a profile or reuse an existing browser directory.
+    report.profileRoot = profileRoot = await mkdtemp(join(tmpdir(), 'cosmos-browser-'));
+    await safePath(profileRoot);
+    await writeFile(join(profileRoot, '.owner'), owner, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
     await guard();
     for (const segment of series.segments) {
+      segmentId = segment.id;
       await guard(true); // Per-segment and immediately before every launch, with the same original deadline.
+      at('private_profile', 'private_profile');
       if (segment.prerequisite === 'fresh-profile') {
         profile = await safePath(profileRoot, 'profile-' + randomUUID()); await mkdir(profile, { mode: 0o700 });
       } else {
         requireThat(report.checkpoint.outcome === 'passed' && !!profile, 'reopen checkpoint has not passed');
         await safePath(profileRoot, profile.slice(profileRoot.length + 1));
       }
+      at('execute', 'unknown');
       const result = await execute(structuredClone(segment.plan), { profile, deadlineAt: options.deadlineAt, signal: options.signal });
       report.segments.push({ id: segment.id, report: result });
       await guard(); // Close has completed; recheck source/candidate/cancellation before considering a reopen.
-      passedReport(result, segment.plan, profile); await evidenceFiles(result, options.evidenceRoot);
+      at('segment_report', 'invalid_segment'); exactSegment(result, segment.plan);
+      at('segment_report', 'owned_exit'); ownedExit(result, segment.plan, profile);
+      at('evidence', 'evidence'); await evidenceFiles(result, options.evidenceRoot);
+      at('segment_report', 'segment_failed'); passedReport(result, segment.plan, profile);
+      at('checkpoint', 'checkpoint');
       if (segment.id === series.checkpoint.afterSegment) {
         await verifyReopenCheckpoint(series, result, options.evidenceRoot, profile);
         Object.assign(report.checkpoint, { outcome: 'passed', actual: series.checkpoint.expected, savedActual: series.checkpoint.expected, before: result.session });
@@ -194,18 +248,18 @@ export async function executePersistentSeries(value: unknown, options: Persisten
         report.checkpoint.after = result.session!;
       }
     }
-    await guard(); requireThat(report.checkpoint.after, 'missing reopened process evidence'); report.outcome = 'passed';
+    await guard(); at('checkpoint', 'checkpoint'); requireThat(report.checkpoint.after, 'missing reopened process evidence'); report.outcome = 'passed';
   } catch (error) {
-    report.errors.push(error instanceof Error ? error.message : String(error));
+    recordError(error);
     if (report.checkpoint.outcome !== 'skipped') report.checkpoint.outcome = 'failed';
   }
   report.endedAt = new Date().toISOString();
   await writeFile(join(folder, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
-  if (report.outcome === 'passed') try {
-    await guard(); // Drain cancellation/source changes that arrived while publishing the report.
+  try {
+    await guard(false, true); // Drain publication races for failed segments as well as successful series.
   } catch (error) {
-    report.outcome = 'failed'; report.checkpoint.outcome = 'failed'; report.endedAt = new Date().toISOString();
-    report.errors.push(error instanceof Error ? error.message : String(error));
+    report.outcome = 'failed'; if (report.checkpoint.outcome !== 'skipped') report.checkpoint.outcome = 'failed'; report.endedAt = new Date().toISOString();
+    recordError(error);
     await writeFile(join(folder, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
   }
   // Retain only these private test profiles for diagnosis; process cleanup is required independently.
