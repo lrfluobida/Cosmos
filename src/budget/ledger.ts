@@ -1,4 +1,5 @@
 import { budgetSummary } from '../contracts/index.ts';
+import { validationBudgetGroup } from '../contracts/budget.ts';
 import type { ArtifactReference, BudgetLedger, LedgerEntry } from '../contracts/index.ts';
 import { checkShape, referenceShape } from '../contracts/structure.ts';
 import type { RequestInput } from '../runtime/run-types.ts';
@@ -40,6 +41,9 @@ export function reserveEntry(ledger: BudgetLedger, input: RequestInput): LedgerE
   for (const key of ['requestId', 'taskId', 'provider', 'pricingVersion'] as const) nonEmpty(input[key], key);
   if (ledger.entries.some(entry => entry.requestId === input.requestId)) throw new Error(`Request ID already exists: ${input.requestId}`);
   if (ledger.allocationClosures?.some(item => item.taskId === input.taskId)) throw new Error('Task grant is permanently closed.');
+  const group = validationBudgetGroup(ledger);
+  if (group && input.taskId === group.parentTaskId) throw new Error('The delegated parent allocation cannot dispatch new requests.');
+  if (group?.taskIds.includes(input.taskId) && input.estimatedMaxCostMicroCny > group.remainingMicroCny) throw new Error('Original COS-16 group budget is insufficient.');
   const summary = budgetSummary(ledger);
   if (summary.reconciliationRequired) throw new Error('Reconciliation required before further paid requests.');
   if (input.estimatedMaxCostMicroCny > summary.availableMicroCny) throw new Error('Shared budget is insufficient.');

@@ -4,6 +4,7 @@ import { validateContinuation } from './continuation-validation.ts';
 import { idleAnchor } from './window-idle.ts';
 import { validateValidationProfile } from './validation-validation.ts';
 import { validateValidationAllocationClosures } from './validation-allocation-validation.ts';
+import { validateValidationBudgetGroups } from './validation-budget.ts';
 
 function timestamp(value: unknown): boolean {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -20,7 +21,8 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
   // Billing facts can exceed an estimate. Preserve those facts only in a halted run.
   const acceptedOverrun = (stop?.code === 'charge_overrun' || state.formatVersion === 2 && state.continuation?.windows?.some(window => window.stopReason?.code === 'charge_overrun')
     || state.formatVersion === 3 && state.validation?.cases?.some(window => window.stopReason?.code === 'charge_overrun')) && state.run?.state === 'waiting_user';
-  const issues = [...validateRun(state.run), ...ledgerIssues.filter(issue => !(acceptedOverrun && ['budget_exceeded', 'allocation_exceeded'].includes(issue.code)))];
+  const groupOverrun = state.run?.state === 'waiting_user' && state.validation?.cases?.some(window => window.quote.declaration.formatVersion === 'validation-declaration-3' && window.stopReason?.code === 'charge_overrun');
+  const issues = [...validateRun(state.run), ...ledgerIssues.filter(issue => !(acceptedOverrun && ['budget_exceeded', 'allocation_exceeded'].includes(issue.code) || groupOverrun && issue.code === 'group_budget_exceeded'))];
   if (issues.length) throw new Error(`Invalid run snapshot: ${issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
   const { run, ledger } = state;
   if (stop && run.state !== 'waiting_user') throw new Error('Stopped snapshot must remain waiting_user.');
@@ -48,6 +50,7 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
     if (!event || event.sequence !== i + 1 || !timestamp(event.at) || !eventTypes.includes(event.type) || typeof event.reason !== 'string' || (event.requestId !== null && !ledger.entries.some(entry => entry.requestId === event.requestId))) throw new Error('Invalid snapshot event history.');
   });
   validateValidationProfile(state);
+  validateValidationBudgetGroups(state);
   validateValidationAllocationClosures(state);
   if (state.formatVersion !== 3) { validateContinuation(state); idleAnchor(state); }
 }

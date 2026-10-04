@@ -7,6 +7,7 @@ import { SnapshotStore } from './store.ts';
 import { validateSnapshot } from './run-validation.ts';
 import { requireNoRegistryWriter } from './window-idle.ts';
 import { currentValidationCase, VALIDATION_ROLES, validateValidationDeclaration, validationHash, validationInputHash } from './validation-validation.ts';
+import { prepareValidationBudgetGroup, requireBudgetGroupQuote, verifyValidationBudgetSources } from './validation-budget.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ClaimValidationCaseOptions, OperatorValidationDecision, ValidationCaseQuote, ValidationCaseWindow, ValidationContextOptions, ValidationDeclaration, ValidationIdentity } from './validation-types.ts';
 export { validationInputHash } from './validation-validation.ts';
@@ -38,6 +39,7 @@ export async function verifyValidationIdentity(options: ValidationContextOptions
       if (validationHash(bytes) !== file.sha256) throw new Error(`Fixed validation input changed: ${file.path}`);
       if (file.path === declaration.inputs.requirements.path) {
         const value = JSON.parse(text);
+        if (declaration.formatVersion === 'validation-declaration-3' ? !sameValue(value.budgetGroup, declaration.budgetGroup) : value.budgetGroup !== undefined) throw new Error('Frozen requirement budget group differs from its reviewed declaration.');
         if (value.requirementVersion !== declaration.inputs.requirements.version || typeof value.specVersion !== 'string' || !value.specVersion.trim()
           || !Array.isArray(value.acceptanceIds) || !value.acceptanceIds.length || !Array.isArray(value.stageAcceptanceIds) || value.stageAcceptanceIds.length !== 2
           || [...value.acceptanceIds, ...value.stageAcceptanceIds].some(id => typeof id !== 'string' || !id.trim())
@@ -57,7 +59,7 @@ export async function verifyValidationIdentity(options: ValidationContextOptions
 }
 
 function eligible(state: RunSnapshot, declaration: ValidationDeclaration, now: number): void {
-  if (![1, 3].includes(state.formatVersion) || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== declaration.limits.lifetimeMicroCny) throw new Error('Use the original shared validation ledger; formal generation is not this profile.');
+  if (![1, 3].includes(state.formatVersion) || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0', '4.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== declaration.limits.lifetimeMicroCny) throw new Error('Use the original shared validation ledger; formal generation is not this profile.');
   if (state.stopReason?.code === 'charge_overrun' || state.validation?.cases.some(item => item.stopReason?.code === 'charge_overrun')) throw new Error('Historical validation overrun requires separate resolution.');
   if (state.ledger.entries.some(entry => entry.reservedMicroCny || entry.unknown || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Unknown or reserved historical charges require reconciliation.');
   if (state.formatVersion === 1 && !state.stopReason && now < Date.parse(state.run.originalDeadlineAt)) throw new Error('Original validation window is still active.');
@@ -69,23 +71,26 @@ function eligible(state: RunSnapshot, declaration: ValidationDeclaration, now: n
   const grants = VALIDATION_ROLES.map(role => declaration.grants[role]);
   if (grants.some(grant => state.run.taskIds.includes(grant.taskId))) throw new Error('Case grant identity already exists.');
   const committed = budgetSummary(state.ledger).committedMicroCny, allocated = budgetCapacity(state.ledger).allocatedMicroCny;
-  if (committed >= declaration.limits.cumulativeMicroCny || grants.reduce((sum, grant) => sum + grant.amountMicroCny, allocated) > state.ledger.limitMicroCny) throw new Error('Shared unallocated budget or first-phase budget is insufficient.');
+  prepareValidationBudgetGroup(state, declaration);
+  if (committed >= declaration.limits.cumulativeMicroCny || (declaration.formatVersion === 'validation-declaration-3' ? allocated : grants.reduce((sum, grant) => sum + grant.amountMicroCny, allocated)) > state.ledger.limitMicroCny) throw new Error('Shared unallocated budget or first-phase budget is insufficient.');
 }
 
 export async function prepareValidationCase(options: ValidationContextOptions & { declaration: ValidationDeclaration }): Promise<ValidationCaseQuote> {
   const declaration = structuredClone(options.declaration); validateValidationDeclaration(declaration);
   const bytes = await regularFile(options.root, 'snapshot.json'), state = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); validateSnapshot(state);
   eligible(state, declaration, (options.now ?? Date.now)());
+  await verifyValidationBudgetSources(options.root, state);
   const observed = await verifyValidationIdentity(options, declaration);
   if (observed.requirements.specVersion !== state.run.specVersion) throw new Error('Frozen validation requirements differ from the original spec version.');
   if (!bytes.equals(await regularFile(options.root, 'snapshot.json'))) throw new Error('Validation baseline changed during quote preparation.');
   const value: Omit<ValidationCaseQuote, 'quoteId'> = {
-    formatVersion: 'validation-case-quote-1', profile: 'operator_validation', activationAllowed: false, declaration, ...observed,
+    formatVersion: declaration.formatVersion === 'validation-declaration-3' ? 'validation-case-quote-2' : 'validation-case-quote-1', profile: 'operator_validation', activationAllowed: false, declaration, ...observed,
     basis: { runId: state.run.runId, ledgerId: state.ledger.ledgerId, specVersion: state.run.specVersion, revision: state.revision, snapshotSha256: validationHash(bytes),
       originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt, originalLimitMicroCny: state.ledger.limitMicroCny, stopReason: state.stopReason,
       committedMicroCny: budgetSummary(state.ledger).committedMicroCny, allocatedMicroCny: budgetCapacity(state.ledger).allocatedMicroCny, requestIds: state.ledger.entries.map(entry => entry.requestId) },
   };
-  return { ...value, quoteId: `vq1-${validationHash(JSON.stringify(value))}` };
+  if (declaration.formatVersion === 'validation-declaration-3') value.budgetGroup = prepareValidationBudgetGroup(state, declaration);
+  return { ...value, quoteId: `${declaration.formatVersion === 'validation-declaration-3' ? 'vq2' : 'vq1'}-${validationHash(JSON.stringify(value))}` };
 }
 
 export async function verifyOperatorDecision(root: string, quote: ValidationCaseQuote, decision: OperatorValidationDecision, now: number) {
@@ -113,10 +118,11 @@ export async function claimValidationCase(options: ClaimValidationCaseOptions): 
       return structuredClone(existing);
     }
     eligible(previous, quote.declaration, now());
+    await verifyValidationBudgetSources(store.root, previous); requireBudgetGroupQuote(quote, previous);
     const bytes = await regularFile(store.root, 'snapshot.json');
     if (previous.revision !== quote.basis.revision || validationHash(bytes) !== quote.basis.snapshotSha256 || !sameValue(observed.requirements, quote.requirements)) throw new Error('Validation baseline or quote is stale.');
     const { quoteId, ...payload } = quote;
-    if (quoteId !== `vq1-${validationHash(JSON.stringify(payload))}`) throw new Error('Validation quote was altered.');
+    if (quote.formatVersion !== (quote.declaration.formatVersion === 'validation-declaration-3' ? 'validation-case-quote-2' : 'validation-case-quote-1') || quoteId !== `${quote.declaration.formatVersion === 'validation-declaration-3' ? 'vq2' : 'vq1'}-${validationHash(JSON.stringify(payload))}`) throw new Error('Validation quote was altered.');
     const next = structuredClone(previous), startedAt = at(now());
     const event = (type: 'stopped' | 'validation_case_claimed' | 'validation_case_stopped', reason: string) => next.events.push({ sequence: next.events.length + 1, at: startedAt, type, requestId: null, reason });
     if (!next.stopReason && now() >= Date.parse(next.run.originalDeadlineAt)) {
@@ -131,10 +137,15 @@ export async function claimValidationCase(options: ClaimValidationCaseOptions): 
     next.formatVersion = 3;
     next.validation = { profile: 'operator_validation', currentCaseId: window.caseId, cases: [...(next.validation?.cases ?? []), window] };
     for (const role of VALIDATION_ROLES) { const grant = quote.declaration.grants[role]; next.ledger.allocations.push(structuredClone(grant)); next.run.taskIds.push(grant.taskId); }
+    if (quote.declaration.formatVersion === 'validation-declaration-3') {
+      next.ledger.contractVersion = '4.0.0'; next.ledger.allocationDelegations = [...(next.ledger.allocationDelegations ?? []), {
+        parentTaskId: 'COS-16', authorizationDecisionId: quote.budgetGroup!.authorizationDecisionId ?? decision.decisionId,
+        caseId: window.caseId, decisionId: decision.decisionId, taskIds: VALIDATION_ROLES.map(role => quote.declaration.grants[role].taskId) }];
+    }
     event('validation_case_claimed', `Operator ${decision.actorId} consumed case ${window.caseId}; no human requirement confirmation was created.`);
     next.revision++;
     validateSnapshot(next);
-    const issues = [...validateLedgerUpdate(previous.ledger, next.ledger, { role: 'system', actorId: 'validation' }), ...validateRunUpdate(previous.run, next.run, { role: 'system', actorId: 'validation' })];
+    const issues = [...validateLedgerUpdate(previous.ledger, next.ledger, { role: 'system', actorId: 'validation' }, { validationGroupUpgrade: quote.declaration.formatVersion === 'validation-declaration-3' }), ...validateRunUpdate(previous.run, next.run, { role: 'system', actorId: 'validation' })];
     if (issues.length) throw new Error(`Invalid validation claim: ${issues.map(item => item.message).join('; ')}`);
     await store.write(next); return structuredClone(window);
   } finally { await store.close(); }

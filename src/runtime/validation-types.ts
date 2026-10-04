@@ -6,7 +6,7 @@ export type ValidationPurpose = 'planning' | 'author' | 'reviewer';
 
 /** A reviewed host declaration, never an execution permission by itself. */
 export interface ValidationDeclaration {
-  readonly formatVersion: 'validation-declaration-1' | 'validation-declaration-2'; readonly profile: 'operator_validation'; readonly caseId: string;
+  readonly formatVersion: 'validation-declaration-1' | 'validation-declaration-2' | 'validation-declaration-3'; readonly profile: 'operator_validation'; readonly caseId: string;
   readonly sourceModel: 'deepseek-flash';
   readonly limits: {
     readonly lifetimeMicroCny: number; readonly cumulativeMicroCny: number; readonly incrementalMicroCny: number;
@@ -19,6 +19,13 @@ export interface ValidationDeclaration {
     readonly requirements: { readonly version: string; readonly path: string; readonly sha256: string };
     readonly template: { readonly sha256: string; readonly files: readonly { readonly path: string; readonly sha256: string }[] };
   };
+  readonly budgetGroup?: { readonly parentTaskId: 'COS-16'; readonly allocationMicroCny: 10_000_000 };
+}
+
+export interface ValidationBudgetGroupBinding {
+  parentAllocation: { index: number; taskId: 'COS-16'; amountMicroCny: 10_000_000; sha256: string; source: ArtifactReference };
+  authorizationDecisionId: string | null; memberCaseIds: string[];
+  committedMicroCny: number; allocatedMicroCny: number; availableAllocationMicroCny: number;
 }
 
 export interface ValidationIdentity { reviewedPlatformSha: string; frozenCaseInputHash: string }
@@ -30,7 +37,7 @@ export interface ValidationContextOptions {
   identityTimeoutMs?: number; now?: () => number; signal?: AbortSignal;
 }
 export interface ValidationCaseQuote {
-  formatVersion: 'validation-case-quote-1'; profile: 'operator_validation'; activationAllowed: false; quoteId: string;
+  formatVersion: 'validation-case-quote-1' | 'validation-case-quote-2'; profile: 'operator_validation'; activationAllowed: false; quoteId: string;
   declaration: ValidationDeclaration; identity: ValidationIdentity;
   requirements: { specVersion: string; requirementVersion: string; acceptanceIds: string[]; stageAcceptanceIds: string[] };
   basis: {
@@ -38,6 +45,7 @@ export interface ValidationCaseQuote {
     originalStartedAt: string; originalDeadlineAt: string; originalLimitMicroCny: number; stopReason: StopReason | null;
     committedMicroCny: number; allocatedMicroCny: number; requestIds: string[];
   };
+  budgetGroup?: ValidationBudgetGroupBinding;
 }
 export interface OperatorValidationDecision {
   kind: 'operator_validation'; decisionId: string; actorId: string; decidedAt: string;
@@ -63,18 +71,20 @@ export interface ValidationAuthority {
   lifetimeLimitMicroCny: number; cumulativeLimitMicroCny: number; incrementalLimitMicroCny: number;
   committedMicroCny: number; caseCommittedMicroCny: number; remainingMicroCny: number;
   requestsUsed: number; requestsRemaining: number; executionAllowed: boolean; admissionAllowed: boolean;
+  budgetGroup?: { parentTaskId: 'COS-16'; limitMicroCny: number; committedMicroCny: number; remainingMicroCny: number };
 }
 export interface OpenValidationCaseOptions extends ValidationContextOptions { caseId: string; windowId: string; accountingOnly?: boolean }
 export interface ClaimValidationCaseOptions extends ValidationContextOptions { quote: ValidationCaseQuote; decision: OperatorValidationDecision }
 
 export interface ValidationAllocationClosureQuote {
-  formatVersion: 'validation-allocation-closure-quote-1'; profile: 'operator_validation_allocation_closure'; activationAllowed: false; quoteId: string;
+  formatVersion: 'validation-allocation-closure-quote-1' | 'validation-allocation-closure-quote-2'; profile: 'operator_validation_allocation_closure'; activationAllowed: false; quoteId: string;
   identity: ValidationIdentity;
   basis: {
     runId: string; ledgerId: string; specVersion: string; revision: number; snapshotSha256: string; currentCaseId: string;
     originalStartedAt: string; originalDeadlineAt: string; originalLimitMicroCny: number; stopReason: StopReason | null;
     allocatedMicroCny: number; committedMicroCny: number;
     allocations: BudgetLedger['allocations']; entries: LedgerEntry[]; requests: RunSnapshot['requests'];
+    allocationDelegations?: NonNullable<BudgetLedger['allocationDelegations']>;
   };
   cases: {
     caseId: string; artifactRoot: string; windowId: string; stopReason: StopReason;

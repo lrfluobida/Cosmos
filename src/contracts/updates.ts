@@ -49,17 +49,19 @@ export function validateTaskUpdate(previous: unknown, next: unknown, actor: Upda
   if (['passed', 'failed', 'cancelled'].includes(before.state) && !sameValue(before, after)) issue(issues, '$', 'terminal_record', 'Terminal tasks are immutable; create a linked new task for new work.');
   return issues;
 }
-export function validateLedgerUpdate(previous: unknown, next: unknown, actor: UpdateActor, options: { continuationUpgrade?: boolean; validationClosureUpgrade?: boolean; allowOverrunFacts?: boolean } = {}): ValidationIssue[] {
-  const issues = [...validateLedger(previous), ...validateLedger(next)].filter(item => !(options.allowOverrunFacts && ['budget_exceeded', 'allocation_exceeded'].includes(item.code))); if (issues.length) return issues;
+export function validateLedgerUpdate(previous: unknown, next: unknown, actor: UpdateActor, options: { continuationUpgrade?: boolean; validationClosureUpgrade?: boolean; validationGroupUpgrade?: boolean; allowOverrunFacts?: boolean } = {}): ValidationIssue[] {
+  const issues = [...validateLedger(previous), ...validateLedger(next)].filter(item => !(options.allowOverrunFacts && ['budget_exceeded', 'allocation_exceeded', 'group_budget_exceeded'].includes(item.code))); if (issues.length) return issues;
   const before = previous as BudgetLedger, after = next as BudgetLedger;
   if (!sameValue(before, after) && actor.role !== 'system') issue(issues, '$', 'ledger_authority', 'Only the budget service may update the shared ledger.');
   fixed(before, after, ['ledgerId', 'scope', 'limitMicroCny', 'warningThresholdPercent'], issues);
   const upgrade = options.continuationUpgrade && before.contractVersion === '1.0.0' && after.contractVersion === '2.0.0' && before.scope === 'generation'
-    || options.validationClosureUpgrade && before.contractVersion === '1.0.0' && after.contractVersion === '3.0.0' && before.scope === 'validation';
+    || options.validationClosureUpgrade && before.contractVersion === '1.0.0' && after.contractVersion === '3.0.0' && before.scope === 'validation'
+    || options.validationGroupUpgrade && before.contractVersion === '3.0.0' && after.contractVersion === '4.0.0' && before.scope === 'validation';
   if (!upgrade) fixed(before, after, ['contractVersion'], issues);
   appendOnly(before.allocations, after.allocations, '$.allocations', issues);
   appendOnly(before.authorizations ?? [], after.authorizations ?? [], '$.authorizations', issues);
   appendOnly(before.allocationClosures ?? [], after.allocationClosures ?? [], '$.allocationClosures', issues);
+  appendOnly(before.allocationDelegations ?? [], after.allocationDelegations ?? [], '$.allocationDelegations', issues);
   for (const entry of before.entries) {
     const current = after.entries.find(item => item.requestId === entry.requestId);
     if (!current) { issue(issues, '$.entries', 'history_changed', 'A recorded request cannot be removed.'); continue; }
