@@ -1886,8 +1886,13 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "TRANSFER_PERSISTENT_MEDIA_CONSUMER_SOURCE_READY",
+      "reviewedCommit": "6192b92efdf106941963ecdda2b66a3a34d2cddd",
+      "mergeCommit": "ea0971b2c1605000e86d7f7fd552aac715880339",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/41#issuecomment-5979024302",
+      "liveValidationStatus": "synthetic-consumer-verified-awaiting-actual-transfer",
+      "actualTransferValidated": false
     },
     {
       "taskId": "COS-41",
@@ -1903,7 +1908,7 @@
         { "id": "COS-38", "number": 39, "url": "https://github.com/lrfluobida/Cosmos/issues/39" },
         { "id": "COS-40", "number": 41, "url": "https://github.com/lrfluobida/Cosmos/issues/41" }
       ],
-      "sourcePrerequisiteScopes": { "COS-40": "pending-reviewed-source" },
+      "sourcePrerequisiteScopes": { "COS-40": "reviewed-source" },
       "validationOutputsFor": [
         { "id": "COS-16", "number": 17, "url": "https://github.com/lrfluobida/Cosmos/issues/17" },
         { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" }
@@ -1911,7 +1916,7 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "in-progress",
-      "implementationPhase": "design-approved-awaiting-COS40-source",
+      "implementationPhase": "in-progress",
       "reviewStatus": "SOURCE_NOT_READY"
     },
     {
@@ -1934,8 +1939,13 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "VALIDATION_COS16_GROUP_SOURCE_READY",
+      "reviewedCommit": "851020833c044cafa419245a08e467db3873951b",
+      "mergeCommit": "6b94b31725e341d5c4116bdc16d25ce775adf1a5",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/43#issuecomment-5979094810",
+      "actualLedgerUpgradeApplied": false,
+      "actualCos16GroupDelegationApplied": false
     }
   ],
   "verifiedNativeSubIssues": 42,
