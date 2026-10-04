@@ -91,7 +91,8 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
   try {
     const policies = slots.map(policy => ({ ...(options.taskPolicies ? { policyId: policy.policyId } : {}), role: policy.role, outputs: policy.outputs, writePaths: policy.writePaths, rules: policy.rules ?? [],
       ...(scope ? { taskId: scope.window.quote.declaration.grants[policy.role as 'design' | 'art' | 'coding'].taskId } : {}) }));
-    const response = await session.prompt(`Plan only within these host policies: ${JSON.stringify(policies)}. Task IDs must match /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/. Return the required task draft JSON.`, { signal });
+    const schema = options.taskPolicies ? '{tasks:[{taskId,policyId,role,objective,acceptanceIds,dependsOn}]}' : '{tasks:[{taskId,role,objective,acceptanceIds,dependsOn}]}';
+    const response = await session.prompt(`Plan only within these host policies: ${JSON.stringify(policies)}. Task IDs must match /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/. Return only JSON ${schema}. ${options.taskPolicies ? 'Every task must include the exact supplied policyId and matching role; select each policyId at most once.' : 'Select each role at most once; do not include policyId.'}`, { signal });
     signal.throwIfAborted();
     const value = decodeModelJson(response.text) as { tasks: Draft[] };
     if (!value || Object.keys(value).some(key => key !== 'tasks') || !Array.isArray(value.tasks) || !value.tasks.length || value.tasks.length > slots.length) throw new Error('Invalid bounded task plan.');
