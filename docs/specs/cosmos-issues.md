@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 46 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 47 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；C1结束时九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits为历史，COS44 policy契约源码已独审集成，COS45第二迁移case源码已独审集成、actual C2 design-schema失败；15SDK/282562ms/新增¥0.161528，现10cases/rev1488 ledger4/shared¥7.184253/closure8/50closed八audits，COS46只读自检源码已独审集成/实际C3 NONE，迁移尚未通过，完整经典与最终用户体验未验收。
+调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；C1结束时九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits为历史，COS44 policy契约源码已独审集成，COS45第二迁移case源码已独审集成、actual C2 design-schema失败；15SDK/282562ms/新增¥0.161528，现10cases/rev1488 ledger4/shared¥7.184253/closure8/50closed八audits，COS46只读自检源码已独审集成，COS47第三迁移source实施中/SOURCE_NOT_READY、actual C3 NONE，迁移尚未通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -92,6 +92,7 @@
 - [ ] [COS-44 明确原生规划输出中的 policyId 契约](https://github.com/lrfluobida/Cosmos/issues/45)
 - [ ] [COS-45 准备第二个原生迁移案例与剩余额度准入](https://github.com/lrfluobida/Cosmos/issues/46)
 - [ ] [COS-46 为设计作者提供标识符约束与输出自检](https://github.com/lrfluobida/Cosmos/issues/47)
+- [ ] [COS-47 准备带设计输出自检的第三个原生迁移案例](https://github.com/lrfluobida/Cosmos/issues/48)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -552,6 +553,14 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 权限/验收：同一原SDK session/attempt/grant/calls/fees/clock，不写文件/registry/ledger/audit，不猜改invalidID、不扩semanticrewrite/readonlyformatcorrection/codingrepair；strict capture须recheck，tool通过不代替publication或验收。计划免费TDD覆盖bad onTarget/DOS/合法slug、固定文件/权限信号、原semantic tool组合及capture仍拒非法输出；源码准备零paid，不重放或改真实C2。
 - 源码证据：五批准paths字节一致、UTF8/noBOM/LF/中文/diffcheck通过，两个production/two tests/plan与五docs无碰撞；作者9new/old compatibility6/strict7.064秒复用，独审helper3/3（2493.25ms）+original session组合/stale capture2/2（8330.94ms）通过原task/attempt/source/window守卫。联合原strict非法/保留media字段只读helper1/1、0skip（20.5822ms），未矩阵/41cache/80counter/Edge/compiler。56行helper固定currentfile/readOnly/空args，不auto normalize-ID或maprewrite，不变budget/SDK/provider。
 - 当前边界：C2 design schema失败/raw/161528与closure8保留，实际C3 NONE、未新budget或human任务；10cases/7184253/rev1488 ledger4/50closed八audits/groupnet175630/rem9824370、parent10m/ref1414/shared150首30/formal20012/G3 complete/C8 accepted/human NONE保持。当前仅批准source准备，实际C3不预登记，后继真实运行需另独立声明/准入。
+
+### COS-47 · 准备带设计输出自检的第三个原生迁移案例
+
+- 依赖/状态：已发布[#48](https://github.com/lrfluobida/Cosmos/issues/48)，id5700732521，第47个原生子任务；Root POST+GET/native47children #2–#48/追加checkbox读回，原46对象/checkline不改。cos47_implementer正式从clean2227b34实施、managed branch由其选择；in-progress/open/SOURCE_NOT_READY，未来marker TRANSFER_CASE_THREE_SOURCE_READY，无批准SHA/live C3。Source20..46共27精确已审component/unique marker/source+merge双祖先及沿43的original foundations；明确45 TRANSFER_CASE_TWO_SOURCE_READY与46 DESIGN_OUTPUT_SELF_CHECK_SOURCE_READY，frozen16/partial18 scoped、outputs16/18，不构造full closed循环；22特例仅22，45实际generic failure不覆sourceReady。
+- 固定输入/额度：计划 `cos20-transfer-validation-3`、declaration3/quote2，requirements/template/input hash `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`原样；¥5/45分钟/80全SDK calls，原design semantic一次及coding一次repair。Vector369692/1054678/2800000/2800000/2800000合9824370=原10000000−spent175630；历史planning30308/design145322/others0须按role精确认证，equalTotal wrongRole拒绝，不新领10m/静默rebalance。
+- 准入/历史：ledger4/十consumed stopped cases/currentC2manual、two delegations/50closed八audit/groupnet allocated committed175630/remaining9824370，sourcefirstparentref1414/firstauth与membersC1C2保持。八old receipts按各own currentCase decl/inputhash/rawbytes/opsource/roots/quote/Source祖先认证，第八笔C2不是C8；emptyRoot/markers、无writer/unknown0、pending46均在hostprepare/claim前拒绝。
+- 实施/计划回归：private source-known profiles2→3，加case-three decl+run并复用共享input/driver/DAG，不copy pipeline或修改src budget/planner/46tool；C1/C2decl/inputs/wrappers/historical metadata字节不改。计划pure目标vector/hash/rolefee反例/十history八audits/pending46零effects、native planning/fullscope与atomic append历史/共享capacity保真；C1/C2默认入口拒case3baseline。46 readonly check composer与41 semantic沿原session/grant/clock，capture strict；复用旧大矩阵/Edge/80，不把free source fixture当actual C3。
+- 当前边界：仅C3源码准备/paid NONE，human adapter不属本task、未登记其他后继。原10cases/7184253/rev1488 ledger4/50closed八audits/groupspent175630/rem9824370/parent10m/ref1414、C1/C2失败/C8接受/G3 complete/human NONE与fullclassic未知保留；shared150首30/formal20012不改。真实C3须另准确source/docs审批、免费准入/资金/Root operator和冻结后执行，未Ready不claim。
 
 ## 5. 任务与上下文包模板
 
