@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 40 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 41 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 consumer尚未READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
+调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 consumer/COS41 design反馈尚未READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -86,6 +86,7 @@
 - [ ] [COS-38 连接运行时关卡设计与固定角色输入](https://github.com/lrfluobida/Cosmos/issues/39)
 - [ ] [COS-39 记录持久浏览器失败事实并保守分类](https://github.com/lrfluobida/Cosmos/issues/40)
 - [ ] [COS-40 接通持久浏览器与生成媒体的完整验收](https://github.com/lrfluobida/Cosmos/issues/41)
+- [ ] [COS-41 在原设计会话中提供有界语义反馈](https://github.com/lrfluobida/Cosmos/issues/42)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -488,6 +489,13 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - Consumer范围：仅可信host显式opt-in，actual candidate build后挂载original stable origin，接八段persistent consumer/Source39保守diagnostics/生成media readonly样本union；loadedFrame取max而非sum，bool取OR且须带真实witness。提前冻结真实task IDs并兼容legacy default，不修改IR/200steps/sixAC；default prepared failed/no fallback保持，不允许模型换验收器/profile/origin。
 - 验收/修复边界：exact independent review/proof/promotion绑定同一候选，沿原唯一coding repair权限，v2仍使用同map/等价期望；collector坏packet/null/env/缺exit都insufficient_evidence，健康全系列结果为false才可按可信事实归为coding defect。保留原OwnedWork envelope/controller tickets、PID在CDP前登记，不伪造未执行witness或提前promotion。
 - 当前状态：design semanticrevision和actual paid entry仍留后继；本项零paid、不改真实八cases/fees/window/caps/原分母，COS16原¥10/shared150/首30不变。实际迁移/human NONE，C8 v2接受、原v1失败/旧七历史/C6free111/closure6保持，未独审不得READY或合main。
+
+### COS-41 · 在原设计会话中提供有界语义反馈
+
+- 依赖/状态：已发布 [#42](https://github.com/lrfluobida/Cosmos/issues/42)，id5697722881，第41个原生子任务、父checkbox/原生关联由root REST精确读回；design-approved-awaiting-COS40-source/open/SOURCE_NOT_READY。source前置COS-07/23/38/40对应源码，40仍未独审批准，41须等40独审合入后再实施，不要求完整任务closed；outputs16/18，未来marker TRANSFER_DESIGN_FEEDBACK_SOURCE_READY，当前无reviewed/source/merge SHA。
+- 原会话范围：同一design session使用可信hostTools `validate-transfer-design`，保留原grant/maxcalls/fee/deadline/session/attempt；first invalid仅允许一次rewrite process，second invalid永久exhausted，first pass seal，同bytes重试idempotent。恢复看到started却无result须保守失败，不借只读格式纠正或新增TaskAttempt扩大语义权限。
+- 审计/封存边界：mutable审计仅design，无params任意路径；成功capture绑定receipt、sealedbytes/source/inputs/task/attempt/provenance。没有tool，或afterseal改map，downstream保持0；generic说明可完善，不改factory/orchestrator/provider/ledger/caseSchema、不扩readonlycorrection/codingrepair/TaskAttempts。
+- 当前状态：仅只读设计已批准，作者未实施直到40source merge，平台零paid，真实八cases/fees/clock/caps/C8closure6和actualhuman NONE不变。沿COS16原¥10/shared¥150/首30，正式200/12h原契约保持，不新增预算或实际window，不把设计方案当源码READY或迁移通过。
 
 ## 5. 任务与上下文包模板
 
