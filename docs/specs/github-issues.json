@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 36
+    "childCount": 37
   },
   "tasks": [
     {
@@ -1741,8 +1741,12 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "SHARED_VALIDATION_BROWSER_HOST_SOURCE_READY",
+      "reviewedCommit": "bc352be3e62d02f594f4fed55197b5be921f72e9",
+      "mergeCommit": "e806020d055ea0a1641849154aea971f796b9c2b",
+      "liveValidationStatus": "preparation_only",
+      "actualTransferExecutable": false
     },
     {
       "taskId": "COS-36",
@@ -1765,10 +1769,38 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "TRANSFER_DESIGN_BINDING_SOURCE_READY",
+      "reviewedCommit": "d862f7747826dd0bc82b80e7fce6c9c04bdce69d",
+      "mergeCommit": "dbe86ea42e408f0c32785f98247357a54c185cc6",
+      "liveValidationStatus": "preparation_only",
+      "actualTransferExecutable": false,
+      "notExecutableAcceptanceIds": ["T16-05", "T16-06"]
+    },
+    {
+      "taskId": "COS-37",
+      "title": "通过隔离 profile 和同 origin 验证真实浏览器进程重开",
+      "number": 38,
+      "id": 5696255260,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/38",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        { "id": "COS-08", "number": 9, "url": "https://github.com/lrfluobida/Cosmos/issues/9" },
+        { "id": "COS-12", "number": 13, "url": "https://github.com/lrfluobida/Cosmos/issues/13" },
+        { "id": "COS-32", "number": 33, "url": "https://github.com/lrfluobida/Cosmos/issues/33" },
+        { "id": "COS-36", "number": 37, "url": "https://github.com/lrfluobida/Cosmos/issues/37" }
+      ],
+      "validationOutputsFor": [
+        { "id": "COS-16", "number": 17, "url": "https://github.com/lrfluobida/Cosmos/issues/17" },
+        { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
       "integrationStatus": "in-progress",
       "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 36,
+  "verifiedNativeSubIssues": 37,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
