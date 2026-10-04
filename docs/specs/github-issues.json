@@ -3667,9 +3667,12 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "implementationPhase": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "ROLE_FILE_INVENTORY_SOURCE_READY",
+      "reviewedCommit": "fc9aa8f56131f55d46c89c9e2ea01576695c3b16",
+      "mergeCommit": "a75c6147ecb09097492489be877b9384503a4abf",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/55#issuecomment-5985063159"
     },
     {
       "taskId": "COS-55",
@@ -3730,9 +3733,12 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "implementationPhase": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "CODING_BUILD_FEEDBACK_SOURCE_READY",
+      "reviewedCommit": "018e02130d1678c35034748e64f3dff236eb1318",
+      "mergeCommit": "46dc52387a69c95720687375a92da1b7d66b4e5b",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/56#issuecomment-5985108515"
     }
   ],
   "verifiedNativeSubIssues": 55,
