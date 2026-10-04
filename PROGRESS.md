@@ -639,7 +639,7 @@ COS51注册时历史：Root正式发布[COS51/#52](https://github.com/lrfluobida
 
 Root正式发布[COS52/#53](https://github.com/lrfluobida/Cosmos/issues/53)（id5702655827，将迁移验收与角色 host 纳入生产运行库），native parent52children #2–#53/新增checkbox精确读回。cos52_implementer在cos02 worktree owns `codex/cos52-production-transfer-runtime`，从c3d43e1 source-only实施；in-progress/open/SOURCE_NOT_READY，无批准SHA或actual C5。Source07/09/35..41/50所需已审component为源码前置，Source51案例证明分列；不要求完整任务closed。
 
-范围为九个transfer helpers及必要Source32 diagnostics/type依赖迁入 `src/runtime/adapters/transfer`，旧probes保留thin reexports，input/declaration/driver/run/fixtures仍在probes。验证production静态依赖闭包、source与compiled dist加载、owned worker相对URL；原design oracle/bindings/四outputs/persistent八段/media/一次feedback repair与capture路径契约保持。仅零模型synthetic/src-dist worker证据，实际人类CLI选择/draft/confirm仍待后继；原COS16¥10/shared150首30/formal20012及旧8cases/费用/时钟不变。所有source/docs批准并清推后，Root另fresh C5准入/余额路由/operator和main freeze执行。
+范围为九个transfer helpers及必要Source32 diagnostics/type依赖迁入 `src/runtime/adapters/transfer`，旧probes保留thin reexports，input/declaration/driver/run/fixtures仍在probes。验证production静态依赖闭包、source与compiled dist加载、owned worker相对URL；原design oracle/bindings/四outputs/persistent八段/media/一次feedback repair与capture路径契约保持。仅零模型synthetic/src-dist worker证据，实际人类CLI选择/draft/confirm仍待后继；原COS16¥10/shared150首30/formal20012及旧8cases/费用/时钟不变。C5仅需Source51及其追踪文档批准清推，Root再fresh C5准入/余额路由/operator并冻结main执行；Source52可在该冻结期于独立分支实施和独审，merger须待Root明确解冻后再集成。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
