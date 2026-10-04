@@ -63,12 +63,13 @@ test('operator browser host uses current claimed grants without human fields or 
 });
 
 test('wrong profile, case, frozen proposal/template or root fails before host writes', async t => {
-  const f = await validationBrowserFixture(t), before = await snapshot(f.root);
+  const f = await validationBrowserFixture(t), before = await snapshot(f.root), stateBefore = await f.controller.read();
   await assert.rejects(f.create({ validation: { ...f.validation, caseId: 'old-case' } }), /case|validation/i);
   await assert.rejects(f.create({ proposal: { ...f.input.proposal, brief: 'changed' } }), /frozen|proposal|input/i);
   await assert.rejects(f.create({ root: join(f.root, 'wrong') }), /root|case/i);
-  await assert.rejects(hosts.createBrowserHost(f.input), /legacy|continuation|validation/i);
+  await assert.rejects(hosts.createBrowserHost(f.input), /legacy|continuation|validation|unconnected preparation draft/i);
   assert.deepEqual(await snapshot(f.root), before);
+  assert.deepEqual(await f.controller.read(), stateBefore); assert.equal(f.configs.length, 0); assert.equal(f.calls.length, 0);
   await writeFile(join(f.root, 'toolchain/package.json'), '{} changed', 'utf8');
   await assert.rejects(f.create(), /template|frozen|input/i);
   assert.equal((await f.controller.read()).requests.length, 1);

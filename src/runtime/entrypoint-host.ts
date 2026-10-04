@@ -46,6 +46,8 @@ import type { RecoveryOptions } from './recovery/task-journal.ts';
 import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from './repair/policy.ts';
 import { validationHash } from './validation-validation.ts';
 import { createGameDesignCheck, GAME_DESIGN_CHECK, MEDIA_IDENTIFIER_RULE } from './entrypoint-design-check.ts';
+import { createCodingBuildCheck, GAME_BUILD_CHECK } from './entrypoint-coding-check.ts';
+import { CODING_TEMPLATE_FILES, codingInputSignature } from './coding-check-worker.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-16 characters) and PCM synthesis (0-16 clips, each <=30 seconds). The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks these against the dynamic manifest alongside normal-input screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
@@ -377,6 +379,39 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     };
     return [createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, guard }), ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
+  const codingHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
+    if (supplied.role !== 'coding') return [];
+    const recorded = (await controller.read()).tasks.find(task => task.taskId === supplied.taskId);
+    if (!recorded || role(recorded) !== 'coding') throw new Error('Coding check requires its original coding author task.');
+    const original = structuredClone(recorded), fixedWorkspace = await realpath(workspace(original)), attempt = original.attempts.at(-1);
+    if (resolve(supplied.workspace) !== fixedWorkspace || !attempt) throw new Error('Coding check requires its original author workspace and attempt.');
+    const locations = [...original.inputs, ...original.context.interfaces].map(ref => ref.location);
+    const fixedInputs = await codingInputSignature(root, locations);
+    const guard = async (signal: AbortSignal) => {
+      signal.throwIfAborted(); work.signal.throwIfAborted(); controller.signal.throwIfAborted();
+      const authority = await requireDispatch(original, signal), currentState = await controller.read();
+      const current = currentState.tasks.find(task => task.taskId === original.taskId);
+      if (!current) throw new Error('Coding check original task is missing.');
+      requireOriginalTask(original, current);
+      if (current.state !== 'running' || current.attempts.at(-1)?.outcome !== 'running' || !sameValue(current.attempts, original.attempts)) throw new Error('Coding check original author attempt is inactive or changed.');
+      const active = validation ? await controller.validationAuthority(original.taskId, 'author') : await controller.executionAuthority(original.taskId);
+      if (!active.admissionAllowed || currentState.ledger.entries.some(entry => entry.unknown) || Date.parse(authority.deadlineAt) - Date.now() <= 5000) throw new Error('Coding check authority, charges or cleanup deadline is unavailable.');
+      for (const kind of ['design', 'art']) {
+        const dependency = currentState.tasks.find(task => original.dependsOn.some(dep => dep.taskId === task.taskId) && role(task) === kind);
+        if (!dependency || dependency.state !== 'passed' || dependency.review.verdict !== 'approved') throw new Error('Coding check requires passed current design and art inputs.');
+      }
+      for (const ref of captures) await registry.getCapture(ref);
+      await registry.getCapture(selected(original, 'design')); await registry.getCapture(selected(original, 'media'));
+      for (const name of CODING_TEMPLATE_FILES) if (!(await regularFile(root, `toolchain/${name}`)).equals(await regularFile(root, `${template.location}/${name}`))) throw new Error('Coding check selected toolchain configuration changed.');
+      if (preparation) await preparation.requireCurrent();
+      if (await realpath(workspace(original)) !== fixedWorkspace || await codingInputSignature(root, locations) !== fixedInputs
+        || await codingInputSignature(fixedWorkspace, locations) !== fixedInputs) throw new Error('Coding check original workspace or fixed input bytes changed.');
+      signal.throwIfAborted(); work.signal.throwIfAborted(); controller.signal.throwIfAborted(); return authority;
+    };
+    await guard(supplied.signal);
+    return [createCodingBuildCheck({ controller, work, workspace: fixedWorkspace, toolchain: join(root, 'toolchain'),
+      template: join(root, template.location), media: join(root, selected(original, 'media').location), taskId: original.taskId, attemptId: attempt.attemptId, guard })];
+  };
   const captureLayout = (...entries: { artifactId: string; paths: string[] }[]) => `Capture file layout: ${JSON.stringify(entries)}. Select the exact current artifactId/version reference in this packet's inputs, including the reviewed task's output artifacts, and read reference.location + '/' + the relative path. Author writes use only the declared authors/... source paths before capture; reviewer and downstream reads use immutable captures. Never append authors/... to a capture root or infer a version/location from an author path. Layout guidance grants no additional read or write permission.`;
   const designLayout = { artifactId: designOutput.artifactId, paths: ['_cosmos/design.json'] };
   const mediaLayout = { artifactId: mediaOutput.artifactId, paths: ['_cosmos/mediaSpec.json', 'public/assets/manifest.json'] };
@@ -398,12 +433,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           'CharacterSpec: {id,width:16..512,height:16..512,anchor:{x,y},layers:[{id,shape:"rect"|"ellipse",x,y,width,height,fill:"#RRGGBB",stroke:"#RRGGBB",strokeWidth,radius?}],states:[{name,fps:1..60,loop:boolean,frames:[{layerId:{dx?,dy?,rotation?,scaleX?,scaleY?,opacity?}}]}]}. Up to 64 layers, 16 states, 256 total frames; every frame is a pose map and may be {}.',
           'AudioSpec: {id,sampleRate:22050|44100|48000,duration:0.02..30,loop:boolean,notes:[{midi:24..96,start,duration,gain:0..0.5,wave:"sine"|"triangle",attack,release}]}. Notes fit the clip; attack/release each >=0.002, their sum <=note duration. Produce audible original audio. The trusted host renders and validates actual files. Never copy reference artwork/audio.'] },
       { policyId: 'game-code', role: 'coding', workspace: root, allocationMicroCny: Math.floor(pool * 0.40), writePaths: ['authors/coding/src', 'authors/coding/index.html'],
-      readOnlyPaths: ['requirements', 'registry', 'repair-feedback'], tools: ['read', 'write', 'edit'],
+      readOnlyPaths: ['requirements', 'registry', 'repair-feedback'], tools: ['read', 'write', 'edit', GAME_BUILD_CHECK],
       outputs: [{ ...output, destination: output.location, type: 'game-project', schema: 'browser-game/1' }],
       rules: [`Cover exactly the gameplay IDs ${JSON.stringify(gameplayIds)}; depend on both design and art tasks. Implement the actual confirmed brief: ${draft.brief}`, captureLayout(designLayout, mediaLayout, gameLayout),
         preparation ? `Read ${requirement.sources[0].location} for the fixed operator preparation proposal, then the complete captured execution requirement and prepared design plans.`
           : `Read ${requirement.sources[0].location} for the exact user answers and browser scenario.`,
         'Write only authors/coding/index.html and authors/coding/src/main.ts plus necessary files below src. Use the pinned Phaser template and the independent art capture: public/assets/manifest.json gives actual SVG frames and WAV files, served as /assets/... . Read the exact design and media input snapshots. Do not replace art output with coding-only art, modify dependencies or change acceptance.',
+        `Before finishing, call ${GAME_BUILD_CHECK} with {}. Fix compiler errors within your existing write scope and check again in this same original coding session and attempt. This advisory check uses the current source, selected template and media; it does not publish a candidate, establish gameplay acceptance or independent approval, or claim a linked repair.`,
         preparation ? 'Provide real mouse gameplay and visible status/selectors required by the frozen design plans. No test-only victory shortcut, network resource, copied reference media or debug setter.'
           : 'Provide real mouse gameplay and visible status/selectors required by the scenario. No test-only victory shortcut, network resource, copied reference media or debug setter.',
         'Expose a non-configurable getter window.cosmosDebug returning frozen plain data. Its media.characters array follows manifest order: {id,loadedFrames,states:[{name,seen}]}; media.audio follows manifest order: {id,decoded,started}. Derive loadedFrames/decoded from actual Phaser texture/audio-cache readiness, states seen from actual displayed animation transitions, and started from successful sound start after normal user input. Preserve cumulative observations across scene changes in this document. Never fill these fields with declared constants or fabricate them; independent review checks their source. The host checks every declared state and audio clip on the frozen normal-input path and reports missing coverage as incomplete.',
@@ -461,7 +497,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       signal.throwIfAborted();
     } } : {}),
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation,
-      hostTools: designHostTools,
+      hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],
       ...(validation ? { sessionFactory: input.sessionFactory, beforeTool: async (roleInput, signal) => {
         if (roleInput.purpose === 'planning') await requirePlanningDispatch(roleInput, signal);
         else await requireDispatch(roleInput.task, signal);
