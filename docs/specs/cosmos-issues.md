@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37未READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
+调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -460,9 +460,10 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-37 · 通过隔离 profile 和同 origin 验证真实浏览器进程重开
 
-- 依赖/状态：已发布 [#38](https://github.com/lrfluobida/Cosmos/issues/38)，id5696255260，第37个原生子任务、父checkbox/原生关联已精确读回；in-progress/open/SOURCE_NOT_READY。source前置COS-08/12/32/36对应已审components，输出反馈COS-16/COS-18，不要求完整任务closed；未来独审marker PERSISTENT_PROFILE_PROCESS_REOPEN_SOURCE_READY，当前无批准source/merge SHA。
+- 依赖/状态：已发布 [#38](https://github.com/lrfluobida/Cosmos/issues/38)，id5696255260，第37个原生子任务、父checkbox/原生关联已精确读回；offline-verified-awaiting-live/open。独审 PERSISTENT_PROFILE_PROCESS_REOPEN_SOURCE_READY 批准 `b936020a1abdcd738998d660e7d0b57eb2637be6`（含 `e9912b8376fbcc74b79ebafd289a844dcc5cde8e`、base `dbe86ea42e408f0c32785f98247357a54c185cc6`），合入 `3f2a9420acf53a6a62a5b904cf7a73160b14f80a`；source前置COS-08/12/32/36对应已审components，输出反馈COS-16/COS-18，不要求完整任务closed。
 - 范围/工作：作者先≤300词design再实施隔离profile、同origin的真实浏览器进程关闭/重开checkpoint；默认runner32不退化，不能用reload或storage injection冒充恢复。只使用作者自己的synthetic temp profiles/browser fixture，按root排程验证，不访问用户browser profile、Root私有案例或原game，不调用model/paid。
-- 预算/当前边界：仍是COS16平台准备，沿用原¥10/shared¥150/首批¥30和旧时钟，不新建ledger、续旧预算或创建实际window。Source37未独批，T16-05/06/实际迁移仍未证明；C8接受v2、旧八历史/费用7008623/40closed/6audits和actualhuman NONE保持。
+- 源码/fixture证据：12批准路径字节一致、无35/36碰撞、UTF8/LF/中文/diffcheck通过；复用独审初始5pure/增量2 context blocker/await及pinned policy字节匹配。作者正常Edge27860→29284/default31540正常exit和webm/PNG/log、SW修复9864→26576正常exit/同profile同origin/four warning/首与重开parent+iframe四register阻断、0 SW/controller/request证据复用；strict/pure与旧normal/source32证据复用。联合仅pinned blocker before page scripts pure代表1/1、0skip（5.6615ms），未再跑真实Edge/矩阵/compiler。
+- 预算/当前边界：仍是COS16平台准备，沿用原¥10/shared¥150/首批¥30和旧时钟，不新建ledger、续旧预算或创建实际window。Fixture验证隔离profile/同origin真实进程重开能力，T16-05 consumer可在源码就绪后执行，但fixture不是Cosmos生成游戏或实际迁移通过；runtime adapter/付费入口及真实运行仍未齐备，T16-05/06实际迁移证据未形成。C8接受v2、旧八历史/费用7008623/40closed/6audits和actualhuman NONE保持。
 
 ## 5. 任务与上下文包模板
 

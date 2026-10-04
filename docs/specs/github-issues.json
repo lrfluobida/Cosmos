@@ -1797,8 +1797,13 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "PERSISTENT_PROFILE_PROCESS_REOPEN_SOURCE_READY",
+      "reviewedCommit": "b936020a1abdcd738998d660e7d0b57eb2637be6",
+      "mergeCommit": "3f2a9420acf53a6a62a5b904cf7a73160b14f80a",
+      "liveValidationStatus": "harness-fixture-process-reopen-verified",
+      "actualTransferValidated": false,
+      "validationScope": "synthetic-browser-fixture"
     }
   ],
   "verifiedNativeSubIssues": 37,

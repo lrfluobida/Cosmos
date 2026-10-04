@@ -8,7 +8,7 @@
 
 ## 1. 已确认的产品目标
 
-原生Case8在固定source ef4b2ea上生成v1，真实browser090音频断言code_defect失败，经既有一次linked repair后v2构建、原Edge111/111/0failed/0skip/errors[]及同版本独立codingreview approved，已自动接受有界单关。76请求新增保守峰值估算¥1.549592、共享¥7.008623；六笔免费未用容量closure后revision1414，费用/旧七案例/v1失败与C6 free111诊断保持。此结果不证明完整经典基准、最终还原目标或实际用户体验；COS34决定入口已独审集成但human NONE，COS35/36源码已独审集成但仍为preparation_only/not_executable，COS37未独批；未执行新实际window，沿用COS16原预算和时钟约束，进展见 [进度记录](../../PROGRESS.md)。
+原生Case8在固定source ef4b2ea上生成v1，真实browser090音频断言code_defect失败，经既有一次linked repair后v2构建、原Edge111/111/0failed/0skip/errors[]及同版本独立codingreview approved，已自动接受有界单关。76请求新增保守峰值估算¥1.549592、共享¥7.008623；六笔免费未用容量closure后revision1414，费用/旧七案例/v1失败与C6 free111诊断保持。此结果不证明完整经典基准、最终还原目标或实际用户体验；COS34决定入口已独审集成但human NONE，COS35/36源码已独审集成但仍为preparation_only/not_executable，COS37源码已独审集成、仅验证harness fixture的隔离profile/同origin真实进程重开；迁移仍缺runtime adapter/付费入口，未执行新实际window，沿用COS16原预算和时钟约束，进展见 [进度记录](../../PROGRESS.md)。
 
 | 编号 | 要求 |
 | --- | --- |
