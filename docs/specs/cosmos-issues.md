@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 41 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 42 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 consumer/COS41 design反馈尚未READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
+调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 consumer/COS41 design反馈/COS42预算组尚未READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -87,6 +87,7 @@
 - [ ] [COS-39 记录持久浏览器失败事实并保守分类](https://github.com/lrfluobida/Cosmos/issues/40)
 - [ ] [COS-40 接通持久浏览器与生成媒体的完整验收](https://github.com/lrfluobida/Cosmos/issues/41)
 - [ ] [COS-41 在原设计会话中提供有界语义反馈](https://github.com/lrfluobida/Cosmos/issues/42)
+- [ ] [COS-42 将迁移验证绑定到原 COS16 预算组](https://github.com/lrfluobida/Cosmos/issues/43)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -496,6 +497,14 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 原会话范围：同一design session使用可信hostTools `validate-transfer-design`，保留原grant/maxcalls/fee/deadline/session/attempt；first invalid仅允许一次rewrite process，second invalid永久exhausted，first pass seal，同bytes重试idempotent。恢复看到started却无result须保守失败，不借只读格式纠正或新增TaskAttempt扩大语义权限。
 - 审计/封存边界：mutable审计仅design，无params任意路径；成功capture绑定receipt、sealedbytes/source/inputs/task/attempt/provenance。没有tool，或afterseal改map，downstream保持0；generic说明可完善，不改factory/orchestrator/provider/ledger/caseSchema、不扩readonlycorrection/codingrepair/TaskAttempts。
 - 当前状态：仅只读设计已批准，作者未实施直到40source merge，平台零paid，真实八cases/fees/clock/caps/C8closure6和actualhuman NONE不变。沿COS16原¥10/shared¥150/首30，正式200/12h原契约保持，不新增预算或实际window，不把设计方案当源码READY或迁移通过。
+
+### COS-42 · 将迁移验证绑定到原 COS16 预算组
+
+- 依赖/状态：已发布 [#43](https://github.com/lrfluobida/Cosmos/issues/43)，id5698140786，第42个原生子任务、父checkbox/原生关联由root REST精确读回；in-progress/open/SOURCE_NOT_READY。source前置COS-02/03/20/24已审对应component，outputs16/18；后续实际入口另待登记，当前不占COS43任务。未来marker VALIDATION_COS16_GROUP_SOURCE_READY，只有只读设计已批准、14必要src闭包后实施，无core批准SHA或live ledger upgrade。
+- 版本/原额度：准备declaration3/validation ledger4，snapshot3保持；旧v1/v2、ledger1..3、八cases/六audit的字节解释不变。Root独有实际只读核对原父taskId COS-16 allocation10,000,000 micro-CNY、无entry/committed0，本作者不查真实ledger，也不猜其他legacy84,596,040组成。认证derived五roles初向量planning400000/design1200000/art2800000/code2800000/repair2800000合10000000，父row/amount不改，delegation append-only并禁止direct parent dispatch。
+- 同时守卫：原子核task上限/case¥5/group¥10/first¥30/shared¥150；group committed按settled+reserved计且包含unknown，不能绕费用或预留。Capacity按raw-allclosures-derivedNet，derivedNet=child allocation-child closure，保留父¥10 bucket、不加新预算；child closure只恢复group capacity，后续只领取精确剩余grant、不能再领整¥10。
+- 关闭/保真：必要group closure quote用新版本，旧六receipts不rewrite；settlement overrun如实保留并停止，不压低费用。不得任意扩为财政platform/provider/factory/scheduler/requestmeta/ownedcommand/transferhost变更；预算core与40媒体/41设计反馈独立，actual paid entry仍是后继。
+- 当前边界：零paid，真实八cases/fees/clock/caps/C8closure6/human NONE与正式200/12h不变；COS16公开CLI仍待验，internaloperator不伪造human。40仍WIP未READY、41待40source，42无真实升级/窗口或迁移通过，本项代码独审后再登记source readiness，不新建ledger/续旧预算。
 
 ## 5. 任务与上下文包模板
 
