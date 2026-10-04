@@ -37,4 +37,3 @@ Groupnet/committed1522107/rem8477893；role历史76320/601462/166678/677647/0、
 | mapCheck | `53bbc491b8e72c5070b0999f8348581b782d60a6474d8d9734a90b2b9733aea8` |
 
 [COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5984507367)和[COS51 C5/closure11](https://github.com/lrfluobida/Cosmos/issues/52#issuecomment-5984507618)由Root POST+GET精确读回。C1–4失败/C8 bounded接受/G3组件完成/closure10与预算历史保持；迁移、完整classic、actualhuman未通过。Source52/53为Root解冻后集成，C5的9e7主线不含它们，synthetic/compiled证据不倒写为paid证据。
-
