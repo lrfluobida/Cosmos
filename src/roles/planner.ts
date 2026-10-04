@@ -39,6 +39,8 @@ export interface PlanOptions {
   roles?: Partial<Record<AuthorRole, PlanningRolePolicy>>;
   /** Host-owned slots; each may be selected once, including several of one role. */
   taskPolicies?: PlanningTaskPolicy[];
+  /** Explicit host binding of local proposal aliases to the current validation grants. */
+  proposalIdentity?: 'validation-policy-aliases/1';
   roleFactory: RoleFactory;
   signal?: AbortSignal;
 }
@@ -46,6 +48,9 @@ interface Draft { taskId: string; policyId?: string; role: AuthorRole; objective
 
 /** One native Cosmos planning session, then host binding of all authority-bearing fields. */
 export async function planTaskDag(options: PlanOptions): Promise<{ tasks: PreparedTask[]; plan: ArtifactReference; sessionDirectory: string }> {
+  if (options.proposalIdentity !== undefined && (options.proposalIdentity !== 'validation-policy-aliases/1'
+    || !options.validation || !Array.isArray(options.taskPolicies) || options.roles)) throw new Error('Proposal identity binding requires current validation task policy slots and the exact supported protocol.');
+  const bindAliases = options.proposalIdentity === 'validation-policy-aliases/1';
   if (options.validation) options.controller.requireValidationCase(options.validation.caseId, options.validation.windowId);
   else options.controller.requireOriginalExecution();
   const requirement = freeze(structuredClone(options.requirement));
@@ -90,18 +95,25 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
   const session = await options.roleFactory({ role: 'cosmos', purpose: 'planning', task: planningTask, requirement, validation: options.validation, workspace: options.workspace, stateDirectory: directory, controller: options.controller });
   try {
     const policies = slots.map(policy => ({ ...(options.taskPolicies ? { policyId: policy.policyId } : {}), role: policy.role, outputs: policy.outputs, writePaths: policy.writePaths, rules: policy.rules ?? [],
-      ...(scope ? { taskId: scope.window.quote.declaration.grants[policy.role as 'design' | 'art' | 'coding'].taskId } : {}) }));
+      ...(scope && !bindAliases ? { taskId: scope.window.quote.declaration.grants[policy.role as 'design' | 'art' | 'coding'].taskId } : {}) }));
     const schema = options.taskPolicies ? '{tasks:[{taskId,policyId,role,objective,acceptanceIds,dependsOn}]}' : '{tasks:[{taskId,role,objective,acceptanceIds,dependsOn}]}';
-    const response = await session.prompt(`Plan only within these host policies: ${JSON.stringify(policies)}. Task IDs must match /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/. Return only JSON ${schema}. ${options.taskPolicies ? 'Every task must include the exact supplied policyId and matching role; select each policyId at most once.' : 'Select each role at most once; do not include policyId.'}`, { signal });
+    const response = await session.prompt(`Plan only within these host policies: ${JSON.stringify(policies)}. Task IDs must match /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/. Return only JSON ${schema}. ${options.taskPolicies ? 'Every task must include the exact supplied policyId and matching role; select each policyId at most once.' : 'Select each role at most once; do not include policyId.'}${bindAliases ? ' taskId is a unique local proposal alias, not a billing identity. Select all three supplied policies. Every dependsOn entry names a local proposal alias in this reply. The host alone binds each selected policy to its current predeclared task identity.' : ''}`, { signal });
     signal.throwIfAborted();
     const value = decodeModelJson(response.text) as { tasks: Draft[] };
     if (!value || Object.keys(value).some(key => key !== 'tasks') || !Array.isArray(value.tasks) || !value.tasks.length || value.tasks.length > slots.length) throw new Error('Invalid bounded task plan.');
-    const drafts = value.tasks;
+    let drafts = value.tasks;
     for (const draft of drafts) {
-      if (!draft || Object.keys(draft).some(key => !['taskId', 'role', 'objective', 'acceptanceIds', 'dependsOn', ...(options.taskPolicies ? ['policyId'] : [])].includes(key)) || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(draft.taskId) || !policyFor(draft) || policyFor(draft)!.role !== draft.role || typeof draft.objective !== 'string' || !draft.objective.trim() || !Array.isArray(draft.acceptanceIds) || !draft.acceptanceIds.length || draft.acceptanceIds.some(id => !requirement.acceptance.some(a => a.acceptanceId === id)) || !Array.isArray(draft.dependsOn) || draft.dependsOn.some(id => !drafts.some(d => d.taskId === id) || id === draft.taskId)) throw new Error('Invalid task draft or acceptance coverage.');
+      if (!draft || Object.keys(draft).some(key => !['taskId', 'role', 'objective', 'acceptanceIds', 'dependsOn', ...(options.taskPolicies ? ['policyId'] : [])].includes(key)) || (bindAliases && typeof draft.taskId !== 'string') || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/.test(draft.taskId) || !policyFor(draft) || policyFor(draft)!.role !== draft.role || typeof draft.objective !== 'string' || !draft.objective.trim() || !Array.isArray(draft.acceptanceIds) || !draft.acceptanceIds.length || draft.acceptanceIds.some(id => !requirement.acceptance.some(a => a.acceptanceId === id)) || !Array.isArray(draft.dependsOn) || draft.dependsOn.some(id => !drafts.some(d => d.taskId === id) || id === draft.taskId)) throw new Error('Invalid task draft or acceptance coverage.');
     }
-    if (new Set(drafts.map(d => d.taskId)).size !== drafts.length || new Set(drafts.map(d => policyFor(d)!.policyId)).size !== drafts.length
-      || drafts.some(d => scope ? d.taskId !== scope.window.quote.declaration.grants[d.role as 'design' | 'art' | 'coding']?.taskId : snapshot.run.taskIds.includes(d.taskId))) throw new Error('Plan tasks and policy slots must be unique and new.');
+    if (new Set(drafts.map(d => d.taskId)).size !== drafts.length || new Set(drafts.map(d => policyFor(d)!.policyId)).size !== drafts.length) throw new Error('Plan tasks and policy slots must be unique and new.');
+    if (bindAliases && drafts.length !== slots.length) throw new Error('Validation planning requires all three fixed policy slots.');
+    const identityBinding = bindAliases ? drafts.map(draft => ({ protocol: 'validation-policy-aliases/1' as const, policy: policyFor(draft)!.policyId,
+      localAlias: draft.taskId, actualTaskId: scope!.window.quote.declaration.grants[policyFor(draft)!.role as 'design' | 'art' | 'coding'].taskId })) : undefined;
+    if (identityBinding) {
+      const actualByAlias = new Map(identityBinding.map(binding => [binding.localAlias, binding.actualTaskId]));
+      drafts = drafts.map(draft => ({ ...draft, taskId: actualByAlias.get(draft.taskId)!, dependsOn: draft.dependsOn.map(alias => actualByAlias.get(alias)!) }));
+    }
+    if (drafts.some(d => scope ? d.taskId !== scope.window.quote.declaration.grants[d.role as 'design' | 'art' | 'coding']?.taskId : snapshot.run.taskIds.includes(d.taskId))) throw new Error('Plan tasks and policy slots must be unique and new.');
     if (scope) {
       const coding = drafts.find(draft => draft.role === 'coding');
       if (drafts.length !== 3 || !coding || ['design', 'art'].some(role => !coding.dependsOn.includes(scope.window.quote.declaration.grants[role as 'design' | 'art'].taskId))) throw new Error('Validation coding must consume the fixed design and art tasks.');
@@ -136,7 +148,8 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
       return { role: draft.role, workspace: policy.workspace, task, expectedArtifacts: outputs(draft) };
     });
     const plan = { artifactId: contextId, version: 'v1', location: join(directory, 'plan.json') };
-    await writeFile(plan.location, JSON.stringify({ status: 'validated_proposal', specVersion: requirement.specVersion, sessionDirectory: directory, expectedOutputs: drafts.map(d => ({ taskId: d.taskId, artifacts: outputs(d) })), tasks }, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
+    if (identityBinding) { await requireValidationScope(options.controller, requirement, options.validation!); signal.throwIfAborted(); }
+    await writeFile(plan.location, JSON.stringify({ status: 'validated_proposal', specVersion: requirement.specVersion, sessionDirectory: directory, expectedOutputs: drafts.map(d => ({ taskId: d.taskId, artifacts: outputs(d) })), tasks, ...(identityBinding ? { identityBinding } : {}) }, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
     return { tasks, plan, sessionDirectory: directory };
   } catch (error) {
     await writeFile(join(directory, 'handoff.json'), JSON.stringify({ status: signal.aborted ? 'cancelled' : 'failed', specVersion: requirement.specVersion, remaining: ['Obtain a valid bounded plan covering the fixed requirements.'], sessionDirectory: directory }) + '\n', { encoding: 'utf8', flag: 'wx' });
