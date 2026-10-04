@@ -10,6 +10,7 @@ import { requireNoRegistryWriter } from './window-idle.ts';
 import { verifyOperatorDecision, verifyValidationIdentity } from './validation-window.ts';
 import { currentValidationCase, VALIDATION_ROLES, validationHash } from './validation-validation.ts';
 import { validateValidationAllocationClosureQuote } from './validation-allocation-validation.ts';
+import { verifyValidationBudgetSources } from './validation-budget.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ApplyValidationAllocationClosureOptions, OperatorValidationAllocationClosureDecision, PrepareValidationAllocationClosureOptions,
   ValidationAllocationClosureQuote, ValidationAllocationClosureReceipt, ValidationContextOptions } from './validation-types.ts';
@@ -20,7 +21,7 @@ async function absentOwner(root: string): Promise<void> {
   if (exists) throw new Error('Controller owner or child drain is unresolved; allocation closure refused.');
 }
 function eligible(state: RunSnapshot, caseIds: string[]): void {
-  if (state.formatVersion !== 3 || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0'].includes(state.ledger.contractVersion)
+  if (state.formatVersion !== 3 || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0', '4.0.0'].includes(state.ledger.contractVersion)
     || !currentValidationCase(state).stopReason) throw new Error('Allocation closure requires an explicitly stopped current validation case.');
   if (!Array.isArray(caseIds) || !caseIds.length || new Set(caseIds).size !== caseIds.length) throw new Error('Allocation closure requires unique known case IDs.');
   if (state.ledger.entries.some(entry => entry.reservedMicroCny || entry.unknown || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Reserved or unknown requests require reconciliation before allocation closure.');
@@ -56,6 +57,7 @@ async function verifyCaseSources(options: ValidationContextOptions, state: RunSn
 
 async function quoteFor(options: ValidationContextOptions, state: RunSnapshot, bytes: Buffer, caseIds: string[], ownedLedger: boolean): Promise<ValidationAllocationClosureQuote> {
   eligible(state, caseIds);
+  await verifyValidationBudgetSources(options.root, state);
   const current = currentValidationCase(state), observed = await verifyValidationIdentity(options, current.quote.declaration);
   await verifyCaseSources(options, state, caseIds, observed.identity);
   const cases: ValidationAllocationClosureQuote['cases'] = [], closures: ValidationAllocationClosureQuote['closures'] = [];
@@ -75,13 +77,15 @@ async function quoteFor(options: ValidationContextOptions, state: RunSnapshot, b
   if (!bytes.equals(await regularFile(options.root, 'snapshot.json'))) throw new Error('Allocation closure snapshot baseline changed.');
   const allocatedMicroCny = budgetCapacity(state.ledger).allocatedMicroCny, releasedMicroCny = closures.reduce((sum, item) => sum + item.releasedMicroCny, 0);
   const payload: Omit<ValidationAllocationClosureQuote, 'quoteId'> = {
-    formatVersion: 'validation-allocation-closure-quote-1', profile: 'operator_validation_allocation_closure', activationAllowed: false, identity: observed.identity,
+    formatVersion: state.ledger.contractVersion === '4.0.0' ? 'validation-allocation-closure-quote-2' : 'validation-allocation-closure-quote-1', profile: 'operator_validation_allocation_closure', activationAllowed: false, identity: observed.identity,
     basis: { runId: state.run.runId, ledgerId: state.ledger.ledgerId, specVersion: state.run.specVersion, revision: state.revision, snapshotSha256: validationHash(bytes), currentCaseId: current.caseId,
       originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt, originalLimitMicroCny: state.ledger.limitMicroCny, stopReason: structuredClone(state.stopReason),
-      allocatedMicroCny, committedMicroCny: budgetSummary(state.ledger).committedMicroCny, allocations: structuredClone(state.ledger.allocations), entries: structuredClone(state.ledger.entries), requests: structuredClone(state.requests) },
-    cases, closures, releasedMicroCny, allocatedAfterMicroCny: allocatedMicroCny - releasedMicroCny,
+      allocatedMicroCny, committedMicroCny: budgetSummary(state.ledger).committedMicroCny, allocations: structuredClone(state.ledger.allocations), entries: structuredClone(state.ledger.entries), requests: structuredClone(state.requests),
+      ...(state.ledger.contractVersion === '4.0.0' ? { allocationDelegations: structuredClone(state.ledger.allocationDelegations!) } : {}) },
+    cases, closures, releasedMicroCny, allocatedAfterMicroCny: budgetCapacity({ ...state.ledger, allocationClosures: [...(state.ledger.allocationClosures ?? []),
+      ...closures.map(item => ({ taskId: item.taskId, decisionId: 'pending-closure', releasedMicroCny: item.releasedMicroCny }))] }).allocatedMicroCny,
   };
-  return { ...payload, quoteId: `vacq1-${validationHash(JSON.stringify(payload))}` };
+  return { ...payload, quoteId: `${state.ledger.contractVersion === '4.0.0' ? 'vacq2' : 'vacq1'}-${validationHash(JSON.stringify(payload))}` };
 }
 
 /** Free read-only proposal. It never acquires ownership, opens a controller or creates an execution window. */
@@ -127,7 +131,7 @@ export async function applyValidationAllocationClosure(options: ApplyValidationA
     if (!sameValue(fresh, quote)) throw new Error('Allocation closure quote or its exact source identity changed.');
     if (!sameValue(await verifyClosureDecision(store.root, quote, decision, now()), operatorDecision)) throw new Error('Allocation closure operator source changed during verification.');
     const appliedAt = new Date(now()).toISOString(), receipt = { appliedAt, quote, operatorDecision }, next = structuredClone(previous);
-    next.ledger.contractVersion = '3.0.0';
+    next.ledger.contractVersion = previous.ledger.contractVersion === '4.0.0' ? '4.0.0' : '3.0.0';
     next.ledger.allocationClosures = [...(next.ledger.allocationClosures ?? []), ...quote.closures.map(item => ({ taskId: item.taskId, decisionId: decision.decisionId, releasedMicroCny: item.releasedMicroCny }))];
     next.allocationClosureDecisions = [...(next.allocationClosureDecisions ?? []), receipt];
     next.events.push({ sequence: next.events.length + 1, at: appliedAt, type: 'validation_allocation_closed', requestId: null,
