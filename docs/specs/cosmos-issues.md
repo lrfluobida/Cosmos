@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 44 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 45 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；当前九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits，COS44 policy契约源码已独审集成、迁移尚未通过，完整经典与最终用户体验未验收。
+调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；当前九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits，COS44 policy契约源码已独审集成，COS45准备第二迁移case源码/SOURCE_NOT_READY、actual C2 NONE，迁移尚未通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -90,6 +90,7 @@
 - [ ] [COS-42 将迁移验证绑定到原 COS16 预算组](https://github.com/lrfluobida/Cosmos/issues/43)
 - [ ] [COS-43 提供固定迁移案例的原生运行入口与准入](https://github.com/lrfluobida/Cosmos/issues/44)
 - [ ] [COS-44 明确原生规划输出中的 policyId 契约](https://github.com/lrfluobida/Cosmos/issues/45)
+- [ ] [COS-45 准备第二个原生迁移案例与剩余额度准入](https://github.com/lrfluobida/Cosmos/issues/46)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -529,6 +530,14 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 真实失败关联：迁移case1原reply三roles/AC/deps正确但all3缺policyId；最初JSON shape省略字段，后条件句才required，strict policyFor(undefined)拒绝。[失败记录](../research/2026-10-04-transfer-planning-failure.md)基于Root只读SDKresponse，原raw/case/result保持，不tamper或replay真实case。
 - 源码证据：四批准paths字节一致、UTF8/noBOM/LF/中文/diffcheck通过，仅两个production prompts/new roles test/plan。作者7new/5old slots/6default/strict7.039秒复用；独审4/4（267.6ms）验证policy positive/default roles/multiple same-role及原missing-policy严格拒绝、零登记费用/session closed。联合policy模式提示/原生mock绑定1/1、0skip（41.0945ms），未重矩阵/compiler/Edge。
 - 当前边界：修复源码已独审集成，真实case1仍failed/manual consumed，raw/费用/closure7保留；没有newcase2登记/claim/paid或迁移验收通过，human adapter仍为未登记后继。本任务不改变COS16 frozen contract/parent10m/shared150first30/formal20012、validator/付费纠错/唯一codingrepair、G3三个closed组件及实际human NONE。
+
+### COS-45 · 准备第二个原生迁移案例与剩余额度准入
+
+- 依赖/状态：已发布[#46](https://github.com/lrfluobida/Cosmos/issues/46)，id5699845444，第45个原生子任务；Root REST POST+GET/native parent45children #2–#46/新checkbox追加精确读回，原44条和三个completed[x]不改。只读设计已批准，cos45_implementer正式从clean aa740b7实施，in-progress/open/SOURCE_NOT_READY，未来marker TRANSFER_CASE_TWO_SOURCE_READY，无批准SHA或actual C2。Source前置COS20..44精确component stage及沿43的original foundations；44 schema/43 entry/41 semantics/42 budget的marker与reviewed/merge双祖先必需，COS16 frozen/COS18 partial scoped，outputs16/18，不形成完整closed循环。
+- 固定输入/上限：计划caseId `cos20-transfer-validation-2`、declaration3/quote2；requirements/template/input hash `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`原样。Case5000000micro-CNY/45分钟/80calls，same design session一次semantic rewrite和一次codingrepair；五derived grants385898/1200000/2800000/2800000/2800000合9985898，仅用原parent COS16 allocation10m的剩余capacity，不新增预算。
+- 准入/历史：保留D1声明/requirements/template/CLI/hash及原first授权决定/membercase1/parentAllocation ref1414。初次C2 preflight须核九consumed/stopped cases/currentC1manual、七closure各按old own declaration认证（第七笔transfer C1不是旧C8）、零unknown/reserved、writer收敛、无新root/marker/owner和44准确READY。COS22 failed-status例外仅限22，43live failure独立字段保留、sourceREADY仍有效；Source44未Ready不得任何新副作用。
+- 实施/免费回归：private fixed-profile factory复用现有input/driver/run，加硬C2 wrapper/decl，不公开任意caller data/harness、不复制整个executor。计划Pure TDD验证新vector/hash/authority/九history七audits/44未Ready零effect、atomic claim append2保留wholehistory/shared capacity及默认C1身份；复用旧matrix/Edge/80loops，不重放已消费C1。
+- 当前边界：源码准备零paid、实际C2未创建；九case currentC1manual/7022725/rev1421 ledger4/45closed七audits/groupnetspent14102/rem9985898保持，parent10m/ref1414不改。真实免费准入/余额/路由/operator和bounded native仅由Root在全部source/docs独审集成后冻结finalmain执行；沿原shared150/首30/formal20012，不fakeHuman或完整经典成绩，不登记其他未来任务。
 
 ## 5. 任务与上下文包模板
 
