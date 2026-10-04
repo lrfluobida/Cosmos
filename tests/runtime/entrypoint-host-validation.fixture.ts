@@ -21,7 +21,7 @@ const design = { summary: '离线接口数据', implementationNotes: ['保留冻
 const media = { characters: [{ id: 'marker', width: 32, height: 32, anchor: { x: 16, y: 16 }, layers: [{ id: 'body', shape: 'rect', x: 2, y: 2, width: 28, height: 28, fill: '#ffee22', stroke: '#222222', strokeWidth: 1 }], states: [{ name: 'idle', fps: 1, loop: true, frames: [{}] }] }], audio: [] };
 
 /** generatedByCosmos:false. Temporary ledger, synthetic provider/build/browser; no target game. */
-export async function validationBrowserFixture(t: test.TestContext) {
+export async function validationBrowserFixture(t: test.TestContext, options: { templateRoot?: string } = {}) {
   const base = await mkdtemp(join(tmpdir(), 'cosmos-generic-validation-')), ledgerRoot = join(base, 'ledger'), repositoryRoot = join(base, 'platform');
   const caseId = 'cos20-browser-host-fixture', root = join(repositoryRoot, '.cosmos/e2e', caseId);
   const old = await RunController.create({ root: ledgerRoot, runId: 'offline-shared', ledgerId: 'offline-ledger', kind: 'evaluation', scope: 'validation', specVersion: '1.0',
@@ -38,10 +38,12 @@ export async function validationBrowserFixture(t: test.TestContext) {
   for (const [role, grant] of Object.entries(declaration.grants) as [string, any][]) grant.taskId = `${caseId}-${role}`;
   declaration.inputs.requirements = { version: 'fixture-v1', path: 'requirements.json', sha256: hash(requirements) };
   const templateNames = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
-  declaration.inputs.template.files = templateNames.map(name => ({ path: `template/${name}`, sha256: hash(name.endsWith('.ts') ? 'export default {}\n' : '{}\n') }));
+  const templateBytes = new Map<string, Buffer>();
+  for (const name of templateNames) templateBytes.set(name, options.templateRoot ? await readFile(join(options.templateRoot, name)) : Buffer.from(name.endsWith('.ts') ? 'export default {}\n' : '{}\n'));
+  declaration.inputs.template.files = templateNames.map(name => ({ path: `template/${name}`, sha256: hash(templateBytes.get(name)!) }));
   declaration.inputs.template.sha256 = hash(JSON.stringify(declaration.inputs.template.files));
   await mkdir(repositoryRoot, { recursive: true }); await writeFile(join(repositoryRoot, 'requirements.json'), requirements, 'utf8');
-  for (const file of declaration.inputs.template.files) { await mkdir(dirname(join(repositoryRoot, file.path)), { recursive: true }); await writeFile(join(repositoryRoot, file.path), file.path.endsWith('.ts') ? 'export default {}\n' : '{}\n', 'utf8'); }
+  for (const name of templateNames) { await mkdir(join(repositoryRoot, 'template'), { recursive: true }); await writeFile(join(repositoryRoot, 'template', name), templateBytes.get(name)!); }
   let identity = { reviewedPlatformSha: 'a'.repeat(40), frozenCaseInputHash: validationInputHash(declaration) };
   let clock = Date.now();
   const context = { root: ledgerRoot, repositoryRoot, identityReader: async () => ({ ...identity }), now: () => clock };
