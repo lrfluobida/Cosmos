@@ -19,6 +19,7 @@ import { validationRole } from '../runtime/validation-validation.ts';
 import { requireOriginalTask } from '../runtime/recovery/task-journal.ts';
 import { codingConcernReviewProtocol } from '../runtime/repair/coding-concerns.ts';
 import type { CodingConcernReview } from '../runtime/repair/coding-concerns.ts';
+import { inputFilesProtocol, roleInputFiles } from './input-files.ts';
 
 export type AuthorRole = 'cosmos' | 'design' | 'coding' | 'art';
 export type Role = AuthorRole | 'reviewer';
@@ -110,6 +111,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const contextId = reviewer ? `review-${randomUUID()}` : task.context.contextId;
     const actorId = reviewer ? `reviewer-${randomUUID()}` : task.authorId;
     const reads = reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
+    const inputFiles = await roleInputFiles(workspace, [...task.inputs, ...task.context.interfaces, ...(reviewer ? [...task.artifacts, ...task.evidence.map(e => e.source)] : [])], input.controller.signal);
     const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths });
     const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment() }) ?? [];
     const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name));
@@ -128,7 +130,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const snapshot = await input.controller.read();
     const packet = freeze({ role: input.role, contextId, taskId: task.taskId, objective: task.objective, specVersion: requirement.specVersion,
       acceptance: requirement.acceptance.filter(item => task.acceptanceIds.includes(item.acceptanceId)),
-      inputs: reviewer ? [...task.inputs, ...task.artifacts] : task.inputs,
+      inputs: reviewer ? [...task.inputs, ...task.artifacts] : task.inputs, inputFiles,
       rules: task.context.rules, interfaces: task.context.interfaces, knownFailures: task.context.knownFailures,
       tools: tools.map(tool => tool.name), ownership: { readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths },
       budget: { ...task.budget, committedMicroCny: snapshot.ledger.entries.filter(e => e.taskId === task.taskId).reduce((total, e) => total + e.reservedMicroCny + e.settledMicroCny, 0),
@@ -137,11 +139,11 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       ...(reviewer ? { evidence: task.evidence, ...(input.codingConcernReview ? { codingConcernReview: structuredClone(input.codingConcernReview) } : {}) } : { outputs: task.outputs }) });
     const session = await (options.sessionFactory ?? createPiSession)({
       workspace, stateDirectory: input.stateDirectory, tools,
-      systemPrompt: input.purpose === 'planning'
+      systemPrompt: (input.purpose === 'planning'
         ? 'You are the Cosmos task planner. Follow the host-supplied output schema and use only the host policies supplied in the prompt. When policies have policyId, return only JSON {tasks:[{taskId,policyId,role,objective,acceptanceIds,dependsOn}]}; policyId is required, must name a supplied policy, must match its role, and each policyId may be selected at most once. Otherwise return only JSON {tasks:[{taskId,role,objective,acceptanceIds,dependsOn}]}; select each role at most once and do not add policyId. Cover every confirmed acceptance ID. Each dependency names a task in this plan. The host binds its declared output versions as inputs after the dependency passes. You cannot choose tools, paths, budget, acceptance steps, evidence or task state. This is a proposal, not a claim that the game passes.'
         : reviewer
         ? input.codingConcernReview ? `You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. ${codingConcernReviewProtocol} Your verdict is a proposal checked by the host.` : 'You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. Return JSON {verdict:"approved"|"changes_requested",inputVersions:all packet inputs,evidenceIds:host evidence IDs,findings:string[]}. findings contains only unresolved actionable defects, not successful checks, positive observations or explanations. approved requires findings:[]; changes_requested requires at least one such defect with the unmet requirement and actual versus expected behavior. Do not hide actual defects to produce an empty array. Return only these JSON fields. Your verdict is a proposal checked by the host. Do not infer success from author claims.'
-        : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next. Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`,
+        : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next. Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`) + `\n\n${inputFilesProtocol}`,
       context: JSON.stringify(packet), thinkingLevel: options.thinkingLevel ?? 'low', env: options.env,
       maxOutputTokens: validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
       maxRequests: options.maxRequests, requestTimeoutMs: options.requestTimeoutMs,
