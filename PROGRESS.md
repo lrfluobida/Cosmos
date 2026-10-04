@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 37 个原生子任务。早期验证历史：COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 39 个原生子任务。早期验证历史：COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
 
 第六批补充：固定新试验于 `2026-10-01T11:43:38.426Z` 开始，8.204 秒后在首次输入 capture 发布窗口失败，模型请求与新增费用均为零；原因未知。启动恢复实现虽已独立批准并合入，但实际命令被原 `12:43:38.426Z` 截止拒绝，不能再试或延时。COS-13 已独立批准并合入 `d3aab99`，状态为 `offline-verified-awaiting-live`，#14 保持 open；真实长链路尚未执行，当时无通过的生成游戏，#11/#12 与 G3 状态不变。
 
@@ -59,9 +59,9 @@ Case7 结果（历史）：`cos20-native-validation-7` 在准确 `2404982` 于 `
 | 比较方案并记录关键决策 | 待前置决策 | 真正涉及重要取舍时再创建 ADR |
 | 编写、审查并确认 spec | v1.0 发布基线 | 结构审查通过，用户已确认 ¥200/12h 硬上限和 ¥100/6h 优化目标 |
 | 真实成本与时延探针 | native C8 有界单关自动通过，v2 已接受 | 76 请求新增保守峰值估算 ¥1.549592，共享 ¥7.008623，unknown/reserved0；一次自动repair后Edge111/111与独立codingreview通过，八案例已消费，六closures/40grants仅归还未用容量 |
-| 任务拆分 | 已发布 | [37 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开 |
-| 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#38；37 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..37 source 审批保持，实际 C8 有界单关通过 | COS10切片主要目标与COS11一次真实修复形成实证；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3其余长时/恢复条件仍待核对，完整classic/G4和用户体验未通过 |
+| 任务拆分 | 已发布 | [39 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类 |
+| 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#40；39 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
+| 子代理逐项实施 | COS30..37 source 审批保持，COS38/39 SOURCE_NOT_READY，实际 C8 有界单关通过 | COS10切片主要目标与COS11一次真实修复形成实证；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3其余长时/恢复条件仍待核对，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -398,6 +398,18 @@ COS37登记时的历史：Root新登记并精确读回[COS37/#38](https://github
 作者正常fixture Edge27860→29284/default31540正常exit/webm PNG log，SW修复fixture9864→26576正常exit、同profile/origin、four warning，首/重开parent和iframe四register均被阻断，0 SW/controller/request；这些是自有synthetic browser harness fixture，未使用用户profile或Rootprivate，也不是Cosmos生成的迁移游戏。Public默认ctx补同一registration blocker并await，默认source32行为证据保持；真实进程重开capability源码就绪，consumer可用，实际T16迁移仍缺runtime adapter/付费入口及真实profile/window/model生成，T16-05/06实际迁移尚未验收。
 
 C8/closure6及source20..36审批字段保持，八案例/7008623/revision1414/40closed/6audits未变，actualhuman NONE；本批没有新ledger、旧case续跑、Budget追加或实际window，沿COS16原¥10/shared¥150/首30及旧时钟继续平台准备。Preview未触，四docs候选待same reviewer增量，不合未审metadata；完整classic/95/G4及真实用户体验未宣称通过。
+
+### COS38 修正后的运行时输入连接登记
+
+Root实时REST已精确读回[COS38/#39](https://github.com/lrfluobida/Cosmos/issues/39)（id5696791572，最终title“COS-38 连接运行时关卡设计与固定角色输入”），native parent实际38children #2–#39/父checkbox已核。Public web仍缓存旧完整adapter标题/正文，匿名REST限额；本次只按root最后REST校验的最终input-adapter scope登记，不采用旧完整consumer实现边界。Source35/36/37已审对应源码、16 frozen contract、18 partial source，outputs16/18，in-progress/open/SOURCE_NOT_READY，未来marker TRANSFER_RUNTIME_INPUT_ADAPTER_SOURCE_READY。
+
+本项规划前四outputs、runtime map oracle、冻结两版本plan、稳定origin、current-candidate plan选择/依赖字节与完整ExecutionRequirement+stage连接；保持真实Human确认来源或Validation operator/case/window/source/hash，无fake confirmedBy/后改输入。Persistent/media实际consumer、machine phase facts/diagnostics接线、design semanticrevision及actualentry留后继；未接consumer的prep-candidate仍failed insufficient_evidence，不能fallback/promotion，本项不启用design semanticrepair。零paid，不改真实八cases/ledger/caps、COS16原¥10/shared¥150/首30及旧时钟，迁移与human仍NONE。
+
+[Source35公共审批](https://github.com/lrfluobida/Cosmos/issues/36#issuecomment-5977191130)、[Source36公共审批](https://github.com/lrfluobida/Cosmos/issues/37#issuecomment-5977191367)、[Source37公共审批](https://github.com/lrfluobida/Cosmos/issues/38#issuecomment-5977191638)已由root POST并精确GET；Source37保留完整e9912b8376fbcc74b79ebafd289a844dcc5cde8e链。其他37对象及C8费用7008623/revision1414/40closed/6audits、原v1失败/七历史/C6free111/source34 actualhuman NONE不变；四docs候选待独审，未合main/触preview或私有状态。
+
+Root后继[COS39/#40](https://github.com/lrfluobida/Cosmos/issues/40)已POST+GET精确读回：id5696864882，记录持久浏览器失败事实并保守分类；native parent实际39children #2–#40/父checkbox已核。Source32/37已审对应源码，outputs16/18后续actual consumer，in-progress/open/SOURCE_NOT_READY，未来marker PERSISTENT_FAILURE_FACTS_SOURCE_READY。只受控phase/error packet/persistent raw/evidence/ownedexit核对与probe保守聚合复用Source32，四source/test路径+计划，不改Source38 host/binding/wrapper，不连接media/actualentry，不新增修复权限；legacy/坏facts/unknown/deadline/cancel/binding/exit不足保留insuff，early真实settled mismatch可code_defect但series仍failed、不造未执行witness。
+
+本批最终39计数与新38/39卡/映射一起待独审；两项都未READY，零paid/private/preview，原八案例/7008623/revision1414/40closed/6audits、source20..37审批与actualhuman NONE保持，COS16原¥10/shared150/首30和旧times不变。不等新源码、不开新窗口，最终consumer/machinefacts接线/designsemanticrevision/actualentry仍分别准备，未接consumer不得fallback/promote。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
