@@ -92,7 +92,7 @@ export interface LedgerEntry {
   evidence: ArtifactReference[];
 }
 export interface BudgetLedger {
-  contractVersion: ContractVersion | '2.0.0' | '3.0.0';
+  contractVersion: ContractVersion | '2.0.0' | '3.0.0' | '4.0.0';
   ledgerId: string;
   scope: 'validation' | 'generation';
   limitMicroCny: number;
@@ -102,6 +102,8 @@ export interface BudgetLedger {
   /** Formal generation v2 only. Validation v3 never adds authorization money. */
   authorizations?: { decisionId: string; windowId: string; additionalMicroCny: number }[];
   allocationClosures?: { taskId: string; decisionId: string; releasedMicroCny: number }[];
+  /** Validation v4: exact case grants derive from the original COS-16 bucket. */
+  allocationDelegations?: { parentTaskId: 'COS-16'; authorizationDecisionId: string; caseId: string; decisionId: string; taskIds: string[] }[];
 }
 export interface RunManifest {
   contractVersion: ContractVersion;

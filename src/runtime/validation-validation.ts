@@ -3,6 +3,7 @@ import { pathName } from '../artifacts/paths.ts';
 import { sameValue } from '../contracts/validation.ts';
 import type { ArtifactReference, TaskContract } from '../contracts/index.ts';
 import { evidenceReferences } from '../budget/ledger.ts';
+import { COS16_GROUP_GRANTS } from '../contracts/budget.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ValidationCaseWindow, ValidationDeclaration, ValidationPurpose, ValidationRequestMetadata, ValidationRole } from './validation-types.ts';
 
@@ -19,8 +20,10 @@ function fields(value: unknown, keys: string[]): void {
 
 export function validateValidationDeclaration(value: unknown): asserts value is ValidationDeclaration {
   const d = value as ValidationDeclaration;
-  fields(d, ['formatVersion', 'profile', 'caseId', 'sourceModel', 'limits', 'grants', 'outputTokens', 'inputs']);
-  if (!['validation-declaration-1', 'validation-declaration-2'].includes(d.formatVersion) || d.profile !== 'operator_validation' || !/^cos20-[a-z0-9][a-z0-9-]{0,40}$/.test(d.caseId) || d.sourceModel !== 'deepseek-flash') fail('Unsupported profile, consumed legacy case identity or model.');
+  const grouped = d?.formatVersion === 'validation-declaration-3';
+  fields(d, ['formatVersion', 'profile', 'caseId', 'sourceModel', 'limits', 'grants', 'outputTokens', 'inputs', ...(grouped ? ['budgetGroup'] : [])]);
+  if (!['validation-declaration-1', 'validation-declaration-2', 'validation-declaration-3'].includes(d.formatVersion) || d.profile !== 'operator_validation' || !/^cos20-[a-z0-9][a-z0-9-]{0,40}$/.test(d.caseId) || d.sourceModel !== 'deepseek-flash') fail('Unsupported profile, consumed legacy case identity or model.');
+  if (grouped) { fields(d.budgetGroup, ['parentTaskId', 'allocationMicroCny']); if (d.budgetGroup!.parentTaskId !== 'COS-16' || d.budgetGroup!.allocationMicroCny !== 10_000_000) fail('Only the original COS-16 ten yuan group is supported.'); }
   fields(d.limits, ['lifetimeMicroCny', 'cumulativeMicroCny', 'incrementalMicroCny', 'durationMs', 'maxRequests', 'maxRepairTasks', 'maxTaskAttempts', 'reviewProtocolCorrections']);
   const l = d.limits;
   if (l.lifetimeMicroCny !== 150_000_000 || l.cumulativeMicroCny !== 30_000_000 || !integer(l.incrementalMicroCny, 1) || l.incrementalMicroCny > 5_000_000
@@ -30,10 +33,10 @@ export function validateValidationDeclaration(value: unknown): asserts value is 
   const amounts = { planning: 2_000_000, design: 1_900_000, art: 5_700_000, coding: 7_600_000, repair: 3_800_000 };
   for (const role of VALIDATION_ROLES) {
     const grant = d.grants[role]; fields(grant, ['taskId', 'amountMicroCny']);
-    if (grant.taskId !== `${d.caseId}-${role}` || grant.amountMicroCny !== amounts[role]) fail('Grants require the fixed case-owned identities and reviewed role amounts.');
+    if (grant.taskId !== `${d.caseId}-${role}` || (grouped ? !integer(grant.amountMicroCny, 1) || grant.amountMicroCny > COS16_GROUP_GRANTS[role] : grant.amountMicroCny !== amounts[role])) fail('Grants require the fixed case-owned identities and reviewed role amounts.');
   }
   const total = VALIDATION_ROLES.reduce((sum, role) => sum + d.grants[role].amountMicroCny, 0);
-  if (!integer(total, 1) || total > 21_000_000) fail('Declared grants exceed the bounded allocation envelope.');
+  if (!integer(total, 1) || total > (grouped ? 10_000_000 : 21_000_000)) fail('Declared grants exceed the bounded allocation envelope.');
   fields(d.outputTokens, ['planning', 'design', 'art', 'coding', 'reviewer']);
   if (!sameValue(d.outputTokens, { planning: 4096, design: 16384, art: 65536, coding: 65536, reviewer: 16384 })) fail('Reviewed output policy changed.');
   fields(d.inputs, ['requirements', 'template']); fields(d.inputs.requirements, ['version', 'path', 'sha256']); fields(d.inputs.template, ['sha256', 'files']);
@@ -98,7 +101,7 @@ export function requireValidationRepairSource(state: RunSnapshot, sourceTaskId: 
 
 export function validateValidationProfile(state: RunSnapshot): void {
   if (state.formatVersion !== 3) { if (state.validation !== undefined || state.requests.some(record => record.validation !== undefined)) fail('Legacy snapshots cannot contain operator validation authority.'); return; }
-  if (state.continuation !== undefined || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== 150_000_000
+  if (state.continuation !== undefined || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0', '4.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== 150_000_000
     || state.validation?.profile !== 'operator_validation' || !Array.isArray(state.validation.cases) || !state.validation.cases.length) fail('Invalid validation profile or shared ledger.');
   const cases = state.validation.cases;
   for (const key of ['caseId', 'windowId'] as const) if (new Set(cases.map(item => item[key])).size !== cases.length) fail('Case claims cannot be repeated or renamed.');
@@ -107,7 +110,8 @@ export function validateValidationProfile(state: RunSnapshot): void {
   for (const window of cases) {
     const quote = window.quote; validateValidationDeclaration(quote?.declaration);
     const { quoteId, ...payload } = quote;
-    if (quote.formatVersion !== 'validation-case-quote-1' || quote.profile !== 'operator_validation' || quote.activationAllowed !== false || quoteId !== `vq1-${validationHash(JSON.stringify(payload))}`
+    const grouped = quote.declaration.formatVersion === 'validation-declaration-3';
+    if (quote.formatVersion !== (grouped ? 'validation-case-quote-2' : 'validation-case-quote-1') || (!grouped && quote.budgetGroup !== undefined) || quote.profile !== 'operator_validation' || quote.activationAllowed !== false || quoteId !== `${grouped ? 'vq2' : 'vq1'}-${validationHash(JSON.stringify(payload))}`
       || window.caseId !== quote.declaration.caseId || window.windowId !== `validation-${quoteId}` || !timestamp(window.startedAt) || window.claimedAt !== window.startedAt || !timestamp(window.deadlineAt)
       || Date.parse(window.deadlineAt) - Date.parse(window.startedAt) !== quote.declaration.limits.durationMs || !sha(quote.identity.reviewedPlatformSha, 40)
       || quote.identity.frozenCaseInputHash !== validationInputHash(quote.declaration) || quote.basis.runId !== state.run.runId || quote.basis.ledgerId !== state.ledger.ledgerId

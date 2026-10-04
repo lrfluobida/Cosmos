@@ -11,6 +11,8 @@ import { claimValidationCase, verifyOperatorDecision, verifyValidationIdentity }
 import { applyValidationAllocationClosure, prepareValidationAllocationClosure } from './validation-allocations.ts';
 import { currentValidationCase, requireValidationRepairSource, requireValidationTask, validationOutputCap, validationReservation, validationRole, validationUsage } from './validation-validation.ts';
 import { sameValue } from '../contracts/validation.ts';
+import { validationBudgetGroup } from '../contracts/budget.ts';
+import { verifyValidationBudgetSources } from './validation-budget.ts';
 import { validateExecutionInput } from '../roles/execution-input.ts';
 import type { ValidationRequirement } from '../roles/execution-input.ts';
 import type { OpenValidationCaseOptions, ValidationAuthority, ValidationCaseWindow, ValidationPurpose, ValidationRequestMetadata } from './validation-types.ts';
@@ -98,6 +100,7 @@ export class RunController {
       if (this.windowId) {
         if (!authority || authority.windowId !== this.windowId) throw new Error('Owned child requires its explicit task and window authority.');
         this.requireTaskAuthority(authority.taskId);
+        if (this.snapshot.ledger.contractVersion === '4.0.0') await this.checkValidationIdentity();
       }
       const ticket = await this.store.prepareOwnedChild();
       if (authority && this.windowId) this.childTasks.set(ticket, authority.taskId);
@@ -109,7 +112,7 @@ export class RunController {
     return this.serial(async () => {
       // Retain the PID even when authority expired, so close/recovery cannot lose a writer.
       await this.store.registerOwnedChild(pid, ticket);
-      if (this.windowId) { this.requireActive(); this.requireTaskAuthority(this.childTasks.get(ticket) ?? ''); }
+      if (this.windowId) { this.requireActive(); this.requireTaskAuthority(this.childTasks.get(ticket) ?? ''); if (this.snapshot.ledger.contractVersion === '4.0.0') await this.checkValidationIdentity(); }
     });
   }
 
@@ -174,6 +177,7 @@ export class RunController {
       await verifyValidationIdentity(options, window.quote.declaration, window.quote.identity, options.accountingOnly ? undefined : window.deadlineAt);
       const { sourceSha256, ...decision } = window.operatorDecision;
       if ((await verifyOperatorDecision(store.root, window.quote, decision, now())).sourceSha256 !== sourceSha256) throw new Error('Operator validation source changed.');
+      await verifyValidationBudgetSources(store.root, snapshot);
       const context: OpenValidationCaseOptions = { root: store.root, repositoryRoot: options.repositoryRoot, caseId: options.caseId, windowId: options.windowId,
         identityReader: options.identityReader, identityTimeoutMs: options.identityTimeoutMs, accountingOnly: options.accountingOnly, now, signal: options.signal };
       const controller = new RunController(store, snapshot, now, window.windowId, context), next = structuredClone(snapshot);
@@ -571,14 +575,17 @@ export class RunController {
     if (!role) throw new Error('Unknown validation case task grant.');
     const task = this.snapshot.tasks.find(item => item.taskId === taskId), usage = validationUsage(this.snapshot, window);
     const taskCommitted = this.snapshot.ledger.entries.filter(entry => entry.taskId === taskId).reduce((sum, entry) => sum + entry.reservedMicroCny + entry.settledMicroCny, 0);
+    const group = d.formatVersion === 'validation-declaration-3' ? validationBudgetGroup(this.snapshot.ledger) : undefined;
+    if (d.formatVersion === 'validation-declaration-3' && (!group || !group.taskIds.includes(taskId))) throw new Error('Validation task lacks its authenticated COS-16 group membership.');
     const remainingMicroCny = Math.max(0, Math.min(d.limits.lifetimeMicroCny - usage.committedMicroCny, d.limits.cumulativeMicroCny - usage.committedMicroCny,
-      d.limits.incrementalMicroCny - usage.caseCommittedMicroCny, d.grants[role].amountMicroCny - taskCommitted));
+      d.limits.incrementalMicroCny - usage.caseCommittedMicroCny, d.grants[role].amountMicroCny - taskCommitted, group?.remainingMicroCny ?? Number.MAX_SAFE_INTEGER));
     const executionAllowed = !this.validationContext!.accountingOnly && !this.signal.aborted && !window.stopReason && this.now() < Date.parse(window.deadlineAt)
-      && (role === 'planning' || !!task && ['not_started', 'ready', 'running', 'awaiting_review'].includes(task.state));
+      && (!group || group.committedMicroCny <= group.limitMicroCny) && (role === 'planning' || !!task && ['not_started', 'ready', 'running', 'awaiting_review'].includes(task.state));
     const purposeAllowed = purpose !== 'author' || !task?.attempts.some(attempt => attempt.outcome !== 'running');
     return { profile: 'operator_validation', caseId: window.caseId, windowId: window.windowId, deadlineAt: window.deadlineAt, purpose, taskId,
       taskGrantMicroCny: d.grants[role].amountMicroCny, maxOutputTokens, lifetimeLimitMicroCny: d.limits.lifetimeMicroCny, cumulativeLimitMicroCny: d.limits.cumulativeMicroCny,
       incrementalLimitMicroCny: d.limits.incrementalMicroCny, ...usage, remainingMicroCny, requestsRemaining: Math.max(0, d.limits.maxRequests - usage.requestsUsed), executionAllowed,
+      ...(group ? { budgetGroup: { parentTaskId: group.parentTaskId, limitMicroCny: group.limitMicroCny, committedMicroCny: group.committedMicroCny, remainingMicroCny: group.remainingMicroCny } } : {}),
       admissionAllowed: executionAllowed && purposeAllowed && usage.requestsUsed < d.limits.maxRequests && remainingMicroCny > 0 && !this.snapshot.ledger.entries.some(entry => entry.unknown) };
   }
 
@@ -593,7 +600,7 @@ export class RunController {
 
   private async checkValidationIdentity(): Promise<void> {
     const window = this.validationWindow();
-    try { await verifyValidationIdentity({ ...this.validationContext!, signal: this.signal }, window.quote.declaration, window.quote.identity, window.deadlineAt); }
+    try { await verifyValidationIdentity({ ...this.validationContext!, signal: this.signal }, window.quote.declaration, window.quote.identity, window.deadlineAt); await verifyValidationBudgetSources(this.store.root, this.snapshot); }
     finally { await this.expire(); }
     this.requireActive();
   }
