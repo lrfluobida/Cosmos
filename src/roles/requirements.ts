@@ -51,6 +51,8 @@ export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'bro
   if (!draft || typeof draft !== 'object' || Object.keys(draft).some(key => !fields.includes(key))
     || !text(draft.brief) || !Array.isArray(draft.questions) || !draft.answers || typeof draft.answers !== 'object' || Array.isArray(draft.answers)
     || Object.values(draft.answers).some(answer => typeof answer !== 'string') || !Array.isArray(draft.unsupported) || draft.unsupported.some(item => !text(item))) throw new Error('Invalid game draft fields.');
+  if (selection && draft.questions.some(question => !question || typeof question !== 'object' || Array.isArray(question)
+    || Object.keys(question).some(key => !['id', 'prompt'].includes(key)) || typeof question.id !== 'string' || typeof question.prompt !== 'string')) throw new Error('Invalid preparation question fields.');
   prepareClarification({ ...draft, specVersion: 'draft', sources: [] });
   if (selection) {
     if (!sameValue(draft.preparation, selection)) throw new Error('Preparation mode or source version changed.');

@@ -6,6 +6,7 @@ import test from 'node:test';
 import { IntakeController } from '../../src/runtime/intake.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { createBrowserHost, createProductHost } from '../../src/runtime/entrypoint-host.ts';
+import { validateGameDraft } from '../../src/roles/requirements.ts';
 
 const source = JSON.parse(await readFile(new URL('../../probes/transfer/requirements.json', import.meta.url), 'utf8'));
 const start = Date.parse('2026-10-05T00:00:00.000Z');
@@ -122,5 +123,38 @@ test('the existing product browser interviewer rejects preparation before any na
     await assert.rejects(host.draft({ ...input, questions: draft().questions, answers: draft().answers }), /preparation|browser|mode/i);
     await assert.rejects(access(join(root, 'intake-sessions')), { code: 'ENOENT' });
     assert.deepEqual((await controller.read()).ledger.entries, []);
+  } finally { await controller.close(); }
+});
+
+const invalidPreparationQuestions = [
+  { id: 'scope', prompt: 'SYNTHETIC 确认范围', paths: { executable: ['right'] }, confirmedBy: 'model' },
+  { id: 'scope', prompt: 'SYNTHETIC 确认范围', confirmedBy: 'model' },
+  { id: 'scope', prompt: 'SYNTHETIC 确认范围', map: {} },
+  { id: 'scope', prompt: 'SYNTHETIC 确认范围', solution: ['right'] },
+  { id: 1, prompt: 'SYNTHETIC 确认范围' },
+  { id: 'scope', prompt: null },
+];
+
+test('preparation questions reject hidden executable or authority fields and require string IDs/prompts', () => {
+  for (const question of invalidPreparationQuestions) {
+    assert.throws(() => validateGameDraft({ ...draft(), questions: [question] }, 'cos16-input/1'), /preparation question fields/i);
+  }
+  assert.doesNotThrow(() => validateGameDraft(draft(), 'cos16-input/1'));
+});
+
+test('SYNTHETIC hidden preparation question fields cannot persist a draft or authorize confirmation', async t => {
+  const { root, options } = await fixture(t);
+  const controller = await IntakeController.create(options as any), before = await readFile(join(root, 'snapshot.json'));
+  try {
+    for (const question of invalidPreparationQuestions) {
+      await assert.rejects(controller.saveDraft({ ...draft(), questions: [question] } as any), /preparation question fields/i);
+      await assert.rejects(controller.confirm({ revision: 1, confirmed: true, actorId: 'synthetic-stdin', at: new Date(start).toISOString() }), /current draft revision/i);
+      assert.deepEqual(await readFile(join(root, 'snapshot.json')), before);
+      await assert.rejects(access(join(root, 'requirements')), { code: 'ENOENT' });
+    }
+    const ordinary = await controller.saveDraft(draft() as any);
+    const requirement = await controller.confirm({ revision: ordinary.revision, confirmed: true, actorId: 'synthetic-stdin', at: new Date(start).toISOString() });
+    assert.equal(requirement.confirmedBy, 'synthetic-stdin');
+    assert.deepEqual(JSON.parse(await readFile(join(root, ordinary.source.location), 'utf8')).questions, draft().questions);
   } finally { await controller.close(); }
 });
