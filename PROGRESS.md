@@ -61,7 +61,7 @@ Case7 结果（历史）：`cos20-native-validation-7` 在准确 `2404982` 于 `
 | 真实成本与时延探针 | native C8 有界单关自动通过，v2 已接受 | 76 请求新增保守峰值估算 ¥1.549592，共享 ¥7.008623，unknown/reserved0；一次自动repair后Edge111/111与独立codingreview通过，八案例已消费，六closures/40grants仅归还未用容量 |
 | 任务拆分 | 已发布 | [37 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#38；37 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..36 source 审批保持，COS37 SOURCE_NOT_READY，实际 C8 有界单关通过 | COS10切片主要目标与COS11一次真实修复形成实证；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3其余长时/恢复条件仍待核对，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..37 source 审批保持，实际 C8 有界单关通过 | COS10切片主要目标与COS11一次真实修复形成实证；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3其余长时/恢复条件仍待核对，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -389,7 +389,15 @@ COS35 source前置07/08/18/20/23/28/30/32（18 partial source）、COS36 source0
 
 两任务integrationStatus均offline-verified-awaiting-live/open，实际仍preparation_only/not_executable；原generation defaults保持，T16-05/06尚无真实同profile跨进程重开/迁移结果，新driver、运行时map及真实profile绑定窗口还未执行，不把synthetic fixture当游戏通过。沿用COS16原10,000,000micro-CNY/shared¥150/首30和旧times，C8/closure6/source34及actualhuman NONE原样；只读preview未触。
 
-Root新登记并精确读回[COS37/#38](https://github.com/lrfluobida/Cosmos/issues/38)（id5696255260，通过隔离profile和同origin验证真实浏览器进程重开），native parent实际37children #2–#38/父checkbox已核。Source08/12/32/36已审components、outputs16/18，in-progress/open/SOURCE_NOT_READY，未来marker PERSISTENT_PROFILE_PROCESS_REOPEN_SOURCE_READY；只设计/自有synthetic temp profiles/browser fixture，不读用户profile/Rootprivate、不reload/storage injection假恢复、不退化默认runner32，不调用model/paid。当前未批Source37，无新ledger/预算续跑/实际window；本批四docs待same reviewer增量，不合未审metadata。
+COS37登记时的历史：Root新登记并精确读回[COS37/#38](https://github.com/lrfluobida/Cosmos/issues/38)（id5696255260，通过隔离profile和同origin验证真实浏览器进程重开），native parent实际37children #2–#38/父checkbox已核。Source08/12/32/36已审components、outputs16/18，in-progress/open/SOURCE_NOT_READY，未来marker PERSISTENT_PROFILE_PROCESS_REOPEN_SOURCE_READY；只设计/自有synthetic temp profiles/browser fixture，不读用户profile/Rootprivate、不reload/storage injection假恢复、不退化默认runner32，不调用model/paid。当前未批Source37，无新ledger/预算续跑/实际window；本批四docs待same reviewer增量，不合未审metadata。
+
+### COS37 隔离 profile 与真实进程重开源码审批
+
+独审 PERSISTENT_PROFILE_PROCESS_REOPEN_SOURCE_READY 批准 `b936020a1abdcd738998d660e7d0b57eb2637be6`（含 `e9912b8376fbcc74b79ebafd289a844dcc5cde8e`、base `dbe86ea42e408f0c32785f98247357a54c185cc6`），唯一merger合入并清推 `3f2a9420acf53a6a62a5b904cf7a73160b14f80a`，offline-verified-awaiting-live/open。12 actual paths字节一致、与35/36无碰撞、UTF8/LF/中文保持/diffcheck通过；独审初始5pure/增量2 context blocker/await、pinnedpolicy字节匹配及作者strict/pure/旧normal/source32证据复用。联合仅pinned blocker before page scripts代表1/1、0skip（5.6615ms），未重复真实Edge/矩阵/compiler。
+
+作者正常fixture Edge27860→29284/default31540正常exit/webm PNG log，SW修复fixture9864→26576正常exit、同profile/origin、four warning，首/重开parent和iframe四register均被阻断，0 SW/controller/request；这些是自有synthetic browser harness fixture，未使用用户profile或Rootprivate，也不是Cosmos生成的迁移游戏。Public默认ctx补同一registration blocker并await，默认source32行为证据保持；真实进程重开capability源码就绪，consumer可用，实际T16迁移仍缺runtime adapter/付费入口及真实profile/window/model生成，T16-05/06实际迁移尚未验收。
+
+C8/closure6及source20..36审批字段保持，八案例/7008623/revision1414/40closed/6audits未变，actualhuman NONE；本批没有新ledger、旧case续跑、Budget追加或实际window，沿COS16原¥10/shared¥150/首30及旧时钟继续平台准备。Preview未触，四docs候选待same reviewer增量，不合未审metadata；完整classic/95/G4及真实用户体验未宣称通过。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
