@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 48 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 49 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；C1结束时九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits为历史，COS44 policy契约源码已独审集成，COS45第二迁移case源码已独审集成、actual C2 design-schema失败；15SDK/282562ms/新增¥0.161528，C2结束时10cases/rev1488 ledger4/shared¥7.184253/closure8/50closed八audits为历史，COS46只读自检源码已独审集成，COS47第三迁移source已独审集成、actual C3规划身份失败：1SDK/33413ms/¥0.014780/无tasks-game；现11cases/rev1495 ledger4/shared¥7.199033/closure9/55closed九audits，COS48主机身份绑定源码已审集成、实际C4 NONE，迁移尚未通过，完整经典与最终用户体验未验收。
+调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；C1结束时九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits为历史，COS44 policy契约源码已独审集成，COS45第二迁移case源码已独审集成、actual C2 design-schema失败；15SDK/282562ms/新增¥0.161528，C2结束时10cases/rev1488 ledger4/shared¥7.184253/closure8/50closed八audits为历史，COS46只读自检源码已独审集成，COS47第三迁移source已独审集成、actual C3规划身份失败：1SDK/33413ms/¥0.014780/无tasks-game；现11cases/rev1495 ledger4/shared¥7.199033/closure9/55closed九audits，COS48主机身份绑定源码已审集成，COS49第四迁移source实施中/SOURCE_NOT_READY、actual C4 NONE，迁移尚未通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -94,6 +94,7 @@
 - [ ] [COS-46 为设计作者提供标识符约束与输出自检](https://github.com/lrfluobida/Cosmos/issues/47)
 - [ ] [COS-47 准备带设计输出自检的第三个原生迁移案例](https://github.com/lrfluobida/Cosmos/issues/48)
 - [ ] [COS-48 由主机将规划局部别名绑定到预声明任务身份](https://github.com/lrfluobida/Cosmos/issues/49)
+- [ ] [COS-49 准备由主机绑定身份的第四个原生迁移案例](https://github.com/lrfluobida/Cosmos/issues/50)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -574,6 +575,14 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 产物/兼容：新mode plan.json含identityBinding(protocol/policy/localAlias/actualTaskId)+bound outputs；legacy五/六/default prompts/IDs/旧JSON caches/C1C2C3行为原样。Only planner.ts + tests/roles/planning-identity.test.ts + plan，不helper/pipeline/art/vector改动，不新增SDK/format retry/session/attempt/grant/price/ledger/C4执行。
 - 源码证据：三批准paths字节一致、UTF8/noBOM/LF/中文/diffcheck通过，只planner/test/plan；作者25new/2focus/8default/strict6.928秒复用，独审10new edges+2default+1foreign-alias probe验证validated policy/current grant双射、错开draft顺序与foreign actual-ID别名仍正确绑定，snapshot bytes不变/零API费用browser。联合alias positive1/1、0skip（110.763ms），未矩阵/strict/old80/Edge。Legacy默认/JSON/cache/旧C1C2C3行为保持。
 - 当前边界：C3 raw/身份失败/14780费用与closure9保留，source48已独审集成但新mode尚未native模型实测、C4 caller/decl未注册、不blind paid repeat。原group10m−190410=9809590/role余量354912/1054678/2800000×3仅已有剩余记录，未来C4另声明；11cases/7199033/rev1495 ledger4/55closed九audits/ref1414、旧C1C2/closure8/C8/G3/human NONE/fullclassic未知及150首30/formal20012不变。
+
+### COS-49 · 准备由主机绑定身份的第四个原生迁移案例
+
+- 依赖/状态：已发布[#50](https://github.com/lrfluobida/Cosmos/issues/50)，id5701574061，第49个原生子任务，Root body/native49children #2–#50/新checkbox旧48前缀精确读回。cos49_implementer source-free从935a3fa正式启动、managed branch/worktree由作者选择；in-progress/open/SOURCE_NOT_READY，未来marker TRANSFER_CASE_FOUR_SOURCE_READY，无批准SHA/live C4。Source20..48共29unique specific已审component+旧foundations、marker/source+merge双祖先；明确47 TRANSFER_CASE_THREE_SOURCE_READY/48 PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY，frozen16/partial18 scoped、outputs16/18，不fullclosed循环或wildcard failedSourceReady，22特例仅22，43/45/47审批与live失败分列。
+- 固定profile/wiring：source-known四profiles、新D4decl/run复用sharedinput/driver/run，不pipelinecopy/publicparamselection。Fixeddriver内部defaultfalse仅C4true，original planTaskDag explicit `proposalIdentity='validation-policy-aliases/1'`；legacyC1–C3声明/inputs/default wrappers/markers/hashes不加property、原bytes/default/unknownmode保持。Case `cos20-transfer-validation-4`、decl3quote2/same hash `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c` / Flash / 5000000micro-CNY/45分钟/80全SDK、原design semantic1/readOnlygeneric current/唯一codeRepair不变。
+- 原额度/准入：grants354912/1054678/2800000/2800000/2800000合9809590，old rolefees45088/145322/others0合190410、parent10m/ref1414/firstauth membersC1C2C3不变，无freshbudget/directparent changes。核11hist/currentC3 stopped、3delegations/55closed九audits/ledger4rev1495/groupnet190410/remaining9809590；九audits owncasedeclHash/sourcebytes/rootquote/祖先认证，第九C3非C8。Root/markers空、writer/unknownreserve/owners0及pending48在prepare/receipts/claim前拒绝。
+- 实施/计划回归：CLI/hash/十一history九authority/wrongRoleFee/pending48零effect/atomic C4 append保留旧预算authority+members/sharedcap/新planning bootstrap scope。真实planTaskDag mock别名绑定C4 exact IDs/deps，读取identityBinding后stop author DAG不重整DAG；cross/defaultC3与旧Source48/harness/Edge证据复用，source准备不当actual native新mode通过。
+- 当前边界：仅注册C4源码任务、actual C4/paid NONE，未更改11cases/global7199033/rev1495ledger4/55closed九audits/parent10net190410rem9809590/C1C2C3失败/C8G3/human NONE/fullclassic未知/150首30/formal20012。全部source/docs独审集成后Root另fresh免费准入/资金/路由/operator/source-mainfreeze才运行，不重开旧case或提前claim。
 
 ## 5. 任务与上下文包模板
 
