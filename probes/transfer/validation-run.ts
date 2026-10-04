@@ -17,7 +17,8 @@ import type { ValidationRunHost, ValidationHostResult } from '../e2e/validation-
 import { VALIDATION_CASE } from '../e2e/validation-declaration.ts';
 import { runChild } from '../e2e/host.ts';
 import { TRANSFER_VALIDATION_CASE, parseTransferValidationEntry } from './validation-declaration.ts';
-import { createTransferValidationIdentityReader } from './validation-input.ts';
+import { TRANSFER_VALIDATION_CASE_TWO, parseTransferValidationCaseTwoEntry } from './validation-case-two-declaration.ts';
+import { createTransferValidationIdentityReader, createTransferValidationCaseTwoIdentityReader } from './validation-input.ts';
 
 const SOURCE_MARKERS: Record<string, string> = {
   'COS-20': 'CASE_TWO_SOURCE_READY', 'COS-21': 'WINDOWS_PUBLICATION_SOURCE_READY', 'COS-22': 'VERSIONED_CASE_THREE_SOURCE_READY',
@@ -29,34 +30,47 @@ const SOURCE_MARKERS: Record<string, string> = {
   'COS-38': 'TRANSFER_RUNTIME_INPUT_ADAPTER_SOURCE_READY', 'COS-39': 'PERSISTENT_FAILURE_FACTS_SOURCE_READY',
   'COS-40': 'TRANSFER_PERSISTENT_MEDIA_CONSUMER_SOURCE_READY', 'COS-41': 'TRANSFER_DESIGN_FEEDBACK_SOURCE_READY', 'COS-42': 'VALIDATION_COS16_GROUP_SOURCE_READY',
 };
-const PREREQUISITES = ['COS-02', 'COS-03', 'COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', ...Object.keys(SOURCE_MARKERS)];
 const SOURCE_READY = ['READY', 'SOURCE_READY', 'COMBINED_SOURCE_READY', 'PHASE_B_READY', 'READY_FOR_ROLE_IO_INTEGRATION'];
+/** Only these two frozen source-owned profiles are constructed; callers cannot select declarations. */
+function fixedEntry(D: typeof TRANSFER_VALIDATION_CASE, parseEntry: typeof parseTransferValidationEntry,
+  identity: typeof createTransferValidationIdentityReader, caseTwo: boolean) {
+const markers: Record<string, string> = { ...SOURCE_MARKERS, ...(caseTwo ? { 'COS-43': 'TRANSFER_NATIVE_ENTRY_SOURCE_READY', 'COS-44': 'PLANNING_POLICY_SCHEMA_SOURCE_READY' } : {}) };
+const PREREQUISITES = ['COS-02', 'COS-03', 'COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', ...Object.keys(markers)];
 async function absent(repository: string, path: string, label: string) {
   try { await lstat(await safePath(repository, path)); }
   catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
   throw new Error(`${label} exists or remains unresolved; a consumed identity cannot restart.`);
 }
 async function prepare(options: { repository: string; args: string[]; signal?: AbortSignal }) {
-  const repository = resolve(options.repository), intent = parseTransferValidationEntry(options.args), signal = options.signal ?? new AbortController().signal;
+  const repository = resolve(options.repository), intent = parseEntry(options.args), signal = options.signal ?? new AbortController().signal;
   signal.throwIfAborted(); await safePath(repository);
   const ledgerRoot = join(repository, '.cosmos/validation-shared'), caseRoot = join(repository, '.cosmos/e2e', intent.caseId);
   await absent(repository, `.cosmos/e2e/${intent.caseId}`, 'Transfer case root');
   await absent(repository, `.cosmos/validation-shared/${intent.caseId}.json`, 'Transfer case marker');
   for (const lock of ['.controller.lock', 'registry/.commit.lock']) await absent(repository, `.cosmos/validation-shared/${lock}`, 'Original writer ownership');
   const bytes = await regularFile(ledgerRoot, 'snapshot.json'), state = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); validateSnapshot(state);
-  if (state.formatVersion !== 3 || state.ledger.contractVersion !== '3.0.0' || state.run.runId !== 'validation-2026-10-01'
+  if (state.formatVersion !== 3 || state.ledger.contractVersion !== (caseTwo ? '4.0.0' : '3.0.0') || state.run.runId !== 'validation-2026-10-01'
     || state.ledger.ledgerId !== 'cosmos-validation' || state.run.specVersion !== '1.0' || state.run.originalStartedAt !== '2026-10-01T06:16:16.857Z'
     || state.run.originalDeadlineAt !== '2026-10-01T18:16:16.857Z' || !state.stopReason
-    || !state.ledger.entries.some(entry => entry.requestId === 'prior-deepseek-direct-probes' && entry.status === 'settled' && entry.settledMicroCny >= 721_771)) throw new Error('The original audited ledger3, run, clock and historical charges are required.');
+    || !state.ledger.entries.some(entry => entry.requestId === 'prior-deepseek-direct-probes' && entry.status === 'settled' && entry.settledMicroCny >= 721_771)) throw new Error(`The original audited ledger${caseTwo ? '4' : '3'}, run, clock and historical charges are required.`);
   const previous = Array.from({ length: 8 }, (_, index) => state.validation?.cases.find(window => window.caseId === `cos20-native-validation-${index + 1}`));
-  if (state.validation?.cases.length !== 8 || state.validation.currentCaseId !== 'cos20-native-validation-8' || previous.some(window => !window?.stopReason)) throw new Error('All eight original validation cases must be consumed and explicitly stopped, with current case8.');
+  if (caseTwo) previous.push(state.validation?.cases.find(window => window.caseId === TRANSFER_VALIDATION_CASE.caseId));
+  if (state.validation?.cases.length !== (caseTwo ? 9 : 8) || state.validation.currentCaseId !== (caseTwo ? TRANSFER_VALIDATION_CASE.caseId : 'cos20-native-validation-8')
+    || previous.some(window => !window?.stopReason)) throw new Error(caseTwo ? 'All nine original validation cases must be consumed and explicitly stopped, with current transfer case1.'
+      : 'All eight original validation cases must be consumed and explicitly stopped, with current case8.');
+  if (caseTwo) {
+    const first = previous[8]!, group = validationBudgetGroup(state.ledger);
+    if (!sameValue(first.quote.declaration, TRANSFER_VALIDATION_CASE) || first.quote.formatVersion !== 'validation-case-quote-2'
+      || state.ledger.allocationDelegations?.length !== 1 || state.ledger.allocationDelegations[0].caseId !== first.caseId
+      || group?.committedMicroCny !== 14_102 || group.allocatedMicroCny !== 14_102) throw new Error('The original stopped case1 delegation and its exact remaining COS16 capacity are required.');
+  }
   const histories = previous.map(window => window!), taskIds = histories.flatMap(window => VALIDATION_ROLES.map(role => window.quote.declaration.grants[role].taskId));
   if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Historical requests require reconciliation.');
-  if (state.ledger.allocationClosures?.length !== 40 || state.allocationClosureDecisions?.length !== 6
+  if (state.ledger.allocationClosures?.length !== (caseTwo ? 45 : 40) || state.allocationClosureDecisions?.length !== (caseTwo ? 7 : 6)
     || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error('The original forty closed grants and six allocation audits are required.');
   const roots = new Map<string, string>(), historicalSources: string[] = [];
   for (const window of histories) {
-    if (!sameValue(window.quote.declaration.inputs, VALIDATION_CASE.inputs)) throw new Error('Historical native declaration inputs changed.');
+    if (!sameValue(window.quote.declaration.inputs, window.caseId === TRANSFER_VALIDATION_CASE.caseId ? TRANSFER_VALIDATION_CASE.inputs : VALIDATION_CASE.inputs)) throw new Error('Historical fixed declaration inputs changed.');
     const path = `.cosmos/e2e/${window.caseId}`, root = await safePath(repository, path);
     if (!(await lstat(root)).isDirectory()) throw new Error('Historical case root is missing.');
     for (const lock of ['.controller.lock', 'registry/.commit.lock']) await absent(repository, `${path}/${lock}`, 'Historical writer ownership');
@@ -75,14 +89,14 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
       || receipt.quote.cases.some(item => item.artifactRoot !== roots.get(item.caseId))) throw new Error('Historical allocation closure source, original declaration or fixed root changed.');
     historicalSources.push(receipt.quote.identity.reviewedPlatformSha);
   }
-  const identityReader = createTransferValidationIdentityReader({ repository, reviewedPlatformSha: intent.reviewedPlatformSha });
+  const identityReader = identity({ repository, reviewedPlatformSha: intent.reviewedPlatformSha });
   await identityReader(signal);
   const mapping = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(repository, 'docs/specs/github-issues.json')));
   const approvals: { taskId: string; reviewedCommit: string; mergeCommit: string }[] = [];
   for (const taskId of PREREQUISITES) {
     const matches = (mapping.tasks ?? []).filter((item: any) => item.taskId === taskId), item = matches[0];
     if (matches.length !== 1 || !/^[a-f0-9]{40}$/.test(item.reviewedCommit ?? '') || !/^[a-f0-9]{40}$/.test(item.mergeCommit ?? '')
-      || !(Object.hasOwn(SOURCE_MARKERS, taskId) ? item.reviewStatus === SOURCE_MARKERS[taskId]
+      || !(Object.hasOwn(markers, taskId) ? item.reviewStatus === markers[taskId]
         && (['integrated', 'offline-verified-awaiting-live', 'source-integrated', 'complete'].includes(item.integrationStatus)
           || taskId === 'COS-22' && item.integrationStatus === 'actual-validation-failed-author-handoff')
         : item.state === 'closed' || SOURCE_READY.includes(item.reviewStatus) && ['integrated', 'partial-offline-verified', 'offline-verified-awaiting-live', 'complete'].includes(item.integrationStatus))) throw new Error(`${taskId} requires unique independently reviewed and integrated source.`);
@@ -92,18 +106,18 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
     const result = await runChild('git', ['--no-optional-locks', 'merge-base', '--is-ancestor', sha, intent.reviewedPlatformSha], { cwd: repository, signal, timeoutMs: 5000 });
     if (result.code !== 0) throw new Error('Required historical or reviewed source is not an ancestor of this exact main SHA.');
   }
-  const quote = await prepareValidationCase({ root: ledgerRoot, repositoryRoot: repository, declaration: TRANSFER_VALIDATION_CASE, identityReader, signal });
+  const quote = await prepareValidationCase({ root: ledgerRoot, repositoryRoot: repository, declaration: D, identityReader, signal });
   if (!bytes.equals(await regularFile(ledgerRoot, 'snapshot.json'))) throw new Error('Transfer baseline changed while checking sources.');
   return { repository, ledgerRoot, caseRoot, intent, signal, identityReader, quote, approvals };
 }
 /** Read-only source/ledger/input inspection; no owner, host preparation, expiry or write. */
-export async function preflightTransferValidationRun(options: { repository: string; args: string[]; signal?: AbortSignal }) {
+async function preflightTransferValidationRun(options: { repository: string; args: string[]; signal?: AbortSignal }) {
   const value = await prepare(options);
   return { outcome: 'ready' as const, caseRoot: value.caseRoot, ledgerRoot: value.ledgerRoot, quote: value.quote, sourceApprovals: value.approvals, paidRequests: 0 };
 }
 /** Trusted assembly seam for pure tests. The executable always binds the fixed native host below. */
-export async function runTransferValidationWithHost(options: { repository: string; args: string[]; host: ValidationRunHost; signal?: AbortSignal }) {
-  const intent = parseTransferValidationEntry(options.args);
+async function runTransferValidationWithHost(options: { repository: string; args: string[]; host: ValidationRunHost; signal?: AbortSignal }) {
+  const intent = parseEntry(options.args);
   if (intent.preflightOnly) return preflightTransferValidationRun(options);
   if (!options.host || typeof options.host.prepare !== 'function' || typeof options.host.execute !== 'function') throw new Error('The fixed native transfer host is required.');
   const prepared = await prepare(options), { repository, ledgerRoot, caseRoot, quote, signal, identityReader } = prepared;
@@ -138,9 +152,9 @@ export async function runTransferValidationWithHost(options: { repository: strin
       if (scope.stopReason) finishGaps.push('The case stopped before completion.');
       if (Date.now() + 5000 >= Date.parse(window.deadlineAt)) finishGaps.push('The original case deadline cannot cover completion and cleanup.');
       if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) finishGaps.push('Unresolved or reserved fees prevent completion.');
-      const group = await controller.validationAuthority(TRANSFER_VALIDATION_CASE.grants.planning.taskId, 'planning');
-      if (scope.caseCommittedMicroCny > TRANSFER_VALIDATION_CASE.limits.incrementalMicroCny || scope.committedMicroCny > TRANSFER_VALIDATION_CASE.limits.cumulativeMicroCny
-        || scope.committedMicroCny > TRANSFER_VALIDATION_CASE.limits.lifetimeMicroCny || !group.budgetGroup || group.budgetGroup.committedMicroCny > group.budgetGroup.limitMicroCny) finishGaps.push('An applicable case, original group or shared fee limit was exceeded.');
+      const group = await controller.validationAuthority(D.grants.planning.taskId, 'planning');
+      if (scope.caseCommittedMicroCny > D.limits.incrementalMicroCny || scope.committedMicroCny > D.limits.cumulativeMicroCny
+        || scope.committedMicroCny > D.limits.lifetimeMicroCny || !group.budgetGroup || group.budgetGroup.committedMicroCny > group.budgetGroup.limitMicroCny) finishGaps.push('An applicable case, original group or shared fee limit was exceeded.');
       if (result.outcome === 'passed') {
         const accepted = await new ArtifactRegistry(caseRoot, 'registry').current().catch(() => null);
         if (!result.accepted || !accepted || !sameValue(accepted.candidateRef, result.accepted)) finishGaps.push('The accepted candidate promotion is unavailable or changed.');
@@ -155,8 +169,8 @@ export async function runTransferValidationWithHost(options: { repository: strin
       || view.validationCase.stopReason.reason !== events[0].reason) finishGaps.push('A separate stop occurred before normal completion.');
     if (Date.now() >= Date.parse(window.deadlineAt) || state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) finishGaps.push('Cleanup exceeded the original deadline or left unresolved fees.');
     const group = validationBudgetGroup(state.ledger), scope = view.validationCase;
-    if (!group || group.committedMicroCny > group.limitMicroCny || scope.caseCommittedMicroCny > TRANSFER_VALIDATION_CASE.limits.incrementalMicroCny
-      || scope.committedMicroCny > TRANSFER_VALIDATION_CASE.limits.cumulativeMicroCny || scope.committedMicroCny > TRANSFER_VALIDATION_CASE.limits.lifetimeMicroCny) finishGaps.push('Cleanup exceeded an applicable case, group or shared fee limit.');
+    if (!group || group.committedMicroCny > group.limitMicroCny || scope.caseCommittedMicroCny > D.limits.incrementalMicroCny
+      || scope.committedMicroCny > D.limits.cumulativeMicroCny || scope.committedMicroCny > D.limits.lifetimeMicroCny) finishGaps.push('Cleanup exceeded an applicable case, group or shared fee limit.');
     if (result.outcome === 'passed') {
       const accepted = await new ArtifactRegistry(caseRoot, 'registry').current().catch(() => null);
       if (!result.accepted || !accepted || !sameValue(accepted.candidateRef, result.accepted)) finishGaps.push('Accepted promotion changed during cleanup.');
@@ -164,7 +178,7 @@ export async function runTransferValidationWithHost(options: { repository: strin
     const report = { outcome: result.outcome === 'passed' && !result.gaps.length && !finishGaps.length ? 'passed' : 'failed', ...view.validationCase,
       platformHead: intent.reviewedPlatformSha, endedAt: new Date().toISOString(), elapsedMs: Date.now() - Date.parse(window.startedAt), original: view.original,
       sourceApprovals: prepared.approvals, budgetGroup: { authorization: quote.budgetGroup, current: group }, gaps: [...new Set([...result.gaps, ...finishGaps])],
-      taskHistory: state.tasks.filter(task => Object.values(TRANSFER_VALIDATION_CASE.grants).some(grant => grant.taskId === task.taskId)),
+      taskHistory: state.tasks.filter(task => Object.values(D.grants).some(grant => grant.taskId === task.taskId)),
       repair: state.validation!.cases.find(item => item.caseId === window.caseId)!.repair,
       ...(result.tasks ? { tasks: result.tasks } : {}), ...(result.plan ? { plan: result.plan } : {}), ...(result.accepted ? { accepted: result.accepted } : {}),
       userExperience: 'not_confirmed', claims: 'Bounded internal operator experiment only; COS16/COS18 public human gates remain pending.' };
@@ -175,16 +189,26 @@ export async function runTransferValidationWithHost(options: { repository: strin
     await work.cancelAndDrain('Transfer host closing.'); await controller.close();
   }
 }
-export function createNativeTransferValidationHost(): ValidationRunHost {
+function createNativeTransferValidationHost(): ValidationRunHost {
   return {
     prepare: async input => (await import('../e2e/validation-host.ts')).createNativeValidationHost().prepare(input),
-    execute: async input => (await import('./validation-driver.ts')).generateTransferValidationCase(input),
+    execute: async input => {
+      const driver = await import('./validation-driver.ts');
+      return caseTwo ? driver.generateTransferValidationCaseTwo(input) : driver.generateTransferValidationCase(input);
+    },
   };
 }
-export async function runTransferValidationEntry(args: string[], repository: string) {
-  const intent = parseTransferValidationEntry(args);
+async function runTransferValidationEntry(args: string[], repository: string) {
+  const intent = parseEntry(args);
   return intent.preflightOnly ? preflightTransferValidationRun({ repository, args }) : runTransferValidationWithHost({ repository, args, host: createNativeTransferValidationHost() });
 }
+return { preflightTransferValidationRun, runTransferValidationWithHost, createNativeTransferValidationHost, runTransferValidationEntry };
+}
+export const { preflightTransferValidationRun, runTransferValidationWithHost, createNativeTransferValidationHost, runTransferValidationEntry }
+  = fixedEntry(TRANSFER_VALIDATION_CASE, parseTransferValidationEntry, createTransferValidationIdentityReader, false);
+export const { preflightTransferValidationRun: preflightTransferValidationCaseTwoRun, runTransferValidationWithHost: runTransferValidationCaseTwoWithHost,
+  createNativeTransferValidationHost: createNativeTransferValidationCaseTwoHost, runTransferValidationEntry: runTransferValidationCaseTwoEntry }
+  = fixedEntry(TRANSFER_VALIDATION_CASE_TWO, parseTransferValidationCaseTwoEntry, createTransferValidationCaseTwoIdentityReader, true);
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   runTransferValidationEntry(process.argv.slice(2), fileURLToPath(new URL('../../', import.meta.url))).then(result => {
     console.log(JSON.stringify(result)); if (result.outcome === 'failed') process.exitCode = 1;

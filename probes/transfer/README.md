@@ -158,3 +158,13 @@ Capture 必须核对成功回执、封存摘要、当前地图、完整需求/so
 Bootstrap 使用新 planning grant 的 OwnedWork/runOwnedNode 和现有固定 worker。原 planner、validated tasks、write-once execution receipt、完整 DAG/journal、有界 repair 和 effective finish 都在同一个 `withPreparation` 内。Repair 使用原 host 授权和完整 `resumeTaskDag`，重用 design/art 的通过签名，仅执行新 coding repair；原 coding v1 失败、journal 和 linked v2 来源继续保存在 snapshot、`host-result.json` 与最终 `result.json` 的 taskHistory 中。设计四输出、两版本等价计划、八段持久浏览器、真实媒体样本、独立 review 和准确候选 promotion 都沿既有 consumer。
 
 本任务只有纯源码测试，尚无真实 ledger 升级、case claim、模型生成或 T16 实际证据。最终执行仍由 Root 在独审集成后的准确 main 上重新只读 preflight、冻结 source/余额/route/operator 后单独开展。报告为内部 operator 实验，`userExperience: not_confirmed`；公开 COS16/COS18 的真实需求确认、CLI 和用户体验关口继续 pending，不能凭本入口关闭这些关口。测试与证据见 [COS-43 计划](../../docs/plans/2026-10-04-transfer-validation-entry.md)。
+
+## COS-45 固定第二迁移案例（源码准备）
+
+`validation-case-two-run.ts` 只绑定 `cos20-transfer-validation-2`，沿用第一入口的严格参数形式。两个入口通过私有固定 profile 共用输入、原生 bootstrap、planner/DAG、原 coding repair、consumer、独立评审及准确 promotion 流水；参数、环境和模型不能传入其他 declaration、host、根目录、时钟或 fixture。第一入口继续要求原 ledger3、八案例、四十 closed grants 和六笔审计，不能消费第二案例基线。
+
+第二入口要求原 ledger4 上九个已消费并停止的案例、当前第一迁移案例、唯一原 delegation、四十五 closed grants 和七笔关闭审计。每笔 operator/closure 源文件仍逐字节认证，closure 使用它自己原 `currentCaseId` 的 declaration 输入哈希。Source20..44 的唯一源码 marker 和 reviewed/merge 祖先都须齐备；COS43 的实际失败与源码 Ready 分别记录，COS44 的 `PLANNING_POLICY_SCHEMA_SOURCE_READY` 是新增准入条件。
+
+第二案例保持同一输入哈希 `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`，不改变第一案例 declaration、需求和模板字节。五个固定 grants 为 385898/1200000/2800000/2800000/2800000 microCNY，合计 9985898，等于原 COS16 ¥10 扣除第一案例已结算的 14102 microCNY。已有 parent allocation 引用、首次授权及成员均沿原预算组核对；不重新分配一份 ¥10，也不自动缩小声明。原子 claim 只追加第二案例与五 grants，原历史、费用、七笔审计和时钟保持。
+
+单案例 ¥5/45 分钟/80 总请求、原会话 design 一次重作和 coding 一次 repair 保持；平台源码测试只在临时合成仓库中验证。实际第二案例须由 Root 在源码独审、集成及记录就绪后，重新 preflight 并检查 funding/model/operator 和冻结 source；本任务未调用 provider 或 browser，也未读写真实 ledger。用户体验仍为 `not_confirmed`，公开需求确认和人类试玩关口继续 pending。定向证据见 [COS-45 计划](../../docs/plans/2026-10-04-transfer-validation-case-two.md)。

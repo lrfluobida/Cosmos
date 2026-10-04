@@ -17,9 +17,12 @@ import type { PreparedBrowserHost } from '../../src/runtime/entrypoint-host.ts';
 import type { RepairFeedback } from '../../src/runtime/repair/feedback.ts';
 import type { ValidationHostInput, ValidationHostResult } from '../e2e/validation-run.ts';
 import { createTransferConsumerHost } from './runtime-host.ts';
-import { TRANSFER_VALIDATION_CASE as D } from './validation-declaration.ts';
-import { readTransferValidationInput, createTransferValidationIdentityReader } from './validation-input.ts';
+import { TRANSFER_VALIDATION_CASE } from './validation-declaration.ts';
+import { TRANSFER_VALIDATION_CASE_TWO } from './validation-case-two-declaration.ts';
+import { readTransferValidationInput, createTransferValidationIdentityReader,
+  readTransferValidationCaseTwoInput, createTransferValidationCaseTwoIdentityReader } from './validation-input.ts';
 
+function fixedDriver(D: typeof TRANSFER_VALIDATION_CASE, readInput: typeof readTransferValidationInput, identity: typeof createTransferValidationIdentityReader) {
 function fixed(input: ValidationHostInput) {
   input.controller.requireValidationCase(input.window.caseId, input.window.windowId);
   if (!sameValue(input.window.quote.declaration, D) || input.window.caseId !== D.caseId
@@ -28,7 +31,7 @@ function fixed(input: ValidationHostInput) {
   input.signal.throwIfAborted();
 }
 /** Fixed worker and new planning authority. The optional trusted executor is for pure transport tests only. */
-export async function bootstrapTransferToolchain(input: ValidationHostInput, execute: typeof runOwnedNode = runOwnedNode) {
+async function bootstrapTransferToolchain(input: ValidationHostInput, execute: typeof runOwnedNode = runOwnedNode) {
   fixed(input);
   const folder = await directory(input.root, 'host-jobs'), request = join(folder, 'transfer-bootstrap.json'), response = join(folder, 'transfer-bootstrap-result.json');
   await publishReceipt(request, { formatVersion: 'validation-worker-1', operation: 'bootstrap', root: input.root, repository: input.repository, response });
@@ -46,15 +49,15 @@ export async function bootstrapTransferToolchain(input: ValidationHostInput, exe
   fixed(input); return value.result as string;
 }
 /** A complete read-only scope exists before host registry captures are created. */
-export async function stageTransferValidationInput(input: ValidationHostInput) {
-  fixed(input); const frozen = await readTransferValidationInput(input.repository);
+async function stageTransferValidationInput(input: ValidationHostInput) {
+  fixed(input); const frozen = await readInput(input.repository);
   await directory(input.root, 'requirements');
   await writeFile(await safePath(input.root, 'requirements/fixed.json'), await regularFile(input.repository, D.inputs.requirements.path), { flag: 'wx', signal: input.signal });
   const sources = [{ artifactId: `${D.caseId}-input`, version: D.inputs.requirements.version, location: 'requirements/fixed.json' }];
-  const identityReader = createTransferValidationIdentityReader({ repository: input.repository, reviewedPlatformSha: input.window.quote.identity.reviewedPlatformSha });
+  const identityReader = identity({ repository: input.repository, reviewedPlatformSha: input.window.quote.identity.reviewedPlatformSha });
   const binding: ValidationExecutionBinding = { caseId: D.caseId, windowId: input.window.windowId, async readScope(signal) {
     signal.throwIfAborted(); fixed(input);
-    const identity = await identityReader(signal), current = await readTransferValidationInput(input.repository);
+    const identity = await identityReader(signal), current = await readInput(input.repository);
     if (!sameValue(identity, input.window.quote.identity) || !sameValue(current.manifest, frozen.manifest)) throw new Error('Transfer frozen source identity changed.');
     if (!(await regularFile(input.root, sources[0].location)).equals(await regularFile(input.repository, D.inputs.requirements.path))) throw new Error('Fixed transfer preparation input changed.');
     for (const file of D.inputs.template.files) {
@@ -72,7 +75,7 @@ export async function stageTransferValidationInput(input: ValidationHostInput) {
   const { requirement } = await binding.readScope(input.signal); return { requirement, binding, proposal: frozen.requirements.preparation };
 }
 /** Trusted host assembly only. Real execution below supplies the native consumer host with no session override. */
-export async function executeTransferValidationDag(input: ValidationHostInput, requirement: ValidationRequirement, validation: ValidationExecutionBinding, host: PreparedBrowserHost): Promise<ValidationHostResult> {
+async function executeTransferValidationDag(input: ValidationHostInput, requirement: ValidationRequirement, validation: ValidationExecutionBinding, host: PreparedBrowserHost): Promise<ValidationHostResult> {
   return host.withPreparation(async () => {
     fixed(input);
     await requireValidationScope(input.controller, requirement, validation);
@@ -122,9 +125,16 @@ export async function executeTransferValidationDag(input: ValidationHostInput, r
   });
 }
 /** The production entry has one fixed native bootstrap and consumer factory, with no fixture/session selection. */
-export async function generateTransferValidationCase(input: ValidationHostInput): Promise<ValidationHostResult> {
+async function generateTransferValidationCase(input: ValidationHostInput): Promise<ValidationHostResult> {
   fixed(input); await bootstrapTransferToolchain(input);
   const { requirement, binding, proposal } = await stageTransferValidationInput(input);
   const host = await createTransferConsumerHost({ root: input.root, controller: input.controller, requirement, proposal, validation: binding, resume: false, work: input.work });
   return executeTransferValidationDag(input, requirement, binding, host);
 }
+return { bootstrapTransferToolchain, stageTransferValidationInput, executeTransferValidationDag, generateTransferValidationCase };
+}
+export const { bootstrapTransferToolchain, stageTransferValidationInput, executeTransferValidationDag, generateTransferValidationCase }
+  = fixedDriver(TRANSFER_VALIDATION_CASE, readTransferValidationInput, createTransferValidationIdentityReader);
+export const { bootstrapTransferToolchain: bootstrapTransferValidationCaseTwoToolchain, stageTransferValidationInput: stageTransferValidationCaseTwoInput,
+  executeTransferValidationDag: executeTransferValidationCaseTwoDag, generateTransferValidationCase: generateTransferValidationCaseTwo }
+  = fixedDriver(TRANSFER_VALIDATION_CASE_TWO, readTransferValidationCaseTwoInput, createTransferValidationCaseTwoIdentityReader);
