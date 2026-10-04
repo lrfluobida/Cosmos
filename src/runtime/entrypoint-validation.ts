@@ -1,14 +1,14 @@
 import { sameValue } from '../contracts/validation.ts';
 import { regularFile } from '../artifacts/paths.ts';
 import { validateBrowserScenario } from '../roles/requirements.ts';
-import type { GameDraft } from '../roles/requirements.ts';
+import type { GameDraft, BrowserGameDraft } from '../roles/requirements.ts';
 import type { ValidationRequirement } from '../roles/execution-input.ts';
 import type { RunController } from './run.ts';
 import { requireValidationScope } from './validation-scope.ts';
 import type { ValidationExecutionBinding } from './validation-scope.ts';
 import { validationHash } from './validation-validation.ts';
 
-export interface ValidationBrowserProposal extends Pick<GameDraft, 'brief' | 'acceptance' | 'scenario' | 'unsupported'> { profile: 'operator_validation' }
+export interface ValidationBrowserProposal extends Pick<BrowserGameDraft, 'brief' | 'acceptance' | 'scenario' | 'unsupported'> { profile: 'operator_validation' }
 export interface ValidationPreparationProposal extends Pick<GameDraft, 'brief' | 'acceptance' | 'unsupported'> { profile: 'operator_validation'; adapterId: string }
 export interface ValidationBrowserScope {
   root: string; controller: RunController; requirement: ValidationRequirement; proposal: ValidationBrowserProposal; validation: ValidationExecutionBinding;

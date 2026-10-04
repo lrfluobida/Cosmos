@@ -8,8 +8,11 @@ import { regularFile, safePath } from '../artifacts/paths.ts';
 import { IntakeController } from '../runtime/intake.ts';
 import type { StoredDraft } from '../runtime/intake.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
-import { confirmRequirements, gameplayAcceptance, HOST_STAGE_ACCEPTANCE } from '../roles/requirements.ts';
+import { confirmRequirements, gameplayAcceptance, HOST_STAGE_ACCEPTANCE, validateGameDraft } from '../roles/requirements.ts';
 import type { GameDraft } from '../roles/requirements.ts';
+import { modeFromSelection, resolveDraftMode } from '../roles/preparation-mode.ts';
+import type { DraftMode } from '../roles/preparation-mode.ts';
+import { sameValue } from '../contracts/validation.ts';
 import { readRunSnapshot, recoverRunOwner, startBudgetWarnings, startControl } from './control.ts';
 import type { RunSnapshot } from '../runtime/run-types.ts';
 
@@ -28,6 +31,10 @@ export async function readConfirmedGeneration(root: string, snapshot: RunSnapsho
   const source = snapshot.run.humanDecisions.find(decision => decision.decisionId.startsWith('requirements-v'));
   if (!source || source.evidence.length !== 2 || source.evidence[0].artifactId !== 'requirement-draft' || source.evidence[1].artifactId !== 'user-confirmation') throw new Error('No original CLI requirement confirmation to resume.');
   const draft = await json(root, source.evidence[0].location), confirmed = await json(root, source.evidence[1].location);
+  const origin = await optionalJson(root, 'intake-mode.json');
+  if (origin && (origin.runId !== snapshot.run.runId || origin.createdAt !== snapshot.events[0].at
+    || !sameValue(origin, { runId: origin.runId, createdAt: origin.createdAt, draftMode: origin.draftMode }))) throw new Error('Original intake mode origin changed.');
+  validateGameDraft(draft, modeFromSelection(origin?.draftMode));
   if (confirmed.runId !== snapshot.run.runId || confirmed.actorId !== source.actorId || confirmed.at !== source.decidedAt) throw new Error('Original confirmation identity changed.');
   return { draft, requirement: confirmRequirements({ ...draft, specVersion: snapshot.run.specVersion, sources: source.evidence }, confirmed) };
 }
@@ -36,18 +43,22 @@ function displayDraft(draft: StoredDraft): string {
   for (const item of gameplayAcceptance(draft)) lines.push(`- ${item.description}`, `  操作：${item.steps.join('；')}`, `  期望：${item.expected}`);
   for (const stage of HOST_STAGE_ACCEPTANCE) if (draft.acceptance.some(item => item.acceptanceId === stage.acceptanceId)) lines.push(stage.description, `- ${stage.expected}`);
   if (draft.acceptance.some(item => item.acceptanceId === 'COSMOS-MEDIA')) lines.push('最终游戏还会检查素材实际载入、动作和音频触发；未覆盖的项目会保留为差距。美术辨识度与听感留待最终试玩。');
-  lines.push('自动操作与检查：');
-  for (const step of draft.scenario.steps) {
-    if (step.kind === 'locator-click') lines.push(`- 点击界面目标 ${step.selector}`);
-    else if (step.kind === 'mouse-click' || step.kind === 'mouse-move') lines.push(`- ${step.kind === 'mouse-click' ? '点击' : '移动鼠标到'} ${step.selector ?? '画面'}（${step.x}, ${step.y}）`);
-    else if (step.kind === 'assert' || step.kind === 'wait-for') lines.push(`- ${step.kind === 'wait-for' ? '等待并检查' : '检查'} ${step.observation.kind === 'debug' ? `辅助观测 ${step.observation.path.join('.')}` : `界面 ${step.observation.selector}`}：应为 ${String(step.expected)}`);
+  if (draft.preparation) lines.push('准备模式：先确认需求；地图、解法与自动操作将在同一次生成运行的运行时设计后形成。');
+  else {
+    lines.push('自动操作与检查：');
+    for (const step of draft.scenario.steps) {
+      if (step.kind === 'locator-click') lines.push(`- 点击界面目标 ${step.selector}`);
+      else if (step.kind === 'mouse-click' || step.kind === 'mouse-move') lines.push(`- ${step.kind === 'mouse-click' ? '点击' : '移动鼠标到'} ${step.selector ?? '画面'}（${step.x}, ${step.y}）`);
+      else if (step.kind === 'assert' || step.kind === 'wait-for') lines.push(`- ${step.kind === 'wait-for' ? '等待并检查' : '检查'} ${step.observation.kind === 'debug' ? `辅助观测 ${step.observation.path.join('.')}` : `界面 ${step.observation.selector}`}：应为 ${String(step.expected)}`);
+    }
   }
   if (draft.unsupported.length) lines.push('尚不支持的要求：', ...draft.unsupported.map(item => `- ${item}`));
   return lines.join('\n');
 }
 
 /** The only confirmation author is actual stdin; model output never reaches this branch. */
-export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; host: ProductHost; input: Readable; output: Writable }) {
+export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; draftMode?: DraftMode; host: ProductHost; input: Readable; output: Writable }) {
+  const selectedMode = resolveDraftMode(options.draftMode);
   const root = resolve(options.root), { host, output } = options;
   await safePath(root);
   const say = (text: string) => { output.write(text + '\n'); };
@@ -73,8 +84,9 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (entries.length) throw new Error('Choose an empty run directory; existing runs require resume.');
       const runId = `game-${randomUUID()}`;
       intake = await IntakeController.create({ root, runId, ledgerId: `${runId}-budget`, specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 8,
+        ...(selectedMode ? { draftMode: options.draftMode } : {}),
         allocations: [{ taskId: 'intake', amountMicroCny: 10_000_000 }, { taskId: 'planning', amountMicroCny: 10_000_000 }] });
-      await publishReceipt(join(root, 'intake-origin.json'), { runId, brief: options.brief });
+      await publishReceipt(join(root, 'intake-origin.json'), { runId, brief: options.brief, ...(selectedMode ? { draftMode: selectedMode } : {}) });
     } else {
       const snapshot = await readRunSnapshot(root);
       if (snapshot.formatVersion === 2) throw new Error('This run has an authorized continuation window; select it explicitly with resume --window <id>.');
@@ -82,17 +94,20 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (snapshot.formatVersion === 1) {
         if (Date.now() >= Date.parse(snapshot.run.originalDeadlineAt)) throw new Error('Original deadline expired; resume cannot extend it.');
         const { draft, requirement } = await readConfirmedGeneration(root, snapshot);
+        if (options.draftMode !== undefined && !sameValue(draft.preparation, selectedMode)) throw new Error('Resume cannot replace the original draft mode.');
         say(`恢复原运行 ${snapshot.run.runId}；费用与截止时间保持连续。`);
         lines.close();
         const result = await host.execute({ root, requirement, draft, resume: true, notify: say });
         say(JSON.stringify(result, null, 2)); return result;
       }
+      if (snapshot.formatVersion !== 'intake-1') throw new Error('Expected the original intake snapshot.');
+      if (options.draftMode !== undefined && !sameValue(snapshot.draftMode, selectedMode)) throw new Error('Resume cannot replace the original draft mode.');
       await recoverRunOwner(root);
       intake = await IntakeController.open({ root });
     }
     process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
     const original = await json(root, 'intake-origin.json'), state = await intake.read();
-    if (original.runId !== state.run.runId || typeof original.brief !== 'string') throw new Error('Intake origin does not match the run.');
+    if (original.runId !== state.run.runId || typeof original.brief !== 'string' || !sameValue(original.draftMode, state.draftMode)) throw new Error('Intake origin does not match the original run mode.');
     say(`运行 ${state.run.runId}。访谈和生成共享 ¥200 总额；生成确认就绪后开始原 12h 计时。`);
     say('stop 为持久硬停止；resume 只恢复原窗口内未被硬停止的可核实中断。');
     control = await startControl(root, state.run.runId, stop);
@@ -114,7 +129,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         const saved = await optionalJson(root, answerPath);
         let answers: GameDraft['answers'];
         if (saved) {
-          if (saved.brief !== original.brief || JSON.stringify(saved.questions) !== JSON.stringify(questions)) throw new Error('Recorded answers no longer match the original interview.');
+          if (saved.brief !== original.brief || JSON.stringify(saved.questions) !== JSON.stringify(questions) || !sameValue(saved.draftMode, state.draftMode)) throw new Error('Recorded answers no longer match the original interview mode.');
           answers = saved.answers;
         } else {
           answers = {};
@@ -124,7 +139,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
             answers[question.id] = answer;
           }
           await mkdir(join(root, 'intake-answers'), { recursive: true });
-          await publishReceipt(join(root, answerPath), { brief: original.brief, questions, answers });
+          await publishReceipt(join(root, answerPath), { brief: original.brief, questions, answers, ...(state.draftMode ? { draftMode: state.draftMode } : {}) });
         }
         const proposal = await run(() => host.draft({ controller: intake!, roundId: `draft-${version}`, brief: original.brief, questions, answers }));
         current = await intake.saveDraft(proposal);

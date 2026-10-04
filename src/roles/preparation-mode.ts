@@ -1,0 +1,37 @@
+import type { RequirementContract } from '../contracts/types.ts';
+import { sameValue } from '../contracts/validation.ts';
+
+export type DraftMode = 'browser' | 'cos16-input/1';
+export interface PreparationSelection {
+  kind: 'preparation'; adapterId: 'cos16-input/1'; sourceVersion: 'cos16-transfer-v1';
+}
+const selection: PreparationSelection = { kind: 'preparation', adapterId: 'cos16-input/1', sourceVersion: 'cos16-transfer-v1' };
+
+/** Extracted declarative scope from cos16-transfer-v1; contains no generated design or executable input. */
+const contract = {
+  scope: '生成单关离散网格推箱子游戏，地图不超过8×8，边界封闭，一个玩家、两个箱子、两个目标。简体中文，使用可见的开始、上、下、左、右、重新开始、继续游戏按钮。每次鼠标方向点击最多移动一格；碰墙、箱后是墙或另一箱子时整次输入无效；合法行走或推箱步数加一。仅两个目标全部有箱子才胜利。重新开始恢复全部初始状态并更新存档；每次合法移动自动保存完整状态。同一隔离profile和origin真实关闭浏览器进程后，通过继续游戏恢复。玩家、箱子、目标由本次独立art角色生成原创简单几何美术，轮廓与状态可辨识。runtime design在同一次原会话生成所有场景可达的地图与不超过40次合法移动的解法，并调用可信validate-transfer-design；oracle通过后冻结四个输出，coding/art使用准确版本。不增加撤销、物理模拟、战斗或多关卡。所有操作由正常鼠标输入完成，观测接口只读。',
+  acceptance: [
+    { acceptanceId: 'T16-01', description: '新档开始与初始棋盘。', steps: ['无既有存档的隔离profile中打开游戏，点击可见的开始按钮。'], expected: '单关棋盘包含一个玩家、两个箱子、两个目标、四个方向按钮和重开按钮；初始步数为零且未胜利。', evidenceKinds: ['test_report', 'screenshot', 'video', 'log'] },
+    { acceptanceId: 'T16-02', description: '合法行走与碰墙。', steps: ['按冻结路径行走一格，再走到墙边并向墙点击。'], expected: '合法行走恰好一格且步数加一；碰墙前后玩家、箱子、目标占用及步数均一致。', evidenceKinds: ['test_report', 'screenshot', 'video', 'log'] },
+    { acceptanceId: 'T16-03', description: '合法推箱、箱后为墙和连续两箱阻挡。', steps: ['经正常方向点击分别到达可推箱、箱后为墙、箱后为另一箱子的局面，再尝试推箱；各场景可通过可见重开按钮重新开始。'], expected: '可推时玩家进入箱子原格，箱子向前一格，步数加一；后两种局面整次输入无效，不能推墙或连续推动两个箱子。', evidenceKinds: ['test_report', 'screenshot', 'video', 'log'] },
+    { acceptanceId: 'T16-04', description: '重开恢复初始状态与存档。', steps: ['至少完成一次普通行走和一次推箱后，点击重新开始。'], expected: '玩家、两个箱子、目标占用、步数、胜利状态及保存状态恢复该关初始值。', evidenceKinds: ['test_report', 'screenshot', 'video', 'log'] },
+    { acceptanceId: 'T16-05', description: '真实关闭浏览器进程后继续游戏。', steps: ['重开后至少完成一次普通行走和一次推箱，停在非终局；记录保存完成的状态，真实关闭浏览器进程，再用同一隔离profile和同一origin启动并点击继续游戏。'], expected: '关卡、玩家、两个箱子、目标占用、步数及非胜利状态与关闭前一致；必须保留真实进程退出、同profile同origin不同新PID及正常继续输入证据。', evidenceKinds: ['test_report', 'screenshot', 'video', 'log'] },
+    { acceptanceId: 'T16-06', description: '恢复后的单目标与全部目标胜利判定。', steps: ['从恢复后的局面按冻结解法继续点击，先完成一个目标，再完成全部目标。'], expected: '一个目标到位时仍未胜利；两个目标全部到位后显示胜利，实际棋盘画面与状态断言一致。', evidenceKinds: ['test_report', 'screenshot', 'video', 'log'] },
+  ] satisfies RequirementContract['acceptance'],
+};
+
+/** Called before storage, accounting or provider effects. The model never selects this value. */
+export function resolveDraftMode(mode: unknown = 'browser'): PreparationSelection | undefined {
+  if (mode === 'browser') return undefined;
+  if (mode !== selection.adapterId) throw new Error('Unknown intake draft mode.');
+  return structuredClone(selection);
+}
+export function modeFromSelection(value?: PreparationSelection): DraftMode {
+  if (value === undefined) return 'browser';
+  if (!sameValue(value, selection)) throw new Error('Preparation mode or source version changed.');
+  return value.adapterId;
+}
+export function preparationContract(value: PreparationSelection) {
+  modeFromSelection(value);
+  return structuredClone(contract);
+}
