@@ -77,7 +77,7 @@ closure8历史：免费closure8于UTC2026-10-04T14:41:20.289Z由Root应用，rev
 | 真实成本与时延探针 | C8单关已接受，迁移C3规划身份失败 | 当前11cases/rev1495/ledger4/shared¥7.199033、unknown/reserved0；C3 1SDK/33413ms/新增¥0.014780，closure9后55closed/九audits，旧C1/C2/C8历史保持 |
 | 任务拆分 | 已发布 | [49 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入，COS-44 明确原生规划policyId契约，COS-45 准备第二迁移案例与剩余额度准入，COS-46 提供设计标识符约束与只读自检，COS-47 准备带自检的第三迁移案例，COS-48 绑定规划局部别名与预声明身份，COS-49 准备主机身份绑定的第四迁移案例 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#50；49 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..48 source 已审集成，迁移C3规划身份失败，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47源码已审集成，COS48主机身份绑定源码已审集成，COS49实施中/SOURCE_NOT_READY，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..49 source 已审集成，迁移C3规划身份失败，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47源码已审集成，COS48主机身份绑定源码已审集成，COS49第四案例源码已审集成、actual C4 NONE，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -589,7 +589,7 @@ Source48只planner.ts/new planning-identity.test.ts/plan，不helper/pipeline/ar
 
 ### COS49 主机身份绑定的第四迁移案例登记
 
-Root真实POST+GET精确读回[COS49/#50](https://github.com/lrfluobida/Cosmos/issues/50)（id5701574061，准备由主机绑定身份的第四个原生迁移案例），native parent49children #2–#50/新checkbox及旧48前缀已核。cos49_implementer source-free从 `935a3fae6fae796940bd3c492d33d32d49f166b5` 正式实施、branch/worktree由作者选择；in-progress/open/SOURCE_NOT_READY，未来marker TRANSFER_CASE_FOUR_SOURCE_READY，无批准SHA/实际C4。
+COS49注册时历史：Root真实POST+GET精确读回[COS49/#50](https://github.com/lrfluobida/Cosmos/issues/50)（id5701574061，准备由主机绑定身份的第四个原生迁移案例），native parent49children #2–#50/新checkbox及旧48前缀已核。当时cos49_implementer source-free从 `935a3fae6fae796940bd3c492d33d32d49f166b5` 正式实施、branch/worktree由作者选择；in-progress/open/SOURCE_NOT_READY，未来marker TRANSFER_CASE_FOUR_SOURCE_READY，无批准SHA/实际C4。
 
 准备source-known四profiles、新D4 decl/run并复用sharedinput/driver/run，不copy pipeline/public param selection；fixed driver内部defaultfalse flag仅C4 true，original planTaskDag显式 `proposalIdentity='validation-policy-aliases/1'`。C1–C3声明/inputs/default wrappers/marker/hashes无该property且字节保持，unknown/default原行为不改。固定 `cos20-transfer-validation-4`、decl3/quote2/same input `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`/Flash/¥5/45分钟/80全部SDK、design原semantic1/只读generic current/唯一codingrepair。
 
@@ -598,6 +598,14 @@ Root真实POST+GET精确读回[COS49/#50](https://github.com/lrfluobida/Cosmos/i
 Fresh只读准入须核11hist/currentC3 stopped/three delegations/55closed九audits/ledger4rev1495/groupnet190410/available9809590/parentref1414与firstauth membersC1C2C3。九old audits按各own case declHash/sourcebytes/rootquote/祖先认证，第九笔C3而非C8；newC4 root/markers空、writer/unknown/reserved/owners0和pending48均在hostprepare/receipt/claim前拒绝。计划pure TDD覆盖CLI/hash/角色费用反例/十一history九audit/pending48零effect/atomic append预算旧authority+members/sharedcap、新planning bootstrap fullscope；实际planTaskDag别名→C4 exact IDs/deps/identityBinding后stop author DAG，旧counter/harness/Edge/defaultC3证据复用。
 
 本登记只有源码准备，实际C4未claim/paid；48新mode和46generic自检未native实测，C3early failure保持。原48task对象、11cases/7199033/rev1495ledger4/55closed九audit/parent10net190410rem9809590、C1C2C3失败/C8/G3/human NONE/fullclassic未知、150首30/formal20012原样；四docs候选待独审，后续全部source/docs批准再由Root准确main免费准入/资金/路由/冻结运行，preview/private未触。
+
+### Source49 主机身份绑定的第四迁移案例源码审批
+
+独审 TRANSFER_CASE_FOUR_SOURCE_READY 批准 `8e9e0eec3a46d5529da9578744323fb3cb1c6ba7`（base935a3fa），合入清推 `80adb8226f94633d45b32bb1c30a6d8cdf5a9c2f`，offline-verified-awaiting-live/open、implementationPhase source-integrated。[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/50#issuecomment-5982742381)已由Root POST+GET精确读回。九批准paths字节一致、UTF8/noBOM/LF/中文/diffcheck通过；四private profiles仅C4内部flagtrue/显式48mode，C1–C3默认不带option，旧src/decl/wrappers/requirements/template和注册四docs无碰撞。
+
+作者7new/oldC3/strict7.728秒及原admit/atomic/bootstrap、Source48核心/consumer80/Edge通过证据复用；独审synthetic realdriver→realplanTaskDag/consumer.validateTasks/plan.identityBinding与C3默认alias拒绝两项2/2（104.5835秒）。联合只fixedinput/原剩余vector代表1/1、0skip（42.8052ms），未104秒接线/78秒准入/strict/defaultmatrix/实际Browser重复。
+
+当前仅sourceReady，actual C4未claim/模型/游戏，48alias opt-in与46readonly checker仍未真实Native使用。原48任务对象、C1C2C3失败/closure9、11cases/ledger4 revision1495/global7199033/55closed九audits/groupnet190410/rem9809590/parent10m sourcefirstref1414/G3/C8/human NONE与fullclassic未知保持，original150首30/formal20012不改。四docs待独审再合，Root最终main fresh免费准入/资金/路由/operator/source-mainfreeze后按¥5/45分钟/80执行，不复用旧quote或重开已消费case。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
