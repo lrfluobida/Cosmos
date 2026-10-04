@@ -5,9 +5,15 @@ import { performance } from 'node:perf_hooks';
 import { safePath } from '../../src/artifacts/paths.ts';
 import { runChild } from './host.ts';
 import { readValidationInput } from './validation-input.ts';
+import type { ValidationDeclaration } from '../../src/runtime/validation-types.ts';
 
 /** The expected SHA selects reviewed source; only actual Git and fixed file reads establish identity. */
 export function createValidationIdentityReader(options: { repository: string; reviewedPlatformSha: string }) {
+  return createReviewedValidationIdentityReader(options, readValidationInput);
+}
+/** Trusted source-code seam; each entry binds its fixed reader, never a CLI or model override. */
+export function createReviewedValidationIdentityReader(options: { repository: string; reviewedPlatformSha: string },
+  readFixedInput: (repository: string) => Promise<{ manifest: ValidationDeclaration['inputs'] }>) {
   const repository = resolve(options.repository), expectedHead = options.reviewedPlatformSha;
   if (!/^[a-f0-9]{40}$/.test(expectedHead)) throw new Error('Validation identity requires an exact reviewed SHA.');
   return async (signal: AbortSignal): Promise<{ reviewedPlatformSha: string; frozenCaseInputHash: string }> => {
@@ -37,7 +43,7 @@ export function createValidationIdentityReader(options: { repository: string; re
       return { branch, head, status };
     };
     const before = await inspect();
-    const input = await readValidationInput(root); remaining();
+    const input = await readFixedInput(root); remaining();
     const after = await inspect();
     if (before.head !== after.head || before.branch !== after.branch || before.status !== after.status) throw new Error('Validation source identity changed during inspection.');
     remaining();

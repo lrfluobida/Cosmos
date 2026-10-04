@@ -146,3 +146,15 @@ profile 根由内部 `mkdtemp` 创建，带 host 所有权文件，拒绝 juncti
 Capture 必须核对成功回执、封存摘要、当前地图、完整需求/source/case/window、固定输入及原 task/attempt/author/context/session。跳过工具、封存后改图或耗尽后写出新图均不能进入 art/coding。Freeze 使用 host 保存的已校验字节，并核对实际冻结摘要；通用设计说明可以在地图不变时准确完善。恢复只检查完整回执和既有 capture，不新建会话、attempt 或分配额度。
 
 所有模型请求及 compaction 仍计入原 design grant、purpose、总调用次数、费用与截止时间；未知费用先对账。语义反馈不借用只读格式纠正，也不占 coding repair。此项仅零付费源码和合成接口测试，实际入口与真实迁移验收留后继；独立评审和集成后才可登记 `TRANSFER_DESIGN_FEEDBACK_SOURCE_READY`。定向证据见 [COS-41 计划](../../docs/plans/2026-10-04-transfer-design-feedback.md)。
+
+## COS-43 固定内部 operator 入口（待独立源码评审）
+
+`validation-run.ts` 固定 `cos20-transfer-validation-1`，只接受 `--validation-preflight <reviewed-main-sha>` 或 `--validation-case <reviewed-main-sha> <operator-validation-source>`。源码绑定原生 bootstrap 与 `createTransferConsumerHost`，CLI、环境和模型不能替换 declaration、host、fixture、profile、origin、时钟或输入路径。`requirements.json` 冻结上述六项 T16 和原两项 host stages，仅含需求与验收规则；没有地图、解法、游戏、素材或 human 确认。
+
+免费 preflight 检查 clean exact main、固定输入、原八个已消费停止案例、四十 closed grants、六笔原始 closure source bytes 和 Source20..42 各自的精确批准 marker/source+merge 祖先。每笔历史 closure 用其 `basis.currentCaseId` 对应的原 declaration input hash 认证；新迁移输入不能替代旧哈希。COS41 未源码 Ready、writer 未收敛、未知费用、陈旧报价或新身份已消费均拒绝，不执行 host 准备或新 claim。
+
+执行复用同一原 shared snapshot/run/ledger。declaration3/quote2 沿 COS16 原 ¥10 parent；首次五 grants 为 planning ¥0.4、design ¥1.2、art/coding/repair 各 ¥2.8。原子 claim 同时登记新 case、ledger3→4 与 delegation，不存在先单独升级账本的步骤，也不增加有效预算。单 case ¥5/45 分钟/80 请求、首批 ¥30/shared ¥150 及原 coding repair 一次上限不变；所有角色、review、格式纠正、设计反馈和 compaction 均沿原账本计费计数。
+
+Bootstrap 使用新 planning grant 的 OwnedWork/runOwnedNode 和现有固定 worker。原 planner、validated tasks、write-once execution receipt、完整 DAG/journal、有界 repair 和 effective finish 都在同一个 `withPreparation` 内。Repair 使用原 host 授权和完整 `resumeTaskDag`，重用 design/art 的通过签名，仅执行新 coding repair；原 coding v1 失败、journal 和 linked v2 来源继续保存在 snapshot、`host-result.json` 与最终 `result.json` 的 taskHistory 中。设计四输出、两版本等价计划、八段持久浏览器、真实媒体样本、独立 review 和准确候选 promotion 都沿既有 consumer。
+
+本任务只有纯源码测试，尚无真实 ledger 升级、case claim、模型生成或 T16 实际证据。最终执行仍由 Root 在独审集成后的准确 main 上重新只读 preflight、冻结 source/余额/route/operator 后单独开展。报告为内部 operator 实验，`userExperience: not_confirmed`；公开 COS16/COS18 的真实需求确认、CLI 和用户体验关口继续 pending，不能凭本入口关闭这些关口。测试与证据见 [COS-43 计划](../../docs/plans/2026-10-04-transfer-validation-entry.md)。
