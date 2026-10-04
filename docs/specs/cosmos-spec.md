@@ -4,11 +4,11 @@
 
 仓库：[lrfluobida/Cosmos](https://github.com/lrfluobida/Cosmos)
 
-已发布：[spec 主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，包含 41 个原生子任务；编号与依赖见 [发布映射](github-issues.json)。COS-19 承接原 R4/R5/R12 的角色交接与截断处理，COS-20 区分已有 R6/R7 的正式生成时限与开发验证窗口，COS-21 承接原 R5/R11 的 Windows 产物目录原子发布失败，COS-22 验证更高调用上限下的完整原生生成；COS-23/COS-24 处理真实失败暴露的作者格式交接和已停止案例未用分配额度，COS-25 验证作者只读格式纠正后的完整原生生成。COS-26/COS-27 承接有效容量修复，COS-28/COS-29 承接职责澄清和 case6，COS-30 用主机证据/独立评审处理未决项，COS-31 登记证据驱动的独立 case7 验证，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 补最终用户体验决定持久化与版本绑定缺口，COS-35/COS-36 准备共享浏览器host和运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，不改变产品范围或预算。
+已发布：[spec 主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，包含 42 个原生子任务；编号与依赖见 [发布映射](github-issues.json)。COS-19 承接原 R4/R5/R12 的角色交接与截断处理，COS-20 区分已有 R6/R7 的正式生成时限与开发验证窗口，COS-21 承接原 R5/R11 的 Windows 产物目录原子发布失败，COS-22 验证更高调用上限下的完整原生生成；COS-23/COS-24 处理真实失败暴露的作者格式交接和已停止案例未用分配额度，COS-25 验证作者只读格式纠正后的完整原生生成。COS-26/COS-27 承接有效容量修复，COS-28/COS-29 承接职责澄清和 case6，COS-30 用主机证据/独立评审处理未决项，COS-31 登记证据驱动的独立 case7 验证，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 补最终用户体验决定持久化与版本绑定缺口，COS-35/COS-36 准备共享浏览器host和运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，不改变产品范围或预算。
 
 ## 1. 已确认的产品目标
 
-原生Case8在固定source ef4b2ea上生成v1，真实browser090音频断言code_defect失败，经既有一次linked repair后v2构建、原Edge111/111/0failed/0skip/errors[]及同版本独立codingreview approved，已自动接受有界单关。76请求新增保守峰值估算¥1.549592、共享¥7.008623；六笔免费未用容量closure后revision1414，费用/旧七案例/v1失败与C6 free111诊断保持。此结果不证明完整经典基准、最终还原目标或实际用户体验；COS34决定入口已独审集成但human NONE，COS35/36源码已独审集成但仍为preparation_only/not_executable，COS37源码已独审集成、仅验证harness fixture的隔离profile/同origin真实进程重开；COS38运行时输入adapter/COS39失败事实分类已独审集成，实际仍为preparation_only，COS40/COS41尚未READY；41仅设计已审，待40源码独审合入再实施，迁移仍缺persistent/media实际consumer、machine phase facts/diagnostics、design semantic revision及付费入口，未执行新实际window，沿用COS16原预算和时钟约束，进展见 [进度记录](../../PROGRESS.md)。
+原生Case8在固定source ef4b2ea上生成v1，真实browser090音频断言code_defect失败，经既有一次linked repair后v2构建、原Edge111/111/0failed/0skip/errors[]及同版本独立codingreview approved，已自动接受有界单关。76请求新增保守峰值估算¥1.549592、共享¥7.008623；六笔免费未用容量closure后revision1414，费用/旧七案例/v1失败与C6 free111诊断保持。此结果不证明完整经典基准、最终还原目标或实际用户体验；COS34决定入口已独审集成但human NONE，COS35/36源码已独审集成但仍为preparation_only/not_executable，COS37源码已独审集成、仅验证harness fixture的隔离profile/同origin真实进程重开；COS38运行时输入adapter/COS39失败事实分类已独审集成，实际仍为preparation_only，COS40/COS41/COS42尚未READY；42只准备原COS16预算组，不增加总额或改旧记录；41仅设计已审，待40源码独审合入再实施，迁移仍缺persistent/media实际consumer、machine phase facts/diagnostics、design semantic revision及付费入口，未执行新实际window，沿用COS16原预算和时钟约束，进展见 [进度记录](../../PROGRESS.md)。
 
 | 编号 | 要求 |
 | --- | --- |
@@ -181,7 +181,7 @@ Cosmos 为评审创建独立上下文，由评审读取固定要求与交付物�
 
 每项实际 issue 需要明确输入、输出、依赖、文件范围和验收证据。纯调查完成、验证通过、正式功能完成应使用不同的完成条件。
 
-具体拆分见 [41 项任务卡与依赖关口](cosmos-issues.md)。平台实施可与参考资料核对并行；完整基准验收工具的最终版本与完整生成必须等待基准冻结。正式生成的最终打包和干净目录启动检查计入同一次 ¥200/12h；只有等待用户试玩单独记录。父任务完成还需要小型不同机制迁移验证通过，其付费验证共享 ¥150 余额。
+具体拆分见 [42 项任务卡与依赖关口](cosmos-issues.md)。平台实施可与参考资料核对并行；完整基准验收工具的最终版本与完整生成必须等待基准冻结。正式生成的最终打包和干净目录启动检查计入同一次 ¥200/12h；只有等待用户试玩单独记录。父任务完成还需要小型不同机制迁移验证通过，其付费验证共享 ¥150 余额。
 
 ## 7. 执行前置与验证关口
 
