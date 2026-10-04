@@ -37,6 +37,7 @@ import { currentValidationCase, requireValidationTask, validationRole } from './
 import { requireValidationBrowserScope } from './entrypoint-validation.ts';
 import type { ValidationBrowserProposal } from './entrypoint-validation.ts';
 import type { RoleFactoryOptions } from '../roles/factory.ts';
+import type { RoleInput } from '../roles/factory.ts';
 import { TaskJournal } from './recovery/task-journal.ts';
 import type { RecoveryOptions } from './recovery/task-journal.ts';
 import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from './repair/policy.ts';
@@ -217,6 +218,17 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     if (binding && !authority.admissionAllowed) throw new Error('Task has no active continuation host execution authority.');
     return { taskId: task.taskId, windowId: authority.windowId, deadlineAt: authority.deadlineAt };
   }
+  async function requirePlanningDispatch(roleInput: Readonly<RoleInput>, signal: AbortSignal) {
+    signal.throwIfAborted();
+    const { snapshot, window } = await validationScope(), grant = window.quote.declaration.grants.planning;
+    if (roleInput.role !== 'cosmos' || roleInput.purpose !== 'planning' || roleInput.task.taskId !== grant.taskId
+      || roleInput.task.budget.allocationMicroCny !== grant.amountMicroCny || resolve(roleInput.workspace) !== resolve(root)
+      || roleInput.task.ownership.writePaths.length || roleInput.task.context.tools.some(tool => tool !== 'read')
+      || validateExecutionInput({ requirement, task: roleInput.task, ledger: snapshot.ledger, run: snapshot.run }).length) throw new Error('Validation planning differs from its fixed billing grant and read-only scope.');
+    const authority = await controller.validationAuthority(grant.taskId, 'planning');
+    if (!authority.admissionAllowed) throw new Error('Validation planning has no fixed host authority.');
+    signal.throwIfAborted();
+  }
   const taskOutput = (task: TaskContract) => {
     const planned = boundTask(task);
     if (planned) {
@@ -347,7 +359,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       signal.throwIfAborted();
     } } : {}),
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation,
-      ...(validation ? { sessionFactory: input.sessionFactory, beforeTool: async (roleInput, signal) => { await requireDispatch(roleInput.task, signal); } } : {}) }),
+      ...(validation ? { sessionFactory: input.sessionFactory, beforeTool: async (roleInput, signal) => {
+        if (roleInput.purpose === 'planning') await requirePlanningDispatch(roleInput, signal);
+        else await requireDispatch(roleInput.task, signal);
+      } } : {}) }),
     async capture(task, _proposal, signal) {
       await requireDispatch(task, signal); const ref = taskOutput(task), kind = role(task);
       const origin = { kind: 'original-procedural' as const, generator: `Native ${kind} role output`, sourceRefs: [task.attempts.at(-1)!.sessionRef, ...requirement.sources.map(ref => ref.location)] };
@@ -524,8 +539,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (!/^sessions\/[^/]+(?:\/(?:author|review))?$/.test(session)) throw new Error('Validation role session must remain in its fixed case root.');
       await safePath(root, session);
       if (roleInput.purpose === 'planning') {
-        await validationScope(); const authority = await controller.validationAuthority(roleInput.task.taskId, 'planning');
-        if (!authority.admissionAllowed || resolve(roleInput.workspace) !== resolve(root)) throw new Error('Validation planning has no fixed host authority.');
+        await requirePlanningDispatch(roleInput, controller.signal);
       } else {
         await requireDispatch(roleInput.task, controller.signal);
         const expected = roleInput.role === 'reviewer' ? join(root, `reviews/${roleInput.task.taskId}`) : workspace(roleInput.task);
@@ -536,8 +550,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     (host as ValidationBrowserHost).prepareValidationRepair = async (source, feedback, recovery) => {
       const { snapshot: before, window } = await validationScope();
       if (window.repair || validationRole(window, source.task.taskId) !== 'coding' || resolve(recovery.artifactRoot) !== resolve(root) || resolve(recovery.journalRoot) !== join(root, 'journal')) throw new Error('Validation coding repair was already claimed or has a different fixed source.');
-      boundTask(source.task);
-      if (!sameValue(source.task, before.tasks.find(task => task.taskId === source.task.taskId)) || resolve(source.workspace) !== resolve(workspace(source.task))) throw new Error('Repair must retain the persisted source task and workspace.');
+      const fixed = boundTask(source.task);
+      if (!fixed || !sameValue(source, { ...fixed, task: before.tasks.find(task => task.taskId === source.task.taskId) })) throw new Error('Repair must retain the complete fixed prepared source binding and persisted task.');
       const options = { snapshot: before, requirement, validation, history: [feedback], policy: DEFAULT_REPAIR_POLICY, now: Date.now(), estimate: { costMicroCny: 524_488, durationMs: 180000, cleanupMs: 5000 } };
       if (assessRepair(options).action !== 'repair') throw new Error('Current validation feedback cannot dispatch a coding repair.');
       const task = source.task, attempt = task.attempts.at(-1)!, origin = await json(root, `journal/task-${task.taskId}/origin.json`), journal = await TaskJournal.open(recovery, origin, true);

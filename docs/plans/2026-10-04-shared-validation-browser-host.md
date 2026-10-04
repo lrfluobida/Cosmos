@@ -38,6 +38,20 @@ node node_modules/typescript/bin/tsc --noEmit --allowImportingTsExtensions --tar
 
 The native owned-command implementation remains unchanged; this host forwards its existing `{caseId, windowId, taskId, deadlineAt}` authority shape. The tests observe that exact tuple at the synthetic IO boundary. Existing same-profile owned child evidence applies to the unchanged command launcher.
 
+## Independent review corrections
+
+The first independent review held `d5e6e6e996883c18bd279f7e2e3bf1bfd1f3141b` for two P2 findings. The planning tool guard incorrectly required a billing-only planning task in the author DAG binding. The repair entry checked the persisted task and workspace but omitted the prepared role and expected artifacts, allowing changed metadata to consume the single repair slot.
+
+Three targeted tests reproduced both findings before the correction: the real planner's synthetic session could not read its frozen input, and both changed role and changed expected artifacts failed to reject (3 failures, zero skipped, exit 1, 8.721 seconds). The host now checks planning's exact declared billing grant, purpose, Cosmos role, read-only ownership and current scope/authority without registering or passing a DAG task. Repair checks the entire prepared binding together with the exact persisted task before staging feedback or claiming its slot.
+
+The three targeted regressions passed with zero skipped and exit 0 (9.140 seconds). Each rejected repair leaves the snapshot, files, fees, repair slot and task registrations unchanged, then accepts the original coding binding using its single grant. The existing synthetic coding failure/repair/independent review/promotion representative passed 1/1, zero skipped, exit 0 (7.769 seconds). One incremental strict compile of the affected host and test import closure passed with exit 0 (7.771 seconds). UTF-8/LF and existing Chinese content remained verified. The factory/default tool implementation was unchanged, so its previous passing scope evidence remains applicable.
+
+```powershell
+node --experimental-strip-types --test --test-name-pattern 'validation planning reads|repair rejects changed prepared' tests/runtime/entrypoint-host-validation.test.ts
+node --experimental-strip-types --test --test-name-pattern 'synthetic pipeline binds' tests/runtime/entrypoint-host-validation.test.ts
+node node_modules/typescript/bin/tsc --noEmit --allowImportingTsExtensions --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck --types node src/runtime/entrypoint-host.ts tests/runtime/entrypoint-host-validation.test.ts
+```
+
 ## Remaining runtime work
 
 This source change supplies host assembly. A reviewed execution driver still needs to select immutable runtime scenario input and preserve the complete prepared task binding for recovery, including an already claimed repair. COS-36 supplies the separate runtime design and trusted plan binding. A persistent isolated browser profile and real process restart remain separate work. A coordinator must make any new real window decision under the existing COS-16 allocation and shared limits.

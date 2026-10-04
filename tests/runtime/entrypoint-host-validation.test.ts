@@ -6,6 +6,47 @@ import * as hosts from '../../src/runtime/entrypoint-host.ts';
 import { snapshot } from '../../src/artifacts/paths.ts';
 import { executeTaskDag, resumeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { validationBrowserFixture } from './entrypoint-host-validation.fixture.ts';
+import { planTaskDag } from '../../src/roles/planner.ts';
+
+test('validation planning reads its fixed inputs before any role task registration', async t => {
+  const f = await validationBrowserFixture(t); let host: any, reads = 0;
+  host = await f.create({ sessionFactory: async (config: any) => {
+    const packet = JSON.parse(config.context);
+    assert.equal(packet.role, 'cosmos'); assert.equal(config.maxOutputTokens, 4096); assert.deepEqual(config.tools.map((tool: any) => tool.name), ['read']);
+    return { close: async () => {}, prompt: async () => {
+      await config.tools[0].execute('planning-read', { path: f.requirement.sources[0].location }, f.controller.signal, undefined, undefined); reads++;
+      return { text: JSON.stringify({ tasks: host.taskPolicies.map((policy: any, index: number) => ({ taskId: f.declaration.grants[policy.role].taskId, policyId: policy.policyId,
+        role: policy.role, objective: 'Offline planning read fixture', acceptanceIds: index === 0 ? [f.window.quote.requirements.stageAcceptanceIds[0]] : index === 1 ? [f.window.quote.requirements.stageAcceptanceIds[1]] : f.window.quote.requirements.acceptanceIds,
+        dependsOn: host.taskPolicies.slice(0, index).map((item: any) => f.declaration.grants[item.role].taskId) })) }) };
+    } };
+  } });
+  const before = await f.controller.read();
+  const plan = await planTaskDag({ controller: f.controller, validation: f.validation, requirement: f.requirement, planningTaskId: f.declaration.grants.planning.taskId,
+    workspace: f.root, sessionRoot: join(f.root, 'sessions'), availableArtifacts: host.availableArtifacts, taskPolicies: host.taskPolicies, roleFactory: host.roleFactory });
+  assert.equal(reads, 1); host.validateTasks(plan.tasks);
+  assert.deepEqual(await f.controller.read(), before, 'Planning is a proposal and cannot manufacture passed DAG work or fees.');
+});
+
+for (const field of ['role', 'expectedArtifacts'] as const) test(`repair rejects changed prepared ${field} before consuming its slot`, async t => {
+  const f = await validationBrowserFixture(t), host = await f.create(), tasks = f.prepare(host); host.validateTasks(tasks);
+  const recovery = { artifactRoot: f.root, journalRoot: join(f.root, 'journal'), recoverCapture: host.recoverCapture };
+  f.failBuild(true);
+  const failed = await executeTaskDag({ controller: f.controller, validation: f.validation, requirement: f.requirement, tasks,
+    sessionRoot: join(f.root, 'sessions'), availableArtifacts: host.availableArtifacts, roleFactory: host.roleFactory, preAuthor: host.preAuthor,
+    capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure, recovery, reviewProtocolCorrections: 1 });
+  assert.deepEqual(failed.map(item => item.state), ['passed', 'passed', 'failed']);
+  const source = { ...tasks[2], task: failed[2] }, changed = structuredClone(source);
+  if (field === 'role') changed.role = 'art'; else changed.expectedArtifacts![0].version = 'changed';
+  const feedback = JSON.parse(await readFile(join(source.task.attempts[0].sessionRef, 'failure.json'), 'utf8'));
+  const before = await f.controller.read(), files = await snapshot(f.root);
+  await assert.rejects(host.prepareValidationRepair(changed, feedback, recovery), /fixed|source|role|binding|output/i);
+  assert.deepEqual(await f.controller.read(), before, 'Rejected prepared metadata must not claim, register or change fees.');
+  assert.deepEqual(await snapshot(f.root), files, 'Rejected prepared metadata must not stage feedback or new workspaces.');
+  const repair = await host.prepareValidationRepair(source, feedback, recovery);
+  assert.equal(repair.role, 'coding'); assert.equal(repair.task.taskId, f.declaration.grants.repair.taskId);
+  assert.equal(repair.task.budget.allocationMicroCny, f.declaration.grants.repair.amountMicroCny);
+  assert.equal((await f.controller.read()).validation!.cases[0].repair!.sourceTaskId, source.task.taskId);
+});
 
 test('operator browser host uses current claimed grants without human fields or an extra session request cap', async t => {
   assert.equal(typeof (hosts as any).createValidationBrowserHost, 'function', 'Explicit operator-validation browser adapter is missing');
