@@ -10,6 +10,8 @@ import { isValidationRequirement } from '../../src/roles/execution-input.ts';
 import { HOST_STAGE_ACCEPTANCE } from '../../src/roles/requirements.ts';
 import { publishReceipt } from '../../src/runtime/recovery/receipt-file.ts';
 import { HostFailure } from '../../src/runtime/repair/feedback.ts';
+import { TaskJournal, requireOriginalTask } from '../../src/runtime/recovery/task-journal.ts';
+import type { CapturedTask, ContentSignature, RecoveryOrigin } from '../../src/runtime/recovery/task-journal.ts';
 import { TRANSFER_ACCEPTANCE_IDS, requireThat } from './design.ts';
 import { validateTransferDesign } from './oracle.ts';
 import { freezeTransferDesign, prepareTransferAcceptance, verifyPreparedTransferAcceptance, bindTransferAcceptance } from './binding.ts';
@@ -28,6 +30,7 @@ const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: t
 export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparation'>) {
   let ctx: BrowserPreparationContext, origin: Awaited<ReturnType<typeof reserveTransferOrigin>>;
   let transfer: ArtifactReference, planRefs: { v1: ArtifactReference; v2: ArtifactReference };
+  let preparedPublished = false;
   const receiptFile = 'host-transfer-prepared-inputs.json';
   const guard = async () => { try { await ctx.requireScope(); await origin.verify(); } catch (error) { await origin.close(); throw error; } };
   const read = async (): Promise<PreparedInputs> => {
@@ -55,6 +58,34 @@ export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparat
     requireThat(isDeepStrictEqual(saved.plans.v1.segments.map(item => item.plan.steps), saved.plans.v2.segments.map(item => item.plan.steps)), 'repair expectations changed');
     await guard(); return saved;
   };
+  const requireCurrent = async () => {
+    try {
+      await guard();
+      const design = (await input.controller.read()).tasks.find(task => task.taskId === ctx.designTaskId);
+      const complete = !!design && (design.artifacts.length > 0 || design.state === 'passed');
+      if (!preparedPublished && !complete) {
+        try { await regularFile(ctx.root, receiptFile); }
+        catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
+      }
+      // verify/read use only the scope guard; they never recurse through this dispatch gate.
+      const saved = await verify(design?.artifacts.length ? design : undefined);
+      if (complete) {
+        requireThat(design, 'captured design task is missing');
+        const refs = [ctx.primaryDesign, transfer, planRefs.v1, planRefs.v2];
+        const primary = await ctx.registry.getCapture(ctx.primaryDesign);
+        requireThat(primary.taskId === saved.taskId && primary.metadata.kind === 'data'
+          && primary.metadata.provenance.sourceRefs.includes(saved.sessionRef), 'generic design author provenance changed');
+        const recoveryOrigin = decode(await regularFile(ctx.root, `journal/task-${ctx.designTaskId}/origin.json`)) as RecoveryOrigin;
+        requireThat(isDeepStrictEqual(recoveryOrigin.requirement, ctx.requirement) && isDeepStrictEqual(recoveryOrigin.prepared.expectedArtifacts, refs), 'original complete design binding changed');
+        requireOriginalTask(recoveryOrigin.prepared.task, design);
+        const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, recoveryOrigin, true);
+        const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', saved.attemptId);
+        requireThat(captured && isDeepStrictEqual(captured.captured.artifacts, refs), 'complete design capture receipt is missing');
+        await journal.requireSignature(captured.signature, refs);
+      }
+      await guard();
+    } catch (error) { await origin.close(); throw error; }
+  };
   const preparation: BrowserInputPreparation = {
     adapterId: 'cos16-input/1', designOutputs: [], designWritePaths: ['authors/design/transfer-design.json'],
     designRules: ['Write an additional authors/design/transfer-design.json using cos16-design/1. The host independently validates its fixed rules before art/coding. No expected states or self-reported verdicts.',
@@ -78,7 +109,7 @@ export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparat
         binding: { caseId: ctx.requirement.validation.caseId, windowId: ctx.requirement.validation.windowId, sourceVersion: ctx.requirement.validation.reviewedPlatformSha,
           requirementSha256: sha(JSON.stringify(ctx.requirement)), runId: ctx.requirement.validation.runId, specVersion: ctx.requirement.specVersion } });
     },
-    requireCurrent: guard,
+    requireCurrent,
     async captureDesignExtras(task, workspace) {
       await guard(); const attempt = task.attempts.at(-1)!;
       const path = 'authors/design/transfer-design.json'; let bytes: Buffer | undefined;
@@ -105,9 +136,9 @@ export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparat
       const saved: PreparedInputs = { formatVersion: 'transfer-prepared-inputs/1', taskId: task.taskId, attemptId: attempt.attemptId, sessionRef: attempt.sessionRef,
         frozen, plans: {} as PreparedInputs['plans'] };
       for (const version of ['v1', 'v2'] as const) { await guard(); saved.plans[version] = await prepareTransferAcceptance(preparedInput(saved, version)); }
-      await guard(); await publishReceipt(join(ctx.root, receiptFile), saved, ctx.signal);
+      await guard(); await publishReceipt(join(ctx.root, receiptFile), saved, ctx.signal); preparedPublished = true;
     },
-    verifyDesignExtras: task => verify(task).then(() => {}),
+    verifyDesignExtras: async task => { await requireCurrent(); await verify(task); },
     artExtraInputs: () => [transfer],
     candidateExtraInputs(candidate) {
       const version = candidate.version;
@@ -115,6 +146,7 @@ export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparat
       return [transfer, planRefs[version]];
     },
     async bindCandidate(candidate) {
+      await requireCurrent();
       const saved = await verify(); preparation.candidateExtraInputs(candidate);
       const version = candidate.version as 'v1' | 'v2';
       const result = await bindTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] });

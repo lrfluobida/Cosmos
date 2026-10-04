@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { transferFixture } from './runtime-host.fixture.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { createArtifactRegistry } from '../../src/artifacts/index.ts';
 import type { TaskContract } from '../../src/contracts/index.ts';
+import type { RunSnapshot } from '../../src/runtime/run-types.ts';
 
 async function api() {
   const result: any = await import('../../probes/transfer/runtime-host.ts').catch(error => {
@@ -15,18 +16,21 @@ async function api() {
   assert.equal(typeof result.createTransferRuntimeHost, 'function', 'COS38 runtime input adapter is missing');
   return result;
 }
-async function pipeline(t: any, invalid = false, missing = false) {
+async function pipeline(t: any, invalid = false, missing = false, beforeArt?: (fixture: Awaited<ReturnType<typeof transferFixture>>, task: Readonly<TaskContract>) => Promise<void>) {
   const a = await api(), f = await transferFixture(t); if (invalid) f.invalidateMap(); if (missing) f.omitMap();
   let host = await a.createTransferRuntimeHost(f.input); t.after(() => host.closePreparation());
   const tasks = f.prepare(host); host.validateTasks(tasks);
   const recovery = { artifactRoot: f.root, journalRoot: join(f.root, 'journal'), recoverCapture: host.recoverCapture };
   const result: TaskContract[] = await host.withPreparation(() => executeTaskDag({ controller: f.controller, validation: f.validation, requirement: f.requirement, tasks,
     sessionRoot: join(f.root, 'sessions'), availableArtifacts: host.availableArtifacts, roleFactory: host.roleFactory,
-    preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure,
+    preAuthor: async (task, signal) => {
+      if (beforeArt && task.taskId === f.window.quote.declaration.grants.art.taskId) await beforeArt(f, task);
+      return host.preAuthor(task, signal);
+    }, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure,
     recovery, reviewProtocolCorrections: 1, authorProtocolCorrections: 1 }));
   const registry = await createArtifactRegistry({ workspaceRoot: f.root, registryRoot: 'registry' });
   // A failed preparation DAG drains its listener. Reopen the exact source inputs/original port for read-only binding checks, without new roles or fees.
-  if (!invalid && !missing) { await host.closePreparation(); host = await a.createTransferRuntimeHost({ ...f.input, resume: true }); host.validateTasks(tasks); }
+  if (!invalid && !missing && !beforeArt) { await host.closePreparation(); host = await a.createTransferRuntimeHost({ ...f.input, resume: true }); host.validateTasks(tasks); }
   return { ...f, host, tasks, result, registry, recovery };
 }
 
@@ -128,4 +132,31 @@ test('inactive repair plan changes invalidate all four design outputs, current c
   assert.equal(await f.registry.current(), null);
   // Restore only synthetic fixture bytes so the cleanup checks can inspect the original receipt.
   await writeFile(path, before);
+});
+
+for (const changed of ['plan-v2', 'transfer-design', 'receipt', 'generic-design']) test(`changed frozen ${changed} stops downstream before input mirroring or provider dispatch`, async t => {
+  let before: RunSnapshot | undefined;
+  let url = '';
+  const f = await pipeline(t, false, false, async (fixture, task) => {
+    before = await fixture.controller.read();
+    const design = before.tasks.find(item => item.taskId === fixture.window.quote.declaration.grants.design.taskId)!;
+    assert.equal(design.state, 'passed'); assert.equal(design.review.verdict, 'approved'); assert.equal(design.artifacts.length, 4);
+    url = JSON.parse((await readFile(join(fixture.root, 'host-transfer-origin.json'))).toString('utf8')).url;
+    if (changed === 'receipt') await unlink(join(fixture.root, 'host-transfer-prepared-inputs.json'));
+    else {
+      const ref = task.inputs.find(ref => ref.artifactId.endsWith(changed === 'generic-design' ? '-design' : '-' + changed)
+        && (changed !== 'generic-design' || !ref.artifactId.endsWith('transfer-design')))!;
+      const file = join(fixture.root, ref.location, changed === 'generic-design' ? '_cosmos/design.json' : changed === 'plan-v2' ? '_cosmos/transfer-plan.json' : '_cosmos/transfer-design.json');
+      if (changed === 'generic-design') { const data = JSON.parse(await readFile(file, 'utf8')); data.summary = 'Changed valid-shape generic design'; await writeFile(file, JSON.stringify(data), 'utf8'); }
+      else await writeFile(file, '{}', 'utf8');
+    }
+  });
+  assert.ok(before);
+  assert.ok(!f.calls.some(item => ['art', 'coding'].includes(item.kind)), 'Frozen-input corruption must fail before either downstream author provider');
+  assert.ok(f.result.slice(1).every(task => task.attempts.length === 0), 'Rejected input cannot start downstream attempts');
+  const after = await f.controller.read();
+  assert.deepEqual(after.ledger, before.ledger); assert.deepEqual(after.requests, before.requests);
+  assert.deepEqual(after.run.fees, before.run.fees); assert.equal(after.run.originalStartedAt, before.run.originalStartedAt); assert.equal(after.run.originalDeadlineAt, before.run.originalDeadlineAt);
+  assert.deepEqual(after.validation, before.validation); await assert.rejects(fetch(url));
+  for (const item of f.tasks.slice(1)) await assert.rejects(readFile(join(item.workspace, item.task.inputs[0].location)), /ENOENT|EISDIR/);
 });

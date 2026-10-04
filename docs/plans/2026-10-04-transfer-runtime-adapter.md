@@ -30,3 +30,16 @@
 - `git diff --check` 通过。全部编辑文件重新严格 UTF-8 解码，保持 LF；原 host/binding 中文内容保留，README 原始字节前缀精确相同。
 
 本项候选待独立审查；计划 source marker 是 `TRANSFER_RUNTIME_INPUT_ADAPTER_SOURCE_READY`。未接 persistent/media consumer 时 coding 明确 failed / insufficient_evidence，不执行 generic build/play/promote，不返回 accepted delivery。新的 design 语义修复及实际迁移入口仍未实现。
+
+## 独审 P2 增量
+
+候选 `5ca2d8e6f9c66b23df02f8607bed88bb760e7d9b` 未获批准：原 `requireCurrent` 只检查 scope/origin，冻结输入被改动后仍能派发 art，再到 coding 绑定才失败。本增量只改 runtime adapter、定向测试及本记录。
+
+- 完整 gate 复用原 `verifyPreparedTransferAcceptance`，检查完整需求、冻结地图与双 plan。当前 host 已发布准备回执，或持久设计任务已有 artifacts/passed 时，回执缺失即拒绝；生成前的 planning/design 仍允许尚未产生输出。
+- generic design 及全部四 refs 使用原 TaskJournal 的 capture ContentSignature 校验准确字节与原作者/任务/需求绑定；不新增 schema、ledger 或哈希体系。private verify/read 仅调用 scope guard，dispatch gate 不互相递归。verify/recover/bind 入口也复用同一完整 gate。
+- 四个 RED：在 design 已独立批准、art preAuthor 之前修改 plan-v2、地图、删除准备回执或改写仍合法的 generic design，旧实现均继续调用下游 provider；4/4 失败，17.6143798 秒。
+- 最终增量 `node --experimental-strip-types --test --test-name-pattern='changed frozen|runtime design prepares four' tests/transfer/runtime-host.test.ts`：**5/5、0 failed/skip，24.1781744 秒**。四个篡改场景的 art/coding provider 与 attempt 都为零，输入未镜像，原 ledger/requests/fees/window/grants/起止时钟精确保持，listener 已关闭。
+- `--test-name-pattern='real v1/v2' tests/transfer/runtime-host.test.ts`：**1/1，14.8756504 秒**，真实 registry 精确依赖闭包、双 plan 分选及同 origin 保持。其余未受影响的默认 host、oracle 和浏览器证据复用。
+- 最终增量 strict：`node node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --skipLibCheck --allowImportingTsExtensions --verbatimModuleSyntax --types node probes/transfer/runtime-host.ts tests/transfer/runtime-host.test.ts tests/transfer/runtime-host.fixture.ts`：**exit 0，7.2284722 秒**。
+
+增量仍待同一独立 reviewer 复审；没有实际 provider、浏览器、私有验证目录、账本变更或新运行。
