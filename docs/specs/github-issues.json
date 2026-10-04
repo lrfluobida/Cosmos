@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 42
+    "childCount": 43
   },
   "tasks": [
     {
@@ -1946,8 +1946,52 @@
       "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/43#issuecomment-5979094810",
       "actualLedgerUpgradeApplied": false,
       "actualCos16GroupDelegationApplied": false
+    },
+    {
+      "taskId": "COS-43",
+      "title": "提供固定迁移案例的原生运行入口与准入",
+      "number": 44,
+      "id": 5698693292,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/44",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        { "id": "COS-20", "number": 21, "url": "https://github.com/lrfluobida/Cosmos/issues/21" },
+        { "id": "COS-21", "number": 22, "url": "https://github.com/lrfluobida/Cosmos/issues/22" },
+        { "id": "COS-22", "number": 23, "url": "https://github.com/lrfluobida/Cosmos/issues/23" },
+        { "id": "COS-23", "number": 24, "url": "https://github.com/lrfluobida/Cosmos/issues/24" },
+        { "id": "COS-24", "number": 25, "url": "https://github.com/lrfluobida/Cosmos/issues/25" },
+        { "id": "COS-25", "number": 26, "url": "https://github.com/lrfluobida/Cosmos/issues/26" },
+        { "id": "COS-26", "number": 27, "url": "https://github.com/lrfluobida/Cosmos/issues/27" },
+        { "id": "COS-27", "number": 28, "url": "https://github.com/lrfluobida/Cosmos/issues/28" },
+        { "id": "COS-28", "number": 29, "url": "https://github.com/lrfluobida/Cosmos/issues/29" },
+        { "id": "COS-29", "number": 30, "url": "https://github.com/lrfluobida/Cosmos/issues/30" },
+        { "id": "COS-30", "number": 31, "url": "https://github.com/lrfluobida/Cosmos/issues/31" },
+        { "id": "COS-31", "number": 32, "url": "https://github.com/lrfluobida/Cosmos/issues/32" },
+        { "id": "COS-32", "number": 33, "url": "https://github.com/lrfluobida/Cosmos/issues/33" },
+        { "id": "COS-33", "number": 34, "url": "https://github.com/lrfluobida/Cosmos/issues/34" },
+        { "id": "COS-34", "number": 35, "url": "https://github.com/lrfluobida/Cosmos/issues/35" },
+        { "id": "COS-35", "number": 36, "url": "https://github.com/lrfluobida/Cosmos/issues/36" },
+        { "id": "COS-36", "number": 37, "url": "https://github.com/lrfluobida/Cosmos/issues/37" },
+        { "id": "COS-37", "number": 38, "url": "https://github.com/lrfluobida/Cosmos/issues/38" },
+        { "id": "COS-38", "number": 39, "url": "https://github.com/lrfluobida/Cosmos/issues/39" },
+        { "id": "COS-39", "number": 40, "url": "https://github.com/lrfluobida/Cosmos/issues/40" },
+        { "id": "COS-40", "number": 41, "url": "https://github.com/lrfluobida/Cosmos/issues/41" },
+        { "id": "COS-41", "number": 42, "url": "https://github.com/lrfluobida/Cosmos/issues/42" },
+        { "id": "COS-42", "number": 43, "url": "https://github.com/lrfluobida/Cosmos/issues/43" }
+      ],
+      "sourcePrerequisiteScopes": { "COS-41": "pending-reviewed-source", "COS-14": "draft-scope", "COS-16": "frozen-contract-scope" },
+      "validationOutputsFor": [
+        { "id": "COS-16", "number": 17, "url": "https://github.com/lrfluobida/Cosmos/issues/17" },
+        { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "design-approved-awaiting-COS41-source",
+      "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 42,
+  "verifiedNativeSubIssues": 43,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
