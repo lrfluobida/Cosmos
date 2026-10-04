@@ -28,6 +28,10 @@ Case7 结果（历史）：`cos20-native-validation-7` 在准确 `2404982` 于 `
 
 最新 Case8 结果：`cos20-native-validation-8` 在准确 `ef4b2ea2bdd9b867cac6fe9797a56257569d663a` 上由原生运行生成并自动接受 **v2 有界单关**。UTC`2026-10-03T18:41:12.207Z`开始、原定`19:26:12.207Z`截止、`18:56:49.704Z`结束，937,497ms / 15分37.497秒。76请求新增保守峰值估算 **¥1.549592**，共享 **¥7.008623**，unknown/reserved0、结束时snapshot1413/ledger3。v1在browser090的`media.audioStarted-defeat:false`被真实归为code_defect；一次自动linked repair后v2构建通过、真实Edge111/111、0failed/0skip/errors[]、独立codingreview approved并promotion。原v1失败与旧七案例保留，平台实施者没有手改游戏；manual consumed，不重开。Closure6仅归还C8未用任务capacity，revision1414/费用不变。此为有界单关自动成功，不代表完整经典基准、最终还原目标或实际用户体验通过。
 
+当前组件验收：独立g3_component_reviewer复核C8固定白名单报告/build/原8AC与v1-v2计划一致性/repair dispatch，结合Root只读76请求完整结算核验及既有COS13模拟边界证据，批准COS10/11/13原组件条件。Root已分别发布并精确读回[COS10 completed/closed](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5979967185)、[COS11 completed/closed](https://github.com/lrfluobida/Cosmos/issues/12#issuecomment-5979968242)、[COS13 completed/closed](https://github.com/lrfluobida/Cosmos/issues/14#issuecomment-5979969151)，父#1仅三项checkbox改为[x]、仍43children。三项当前integrationStatus为complete；原live-failed/offline状态、早期失败、源码SHA与费用历史保留。
+
+证据索引及层次见[G3组件验收记录](docs/reviews/2026-10-04-g3-component-acceptance.md)：C8实际为serial、无compaction、15分37.497秒，不能写成真实并行/压缩/12h；COS13并行峰值2为注入、SDK压缩用mock HTTP、12h截止用模拟时钟。沿原closed-only条件自然满足G3，不改gate，不代表完整classic、实际迁移、公开human CLI或用户体验通过。Source43源码已审集成但actual entry/ledger升级/claim/pay仍NONE；八案例/closure6/revision1414/ledger3/共享7008623/40closed6audit及原预算时钟保持。
+
 ## 用户提出的目标
 
 - 以 pi agent 为基座，构建游戏开发 agent。
@@ -61,7 +65,7 @@ Case7 结果（历史）：`cos20-native-validation-7` 在准确 `2404982` 于 `
 | 真实成本与时延探针 | native C8 有界单关自动通过，v2 已接受 | 76 请求新增保守峰值估算 ¥1.549592，共享 ¥7.008623，unknown/reserved0；一次自动repair后Edge111/111与独立codingreview通过，八案例已消费，六closures/40grants仅归还未用容量 |
 | 任务拆分 | 已发布 | [43 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#44；43 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..43 source 已审集成，迁移实际准入待Root，实际 C8 有界单关通过 | COS10切片主要目标与COS11一次真实修复形成实证；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3其余长时/恢复条件仍待核对，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..43 source 已审集成，迁移实际准入待Root，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -479,7 +483,7 @@ Source41文档登记时记录（历史）：保留已独审4eb登记链后安全
 
 十二批准路径字节一致、UTF8/noBOM/LF/中文/diffcheck通过。作者pure9/9（35.0375秒）、默认C8 identity1/1（2.044秒）、strict9.108秒证据复用；独审完整DAG/journal/唯一repair代表1/1（23.630秒），另历史case4 writer在env prepare中出现后recheck拒绝：prepare1/execute0、旧snapshot bytes不变、新case/operator receipts零（4.064秒）。联合仅固定newinput/declaration原六checks、两host stages和预算组代表1/1、0skip（47.9131ms），未重复compiler/DAG/Edge。
 
-当前41/42/43均为已审集成源码，实际迁移入口仍待Root在最终source/docs批准main上fresh免费preflight/balance/route/真实operator；没有live claim、ledger升级/delegation或paid。内部operator不是实际human CLI或完整benchmark。八历史案例、C8接受结果/closure6、共享估算7008623 micro-CNY、revision1414/ledger3、40closed grants/六audits、原预算/clock/caps与human NONE保持；COS10/11/13 metadata、预览和私有数据未改。
+当前41/42/43均为已审集成源码，实际迁移入口仍待Root在最终source/docs批准main上fresh免费preflight/balance/route/真实operator；没有live claim、ledger升级/delegation或paid。内部operator不是实际human CLI或完整benchmark。八历史案例、C8接受结果/closure6、共享估算7008623 micro-CNY、revision1414/ledger3、40closed grants/六audits、原预算/clock/caps与human NONE保持；Source43单独登记时未改COS10/11/13 metadata；后续组件验收见上，预览和私有数据未改。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

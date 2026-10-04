@@ -55,10 +55,10 @@
 - [ ] [COS-07 接通运行时角色与独立评审上下文](https://github.com/lrfluobida/Cosmos/issues/8)
 - [ ] [COS-08 建立正常输入驱动的验收链路](https://github.com/lrfluobida/Cosmos/issues/9)
 - [ ] [COS-09 实现产物登记与代码资产集成](https://github.com/lrfluobida/Cosmos/issues/10)
-- [ ] [COS-10 由 Cosmos 生成真实端到端切片](https://github.com/lrfluobida/Cosmos/issues/11)
-- [ ] [COS-11 实现受约束的修复与重新规划](https://github.com/lrfluobida/Cosmos/issues/12)
+- [x] [COS-10 由 Cosmos 生成真实端到端切片](https://github.com/lrfluobida/Cosmos/issues/11)
+- [x] [COS-11 实现受约束的修复与重新规划](https://github.com/lrfluobida/Cosmos/issues/12)
 - [x] [COS-12 验证取消、异常退出与恢复](https://github.com/lrfluobida/Cosmos/issues/13)
-- [ ] [COS-13 验证并行调度与长时执行边界](https://github.com/lrfluobida/Cosmos/issues/14)
+- [x] [COS-13 验证并行调度与长时执行边界](https://github.com/lrfluobida/Cosmos/issues/14)
 - [ ] [COS-14 建立完整基准的运行时验收工具](https://github.com/lrfluobida/Cosmos/issues/15)
 - [ ] [COS-15 执行完整基准生成与自动验收](https://github.com/lrfluobida/Cosmos/issues/16)
 - [ ] [COS-16 验证不同需求的有限迁移](https://github.com/lrfluobida/Cosmos/issues/17)
@@ -203,7 +203,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-10 · P0 · 由 Cosmos 生成真实端到端切片
 
-- 依赖/状态：G2；仍使用全部验证共享的 ¥150 余额。
+- 依赖/状态：G2；原组件独立验收complete/closed，[完成评论](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5979967185)由Root POST/PATCH/GET精确读回；仍使用全部验证共享的 ¥150 余额。
 - 输出/范围：`probes/e2e/` 与独立运行产物；从通用模板出发，由运行时完成有资源、冷却、波次、胜负及重开的一个关卡。
 - 工作：串起需求、设计、生成代码/原创动作/音频、集成和独立自动验收；平台实施者不手写该关卡补齐证据。
 - 增补测量：拟先在累计不超过 ¥30 的有界探针额内测一组不同机制与一次修复，费用仍计入共享 ¥150 验证账本；按固定开销、机制族、资产类、集成与验收外推，不按关卡数简单线性放大。
@@ -211,11 +211,12 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 失败/证据：只有预制样例运行、外部手写游戏冒充 Cosmos 生成或缩减验收后过关即失败；保留完整运行链与失败报告。
 - 边界：此关通过只证明端到端链路；完整内容清单和最终还原目标保持不变。
 
-- 实际切片证据：原生C8在source `ef4b2ea`生成v1，真实browser090 `media.audioStarted-defeat:false`触发code_defect；一次自动linked修复后v2 build/Edge111/111/0failed/0skip/errors[]及同版本独立codingreview approved，`2026-10-03T18:56:49.570Z`被接受。平台未手改game，原v1失败/旧七案例保留；76请求新增保守峰值估算¥1.549592/shared¥7.008623，937497ms，manual consumed。此关主要目标已实证，早期pilot失败仍保留，完整经典内容/最终还原目标和用户体验未通过；[最新C8结果](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5972584874)已精确读回。
+- 实际切片证据：原生C8在source `ef4b2ea`生成v1，真实browser090 `media.audioStarted-defeat:false`触发code_defect；一次自动linked修复后v2 build/Edge111/111/0failed/0skip/errors[]及同版本独立codingreview approved，`2026-10-03T18:56:49.570Z`被接受。平台未手改game，原v1失败/旧七案例保留；76请求新增保守峰值估算¥1.549592/shared¥7.008623，937497ms，manual consumed。此组件原条件已独立验收完成，早期pilot失败仍保留，完整经典内容/最终还原目标和用户体验未通过；[最新C8结果](https://github.com/lrfluobida/Cosmos/issues/11#issuecomment-5972584874)已精确读回。
+- 组件验收：独立复核原8 gameplay AC、111步正常输入、v1/v2计划与task acceptance一致、构建和同版本review/promotion；Root只读核验76请求均结算、无未知预留。原失败/费用/源码SHA保持；[组件记录](../reviews/2026-10-04-g3-component-acceptance.md)分列实际与模拟证据，不重跑或另付费。
 
 ### COS-11 · P1 · 实现受约束的修复与重新规划
 
-- 依赖/状态：COS-10；复用其产物与证据，不无故重新生成。
+- 依赖/状态：COS-10；原组件独立验收complete/closed，[完成评论](https://github.com/lrfluobida/Cosmos/issues/12#issuecomment-5979968242)由Root POST/PATCH/GET精确读回；复用其产物与证据，不无故重新生成。
 - 输出/范围：`src/runtime/repair/` 与失败分类、修复交接、无进展终止规则。
 - 工作：反馈携带复现、期望、实际、产物版本及验收 ID；分别处理代码缺陷、服务异常、需求冲突和依据不足。
 - 通过：预置缺陷可转给正确角色，定向修复经独立复核；重复无进展或预计超限会停下并交付差距。
@@ -223,6 +224,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 边界：重试次数按验证结果固定并写入配置；需求/预算变化由用户决定，常规修复不增加人工签收点。
 
 - 实际有界修复：C8真实v1 code_defect经现有一次repair route新建linked attempt，repair25 SDK请求/449517 micro-CNY，v2原HostAC/Edge111及独立codingreview通过并接受；未删失败用例、改容差、人工改game或增加repair额度。源码原READY/source005f51b/mergee1467f0保持，actualNativeRepairValidation单列；不把这一组件实证扩成全部产品/长时恢复完成，原费用与失败证据保留。
+- 组件验收：独立核对真实repair dispatch、linked v2 attempt/当前版本独立review、原AC和计划完全不降级，复用batch05/06失败分类/无进展停止与限额模拟边界证据。当前complete，旧offline-verified-awaiting-live为审批时历史；[组件记录](../reviews/2026-10-04-g3-component-acceptance.md)保留v1失败、实际费用和一次修复边界。
 
 ### COS-12 · P1 · 验证取消、异常退出与恢复
 
@@ -235,12 +237,13 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-13 · P1 · 验证并行调度与长时执行边界
 
-- 依赖/状态：COS-07、COS-08、COS-12。
+- 依赖/状态：COS-07、COS-08、COS-12；原组件独立验收complete/closed，[完成评论](https://github.com/lrfluobida/Cosmos/issues/14#issuecomment-5979969151)由Root POST/PATCH/GET精确读回。
 - 输出/范围：`src/runtime/scheduler/` 与长链路/并发验证记录；依赖调度、进度摘要与资源限额。
 - 工作：注入并行资源冲突、服务退避、长上下文压缩和临近截止时间的运行；保留已通过任务并重派受影响部分。
 - 通过：无重复执行和漏任务；并发预留不超额；到时停止新工作并收敛在途任务；用户能据状态继续处理。
 - 失败/证据：有任一失联付费任务未记账、失败依赖仍被使用或报告“完成”但证据不齐即失败。
 - 边界：可用模拟时钟验证 12h 硬截止边界，但必须标为模拟；少量真实长链路用于测量，不能声称已实际跑满 12h。
+- 组件验收：复用已独审batch06/source `cf7d5f63a7df5de45a0fa187b5ed727304bf5344`、merge `d3aab995c8b29a384c389192323c6dfa47cc4f98`：parallel peak2为注入，原生SDK compaction为mock HTTP，12h硬截止为模拟时钟。真实C8为serial、无compaction、937497ms；Root只读确认76unique requests=76settled entries、unknown/reserved0/owner absent，实际长链路未漏账，不声称实际并行或跑满12h。当前complete，旧offline审批状态为历史；[组件记录](../reviews/2026-10-04-g3-component-acceptance.md)列明证据层次。
 
 ### COS-14 · P1 · 建立完整基准的运行时验收工具
 
@@ -441,7 +444,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - Case8执行前输入/范围（历史）：固定全新 `cos20-native-validation-8`，沿用declaration-v2/80、同9inputs/model/outputcaps、五grants合¥21、新case¥5/45分钟/一次codingrepair、shared¥150/首批¥30；当时prior1..7已停止，35closed grants/五笔真实closure记录须精确认证，COS31/COS32及caller源码已独审集成，尚未claim或paid。
 - Case8执行前源码准入（历史）：pureFS声明、caller和七历史/35closures/五audits/source门槛已独审通过；作者31focused与唯一strict7.202秒/importClosure exit0、独审6/6/0skip（71.592秒）复用。八逻辑/九物理批准路径（含test git mv）字节一致、UTF8/LF/中文保持/diffcheck通过，authorProtocolCorrections/codingHandoffClarifications/hostEvidencedCodingHandoff 均保持1，host文件原字节保持；联合固定声明代表1/1、0skip（2.0592ms），未重矩阵/compiler/Browser。最终docs批准后root用准确finalmain做免费preflight/资金核对/真实coordinator决定并冻结，再执行；全部原HostAC/additionalchecks、逐concern当前版本证据的独立review与normal-input/accepted candidate齐备才记通过，保留真实失败与有界repair证据。
 - Case8实际结果：source `ef4b2ea2bdd9b867cac6fe9797a56257569d663a`，UTC`2026-10-03T18:41:12.207Z`开始/原定`19:26:12.207Z`截止/`18:56:49.704Z`结束，937497ms；76calls=planning1/design9/art19/coding22/repair25，micro费用13588/112966/338470/635051/449517，新增1,549,592/shared7,008,623/unknownreserved0/snapshot1413。Design/artpassed，coding v1 browser090 `media.audioStarted-defeat:false`真实code_defect失败；一次新linked repair后v2 build/Edge111/111/0failed/0skip/errors[]、PID464 forcedfalse/exitedtrue、同版本独立review approved并promotion。AcceptedAt18:56:49.570Z，project准确`registry/candidates/cos20-native-validation-8-game/v2/project`，reviewer/context/attempt精确ID见mapping；原v1失败保留，没有平台人工改game。Nativeexec12527exit0/Node26584dead/Edgegone/keyclear/shared与registryownerabsent后root解冻，manual consumed；closure6仅归还未用容量，旧七案例/费用前缀保持。[C8及closure6公开结果](https://github.com/lrfluobida/Cosmos/issues/34#issuecomment-5972585087)已精确读回。
-- 当前边界：原源码审批与offline/open保持，actual native bounded单关已接受v2；不重开C8或手改原game，完整classic/最终还原目标、G4和实际用户体验尚未通过，G3其余长时/恢复条件待核对。C7失败/C6 free111及旧历史保持，source34正式generation决定入口不能把validation C8当用户体验认可。
+- 当前边界：原源码审批与offline/open保持，actual native bounded单关已接受v2；不重开C8或手改原game，完整classic/最终还原目标、G4和实际用户体验尚未通过，COS10/11/13组件已独立验收closed，G3沿原closed-only条件自然满足。C7失败/C6 free111及旧历史保持，source34正式generation决定入口不能把validation C8当用户体验认可。
 
 ### COS-34 · 持久化最终用户体验决定并绑定交付版本
 
