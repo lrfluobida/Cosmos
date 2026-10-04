@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 42 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 43 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、真实升级NONE，COS41 design反馈实施中未READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
+调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、真实升级NONE，COS41 design反馈source已审，COS43原生入口实施中未READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -88,6 +88,7 @@
 - [ ] [COS-40 接通持久浏览器与生成媒体的完整验收](https://github.com/lrfluobida/Cosmos/issues/41)
 - [ ] [COS-41 在原设计会话中提供有界语义反馈](https://github.com/lrfluobida/Cosmos/issues/42)
 - [ ] [COS-42 将迁移验证绑定到原 COS16 预算组](https://github.com/lrfluobida/Cosmos/issues/43)
+- [ ] [COS-43 提供固定迁移案例的原生运行入口与准入](https://github.com/lrfluobida/Cosmos/issues/44)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -493,18 +494,26 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-41 · 在原设计会话中提供有界语义反馈
 
-- 依赖/状态：已发布 [#42](https://github.com/lrfluobida/Cosmos/issues/42)，id5697722881，第41个原生子任务、父checkbox/原生关联由root REST精确读回；in-progress/open/SOURCE_NOT_READY。source前置COS-07/23/38/40对应源码，40已独审合入，Root已从EA approved40 source正式启动41专属分支实施，不要求完整任务closed；outputs16/18，未来marker TRANSFER_DESIGN_FEEDBACK_SOURCE_READY，当前无reviewed/source/merge SHA。
+- 依赖/状态：已发布 [#42](https://github.com/lrfluobida/Cosmos/issues/42)，id5697722881，第41个原生子任务、父checkbox/原生关联由Root REST精确读回；offline-verified-awaiting-live/open。独审 TRANSFER_DESIGN_FEEDBACK_SOURCE_READY 批准 `8e5c69746b26efd41e7e3f28180c72db695a140d`，合入 `6450f43188a8a8cfb9b986defe7631675aab6c22`；source前置COS-07/23/38/40对应已审源码，不要求完整任务closed，outputs16/18。[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/42#issuecomment-5979614161)已由Root POST+GET精确读回。
 - 原会话范围：同一design session使用可信hostTools `validate-transfer-design`，保留原grant/maxcalls/fee/deadline/session/attempt；first invalid仅允许一次rewrite process，second invalid永久exhausted，first pass seal，同bytes重试idempotent。恢复看到started却无result须保守失败，不借只读格式纠正或新增TaskAttempt扩大语义权限。
 - 审计/封存边界：mutable审计仅design，无params任意路径；成功capture绑定receipt、sealedbytes/source/inputs/task/attempt/provenance。没有tool，或afterseal改map，downstream保持0；generic说明可完善，不改factory/orchestrator/provider/ledger/caseSchema、不扩readonlycorrection/codingrepair/TaskAttempts。
-- 当前状态：设计已批准、Root已启动tool/pure实现，41尚无源码批准；平台零paid，八cases/费用/clock/caps/C8closure6/human NONE不变。沿COS16原¥10/shared150/首30及formal200/12原契约，不新增预算/实际window，不把设计方案或40synthetic consumer当41READY/迁移通过。
+- 源码证据/当前状态：九批准路径字节一致、无预算42/main碰撞、UTF8/noBOM/LF/中文/diffcheck通过；samebyte缓存/time/cold-chain三P2关闭，独审firstOnly冷恢复1/1（9.059秒）无additional rolecall，作者samebytes/time/unknown/exhausted/strict/encoding证据复用。联合仅stopped author cold cached-pass拒绝代表1/1、0skip（973.7454ms），未完整consumer/矩阵/Edge/compiler。源码具备不等于实际迁移；零paid，旧八cases/7008623/clock/caps/C8closure6/human NONE与原预算/正式契约保持，43原生入口正在独立实现、未READY，无新window/claim。
 
 ### COS-42 · 将迁移验证绑定到原 COS16 预算组
 
-- 依赖/状态：已发布 [#43](https://github.com/lrfluobida/Cosmos/issues/43)，id5698140786，第42个原生子任务、父checkbox/原生关联由root REST精确读回；offline-verified-awaiting-live/open。独审 VALIDATION_COS16_GROUP_SOURCE_READY 批准 `851020833c044cafa419245a08e467db3873951b`（base `340bc04d2ce6f186d4bdbd2bb0041b7fed057b56`），合入 `6b94b31725e341d5c4116bdc16d25ce775adf1a5`；source前置COS-02/03/20/24已审对应component，outputs16/18；actual entry尚未发布，当前不占COS43任务，真实ledger升级/组delegation尚未发生。[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/43#issuecomment-5979094810)已由Root POST+GET精确读回。
+- 依赖/状态：已发布 [#43](https://github.com/lrfluobida/Cosmos/issues/43)，id5698140786，第42个原生子任务、父checkbox/原生关联由root REST精确读回；offline-verified-awaiting-live/open。独审 VALIDATION_COS16_GROUP_SOURCE_READY 批准 `851020833c044cafa419245a08e467db3873951b`（base `340bc04d2ce6f186d4bdbd2bb0041b7fed057b56`），合入 `6b94b31725e341d5c4116bdc16d25ce775adf1a5`；source前置COS-02/03/20/24已审对应component，outputs16/18；审批时actual entry尚未发布的状态仅为历史；现COS43已登记但未READY，真实ledger升级/组delegation尚未发生。[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/43#issuecomment-5979094810)已由Root POST+GET精确读回。
 - 版本/原额度：准备declaration3/validation ledger4，snapshot3保持；旧v1/v2、ledger1..3、八cases/六audit的字节解释不变。Root独有实际只读核对原父taskId COS-16 allocation10,000,000 micro-CNY、无entry/committed0，本作者不查真实ledger，也不猜其他legacy84,596,040组成。认证derived五roles初向量planning400000/design1200000/art2800000/code2800000/repair2800000合10000000，父row/amount不改，delegation append-only并禁止direct parent dispatch。
 - 同时守卫：原子核task上限/case¥5/group¥10/first¥30/shared¥150；group committed按settled+reserved计且包含unknown，不能绕费用或预留。Capacity按raw-allclosures-derivedNet，derivedNet=child allocation-child closure，保留父¥10 bucket、不加新预算；child closure只恢复group capacity，后续只领取精确剩余grant、不能再领整¥10。
 - 关闭/保真：必要group closure quote用新版本，旧六receipts不rewrite；settlement overrun如实保留并停止，不压低费用。不得任意扩为财政platform/provider/factory/scheduler/requestmeta/ownedcommand/transferhost变更；预算core与40媒体/41设计反馈独立，actual paid entry仍是后继。
-- 源码证据/当前边界：18批准路径/14src实际diff字节一致、与40无shared file碰撞、UTF8/LF/中文/diffcheck通过；独审2/2（840.0559ms）/0skip覆盖multi3case累计audit prefix/credit oversum拒/父bucket只计一次及overcharge保真stop、其他admitted settle/cancel/drainowner release。作者new12/legacy15/strict6.8899秒证据复用，联合仅父bucket一次/禁directparent reservation代表1/1、0skip（5.6162ms），未全编译/Root矩阵/Phaser。零paid、无真实upgrade/delegation/窗口/迁移，原八cases/7008623/C8closure6/clock/caps/human NONE与formal200/12不变；公开COS16 CLI/实际入口仍待验，41实施中未READY，不新建实际ledger或续旧预算。
+- 源码证据/当前边界：18批准路径/14src实际diff字节一致、与40无shared file碰撞、UTF8/LF/中文/diffcheck通过；独审2/2（840.0559ms）/0skip覆盖multi3case累计audit prefix/credit oversum拒/父bucket只计一次及overcharge保真stop、其他admitted settle/cancel/drainowner release。作者new12/legacy15/strict6.8899秒证据复用，联合仅父bucket一次/禁directparent reservation代表1/1、0skip（5.6162ms），未全编译/Root矩阵/Phaser。零paid、无真实upgrade/delegation/窗口/迁移，原八cases/7008623/C8closure6/clock/caps/human NONE与formal200/12不变；公开COS16 CLI/实际入口仍待验，41已审集成、43实际入口仍待验，不新建实际ledger或续旧预算。
+
+### COS-43 · 提供固定迁移案例的原生运行入口与准入
+
+- 依赖/状态：已发布 [#44](https://github.com/lrfluobida/Cosmos/issues/44)，id5698693292，第43个原生子任务、父checkbox/原生关联由Root REST精确读回；in-progress/open/SOURCE_NOT_READY。Source20..42精确components stage/marker/source+merge祖先须通过，41三P2已关且source已审合入；Root正式从clean6450 source基底启动43专属cos43_implementer。COS14 draft/COS16 frozen仅scope，不require完整任务closed；outputs16/18为partial内部operator，不冒充COS18真实human前门或关闭原COS16公开要求。未来marker TRANSFER_NATIVE_ENTRY_SOURCE_READY，43自身仍无批准源SHA/livecase。
+- 固定范围：newcase `cos20-transfer-validation-1`、declaration3/quote2、case5,000,000micro-CNY/45分钟/80calls/唯一codingrepair及41原session semantic1；derived planning400000/design1200000/art2800000/code2800000/repair2800000合原COS16 parent10000000/shared150/首30。固定requirements保留六T16+两stages/.preparation/topbudgetGroup，template无map/path/game/art/humanfake，非算法改写。
+- 历史/免费准入：只加新transfer文件和old validation identity narrow seam，旧Case8 wrapper/bytes/AC不改；每笔old closure认证其old currentCase.declaration hash，不用当前new input，旧六receipts不rewrite。Fresh preflight确认八consumed/stopped/current8、unknownreserved0、40closed6audit、费用/clock/source祖先/markers/noowner/newroot-marker absent，仅只读、不消费。
+- 原子运行边界：groupclaim把ledger3→4/newcase/delegation原子提交，无upgrade-only旁路；固定nativebootstrap新planningID、runOwnedNode与host owned captures，withPreparation planner/validatedtasks/executionreceipt/DAG native roles、production无sessionFactory，沿原journal/oneRepair/effectivefinish。实际八段/media/process/independentreview/promotion/ledger SDKcalls/clock均须真实报告，human不写confirmed。
+- 当前状态：Source43仅独立源码实施/零paid，自身待独审，不能hostprepare/receipt/claim实际case；Root独有真实ledger操作，全部source/docs ready finalmain后再做freepreflight/balance/route/真实operator。C8/closure6/7008623/clock/caps/human NONE与其他任务保持，未创建livecase或升级实际ledger，不触preview/private/key或重开旧已消费案例。
 
 ## 5. 任务与上下文包模板
 
