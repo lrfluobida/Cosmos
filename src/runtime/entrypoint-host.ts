@@ -376,26 +376,30 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     };
     return [createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, guard }), ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
+  const captureLayout = (...entries: { artifactId: string; paths: string[] }[]) => `Capture file layout: ${JSON.stringify(entries)}. Select the exact current artifactId/version reference in this packet's inputs, including the reviewed task's output artifacts, and read reference.location + '/' + the relative path. Author writes use only the declared authors/... source paths before capture; reviewer and downstream reads use immutable captures. Never append authors/... to a capture root or infer a version/location from an author path. Layout guidance grants no additional read or write permission.`;
+  const designLayout = { artifactId: designOutput.artifactId, paths: ['_cosmos/design.json'] };
+  const mediaLayout = { artifactId: mediaOutput.artifactId, paths: ['_cosmos/mediaSpec.json', 'public/assets/manifest.json'] };
+  const gameLayout = { artifactId: output.artifactId, paths: ['index.html', 'src/main.ts'] };
   const host: GenerationHost = {
     capability: preparation ? 'browser-design-input-preparation-v1' : 'browser-input-media2d-v1', availableArtifacts,
     taskPolicies: [
       { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * 0.15), writePaths: ['authors/design/design.json'],
         readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit', GAME_DESIGN_CHECK], outputs: [{ ...designOutput, destination: designOutput.location, type: 'design', schema: 'game-design/1' }],
-        rules: [`Cover only ${DESIGN_ACCEPTANCE_ID}; no dependencies. This is a design deliverable, not proof the game passes.`,
+        rules: [`Cover only ${DESIGN_ACCEPTANCE_ID}; no dependencies. This is a design deliverable, not proof the game passes.`, captureLayout(designLayout),
           `Read ${requirement.sources[0].location}. Write authors/design/design.json with exactly {summary:string,implementationNotes:string[],acceptanceMapping:{gameplayId:string},characters:[{id,purpose,states:string[]}],audio:[{id,trigger,loop:boolean}]}. Map every gameplay ID ${JSON.stringify(gameplayIds)}. Declare 1-16 original characters and 0-16 audio clips required by the confirmed brief; preserve every requested actor, action and audio trigger.`,
           MEDIA_IDENTIFIER_RULE,
           `Before finishing, call ${GAME_DESIGN_CHECK} with no arguments and correct any errors yourself. It checks current generic design bytes only; the host independently captures and validates outputs. It does not change the map, grant a new attempt or authorize semantic rewrites.`,
           'Use only the supported bounded SVG layer animation and procedural PCM audio formats. Do not shrink the confirmed gameplay or fabricate execution evidence.'] },
       { policyId: 'game-art', role: 'art', workspace: root, allocationMicroCny: Math.floor(pool * 0.25), writePaths: ['authors/art/media.json'],
         readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit'], outputs: [{ ...mediaOutput, destination: mediaOutput.location, type: 'game-media', schema: 'original-media/1' }],
-        rules: [`Cover only ${MEDIA_ACCEPTANCE_ID}; depend on the design task. Read its exact _cosmos/design.json capture. Write authors/art/media.json with exactly {characters:CharacterSpec[],audio:AudioSpec[]}; IDs, states and loops must exactly match design.`,
+        rules: [`Cover only ${MEDIA_ACCEPTANCE_ID}; depend on the design task. Read its exact _cosmos/design.json capture. Write authors/art/media.json with exactly {characters:CharacterSpec[],audio:AudioSpec[]}; IDs, states and loops must exactly match design.`, captureLayout(designLayout, mediaLayout),
           MEDIA_IDENTIFIER_RULE,
           'CharacterSpec: {id,width:16..512,height:16..512,anchor:{x,y},layers:[{id,shape:"rect"|"ellipse",x,y,width,height,fill:"#RRGGBB",stroke:"#RRGGBB",strokeWidth,radius?}],states:[{name,fps:1..60,loop:boolean,frames:[{layerId:{dx?,dy?,rotation?,scaleX?,scaleY?,opacity?}}]}]}. Up to 64 layers, 16 states, 256 total frames; every frame is a pose map and may be {}.',
           'AudioSpec: {id,sampleRate:22050|44100|48000,duration:0.02..30,loop:boolean,notes:[{midi:24..96,start,duration,gain:0..0.5,wave:"sine"|"triangle",attack,release}]}. Notes fit the clip; attack/release each >=0.002, their sum <=note duration. Produce audible original audio. The trusted host renders and validates actual files. Never copy reference artwork/audio.'] },
       { policyId: 'game-code', role: 'coding', workspace: root, allocationMicroCny: Math.floor(pool * 0.40), writePaths: ['authors/coding/src', 'authors/coding/index.html'],
       readOnlyPaths: ['requirements', 'registry', 'repair-feedback'], tools: ['read', 'write', 'edit'],
       outputs: [{ ...output, destination: output.location, type: 'game-project', schema: 'browser-game/1' }],
-      rules: [`Cover exactly the gameplay IDs ${JSON.stringify(gameplayIds)}; depend on both design and art tasks. Implement the actual confirmed brief: ${draft.brief}`,
+      rules: [`Cover exactly the gameplay IDs ${JSON.stringify(gameplayIds)}; depend on both design and art tasks. Implement the actual confirmed brief: ${draft.brief}`, captureLayout(designLayout, mediaLayout, gameLayout),
         preparation ? `Read ${requirement.sources[0].location} for the fixed operator preparation proposal, then the complete captured execution requirement and prepared design plans.`
           : `Read ${requirement.sources[0].location} for the exact user answers and browser scenario.`,
         'Write only authors/coding/index.html and authors/coding/src/main.ts plus necessary files below src. Use the pinned Phaser template and the independent art capture: public/assets/manifest.json gives actual SVG frames and WAV files, served as /assets/... . Read the exact design and media input snapshots. Do not replace art output with coding-only art, modify dependencies or change acceptance.',

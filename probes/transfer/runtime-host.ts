@@ -40,6 +40,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
   let ctx: BrowserPreparationContext, origin: Awaited<ReturnType<typeof reserveTransferOrigin>>;
   let transfer: ArtifactReference, planRefs: { v1: ArtifactReference; v2: ArtifactReference };
   let preparedPublished = false;
+  let captureLayout: string;
   let designValidation: ReturnType<typeof createTransferDesignValidation>;
   const receiptFile = 'host-transfer-prepared-inputs.json';
   const guard = async () => { try { await ctx.requireScope(); await origin.verify(); } catch (error) { await origin.close(); throw error; } };
@@ -175,6 +176,9 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
       await ctx.requireScope();
       transfer = ctx.registry.artifactRef(ctx.name('transfer-design'), 'v1');
       planRefs = { v1: ctx.registry.artifactRef(ctx.name('plan-v1'), 'v1'), v2: ctx.registry.artifactRef(ctx.name('plan-v2'), 'v1') };
+      captureLayout = `Capture file layout: ${JSON.stringify([{ artifactId: transfer.artifactId, paths: ['_cosmos/transfer-design.json', '_cosmos/transfer-binding.json'] },
+        ...[planRefs.v1, planRefs.v2].map(ref => ({ artifactId: ref.artifactId, paths: ['_cosmos/transfer-plan.json'] }))])}. Select each exact artifactId/version reference from the current packet inputs and read reference.location + '/' + the relative path. The two plans have distinct artifact roots despite the same relative filename; read both fixed input references. Only the design author writes authors/design/transfer-design.json before capture; reviewers and downstream roles read these immutable paths, never an authors/design/... suffix below a capture. Read only references already in your packet; this rule adds no permissions.`;
+      preparation.designRules.push(captureLayout); preparation.codingRules.push(captureLayout);
       preparation.designOutputs = [transfer, planRefs.v1, planRefs.v2].map(ref => ({ ...ref, destination: ref.location, type: 'data', schema: ref === transfer ? 'cos16-design/1' : 'cos16-plan/1' }));
       preparation.designRules.push(`Use requirement reference ${JSON.stringify(ctx.requirementCapture)}. Write exactly {formatVersion:"cos16-design/1",requirement:thatReference,mapVersion:string,map:{tiles:string[],player:[x,y],boxes:[[x,y],[x,y]],targets:[[x,y],[x,y]]},solution:Direction[],paths:{wall,push,boxWall,doubleBox,restart,restore}}.`);
       origin = await reserveTransferOrigin({ root: ctx.root, resume: ctx.resume, signal: ctx.signal, requireScope: ctx.requireScope,
@@ -241,6 +245,10 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
       mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, verifyBinding }) });
   };
   if (consumer) preparation.candidateBuildDiagnostic = diagnoseTransferBuild;
-  try { return await createValidationPreparedBrowserHost({ ...input, preparation }); }
+  try {
+    const host = await createValidationPreparedBrowserHost({ ...input, preparation });
+    host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(captureLayout!);
+    return host;
+  }
   catch (error) { await preparation.close(); throw error; }
 }
