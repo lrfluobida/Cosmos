@@ -6,6 +6,7 @@ import type { MediaMetadata } from '../artifacts/types.ts';
 import type { PersistentAcceptanceSeries, PersistentAcceptanceOptions, PersistentAcceptanceReport } from '../acceptance/persistent.ts';
 import type { HostIssue, HostPassedCheck } from './repair/feedback.ts';
 import type { BrowserBuildReport } from './entrypoint-host.ts';
+import type { RoleFactoryOptions } from '../roles/factory.ts';
 
 export interface BrowserCandidateConsumerContext {
   root: string; task: TaskContract; candidate: ArtifactReference; project: string;
@@ -34,6 +35,8 @@ export interface BrowserInputPreparation {
   requireCurrent(): Promise<void>;
   designOutputs: PlanningRolePolicy['outputs'];
   designWritePaths: string[]; designRules: string[]; codingRules: string[];
+  /** Source-owned author tools; audit writes remain mutable and unavailable to reviewers. */
+  designHostTools?: { names: string[]; create: NonNullable<RoleFactoryOptions['hostTools']> };
   captureDesignExtras(task: TaskContract, workspace: string): Promise<void>;
   verifyDesignExtras(task: TaskContract): Promise<void>;
   artExtraInputs(): ArtifactReference[];

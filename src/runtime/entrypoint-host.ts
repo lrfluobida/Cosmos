@@ -430,6 +430,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       signal.throwIfAborted();
     } } : {}),
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation,
+      ...(preparation?.designHostTools ? { hostTools: roleInput => roleInput.role === 'design' ? preparation.designHostTools!.create(roleInput) : Promise.resolve([]) } : {}),
       ...(validation ? { sessionFactory: input.sessionFactory, beforeTool: async (roleInput, signal) => {
         if (roleInput.purpose === 'planning') await requirePlanningDispatch(roleInput, signal);
         else await requireDispatch(roleInput.task, signal);
@@ -663,6 +664,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   if (preparation) {
     const design = host.taskPolicies.find(policy => policy.role === 'design')!, coding = host.taskPolicies.find(policy => policy.role === 'coding')!;
     design.outputs.push(...structuredClone(preparation.designOutputs)); design.writePaths.push(...preparation.designWritePaths);
+    if (preparation.designHostTools) design.tools.push(...preparation.designHostTools.names);
     design.rules!.push(...preparation.designRules); coding.rules!.push(...preparation.codingRules);
     const prepared = host as PreparedBrowserHost;
     prepared.closePreparation = () => preparation.close(); prepared.bindPreparedCandidate = candidate => preparation.bindCandidate(candidate);

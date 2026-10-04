@@ -136,3 +136,13 @@ profile 根由内部 `mkdtemp` 创建，带 host 所有权文件，拒绝 juncti
 可信 driver 必须用 `host.withPreparation(async () => { ...原 planner / executeTaskDag... })` 包装本阶段；它复用 OwnedWork.run，并在 callback 正常返回、提前抛错或取消后等待同一个关闭 Promise。返回前重新检查取消及原 scope，不依赖 finish 必定执行。`closePreparation()` 可显式等待清理；恢复必须新建准确 resume host，再从原 journal/准备输出读取，不能重新规划或重新生成已消费产物。
 
 当前 coding 验证即使输入和 candidate 绑定正确，也返回 failed / insufficient_evidence，明确 persistent/media 执行 consumer 尚未接通，不调用 generic scenario、build/play 或 promote；finish 不返回 accepted delivery。两个冻结 IR 仍为 preparation-only/executable:false。后续任务须接实际 consumer、媒体证据及可信失败阶段，并准备同一次运行内的有界 design 语义修复和付费入口。源码准备不等于 Cosmos 已生成推箱子或迁移通过。计划 source marker 为 `TRANSFER_RUNTIME_INPUT_ADAPTER_SOURCE_READY`，只有独立审查与集成后才能登记；本项零付费测试与准确命令见 [COS-38 计划](../../docs/plans/2026-10-04-transfer-runtime-adapter.md)。
+
+## COS-41 原设计会话的有界反馈（源码准备）
+
+`runtime-host.ts` 在规划前通过可信 `preparation.designHostTools` 声明 `validate-transfer-design`，沿用原生 role factory。工具仅交给该 design 作者，严格接受空参数，固定读取 `authors/design/transfer-design.json`。它会写 host 审计，因此标记为 mutable；独立 reviewer 无权调用，作者也无权修改审计目录。
+
+每次提交保存不可覆盖的 started、原始字节与 result。第一次无效校验开放一个重作过程，下一份不同字节的提交是第二次校验；第二次失败后永久耗尽。第一次有效提交直接封存，不开放重作。相同字节复用完整结果，不增加校验轮次；started 缺少 result、坏回执或身份/输入变化均拒绝继续。原始无效 UTF-8 字节保持，作者工具仍拒绝改变已有非 UTF-8 文件的编码。
+
+Capture 必须核对成功回执、封存摘要、当前地图、完整需求/source/case/window、固定输入及原 task/attempt/author/context/session。跳过工具、封存后改图或耗尽后写出新图均不能进入 art/coding。Freeze 使用 host 保存的已校验字节，并核对实际冻结摘要；通用设计说明可以在地图不变时准确完善。恢复只检查完整回执和既有 capture，不新建会话、attempt 或分配额度。
+
+所有模型请求及 compaction 仍计入原 design grant、purpose、总调用次数、费用与截止时间；未知费用先对账。语义反馈不借用只读格式纠正，也不占 coding repair。此项仅零付费源码和合成接口测试，实际入口与真实迁移验收留后继；独立评审和集成后才可登记 `TRANSFER_DESIGN_FEEDBACK_SOURCE_READY`。定向证据见 [COS-41 计划](../../docs/plans/2026-10-04-transfer-design-feedback.md)。
