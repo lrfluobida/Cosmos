@@ -1916,7 +1916,7 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "in-progress",
-      "implementationPhase": "design-approved-source-prerequisite-ready",
+      "implementationPhase": "in-progress",
       "reviewStatus": "SOURCE_NOT_READY"
     },
     {
@@ -1939,8 +1939,13 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "reviewStatus": "VALIDATION_COS16_GROUP_SOURCE_READY",
+      "reviewedCommit": "851020833c044cafa419245a08e467db3873951b",
+      "mergeCommit": "6b94b31725e341d5c4116bdc16d25ce775adf1a5",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/43#issuecomment-5979094810",
+      "actualLedgerUpgradeApplied": false,
+      "actualCos16GroupDelegationApplied": false
     }
   ],
   "verifiedNativeSubIssues": 42,
