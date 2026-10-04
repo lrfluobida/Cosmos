@@ -8,7 +8,7 @@
 
 ## 1. 已确认的产品目标
 
-原生Case8在固定source ef4b2ea上生成v1，真实browser090音频断言code_defect失败，经既有一次linked repair后v2构建、原Edge111/111/0failed/0skip/errors[]及同版本独立codingreview approved，已自动接受有界单关。76请求新增保守峰值估算¥1.549592、共享¥7.008623；六笔免费未用容量closure后revision1414，费用/旧七案例/v1失败与C6 free111诊断保持。此结果不证明完整经典基准、最终还原目标或实际用户体验；COS34决定入口已独审集成但human NONE，COS35/36源码已独审集成但仍为preparation_only/not_executable，COS37源码已独审集成、仅验证harness fixture的隔离profile/同origin真实进程重开；COS38运行时输入adapter/COS39失败事实分类已独审集成，实际仍为preparation_only，COS40源码consumer已独审集成，只有synthetic验证；COS42原COS16预算组源码已独审集成，未升级真实ledger/不加预算；COS41原会话有界design反馈已独审集成，预算组/consumer source均具备，COS43固定入口已由Root启动实施、仍无source批准/实际准入、未有真实COS16/model生成验证，未执行新实际window，沿用COS16原预算和时钟约束，进展见 [进度记录](../../PROGRESS.md)。
+原生Case8在固定source ef4b2ea上生成v1，真实browser090音频断言code_defect失败，经既有一次linked repair后v2构建、原Edge111/111/0failed/0skip/errors[]及同版本独立codingreview approved，已自动接受有界单关。76请求新增保守峰值估算¥1.549592、共享¥7.008623；六笔免费未用容量closure后revision1414，费用/旧七案例/v1失败与C6 free111诊断保持。COS10/11/13原组件条件经独立验收后complete/closed，沿原closed-only条件自然满足G3，证据层次见[组件验收记录](../reviews/2026-10-04-g3-component-acceptance.md)。C8实际serial/无compaction，COS13并行峰值2/SDK压缩/12h边界证据分别为注入/mock HTTP/模拟时钟；此结果不证明完整经典基准、最终还原目标或实际用户体验；COS34决定入口已独审集成但human NONE，COS35/36源码已独审集成但仍为preparation_only/not_executable，COS37源码已独审集成、仅验证harness fixture的隔离profile/同origin真实进程重开；COS38运行时输入adapter/COS39失败事实分类已独审集成，实际仍为preparation_only，COS40源码consumer已独审集成，只有synthetic验证；COS42原COS16预算组源码已独审集成，未升级真实ledger/不加预算；COS41原会话有界design反馈已独审集成，预算组/consumer source均具备，COS43固定入口源码已独审集成、实际免费准入待Root、未有真实COS16/model生成验证，未执行新实际window，沿用COS16原预算和时钟约束，进展见 [进度记录](../../PROGRESS.md)。
 
 | 编号 | 要求 |
 | --- | --- |
