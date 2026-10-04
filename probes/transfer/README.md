@@ -108,3 +108,17 @@
 ### 零付费源码验证
 
 `tests/transfer/design-binding.test.ts` 的六组测试只用临时目录与合成地图，覆盖静态规则、非法地图/路径、场景完整性、UTF-8、真实 ArtifactRegistry 冻结、正常点击计划和陈旧绑定拒绝。它还验证候选不存在时预先冻结 v1/v2 等价计划，再对真实 staged candidate 绑定；不生成目标游戏、不执行浏览器、不调用 provider。定向测试和 strict 编译命令及证据见 [本任务计划](../../docs/plans/2026-10-04-transfer-design-binding.md)。
+
+## COS-37 持久 profile consumer（待独立源码评审）
+
+`src/acceptance/persistent.ts` 提供可信 host 专用的 `runPersistentAcceptance(series, options)`；`probes/transfer/acceptance.ts` 提供 `runTransferAcceptance(bindInput, options)`。后者先调用原 `bindTransferAcceptance`，把同一不可变 `cos16-plan/1` 转成完整八段和一个进程重开检查点，再在每段、每次启动前、关闭后及最终报告发布时重读候选、需求、设计和计划字节。host 的 `verifyBinding()` 还必须核对当前平台 source、运行 scope 和取消状态；该回调不能由游戏或模型提供。
+
+`options` 包含 host 拥有的 `evidenceRoot`、原始绝对 `deadlineAt`、固定 `sourceVersion`（transfer consumer）、独立总报告 `reportId`、可选 `signal`、固定 browser channel 和 `verifyBinding`。series 仅含固定普通鼠标计划、来源与绑定摘要、需求/设计/map 版本和验收 ID；不接收 profile 路径、浏览器 executable、任意 origin、脚本、storage 种子或 debug setter。所有段共享原 deadline，重开不新建运行、费用或额度。
+
+profile 根由内部 `mkdtemp` 创建，带 host 所有权文件，拒绝 junction、既存 profile 和所有权变化。每个 `fresh-profile` 段使用新目录；仅 `restore`/`victory` 复用同一个专用目录和 loopback origin。driver 用参数数组、隐藏窗口和原标准环境 allowlist 启动固定本机 Edge/Chrome 或 bundled Chromium；browser-target 公开 CDP 的唯一 browser PID 必须等于 owned ChildProcess PID，唯一 `--user-data-dir` 必须等于该绝对目录。报告保留这些 CDP 实际字段和环境变量名称，凭据及 preload 变量不传入 browser。
+
+关闭前通过普通鼠标输入得到固定 `snapshot`/`saveSnapshot`，保留实际值、画面、公开 `page.screencast` 生成的 webm 和日志。真实 `Browser.close` 后必须同时看到 child close event、exit code/signal 和 PID 不存在；任何错误、取消、deadline、绑定或必要证据变化、退出未证都停止后续段，并沿既有 owned process 策略清理。第二次启动必须是不同 PID，之后由原 `victory` plan 点击“继续游戏”并检查完整恢复状态与画面。最终报告写入期间的取消也会保留为 failed。
+
+默认 `runAcceptance` 仍使用原 launchServer/newContext 分支。持久流程另存 `persistent_profile_process_reopen` 总报告及各段原始 `normal_browser_input` 报告，不覆盖冻结计划，也不把其 `executable:false` 改为 true。测试专用 profile 留作诊断，浏览器进程必须退出；它们不能用于用户日常浏览。
+
+本次六组纯测试和一条小型真实 Edge 合成保存 fixture 只证明 harness 生命周期；另有一次默认 runner 正常路径代表检查。合成 fixture 不含推箱子地图或游戏，不能当作 Cosmos 生成或 T16-05/06 实际迁移通过。此前失败报告保留，实际迁移、同次运行来源/费用、生产 adapter、独立游戏评审和用户体验仍按原关口执行；不新增 paid window、ledger 或预算。定向证据见 [COS-37 计划](../../docs/plans/2026-10-04-persistent-browser-profile.md)。

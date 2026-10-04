@@ -1,0 +1,26 @@
+# COS-37 persistent browser profile
+
+Goal: execute trusted normal-input segments with an isolated persistent profile and prove a complete owned browser process exit before reopening. Approved base: dbe86ea42e408f0c32785f98247357a54c185cc6.
+
+Root approved the bounded design: spawn a fixed browser executable with an argument array, filtered environment and windowsHide; connect to its loopback CDP endpoint; require the browser-target PID to equal the owned child PID and its unique user-data-dir to equal the private absolute profile. Default runAcceptance continues to use launchServer/newContext. Public page.screencast records persistent-context video. No private Playwright fields, storage injection or game setters.
+
+Files: src/acceptance/persistent.ts, tiny runner/deadline/process bridges, probes/transfer/acceptance.ts, targeted tests and fixture, this plan, and a README appendix. The consumer rebinds the immutable COS-36 draft and keeps its preparation flags; execution evidence is a separate report. Every segment and process shares the original absolute deadline and the host binding guard. Only restore/victory reuse one profile, after saved-state/evidence and process-exit checks.
+
+- [x] RED: pure series/identity/checkpoint/deadline/cancellation/consumer boundaries.
+- [x] GREEN: minimal trusted driver, existing-runner bridge and COS-36 reader.
+- [x] Obtain root's real-browser slot; run one synthetic Edge mouse-save/close/reopen/continue fixture with real screenshots/video/logs and PID evidence.
+- [x] Obtain root's compiler slot; strict-check the affected import closure and focused tests.
+- [x] Re-open edits for UTF-8/Chinese, inspect diff, commit exact SHA and report evidence/gaps to an independent reviewer.
+
+No game implementation or map/assets, provider calls, new ledger/budget/window, old case reruns, private root data or user profile. The synthetic fixture proves harness behavior only. Source readiness requires independent review and the sole merger; this implementer does not issue the marker or integrate main.
+
+Evidence on 2026-10-04:
+
+- Initial RED: 6/6 assertion failures for missing API. Additional environment/scope assertions failed before implementation. A late cancellation during final report publication produced a passed result before the targeted drain fix; it now retains failed aggregate evidence.
+- Pure command: `node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/acceptance/persistent.test.ts`. Six groups passed, 0 failed/skipped, 2055.0877 ms. Covers exact origin/candidate/scope, unique PID/profile, ordinary input and required saved/media/raw evidence, the original deadline, cancellation including final write, source change, missing exit, reused PID and immutable COS-36 scope. Subsequent edits only make test imports/tuples explicit and record the same default branch style.
+- Root released the strict affected closure: `node node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --skipLibCheck --types node src/acceptance/persistent.ts src/acceptance/runner.ts src/acceptance/deadline.ts src/acceptance/process.ts probes/transfer/acceptance.ts tests/acceptance/persistent.test.ts tests/acceptance/persistent.integration.ts`. A negative-case tuple declaration needed explicit typing; the same command then exited 0 in 6.627 seconds.
+- Real command: `node --experimental-strip-types --experimental-test-isolation=none --test --test-reporter=spec tests/acceptance/persistent.integration.ts`. The first attempt failed because the new fixture used writable/nested-getter debug properties, which the existing read-only plain-data observer rejected. PID30452 fully exited; no second process launched. Raw report, screenshots and nonempty video remain under `.cosmos/cos37-synthetic/.../real-1791089866872/`.
+- Correcting only the fixture to the original debug contract yielded PID4840 to PID19696, same private profile/origin, real close events/exit0/PID absence, plus a normal default runner representative in 5090 ms. Evidence remains under `real-1791089934325`.
+- Final affected evidence replay after adding CDP/environment/scope fields and cancellation publication handling passed 1/1, 0 failed/skipped, 5213.1747 ms test duration. Edge154.0.4258.48, PID27860 to PID29284, same private profile and `http://127.0.0.1:56738`, both complete exits, actual nonempty PNG/webm/log/raw reports, credentialForwarded:false; default runner representative passed. Total measured 4662 ms. Evidence root is the implementer worktree's `.cosmos/cos37-synthetic`, reports under `cos37-synthetic/fixture/synthetic-v1/real-1791090394441/`; final source/fixture byte digest `85599aece34efb668b4c943b51169410328d0543b7331fe2b1197c4191829848` (Git HEAD was the approved base while the worktree implementation was under test). No source bytes changed after that replay.
+
+Remaining: fresh independent review and sole-merger integration; production COS-18 adapter and actual runtime transfer generation/acceptance with its same-run provenance, original budget and current deadline. All original prepared plan flags stay false. No game, actual transfer, paid capability or human acceptance is claimed.

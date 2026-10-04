@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>COS37 合成保存 fixture</title>
+<style>body{font:24px sans-serif;padding:36px}button{font:inherit;margin:12px;padding:18px}#board{padding:24px;background:#d9eee6}</style>
+<h1>合成保存检查</h1>
+<button id="start">开始</button><button id="save">保存一次</button><button id="continue">继续</button>
+<div id="board">保存值：0</div><p id="status">新档</p>
+<script>
+const key = 'cos37-synthetic-save';
+let state = { fixture: 'cos37-mouse-save', count: 0 };
+const display = status => { document.querySelector('#board').textContent = '保存值：' + state.count; document.querySelector('#status').textContent = status; };
+if (localStorage.getItem(key)) display('等待继续');
+document.querySelector('#start').addEventListener('click', () => { state = { fixture: 'cos37-mouse-save', count: 0 }; display('新档'); });
+document.querySelector('#save').addEventListener('click', () => { state.count++; localStorage.setItem(key, JSON.stringify(state)); display('已保存'); });
+document.querySelector('#continue').addEventListener('click', () => { state = JSON.parse(localStorage.getItem(key)); display('已恢复'); });
+Object.defineProperty(window, 'cosmosDebug', { configurable: false, get: () => Object.freeze({ transfer: Object.freeze({ snapshot: JSON.stringify(state), saveSnapshot: localStorage.getItem(key) }) }) });
+</script></html>

@@ -2,7 +2,14 @@ import { execFile } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { bounded } from './deadline.ts';
 
-/** Only receives the dedicated process owned by this run's BrowserServer. */
+/** ESRCH is positive exit evidence; permission/other errors are not absence. */
+export function browserProcessAbsent(pid: number): boolean {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+  try { process.kill(pid, 0); return false; }
+  catch (error) { return (error as NodeJS.ErrnoException).code === 'ESRCH'; }
+}
+
+/** Only receives the dedicated child owned by this run's BrowserServer or persistent driver. */
 export async function stopBrowserProcess(child: ChildProcess, timeoutMs: number): Promise<void> {
   const running = () => child.exitCode === null && child.signalCode === null;
   if (!running()) return;
