@@ -168,3 +168,15 @@ Bootstrap 使用新 planning grant 的 OwnedWork/runOwnedNode 和现有固定 wo
 第二案例保持同一输入哈希 `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`，不改变第一案例 declaration、需求和模板字节。五个固定 grants 为 385898/1200000/2800000/2800000/2800000 microCNY，合计 9985898，等于原 COS16 ¥10 扣除第一案例已结算的 14102 microCNY。已有 parent allocation 引用、首次授权及成员均沿原预算组核对；不重新分配一份 ¥10，也不自动缩小声明。原子 claim 只追加第二案例与五 grants，原历史、费用、七笔审计和时钟保持。
 
 单案例 ¥5/45 分钟/80 总请求、原会话 design 一次重作和 coding 一次 repair 保持；平台源码测试只在临时合成仓库中验证。实际第二案例须由 Root 在源码独审、集成及记录就绪后，重新 preflight 并检查 funding/model/operator 和冻结 source；本任务未调用 provider 或 browser，也未读写真实 ledger。用户体验仍为 `not_confirmed`，公开需求确认和人类试玩关口继续 pending。定向证据见 [COS-45 计划](../../docs/plans/2026-10-04-transfer-validation-case-two.md)。
+
+## COS-47 固定第三迁移案例（源码准备）
+
+`validation-case-three-run.ts` 只绑定 `cos20-transfer-validation-3`，沿用原严格参数形式和同一原生执行流水。第三个私有源码 profile 固定 declaration3/quote2、同一输入哈希 `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`；第一、第二案例声明与原需求、模板字节保持。CLI 不能选择其他 declaration、host、时钟、根目录或 fixture。
+
+免费准入要求 ledger4 上十个已消费停止案例、当前第二迁移案例、原两笔 delegation、五十 closed grants 和八笔关闭审计。每笔历史 operator/closure 源文件保持逐字节认证，closure 使用它自己的 `basis.currentCaseId` 对应 declaration 输入哈希。Source20..46 必须提供唯一精确 marker 及 reviewed/merge 祖先；新增 `TRANSFER_CASE_TWO_SOURCE_READY` 和 `DESIGN_OUTPUT_SELF_CHECK_SOURCE_READY`。实际 C1/C2 失败与源码 Ready 分别记录，只有 COS22 保留原明确的历史失败状态例外。
+
+原 COS16 group 已用及关闭后 net 均须为 175630 microCNY，各角色历史已用须为 planning 30308、design 145322、art/coding/repair 0。总金额相同但角色分布错误仍拒绝。第三案例五 grants 固定为 369692/1054678/2800000/2800000/2800000，合计 9824370，沿原 ¥10 parent、首次授权、旧成员和原分配引用，不生成新预算或自动缩小声明。原子 claim 仅追加新 case 和五 grants，历史请求、费用、审计、parent 引用与 shared 有效容量保留。
+
+原 `validate-game-design` 只读输出自检与 `validate-transfer-design` 有界地图校验都留在同一个 design 会话、attempt、grant、调用计数和截止时间；不新增语义重作或 coding repair 权限。新 planning grant 使用既有 owned bootstrap，原完整 DAG/journal、八段持久浏览器、媒体证明、独立 review、准确 promotion 和清理路径保持。单案例 ¥5/45 分钟/80 总调用、design 一次重作、coding 一次 repair、共享 ¥150/首批 ¥30 均保持。
+
+本任务仅完成零付费源码和临时合成历史测试；实际 C3 由 Root 在源码独审集成及记录 Ready 后重新 preflight、冻结 source 并核对 funding/model/operator。没有实际 ledger/case、provider/browser、API 凭据或参考游戏操作；用户体验继续 `not_confirmed`，公开需求确认和试玩关口保持 pending。定向证据见 [COS-47 计划](../../docs/plans/2026-10-04-transfer-validation-case-three.md)。

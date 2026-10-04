@@ -9,6 +9,7 @@ import { createReviewedValidationIdentityReader } from '../e2e/validation-identi
 import { TRANSFER_ACCEPTANCE_IDS } from './design.ts';
 import { TRANSFER_VALIDATION_CASE } from './validation-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_TWO } from './validation-case-two-declaration.ts';
+import { TRANSFER_VALIDATION_CASE_THREE } from './validation-case-three-declaration.ts';
 
 interface TransferRequirements {
   requirementVersion: string; specVersion: string; scope: string;
@@ -55,3 +56,5 @@ return { readTransferValidationInput, createTransferValidationIdentityReader };
 export const { readTransferValidationInput, createTransferValidationIdentityReader } = fixedInput(TRANSFER_VALIDATION_CASE);
 export const { readTransferValidationInput: readTransferValidationCaseTwoInput,
   createTransferValidationIdentityReader: createTransferValidationCaseTwoIdentityReader } = fixedInput(TRANSFER_VALIDATION_CASE_TWO);
+export const { readTransferValidationInput: readTransferValidationCaseThreeInput,
+  createTransferValidationIdentityReader: createTransferValidationCaseThreeIdentityReader } = fixedInput(TRANSFER_VALIDATION_CASE_THREE);

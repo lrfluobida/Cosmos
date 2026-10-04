@@ -19,8 +19,10 @@ import type { ValidationHostInput, ValidationHostResult } from '../e2e/validatio
 import { createTransferConsumerHost } from './runtime-host.ts';
 import { TRANSFER_VALIDATION_CASE } from './validation-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_TWO } from './validation-case-two-declaration.ts';
+import { TRANSFER_VALIDATION_CASE_THREE } from './validation-case-three-declaration.ts';
 import { readTransferValidationInput, createTransferValidationIdentityReader,
-  readTransferValidationCaseTwoInput, createTransferValidationCaseTwoIdentityReader } from './validation-input.ts';
+  readTransferValidationCaseTwoInput, createTransferValidationCaseTwoIdentityReader,
+  readTransferValidationCaseThreeInput, createTransferValidationCaseThreeIdentityReader } from './validation-input.ts';
 
 function fixedDriver(D: typeof TRANSFER_VALIDATION_CASE, readInput: typeof readTransferValidationInput, identity: typeof createTransferValidationIdentityReader) {
 function fixed(input: ValidationHostInput) {
@@ -138,3 +140,6 @@ export const { bootstrapTransferToolchain, stageTransferValidationInput, execute
 export const { bootstrapTransferToolchain: bootstrapTransferValidationCaseTwoToolchain, stageTransferValidationInput: stageTransferValidationCaseTwoInput,
   executeTransferValidationDag: executeTransferValidationCaseTwoDag, generateTransferValidationCase: generateTransferValidationCaseTwo }
   = fixedDriver(TRANSFER_VALIDATION_CASE_TWO, readTransferValidationCaseTwoInput, createTransferValidationCaseTwoIdentityReader);
+export const { bootstrapTransferToolchain: bootstrapTransferValidationCaseThreeToolchain, stageTransferValidationInput: stageTransferValidationCaseThreeInput,
+  executeTransferValidationDag: executeTransferValidationCaseThreeDag, generateTransferValidationCase: generateTransferValidationCaseThree }
+  = fixedDriver(TRANSFER_VALIDATION_CASE_THREE, readTransferValidationCaseThreeInput, createTransferValidationCaseThreeIdentityReader);

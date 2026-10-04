@@ -18,7 +18,8 @@ import { VALIDATION_CASE } from '../e2e/validation-declaration.ts';
 import { runChild } from '../e2e/host.ts';
 import { TRANSFER_VALIDATION_CASE, parseTransferValidationEntry } from './validation-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_TWO, parseTransferValidationCaseTwoEntry } from './validation-case-two-declaration.ts';
-import { createTransferValidationIdentityReader, createTransferValidationCaseTwoIdentityReader } from './validation-input.ts';
+import { TRANSFER_VALIDATION_CASE_THREE, parseTransferValidationCaseThreeEntry } from './validation-case-three-declaration.ts';
+import { createTransferValidationIdentityReader, createTransferValidationCaseTwoIdentityReader, createTransferValidationCaseThreeIdentityReader } from './validation-input.ts';
 
 const SOURCE_MARKERS: Record<string, string> = {
   'COS-20': 'CASE_TWO_SOURCE_READY', 'COS-21': 'WINDOWS_PUBLICATION_SOURCE_READY', 'COS-22': 'VERSIONED_CASE_THREE_SOURCE_READY',
@@ -31,10 +32,12 @@ const SOURCE_MARKERS: Record<string, string> = {
   'COS-40': 'TRANSFER_PERSISTENT_MEDIA_CONSUMER_SOURCE_READY', 'COS-41': 'TRANSFER_DESIGN_FEEDBACK_SOURCE_READY', 'COS-42': 'VALIDATION_COS16_GROUP_SOURCE_READY',
 };
 const SOURCE_READY = ['READY', 'SOURCE_READY', 'COMBINED_SOURCE_READY', 'PHASE_B_READY', 'READY_FOR_ROLE_IO_INTEGRATION'];
-/** Only these two frozen source-owned profiles are constructed; callers cannot select declarations. */
+/** Only these three frozen source-owned profiles are constructed; callers cannot select declarations. */
 function fixedEntry(D: typeof TRANSFER_VALIDATION_CASE, parseEntry: typeof parseTransferValidationEntry,
-  identity: typeof createTransferValidationIdentityReader, caseTwo: boolean) {
-const markers: Record<string, string> = { ...SOURCE_MARKERS, ...(caseTwo ? { 'COS-43': 'TRANSFER_NATIVE_ENTRY_SOURCE_READY', 'COS-44': 'PLANNING_POLICY_SCHEMA_SOURCE_READY' } : {}) };
+  identity: typeof createTransferValidationIdentityReader, profile: 1 | 2 | 3) {
+const markers: Record<string, string> = { ...SOURCE_MARKERS,
+  ...(profile >= 2 ? { 'COS-43': 'TRANSFER_NATIVE_ENTRY_SOURCE_READY', 'COS-44': 'PLANNING_POLICY_SCHEMA_SOURCE_READY' } : {}),
+  ...(profile === 3 ? { 'COS-45': 'TRANSFER_CASE_TWO_SOURCE_READY', 'COS-46': 'DESIGN_OUTPUT_SELF_CHECK_SOURCE_READY' } : {}) };
 const PREREQUISITES = ['COS-02', 'COS-03', 'COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', ...Object.keys(markers)];
 async function absent(repository: string, path: string, label: string) {
   try { await lstat(await safePath(repository, path)); }
@@ -49,28 +52,38 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   await absent(repository, `.cosmos/validation-shared/${intent.caseId}.json`, 'Transfer case marker');
   for (const lock of ['.controller.lock', 'registry/.commit.lock']) await absent(repository, `.cosmos/validation-shared/${lock}`, 'Original writer ownership');
   const bytes = await regularFile(ledgerRoot, 'snapshot.json'), state = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); validateSnapshot(state);
-  if (state.formatVersion !== 3 || state.ledger.contractVersion !== (caseTwo ? '4.0.0' : '3.0.0') || state.run.runId !== 'validation-2026-10-01'
+  if (state.formatVersion !== 3 || state.ledger.contractVersion !== (profile >= 2 ? '4.0.0' : '3.0.0') || state.run.runId !== 'validation-2026-10-01'
     || state.ledger.ledgerId !== 'cosmos-validation' || state.run.specVersion !== '1.0' || state.run.originalStartedAt !== '2026-10-01T06:16:16.857Z'
     || state.run.originalDeadlineAt !== '2026-10-01T18:16:16.857Z' || !state.stopReason
-    || !state.ledger.entries.some(entry => entry.requestId === 'prior-deepseek-direct-probes' && entry.status === 'settled' && entry.settledMicroCny >= 721_771)) throw new Error(`The original audited ledger${caseTwo ? '4' : '3'}, run, clock and historical charges are required.`);
+    || !state.ledger.entries.some(entry => entry.requestId === 'prior-deepseek-direct-probes' && entry.status === 'settled' && entry.settledMicroCny >= 721_771)) throw new Error(`The original audited ledger${profile >= 2 ? '4' : '3'}, run, clock and historical charges are required.`);
   const previous = Array.from({ length: 8 }, (_, index) => state.validation?.cases.find(window => window.caseId === `cos20-native-validation-${index + 1}`));
-  if (caseTwo) previous.push(state.validation?.cases.find(window => window.caseId === TRANSFER_VALIDATION_CASE.caseId));
-  if (state.validation?.cases.length !== (caseTwo ? 9 : 8) || state.validation.currentCaseId !== (caseTwo ? TRANSFER_VALIDATION_CASE.caseId : 'cos20-native-validation-8')
-    || previous.some(window => !window?.stopReason)) throw new Error(caseTwo ? 'All nine original validation cases must be consumed and explicitly stopped, with current transfer case1.'
+  if (profile >= 2) previous.push(state.validation?.cases.find(window => window.caseId === TRANSFER_VALIDATION_CASE.caseId));
+  if (profile === 3) previous.push(state.validation?.cases.find(window => window.caseId === TRANSFER_VALIDATION_CASE_TWO.caseId));
+  const currentCaseId = profile === 3 ? TRANSFER_VALIDATION_CASE_TWO.caseId : profile === 2 ? TRANSFER_VALIDATION_CASE.caseId : 'cos20-native-validation-8';
+  if (state.validation?.cases.length !== 7 + profile || state.validation.currentCaseId !== currentCaseId
+    || previous.some(window => !window?.stopReason)) throw new Error(profile === 3 ? 'All ten original validation cases must be consumed and explicitly stopped, with current transfer case2.'
+      : profile === 2 ? 'All nine original validation cases must be consumed and explicitly stopped, with current transfer case1.'
       : 'All eight original validation cases must be consumed and explicitly stopped, with current case8.');
-  if (caseTwo) {
+  if (profile >= 2) {
     const first = previous[8]!, group = validationBudgetGroup(state.ledger);
     if (!sameValue(first.quote.declaration, TRANSFER_VALIDATION_CASE) || first.quote.formatVersion !== 'validation-case-quote-2'
-      || state.ledger.allocationDelegations?.length !== 1 || state.ledger.allocationDelegations[0].caseId !== first.caseId
-      || group?.committedMicroCny !== 14_102 || group.allocatedMicroCny !== 14_102) throw new Error('The original stopped case1 delegation and its exact remaining COS16 capacity are required.');
+      || state.ledger.allocationDelegations?.length !== profile - 1 || state.ledger.allocationDelegations[0].caseId !== first.caseId
+      || group?.committedMicroCny !== (profile === 3 ? 175_630 : 14_102) || group.allocatedMicroCny !== (profile === 3 ? 175_630 : 14_102)) throw new Error('The original stopped case1 delegation and its exact remaining COS16 capacity are required.');
+    if (profile === 3) {
+      const second = previous[9]!, expectedFees = [30_308, 145_322, 0, 0, 0];
+      const roleFees = VALIDATION_ROLES.map(role => state.ledger.entries.filter(entry => [TRANSFER_VALIDATION_CASE.grants[role].taskId, TRANSFER_VALIDATION_CASE_TWO.grants[role].taskId].includes(entry.taskId))
+        .reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0));
+      if (!sameValue(second.quote.declaration, TRANSFER_VALIDATION_CASE_TWO) || second.quote.formatVersion !== 'validation-case-quote-2'
+        || state.ledger.allocationDelegations[1].caseId !== second.caseId || !sameValue(roleFees, expectedFees)) throw new Error('The original stopped case2 delegation and exact role fee distribution are required for the fixed remaining capacity.');
+    }
   }
   const histories = previous.map(window => window!), taskIds = histories.flatMap(window => VALIDATION_ROLES.map(role => window.quote.declaration.grants[role].taskId));
   if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Historical requests require reconciliation.');
-  if (state.ledger.allocationClosures?.length !== (caseTwo ? 45 : 40) || state.allocationClosureDecisions?.length !== (caseTwo ? 7 : 6)
-    || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error('The original forty closed grants and six allocation audits are required.');
+  if (state.ledger.allocationClosures?.length !== 40 + 5 * (profile - 1) || state.allocationClosureDecisions?.length !== 5 + profile
+    || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error(profile === 3 ? 'The original fifty closed grants and eight allocation audits are required.' : 'The original forty closed grants and six allocation audits are required.');
   const roots = new Map<string, string>(), historicalSources: string[] = [];
   for (const window of histories) {
-    if (!sameValue(window.quote.declaration.inputs, window.caseId === TRANSFER_VALIDATION_CASE.caseId ? TRANSFER_VALIDATION_CASE.inputs : VALIDATION_CASE.inputs)) throw new Error('Historical fixed declaration inputs changed.');
+    if (!sameValue(window.quote.declaration.inputs, [TRANSFER_VALIDATION_CASE.caseId, TRANSFER_VALIDATION_CASE_TWO.caseId].includes(window.caseId) ? TRANSFER_VALIDATION_CASE.inputs : VALIDATION_CASE.inputs)) throw new Error('Historical fixed declaration inputs changed.');
     const path = `.cosmos/e2e/${window.caseId}`, root = await safePath(repository, path);
     if (!(await lstat(root)).isDirectory()) throw new Error('Historical case root is missing.');
     for (const lock of ['.controller.lock', 'registry/.commit.lock']) await absent(repository, `${path}/${lock}`, 'Historical writer ownership');
@@ -194,7 +207,7 @@ function createNativeTransferValidationHost(): ValidationRunHost {
     prepare: async input => (await import('../e2e/validation-host.ts')).createNativeValidationHost().prepare(input),
     execute: async input => {
       const driver = await import('./validation-driver.ts');
-      return caseTwo ? driver.generateTransferValidationCaseTwo(input) : driver.generateTransferValidationCase(input);
+      return profile === 3 ? driver.generateTransferValidationCaseThree(input) : profile === 2 ? driver.generateTransferValidationCaseTwo(input) : driver.generateTransferValidationCase(input);
     },
   };
 }
@@ -205,10 +218,13 @@ async function runTransferValidationEntry(args: string[], repository: string) {
 return { preflightTransferValidationRun, runTransferValidationWithHost, createNativeTransferValidationHost, runTransferValidationEntry };
 }
 export const { preflightTransferValidationRun, runTransferValidationWithHost, createNativeTransferValidationHost, runTransferValidationEntry }
-  = fixedEntry(TRANSFER_VALIDATION_CASE, parseTransferValidationEntry, createTransferValidationIdentityReader, false);
+  = fixedEntry(TRANSFER_VALIDATION_CASE, parseTransferValidationEntry, createTransferValidationIdentityReader, 1);
 export const { preflightTransferValidationRun: preflightTransferValidationCaseTwoRun, runTransferValidationWithHost: runTransferValidationCaseTwoWithHost,
   createNativeTransferValidationHost: createNativeTransferValidationCaseTwoHost, runTransferValidationEntry: runTransferValidationCaseTwoEntry }
-  = fixedEntry(TRANSFER_VALIDATION_CASE_TWO, parseTransferValidationCaseTwoEntry, createTransferValidationCaseTwoIdentityReader, true);
+  = fixedEntry(TRANSFER_VALIDATION_CASE_TWO, parseTransferValidationCaseTwoEntry, createTransferValidationCaseTwoIdentityReader, 2);
+export const { preflightTransferValidationRun: preflightTransferValidationCaseThreeRun, runTransferValidationWithHost: runTransferValidationCaseThreeWithHost,
+  createNativeTransferValidationHost: createNativeTransferValidationCaseThreeHost, runTransferValidationEntry: runTransferValidationCaseThreeEntry }
+  = fixedEntry(TRANSFER_VALIDATION_CASE_THREE, parseTransferValidationCaseThreeEntry, createTransferValidationCaseThreeIdentityReader, 3);
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   runTransferValidationEntry(process.argv.slice(2), fileURLToPath(new URL('../../', import.meta.url))).then(result => {
     console.log(JSON.stringify(result)); if (result.outcome === 'failed') process.exitCode = 1;
