@@ -3,8 +3,8 @@ import test from 'node:test';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createTransferRuntimeHost } from '../../probes/transfer/runtime-host.ts';
-import { createWorkspaceTools } from '../../src/providers/workspace-tools.ts';
 import { createArtifactRegistry } from '../../src/artifacts/index.ts';
+import { createRoleFactory } from '../../src/roles/factory.ts';
 import { TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
 import { validationJournalBinding } from '../../src/runtime/validation-scope.ts';
 import type { PreparedTask } from '../../src/runtime/orchestrator.ts';
@@ -41,12 +41,32 @@ async function checkReads(config: PiSessionOptions, expected: { ref: ArtifactRef
   }
   const declared = layouts(packet.rules);
   for (const { ref, paths } of expected) {
+    const inventory = packet.inputFiles?.find((item: ArtifactReference) => item.artifactId === ref.artifactId && item.version === ref.version && item.location === ref.location);
+    assert.ok(inventory, `Missing current file inventory for ${ref.artifactId}@${ref.version}`);
+    assert.equal(inventory.kind, 'directory');
+    for (const path of paths) assert.ok(inventory.files.includes(path), `Missing actual relative file ${path}`);
     const row = declared.find(item => item.artifactId === ref.artifactId);
     assert.ok(row, `Missing source-owned capture layout for ${ref.artifactId}`); assert.deepEqual(row.paths, paths);
     const selected = packet.inputs.find((input: ArtifactReference) => input.artifactId === row.artifactId && input.version === ref.version)!;
     for (const path of row.paths) await read(config, selected.location + '/' + path);
   }
   assert.deepEqual(await readFile(join(config.workspace, expected[0].ref.location, expected[0].paths[0])), before);
+}
+
+async function checkInventory(config: PiSessionOptions) {
+  const packet = JSON.parse(config.context), refs = [...packet.inputs, ...packet.interfaces, ...(packet.evidence?.map((item: any) => item.source) ?? [])];
+  assert.ok(Array.isArray(packet.inputFiles), 'Missing frozen input file inventory');
+  for (const ref of refs) {
+    const entry = packet.inputFiles.find((item: ArtifactReference) => item.artifactId === ref.artifactId && item.version === ref.version && item.location === ref.location);
+    assert.ok(entry); assert.notEqual(entry.kind, 'missing');
+    assert.deepEqual(entry.files, [...entry.files].sort());
+    if (entry.kind === 'file') { assert.deepEqual(entry.files, ['']); await read(config, entry.location); }
+  }
+  const template = packet.inputFiles.find((item: ArtifactReference) => item.artifactId.endsWith('-template'));
+  assert.ok(template); assert.equal(template.kind, 'directory');
+  assert.deepEqual(template.files, ['package-lock.json', 'package.json', 'tsconfig.json', 'vite.config.ts']);
+  for (const path of template.files) await read(config, template.location + '/' + path);
+  assert.equal(template.files.some((path: string) => ['index.html', 'README.md', 'src/main.ts'].includes(path)), false);
 }
 
 /** Actual host/factory roles and captures, with no prompt, provider call or real browser. */
@@ -110,7 +130,7 @@ async function fixture(t: test.TestContext, transfer: boolean) {
 test('COS50 generic captures give actual reviewers and downstream roles scoped design media and game read paths', async t => {
   const f = await fixture(t, false), [designRef] = f.capturedDesign.task.artifacts;
   const designLayout = { ref: designRef, paths: ['_cosmos/design.json'], author: 'authors/design/design.json' };
-  const beforeReview = await f.controller.read(); await checkReads(f.capturedDesign.config, [designLayout]);
+  const beforeReview = await f.controller.read(); await checkReads(f.capturedDesign.config, [designLayout]); await checkInventory(f.capturedDesign.config);
   await assert.rejects(read(f.capturedDesign.config, 'authors/design/design.json'), /outside allowed/);
   assert.deepEqual(await f.controller.read(), beforeReview); await f.capturedDesign.approve();
   const art = await f.start(f.tasks[1]), beforeArt = await f.controller.read(); await checkReads(art.config, [designLayout]);
@@ -138,14 +158,14 @@ test('COS50 transfer reviewers and downstream packets read all four exact design
   const expected = refs.map(ref => ({ ref, paths: ref.artifactId.endsWith('transfer-design') ? ['_cosmos/transfer-design.json', '_cosmos/transfer-binding.json']
     : ref.artifactId.includes('plan-') ? ['_cosmos/transfer-plan.json'] : ['_cosmos/design.json'], author: 'authors/design/' + (ref.artifactId.endsWith('transfer-design') ? 'transfer-design.json' : 'design.json') }));
   assert.notEqual(refs[2].location, refs[3].location);
-  const beforeReview = await f.controller.read(); await checkReads(f.capturedDesign.config, expected);
+  const beforeReview = await f.controller.read(); await checkReads(f.capturedDesign.config, expected); await checkInventory(f.capturedDesign.config);
   await assert.rejects(read(f.capturedDesign.config, 'authors/design/transfer-design.json'), /outside allowed/);
   assert.deepEqual(await f.controller.read(), beforeReview); await f.capturedDesign.approve();
   const art = await f.start(f.tasks[1]), beforeArt = await f.controller.read(); await checkReads(art.config, expected);
   assert.deepEqual(await f.controller.read(), beforeArt);
   await writeFile(join(f.tasks[1].workspace, 'authors/art/media.json'), JSON.stringify(media), 'utf8');
   const capturedArt = await f.capture(f.tasks[1], art); await capturedArt.approve();
-  const coding = await f.start(f.tasks[2]), beforeCoding = await f.controller.read(); await checkReads(coding.config, expected);
+  const coding = await f.start(f.tasks[2]), beforeCoding = await f.controller.read(); await checkReads(coding.config, expected); await checkInventory(coding.config);
   assert.deepEqual(await f.controller.read(), beforeCoding);
   assert.deepEqual(beforeCoding.ledger, f.original.ledger); assert.deepEqual(beforeCoding.requests, f.original.requests); assert.deepEqual(beforeCoding.validation, f.original.validation);
   assert.equal(f.calls.length, 0);
@@ -158,10 +178,15 @@ test('COS50 retained layout rules read a newly selected capture version and refu
   await writeFile(join(f.root, folder, 'design.json'), JSON.stringify({ ...design(['observe']), summary: '当前版本 v2' }), 'utf8');
   await registry.registerCapture({ taskId: 'offline-new-version', artifactRef: next, sourceRoot: folder, files: [{ source: 'design.json', destination: '_cosmos/design.json' }],
     dependencies: [], ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, metadata: { kind: 'data', provenance: { kind: 'original-procedural', generator: 'OFFLINE changed-version fixture', sourceRefs: ['OFFLINE synthetic'] } } });
-  const config: PiSessionOptions = { ...f.capturedDesign.config, workspace: f.root,
-    tools: await createWorkspaceTools({ workspace: f.root, readPaths: [next.location], writePaths: [] }),
-    context: JSON.stringify({ ...JSON.parse(f.capturedDesign.config.context), inputs: [next], ownership: { readPaths: [next.location], writePaths: [] } }) };
+  const task = structuredClone(f.capturedDesign.task); task.artifacts = [next];
+  const factory = createRoleFactory({ maxOutputTokens: 100, maxRequests: 1, requestTimeoutMs: 1000, estimatedMaxCostMicroCny: 100,
+    sessionFactory: async config => { f.configs.push(config); return { close: async () => {}, prompt: async () => { throw new Error('No model prompt in selected-v2 regression'); } }; } });
+  const reviewer = await factory({ role: 'reviewer', task, controller: f.controller, requirement: f.requirement, validation: f.input.validation,
+    workspace: f.root, stateDirectory: join(f.root, 'sessions/layout-design-v2/review') });
+  const config = f.configs.at(-1)!; await reviewer.close();
   const before = await f.controller.read(); await checkReads(config, [{ ref: next, paths: ['_cosmos/design.json'], author: 'authors/design/design.json' }]);
+  await checkInventory(config);
+  assert.equal(JSON.parse(config.context).inputFiles.some((entry: ArtifactReference) => entry.location === first.location), false);
   assert.match(await read(config, next.location + '/_cosmos/design.json'), /当前版本 v2/);
   await assert.rejects(read(config, first.location + '/_cosmos/design.json'), /outside allowed/);
   assert.deepEqual(await f.controller.read(), before); assert.equal(f.calls.length, 0);
