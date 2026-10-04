@@ -61,7 +61,7 @@ Case7 结果（历史）：`cos20-native-validation-7` 在准确 `2404982` 于 `
 | 真实成本与时延探针 | native C8 有界单关自动通过，v2 已接受 | 76 请求新增保守峰值估算 ¥1.549592，共享 ¥7.008623，unknown/reserved0；一次自动repair后Edge111/111与独立codingreview通过，八案例已消费，六closures/40grants仅归还未用容量 |
 | 任务拆分 | 已发布 | [43 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#44；43 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..40与42 source 审批保持，COS41实施中/SOURCE_NOT_READY，COS43设计待41source，实际 C8 有界单关通过 | COS10切片主要目标与COS11一次真实修复形成实证；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3其余长时/恢复条件仍待核对，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..42 source 审批保持，COS43实施中/SOURCE_NOT_READY，实际 C8 有界单关通过 | COS10切片主要目标与COS11一次真实修复形成实证；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3其余长时/恢复条件仍待核对，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -459,11 +459,19 @@ Source42批准与41启动前边界（历史）：[Source40公共审批](https://
 
 ### COS43 固定迁移原生入口与准入登记
 
-Root真实POST+GET精确读回[COS43/#44](https://github.com/lrfluobida/Cosmos/issues/44)（id5698693292，提供固定迁移案例的原生运行入口与准入），parent原生实际43children #2–#44/父checkbox已核。Phase design-approved-awaiting-COS41-source/open/SOURCE_NOT_READY，未来marker TRANSFER_NATIVE_ENTRY_SOURCE_READY，无批准源SHA/livecase。Source20..42 components精确marker/双SHA/source祖先要求保留；41 cold-cache receipt-chain P2未Ready，不提前code/hostprepare/receipt/claim，40/42已审，COS14draft16frozen仅scope不closed循环，outputs16/18为partial internaloperator，不fakeCOS18真实human前门/不关闭原COS16public要求。
+COS43登记时的历史：Root真实POST+GET精确读回[COS43/#44](https://github.com/lrfluobida/Cosmos/issues/44)（id5698693292，提供固定迁移案例的原生运行入口与准入），parent原生实际43children #2–#44/父checkbox已核。Phase design-approved-awaiting-COS41-source/open/SOURCE_NOT_READY，未来marker TRANSFER_NATIVE_ENTRY_SOURCE_READY，无批准源SHA/livecase。Source20..42 components精确marker/双SHA/source祖先要求保留；41 cold-cache receipt-chain P2未Ready，不提前code/hostprepare/receipt/claim，40/42已审，COS14draft16frozen仅scope不closed循环，outputs16/18为partial internaloperator，不fakeCOS18真实human前门/不关闭原COS16public要求。
 
 固定新cos20-transfer-validation-1/decl3/quote2/case5m45min80calls1codingrepair+41same-sessionsemantic1、五derivedgrant400k/1.2m/2.8m/2.8m/2.8m合原parentCOS16 10m/shared150first30；requirements六T16+2stages/.preparation/topbudgetGroup，template无map/path/game/art/humanfake，oldCase8 wrapper/bytes/AC unchanged。Old closure只认证各自oldcurrentCase.declaration hash、旧六bytes不rewrite；fresh只读preflight八consumedstopped/current8/unknownreserved0/40closed6audit/feeclock/source/noowner/newroot-marker absent，不消费。Groupclaim原子ledger3→4+newcase/delegation，无独立upgrade-only；nativebootstrap新planningID/runOwnedNode/ownedcaptures/withPreparation planner及validatedtasks/executionreceipt/DAG nativeroles、production无sessionFactory、原journal/oneRepair/effectivefinish，全部actual八段/media/process/indepreview/promotion/SDKledger clock真实报告，不humanconfirmed。
 
-仅source preparation，实际账本Root独有，全部source/docs ready finalmain后Root freshfreepreflight/balance/route/operator才执行；code43尚未起，无模型/费用/新case/窗口，旧42对象与C8/closure6/7008623/1414/40closed6audit/clock/caps/actualhuman NONE原样，当前43计数含spec任务卡行。只新transferfiles+oldvalidationidentity窄seam，不patch算法；本批四doc候选待case6独审，不合未审metadata，preview/key/private未触。
+COS43实施启动前边界（历史）：仅source preparation，实际账本Root独有，全部source/docs ready finalmain后Root freshfreepreflight/balance/route/operator才执行；code43尚未起，无模型/费用/新case/窗口，旧42对象与C8/closure6/7008623/1414/40closed6audit/clock/caps/actualhuman NONE原样，当前43计数含spec任务卡行。只新transferfiles+oldvalidationidentity窄seam，不patch算法；本批四doc候选待case6独审，不合未审metadata，preview/key/private未触。
+
+### Source41 设计反馈源码审批与 Source43 入口实施
+
+独审 TRANSFER_DESIGN_FEEDBACK_SOURCE_READY 批准 `8e5c69746b26efd41e7e3f28180c72db695a140d`，合入并清推 `6450f43188a8a8cfb9b986defe7631675aab6c22`，offline-verified-awaiting-live/open。九批准路径字节一致、与budget42/main文档无碰撞、UTF8/noBOM/LF/中文/diffcheck通过；samebytes cache/time/cold-chain三P2关闭，独审firstOnly冷恢复1/1（9.059秒）/no additional rolecall，作者同bytes/time/unknown/exhausted/strict/encoding证据复用。联合仅stopped author不能读取cold cached pass代表1/1、0skip（973.7454ms），未完整consumer/矩阵/Edge/compiler。
+
+[Source41公共审批](https://github.com/lrfluobida/Cosmos/issues/42#issuecomment-5979614161)已由Root POST+GET精确读回。43注册时41未ready为历史；Root已正式从clean6450 source启动cos43_implementer，43 in-progress/open/SOURCE_NOT_READY，无sourceSHA/livecase/ledgerupgrade/pay。实际执行仍须自身独审与finalmain/source祖先/预算组/原时钟/未知费用/owner/rootmarker准入，内部operator不fakeHuman；原设计SDK session/grant/maxcalls/deadline/attempt和唯一codingrepair权限不变。
+
+保留已独审4eb登记链后安全同步已审Source41 main，再仅四docs追加41 sourceReady与43实施状态，当前43计数含spec任务卡行；原其他41task对象、C8/closure6/7008623/1414/40closed6audit/clock/caps/actualhuman NONE与完整原分母保持，Preview/private ignored内容未触，无新paid/window。候选待同records43reviewer增量，未合metadata。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
