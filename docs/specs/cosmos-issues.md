@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 51 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 52 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；C1结束时九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits为历史，COS44 policy契约源码已独审集成，COS45第二迁移case源码已独审集成、actual C2 design-schema失败；15SDK/282562ms/新增¥0.161528，C2结束时10cases/rev1488 ledger4/shared¥7.184253/closure8/50closed八audits为历史，COS46只读自检源码已独审集成，COS47第三迁移source已独审集成、actual C3规划身份失败：1SDK/33413ms/¥0.014780/无tasks-game；C3结束时11cases/rev1495 ledger4/shared¥7.199033/closure9/55closed九audits为历史，COS48主机身份绑定源码已审集成，COS49第四迁移source已独审集成、actual C4 hostcaptures通过但designreview changes_requested/無game；24SDK/1377154ms/new¥0.214694，现12cases/rev1602 ledger4/shared¥7.413727/closure10/60closed十audits，COS50路径契约源码已审，COS51第五迁移source实施中/SOURCE_NOT_READY、actual C5 NONE，迁移尚未通过，完整经典与最终用户体验未验收。
+调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；C1结束时九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits为历史，COS44 policy契约源码已独审集成，COS45第二迁移case源码已独审集成、actual C2 design-schema失败；15SDK/282562ms/新增¥0.161528，C2结束时10cases/rev1488 ledger4/shared¥7.184253/closure8/50closed八audits为历史，COS46只读自检源码已独审集成，COS47第三迁移source已独审集成、actual C3规划身份失败：1SDK/33413ms/¥0.014780/无tasks-game；C3结束时11cases/rev1495 ledger4/shared¥7.199033/closure9/55closed九audits为历史，COS48主机身份绑定源码已审集成，COS49第四迁移source已独审集成、actual C4 hostcaptures通过但designreview changes_requested/無game；24SDK/1377154ms/new¥0.214694，现12cases/rev1602 ledger4/shared¥7.413727/closure10/60closed十audits，COS50路径契约源码已审，COS51第五迁移source已独审集成/TRANSFER_CASE_FIVE_SOURCE_READY，COS52生产运行库source实施中/SOURCE_NOT_READY、actual C5 NONE，迁移尚未通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -97,6 +97,7 @@
 - [ ] [COS-49 准备由主机绑定身份的第四个原生迁移案例](https://github.com/lrfluobida/Cosmos/issues/50)
 - [ ] [COS-50 明确作者输出与捕获产物的角色读取路径](https://github.com/lrfluobida/Cosmos/issues/51)
 - [ ] [COS-51 准备带捕获路径契约的第五个原生迁移案例](https://github.com/lrfluobida/Cosmos/issues/52)
+- [ ] [COS-52 将迁移验收与角色 host 纳入生产运行库](https://github.com/lrfluobida/Cosmos/issues/53)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -600,10 +601,17 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-51 · 准备带捕获路径契约的第五个原生迁移案例
 
-- 依赖/状态：已发布[#52](https://github.com/lrfluobida/Cosmos/issues/52)，id5702464218，第51个原生子任务；Root body/native51children #2–#52/新增checkbox及旧50前缀精确读回。cos51_implementer在cos01 managed worktree owns codex/cos51-transfer-case-five，从3f65563正式source-free实施；in-progress/open/SOURCE_NOT_READY，无批准SHA/live C5。Source20..50共31精确已审components/unique marker/source+merge双main祖先和原foundations、Source50 CAPTURE_LAYOUT_CONTRACT_SOURCE_READY必需；frozen16/partial18 scoped、outputs16/18，不fullclosed循环。
+- 依赖/状态：已发布[#52](https://github.com/lrfluobida/Cosmos/issues/52)，id5702464218，第51个原生子任务；Root body/native51children #2–#52/新增checkbox及旧50前缀精确读回。注册时cos51_implementer从3f65563 source-free实施/in-progress/SOURCE_NOT_READY为历史；当前独审 TRANSFER_CASE_FIVE_SOURCE_READY，reviewedCommit `9d8d95e781b4f041fa4f290a9887d79522fceb91`、mergeCommit `0b3c06e0791f83d2939ef3ebfa631e1c212d9c6b` 均为main祖先，[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/52#issuecomment-5983731799)精确读回；offline-verified-awaiting-live/open、source-integrated，actual C5 NONE。Source20..50共31精确已审components/unique marker/source+merge双main祖先和原foundations、Source50 CAPTURE_LAYOUT_CONTRACT_SOURCE_READY必需；frozen16/partial18 scoped、outputs16/18，不fullclosed循环。
 - 固定输入/权限：计划 `cos20-transfer-validation-5`、decl3quote2/原requirements-template-input `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`/Flash/¥5/45分钟/80全SDK、原design semantic1与coding1；capture读取契约用现有immutable布局和scoped refs，不改grant/session/clock或权限。Identity protocol C5true/C4true/C1–3 defaultfalse，旧四decl/inputs/wrappers/metadata保持。
 - 原组余量/准入：grants340618/854278/2800000/2800000/2800000合9594896=原10000000−405104，planning历史59382/design345722/others0与sourcefirstparentref1414/first授权members保真，不新预算。核ledger4/currentC4 consumedstopped/12cases/4delegations/60closed十audits、旧four cases/各own declaration/input/quote/ancestor/closure与新root-marker absent、writer/unknownreserve/owners0/pending50零effect；不能换路径或复用旧window绕过准入。
-- 当前边界：源码准备/actual C5 NONE，不提前claim/模型/游戏；原7413727/rev1602 ledger4/12history/60closed十audits/group405104+9594896/parent10m/C1–4失败/C8/G3/human NONE/fullclassic未知及150首30/formal20012不变。Source/doc独审及solemerger最终main后Root另fresh免费准入/余额/路由/operator/mainfreeze执行，old four不重开。
+- 源码证据：九批准paths字节一致/UTF8/noBOM/LF/中文/diffcheck及README原35324字节前缀保持；作者5focused/C4+C3兼容2/2（111.911秒）/strict8.354秒，独审3/3（168.692秒）/0failed0skip，联合仅同总额错role预算代表1/1、0skip（43115.9673ms），全为synthetic source验证。
+- 当前边界：源码已独审集成/actual C5 NONE，不提前claim/模型/游戏；原7413727/rev1602 ledger4/12history/60closed十audits/group405104+9594896/parent10m/C1–4失败/C8/G3/human NONE/fullclassic未知及150首30/formal20012不变。Source/doc独审及solemerger最终main后Root另fresh免费准入/余额/路由/operator/mainfreeze执行，old four不重开。
+
+### COS-52 · 将迁移验收与角色 host 纳入生产运行库
+
+- 依赖/状态：已发布[#53](https://github.com/lrfluobida/Cosmos/issues/53)，id5702655827，第52个原生子任务；Root body/native52children #2–#53/新增checkbox精确读回。cos52_implementer owns cos02 worktree的codex/cos52-production-transfer-runtime，从c3d43e1 source-only实施；in-progress/open/SOURCE_NOT_READY，无批准SHA。Source07/09/35..41/50对应已审集成component源码前置、outputs16/18；Source51案例证明单列，不要求完整任务closed。
+- 范围/产物：将九个transfer helpers与必要Source32 diagnostics/type依赖迁入 `src/runtime/adapters/transfer`，旧probes为thin reexports；input/declaration/driver/run/fixtures仍在probes。核production静态闭包、source/compiled dist实际加载和必要owned worker相对URL，保留design oracle/bindings/四outputs/persistent八段/media/一次feedback repair/Source50捕获读取语义。
+- 验收/边界：仅零模型synthetic及src-dist owned worker代表验证，复用未变Edge/lifecycle证据；不提供人类CLI选择/draft/confirm、不改真实案例或预算。Actual C5尚未claim/paid，当前12cases/rev1602 ledger4/global7413727/60closed十audits/group405104+9594896/原parent10m/ref1414、C4失败/closure10/C8/G3/human NONE/fullclassic未知和150首30/formal20012保持；源码待独审，未审不得main集成。
 
 ## 5. 任务与上下文包模板
 

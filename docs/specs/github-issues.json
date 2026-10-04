@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 51
+    "childCount": 52
   },
   "tasks": [
     {
@@ -3341,11 +3341,92 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
+      "integrationStatus": "offline-verified-awaiting-live",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "TRANSFER_CASE_FIVE_SOURCE_READY",
+      "reviewedCommit": "9d8d95e781b4f041fa4f290a9887d79522fceb91",
+      "mergeCommit": "0b3c06e0791f83d2939ef3ebfa631e1c212d9c6b",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/52#issuecomment-5983731799"
+    },
+    {
+      "taskId": "COS-52",
+      "title": "将迁移验收与角色 host 纳入生产运行库",
+      "number": 53,
+      "id": 5702655827,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/53",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-07",
+          "number": 8,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/8"
+        },
+        {
+          "id": "COS-09",
+          "number": 10,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/10"
+        },
+        {
+          "id": "COS-35",
+          "number": 36,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/36"
+        },
+        {
+          "id": "COS-36",
+          "number": 37,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/37"
+        },
+        {
+          "id": "COS-37",
+          "number": 38,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/38"
+        },
+        {
+          "id": "COS-38",
+          "number": 39,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/39"
+        },
+        {
+          "id": "COS-39",
+          "number": 40,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/40"
+        },
+        {
+          "id": "COS-40",
+          "number": 41,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/41"
+        },
+        {
+          "id": "COS-41",
+          "number": 42,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/42"
+        },
+        {
+          "id": "COS-50",
+          "number": 51,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/51"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-16",
+          "number": 17,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/17"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
       "integrationStatus": "in-progress",
       "implementationPhase": "in-progress",
       "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 51,
+  "verifiedNativeSubIssues": 52,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
