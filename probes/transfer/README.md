@@ -190,3 +190,13 @@ Bootstrap 使用新 planning grant 的 OwnedWork/runOwnedNode 和现有固定 wo
 原 COS16 group 的 net/committed 必须为 190410 microCNY，三例累计角色费用逐项为 planning 45088、design 145322、其余 0。C4 五 grants 固定 354912/1054678/2800000/2800000/2800000，合计 9809590，等于原父 ¥10 减已用费用；同总额错角色分布仍拒绝。首次 parent 引用、首次授权、成员 C1/C2/C3、历史请求、关闭审计和原时钟保持，原子 claim 只追加 C4 与五 grants，不补新预算或自动重新分配。
 
 固定需求、模板与输入哈希 `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c` 保持。单案例 ¥5/45 分钟/80 总 SDK 调用、原 design 会话一次地图重作及只读 generic 自检、唯一 coding repair、完整 DAG/journal、持久浏览器八段、媒体证据、独立 review 与准确 promotion 都复用既有链路。本任务只有零付费源码与临时合成测试，实际 C4 由 Root 在独审集成和记录就绪后执行；用户体验为 `not_confirmed`，人类前门与完整经典验收仍 pending。定向证据见 [COS-49 计划](../../docs/plans/2026-10-05-transfer-validation-case-four.md)。
+
+## COS-51 固定第五迁移案例（源码准备）
+
+`validation-case-five-run.ts` 只绑定 `cos20-transfer-validation-5`，复用严格参数与原生 input/bootstrap/planner/DAG/consumer 链路。C5 与 C4 一样由源码开启 `proposalIdentity: 'validation-policy-aliases/1'`；C1–3 继续保留原默认身份契约。Source50 捕获路径契约沿原角色 factory 与 host 生效：作者读取自己的 workspace 输出，review/art/coding 使用 host 声明的不可变 capture 引用；不把作者路径拼接到 capture 中。参数、环境和模型不能选择声明、roles、映射、路径、host 或时钟。
+
+免费准入要求原 ledger4 的十二个已消费停止案例、当前 C4、四笔 delegation、六十 closed grants 和十笔原关闭审计。每笔 operator/closure 源字节、历史 source 祖先、固定 root 和其自身 `basis.currentCaseId` 对应的 declaration 输入哈希保持认证，第十笔属于 C4。Source20..50 须提供唯一准确 marker 与 reviewed/merge 两项 main 祖先，新增 `TRANSFER_CASE_FOUR_SOURCE_READY` 和 `CAPTURE_LAYOUT_CONTRACT_SOURCE_READY`；只有原 COS22 允许明确的失败状态例外。Source50 未 Ready、dirty source、错误 HEAD、writer 或未知费用会在 host 准备、操作回执和 claim 前拒绝。
+
+原 COS16 group 的 net/committed 必须为 405104 microCNY，四例累计角色费用逐项为 planning 59382、design 345722、其余 0；同总额错角色分布仍拒绝。C5 五 grants 固定 340618/854278/2800000/2800000/2800000，合计 9594896，沿原父 ¥10 的剩余容量、首次授权与 parent 引用。原子 claim 只追加 C5 与五 grants，保留历史请求、四笔 delegation、关闭审计、shared 有效容量及原时钟。
+
+固定 requirements/template、输入哈希 `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`、单案例 ¥5/45 分钟/80 总 SDK 调用、原 design 会话一次地图重作与只读自检、唯一 coding repair、共享 ¥150/首批 ¥30 均沿原契约。本任务只有零付费源码和临时合成测试；真实 C4 失败记录保留，C5 实际生成须由 Root 在独审集成与真实审批记录就绪后重新准入。`TRANSFER_CASE_FIVE_SOURCE_READY` 仅可在独审与合入后登记；源码 Ready 不等于迁移通过或游戏完成，用户体验继续 `not_confirmed`。定向证据见 [COS-51 计划](../../docs/plans/2026-10-05-cos51-transfer-case-five.md)。

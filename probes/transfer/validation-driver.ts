@@ -21,10 +21,12 @@ import { TRANSFER_VALIDATION_CASE } from './validation-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_TWO } from './validation-case-two-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_THREE } from './validation-case-three-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_FOUR } from './validation-case-four-declaration.ts';
+import { TRANSFER_VALIDATION_CASE_FIVE } from './validation-case-five-declaration.ts';
 import { readTransferValidationInput, createTransferValidationIdentityReader,
   readTransferValidationCaseTwoInput, createTransferValidationCaseTwoIdentityReader,
   readTransferValidationCaseThreeInput, createTransferValidationCaseThreeIdentityReader,
-  readTransferValidationCaseFourInput, createTransferValidationCaseFourIdentityReader } from './validation-input.ts';
+  readTransferValidationCaseFourInput, createTransferValidationCaseFourIdentityReader,
+  readTransferValidationCaseFiveInput, createTransferValidationCaseFiveIdentityReader } from './validation-input.ts';
 
 function fixedDriver(D: typeof TRANSFER_VALIDATION_CASE, readInput: typeof readTransferValidationInput, identity: typeof createTransferValidationIdentityReader, bindProposalAliases = false) {
 function fixed(input: ValidationHostInput) {
@@ -149,3 +151,6 @@ export const { bootstrapTransferToolchain: bootstrapTransferValidationCaseThreeT
 export const { bootstrapTransferToolchain: bootstrapTransferValidationCaseFourToolchain, stageTransferValidationInput: stageTransferValidationCaseFourInput,
   executeTransferValidationDag: executeTransferValidationCaseFourDag, generateTransferValidationCase: generateTransferValidationCaseFour }
   = fixedDriver(TRANSFER_VALIDATION_CASE_FOUR, readTransferValidationCaseFourInput, createTransferValidationCaseFourIdentityReader, true);
+export const { bootstrapTransferToolchain: bootstrapTransferValidationCaseFiveToolchain, stageTransferValidationInput: stageTransferValidationCaseFiveInput,
+  executeTransferValidationDag: executeTransferValidationCaseFiveDag, generateTransferValidationCase: generateTransferValidationCaseFive }
+  = fixedDriver(TRANSFER_VALIDATION_CASE_FIVE, readTransferValidationCaseFiveInput, createTransferValidationCaseFiveIdentityReader, true);
