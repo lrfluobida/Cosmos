@@ -180,3 +180,13 @@ Bootstrap 使用新 planning grant 的 OwnedWork/runOwnedNode 和现有固定 wo
 原 `validate-game-design` 只读输出自检与 `validate-transfer-design` 有界地图校验都留在同一个 design 会话、attempt、grant、调用计数和截止时间；不新增语义重作或 coding repair 权限。新 planning grant 使用既有 owned bootstrap，原完整 DAG/journal、八段持久浏览器、媒体证明、独立 review、准确 promotion 和清理路径保持。单案例 ¥5/45 分钟/80 总调用、design 一次重作、coding 一次 repair、共享 ¥150/首批 ¥30 均保持。
 
 本任务仅完成零付费源码和临时合成历史测试；实际 C3 由 Root 在源码独审集成及记录 Ready 后重新 preflight、冻结 source 并核对 funding/model/operator。没有实际 ledger/case、provider/browser、API 凭据或参考游戏操作；用户体验继续 `not_confirmed`，公开需求确认和试玩关口保持 pending。定向证据见 [COS-47 计划](../../docs/plans/2026-10-04-transfer-validation-case-three.md)。
+
+## COS-49 固定第四迁移案例（源码准备）
+
+`validation-case-four-run.ts` 只绑定 `cos20-transfer-validation-4`，复用原严格 CLI 与原生流水。仅第四个私有 driver 实例开启主机身份绑定，以源码常量 `proposalIdentity: 'validation-policy-aliases/1'` 调用原 `planTaskDag`。模型返回六字段局部别名提案；主机按已验证 policy 绑定当前 C4 grants、依赖与输出，并在原 `plan.json` 保存 `identityBinding`。C1–3 继续完全不传该 option；公开入口没有 protocol、任意映射、host、声明或时钟选择。
+
+免费准入要求原 ledger4 的十一个已消费停止案例、当前 C3、三笔 delegation、五十五 closed grants 和九笔关闭审计。每笔审计仍依据自己的 `basis.currentCaseId` 认证原输入哈希、operator 源字节、实际 root 和 source 祖先，第九笔属于 C3。Source20..48 的准确唯一 marker、reviewed/merge 祖先须全部就绪，新增 `TRANSFER_CASE_THREE_SOURCE_READY` 与 `PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY`；只有 COS22 保留原明确的失败状态例外。pending Source48 在 host 准备、操作回执、owner 与 claim 之前拒绝。
+
+原 COS16 group 的 net/committed 必须为 190410 microCNY，三例累计角色费用逐项为 planning 45088、design 145322、其余 0。C4 五 grants 固定 354912/1054678/2800000/2800000/2800000，合计 9809590，等于原父 ¥10 减已用费用；同总额错角色分布仍拒绝。首次 parent 引用、首次授权、成员 C1/C2/C3、历史请求、关闭审计和原时钟保持，原子 claim 只追加 C4 与五 grants，不补新预算或自动重新分配。
+
+固定需求、模板与输入哈希 `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c` 保持。单案例 ¥5/45 分钟/80 总 SDK 调用、原 design 会话一次地图重作及只读 generic 自检、唯一 coding repair、完整 DAG/journal、持久浏览器八段、媒体证据、独立 review 与准确 promotion 都复用既有链路。本任务只有零付费源码与临时合成测试，实际 C4 由 Root 在独审集成和记录就绪后执行；用户体验为 `not_confirmed`，人类前门与完整经典验收仍 pending。定向证据见 [COS-49 计划](../../docs/plans/2026-10-05-transfer-validation-case-four.md)。

@@ -10,6 +10,7 @@ import { TRANSFER_ACCEPTANCE_IDS } from './design.ts';
 import { TRANSFER_VALIDATION_CASE } from './validation-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_TWO } from './validation-case-two-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_THREE } from './validation-case-three-declaration.ts';
+import { TRANSFER_VALIDATION_CASE_FOUR } from './validation-case-four-declaration.ts';
 
 interface TransferRequirements {
   requirementVersion: string; specVersion: string; scope: string;
@@ -58,3 +59,5 @@ export const { readTransferValidationInput: readTransferValidationCaseTwoInput,
   createTransferValidationIdentityReader: createTransferValidationCaseTwoIdentityReader } = fixedInput(TRANSFER_VALIDATION_CASE_TWO);
 export const { readTransferValidationInput: readTransferValidationCaseThreeInput,
   createTransferValidationIdentityReader: createTransferValidationCaseThreeIdentityReader } = fixedInput(TRANSFER_VALIDATION_CASE_THREE);
+export const { readTransferValidationInput: readTransferValidationCaseFourInput,
+  createTransferValidationIdentityReader: createTransferValidationCaseFourIdentityReader } = fixedInput(TRANSFER_VALIDATION_CASE_FOUR);
