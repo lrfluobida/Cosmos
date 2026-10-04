@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
-import { join, relative, sep } from 'node:path';
+import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { createValidationPreparedBrowserHost } from '../../src/runtime/entrypoint-host.ts';
 import type { BrowserInputPreparation, BrowserPreparationContext } from '../../src/runtime/entrypoint-preparation.ts';
@@ -14,7 +14,7 @@ import { HostFailure } from '../../src/runtime/repair/feedback.ts';
 import { TaskJournal, requireOriginalTask } from '../../src/runtime/recovery/task-journal.ts';
 import type { CapturedTask, ContentSignature, RecoveryOrigin } from '../../src/runtime/recovery/task-journal.ts';
 import { TRANSFER_ACCEPTANCE_IDS, requireThat } from './design.ts';
-import { validateTransferDesign } from './oracle.ts';
+import { createTransferDesignValidation } from './design-validation.ts';
 import { freezeTransferDesign, prepareTransferAcceptance, verifyPreparedTransferAcceptance, bindTransferAcceptance } from './binding.ts';
 import type { FrozenTransferDesign, FrozenTransferAcceptanceDraft, PrepareInput } from './binding.ts';
 import { reserveTransferOrigin } from './loopback-origin.ts';
@@ -40,6 +40,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
   let ctx: BrowserPreparationContext, origin: Awaited<ReturnType<typeof reserveTransferOrigin>>;
   let transfer: ArtifactReference, planRefs: { v1: ArtifactReference; v2: ArtifactReference };
   let preparedPublished = false;
+  let designValidation: ReturnType<typeof createTransferDesignValidation>;
   const receiptFile = 'host-transfer-prepared-inputs.json';
   const guard = async () => { try { await ctx.requireScope(); await origin.verify(); } catch (error) { await origin.close(); throw error; } };
   const read = async (): Promise<PreparedInputs> => {
@@ -64,6 +65,10 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
       'design author attempt provenance changed');
     const capture = await ctx.registry.getCapture(transfer);
     requireThat(capture.taskId === saved.taskId && capture.metadata.provenance.sourceRefs.includes(saved.sessionRef), 'frozen design author provenance changed');
+    const design = task ?? (await input.controller.read()).tasks.find(task => task.taskId === ctx.designTaskId);
+    requireThat(design, 'original design validation task is missing');
+    const sealed = await designValidation.seal(design);
+    requireThat(saved.frozen.designSha256 === sealed.sha256 && capture.metadata.provenance.sourceRefs.includes(sealed.receipt), 'frozen design differs from its successful host validation');
     for (const version of ['v1', 'v2'] as const) await verifyPreparedTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] });
     requireThat(isDeepStrictEqual(saved.plans.v1.segments.map(item => item.plan.steps), saved.plans.v2.segments.map(item => item.plan.steps)), 'repair expectations changed');
     await guard(); return saved;
@@ -175,14 +180,18 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
       origin = await reserveTransferOrigin({ root: ctx.root, resume: ctx.resume, signal: ctx.signal, requireScope: ctx.requireScope,
         binding: { caseId: ctx.requirement.validation.caseId, windowId: ctx.requirement.validation.windowId, sourceVersion: ctx.requirement.validation.reviewedPlatformSha,
           requirementSha256: sha(JSON.stringify(ctx.requirement)), runId: ctx.requirement.validation.runId, specVersion: ctx.requirement.specVersion } });
+      designValidation = createTransferDesignValidation({ context: ctx, controller: input.controller, guard });
+      preparation.designHostTools = designValidation.hostTools;
+      preparation.designRules.push('After completing transfer-design.json, call validate-transfer-design with no arguments. A first invalid result permits one semantic rewrite process and one different submission; a second invalid result exhausts it permanently. A pass seals the exact map bytes: keep them unchanged and accurately finish the generic design summary. Identical submissions reuse their complete result. All calls remain in this original author session, attempt, grant and deadline. This static design check is not gameplay acceptance.');
     },
     requireCurrent,
     async captureDesignExtras(task, workspace) {
       await guard(); const attempt = task.attempts.at(-1)!;
+      let sealed: Awaited<ReturnType<typeof designValidation.seal>>;
       const path = 'authors/design/transfer-design.json'; let bytes: Buffer | undefined;
       try { bytes = await regularFile(workspace, path); }
       catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-      try { requireThat(bytes, 'Required runtime transfer design output is missing'); validateTransferDesign(decode(bytes), ctx.requirementCapture); }
+      try { sealed = await designValidation.seal(task, workspace); }
       catch (error) {
         // Keep original bytes, including invalid UTF-8, without rewriting or guessing an encoding.
         const folderName = `failure-sources/${task.taskId}/${attempt.attemptId}`, folder = await directory(ctx.root, folderName);
@@ -192,14 +201,16 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
           inputs: task.inputs, diagnosis: { kind: 'invalid_transfer_design', message: error instanceof Error ? error.message : 'Invalid transfer design' },
           raw: { location: folderName + '/raw-transfer-design.json', present: !!bytes, sha256: bytes ? sha(bytes) : null } });
         throw new HostFailure(task.acceptance.map(item => ({ acceptanceId: item.acceptanceId, checkId: 'transfer-design-semantics', classification: 'insufficient_evidence',
-          summary: 'Runtime design failed the fixed transfer oracle; bounded design semantic repair is not enabled.', reproduction: [...item.steps],
+          summary: 'Runtime design has no successful sealed host validation; preserve the bounded design diagnosis.', reproduction: [...item.steps],
           expected: item.expected, actual: 'Invalid runtime transfer design; preserve raw diagnosis before any downstream task.', evidenceRefs: [manifestPath] })));
       }
       await guard();
       const frozen = await freezeTransferDesign({ root: ctx.root, registry: ctx.registry, requirement: ctx.requirementCapture, requirementFile: ctx.requirementFile,
-        designSource: relative(ctx.root, join(workspace, path)).split(sep).join('/'), artifact: transfer, taskId: task.taskId,
+        designSource: sealed.source, artifact: transfer, taskId: task.taskId,
         requirementProfile: 'operator_validation', preserveHostStages: true,
-        provenance: { kind: 'original-procedural', generator: 'Native design role output', sourceRefs: [attempt.sessionRef, ...ctx.requirement.sources.map(ref => ref.location)] } });
+        provenance: { kind: 'original-procedural', generator: 'Native design role output', sourceRefs: [attempt.sessionRef, sealed.receipt, ...ctx.requirement.sources.map(ref => ref.location)] } });
+      requireThat(frozen.designSha256 === sealed.sha256, 'frozen design bytes differ from successful validation');
+      await designValidation.seal(task, workspace);
       const saved: PreparedInputs = { formatVersion: 'transfer-prepared-inputs/1', taskId: task.taskId, attemptId: attempt.attemptId, sessionRef: attempt.sessionRef,
         frozen, plans: {} as PreparedInputs['plans'] };
       for (const version of ['v1', 'v2'] as const) { await guard(); saved.plans[version] = await prepareTransferAcceptance(preparedInput(saved, version)); }

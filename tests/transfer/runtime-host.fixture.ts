@@ -36,8 +36,8 @@ export async function transferFixture(t: TestContext) {
     allocations: [{ taskId: 'legacy', amountMicroCny: 1_000_000 }], durationMs: 1000, now: () => Date.now() - 2000 });
   await old.importSettled({ requestId: 'prior', taskId: 'legacy', provider: 'offline', pricingVersion: 'fixture', actualCostMicroCny: 100,
     evidence: [{ artifactId: 'prior', version: 'v1', location: 'prior.json' }] }); await old.close();
-  const acceptance = [...ids.map(acceptanceId => ({ acceptanceId, description: '固定迁移验收', steps: ['正常鼠标输入'], expected: '遵循固定规则', evidenceKinds: ['test_report'] })), ...HOST_STAGE_ACCEPTANCE];
-  const proposal = { profile: 'operator_validation', adapterId: 'cos16-input/1', brief: '固定鼠标推箱子源码接口 fixture', acceptance, unsupported: [] };
+  const acceptance = [...ids.map(acceptanceId => ({ acceptanceId, description: '固定迁移验收', steps: ['正常鼠标输入'], expected: '遵循固定规则', evidenceKinds: ['test_report' as const] })), ...HOST_STAGE_ACCEPTANCE];
+  const proposal = { profile: 'operator_validation' as const, adapterId: 'cos16-input/1', brief: '固定鼠标推箱子源码接口 fixture', acceptance, unsupported: [] };
   const requirements = JSON.stringify({ requirementVersion: 'fixture-v1', specVersion: '1.0', acceptanceIds: ids,
     stageAcceptanceIds: HOST_STAGE_ACCEPTANCE.map(item => item.acceptanceId), preparation: proposal });
   const declaration: any = structuredClone(VALIDATION_CASE); declaration.caseId = caseId;
@@ -65,6 +65,7 @@ export async function transferFixture(t: TestContext) {
   const validation = { caseId, windowId: window.windowId, readScope: async (signal: AbortSignal) => { signal.throwIfAborted(); return { requirement, operatorReceipt: await readFile(operatorPath) }; } };
   const calls: { kind: string; taskId?: string; inputs?: ArtifactReference[] }[] = [], configs: any[] = [];
   let invalidMap = false, missingMap = false, requests = 0;
+  let designAction: ((config: any) => Promise<void>) | undefined;
   const sessionFactory = async (config: any) => {
     configs.push(config); const packet = JSON.parse(config.context);
     return { close: async () => {}, prompt: async () => {
@@ -80,6 +81,11 @@ export async function transferFixture(t: TestContext) {
         const requirementRef = { artifactId: `${caseId}-requirement-bundle`, version: 'fixture-v1', location: `registry/captures/${caseId}-requirement-bundle/fixture-v1/files` };
         const map = syntheticMap(requirementRef); if (invalidMap) map.map.boxes.pop();
         if (!missingMap) await writeFile(join(config.workspace, 'authors/design/transfer-design.json'), JSON.stringify(map), 'utf8');
+        if (designAction) await designAction(config);
+        else {
+          const validator = config.tools.find((tool: any) => tool.name === 'validate-transfer-design');
+          if (validator) await validator.execute('fixture-design-check', {}, undefined, undefined, undefined);
+        }
       }
       if (packet.role === 'art') await writeFile(join(config.workspace, 'authors/art/media.json'), JSON.stringify({ characters: [{ id: 'marker', width: 32, height: 32, anchor: { x: 16, y: 16 },
         layers: [{ id: 'body', shape: 'rect', x: 2, y: 2, width: 28, height: 28, fill: '#ffee22', stroke: '#222222', strokeWidth: 1 }], states: [{ name: 'idle', fps: 1, loop: true, frames: [{}] }] }], audio: [] }), 'utf8');
@@ -105,5 +111,6 @@ export async function transferFixture(t: TestContext) {
   }
   return { input, root, ledgerRoot, controller, requirement, validation, window, calls, configs, prepare, invalidateMap: () => { invalidMap = true; },
     omitMap: () => { missingMap = true; },
+    setDesignAction: (action: (config: any) => Promise<void>) => { designAction = action; },
     changeIdentity: () => { identity = { ...identity, reviewedPlatformSha: 'b'.repeat(40) }; }, advance: (ms: number) => { clock += ms; } };
 }
