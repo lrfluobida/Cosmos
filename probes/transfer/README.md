@@ -55,3 +55,56 @@
 - 保留原运行身份、已用费用、原始截止时间及停止状态；改名、重开或恢复不能重置预算和时限。
 - 本次仅落地用例文档，**不授权新付费试验，不生成游戏，不启动或重跑原试验**。执行须先满足上述依赖和原运行的准入条件；到限或准入失败时记录具体阻塞，不自行续跑。
 - COS-16 继续保持 **preparation-only / open**。未来通过须有本次 Cosmos 生成来源、全部固定验收证据、独立评审、费用与耗时记录及人工修改说明；迁移通过只说明这个不同机制用例通过，不代表任意 2D 游戏能力或用户体验已获认可。
+
+## COS-36 可信设计接口（源码准备）
+
+[COS-36 / #37](https://github.com/lrfluobida/Cosmos/issues/37) 的接口位于本目录的 `design.ts`、`oracle.ts` 和 `binding.ts`。它们是独立验收工具；不含游戏渲染、游戏实现、最终地图或素材。通用 `DesignDocument`、pilot、生产 host 和现有 browser runner 保持原接口。源码前置沿用 COS-02、COS-08、COS-14 草稿工具、本文冻结用例和 COS-18 动态 design/media 部分，不把这些源码阶段要求改成任务关闭循环。独立评审和合并后才可登记 `TRANSFER_DESIGN_BINDING_SOURCE_READY`；该标记只代表源码准备，不代表迁移通过或可直接执行完整流程。
+
+### 版本化设计数据
+
+未来 COS-18 adapter 须在同一次生成运行的计时和计费范围内，让 design 角色另写结构化设计文件，与既有玩法说明和媒体 roster 并存；不修改默认 design schema，也不把测试地图加入模板或角色输入。结构为：
+
+~~~ts
+{
+  formatVersion: 'cos16-design/1',
+  requirement: ArtifactReference,
+  mapVersion: string,
+  map: { tiles: string[], player: Point, boxes: Point[], targets: Point[] },
+  solution: Direction[],
+  paths: { wall, push, boxWall, doubleBox, restart, restore }
+}
+// Point = [x, y]，从零开始；Direction = 'up' | 'down' | 'left' | 'right'。
+// paths 的每项是 Direction[]；不接收作者自报的 expected、状态或通过结论。
+~~~
+
+`tiles` 是 3..8 行、3..8 列的矩形，只含墙 `#` 和地板 `.`，四边封闭。玩家与两个箱子不能互相重叠；目标彼此不同，允许玩家或箱子位于目标上。坐标必须为地板上的整数。地图和需求引用必须是固定版本。通关 `solution` 限 40 次合法移动；各访问路径限 60 次方向输入，这是匹配现有单计划 200 步上限的输出表达边界。
+
+所有访问路径从关卡初始状态开始，只用普通方向输入。`wall` 首步须为普通行走，最后一步碰墙；`push` 最后一步推箱；`boxWall` 最后一步尝试向墙推箱；`doubleBox` 最后一步尝试连续推两箱。此前各步必须合法。`restart` 和 `restore` 都须包含普通行走与推箱，停止在非胜利状态。host 按固定规则计算每步结果：合法输入恰好一格且步数加一；三种阻挡不改变任何状态；恰好两个目标都被箱子占用时才胜利。
+
+`cos16-design/1` 要求 `restore` 是完整 `solution` 的严格前缀，且恢复检查点尚无目标被占用。继续段先到达单目标、后到达双目标。这样 T16-05 的关闭前局面与 T16-06 的继续路径有唯一对应关系，并能在恢复后观察“一个目标仍未胜利”。这是本版本的设计表达约束，没有增加用户玩法，也没有减少六项验收。设计缺陷应交 design 在原运行内修复；coding/art 不能修改规则、地图或期望来消除失败。
+
+### 冻结与绑定顺序
+
+以下 API 只由可信 host 调用，registry、临时准备目录和冻结回执不能作为角色可写工具。实际角色仍受已有 task ownership 和只读输入镜像约束；本模块不新增角色权限。
+
+1. `validateTransferDesign(value, currentRequirementRef)` 校验结构、数量、边界、完整解法及所有场景，返回 host 独立计算的 trace。它不导入游戏代码，也不读取游戏实际值。
+2. `freezeTransferDesign({root, registry, requirement, requirementFile, designSource, artifact, taskId, provenance})` 读取已登记的完整 `RequirementContract`，确认其六个验收 ID、固定引用及 `specVersion`，严格解码 UTF-8 设计后验算。它把已经验算的字节复制进 host 暂存目录，再用 ArtifactRegistry 发布 `_cosmos/transfer-design.json` 和 `_cosmos/transfer-binding.json`。返回回执记录实际需求 capture 全文件摘要、设计 SHA-256、地图版本、需求版本和全部验收 ID；host 将回执保存在受保护计划中，再交角色读取。无效设计不会发布 capture。
+3. `prepareTransferAcceptance({root, registry, frozen, currentRequirement, candidate, planArtifact, url, runId, reportId})` 在 coding/art 开始前，依据冻结设计构造鼠标期望，发布不可覆盖的 `_cosmos/transfer-plan.json`，返回固定 plan 引用及其字节 SHA-256。`currentRequirement` 为 `{artifact, specVersion}`；`candidate` 是实际任务计划预留的 registry candidate 引用，此时无需已有候选工程。候选引用不能由角色自选。若原任务已有 v1/v2 有界修复安排，host 在生成前分别准备两份计划；两份动作和期望必须一致，仅固定候选、报告等元数据不同。
+4. coding/art 读取需求、冻结设计和对应冻结计划。生成后 staging 必须把这三个准确 capture 引用放入 candidate 的 `inputs` 与 `expectedDeps`，依赖版本不能省略。
+5. `bindTransferAcceptance({...同一准备输入, prepared})` 重读 plan capture、设计与需求，核对回执、实际摘要、地图版本、全部验收 ID 和 run；再核对真实 candidate manifest、三个固定输入及其全部 staged 文件字节。它重算同一设计的期望与冻结 plan 精确比较，只返回原计划，不改写或重新登记。换错候选、旧需求、旧地图、旧摘要、缺输入或改动文件均拒绝。修复 v2 只能使用生成前为 v2 保留的等价计划，不能拿 v1 的回执静默改绑。
+
+当前 API 要求 requirement capture 内有完整确认契约文件；未来 COS-18 adapter 还须接通该 capture、设计角色输出声明、上述前后调用顺序及同一次运行的来源/费用记录。本次不新增实际生成运行、运行账本或额度。
+
+### 鼠标计划与只读观测
+
+计划按 T16-01、T16-02、T16-03 三个碰撞场景、T16-04、T16-05、T16-06 分为八段，每段均绑定固定 candidate、需求 `specVersion`、run/report ID 和 1280×720 viewport，并符合既有 AcceptancePlan 的 JSON 标量及 200 步限制。所有棋盘操作仅为可见按钮 locator 点击，按钮 test ID 为 `start/up/down/left/right/restart/continue`，中文按钮文字按本文固定。
+
+只读 `cosmosDebug.transfer.snapshot` 与 `saveSnapshot` 返回稳定 JSON 字符串，字段顺序为 `mapVersion, player, boxes, targets, steps, won`。玩家坐标为 `[x,y]`；箱子按 x、y 升序排列；目标同序排列为 `{position:[x,y], occupied:boolean}`；`steps` 为合法移动累计数，`won` 只由两个目标占用决定。单关由 `mapVersion` 标识。保存完成后 `saveSnapshot` 必须等于该步完整状态；阻挡仍等于前一保存状态；重开后保存必须等于初始状态。观测接口不得有 setter 或调用内部移动。
+
+可见棋盘使用 `data-testid="board"` 和 `cell-x-y`，格子以 `data-player="true"`、`data-box="true"`、`data-target="true"`、`data-occupied="true/false"` 暴露实际渲染状态；可见 `status` 文本为“进行中”或“胜利”。每段终点检查棋盘、玩家、箱子、目标和状态；T16-06 还在首次单目标时检查可见棋盘及“进行中”。这些 DOM/debug 断言须配合既有逐步截图、录像、日志和独立实际画面评审，不能只采信游戏自报状态。
+
+所有段与总计划当前均为 **preparation-only / executable:false**。T16-05 的 `restore` 段后保留 `close-process-reopen` 检查点：保存状态、真实进程退出证据、同一隔离 profile、同一 origin，之后才允许 T16-06 的 `victory` 段点击“继续游戏”。现 runner 尚无该能力；八段不能当作八次普通 fresh-context 调用来宣布完整通过。刷新、同页读档、新上下文或注入存档均不能替代检查点。后续独立任务须实现 profile/process 生命周期及连续证据，才能执行完整计划；本次不更改 runner。
+
+### 零付费源码验证
+
+`tests/transfer/design-binding.test.ts` 的六组测试只用临时目录与合成地图，覆盖静态规则、非法地图/路径、场景完整性、UTF-8、真实 ArtifactRegistry 冻结、正常点击计划和陈旧绑定拒绝。它还验证候选不存在时预先冻结 v1/v2 等价计划，再对真实 staged candidate 绑定；不生成目标游戏、不执行浏览器、不调用 provider。定向测试和 strict 编译命令及证据见 [本任务计划](../../docs/plans/2026-10-04-transfer-design-binding.md)。
