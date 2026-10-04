@@ -1,4 +1,5 @@
 import { writeFile } from 'node:fs/promises';
+import { isDeepStrictEqual } from 'node:util';
 import { join } from 'node:path';
 import { directory, snapshot } from '../artifacts/paths.ts';
 import type { MediaMetadata } from '../artifacts/types.ts';
@@ -8,8 +9,73 @@ import { identifier } from '../media/validation.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { validatePlan } from '../acceptance/plan.ts';
 import type { AcceptancePlan, Scalar } from '../acceptance/plan.ts';
+import type { MediaObservationRequest, MediaObservationSample } from '../acceptance/browser.ts';
 
 export interface RuntimeMediaCheck { stepId: string; kind: 'character_id' | 'loaded_frames' | 'state_name' | 'state_seen' | 'audio_id' | 'audio_decoded' | 'audio_started'; mediaId: string; state?: string }
+export interface MediaObservationDefinition extends Omit<RuntimeMediaCheck, 'stepId'> { id: string; path: string[]; expected: Scalar }
+export function mediaObservationDefinitions(media: MediaMetadata): MediaObservationDefinition[] {
+  const definitions: MediaObservationDefinition[] = [];
+  const field = (path: string[], expected: Scalar, kind: RuntimeMediaCheck['kind'], mediaId: string, state?: string) => {
+    definitions.push({ id: `host-media-${definitions.length + 1}`, path: ['media', ...path], expected, kind, mediaId, ...(state ? { state } : {}) });
+  };
+  media.characters.forEach((character, index) => {
+    const path = ['characters', String(index)], id = character.manifest.id;
+    field([...path, 'id'], id, 'character_id', id);
+    field([...path, 'loadedFrames'], character.manifest.states.reduce((sum, state) => sum + state.frames.length, 0), 'loaded_frames', id);
+    character.manifest.states.forEach((state, number) => {
+      field([...path, 'states', String(number), 'name'], state.name, 'state_name', id, state.name);
+      field([...path, 'states', String(number), 'seen'], true, 'state_seen', id, state.name);
+    });
+  });
+  media.audio.forEach((audio, index) => {
+    const path = ['audio', String(index)], id = audio.manifest.id;
+    field([...path, 'id'], id, 'audio_id', id); field([...path, 'decoded'], true, 'audio_decoded', id); field([...path, 'started'], true, 'audio_started', id);
+  });
+  return definitions;
+}
+export function createMediaObservationRequest(media: MediaMetadata, binding: Omit<MediaObservationRequest, 'formatVersion' | 'fields'>): MediaObservationRequest {
+  return { formatVersion: 'readonly-media/1', ...structuredClone(binding),
+    fields: mediaObservationDefinitions(media).map(({ id, path }) => ({ id, path })) };
+}
+export interface MediaSampleRow { segmentId: string; reportPath: string; sample: MediaObservationSample }
+export interface MediaCoverageCheck extends MediaObservationDefinition {
+  actual: Scalar; witnesses: { segmentId: string; reportPath: string }[];
+  observations: { segmentId: string; reportPath: string; value: Scalar }[];
+}
+/** Samples remain per-document facts. Coverage never changes a game, report or frozen plan. */
+export function assessMediaCoverage(media: MediaMetadata, request: MediaObservationRequest, rows: MediaSampleRow[]): { valid: boolean; complete: boolean; checks: MediaCoverageCheck[] } {
+  const invalid = () => ({ valid: false, complete: false, checks: [] });
+  const definitions = mediaObservationDefinitions(media), only = (value: object, keys: string[]) => Object.keys(value).every(key => keys.includes(key));
+  if (request.formatVersion !== 'readonly-media/1' || !/^[a-f0-9]{64}$/.test(request.manifestSha256)
+    || !isDeepStrictEqual(request.fields, definitions.map(({ id, path }) => ({ id, path }))) || !rows.length) return invalid();
+  const segments = new Set(), reports = new Set();
+  for (const row of rows) {
+    const sample = row?.sample;
+    if (!row || !only(row, ['segmentId', 'reportPath', 'sample']) || typeof row.segmentId !== 'string' || !row.segmentId
+      || typeof row.reportPath !== 'string' || !row.reportPath || segments.has(row.segmentId) || reports.has(row.reportPath)
+      || !sample || !only(sample, ['request', 'recordedAt', 'values']) || !isDeepStrictEqual(sample.request, request)
+      || typeof sample.recordedAt !== 'string' || !Number.isFinite(Date.parse(sample.recordedAt))
+      || !Array.isArray(sample.values) || sample.values.length !== definitions.length) return invalid();
+    segments.add(row.segmentId); reports.add(row.reportPath);
+    for (const [index, definition] of definitions.entries()) {
+      const value = sample.values[index];
+      if (definition.kind === 'loaded_frames') {
+        if (!Number.isSafeInteger(value) || Number(value) < 0 || Number(value) > Number(definition.expected)) return invalid();
+      } else if (['state_seen', 'audio_decoded', 'audio_started'].includes(definition.kind)) {
+        if (typeof value !== 'boolean') return invalid();
+        if (definition.kind === 'audio_started' && value && sample.values[index - 1] !== true) return invalid();
+      } else if (typeof value !== 'string') return invalid();
+    }
+  }
+  const checks = definitions.map((definition, index): MediaCoverageCheck => {
+    const values = rows.map(row => row.sample.values[index]);
+    const actual = definition.kind === 'loaded_frames' ? Math.max(...values.map(Number))
+      : typeof definition.expected === 'boolean' ? values.some(value => value === true) : values.find(value => value !== definition.expected) ?? definition.expected;
+    return { ...definition, actual, observations: rows.map(row => ({ segmentId: row.segmentId, reportPath: row.reportPath, value: row.sample.values[index] })), witnesses: rows.filter(row => row.sample.values[index] === definition.expected)
+      .map(({ segmentId, reportPath }) => ({ segmentId, reportPath })) };
+  });
+  return { valid: true, complete: checks.every(check => check.actual === check.expected), checks };
+}
 /** Same read-only observation boundary as COS-10, bound to this candidate's dynamic manifest. */
 export function withMediaObservations(input: AcceptancePlan, media: MediaMetadata) {
   const plan = structuredClone(input), checks: RuntimeMediaCheck[] = [];
@@ -19,19 +85,7 @@ export function withMediaObservations(input: AcceptancePlan, media: MediaMetadat
     plan.steps.push({ id, kind: 'wait-for', acceptanceId: plan.acceptanceIds[0], observation: { kind: 'debug', path: ['media', ...path] }, expected, timeoutMs: 1500 });
     checks.push({ stepId: id, kind, mediaId, ...(state ? { state } : {}) });
   };
-  media.characters.forEach((character, index) => {
-    const path = ['characters', String(index)], id = character.manifest.id;
-    check([...path, 'id'], id, 'character_id', id);
-    check([...path, 'loadedFrames'], character.manifest.states.reduce((sum, state) => sum + state.frames.length, 0), 'loaded_frames', id);
-    character.manifest.states.forEach((state, number) => {
-      check([...path, 'states', String(number), 'name'], state.name, 'state_name', id, state.name);
-      check([...path, 'states', String(number), 'seen'], true, 'state_seen', id, state.name);
-    });
-  });
-  media.audio.forEach((audio, index) => {
-    const path = ['audio', String(index)], id = audio.manifest.id;
-    check([...path, 'id'], id, 'audio_id', id); check([...path, 'decoded'], true, 'audio_decoded', id); check([...path, 'started'], true, 'audio_started', id);
-  });
+  for (const definition of mediaObservationDefinitions(media)) check(definition.path.slice(1), definition.expected, definition.kind, definition.mediaId, definition.state);
   const issues = validatePlan(plan);
   if (issues.length) throw new Error(`Host cannot cover this media roster with the confirmed input path: ${issues.join('; ')}`);
   return { plan, checks };

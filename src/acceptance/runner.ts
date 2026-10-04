@@ -4,7 +4,8 @@ import type { ChildProcess } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import type { EvidenceContract } from '../contracts/types.ts';
-import { input, observe } from './browser.ts';
+import { input, observe, observeDebugScalars } from './browser.ts';
+import type { MediaObservationRequest, MediaObservationSample } from './browser.ts';
 import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Scalar, Step } from './plan.ts';
 import { bounded, DeadlineError, AcceptanceCancelledError } from './deadline.ts';
@@ -34,6 +35,7 @@ export interface AcceptanceReport {
   steps: StepResult[]; errors: string[]; files: string[]; reportPath: string; evidence: EvidenceContract[];
   failureFacts?: BrowserFailureFacts;
   session?: PersistentBrowserIdentity;
+  mediaObservations?: MediaObservationSample;
 }
 export interface PersistentBrowserIdentity {
   browserPid: number; profile: string; commandLineProfile: string; origin: string;
@@ -51,6 +53,8 @@ export interface OwnedAcceptanceLifecycle {
 export interface AcceptanceOptions {
   evidenceRoot: string; headless?: boolean; channel?: 'chrome' | 'msedge'; timeoutMs?: number;
   env?: NodeJS.ProcessEnv;
+  /** Only trusted source assembly supplies this collection; it is never a plan field. */
+  mediaObservations?: MediaObservationRequest;
 }
 
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
@@ -201,6 +205,14 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
       log('step', JSON.stringify(result));
       if (isCheck(step) || result.outcome === 'failed') result.screenshot = await screenshot(`${String(index + 1).padStart(3, '0')}-${step.id}.png`);
       if (failureFacts.termination?.kind === 'project_mismatch') break;
+    }
+    if (options.mediaObservations && report.steps.every(row => row.outcome === 'passed') && !report.errors.length) {
+      const request = structuredClone(options.mediaObservations);
+      if (request.formatVersion !== 'readonly-media/1' || JSON.stringify(request.candidate) !== JSON.stringify(plan.artifact)
+        || !/^[a-f0-9]{64}$/.test(request.manifestSha256) || !/^[a-f0-9]{40}$/.test(request.sourceVersion)
+        || !/^[a-f0-9]{64}$/.test(request.planBindingSha256) || !Array.isArray(request.fields)) throw new Error('Invalid fixed media collection binding');
+      const values = await run(() => observeDebugScalars(page!, request.fields.map(field => field.path)), 1500, 'Read-only media collection');
+      report.mediaObservations = { request, recordedAt: new Date().toISOString(), values };
     }
   } catch (error) {
     if (error instanceof DeadlineError || error instanceof AcceptanceCancelledError) { forceClose = true; failureFacts.termination ??= { kind: 'lifecycle' }; }

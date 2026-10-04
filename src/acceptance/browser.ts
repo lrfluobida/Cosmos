@@ -1,5 +1,37 @@
 import type { Page } from '@playwright/test';
 import type { Observation, Scalar, Step } from './plan.ts';
+import type { ArtifactReference } from '../contracts/types.ts';
+import type { PersistentAcceptanceSeries } from './persistent.ts';
+
+export interface MediaObservationRequest {
+  formatVersion: 'readonly-media/1'; media: ArtifactReference; manifestSha256: string;
+  candidate: ArtifactReference; sourceVersion: string; planBindingSha256: string;
+  scope: NonNullable<PersistentAcceptanceSeries['scope']>; fields: { id: string; path: string[] }[];
+}
+export interface MediaObservationSample { request: MediaObservationRequest; recordedAt: string; values: Scalar[] }
+
+/** Trusted fixed paths only. Read one document snapshot; never invoke nested getters or setters. */
+export async function observeDebugScalars(page: Pick<Page, 'evaluate'>, paths: string[][]): Promise<Scalar[]> {
+  if (!Array.isArray(paths) || !paths.length || paths.length > 592 || paths.some(path => !Array.isArray(path) || !path.length
+    || path.length > 8 || path.some(key => typeof key !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(key)
+      || ['__proto__', 'constructor', 'prototype'].includes(key)))) throw new Error('Invalid trusted debug observation paths');
+  return page.evaluate((paths: string[][]) => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'cosmosDebug');
+    if (!descriptor || descriptor.set || descriptor.writable === true || descriptor.configurable) throw new Error('cosmosDebug must be read-only and non-configurable');
+    const snapshot: unknown = descriptor.get ? descriptor.get.call(window) : descriptor.value;
+    return paths.map(path => {
+      let value: unknown = snapshot;
+      for (const key of path) {
+        if (value === null || typeof value !== 'object') throw new Error(`Missing debug value: ${key}`);
+        const field = Object.getOwnPropertyDescriptor(value, key);
+        if (!field || field.get || field.set) throw new Error(`Debug path must contain data properties: ${key}`);
+        value = field.value;
+      }
+      if (value !== null && typeof value !== 'string' && typeof value !== 'boolean' && !(typeof value === 'number' && Number.isFinite(value))) throw new Error('Observation must be a JSON scalar');
+      return value as string | number | boolean | null;
+    });
+  }, paths);
+}
 
 export async function observe(page: Page, observation: Observation, timeoutMs: number): Promise<Scalar> {
   if (observation.kind === 'text') return page.locator(observation.selector).filter({ visible: true }).innerText({ timeout: timeoutMs });

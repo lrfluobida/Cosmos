@@ -26,6 +26,8 @@ export interface PersistentAcceptanceSeries {
 }
 export interface PersistentAcceptanceOptions extends AcceptanceOptions {
   deadlineAt: number; signal?: AbortSignal; verifyBinding: () => Promise<void>;
+  /** Host-owned controller ticket; defaults keep the existing isolated fixture route. */
+  ownedChild?: { prepare(): Promise<string>; register(pid: number, ticket: string): Promise<void> };
 }
 export interface PersistentFailureFacts {
   formatVersion: 1;
@@ -285,7 +287,8 @@ export async function blockPersistentServiceWorkers(context: Pick<BrowserContext
 if (navigator.serviceWorker) navigator.serviceWorker.register = async () => { console.warn('Service Worker registration blocked by Playwright'); };
 `);
 }
-function ownedLifecycle(plan: AcceptancePlan, options: PersistentAcceptanceOptions, session: SegmentLifecycle): OwnedAcceptanceLifecycle {
+/** Trusted transport seam for host QA; profile data never comes from a model plan. */
+export function ownedPersistentBrowserLifecycle(plan: AcceptancePlan, options: PersistentAcceptanceOptions, session: SegmentLifecycle): OwnedAcceptanceLifecycle {
   let child: ChildProcess | undefined, browser: Browser | undefined, cdp: CDPSession | undefined;
   let identity: PersistentBrowserIdentity | undefined, closed: Promise<void> = Promise.resolve(), closeEvent = false;
   const origin = new URL(plan.url).origin;
@@ -300,6 +303,7 @@ function ownedLifecycle(plan: AcceptancePlan, options: PersistentAcceptanceOptio
       const portFile = join(session.profile, 'DevToolsActivePort');
       try { await removeOwned(session.profile, portFile); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
       if (session.signal?.aborted || Date.now() >= end) throw new DeadlineError('Persistent launch cancelled or expired');
+      const ticket = options.ownedChild ? await run(options.ownedChild.prepare, 'Owned browser launch ticket') : undefined;
       child = spawn(path, ['--user-data-dir=' + session.profile, '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
         '--enable-automation', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-component-update',
         '--disable-extensions', '--disable-default-apps', '--disable-sync', ...(options.headless === false ? [] : ['--headless=new']), 'about:blank'],
@@ -307,6 +311,10 @@ function ownedLifecycle(plan: AcceptancePlan, options: PersistentAcceptanceOptio
       let launchError: Error | undefined;
       child.on('error', error => { launchError = error; });
       closed = new Promise(resolveClose => child!.once('close', () => { closeEvent = true; resolveClose(); }));
+      if (options.ownedChild) {
+        requireThat(child.pid && ticket, 'owned browser has no PID or prepared ticket');
+        await run(() => options.ownedChild!.register(child!.pid!, ticket), 'Owned browser PID registration');
+      }
       let port = '';
       while (!port) {
         if (launchError) throw launchError;
@@ -343,5 +351,5 @@ function ownedLifecycle(plan: AcceptancePlan, options: PersistentAcceptanceOptio
 export async function runPersistentAcceptance(value: unknown, options: PersistentAcceptanceOptions): Promise<PersistentAcceptanceReport> {
   const timeoutMs = options.timeoutMs ?? Math.max(1000, Math.min(43_200_000, options.deadlineAt - Date.now()));
   return executePersistentSeries(value, options, (plan, session) => runAcceptanceInOwnedSession(plan,
-    { ...options, timeoutMs }, ownedLifecycle(plan, options, session)));
+    { ...options, timeoutMs }, ownedPersistentBrowserLifecycle(plan, options, session)));
 }

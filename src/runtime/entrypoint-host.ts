@@ -37,6 +37,8 @@ import { currentValidationCase, requireValidationTask, validationRole } from './
 import { requireValidationBrowserScope, requireValidationPreparationScope } from './entrypoint-validation.ts';
 import type { ValidationBrowserProposal, ValidationPreparationProposal } from './entrypoint-validation.ts';
 import type { BrowserInputPreparation } from './entrypoint-preparation.ts';
+import { runPersistentAcceptance } from '../acceptance/persistent.ts';
+import type { PersistentAcceptanceSeries, PersistentAcceptanceOptions, PersistentAcceptanceReport } from '../acceptance/persistent.ts';
 import type { RoleFactoryOptions } from '../roles/factory.ts';
 import type { RoleInput } from '../roles/factory.ts';
 import { TaskJournal } from './recovery/task-journal.ts';
@@ -78,23 +80,28 @@ async function serve(project: string) {
   return { url: `http://127.0.0.1:${address.port}`, async close() { server.closeAllConnections(); await new Promise<void>((done, reject) => server.close(error => error ? reject(error) : done())); } };
 }
 export interface HostExecutionAuthority { taskId: string; windowId: string | null; deadlineAt: string; caseId?: string }
-export interface BrowserHostIO {
-  build(project: string, name: string, signal: AbortSignal, authority: HostExecutionAuthority): Promise<{ passed: boolean; diagnostics: string }>;
-  play(plan: AcceptancePlan, signal: AbortSignal, authority: HostExecutionAuthority): Promise<AcceptanceReport>;
+export interface BrowserBuildReport {
+  passed: boolean; diagnostics: string; work?: string;
+  results?: { code: number | null; stdout: string; stderr: string }[];
 }
-function nativeIO(input: Pick<HostInput, 'root' | 'controller'>): BrowserHostIO {
+export interface BrowserHostIO {
+  build(project: string, name: string, signal: AbortSignal, authority: HostExecutionAuthority): Promise<BrowserBuildReport>;
+  play(plan: AcceptancePlan, signal: AbortSignal, authority: HostExecutionAuthority): Promise<AcceptanceReport>;
+  playPersistent?(series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions, authority: HostExecutionAuthority): Promise<PersistentAcceptanceReport>;
+}
+function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'>): BrowserHostIO {
   return {
     async build(project, name, signal, authority) {
       if (name !== authority.taskId) throw new Error('Build task differs from its host execution authority.');
       const root = await directory(input.root, `builds/${name}`), toolchain = join(input.root, 'toolchain');
       await cp(toolchain, root, { recursive: true }); await cp(project, root, { recursive: true });
-      let diagnostics = '';
+      let diagnostics = ''; const results: NonNullable<BrowserBuildReport['results']> = [];
       for (const args of [[join(toolchain, 'node_modules/typescript/bin/tsc'), '--noEmit', '-p', 'tsconfig.json'], [join(toolchain, 'node_modules/vite/bin/vite.js'), 'build']]) {
-        const result = await ownedNode(input, authority, args, root, signal, 120000); diagnostics += result.diagnostics;
-        if (!result.passed) return { passed: false, diagnostics };
+        const result = await ownedNode(input, authority, args, root, signal, 120000); diagnostics += result.diagnostics; results.push(result);
+        if (!result.passed) return { passed: false, diagnostics, work: root, results };
       }
       signal.throwIfAborted(); await cp(join(root, 'dist'), join(project, 'dist'), { recursive: true, errorOnExist: true, force: false });
-      return { passed: true, diagnostics };
+      return { passed: true, diagnostics, work: root, results };
     },
     async play(plan, signal, authority) {
       if (plan.taskId !== authority.taskId) throw new Error('Browser task differs from its host execution authority.');
@@ -106,6 +113,15 @@ function nativeIO(input: Pick<HostInput, 'root' | 'controller'>): BrowserHostIO 
       if (remaining < 1000) throw new Error('Execution window time is insufficient for browser cleanup.');
       await ownedNode(input, authority, ['--experimental-strip-types', '--input-type=module', '-e', source, join(input.root, path), join(input.root, 'browser-evidence'), join(input.root, result), String(Math.min(180000, remaining))], input.root, signal, Math.min(185000, remaining + 1000));
       return json(input.root, result);
+    },
+    async playPersistent(series, options, authority) {
+      if (series.segments.some(segment => segment.plan.taskId !== authority.taskId)
+        || options.deadlineAt !== Date.parse(authority.deadlineAt)) throw new Error('Persistent browser task or deadline differs from host authority.');
+      return input.work.run(async signal => runPersistentAcceptance(series, { ...options, signal: AbortSignal.any([signal, ...(options.signal ? [options.signal] : [])]),
+        ownedChild: {
+          prepare: async () => { await options.verifyBinding(); return input.controller.prepareOwnedChild(authority.windowId ? { taskId: authority.taskId, windowId: authority.windowId } : undefined); },
+          register: async (pid, ticket) => { await input.controller.registerOwnedChild(pid, ticket); await options.verifyBinding(); },
+        } }));
     },
   };
 }
@@ -145,7 +161,7 @@ export async function createValidationPreparedBrowserHost(input: Omit<HostInput,
     const host = await createBrowserHostCore({ ...input, draft: structuredClone(input.proposal) }) as PreparedBrowserHost;
     const capture = host.capture, verify = host.verify, preAuthor = host.preAuthor, validateTasks = host.validateTasks;
     host.capture = async (...args) => { try { return await capture(...args); } catch (error) { await host.closePreparation(); throw error; } };
-    host.verify = async (...args) => { try { const evidence = await verify(...args); if (evidence.some(item => item.outcome === 'failed')) await host.closePreparation(); return evidence; }
+    host.verify = async (...args) => { try { const evidence = await verify(...args); if (!input.preparation.candidateConsumer && evidence.some(item => item.outcome === 'failed')) await host.closePreparation(); return evidence; }
       catch (error) { await host.closePreparation(); throw error; } };
     if (preAuthor) host.preAuthor = async (...args) => { try { return await preAuthor(...args); } catch (error) { await host.closePreparation(); throw error; } };
     if (validateTasks) host.validateTasks = tasks => { try { validateTasks(tasks); } catch (error) { void host.closePreparation().catch(() => {}); throw error; } };
@@ -228,6 +244,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     preparedRequirementRef = requirements; await validationScope();
     await preparation.initialize({ root, registry, requirement, requirementCapture: requirements, requirementFile: '_cosmos/execution-requirement.json',
       primaryDesign: designOutput, candidates: { v1: output, v2: registry.candidateRef(name('game'), 'v2') }, designTaskId: scope.window.quote.declaration.grants.design.taskId,
+      primaryMedia: mediaOutput, mediaTaskId: scope.window.quote.declaration.grants.art.taskId,
+      candidateTaskIds: { v1: scope.window.quote.declaration.grants.coding.taskId, v2: scope.window.quote.declaration.grants.repair.taskId },
       name, signal: work.signal, resume: input.resume, requireScope: async () => { work.signal.throwIfAborted(); await validationScope(); work.signal.throwIfAborted(); } });
   }
   const proofs = new Map<string, PassedEvidence>(), failures = new Map<string, HostFailure>();
@@ -453,6 +471,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const authority = await requireDispatch(task, signal);
       const ref = taskOutput(task), kind = role(task), reportPath = `evidence/${task.taskId}/host-report.json`; let passed = false, actual = 'Host validation did not complete.';
       let classification: 'code_defect' | 'insufficient_evidence' = 'insufficient_evidence';
+      let consumerDiagnostics: import('./entrypoint-preparation.ts').BrowserCandidateConsumerResult['diagnostics'] | undefined;
+      let consumerRawEvidence: ArtifactReference[] = [];
       try {
         if (kind === 'design') {
           const design = await json(root, `${ref.location}/_cosmos/design.json`); validateDesign(design, gameplayIds);
@@ -462,7 +482,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           validateDeclaredMedia(await json(root, `${ref.location}/_cosmos/mediaSpec.json`), design);
           if (!captured.metadata.media) throw new Error('Missing generated media manifest.');
           await validateMedia(captured.metadata.media, join(root, ref.location), captured.files.map(file => file.destination)); passed = true;
-        } else if (preparation) {
+        } else if (preparation && !preparation.candidateConsumer) {
           await preparation.bindCandidate(ref); await requireDispatch(task, signal);
           actual = 'Transfer inputs are bound; persistent/media execution consumer is not connected. Preparation cannot establish gameplay acceptance.';
         } else {
@@ -471,11 +491,37 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             const checked = await io.build(project, task.taskId, signal, validation ? await requireDispatch(task, signal) : authority);
             if (validation) await requireDispatch(task, signal);
             await writeJson(root, `evidence/${task.taskId}/build.json`, checked);
-            if (!checked.passed) { classification = 'code_defect'; actual = checked.diagnostics.slice(0, 16000) || 'Typecheck/build failed.'; }
+            if (!checked.passed) {
+              if (preparation?.candidateConsumer) {
+                consumerDiagnostics = preparation.candidateBuildDiagnostic?.(task, checked, `evidence/${task.taskId}/build.json`);
+                consumerRawEvidence = [{ artifactId: `${task.taskId}-build`, version: ref.version, location: `evidence/${task.taskId}/build.json` }];
+                actual = consumerDiagnostics?.issues.map(issue => issue.summary).join('\n') || 'Build failed without attributable current compiler evidence.';
+              } else { classification = 'code_defect'; actual = checked.diagnostics.slice(0, 16000) || 'Typecheck/build failed.'; }
+            }
             return { passed: checked.passed, evidenceIds: [`${task.taskId}-host`] };
           },
           acceptance: async (_candidate, project) => {
             if (validation) await requireDispatch(task, signal);
+            if (preparation?.candidateConsumer) {
+              await preparation.bindCandidate(ref);
+              const mediaArtifact = selected(task, 'media'), capture = await registry.getCapture(mediaArtifact);
+              const manifestBytes = await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`);
+              if (!capture.metadata.media || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), capture.metadata.media)) throw new Error('Actual media manifest differs from its capture.');
+              const result = await preparation.candidateConsumer({ root, task, candidate: ref, project, mediaArtifact, media: capture.metadata.media,
+                manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async () => { await requireDispatch(task, signal); await preparation.bindCandidate(ref); },
+                playPersistent: async (series, options) => {
+                  if (!io.playPersistent) throw new Error('Trusted persistent transport is unavailable.');
+                  return io.playPersistent(series, options, await requireDispatch(task, signal));
+                } });
+              await requireDispatch(task, signal); consumerDiagnostics = result.diagnostics;
+              const valid = result.passed && result.diagnostics.reportValid && !result.diagnostics.issues.length;
+              actual = valid ? 'Current candidate passed persistent normal inputs and generated-media coverage.'
+                : result.diagnostics.issues.map(issue => issue.summary).join('\n').slice(0, 16000) || 'Persistent/media evidence is incomplete.';
+              pictures.set(task.taskId, result.pictures); consumerRawEvidence = result.rawEvidence;
+              await writeJson(root, `evidence/${task.taskId}/browser.json`, { reportPath: result.reportPath, diagnostics: result.diagnostics });
+              await writeJson(root, `evidence/${task.taskId}/media-usage.json`, result.mediaUsage);
+              return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
+            }
             const server = await serve(project);
             try {
               const scenario = (draft as GameDraft | ValidationBrowserProposal).scenario;
@@ -506,20 +552,29 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         });
         proofs.set(task.taskId, proof); passed = true;
         }
-      } catch { /* Trusted diagnostics above distinguish a code defect from missing host evidence. */ }
+      } catch (error) {
+        // A trusted consumer boundary failure is evidence insufficiency unless exact diagnostics already established a defect.
+        if (preparation?.candidateConsumer && !consumerDiagnostics) actual = error instanceof Error ? error.message : 'Persistent consumer did not establish current evidence.';
+      }
       const evidence: EvidenceContract = { contractVersion: '1.0.0', evidenceId: `${task.taskId}-host`, taskId: task.taskId, acceptanceIds: task.acceptanceIds,
         kind: 'test_report', source: { artifactId: `${task.taskId}-host-report`, version: ref.version, location: reportPath }, artifactVersions: [...task.inputs, ...task.artifacts],
         outcome: passed ? 'passed' : 'failed', recordedAt: new Date().toISOString(), summary: passed ? kind === 'coding' ? 'Fixed candidate built and passed normal input checks; independent review follows.'
           : `${kind} stage checks passed on fixed outputs; this is not a gameplay verdict.` : actual };
       if (validation) await requireDispatch(task, signal);
       await writeJson(root, reportPath, { evidence, proof: proofs.get(task.taskId) ?? null });
-      if (!passed) failures.set(task.taskId, new HostFailure(task.acceptance.map(item => ({ acceptanceId: item.acceptanceId, checkId: 'browser-build', classification,
-        summary: actual, reproduction: item.steps, expected: item.expected, actual, evidenceRefs: [reportPath] }))));
+      if (!passed) failures.set(task.taskId, new HostFailure(consumerDiagnostics?.issues.length ? consumerDiagnostics.issues : task.acceptance.map(item => ({ acceptanceId: item.acceptanceId, checkId: 'browser-build', classification,
+        summary: actual, reproduction: item.steps, expected: item.expected, actual, evidenceRefs: [reportPath] })),
+      consumerDiagnostics?.passedChecks.map(check => ({ ...check, evidenceId: evidence.evidenceId })) ?? []));
       const supplemental: EvidenceContract[] = (pictures.get(task.taskId) ?? []).map((source, index) => ({ ...evidence, evidenceId: `${task.taskId}-image-${index}`, source, kind: 'screenshot', outcome: 'observed', summary: 'Normal-input screenshot of this exact candidate; interpreted with fixed source and runtime observations.' }));
+      supplemental.push(...consumerRawEvidence.map((source, index): EvidenceContract => ({ ...evidence, evidenceId: `${task.taskId}-raw-${index}`, source,
+        kind: 'test_report', outcome: 'observed', summary: 'Current persistent raw report directory: screenshots, video, logs and actual process/media facts.' })));
       if (passed && kind === 'coding') supplemental.push({ ...evidence, evidenceId: `${task.taskId}-media-usage`, kind: 'log', outcome: 'observed',
         source: { artifactId: `${task.taskId}-media-usage`, version: ref.version, location: `evidence/${task.taskId}/media-usage.json` },
         summary: 'Check the observation implementations against frozen Phaser source and normal-input screenshots. Read-only counters alone do not establish visible or audible quality.' });
-      if (passed) await copyRefs(root, join(root, `reviews/${task.taskId}`), [...task.inputs, ...task.artifacts, ...task.context.interfaces, evidence.source, ...supplemental.map(item => item.source)]);
+      if (passed) {
+        const refs = [...task.inputs, ...task.artifacts, ...task.context.interfaces, evidence.source, ...supplemental.map(item => item.source)];
+        await copyRefs(root, join(root, `reviews/${task.taskId}`), refs.filter(ref => !consumerRawEvidence.some(parent => ref.location !== parent.location && ref.location.startsWith(parent.location + '/'))));
+      }
       return [evidence, ...supplemental];
     },
     async reviewImages(task, signal) {
@@ -571,7 +626,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       });
     },
     async finish(tasks) {
-      if (preparation) { await preparation.close(); return { gaps: ['Transfer input preparation only: persistent/media acceptance consumer and bounded design semantic repair are not connected.'] }; }
+      if (preparation && !preparation.candidateConsumer) { await preparation.close(); return { gaps: ['Transfer input preparation only: persistent/media acceptance consumer and bounded design semantic repair are not connected.'] }; }
       let current = await controller.read();
       if (validation) {
         try { current = (await validationScope()).snapshot; for (const task of tasks) { boundTask(task); requireValidationTask(current, task); if (!sameValue(current.tasks.find(item => item.taskId === task.taskId), task)) throw new Error('Final validation task differs from its persistent result.'); } }
@@ -583,6 +638,22 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         const existing = await registry.current(); return { ...(existing ? { delivery: existing.targetRoot } : {}), gaps: ['Current tasks lack complete host checks and independent approval.'] };
       }
       const ref = taskOutput(task), proof = proofs.get(task.taskId);
+      if (preparation?.candidateConsumer) {
+        try {
+          await preparation.requireCurrent();
+          for (const item of tasks) {
+            const origin = await json(root, `journal/task-${item.taskId}/origin.json`) as import('./recovery/task-journal.ts').RecoveryOrigin;
+            requireOriginalTask(origin.prepared.task, item);
+            const journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin, true);
+            const verified = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature }>('verified', item.attempts.at(-1)!.attemptId);
+            const review = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; reviewerId: string; contextId: string }>('review', item.attempts.at(-1)!.attemptId);
+            if (!verified || !review || review.reviewerId !== item.review.reviewerId || review.contextId !== item.review.contextId) throw new Error('Current independent review receipt is unavailable.');
+            const refs = [...item.inputs, ...item.artifacts, ...item.evidence.map(entry => entry.source)];
+            await journal.requireSignature(verified.signature, refs); await journal.requireSignature(review.signature, refs);
+          }
+          await preparation.requireCurrent();
+        } catch { return { gaps: ['Current persistent inputs, raw evidence or independent review signatures changed before promotion.'] }; }
+      }
       if (proof) await registry.promoteCandidate(ref, { evidence: proof, review: { candidateRef: ref, attemptId: proof.attemptId, reviewerId: task.review.reviewerId!, contextId: task.review.contextId!, verdict: 'approved', evidenceIds: task.review.evidenceIds } });
       const accepted = await registry.current();
       if (!accepted || !sameValue(accepted.candidateRef, ref)) return { gaps: ['Candidate promotion cannot be established; preserve the original version and evidence.'] };
@@ -597,7 +668,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     prepared.closePreparation = () => preparation.close(); prepared.bindPreparedCandidate = candidate => preparation.bindCandidate(candidate);
     prepared.withPreparation = async operation => {
       try { return await work.run(async () => { try {
-        await preparation.requireCurrent(); const result = await operation(); work.signal.throwIfAborted(); await validationScope(); work.signal.throwIfAborted(); return result;
+        await preparation.requireCurrent(); const result = await operation(); work.signal.throwIfAborted(); await validationScope();
+        if (preparation.candidateConsumer) await preparation.requireCurrent(); work.signal.throwIfAborted(); return result;
       } finally { await preparation.close(); } }); }
       finally { await preparation.close(); }
     };
@@ -625,7 +697,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     };
     (host as ValidationBrowserHost).prepareValidationRepair = async (source, feedback, recovery) => {
       const { snapshot: before, window } = await validationScope();
-      if (preparation) throw new Error('Preparation has no acceptance consumer; it cannot dispatch a coding repair.');
+      if (preparation && !preparation.candidateConsumer) throw new Error('Preparation has no acceptance consumer; it cannot dispatch a coding repair.');
+      if (preparation) await preparation.requireCurrent();
       if (window.repair || validationRole(window, source.task.taskId) !== 'coding' || resolve(recovery.artifactRoot) !== resolve(root) || resolve(recovery.journalRoot) !== join(root, 'journal')) throw new Error('Validation coding repair was already claimed or has a different fixed source.');
       const fixed = boundTask(source.task);
       if (!fixed || !sameValue(source, { ...fixed, task: before.tasks.find(task => task.taskId === source.task.taskId) })) throw new Error('Repair must retain the complete fixed prepared source binding and persisted task.');
@@ -639,7 +712,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       await journal.requireSignature(failed.signature, [...task.inputs, ...task.artifacts, ...task.evidence.map(item => item.source)]);
       const candidate = await registry.getCandidate(taskOutput(task)), code = await registry.getCapture(registry.artifactRef(name('game-source'), taskOutput(task).version));
       if (candidate.taskId !== task.taskId || candidate.authorId !== task.authorId || candidate.contextId !== task.context.contextId || code.taskId !== task.taskId || !code.metadata.provenance.sourceRefs.includes(attempt.sessionRef)) throw new Error('Repair candidate source identity changed.');
-      await validationScope(); await stageFeedback(feedback); await controller.claimValidationRepair({ sourceTaskId: task.taskId, feedback: feedback.reference });
+      await validationScope(); if (preparation) await preparation.requireCurrent(); await stageFeedback(feedback); await controller.claimValidationRepair({ sourceTaskId: task.taskId, feedback: feedback.reference });
       const snapshot = await controller.read(), grant = window.quote.declaration.grants.repair, ref = registry.candidateRef(name('game'), 'v2');
       const repair = createLinkedRepairTask({ ...options, snapshot, source, taskId: grant.taskId, allocationMicroCny: grant.amountMicroCny,
         outputs: [{ ...task.outputs[0], destination: ref.location }], expectedArtifacts: [ref] });
