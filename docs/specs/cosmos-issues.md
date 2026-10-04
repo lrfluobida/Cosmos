@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 55 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 57 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -101,6 +101,8 @@
 - [ ] [COS-53 保存运行时设计前的需求草稿与访谈模式](https://github.com/lrfluobida/Cosmos/issues/54)
 - [ ] [COS-54 为角色提供准确输入引用的文件清单](https://github.com/lrfluobida/Cosmos/issues/55)
 - [ ] [COS-55 接通编码作者原会话的可信编译检查](https://github.com/lrfluobida/Cosmos/issues/56)
+- [ ] [COS-56 复用已通过阶段的固定产物与评审来源](https://github.com/lrfluobida/Cosmos/issues/57)
+- [ ] [COS-57 准备仅编码的第六迁移案例与剩余额度准入](https://github.com/lrfluobida/Cosmos/issues/58)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -638,6 +640,23 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 范围/验收：SDK初始化前声明/实现仅coding作者的空参固定tsc/Vite；原session/attempt/write/grant/calls/费用/deadline/signal保持。准确template/config/media/current源码装配至独立task/attempt/check TEMP，runOwnedNode/controller ticket/PID/env白名单/source-input-version/停止/unknown前后守卫；stale/错scope/停止拒，无shell/命令/任意path/env，不复用draft-N/既有builds/task目录。仅advisory真实编译诊断，不capture/proof/indepapproval/accepted/promotion、不占增linked repair；TEMP owned compiler错误→原作者修改→成功及source/compiled入口代表，零模型。
 
 Root POST+GET/native parent55children #2–#56/checkbox精确读回。原验证150/首30/COS16原10/formal20012/优化1006、旧八native与五迁移结果/closure11/human NONE保持，当前无盲paid重跑计划。
+
+### COS-56 · 复用已通过阶段的固定产物与评审来源
+
+- 依赖/状态：[#57](https://github.com/lrfluobida/Cosmos/issues/57)，id5704091506；source12/35..42/43/52/54/55已审对应component，输出16/18，frozen16/partial18 scoped而非完整closed循环。cos56_implementer从327de5b8的codex/cos56-passed-stage-reuse实施；in-progress/open/SOURCE_NOT_READY，无批准SHA、真实manifest或新paid。
+- 来源认证：Root-owned manifest绑定C5 window/source/inputHash/原task IDs-contracts-roots/完整capture refs及原origin/author/capture/verified/review-started/review字节digest、time/signature/inputVersions/evidence与author/reviewer/context独立approved。新operator receipt固定sourceRef中的expectedSHA仅是元数据；可信readScope须实读manifest并核exact path+bytes/hash，在claim前后、cold resume、工具/dispatch和promotion复核。
+- 历史只读：历史design audit只核原started/result/raw时间hash链与sealed map，不调用旧active seal/author workspace/design grant。原journalRoot验证旧origin/receipt字节，导入用独立root-mapping auth receipt，不改TaskJournal.open原origin、不放宽journal。只认manifest精确旧design/art IDs，不把旧任务加入current dispatch bindings/register/save/dispatch/charge；closed C5 grants永久拒派，repair validatedDependencies由同一历史验证器播种。
+- 当前装配：generation/cold resume/repair author前await bindPreparedTasks，分别绑定sourceProfile/sourceRequirement/currentScope，artifact选择/三role topology-finish与Source55 role()/boundTask/compile guards认识inherited stages、普通全current不变。保留完整capture闭包，只stage一个template，旧duplicate-destination冲突严格拒；当前execution requirement独立文件名，不覆盖旧_cosmos/execution-requirement.json。由未改accepted map派生current task/candidate/origin的v1/v2 plans，原四outputs/旧plans字节保持，new plans/coding inputs在context/signature前封存。
+- 完成/验收：旧design/art来源真实passed加current coding实际build、同候选八段/media、独立coding approved和exact promotion；报告inherited，不伪造新planner/design/art通过。Source/TEMP TDD认证篡改/原fee-task-grants保真/zero planner-design-art SDK/current repair仅自身一次/cold resume不重派或重计时/stop-unknown/compiled host/54清单55编译，复用未改Edge/预算/80counter；ledger4/snapshot3/decl3/quote2不变，不冒human formal continuation，C5 partialcode可省略而不复杂replay。
+
+### COS-57 · 准备仅编码的第六迁移案例与剩余额度准入
+
+- 依赖/状态：[#58](https://github.com/lrfluobida/Cosmos/issues/58)，id5704092753；source54/55已审与source56待审、原foundation exact markers/reviewed+merge双main祖先，outputs16/18；open/SOURCE_NOT_READY，源码未启动，须等56独审集成。固定cos20-transfer-validation-6仅source准备，actual C6 NONE/Root尚未制作真实manifest。
+- 固定额度/准入：原ledger4/snapshot3/13 stopped cases/currentC5manual/5delegations/65closed十一audits、65settled+1准入前取消、unknown/reserved0/owner idle及COS16 parent index4/refrevision1414/hash/source/首授权成员保真。原groupnet1522107/rem8477893；五正grants planning323680/design598538/art2633322/coding2122353/repair2800000合8477893，只原parent10余量，planning/design/art不dispatch SDK、unused仍原审计关闭；current planning HOST bootstrap仍有当期权限，zero planner仅指zero planner SDK。
+- 驱动/恢复：免费preflight clean/pushed exact HEAD、source gates、Root manifest实际bytes/digest及C5receipts/captures；wrong role/source/member/fee/missing audit/owner等免费拒。旧可信topology派生新coding PreparedTask/自己的policy-role-tools-grants-expectedOutputs-journal，依赖保留旧passed IDs，不伪造新planned/passed或调用planner。不可变derived execution receipt支持原C6内cold resume，不重claim/重计时/重付PASS；56封存new plans/current requirement/loopback origin/source-copy闭包，native pi/Flash仅coding及自身合格一次repair，54/55工具有效。
+- 边界/验收：source/TEMP TDD fixed declaration-parser/history-manifest-rolefee/source拒/只读preflight byte-mtime-file保真/原子claim+host bootstrap/inherited refs/cold resume pending与当前coded failure自身repair。原case¥5/45分钟/80/一次coding repair、design原permission/shared150首30/group10/formal20012/优化1006保持。实际manifest/账本/key/paid仅Root在最终source/docs批准后fresh preflight/funding/operator执行；当前不运行C6、不重开C5、不假human/public CLI/fullclassic通过。
+
+Root按两个独立架构评审修订并POST+GET精确读回上述正文、native parent57children #2–#58与新checkbox，原55前缀保持。
 
 ## 5. 任务与上下文包模板
 

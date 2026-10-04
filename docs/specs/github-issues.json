@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 55
+    "childCount": 57
   },
   "tasks": [
     {
@@ -3739,8 +3739,152 @@
       "reviewedCommit": "018e02130d1678c35034748e64f3dff236eb1318",
       "mergeCommit": "46dc52387a69c95720687375a92da1b7d66b4e5b",
       "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/56#issuecomment-5985108515"
+    },
+    {
+      "taskId": "COS-56",
+      "title": "复用已通过阶段的固定产物与评审来源",
+      "number": 57,
+      "id": 5704091506,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/57",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-12",
+          "number": 13,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/13"
+        },
+        {
+          "id": "COS-35",
+          "number": 36,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/36"
+        },
+        {
+          "id": "COS-36",
+          "number": 37,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/37"
+        },
+        {
+          "id": "COS-37",
+          "number": 38,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/38"
+        },
+        {
+          "id": "COS-38",
+          "number": 39,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/39"
+        },
+        {
+          "id": "COS-39",
+          "number": 40,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/40"
+        },
+        {
+          "id": "COS-40",
+          "number": 41,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/41"
+        },
+        {
+          "id": "COS-41",
+          "number": 42,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/42"
+        },
+        {
+          "id": "COS-42",
+          "number": 43,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/43"
+        },
+        {
+          "id": "COS-43",
+          "number": 44,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/44"
+        },
+        {
+          "id": "COS-52",
+          "number": 53,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/53"
+        },
+        {
+          "id": "COS-54",
+          "number": 55,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/55"
+        },
+        {
+          "id": "COS-55",
+          "number": 56,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/56"
+        }
+      ],
+      "sourcePrerequisiteScopes": {
+        "COS-16": "frozen-contract-scope",
+        "COS-18": "partial-reviewed-source"
+      },
+      "validationOutputsFor": [
+        {
+          "id": "COS-16",
+          "number": 17,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/17"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY"
+    },
+    {
+      "taskId": "COS-57",
+      "title": "准备仅编码的第六迁移案例与剩余额度准入",
+      "number": 58,
+      "id": 5704092753,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/58",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-54",
+          "number": 55,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/55"
+        },
+        {
+          "id": "COS-55",
+          "number": 56,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/56"
+        },
+        {
+          "id": "COS-56",
+          "number": 57,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/57"
+        }
+      ],
+      "sourcePrerequisiteScopes": {
+        "COS-16": "frozen-contract-scope",
+        "COS-18": "partial-reviewed-source"
+      },
+      "validationOutputsFor": [
+        {
+          "id": "COS-16",
+          "number": 17,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/17"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "not-started",
+      "implementationPhase": "not-started",
+      "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 55,
+  "verifiedNativeSubIssues": 57,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
