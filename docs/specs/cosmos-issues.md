@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 36 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-04 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 37 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36仅迁移平台准备/SOURCE_NOT_READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
+调用实验：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37未READY，没有新实际window或迁移通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -82,6 +82,7 @@
 - [ ] [COS-34 持久化最终用户体验决定并绑定交付版本](https://github.com/lrfluobida/Cosmos/issues/35)
 - [ ] [COS-35 为通用浏览器 host 绑定共享验证窗口和角色额度](https://github.com/lrfluobida/Cosmos/issues/36)
 - [ ] [COS-36 绑定运行时推箱子设计与可信鼠标验收计划](https://github.com/lrfluobida/Cosmos/issues/37)
+- [ ] [COS-37 通过隔离 profile 和同 origin 验证真实浏览器进程重开](https://github.com/lrfluobida/Cosmos/issues/38)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -445,17 +446,23 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-35 · 为通用浏览器 host 绑定共享验证窗口和角色额度
 
-- 依赖/状态：已发布 [#36](https://github.com/lrfluobida/Cosmos/issues/36)，id5692927967，第35个原生子任务、父checkbox/原生关联已精确读回；in-progress/open/SOURCE_NOT_READY。source前置COS-07/08/18/20/23/28/30/32为对应已审源码，COS18沿partial source stage，不要求任务closed；输出反馈COS-16/COS-18。
+- 依赖/状态：已发布 [#36](https://github.com/lrfluobida/Cosmos/issues/36)，id5692927967，第35个原生子任务、父checkbox/原生关联已精确读回；offline-verified-awaiting-live/open。独审 SHARED_VALIDATION_BROWSER_HOST_SOURCE_READY 批准 `bc352be3e62d02f594f4fed55197b5be921f72e9`（含 `d5e6e6e996883c18bd279f7e2e3bf1bfd1f3141b`），合入 `e806020d055ea0a1641849154aea971f796b9c2b`；source前置COS-07/08/18/20/23/28/30/32为对应已审源码，COS18沿partial source stage，不要求任务closed；输出反馈COS-16/COS-18。
 - 范围/工作：作者先设计再pure TDD，把通用browser host的角色SDK调用绑定同一共享验证窗口、原角色grant与费用/截止/取消守卫，沿用已审作者纠正、交接职责、host证据和缺陷反馈能力。只准备通用平台能力，不写迁移游戏或地图到template、不启动paid。
 - 预算/通过边界：沿用COS16原10,000,000 micro-CNY（¥10）、shared¥150/首批¥30及原计时约束，不为新issue各添预算或刷新旧clock。Source独审可证明绑定与fail-safe，迁移实际仍缺同profile真关进程重开和入口；新实际window以后由root单独准备准确source/quote/operator，当前不claim。
-- 当前边界：未来独审marker为SHARED_VALIDATION_BROWSER_HOST_SOURCE_READY，当前无批准source/merge SHA；不标READY或把fixture当真实迁移通过，C8与旧八案例/费用/六closure保持。
+- 源码证据/当前边界：九批准路径字节一致、无碰撞、UTF8/LF/中文/diffcheck通过；独审增量5groups/7.211秒/exit0验证合法planning read无需DAG/fee、错role/task/write与已创建toolsource漂移拒绝、错repair role/output不占slot、feedback篡改拒绝后合法coding绑定可repair。作者5pure/3defaults/affectedstrict、修复3RED/GREEN与一次完整synthetic repair/review/promotion证据复用；联合仅合法planning read before task registration代表1/1、0skip（266.2969ms），未重groups/strict/Browser。Generation默认行为保持，实际迁移仍缺跨host重开、新driver/运行时map和真实profile/window；preparation_only/not_executable，不把fixture当迁移通过，C8字段保持。
 
 ### COS-36 · 绑定运行时推箱子设计与可信鼠标验收计划
 
-- 依赖/状态：已发布 [#37](https://github.com/lrfluobida/Cosmos/issues/37)，id5692928479，第36个原生子任务、父checkbox/原生关联已精确读回；in-progress/open/SOURCE_NOT_READY。source输入COS-02/08、COS14 draft、COS16 frozen contract、COS18 dynamic partial source；输出反馈COS-16/COS-18，使用sourcePrerequisites/范围说明，不要求这些完整任务closed形成循环。
+- 依赖/状态：已发布 [#37](https://github.com/lrfluobida/Cosmos/issues/37)，id5692928479，第36个原生子任务、父checkbox/原生关联已精确读回；offline-verified-awaiting-live/open。独审 TRANSFER_DESIGN_BINDING_SOURCE_READY 批准 `d862f7747826dd0bc82b80e7fce6c9c04bdce69d`（base `5d4d1d478aefce9fcde6254359edee906a551213`），合入 `dbe86ea42e408f0c32785f98247357a54c185cc6`；source输入COS-02/08、COS14 draft、COS16 frozen contract、COS18 dynamic partial source；输出反馈COS-16/COS-18，使用sourcePrerequisites/范围说明，不要求这些完整任务closed形成循环。
 - 范围/工作：作者先设计再pure TDD，把运行时真实推箱子design与冻结迁移契约、可信artifact身份/版本及正常鼠标验收plan绑定；不能把模型任意计划直接当验收标准，不把游戏/地图预写到template，不用fixture冒充运行时生成或真实迁移。
 - 预算/通过边界：同COS16原¥10/shared¥150/首批¥30和已冻结的原时钟约束，只做平台准备，不创建paid窗口或追加任务额度。真实迁移还需共用profile的关进程/重开及动态入口证据，新实际window由root以后单独声明/准入。
-- 当前边界：未来独审marker为TRANSFER_DESIGN_BINDING_SOURCE_READY，当前无批准source/merge SHA、未READY；未运行迁移游戏或形成真实通过记录，完整classic/最终还原目标、G4及实际human仍未通过。
+- 源码证据/当前边界：六批准路径字节一致、无碰撞、UTF8/LF/中文/diffcheck通过；独审5/5涵盖oracle/restore/suffix/mapv1v2/registry篡改与原README8287bytes前缀，作者6/6（1040.6669ms）/strict6.790秒exit0复用。联合仅保持六AC、正常buttons/saved expectations及不可用process checkpoint的binding代表1/1、0skip（409.8785ms），未重matrix/compiler/Browser。仍为preparation_only，T16-05/06 not_executable，无真实迁移/paid，完整classic/最终还原目标、G4及实际human未通过。
+
+### COS-37 · 通过隔离 profile 和同 origin 验证真实浏览器进程重开
+
+- 依赖/状态：已发布 [#38](https://github.com/lrfluobida/Cosmos/issues/38)，id5696255260，第37个原生子任务、父checkbox/原生关联已精确读回；in-progress/open/SOURCE_NOT_READY。source前置COS-08/12/32/36对应已审components，输出反馈COS-16/COS-18，不要求完整任务closed；未来独审marker PERSISTENT_PROFILE_PROCESS_REOPEN_SOURCE_READY，当前无批准source/merge SHA。
+- 范围/工作：作者先≤300词design再实施隔离profile、同origin的真实浏览器进程关闭/重开checkpoint；默认runner32不退化，不能用reload或storage injection冒充恢复。只使用作者自己的synthetic temp profiles/browser fixture，按root排程验证，不访问用户browser profile、Root私有案例或原game，不调用model/paid。
+- 预算/当前边界：仍是COS16平台准备，沿用原¥10/shared¥150/首批¥30和旧时钟，不新建ledger、续旧预算或创建实际window。Source37未独批，T16-05/06/实际迁移仍未证明；C8接受v2、旧八历史/费用7008623/40closed/6audits和actualhuman NONE保持。
 
 ## 5. 任务与上下文包模板
 
