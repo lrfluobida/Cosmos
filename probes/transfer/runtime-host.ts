@@ -7,6 +7,7 @@ import type { BrowserInputPreparation, BrowserPreparationContext } from '../../s
 import type { ArtifactReference, TaskContract } from '../../src/contracts/index.ts';
 import { directory, regularFile } from '../../src/artifacts/paths.ts';
 import { isValidationRequirement } from '../../src/roles/execution-input.ts';
+import type { ValidationRequirement } from '../../src/roles/execution-input.ts';
 import { HOST_STAGE_ACCEPTANCE } from '../../src/roles/requirements.ts';
 import { publishReceipt } from '../../src/runtime/recovery/receipt-file.ts';
 import { HostFailure } from '../../src/runtime/repair/feedback.ts';
@@ -17,6 +18,7 @@ import { validateTransferDesign } from './oracle.ts';
 import { freezeTransferDesign, prepareTransferAcceptance, verifyPreparedTransferAcceptance, bindTransferAcceptance } from './binding.ts';
 import type { FrozenTransferDesign, FrozenTransferAcceptanceDraft, PrepareInput } from './binding.ts';
 import { reserveTransferOrigin } from './loopback-origin.ts';
+import { consumeTransferCandidate, diagnoseTransferBuild } from './runtime-acceptance.ts';
 
 type HostInput = Parameters<typeof createValidationPreparedBrowserHost>[0];
 interface PreparedInputs {
@@ -28,6 +30,13 @@ const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: t
 
 /** Runtime-generated data only. This module contains no map, solution, assets or game implementation. */
 export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparation'>) {
+  return createTransferHost(input, false);
+}
+/** Trusted source opt-in only; public/model inputs cannot choose an execution adapter. */
+export async function createTransferConsumerHost(input: Omit<HostInput, 'preparation'>) {
+  return createTransferHost(input, true);
+}
+async function createTransferHost(input: Omit<HostInput, 'preparation'>, consumer: boolean) {
   let ctx: BrowserPreparationContext, origin: Awaited<ReturnType<typeof reserveTransferOrigin>>;
   let transfer: ArtifactReference, planRefs: { v1: ArtifactReference; v2: ArtifactReference };
   let preparedPublished = false;
@@ -46,7 +55,8 @@ export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparat
     requireThat(isValidationRequirement(ctx.requirement), 'explicit validation requirement is missing');
     return { root: ctx.root, registry: ctx.registry, frozen: saved.frozen,
     currentRequirement: { artifact: ctx.requirementCapture, specVersion: ctx.requirement.specVersion }, candidate: ctx.candidates[version], planArtifact: planRefs[version],
-    url: origin.url, runId: ctx.requirement.validation.runId, reportId: ctx.name('transfer-' + version) };
+    url: origin.url, runId: ctx.requirement.validation.runId, reportId: ctx.name('transfer-' + version),
+    ...(consumer ? { taskId: ctx.candidateTaskIds[version] } : {}) };
   };
   const verify = async (task?: TaskContract) => {
     const saved = await read();
@@ -61,7 +71,7 @@ export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparat
   const requireCurrent = async () => {
     try {
       await guard();
-      const design = (await input.controller.read()).tasks.find(task => task.taskId === ctx.designTaskId);
+      const snapshot = await input.controller.read(), design = snapshot.tasks.find(task => task.taskId === ctx.designTaskId);
       const complete = !!design && (design.artifacts.length > 0 || design.state === 'passed');
       if (!preparedPublished && !complete) {
         try { await regularFile(ctx.root, receiptFile); }
@@ -83,6 +93,59 @@ export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparat
         requireThat(captured && isDeepStrictEqual(captured.captured.artifacts, refs), 'complete design capture receipt is missing');
         await journal.requireSignature(captured.signature, refs);
       }
+      if (consumer) {
+        const art = snapshot.tasks.find(task => task.taskId === ctx.mediaTaskId);
+        if (art && (art.artifacts.length || art.state === 'passed')) {
+          requireThat(isDeepStrictEqual(art.artifacts, [ctx.primaryMedia]), 'complete media capture identity changed');
+          const capture = await ctx.registry.getCapture(ctx.primaryMedia), attempt = art.attempts.at(-1)!;
+          requireThat(capture.taskId === art.taskId && capture.metadata.kind === 'media' && capture.metadata.media
+            && isDeepStrictEqual(capture.metadata.provenance, { kind: 'original-procedural', generator: 'Native art role output',
+              sourceRefs: [attempt.sessionRef, ...ctx.requirement.sources.map(ref => ref.location)] })
+            && isDeepStrictEqual(capture.dependencies, [ctx.registry.artifactRef(ctx.name('generic-template'), 'v1'), ctx.requirementCapture, ctx.primaryDesign, transfer])
+            && isDeepStrictEqual(capture.ownership, { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }), 'media author capture provenance changed');
+          requireThat(isDeepStrictEqual(decode(await regularFile(ctx.root, ctx.primaryMedia.location + '/public/assets/manifest.json')), capture.metadata.media), 'actual media manifest changed');
+          const mediaOrigin = decode(await regularFile(ctx.root, `journal/task-${art.taskId}/origin.json`)) as RecoveryOrigin;
+          requireThat(isDeepStrictEqual(mediaOrigin.requirement, ctx.requirement) && isDeepStrictEqual(mediaOrigin.prepared.expectedArtifacts, [ctx.primaryMedia]), 'original media binding changed');
+          requireOriginalTask(mediaOrigin.prepared.task, art);
+          const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, mediaOrigin, true);
+          const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', attempt.attemptId);
+          requireThat(captured && isDeepStrictEqual(captured.captured.artifacts, [ctx.primaryMedia]), 'media capture receipt is missing');
+          await journal.requireSignature(captured.signature, [ctx.primaryMedia]);
+          const files = captured.signature.find(item => item.location === ctx.primaryMedia.location)!.files.map(item => item.path).sort();
+          requireThat(isDeepStrictEqual(capture.files.map(item => item.destination).sort(), files)
+            && capture.files.every(item => item.source === item.destination), 'media capture file metadata changed');
+        }
+        for (const version of ['v1', 'v2'] as const) {
+          const coding = snapshot.tasks.find(task => task.taskId === ctx.candidateTaskIds[version]);
+          if (!coding?.artifacts.length) continue;
+          const ref = ctx.candidates[version]; requireThat(isDeepStrictEqual(coding.artifacts, [ref]), 'captured coding candidate changed');
+          const codingOrigin = decode(await regularFile(ctx.root, `journal/task-${coding.taskId}/origin.json`)) as RecoveryOrigin;
+          requireOriginalTask(codingOrigin.prepared.task, coding);
+          const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, codingOrigin, true);
+          const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', coding.attempts.at(-1)!.attemptId);
+          requireThat(captured && isDeepStrictEqual(captured.captured.artifacts, [ref]), 'coding capture receipt is missing');
+          const fixed = captured.signature.find(item => item.location === ref.location);
+          requireThat(fixed && captured.signature.length === 1, 'original coding capture signature changed');
+          const candidate = await ctx.registry.getCandidate(ref), source = await ctx.registry.getCapture(ctx.registry.artifactRef(ctx.name('game-source'), version));
+          requireThat(candidate.taskId === coding.taskId && candidate.authorId === coding.authorId && candidate.contextId === coding.context.contextId
+            && source.taskId === coding.taskId && source.metadata.kind === 'code'
+            && isDeepStrictEqual(source.metadata.provenance, { kind: 'original-procedural', generator: 'Native coding role output',
+              sourceRefs: [coding.attempts.at(-1)!.sessionRef, ...ctx.requirement.sources.map(ref => ref.location)] }), 'coding candidate/source provenance changed');
+          const inputs = [ctx.registry.artifactRef(ctx.name('generic-template'), 'v1'), ctx.requirementCapture, ctx.primaryDesign, ctx.primaryMedia, transfer, planRefs[version]];
+          requireThat(isDeepStrictEqual(source.dependencies, inputs) && isDeepStrictEqual(candidate.inputs, [...inputs, source.artifactRef])
+            && isDeepStrictEqual(candidate.expectedDeps, candidate.inputs)
+            && isDeepStrictEqual(candidate.mediaRequirements, [{ artifactRef: ctx.primaryMedia, media: (await ctx.registry.getCapture(ctx.primaryMedia)).metadata.media }]),
+          'complete candidate source/media dependency metadata changed');
+          requireThat(isDeepStrictEqual(candidate.files.map(item => item.destination).sort(), fixed.files.map(item => item.path).sort()), 'original candidate file binding changed');
+          // Only trusted build output is added under dist; every original captured byte remains fixed.
+          for (const file of fixed.files) {
+            const item = candidate.files.find(item => item.destination === file.path)!;
+            requireThat([...coding.inputs, source.artifactRef].some(ref => isDeepStrictEqual(ref, item.artifactRef))
+              && sha(await regularFile(ctx.root, ref.location + '/' + file.path)) === file.sha256
+              && sha(await regularFile(ctx.root, item.artifactRef.location + '/' + file.path)) === file.sha256, 'original captured candidate/source bytes changed');
+          }
+        }
+      }
       await guard();
     } catch (error) { await origin.close(); throw error; }
   };
@@ -94,9 +157,11 @@ export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparat
       'Use only up/down/left/right and zero-based [x,y] integer floor coordinates. Each legal step moves one cell. Walls, box-wall and double-box attempts preserve the entire state. The independent oracle fixes all expected states.'],
     codingRules: ['Read the exact transfer design and both pre-coding plans from fixed inputs. Preserve their map, rules and normal-input observations; only the plan corresponding to this candidate version is staged by the host.',
       'Implement the fixed Chinese start/up/down/left/right/restart/continue buttons. Expose only actual read-only transfer.snapshot and transfer.saveSnapshot JSON strings with field order mapVersion,player,boxes,targets,steps,won. Sort boxes/targets by x then y; targets are {position:[x,y],occupied:boolean}. Do not fill state observations with the plan expected values. Render actual cell-x-y data-player/data-box/data-target/data-occupied and status from game state as specified in the frozen plan.',
-      'Transfer acceptance execution is not connected in this preparation stage. Do not declare host acceptance or user experience passed.'],
+      consumer ? 'The trusted host checks the eight frozen normal-input segments and actual media coverage. Preserve actual per-document cumulative media observations; browser-process reopening starts a new document. Do not declare user experience passed.'
+        : 'Transfer acceptance execution is not connected in this preparation stage. Do not declare host acceptance or user experience passed.'],
     async initialize(context) {
       ctx = context; requireThat(isValidationRequirement(ctx.requirement), 'transfer runtime host requires an explicit validation profile');
+      if (consumer) requireThat(ctx.candidateTaskIds.v1 && ctx.candidateTaskIds.v2 && ctx.candidateTaskIds.v1 !== ctx.candidateTaskIds.v2, 'consumer requires the original coding/repair task IDs before design capture');
       const expected = [...TRANSFER_ACCEPTANCE_IDS, ...HOST_STAGE_ACCEPTANCE.map(item => item.acceptanceId)].sort();
       requireThat(isDeepStrictEqual(ctx.requirement.acceptance.map(item => item.acceptanceId).sort(), expected), 'complete transfer and stage acceptance required');
       for (const stage of HOST_STAGE_ACCEPTANCE) requireThat(isDeepStrictEqual(ctx.requirement.acceptance.find(item => item.acceptanceId === stage.acceptanceId), stage), 'host stage acceptance changed');
@@ -154,6 +219,15 @@ export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparat
     },
     async close() { if (origin) await origin.close(); },
   };
+  if (consumer) preparation.candidateConsumer = async context => {
+    await requireCurrent(); const saved = await verify(), version = context.candidate.version as 'v1' | 'v2';
+    preparation.candidateExtraInputs(context.candidate);
+    requireThat(context.task.taskId === ctx.candidateTaskIds[version], 'consumer task differs from its pre-frozen candidate task');
+    return consumeTransferCandidate(context, { input: { ...preparedInput(saved, version), prepared: saved.plans[version] },
+      sourceVersion: (ctx.requirement as ValidationRequirement).validation.reviewedPlatformSha,
+      mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, verifyBinding }) });
+  };
+  if (consumer) preparation.candidateBuildDiagnostic = diagnoseTransferBuild;
   try { return await createValidationPreparedBrowserHost({ ...input, preparation }); }
   catch (error) { await preparation.close(); throw error; }
 }

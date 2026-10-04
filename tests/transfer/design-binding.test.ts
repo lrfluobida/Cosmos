@@ -217,6 +217,18 @@ test('binding keeps six ACs, normal buttons, saved expectations and an explicit 
   assert.ok(result.segments[0].plan.steps.some((step: any) => step.observation?.kind === 'visible' && step.observation.selector === '[data-testid="board"]'));
 });
 
+test('COS40 freezes actual coding and reserved repair task IDs before either candidate exists', async t => {
+  const a = await api(), f = await fixture(t), frozen = await a.freezeTransferDesign(f.freeze);
+  const first = { ...binding(f, frozen, f.registry.candidateRef('game', 'c1')), taskId: 'actual-coding' };
+  const second = { ...binding(f, frozen, f.registry.candidateRef('game', 'c2')), taskId: 'actual-repair',
+    planArtifact: f.registry.artifactRef('transfer-plan', 'p2'), reportId: 'repair' };
+  const v1 = await a.prepareTransferAcceptance(first), v2 = await a.prepareTransferAcceptance(second);
+  assert.ok(v1.segments.every((item: any) => item.plan.taskId === 'actual-coding'));
+  assert.ok(v2.segments.every((item: any) => item.plan.taskId === 'actual-repair'));
+  assert.deepEqual(v1.segments.map((item: any) => item.plan.steps), v2.segments.map((item: any) => item.plan.steps));
+  await assert.rejects(a.verifyPreparedTransferAcceptance({ ...first, taskId: 'late-change', prepared: v1 }), /binding|plan|changed/i);
+});
+
 test('binding rejects stale requirement/design/map/hash, missing candidate input and altered captured or staged bytes', async t => {
   const a = await api(), f = await fixture(t), frozen = await a.freezeTransferDesign(f.freeze);
   assert.equal(typeof a.prepareTransferAcceptance, 'function', 'pre-coding plan preparation API missing');

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>COS40 合成媒体观测</title>
+<style>body{font:24px sans-serif;padding:24px}button{font:inherit;padding:14px}canvas{display:block;margin:20px}</style>
+<h1>合成媒体观测 fixture</h1><button id="activate">显示下一姿态并播放音频</button><p id="status">loading</p><div id="canvas"></div>
+<script src="/phaser.js"></script>
+<script>
+const seen = new Set(); let clip, started = false, sprite, scene;
+const game = new Phaser.Game({ type: Phaser.CANVAS, parent: 'canvas', width: 256, height: 192,
+  backgroundColor: '#e2efe9', scene: {
+    preload() { this.load.svg('idle', '/idle-000.svg'); this.load.svg('active', '/active-000.svg'); this.load.audio('bell', '/bell.wav'); },
+    create() {
+      scene = this; sprite = this.add.sprite(128, 96, 'idle'); clip = this.sound.add('bell');
+      clip.on(Phaser.Sound.Events.PLAY, () => { started = clip.isPlaying; });
+      game.events.on(Phaser.Core.Events.POST_RENDER, () => {
+        if (sprite.active && sprite.visible) seen.add(sprite.texture.key);
+        if (seen.has('active') && started) document.querySelector('#status').textContent = 'active';
+      });
+      document.querySelector('#activate').addEventListener('click', () => { sprite.setTexture('active'); clip.play({ volume: 0.05 }); });
+      document.querySelector('#status').textContent = 'ready';
+    }
+  } });
+Object.defineProperty(window, 'cosmosDebug', { configurable: false, get: () => Object.freeze({ media: Object.freeze({
+  characters: Object.freeze([Object.freeze({ id: 'marker', loadedFrames: ['idle', 'active'].filter(key => game.textures.exists(key)).length,
+    states: Object.freeze(['idle', 'active'].map(name => Object.freeze({ name, seen: seen.has(name) }))) })]),
+  audio: Object.freeze([Object.freeze({ id: 'bell', decoded: !!scene && scene.cache.audio.exists('bell'), started })])
+}) }) });
+</script></html>

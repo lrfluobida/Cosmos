@@ -83,7 +83,7 @@ export async function freezeTransferDesign(input: FreezeInput): Promise<FrozenTr
 }
 export interface PrepareInput extends HostInput {
   frozen: FrozenTransferDesign; currentRequirement: { artifact: ArtifactReference; specVersion: string };
-  candidate: ArtifactReference; planArtifact: ArtifactReference; url: string; runId: string; reportId: string;
+  candidate: ArtifactReference; planArtifact: ArtifactReference; url: string; runId: string; reportId: string; taskId?: string;
 }
 export interface BindInput extends PrepareInput { prepared: FrozenTransferAcceptanceDraft }
 async function validateFrozenDesign(input: PrepareInput): Promise<ValidatedTransferDesign> {
@@ -169,7 +169,7 @@ function segment(input: PrepareInput, name: string, acceptanceId: string, valida
   let final = path.at(-1)?.after ?? validated.initial;
   if (mode === 'restart') { click('restart'); state(validated.initial, true); final = validated.initial; }
   rendered(final);
-  const plan: AcceptancePlan = { formatVersion: '1.0.0', projectId: 'cos16-transfer', taskId: 'COS-16', runId: input.runId,
+  const plan: AcceptancePlan = { formatVersion: '1.0.0', projectId: 'cos16-transfer', taskId: input.taskId ?? 'COS-16', runId: input.runId,
     reportId: input.reportId + '-' + name, specVersion: input.frozen.specVersion, artifact: structuredClone(input.candidate),
     url: input.url, viewport: { width: 1280, height: 720 }, acceptanceIds: [acceptanceId], steps };
   requireThat(!validatePlan(plan).length, 'mouse plan violates the bounded COS-08 contract');
