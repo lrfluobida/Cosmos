@@ -2,8 +2,11 @@ import { createHash, randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import type { ArtifactReference, RequirementContract } from '../../src/contracts/types.ts';
+import type { ArtifactReference } from '../../src/contracts/types.ts';
 import { validateRequirement } from '../../src/contracts/validation.ts';
+import { validateExecutionRequirement } from '../../src/roles/execution-input.ts';
+import type { ExecutionRequirement, ExecutionInputProfile } from '../../src/roles/execution-input.ts';
+import { HOST_STAGE_ACCEPTANCE } from '../../src/roles/requirements.ts';
 import type { ArtifactRegistry, Provenance } from '../../src/artifacts/index.ts';
 import { directory, regularFile, removeOwned, snapshot } from '../../src/artifacts/paths.ts';
 import { validatePlan, isLocalUrl } from '../../src/acceptance/plan.ts';
@@ -29,42 +32,47 @@ async function capturedFiles(root: string, registry: ArtifactRegistry, ref: Arti
   requireThat(isDeepStrictEqual([...files.keys()].sort(), capture.files.map(file => file.destination).sort()), 'capture file inventory changed');
   return { capture, files };
 }
-async function readRequirement(root: string, registry: ArtifactRegistry, ref: ArtifactReference, file: string) {
+async function readRequirement(root: string, registry: ArtifactRegistry, ref: ArtifactReference, file: string, profile?: ExecutionInputProfile, preserveHostStages?: true) {
   const { capture, files } = await capturedFiles(root, registry, ref);
   requireThat(capture.metadata.kind === 'data' && files.has(file), 'captured requirement data is missing');
   const value = json(files.get(file)!);
-  requireThat(!validateRequirement(value).length, 'invalid confirmed requirement contract');
-  const requirement = value as RequirementContract;
-  requireThat(isDeepStrictEqual(requirement.acceptance.map(item => item.acceptanceId).sort(), [...TRANSFER_ACCEPTANCE_IDS].sort()),
+  requireThat(!(profile ? validateExecutionRequirement(value, profile) : validateRequirement(value)).length, 'invalid explicit requirement profile or confirmed contract');
+  const requirement = value as ExecutionRequirement;
+  const expected = [...TRANSFER_ACCEPTANCE_IDS, ...(preserveHostStages ? HOST_STAGE_ACCEPTANCE.map(item => item.acceptanceId) : [])];
+  requireThat(isDeepStrictEqual(requirement.acceptance.map(item => item.acceptanceId).sort(), expected.sort()),
     'requirement must retain all six exact transfer acceptance IDs');
+  if (preserveHostStages) for (const stage of HOST_STAGE_ACCEPTANCE) requireThat(isDeepStrictEqual(requirement.acceptance.find(item => item.acceptanceId === stage.acceptanceId), stage), 'host stage acceptance changed');
   return { requirement, sha256: digest(files) };
 }
 export interface FrozenTransferDesign {
   formatVersion: 'cos16-binding/1'; artifact: ArtifactReference;
   requirement: ArtifactReference; requirementFile: string; requirementSha256: string;
   designSha256: string; mapVersion: string; specVersion: string; acceptanceIds: string[];
+  requirementProfile?: ExecutionInputProfile; preserveHostStages?: true;
 }
 interface HostInput { root: string; registry: ArtifactRegistry }
 export interface FreezeInput extends HostInput {
   requirement: ArtifactReference; requirementFile: string; designSource: string;
   artifact: ArtifactReference; taskId: string; provenance: Provenance;
+  requirementProfile?: ExecutionInputProfile; preserveHostStages?: true;
 }
 /** Trusted host only. Persist the returned binding in a host-owned plan before role handoff. */
 export async function freezeTransferDesign(input: FreezeInput): Promise<FrozenTransferDesign> {
   fixedReference(input.artifact);
-  const required = await readRequirement(input.root, input.registry, input.requirement, input.requirementFile);
+  const required = await readRequirement(input.root, input.registry, input.requirement, input.requirementFile, input.requirementProfile, input.preserveHostStages);
   const bytes = await regularFile(input.root, input.designSource);
   const validated = validateTransferDesign(json(bytes), input.requirement);
   const frozen: FrozenTransferDesign = { formatVersion: 'cos16-binding/1', artifact: structuredClone(input.artifact),
     requirement: structuredClone(input.requirement), requirementFile: input.requirementFile, requirementSha256: required.sha256,
     designSha256: hash(bytes), mapVersion: validated.design.mapVersion, specVersion: required.requirement.specVersion,
-    acceptanceIds: [...TRANSFER_ACCEPTANCE_IDS] };
+    acceptanceIds: [...TRANSFER_ACCEPTANCE_IDS], ...(input.requirementProfile ? { requirementProfile: input.requirementProfile } : {}),
+    ...(input.preserveHostStages ? { preserveHostStages: true as const } : {}) };
   // Copy the already-validated bytes, rather than re-reading a writable author file during capture.
   const sourceRoot = 'host-transfer-preparation/' + randomUUID(), folder = await directory(input.root, sourceRoot);
   try {
     await writeFile(join(folder, 'design.json'), bytes, { flag: 'wx' });
     await writeFile(join(folder, 'binding.json'), JSON.stringify(frozen, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
-    requireThat((await readRequirement(input.root, input.registry, input.requirement, input.requirementFile)).sha256 === required.sha256,
+    requireThat((await readRequirement(input.root, input.registry, input.requirement, input.requirementFile, input.requirementProfile, input.preserveHostStages)).sha256 === required.sha256,
       'requirement changed during freeze');
     await input.registry.registerCapture({ taskId: input.taskId, artifactRef: input.artifact, sourceRoot,
       files: [{ source: 'design.json', destination: DESIGN_FILE }, { source: 'binding.json', destination: BINDING_FILE }],
@@ -90,7 +98,7 @@ async function validateFrozenDesign(input: PrepareInput): Promise<ValidatedTrans
     && isDeepStrictEqual([...files.keys()].sort(), [DESIGN_FILE, BINDING_FILE].sort()), 'design capture binding changed');
   requireThat(isDeepStrictEqual(json(files.get(BINDING_FILE)!), frozen), 'host frozen binding changed');
   requireThat(hash(files.get(DESIGN_FILE)!) === frozen.designSha256, 'design hash changed');
-  const requirement = await readRequirement(input.root, input.registry, frozen.requirement, frozen.requirementFile);
+  const requirement = await readRequirement(input.root, input.registry, frozen.requirement, frozen.requirementFile, frozen.requirementProfile, frozen.preserveHostStages);
   requireThat(requirement.sha256 === frozen.requirementSha256 && requirement.requirement.specVersion === frozen.specVersion,
     'requirement hash or spec version changed');
   const validated = validateTransferDesign(json(files.get(DESIGN_FILE)!), frozen.requirement);
@@ -203,8 +211,8 @@ export async function prepareTransferAcceptance(input: PrepareInput): Promise<Fr
     return { ...prepared, planSha256: hash(bytes) };
   } finally { await removeOwned(input.root, folder); }
 }
-/** Reuse exact pre-coding expectations after the actual candidate has been staged. No new plan writes. */
-export async function bindTransferAcceptance(input: BindInput): Promise<FrozenTransferAcceptanceDraft> {
+/** Validate immutable prepared inputs without requiring a not-yet-produced candidate. */
+export async function verifyPreparedTransferAcceptance(input: BindInput): Promise<FrozenTransferAcceptanceDraft> {
   requireThat(isLocalUrl(input.url), 'plan URL must be a loopback origin');
   fixedReference(input.planArtifact);
   requireThat(sameReference(input.prepared.artifact, input.planArtifact), 'prepared plan reference mismatch');
@@ -217,6 +225,11 @@ export async function bindTransferAcceptance(input: BindInput): Promise<FrozenTr
   requireThat(isDeepStrictEqual(json(bytes), prepared), 'prepared plan data changed');
   const validated = await validateFrozenDesign(input);
   requireThat(isDeepStrictEqual(draft(input, validated), prepared), 'candidate, run or frozen design plan binding changed');
-  await requireCandidateInputs(input);
   return structuredClone(input.prepared);
+}
+/** Reuse exact pre-coding expectations after the actual candidate has been staged. No new plan writes. */
+export async function bindTransferAcceptance(input: BindInput): Promise<FrozenTransferAcceptanceDraft> {
+  const prepared = await verifyPreparedTransferAcceptance(input);
+  await requireCandidateInputs(input);
+  return prepared;
 }

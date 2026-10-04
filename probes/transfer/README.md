@@ -122,3 +122,17 @@ profile 根由内部 `mkdtemp` 创建，带 host 所有权文件，拒绝 juncti
 默认 `runAcceptance` 仍使用原 launchServer/newContext 分支。持久流程另存 `persistent_profile_process_reopen` 总报告及各段原始 `normal_browser_input` 报告，不覆盖冻结计划，也不把其 `executable:false` 改为 true。测试专用 profile 留作诊断，浏览器进程必须退出；它们不能用于用户日常浏览。
 
 本次六组纯测试和一条小型真实 Edge 合成保存 fixture 只证明 harness 生命周期；另有一次默认 runner 正常路径代表检查。合成 fixture 不含推箱子地图或游戏，不能当作 Cosmos 生成或 T16-05/06 实际迁移通过。此前失败报告保留，实际迁移、同次运行来源/费用、生产 adapter、独立游戏评审和用户体验仍按原关口执行；不新增 paid window、ledger 或预算。定向证据见 [COS-37 计划](../../docs/plans/2026-10-04-persistent-browser-profile.md)。
+
+## COS-38 运行时输入 adapter（待独立源码评审）
+
+`runtime-host.ts` 的 `createTransferRuntimeHost` 通过可信源码 seam 使用共享验证浏览器 host。冻结输入明确保存 `.preparation: {profile:'operator_validation',adapterId:'cos16-input/1',brief,acceptance,unsupported}`，没有占位 scenario 或伪造 human 确认。普通 `.browser` proposal、默认 host 与 pilot 保留原入口。完整 ExecutionRequirement 另保存于 requirement capture 的 `_cosmos/execution-requirement.json`；每次 scope 检查核对真实 operator 决定、case/window/source/hash 及这个完整 capture。绑定工具也支持显式 human profile 并保留原确认字段，旧六项 human 契约仍使用原默认接口。
+
+规划前 design slot 固定四个输出引用：通用 `_cosmos/design.json`、可信 transfer design、candidate v1 plan、candidate v2 plan。运行中的 design 另写 `authors/design/transfer-design.json`；adapter 先调用既有独立 oracle，再依次调用原 freeze/prepare 工具发布设计及两个等价计划。无效设计保存原始字节和 `invalid_transfer_design` 诊断，停止后续 art/coding，不调用只读格式纠正，也不 claim coding repair。没有地图、解法、游戏或素材预置于本模块或角色提示。
+
+四个输出均进入 design capture 返回值、独立 review inputVersions、host evidence 和 journal signature；art/coding 的固定只读输入也完整保留四个版本。候选工程只 stage 当前 candidate 的 plan：v1 用 plan-v1，v2 用预留 plan-v2。art capture 的实际依赖是需求、通用设计及冻结地图；coding source/candidate 的实际依赖再加入媒体和当前 plan。另一候选的 plan 仍是 task/review 输入，不能同时 stage 到相同 `_cosmos/transfer-plan.json`。原 registry 的精确依赖闭包和冲突检查保持不变；对当前 candidate 绑定时仍验证四个准备输出，另一 plan 被改动也会拒绝。
+
+`loopback-origin.ts` 在冻结计划前创建 host 拥有的 loopback 404 listener。`host-transfer-origin.json` 是 write-once receipt，固定当前 case、window、source、完整需求摘要、run/spec 与 URL。显式 resume 只能重新监听原端口，端口冲突拒绝；不能生成后替换冻结 URL。host 初始化失败、准备阶段验证失败、source/scope 变化或取消都会关闭 listener。固定 receipt 和捕获数据保留，不改账本、停止状态或时钟。
+
+可信 driver 必须用 `host.withPreparation(async () => { ...原 planner / executeTaskDag... })` 包装本阶段；它复用 OwnedWork.run，并在 callback 正常返回、提前抛错或取消后等待同一个关闭 Promise。返回前重新检查取消及原 scope，不依赖 finish 必定执行。`closePreparation()` 可显式等待清理；恢复必须新建准确 resume host，再从原 journal/准备输出读取，不能重新规划或重新生成已消费产物。
+
+当前 coding 验证即使输入和 candidate 绑定正确，也返回 failed / insufficient_evidence，明确 persistent/media 执行 consumer 尚未接通，不调用 generic scenario、build/play 或 promote；finish 不返回 accepted delivery。两个冻结 IR 仍为 preparation-only/executable:false。后续任务须接实际 consumer、媒体证据及可信失败阶段，并准备同一次运行内的有界 design 语义修复和付费入口。源码准备不等于 Cosmos 已生成推箱子或迁移通过。计划 source marker 为 `TRANSFER_RUNTIME_INPUT_ADAPTER_SOURCE_READY`，只有独立审查与集成后才能登记；本项零付费测试与准确命令见 [COS-38 计划](../../docs/plans/2026-10-04-transfer-runtime-adapter.md)。

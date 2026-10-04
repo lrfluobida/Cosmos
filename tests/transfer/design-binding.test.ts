@@ -251,3 +251,30 @@ test('binding rejects stale requirement/design/map/hash, missing candidate input
   await writeFile(join(f.root, frozen.artifact.location, '_cosmos/transfer-design.json'), '{}', 'utf8');
   await assert.rejects(a.bindTransferAcceptance(valid), /hash|changed/i);
 });
+
+test('explicit operator requirement retains real validation identity and exact host stages without human fields', async t => {
+  const a = await api(), f = await fixture(t);
+  const { createValidationRequirement } = await import('../../src/roles/execution-input.ts');
+  const { HOST_STAGE_ACCEPTANCE } = await import('../../src/roles/requirements.ts');
+  const original = JSON.parse(await readFile(join(f.root, requirementRef.location, '_cosmos/requirement.json'), 'utf8'));
+  const requirement = createValidationRequirement({ specVersion: original.specVersion, sources: original.sources,
+    acceptance: [...original.acceptance, ...HOST_STAGE_ACCEPTANCE], validation: { runId: 'unit-run', ledgerId: 'unit-ledger', caseId: 'unit-case', windowId: 'unit-window',
+      reviewedPlatformSha: 'a'.repeat(40), frozenCaseInputHash: 'b'.repeat(64), decision: { kind: 'operator_validation', decisionId: 'unit-decision',
+        actorId: 'unit-operator', decidedAt: '2026-10-04T00:00:00.000Z', source: original.sources[0], sourceRefs: original.sources } } });
+  await writeFile(join(f.root, requirementRef.location, '_cosmos/requirement.json'), JSON.stringify(requirement), 'utf8');
+  await assert.rejects(a.freezeTransferDesign(f.freeze), /confirmed|requirement|profile/i);
+  const frozen = await a.freezeTransferDesign({ ...f.freeze, requirementProfile: 'operator_validation', preserveHostStages: true });
+  assert.equal(frozen.requirementProfile, 'operator_validation'); assert.equal(frozen.preserveHostStages, true);
+  assert.deepEqual(frozen.acceptanceIds, ids); assert.ok(!('confirmedBy' in requirement));
+  const prep = await a.prepareTransferAcceptance(binding(f, frozen, f.registry.candidateRef('game', 'c1')));
+  assert.deepEqual(prep.acceptanceIds, ids); assert.equal(prep.binding.design.requirementProfile, 'operator_validation');
+  const bad = structuredClone(requirement); bad.acceptance[6].expected = '改变阶段';
+  await writeFile(join(f.root, requirementRef.location, '_cosmos/requirement.json'), JSON.stringify(bad), 'utf8');
+  await assert.rejects(a.prepareTransferAcceptance(binding(f, frozen, f.registry.candidateRef('game', 'c2'))));
+  const human = { ...original, acceptance: [...original.acceptance, ...HOST_STAGE_ACCEPTANCE] };
+  await writeFile(join(f.root, requirementRef.location, '_cosmos/requirement.json'), JSON.stringify(human), 'utf8');
+  const humanFrozen = await a.freezeTransferDesign({ ...f.freeze, artifact: f.registry.artifactRef('human-transfer', 'v1'), requirementProfile: 'human', preserveHostStages: true });
+  assert.equal(humanFrozen.requirementProfile, 'human'); assert.equal(human.confirmedBy, original.confirmedBy); assert.equal(human.confirmedAt, original.confirmedAt);
+  const humanPlan = await a.prepareTransferAcceptance({ ...binding(f, humanFrozen, f.registry.candidateRef('human-game', 'c1')), planArtifact: f.registry.artifactRef('human-plan', 'p1') });
+  assert.deepEqual(humanPlan.acceptanceIds, ids);
+});
