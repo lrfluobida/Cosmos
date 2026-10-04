@@ -225,6 +225,12 @@ export function filterBrowserEnvironment(input: NodeJS.ProcessEnv): NodeJS.Proce
   const allowed = new Set(['path', 'systemroot', 'windir', 'temp', 'tmp', 'pathext', 'comspec', 'localappdata']);
   return Object.fromEntries(Object.entries(input).filter(([key, value]) => allowed.has(key.toLowerCase()) && value !== undefined));
 }
+/** Match pinned Playwright's serviceWorkers:block policy via the public all-document init API. */
+export async function blockPersistentServiceWorkers(context: Pick<BrowserContext, 'addInitScript'>): Promise<void> {
+  await context.addInitScript(`
+if (navigator.serviceWorker) navigator.serviceWorker.register = async () => { console.warn('Service Worker registration blocked by Playwright'); };
+`);
+}
 function ownedLifecycle(plan: AcceptancePlan, options: PersistentAcceptanceOptions, session: SegmentLifecycle): OwnedAcceptanceLifecycle {
   let child: ChildProcess | undefined, browser: Browser | undefined, cdp: CDPSession | undefined;
   let identity: PersistentBrowserIdentity | undefined, closed: Promise<void> = Promise.resolve(), closeEvent = false;
@@ -270,6 +276,7 @@ function ownedLifecycle(plan: AcceptancePlan, options: PersistentAcceptanceOptio
       const contexts = browser.contexts(); requireThat(contexts.length === 1, 'expected the real persistent default context');
       const context: BrowserContext = contexts[0];
       for (const page of context.pages()) await run(() => page.close(), 'Initial blank page cleanup');
+      await run(() => blockPersistentServiceWorkers(context), 'Persistent service worker block');
       // The default CDP context persists on disk; no newContext or storage seed is used.
       return { browser, context };
     },
