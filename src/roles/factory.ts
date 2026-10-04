@@ -57,6 +57,8 @@ export interface RoleFactoryOptions {
   /** Trusted host integrations only. Mutating tools are never supplied to a reviewer. */
   hostTools?: (input: Readonly<{ role: Role; taskId: string; workspace: string; signal: AbortSignal; childEnv: NodeJS.ProcessEnv }>) => Promise<{ tool: ToolDefinition; readOnly: boolean }[]>;
   sessionFactory?: (options: PiSessionOptions) => Promise<RoleSession>;
+  /** Optional trusted host admission immediately before an existing scoped tool. */
+  beforeTool?: (input: Readonly<RoleInput>, signal: AbortSignal) => Promise<void>;
 }
 
 /** Pass this allowlisted environment to every host child process, never process.env. */
@@ -118,6 +120,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     }
     const tools = scoped.map(tool => ({ ...tool, async execute(id, args, signal, onUpdate, ctx) {
       const combined = AbortSignal.any([input.controller.signal, ...(signal ? [signal] : [])]);
+      combined.throwIfAborted();
+      await options.beforeTool?.(input, combined);
       combined.throwIfAborted();
       return tool.execute(id, args, combined, onUpdate, ctx);
     } } as ToolDefinition));

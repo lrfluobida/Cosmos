@@ -38,6 +38,12 @@ export function validateGameDraft(value: unknown): asserts value is GameDraft {
     || !text(draft.brief) || !Array.isArray(draft.questions) || !draft.answers || typeof draft.answers !== 'object' || Array.isArray(draft.answers)
     || Object.values(draft.answers).some(answer => typeof answer !== 'string') || !Array.isArray(draft.unsupported) || draft.unsupported.some(item => !text(item))) throw new Error('Invalid game draft fields.');
   prepareClarification({ ...draft, specVersion: 'draft', sources: [] });
+  validateBrowserScenario(draft);
+}
+
+/** Declarative browser checks shared by human drafts and explicit operator inputs. */
+export function validateBrowserScenario(draft: Pick<GameDraft, 'acceptance' | 'scenario'>): void {
+  const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
   if (!Array.isArray(draft.acceptance) || !draft.acceptance.length || draft.acceptance.length > 100
     || new Set(draft.acceptance.map(item => item?.acceptanceId)).size !== draft.acceptance.length
     || draft.acceptance.some(item => !item || Object.keys(item).some(key => !['acceptanceId', 'description', 'steps', 'expected', 'evidenceKinds'].includes(key))
