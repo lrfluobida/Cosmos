@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { resolve } from 'node:path';
 import { regularFile } from '../artifacts/paths.ts';
 import { DEFAULT_BUDGETS, budgetCapacity, budgetSummary, validateLedgerUpdate, validateRunUpdate, validateTaskUpdate } from '../contracts/index.ts';
 import type { ArtifactReference, BudgetLedger, LedgerEntry, TaskContract, TaskKind, UpdateActor } from '../contracts/index.ts';
@@ -198,6 +199,17 @@ export class RunController {
   validationAuthority(taskId: string, purpose: ValidationPurpose): Promise<ValidationAuthority> {
     this.validationWindow();
     return this.serial(async () => this.validationTaskAuthority(taskId, purpose));
+  }
+
+  /** Explicit generic host guard; identity checking may persist the existing deadline stop. */
+  requireValidationHost(caseId: string, windowId: string, artifactRoot: string): Promise<void> {
+    return this.serial(async () => {
+      this.requireValidationCase(caseId, windowId);
+      if (resolve(artifactRoot) !== resolve(this.validationContext!.repositoryRoot, '.cosmos/e2e', caseId)) throw new Error('Validation host root differs from its current case.');
+      if (this.snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new Error('Validation host charges require reconciliation before dispatch.');
+      await this.checkValidationIdentity();
+      this.requireValidationCase(caseId, windowId);
+    });
   }
 
   async claimValidationRepair(input: { sourceTaskId: string; feedback: ArtifactReference }): Promise<NonNullable<ValidationCaseWindow['repair']>> {

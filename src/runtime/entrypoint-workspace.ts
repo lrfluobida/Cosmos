@@ -2,10 +2,12 @@ import { lstat, realpath, writeFile } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { directory, pathName, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
 import { checkShape, referenceShape } from '../contracts/structure.ts';
-import type { ArtifactReference, RequirementContract, TaskContract } from '../contracts/index.ts';
+import type { ArtifactReference, TaskContract } from '../contracts/index.ts';
+import type { ExecutionRequirement } from '../roles/execution-input.ts';
 
 export interface MaterializeTaskInputsOptions {
-  artifactRoot: string; workspace: string; task: TaskContract; requirement: RequirementContract; signal: AbortSignal;
+  artifactRoot: string; workspace: string; task: TaskContract; requirement: ExecutionRequirement; signal: AbortSignal;
+  validation?: { caseId: string; taskId: string };
 }
 interface FixedInput { location: string; directory: boolean; files: Map<string, Buffer> }
 const pending = new Map<string, Promise<void>>();
@@ -54,7 +56,8 @@ async function materialize(options: MaterializeTaskInputsOptions): Promise<void>
   await safePath(artifactRoot);
   const root = await realpath(artifactRoot), name = relative(root, resolve(workspace)).split(sep).join('/');
   const parts = name.split('/');
-  if (parts.length !== 3 || parts[0] !== 'continuations' || parts[2] !== 'workspace') throw new Error('Workspace must be this run\'s isolated continuations/<decision>/workspace.');
+  if (options.validation ? name !== `validation/${options.validation.caseId}/${options.validation.taskId}/workspace` || options.validation.taskId !== task.taskId
+    : parts.length !== 3 || parts[0] !== 'continuations' || parts[2] !== 'workspace') throw new Error('Workspace must match its explicit isolated task binding.');
   await safePath(root, name);
   if (task.specVersion !== requirement.specVersion) throw new Error('Task and requirement input versions differ.');
   const writes = task.ownership.writePaths.map(path => pathName(path, true).toLowerCase());
@@ -63,7 +66,7 @@ async function materialize(options: MaterializeTaskInputsOptions): Promise<void>
     if (checkShape(ref, referenceShape).length) throw new Error('Invalid fixed input reference.');
     pathName(ref.location);
     const key = ref.location.toLowerCase();
-    if (['authors', 'continuations'].includes(key.split('/')[0])) throw new Error('Old author files and continuation copies cannot be fixed input sources.');
+    if (['authors', 'continuations', ...(options.validation ? ['validation'] : [])].includes(key.split('/')[0])) throw new Error('Old author files and workspace copies cannot be fixed input sources.');
     if (writes.some(write => overlaps(write, key))) throw new Error('Fixed input destination overlaps an author write scope.');
     if (refs.has(key) && refs.get(key)!.location !== ref.location) throw new Error('Fixed input paths have conflicting case aliases.');
     refs.set(key, ref);
