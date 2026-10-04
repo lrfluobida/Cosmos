@@ -50,8 +50,10 @@ Root deepassert核对closure前后的run/tasks/requests/stop/validation/allocati
 
 [COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5980291265)、[Source43实际失败](https://github.com/lrfluobida/Cosmos/issues/44#issuecomment-5980291983)和[Source42 group claim/settlement/closure](https://github.com/lrfluobida/Cosmos/issues/43#issuecomment-5980292477)均由Root POST+GET精确读回。Source42两项actual upgrade/delegation为true，source marker/双SHA/offline/open保持；claim和closure验证不等于整个迁移组件或游戏完成。Source43保持 `TRANSFER_NATIVE_ENTRY_SOURCE_READY`、reviewed04b4e62/merge97182ce和offline/open，实际失败单列为 `native-transfer-planning-contract-failed`。
 
-Root已发布并精确读回 [COS44 / #45](https://github.com/lrfluobida/Cosmos/issues/45)，id5699591283，标题“明确原生规划输出中的 policyId 契约”；parent #1共44children #2–#45/新checkbox已核对，原COS10/11/13三个closed checkbox保持。专属作者从71729的managed branch `codex/cos44-planning-policy-schema`实施，当前in-progress/open/`SOURCE_NOT_READY`，未来marker `PLANNING_POLICY_SCHEMA_SOURCE_READY`；没有批准SHA。
+Root已发布并精确读回 [COS44 / #45](https://github.com/lrfluobida/Cosmos/issues/45)，id5699591283，标题“明确原生规划输出中的 policyId 契约”；parent #1共44children #2–#45/新checkbox已核对，原COS10/11/13三个closed checkbox保持。注册时历史：专属作者从71729的managed branch `codex/cos44-planning-policy-schema`实施，当时in-progress/open/`SOURCE_NOT_READY`，未来marker `PLANNING_POLICY_SCHEMA_SOURCE_READY`；没有批准SHA。
 
 任务仅覆盖 `src/roles/planner.ts`、`factory.ts` 两prompt及roles tests/plan：policy分支显式六字段 `taskId, policyId, role, objective, acceptanceIds, dependsOn`，legacy分支保留五字段。Source前置COS07、COS18 partial、COS43已审源码，outputs16/18，不require任务closed。不放宽validator、不guess role/fallback，不授权付费纠错、预算、新case、游戏或human adapter改动。
+
+Source44修复当前已独审：`PLANNING_POLICY_SCHEMA_SOURCE_READY` 批准 `4c3b785f71cf22456f107e47115edd3dea91667f`，合入 `33e58df84e30361dd375aa8613605c94dba3614a`，offline-verified-awaiting-live/open；[公共审批](https://github.com/lrfluobida/Cosmos/issues/45#issuecomment-5980481610)由Root POST+GET精确读回。四approved paths字节/UTF8/LF/中文/diff通过；作者7new/5old slots/6default/strict7.039秒，独审4/4（267.6ms）/零登记费用/session closed，联合policy模式1/1（41.0945ms）/0skip证据复用，未新增实际模型或编译/浏览器验证。修复只澄清prompt，原case1失败、raw reply、14102费用及closure7不改，当前没有新case或paid。
 
 COS16仍partial/open、固定契约保持，迁移六T16/八段consumer尚未验收；COS18 actual human NONE。G3三个组件closed条件不变，完整经典/95%目标、公开human CLI和用户体验未通过。原COS16 ¥10、case¥5/45分钟/80calls/一次codingrepair、共享¥150/首批¥30、formal¥200/12h与优化目标¥100/6h均保持。当前没有新付费、case2登记或未审源码集成。

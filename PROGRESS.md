@@ -69,7 +69,7 @@ Case8 结果（迁移执行前历史）：`cos20-native-validation-8` 在准确 
 | 真实成本与时延探针 | C8 v2有界单关已接受，迁移case1规划失败 | 当前九cases/revision1421/ledger4/shared¥7.022725、unknown/reserved0；迁移planning1/34.198秒/新增¥0.014102，closure7后45closed/七audits。C8原76请求/¥1.549592及closure6历史保持 |
 | 任务拆分 | 已发布 | [44 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入，COS-44 明确原生规划policyId契约 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#45；44 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..43 source 已审集成，迁移case1规划失败，COS44实施未READY，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..44 source 已审集成，迁移case1规划失败，COS44 policy契约源码已审集成，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -493,9 +493,17 @@ Source43源码批准时边界（历史）：当时41/42/43均为已审集成源�
 
 Root已发布并精确读回[迁移case1/closure7结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5980291265)、[Source43实际失败](https://github.com/lrfluobida/Cosmos/issues/44#issuecomment-5980291983)和[Source42实际group claim/settlement/closure](https://github.com/lrfluobida/Cosmos/issues/43#issuecomment-5980292477)。Source42实际upgrade/delegation已应用、capacity closure已验证，但不把claim视为全部组件/游戏完成；Source43保持 TRANSFER_NATIVE_ENTRY_SOURCE_READY/原双SHA/offline-verified-awaiting-live/open，实际failure另列，COS16 partial/open、COS18 human NONE，G3三组件closed和原预算不变。
 
-Root真实登记[COS44/#45](https://github.com/lrfluobida/Cosmos/issues/45)（id5699591283，明确原生规划输出中的 policyId 契约），parent44children #2–#45/新checkbox已精确读回，旧10/11/13[x]保持。Source前置COS07、COS18 partial、COS43对应已审源码，outputs16/18，不要求完整任务closed；专属作者已从71729启动 codex/cos44-planning-policy-schema，in-progress/open/SOURCE_NOT_READY，未来marker PLANNING_POLICY_SCHEMA_SOURCE_READY，尚无批准SHA。
+COS44注册时历史：Root真实登记[COS44/#45](https://github.com/lrfluobida/Cosmos/issues/45)（id5699591283，明确原生规划输出中的 policyId 契约），parent44children #2–#45/新checkbox已精确读回，旧10/11/13[x]保持。Source前置COS07、COS18 partial、COS43对应已审源码，outputs16/18，不要求完整任务closed；当时专属作者从71729启动 codex/cos44-planning-policy-schema，in-progress/open/SOURCE_NOT_READY，未来marker PLANNING_POLICY_SCHEMA_SOURCE_READY，尚无批准SHA。
 
-只明确planner.ts/factory.ts两个prompt的policy六字段taskId/policyId/role/objective/acceptanceIds/dependsOn与legacy五字段分支，配roles regression/plan；不放宽validator、不role guess/fallback、不给付费纠错/新case/game或human adapter。当前仅source修复准备，未新增付费或恢复已消费case；五docs候选待独审。
+只明确planner.ts/factory.ts两个prompt的policy六字段taskId/policyId/role/objective/acceptanceIds/dependsOn与legacy五字段分支，配roles regression/plan；不放宽validator、不role guess/fallback、不给付费纠错/新case/game或human adapter。源码范围沿用注册约定，当前已审集成，未新增付费或恢复已消费case；五docs候选待独审。
+
+### Source44 规划 policyId 契约源码审批
+
+独审 PLANNING_POLICY_SCHEMA_SOURCE_READY 批准 `4c3b785f71cf22456f107e47115edd3dea91667f`（base71729），合入清推 `33e58df84e30361dd375aa8613605c94dba3614a`，offline-verified-awaiting-live/open、source-integrated。[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/45#issuecomment-5980481610)已由Root POST+GET精确读回。四批准paths仅两个production prompt/new roles test/plan，字节一致、UTF8/noBOM/LF/中文/diffcheck通过；无validator/provider/runtime/ledger或template变更。
+
+作者7new/5old slots/6default与strict7.039秒证据复用；独审4/4（267.6ms）覆盖policy positive/default roles/multiple same-role和原真实missing-policy reply严格拒绝，零登记/费用、session closed。联合仅policy模式提示/原生mock绑定代表1/1、0skip（41.0945ms），未compiler/Edge/实际模型或重矩阵。
+
+Source44当前已审源码不改变真实transfer case1 failed/consumed、planning1/14102/closure7/revision1421/ledger4/shared7022725、Source42 upgrade/delegation已应用及Source43失败字段。没有newcase2登记、claim/paid、额外纠错或游戏改动，父group10m/shared150first30/formal20012/G3三closed组件/actualhuman NONE保持；五docs待records独审，未合主线。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
