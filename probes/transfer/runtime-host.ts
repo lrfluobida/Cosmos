@@ -120,6 +120,8 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
           if (!coding?.artifacts.length) continue;
           const ref = ctx.candidates[version]; requireThat(isDeepStrictEqual(coding.artifacts, [ref]), 'captured coding candidate changed');
           const codingOrigin = decode(await regularFile(ctx.root, `journal/task-${coding.taskId}/origin.json`)) as RecoveryOrigin;
+          requireThat(isDeepStrictEqual(codingOrigin.requirement, ctx.requirement)
+            && isDeepStrictEqual(codingOrigin.prepared.expectedArtifacts, [ref]), 'original coding binding changed');
           requireOriginalTask(codingOrigin.prepared.task, coding);
           const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, codingOrigin, true);
           const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', coding.attempts.at(-1)!.attemptId);

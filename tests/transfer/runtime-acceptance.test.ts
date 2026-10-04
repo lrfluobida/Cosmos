@@ -77,6 +77,12 @@ async function consumerPipeline(t: any, repair = false, mutateMedia = false, mut
         candidate.expectedDeps = candidate.expectedDeps.filter((ref: any) => !ref.artifactId.endsWith('-media'));
         await writeFile(path, JSON.stringify(candidate), 'utf8');
       }
+      if (mode === 'coding-origin-requirement' || mode === 'coding-origin-output') {
+        const path = join(f.root, `journal/task-${taskId}/origin.json`), origin = JSON.parse(await readFile(path, 'utf8'));
+        if (mode === 'coding-origin-requirement') origin.requirement.validation.reviewedPlatformSha = 'f'.repeat(40);
+        else origin.prepared.expectedArtifacts = [{ ...origin.prepared.expectedArtifacts[0], version: 'changed' }];
+        await writeFile(path, JSON.stringify(origin), 'utf8');
+      }
       if (mutateCandidate) {
         const ref = `registry/captures/${f.window.caseId}-game-source/v1/files/src/main.ts`;
         await writeFile(join(f.root, ref), '// same-version synthetic source changed\n', 'utf8');
@@ -107,7 +113,7 @@ async function consumerPipeline(t: any, repair = false, mutateMedia = false, mut
     return resume ? resumeTaskDag(options).then(report => { assert.deepEqual(report.blocked, []); return report.tasks; }) : executeTaskDag(options);
   };
   let result: TaskContract[] = [], finished: any;
-  await host.withPreparation(async () => {
+  const pending = host.withPreparation(async () => {
     result = await execute(tasks);
     if (repair && result[2].state === 'failed') {
       const feedback = JSON.parse(await readFile(join(result[2].attempts.at(-1)!.sessionRef, 'failure.json'), 'utf8'));
@@ -118,6 +124,8 @@ async function consumerPipeline(t: any, repair = false, mutateMedia = false, mut
     }
     finished = await host.finish(result); return finished;
   });
+  if (mode === 'coding-origin-requirement' || mode === 'coding-origin-output') await assert.rejects(pending, /original coding binding changed|Owned transfer origin listener/);
+  else await pending;
   return { ...f, result, finished, seriesCalls };
 }
 
@@ -166,6 +174,12 @@ test('COS40 same-version candidate and matching source-capture rewrites cannot b
 test('COS40 candidate manifest cannot drop an exact art dependency while keeping its staged bytes', async t => {
   const f = await consumerPipeline(t, false, false, false, 'candidate-deps');
   assert.equal(f.result[2].state, 'failed'); assert.equal(f.seriesCalls, 0); assert.equal(f.finished.acceptedCandidate, undefined);
+});
+for (const mode of ['coding-origin-requirement', 'coding-origin-output']) test(`COS40 review correction rejects ${mode} drift before browser consumption`, async t => {
+  const f = await consumerPipeline(t, false, false, false, mode);
+  assert.equal(f.result[2].state, 'failed'); assert.equal(f.seriesCalls, 0); assert.equal(f.finished.acceptedCandidate, undefined);
+  const registry = await createArtifactRegistry({ workspaceRoot: f.root, registryRoot: 'registry' });
+  assert.equal(await registry.current(), null);
 });
 test('COS40 healthy false media is a coding defect but unknown media and unattributed build failures stay insufficient', async t => {
   for (const [mode, expected] of [['false-media', 'code_defect'], ['null-media', 'insufficient_evidence'], ['build-fail', 'insufficient_evidence']]) {
