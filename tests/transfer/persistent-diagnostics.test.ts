@@ -209,3 +209,82 @@ test('COS39 consumer drains current binding and cancellation after raw evidence 
     }
   } finally { await f.cleanup(); }
 });
+
+test('COS39 rejects an array-coerced project exception source URL', async () => {
+  const f = await fixture('exception');
+  try {
+    const changed = structuredClone(f.report), source = changed.segments[0].report.failureFacts!.errors[0].exception!;
+    (source as any).sourceURL = [source.sourceURL];
+    await f.persist(changed); insufficient(await diagnostic(f, changed));
+  } finally { await f.cleanup(); }
+});
+
+test('COS39 checks nested exception types and declared error fields before Source32 diagnosis', async () => {
+  const f = await fixture('exception');
+  const mutations: ((facts: any) => void)[] = [
+    facts => { facts.errors[0].exception.sourceURL = { url: facts.errors[0].exception.sourceURL }; },
+    facts => { facts.errors[0].exception.sourceURL = [[facts.errors[0].exception.sourceURL]]; },
+    facts => { facts.errors[0].exception.sourceURL = null; }, facts => { delete facts.errors[0].exception.sourceURL; },
+    facts => { facts.errors[0].exception = null; }, facts => { facts.errors[0].exception = []; },
+    facts => { delete facts.errors[0].exception; }, facts => { facts.errors[0].exception.extra = true; },
+    facts => { facts.errors[0].exception.line = '1'; }, facts => { facts.errors[0].exception.column = [2]; },
+    facts => { facts.errors[0].exception.exceptionId = null; }, facts => { delete facts.errors[0].exception.column; },
+    facts => { facts.errors[0].stepId = 'snapshot'; }, facts => { facts.errors[0].stepId = null; },
+    facts => { facts.errors[0].stepId = ['snapshot']; }, facts => { facts.errors[0].extra = true; },
+    facts => { facts.errors[0].kind = ['page_exception']; },
+  ];
+  try {
+    assert.equal((await diagnostic(f)).issues[0].classification, 'code_defect');
+    for (const mutate of mutations) {
+      const changed = structuredClone(f.report), before = JSON.stringify(changed.segments[0].report.errors);
+      mutate(changed.segments[0].report.failureFacts); await f.persist(changed); insufficient(await diagnostic(f, changed));
+      assert.equal(JSON.stringify(changed.segments[0].report.errors), before);
+    }
+  } finally { await f.cleanup(); }
+});
+
+test('COS39 checks termination fields and error kind to step associations', async () => {
+  const f = await fixture('exception');
+  const mutations: ((facts: any) => void)[] = [
+    facts => { facts.termination = []; }, facts => { facts.termination = {}; },
+    facts => { facts.termination.stepId = null; }, facts => { delete facts.termination.stepId; },
+    facts => { facts.termination.stepId = 'saved'; }, facts => { facts.termination.stepId = ['snapshot']; },
+    facts => { facts.termination.extra = true; }, facts => { facts.termination.kind = ['project_mismatch']; },
+    facts => { facts.errors[0].kind = 'observation_budget'; facts.errors[0].stepId = 'snapshot'; },
+    facts => { facts.errors[0].kind = 'termination_evidence'; facts.errors[0].stepId = 'snapshot'; },
+  ];
+  try {
+    for (const mutate of mutations) { const changed = structuredClone(f.report); mutate(changed.segments[0].report.failureFacts);
+      await f.persist(changed); insufficient(await diagnostic(f, changed)); }
+  } finally { await f.cleanup(); }
+});
+
+test('COS39 accepts declared nullable and local observation facts with their exact step associations', async () => {
+  const f = await fixture('exception');
+  try {
+    for (const local of [false, true]) {
+      const changed = structuredClone(f.report), report = changed.segments[0].report, facts = report.failureFacts!;
+      if (local) {
+        facts.termination = { kind: 'observation_budget', stepId: 'snapshot' }; report.cleanup.forced = true;
+        report.steps[1].failure = 'observation_budget';
+        for (const kind of ['observation_budget', 'termination_evidence'] as const) {
+          const error = '原始有界观察证据 ' + kind;
+          facts.errors.push({ errorIndex: report.errors.length, error, kind, stepId: 'snapshot' }); report.errors.push(error);
+        }
+      } else {
+        facts.termination = null;
+        for (const row of report.steps.slice(2)) Object.assign(row, { outcome: 'passed', actual: row.expected, error: null,
+          screenshot: report.files.find(file => file.endsWith('.png'))!, observation: { completed: 1 } });
+      }
+      await f.persist(changed);
+      const raw = await readFile(join(f.root, changed.reportPath), 'utf8'), result = await diagnostic(f, changed);
+      assert.equal(result.reportValid, true); assert.equal(result.issues[0].classification, 'code_defect');
+      assert.equal(await readFile(join(f.root, changed.reportPath), 'utf8'), raw);
+      if (local) for (const mutate of [
+        (r: any) => { r.failureFacts.errors[1].stepId = 'saved'; }, (r: any) => { r.failureFacts.errors[1].stepId = null; },
+        (r: any) => { r.failureFacts.errors[1].exception = r.failureFacts.errors[0].exception; },
+        (r: any) => { r.failureFacts.termination.kind = 'project_mismatch'; },
+      ]) { const invalid = structuredClone(changed); mutate(invalid.segments[0].report); await f.persist(invalid); insufficient(await diagnostic(f, invalid)); }
+    }
+  } finally { await f.cleanup(); }
+});

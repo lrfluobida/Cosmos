@@ -43,6 +43,37 @@ function validFacts(report: PersistentAcceptanceReport) {
   }
 }
 
+function validBrowserFacts(report: AcceptanceReport, plan: AcceptancePlan) {
+  const facts = report.failureFacts;
+  check(object(facts) && only(facts, ['formatVersion', 'termination', 'errors']) && facts.formatVersion === 1 && Array.isArray(facts.errors)
+    && facts.errors.length === report.errors.length && Object.hasOwn(facts, 'termination'));
+  const observationStep = (id: unknown) => typeof id === 'string' && plan.steps.some(step => step.id === id && ['assert', 'wait-for'].includes(step.kind));
+  const termination = facts.termination;
+  if (termination !== null) {
+    check(object(termination));
+    if (termination.kind === 'lifecycle') check(only(termination, ['kind']));
+    else check(['observation_budget', 'project_mismatch'].includes(termination.kind) && only(termination, ['kind', 'stepId'])
+      && observationStep(termination.stepId));
+  }
+  for (const [index, fact] of facts.errors.entries()) {
+    check(object(fact) && only(fact, ['errorIndex', 'error', 'kind', 'stepId', 'exception']) && fact.errorIndex === index
+      && typeof fact.error === 'string' && fact.error === report.errors[index]
+      && ['page_exception', 'observation_budget', 'termination_evidence', 'lifecycle', 'unknown'].includes(fact.kind));
+    if (fact.kind === 'page_exception') {
+      const source = fact.exception;
+      check(!Object.hasOwn(fact, 'stepId') && object(source) && only(source, ['exceptionId', 'sourceURL', 'line', 'column'])
+        && typeof source.sourceURL === 'string' && !!source.sourceURL
+        && Number.isSafeInteger(source.exceptionId) && source.exceptionId >= 0
+        && Number.isSafeInteger(source.line) && source.line >= 0 && Number.isSafeInteger(source.column) && source.column >= 0);
+    } else {
+      check(!Object.hasOwn(fact, 'exception'));
+      if (fact.kind === 'observation_budget' || fact.kind === 'termination_evidence') check(termination?.kind === 'observation_budget'
+        && observationStep(fact.stepId) && fact.stepId === termination.stepId);
+      else check(!Object.hasOwn(fact, 'stepId'));
+    }
+  }
+}
+
 function validSegment(report: AcceptanceReport, plan: AcceptancePlan, profileRoot: string) {
   check(object(report) && report.formatVersion === '1.0.0' && report.kind === 'normal_browser_input' && isDeepStrictEqual(report.plan, plan)
     && typeof report.startedAt === 'string' && typeof report.endedAt === 'string'
@@ -58,9 +89,7 @@ function validSegment(report: AcceptanceReport, plan: AcceptancePlan, profileRoo
       && (row.outcome !== 'failed' || typeof row.error === 'string' && !!row.error)
       && (row.outcome !== 'skipped' || row.actual === null && row.error === null));
   }
-  const facts = report.failureFacts;
-  check(object(facts) && only(facts, ['formatVersion', 'termination', 'errors']) && facts.formatVersion === 1 && Array.isArray(facts.errors)
-    && Object.hasOwn(facts, 'termination'));
+  validBrowserFacts(report, plan);
   const identity = report.session;
   check(object(identity) && Number.isSafeInteger(identity.browserPid) && identity.browserPid > 0 && object(report.cleanup)
     && report.cleanup.browserPid === identity.browserPid && report.cleanup.processExited === true && typeof report.cleanup.forced === 'boolean'
