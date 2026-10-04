@@ -61,7 +61,7 @@ Case7 结果（历史）：`cos20-native-validation-7` 在准确 `2404982` 于 `
 | 真实成本与时延探针 | native C8 有界单关自动通过，v2 已接受 | 76 请求新增保守峰值估算 ¥1.549592，共享 ¥7.008623，unknown/reserved0；一次自动repair后Edge111/111与独立codingreview通过，八案例已消费，六closures/40grants仅归还未用容量 |
 | 任务拆分 | 已发布 | [42 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#43；42 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..39 source 审批保持，COS40/41/42 SOURCE_NOT_READY，实际 C8 有界单关通过 | COS10切片主要目标与COS11一次真实修复形成实证；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3其余长时/恢复条件仍待核对，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..40 source 审批保持，COS41/42 SOURCE_NOT_READY，实际 C8 有界单关通过 | COS10切片主要目标与COS11一次真实修复形成实证；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3其余长时/恢复条件仍待核对，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -427,11 +427,11 @@ COS38/39审批前文档边界（历史）：本批最终39计数与新38/39卡/�
 
 ### COS41 原设计会话的有界语义反馈登记
 
-Root真实REST POST/GET精确读回[COS41/#42](https://github.com/lrfluobida/Cosmos/issues/42)（id5697722881，在原设计会话中提供有界语义反馈），native parent实际41children #2–#42/父checkbox已核。Phase design-approved-awaiting-COS40-source/open/SOURCE_NOT_READY，未来marker TRANSFER_DESIGN_FEEDBACK_SOURCE_READY；source07/23/38/40对应源码stage、outputs16/18，40尚QA/pure未独批，真正41code须等40source独审merge，不用完整taskclosed造循环。当前只有只读设计方案批准，无source/reviewed/merge SHA，本批sole merger仍唯一合入main。
+COS40源码批准前的COS41登记（历史）：Root真实REST POST/GET精确读回[COS41/#42](https://github.com/lrfluobida/Cosmos/issues/42)（id5697722881，在原设计会话中提供有界语义反馈），native parent实际41children #2–#42/父checkbox已核。Phase design-approved-awaiting-COS40-source/open/SOURCE_NOT_READY，未来marker TRANSFER_DESIGN_FEEDBACK_SOURCE_READY；source07/23/38/40对应源码stage、outputs16/18，40尚QA/pure未独批，真正41code须等40source独审merge，不用完整taskclosed造循环。当前只有只读设计方案批准，无source/reviewed/merge SHA，本批sole merger仍唯一合入main。
 
 同原design session可信hostTools validate-transfer-design及grant/maxcalls/fee/deadline/session/attempt不变；firstinvalid一次rewrite process、secondinvalid永久exhausted、firstpassseal、samebytesidempotent，started无result恢复保守。Mutable审计仅design、无params任意路径，capture成功receipt/sealedbytes/source/inputs/task/attempt/provenance；无tool或afterseal改map不得推进downstream。Generic说明可完善，不扩readonlycorrection/codingrepair/TaskAttempts/factory/orchestrator/provider/ledger/caseSchema，不新paid/window/预算，沿COS16原¥10/shared150/首30及formal200/12原契约。
 
-四docs当前41计数（含spec任务卡行），原40对象、八cases/费用7008623/revision1414/40closed/6audits、C8closure6/source20..39/C6free111/actualhuman NONE原样；Source40仍未READY、41待source40，源码40owned branch/Preview21628/真实ledger/key未触。候选待case6独审，不合未审metadata。
+COS41登记时文档边界（历史）：四docs当前41计数（含spec任务卡行），原40对象、八cases/费用7008623/revision1414/40closed/6audits、C8closure6/source20..39/C6free111/actualhuman NONE原样；Source40仍未READY、41待source40，源码40owned branch/Preview21628/真实ledger/key未触。候选待case6独审，不合未审metadata。
 
 ### COS42 原 COS16 预算组登记
 
@@ -439,7 +439,15 @@ Root真实POST/GET及原生parent精确读回[COS42/#43](https://github.com/lrfl
 
 本项declaration3/validationledger4/snapshot3保留旧v1v2/ledger1..3/八cases/六audit解释；Root独有实际核对父COS-16 allocation10m/无entry/committed0，本作者不读private、不猜legacy84,596,040。Derived五roles初向量planning.4/design1.2/art2.8/code2.8/repair2.8合¥10，delegation append-only、父row/amount不改/directparentdispatch禁；原子task/case5/group10/first30/shared150守卫，group committed=settled+reserved含unknown。Capacity raw-allclosures-derivedNet，derivedNet childalloc-childclosure，父10bucket保留、不加预算；childclosure只恢复组capacity，下一例精确剩余grant不能再领10。必要新groupclosure quote不重写旧六receipts，settleoverrun保真停，不扩财政platform/provider/factory/scheduler/requestmeta/ownedcommand/transferhost。
 
-预算core独立40/41，source40未approved/41wait40/42NOTREADY，公开COS16 CLI仍待验、internaloperator不fakehuman；零paid，旧41task对象、C8/closure6/费用7008623/clock/caps/eight history/40closed6audit/actualhuman NONE原样。当前42计数含spec任务卡行，四docs候选待独审；不触源码40、preview、真实ledger/key或新窗口，不自行升级实际snapshot。
+COS42登记时的边界（历史）：预算core独立40/41，当时source40未approved/41wait40/42NOTREADY，公开COS16 CLI仍待验、internaloperator不fakehuman；零paid，旧41task对象、C8/closure6/费用7008623/clock/caps/eight history/40closed6audit/actualhuman NONE原样。当时42计数含spec任务卡行，四docs候选待独审；未触preview、真实ledger/key或新窗口，未自行升级实际snapshot。
+
+### COS40 可信 persistent/media consumer 源码审批
+
+独审 TRANSFER_PERSISTENT_MEDIA_CONSUMER_SOURCE_READY 批准 `6192b92efdf106941963ecdda2b66a3a34d2cddd`（含 `7d59adc57cb14beb93c632b36c7881dd45b7c5b6`、base5d7a），合入并清推 `ea0971b2c1605000e86d7f7fd552aac715880339`，offline-verified-awaiting-live/open。16批准路径字节一致、无group预算42 source碰撞、UTF8/noBOM/LF/中文/diffcheck通过；独审codingOrigin.requirement+reservedexpectedArtifacts P2修复代表1/1/0skip（12.347秒）、输出ref tamper/strict/原7runtime146.354秒/媒体8/binding2/default2/prep/envelope/promotionrepair/唯一PhaserQA2/2（3.530秒）证据复用。联合只media witness union（loadedFrame max/boolOR/readonly）代表1/1、0skip（4.3296ms），未完整链/146s/Phaser/重开/compiler。
+
+[Source40公共审批](https://github.com/lrfluobida/Cosmos/issues/41#issuecomment-5979024302)已由root POST+GET精确读回。批准仅可信source consumer及synthetic证据，不是实际COS16/model生成/付费入口或human通过；prepared默认failed/no fallback、原IR/200steps/sixAC及唯一codingrepair权限保持。41前置source40已具备、只读设计已批准，实施待Root启动，尚无source41批准SHA；42仍独审未批/未真实ledger upgrade，剩余有界design语义反馈/原预算组准入/actual paid entry与公开CLI待验证。
+
+当前42计数不变，其他40task对象及C8/closure6/source20..39/7008623/revision1414/40closed6audit/actualhuman NONE原样，COS16原¥10/shared150/首30与formal200/12不变。Preview/ledger/cases/key未触，四docs source40审批候选待same reviewer，未合metadata或启动新window。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
