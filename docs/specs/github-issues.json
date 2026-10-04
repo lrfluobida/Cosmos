@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 37
+    "childCount": 39
   },
   "tasks": [
     {
@@ -1745,6 +1745,7 @@
       "reviewStatus": "SHARED_VALIDATION_BROWSER_HOST_SOURCE_READY",
       "reviewedCommit": "bc352be3e62d02f594f4fed55197b5be921f72e9",
       "mergeCommit": "e806020d055ea0a1641849154aea971f796b9c2b",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/36#issuecomment-5977191130",
       "liveValidationStatus": "preparation_only",
       "actualTransferExecutable": false
     },
@@ -1773,6 +1774,7 @@
       "reviewStatus": "TRANSFER_DESIGN_BINDING_SOURCE_READY",
       "reviewedCommit": "d862f7747826dd0bc82b80e7fce6c9c04bdce69d",
       "mergeCommit": "dbe86ea42e408f0c32785f98247357a54c185cc6",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/37#issuecomment-5977191367",
       "liveValidationStatus": "preparation_only",
       "actualTransferExecutable": false,
       "notExecutableAcceptanceIds": ["T16-05", "T16-06"]
@@ -1801,11 +1803,57 @@
       "reviewStatus": "PERSISTENT_PROFILE_PROCESS_REOPEN_SOURCE_READY",
       "reviewedCommit": "b936020a1abdcd738998d660e7d0b57eb2637be6",
       "mergeCommit": "3f2a9420acf53a6a62a5b904cf7a73160b14f80a",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/38#issuecomment-5977191638",
       "liveValidationStatus": "harness-fixture-process-reopen-verified",
       "actualTransferValidated": false,
       "validationScope": "synthetic-browser-fixture"
+    },
+    {
+      "taskId": "COS-38",
+      "title": "连接运行时关卡设计与固定角色输入",
+      "number": 39,
+      "id": 5696791572,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/39",
+      "dependsOn": [],
+      "sourcePrerequisites": [
+        { "id": "COS-35", "number": 36, "url": "https://github.com/lrfluobida/Cosmos/issues/36" },
+        { "id": "COS-36", "number": 37, "url": "https://github.com/lrfluobida/Cosmos/issues/37" },
+        { "id": "COS-37", "number": 38, "url": "https://github.com/lrfluobida/Cosmos/issues/38" },
+        { "id": "COS-16", "number": 17, "url": "https://github.com/lrfluobida/Cosmos/issues/17" },
+        { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" }
+      ],
+      "sourcePrerequisiteScopes": { "COS-16": "frozen-contract", "COS-18": "partial-reviewed-source" },
+      "validationOutputsFor": [
+        { "id": "COS-16", "number": 17, "url": "https://github.com/lrfluobida/Cosmos/issues/17" },
+        { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY"
+    },
+    {
+      "taskId": "COS-39",
+      "title": "记录持久浏览器失败事实并保守分类",
+      "number": 40,
+      "id": 5696864882,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/40",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        { "id": "COS-32", "number": 33, "url": "https://github.com/lrfluobida/Cosmos/issues/33" },
+        { "id": "COS-37", "number": 38, "url": "https://github.com/lrfluobida/Cosmos/issues/38" }
+      ],
+      "validationOutputsFor": [
+        { "id": "COS-16", "number": 17, "url": "https://github.com/lrfluobida/Cosmos/issues/17" },
+        { "id": "COS-18", "number": 19, "url": "https://github.com/lrfluobida/Cosmos/issues/19" }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 37,
+  "verifiedNativeSubIssues": 39,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
