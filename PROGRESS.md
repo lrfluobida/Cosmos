@@ -77,7 +77,7 @@ closure8历史：免费closure8于UTC2026-10-04T14:41:20.289Z由Root应用，rev
 | 真实成本与时延探针 | C8单关已接受，迁移C3规划身份失败 | 当前11cases/rev1495/ledger4/shared¥7.199033、unknown/reserved0；C3 1SDK/33413ms/新增¥0.014780，closure9后55closed/九audits，旧C1/C2/C8历史保持 |
 | 任务拆分 | 已发布 | [48 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入，COS-44 明确原生规划policyId契约，COS-45 准备第二迁移案例与剩余额度准入，COS-46 提供设计标识符约束与只读自检，COS-47 准备带自检的第三迁移案例，COS-48 绑定规划局部别名与预声明身份 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#49；48 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..47 source 已审集成，迁移C3规划身份失败，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47源码已审集成，COS48实施中/SOURCE_NOT_READY，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..48 source 已审集成，迁移C3规划身份失败，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47源码已审集成，COS48主机身份绑定源码已审集成，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -573,11 +573,19 @@ Source47执行前边界（历史）：当时只批准source准备，实际C3未c
 
 Root已POST+GET精确读回[COS16 C3/closure9](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5982184956)和[Source47规划身份失败](https://github.com/lrfluobida/Cosmos/issues/48#issuecomment-5982185433)。47 TRANSFER_CASE_THREE_SOURCE_READY/原双SHA/offline/open保持，failure单列native-transfer-planning-identity-failed；46自检源码未被真实C3使用，不造nativepassed，16仍partial/open，旧C1/C2/closure8/C8/G3/human NONE保持。
 
-Root正式发布[COS48/#49](https://github.com/lrfluobida/Cosmos/issues/49)（id5701294644，由主机将规划局部别名绑定到预声明任务身份），exact body/native48children #2–#49/新增checkbox和旧47前缀已核。cos48_implementer从e8 source-only实施、branch/worktree由作者选择；in-progress/open/SOURCE_NOT_READY，未来marker PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY，无批准SHA。Source07/20/44/47已审component、outputs16/18，不require failed任务closed。
+COS48注册时历史：Root正式发布[COS48/#49](https://github.com/lrfluobida/Cosmos/issues/49)（id5701294644，由主机将规划局部别名绑定到预声明任务身份），exact body/native48children #2–#49/新增checkbox和旧47前缀已核。当时cos48_implementer从e8 source-only实施、branch/worktree由作者选择；in-progress/open/SOURCE_NOT_READY，未来marker PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY，无批准SHA。Source07/20/44/47已审component、outputs16/18，不require failed任务closed。
 
 Root批准设计：PlanOptions `proposalIdentity:'validation-policy-aliases/1'` 显式opt-in，仅strict validation/taskPolicies/三个unique design/art/code槽；unknownmode/human/roles错槽session0拒。六字段输入先strict keys/rolepolicy/acceptance/uniquealiases+slots/known deps，再host验证policy→current decl grant ID双射、绑定ID+deps，继续原grant/coverage/cycle/budgetTaskContract/requireValidationTask。新mode plan.json含identityBinding(protocol/policy/localAlias/actualTaskId)+bound outputs；legacy五/六/default prompts/IDs/旧JSON caches/C1C2C3行为不改，不guess missingpolicy/role、不增SDK/格式retry/session/attempt/grant/price/账本/C4。
 
 Source48只planner.ts/new planning-identity.test.ts/plan，不helper/pipeline/art/vector改动，source准备零paid；未来C4 caller/声明另task、human未登记。当前11case/7199033/rev1495 ledger4/55closed九audits/group190410+9809590/parent10m/ref1414、150首30/formal20012/C1C2C3失败/C8/G3/human NONE/fullclassic未知保持。五docs待独审，不合main或触private/preview。
+
+### Source48 主机规划身份绑定源码审批
+
+独审 PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY 批准 `86460cc8aa5ba4e9ab9ec623a2710c6d99029156`（basee8），合入清推 `8db56b88e6067e5216eb9ecb85e080225a25ced1`，offline-verified-awaiting-live/open、implementationPhase source-integrated。[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/49#issuecomment-5982411570)已由Root POST+GET精确读回。三批准paths仅planner.ts/new planning-identity.test.ts/plan，字节一致、UTF8/noBOM/LF/中文/diffcheck通过；与五doc候选无碰撞。
+
+作者25new/2focus/8default与strict6.928秒证据复用，独审10new edges+2default+1foreign-alias probe通过：policy/draft顺序错开、alias等于其他实际grant ID仍只按当前validated policy绑定，snapshot bytes不变、零API/费用/browser。联合仅validated policy aliases→current grants/host authority正例1/1、0skip（110.763ms），未25/10矩阵、strict/old80/Edge重复。
+
+当前只有source-only可信opt-in，default/旧JSON/cache及C1C2C3行为原样；已结束C3未显式opt-in，不重开或修改原raw/14780费用。新mode尚未native模型实测，C4 caller/声明未注册。C3 failure/closure9、11cases/ledger4 revision1495/shared7199033/55closed九audits/groupnet190410/rem9809590/parent10m/ref1414/firstauth members及effectiveallocated90488261保持，C1C2/closure8/C8/G3/human NONE/fullclassic未知和original150首30/formal20012不改；五docs整批候选待独审，不合未审内容。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 

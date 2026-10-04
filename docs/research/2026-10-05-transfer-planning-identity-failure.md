@@ -51,10 +51,12 @@ Root deepassert旧run/tasks/requests/stop/validation/cases/entries/allocations/d
 
 [COS16 C3/closure9](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5982184956)与[Source47规划身份失败](https://github.com/lrfluobida/Cosmos/issues/48#issuecomment-5982185433)均由Root POST+GET精确读回。
 
-Root正式发布 [COS48 / #49](https://github.com/lrfluobida/Cosmos/issues/49)，id5701294644，标题“由主机将规划局部别名绑定到预声明任务身份”；exact body/native48children #2–#49/新checkbox及旧47前缀已核对。Cos48专属作者从e8 source-only实施、branch/worktree由其选择，in-progress/open/`SOURCE_NOT_READY`，未来marker `PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY`，没有批准SHA。Source07、20、44、47对应已审component，outputs16/18，不require失败任务closed。
+Root正式发布 [COS48 / #49](https://github.com/lrfluobida/Cosmos/issues/49)，id5701294644，标题“由主机将规划局部别名绑定到预声明任务身份”；exact body/native48children #2–#49/新checkbox及旧47前缀已核对。注册时历史：Cos48专属作者从e8 source-only实施、branch/worktree由其选择，当时in-progress/open/`SOURCE_NOT_READY`，未来marker `PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY`，没有批准SHA。Source07、20、44、47对应已审component，outputs16/18，不require失败任务closed。
 
 批准设计仅由可信PlanOptions显式 `proposalIdentity:'validation-policy-aliases/1'` 启用，仅strict validation/taskPolicies/三个unique design/art/code槽；unknownmode/human/roles错槽在session0拒绝。六字段proposal先检查strict keys/policy-role/acceptance/unique aliases与slots/known dependencies，再由host验证policy→current declared grant ID双射、绑定ID与deps，继续原grant/coverage/cycle/budgetTaskContract/requireValidationTask。不得猜缺失policy或未验证role。
 
 新mode的plan.json记录identityBinding（protocol/policy/localAlias/actualTaskId）和bound outputs；默认legacy五/六字段prompt/IDs/旧JSON caches以及C1C2C3行为不改。实现仅planner.ts、tests/roles/planning-identity.test.ts和plan，不helper/pipeline/art/vector或预算/SDK/provider改动，不增加SDK调用、格式retry、session、attempt、grant、价格、账本或C4执行。
+
+Source48当前已独审：`PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY` 批准 `86460cc8aa5ba4e9ab9ec623a2710c6d99029156`，合入 `8db56b88e6067e5216eb9ecb85e080225a25ced1` / offline-verified-awaiting-live/open；[公共审批](https://github.com/lrfluobida/Cosmos/issues/49#issuecomment-5982411570)由Root POST+GET精确读回。三source paths字节/UTF8/LF/中文/diff通过，作者25new/2focus/8default/strict6.928秒、独审10new+2default+1foreign-alias/snapshot不变/零API费用browser及merger正例1/1（110.763ms）证据复用，未重跑矩阵。新mode未native模型实测，C1C2C3未显式opt-in/default行为与已保存raw/失败/费用/closure9不变，没有C4 caller或声明。
 
 当前只修免费平台source，C4 caller opt-in/声明须另task，未预登记或启动新case，human adapter仍未登记。原余量354912/1054678/2800000×3合9809590只是原group capacity记录；group¥10/shared¥150/首批¥30、case¥5/45分钟/80calls/design一次semantic/coding一次repair、formal¥200/12h与优化目标¥100/6h不变。COS16迁移未通过，human NONE/fullclassic/95%未知，未blind paid repeat或手改游戏。
