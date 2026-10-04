@@ -20,7 +20,8 @@ import { TRANSFER_VALIDATION_CASE, parseTransferValidationEntry } from './valida
 import { TRANSFER_VALIDATION_CASE_TWO, parseTransferValidationCaseTwoEntry } from './validation-case-two-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_THREE, parseTransferValidationCaseThreeEntry } from './validation-case-three-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_FOUR, parseTransferValidationCaseFourEntry } from './validation-case-four-declaration.ts';
-import { createTransferValidationIdentityReader, createTransferValidationCaseTwoIdentityReader, createTransferValidationCaseThreeIdentityReader, createTransferValidationCaseFourIdentityReader } from './validation-input.ts';
+import { TRANSFER_VALIDATION_CASE_FIVE, parseTransferValidationCaseFiveEntry } from './validation-case-five-declaration.ts';
+import { createTransferValidationIdentityReader, createTransferValidationCaseTwoIdentityReader, createTransferValidationCaseThreeIdentityReader, createTransferValidationCaseFourIdentityReader, createTransferValidationCaseFiveIdentityReader } from './validation-input.ts';
 
 const SOURCE_MARKERS: Record<string, string> = {
   'COS-20': 'CASE_TWO_SOURCE_READY', 'COS-21': 'WINDOWS_PUBLICATION_SOURCE_READY', 'COS-22': 'VERSIONED_CASE_THREE_SOURCE_READY',
@@ -33,13 +34,14 @@ const SOURCE_MARKERS: Record<string, string> = {
   'COS-40': 'TRANSFER_PERSISTENT_MEDIA_CONSUMER_SOURCE_READY', 'COS-41': 'TRANSFER_DESIGN_FEEDBACK_SOURCE_READY', 'COS-42': 'VALIDATION_COS16_GROUP_SOURCE_READY',
 };
 const SOURCE_READY = ['READY', 'SOURCE_READY', 'COMBINED_SOURCE_READY', 'PHASE_B_READY', 'READY_FOR_ROLE_IO_INTEGRATION'];
-/** Only these four frozen source-owned profiles are constructed; callers cannot select declarations. */
+/** Only these five frozen source-owned profiles are constructed; callers cannot select declarations. */
 function fixedEntry(D: typeof TRANSFER_VALIDATION_CASE, parseEntry: typeof parseTransferValidationEntry,
-  identity: typeof createTransferValidationIdentityReader, profile: 1 | 2 | 3 | 4) {
+  identity: typeof createTransferValidationIdentityReader, profile: 1 | 2 | 3 | 4 | 5) {
 const markers: Record<string, string> = { ...SOURCE_MARKERS,
   ...(profile >= 2 ? { 'COS-43': 'TRANSFER_NATIVE_ENTRY_SOURCE_READY', 'COS-44': 'PLANNING_POLICY_SCHEMA_SOURCE_READY' } : {}),
   ...(profile >= 3 ? { 'COS-45': 'TRANSFER_CASE_TWO_SOURCE_READY', 'COS-46': 'DESIGN_OUTPUT_SELF_CHECK_SOURCE_READY' } : {}),
-  ...(profile === 4 ? { 'COS-47': 'TRANSFER_CASE_THREE_SOURCE_READY', 'COS-48': 'PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY' } : {}) };
+  ...(profile >= 4 ? { 'COS-47': 'TRANSFER_CASE_THREE_SOURCE_READY', 'COS-48': 'PLANNING_HOST_IDENTITY_BINDING_SOURCE_READY' } : {}),
+  ...(profile === 5 ? { 'COS-49': 'TRANSFER_CASE_FOUR_SOURCE_READY', 'COS-50': 'CAPTURE_LAYOUT_CONTRACT_SOURCE_READY' } : {}) };
 const PREREQUISITES = ['COS-02', 'COS-03', 'COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', ...Object.keys(markers)];
 async function absent(repository: string, path: string, label: string) {
   try { await lstat(await safePath(repository, path)); }
@@ -61,10 +63,12 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   const previous = Array.from({ length: 8 }, (_, index) => state.validation?.cases.find(window => window.caseId === `cos20-native-validation-${index + 1}`));
   if (profile >= 2) previous.push(state.validation?.cases.find(window => window.caseId === TRANSFER_VALIDATION_CASE.caseId));
   if (profile >= 3) previous.push(state.validation?.cases.find(window => window.caseId === TRANSFER_VALIDATION_CASE_TWO.caseId));
-  if (profile === 4) previous.push(state.validation?.cases.find(window => window.caseId === TRANSFER_VALIDATION_CASE_THREE.caseId));
-  const currentCaseId = profile === 4 ? TRANSFER_VALIDATION_CASE_THREE.caseId : profile === 3 ? TRANSFER_VALIDATION_CASE_TWO.caseId : profile === 2 ? TRANSFER_VALIDATION_CASE.caseId : 'cos20-native-validation-8';
+  if (profile >= 4) previous.push(state.validation?.cases.find(window => window.caseId === TRANSFER_VALIDATION_CASE_THREE.caseId));
+  if (profile === 5) previous.push(state.validation?.cases.find(window => window.caseId === TRANSFER_VALIDATION_CASE_FOUR.caseId));
+  const currentCaseId = profile === 5 ? TRANSFER_VALIDATION_CASE_FOUR.caseId : profile === 4 ? TRANSFER_VALIDATION_CASE_THREE.caseId : profile === 3 ? TRANSFER_VALIDATION_CASE_TWO.caseId : profile === 2 ? TRANSFER_VALIDATION_CASE.caseId : 'cos20-native-validation-8';
   if (state.validation?.cases.length !== 7 + profile || state.validation.currentCaseId !== currentCaseId
-    || previous.some(window => !window?.stopReason)) throw new Error(profile === 4 ? 'All eleven original validation cases must be consumed and explicitly stopped, with current transfer case3.'
+    || previous.some(window => !window?.stopReason)) throw new Error(profile === 5 ? 'All twelve original validation cases must be consumed and explicitly stopped, with current transfer case4.'
+      : profile === 4 ? 'All eleven original validation cases must be consumed and explicitly stopped, with current transfer case3.'
       : profile === 3 ? 'All ten original validation cases must be consumed and explicitly stopped, with current transfer case2.'
       : profile === 2 ? 'All nine original validation cases must be consumed and explicitly stopped, with current transfer case1.'
       : 'All eight original validation cases must be consumed and explicitly stopped, with current case8.');
@@ -72,30 +76,36 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
     const first = previous[8]!, group = validationBudgetGroup(state.ledger);
     if (!sameValue(first.quote.declaration, TRANSFER_VALIDATION_CASE) || first.quote.formatVersion !== 'validation-case-quote-2'
       || state.ledger.allocationDelegations?.length !== profile - 1 || state.ledger.allocationDelegations[0].caseId !== first.caseId
-      || group?.committedMicroCny !== (profile === 4 ? 190_410 : profile === 3 ? 175_630 : 14_102)
-      || group.allocatedMicroCny !== (profile === 4 ? 190_410 : profile === 3 ? 175_630 : 14_102)) throw new Error('The original stopped case1 delegation and its exact remaining COS16 capacity are required.');
+      || group?.committedMicroCny !== (profile === 5 ? 405_104 : profile === 4 ? 190_410 : profile === 3 ? 175_630 : 14_102)
+      || group.allocatedMicroCny !== (profile === 5 ? 405_104 : profile === 4 ? 190_410 : profile === 3 ? 175_630 : 14_102)) throw new Error('The original stopped case1 delegation and its exact remaining COS16 capacity are required.');
     if (profile >= 3) {
-      const second = previous[9]!, expectedFees = [profile === 4 ? 45_088 : 30_308, 145_322, 0, 0, 0];
-      const declarations = [TRANSFER_VALIDATION_CASE, TRANSFER_VALIDATION_CASE_TWO, ...(profile === 4 ? [TRANSFER_VALIDATION_CASE_THREE] : [])];
+      const second = previous[9]!, expectedFees = [profile === 5 ? 59_382 : profile === 4 ? 45_088 : 30_308, profile === 5 ? 345_722 : 145_322, 0, 0, 0];
+      const declarations = [TRANSFER_VALIDATION_CASE, TRANSFER_VALIDATION_CASE_TWO, ...(profile >= 4 ? [TRANSFER_VALIDATION_CASE_THREE] : []), ...(profile === 5 ? [TRANSFER_VALIDATION_CASE_FOUR] : [])];
       const roleFees = VALIDATION_ROLES.map(role => state.ledger.entries.filter(entry => declarations.some(declaration => declaration.grants[role].taskId === entry.taskId))
         .reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0));
       if (!sameValue(second.quote.declaration, TRANSFER_VALIDATION_CASE_TWO) || second.quote.formatVersion !== 'validation-case-quote-2'
         || state.ledger.allocationDelegations[1].caseId !== second.caseId || !sameValue(roleFees, expectedFees)) throw new Error('The original stopped case2 delegation and exact role fee distribution are required for the fixed remaining capacity.');
     }
-    if (profile === 4) {
+    if (profile >= 4) {
       const third = previous[10]!;
       if (!sameValue(third.quote.declaration, TRANSFER_VALIDATION_CASE_THREE) || third.quote.formatVersion !== 'validation-case-quote-2'
         || state.ledger.allocationDelegations[2].caseId !== third.caseId) throw new Error('The original stopped case3 declaration and delegation are required.');
+    }
+    if (profile === 5) {
+      const fourth = previous[11]!;
+      if (!sameValue(fourth.quote.declaration, TRANSFER_VALIDATION_CASE_FOUR) || fourth.quote.formatVersion !== 'validation-case-quote-2'
+        || state.ledger.allocationDelegations[3].caseId !== fourth.caseId) throw new Error('The original stopped case4 declaration and delegation are required.');
     }
   }
   const histories = previous.map(window => window!), taskIds = histories.flatMap(window => VALIDATION_ROLES.map(role => window.quote.declaration.grants[role].taskId));
   if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Historical requests require reconciliation.');
   if (state.ledger.allocationClosures?.length !== 40 + 5 * (profile - 1) || state.allocationClosureDecisions?.length !== 5 + profile
-    || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error(profile === 4 ? 'The original fifty-five closed grants and nine allocation audits are required.'
+    || taskIds.some(taskId => !state.ledger.allocationClosures!.some(closure => closure.taskId === taskId))) throw new Error(profile === 5 ? 'The original sixty closed grants and ten allocation audits are required.'
+      : profile === 4 ? 'The original fifty-five closed grants and nine allocation audits are required.'
       : profile === 3 ? 'The original fifty closed grants and eight allocation audits are required.' : 'The original forty closed grants and six allocation audits are required.');
   const roots = new Map<string, string>(), historicalSources: string[] = [];
   for (const window of histories) {
-    if (!sameValue(window.quote.declaration.inputs, [TRANSFER_VALIDATION_CASE.caseId, TRANSFER_VALIDATION_CASE_TWO.caseId, TRANSFER_VALIDATION_CASE_THREE.caseId].includes(window.caseId) ? TRANSFER_VALIDATION_CASE.inputs : VALIDATION_CASE.inputs)) throw new Error('Historical fixed declaration inputs changed.');
+    if (!sameValue(window.quote.declaration.inputs, [TRANSFER_VALIDATION_CASE.caseId, TRANSFER_VALIDATION_CASE_TWO.caseId, TRANSFER_VALIDATION_CASE_THREE.caseId, TRANSFER_VALIDATION_CASE_FOUR.caseId].includes(window.caseId) ? TRANSFER_VALIDATION_CASE.inputs : VALIDATION_CASE.inputs)) throw new Error('Historical fixed declaration inputs changed.');
     const path = `.cosmos/e2e/${window.caseId}`, root = await safePath(repository, path);
     if (!(await lstat(root)).isDirectory()) throw new Error('Historical case root is missing.');
     for (const lock of ['.controller.lock', 'registry/.commit.lock']) await absent(repository, `${path}/${lock}`, 'Historical writer ownership');
@@ -219,7 +229,7 @@ function createNativeTransferValidationHost(): ValidationRunHost {
     prepare: async input => (await import('../e2e/validation-host.ts')).createNativeValidationHost().prepare(input),
     execute: async input => {
       const driver = await import('./validation-driver.ts');
-      return profile === 4 ? driver.generateTransferValidationCaseFour(input) : profile === 3 ? driver.generateTransferValidationCaseThree(input) : profile === 2 ? driver.generateTransferValidationCaseTwo(input) : driver.generateTransferValidationCase(input);
+      return profile === 5 ? driver.generateTransferValidationCaseFive(input) : profile === 4 ? driver.generateTransferValidationCaseFour(input) : profile === 3 ? driver.generateTransferValidationCaseThree(input) : profile === 2 ? driver.generateTransferValidationCaseTwo(input) : driver.generateTransferValidationCase(input);
     },
   };
 }
@@ -240,6 +250,9 @@ export const { preflightTransferValidationRun: preflightTransferValidationCaseTh
 export const { preflightTransferValidationRun: preflightTransferValidationCaseFourRun, runTransferValidationWithHost: runTransferValidationCaseFourWithHost,
   createNativeTransferValidationHost: createNativeTransferValidationCaseFourHost, runTransferValidationEntry: runTransferValidationCaseFourEntry }
   = fixedEntry(TRANSFER_VALIDATION_CASE_FOUR, parseTransferValidationCaseFourEntry, createTransferValidationCaseFourIdentityReader, 4);
+export const { preflightTransferValidationRun: preflightTransferValidationCaseFiveRun, runTransferValidationWithHost: runTransferValidationCaseFiveWithHost,
+  createNativeTransferValidationHost: createNativeTransferValidationCaseFiveHost, runTransferValidationEntry: runTransferValidationCaseFiveEntry }
+  = fixedEntry(TRANSFER_VALIDATION_CASE_FIVE, parseTransferValidationCaseFiveEntry, createTransferValidationCaseFiveIdentityReader, 5);
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   runTransferValidationEntry(process.argv.slice(2), fileURLToPath(new URL('../../', import.meta.url))).then(result => {
     console.log(JSON.stringify(result)); if (result.outcome === 'failed') process.exitCode = 1;
