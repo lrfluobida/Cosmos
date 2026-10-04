@@ -73,7 +73,7 @@ Case8 结果（迁移执行前历史）：`cos20-native-validation-8` 在准确 
 | 真实成本与时延探针 | C8 v2有界单关已接受，迁移C2设计schema失败 | 当前10cases/revision1488/ledger4/shared¥7.184253、unknown/reserved0；C2 15SDK/282562ms/新增¥0.161528，closure8后50closed/八audits。C1规划失败/closure7和原C8历史保持 |
 | 任务拆分 | 已发布 | [46 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入，COS-44 明确原生规划policyId契约，COS-45 准备第二迁移案例与剩余额度准入，COS-46 提供设计标识符约束与只读自检 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#47；46 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..45 source 已审集成，迁移C2设计标识符失败，COS44 policy契约源码已审集成，COS45源码已审集成，COS46实施中/SOURCE_NOT_READY，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..46 source 已审集成，迁移C2设计标识符失败，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -533,9 +533,17 @@ Source45执行前边界（历史）：当时仅批准source准备，actual C2未
 
 Root已POST+GET精确读回[COS16 C2/closure8](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5981247311)、[Source45实际design-schema失败](https://github.com/lrfluobida/Cosmos/issues/46#issuecomment-5981248016)及[Source44 native planning契约观察](https://github.com/lrfluobida/Cosmos/issues/45#issuecomment-5981248897)。44 source marker/双SHA/offline/open保持，actual planning通过三task仅为组件观察，未经独立acceptance不close；45 sourceReady/offline/open与失败分列，41实际semantic tool check成功不等于generic capture或整组件livepassed，16仍未迁移通过。
 
-Root真实发布[COS46/#47](https://github.com/lrfluobida/Cosmos/issues/47)（id5700347789，为设计作者提供标识符约束与输出自检）。原生GET transport EOF后Root恢复GET同body并idempotent关联/追加，最终native46children #2–#47/checkbox完整读回，无重复。cos46_implementer从c6a9正式实施，in-progress/open/SOURCE_NOT_READY，未来marker DESIGN_OUTPUT_SELF_CHECK_SOURCE_READY，无批准SHA；source07/18partial/41/44/45已审对应stage，outputs16/18，不要求失败任务closed。
+COS46注册时历史：Root真实发布[COS46/#47](https://github.com/lrfluobida/Cosmos/issues/47)（id5700347789，为设计作者提供标识符约束与输出自检）。原生GET transport EOF后Root恢复GET同body并idempotent关联/追加，最终native46children #2–#47/checkbox完整读回，无重复。当时cos46_implementer从c6a9正式实施，in-progress/open/SOURCE_NOT_READY，未来marker DESIGN_OUTPUT_SELF_CHECK_SOURCE_READY，无批准SHA；source07/18partial/41/44/45已审对应stage，outputs16/18，不要求失败任务closed。
 
 Scope只在host design/art提示明确 `^[a-z][a-z0-9-]{0,47}$` 与DOS reserved约束，提供只读hostTool `validate-game-design`（空args、固定designauthor workspace currentfile），复用原validateDesign及identifier/gameplay IDs校验、精确字段诊断/source-window-task-signal检查；names在planning前和原semanticTool组合，沿同SDK session/attempt/grant/calls/fees/clock。不写文件/registry/ledger/audit、不猜改invalidID、不扩semanticrewrite/readonlyformatcorrection/codingrepair，capture仍strict recheck。源码准备零paid，C3/human adapter未登记。当前10case/7184253/rev1488 ledger4/50closed八audits/group175630+9824370及原parent10m/shared150首30/formal20012保持，C1/closure7、C8/G3、human NONE原样；五docs候选待独审，不合main或触private/preview。
+
+### Source46 设计标识符与只读输出自检源码审批
+
+独审 DESIGN_OUTPUT_SELF_CHECK_SOURCE_READY 批准 `2b7e5091b31c7612e3451174cc7fc38fcc89f39b`（basec6a9），合入清推 `ad693d795ff4636a6a8adafff3551de208df0639`；offline-verified-awaiting-live/open、implementationPhase source-integrated。[公共源码审批](https://github.com/lrfluobida/Cosmos/issues/47#issuecomment-5981575000)已由Root POST+GET精确读回。五批准paths只含两个production模块/两个tests/plan，字节一致、UTF8/noBOM/LF/中文/diffcheck通过，与五doc记录无碰撞。
+
+作者9new绿色、旧兼容6与strict7.064秒/encoding证据复用；独审helper3/3（2493.25ms）及原session组合/stale capture2/2（8330.94ms）覆盖同factory/原task-attempt-source-window守卫。联合只原strict非法/保留media字段只读自检代表1/1、0skip（20.5822ms），未9项矩阵/41cache/80counter/Edge/compiler重复。Helper56行固定currentfile/readOnly/空args，无auto-ID normalize/maprewrite、budget/SDK/provider变更。
+
+当前仅source修复准备，实际C3未登记/claim/paid；真实C2 code_defect/15SDK/161528/10cases/ledger4 revision1488/shared7184253/50closed八audits、groupnet175630/rem9824370/原parent10m/ref1414、C1/closure7及C8/G3/human NONE保持。C2 semantic tool通过仍不是generic capture或Source41整组件liveclosed。原grant/clock/shared150首30/formal20012不变，四docs候选待独审后sole merger合推，不提前修改实际案例或后继声明。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
