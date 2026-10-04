@@ -6,33 +6,45 @@ import { sameValue } from '../contracts/validation.ts';
 import { appendEvidence, evidenceReferences, findRequest, nonEmpty, requireOpen, reserveEntry, settleEntry } from '../budget/ledger.ts';
 import { confirmRequirements, validateGameDraft } from '../roles/requirements.ts';
 import type { GameDraft } from '../roles/requirements.ts';
+import { modeFromSelection, resolveDraftMode } from '../roles/preparation-mode.ts';
+import type { DraftMode, PreparationSelection } from '../roles/preparation-mode.ts';
 import { SnapshotStore } from './store.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { validateSnapshot } from './run-validation.ts';
 import type { RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
 
-export interface StoredDraft extends GameDraft { revision: number; source: ArtifactReference }
+export type StoredDraft = GameDraft & { revision: number; source: ArtifactReference };
 export interface IntakeSnapshot {
   formatVersion: 'intake-1'; revision: number;
   run: { runId: string; kind: 'runtime_generation'; specVersion: string };
   ledger: BudgetLedger; requests: RunSnapshot['requests']; events: RunEvent[]; stopReason: StopReason | null;
   createdAt: string; durationMs: number; interviewTaskId: string; maxRequests: number;
   draft: StoredDraft | null;
+  draftMode?: PreparationSelection;
   confirmation: { revision: number; requirement: RequirementContract; source: ArtifactReference } | null;
 }
 export interface CreateIntakeOptions {
   root: string; runId: string; ledgerId: string; specVersion: string; allocations: BudgetLedger['allocations'];
   interviewTaskId: string; maxRequests: number; limitMicroCny?: number; durationMs?: number; now?: () => number;
+  draftMode?: DraftMode;
 }
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 const draftRef = (revision: number): ArtifactReference => ({ artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` });
 const confirmationRef = (revision: number): ArtifactReference => ({ artifactId: 'user-confirmation', version: `v${revision}`, location: `requirements/v${revision}/confirmation.json` });
 const payload = ({ revision: _revision, source: _source, ...draft }: StoredDraft): GameDraft => draft;
+async function requireModeOrigin(root: string, state: IntakeSnapshot): Promise<void> {
+  let origin: unknown;
+  try { origin = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await readFile(join(root, 'intake-mode.json')))); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+  const expected = state.draftMode ? { runId: state.run.runId, createdAt: state.createdAt, draftMode: state.draftMode } : undefined;
+  if (!sameValue(origin, expected)) throw new Error('Original intake mode or source version changed.');
+}
 
 /** Separate intake schema: no generated task, fake requirement or pretend deadline. */
 export function validateIntakeSnapshot(value: unknown): asserts value is IntakeSnapshot {
   const state = value as IntakeSnapshot;
   if (!state || state.formatVersion !== 'intake-1') throw new Error('Expected intake snapshot; this run may already be activated.');
+  const mode = modeFromSelection(state.draftMode);
   if (!Number.isSafeInteger(state.revision) || state.revision < 1 || !timestamp(state.createdAt)
     || !state.run || state.run.kind !== 'runtime_generation' || Object.keys(state.run).some(key => !['runId', 'kind', 'specVersion'].includes(key))
     || !Number.isSafeInteger(state.durationMs) || state.durationMs <= 0 || state.durationMs > DEFAULT_BUDGETS.hardDurationMs
@@ -56,7 +68,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   });
   if (state.draft !== null) {
     if (!state.draft || !Number.isSafeInteger(state.draft.revision) || state.draft.revision < 1 || !sameValue(state.draft.source, draftRef(state.draft.revision))) throw new Error('Invalid draft revision.');
-    validateGameDraft(payload(state.draft));
+    validateGameDraft(payload(state.draft), mode);
   }
   if (state.confirmation !== null) {
     const confirmed = state.confirmation;
@@ -88,6 +100,7 @@ export class IntakeController {
     const result = this.accounting.then(operation); this.accounting = result.catch(() => {}); return result;
   }
   static async create(options: CreateIntakeOptions): Promise<IntakeController> {
+    const draftMode = resolveDraftMode(options.draftMode);
     const now = options.now ?? Date.now, createdAt = new Date(now()).toISOString();
     const state: IntakeSnapshot = {
       formatVersion: 'intake-1', revision: 1, run: { runId: options.runId, kind: 'runtime_generation', specVersion: options.specVersion },
@@ -95,11 +108,13 @@ export class IntakeController {
         warningThresholdPercent: 80, allocations: structuredClone(options.allocations), entries: [] }, requests: [],
       events: [{ sequence: 1, at: createdAt, type: 'created', requestId: null, reason: 'Intake budget fixed; formal generation has not started.' }], stopReason: null,
       createdAt, durationMs: options.durationMs ?? DEFAULT_BUDGETS.hardDurationMs, interviewTaskId: options.interviewTaskId, maxRequests: options.maxRequests, draft: null, confirmation: null,
+      ...(draftMode ? { draftMode } : {}),
     };
     validateIntakeSnapshot(state);
     const store = await SnapshotStore.acquire(options.root);
     try {
       if (await store.exists()) throw new Error('Snapshot already exists; intake cannot replace a run.');
+      if (draftMode) await publishReceipt(join(store.root, 'intake-mode.json'), { runId: state.run.runId, createdAt, draftMode });
       await store.write(state); return new IntakeController(store, state, now);
     } catch (error) { await store.close(); throw error; }
   }
@@ -107,7 +122,9 @@ export class IntakeController {
     const store = await SnapshotStore.acquire(options.root);
     try {
       const state = await store.read(); validateIntakeSnapshot(state);
+      await requireModeOrigin(store.root, state);
       const controller = new IntakeController(store, state, options.now ?? Date.now), next = structuredClone(state);
+      if (state.draftMode && state.draft) await controller.requireDraftFile(state.draft);
       for (const record of next.requests) {
         const entry = findRequest(next.ledger, record.requestId);
         if (record.admittedAt && entry.status === 'reserved') {
@@ -119,7 +136,11 @@ export class IntakeController {
       return controller;
     } catch (error) { await store.close(); throw error; }
   }
-  read(): Promise<IntakeSnapshot> { return this.serial(() => { this.requireIntake(); return structuredClone(this.snapshot); }); }
+  read(): Promise<IntakeSnapshot> { return this.serial(async () => {
+    this.requireIntake();
+    if (this.snapshot.draftMode) await requireModeOrigin(this.store.root, this.snapshot);
+    return structuredClone(this.snapshot);
+  }); }
   reserve(input: RequestInput) {
     const request = structuredClone(input);
     return this.serial(async () => {
@@ -171,8 +192,10 @@ export class IntakeController {
     });
   }
   saveDraft(input: GameDraft): Promise<StoredDraft> {
-    const draft = structuredClone(input); validateGameDraft(draft);
+    const draft = structuredClone(input);
     return this.serial(async () => {
+      validateGameDraft(draft, modeFromSelection(this.snapshot.draftMode));
+      if (this.snapshot.draftMode) await requireModeOrigin(this.store.root, this.snapshot);
       this.requireActive(); const next = structuredClone(this.snapshot), revision = (next.draft?.revision ?? 0) + 1;
       next.draft = { ...draft, revision, source: draftRef(revision) }; next.confirmation = null;
       const path = join(this.store.root, `requirements/v${revision}`); await mkdir(path, { recursive: true });
@@ -188,11 +211,12 @@ export class IntakeController {
       if (draft.unsupported.length) throw new Error('Unsupported requirements need a decision before confirmation.');
       const source = confirmationRef(draft.revision);
       const requirement = confirmRequirements({ ...payload(draft), specVersion: next.run.specVersion, sources: [draft.source, source] }, confirmation);
+      if (next.draftMode) await this.requireDraftFile(draft);
       if (next.confirmation) {
         if (sameValue(next.confirmation.requirement, requirement)) return structuredClone(requirement);
         throw new Error('Confirmation already recorded for this revision.');
       }
-      await this.requireDraftFile(draft);
+      if (!next.draftMode) await this.requireDraftFile(draft);
       await publishReceipt(join(this.store.root, source.location), { ...confirmation, runId: next.run.runId, draft: draft.source });
       next.confirmation = { revision: draft.revision, requirement, source };
       await this.commit(next); return structuredClone(requirement);
@@ -259,6 +283,7 @@ export class IntakeController {
     this.event(next, 'stopped', null, reason);
   }
   private async requireDraftFile(draft: StoredDraft): Promise<void> {
+    await requireModeOrigin(this.store.root, this.snapshot);
     const saved = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await readFile(join(this.store.root, draft.source.location))));
     if (!sameValue(saved, payload(draft))) throw new Error('Fixed requirement draft source changed.');
   }

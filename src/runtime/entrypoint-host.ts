@@ -11,7 +11,7 @@ import type { PassedEvidence } from '../artifacts/index.ts';
 import { directory, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
 import { createRoleFactory } from '../roles/factory.ts';
 import { requestDesignDraft, requestDesignQuestions } from '../roles/interview.ts';
-import { validateGameDraft, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../roles/requirements.ts';
+import { requireBrowserDraft, validateGameDraft, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../roles/requirements.ts';
 import type { AcceptancePlan } from '../acceptance/plan.ts';
 import type { AcceptanceReport } from '../acceptance/runner.ts';
 import { runOwnedNode } from './recovery/owned-command.ts';
@@ -29,7 +29,7 @@ import { executeGeneration } from './entrypoint.ts';
 import { renderDeclaredMedia, validateDesign, validateDeclaredMedia, withMediaObservations } from './entrypoint-media.ts';
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
-import type { GameDraft } from '../roles/requirements.ts';
+import type { GameDraft, BrowserGameDraft } from '../roles/requirements.ts';
 import type { ExecutionRequirement, ValidationRequirement } from '../roles/execution-input.ts';
 import { validateExecutionInput } from '../roles/execution-input.ts';
 import type { ValidationExecutionBinding } from './validation-scope.ts';
@@ -140,6 +140,7 @@ function validBrowserReport(report: AcceptanceReport, plan: AcceptancePlan): boo
 export interface BrowserHostBinding { windowId: string; tasks: PreparedTask[] }
 export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO; binding?: BrowserHostBinding }): Promise<GenerationHost> {
   if ('preparation' in input) throw new Error('Only the explicit preparation factory accepts a trusted preparation adapter.');
+  requireBrowserDraft(input.draft);
   input.controller.requireExecutionWindow(input.binding?.windowId);
   validateGameDraft(input.draft);
   return createBrowserHostCore(input);
@@ -555,7 +556,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             }
             const server = await serve(project);
             try {
-              const scenario = (draft as GameDraft | ValidationBrowserProposal).scenario;
+              const scenario = (draft as BrowserGameDraft | ValidationBrowserProposal).scenario;
               const gameplay: AcceptancePlan = { ...structuredClone(scenario), formatVersion: '1.0.0', projectId: 'game', runId: task.runId, taskId: task.taskId,
                 reportId: `${task.taskId}-browser`, specVersion: requirement.specVersion, artifact: ref, url: server.url, acceptanceIds: task.acceptanceIds };
               const media = (await registry.getCapture(selected(task, 'media'))).metadata.media!;
@@ -763,6 +764,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
 
 /** Uses installed locked generic tools; preparation creates no game-specific output. */
 export function createProductHost(repository: string): ProductHost {
+  const requireBrowserInterview = async (options: Parameters<ProductHost['questions']>[0]) => {
+    if ((await options.controller.read()).draftMode) throw new Error('The product browser host cannot interview an unconnected preparation mode.');
+  };
   return {
     async prepare(root, signal) {
       signal?.throwIfAborted();
@@ -781,8 +785,14 @@ export function createProductHost(repository: string): ProductHost {
       if (!(await regularFile(toolchain, 'package-lock.json')).equals(await regularFile(template, 'package-lock.json'))) throw new Error('Prepared toolchain differs from the locked template.');
       return { environmentReady: true, executionReady: true };
     },
-    questions: options => requestDesignQuestions({ ...options, capabilities: CAPABILITIES, maxOutputTokens: 4096, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation }),
-    draft: async options => withHostStages(await requestDesignDraft({ ...options, capabilities: CAPABILITIES, maxOutputTokens: 8192, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation })),
+    questions: async options => {
+      await requireBrowserInterview(options);
+      return requestDesignQuestions({ ...options, capabilities: CAPABILITIES, maxOutputTokens: 4096, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation });
+    },
+    draft: async options => {
+      await requireBrowserInterview(options);
+      return withHostStages(await requestDesignDraft({ ...options, capabilities: CAPABILITIES, maxOutputTokens: 8192, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation }));
+    },
     execute: options => executeGeneration({ ...options, createHost: createBrowserHost }),
   };
 }

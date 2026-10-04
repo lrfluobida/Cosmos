@@ -3,6 +3,8 @@ import type { RequirementContract } from '../contracts/index.ts';
 import { validatePlan } from '../acceptance/plan.ts';
 import type { AcceptancePlan } from '../acceptance/plan.ts';
 import { sameValue } from '../contracts/validation.ts';
+import { modeFromSelection, preparationContract, resolveDraftMode } from './preparation-mode.ts';
+import type { DraftMode, PreparationSelection } from './preparation-mode.ts';
 
 export const DESIGN_ACCEPTANCE_ID = 'COSMOS-DESIGN';
 export const MEDIA_ACCEPTANCE_ID = 'COSMOS-MEDIA';
@@ -16,33 +18,54 @@ export function gameplayAcceptance(draft: Pick<GameDraft, 'acceptance'>) {
   return draft.acceptance.filter(item => !HOST_STAGE_ACCEPTANCE.some(stage => stage.acceptanceId === item.acceptanceId));
 }
 /** Host criteria are displayed and frozen in the same user-confirmed revision. */
-export function withHostStages(draft: GameDraft): GameDraft {
+export function withHostStages(draft: GameDraft): BrowserGameDraft {
+  requireBrowserDraft(draft);
   validateGameDraft(draft);
   return { ...structuredClone(draft), acceptance: [...structuredClone(gameplayAcceptance(draft)), ...structuredClone(HOST_STAGE_ACCEPTANCE)] };
 }
 
-export interface GameDraft {
+interface DraftFields {
   brief: string;
   questions: ClarificationInput['questions'];
   answers: ClarificationInput['answers'];
   acceptance: RequirementContract['acceptance'];
-  scenario: Pick<AcceptancePlan, 'viewport' | 'steps'>;
   unsupported: string[];
+}
+export interface BrowserGameDraft extends DraftFields { scenario: Pick<AcceptancePlan, 'viewport' | 'steps'>; preparation?: never }
+export interface PreparationGameDraft extends DraftFields { preparation: PreparationSelection; scenario?: never }
+export type GameDraft = BrowserGameDraft | PreparationGameDraft;
+
+export function requireBrowserDraft(draft: GameDraft): asserts draft is BrowserGameDraft {
+  if (!draft || 'preparation' in draft) throw new Error('The browser host cannot dispatch an unconnected preparation draft.');
+}
+export function preparationAcceptance(selection: PreparationSelection): RequirementContract['acceptance'] {
+  return [...preparationContract(selection).acceptance, ...structuredClone(HOST_STAGE_ACCEPTANCE)];
 }
 
 /** A proposal is data only; host identities and confirmation are never model fields. */
-export function validateGameDraft(value: unknown): asserts value is GameDraft {
+export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'browser'): asserts value is GameDraft {
+  const selection = resolveDraftMode(expectedMode);
   const draft = value as GameDraft;
   const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
-  if (!draft || typeof draft !== 'object' || Object.keys(draft).some(key => !['brief', 'questions', 'answers', 'acceptance', 'scenario', 'unsupported'].includes(key))
+  const fields = ['brief', 'questions', 'answers', 'acceptance', 'unsupported', selection ? 'preparation' : 'scenario'];
+  if (!draft || typeof draft !== 'object' || Object.keys(draft).some(key => !fields.includes(key))
     || !text(draft.brief) || !Array.isArray(draft.questions) || !draft.answers || typeof draft.answers !== 'object' || Array.isArray(draft.answers)
     || Object.values(draft.answers).some(answer => typeof answer !== 'string') || !Array.isArray(draft.unsupported) || draft.unsupported.some(item => !text(item))) throw new Error('Invalid game draft fields.');
+  if (selection && draft.questions.some(question => !question || typeof question !== 'object' || Array.isArray(question)
+    || Object.keys(question).some(key => !['id', 'prompt'].includes(key)) || typeof question.id !== 'string' || typeof question.prompt !== 'string')) throw new Error('Invalid preparation question fields.');
   prepareClarification({ ...draft, specVersion: 'draft', sources: [] });
+  if (selection) {
+    if (!sameValue(draft.preparation, selection)) throw new Error('Preparation mode or source version changed.');
+    modeFromSelection(draft.preparation);
+    if (!sameValue(draft.acceptance, preparationAcceptance(selection))) throw new Error('Preparation requires the complete source acceptance contract.');
+    return;
+  }
+  requireBrowserDraft(draft);
   validateBrowserScenario(draft);
 }
 
 /** Declarative browser checks shared by human drafts and explicit operator inputs. */
-export function validateBrowserScenario(draft: Pick<GameDraft, 'acceptance' | 'scenario'>): void {
+export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptance' | 'scenario'>): void {
   const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
   if (!Array.isArray(draft.acceptance) || !draft.acceptance.length || draft.acceptance.length > 100
     || new Set(draft.acceptance.map(item => item?.acceptanceId)).size !== draft.acceptance.length
