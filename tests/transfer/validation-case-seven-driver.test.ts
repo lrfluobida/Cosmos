@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, mkdir, readFile, rm, writeFile, symlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -19,9 +19,19 @@ test('case7 bootstrap uses current planning host authority once and refuses fore
   const repository = await mkdtemp(join(tmpdir(), 'cosmos-C7-bootstrap-'));
   t.after(async () => { assert.ok(resolve(repository).startsWith(resolve(tmpdir()) + '\\')); await rm(repository, { recursive: true, force: true }); });
   const root = join(repository, '.cosmos/e2e', D.caseId); await mkdir(root, { recursive: true });
-  const signal = new AbortController().signal, window = { caseId: D.caseId, windowId: 'SOURCE-only-C7', deadlineAt: new Date(Date.now() + D.limits.durationMs).toISOString(), quote: { declaration: D } };
+  const signal = new AbortController().signal, state: any = { ...caseSevenFeeData(), allocationClosureDecisions: [] }, window: any = { caseId: D.caseId, windowId: 'SOURCE-only-C7', deadlineAt: new Date(Date.now() + D.limits.durationMs).toISOString(), quote: { declaration: D,
+    basis: { revision: 1, snapshotSha256: 'a'.repeat(64), requestIds: state.ledger.entries.map((e: any) => e.requestId) } } };
+  const template = fileURLToPath(new URL('../../templates/2d', import.meta.url)), ledgerRoot = join(repository, '.cosmos/validation-shared');
+  await mkdir(join(repository, 'templates/2d'), { recursive: true }); await mkdir(ledgerRoot, { recursive: true });
+  for (const name of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await cp(join(template, name), join(repository, 'templates/2d', name));
+  const { captureTransferCaseSevenSource } = await import('../../probes/transfer/validation-case-seven-source.ts');
+  const { createTransferCaseSevenAdmissionQuote, transferCaseSevenHistoricalAccountingHash } = await import('../../probes/transfer/validation-case-seven-entry.ts');
+  const manifestRef = { artifactId: D.caseId + '-historical-stages', version: 'b'.repeat(64), location: D.caseId + '-reuse.json' };
+  const envelope = createTransferCaseSevenAdmissionQuote(window.quote, manifestRef, [], await captureTransferCaseSevenSource(), transferCaseSevenHistoricalAccountingHash(state, window.quote));
+  const envelopeBytes = Buffer.from(JSON.stringify(envelope, null, 2) + '\n'), envelopeRef = { artifactId: D.caseId + '-admission', version: createHash('sha256').update(envelopeBytes).digest('hex'), location: D.caseId + '-admission-' + envelope.admissionId + '.json' };
+  await writeFile(join(ledgerRoot, envelopeRef.location), envelopeBytes); window.operatorDecision = { sourceRefs: [manifestRef, envelopeRef] };
   const input: any = { repository, root, ledgerRoot: join(repository, '.cosmos/validation-shared'), window, signal,
-    controller: { read: async () => caseSevenFeeData(), requireValidationCase: (caseId: string, windowId: string) => { assert.equal(caseId, D.caseId); assert.equal(windowId, window.windowId); } },
+    controller: { read: async () => state, requireValidationCase: (caseId: string, windowId: string) => { assert.equal(caseId, D.caseId); assert.equal(windowId, window.windowId); } },
     work: { run: async (operation: any) => operation(signal) } };
   let calls = 0;
   const execute = async (job: any) => {
@@ -29,6 +39,9 @@ test('case7 bootstrap uses current planning host authority once and refuses fore
     assert.equal(job.authority.taskId, D.grants.planning.taskId); assert.equal(job.authority.deadlineAt, window.deadlineAt);
     const request = JSON.parse(await readFile(job.args.at(-1), 'utf8'));
     assert.equal(request.operation, 'bootstrap'); assert.equal(request.root, root);
+    await mkdir(join(root, 'toolchain'), { recursive: true });
+    for (const name of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await cp(join(template, name), join(root, 'toolchain', name));
+    await symlink(join(template, 'node_modules'), join(root, 'toolchain/node_modules'), 'junction');
     await writeFile(request.response, JSON.stringify({ formatVersion: 'validation-worker-result-1', operation: 'bootstrap', outcome: 'completed', result: join(root, 'toolchain') }), 'utf8');
     return { passed: true };
   };

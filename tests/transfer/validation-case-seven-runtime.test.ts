@@ -3,8 +3,9 @@ import test from 'node:test';
 import { createFixedTransferValidationCaseSevenEntry } from '../../probes/transfer/validation-case-seven-entry.ts';
 import { TRANSFER_CASE_SEVEN_HISTORICAL_SOURCE } from '../../probes/transfer/validation-case-seven-run.ts';
 import { transferCaseSevenFixture, loadTransferCaseSevenCheckpoint } from './validation-case-seven.fixture.ts';
-import { readFile, cp, mkdir, writeFile, stat, unlink, lstat } from 'node:fs/promises';
+import { readFile, cp, mkdir, writeFile, stat, unlink, lstat, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createTransferReusedConsumerHost } from '../../src/runtime/adapters/transfer/runtime-host.ts';
 import { syntheticTransferSessions } from './validation-case-six-stages.fixture.ts';
 import { syntheticReports } from './passed-stage-reuse-reports.fixture.ts';
@@ -106,6 +107,7 @@ test('fixed C7 atomically claims original remainder, reopens its own pending cod
     await bootstrapTransferValidationCaseSevenToolchain(input, async (job: any) => {
       bootstraps++; assert.equal(job.authority.taskId, D.grants.planning.taskId); const request = JSON.parse(await readFile(job.args.at(-1), 'utf8'));
       await cp(join(input.repository, 'templates/2d'), join(input.root, 'toolchain'), { recursive: true });
+      await symlink(fileURLToPath(new URL('../../templates/2d/node_modules', import.meta.url)), join(input.root, 'toolchain/node_modules'), 'junction');
       await writeFile(request.response, JSON.stringify({ formatVersion: 'validation-worker-result-1', operation: 'bootstrap', outcome: 'completed', result: join(input.root, 'toolchain') }), 'utf8');
       return { passed: true, code: 0, stdout: '', stderr: '', diagnostics: 'SOURCE transport', cleanup: {} };
     });

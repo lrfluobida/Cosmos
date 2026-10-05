@@ -10,7 +10,7 @@ import { createFixedTransferCodingOnlyEntry } from './validation-case-six-entry.
 import type { HistoricalCaseSixSourcePins, TransferCaseSixRunHost } from './validation-case-six-entry.ts';
 import { deriveTransferValidationCaseSevenDeclaration, parseTransferValidationCaseSevenEntry, TRANSFER_CASE_SEVEN_HISTORY } from './validation-case-seven-declaration.ts';
 import { fixedTransferValidationInput } from './validation-input.ts';
-import { captureTransferCaseSevenSource, requireTransferCaseSevenSource } from './validation-case-seven-source.ts';
+import { captureTransferCaseSevenSource, requireTransferCaseSevenSource, requireTransferCaseSevenTemplate } from './validation-case-seven-source.ts';
 
 /** The old accounting prefix is fixed while the new case adds its own requests and fees. */
 export function transferCaseSevenHistoricalAccountingHash(state: RunSnapshot, quote: ValidationCaseQuote) {
@@ -46,7 +46,7 @@ export function createFixedTransferValidationCaseSevenEntry(sourcePins: Historic
       manifestLocation: 'cos20-transfer-validation-7-reuse.json', parseEntry: parseTransferValidationCaseSevenEntry,
       deriveDeclaration: deriveTransferValidationCaseSevenDeclaration, createIdentityReader: identityOptions => {
         const read = input.createTransferValidationIdentityReader(identityOptions);
-        return async signal => { await requireTransferCaseSevenSource(execution, signal); await requireTransferCaseSevenAccountingSources(join(resolve(options.repository), '.cosmos/validation-shared'), state, signal); return read(signal); };
+        return async signal => { await requireTransferCaseSevenSource(execution, signal); await requireTransferCaseSevenTemplate(execution, options.repository, signal); await requireTransferCaseSevenAccountingSources(join(resolve(options.repository), '.cosmos/validation-shared'), state, signal); return read(signal); };
       },
       admissionQuote: (quote, manifest, approvals) => createTransferCaseSevenAdmissionQuote(quote, manifest, approvals, execution, transferCaseSevenHistoricalAccountingHash(state, quote)),
       generate: async (hostInput, historical, resume) => (await import('./validation-case-seven-driver.ts')).generateTransferValidationCaseSeven(hostInput, historical, resume) });
