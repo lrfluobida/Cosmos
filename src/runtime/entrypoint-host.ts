@@ -562,7 +562,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       await directory(target, `authors/${role(task) === 'coding' ? 'coding/src' : role(task)}`);
       signal.throwIfAborted();
     } } : {}),
-    roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation,
+    roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: 600000, estimatedMaxCostMicroCny: requestReservation,
       sessionFactory: input.sessionFactory,
       hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],
       ...(validation || human ? { beforeTool: async (roleInput, signal) => {
