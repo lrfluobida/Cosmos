@@ -30,7 +30,12 @@ const draftPayload = ({ revision: _revision, source: _source, ...draft }: Stored
 /** Read-only rejection before confirmation, owner recovery, environment preparation or window activation. */
 export async function rejectPreparationContinuation(root: string): Promise<void> {
   const mode = await optionalJson(root, 'intake-mode.json');
-  if (mode && modeFromSelection(mode.draftMode) !== 'browser') throw new Error('准备模式尚不支持额外正式续跑窗口。');
+  if (mode && modeFromSelection(mode.draftMode) !== 'browser') {
+    const { readHumanContinuationLineage } = await import('../runtime/continuation-preparation.ts');
+    const state = await readRunSnapshot(root);
+    if (state.formatVersion === 'intake-1') throw new Error('准备模式续跑要求原正式运行。');
+    await readHumanContinuationLineage(root, state);
+  }
 }
 export async function readConfirmedGeneration(root: string, snapshot: RunSnapshot) {
   const source = snapshot.run.humanDecisions.find(decision => decision.decisionId.startsWith('requirements-v'));

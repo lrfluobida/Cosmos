@@ -15,12 +15,15 @@ import { taskWindowBinding } from './execution-window.ts';
 import { TaskJournal, RecoveryBlocked, requireOriginalTask } from './recovery/task-journal.ts';
 import type { RecoveryOptions, ContentSignature, RecoveryOrigin } from './recovery/task-journal.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
+import { deriveHumanContinuationPreparation } from './continuation-preparation.ts';
+import type { HumanContinuationPreparation } from './continuation-preparation.ts';
 
 export interface ContinuationPlan {
   formatVersion: 'continuation-plan-1'; runId: string; ledgerId: string; windowId: string; decisionId: string; quoteId: string;
   capability: string; requirement: RequirementContract; availableArtifacts: ArtifactReference[];
   sources: { path: string; sha256: string }[]; tasks: PreparedTask[];
   replacements: { sourceTaskId: string; replacementTaskId: string }[]; reviewProtocolCorrections: 1;
+  preparation?: HumanContinuationPreparation;
 }
 interface Input { root: string; controller: RunController; requirement: RequirementContract; windowId: string }
 const hash = (value: Uint8Array) => createHash('sha256').update(value).digest('hex');
@@ -116,12 +119,20 @@ async function derive(input: Input, state: RunSnapshot, window: ExecutionWindow)
     requireContinuationTask(state, item.task);
   }
   if (window.grants.length !== tasks.filter(item => window.grants.some(grant => grant.taskId === item.task.taskId)).length) fail('Quoted task mapping is incomplete.');
+  const preparation = await deriveHumanContinuationPreparation(root, state, window, tasks);
+  if (preparation) {
+    const coding = tasks.find(item => item.task.taskId === preparation.taskId)!;
+    coding.task.context.interfaces.push(...structuredClone(preparation.plans));
+    coding.task.context.rules.push(`This current coding window uses candidate ${JSON.stringify(preparation.candidate)} and primary plan ${JSON.stringify(preparation.primaryPlan)}. Read both current plans from interfaces. Historical v1/v2 plans are lineage only; no second candidate or automatic repair is authorized.`);
+    sources.push(...preparation.originalSources.filter(source => !sources.some(fixed => fixed.path === source.path)));
+  }
   await requireContinuationInputs(state, tasks, root);
   for (const item of tasks) if (validateExecution({ requirement, task: item.task, ledger: state.ledger, run: state.run }).length) fail('Continuation task does not preserve its execution contract.');
   return { originalSources: [...pool.values()], plan: { formatVersion: 'continuation-plan-1', runId: state.run.runId, ledgerId: state.ledger.ledgerId,
     windowId: window.windowId, decisionId: window.decisionId, quoteId: window.quote.quoteId, capability: execution.capability,
     requirement: structuredClone(requirement), availableArtifacts: execution.availableArtifacts, sources, tasks,
-    replacements: [...aliases].map(([sourceTaskId, replacementTaskId]) => ({ sourceTaskId, replacementTaskId })).concat(replacements), reviewProtocolCorrections: 1 } };
+    replacements: [...aliases].map(([sourceTaskId, replacementTaskId]) => ({ sourceTaskId, replacementTaskId })).concat(replacements), reviewProtocolCorrections: 1,
+    ...(preparation ? { preparation } : {}) } };
 }
 
 /** Builds or reads fixed plan data only; author preparation and paid work do not run here. */

@@ -9,18 +9,24 @@ interface ValidationTransferOriginBinding {
   caseId: string; windowId: string; sourceVersion: string; requirementSha256: string; runId: string; specVersion: string;
 }
 export type TransferOriginBinding = ValidationTransferOriginBinding | {
-  profile: 'human'; runId: string; ledgerId: string; windowId: null; sourceVersion: string; sourceSha256: string; requirementSha256: string; specVersion: string;
+  profile: 'human'; runId: string; ledgerId: string; windowId: null | string; sourceVersion: string; sourceSha256: string; requirementSha256: string; specVersion: string;
+  decisionId?: string; taskId?: string;
 };
 export interface TransferOriginInput {
   root: string; binding: TransferOriginBinding; resume: boolean; signal: AbortSignal; requireScope(): Promise<void>;
+  /** Selected only by the trusted first-window factory. */
+  receiptPath?: string;
 }
 /** Reserve an owned 404 listener. Only a trusted consumer can mount its registry candidate dist. */
 export async function reserveTransferOrigin(input: TransferOriginInput) {
-  const file = 'host-transfer-origin.json', binding = structuredClone(input.binding);
+  const file = input.receiptPath ?? 'host-transfer-origin.json', binding = structuredClone(input.binding);
+  if ('profile' in binding && (typeof binding.windowId === 'string') !== !!input.receiptPath) throw new Error('Human transfer origin window requires its explicit current receipt path.');
+  if (input.receiptPath && (!('profile' in binding) || typeof binding.windowId !== 'string' || !binding.decisionId || !binding.taskId
+    || file !== `continuations/${binding.decisionId}/transfer-origin.json`)) throw new Error('Current transfer origin must retain its exact human window path.');
   const read = async () => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.root, file)));
   input.signal.throwIfAborted(); await input.requireScope(); input.signal.throwIfAborted();
   if (!/^[a-f0-9]{40}$/.test(binding.sourceVersion) || !/^[a-f0-9]{64}$/.test(binding.requirementSha256)
-    || Object.entries(binding).some(([key, value]) => ('profile' in binding && key === 'windowId') ? value !== null : typeof value !== 'string' || !value)
+    || Object.entries(binding).some(([key, value]) => ('profile' in binding && key === 'windowId' && binding.windowId === null) ? value !== null : typeof value !== 'string' || !value)
     || 'profile' in binding && (binding.profile !== 'human' || !/^[a-f0-9]{64}$/.test(binding.sourceSha256))) throw new Error('Invalid fixed transfer origin binding.');
   let previous: any, port = 0;
   if (input.resume) {

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { createValidationPreparedBrowserHost, createHumanPreparedBrowserHost } from '../../entrypoint-host.ts';
+import { createValidationPreparedBrowserHost, createHumanPreparedBrowserHost, createHumanPreparedContinuationHost } from '../../entrypoint-host.ts';
 import type { HumanPreparationInput } from '../../entrypoint-human-preparation.ts';
 import type { BrowserInputPreparation, BrowserPreparationContext } from '../../entrypoint-preparation.ts';
 import type { ArtifactReference, TaskContract } from '../../../contracts/index.ts';
@@ -21,6 +21,7 @@ import type { FrozenTransferDesign, FrozenTransferAcceptanceDraft, PrepareInput 
 import { reserveTransferOrigin } from './loopback-origin.ts';
 import { consumeTransferCandidate, diagnoseTransferBuild } from './runtime-acceptance.ts';
 import type { HistoricalPassedStages } from '../../historical-passed-stages.ts';
+import type { HumanContinuationInput, HumanContinuationScope } from '../../entrypoint-human-continuation.ts';
 
 type HostInput = Parameters<typeof createValidationPreparedBrowserHost>[0];
 export type HumanTransferHostInput = HumanPreparationInput & Pick<HostInput, 'io' | 'sessionFactory'> & { historicalStages?: never };
@@ -49,6 +50,111 @@ export async function createTransferReusedConsumerHost(input: Omit<HostInput, 'p
 /** Public source-owned adapter for the original, exactly confirmed human preparation run. */
 export async function createHumanTransferConsumerHost(input: HumanTransferHostInput) {
   return createTransferHost(input, true);
+}
+/** A single current candidate consumes a passed human map; neither audit plan grants a repair. */
+export async function createHumanTransferContinuationHost(input: HumanContinuationInput & Pick<HostInput, 'io' | 'sessionFactory'>) {
+  let ctx: BrowserPreparationContext, human: HumanContinuationScope, origin: Awaited<ReturnType<typeof reserveTransferOrigin>>;
+  let saved: { formatVersion: 'transfer-continuation-inputs/1'; preparation: HumanContinuationScope['preparation']; frozen: FrozenTransferDesign; plans: PreparedInputs['plans'] };
+  let ready = false;
+  const jsonBytes = (value: unknown) => Buffer.from(JSON.stringify(value, null, 2) + '\n');
+  const currentPath = () => `continuations/${human.decisionId}/transfer-prepared-inputs.json`;
+  const preparedInput = (slot: 'v1' | 'v2'): PrepareInput => ({ root: ctx.root, registry: ctx.registry, frozen: saved.frozen,
+    currentRequirement: { artifact: ctx.requirementCapture, specVersion: ctx.requirement.specVersion }, candidate: human.preparation.candidate,
+    planArtifact: human.preparation.plans[slot === 'v1' ? 0 : 1], url: origin.url, runId: human.runId,
+    reportId: 'transfer-current-' + slot, taskId: human.preparation.taskId });
+  const verify = async () => {
+    await human.requireCurrent(); await origin.verify();
+    requireThat((await regularFile(ctx.root, currentPath())).equals(jsonBytes(saved)), 'current prepared plan receipt changed');
+    for (const slot of ['v1', 'v2'] as const) {
+      await verifyPreparedTransferAcceptance({ ...preparedInput(slot), prepared: saved.plans[slot] });
+      requireThat(isDeepStrictEqual(saved.plans[slot].segments.map(segment => segment.plan.steps), human.lineage.saved.plans[slot].segments.map((segment: any) => segment.plan.steps)), 'current normal-input expectations changed');
+    }
+  };
+  const requireCurrent = async () => {
+    await human.requireCurrent(); if (!ready) return;
+    await verify(); const state = await input.controller.read(), coding = state.tasks.find(task => task.taskId === human.preparation.taskId);
+    if (!coding?.artifacts.length) return;
+    const ref = human.preparation.candidate;
+    requireThat(isDeepStrictEqual(coding.artifacts, [ref]), 'current coding artifact changed');
+    const origin = decode(await regularFile(ctx.root, `journal/task-${encodeURIComponent(coding.taskId)}/origin.json`)) as RecoveryOrigin;
+    requireThat(origin.formatVersion === 2 && origin.executionWindow?.windowId === human.windowId && isDeepStrictEqual(origin.requirement, ctx.requirement)
+      && isDeepStrictEqual(origin.prepared.expectedArtifacts, [ref]), 'current coding origin changed');
+    requireOriginalTask(origin.prepared.task, coding);
+    const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, origin, true);
+    const capture = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', coding.attempts.at(-1)!.attemptId);
+    // During capture the candidate exists before its receipt; active host staging is authenticated by bind below.
+    if (!capture) { requireThat(coding.state === 'running', 'current capture receipt missing'); return; }
+    const candidate = await ctx.registry.getCandidate(ref), source = await ctx.registry.getCapture(ctx.registry.artifactRef('game-source', ref.version));
+    const inputs = [ctx.registry.artifactRef('generic-template', 'v1'), ctx.requirementCapture, ctx.primaryDesign, ctx.primaryMedia, saved.frozen.artifact, human.preparation.primaryPlan];
+    requireThat(isDeepStrictEqual(capture.captured.artifacts, [ref]) && capture.signature.length === 1 && candidate.taskId === coding.taskId
+      && candidate.authorId === coding.authorId && candidate.contextId === coding.context.contextId && source.taskId === coding.taskId
+      && isDeepStrictEqual(source.metadata.provenance, { kind: 'original-procedural', generator: 'Native coding role output', sourceRefs: [coding.attempts.at(-1)!.sessionRef, ...ctx.requirement.sources.map(ref => ref.location)] })
+      && isDeepStrictEqual(source.dependencies, inputs) && isDeepStrictEqual(candidate.inputs, [...inputs, source.artifactRef]) && isDeepStrictEqual(candidate.expectedDeps, candidate.inputs)
+      && isDeepStrictEqual(candidate.mediaRequirements, [{ artifactRef: ctx.primaryMedia, media: (await ctx.registry.getCapture(ctx.primaryMedia)).metadata.media }]), 'current candidate dependency or provenance changed');
+    const signature = capture.signature[0];
+    requireThat(signature.location === ref.location && isDeepStrictEqual(signature.files.map(file => file.path).sort(), candidate.files.map(file => file.destination).sort()), 'current candidate inventory changed');
+    for (const file of signature.files) {
+      const item = candidate.files.find(item => item.destination === file.path)!;
+      requireThat([...coding.inputs, ...coding.context.interfaces, source.artifactRef].some(input => isDeepStrictEqual(input, item.artifactRef))
+        && sha(await regularFile(ctx.root, ref.location + '/' + file.path)) === file.sha256
+        && sha(await regularFile(ctx.root, item.artifactRef.location + '/' + file.path)) === file.sha256, 'current candidate/source bytes changed');
+    }
+  };
+  const preparation: BrowserInputPreparation = {
+    adapterId: 'cos16-input/1', designOutputs: [], designWritePaths: [], designRules: [], codingRules: [],
+    async initialize(context) {
+      ctx = context; requireThat(ctx.human && 'windowId' in ctx.human, 'explicit human continuation scope required'); human = ctx.human as HumanContinuationScope;
+      const descriptor = human.preparation, receipt = `continuations/${human.decisionId}/transfer-origin.json`;
+      let resume = false; try { await regularFile(ctx.root, receipt); resume = true; } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+      if (!resume) {
+        const state = await input.controller.read();
+        requireThat(!state.tasks.some(task => task.taskId === descriptor.taskId) && !state.ledger.entries.some(entry => entry.taskId === descriptor.taskId), 'registered current origin is missing');
+        for (const path of [currentPath(), `continuations/${human.decisionId}/plan.json`]) {
+          try { await regularFile(ctx.root, path); throw new Error('Current origin is missing after its fixed plans were sealed.'); }
+          catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+        }
+        for (const ref of descriptor.plans) {
+          try { await ctx.registry.getCapture(ref); throw new Error('Current origin is missing after a plan capture.'); }
+          catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+        }
+      }
+      origin = await reserveTransferOrigin({ root: ctx.root, receiptPath: receipt, resume, signal: ctx.signal, requireScope: ctx.requireScope,
+        binding: { profile: 'human', runId: human.runId, ledgerId: human.ledgerId, windowId: human.windowId, decisionId: human.decisionId, taskId: descriptor.taskId,
+          sourceVersion: human.execution.sourceVersion, sourceSha256: human.execution.sha256, requirementSha256: sha(JSON.stringify(ctx.requirement)), specVersion: ctx.requirement.specVersion } });
+      saved = { formatVersion: 'transfer-continuation-inputs/1', preparation: descriptor, frozen: human.lineage.saved.frozen, plans: {} as PreparedInputs['plans'] };
+      preparation.designOutputs = human.lineage.design.expectedArtifacts!.slice(1).map(ref => ({ ...ref, destination: ref.location, type: 'data', schema: ref.artifactId === 'transfer-design' ? 'cos16-design/1' : 'cos16-plan/1' }));
+      try {
+        const bytes = await regularFile(ctx.root, currentPath()), previous = decode(bytes);
+        requireThat(isDeepStrictEqual(previous, { ...saved, plans: previous.plans }), 'stored current preparation descriptor changed'); saved = previous;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+        requireThat(!(await input.controller.read()).tasks.some(task => task.taskId === descriptor.taskId), 'registered current plans are missing');
+        for (const slot of ['v1', 'v2'] as const) {
+          const ref = preparedInput(slot).planArtifact;
+          try { const captured = await ctx.registry.getCapture(ref), bytes = await regularFile(ctx.root, ref.location + '/_cosmos/transfer-plan.json');
+            requireThat(captured.taskId === 'host-transfer-plan', 'partial current plan author changed'); saved.plans[slot] = { ...decode(bytes), planSha256: sha(bytes) };
+            await verifyPreparedTransferAcceptance({ ...preparedInput(slot), prepared: saved.plans[slot] });
+          } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; saved.plans[slot] = await prepareTransferAcceptance(preparedInput(slot)); }
+        }
+        await publishReceipt(join(ctx.root, currentPath()), saved, ctx.signal);
+      }
+      ready = true; await verify();
+    },
+    requireCurrent, captureDesignExtras: async () => { throw new Error('Passed human design cannot be reauthored in this window.'); },
+    verifyDesignExtras: async task => { await requireCurrent(); requireThat(task.taskId === human.lineage.design.task.taskId, 'historical design identity changed'); },
+    artExtraInputs: () => [saved.frozen.artifact],
+    candidateExtraInputs(candidate) { requireThat(isDeepStrictEqual(candidate, human.preparation.candidate), 'candidate differs from the sole current binding'); return [saved.frozen.artifact, human.preparation.primaryPlan]; },
+    async bindCandidate(candidate) { await requireCurrent(); preparation.candidateExtraInputs(candidate); return bindTransferAcceptance({ ...preparedInput('v1'), prepared: saved.plans.v1 }); },
+    async close() { if (origin) await origin.close(); }, candidateBuildDiagnostic: diagnoseTransferBuild,
+    async candidateConsumer(context) {
+      await requireCurrent(); preparation.candidateExtraInputs(context.candidate);
+      requireThat(context.task.taskId === human.preparation.taskId, 'consumer task differs from current authority');
+      return consumeTransferCandidate(context, { input: { ...preparedInput('v1'), prepared: saved.plans.v1 }, sourceVersion: human.execution.sourceVersion,
+        mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, verifyBinding }) });
+    },
+  };
+  try { return await createHumanPreparedContinuationHost({ ...input, preparation }); }
+  catch (error) { await preparation.close(); throw error; }
 }
 async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanTransferHostInput, consumer: boolean) {
   let ctx: BrowserPreparationContext, origin: Awaited<ReturnType<typeof reserveTransferOrigin>>;

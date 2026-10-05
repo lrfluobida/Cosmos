@@ -9,6 +9,7 @@ import type { BrowserBuildReport } from './entrypoint-host.ts';
 import type { RoleFactoryOptions } from '../roles/factory.ts';
 import type { HistoricalPassedStages, VerifiedHistoricalStages } from './historical-passed-stages.ts';
 import type { HumanPreparationScope } from './entrypoint-human-preparation.ts';
+import type { HumanContinuationScope } from './entrypoint-human-continuation.ts';
 
 export interface BrowserCandidateConsumerContext {
   root: string; task: TaskContract; candidate: ArtifactReference; project: string;
@@ -30,7 +31,7 @@ export interface BrowserPreparationContext {
   mediaTaskId: string; primaryMedia: ArtifactReference; candidateTaskIds: { v1: string; v2: string };
   name(value: string): string; signal: AbortSignal; resume: boolean;
   requireScope(): Promise<void>;
-  human?: HumanPreparationScope;
+  human?: HumanPreparationScope | HumanContinuationScope;
   taskWorkspace?(taskId: string): string;
   inherited?: { binding: HistoricalPassedStages; verified: VerifiedHistoricalStages };
 }

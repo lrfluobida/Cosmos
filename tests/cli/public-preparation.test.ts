@@ -55,14 +55,14 @@ test('preparation EOF and cancel keep the original unactivated intake', async t 
   }
 });
 
-test('cold public resume selects its saved mode and refuses extra formal windows before prepare', async t => {
+test('cold public resume selects its saved mode and rejects unavailable coding continuation scope before prepare', async t => {
   const f = await fixture(t);
   await runCli(['new', f.root, '--brief', '推箱子', '--adapter', 'sokoban'], f.io(['两个箱子\nconfirm 1\n']));
   const original = await readFile(join(f.root, 'snapshot.json'));
   await runCli(['resume', f.root], f.io([])); assert.equal(f.executed().resume, true);
   const prepared = f.prepared();
   for (const args of [['continue', f.root, '--quote', '--add-cny', '1', '--add-minutes', '1'], ['continue', f.root, '--add-cny', '1', '--add-minutes', '1'], ['resume', f.root, '--window', 'extra']]) {
-    await assert.rejects(runCli(args, f.io(['confirm anything\n'])), /preparation|准备模式/i);
+    await assert.rejects(runCli(args, f.io(['confirm anything\n'])), /preparation|准备|原运行|窗口/i);
     assert.equal(f.prepared(), prepared); assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), original);
   }
 });
