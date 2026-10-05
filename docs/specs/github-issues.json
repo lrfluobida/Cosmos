@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 63
+    "childCount": 64
   },
   "tasks": [
     {
@@ -4571,8 +4571,63 @@
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE",
       "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-64",
+      "title": "接通分批素材生成与完整媒体验收",
+      "number": 65,
+      "id": 5716018899,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/65",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-09",
+          "number": 10,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/10"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-63",
+          "number": 64,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/64"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-09",
+          "number": 10,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/10"
+        },
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-implementation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "ea9e4234e7097be93bc05c69b6ac0222ba790b39",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 63,
+  "verifiedNativeSubIssues": 64,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

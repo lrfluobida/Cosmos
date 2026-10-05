@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 63 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 64 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -109,6 +109,7 @@
 - [ ] [COS-61 接通准备模式首个显式编码追加窗口](https://github.com/lrfluobida/Cosmos/issues/62)
 - [x] [COS-62 验证准备模式追加后的生产交付与试玩](https://github.com/lrfluobida/Cosmos/issues/63)
 - [x] [COS-63 保留已完成运行的报告与试玩决定](https://github.com/lrfluobida/Cosmos/issues/64)
+- [ ] [COS-64 接通分批素材生成与完整媒体验收](https://github.com/lrfluobida/Cosmos/issues/65)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -885,6 +886,30 @@ reportedAt只表示自动报告时间，用户decidedAt与等待单列；报告�
 
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
 稳定任务 ID：COS-63
+
+### COS-64 · 接通分批素材生成与完整媒体验收
+
+- 发布状态：[#65](https://github.com/lrfluobida/Cosmos/issues/65)，id5716018899；Root正文/native64children #2–#65/旧63保真与父新增unchecked项POST+GET精确读回。in-progress/open/SOURCE_NOT_READY；cos64_implementer从70e2在cos04的`codex/cos64-batched-media`实施，专属cos64_reviewer已PLAN_APPROVED短计划`ea9e4234e7097be93bc05c69b6ac0222ba790b39`，当前TDD；无最终源码审批或实际运行。
+- 源码前置：COS09/18/63已审生产源码与原runner/renderer；outputs COS09/COS15/COS18。不要求完整classic先closed。
+
+## 目标与有界链路
+
+保留一个art task、作者session和独立review。design允许1..128角色、0..64音频及每角色原1..16状态；`batched-media/1`含1..8非空批次，每批仅characters/audio且各≤16，总量仍受128/64约束。作者通过普通文件编辑逐批追加同一media.json；先核全体exact唯一roster/state/loop，再渲染单一完整manifest/capture并保留原envelope，coding输入与candidate staging消费所有批次。旧单批形态仍≤16/16。
+
+大媒体定义无法纳入原200步时，通过现runAcceptance.mediaObservations取得同文档只读样本，原normal plan/步骤/玩法断言保持。窄`readonly-media/generic-1`绑定真实candidate/media引用、manifest SHA与实际完整normal-plan SHA；不伪造transfer sourceVersion/persistent scope。原default592字段和transfer格式保留，显式generic取样≤4544；单只读getter、纯数据属性/标量/安全路径保持。就绪只读poll≤1500ms且受原执行/清理deadline约束，缺state、未加载frame、未启动/解码声音及错binding均失败。
+
+## 必要免费验收
+
+1. >16角色/>16clips的批次经实际production host capture/registry/coding input/staging，唯一manifest含全部批次及末批文件，独审/recovery能读原完整数据。
+2. 重复/遗漏/额外ID、错state/loop、9批或每批/总量溢出拒绝，无部分完整产物；旧单批小名册兼容。
+3. >200附加字段/>592取样规模仍保留normal plan，实际IO/worker接完整绑定；4544允许/4545拒绝，错candidate/plan与缺媒体/状态/就绪/音频不能形成完整coverage。
+4. 一项必要真实浏览器fixture核大字段、异步就绪、只读属性及实际runner；旧transfer与小名册仅受影响回归，复用未改110秒生成/Edge矩阵。
+5. 仅source/免费fixture；专属implementer/reviewer审实际diff、准确SHA/原始输出，唯一batch08_merger集成。DAG、ledger/request budget、repair/review与原G4保持。
+
+actualValidation/Paid/Human/新窗口NONE；classic名册未冻结，128/64为平台容量，不证明完整游戏或95%。不手写目标游戏、不复制参考资产，无paid。C6 unknown974882/14stopped/65closed/11audits与closure12/真实C7 NONE保持；共享¥150/首¥30/COS16原¥10、正式¥200/12h/目标¥100/6h不变。
+
+父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
+稳定任务 ID：COS-64
 
 ## 5. 任务与上下文包模板
 
