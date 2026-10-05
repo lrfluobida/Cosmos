@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 67 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 68 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -113,6 +113,7 @@
 - [x] [COS-65 接通独立游戏交付与干净目录启动](https://github.com/lrfluobida/Cosmos/issues/66)
 - [x] [COS-66 接通通用游戏的存档重开与跨阶段媒体验收](https://github.com/lrfluobida/Cosmos/issues/67)
 - [ ] [COS-67 执行经典启动与离线政策并保留完整验收分母](https://github.com/lrfluobida/Cosmos/issues/68)
+- [ ] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1016,6 +1017,46 @@ catalog 当前230行：221 needs_reference、9 requirement_defined。9政策中�
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
 稳定任务 ID：COS-67
 
+
+### COS-68 · 记录完整交付清理终点与单次生成时长
+
+- 发布状态：[#69](https://github.com/lrfluobida/Cosmos/issues/69)，id5718488743；正文/native68children #2–#69/旧67保真与父新unchecked项已Root精确读回。in-progress/open/SOURCE_NOT_READY；专属作者actual cos65_implementer在cos05提交短计划`e9d4a34916385fb3f2fb84ab7cc3af207a204a00`已获独立PLAN_APPROVED，专属独立reviewer actual cos67_implementer、BATCH10唯一merger actual cos66_implementer未写本任务代码。
+
+## 目标
+
+补全正式生成的交付计时边界：记录打包、干净目录检查、自动报告和实际清理全部完成后的时间，绑定同一次运行/窗口/交付版本。保留原自动报告与用户试玩决定，不能把 report.reportedAt 当成生成结束时间。
+
+## 已确认缺口
+
+src/runtime/entrypoint.ts 的初始路径和显式追加路径都先 publishGenerationReport，再在 finally 关闭 warnings/control/preparation/controller；初始 controller.close 仅等待持久化与释放 store，未提供完整 owned-work drain 收敛证明。续跑 closeAfterDrain 已有 owned work、accounting、registry writer、snapshot/nonce anchor、owner close 和只读 window-idle 证据可复用。experience.ts 的 reportedAt 和 elapsedSinceAutomaticReportMs 只表示报告时间及其后等待，不能证明 spec 的完整 ¥200/12h 成绩。
+
+## 范围
+
+1. 在两个实际生产 entrypoint 调用路径接入完整清理收敛：原 host 工作、持久化/会计操作、控制服务、警告订阅、准备资源和子进程均按原 authority/deadline 结束，运行 owner 实际释放。某一项清理抛错仍尝试收敛其他已启动资源，失败证据保留。
+2. 清理完成后发布独立、只写一次的 completion/timing sidecar。短计划明确现有 receipt/owner/window-idle 机制的复用；绑定实际 runId/ledgerId/windowId、原开始与截止、精确自动报告引用/字节、接受候选和任务证明、关闭时的固定 snapshot/lifecycle。
+3. 清理终点采用实际完成时间，给出包含自动报告、打包、干净启动和清理的 elapsed；原始正式单次成绩和追加窗口成绩分开。追加窗口不能重置原正式 12h 成绩。最终用户试玩等待另记，旧 reportedAt/elapsedSinceAutomaticReportMs 语义保持。
+4. 如自动报告尚未产生或清理/owner/在途工作缺乏可信完成证据，输出明确失败/未确认状态，不能填入通过时间。迟于原截止的实际收敛须保留 late/未达标事实；未核清费用保持独立 unknown 状态，不能借时间记录清账或声明整体达标。
+5. 原自动报告 UUID/hash、候选封存字节、历史用户决定不得回写。新 receipt 必须在读时核对当前 report/window/candidate/snapshot，另一运行、新窗口、来源漂移、活 child、丢失/篡改/错绑定 sidecar 不能挪用通过证明。
+6. 已完成运行的公开/直接 resume 只读复用同一结束证据，不能再次启动 host、重新计费或以 resume 当前时间覆盖原终点。旧报告没有 timing sidecar 时明确 timing unverified，保留原自动结论/历史用户决定和原只读兼容语义，不制造过去的结束时间。
+7. 状态/CLI和新交付结果能显示实际计时范围、未确认/迟到和最终试玩等待；计时不足仍不代表完整经典通过。失败时保留当前可用交付和差距。
+8. 使用已有 owner、OwnedWork、receipt publication、snapshot和只读完成分支，不引入新的执行器、账本、监控后台或通用哈希框架。不修改 game source 或 reference catalog。
+
+## 免费验收
+
+- 实际初始/追加 entrypoint 的 fixture，延迟原清理直至完成：sidecar 不提前发布；最后 release/drain 完成后再产生，duration 明确含该延迟。
+- 缺报告、某项清理抛错、活 child/未收敛、超原截止、未决费用、report/candidate/window/snapshot/sidecar 篡改与新窗口竞态不能给出完整达标证明，保留原失败/费用。
+- 新 completed resume 重用精确 sidecar/report/用户决定、文件列表/bytes/mtime和 SDK/host calls 不变；旧 completed resume 继续原只读语义、timing unverified。
+- 模拟时钟/延迟、真实 Node 子进程退出与模型生成/真实12h成绩分列。不运行新付费案例或重复旧 Edge/110秒/30分钟矩阵；只针对改变的 lifecycle/report 边界验证。
+- 每任务独立 implementer/reviewer，先短计划实际独审 PLAN_APPROVED，再 TDD；实际 diff 先规格后质量，记录 exact SHA/stdout/已知差距，由本批 sole merger 集成。UTF-8、中文、最小 patch/readback规则适用。
+
+## 前置与边界
+
+源码前置 COS18 现有 entrypoint/report、COS34 体验绑定、COS63 完成后只读 resume、COS65 clean delivery 与现有 owner/window-idle；仅要求相应已审源码，不要求完整 partial 任务 closed。输出支持 COS15/COS18 的正式交付时限，COS67 的启动/离线政策独立继续。
+
+共享验证 ¥150（首阶段 ¥30/COS16 原 ¥10）、正式 ¥200/12h、优化目标 ¥100/6h保持。本卡 source/free fixture，实际 C6 unknown974882、closure12/C7、human NONE与完整参考未冻结保留；不新增 paid，不把计时组件通过写成完整经典100%/95%或整体验收通过。
+
+父任务：https://github.com/lrfluobida/Cosmos/issues/1
+稳定任务 ID：COS-68
 
 ## 5. 任务与上下文包模板
 

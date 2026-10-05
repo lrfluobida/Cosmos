@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 67
+    "childCount": 68
   },
   "tasks": [
     {
@@ -4977,8 +4977,68 @@
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE",
       "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-68",
+      "title": "记录完整交付清理终点与单次生成时长",
+      "number": 69,
+      "id": 5718488743,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/69",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-34",
+          "number": 35,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/35"
+        },
+        {
+          "id": "COS-63",
+          "number": 64,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/64"
+        },
+        {
+          "id": "COS-65",
+          "number": 66,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/66"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "plan-approved",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "e9d4a34916385fb3f2fb84ab7cc3af207a204a00",
+      "implementer": "cos65_implementer (dedicated COS68 implementer)",
+      "reviewer": "cos67_implementer (dedicated COS68 independent reviewer)",
+      "batch": "10",
+      "merger": "cos66_implementer (dedicated BATCH10 sole merger)",
+      "acceptanceScope": "source-free-fixture-completion-timing",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 67,
+  "verifiedNativeSubIssues": 68,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
