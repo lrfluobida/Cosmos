@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 59
+    "childCount": 60
   },
   "tasks": [
     {
@@ -4151,11 +4151,70 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
+      "integrationStatus": "offline-verified-awaiting-live",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "CODING_REQUEST_TIMEOUT_SOURCE_READY",
+      "reviewedCommit": "b912f0e1751ea49e3749a487dd97759efbea43e4",
+      "mergeCommit": "4139a822d87c9ed8f819d22bd051148c45da45a0",
+      "readyCommentUrl": "https://github.com/lrfluobida/Cosmos/issues/60#issuecomment-5988885202",
+      "validationEvidence": {
+        "scope": "source-and-temp-only",
+        "transport": "synthetic-sdk",
+        "affectedSourcePaths": 7,
+        "authorSourceTests": 28,
+        "authorCompiledTests": 1,
+        "independentAuthorityProbes": 5,
+        "mergeRepresentative": {
+          "passed": 1,
+          "skipped": 0,
+          "durationMs": 65.526
+        },
+        "unaffectedEvidenceReused": true,
+        "actualProviderTraffic": "NONE",
+        "humanExperience": "NONE"
+      }
+    },
+    {
+      "taskId": "COS-60",
+      "title": "准备带编码时限的第七迁移案例与已核实余额准入",
+      "number": 61,
+      "id": 5707067158,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/61",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-56",
+          "number": 57,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/57"
+        },
+        {
+          "id": "COS-57",
+          "number": 58,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/58"
+        },
+        {
+          "id": "COS-59",
+          "number": 60,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/60"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-16",
+          "number": 17,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/17"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
       "integrationStatus": "in-progress",
-      "implementationPhase": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "implementationPhase": "plan-in-progress",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 59,
+  "verifiedNativeSubIssues": 60,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
