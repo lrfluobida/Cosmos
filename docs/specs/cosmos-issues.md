@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 64 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 65 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -109,7 +109,8 @@
 - [ ] [COS-61 接通准备模式首个显式编码追加窗口](https://github.com/lrfluobida/Cosmos/issues/62)
 - [x] [COS-62 验证准备模式追加后的生产交付与试玩](https://github.com/lrfluobida/Cosmos/issues/63)
 - [x] [COS-63 保留已完成运行的报告与试玩决定](https://github.com/lrfluobida/Cosmos/issues/64)
-- [ ] [COS-64 接通分批素材生成与完整媒体验收](https://github.com/lrfluobida/Cosmos/issues/65)
+- [x] [COS-64 接通分批素材生成与完整媒体验收](https://github.com/lrfluobida/Cosmos/issues/65)
+- [ ] [COS-65 接通独立游戏交付与干净目录启动](https://github.com/lrfluobida/Cosmos/issues/66)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -889,7 +890,7 @@ reportedAt只表示自动报告时间，用户decidedAt与等待单列；报告�
 
 ### COS-64 · 接通分批素材生成与完整媒体验收
 
-- 发布状态：[#65](https://github.com/lrfluobida/Cosmos/issues/65)，id5716018899；Root正文/native64children #2–#65/旧63保真与父新增unchecked项POST+GET精确读回。in-progress/open/SOURCE_NOT_READY；cos64_implementer从70e2在cos04的`codex/cos64-batched-media`实施，专属cos64_reviewer已PLAN_APPROVED短计划`ea9e4234e7097be93bc05c69b6ac0222ba790b39`，当前TDD；无最终源码审批或实际运行。
+- 发布状态：[#65](https://github.com/lrfluobida/Cosmos/issues/65)，id5716018899；当前native65children #2–#66。最终`076c1107866cec3cb4c00d069efb387ea15ea721`经cos64_reviewer整体APPROVED/BATCHED_MEDIA_SOURCE_READY，唯一batch08_merger合入推送`12899e5ad78db5302a1f9823ea0f67d0e4a7300d`；[公共审批](https://github.com/lrfluobida/Cosmos/issues/65#issuecomment-6000232941)、body/state completed/closed/父checkbox[x]已Root精确读回。本卡source/TEMP范围complete/closed/source-integrated；注册时SOURCE_NOT_READY为历史，真实游戏/human/paid/full12h未通过。
 - 源码前置：COS09/18/63已审生产源码与原runner/renderer；outputs COS09/COS15/COS18。不要求完整classic先closed。
 
 ## 目标与有界链路
@@ -908,8 +909,36 @@ reportedAt只表示自动报告时间，用户decidedAt与等待单列；报告�
 
 actualValidation/Paid/Human/新窗口NONE；classic名册未冻结，128/64为平台容量，不证明完整游戏或95%。不手写目标游戏、不复制参考资产，无paid。C6 unknown974882/14stopped/65closed/11audits与closure12/真实C7 NONE保持；共享¥150/首¥30/COS16原¥10、正式¥200/12h/目标¥100/6h不变。
 
+独审实际11paths（4src/5tests/2docs），source/tests固定`459b5baa2083bdadd32e1a815990951140d2dd55`、原PLAN_APPROVED ea9e保持。actual host/IO.play/Edge629字段1/1（19422.2759ms）、max4544 Edge6/6（8388.8572ms）、unit-host20/20、affected-media13/13、独审4/4（437ms）及merger2/2（401.521ms）通过；host使用synthetic build，native worker转发另为源码检查。typecheck dd7225 exit0/empty stdout（7.0899955s），没有Tee文件，原错误文件指针已更正；[证据索引](../plans/2026-10-06-cos64-batched-media.md)保留。
+
+兼容性边界：旧组11pass3fail、0skip（231893.9372ms）；只有art-tamper在70e2 baseline复现同失败（11757.467ms），另两项同边界未分别baseline。不称全绿、不改该旧guard；本卡scoped完成不关闭原classic/full12h/human或COS18/17/01缺口。
+
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
 稳定任务 ID：COS-64
+
+### COS-65 · 接通独立游戏交付与干净目录启动
+
+- 发布状态：[#66](https://github.com/lrfluobida/Cosmos/issues/66)，id5716669042；Root正文/native65children #2–#66/旧64保真与父新增unchecked项已精确读回。in-progress/open/SOURCE_NOT_READY；cos65_implementer在cos05的`codex/cos65-standalone-delivery`基于已审12899进入TDD，cos65_reviewer已PLAN_APPROVED短计划`17f125f3501be27c22911d95123a5a2357b0a4e8`；无最终源码批准或实际运行。
+- 源码前置：COS64已审集成及COS09/08/18/63原registry/renderer/runner/owner/完成恢复；outputs COS17/COS15/COS18。
+
+## 独立交付范围
+
+在原coding.verify的build后、acceptance/独审/全目录snapshot前，为未来候选生成source-owned Node-only静态launcher、中文README、源码/dist/候选版本及真实capture和锁定依赖license清单。缺许可资料不编造；包可复制到中文空格目录，仅用已有Node和桌面browser启动，无Cosmos/npm ci/Vite/APIkey。旧sealed/accepted不回写，finish不授passed task新child。
+
+同controller/owner/task authority/deadline与清理余量复制同字节包到clean TEMP，实际launcher加原正常输入/Source64 mediaObservations验证资源与版本，review读取包装及启动证据；既有registry whole snapshot/journal/promote保护所有包装字节，不新造hash/runner/ledger。transfer保留同origin/profile/candidate/source guards，代理必须真实服务已核字节的clean包；它不能替代portable启动证明。接受后自动报告仍是现immutable sidecar，不塞回sealed project或预写批准。
+
+## 必要免费验收
+
+1. production capture→build→包装→clean中文空格TEMP Node launcher→真实browser正常输入/媒体观测→独审→exact promotion，脱离repo/node_modules且源码/dist/版本/来源相符。
+2. 缺dist/入口/asset、错path/端口占用/copy bytes/包装变更、启动或必要资源加载失败均拒；不是只认文件或HTTP200。
+3. stop/deadline收敛server/browser/helper，原包bytes保持；review/journal/promotion绑定包装字节，不在finish后延时执行。
+4. 默认normal及64 mediaRequest保持；轻transfer fixture核实际clean代理与原绑定，复用Source63体验与旧Edge/110秒组合，fixture不计真实完整游戏。
+5. 专属implementer/reviewer按实际diff规格/质量审查、准确SHA/原输出，仅batch08_merger集成。
+
+actualValidation/Paid/Human/新窗口NONE，SOURCE_NOT_READY；不手写目标游戏、不复制参考资产。C6 unknown974882/14stopped/65closed/11audits、closure12/真实C7 NONE、classic未frozen/fullcleanup计时与原预算保持。本卡无paid，不声明95%或完整12h成绩。
+
+父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
+稳定任务 ID：COS-65
 
 ## 5. 任务与上下文包模板
 
