@@ -1,47 +1,45 @@
-# COS62 编码追加主机与最终试玩接线计划
+# COS62 准备模式追加后的生产交付与试玩验证计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement the following bounded steps. Each implementation commit receives an independent review; only batch08_merger integrates into main.
 
-**Goal:** 让首个 human preparation 编码追加窗口通过生产主机，并把原 design/art 与新 coding 的完整交付证明送到现有最终试玩入口。
+**Goal:** 用真实生产主机与公开 CLI 验证首个 human preparation 编码追加的完整交付证明和最终试玩入口。
 
-**Architecture:** 在 browser core host 内按已经认证的 HumanContinuationScope.lineage 读取同一 snapshot 的两个 passed 阶段，仅供职责校验和交付证明使用。当前计划、调度、grant、工具和角色仍只包含新 coding；finish 返回内部交付任务集，entrypoint 显式转成现有 effectiveTasks，不把内部字段写入公开报告。experience 沿用现有只读版本核验，不重新建立活动执行权限。
+**Architecture:** 现有 continuation plan 保留原 design/art 的两个 prepared contract，与唯一新 coding 一起进入生产主机；仅新 coding 获得当前 grant，旧阶段由恢复路径复用。现有 entrypoint 因此已经输出完整的三个 effectiveTasks，experience 沿用只读版本核验。本任务新增组合回归，不修改生产源码或内部交付接口。
 
 **Tech Stack:** TypeScript、Node 22、node:test、现有 createProductHost / transfer consumer / ArtifactRegistry。
 
 任务卡：[#63](https://github.com/lrfluobida/Cosmos/issues/63)。基线 main `415dfb57bb04042ebc02128fa3c43fffdf055e5f`。Source61 原两阶段来源、当前 scope、双 audit plan、candidate consumer 和 source/compiled 证据复用。
 
-## 1. 复现生产主机和报告缺口
+## 1. 核实生产主机和报告
 
 **Files:** 新增 `tests/transfer/human-continuation-delivery.test.ts`；按需要最小扩展 `tests/transfer/human-continuation.fixture.ts`。
 
-- [ ] 用现有 TEMP preparation fixture 得到原 design/art passed 与原 coding failed。
-- [ ] 通过 `createProductHost` 的实际 execute 接线及公开 `runCli continue`，使用 fixture stdin 确认第一窗口；只在模型、构建和浏览器 I/O 边界注入 synthetic transport，不能替换 core host、validateTasks、finish 或候选认证。
-- [ ] 运行 `node --experimental-strip-types --test tests/transfer/human-continuation-delivery.test.ts`，保留实际 RED：单 coding 的生产职责校验拒绝；最终报告缺少原设计/媒体验收证明。若第一拒绝阻断第二，用已接受候选的既有 COS34 fixture 单独复现报告 scope 缺口，禁止缩小原 acceptance。
+- [x] 用现有 TEMP preparation fixture 得到原 design/art passed 与原 coding failed。
+- [x] 通过 `createProductHost` 的实际 execute 接线及公开 `runCli continue`，使用 fixture stdin 确认第一窗口；只在模型、构建和浏览器 I/O 边界注入 synthetic transport，没有替换 core host、validateTasks、finish 或候选认证。
+- [x] 首轮断言计划只有 coding 失败，但生产结果已经是 awaiting_user_experience。实际计划是三个 prepared tasks、一个新 coding grant；原缺口探针只向 core 注入一个 task，不能代表公开入口。纠正测试预期后组合通过，保留首轮失败作为错误假设记录，不记为产品缺陷。
 
-## 2. 最小主机接线
+## 2. 现有主机接线核对
 
-**Files:** 修改 `src/runtime/entrypoint-host.ts`。
+**Files:** 只读 `src/runtime/continuation-plan.ts`、`src/runtime/entrypoint-host.ts`。
 
-- [ ] 为 human continuation 解析 lineage.design/art 的原 taskId，在同一 snapshot 取 passed/independently approved 任务；由既有 requireCurrent 核验封存来源。
-- [ ] validateTasks 使用这两个只读阶段检查设计、媒体、玩法职责及 coding 的依赖；当前 binding 仍严格为一个新 coding，不把旧阶段放入 boundTask 或派发路径。
-- [ ] finish 再读取并核对当前 snapshot 的两个旧阶段，与新 coding 一起检查完整交付状态；原候选、journal signature、独立 review 和 promotion 检查继续执行。
-- [ ] 新增定向负例：改变旧阶段 task proof 时拒绝，不产生新角色调用或候选接受。
+- [x] 无 grant 的原已通过设计/美术 prepared contract 在 derive 中保留；唯一 coding clone 重映射当前身份。现有职责校验与准备上下文收到三个角色。
+- [x] 真实生成结果与报告具有原 design/art 加当前 coding 的完整证明；原角色任务结果、停止记录和截止不变，只有 coding/reviewer 新增 synthetic 请求。
+- [x] 保持原候选、journal signature、独立 review 和 promotion 路径；没有新增 deliveryTasks 或身份读取框架。
 
 ## 3. 完整报告与公开体验入口
 
-**Files:** 修改 `src/runtime/entrypoint.ts`；测试仍在 `tests/transfer/human-continuation-delivery.test.ts`，必要时复用 `tests/cli/experience.test.ts` 的版本绑定断言。
+**Files:** 新增 `tests/transfer/human-continuation-delivery.test.ts`；只读 `src/runtime/entrypoint.ts`、`src/runtime/experience.ts`，复用 COS34 的相反决定和版本绑定证据。
 
-- [ ] `GenerationHost.finish` 允许内部返回 `deliveryTasks?: TaskContract[]`；continuation 将其转成 `deliveryTaskProofs`，公开 outcome 只展开 delivery/gaps/acceptedCandidate 等现有结果字段。
-- [ ] 报告列出原 design/art 和当前 coding，覆盖原全部 acceptance；current window、candidate、attempt、review 和原 requirement 保持。
-- [ ] 同一生产生成报告通过真实 `runCli experience` 和 synthetic stdin 分别 approve/reject；status 显示对应体验状态。cancel/EOF 不产生决定。
-- [ ] 证明 experience 等待期间账本、原时钟、window/grants、旧阶段文件不变；变更 task proof 或报告后现有入口仍拒绝，不能为试玩重开活动 execution。
+- [x] 报告列出原 design/art 和当前 coding，完整 acceptance 等于原 requirement；内部 task contract 不额外散入报告。
+- [x] 真实 `runCli experience` 加 synthetic stdin 的 cancel/EOF 不产生决定，approve 后 status 显示 approved。
+- [x] 等待 stdin 时更改原 art review proof 会拒绝提交；恢复原快照后认可成功。全过程快照字节、费用/时钟/window/grants、原四份来源文件字节和 mtime、模型调用列表不变。
+- [x] 相反决定、reject 状态及 candidate/report 版本矩阵复用 COS34 原通过证据；本次没有修改对应生产代码，不重复长生成组合。
 
 ## 4. 定向验证与交付
 
-- [ ] 重跑新用例，要求 GREEN、0 模型实费，记录 transport 层和真实执行层。
-- [ ] 运行现有 `tests/cli/experience.test.ts` 和必要默认 continuation 兼容用例；不重复 Source61 长矩阵。
-- [ ] `npm run typecheck`、`npm run build`、`git diff --check`；按实际源码/compiled 接线差异选一个有界 compiled CLI 代表用例。
-- [ ] 检查 UTF-8 / 原 LF 并重新读取中文；提交准确 SHA、实际 stdout/exit、已知限制，等待独立规格和质量审查。
+- [x] 新组合 1/1 PASS、0 skip、0 模型实费；test 106812.2946ms、process 109884.2448ms、exit 0。首轮错误预期的 exit 1 独立保留。
+- [x] 所有生产源码、依赖、环境和契约未改，复用 Source61 source/compiled 与 COS34 已过证据；不重跑 typecheck/build 或旧长矩阵。
+- [ ] `git diff --check`、UTF-8/LF/中文读回；提交准确 SHA、实际 stdout/exit、已知限制，等待独立规格和质量审查。来源见 [验证记录](../reviews/2026-10-05-cos62-production-delivery-evidence.md)。
 
 ## 保持的边界
 
