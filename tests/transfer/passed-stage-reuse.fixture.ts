@@ -17,6 +17,7 @@ import type { ValidationRequirement } from '../../src/roles/execution-input.ts';
 import type { ValidationCaseWindow } from '../../src/runtime/validation-types.ts';
 import type { RecoveryOptions } from '../../src/runtime/recovery/task-journal.ts';
 import type { ArtifactRegistry } from '../../src/artifacts/index.ts';
+import type { HistoricalPassedManifest } from '../../src/runtime/historical-passed-stages.ts';
 
 /** All source, receipts, captures and ledgers live in this synthetic TEMP fixture. */
 export async function passedStageFixture(t: TestContext, templateRoot?: string) {
@@ -53,7 +54,7 @@ export async function passedStageFixture(t: TestContext, templateRoot?: string) 
 export async function buildPassedStageManifest(input: { root: string; requirement: ValidationRequirement; window: ValidationCaseWindow;
   availableArtifacts: ArtifactReference[]; result: TaskContract[]; recovery: RecoveryOptions; registry: ArtifactRegistry }) {
   const { root, requirement, window, availableArtifacts, result, recovery, registry } = input;
-  const captures = [];
+  const captures: HistoricalPassedManifest['captures'] = [];
   for (const ref of [...availableArtifacts, ...result.flatMap(task => task.artifacts)].filter(ref => ref.location.startsWith('registry/captures/'))) {
     if (captures.some(item => item.ref.artifactId === ref.artifactId)) continue;
     const capture = await registry.getCapture(ref), path = ref.location.slice(0, -'/files'.length) + '/capture.json';
