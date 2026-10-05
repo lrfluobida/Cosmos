@@ -3911,9 +3911,35 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "implementationPhase": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "TRANSFER_CASE_SIX_SOURCE_READY",
+      "reviewedCommit": "d7d7e8a4cabe039b99ce41e4d53717e72bde7383",
+      "mergeCommit": "9ffd5e2f1c3d81ff80e2d8e8874293e320d359a3",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/58#issuecomment-5987110904",
+      "validationEvidence": {
+        "scope": "source-and-temp-only",
+        "transport": "synthetic-sdk-build-browser",
+        "composite": {
+          "passed": 1,
+          "failed": 0,
+          "processDurationMs": 1972988.1267,
+          "currentCaseElapsedMs": 1333365,
+          "originalDeadlineRemainingMs": 1366635,
+          "oldSetupElapsedMs": 638095
+        },
+        "independentRawSignatureFiles": 164,
+        "strictClosureExitCode": 0,
+        "focusedTestsPassed": 10,
+        "mergeRepresentative": {
+          "passed": 1,
+          "skipped": 0,
+          "durationMs": 3.1878
+        },
+        "unaffectedEvidenceReused": true,
+        "actualCaseSix": "not-claimed",
+        "humanExperience": "NONE"
+      }
     },
     {
       "taskId": "COS-58",
@@ -3973,9 +3999,12 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "not-started",
-      "implementationPhase": "not-started",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "in-progress",
+      "implementationPhase": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "78ce36555c2203461365bb9804e9c2922a8518d1",
+      "planMergeCommit": "2faa578228ccad01e6cf2813fbf5091b4ca1afe6"
     }
   ],
   "verifiedNativeSubIssues": 58,
