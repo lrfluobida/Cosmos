@@ -66,6 +66,12 @@
 
 当前工具没有执行原生游戏的 UI 观察，本批没有可运行性证据。后续具备该能力时继续核对；平台契约、通用工程、pi 接入等独立任务可以并行推进。
 
+### 2026-10-06 Windows 窗口观察尝试
+
+本节为后续记录，不改变上述 2026-10-01 调查结果。本次按 computer-use 技能使用 `@oai/sky`：初始没有参考窗口，启动已安装 EXE 后返回窗口 id68104、标题 `Plants vs. Zombies GOTY`。首次截图返回 `FrameArrived timed out: timed out waiting on channel`；重新选择并激活同一返回窗口后，仅重试一次，仍为 `window capture timed out: timed out waiting on channel`。
+
+文本接口只返回标题栏、系统菜单和最小化/关闭等窗口控件，没有游戏菜单、图鉴或玩法文本。不能据此确认加载完成或任何内容、规则、数值；没有游戏内输入、参考资产提取或目录更新。关闭按钮调用因 `coordinate input geometry is unavailable` 未生效，重新观察后以标准 Alt+F4 退出；两秒后窗口列表为空。未使用自定义截图或控制协议。参考内容仍 provisional，230 行/221 待核实及冻结前置保持；相同条件下不重复捕获。
+
 ## 校验与冻结
 
 在仓库根目录运行，无需安装依赖或调用付费服务：
