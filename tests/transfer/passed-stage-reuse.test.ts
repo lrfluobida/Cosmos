@@ -209,3 +209,34 @@ test('changed authorized current input is refused before importing old captures'
   await assert.rejects(runtime.createTransferReusedConsumerHost({ ...current.input, historicalStages }), /accepted historical input|requirements/i);
   assert.deepEqual(await readdir(f.targetRoot), before); assert.deepEqual(await current.controller.read(), snapshot);
 });
+
+test('current inherited coding capture rejects changed kind and exact author/session provenance', async t => {
+  const a = await api(), runtime = await import('../../src/runtime/adapters/transfer/runtime-host.ts');
+  const f = await passedStageFixture(t), current = await successorFixture(t, f), historicalStages = a.createHistoricalPassedStages(f.input);
+  let host = await runtime.createTransferReusedConsumerHost({ ...current.input, historicalStages }); f.onCleanup(() => host.closePreparation());
+  const prepared = codingTask(f, current, host); await host.bindPreparedTasks([prepared]);
+  const result = await executeTaskDag({ controller: current.controller, requirement: current.requirement, validation: current.validation,
+    historicalDependencies: historicalStages, tasks: [prepared], sessionRoot: join(f.targetRoot, 'sessions'), availableArtifacts: host.availableArtifacts,
+    roleFactory: host.roleFactory, preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages,
+    recovery: { artifactRoot: f.targetRoot, journalRoot: join(f.targetRoot, 'journal'), recoverCapture: host.recoverCapture },
+    reviewProtocolCorrections: 1, authorProtocolCorrections: 1 });
+  assert.equal(result[0].state, 'failed'); assert.equal(result[0].artifacts.length, 1);
+  const candidate = result[0].artifacts[0], sourcePath = join(f.targetRoot, `registry/captures/${current.window.caseId}-game-source/v1/capture.json`);
+  const original = await readFile(sourcePath), capture = JSON.parse(original.toString('utf8'));
+  const snapshot = await current.controller.read(), calls = f.calls.length;
+  await host.bindPreparedCandidate(candidate); // Correct current source metadata remains usable.
+  for (const [index, change] of [
+    (value: any) => { value.metadata.kind = 'data'; },
+    (value: any) => { value.metadata.provenance.generator = 'Foreign author'; },
+    (value: any) => { value.metadata.provenance.sourceRefs[0] = 'foreign-session'; },
+  ].entries()) {
+    if (index) {
+      host = await runtime.createTransferReusedConsumerHost({ ...current.input, historicalStages, resume: true });
+      await host.bindPreparedTasks([prepared]); await host.bindPreparedCandidate(candidate);
+    }
+    const changed = structuredClone(capture); change(changed); await writeFile(sourcePath, JSON.stringify(changed, null, 2) + '\n', 'utf8');
+    try { await assert.rejects(host.bindPreparedCandidate(candidate), /provenance|metadata/i); }
+    finally { await writeFile(sourcePath, original); await host.closePreparation(); }
+  }
+  assert.deepEqual(await current.controller.read(), snapshot); assert.equal(f.calls.length, calls);
+});

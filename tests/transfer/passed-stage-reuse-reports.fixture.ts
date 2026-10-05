@@ -55,4 +55,3 @@ export async function syntheticReports(series: PersistentAcceptanceSeries, optio
   await writeFile(join(options.evidenceRoot, result.reportPath), JSON.stringify(result), 'utf8');
   await rm(profileRoot, { recursive: true, force: true }); return result;
 }
-

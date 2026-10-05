@@ -109,7 +109,10 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
           const candidate = await ctx.registry.getCandidate(ref), source = await ctx.registry.getCapture(ctx.registry.artifactRef(ctx.name('game-source'), version));
           const inputs = [ctx.inherited.verified.template, ctx.inherited.verified.requirementCapture, ctx.requirementCapture, ctx.primaryDesign, ctx.primaryMedia, transfer, planRefs[version]];
           requireThat(candidate.taskId === coding.taskId && candidate.authorId === coding.authorId && candidate.contextId === coding.context.contextId
-            && source.taskId === coding.taskId && isDeepStrictEqual(source.dependencies, inputs) && isDeepStrictEqual(candidate.inputs, [...inputs, source.artifactRef])
+            && source.taskId === coding.taskId && source.metadata.kind === 'code'
+            && isDeepStrictEqual(source.metadata.provenance, { kind: 'original-procedural', generator: 'Native coding role output',
+              sourceRefs: [coding.attempts.at(-1)!.sessionRef, ...ctx.requirement.sources.map(ref => ref.location)] })
+            && isDeepStrictEqual(source.dependencies, inputs) && isDeepStrictEqual(candidate.inputs, [...inputs, source.artifactRef])
             && isDeepStrictEqual(candidate.expectedDeps, candidate.inputs) && isDeepStrictEqual(candidate.mediaRequirements,
               [{ artifactRef: ctx.primaryMedia, media: (await ctx.registry.getCapture(ctx.primaryMedia)).metadata.media }]), 'current inherited candidate dependency metadata changed');
           const fixed = captured.signature[0]; requireThat(fixed.location === ref.location && isDeepStrictEqual(candidate.files.map(file => file.destination).sort(), fixed.files.map(file => file.path).sort()), 'current inherited candidate inventory changed');

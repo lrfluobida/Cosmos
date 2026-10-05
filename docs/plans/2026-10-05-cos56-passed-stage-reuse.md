@@ -56,3 +56,10 @@ Scope is source/TEMP only. COS57 owns the fixed successor declaration, trusted a
 - Full old proof verification reads each fixed location once within a guard and re-reads it on the next guard; no proof cache spans guards. Synthetic initial coding plus cold recovery measured 60.697 seconds; inherited repair/promotion measured 170.813 seconds.
 
 Additional test files: `tests/transfer/passed-stage-reuse.integration.ts`, `tests/transfer/passed-stage-reuse-reports.fixture.ts`. Test-only `buildPassedStageManifest` is exported so COS57 can reuse the genuine TEMP receipt builder without relabeling origins or repeating verifier tests.
+
+## Independent review correction
+
+- P2: inherited current coding checks omitted the ordinary branch's exact source kind/provenance check. Registry lookup and candidate byte signatures do not cover `game-source/capture.json` metadata.
+- Added the same current `kind: code` and exact procedural generator/current attempt session/current requirement source locations check. Ordinary, historical and authority APIs remain unchanged.
+- Focused RED reproduced accepted `metadata.kind: data` with `Missing expected rejection` (1 failed, 50.029 seconds). GREEN: 1/1, 0 skipped, 72.569 seconds, covering wrong kind, foreign generator and foreign session, successful restored bindings, unchanged snapshot and unchanged SDK calls.
+- Removed the reports fixture's extra final blank line; the complete base-to-working diff passes whitespace checks. Prior repair/promotion, compiled and default regression evidence is reused.
