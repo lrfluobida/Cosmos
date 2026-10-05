@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -41,7 +41,7 @@ async function fixture(t: test.TestContext, failedRole: 'design' | 'coding' = 'c
   const ioCalls: any[] = [], roleCalls: string[] = [];
   const io = {
     async build(project: string, taskId: string, _signal: AbortSignal, authority?: any) {
-      ioCalls.push({ kind: 'build', taskId, authority }); await mkdir(join(project, 'dist')); await writeFile(join(project, 'dist/index.html'), '<p>Offline host fixture</p>', 'utf8');
+      ioCalls.push({ kind: 'build', taskId, authority }); await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), '<p>Offline host fixture</p>', 'utf8');
       return { passed: true, diagnostics: 'Offline fake build' };
     },
     async play(plan: any, _signal: AbortSignal, authority?: any) {

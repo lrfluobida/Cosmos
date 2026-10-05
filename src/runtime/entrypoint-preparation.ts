@@ -10,9 +10,10 @@ import type { RoleFactoryOptions } from '../roles/factory.ts';
 import type { HistoricalPassedStages, VerifiedHistoricalStages } from './historical-passed-stages.ts';
 import type { HumanPreparationScope } from './entrypoint-human-preparation.ts';
 import type { HumanContinuationScope } from './entrypoint-human-continuation.ts';
+import type { CleanDelivery } from './entrypoint-delivery.ts';
 
 export interface BrowserCandidateConsumerContext {
-  root: string; task: TaskContract; candidate: ArtifactReference; project: string;
+  root: string; task: TaskContract; candidate: ArtifactReference; project: string; cleanDelivery: CleanDelivery;
   mediaArtifact: ArtifactReference; media: MediaMetadata; manifestSha256: string; signal: AbortSignal; deadlineAt: number;
   requireCurrent(): Promise<void>;
   playPersistent(series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions): Promise<PersistentAcceptanceReport>;

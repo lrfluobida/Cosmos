@@ -150,7 +150,7 @@ export async function createHumanTransferContinuationHost(input: HumanContinuati
       await requireCurrent(); preparation.candidateExtraInputs(context.candidate);
       requireThat(context.task.taskId === human.preparation.taskId, 'consumer task differs from current authority');
       return consumeTransferCandidate(context, { input: { ...preparedInput('v1'), prepared: saved.plans.v1 }, sourceVersion: human.execution.sourceVersion,
-        mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, verifyBinding }) });
+        mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, cleanDelivery: context.cleanDelivery, verifyBinding }) });
     },
   };
   try { return await createHumanPreparedContinuationHost({ ...input, preparation }); }
@@ -418,7 +418,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
     requireThat(context.task.taskId === ctx.candidateTaskIds[version], 'consumer task differs from its pre-frozen candidate task');
     return consumeTransferCandidate(context, { input: { ...preparedInput(saved, version), prepared: saved.plans[version] },
       sourceVersion: ctx.human?.execution.sourceVersion ?? (ctx.requirement as ValidationRequirement).validation.reviewedPlatformSha,
-      mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, verifyBinding }) });
+      mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, cleanDelivery: context.cleanDelivery, verifyBinding }) });
   };
   if (consumer) preparation.candidateBuildDiagnostic = diagnoseTransferBuild;
   try {

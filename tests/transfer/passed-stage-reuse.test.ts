@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { passedStageFixture, successorFixture } from './passed-stage-reuse.fixture.ts';
 import { executeTaskDag, resumeTaskDag } from '../../src/runtime/orchestrator.ts';
@@ -157,7 +157,7 @@ test('one current CodeDefect repair retains inherited IDs and promotes only exac
   const io = { async build(project: string, taskId: string) {
     if (taskId === current.window.quote.declaration.grants.coding.taskId) return { passed: false, work: project, diagnostics: 'Synthetic generated source defect',
       results: [{ code: 1, stdout: 'src/main.ts(1,1): error TS2322: synthetic fixture', stderr: '' }] };
-    await mkdir(join(project, 'dist')); await writeFile(join(project, 'dist/index.html'), '<p>Synthetic host transport</p>', 'utf8');
+    await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), '<p>Synthetic host transport</p>', 'utf8');
     return { passed: true, work: project, diagnostics: 'Synthetic host build transport', results: [{ code: 0, stdout: '', stderr: '' }, { code: 0, stdout: '', stderr: '' }] };
   }, async play() { throw new Error('Persistent adapter required'); }, playPersistent: (series: any, options: any) => syntheticReports(series, options) };
   const host = await runtime.createTransferReusedConsumerHost({ ...current.input, io, historicalStages }); f.onCleanup(() => host.closePreparation());

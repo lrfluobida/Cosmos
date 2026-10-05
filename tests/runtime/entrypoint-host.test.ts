@@ -28,9 +28,9 @@ async function fixture(t: test.TestContext, mismatch: boolean | 'media-missing' 
   const plays: any[] = [];
   const host = await hosts.createBrowserHost({ root, controller, requirement, draft, work, resume: false, io: {
     async build(project: string) { await mkdir(join(project, 'dist'));
+      await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true });
       if (batched && mismatch === false) {
         const manifest = JSON.parse(await readFile(join(project, 'public/assets/manifest.json'), 'utf8'));
-        await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true });
         await writeFile(join(project, 'dist/index.html'), genericMediaFixture(manifest, true), 'utf8');
       } else await writeFile(join(project, 'dist/index.html'), '<p>offline fixture</p>', 'utf8');
       return { passed: true, diagnostics: 'Synthetic build fixture; no model or compiler evidence' }; },
@@ -94,6 +94,21 @@ test('delivery requires the independent verdict and exact host proof for the cap
   task.state = 'passed'; const result = await host.finish([...upstream, task]);
   assert.ok(result.delivery); assert.deepEqual(result.gaps, []);
   assert.equal(await readFile(join(root, result.delivery, 'src/main.ts'), 'utf8'), '// Offline fake model artifact\n');
+});
+
+test('standalone package is present in the final review snapshot before promotion', async t => {
+  const { root, host, task } = await fixture(t);
+  task.artifacts = (await host.capture(task, {}, new AbortController().signal)).artifacts;
+  task.evidence = await host.verify(task, new AbortController().signal);
+  assert.equal(task.evidence[0].outcome, 'passed');
+  const candidate = task.artifacts[0];
+  assert.match(await readFile(join(root, candidate.location, 'standalone-launcher.mjs'), 'utf8'), /node:http/);
+  assert.match(await readFile(join(root, candidate.location, 'README.zh-CN.md'), 'utf8'), /node standalone-launcher\.mjs/);
+  const packaged = JSON.parse(await readFile(join(root, candidate.location, '_cosmos/delivery.json'), 'utf8'));
+  assert.deepEqual(packaged.candidate, candidate);
+  assert.equal(await readFile(join(root, `reviews/${task.taskId}`, candidate.location, 'README.zh-CN.md'), 'utf8'),
+    await readFile(join(root, candidate.location, 'README.zh-CN.md'), 'utf8'));
+  assert.ok(task.evidence.some((item: any) => item.source.location.endsWith('/delivery-check.json')));
 });
 
 test('passing gameplay text cannot conceal missing runtime animation observations', async t => {

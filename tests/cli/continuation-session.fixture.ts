@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type test from 'node:test';
@@ -31,7 +31,7 @@ export async function continuationSessionFixture(t: test.TestContext, options: {
   const createHost = async (input: HostInput) => {
     const continued = !!input.binding;
     const host = await createBrowserHost({ ...input, io: {
-      async build(project) { calls.push('build'); await mkdir(join(project, 'dist')); await writeFile(join(project, 'dist/index.html'), '<p>offline fixture</p>', 'utf8'); return { passed: true, diagnostics: 'Fake build' }; },
+      async build(project) { calls.push('build'); await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), '<p>offline fixture</p>', 'utf8'); return { passed: true, diagnostics: 'Fake build' }; },
       async play(plan) { calls.push('browser'); const outcome = continued && options.failContinuationPlay ? 'failed' : 'passed'; return { formatVersion: '1.0.0', kind: 'normal_browser_input', plan, outcome, browser: { version: 'fake' }, cleanup: { processExited: true }, errors: [], reportPath: 'fake', files: [], evidence: [],
         steps: plan.steps.map((step: any) => ({ id: step.id, kind: step.kind, acceptanceId: step.acceptanceId, outcome, expected: step.expected ?? 'input', actual: outcome === 'failed' ? 'Offline failure fixture' : step.expected ?? 'input', screenshot: null })) } as any; },
     } });

@@ -35,7 +35,7 @@ test('fixed C6 atomically claims original remainder, reopens its own pending cod
   let hostPreparation = 0, bootstraps = 0; const calls: Parameters<typeof syntheticTransferSessions>[0] = [], sessionFactory = syntheticTransferSessions(calls);
   const transport = { async build(project: string, taskId: string) {
     if (taskId === D.grants.coding.taskId) return { passed: false, work: project, diagnostics: 'SOURCE current generated defect', results: [{ code: 1, stdout: 'src/main.ts(1,1): error TS2322: synthetic fixture', stderr: '' }] };
-    await mkdir(join(project, 'dist')); await writeFile(join(project, 'dist/index.html'), '<p>SOURCE transport</p>', 'utf8');
+    await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), '<p>SOURCE transport</p>', 'utf8');
     return { passed: true, work: project, diagnostics: 'SOURCE transport', results: [{ code: 0, stdout: '', stderr: '' }, { code: 0, stdout: '', stderr: '' }] };
   }, async play() { throw new Error('Persistent adapter required'); }, playPersistent: (series: any, options: any) => syntheticReports(series, options) };
   const host = { prepare: async () => { hostPreparation++; }, execute: async (input: any, historical: any, resume: boolean) => {

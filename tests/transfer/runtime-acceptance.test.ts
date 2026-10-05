@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { reserveTransferOrigin } from '../../probes/transfer/loopback-origin.ts';
@@ -88,7 +88,7 @@ async function consumerPipeline(t: any, repair = false, mutateMedia = false, mut
         await writeFile(join(f.root, ref), '// same-version synthetic source changed\n', 'utf8');
         await writeFile(join(project, 'src/main.ts'), '// same-version synthetic source changed\n', 'utf8');
       }
-      await mkdir(join(project, 'dist')); await writeFile(join(project, 'dist/index.html'), 'synthetic ' + taskId, 'utf8');
+      await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), 'synthetic ' + taskId, 'utf8');
       return { passed: true, diagnostics: '' };
     },
     playPersistent: async (series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions, authority: any) => {
