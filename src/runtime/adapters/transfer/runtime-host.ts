@@ -106,6 +106,18 @@ export async function createHumanTransferContinuationHost(input: HumanContinuati
       ctx = context; requireThat(ctx.human && 'windowId' in ctx.human, 'explicit human continuation scope required'); human = ctx.human as HumanContinuationScope;
       const descriptor = human.preparation, receipt = `continuations/${human.decisionId}/transfer-origin.json`;
       let resume = false; try { await regularFile(ctx.root, receipt); resume = true; } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+      if (!resume) {
+        const state = await input.controller.read();
+        requireThat(!state.tasks.some(task => task.taskId === descriptor.taskId) && !state.ledger.entries.some(entry => entry.taskId === descriptor.taskId), 'registered current origin is missing');
+        for (const path of [currentPath(), `continuations/${human.decisionId}/plan.json`]) {
+          try { await regularFile(ctx.root, path); throw new Error('Current origin is missing after its fixed plans were sealed.'); }
+          catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+        }
+        for (const ref of descriptor.plans) {
+          try { await ctx.registry.getCapture(ref); throw new Error('Current origin is missing after a plan capture.'); }
+          catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+        }
+      }
       origin = await reserveTransferOrigin({ root: ctx.root, receiptPath: receipt, resume, signal: ctx.signal, requireScope: ctx.requireScope,
         binding: { profile: 'human', runId: human.runId, ledgerId: human.ledgerId, windowId: human.windowId, decisionId: human.decisionId, taskId: descriptor.taskId,
           sourceVersion: human.execution.sourceVersion, sourceSha256: human.execution.sha256, requirementSha256: sha(JSON.stringify(ctx.requirement)), specVersion: ctx.requirement.specVersion } });

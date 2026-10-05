@@ -10,13 +10,13 @@ import { RunController } from '../../src/runtime/run.ts';
 import { humanFixture, fakeHumanSdk, humanPersistentReports } from './human-preparation.fixture.ts';
 
 /** TEMP, synthetic stdin/SDK/build/browser transport; no actual game or human acceptance. */
-export async function humanContinuationFixture(t: test.TestContext) {
+export async function humanContinuationFixture(t: test.TestContext, options: { registeredRepair?: boolean } = {}) {
   const f = await humanFixture(t), calls: string[] = [], authorities: any[] = [];
-  let continued = false;
+  let continued = false, originalBuilds = 0;
   const io = {
     async build(project: string, taskId: string, authority: any) {
       authorities.push(authority);
-      if (!continued) return { passed: false, diagnostics: 'Synthetic original toolchain unavailable' };
+      if (!continued && (!options.registeredRepair || ++originalBuilds > 1)) return { passed: false, diagnostics: 'Synthetic original toolchain unavailable' };
       await mkdir(join(project, 'dist'), { recursive: true });
       await writeFile(join(project, 'dist/index.html'), 'Synthetic current coding ' + taskId, 'utf8');
       return { passed: true, diagnostics: '' };
@@ -24,14 +24,14 @@ export async function humanContinuationFixture(t: test.TestContext) {
     async play() { throw new Error('No generic browser fallback'); },
     async playPersistent(series: any, options: any, authority: any) {
       await options.verifyBinding(); authorities.push(authority);
-      return humanPersistentReports(series, options);
+      return humanPersistentReports(series, options, !continued);
     },
   };
   const sessionFactory = fakeHumanSdk(calls);
   const originalResult = await executeGeneration({ ...f, resume: false,
     createHost: input => createHumanTransferConsumerHost({ ...input, draft: input.draft as any, sessionFactory, io }) });
   assert.equal(originalResult.outcome, 'incomplete');
-  assert.deepEqual(originalResult.taskHistory.map((task: any) => task.state), ['passed', 'passed', 'failed'], JSON.stringify(originalResult.gaps));
+  assert.deepEqual(originalResult.taskHistory.map((task: any) => task.state), options.registeredRepair ? ['passed', 'passed', 'failed', 'failed'] : ['passed', 'passed', 'failed'], JSON.stringify(originalResult.gaps));
   const controller = await RunController.open({ root: f.root });
   await controller.stop('Synthetic original stopped for explicit coding continuation'); await controller.close();
   const original = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
@@ -39,7 +39,7 @@ export async function humanContinuationFixture(t: test.TestContext) {
   const preserved = await Promise.all(paths.map(async path => ({ path, bytes: await readFile(join(f.root, path)), mtime: (await stat(join(f.root, path))).mtimeMs })));
   const host = createProductHost('', { sessionFactory, io });
   host.prepare = async () => ({ environmentReady: true, executionReady: true });
-  return { ...f, host, calls, authorities, original, preserved,
+  return { ...f, host, io, sessionFactory, calls, authorities, original, preserved,
     continue() { continued = true; },
     async requirePreserved() { for (const file of preserved) { assert.deepEqual(await readFile(join(f.root, file.path)), file.bytes); assert.equal((await stat(join(f.root, file.path))).mtimeMs, file.mtime); } },
   };

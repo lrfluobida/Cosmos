@@ -219,7 +219,12 @@ async function executeContinuation(options: GenerationOptions) {
   const controller = await RunController.open({ root, windowId }), work = new OwnedWork(controller.signal);
   let control: Awaited<ReturnType<typeof startControl>> | undefined, warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined;
   let host: GenerationHost | undefined, plan: ContinuationPlan | undefined;
-  const stop = () => cancelAndDrain(controller, work, 'CLI user requested a durable window stop.');
+  let preparationClosing: Promise<void> | undefined, stopping: Promise<void> | undefined;
+  const closePreparation = () => preparationClosing ??= Promise.resolve().then(() => host?.closePreparation?.());
+  const stop = () => stopping ??= (async () => {
+    await cancelAndDrain(controller, work, 'CLI user requested a durable window stop.');
+    await closePreparation();
+  })();
   const interrupt = () => { void stop().catch(() => {}); };
   try {
     controller.signal.throwIfAborted();
@@ -263,6 +268,6 @@ async function executeContinuation(options: GenerationOptions) {
     });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
-    await warnings?.close(); await control?.close(); await host?.closePreparation?.(); await controller.closeAfterDrain(work);
+    await warnings?.close(); await closePreparation(); await control?.close(); await controller.closeAfterDrain(work);
   }
 }
