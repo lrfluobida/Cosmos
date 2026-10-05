@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 58 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 59 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -104,6 +104,7 @@
 - [ ] [COS-56 复用已通过阶段的固定产物与评审来源](https://github.com/lrfluobida/Cosmos/issues/57)
 - [ ] [COS-57 准备仅编码的第六迁移案例与剩余额度准入](https://github.com/lrfluobida/Cosmos/issues/58)
 - [ ] [COS-58 接通公开 CLI 的推箱子准备模式生成与恢复](https://github.com/lrfluobida/Cosmos/issues/59)
+- [ ] [COS-59 为长编码响应设置原窗口内的可信请求时限](https://github.com/lrfluobida/Cosmos/issues/60)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -652,7 +653,7 @@ Root POST+GET/native parent55children #2–#56/checkbox精确读回。原验证1
 
 ### COS-57 · 准备仅编码的第六迁移案例与剩余额度准入
 
-- 依赖/状态：[#58](https://github.com/lrfluobida/Cosmos/issues/58)，id5704092753；source54/55/56已审集成、原foundation exact markers/reviewed+merge双main祖先，outputs16/18；源码已独审集成：`d7d7e8a4cabe039b99ce41e4d53717e72bde7383`→`9ffd5e2f1c3d81ff80e2d8e8874293e320d359a3`，[公共审批](https://github.com/lrfluobida/Cosmos/issues/58#issuecomment-5987110904)；TRANSFER_CASE_SIX_SOURCE_READY/offline-verified-awaiting-live/source-integrated/open。独立raw终局1/1 pass、164签名匹配，current源码路径22分13.365秒为synthetictransport，merger代表1/1（3.1878ms）/UTF8LF/diffclean。固定cos20-transfer-validation-6仅source准备，actual C6 NONE/Root尚未制作真实manifest。
+- 依赖/状态：[#58](https://github.com/lrfluobida/Cosmos/issues/58)，id5704092753；source54/55/56已审集成、原foundation exact markers/reviewed+merge双main祖先，outputs16/18；源码已独审集成：`d7d7e8a4cabe039b99ce41e4d53717e72bde7383`→`9ffd5e2f1c3d81ff80e2d8e8874293e320d359a3`，[公共审批](https://github.com/lrfluobida/Cosmos/issues/58#issuecomment-5987110904)；TRANSFER_CASE_SIX_SOURCE_READY/offline-verified-awaiting-live/source-integrated/open。独立raw终局1/1 pass、164签名匹配，current源码路径22分13.365秒为synthetictransport，merger代表1/1（3.1878ms）/UTF8LF/diffclean。固定cos20-transfer-validation-6已实际执行：682889ms/13codingauthor/12settled135531µ+unknown974882µ、120s流取消externalservice失败，无candidate；Rootmanifest已持久化固定SHA4acd4d03…；[公共结果](https://github.com/lrfluobida/Cosmos/issues/58#issuecomment-5988185502)，旧窗口consumed/不重开。
 - 固定额度/准入：原ledger4/snapshot3/13 stopped cases/currentC5manual/5delegations/65closed十一audits、65settled+1准入前取消、unknown/reserved0/owner idle及COS16 parent index4/refrevision1414/hash/source/首授权成员保真。原groupnet1522107/rem8477893；五正grants planning323680/design598538/art2633322/coding2122353/repair2800000合8477893，只原parent10余量，planning/design/art不dispatch SDK、unused仍原审计关闭；current planning HOST bootstrap仍有当期权限，zero planner仅指zero planner SDK。
 - 驱动/恢复：免费preflight clean/pushed exact HEAD、source gates、Root manifest实际bytes/digest及C5receipts/captures；wrong role/source/member/fee/missing audit/owner等免费拒。旧可信topology派生新coding PreparedTask/自己的policy-role-tools-grants-expectedOutputs-journal，依赖保留旧passed IDs，不伪造新planned/passed或调用planner。不可变derived execution receipt支持原C6内cold resume，不重claim/重计时/重付PASS；56封存new plans/current requirement/loopback origin/source-copy闭包，native pi/Flash仅coding及自身合格一次repair，54/55工具有效。
 - 边界/验收：source/TEMP TDD fixed declaration-parser/history-manifest-rolefee/source拒/只读preflight byte-mtime-file保真/原子claim+host bootstrap/inherited refs/cold resume pending与当前coded failure自身repair。原case¥5/45分钟/80/一次coding repair、design原permission/shared150首30/group10/formal20012/优化1006保持。实际manifest/账本/key/paid仅Root在最终source/docs批准后fresh preflight/funding/operator执行；当前不运行C6、不重开C5、不假human/public CLI/fullclassic通过。
@@ -661,7 +662,7 @@ Root按两个独立架构评审修订并POST+GET精确读回上述正文、nativ
 
 ### COS-58 · 接通公开 CLI 的推箱子准备模式生成与恢复
 
-- 发布状态：[#59](https://github.com/lrfluobida/Cosmos/issues/59)，id5704951453；in-progress/open/SOURCE_NOT_READY，计划78ce365已专属PLAN_APPROVED并集成2faa578，Source57已释放，cos58_implementer独立分支实施源码。
+- 发布状态：[#59](https://github.com/lrfluobida/Cosmos/issues/59)，id5704951453；源码已独审集成：`6137cd77940953ab795f2b427e759625330a602d`→`1d300b3e31959911fa95bb3cf5639dcd3d8c2db9`，[公共审批](https://github.com/lrfluobida/Cosmos/issues/59#issuecomment-5988520016)；PUBLIC_HUMAN_PREPARATION_SOURCE_READY/offline-verified-awaiting-human/source-integrated/open。全部18paths审查，P1补实际工具/Playwright固定来源，freshcompiled1/1与mergerparse1/1通过，原未改证据复用、实际human NONE。
 
 #### 目标
 
@@ -695,10 +696,44 @@ Root按两个独立架构评审修订并POST+GET精确读回上述正文、nativ
 
 #### 状态与预算
 
-SOURCE_NOT_READY / in-progress / source-and-TEMP-only；计划已独审，产品实现尚未独审通过。真实 human 端到端结果单列；不据此关闭 COS16/COS18 或宣称完整经典游戏通过。未启动新付费运行、未创建额度。共享验证 ¥150（首阶段 ¥30，COS16 原 ¥10），正式 ¥200/12h、目标 ¥100/6h 保持。
+PUBLIC_HUMAN_PREPARATION_SOURCE_READY / source-integrated / source-and-TEMP-only；产品实现已独审，真实human验收NONE。真实 human 端到端结果单列；不据此关闭 COS16/COS18 或宣称完整经典游戏通过。未启动新付费运行、未创建额度。共享验证 ¥150（首阶段 ¥30，COS16 原 ¥10），正式 ¥200/12h、目标 ¥100/6h 保持。
 
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
 稳定任务 ID：COS-58
+
+### COS-59 · 为长编码响应设置原窗口内的可信请求时限
+
+- 发布状态：[#60](https://github.com/lrfluobida/Cosmos/issues/60)，id5706469248；in-progress/open/SOURCE_NOT_READY，cos59_implementer从已审1d300独立cos02分支实施。
+
+#### 问题与真实证据
+
+真实 COS16 迁移 C6 在批准主线 `6b8aa15f5d029b313f82fdf98c5ae4b847a5f461` 上执行。编码作者可输出65536 tokens，但统一的120000ms绝对请求时限在流仍已开始后取消请求：首响应352.2225ms，120005.8155ms后 aborted，无 provider usage。13次请求中12次已结算135531 micro-CNY，最后一笔974882 micro-CNY保持unknown预留。20次读取无工具错误；没有写入、编译自检、捕获、浏览器、评审或接受候选。原C6已停止并消费，不能重开。
+
+只读源定位确认：src/providers/pi.ts 的 body timer 在dispatch前启动、流进展不重置，同值传给SDK timeoutMs；entrypoint-host.ts所有角色统一120秒；factory暂无作者按角色timeout配置。未知usage不能用SDK默认0清账。
+
+#### 最小范围
+
+- 仅 coding author 增加可信源码配置的请求时限，初值600000ms；其他作者、reviewer、规划和intake沿原120秒。
+- 每次请求将有效时限裁剪到原当前窗口deadline剩余时间减既有清理余量。body timer与SDK timeoutMs使用同一有效值，controller/caller stop和预算/调用计数边界继续有效。
+- 配置由可信角色factory提供，模型/游戏不能选择或延长。coding repair仍属于同窗口coding author，使用其真实current authority。
+- 不增加自动重试，不把unknown清为0，不改变billing/schema/余额/ledger版本，不增加请求或修复次数，不延长任何case或正式窗口。
+- 预计生产文件仅src/roles/factory.ts、src/runtime/entrypoint-host.ts、src/providers/pi.ts，及必要定向测试/计划；避免重构流式SDK或全仓库哈希。
+
+#### 免费验收
+
+1. 合成流持续进展，超过旧短时限后在新的可信coding allowance内正常完成；缩放时钟或短测试配置，避免等待10分钟。
+2. coding override有效，其他角色/reviewer/intake保持原值。
+3. deadline或stop仍及时取消；无usage保持unknown、阻止新付费派发与工具；没有自动重试。
+4. body/SDK timeout有效值一致，剩余清理时间不足时在发送前拒绝；原stalled-SSE/取消/预算证据仅按影响范围复用。
+5. 独立review实际diff、exactSHA、UTF-8/LF/中文和受影响source/compiled代表；由同批唯一merger集成。
+
+#### 状态与边界
+
+SOURCE_NOT_READY / in-progress / source-and-TEMP-only；实现与独审尚未完成。新策略须以新的、获准案例验证；旧C6失败、unknown预留和原14案例历史保持。Root等待provider账单/usage核对，不能重付或伪造结算。共享验证¥150/首阶段¥30/COS16原¥10、单案例¥5/45分钟/80请求、正式¥200/12h与目标¥100/6h保持。
+
+源码前置：COS03 pi/provider、COS06调度/取消、COS55编译自检、COS57仅编码入口的已审源码；无需等待未完成的完整经典基准或把COS16/COS18标closed。
+父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
+稳定任务 ID：COS-59
 
 ## 5. 任务与上下文包模板
 

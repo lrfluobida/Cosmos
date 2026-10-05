@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 58
+    "childCount": 59
   },
   "tasks": [
     {
@@ -505,10 +505,10 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial",
-      "liveValidationStatus": "native-transfer-coding-deadline-failed",
+      "liveValidationStatus": "native-transfer-stream-timeout-unknown-charge",
       "actualTransferValidated": false,
-      "actualTransferCaseId": "cos20-transfer-validation-5",
-      "liveResultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5984507367",
+      "actualTransferCaseId": "cos20-transfer-validation-6",
+      "liveResultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5988185221",
       "liveValidationHistory": [
         {
           "caseId": "cos20-transfer-validation-1",
@@ -529,8 +529,52 @@
           "caseId": "cos20-transfer-validation-4",
           "status": "native-transfer-design-review-changes-requested",
           "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5983277445"
+        },
+        {
+          "caseId": "cos20-transfer-validation-5",
+          "status": "native-transfer-coding-deadline-failed",
+          "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5984507367"
         }
-      ]
+      ],
+      "actualTransferResult": {
+        "caseId": "cos20-transfer-validation-6",
+        "windowId": "validation-vq2-3a9bea268f435090933cb090d39f7a09aa1879b29ab1c21c45642db5d6a11585",
+        "frozenSource": "6b8aa15f5d029b313f82fdf98c5ae4b847a5f461",
+        "status": "failed-consumed-external-service",
+        "startedAt": "2026-10-05T02:50:02.916Z",
+        "deadlineAt": "2026-10-05T03:35:02.916Z",
+        "endedAt": "2026-10-05T03:01:25.805Z",
+        "elapsedMs": 682889,
+        "requests": 13,
+        "currentRoles": [
+          "coding-author"
+        ],
+        "settledRequests": 12,
+        "deltaSettledMicroCny": 135531,
+        "unknownRequestId": "362645f2-c865-47a0-99e8-e16bfdf50316",
+        "unknownReservedMicroCny": 974882,
+        "revision": 1942,
+        "totalSettledMicroCny": 8666261,
+        "totalReservedMicroCny": 974882,
+        "cases": 14,
+        "delegations": 6,
+        "closedGrants": 65,
+        "closureAudits": 11,
+        "closure12Applied": false,
+        "resultSha256": "18d707be19462e999546b212aab34408368dfa1c6370469ed7700204ad4cf72c",
+        "billingSha256": "c2e768c6450723a0a6954729f8de4c283a07da50d1541d7fc9f7084ac8edfd25",
+        "snapshotSha256": "a9d0aa4c7813ef36bd570ded375a8f0dc5a5463b09e67507492d7f256bde4d5a",
+        "manifestSha256": "4acd4d03a924a882a96a1fca90aa1f9b5509824654d108c94184f04fb27e9b50",
+        "capture": false,
+        "build": false,
+        "browser": false,
+        "review": false,
+        "repair": false,
+        "accepted": false,
+        "human": "NONE",
+        "credentialCleared": true,
+        "ownersAbsent": true
+      }
     },
     {
       "taskId": "COS-17",
@@ -3939,6 +3983,47 @@
         "unaffectedEvidenceReused": true,
         "actualCaseSix": "not-claimed",
         "humanExperience": "NONE"
+      },
+      "liveValidationStatus": "native-stream-timeout-unknown-charge",
+      "liveResultComment": "https://github.com/lrfluobida/Cosmos/issues/58#issuecomment-5988185502",
+      "actualValidationResult": {
+        "caseId": "cos20-transfer-validation-6",
+        "windowId": "validation-vq2-3a9bea268f435090933cb090d39f7a09aa1879b29ab1c21c45642db5d6a11585",
+        "frozenSource": "6b8aa15f5d029b313f82fdf98c5ae4b847a5f461",
+        "status": "failed-consumed-external-service",
+        "startedAt": "2026-10-05T02:50:02.916Z",
+        "deadlineAt": "2026-10-05T03:35:02.916Z",
+        "endedAt": "2026-10-05T03:01:25.805Z",
+        "elapsedMs": 682889,
+        "requests": 13,
+        "currentRoles": [
+          "coding-author"
+        ],
+        "settledRequests": 12,
+        "deltaSettledMicroCny": 135531,
+        "unknownRequestId": "362645f2-c865-47a0-99e8-e16bfdf50316",
+        "unknownReservedMicroCny": 974882,
+        "revision": 1942,
+        "totalSettledMicroCny": 8666261,
+        "totalReservedMicroCny": 974882,
+        "cases": 14,
+        "delegations": 6,
+        "closedGrants": 65,
+        "closureAudits": 11,
+        "closure12Applied": false,
+        "resultSha256": "18d707be19462e999546b212aab34408368dfa1c6370469ed7700204ad4cf72c",
+        "billingSha256": "c2e768c6450723a0a6954729f8de4c283a07da50d1541d7fc9f7084ac8edfd25",
+        "snapshotSha256": "a9d0aa4c7813ef36bd570ded375a8f0dc5a5463b09e67507492d7f256bde4d5a",
+        "manifestSha256": "4acd4d03a924a882a96a1fca90aa1f9b5509824654d108c94184f04fb27e9b50",
+        "capture": false,
+        "build": false,
+        "browser": false,
+        "review": false,
+        "repair": false,
+        "accepted": false,
+        "human": "NONE",
+        "credentialCleared": true,
+        "ownersAbsent": true
       }
     },
     {
@@ -3999,14 +4084,78 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "implementationPhase": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY",
+      "integrationStatus": "offline-verified-awaiting-human",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "PUBLIC_HUMAN_PREPARATION_SOURCE_READY",
       "planReviewStatus": "PLAN_APPROVED",
       "planReviewedCommit": "78ce36555c2203461365bb9804e9c2922a8518d1",
-      "planMergeCommit": "2faa578228ccad01e6cf2813fbf5091b4ca1afe6"
+      "planMergeCommit": "2faa578228ccad01e6cf2813fbf5091b4ca1afe6",
+      "reviewedCommit": "6137cd77940953ab795f2b427e759625330a602d",
+      "mergeCommit": "1d300b3e31959911fa95bb3cf5639dcd3d8c2db9",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/59#issuecomment-5988520016",
+      "validationEvidence": {
+        "scope": "source-and-temp-only",
+        "transport": "fake-sdk",
+        "affectedSourcePaths": 18,
+        "publicPreparationTests": 22,
+        "defaultCompatibilityTests": 73,
+        "independentCompiledDrift": {
+          "passed": 1,
+          "skipped": 0
+        },
+        "mergeRepresentative": {
+          "passed": 1,
+          "skipped": 0,
+          "durationMs": 9.457
+        },
+        "unaffectedEvidenceReused": true,
+        "humanExperience": "NONE"
+      }
+    },
+    {
+      "taskId": "COS-59",
+      "title": "为长编码响应设置原窗口内的可信请求时限",
+      "number": 60,
+      "id": 5706469248,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/60",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-03",
+          "number": 4,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/4"
+        },
+        {
+          "id": "COS-06",
+          "number": 7,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/7"
+        },
+        {
+          "id": "COS-55",
+          "number": 56,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/56"
+        },
+        {
+          "id": "COS-57",
+          "number": 58,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/58"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-16",
+          "number": 17,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/17"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 58,
+  "verifiedNativeSubIssues": 59,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
