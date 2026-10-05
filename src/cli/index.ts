@@ -11,7 +11,7 @@ const usage = `Usage:
   cosmos run-dir <path>              Create empty artifacts, evidence and logs directories
   cosmos build <path>                Typecheck and build an installed project
   cosmos preview <path> [--port N]   Preview its build at http://127.0.0.1:4173
-  cosmos new <run-dir> --brief <text>  Interview, confirm exact requirements, then generate
+  cosmos new <run-dir> [--adapter sokoban] --brief <text>  Interview, confirm exact requirements, then generate
   cosmos status <run-dir>           Read the original run identity, cost, deadline and gaps
   cosmos experience <run-dir>       Review the current delivery and record a final stdin playtest decision
   cosmos stop <run-dir>             Persist a hard stop and wait for owned work to drain
@@ -103,6 +103,7 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     if (!path?.trim()) throw new Error(usage);
     const { buildContinuationQuote, parseContinuationQuoteOptions } = await import('../runtime/continuation-quote.ts');
     const quoteOnly = options.includes('--quote'), requested = parseContinuationQuoteOptions(quoteOnly ? options : ['--quote', ...options]);
+    await (await import('./session.ts')).rejectPreparationContinuation(resolve(path));
     if (quoteOnly) { const quote = await buildContinuationQuote({ root: resolve(path), ...requested }); (io.output ?? process.stdout).write(JSON.stringify(quote, null, 2) + '\n'); return quote; }
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)));
     const { runContinuationSession } = await import('./continuation-session.ts');
@@ -117,11 +118,19 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
       const control = await import('./control.ts'); const result = command === 'status' ? await control.readRunStatus(root) : await control.requestStop(root, windowId);
       output.write(JSON.stringify(result, null, 2) + '\n'); return result;
     }
-    if (command === 'new' ? options.length !== 2 || options[0] !== '--brief' || !options[1]?.trim() : options.length !== 0 && !windowId) throw new Error(usage);
+    let brief: string | undefined, draftMode: 'cos16-input/1' | undefined;
+    if (!windowId) for (let i = 0; i < options.length; i += 2) {
+      const key = options[i], value = options[i + 1];
+      if (!value?.trim() || (key !== '--brief' && key !== '--adapter') || key === '--brief' && (command !== 'new' || brief !== undefined)
+        || key === '--adapter' && (draftMode !== undefined || value !== 'sokoban')) throw new Error(usage);
+      if (key === '--brief') brief = value; else draftMode = 'cos16-input/1';
+    }
+    if (command === 'new' && (windowId || !brief)) throw new Error(usage);
+    if (command === 'resume' && windowId) await (await import('./session.ts')).rejectPreparationContinuation(root);
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)));
     if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, host, input: io.input ?? process.stdin, output });
     const { runProductSession } = await import('./session.ts');
-    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief: command === 'new' ? options[1] : undefined, host, input: io.input ?? process.stdin, output });
+    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, draftMode, host, input: io.input ?? process.stdin, output });
   }
   if (!path?.trim() || !['init', 'run-dir', 'build', 'preview'].includes(command)
     || (command !== 'preview' && options.length)) throw new Error(usage);

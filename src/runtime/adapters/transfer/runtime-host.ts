@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { createValidationPreparedBrowserHost } from '../../entrypoint-host.ts';
+import { createValidationPreparedBrowserHost, createHumanPreparedBrowserHost } from '../../entrypoint-host.ts';
+import type { HumanPreparationInput } from '../../entrypoint-human-preparation.ts';
 import type { BrowserInputPreparation, BrowserPreparationContext } from '../../entrypoint-preparation.ts';
 import type { ArtifactReference, TaskContract } from '../../../contracts/index.ts';
 import { directory, regularFile } from '../../../artifacts/paths.ts';
@@ -22,6 +23,7 @@ import { consumeTransferCandidate, diagnoseTransferBuild } from './runtime-accep
 import type { HistoricalPassedStages } from '../../historical-passed-stages.ts';
 
 type HostInput = Parameters<typeof createValidationPreparedBrowserHost>[0];
+export type HumanTransferHostInput = HumanPreparationInput & Pick<HostInput, 'io' | 'sessionFactory'> & { historicalStages?: never };
 interface PreparedInputs {
   formatVersion: 'transfer-prepared-inputs/1'; taskId: string; attemptId: string; sessionRef: string;
   frozen: FrozenTransferDesign; plans: { v1: FrozenTransferAcceptanceDraft; v2: FrozenTransferAcceptanceDraft };
@@ -44,7 +46,11 @@ export async function createTransferReusedConsumerHost(input: Omit<HostInput, 'p
   if (!input.historicalStages) throw new Error('Fixed historical proof binding is required.');
   return createTransferHost(input, true);
 }
-async function createTransferHost(input: Omit<HostInput, 'preparation'>, consumer: boolean) {
+/** Public source-owned adapter for the original, exactly confirmed human preparation run. */
+export async function createHumanTransferConsumerHost(input: HumanTransferHostInput) {
+  return createTransferHost(input, true);
+}
+async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanTransferHostInput, consumer: boolean) {
   let ctx: BrowserPreparationContext, origin: Awaited<ReturnType<typeof reserveTransferOrigin>>;
   let transfer: ArtifactReference, planRefs: { v1: ArtifactReference; v2: ArtifactReference };
   let preparedPublished = false;
@@ -57,15 +63,15 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
     requireThat(saved.formatVersion === 'transfer-prepared-inputs/1' && saved.taskId === ctx.designTaskId
       && typeof saved.attemptId === 'string' && !!saved.attemptId && typeof saved.sessionRef === 'string' && !!saved.sessionRef
       && isDeepStrictEqual(saved.frozen.artifact, transfer) && isDeepStrictEqual(saved.frozen.requirement, ctx.inherited?.verified.requirementCapture ?? ctx.requirementCapture)
-      && saved.frozen.specVersion === ctx.requirement.specVersion && saved.frozen.requirementProfile === 'operator_validation'
+      && saved.frozen.specVersion === ctx.requirement.specVersion && saved.frozen.requirementProfile === (ctx.human ? 'human' : 'operator_validation')
       && saved.frozen.preserveHostStages === true, 'prepared design receipt changed');
     return saved;
   };
   const preparedInput = (saved: PreparedInputs, version: 'v1' | 'v2'): PrepareInput => {
-    requireThat(isValidationRequirement(ctx.requirement), 'explicit validation requirement is missing');
+    requireThat(ctx.human || isValidationRequirement(ctx.requirement), 'explicit execution requirement is missing');
     return { root: ctx.root, registry: ctx.registry, frozen: saved.frozen,
     currentRequirement: { artifact: ctx.inherited?.verified.requirementCapture ?? ctx.requirementCapture, specVersion: ctx.requirement.specVersion }, candidate: ctx.candidates[version], planArtifact: planRefs[version],
-    url: origin.url, runId: ctx.requirement.validation.runId, reportId: ctx.name('transfer-' + version),
+    url: origin.url, runId: ctx.human?.runId ?? (ctx.requirement as ValidationRequirement).validation.runId, reportId: ctx.name('transfer-' + version),
     ...(consumer ? { taskId: ctx.candidateTaskIds[version] } : {}) };
   };
   const verify = async (task?: TaskContract) => {
@@ -94,6 +100,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
   const requireCurrent = async () => {
     try {
       await guard();
+      if (ctx.human && !ctx.human.bound()) return;
       if (ctx.inherited) {
         const saved = await verify(), snapshot = await input.controller.read();
         for (const version of ['v1', 'v2'] as const) {
@@ -216,8 +223,8 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
       consumer ? 'The trusted host checks the eight frozen normal-input segments and actual media coverage. Preserve actual per-document cumulative media observations; browser-process reopening starts a new document. Do not declare user experience passed.'
         : 'Transfer acceptance execution is not connected in this preparation stage. Do not declare host acceptance or user experience passed.'],
     async initialize(context) {
-      ctx = context; requireThat(isValidationRequirement(ctx.requirement), 'transfer runtime host requires an explicit validation profile');
-      if (consumer) requireThat(ctx.candidateTaskIds.v1 && ctx.candidateTaskIds.v2 && ctx.candidateTaskIds.v1 !== ctx.candidateTaskIds.v2, 'consumer requires the original coding/repair task IDs before design capture');
+      ctx = context; requireThat(ctx.human || isValidationRequirement(ctx.requirement), 'transfer runtime host requires an explicit execution profile');
+      if (consumer && !ctx.human) requireThat(ctx.candidateTaskIds.v1 && ctx.candidateTaskIds.v2 && ctx.candidateTaskIds.v1 !== ctx.candidateTaskIds.v2, 'consumer requires the original coding/repair task IDs before design capture');
       const expected = [...TRANSFER_ACCEPTANCE_IDS, ...HOST_STAGE_ACCEPTANCE.map(item => item.acceptanceId)].sort();
       requireThat(isDeepStrictEqual(ctx.requirement.acceptance.map(item => item.acceptanceId).sort(), expected), 'complete transfer and stage acceptance required');
       for (const stage of HOST_STAGE_ACCEPTANCE) requireThat(isDeepStrictEqual(ctx.requirement.acceptance.find(item => item.acceptanceId === stage.acceptanceId), stage), 'host stage acceptance changed');
@@ -230,8 +237,11 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
       preparation.designOutputs = (ctx.inherited ? ctx.inherited.verified.designArtifacts.slice(1) : [transfer, planRefs.v1, planRefs.v2]).map(ref => ({ ...ref, destination: ref.location, type: 'data', schema: ref === transfer ? 'cos16-design/1' : 'cos16-plan/1' }));
       preparation.designRules.push(`Use requirement reference ${JSON.stringify(ctx.requirementCapture)}. Write exactly {formatVersion:"cos16-design/1",requirement:thatReference,mapVersion:string,map:{tiles:string[],player:[x,y],boxes:[[x,y],[x,y]],targets:[[x,y],[x,y]]},solution:Direction[],paths:{wall,push,boxWall,doubleBox,restart,restore}}.`);
       origin = await reserveTransferOrigin({ root: ctx.root, resume: ctx.resume, signal: ctx.signal, requireScope: ctx.requireScope,
-        binding: { caseId: ctx.requirement.validation.caseId, windowId: ctx.requirement.validation.windowId, sourceVersion: ctx.requirement.validation.reviewedPlatformSha,
-          requirementSha256: sha(JSON.stringify(ctx.requirement)), runId: ctx.requirement.validation.runId, specVersion: ctx.requirement.specVersion } });
+        binding: ctx.human ? { profile: 'human', runId: ctx.human.runId, ledgerId: ctx.human.ledgerId, windowId: null,
+          sourceVersion: ctx.human.execution.sourceVersion, sourceSha256: ctx.human.execution.sha256, requirementSha256: sha(JSON.stringify(ctx.requirement)), specVersion: ctx.requirement.specVersion }
+          : { caseId: (ctx.requirement as ValidationRequirement).validation.caseId, windowId: (ctx.requirement as ValidationRequirement).validation.windowId,
+            sourceVersion: (ctx.requirement as ValidationRequirement).validation.reviewedPlatformSha, requirementSha256: sha(JSON.stringify(ctx.requirement)),
+            runId: (ctx.requirement as ValidationRequirement).validation.runId, specVersion: ctx.requirement.specVersion } });
       if (ctx.inherited) {
         const design = ctx.inherited.verified.stages[0].task;
         const saved: PreparedInputs = { formatVersion: 'transfer-prepared-inputs/1', taskId: design.taskId, attemptId: design.attempts[0].attemptId,
@@ -271,7 +281,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
       await guard();
       const frozen = await freezeTransferDesign({ root: ctx.root, registry: ctx.registry, requirement: ctx.requirementCapture, requirementFile: ctx.requirementFile,
         designSource: sealed.source, artifact: transfer, taskId: task.taskId,
-        requirementProfile: 'operator_validation', preserveHostStages: true,
+        requirementProfile: ctx.human ? 'human' : 'operator_validation', preserveHostStages: true,
         provenance: { kind: 'original-procedural', generator: 'Native design role output', sourceRefs: [attempt.sessionRef, sealed.receipt, ...ctx.requirement.sources.map(ref => ref.location)] } });
       requireThat(frozen.designSha256 === sealed.sha256, 'frozen design bytes differ from successful validation');
       await designValidation.seal(task, workspace);
@@ -301,12 +311,12 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
     preparation.candidateExtraInputs(context.candidate);
     requireThat(context.task.taskId === ctx.candidateTaskIds[version], 'consumer task differs from its pre-frozen candidate task');
     return consumeTransferCandidate(context, { input: { ...preparedInput(saved, version), prepared: saved.plans[version] },
-      sourceVersion: (ctx.requirement as ValidationRequirement).validation.reviewedPlatformSha,
+      sourceVersion: ctx.human?.execution.sourceVersion ?? (ctx.requirement as ValidationRequirement).validation.reviewedPlatformSha,
       mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, verifyBinding }) });
   };
   if (consumer) preparation.candidateBuildDiagnostic = diagnoseTransferBuild;
   try {
-    const host = await createValidationPreparedBrowserHost({ ...input, preparation });
+    const host = 'draft' in input ? await createHumanPreparedBrowserHost({ ...input, preparation }) : await createValidationPreparedBrowserHost({ ...input, preparation });
     host.taskPolicies.find(policy => policy.role === 'art')?.rules!.push(captureLayout!);
     return host;
   }

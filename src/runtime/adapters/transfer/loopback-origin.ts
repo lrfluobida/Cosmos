@@ -5,9 +5,12 @@ import { regularFile, safePath } from '../../../artifacts/paths.ts';
 import type { ArtifactReference } from '../../../contracts/types.ts';
 import { publishReceipt } from '../../recovery/receipt-file.ts';
 
-export interface TransferOriginBinding {
+interface ValidationTransferOriginBinding {
   caseId: string; windowId: string; sourceVersion: string; requirementSha256: string; runId: string; specVersion: string;
 }
+export type TransferOriginBinding = ValidationTransferOriginBinding | {
+  profile: 'human'; runId: string; ledgerId: string; windowId: null; sourceVersion: string; sourceSha256: string; requirementSha256: string; specVersion: string;
+};
 export interface TransferOriginInput {
   root: string; binding: TransferOriginBinding; resume: boolean; signal: AbortSignal; requireScope(): Promise<void>;
 }
@@ -17,7 +20,8 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
   const read = async () => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.root, file)));
   input.signal.throwIfAborted(); await input.requireScope(); input.signal.throwIfAborted();
   if (!/^[a-f0-9]{40}$/.test(binding.sourceVersion) || !/^[a-f0-9]{64}$/.test(binding.requirementSha256)
-    || Object.values(binding).some(value => typeof value !== 'string' || !value)) throw new Error('Invalid fixed transfer origin binding.');
+    || Object.entries(binding).some(([key, value]) => ('profile' in binding && key === 'windowId') ? value !== null : typeof value !== 'string' || !value)
+    || 'profile' in binding && (binding.profile !== 'human' || !/^[a-f0-9]{64}$/.test(binding.sourceSha256))) throw new Error('Invalid fixed transfer origin binding.');
   let previous: any, port = 0;
   if (input.resume) {
     previous = await read();

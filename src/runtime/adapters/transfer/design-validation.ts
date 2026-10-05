@@ -31,7 +31,8 @@ interface Result {
 interface Started {
   formatVersion: 'transfer-design-check-started/1'; binding: Binding; check: 1 | 2;
   startedAt: string;
-  authority: { sourceVersion: string; caseId: string; windowId: string; startedAt: string; deadlineAt: string };
+  authority: { sourceVersion: string; caseId: string; windowId: string; startedAt: string; deadlineAt: string }
+    | { profile: 'human'; sourceVersion: string; sourceSha256: string; runId: string; ledgerId: string; windowId: null; startedAt: string; deadlineAt: string };
   previousReceipt?: string;
   raw: { location: string; present: boolean; sha256: string | null };
 }
@@ -52,9 +53,9 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
   }
   async function binding(task: TaskContract, workspace?: string): Promise<Binding> {
     await guard();
-    requireThat(isValidationRequirement(ctx.requirement) && task.taskId === ctx.designTaskId && task.attempts.length === 1, 'design validation requires its original author attempt');
+    requireThat((ctx.human || isValidationRequirement(ctx.requirement)) && task.taskId === ctx.designTaskId && task.attempts.length === 1, 'design validation requires its original author attempt');
     const attempt = task.attempts[0];
-    const fixedWorkspace = await realpath(join(ctx.root, `validation/${ctx.requirement.validation.caseId}/${ctx.designTaskId}/workspace`));
+    const fixedWorkspace = await realpath(ctx.human ? ctx.taskWorkspace!(task.taskId) : join(ctx.root, `validation/${(ctx.requirement as import('../../../roles/execution-input.ts').ValidationRequirement).validation.caseId}/${ctx.designTaskId}/workspace`));
     requireThat(!workspace || resolve(workspace) === fixedWorkspace, 'design validation workspace changed');
     const origin = decode(await regularFile(ctx.root, `journal/task-${task.taskId}/origin.json`)) as RecoveryOrigin;
     requireThat(isDeepStrictEqual(origin.requirement, ctx.requirement), 'design validation source or complete requirement changed');
@@ -82,6 +83,12 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
   }
   const canonicalTime = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
   async function authority(): Promise<Started['authority']> {
+    if (ctx.human) {
+      const state = await ctx.human.requireCurrent(), current = await controller.executionAuthority(ctx.designTaskId);
+      requireThat(current.admissionAllowed && current.windowId === null && current.deadlineAt === state.run.originalDeadlineAt, 'design validation original human authority changed');
+      return { profile: 'human', sourceVersion: ctx.human.execution.sourceVersion, sourceSha256: ctx.human.execution.sha256,
+        runId: ctx.human.runId, ledgerId: ctx.human.ledgerId, windowId: null, startedAt: state.run.originalStartedAt, deadlineAt: current.deadlineAt };
+    }
     requireThat(isValidationRequirement(ctx.requirement), 'design validation requires its original authority');
     const snapshot = await controller.read(), current = await controller.validationAuthority(ctx.designTaskId, 'author');
     const window = snapshot.validation!.cases.find(window => window.caseId === current.caseId && window.windowId === current.windowId);
@@ -128,7 +135,7 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
   async function active(signal?: AbortSignal) {
     signal?.throwIfAborted(); await guard();
     const snapshot = await controller.read(), task = snapshot.tasks.find(task => task.taskId === ctx.designTaskId);
-    const authority = await controller.validationAuthority(ctx.designTaskId, 'author');
+    const authority = ctx.human ? await controller.executionAuthority(ctx.designTaskId) : await controller.validationAuthority(ctx.designTaskId, 'author');
     requireThat(task?.state === 'running' && task.attempts.at(-1)?.outcome === 'running' && authority.admissionAllowed
       && !snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0), 'design validation has no reconciled original author authority');
     signal?.throwIfAborted(); return task;

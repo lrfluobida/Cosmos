@@ -9,7 +9,7 @@ import { buildContinuationQuote } from '../runtime/continuation-quote.ts';
 import { RunController } from '../runtime/run.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
 import { readRunSnapshot, recoverRunOwner } from './control.ts';
-import { readConfirmedGeneration } from './session.ts';
+import { readConfirmedGeneration, rejectPreparationContinuation } from './session.ts';
 import type { ProductHost } from './session.ts';
 
 interface IO { root: string; host: ProductHost; input: Readable; output: Writable }
@@ -27,6 +27,7 @@ async function quiescent(root: string) {
 /** Only actual stdin supplies this new decision; quote files and model text cannot confirm themselves. */
 export async function runContinuationSession(options: IO & { additionalMicroCny: number; additionalDurationMs: number }) {
   const root = resolve(options.root), io = { ...options, root }; await safePath(root);
+  await rejectPreparationContinuation(root);
   const original = await readRunSnapshot(root);
   if (original.formatVersion !== 1 || original.ledger.scope !== 'generation' || original.run.kind !== 'runtime_generation') throw new Error('交互续跑只支持正式运行的首个追加窗口；已有窗口请使用 resume --window。');
   const originalInputs = await readConfirmedGeneration(root, original);
@@ -62,6 +63,7 @@ export async function runContinuationSession(options: IO & { additionalMicroCny:
 
 export async function resumeContinuation(options: IO & { windowId: string }) {
   const root = resolve(options.root), state = await readRunSnapshot(root);
+  await rejectPreparationContinuation(root);
   if (state.formatVersion !== 2 || state.continuation?.currentWindowId !== options.windowId) throw new Error('续跑窗口与原运行不匹配。');
   const window = state.continuation.windows.find(item => item.windowId === options.windowId)!;
   if (window.stopReason) throw new Error(`该窗口已持久停止 (${window.stopReason.code})，不能由 resume 清除。`);
