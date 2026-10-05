@@ -4209,10 +4209,13 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "in-progress",
-      "implementationPhase": "plan-in-progress",
+      "implementationPhase": "in-progress",
       "reviewStatus": "SOURCE_NOT_READY",
       "actualValidation": "NONE",
-      "actualPaid": "NONE"
+      "actualPaid": "NONE",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "ea1df224a444f13bc3445f5083e7751eb539500e",
+      "planMergeCommit": "bef8f5eb8d8af378b8627c6bee64799428cd2a5f"
     }
   ],
   "verifiedNativeSubIssues": 60,
