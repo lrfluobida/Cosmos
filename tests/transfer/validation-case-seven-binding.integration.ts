@@ -23,7 +23,7 @@ test('C7 amended closure binds fresh claim, current tools and cold scope without
   let current: Awaited<ReturnType<typeof createTransferReusedConsumerHost>> | undefined;
   try {
     await bootstrapTransferValidationCaseSevenToolchain(input, async (job: any) => {
-      await mkdir(join(input.root, 'toolchain')); for (const name of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await cp(join(template, name), join(input.root, 'toolchain', name));
+      await cp(join(input.repository, 'templates/2d'), join(input.root, 'toolchain'), { recursive: true });
       await mkdir(join(input.root, 'toolchain/node_modules'));
       for (const name of ['typescript', 'vite']) await cp(join(template, 'node_modules', name), join(input.root, 'toolchain/node_modules', name), { recursive: true });
       const request = JSON.parse(await readFile(job.args.at(-1), 'utf8')); await writeFile(request.response, JSON.stringify({ formatVersion: 'validation-worker-result-1', operation: 'bootstrap', outcome: 'completed', result: join(input.root, 'toolchain') }), 'utf8');
