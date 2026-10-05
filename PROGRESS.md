@@ -874,3 +874,13 @@ Root发布[COS69/#70](https://github.com/lrfluobida/Cosmos/issues/70) id57187766
 COS68 TDD进展为未审源码：真实initial entrypoint fixture挂入80ms owned异步工作，旧入口已结束并释放owner，RED1/1失败（`C:/Users/26557/AppData/Local/Temp/cos68-initial-drain-red.tap`）；加入drain/关闭证明接线后同case GREEN1/1（273.64ms），typecheck0（8.42秒）。后续runtime7/7、0skip（4430.1979ms）覆盖initial drain、cleanup失败仍尝试owner释放、模拟late/backward/invalidclock、unknown费用独立及真实Node退出。accepted CLI/continuation/readonly/sidecar race和独审继续，SOURCE_NOT_READY，没有最终批准SHA。Fixture输入/模拟时钟与真实函数/生命周期分列，非模型生成/真实12h证明；旧报告、决定、费用未改。
 
 本登记69tasks、父11[x]/68[ ]/69[ ]，原68任务映射/state/checkbox保持。shared150/首30/COS16原10/formal20012/target1006、C6 unknown974882/14stopped65closed11audits/closure12/C7、参考未冻结与完整classic100%/95%/G4/体验/全cleanup成绩缺口保持；actualValidation/model/paid/human/新窗口NONE。
+
+### COS68 / COS69 未审源码检查点
+
+COS69登记`74502d744c645fc4a76186de3433f47989ee8267`经独立actual65批准，sole BATCH11 merger actual66合入`080ead8dbcb294a02e441e04d5cfb0ab890019b3`；五批准docs字节/UTF8LF/中文/diff与原68映射/checkbox保持。直接Git连接失败后使用命令级http.proxy=http://127.0.0.1:7897推送成功，本地/origin/实际远端一致、clean；没有重合并、重审核、重测试或修改全局设置。
+
+COS68未审TDD新增：public6/6、0skip（19831.2311ms）覆盖新旧ordinary/direct/window只读、sidecar/owner/snapshot/report漂移及初始成绩复用，typecheck0。删除requiresCompletionTiming并重算report marker可降级legacy的真实RED已用completionanchor检查修成GREEN，连legacy兼容2/2。另一个真实RED发现同时改sidecar终点和公开checksum可把late改成in_time；作者正在completion receipt内采用Node builtin Ed25519一次性内存签名，publickey绑定已有nonce/snapshot completionBinding，实际post-owner body签名，private不落盘/不复用。该修正尚未最终验证或源码审批，不把checksum当认证，不新增账本/runner/通用crypto框架；其余已绿证据按实际delta复用。下一候选仍需签名负例、late/failed体验门禁、最终affected CLI/runtime、typecheck/cold入口及独立67审查。
+
+COS69未审TDD新增：unit missing-module RED1fail→shape/count/clock/binding3/3 GREEN；production caller缺observercapture RED1fail→opt-in/capture/per-plan raw1/1 GREEN。原native链暴露Canvas renderer实际gameCanvas类型与Vite tree-shaking reader导出问题，作者局部修正。最新实际Phasercanvas正常save/reopen代表1/1（test26457.7513ms/process29536.2067ms），raw `C:/Users/26557/AppData/Local/Temp/cos66-host-GYlRXt`、PID35556→25376；实验记录两段各331 draw-chain计数/2004.3ms及2002ms，计算平均165.1449/165.3347。实际800×500、viewport1280×720、Edge154 headless+screencast、machineFrozen:false/GPUunknown；仍需核同帧多draw/多scene只计一帧、空事件/nullrenderer/错误canvas/换Game与真实factory/advisory绑定，不能提前写计量能力已批准。PERFORMANCE仍policy_not_executed，230/221/7及原两政策结果保持，不能据此比较55/30基准或触发未冻结条件的性能修复。
+
+两项SOURCE_NOT_READY、无最终批准SHA；Source69作者actual67/独立reviewer65与Source68作者actual65/独立reviewer67分开，solemerger66只接批准SHA。以上为source/free fixture、模拟clock/输入与实际renderer/Node/进程分列；实际模型生成、paid、human、新窗口NONE。原unknown974882/14stopped65closed11audits/closure12/C7/参考未冻结/G4/100%与95%/完整时限成绩及150/首30/COS16原10/formal20012/target1006保持。
