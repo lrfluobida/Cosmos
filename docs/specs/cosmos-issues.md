@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 70 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 71 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -116,6 +116,7 @@
 - [x] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
 - [x] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
 - [ ] [COS-70 接通公开 CLI 帧采样选择与恢复绑定](https://github.com/lrfluobida/Cosmos/issues/71)
+- [ ] [COS-71 接通双模块编码任务与最终集成](https://github.com/lrfluobida/Cosmos/issues/72)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1145,6 +1146,40 @@ src/cli/index.ts 的公开入口只接受现有 brief/adapter，创建createProd
 
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
 稳定任务 ID：COS-70
+
+### COS-71 · 接通双模块编码任务与最终集成
+
+- 发布状态：[#72](https://github.com/lrfluobida/Cosmos/issues/72)，id5720207319；正文/native71/旧70及父11完成保持已Root精确读回。AWAITING_PLAN/SOURCE_NOT_READY/in-progress/open；actual67专属作者先计划，actual65独立reviewer、actual66为BATCH13 sole merger。实施等待COS70 source READY，尚无已批实现。
+
+#### 目标
+
+让普通游戏生成可以采用两个独立编码模块和一个最终集成任务，模块作者/评审上下文隔离，最终游戏通过现有完整玩法、媒体与交付链。游戏代码仍由 Cosmos 运行时生成。本卡是多任务编码的首个完整切片，不证明完整经典游戏已生成。
+
+#### 已核缺口
+
+通用 planTaskDag 已支持多个同角色 policy slots，ArtifactRegistry 已能组合多个固定 capture、核依赖闭包并拒绝路径冲突。但产品 entrypoint-host 的 validateTasks/finish 固定 design/art/coding 三任务；只有一个 game-code slot、共享 authors/coding 路径和整体 game v1/v2。编码可以写 src 下多个文件，捕获后立即形成完整候选，没有模块产物分支。仅放宽任务数量不能解决身份、权限、验收与修复归属。
+
+#### 范围与顺序
+
+1. 为普通 BrowserGameDraft 提供可确认的 source-owned modular-code/1 选择；两个模块和最终集成连同 design/art 共五任务。具体 schema 字段由短计划确定，选择和完整新增模块标准须在原展示/真实 stdin 确认及激活之前保存到原需求来源。默认 legacy 三任务不变；模型只能提出已知选择，不能提供写路径、权限、预算、采样脚本或运行阈值。
+2. 主机固定两个独立模块 slot、入口/目录、唯一 capture 和版本，以及最终集成 slot。模块范围/协作约定由本次 design 角色生成并独立审查；接口契约随同一设计 capture 固定。模块作者不可改接口、模板配置、其他模块或独立 art 素材；最终集成只写入口和自身集成目录，读取两个不可变模块 capture。
+3. 两个模块各有原确认中显示的内部验收 ID，只证明本模块实际源码符合固定接口、通过真实编译及独立源码审查。编译使用原模板、受保护接口和本模块实际文件；不以空入口、作者自报或文件存在代替。模块捕获不形成完整游戏候选，也不能把模块通过写成玩法通过。
+4. 实际 product host 由原 Cosmos planner 生成合法五任务 DAG，沿原 executeTaskDag/RoleFactory/TaskJournal 创建独立作者与评审。模块 capture 按原 slot/task/run/spec/attempt/author/context/input-version 绑定。总 coding 40% 在两个模块和最终集成之间分配，总账本/原时间/并发守卫保持；不另造 planner、executor、ledger 或 merger。
+5. 两个模块均独立通过后，最终集成从全部固定模板/需求/design/art/selected observer/模块 capture 创建一个完整候选。完整组合清单在主机捕获并进入原 journal/独立审查签名；缺模块、重复/冲突路径、越界写入、未批准模块、旧输入版本或来源漂移拒绝。组合实际编译入口及两个模块，并走原 build/normal input/media/frames/clean delivery/最终独审/晋升链；最终集成承担全部原玩法验收。
+6. 首切片支持最终集成代码的原单次 v2 修复，两个通过模块的字节和版本保持；模块自身失败保留失败与差距。不得把模块错误套到整体 game v2，伪造 successor 或沿旧候选/审查认通过。模块修复及其所有依赖重绑定另行切片。
+7. 未完成恢复重核原五任务计划、原分配、接口和两个模块 capture、组合清单与 journal 字节签名；不得丢模块或回退单 coding。完成后的 ordinary/direct/window resume/status 保持原只读行为，不重采样、收费或补结束时间。现 validation 固定三 grants、sokoban preparation 和单 coding continuation 仍按原声明；不支持的 profile 组合须在付费/确认/激活前明确拒绝。
+
+#### 免费验收与边界
+
+- RED/GREEN 验证 profile/完整标准确认、合法五任务与隔离 ownership、两个模块实际编译/capture/独立 review、实际 host 最终组合及完整候选晋升；用 fixture provider，原产品生产 caller 必须使用新路径，不能仅测试未被调用 helper。
+- 故障覆盖缺/未批/重复模块、路径冲突、接口或模块 bytes 漂移、旧版本/修复归属、恢复丢模块；确认拒绝发生在不应执行的作者、费用或晋升之前。最终集成的一次修复用当前模块版本；模块失败保留具体差距。
+- 复用原独审 sampler/计时/clean delivery/normal browser transport，只新增受影响 caller/编译/组合/恢复 fixture；不重复旧 Edge、110 秒或 30 分钟矩阵。真实模块和组合编译必须保留输出；fixture 不证明模型已生成完整游戏。
+- 每任务专属 implementer/reviewer；≤300词计划独立 PLAN_APPROVED 后 TDD，最终 actual diff 规格→质量审查，exact SHA/验证由本批 sole merger 核后集成。UTF-8、中文最小 patch/readback。
+- 源码前置：已审 COS09 registry、COS18 public flow、COS44 多同角色 slots、COS64/65/66/67/68/69，以及 COS70 公开采样选择；COS70 尚待 source READY 时，本卡先计划，不能提前绕过依赖实施。
+- 本卡仅 source/free fixtures。PERFORMANCE 仍未执行，230/221 待核实/其余7未执行与两政策 partial、未冻结参考、完整经典100%/95%及实际完整12h成绩保持。共享验证¥150/首¥30/COS16原¥10、正式¥200/12h/目标¥100/6h、C6 unknown974882µ/closure12/C7、人类体验及真实新模型/付费/窗口NONE保持。
+
+父任务：https://github.com/lrfluobida/Cosmos/issues/1
+稳定任务 ID：COS-71
 
 ## 5. 任务与上下文包模板
 
