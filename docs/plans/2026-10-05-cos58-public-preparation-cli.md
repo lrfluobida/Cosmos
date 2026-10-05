@@ -10,9 +10,9 @@
 
 ## 执行前置与当前边界
 
-- 本计划基于只读工作树 `codex/cos58-public-preparation-cli`，HEAD `746089dc7f8b284958bc5012aa62fbf83dc7f996`。
-- `docs/specs/cosmos-issues.md` COS58 / #59 和 `docs/specs/github-issues.json` 要求 COS52–COS57 independently-reviewed-and-integrated-source。COS57 当前未放行；Root 提供其 approved SHA、merge SHA 与明确 source release 后，才同步该依赖并启动源码和 RED/GREEN。
-- 目前仅新增本计划，未写产品源码、未运行 tests。独立架构审查已确认单卡可实施；以下步骤属于同一 COS58 实现任务。
+- 计划准备时基于只读工作树 `codex/cos58-public-preparation-cli`，HEAD `746089dc7f8b284958bc5012aa62fbf83dc7f996`。
+- `docs/specs/cosmos-issues.md` COS58 / #59 和 `docs/specs/github-issues.json` 要求 COS52–COS57 independently-reviewed-and-integrated-source。计划准备时 COS57 未放行；Root 提供其 approved SHA、merge SHA 与明确 source release 后，才同步该依赖并启动源码和 RED/GREEN。
+- 计划准备提交仅新增本计划，未写产品源码、未运行 tests；后续实施证据记录于文末。独立架构审查已确认单卡可实施；以下步骤属于同一 COS58 实现任务。
 - 不读取真实 `.cosmos`、ledger、sessions、API key 或参考安装。未来 fixture 只建于隔离 TEMP，使用 fake SDK 和合成 stdin；合成确认不代表实际 human 验收。
 - 不新增付费运行或额度。共享验证 ¥150（首阶段 ¥30、COS16 原 ¥10）；正式运行 ¥200 / 12h，¥100 / 6h 为优化目标。原账本、一次激活的截止和停止事实保持连续。
 
@@ -69,7 +69,7 @@ source receipt 只记录实际执行的 source `.ts` 或 compiled `.js` 闭包�
 
 ### 1. Source release 与有限公开入口
 
-- [ ] Root 明确放行 Source57；核对批准 SHA / merge SHA，按 merger 给定基线同步本 implementer branch，保留同一隔离窗口。
+- [x] Root 明确放行 Source57；核对批准 SHA / merge SHA，按 merger 给定基线同步本 implementer branch，保留同一隔离窗口。
 - [ ] 检查目标编码；在修改前声明源码/测试路径；每处只做必要 patch，保留 UTF-8/LF 和原中文。
 - [ ] 先写 public parser/stdin RED：source `runCli` 接受固定 adapter；未知/重复/缺值参数无目录、无 prepare/provider；default browser 仍走原路径。resume 保存模式与显式匹配，不匹配零 effects。
 - [ ] Run: `node --experimental-strip-types --test tests/cli/public-preparation.test.ts`。当前预期 RED 为公开选项拒绝 / 准备模式未装配；然后最小 parser + ProductHost 模式接线到 GREEN。
@@ -103,4 +103,16 @@ source receipt 只记录实际执行的 source `.ts` 或 compiled `.js` 闭包�
 
 源码交付以免费 source / TEMP 证据和独立 reviewed SHA 为准。真实 human 端到端、C6、迁移整体、完整经典基准及最终体验分别保持原状态，不由本卡的 fake SDK/stdin 结果自动转为通过。implementer 不 merge main、push 或更新 GitHub；Root 作为本批唯一 merger 记录批准与集成。
 
-当前唯一外部阻塞是 Root 尚未提供 Source57 独审集成批准与明确 source release；此状态不阻塞本计划完成。release 后按实际批准源码修正最小调用与验证 delta，无需再次请求例行设计选择。
+准备阶段的 Source57 阻塞已解除：Root 放行 reviewed `d7d7e8a4cabe039b99ce41e4d53717e72bde7383` / merge `9ffd5e2f1c3d81ff80e2d8e8874293e320d359a3`；本分支已 ff 同步。源码候选仍须 COS58 专属独审，集成等待 Root 解除 SOURCE_MAIN_FREEZE，由本批唯一 merger 执行。
+
+## 实施与验证记录
+
+- 公开参数 / SYNTHETIC stdin 首轮 RED 为 3 个缺少 adapter 接线的失败；parser 与额外正式窗口早拒绝随后 4/4 GREEN。
+- human factory 首轮 2/2 RED（缺 factory）；确认实际 bytes、refs-only、stop / 未核实预留、source receipt drift / origin 清理、缺 captured dependency 均分别经历对应 RED / GREEN。
+- 真实 host + fake SDK 首轮在 browser 默认草稿校验处 RED；随后运行时原 human workspace / executionAuthority、实际三角色身份、四输出和双计划、passed 阶段冷恢复通过。后续代表 1/1 GREEN，14880.4299 ms。
+- 同窗口 coding repair 的 RED 暴露原编码 workspace 仍有已封存 v1 输出；仅在 live author bytes 与不可变 source capture 完全一致时允许既有修复。最终 1/1 GREEN，54296.5658 ms；两候选各八段 consumer、精确 v2 promotion、原 fee/deadline 连续、零额外 passed author/reviewer。
+- 新异步绑定间隙的两处冷恢复（执行计划已封存、task binding 前 / 后、DAG 注册前）先 RED，再 1/1 GREEN（两个 checkpoint，24961.6853 ms）：只恢复原 binding / journal / task registration，没有再次 planner 或时钟激活。
+- 新 source 用例及受影响 preparation 回归 22/22、0 skip、exit 0，15351.1814 ms；受影响 default browser / continuation / intake 回归 73/73、0 skip、exit 0，23434.3722 ms。原 product interviewer 的 disconnected guard 用例改为保留原 abort-before-intent 条件；实际准备模式已接通。
+- compiled 代表入口在 TEMP 实际加载 CLI / host / orchestrator 的 `.js`；fake SDK 经真实角色工具写 runtime design，完成原 human 确认、一次 coding repair、cold resume。记录实际 JavaScript 与 resolved SDK / 固定 lock 字节；改 compiled module 后零新派发。初轮 1/1 GREEN，64679.3364 ms；新 bootstrap delta 后 1/1 GREEN、0 skip、exit 0，61540.0529 ms。
+- `npm run typecheck` exit 0；UTF-8/LF、原中文逐行保真与 staged diff 核对随候选提交执行。未重跑真实 Edge、历史费用/生命周期矩阵或付费能力验证。
+- 全部新运行资料、billing、stdin、浏览器传输报告、作者输出均为 SOURCE / TEMP / fake SDK / SYNTHETIC。实际 human 端到端与体验 NONE；不关闭 COS16/COS18、C6 或完整经典验收。

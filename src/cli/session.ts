@@ -27,6 +27,11 @@ async function optionalJson(root: string, name: string): Promise<any | null> {
   try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
 }
 const draftPayload = ({ revision: _revision, source: _source, ...draft }: StoredDraft): GameDraft => draft;
+/** Read-only rejection before confirmation, owner recovery, environment preparation or window activation. */
+export async function rejectPreparationContinuation(root: string): Promise<void> {
+  const mode = await optionalJson(root, 'intake-mode.json');
+  if (mode && modeFromSelection(mode.draftMode) !== 'browser') throw new Error('准备模式尚不支持额外正式续跑窗口。');
+}
 export async function readConfirmedGeneration(root: string, snapshot: RunSnapshot) {
   const source = snapshot.run.humanDecisions.find(decision => decision.decisionId.startsWith('requirements-v'));
   if (!source || source.evidence.length !== 2 || source.evidence[0].artifactId !== 'requirement-draft' || source.evidence[1].artifactId !== 'user-confirmation') throw new Error('No original CLI requirement confirmation to resume.');

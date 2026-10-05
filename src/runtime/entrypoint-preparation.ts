@@ -8,6 +8,7 @@ import type { HostIssue, HostPassedCheck } from './repair/feedback.ts';
 import type { BrowserBuildReport } from './entrypoint-host.ts';
 import type { RoleFactoryOptions } from '../roles/factory.ts';
 import type { HistoricalPassedStages, VerifiedHistoricalStages } from './historical-passed-stages.ts';
+import type { HumanPreparationScope } from './entrypoint-human-preparation.ts';
 
 export interface BrowserCandidateConsumerContext {
   root: string; task: TaskContract; candidate: ArtifactReference; project: string;
@@ -24,10 +25,13 @@ export interface BrowserPreparationContext {
   root: string; registry: ArtifactRegistry; requirement: ExecutionRequirement;
   requirementCapture: ArtifactReference; requirementFile: string;
   primaryDesign: ArtifactReference; candidates: { v1: ArtifactReference; v2: ArtifactReference };
+  /** Human factories expose these identities only after awaited binding; reference preparation has no placeholder IDs. */
   designTaskId: string;
   mediaTaskId: string; primaryMedia: ArtifactReference; candidateTaskIds: { v1: string; v2: string };
   name(value: string): string; signal: AbortSignal; resume: boolean;
   requireScope(): Promise<void>;
+  human?: HumanPreparationScope;
+  taskWorkspace?(taskId: string): string;
   inherited?: { binding: HistoricalPassedStages; verified: VerifiedHistoricalStages };
 }
 /** Trusted source-code seam. Models, proposals and games never provide these callbacks. */

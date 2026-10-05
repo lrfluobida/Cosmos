@@ -113,14 +113,14 @@ test('changed preparation origin or draft bytes cannot be reused for save, nativ
   await assert.rejects(IntakeController.open({ root }), /source changed/i);
 });
 
-test('the existing product browser interviewer rejects preparation before any native session intent', async t => {
+test('the product preparation interviewer keeps the abort guard before any native session intent', async t => {
   const { root, options } = await fixture(t);
   const controller = await IntakeController.create(options as any), host = createProductHost(root);
   Object.defineProperty(controller, 'signal', { value: { throwIfAborted() { throw new Error('SYNTHETIC dispatch guard reached; native providers are disabled in this test.'); } } });
   try {
-    const input = { controller, roundId: 'unconnected', brief: draft().brief };
-    await assert.rejects(host.questions(input), /preparation|browser|mode/i);
-    await assert.rejects(host.draft({ ...input, questions: draft().questions, answers: draft().answers }), /preparation|browser|mode/i);
+    const input = { controller, roundId: 'guarded', brief: draft().brief };
+    await assert.rejects(host.questions(input), /SYNTHETIC dispatch guard/);
+    await assert.rejects(host.draft({ ...input, questions: draft().questions, answers: draft().answers }), /SYNTHETIC dispatch guard/);
     await assert.rejects(access(join(root, 'intake-sessions')), { code: 'ENOENT' });
     assert.deepEqual((await controller.read()).ledger.entries, []);
   } finally { await controller.close(); }

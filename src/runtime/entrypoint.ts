@@ -6,6 +6,7 @@ import { sameValue } from '../contracts/validation.ts';
 import { regularFile } from '../artifacts/paths.ts';
 import type { GameDraft } from '../roles/requirements.ts';
 import { validateGameDraft } from '../roles/requirements.ts';
+import { modeFromSelection } from '../roles/preparation-mode.ts';
 import { planTaskDag } from '../roles/planner.ts';
 import type { PlanningTaskPolicy } from '../roles/planner.ts';
 import type { RoleFactory } from '../roles/factory.ts';
@@ -33,6 +34,8 @@ import { deliveryTaskProofs, publishGenerationReport } from './experience.ts';
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
   validateTasks?(tasks: PreparedTask[]): void;
+  bindPreparedTasks?(tasks: PreparedTask[]): Promise<void>;
+  closePreparation?(): Promise<void>;
   recoverCapture: NonNullable<RecoveryOptions['recoverCapture']>;
   finish(tasks: TaskContract[]): Promise<{ delivery?: string; gaps: string[]; acceptedCandidate?: AcceptedCandidate }>;
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
@@ -63,9 +66,10 @@ export async function reconcileEntryReceipts(root: string, controller: Accountin
 
 /** Thin assembly of the existing planner, scheduler, recovery and bounded repair policy. */
 export async function executeGeneration(options: GenerationOptions) {
+  if (options.windowId && options.draft.preparation) throw new Error('准备模式尚不支持额外正式续跑窗口。');
   if (options.windowId) return executeContinuation(options);
   const root = resolve(options.root), requirement = structuredClone(options.requirement), draft = structuredClone(options.draft);
-  validateGameDraft(draft);
+  validateGameDraft(draft, modeFromSelection(draft.preparation));
   if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Generation requires the exact confirmed acceptance.');
   const original = await readRunSnapshot(root);
   if (original.formatVersion !== 1) throw new Error('Generation has not been activated.');
@@ -79,12 +83,14 @@ export async function executeGeneration(options: GenerationOptions) {
   const interrupt = () => { void stop().catch(() => {}); };
   let control: Awaited<ReturnType<typeof startControl>> | undefined;
   let warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined;
+  let closePreparation: (() => Promise<void>) | undefined;
   try {
     control = await startControl(root, original.run.runId, stop); process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
     if (options.notify) warnings = await startBudgetWarnings(root, options.notify);
     await reconcileEntryReceipts(root, controller);
     if (options.resume && !await optionalJson(root, 'execution.json')) throw new Error('Original planning result is unavailable; resume cannot perform another paid plan.');
     const host = await options.createHost({ root, controller, requirement, draft, resume: options.resume, work });
+    closePreparation = host.closePreparation?.bind(host);
     let phase = 'planning';
     const outcome = await work.run(async signal => {
       let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference };
@@ -101,7 +107,8 @@ export async function executeGeneration(options: GenerationOptions) {
       }
       host.validateTasks?.(execution.tasks);
       phase = options.resume ? 'recovery' : 'execution';
-      const run = (tasks: PreparedTask[], resume: boolean, availableArtifacts = execution.availableArtifacts) => {
+      const run = async (tasks: PreparedTask[], resume: boolean, availableArtifacts = execution.availableArtifacts) => {
+        await host.bindPreparedTasks?.(tasks);
         const common: DagOptions = { controller, requirement, tasks, sessionRoot: join(root, 'sessions'), availableArtifacts,
           roleFactory: host.roleFactory, preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure, signal,
           reviewProtocolCorrections: 1,
@@ -194,7 +201,7 @@ export async function executeGeneration(options: GenerationOptions) {
     return await publishGenerationReport(root, outcome, { capability: host.capability, requirement, unsupported: draft.unsupported });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
-    await warnings?.close(); await control?.close(); await controller.close();
+    await warnings?.close(); await control?.close(); await closePreparation?.(); await controller.close();
   }
 }
 

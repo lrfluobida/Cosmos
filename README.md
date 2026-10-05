@@ -11,6 +11,17 @@
 
 当前仓库包含规范、任务拆分与局部模型探针。完整 Cosmos、pi 集成和完整游戏仍需实施与验收。
 
+## 推箱子准备模式
+
+安装仓库依赖与通用模板工具链后，可从公开 CLI 开始：
+
+```powershell
+npm start -- new <run-dir> --adapter sokoban --brief "中文单关鼠标推箱子"
+npm start -- resume <run-dir>
+```
+
+CLI 集中提问、展示完整草稿，只有真实 stdin 的 `confirm <revision>` 才能确认当前版本。此模式固定为一个玩家、两个箱子和两个目标、最多 8×8 的封闭地图；超出范围的要求保留为 unsupported。地图、解法和验收计划由同一次正式运行中的设计作者生成。恢复沿用原账本、截止与封存绑定；同窗口的合格编码缺陷可按既有策略自动修复一次。准备模式目前不接受额外正式 `continue` 或 `resume --window`。
+
 ## 文档
 
 - [GitHub spec 与 17 个子任务](https://github.com/lrfluobida/Cosmos/issues/1)
