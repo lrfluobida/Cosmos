@@ -107,7 +107,7 @@
 - [ ] [COS-59 为长编码响应设置原窗口内的可信请求时限](https://github.com/lrfluobida/Cosmos/issues/60)
 - [ ] [COS-60 准备带编码时限的第七迁移案例与已核实余额准入](https://github.com/lrfluobida/Cosmos/issues/61)
 - [ ] [COS-61 接通准备模式首个显式编码追加窗口](https://github.com/lrfluobida/Cosmos/issues/62)
-- [ ] [COS-62 补齐编码追加的主机接线与最终试玩证明](https://github.com/lrfluobida/Cosmos/issues/63)
+- [ ] [COS-62 验证准备模式追加后的生产交付与试玩](https://github.com/lrfluobida/Cosmos/issues/63)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -782,7 +782,7 @@ TRANSFER_CASE_SEVEN_SOURCE_READY / source-integrated / source-and-TEMP-only；�
 
 ### COS-61 · 接通准备模式首个显式编码追加窗口
 
-- 发布状态：[#62](https://github.com/lrfluobida/Cosmos/issues/62)，id5708959437；native parent已关联、登记时61children为历史，当前62children。最终候选`561a588356110712f40e72fd708e072fd31e5868`经专属cos61_reviewer整体APPROVED，唯一batch08_merger合入`415dfb57bb04042ebc02128fa3c43fffdf055e5f`；[公共审批](https://github.com/lrfluobida/Cosmos/issues/62#issuecomment-5993471549)经Root POST+GET精确读回。历史PUBLIC_HUMAN_CODING_CONTINUATION_SOURCE_READY审批保留；当前source-integrated-with-host-wiring-gap/source-integrated/open；注册时计划准备中/SOURCE_NOT_READY为历史。
+- 发布状态：[#62](https://github.com/lrfluobida/Cosmos/issues/62)，id5708959437；native parent已关联、登记时61children为历史，当前62children。最终候选`561a588356110712f40e72fd708e072fd31e5868`经专属cos61_reviewer整体APPROVED，唯一batch08_merger合入`415dfb57bb04042ebc02128fa3c43fffdf055e5f`；[公共审批](https://github.com/lrfluobida/Cosmos/issues/62#issuecomment-5993471549)经Root POST+GET精确读回。PUBLIC_HUMAN_CODING_CONTINUATION_SOURCE_READY审批保持；当前offline-verified-awaiting-human/source-integrated/open；注册时计划准备中/SOURCE_NOT_READY为历史。
 
 ## 目标与只读穿刺
 
@@ -821,34 +821,35 @@ TRANSFER_CASE_SEVEN_SOURCE_READY / source-integrated / source-and-TEMP-only；�
 
 ## 状态与预算
 
-历史PUBLIC_HUMAN_CODING_CONTINUATION_SOURCE_READY审批与source/TEMP证据保留；当前source-integrated-with-host-wiring-gap/source-integrated/open。计划`596922e7dd6a94d169c2b0512062b78b2a42a5a1`获PLAN_APPROVED，合入`86ba3615a5ab99251c5738dfcd24e45bbe7c45e5`；最终20paths已独审，source/tests冻结于`400b7aed55496ce413111b7b4217df92833e6e3f`，最后提交仅整理证据。
+PUBLIC_HUMAN_CODING_CONTINUATION_SOURCE_READY审批与source/TEMP证据保持；当前offline-verified-awaiting-human/source-integrated/open。计划`596922e7dd6a94d169c2b0512062b78b2a42a5a1`获PLAN_APPROVED，合入`86ba3615a5ab99251c5738dfcd24e45bbe7c45e5`；最终20paths已独审，source/tests冻结于`400b7aed55496ce413111b7b4217df92833e6e3f`，最后提交仅整理证据。
 
 source1/1（126453.4474ms）、最终compiled1/1（170179.0071ms）、context/authorization/unknown2/2（68808.5494ms）、ACK/missingorigin2/2（74677.4218ms）及merger descriptor/version1/1（19.120s）均0skip通过；[原始工具证据](../reviews/2026-10-05-cos61-tool-output-evidence.md)12块已独审精确匹配。cancel/EOF/stale子例PASS18.631s，但原cohort exit1因unknown fixture错误；修复后最终unknown组2/2 exit0。strict7.027s只为grouped shell整体exit0，compiled另断言fresh tsc.status0；实际Node worker2、TEMP synthetic tsc/Vite，具体PID未记录。
 
 当前真实 C6 的974882 micro-CNY unknown、rev1942/14stopped/6delegations/65closed/11audits保持；真实 C7/closure12均未执行，human确认/新追加窗口/paid均NONE，COS18仍partial/open。本卡实施无模型费用，不触 Root 的账本、凭据、会话或参考安装。共享验证¥150/首阶段¥30/COS16原¥10、案例¥5/45min/80，以及 formal原¥200/12h/目标¥100/6h不变；追加仅在未来真实用户明确决定后生效。
 
 源码前置：COS18已有 formal continuation、COS52生产transfer host、COS53准备草稿、COS58 public human准备模式的独立批准集成；COS59 coding时限和COS60 execution-source闭包证据可复用，不要求未完成的COS16/COS18或完整经典基准先closed。
-后续P1穿刺：Source61组合直接注入createHost，未验证实际core host factory。main415的entrypoint-host.ts:239只纳operator历史，:538/:932职责校验因未纳human原design/art而拒绝单coding，:783的finish同样缺原passed任务；entrypoint continuation report仅含newcoding，experience原设计/美术AC覆盖不足。原20paths审批、12工具块和fixture通过事实保留，生产接线与完整试玩报告由COS62承接。
+前次生产缺口判断撤回：单coding探针未使用实际完整计划；continuation-plan.ts的originals.map保留原passed design/art及当前coding三个PreparedTask，新增grant只有coding。实际生产createProductHost.execute/core及experience组合通过，无需给原阶段新增活动权限或修改src；原20paths审批、12工具块和fixture证据保持。COS62补此直接生产代表的test/docs。
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
 稳定任务 ID：COS-61
 
-### COS-62 · 补齐编码追加的主机接线与最终试玩证明
+### COS-62 · 验证准备模式追加后的生产交付与试玩
 
-- 发布状态：[#63](https://github.com/lrfluobida/Cosmos/issues/63)，id5713122564；Root发布、修卡并POST/PATCH+GET精确读回，native parent62children #2–#63/旧61成员保真。in-progress/planning/open/SOURCE_NOT_READY；无批准SHA、模型调用或真实human。
+- 发布状态：[#63](https://github.com/lrfluobida/Cosmos/issues/63)，id5713122564；标题与正文已修为生产回归验证，native parent62children #2–#63/旧61成员保持。最终`a21d233098d8a70ce8225732113efe21bd489027`经cos62_reviewer对3paths实际diff与GREEN原输出独审APPROVED/HUMAN_CONTINUATION_DELIVERY_VALIDATION_READY，awaiting-integration/open；src/依赖/既有fixture字节未改，无实际模型调用或真实human。
 - 源码前置：COS18 formal continuation、COS34 experience、COS61 preparation continuation的独立批准集成；outputs COS18/COS34。不要求partial产品任务先closed。
 
 ## 目标与实施范围
 
-接通首个human preparation coding追加的实际生产host与最终试玩报告。validateTasks/finish按已有封存HumanContinuationScope.lineage的原design/art身份读取同一snapshot的passed任务，核对职责、当前coding依赖及原全部AC；单newcoding仍是唯一活动任务，不重建授权、旧阶段不派发或计费。
+从公开CLI、fixture stdin确认走实际createProductHost.execute/core host、自动交付报告与experience。仅注入SDK/browser/toolchain等外部transport；不能替换本次被验证的createHost/execute/validateTasks/finish。实际完整计划保留原passed design/art及当前coding三任务，新增grant只有coding，旧阶段不派发、计费或获得当前活动权限。
 
-GenerationHost.finish内部返回必要的已认证交付任务证明；continuation报告据原design/art与当前coding三任务生成effectiveTasks，保留当前candidate/attempt/独立review、原requirement/AC/scope。内部字段不直接散入公开报告，experience沿用现有exact report/candidate/task proof及独立stdin回执；普通生成与默认browser路径保持兼容。
+使用实际产出的报告核对完整effectiveTasks、原全部AC及current candidate/attempt/review和experience精确绑定。前次人为单coding完整计划的失败预期未证明产品缺陷，原代码修复计划的前提已撤回；本卡仅补test/docs和实际验证计划，不修改已工作的生产架构。
 
 ## 免费验收与边界
 
-1. RED复现真实corefactory单coding职责拒绝与报告缺历史AC的experience拒绝；GREEN使用实际生产host factory有界fixture，不能省略core host。
-2. 真实CLI加fixture stdin覆盖同一完整报告approve/reject/status，以及cancel/EOF无决定；current candidate/attempt/review/report或passed证明变化仍拒绝错误版本。
-3. 全部原AC保持，调度/plan.tasks/grant/编译工具/新增coding及reviewer调用范围不变；无新模型调用、窗口、grant、额度或旧阶段执行。
-4. 复用Source61重型lineage/consumer/source/compiled组合及COS34版本绑定证据，仅新增本次host接线、报告装配和相关CLI检查；专属implementer与独立reviewer，唯一batch08_merger集成。
+1. 实际productionfactory/CLI代表达到awaiting_user_experience，三个prepared tasks/一个新增coding grant，新调用仅coding与独立reviewer。
+2. 原全部AC与三项effectiveTasks证明保持，actual loadExperienceBinding可核对生成报告；不能删除AC或放松原检查。
+3. CLI fixture stdin cancel/EOF无决定，旧阶段证明变化拒绝，恢复后approve/status通过；复用COS34对立决定、候选与版本矩阵。
+4. 原两passed、四根回执、snapshot与calls保持，体验决定仅写原有独立回执，不新增窗口/模型/grant/时间。复用Source61 source/compiled/lineage/consumer重型证据。
+5. 作者实际组合1/1、0skip通过（test106812.2946ms/process109884.2448ms），覆盖生产core与完整报告、cancel/EOF、artreview变化拒绝及restore后approve/status；所有transport为fixture、src未改，最终actual diff与证据已独审通过，等待唯一batch08_merger集成。
 
 本任务不实现第二次追加、通用试玩等待阶段或完整经典基准。实际human/paid/新窗口NONE，COS18仍partial；actual C6 unknown974882、65closed/11audits、closure12/真实C7未执行保持。共享验证¥150/首¥30/COS16原¥10，正式原¥200/12h、目标¥100/6h不变。
 
