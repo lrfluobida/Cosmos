@@ -1112,6 +1112,8 @@ spec 第4B要求冻结本机配置、1280×720，普通场景平均至少55 FPS�
 
 - 发布状态：[#71](https://github.com/lrfluobida/Cosmos/issues/71)，id5719982616；正文/native70children #2–#71/旧69保真与父新unchecked70已Root精确读回。in-progress/open/SOURCE_NOT_READY，actual65在cos05从c999d53提交短计划4754935888365e5f0810d387cd5a406fe7022f01（21行/275词），专属独立reviewer actual67已PLAN_APPROVED；作者TDD中、actual66为BATCH12 solemerger，尚未源码审批。
 
+- 源码检查点：候选77e7f3413923a421eebededb2b9a95840236bb12/source-tests6425a30已交专属actual67独审，实际14diff及3/3代表核查后复现completed读取错误依赖当前installed observer的P2；作者actual65修复中，原77e7未批准/SOURCE_NOT_READY。原封存证据不变，安装副本模板升级会令resume/status拒绝；未完成/追加current-source守卫须保留。验证与原RED见PROGRESS最新检查点，未合入源码。
+
 #### 目标
 
 把已审 Source69 的真实渲染帧采样能力接入公开 Windows CLI，并在首次生成、未完成恢复和显式追加窗口中保存同一可信选择与输入。复用已有采样器；不增加FPS基准通过声明、费用或时限。
@@ -1149,7 +1151,7 @@ src/cli/index.ts 的公开入口只接受现有 brief/adapter，创建createProd
 
 ### COS-71 · 接通双模块编码任务与最终集成
 
-- 发布状态：[#72](https://github.com/lrfluobida/Cosmos/issues/72)，id5720207319；正文/native71/旧70及父11完成保持已Root精确读回。AWAITING_PLAN/SOURCE_NOT_READY/in-progress/open；actual67专属作者先计划，actual65独立reviewer、actual66为BATCH13 sole merger。实施等待COS70 source READY，尚无已批实现。
+- 发布状态：[#72](https://github.com/lrfluobida/Cosmos/issues/72)，id5720207319；正文/native71/旧70及父11完成保持已Root精确读回。PLAN_APPROVED仅计划/SOURCE_NOT_READY/in-progress/open；actual67专属作者、actual65独立reviewer、actual66为BATCH13 sole merger。原2cc计划被要求修正空接口证明及声明捕获映射；修订accf52ea4992635089ea6dfc1d3715c828e5757f（15行/270词）已actual65独立affected审查批准，[公共记录](https://github.com/lrfluobida/Cosmos/issues/72#issuecomment-6005618925)已精确读回。实施等待COS70 source READY，71prod/tests仍NONE，尚无已批实现。
 
 #### 目标
 
