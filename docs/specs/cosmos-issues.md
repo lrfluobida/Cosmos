@@ -107,7 +107,7 @@
 - [ ] [COS-59 为长编码响应设置原窗口内的可信请求时限](https://github.com/lrfluobida/Cosmos/issues/60)
 - [ ] [COS-60 准备带编码时限的第七迁移案例与已核实余额准入](https://github.com/lrfluobida/Cosmos/issues/61)
 - [ ] [COS-61 接通准备模式首个显式编码追加窗口](https://github.com/lrfluobida/Cosmos/issues/62)
-- [ ] [COS-62 验证准备模式追加后的生产交付与试玩](https://github.com/lrfluobida/Cosmos/issues/63)
+- [x] [COS-62 验证准备模式追加后的生产交付与试玩](https://github.com/lrfluobida/Cosmos/issues/63)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -834,7 +834,7 @@ source1/1（126453.4474ms）、最终compiled1/1（170179.0071ms）、context/au
 
 ### COS-62 · 验证准备模式追加后的生产交付与试玩
 
-- 发布状态：[#63](https://github.com/lrfluobida/Cosmos/issues/63)，id5713122564；标题与正文已修为生产回归验证，native parent62children #2–#63/旧61成员保持。最终`a21d233098d8a70ce8225732113efe21bd489027`经cos62_reviewer对3paths实际diff与GREEN原输出独审APPROVED/HUMAN_CONTINUATION_DELIVERY_VALIDATION_READY，awaiting-integration/open；src/依赖/既有fixture字节未改，无实际模型调用或真实human。
+- 发布状态：[#63](https://github.com/lrfluobida/Cosmos/issues/63)，id5713122564；标题与正文已修为生产回归验证，native parent62children #2–#63/旧61成员保持。最终`a21d233098d8a70ce8225732113efe21bd489027`经cos62_reviewer对3paths实际diff与GREEN原输出独审APPROVED/HUMAN_CONTINUATION_DELIVERY_VALIDATION_READY，唯一batch08_merger合入推送`fd1983a7b84f0ef4b8c611773d1a6d6ef018c957`，本卡source/TEMP回归范围complete/closed/source-integrated；[公共审批](https://github.com/lrfluobida/Cosmos/issues/63#issuecomment-5996443626)、body/state/父checkbox[x]由Root POST/PATCH+GET精确读回；src/依赖/既有fixture字节未改，无实际模型调用或真实human。
 - 源码前置：COS18 formal continuation、COS34 experience、COS61 preparation continuation的独立批准集成；outputs COS18/COS34。不要求partial产品任务先closed。
 
 ## 目标与实施范围
@@ -849,7 +849,7 @@ source1/1（126453.4474ms）、最终compiled1/1（170179.0071ms）、context/au
 2. 原全部AC与三项effectiveTasks证明保持，actual loadExperienceBinding可核对生成报告；不能删除AC或放松原检查。
 3. CLI fixture stdin cancel/EOF无决定，旧阶段证明变化拒绝，恢复后approve/status通过；复用COS34对立决定、候选与版本矩阵。
 4. 原两passed、四根回执、snapshot与calls保持，体验决定仅写原有独立回执，不新增窗口/模型/grant/时间。复用Source61 source/compiled/lineage/consumer重型证据。
-5. 作者实际组合1/1、0skip通过（test106812.2946ms/process109884.2448ms），覆盖生产core与完整报告、cancel/EOF、artreview变化拒绝及restore后approve/status；所有transport为fixture、src未改，最终actual diff与证据已独审通过，等待唯一batch08_merger集成。
+5. 作者实际组合1/1、0skip通过（test106812.2946ms/process109884.2448ms），覆盖生产core与完整报告、cancel/EOF、artreview变化拒绝及restore后approve/status；所有transport为fixture、src未改，最终actual diff与证据已独审通过，唯一batch08_merger已核3批准文件字节/UTF8-LF/diff与新增test静态striptypes检查后合入推送，未重复110s组合。本卡回归范围完成，actualValidation/Paid/Human仍NONE。
 
 本任务不实现第二次追加、通用试玩等待阶段或完整经典基准。实际human/paid/新窗口NONE，COS18仍partial；actual C6 unknown974882、65closed/11audits、closure12/真实C7未执行保持。共享验证¥150/首¥30/COS16原¥10，正式原¥200/12h、目标¥100/6h不变。
 
