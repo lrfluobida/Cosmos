@@ -12,7 +12,7 @@ test('validation planning reads its fixed inputs before any role task registrati
   const f = await validationBrowserFixture(t); let host: any, reads = 0;
   host = await f.create({ sessionFactory: async (config: any) => {
     const packet = JSON.parse(config.context);
-    assert.equal(packet.role, 'cosmos'); assert.equal(config.maxOutputTokens, 4096); assert.deepEqual(config.tools.map((tool: any) => tool.name), ['read']);
+    assert.equal(packet.role, 'cosmos'); assert.equal(config.maxOutputTokens, 4096); assert.equal(config.requestTimeoutMs, 120000); assert.deepEqual(config.tools.map((tool: any) => tool.name), ['read']);
     return { close: async () => {}, prompt: async () => {
       await config.tools[0].execute('planning-read', { path: f.requirement.sources[0].location }, f.controller.signal, undefined, undefined); reads++;
       return { text: JSON.stringify({ tasks: host.taskPolicies.map((policy: any, index: number) => ({ taskId: f.declaration.grants[policy.role].taskId, policyId: policy.policyId,
@@ -58,6 +58,7 @@ test('operator browser host uses current claimed grants without human fields or 
   const role = await host.roleFactory({ controller: f.controller, requirement: f.requirement, role: 'design', task: tasks[0].task, workspace: tasks[0].workspace,
     stateDirectory: join(f.root, 'sessions/design') }); await role.close();
   assert.equal(f.configs[0].maxRequests, 80); assert.equal(f.configs[0].maxOutputTokens, 16384);
+  assert.equal(f.configs[0].requestTimeoutMs, 120000);
   assert.ok(!('confirmedBy' in f.requirement)); assert.deepEqual((await f.controller.read()).run.humanDecisions, []);
   assert.deepEqual((await f.controller.read()).ledger, before.ledger); assert.deepEqual((await f.controller.read()).stopReason, before.stopReason);
 });
@@ -121,7 +122,10 @@ test('unreconciled charges and cancellation block host work without changing his
 });
 
 test('synthetic pipeline binds capture, independent review and IO to current case versions; linked repair keeps its exact grant', async t => {
-  const f = await validationBrowserFixture(t), host = await f.create(), tasks = f.prepare(host); host.validateTasks(tasks);
+  const f = await validationBrowserFixture(t), codingWindows: any[] = [], host = await f.create({ sessionFactory: async (config: any) => {
+    if (JSON.parse(config.context).role === 'coding') codingWindows.push(await config.requestWindow());
+    return f.input.sessionFactory(config);
+  } }), tasks = f.prepare(host); host.validateTasks(tasks);
   const recovery = { artifactRoot: f.root, journalRoot: join(f.root, 'journal'), recoverCapture: host.recoverCapture };
   const run = (items: any[]) => executeTaskDag({ controller: f.controller, validation: f.validation, requirement: f.requirement, tasks: items,
     sessionRoot: join(f.root, 'sessions'), availableArtifacts: host.availableArtifacts, roleFactory: host.roleFactory, preAuthor: host.preAuthor,
@@ -142,4 +146,9 @@ test('synthetic pipeline binds capture, independent review and IO to current cas
   assert.ok(f.calls.filter(call => ['build', 'play'].includes(call.kind)).every(call => call.authority.caseId === f.window.caseId && call.authority.windowId === f.window.windowId && call.authority.deadlineAt === f.window.deadlineAt));
   const current = await f.controller.read(); assert.deepEqual(current.stopReason, before.stopReason); assert.deepEqual(current.run.humanDecisions, []);
   assert.equal(current.requests.filter(item => item.validation).length, f.calls.filter(call => ['design', 'art', 'coding', 'reviewer'].includes(call.kind)).length);
+  const codingConfigs = f.configs.filter(config => JSON.parse(config.context).role === 'coding');
+  assert.deepEqual(codingConfigs.map(config => JSON.parse(config.context).taskId), [source.task.taskId, repair.task.taskId]);
+  assert.ok(codingConfigs.every(config => config.requestTimeoutMs === 600000));
+  assert.deepEqual(codingWindows, codingConfigs.map(() => ({ deadlineAt: Date.parse(f.window.deadlineAt), cleanupMs: 5000 })));
+  assert.ok(f.configs.filter(config => JSON.parse(config.context).role !== 'coding').every(config => config.requestTimeoutMs === 120000));
 });

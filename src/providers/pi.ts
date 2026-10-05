@@ -46,6 +46,8 @@ export interface PiSessionOptions {
   maxOutputTokens: number;
   maxRequests: number;
   requestTimeoutMs: number;
+  /** Trusted host authority, refreshed before admission and immediately before dispatch. */
+  requestWindow?: () => Promise<{ deadlineAt: number; cleanupMs: number }>;
   /** Host must cover the input size and image cost of each request, including compaction. */
   estimatedMaxCostMicroCny: number | ((request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) => number);
   budget: PiBudget;
@@ -105,6 +107,17 @@ export async function createPiSession(config: PiSessionOptions) {
   const records: PiResponse[] = [];
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
   const throwIfFailed = () => { if (failure) throw failure; };
+  async function effectiveRequestTimeout() {
+    if (!config.requestWindow) return config.requestTimeoutMs;
+    try {
+      const window = await config.requestWindow();
+      positive(window.deadlineAt, 'deadlineAt');
+      positive(window.cleanupMs, 'cleanupMs');
+      const remaining = window.deadlineAt - Date.now() - window.cleanupMs;
+      positive(remaining, 'remaining request time');
+      return Math.min(config.requestTimeoutMs, remaining);
+    } catch { throw fail('admission_rejected', 'Request window authority or cleanup time is unavailable; no provider request sent'); }
+  }
   modelRuntime.streamSimple = (requestModel, context, options) => lazyStream(requestModel, async () => {
     throwIfFailed();
     if (requestModel.provider !== 'deepseek' || requestModel.id !== DEEPSEEK_MODEL) throw fail('model_mismatch', 'Unexpected model route');
@@ -121,6 +134,7 @@ export async function createPiSession(config: PiSessionOptions) {
       estimate = typeof config.estimatedMaxCostMicroCny === 'function' ? config.estimatedMaxCostMicroCny(request) : config.estimatedMaxCostMicroCny;
       positive(estimate, 'estimatedMaxCostMicroCny');
     } catch { throw fail('invalid_request', 'Request cost estimate must be a positive safe integer'); }
+    await effectiveRequestTimeout();
     try {
       await config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: estimate });
     } catch {
@@ -157,14 +171,17 @@ export async function createPiSession(config: PiSessionOptions) {
       try {
         throwIfFailed();
         if (closed || signal.aborted) throw fail('cancelled', 'Session was cancelled before dispatch');
+        const requestTimeoutMs = await effectiveRequestTimeout();
+        throwIfFailed();
+        if (closed || signal.aborted) throw fail('cancelled', 'Session was cancelled before dispatch');
         // The SDK's HTTP timeout ends at response headers; retain a deadline through the body stream.
         timeout = setTimeout(() => {
           fail('timeout', 'Provider stream exceeded requestTimeoutMs');
           deadline.abort();
-        }, config.requestTimeoutMs);
+        }, requestTimeoutMs);
         sent = true;
         const stream = originalStream(requestModel, context, {
-          ...options, signal, maxTokens: config.maxOutputTokens, maxRetries: 0, timeoutMs: config.requestTimeoutMs,
+          ...options, signal, maxTokens: config.maxOutputTokens, maxRetries: 0, timeoutMs: requestTimeoutMs,
           onProviderStreamEvent: async (data, model) => {
             firstResponseMs ??= performance.now() - started;
             if (data && typeof data === 'object') {

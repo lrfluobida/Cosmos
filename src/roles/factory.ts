@@ -51,6 +51,8 @@ export interface RoleFactoryOptions {
   authorMaxOutputTokens?: Partial<Record<AuthorRole, number>>;
   maxRequests: number;
   requestTimeoutMs: number;
+  /** Trusted coding author cap; planning and reviewers retain requestTimeoutMs. */
+  codingAuthorRequestTimeoutMs?: number;
   estimatedMaxCostMicroCny: PiSessionOptions['estimatedMaxCostMicroCny'];
   thinkingLevel?: PiSessionOptions['thinkingLevel'];
   env?: PiSessionOptions['env'];
@@ -83,6 +85,8 @@ export function assertOwnership(task: TaskContract, workspace: string): void {
 export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   const authorLimits = { ...options.authorMaxOutputTokens };
   if (Object.entries(authorLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxOutputTokens requires valid author roles and positive safe integers.');
+  const codingTimeout = options.codingAuthorRequestTimeoutMs;
+  if (codingTimeout !== undefined && (!Number.isSafeInteger(codingTimeout) || codingTimeout <= 0)) throw new Error('codingAuthorRequestTimeoutMs requires a positive safe integer.');
   return async input => {
     input.controller.signal.throwIfAborted();
     const task = structuredClone(input.task), requirement = structuredClone(input.requirement);
@@ -146,7 +150,17 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next. Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`) + `\n\n${inputFilesProtocol}`,
       context: JSON.stringify(packet), thinkingLevel: options.thinkingLevel ?? 'low', env: options.env,
       maxOutputTokens: validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
-      maxRequests: options.maxRequests, requestTimeoutMs: options.requestTimeoutMs,
+      maxRequests: options.maxRequests, requestTimeoutMs: input.role === 'coding' && purpose === 'author' ? codingTimeout ?? options.requestTimeoutMs : options.requestTimeoutMs,
+      requestWindow: async () => {
+        input.controller.signal.throwIfAborted();
+        const current = validation ? await input.controller.validationAuthority(task.taskId, purpose) : await input.controller.executionAuthority(task.taskId);
+        const original = validation ?? authority!;
+        if (current.windowId !== original.windowId || current.deadlineAt !== original.deadlineAt
+          || ('caseId' in current && current.caseId !== validation?.caseId)
+          || !('executionAllowed' in current ? current.executionAllowed : current.admissionAllowed)) throw new Error('Role request has no current original window authority.');
+        input.controller.signal.throwIfAborted();
+        return { deadlineAt: Date.parse(current.deadlineAt), cleanupMs: 5000 };
+      },
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
