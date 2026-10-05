@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 66
+    "childCount": 67
   },
   "tasks": [
     {
@@ -4870,12 +4870,108 @@
         }
       ],
       "nativeParentLinked": true,
+      "state": "closed",
+      "integrationStatus": "complete",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "GENERIC_PERSISTENT_SAVE_SOURCE_READY",
+      "reviewedCommit": "9c5d746f507d42dbe82fa36e338a9aa1351e45ae",
+      "mergeCommit": "41abd8ae5186cca8cdac4822ae2d54137ec0c8ab",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/67#issuecomment-6001993790",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "67ccd381c14cf8ffbee1ef8f935945e7f68a165b",
+      "acceptanceScope": "source-free-fixture-generic-persistent-save",
+      "sourceEvidence": {
+        "approvedPaths": 20,
+        "focusedPassed": 21,
+        "latestRealEdgePassed": 1,
+        "latestRealEdgeFixtureMs": 6409,
+        "latestRealEdgeOverallMs": 9908,
+        "latestRealEdgeVersion": "154.0.4258.48",
+        "latestRaw": "C:/Users/26557/AppData/Local/Temp/cos66-host-M5DAIA",
+        "repairDiagnosisPassed": 5,
+        "combinedSamplePassed": 3,
+        "independentFinalPassed": 2,
+        "independentFinalProcessMs": 8400.9683,
+        "mergeRepresentativePassed": 1,
+        "mergeRepresentativeMs": 10.077,
+        "typecheckExit": 0,
+        "buildExit": 0,
+        "unaffectedEvidenceReused": true,
+        "fullCleanupTimingValidated": false
+      },
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-67",
+      "title": "执行经典启动与离线政策并保留完整验收分母",
+      "number": 68,
+      "id": 5718274808,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/68",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-64",
+          "number": 65,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/65"
+        },
+        {
+          "id": "COS-65",
+          "number": 66,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/66"
+        },
+        {
+          "id": "COS-66",
+          "number": 67,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/67"
+        },
+        {
+          "id": "COS-01",
+          "number": 2,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/2"
+        },
+        {
+          "id": "COS-14",
+          "number": 15,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/15"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-14",
+          "number": 15,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/15"
+        },
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "in-progress",
       "implementationPhase": "source-implementation",
       "reviewStatus": "SOURCE_NOT_READY",
       "planReviewStatus": "PLAN_APPROVED",
-      "planReviewedCommit": "67ccd381c14cf8ffbee1ef8f935945e7f68a165b",
+      "planReviewedCommit": "0b91a893f8679985f625cf066963665803e15ffe",
+      "implementer": "cos67_implementer",
+      "reviewer": "cos65_implementer (dedicated COS67 independent reviewer)",
+      "batch": "09",
+      "merger": "cos66_implementer (dedicated BATCH09 sole merger)",
+      "acceptanceScope": "source-free-fixture-runtime-policy-only",
+      "catalogRows": 230,
+      "referenceUnknownRows": 221,
+      "otherUnexecutedPolicies": 7,
       "actualValidation": "NONE",
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
@@ -4883,6 +4979,6 @@
       "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 66,
+  "verifiedNativeSubIssues": 67,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
