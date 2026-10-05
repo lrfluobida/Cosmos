@@ -154,11 +154,13 @@ interface HumanContinuationPreparation {
 | original registered repair | 使用原已登记repair、原v2映射 | 1/1，43.681秒；唯一current candidate/primary，无新增repair权限 |
 | compiled pipeline / owned worker | 实际dist当前factory与current编译工具 | 与repair合并2/2，214.349秒；compiled部分167.532秒，current coding一次、workerPids2、cold SDK0、helper字节漂移拒绝 |
 | current context / source authorization | 旧v1/v2 context候选，24.078秒；注册前缺immutable authorization，明确assert RED24.351秒 | 两audit slots同一current task/candidate，封存taskWindowBinding+唯一grant；source deadline篡改与unknown冷恢复不重发2/2，68.809秒 |
-| cancel/EOF/错确认/确认期间旧proof变化 | 无新授权、无SDK请求 | 1/1，18.631秒，snapshot及旧human回执bytes/mtime保持 |
+| cancel/EOF/错确认/确认期间旧proof变化 | 无新授权、无SDK请求 | 该子测试PASS，18.631秒，snapshot及旧human回执bytes/mtime保持；所属cohort整体exit1（初始unknown fixture未调用unknown response hook），不是整组GREEN；最终unknown组68.809秒整体exit0 |
 | current字段变更后的compiled复验 | 只重验该delta | 1/1、0skip，170.179秒；actual current owned worker2、consumer/review/accept/cold与source drift拒绝仍通过 |
 | 默认/原public入口代表 | 复用未改大矩阵 | 默认continue、默认active stop、public new、非法preparation scope4/4、0skip，7.449秒 |
 
-最新 strict `node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit` 为7.027秒、exit0；`git diff --check` 通过。所有列出的GREEN均0skip，不重跑既有Edge、26分钟matrix或未改预算/编译工具机制。unknown代表明确调用原admission与unknown response hooks；只保留TEMP费用事实，冷恢复不产生第二笔请求。
+最后包含 strict `node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit`、diff check/stat/status 的grouped shell为7.027秒、整体exit0、无编译诊断；该次未单独保存tsc子命令exit。最终compiled代表另外实际断言fresh tsc.status0。`git diff --check` 通过。所有列出的GREEN均0skip，不重跑既有Edge、26分钟matrix或未改预算/编译工具机制。最终unknown代表明确调用原admission与unknown response hooks；只保留TEMP费用事实，冷恢复不产生第二笔请求。
+
+原始工具输出的实际保留位置、session_meta/line/chunk/exec-session索引与逐块原文见 [COS61 原始工具输出交接](../reviews/2026-10-05-cos61-tool-output-evidence.md)。原执行未另写stdout日志；该文档在证据交接时从本implementer既存Codex audit精确提取，仅含工具stdout/exit，不是重测输出。TEMP已清理；worker具体PID值未打印，不能补造。产品源码/tests保持`400b7aed55496ce413111b7b4217df92833e6e3f`原字节。
 
 原四份根目录 human source/tasks/prepared/origin bytes和mtime保持。当前source回执另外记录immutable authorization（当前起止时间、quote/decision/window、effective limit和唯一grant）、实际确认sha与执行闭包。原flat起止时间仅作为原运行历史，跨安装版本或source→compiled切换不放行。当前两计划的steps/expected由原immutable map确定性派生，原registered repair明确关联原v2；current primary始终是第一个当前引用。
 
