@@ -31,7 +31,7 @@ import { executionWindowView } from './execution-window.ts';
 import type { AcceptedCandidate } from '../artifacts/index.ts';
 import { deliveryTaskProofs, publishGenerationReport, readCompletedGeneration } from './experience.ts';
 import { finishCompletion } from './completion-timing.ts';
-import { readFrameSelection } from './render-frame-selection.ts';
+import { readFrameSelection, requireCurrentFrameSource } from './render-frame-selection.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
@@ -78,6 +78,7 @@ export async function executeGeneration(options: GenerationOptions) {
   if (!sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Confirmed draft source changed.');
   const frames = await readFrameSelection(root, original, options.renderFrames);
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
+  await requireCurrentFrameSource(frames);
   if (original.stopReason) throw new Error(`Original run is stopped: ${original.stopReason.code}.`);
   if (Date.now() >= Date.parse(original.run.originalDeadlineAt)) throw new Error('Original deadline expired; no new generation window is allowed.');
   if (options.resume) await recoverRunOwner(root);
@@ -224,6 +225,7 @@ async function executeContinuation(options: GenerationOptions) {
     || !sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Original requirement confirmation changed.');
   const frames = await readFrameSelection(root, original, options.renderFrames);
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
+  await requireCurrentFrameSource(frames);
   if (window.stopReason) throw new Error(`Execution window is stopped: ${window.stopReason.code}.`);
   await recoverRunOwner(root);
   const controller = await RunController.open({ root, windowId }), work = new OwnedWork(controller.signal);

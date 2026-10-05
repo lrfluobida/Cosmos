@@ -16,7 +16,7 @@ import { sameValue } from '../contracts/validation.ts';
 import { readRunSnapshot, recoverRunOwner, startBudgetWarnings, startControl } from './control.ts';
 import type { RunSnapshot } from '../runtime/run-types.ts';
 import { readCompletedGeneration } from '../runtime/experience.ts';
-import { readFrameSelection, selectRenderFrames } from '../runtime/render-frame-selection.ts';
+import { readFrameSelection, requireCurrentFrameSource, selectRenderFrames } from '../runtime/render-frame-selection.ts';
 import type { RenderFrameSelection } from '../runtime/render-frame-selection.ts';
 
 export interface ProductHost {
@@ -88,7 +88,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   const ask = async (prompt: string) => { say(prompt); const next = await iterator.next(); return next.done ? null : next.value.trim(); };
   let intake: IntakeController | undefined, control: Awaited<ReturnType<typeof startControl>> | undefined, warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined, active: Promise<unknown> | undefined;
   let frames: RenderFrameSelection | undefined;
-  const run = async <T>(action: () => Promise<T>): Promise<T> => { if (intake) await readFrameSelection(root, await intake.read()); const work = action(); active = work; try { return await work; } finally { if (active === work) active = undefined; } };
+  const run = async <T>(action: () => Promise<T>): Promise<T> => { if (intake) await requireCurrentFrameSource(await readFrameSelection(root, await intake.read())); const work = action(); active = work; try { return await work; } finally { if (active === work) active = undefined; } };
   let stopping: Promise<void> | undefined;
   const stop = () => stopping ??= (async () => {
     if (!intake) throw new Error('Intake owner is unavailable.');
@@ -121,6 +121,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         if (options.draftMode !== undefined && !sameValue(draft.preparation, selectedMode)) throw new Error('Resume cannot replace the original draft mode.');
         const completed = await readCompletedGeneration(root, requirement);
         if (completed) { lines.close(); say(JSON.stringify(completed, null, 2)); return completed; }
+        await requireCurrentFrameSource(frames);
         if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
         if (Date.now() >= Date.parse(snapshot.run.originalDeadlineAt)) throw new Error('Original deadline expired; resume cannot extend it.');
         say(`恢复原运行 ${snapshot.run.runId}；费用与截止时间保持连续。`);
@@ -131,6 +132,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (snapshot.formatVersion !== 'intake-1') throw new Error('Expected the original intake snapshot.');
       if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
       if (options.draftMode !== undefined && !sameValue(snapshot.draftMode, selectedMode)) throw new Error('Resume cannot replace the original draft mode.');
+      await requireCurrentFrameSource(frames);
       await recoverRunOwner(root);
       intake = await IntakeController.open({ root });
     }

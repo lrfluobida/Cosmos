@@ -12,7 +12,7 @@ import { SnapshotStore } from './store.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { validateSnapshot } from './run-validation.ts';
 import type { RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
-import { frameConfirmationVersion, frameIntakeReason, readFrameSelection, validateFrameSelection } from './render-frame-selection.ts';
+import { frameConfirmationVersion, frameIntakeReason, readFrameSelection, requireCurrentFrameSource, validateFrameSelection } from './render-frame-selection.ts';
 import type { RenderFrameSelection } from './render-frame-selection.ts';
 
 export type StoredDraft = GameDraft & { revision: number; source: ArtifactReference };
@@ -131,7 +131,7 @@ export class IntakeController {
     try {
       const state = await store.read(); validateIntakeSnapshot(state);
       await requireModeOrigin(store.root, state);
-      if (state.renderFrames) await readFrameSelection(store.root, state);
+      if (state.renderFrames) await requireCurrentFrameSource(await readFrameSelection(store.root, state));
       const controller = new IntakeController(store, state, options.now ?? Date.now), next = structuredClone(state);
       if (state.draftMode && state.draft) await controller.requireDraftFile(state.draft);
       for (const record of next.requests) {
@@ -218,7 +218,7 @@ export class IntakeController {
       this.requireActive(); const next = structuredClone(this.snapshot), draft = next.draft;
       if (!draft || draft.revision !== confirmation.revision) throw new Error('Confirmation must name the current draft revision.');
       if (draft.unsupported.length) throw new Error('Unsupported requirements need a decision before confirmation.');
-      if (next.renderFrames) await readFrameSelection(this.store.root, next);
+      if (next.renderFrames) await requireCurrentFrameSource(await readFrameSelection(this.store.root, next));
       const source = confirmationRef(draft.revision, next.renderFrames);
       const requirement = confirmRequirements({ ...payload(draft), specVersion: next.run.specVersion, sources: [draft.source, source] }, confirmation);
       if (next.draftMode) await this.requireDraftFile(draft);
@@ -244,7 +244,7 @@ export class IntakeController {
       if (prior.ledger.entries.some(entry => entry.reservedMicroCny || entry.unknown)) throw new Error('Outstanding or unknown intake charges block activation.');
       if (budgetSummary(prior.ledger).exhausted) throw new Error('Budget exhausted before activation.');
       await this.requireDraftFile(prior.draft);
-      if (prior.renderFrames) await readFrameSelection(this.store.root, prior);
+      if (prior.renderFrames) await requireCurrentFrameSource(await readFrameSelection(this.store.root, prior));
       const receipt = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await readFile(join(this.store.root, confirmed.source.location))));
       if (!sameValue(receipt, { revision: confirmed.revision, confirmed: true, actorId: confirmed.requirement.confirmedBy, at: confirmed.requirement.confirmedAt, runId: prior.run.runId, draft: prior.draft.source,
         ...(prior.renderFrames ? { renderFrames: prior.renderFrames } : {}) })) throw new Error('Confirmation source changed.');

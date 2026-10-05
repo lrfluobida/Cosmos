@@ -19,6 +19,11 @@ export async function selectRenderFrames(): Promise<RenderFrameSelection> {
   new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   return { enabled: true, observer: { ...observer }, observerSha256: validationHash(bytes) };
 }
+/** Execution needs the same installed source; historical reads authenticate original captures. */
+export async function requireCurrentFrameSource(selection?: RenderFrameSelection): Promise<void> {
+  validateFrameSelection(selection);
+  if (selection && !isDeepStrictEqual(selection, await selectRenderFrames())) throw new Error('Original render-frame observer source bytes changed.');
+}
 export function frameConfirmationVersion(revision: number, selection?: RenderFrameSelection) {
   validateFrameSelection(selection);
   return `v${revision}${selection ? `-frames-${selection.observerSha256}` : ''}`;
@@ -55,8 +60,6 @@ export async function readFrameSelection(root: string, state: IntakeSnapshot | R
   if (!selection) return undefined;
   if (!origin || origin.runId !== state.run.runId || typeof origin.brief !== 'string' || origin.draftMode !== undefined
     || Object.keys(origin).some(key => !['runId', 'brief', 'renderFrames'].includes(key))) throw new Error('Original render-frame intake identity changed.');
-  const current = await selectRenderFrames();
-  if (!isDeepStrictEqual(selection, current)) throw new Error('Original render-frame observer source bytes changed.');
   const execution = await optionalJson(root, 'execution.json');
   if (execution) {
     const refs = execution.availableArtifacts?.filter((ref: ArtifactReference) => ref.artifactId === observer.artifactId);
