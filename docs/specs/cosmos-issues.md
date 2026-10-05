@@ -738,7 +738,7 @@ CODING_REQUEST_TIMEOUT_SOURCE_READY / source-integrated / source-and-TEMP-only�
 
 ### COS-60 · 准备带编码时限的第七迁移案例与已核实余额准入
 
-- 发布状态：[#61](https://github.com/lrfluobida/Cosmos/issues/61)，id5707067158；native parent已关联、当前60children。专属implementer计划编写中，SOURCE_NOT_READY/source-and-TEMP-only/open。
+- 发布状态：[#61](https://github.com/lrfluobida/Cosmos/issues/61)，id5707067158；native parent已关联、当前60children。专属计划`ea1df224a444f13bc3445f5083e7751eb539500e`经独立PLAN_APPROVED，合入`bef8f5eb8d8af378b8627c6bee64799428cd2a5f`；作者进入TDD，整体源码仍SOURCE_NOT_READY/source-and-TEMP-only/open。
 
 ## 目标与当前事实
 
@@ -771,7 +771,7 @@ CODING_REQUEST_TIMEOUT_SOURCE_READY / source-integrated / source-and-TEMP-only�
 
 ## 状态
 
-SOURCE_NOT_READY / preparation-only / plan-in-progress。真实 C7 claim、closure12、provider调用、费用和human体验均 NONE；旧 C6 unknown974882 保持，等待真实费用核对。源码准备可以继续，真实运行不越过门禁。
+SOURCE_NOT_READY / preparation-only / in-progress；计划已独审批准，整体源码独审尚未开始。真实 C7 claim、closure12、provider调用、费用和human体验均 NONE；旧 C6 unknown974882 保持，等待真实费用核对。源码准备可以继续，真实运行不越过门禁。
 
 源码前置：COS56/57/59 的独立批准集成；结果用于 COS16，公开 CLI 和完整经典目标沿原验收标准。
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
