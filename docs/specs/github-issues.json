@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 61
+    "childCount": 63
   },
   "tasks": [
     {
@@ -4310,14 +4310,221 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "implementationPhase": "plan-in-progress",
-      "reviewStatus": "SOURCE_NOT_READY",
+      "integrationStatus": "offline-verified-awaiting-human",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "PUBLIC_HUMAN_CODING_CONTINUATION_SOURCE_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "596922e7dd6a94d169c2b0512062b78b2a42a5a1",
+      "planMergeCommit": "86ba3615a5ab99251c5738dfcd24e45bbe7c45e5",
+      "reviewedCommit": "561a588356110712f40e72fd708e072fd31e5868",
+      "sourceTestsCommit": "400b7aed55496ce413111b7b4217df92833e6e3f",
+      "mergeCommit": "415dfb57bb04042ebc02128fa3c43fffdf055e5f",
+      "readyCommentUrl": "https://github.com/lrfluobida/Cosmos/issues/62#issuecomment-5993471549",
+      "investigationCorrection": {
+        "status": "prior-host-wiring-gap-conclusion-withdrawn",
+        "reason": "Single-task probes omitted passed design/art retained by the actual derived three-task plan.",
+        "preparedTasks": 3,
+        "newCodingGrants": 1,
+        "productionSourceChanged": false,
+        "validationTask": "COS-62",
+        "publicCorrectionUrl": "https://github.com/lrfluobida/Cosmos/issues/62#issuecomment-5996119429"
+      },
+      "validationEvidence": {
+        "scope": "source-and-temp-only",
+        "transport": "synthetic-sdk-and-stdin",
+        "affectedSourcePaths": 20,
+        "rawToolBlocksVerified": 12,
+        "evidenceDocument": "docs/reviews/2026-10-05-cos61-tool-output-evidence.md",
+        "sourcePipeline": {
+          "passed": 1,
+          "skipped": 0,
+          "processMs": 126453.4474
+        },
+        "finalCompiledPipeline": {
+          "passed": 1,
+          "skipped": 0,
+          "processMs": 170179.0071,
+          "ownedNodeWorkers": 2,
+          "buildTools": "temp-synthetic-tsc-and-vite",
+          "concreteWorkerPidsRecorded": false,
+          "freshTscStatus": 0
+        },
+        "contextAuthorizationUnknown": {
+          "passed": 2,
+          "skipped": 0,
+          "processMs": 68808.5494
+        },
+        "stopAckMissingOrigin": {
+          "passed": 2,
+          "skipped": 0,
+          "processMs": 74677.4218
+        },
+        "cancelEofStaleChild": {
+          "passed": 1,
+          "testMs": 18631.133,
+          "originalCohortExit": 1,
+          "originalCohortFailure": "unknown-fixture-missing-response-hook",
+          "fixedUnknownCohortExit": 0
+        },
+        "groupedStrictShell": {
+          "durationMs": 7027.4296,
+          "exit": 0,
+          "separateTscExitRecorded": false
+        },
+        "mergeRepresentative": {
+          "passed": 1,
+          "skipped": 0,
+          "durationMs": 19120
+        },
+        "unaffectedEvidenceReused": true,
+        "actualProviderTraffic": "NONE",
+        "humanExperience": "NONE"
+      },
       "actualValidation": "NONE",
       "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-62",
+      "title": "验证准备模式追加后的生产交付与试玩",
+      "number": 63,
+      "id": 5713122564,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/63",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-34",
+          "number": 35,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/35"
+        },
+        {
+          "id": "COS-61",
+          "number": 62,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/62"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-34",
+          "number": 35,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/35"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "closed",
+      "stateReason": "completed",
+      "integrationStatus": "complete",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "HUMAN_CONTINUATION_DELIVERY_VALIDATION_READY",
+      "reviewedCommit": "a21d233098d8a70ce8225732113efe21bd489027",
+      "mergeCommit": "fd1983a7b84f0ef4b8c611773d1a6d6ef018c957",
+      "readyCommentUrl": "https://github.com/lrfluobida/Cosmos/issues/63#issuecomment-5996443626",
+      "executionEvidenceScope": "source-and-temp-only",
+      "validationEvidence": {
+        "scope": "source-and-temp-only",
+        "transport": "fixture-sdk-browser-and-tools",
+        "evidenceDocument": "docs/reviews/2026-10-05-cos62-production-delivery-evidence.md",
+        "affectedSourcePaths": 3,
+        "productionSourceChanged": false,
+        "authorProductionRepresentative": {
+          "passed": 1,
+          "skipped": 0,
+          "testMs": 106812.2946,
+          "processMs": 109884.2448,
+          "actualProductHostAndCore": true,
+          "preparedTasks": 3,
+          "newCodingGrants": 1,
+          "completeOriginalAcceptancePreserved": true,
+          "actualExperienceBinding": true,
+          "cliCancelEofAndApproveStatus": true,
+          "changedArtReviewRejected": true,
+          "snapshotOriginalReceiptsAndCallsPreserved": true
+        },
+        "independentReview": "APPROVED",
+        "mergeChecks": {
+          "approvedFiles": 3,
+          "utf8LfAndDiffCheck": true,
+          "newTestNodeStripTypesStaticCheck": true,
+          "heavyRepresentativeRepeated": false
+        },
+        "unaffectedEvidenceReused": true
+      },
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-63",
+      "title": "保留已完成运行的报告与试玩决定",
+      "number": 64,
+      "id": 5713969134,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/64",
+      "dependsOn": [
+        {
+          "id": "COS-62",
+          "number": 63,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/63"
+        }
+      ],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-34",
+          "number": 35,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/35"
+        },
+        {
+          "id": "COS-61",
+          "number": 62,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/62"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-17",
+          "number": 18,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/18"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-implementation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "88407ca8b59adf63ca90e2d8bacf71087cd94aed",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
       "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 61,
+  "verifiedNativeSubIssues": 63,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
