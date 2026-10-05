@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 67
+    "childCount": 69
   },
   "tasks": [
     {
@@ -4958,10 +4958,14 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open",
-      "integrationStatus": "in-progress",
-      "implementationPhase": "source-implementation",
-      "reviewStatus": "SOURCE_NOT_READY",
+      "state": "closed",
+      "integrationStatus": "complete",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "CLASSIC_RUNTIME_POLICY_SOURCE_READY",
+      "reviewedCommit": "c3340977eb667db04f3d088d1160b5b9adb8a4a8",
+      "mergeCommit": "d07b0f8b71f1d7469f2ff81b26ab3bb8aceb7aaf",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/68#issuecomment-6002531521",
+      "sourceTestsCommit": "c7cab20f7bc0bfb82b28625114207e7a60bf84bf",
       "planReviewStatus": "PLAN_APPROVED",
       "planReviewedCommit": "0b91a893f8679985f625cf066963665803e15ffe",
       "implementer": "cos67_implementer",
@@ -4972,6 +4976,169 @@
       "catalogRows": 230,
       "referenceUnknownRows": 221,
       "otherUnexecutedPolicies": 7,
+      "sourceEvidence": {
+        "approvedPaths": 12,
+        "finalFocusedPassed": 5,
+        "policyCliPassed": 6,
+        "affectedCommonPassed": 15,
+        "benchmarkReferencePassed": 31,
+        "latestNativeIoPassed": 1,
+        "latestNativeIoTestMs": 20944.5424,
+        "latestNativeIoProcessMs": 23937.3724,
+        "latestEdgeVersion": "154.0.4258.48",
+        "latestRaw": "C:/Users/26557/AppData/Local/Temp/cos66-host-C31VSG",
+        "cleanDeliveryEndedAt": "2026-10-05T20:31:00.330Z",
+        "policyReportedAt": "2026-10-05T20:31:00.870Z",
+        "executedPoliciesPassed": 2,
+        "overallAcceptance": "partial",
+        "independentPassed": 3,
+        "independentSkipped": 0,
+        "independentProcessMs": 12724.055,
+        "independentStdout": "C:/Users/26557/AppData/Local/Temp/cos67-independent-host-review.tap",
+        "typecheckExit": 0,
+        "buildExit": 0,
+        "coldModuleExit": 0,
+        "mergeTypecheckExit": 0,
+        "mergeBuildExit": 0,
+        "unaffectedEvidenceReused": true,
+        "fullCleanupTimingValidated": false
+      },
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-68",
+      "title": "记录完整交付清理终点与单次生成时长",
+      "number": 69,
+      "id": 5718488743,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/69",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-34",
+          "number": 35,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/35"
+        },
+        {
+          "id": "COS-63",
+          "number": 64,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/64"
+        },
+        {
+          "id": "COS-65",
+          "number": 66,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/66"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-implementation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "e9d4a34916385fb3f2fb84ab7cc3af207a204a00",
+      "implementer": "cos65_implementer (dedicated COS68 implementer)",
+      "reviewer": "cos67_implementer (dedicated COS68 independent reviewer)",
+      "batch": "10",
+      "merger": "cos66_implementer (dedicated BATCH10 sole merger)",
+      "acceptanceScope": "source-free-fixture-completion-timing",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-69",
+      "title": "采集可信的游戏渲染帧与性能样本",
+      "number": 70,
+      "id": 5718776658,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/70",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-05",
+          "number": 6,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/6"
+        },
+        {
+          "id": "COS-64",
+          "number": 65,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/65"
+        },
+        {
+          "id": "COS-65",
+          "number": 66,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/66"
+        },
+        {
+          "id": "COS-66",
+          "number": 67,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/67"
+        },
+        {
+          "id": "COS-67",
+          "number": 68,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/68"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-14",
+          "number": 15,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/15"
+        },
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-implementation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planInitialCommit": "31d9c243c911625d756f2088ca24a602b438de3f",
+      "planReviewedCommit": "509a7e31e308be94f02d61ad37b9572e6cef38be",
+      "implementer": "cos67_implementer (dedicated COS69 implementer)",
+      "reviewer": "cos65_implementer (dedicated COS69 independent reviewer)",
+      "batch": "11",
+      "merger": "cos66_implementer (dedicated BATCH11 sole merger)",
+      "acceptanceScope": "source-free-fixture-rendered-frame-sampling-only",
+      "performancePolicyStatus": "policy_not_executed",
+      "benchmarkConditionsFrozen": false,
+      "catalogRows": 230,
+      "referenceUnknownRows": 221,
+      "otherUnexecutedPolicies": 7,
       "actualValidation": "NONE",
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
@@ -4979,6 +5146,6 @@
       "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 67,
+  "verifiedNativeSubIssues": 69,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
