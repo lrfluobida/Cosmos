@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 60 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 61 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -738,7 +738,7 @@ CODING_REQUEST_TIMEOUT_SOURCE_READY / source-integrated / source-and-TEMP-only�
 
 ### COS-60 · 准备带编码时限的第七迁移案例与已核实余额准入
 
-- 发布状态：[#61](https://github.com/lrfluobida/Cosmos/issues/61)，id5707067158；native parent已关联、当前60children。专属计划`ea1df224a444f13bc3445f5083e7751eb539500e`经独立PLAN_APPROVED，合入`bef8f5eb8d8af378b8627c6bee64799428cd2a5f`；作者进入TDD，整体源码仍SOURCE_NOT_READY/source-and-TEMP-only/open。
+- 发布状态：[#61](https://github.com/lrfluobida/Cosmos/issues/61)，id5707067158；native parent已关联。最终`a8d4f97bc61e84d0579df952bd39703aabcab2d3`独立整体APPROVED/TRANSFER_CASE_SEVEN_SOURCE_READY，合入`5a15510a1201482d9fa629096a17449463176d31`，21批准文件/UTF8-LF/diff/parser1/1核对通过；[公共审批](https://github.com/lrfluobida/Cosmos/issues/61#issuecomment-5990992898)精确读回。Source/TEMP13focused、source/compiledmutation1/1及current/cold/tool1/1通过，991机制26min1/1与314archiveSHA独审复用；实际main免费preflight期望拒unknown且ledger bytes/mtime/files不变，实际C7/paid/human NONE。
 
 ## 目标与当前事实
 
@@ -771,11 +771,58 @@ CODING_REQUEST_TIMEOUT_SOURCE_READY / source-integrated / source-and-TEMP-only�
 
 ## 状态
 
-SOURCE_NOT_READY / preparation-only / in-progress；计划已独审批准，整体源码独审尚未开始。真实 C7 claim、closure12、provider调用、费用和human体验均 NONE；旧 C6 unknown974882 保持，等待真实费用核对。源码准备可以继续，真实运行不越过门禁。
+TRANSFER_CASE_SEVEN_SOURCE_READY / source-integrated / source-and-TEMP-only；整体源码已独审，当前实际main preflight拒unknown，真实C7 NONE。真实 C7 claim、closure12、provider调用、费用和human体验均 NONE；旧 C6 unknown974882 保持，等待真实费用核对。源码准备可以继续，真实运行不越过门禁。
 
 源码前置：COS56/57/59 的独立批准集成；结果用于 COS16，公开 CLI 和完整经典目标沿原验收标准。
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
 稳定任务 ID：COS-60
+
+### COS-61 · 接通准备模式首个显式编码追加窗口
+
+- 发布状态：[#62](https://github.com/lrfluobida/Cosmos/issues/62)，id5708959437；native parent已关联、当前61children。专属implementer只读穿刺已完成，计划准备中，SOURCE_NOT_READY。
+
+## 目标与只读穿刺
+
+接通公开 CLI 推箱子准备模式的首个显式编码追加窗口。COS58 已接入 new/resume，但 continue 和 resume --window 在 CLI/runtime 显式拒绝；现有 human scope 只承认原 ¥200/12h、windowId=null 和原任务绑定。只移除拒绝会误用旧授权、旧候选计划和旧来源，不能达到原 COS18 的续跑契约。
+
+仅覆盖原 human 准备运行中 design/art 已独立 passed、来源完整可验证、恰一个有效 coding target 未完成的情况；有效 source 可以是原已登记 coding repair。设计或美术未通过、无有效编码目标、第二个追加窗口在报价确认和激活前明确拒绝。最终试玩等待计时阶段另行实现。
+
+## 必须复用的授权与历史
+
+- 沿用 buildContinuationQuote、真实 stdin 的 confirm <quoteId>、activateContinuation、executeContinuation/resumeTaskDag、原统一账本与 owner 生命周期。没有确认的 quote、cancel、EOF、陈旧报价不得激活或产生模型费用。
+- 原 run/ledger、需求确认资料的实际字节与来源、原 ¥200/12h 成绩、费用、失败、stop 和原两个 passed 阶段完整保留。新增金额、时间和窗口结果单列，不能把追加后的成功计为原上限内成功。
+- 新窗口严格沿既有 continuation policy：每个目标一次新尝试，自动语义修复0。原已登记 repair 仅作为明确有效 source，不新增隐含 repair 或复活旧任务。
+- 付费访谈、设计与美术不重跑；当前新增 SDK 只属于新 coding 尝试及其独立 reviewer。原 design/art 的 journal/capture/approved review/signatures/地图/素材字节仅用于认证复用；不能把 operator_validation 的 C5/C7 身份伪装成 human 或重新授予旧阶段活动权限。
+- 原 human scope 与新 continuation scope 分离：新 scope 核对准确 window/grant/deadline、原确认版本及新的真实 operator source；unknown/reserved、停止/过期、未收敛 owner/child 和来源漂移必须拒绝。不能靠候选版本字符串推断权限。
+
+## 计划、执行与恢复
+
+- 复用原固定地图与素材，生成准确绑定新 coding task、candidate、loopback origin 的当前两张计划。新计划引用在 immutable ContinuationPlan、prepared task/context、inputFiles、签名与独立评审输入中提前封存。
+- 现有 continuation-plan 会保留原 coding inputs，continuation-inputs 又要求精确依赖映射。专属计划须明确最小可信扩展（固定 current preparation inputs 或 context.interfaces 均可评估），不能派发后 append、沿用绑定旧 v1/v2 的计划或降低原六T16/八段 consumer 条件。
+- 当前 source/compiled、实际 SDK/browser/build 执行闭包、plan、candidate、loopback、task binding 和执行回执存入该窗口自己的固定命名空间。原 human source/tasks/prepared/origin 回执不覆盖。冷恢复与每次 dispatch/tool/promotion重新核对当前来源和原 passed lineage。
+- 覆盖激活后 plan 前、plan/origin 后、部分注册后的中断；恢复同一 window、deadline、ledger 和原回执，不重复 claim、收费或消费 passed 阶段。
+- 准确接通公开 quote/continue/resume --window/stop、原-session编译工具、同候选 consumer、独立 code review 和 exact promotion。清理须 await listener、受控子进程及 owner idle 后确认停止，不能提前报告成功。
+
+## 方法与文件
+
+先专属 implementer 提交实现计划，独立 reviewer PLAN_APPROVED 后 TDD。最小可能范围：src/cli/index.ts/session.ts/continuation-session.ts；src/runtime/entrypoint*.ts、continuation-plan.ts、经测试证明必要的 continuation-inputs.ts；transfer runtime-host/loopback-origin 与有限历史 design audit helper；定向 tests、README/quickstart/计划。具体以只读源证据和计划明确，不重写原执行器或借本卡实现全部不同游戏、第二次追加或最终等待阶段。
+
+## 免费验收
+
+1. 默认 host 和准备模式原 new/resume 行为保持；符合上述仅编码 lineage 的首个 quote/confirm/activate 正常，非法范围/陈旧/未确认免费拒绝并保持 snapshot/旧原始文件。
+2. 真实命令入口加模拟 stdin 覆盖 quote、准确 confirm、cancel/EOF、激活后的 cold resume --window 和 stop；测试来源明确为 fixture，真实 human 尚无。
+3. 一项 source/TEMP 组合：原 design/art 真实合成 passed 验证；新 coding/new plan/source/current authority，正常 consumer/independent review/exact accept；仅当前 coding/reviewer 调用，原 passed0重复收费、自动 repair0。
+4. 激活/计划/部分注册中断，以及 source/plan/input/origin/candidate/费用/owner 变化拒绝；恢复保持窗口、旧回执 bytes/mtime、当前绑定和费用连续性。
+5. source/compiled 实际依赖闭包变更拒绝和 listener/child/owner清理代表。复用已过 Edge、大矩阵、编译工具、预算与生命周期证据，新增检查仅覆盖本卡变化。
+6. 独立审实际 diff，按规格再质量，UTF-8/中文/readback和exactSHA证据，唯一 batch08 merger 集成；不将合成试玩当实际生成或最终经典验收。
+
+## 状态与预算
+
+SOURCE_NOT_READY / source-and-TEMP-only / plan-in-progress。当前真实 C6 的974882 micro-CNY unknown、65 closed/11 audits保持；真实 C7/closure12均未执行。本卡实施无模型费用和真实用户确认，不触 Root 的账本、凭据、会话或参考安装。共享验证¥150/首阶段¥30/COS16原¥10、案例¥5/45min/80，以及 formal原¥200/12h/目标¥100/6h不变；追加仅在未来真实用户明确决定后生效。
+
+源码前置：COS18已有 formal continuation、COS52生产transfer host、COS53准备草稿、COS58 public human准备模式的独立批准集成；COS59 coding时限和COS60 execution-source闭包证据可复用，不要求未完成的COS16/COS18或完整经典基准先closed。
+父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
+稳定任务 ID：COS-61
 
 ## 5. 任务与上下文包模板
 
