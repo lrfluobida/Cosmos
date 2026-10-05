@@ -12,11 +12,12 @@ import { planTaskDag } from '../../src/roles/planner.ts';
 import { createRoleBudget } from '../../src/roles/provider-budget.ts';
 import { withHostStages, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../../src/roles/requirements.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+import { deliveryTaskProofs, publishGenerationReport } from '../../src/runtime/experience.ts';
 
 /** Explicit offline fixture: real runtime/registry, fake model and fake build/browser. */
-export async function continuationSessionFixture(t: test.TestContext, options: { unknownAuthor?: boolean; failContinuationPlay?: boolean; interruptRole?: 'design' | 'art' | 'coding'; onContinuedAuthor?: (signal: AbortSignal) => Promise<void> } = {}) {
+export async function continuationSessionFixture(t: test.TestContext, options: { completeOriginal?: boolean; unknownAuthor?: boolean; failContinuationPlay?: boolean; interruptRole?: 'design' | 'art' | 'coding'; onContinuedAuthor?: (signal: AbortSignal) => Promise<void> } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-public-window-')); t.after(() => rm(root, { recursive: true, force: true }));
-  const time = Date.now() - 13 * 60 * 60 * 1000, now = () => time;
+  const time = Date.now() - (options.completeOriginal ? 0 : 13 * 60 * 60 * 1000), now = () => time;
   const draft = withHostStages({ brief: '点击原创星星获胜', questions: [{ id: 'goal', prompt: '目标？' }], answers: { goal: '点击星星显示胜利' }, unsupported: [],
     acceptance: [{ acceptanceId: 'win', description: '点击获胜', steps: ['点击星星'], expected: '胜利', evidenceKinds: ['test_report'] }],
     scenario: { viewport: { width: 1280, height: 720 }, steps: [{ id: 'click', kind: 'locator-click', selector: '#star', timeoutMs: 1000 },
@@ -54,10 +55,10 @@ export async function continuationSessionFixture(t: test.TestContext, options: {
         if (role.role === 'design') await writeFile(join(role.workspace, 'authors/design/design.json'), JSON.stringify({ summary: '原创点击游戏', implementationNotes: ['点击目标'], acceptanceMapping: { win: '点击后显示胜利' }, characters: [{ id: 'star', purpose: '目标', states: ['idle'] }], audio: [] }), 'utf8');
         if (role.role === 'art') await writeFile(join(role.workspace, 'authors/art/media.json'), JSON.stringify({ characters: [{ id: 'star', width: 32, height: 32, anchor: { x: 16, y: 16 }, layers: [{ id: 'body', shape: 'rect', x: 2, y: 2, width: 28, height: 28, fill: '#FFD700', stroke: '#000000', strokeWidth: 0 }], states: [{ name: 'idle', fps: 1, loop: true, frames: [{}] }] }], audio: [] }), 'utf8');
         if (role.role === 'coding') {
-          await writeFile(join(role.workspace, 'authors/coding/index.html'), continued ? '<div>fresh offline fixture</div>' : '<div>旧未完成产物</div>', 'utf8');
-          if (continued) await writeFile(join(role.workspace, 'authors/coding/src/main.ts'), '// Offline fake provider fixture\n', 'utf8');
+          await writeFile(join(role.workspace, 'authors/coding/index.html'), continued || options.completeOriginal ? '<div>fresh offline fixture</div>' : '<div>旧未完成产物</div>', 'utf8');
+          if (continued || options.completeOriginal) await writeFile(join(role.workspace, 'authors/coding/src/main.ts'), '// Offline fake provider fixture\n', 'utf8');
         }
-        if (!continued && role.role === (options.interruptRole ?? 'coding')) interrupted.abort();
+        if (!continued && !options.completeOriginal && role.role === (options.interruptRole ?? 'coding')) interrupted.abort();
         return { text: JSON.stringify({ summary: 'Offline scoped output', remaining: [], uncertainty: [] }) };
       } };
     };
@@ -72,11 +73,16 @@ export async function continuationSessionFixture(t: test.TestContext, options: {
       roleFactory: host.roleFactory, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure,
       reviewProtocolCorrections: 1, now, signal: interrupted.signal, recovery: { journalRoot: join(root, 'journal'), artifactRoot: root, recoverCapture: host.recoverCapture } });
     const cancelled = ['design', 'art', 'coding'].indexOf(options.interruptRole ?? 'coding');
-    assert.deepEqual(results.map(task => task.state), results.map((_, index) => index < cancelled ? 'passed' : 'cancelled')); await controller.stop('Offline original hard stop');
+    assert.deepEqual(results.map(task => task.state), results.map((_, index) => options.completeOriginal || index < cancelled ? 'passed' : 'cancelled'));
+    if (options.completeOriginal) {
+      const final = await host.finish(results); assert.ok(final.acceptedCandidate); assert.deepEqual(final.gaps, []);
+      await publishGenerationReport(root, { outcome: 'awaiting_user_experience', runId: 'public-game', ledgerId: 'public-ledger', currentProject: root,
+        ...final, effectiveTasks: deliveryTaskProofs(results) }, { capability: host.capability, requirement, unsupported: draft.unsupported });
+    } else await controller.stop('Offline original hard stop');
   } finally { await controller.close(); }
   const original = JSON.parse(await readFile(join(root, 'snapshot.json'), 'utf8'));
   let ready = true;
   const host = { prepare: async () => ({ environmentReady: ready, executionReady: ready, reason: 'Offline prerequisite fixture' }), questions: async () => { throw new Error('No new interview'); }, draft: async () => { throw new Error('No new draft'); },
     execute: (options: any) => executeGeneration({ ...options, createHost }) };
-  return { root, original, calls, host, setReady: (value: boolean) => { ready = value; } };
+  return { root, original, calls, host, createHost, requirement, draft, setReady: (value: boolean) => { ready = value; } };
 }

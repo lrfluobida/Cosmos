@@ -11,6 +11,7 @@ import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
 import { readRunSnapshot, recoverRunOwner } from './control.ts';
 import { readConfirmedGeneration, rejectPreparationContinuation } from './session.ts';
 import type { ProductHost } from './session.ts';
+import { readCompletedGeneration } from '../runtime/experience.ts';
 
 interface IO { root: string; host: ProductHost; input: Readable; output: Writable }
 async function ready(io: IO) {
@@ -63,11 +64,13 @@ export async function runContinuationSession(options: IO & { additionalMicroCny:
 
 export async function resumeContinuation(options: IO & { windowId: string }) {
   const root = resolve(options.root), state = await readRunSnapshot(root);
-  await rejectPreparationContinuation(root);
   if (state.formatVersion !== 2 || state.continuation?.currentWindowId !== options.windowId) throw new Error('续跑窗口与原运行不匹配。');
   const window = state.continuation.windows.find(item => item.windowId === options.windowId)!;
   if (window.stopReason) throw new Error(`该窗口已持久停止 (${window.stopReason.code})，不能由 resume 清除。`);
   const inputs = await readConfirmedGeneration(root, state);
+  const completed = await readCompletedGeneration(root, inputs.requirement);
+  if (completed) { options.output.write(JSON.stringify(completed, null, 2) + '\n'); return completed; }
+  await rejectPreparationContinuation(root);
   if (!await ready({ ...options, root })) return { outcome: 'waiting_prerequisites' };
   const result = await options.host.execute({ root, ...inputs, resume: true, windowId: window.windowId, notify: message => options.output.write(message + '\n') });
   options.output.write(JSON.stringify(result, null, 2) + '\n'); return result;

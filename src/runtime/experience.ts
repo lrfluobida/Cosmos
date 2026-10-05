@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { rename, unlink } from 'node:fs/promises';
+import { lstat, rename, unlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { ArtifactRegistry } from '../artifacts/index.ts';
 import type { AcceptedCandidate } from '../artifacts/index.ts';
@@ -112,6 +112,37 @@ function view(binding: ExperienceBinding, decision: ExperienceReceipt | null) {
     acceptanceScope: binding.acceptanceScope, decision };
 }
 export async function readBoundExperienceStatus(root: string, binding: ExperienceBinding) { return view(binding, await receipt(root, binding)); }
+/** Completed resume reads an existing delivery; it never reopens execution or republishes it. */
+export async function readCompletedGeneration(root: string, requirement: RequirementContract) {
+  root = resolve(root);
+  let selected: Buffer;
+  try { selected = await regularFile(root, 'delivery/current-report.json'); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
+  const { marker, report } = await currentReport(root);
+  if (report.automaticAcceptance !== 'passed' || !report.acceptedCandidate) return null;
+  const snapshotBytes = await regularFile(root, 'snapshot.json'), state = await readRunSnapshot(root);
+  if (state.formatVersion !== 1 && state.formatVersion !== 2) throw new Error('Completed delivery requires the original formal generation.');
+  const stop = state.formatVersion === 2 ? state.continuation!.windows.find(window => window.windowId === state.continuation!.currentWindowId)!.stopReason : state.stopReason;
+  if (stop) throw new Error(`Completed delivery run is durably stopped (${stop.code}); resume cannot clear it.`);
+  if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) throw new Error('Completed delivery charges require reconciliation; read-only resume cannot settle them.');
+  const idle = async () => {
+    for (const name of ['.controller.lock', 'registry/.commit.lock']) {
+      const path = await safePath(root, name), owned = await lstat(path).then(() => true, error => { if (error.code === 'ENOENT') return false; throw error; });
+      if (owned) throw new Error('Completed delivery owner or registry writer is unresolved; read-only resume cannot recover it.');
+    }
+  };
+  await idle();
+  const { readConfirmedGeneration } = await import('../cli/session.ts'), confirmed = await readConfirmedGeneration(root, state);
+  if (!sameValue(confirmed.requirement, requirement)) throw new Error('Completed delivery requires the original CLI requirement confirmation.');
+  const binding = await loadExperienceBinding(root);
+  if (!sameValue(binding.report, marker.report) || binding.reportSha256 !== marker.sha256 || !sameValue(binding.acceptanceScope.acceptance, requirement.acceptance)) throw new Error('Completed automatic report differs from the original confirmed acceptance or selected version.');
+  const status = await readBoundExperienceStatus(root, binding);
+  await idle();
+  if (!selected.equals(await regularFile(root, 'delivery/current-report.json')) || !snapshotBytes.equals(await regularFile(root, 'snapshot.json'))) throw new Error('Completed delivery changed during read-only resume.');
+  return { ...report, report: binding.report.location, userExperience: status.userExperience, finalCompletion: status.finalCompletion,
+    experienceTiming: { automaticReportedAt: report.reportedAt, decidedAt: status.decision?.decidedAt ?? null,
+      elapsedSinceAutomaticReportMs: Math.max(0, (status.decision ? Date.parse(status.decision.decidedAt) : Date.now()) - Date.parse(report.reportedAt)) } };
+}
 export async function readExperienceStatus(root: string) {
   try {
     const binding = await loadExperienceBinding(root);

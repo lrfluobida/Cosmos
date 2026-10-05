@@ -43,3 +43,17 @@
 ## 边界
 
 不变更报告格式、体验 binding、晋升、调度、追加授权和账本。不启动模型或实际用户试玩，不读 Root `.cosmos`、凭据、会话或参考安装。实际 C6 unknown、closure12/C7 仍外部待核对；完整 cleanup 计时、完整经典基准和真实 human 仍是已有缺口。
+
+## 实施与证据
+
+独立 reviewer 已批准 plan-only `88407ca8b59adf63ca90e2d8bacf71087cd94aed`。四个生产文件只接只读完成分支；合法三任务夹具保留默认中断行为，新增测试不修改实际游戏。
+
+- 原运行公开 RED：合法 planner / DAG / registry 已接受，fixture stdin approve 后真实公开 resume 重写 UUID/hash，1 FAIL、0 skip，test 2079.9114ms / process 5857.9091ms。完整安全工具块 `C:/Users/26557/AppData/Local/Temp/cos63-original-resume-red.tool.json`；本任务 own audit `01a10c79-69a9-7ca3-9b3d-d3acf5cedbd9` line 311、chunk `d1b929`，仅保留该 stdout/exit 块。
+- Window RED：模拟当前窗口 deadline 后，真实公开 resume 进入 expire 并写 deadline stop，1 FAIL、0 skip / 5304.2021ms；`C:/Users/26557/AppData/Local/Temp/cos63-window-resume-red.tap`。
+- 直接 runtime 原确认来源：改 confirmation.actorId 后初次缺拒绝，1 FAIL / 4732.81ms；完成分支复用既有 `readConfirmedGeneration` 后 1 PASS / 4596.9654ms。分别 `cos63-runtime-confirmation-red.tap`、`cos63-runtime-confirmation-green.tap`，位于同一 TEMP 目录。
+- 新边界组合：8/8 PASS、0 skip / 30259.2291ms；`cos63-completed-resume-boundaries.tap`。覆盖原/window 复用、待试玩/reject、7 项 proof/mode 漂移、wrong window/mode flag、owner、reserved/unknown、hard stop、原合法收据核对与 cold dist；所有拒绝核对整树 SHA/length/mtime/filelist 和调用列表不变。
+- 最终受影响代表：3/3 PASS、0 skip / 20084.3606ms；`cos63-final-affected.tap`。新增 ordinary direct runtime approve、window 截止内复用与标准 `fileURLToPath`；冷代表 fresh tsc.status=0 后真实 `dist/cli/index.js resume` fresh process.status=0，环境不含 API 凭据，test 11941.6869ms。
+- 未完成恢复代表：6/6 PASS、0 skip / 7109.5744ms；`cos63-existing-recovery-representatives.tap`。原 CLI 确认、前置、lost plan、无 acceptedCandidate 的旧 fixture、window activation/unknown 恢复保留。
+- 独立 `npm run typecheck` exit 0 / tool wall 8.1566572s（chunk `e9d1fa`）。后续生产字节未改，最终 cold 编译另有实际退出断言。
+
+以上 TAP 均是本任务局部原始 stdout；测试用真实生产 CLI/runtime/registry，但 transport、build/browser、stdin 和跨 deadline 的时钟明确是 SOURCE/TEMP fixture。没有真实模型、真实用户体验或完整 12h 成绩。`experienceTiming.automaticReportedAt` 仅原报告时间；`decidedAt` 来自绑定回执，`elapsedSinceAutomaticReportMs` 从自动报告起算，可能包含最后清理，不能解释为完整生成结束或纯等待耗时。

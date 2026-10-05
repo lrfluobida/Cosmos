@@ -15,6 +15,7 @@ import type { DraftMode } from '../roles/preparation-mode.ts';
 import { sameValue } from '../contracts/validation.ts';
 import { readRunSnapshot, recoverRunOwner, startBudgetWarnings, startControl } from './control.ts';
 import type { RunSnapshot } from '../runtime/run-types.ts';
+import { readCompletedGeneration } from '../runtime/experience.ts';
 
 export interface ProductHost {
   prepare(root: string, signal?: AbortSignal): Promise<{ environmentReady: boolean; executionReady: boolean; reason?: string }>;
@@ -102,9 +103,11 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (snapshot.formatVersion === 2) throw new Error('This run has an authorized continuation window; select it explicitly with resume --window <id>.');
       if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
       if (snapshot.formatVersion === 1) {
-        if (Date.now() >= Date.parse(snapshot.run.originalDeadlineAt)) throw new Error('Original deadline expired; resume cannot extend it.');
         const { draft, requirement } = await readConfirmedGeneration(root, snapshot);
         if (options.draftMode !== undefined && !sameValue(draft.preparation, selectedMode)) throw new Error('Resume cannot replace the original draft mode.');
+        const completed = await readCompletedGeneration(root, requirement);
+        if (completed) { lines.close(); say(JSON.stringify(completed, null, 2)); return completed; }
+        if (Date.now() >= Date.parse(snapshot.run.originalDeadlineAt)) throw new Error('Original deadline expired; resume cannot extend it.');
         say(`恢复原运行 ${snapshot.run.runId}；费用与截止时间保持连续。`);
         lines.close();
         const result = await host.execute({ root, requirement, draft, resume: true, notify: say });
