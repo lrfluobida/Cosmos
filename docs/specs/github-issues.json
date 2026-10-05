@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 65
+    "childCount": 66
   },
   "tasks": [
     {
@@ -4745,12 +4745,137 @@
         }
       ],
       "nativeParentLinked": true,
+      "state": "closed",
+      "stateReason": "completed",
+      "integrationStatus": "complete",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "STANDALONE_DELIVERY_SOURCE_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "17f125f3501be27c22911d95123a5a2357b0a4e8",
+      "reviewedCommit": "b23db32524c3c8d3e6826d3d98657486df3aa0d4",
+      "sourceImplementationCheckpoint": "8be559de70d86fc2e4574af9cb5c17b5e34289b0",
+      "deadlineFixCommit": "b23db32524c3c8d3e6826d3d98657486df3aa0d4",
+      "mergeCommit": "82fb72735cdbfd5972cd5132336780c9594f5b9c",
+      "readyCommentUrl": "https://github.com/lrfluobida/Cosmos/issues/66#issuecomment-6000999975",
+      "executionEvidenceScope": "source-and-temp-only",
+      "validationEvidence": {
+        "scope": "source-and-temp-only",
+        "transport": "fixture-sdk-content-input-clock-and-real-build-node-edge",
+        "affectedSourcePaths": 24,
+        "productionAndConfigPaths": 8,
+        "testPaths": 14,
+        "documentPaths": 2,
+        "evidenceDocument": "docs/plans/2026-10-06-cos65-standalone-delivery.md",
+        "coldProductionChain": {
+          "passed": 1,
+          "skipped": 0,
+          "testMs": 14685.7862,
+          "processMs": 17736.8728,
+          "actualTscViteRendererNodeEdge": true,
+          "normalAndMediaSteps": 9,
+          "browserErrors": 0,
+          "browserAndHelperExited": true,
+          "independentReviewAndPromotion": true,
+          "licenseFilesByteMatched": 6
+        },
+        "sourceBoundaries": {
+          "passed": 12,
+          "skipped": 0,
+          "processMs": 19606.1222
+        },
+        "hostRepresentatives": {
+          "passed": 4,
+          "skipped": 0,
+          "processMs": 8964.0035
+        },
+        "transportRepresentatives": {
+          "passed": 3,
+          "skipped": 0,
+          "processMs": 43045.6278
+        },
+        "independentRepresentatives": {
+          "passed": 3
+        },
+        "deadlineFix": {
+          "scope": "original-remaining-deadline-minus-existing-5000ms-reserve",
+          "controlledTimerSimulation": true,
+          "actual185SecondWait": false,
+          "affectedPassed": 3,
+          "affectedSkipped": 0,
+          "affectedProcessMs": 7491.7356,
+          "independentPassed": 1,
+          "independentTestMs": 1648.6052,
+          "independentReportedTotalMs": 3632,
+          "typecheckExit": 0,
+          "typecheckToolWallSeconds": 7.7328763
+        },
+        "mergeHelperRepresentative": {
+          "passed": 1,
+          "durationMs": 1674.078
+        },
+        "unaffectedEvidenceReused": true,
+        "fullCleanupTimingValidated": false
+      },
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-66",
+      "title": "接通通用游戏的存档重开与跨阶段媒体验收",
+      "number": 67,
+      "id": 5717406960,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/67",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-64",
+          "number": 65,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/65"
+        },
+        {
+          "id": "COS-65",
+          "number": 66,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/66"
+        },
+        {
+          "id": "COS-37",
+          "number": 38,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/38"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-14",
+          "number": 15,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/15"
+        },
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "in-progress",
       "implementationPhase": "source-implementation",
       "reviewStatus": "SOURCE_NOT_READY",
       "planReviewStatus": "PLAN_APPROVED",
-      "planReviewedCommit": "17f125f3501be27c22911d95123a5a2357b0a4e8",
+      "planReviewedCommit": "67ccd381c14cf8ffbee1ef8f935945e7f68a165b",
       "actualValidation": "NONE",
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
@@ -4758,6 +4883,6 @@
       "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 65,
+  "verifiedNativeSubIssues": 66,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
