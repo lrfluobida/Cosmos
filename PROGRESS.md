@@ -681,7 +681,7 @@ Root本轮只读确认deepseek-flash端点可用、余额至少覆盖原单case�
 
 Root发布并精确读回[COS58/#59](https://github.com/lrfluobida/Cosmos/issues/59) id5704951453、native parent58children #2–#59与新checkbox，旧57成员与正文保持。此项接入已有准备型草稿与生产consumer，先覆盖真实stdin确认后的human new/resume；当前not-started/open/SOURCE_NOT_READY。原human RequirementContract、原¥200/12h授权与实际source/compiled字节须核对，计划/current task IDs在context/signature之前绑定；准备模式formal continuation须在确认/激活/新增费用前拒绝，后续另卡。
 
-该卡不新增预算、实际human确认、游戏地图或付费窗口；C6尚未claim，原C5/C8结果、ledger/group费用、未知经典基准与human NONE保持。先完成COS57源码装配与独审，再按专属implementer/reviewer流程实施公开入口。
+该卡不新增预算、实际human确认、游戏地图或付费窗口；C6尚未claim，原C5/C8结果、ledger/group费用、未知经典基准与human NONE保持。先完成COS57源码装配与独审，再按专属implementer/reviewer流程实施公开入口。独立架构审查确认边界可实施，并补明确human底层executionAuthority/原workspace接线；规划前仅预留refs、规划后封存真实三role及原规则coding repair身份，地图通过后固定双plan、冷恢复原绑定。同窗口automatic coding repair沿用，额外formal continuation提前拒绝。#59对应补充PATCH+GET精确读回，SOURCE_NOT_READY与预算不变。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
