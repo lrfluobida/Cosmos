@@ -27,11 +27,15 @@ export interface HumanContinuationPreparation {
 
 /** Same-run passed proof only. This never asks a stopped historical task for active authority. */
 export async function readHumanContinuationLineage(root: string, state: RunSnapshot) {
-  let modeBytes: Buffer;
-  try { modeBytes = await regularFile(root, 'intake-mode.json'); }
-  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error; }
-  const mode = decode(modeBytes);
-  if (modeFromSelection(mode.draftMode) === 'browser') return undefined;
+  const optional = async (path: string) => { try { return await regularFile(root, path); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error; } };
+  const decision = state.run.humanDecisions.find(item => item.decisionId.startsWith('requirements-v'));
+  const modeBytes = await optional('intake-mode.json'), confirmedDraft = decision?.evidence[0] && decode(await regularFile(root, decision.evidence[0].location));
+  const originalSource = await optional('host-human-preparation-source.json'), originalExecution = await optional('execution.json');
+  const expectedPreparation = !!originalSource || confirmedDraft && Object.hasOwn(confirmedDraft, 'preparation')
+    || originalExecution && decode(originalExecution).capability === 'browser-design-input-preparation-v1';
+  const mode = modeBytes && decode(modeBytes);
+  if (!expectedPreparation && (!mode || modeFromSelection(mode.draftMode) === 'browser')) return undefined;
+  requireThat(modeBytes && mode && modeFromSelection(mode.draftMode) === 'cos16-input/1', 'original preparation mode is missing or inconsistent');
   requireThat([1, 2].includes(state.formatVersion as number) && state.run.kind === 'runtime_generation' && state.ledger.scope === 'generation'
     && state.ledger.limitMicroCny === 200_000_000, 'original formal human scope required');
   requireThat(sameValue(mode, { runId: state.run.runId, createdAt: state.events[0].at, draftMode: mode.draftMode }), 'intake mode changed');
@@ -39,7 +43,6 @@ export async function readHumanContinuationLineage(root: string, state: RunSnaps
   const read = async (name: string) => { const absolute = resolve(root, name); requireThat(absolute !== resolve(root) && within(root, absolute), 'source escapes original run');
     const path = relative(root, absolute).split(sep).join('/'), bytes = await regularFile(root, path); sources.push({ path, sha256: hash(bytes) }); return bytes; };
   await read('intake-mode.json');
-  const decision = state.run.humanDecisions.find(item => item.decisionId.startsWith('requirements-v'));
   requireThat(decision && decision.evidence.length === 2, 'original human requirement confirmation missing');
   const refs = decision!.evidence, draft = decode(await read(refs[0].location)), confirmation = decode(await read(refs[1].location));
   validateGameDraft(draft, modeFromSelection(mode.draftMode));
@@ -57,7 +60,7 @@ export async function readHumanContinuationLineage(root: string, state: RunSnaps
   requireThat(sourceBytes.equals(canonical({ formatVersion: 'human-preparation-source/1', runId: state.run.runId, ledgerId: state.ledger.ledgerId,
     specVersion: state.run.specVersion, startedAt: state.run.originalStartedAt, deadlineAt: state.run.originalDeadlineAt, requirement,
     sources: [{ location: refs[0].location, sha256: hash(canonical(draft)) }, { location: refs[1].location, sha256: hash(canonical(confirmation)) },
-      { location: 'intake-mode.json', sha256: hash(modeBytes) }], execution: source.execution })), 'original source receipt changed');
+      { location: 'intake-mode.json', sha256: hash(modeBytes!) }], execution: source.execution })), 'original source receipt changed');
   requireThat((await regularFile(root, refs[0].location)).equals(canonical(draft)) && (await regularFile(root, refs[1].location)).equals(canonical(confirmation)), 'original confirmation bytes changed');
   await requireExecutionSource(source.execution);
   requireThat(sameValue(source.execution, await executionSource(root)), 'original execution installation changed; platform migration is unsupported');

@@ -41,7 +41,7 @@ export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
   continuationTargets?(sources: PreparedTask[], feedback: RepairFeedback, grants: Record<string, number>): Promise<SuccessorTarget[] | null>;
 }
-export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; binding?: { windowId: string; tasks: PreparedTask[] } }
+export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
 export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> { try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
@@ -66,7 +66,6 @@ export async function reconcileEntryReceipts(root: string, controller: Accountin
 
 /** Thin assembly of the existing planner, scheduler, recovery and bounded repair policy. */
 export async function executeGeneration(options: GenerationOptions) {
-  if (options.windowId && options.draft.preparation) throw new Error('准备模式尚不支持额外正式续跑窗口。');
   if (options.windowId) return executeContinuation(options);
   const root = resolve(options.root), requirement = structuredClone(options.requirement), draft = structuredClone(options.draft);
   validateGameDraft(draft, modeFromSelection(draft.preparation));
@@ -208,7 +207,7 @@ export async function executeGeneration(options: GenerationOptions) {
 /** One existing explicit window, using the same executor and the host's fixed complete binding. */
 async function executeContinuation(options: GenerationOptions) {
   const root = resolve(options.root), windowId = options.windowId!, requirement = structuredClone(options.requirement), draft = structuredClone(options.draft);
-  validateGameDraft(draft);
+  validateGameDraft(draft, modeFromSelection(draft.preparation));
   if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Continuation requires the original confirmed acceptance.');
   const original = await readRunSnapshot(root);
   if (original.formatVersion !== 2 || original.continuation?.currentWindowId !== windowId) throw new Error('Wrong continuation execution window.');
@@ -231,9 +230,10 @@ async function executeContinuation(options: GenerationOptions) {
       try {
         await reconcileEntryReceipts(root, controller);
         plan = await loadContinuationPlan({ root, controller, requirement, windowId });
-        host = await options.createHost({ root, controller, requirement, draft, work, resume: true, binding: { windowId, tasks: plan.tasks } });
+        host = await options.createHost({ root, controller, requirement, draft, work, resume: true, binding: { windowId, tasks: plan.tasks, ...(plan.preparation ? { preparation: plan.preparation } : {}) } });
         if (host.capability !== plan.capability || !sameValue(host.availableArtifacts, plan.availableArtifacts)) throw new RecoveryBlocked('Original host capability or available input versions changed.');
         host.validateTasks?.(plan.tasks);
+        await host.bindPreparedTasks?.(plan.tasks);
         await prepareContinuationPlan({ root, controller, requirement, windowId, plan, recoverCapture: host.recoverCapture });
         const result = await resumeTaskDag({ controller, windowId, requirement, tasks: plan.tasks, sessionRoot: join(root, 'sessions'), availableArtifacts: plan.availableArtifacts,
           roleFactory: host.roleFactory, preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure,
@@ -263,6 +263,6 @@ async function executeContinuation(options: GenerationOptions) {
     });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
-    await warnings?.close(); await control?.close(); await controller.closeAfterDrain(work);
+    await warnings?.close(); await control?.close(); await host?.closePreparation?.(); await controller.closeAfterDrain(work);
   }
 }

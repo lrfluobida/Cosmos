@@ -61,6 +61,7 @@ async function directClosure(entry: string) {
 }
 /** Runner/persistent already loaded Playwright; bind the actual CommonJS children and its ESM wrappers. */
 async function browserClosure(entry: string) {
+  await import('@playwright/test');
   const require = createRequire(import.meta.url), paths = new Set([entry, await realpath(fileURLToPath(import.meta.resolve('playwright/test')))]);
   const seed = require.cache[require.resolve('playwright/test')];
   if (!seed) throw new Error('Actual Playwright runner implementation is not loaded.');

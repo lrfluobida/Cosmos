@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import test from 'node:test';
 import { runCli } from '../../src/cli/index.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { loadContinuationPlan } from '../../src/runtime/continuation-plan.ts';
 import { requireContinuationInputs } from '../../src/runtime/continuation-inputs.ts';
+import { reserveTransferOrigin } from '../../src/runtime/adapters/transfer/loopback-origin.ts';
 import { humanContinuationFixture, continuationStreams } from './human-continuation.fixture.ts';
 
 const args = (root: string, quote = false) => ['continue', root, ...(quote ? ['--quote'] : []), '--add-cny', '1', '--add-minutes', '10'];
@@ -58,4 +62,32 @@ test('human preparation plan fixes current interfaces and refuses a wrong plan v
     current.task.context.interfaces.at(-1)!.version = 'wrong-version';
     await assert.rejects(requireContinuationInputs(await controller.read(), changed, f.root), /interface|plan|preparation/i);
   } finally { await controller.close(); }
+});
+
+test('fresh public preparation quote loads the actual source dependencies without a running host', async t => {
+  const f = await humanContinuationFixture(t), before = await readFile(join(f.root, 'snapshot.json'));
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const result = spawnSync(process.execPath, ['--experimental-strip-types', join(repository, 'src/cli/index.ts'), ...args(f.root, true)], { cwd: repository, encoding: 'utf8', windowsHide: true });
+  assert.equal(result.status, 0, result.stderr); assert.equal(JSON.parse(result.stdout).proposed.targets.length, 1);
+  assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before); await f.requirePreserved();
+});
+
+test('current human origin refuses the original receipt path before creating a listener', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'cos61-origin-')); let created: Awaited<ReturnType<typeof reserveTransferOrigin>> | undefined;
+  t.after(async () => { await created?.close(); await rm(root, { recursive: true, force: true }); });
+  await assert.rejects(reserveTransferOrigin({ root, resume: false, signal: new AbortController().signal, requireScope: async () => {},
+    binding: { profile: 'human', runId: 'synthetic', ledgerId: 'synthetic-budget', windowId: 'synthetic-window', decisionId: 'synthetic-decision', taskId: 'synthetic-code',
+      sourceVersion: 'a'.repeat(40), sourceSha256: 'b'.repeat(64), requirementSha256: 'c'.repeat(64), specVersion: '1.0' } }).then(value => { created = value; return value; }), /window|path|origin/i);
+  await assert.rejects(readFile(join(root, 'host-transfer-origin.json')), { code: 'ENOENT' });
+});
+
+test('human preparation quote refuses a missing or browser mode without falling back to generic generation', async t => {
+  const f = await humanContinuationFixture(t), modePath = join(f.root, 'intake-mode.json'), originalMode = await readFile(modePath), before = await readFile(join(f.root, 'snapshot.json'));
+  const parsed = JSON.parse(originalMode.toString('utf8'));
+  for (const mode of ['missing', 'browser'] as const) {
+    if (mode === 'missing') await rm(modePath); else await writeFile(modePath, JSON.stringify({ runId: parsed.runId, createdAt: parsed.createdAt }), 'utf8');
+    await assert.rejects(runCli(args(f.root, true), { host: f.host, ...continuationStreams() }), /mode|preparation|准备/i);
+    assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before); await f.requirePreserved();
+    await writeFile(modePath, originalMode);
+  }
 });

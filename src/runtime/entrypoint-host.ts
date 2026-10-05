@@ -50,6 +50,8 @@ import { createCodingBuildCheck, GAME_BUILD_CHECK } from './entrypoint-coding-ch
 import { CODING_TEMPLATE_FILES, codingInputSignature } from './coding-check-worker.ts';
 import { createHumanPreparationScope } from './entrypoint-human-preparation.ts';
 import type { HumanPreparationInput, HumanPreparationScope } from './entrypoint-human-preparation.ts';
+import { createHumanContinuationScope } from './entrypoint-human-continuation.ts';
+import type { HumanContinuationInput, HumanContinuationScope } from './entrypoint-human-continuation.ts';
 import { modeFromSelection, preparationContract } from '../roles/preparation-mode.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
@@ -169,6 +171,14 @@ export async function createHumanPreparedBrowserHost(input: HumanPreparationInpu
     return await createBrowserHostCore({ ...input, humanPreparation }) as PreparedBrowserHost;
   } catch (error) { await input.preparation.close(); throw error; }
 }
+/** Explicit first-window factory; historical human tasks never receive this current authorization. */
+export async function createHumanPreparedContinuationHost(input: HumanContinuationInput & {
+  preparation: BrowserInputPreparation; io?: BrowserHostIO; sessionFactory?: RoleFactoryOptions['sessionFactory'];
+}): Promise<PreparedBrowserHost> {
+  if ('validation' in input || 'proposal' in input || !input.preparation || !input.binding?.preparation) throw new Error('Human continuation requires its exact prepared window binding.');
+  try { const humanPreparation = await createHumanContinuationScope(input); return await createBrowserHostCore({ ...input, humanPreparation }) as PreparedBrowserHost; }
+  catch (error) { await input.preparation.close(); throw error; }
+}
 /** Source-owned preparation opt-in; no public CLI or model-controlled acceptance override. */
 export async function createValidationPreparedBrowserHost(input: Omit<HostInput, 'requirement' | 'draft' | 'binding'> & {
   requirement: ValidationRequirement; proposal: ValidationPreparationProposal; validation: ValidationExecutionBinding;
@@ -200,7 +210,7 @@ interface BrowserHostCoreInput extends Omit<HostInput, 'requirement' | 'draft'> 
   preparation?: BrowserInputPreparation;
   sessionFactory?: RoleFactoryOptions['sessionFactory'];
   historicalStages?: import('./historical-passed-stages.ts').HistoricalPassedStages;
-  humanPreparation?: HumanPreparationScope;
+  humanPreparation?: HumanPreparationScope | HumanContinuationScope;
 }
 async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<GenerationHost> {
   const binding = input.binding ? structuredClone(input.binding) : undefined;
@@ -282,7 +292,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const identities = human ? {
       get designTaskId() { return byRole('design').task.taskId; }, get mediaTaskId() { return byRole('art').task.taskId; },
       get candidateTaskIds() { const id = byRole('coding').task.taskId; return { v1: id, v2: `${id.slice(0, 57)}-repair` }; },
-      human, taskWorkspace: (taskId: string) => { const item = validationTasks.get(taskId); if (!item) throw new Error('Original human task workspace is not bound.'); return item.workspace; },
+      human, taskWorkspace: (taskId: string) => { const item = validationTasks.get(taskId) ?? binding?.tasks.find(item => item.task.taskId === taskId); if (!item) throw new Error('Original human task workspace is not bound.'); return item.workspace; },
     } : { designTaskId: inherited?.stages[0].task.taskId ?? scope!.window.quote.declaration.grants.design.taskId,
       mediaTaskId: inherited?.stages[1].task.taskId ?? scope!.window.quote.declaration.grants.art.taskId,
       candidateTaskIds: { v1: scope!.window.quote.declaration.grants.coding.taskId, v2: scope!.window.quote.declaration.grants.repair.taskId } };
@@ -495,7 +505,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Expose a non-configurable getter window.cosmosDebug returning frozen plain data. Its media.characters array follows manifest order: {id,loadedFrames,states:[{name,seen}]}; media.audio follows manifest order: {id,decoded,started}. Derive loadedFrames/decoded from actual Phaser texture/audio-cache readiness, states seen from actual displayed animation transitions, and started from successful sound start after normal user input. Preserve cumulative observations across scene changes in this document. Never fill these fields with declared constants or fabricate them; independent review checks their source. The host checks every declared state and audio clip on the frozen normal-input path and reports missing coverage as incomplete.',
         'The host builds, runs normal inputs, captures immutable output and asks a separate reviewer. Return only the required author handoff JSON after writing files.'] }],
     validateTasks(tasks) {
-      if (human) for (const item of tasks) {
+      if (human && !binding) for (const item of tasks) {
         const policy = host.taskPolicies.find(policy => policy.role === item.role);
         if (!policy || validateTask(item.task).length || resolve(item.workspace) !== resolve(policy.workspace)
           || !sameValue(item.expectedArtifacts, policy.outputs.map(({ artifactId, version, destination }) => ({ artifactId, version, location: destination })))
@@ -808,6 +818,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const prepared = host as PreparedBrowserHost;
     prepared.bindPreparedTasks = async tasks => {
       if (human) {
+        if (binding) {
+          host.validateTasks!(tasks); await human.bind(tasks);
+          for (const item of tasks) validationTasks.set(item.task.taskId, structuredClone(item));
+          await preparation.requireCurrent(); return;
+        }
         if (!tasks.length || tasks.length > 3) throw new Error('Human preparation requires the fixed role tasks.');
         const execution = await json(root, 'execution.json'), originals = execution.tasks as PreparedTask[];
         if (!human.bound()) { host.validateTasks!(originals); await human.bind(originals); for (const item of originals) validationTasks.set(item.task.taskId, structuredClone(item)); }
@@ -922,6 +937,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (roleInput.controller !== controller || !sameValue(roleInput.requirement, requirement)) throw new Error('Human role is outside its original preparation scope.');
       await human.requireCurrent();
       if (roleInput.purpose === 'planning') {
+        if (binding) throw new Error('Human continuation cannot dispatch a planner.');
         const authority = await controller.executionAuthority(roleInput.task.taskId);
         if (roleInput.task.taskId !== 'planning' || !authority.admissionAllowed || resolve(roleInput.workspace) !== resolve(root)) throw new Error('Human preparation planner lacks original authority.');
       } else {
@@ -968,7 +984,9 @@ export function createProductHost(repository: string, hostOptions: Pick<BrowserH
       return draft.preparation ? draft : withHostStages(draft);
     },
     execute: options => executeGeneration({ ...options, createHost: async input => input.draft.preparation
-      ? (await import('./adapters/transfer/runtime-host.ts')).createHumanTransferConsumerHost({ ...input, draft: input.draft, ...hostOptions })
+      ? input.binding?.preparation
+        ? (await import('./adapters/transfer/runtime-host.ts')).createHumanTransferContinuationHost({ ...input, binding: { ...input.binding, preparation: input.binding.preparation }, draft: input.draft, ...hostOptions })
+        : (await import('./adapters/transfer/runtime-host.ts')).createHumanTransferConsumerHost({ ...input, draft: input.draft, ...hostOptions })
       : createBrowserHost({ ...input, ...hostOptions }) }),
   };
 }
