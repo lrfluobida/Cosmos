@@ -8,7 +8,7 @@
 
 失败修复：[COS-21 / #22](https://github.com/lrfluobida/Cosmos/issues/22) 承接首个 native case 暴露的 Windows 模板 capture 原子 rename 失败；沿原 R5/R11 免费诊断并修复，不扩大范围或预算。
 
-调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；C1结束时九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits为历史，COS44 policy契约源码已独审集成，COS45第二迁移case源码已独审集成、actual C2 design-schema失败；15SDK/282562ms/新增¥0.161528，C2结束时10cases/rev1488 ledger4/shared¥7.184253/closure8/50closed八audits为历史，COS46只读自检源码已独审集成，COS47第三迁移source已独审集成、actual C3规划身份失败：1SDK/33413ms/¥0.014780/无tasks-game；C3结束时11cases/rev1495 ledger4/shared¥7.199033/closure9/55closed九audits为历史，COS48主机身份绑定源码已审集成，COS49第四迁移source已独审集成、actual C4 hostcaptures通过但designreview changes_requested/無game；24SDK/1377154ms/new¥0.214694，C4结束时12cases/rev1602 ledger4/shared¥7.413727/closure10/60closed十audits为历史，COS50路径契约源码已审，COS51第五迁移source已独审集成/TRANSFER_CASE_FIVE_SOURCE_READY，C5执行后现13cases/rev1884/ledger4/shared¥8.530730/closure11/65closed十一audits；design/art host及独立review通过，coding截止前取消、未handoff/capture/build/browser/game。Source52/53已独审集成但只source/TEMP证据，preparation internal API具备、public CLI/connector与实际human未通过；COS54/55源码已独审集成、仅source/TEMP验证、actual C6 NONE，迁移尚未通过，完整经典与最终用户体验未验收。
+调用实验历史：原生Case8 v1真实browser090音频断言code_defect失败，经一次自动linked repair后v2 build/Edge111/111/独立codingreview approved并接受，76请求新增保守峰值估算¥1.549592、共享¥7.008623。旧七失败/C6 free111和原v1失败保持，closure6只归还未用容量；COS34源码已独审集成但实际human NONE，COS35/36已独审集成、仍为preparation_only，COS37已审fixture重开能力，迁移仍缺runtime adapter/付费入口，COS38输入adapter/COS39失败事实分类已独审集成、迁移仍为preparation_only，COS40 source consumer已审synthetic能力，COS42预算组source已独审集成、实际ledger4 upgrade/delegation已应用，COS41 design反馈source已审，COS43原生入口源码已独审集成，真实迁移case1仅planning1/34.198秒/¥0.014102后缺policyId失败；C1结束时九cases/revision1421/ledger4/shared¥7.022725、closure7/45closed/七audits为历史，COS44 policy契约源码已独审集成，COS45第二迁移case源码已独审集成、actual C2 design-schema失败；15SDK/282562ms/新增¥0.161528，C2结束时10cases/rev1488 ledger4/shared¥7.184253/closure8/50closed八audits为历史，COS46只读自检源码已独审集成，COS47第三迁移source已独审集成、actual C3规划身份失败：1SDK/33413ms/¥0.014780/无tasks-game；C3结束时11cases/rev1495 ledger4/shared¥7.199033/closure9/55closed九audits为历史，COS48主机身份绑定源码已审集成，COS49第四迁移source已独审集成、actual C4 hostcaptures通过但designreview changes_requested/無game；24SDK/1377154ms/new¥0.214694，C4结束时12cases/rev1602 ledger4/shared¥7.413727/closure10/60closed十audits为历史，COS50路径契约源码已审，COS51第五迁移source已独审集成/TRANSFER_CASE_FIVE_SOURCE_READY，C5结束时（历史）13cases/rev1884/ledger4/shared¥8.530730/closure11/65closed十一audits；design/art host及独立review通过，coding截止前取消、未handoff/capture/build/browser/game。Source52/53已独审集成但只source/TEMP证据，preparation internal API具备、public CLI/connector与实际human未通过；COS54/55审批时仅source/TEMP、actual C6 NONE为历史；当前COS58/59源码已审集成，C6复用design/art后coding120秒流时限失败，13codingadmitted/12settled135531µ/unknown974882µ、14cases/rev1942/6delegations/65closed11audits，closure12未执行，COS60准备中；迁移尚未通过，完整经典与最终用户体验未验收。
 
 2026-10-01 更新：用户确认单次完整运行硬上限为 **¥200/12h**，**¥100/6h 是优化目标，不是硬性达标保证**；共享付费验证总额仍为 **¥150**。直接 DeepSeek API 探针已发生 31 次调用，按保守峰值计费为 ¥0.721771，计入同一验证账本；后续拟开展的有界端到端探针累计不超过 ¥30，仍从该 ¥150 余额预留。见 [二次穿刺](../research/2026-10-01-cost-latency-challenge.md)，当前证据不代表完整运行已达到硬上限内的验收条件或优化目标。
 
@@ -281,8 +281,9 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-16 · P2 · 验证不同需求的有限迁移
 
-- 依赖/状态：COS-10、COS-13、COS-18；partial/open，真实迁移C1规划失败/C2设计schema失败/C3规划身份失败/C4独立review请求修改/C5编码截止取消，固定用例与原契约保持；用例先固定，可与完整基准工具准备并行。
-- 最新迁移C5：source9e7f771/UTC2026-10-04T20:11:59.648Z→20:56:55.067Z/deadline20:56:59.648Z/cutoff20:56:54.690Z，2695419ms；66records=65admitted settled+1准入前cancelled/admittedAt null。Role records1/14/12/39/0（coding38admitted+1cancelled）/purpose1planning54author11reviewer；new1117003/shared8530730 micro-CNY（fees16938/255740/166678/677647/0），unknown/reserved0。Design/art原host与独立review passed，mapcheck1passed/rewritesRemaining0；coding截止取消、未handoff/capture/build/browser/accepted/game/repair，manual consumed，exec18517exit1/key清理/owners释放。[实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5984507367)/[研究记录](../research/2026-10-05-transfer-coding-deadline-failure.md)，COS16仍partial/open。
+- 依赖/状态：COS-10、COS-13、COS-18；partial/open，真实迁移C1规划失败/C2设计schema失败/C3规划身份失败/C4独立review请求修改/C5编码截止取消/C6编码流请求超时，固定用例与原契约保持；用例先固定，可与完整基准工具准备并行。
+- 最新迁移C6：source6b8aa15/UTC2026-10-05T02:50:02.916Z→03:01:25.805Z/deadline03:35:02.916Z，682889ms；13codingauthor admitted、12settled135531µ/1unknown974882µ，shared settled8666261/reserved974882/committed9641143。原C5 design/art两passed及7capture复用通过，planner/design/art SDK0；coding20read/0toolerror，无write/compile/capture/build/browser/review/repair/accepted，manual consumed。当前14cases/rev1942/6delegations/65closed/11audits，未closure12、paid阻塞；[真实结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5988185221)与[研究记录](../research/2026-10-05-native-c6-stream-timeout.md)。COS59已审源码修时限，COS60只准备新案例，不重开C6。
+- 迁移C5（历史）：source9e7f771/UTC2026-10-04T20:11:59.648Z→20:56:55.067Z/deadline20:56:59.648Z/cutoff20:56:54.690Z，2695419ms；66records=65admitted settled+1准入前cancelled/admittedAt null。Role records1/14/12/39/0（coding38admitted+1cancelled）/purpose1planning54author11reviewer；new1117003/shared8530730 micro-CNY（fees16938/255740/166678/677647/0），unknown/reserved0。Design/art原host与独立review passed，mapcheck1passed/rewritesRemaining0；coding截止取消、未handoff/capture/build/browser/accepted/game/repair，manual consumed，exec18517exit1/key清理/owners释放。[实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5984507367)/[研究记录](../research/2026-10-05-transfer-coding-deadline-failure.md)，COS16仍partial/open。
 - 输出/范围：`probes/transfer/`；一个区别于塔防规则的小型 2D 需求、运行产物及平台改动记录。
 - 工作：使用相同角色契约和通用模板生成，检查需求、代码、素材与验收能否重新组合，不依赖塔防专属编排分支。
 - 通过：按事先固定的功能和正常输入场景完成；报告新增的平台通用能力与人工修改，不能预制该游戏再套运行记录。
@@ -615,7 +616,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 - 固定输入/权限：计划 `cos20-transfer-validation-5`、decl3quote2/原requirements-template-input `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`/Flash/¥5/45分钟/80全SDK、原design semantic1与coding1；capture读取契约用现有immutable布局和scoped refs，不改grant/session/clock或权限。Identity protocol C5true/C4true/C1–3 defaultfalse，旧四decl/inputs/wrappers/metadata保持。
 - 执行前余量/准入（历史）：grants340618/854278/2800000/2800000/2800000合9594896=原10000000−405104，planning历史59382/design345722/others0与sourcefirstparentref1414/first授权members保真，不新预算。核ledger4/currentC4 consumedstopped/12cases/4delegations/60closed十audits、旧four cases/各own declaration/input/quote/ancestor/closure与新root-marker absent、writer/unknownreserve/owners0/pending50零effect；不能换路径或复用旧window绕过准入。
 - 源码证据：九批准paths字节一致/UTF8/noBOM/LF/中文/diffcheck及README原35324字节前缀保持；作者5focused/C4+C3兼容2/2（111.911秒）/strict8.354秒，独审3/3（168.692秒）/0failed0skip，联合仅同总额错role预算代表1/1、0skip（43115.9673ms），全为synthetic source验证。
-- 当前边界：原source审批/双SHA/offline-verified-awaiting-live/open保持；actual C5 coding截止取消、design/art passed但无game/accepted/repair。现13cases/rev1884 ledger4/global8530730/65closed十一audits/group1522107+8477893/parent10m；旧C1–4失败/C8/G3/150首30/formal20012/human NONE/fullclassic未知保持，manual consumed不重开。[实际结果](https://github.com/lrfluobida/Cosmos/issues/52#issuecomment-5984507618)。
+- 当前边界：原source审批/双SHA/offline-verified-awaiting-live/open保持；actual C5 coding截止取消、design/art passed但无game/accepted/repair。C5结束时（历史）13cases/rev1884 ledger4/global8530730/65closed十一audits/group1522107+8477893/parent10m；旧C1–4失败/C8/G3/150首30/formal20012/human NONE/fullclassic未知保持，manual consumed不重开。[实际结果](https://github.com/lrfluobida/Cosmos/issues/52#issuecomment-5984507618)。
 
 ### COS-52 · 将迁移验收与角色 host 纳入生产运行库
 
@@ -729,11 +730,52 @@ PUBLIC_HUMAN_PREPARATION_SOURCE_READY / source-integrated / source-and-TEMP-only
 
 #### 状态与边界
 
-SOURCE_NOT_READY / in-progress / source-and-TEMP-only；实现候选`b912f0e1751ea49e3749a487dd97759efbea43e4`已提交，独立审查尚未完成。新策略须以新的、获准案例验证；旧C6失败、unknown预留和原14案例历史保持。Root等待provider账单/usage核对，不能重付或伪造结算。共享验证¥150/首阶段¥30/COS16原¥10、单案例¥5/45分钟/80请求、正式¥200/12h与目标¥100/6h保持。
+CODING_REQUEST_TIMEOUT_SOURCE_READY / source-integrated / source-and-TEMP-only；`b912f0e1751ea49e3749a487dd97759efbea43e4`经专属独审APPROVED，合入`4139a822d87c9ed8f819d22bd051148c45da45a0`；[公共审批](https://github.com/lrfluobida/Cosmos/issues/60#issuecomment-5988885202)精确读回。作者28source/1compiled/typecheck/strict/build、独审5TEMP和merger1/1通过，未改证据复用。新策略须以新的、获准案例验证；旧C6失败、unknown预留和原14案例历史保持。Root等待provider账单/usage核对，不能重付或伪造结算。共享验证¥150/首阶段¥30/COS16原¥10、单案例¥5/45分钟/80请求、正式¥200/12h与目标¥100/6h保持。
 
 源码前置：COS03 pi/provider、COS06调度/取消、COS55编译自检、COS57仅编码入口的已审源码；无需等待未完成的完整经典基准或把COS16/COS18标closed。
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
 稳定任务 ID：COS-59
+
+### COS-60 · 准备带编码时限的第七迁移案例与已核实余额准入
+
+- 发布状态：[#61](https://github.com/lrfluobida/Cosmos/issues/61)，id5707067158；native parent已关联、当前60children。专属implementer计划编写中，SOURCE_NOT_READY/source-and-TEMP-only/open。
+
+## 目标与当前事实
+
+为修复后的编码请求时限准备新的固定迁移案例 `cos20-transfer-validation-7`。COS59 已独立批准 b912f0e1751ea49e3749a487dd97759efbea43e4 并合入 4139a822d87c9ed8f819d22bd051148c45da45a0；原 C6 在 120 秒流时限失败并停止，不能重开。
+
+当前共享账本仍有一笔 974882 micro-CNY unknown 预留，14 stopped cases、6 delegations、65 closed grants、11 closure audits。本任务只实施源码和 TEMP 验证；真实账务核对与第12笔 allocation closure 由 Root 另行执行，当前不能 claim 或付费。
+
+## 范围与契约
+
+- 新案例拥有自己的固定 ID、root、marker、manifest、声明、operator source、任务和执行回执；不复活原 C6、不修改历史结果或调用原未完成 coding 输出。
+- 只在原14案例已停止、原六次 COS16 delegation 保真、所有费用真实核实且 unknown/reserved 为0、原70 grants/12 closure audits完整、所有 owners 空闲后，免费 preflight 才能允许新 claim。当前 unknown 状态必须只读拒绝、零 SDK、零写入。
+- 新声明的五角色额度从原 COS16 ¥10 的固定角色初始容量与六案例实际已结算费用确定性推导；coding 不能假定未知账款为0，也不能把其预留当作实际费用。校验原 parent index4/refrevision1414/hash/首授权、全部 member case IDs 和每角色费用归属，拒绝重复/外来条目或非正余量；不得从其他角色借款或新增额度。Root真实核对前不填写“最终剩余额度”。
+- 新旧所有 grants 之和、预算组的派生净额与剩余容量一致；quote 覆盖准确 snapshot revision/bytes、声明、角色额度、manifest digest 和 source身份。quote 生成后账目、费用或声明变化即拒绝旧 operator 决定。
+- 原 C5 两个独立 passed design/art 阶段和七 capture 继续按 COS56 完整校验；新 C7 manifest 绑定原 C5 来源与新 root。零 planner/design/art SDK；当前 planning grant 仅承担可信 host bootstrap。复用 COS57 已审的 coding-only contract、原生 pi/Flash、生产 consumer、角色文件清单和编译工具。
+- 只有 current coding author 及原窗口内合格的一次 coding repair 可调用 SDK。使用 COS59 600000ms source cap、每请求当前原 authority/deadline 减5000ms裁剪；其他 role/intake、预算/调用计数、maxRetries0、unknown阻断及旧声明前缀保持。
+- 新初始派发和 cold resume 都核对准确当前 source、实际 reuse digest、自己的 current requirement/plan/task IDs、原窗口和 source+compiled 执行闭包。过期、停止、错误case、额外重试或历史coding/session输入拒绝。
+- 单案例 ¥5/45分钟/80请求/一次 coding repair；共享验证 ¥150、首阶段 ¥30、COS16 原 ¥10，formal ¥200/12h 和目标 ¥100/6h 均不变。
+
+## 文件与方法
+
+预计 `probes/transfer/validation-case-seven-*`、必要的可信内部复用 seam、对应 `tests/transfer/` 和实现计划。先写并独立审查计划，再由专属 implementer TDD；用最小内部接口复用已审链路，避免复制整条编排器或重构 unrelated 代码。旧 C1–6 包装、输入哈希和行为必须有原样保持证据。
+
+## 免费验收
+
+1. 原 C6 unknown/预留、未closure12、活跃owner、错误history/source/parent/grant/member/cost均免费拒绝；snapshot bytes/mtime、历史文件和目标root/marker不变。
+2. TEMP 构造两种不同的合法最终 C6 核实费用，按实际 ledger 得到不同但正确的 coding余量；未核实不得推导可执行额度。新 quote对金额变化失效。
+3. 合法停止与关闭的14案例基线原子 claim C7一次，不修改旧14案例、六delegation、12audit和原费用前缀；source gates必须包含 COS57/59准确review+merge祖先。
+4. 初始和cold恢复保留两个历史 passed 阶段、新 requirement/任务/plan/source闭包；只当前coding SDK、独立评审和合格一次同窗repair。复用旧重型通过证据，仅运行新的边界与一个必要组合代表。
+5. 独立 reviewer 检查实际 diff、exact SHA、source/compiled代表和UTF-8/中文；同批唯一 merger 集成。合成 transport及正常浏览器输入证据如实分列，不能冒充实际付费生成或human确认。
+
+## 状态
+
+SOURCE_NOT_READY / preparation-only / plan-in-progress。真实 C7 claim、closure12、provider调用、费用和human体验均 NONE；旧 C6 unknown974882 保持，等待真实费用核对。源码准备可以继续，真实运行不越过门禁。
+
+源码前置：COS56/57/59 的独立批准集成；结果用于 COS16，公开 CLI 和完整经典目标沿原验收标准。
+父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
+稳定任务 ID：COS-60
 
 ## 5. 任务与上下文包模板
 
