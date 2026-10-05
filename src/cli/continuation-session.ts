@@ -12,8 +12,9 @@ import { readRunSnapshot, recoverRunOwner } from './control.ts';
 import { readConfirmedGeneration, rejectPreparationContinuation } from './session.ts';
 import type { ProductHost } from './session.ts';
 import { readCompletedGeneration } from '../runtime/experience.ts';
+import { readFrameSelection } from '../runtime/render-frame-selection.ts';
 
-interface IO { root: string; host: ProductHost; input: Readable; output: Writable }
+interface IO { root: string; host: ProductHost; input: Readable; output: Writable; renderFrames?: boolean }
 async function ready(io: IO) {
   const value = await io.host.prepare(io.root);
   if (value.environmentReady && value.executionReady) return true;
@@ -31,6 +32,7 @@ export async function runContinuationSession(options: IO & { additionalMicroCny:
   await rejectPreparationContinuation(root);
   const original = await readRunSnapshot(root);
   if (original.formatVersion !== 1 || original.ledger.scope !== 'generation' || original.run.kind !== 'runtime_generation') throw new Error('交互续跑只支持正式运行的首个追加窗口；已有窗口请使用 resume --window。');
+  await readFrameSelection(root, original, options.renderFrames);
   const originalInputs = await readConfirmedGeneration(root, original);
   const fixedSources = await Promise.all(originalInputs.requirement.sources.map(async ref => ({ ref, bytes: await regularFile(root, ref.location) })));
   await quiescent(root);
@@ -44,11 +46,13 @@ export async function runContinuationSession(options: IO & { additionalMicroCny:
     const answer = await iterator.next();
     if (answer.done || answer.value.trim() === 'cancel') { io.output.write('未确认续跑，没有激活或新增费用。\n'); return { outcome: 'unconfirmed' }; }
     if (answer.value.trim() !== `confirm ${quote.quoteId}`) { io.output.write('确认与当前报价不一致，没有激活。\n'); return { outcome: 'unconfirmed' }; }
+    await readFrameSelection(root, original, options.renderFrames);
     if (!await ready(io)) return { outcome: 'waiting_prerequisites' };
     await quiescent(root);
     const current = await buildContinuationQuote({ root, ...requested });
     const unchangedSources = (await Promise.all(fixedSources.map(async source => source.bytes.equals(await regularFile(root, source.ref.location))))).every(Boolean);
     if (!sameValue(current, quote) || !unchangedSources) { io.output.write('原运行记录或确认资料已改变，报价已失效；请重新查看并确认。没有激活。\n'); return { outcome: 'stale_quote' }; }
+    await readFrameSelection(root, original, options.renderFrames);
     const decisionId = `continue-${randomUUID()}`, actorId = 'local-user', decidedAt = new Date().toISOString();
     const location = `continuations/${decisionId}/confirmation.json`;
     await directory(root, `continuations/${decisionId}`);
@@ -66,6 +70,7 @@ export async function resumeContinuation(options: IO & { windowId: string }) {
   const root = resolve(options.root), state = await readRunSnapshot(root);
   if (state.formatVersion !== 2 || state.continuation?.currentWindowId !== options.windowId) throw new Error('续跑窗口与原运行不匹配。');
   const window = state.continuation.windows.find(item => item.windowId === options.windowId)!;
+  await readFrameSelection(root, state, options.renderFrames);
   const inputs = await readConfirmedGeneration(root, state);
   const completed = await readCompletedGeneration(root, inputs.requirement);
   if (completed) { options.output.write(JSON.stringify(completed, null, 2) + '\n'); return completed; }

@@ -31,6 +31,7 @@ import { executionWindowView } from './execution-window.ts';
 import type { AcceptedCandidate } from '../artifacts/index.ts';
 import { deliveryTaskProofs, publishGenerationReport, readCompletedGeneration } from './experience.ts';
 import { finishCompletion } from './completion-timing.ts';
+import { readFrameSelection } from './render-frame-selection.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
@@ -42,8 +43,8 @@ export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
   continuationTargets?(sources: PreparedTask[], feedback: RepairFeedback, grants: Record<string, number>): Promise<SuccessorTarget[] | null>;
 }
-export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
-export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
+export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; renderFrames?: boolean; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
+export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; renderFrames?: boolean; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> { try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
 
@@ -75,6 +76,7 @@ export async function executeGeneration(options: GenerationOptions) {
   if (original.formatVersion !== 1) throw new Error('Generation has not been activated.');
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))) throw new Error('Requirement confirmation does not match this original run.');
   if (!sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Confirmed draft source changed.');
+  const frames = await readFrameSelection(root, original, options.renderFrames);
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
   if (original.stopReason) throw new Error(`Original run is stopped: ${original.stopReason.code}.`);
   if (Date.now() >= Date.parse(original.run.originalDeadlineAt)) throw new Error('Original deadline expired; no new generation window is allowed.');
@@ -91,7 +93,7 @@ export async function executeGeneration(options: GenerationOptions) {
     if (options.notify) warnings = await startBudgetWarnings(root, options.notify);
     await reconcileEntryReceipts(root, controller);
     if (options.resume && !await optionalJson(root, 'execution.json')) throw new Error('Original planning result is unavailable; resume cannot perform another paid plan.');
-    const host = await options.createHost({ root, controller, requirement, draft, resume: options.resume, work });
+    const host = await options.createHost({ root, controller, requirement, draft, resume: options.resume, work, ...(frames ? { renderFrames: true } : {}) });
     closePreparation = host.closePreparation?.bind(host);
     let phase = 'planning';
     const outcome = await work.run(async signal => {
@@ -220,6 +222,7 @@ async function executeContinuation(options: GenerationOptions) {
   const window = original.continuation.windows.find(item => item.windowId === windowId)!;
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))
     || !sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Original requirement confirmation changed.');
+  const frames = await readFrameSelection(root, original, options.renderFrames);
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
   if (window.stopReason) throw new Error(`Execution window is stopped: ${window.stopReason.code}.`);
   await recoverRunOwner(root);
@@ -243,7 +246,7 @@ async function executeContinuation(options: GenerationOptions) {
       try {
         await reconcileEntryReceipts(root, controller);
         plan = await loadContinuationPlan({ root, controller, requirement, windowId });
-        host = await options.createHost({ root, controller, requirement, draft, work, resume: true, binding: { windowId, tasks: plan.tasks, ...(plan.preparation ? { preparation: plan.preparation } : {}) } });
+        host = await options.createHost({ root, controller, requirement, draft, work, resume: true, ...(frames ? { renderFrames: true } : {}), binding: { windowId, tasks: plan.tasks, ...(plan.preparation ? { preparation: plan.preparation } : {}) } });
         if (host.capability !== plan.capability || !sameValue(host.availableArtifacts, plan.availableArtifacts)) throw new RecoveryBlocked('Original host capability or available input versions changed.');
         host.validateTasks?.(plan.tasks);
         await host.bindPreparedTasks?.(plan.tasks);
