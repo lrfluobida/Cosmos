@@ -56,6 +56,8 @@ import { createHumanContinuationScope } from './entrypoint-human-continuation.ts
 import type { HumanContinuationInput, HumanContinuationScope } from './entrypoint-human-continuation.ts';
 import { modeFromSelection, preparationContract } from '../roles/preparation-mode.ts';
 import { packageStandalone, withCleanDelivery } from './entrypoint-delivery.ts';
+import { createClassicPolicyScope } from './entrypoint-classic.ts';
+import { diagnoseBuild } from './repair/browser-diagnostics.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
@@ -271,6 +273,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         ...(preparation ? [{ source: 'execution-requirement.json', destination: `_cosmos/${historical ? 'current-' : ''}execution-requirement.json` }] : [])],
       ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: [], metadata: { kind: 'data', provenance } });
   }
+  if (!preparation && !validation) {
+    const originalDraft = await json(root, `${requirements.location}/_cosmos/${requirement.sources[0].artifactId}.json`);
+    if ((originalDraft.benchmark || (draft as BrowserGameDraft).benchmark) && !sameValue(originalDraft, draft)) throw new Error('Original confirmed classic selection/draft differs from its requirement capture.');
+  }
+  const classic = !preparation && !validation && (draft as BrowserGameDraft).benchmark
+    ? await createClassicPolicyScope({ root, registry, requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft, requirementCapture: requirements, resume: input.resume }) : undefined;
+  if (classic) captures.push(...classic.refs);
   const availableArtifacts = [...requirement.sources, ...captures];
   if (validation) for (const ref of captures) await registry.getCapture(ref);
   if (!binding && !validation) { await directory(root, 'authors/coding/src'); await directory(root, 'authors/design'); await directory(root, 'authors/art'); }
@@ -595,7 +604,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         if (missing.length) await preserveFailure(task, 'missing_output', `Required code outputs are missing: ${missing.join(', ')}.`,
           [...[...authored].map(([name, bytes]) => ({ sourcePath: `authors/coding/${name}`, bytes })), ...missing.map(name => ({ sourcePath: `authors/coding/${name}` }))]);
         // Both plans remain fixed task/review inputs. Only this candidate's plan enters the exact staged dependency closure.
-        const inputs = [...captures, selected(task, 'design'), selected(task, 'media'), ...(preparation?.candidateExtraInputs(ref) ?? [])], media = await registry.getCapture(selected(task, 'media'));
+        const inputs = [...captures, selected(task, 'design'), selected(task, 'media'), ...(preparation?.candidateExtraInputs(ref) ?? []),
+          ...(classic ? [await classic.captureMapping(task, ref, selected(task, 'design'))] : [])], media = await registry.getCapture(selected(task, 'media'));
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: source, sourceRoot: sourceRoot(task, 'authors/coding'), files: files.map(name => ({ source: name, destination: name })),
           ownership: { writePaths: ['src', 'index.html'], readOnlyPaths: ['_cosmos'] }, dependencies: inputs, metadata: { kind: 'code', provenance: origin } });
@@ -612,6 +622,22 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       let classification: 'code_defect' | 'insufficient_evidence' = 'insufficient_evidence';
       let consumerDiagnostics: import('./entrypoint-preparation.ts').BrowserCandidateConsumerResult['diagnostics'] | undefined;
       let consumerRawEvidence: ArtifactReference[] = [];
+      let classicBuild: BrowserBuildReport | undefined, classicExecution: Awaited<ReturnType<NonNullable<typeof classic>['bindExecution']>> | undefined;
+      let classicReport: PersistentAcceptanceReport | undefined, classicEvaluated = false, classicPassed = false;
+      const evaluateClassic = async () => {
+        if (!classic || classicEvaluated) return;
+        classicEvaluated = true;
+        const checked = await classic.evaluate({ task, candidate: ref, design: selected(task, 'design'), deadlineAt: authority.deadlineAt,
+          build: classicBuild, execution: classicExecution, report: classicReport, signal, requireCurrent: async () => { await requireDispatch(task, signal); } });
+        consumerRawEvidence.push(...checked.evidence);
+        classicPassed = checked.result.entries.filter((row: any) => ['STARTUP', 'OFFLINE'].includes(row.entryId)).every((row: any) => row.outcome === 'passed');
+        if (!classicPassed && !consumerDiagnostics?.issues.length) consumerDiagnostics = { reportValid: false, passedChecks: [], issues: [{
+          acceptanceId: task.acceptanceIds[0], checkId: 'classic/policy', classification: 'insufficient_evidence',
+          summary: checked.result.mappingErrors.join('; ') || 'Current classic startup/offline evidence is incomplete.',
+          actual: 'The fixed classic policies did not establish a current pass.', expected: 'Current build, final clean receipt and exact normal save/reopen evidence.',
+          reproduction: ['Inspect the fixed policy mapping and original build, cleanup and raw browser reports.'], evidenceRefs: [`evidence/${task.taskId}/classic-policy.json`] }] };
+        if (!classicPassed) actual = consumerDiagnostics!.issues.map(issue => issue.summary).join('\n').slice(0, 16000);
+      };
       try {
         if (kind === 'design') {
           const design = await json(root, `${ref.location}/_cosmos/design.json`); validateDesign(design, gameplayIds);
@@ -628,6 +654,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         const proof = await registry.verifyCandidate(ref, {
           build: async (_candidate, project) => {
             const checked = await io.build(project, task.taskId, signal, validation ? await requireDispatch(task, signal) : authority);
+            classicBuild = checked;
             if (validation) await requireDispatch(task, signal);
             await writeJson(root, `evidence/${task.taskId}/build.json`, checked);
             if (checked.passed) {
@@ -639,11 +666,17 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 consumerDiagnostics = preparation.candidateBuildDiagnostic?.(task, checked, `evidence/${task.taskId}/build.json`);
                 consumerRawEvidence = [{ artifactId: `${task.taskId}-build`, version: ref.version, location: `evidence/${task.taskId}/build.json` }];
                 actual = consumerDiagnostics?.issues.map(issue => issue.summary).join('\n') || 'Build failed without attributable current compiler evidence.';
+              } else if (classic) {
+                consumerDiagnostics = diagnoseBuild(task, { passed: checked.passed, work: checked.work ?? '', results: checked.results ?? [] }, `evidence/${task.taskId}/build.json`);
+                consumerRawEvidence.push({ artifactId: `${task.taskId}-build`, version: ref.version, location: `evidence/${task.taskId}/build.json` });
+                actual = consumerDiagnostics.issues.map(issue => issue.summary).join('\n');
               } else { classification = 'code_defect'; actual = checked.diagnostics.slice(0, 16000) || 'Typecheck/build failed.'; }
             }
             return { passed: checked.passed, evidenceIds: [`${task.taskId}-host`] };
           },
-          acceptance: async (_candidate, project) => withCleanDelivery({ root, project, candidate: ref, controller, work: input.work, authority, signal,
+          acceptance: async (_candidate, project) => {
+            let result: { passed: boolean; evidenceIds: string[] };
+            try { result = await withCleanDelivery({ root, project, candidate: ref, controller, work: input.work, authority, signal,
             requireCurrent: async () => { await requireDispatch(task, signal); } }, async server => {
             if (validation) await requireDispatch(task, signal);
             if (preparation?.candidateConsumer) {
@@ -675,10 +708,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 const series = createGenericPersistentSeries({ scenario, requirement: requirements, design: designArtifact, candidate: ref,
                   projectId: 'game', taskId: task.taskId, runId: task.runId, specVersion: requirement.specVersion, reportId: `${task.taskId}-persistent`, url: server.url, acceptanceIds: task.acceptanceIds });
                 const deadlineAt = Date.parse(authority.deadlineAt), binding = { series, media: mediaArtifact, manifestSha256: validationHash(manifestBytes), deadlineAt };
+                if (classic) classicExecution = await classic.bindExecution(task, ref, designArtifact, series, project);
                 const fixedCandidate = await registry.getCandidate(ref), fixedProject = await snapshot(project), fixedDesign = await regularFile(root, `${designArtifact.location}/_cosmos/design.json`);
                 const requireCurrent = async () => {
                   const current = await requireDispatch(task, signal); if (!sameValue(current, authority)) throw new Error('Generic task authority changed.');
                   await server.requireCurrent();
+                  await classicExecution?.current();
                   for (const artifact of [requirements, designArtifact, mediaArtifact]) await registry.getCapture(artifact);
                   if (!sameValue(await registry.getCandidate(ref), fixedCandidate) || !isDeepStrictEqual(await snapshot(project), fixedProject)
                     || !isDeepStrictEqual(await snapshot(server.project), fixedProject) || !(await regularFile(root, `${designArtifact.location}/_cosmos/design.json`)).equals(fixedDesign)) throw new Error('Current generic candidate or design bytes changed.');
@@ -696,6 +731,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                   collection: { kind: 'persistent-segment', seriesBindingSha256: series.bindingSha256, segmentId: segment.id } }) }));
                 const report = await io.playPersistent(series, { evidenceRoot: join(root, 'browser-evidence'), channel: 'msedge', deadlineAt, signal,
                   verifyBinding: requireCurrent, segmentMediaObservations: requests }, authority);
+                classicReport = report;
                 await requireCurrent();
                 await writeJson(root, `evidence/${task.taskId}/browser.json`, report);
                 const coverage = assessGenericSeriesMediaCoverage(media, binding, report);
@@ -771,11 +807,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               }
               if (!valid) { classification = sameValue(report.plan, plan) ? 'code_defect' : 'insufficient_evidence'; actual = 'Normal input report failed or did not match the fixed plan and candidate.'; }
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
-          }),
+          }); } finally { await evaluateClassic(); }
+            return { ...result, passed: result.passed && (!classic || classicPassed) };
+          },
         });
         proofs.set(task.taskId, proof); passed = true;
         }
       } catch (error) {
+        if (classic && kind === 'coding') await evaluateClassic();
         // A trusted consumer boundary failure is evidence insufficiency unless exact diagnostics already established a defect.
         if (!consumerDiagnostics) actual = error instanceof Error ? error.message : 'Host consumer did not establish current evidence.';
       }
@@ -885,7 +924,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (proof) await registry.promoteCandidate(ref, { evidence: proof, review: { candidateRef: ref, attemptId: proof.attemptId, reviewerId: task.review.reviewerId!, contextId: task.review.contextId!, verdict: 'approved', evidenceIds: task.review.evidenceIds } });
       const accepted = await registry.current();
       if (!accepted || !sameValue(accepted.candidateRef, ref)) return { gaps: ['Candidate promotion cannot be established; preserve the original version and evidence.'] };
-      return { delivery: accepted.targetRoot, gaps: [], acceptedCandidate: accepted, mediaUsage: `evidence/${task.taskId}/media-usage.json`,
+      return { delivery: accepted.targetRoot, gaps: classic ? [`Classic acceptance remains partial: reference_not_frozen and full_execution_adapter_pending; inspect evidence/${task.taskId}/classic-policy.json for all 230 rows.`] : [], acceptedCandidate: accepted, mediaUsage: `evidence/${task.taskId}/media-usage.json`,
         ...(inherited ? { inheritedStages: inherited.stages.map(stage => ({ taskId: stage.task.taskId, role: stage.role, caseId: inherited.manifest.caseId,
           windowId: inherited.manifest.windowId, manifestRef: historical!.manifestRef, artifacts: stage.task.artifacts })) } : {}) };
     },
