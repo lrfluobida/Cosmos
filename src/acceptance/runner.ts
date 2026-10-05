@@ -14,6 +14,8 @@ import { bounded, DeadlineError, AcceptanceCancelledError } from './deadline.ts'
 import { stopBrowserProcess, browserProcessAbsent } from './process.ts';
 import { attributePageErrors, projectMismatchCanStop } from './failure-facts.ts';
 import type { PageError, RuntimeException } from './failure-facts.ts';
+import { collectRenderFrames, validateRenderFrameRequest } from './render-frames.ts';
+import type { RenderFrameRequest, RenderFrameSample } from './render-frames.ts';
 
 export interface StepResult {
   id: string; kind: Step['kind']; acceptanceId?: string; outcome: 'passed' | 'failed' | 'skipped';
@@ -38,6 +40,7 @@ export interface AcceptanceReport {
   failureFacts?: BrowserFailureFacts;
   session?: PersistentBrowserIdentity;
   mediaObservations?: MediaObservationSample;
+  renderFrames?: RenderFrameSample;
 }
 export interface PersistentBrowserIdentity {
   browserPid: number; profile: string; commandLineProfile: string; origin: string;
@@ -57,6 +60,7 @@ export interface AcceptanceOptions {
   env?: NodeJS.ProcessEnv;
   /** Only trusted source assembly supplies this collection; it is never a plan field. */
   mediaObservations?: ReadonlyMediaObservationRequest;
+  renderFrames?: RenderFrameRequest;
 }
 
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
@@ -116,6 +120,14 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     }
   };
   await writeFile(join(directory, 'plan.json'), JSON.stringify(plan, null, 2) + '\n', 'utf8');
+  if (options.renderFrames) {
+    const request = options.renderFrames;
+    if (validateRenderFrameRequest(request).length || !isDeepStrictEqual(request.candidate, plan.artifact) || request.runId !== plan.runId
+      || request.taskId !== plan.taskId || request.specVersion !== plan.specVersion
+      || request.planBindingSha256 !== createHash('sha256').update(JSON.stringify(plan)).digest('hex')
+      || lifecycle && request.deadlineAt !== lifecycle.deadlineAt) throw new Error('Render request differs from its current plan/lifecycle.');
+    await writeFile(join(directory, 'render-frame-request.json'), JSON.stringify(request, null, 2) + '\n', 'utf8'); report.files.push(path('render-frame-request.json'));
+  }
   try {
     if (lifecycle) {
       ({ browser, context } = await run(() => lifecycle.open(directory, Math.max(1, remaining(15_000))), 15_000, 'Persistent browser launch'));
@@ -238,6 +250,11 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
         const values = await run(() => observeDebugScalars(page!, request.fields.map(field => field.path)), 1500, 'Read-only media collection');
         report.mediaObservations = { request, recordedAt: new Date().toISOString(), values };
       }
+    }
+    if (options.renderFrames && report.steps.every(row => row.outcome === 'passed') && !report.errors.length) {
+      report.renderFrames = await run(() => collectRenderFrames(page!, options.renderFrames!, { viewport: plan.viewport, browser: report.browser,
+        recording: { kind: lifecycle ? 'persistent-screencast' : 'context-video', enabled: true } }), options.renderFrames.durationMs + 1000, 'Rendered-frame sampling');
+      await writeFile(join(directory, 'render-frames.json'), JSON.stringify(report.renderFrames, null, 2) + '\n', 'utf8'); report.files.push(path('render-frames.json'));
     }
   } catch (error) {
     if (error instanceof DeadlineError || error instanceof AcceptanceCancelledError) { forceClose = true; failureFacts.termination ??= { kind: 'lifecycle' }; }

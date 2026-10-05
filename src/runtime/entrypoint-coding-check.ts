@@ -8,12 +8,13 @@ import type { OwnedWork } from './recovery/owned-work.ts';
 import { runOwnedNode } from './recovery/owned-command.ts';
 import type { HostExecutionAuthority, BrowserBuildReport } from './entrypoint-host.ts';
 import { CODING_CHECK_RESULT, CODING_TEMPLATE_FILES, codingSignature } from './coding-check-worker.ts';
+import type { ArtifactReference } from '../contracts/types.ts';
 
 export const GAME_BUILD_CHECK = 'check-game-build';
 
 /** Current author feedback only. It grants no capture, acceptance, independent approval or linked repair. */
 export function createCodingBuildCheck(input: { controller: RunController; work: OwnedWork; workspace: string; toolchain: string;
-  template: string; media: string; taskId: string; attemptId: string; guard(signal: AbortSignal): Promise<HostExecutionAuthority> }) {
+  template: string; media: string; taskId: string; attemptId: string; observer?: { directory: string; ref: ArtifactReference; sha256: string }; guard(signal: AbortSignal): Promise<HostExecutionAuthority> }) {
   return { readOnly: false, tool: defineTool({ name: GAME_BUILD_CHECK, label: 'Check current game build',
     description: 'Compile the current author index.html and src with the selected fixed template and media in an isolated temporary project. Advisory TypeScript/Vite feedback in this original coding session only. No arguments.',
     parameters: Type.Object({}, { additionalProperties: false }),
@@ -35,6 +36,7 @@ export function createCodingBuildCheck(input: { controller: RunController; work:
             args: ['--experimental-strip-types', worker, JSON.stringify({ phase, ...(report.work ? { work: report.work } : {}),
               taskId: input.taskId, attemptId: input.attemptId, workspace: input.workspace, toolchain: input.toolchain,
               template: input.template, media: input.media, deadlineAt: authority.deadlineAt,
+              ...(input.observer ? { observer: input.observer } : {}),
               sourceSignature: codingSignature(source), templateSignature: codingSignature(template), mediaSignature: codingSignature(media) })] });
           await input.guard(active); active.throwIfAborted();
           if (codingSignature(await snapshot(join(input.workspace, 'authors/coding'))) !== codingSignature(source)) throw new Error('Coding check current author source changed during compilation.');
