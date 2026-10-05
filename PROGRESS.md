@@ -912,3 +912,9 @@ Root 已发布并精确读回 [COS70 / #71](https://github.com/lrfluobida/Cosmos
 作者actual65在专属cos05工作树、codex/cos70-cli-frame-selection从c999d53提交短计划4754935888365e5f0810d387cd5a406fe7022f01（21行/275词）。专属独立reviewer actual67已对实际计划、任务卡和当前公开入口给出PLAN_APPROVED；采用--render-frames true|false，在原来源/显示确认/签名前保存选择，未完成恢复和首个coding追加保持原observer及输入闭包，显式冲突或漂移拒绝，完成恢复/status沿用只读分支。作者开始TDD，当前SOURCE_NOT_READY/in-progress/open，无已批实现SHA；本批仅actual66 merger可集成main。
 
 本卡只新增公开接线fixture及既有host seam代表，复用Source69采样、Source68计时和Source63/61恢复证据，不重跑旧Edge或耗时矩阵。PERFORMANCE仍policy_not_executed，230行/221待参考核实/其余7未执行及两项实际partial保持；设备、普通与压力工作量和窗口未冻结。实际新模型/paid/human/窗口均NONE；C6未知费用974882µ、closure12/C7、未冻结参考和完整经典目标仍待核实，正式¥200/12h、目标¥100/6h与共享验证¥150保持。
+
+### 参考窗口观察与多任务编码缺口核查
+
+2026-10-06 Root 按 computer-use 技能使用 @oai/sky 观察已安装参考。初始无参考窗口，正常启动后返回 GOTY 窗口 id68104；截图首次 FrameArrived timeout，刷新选择/激活后仅重试一次仍 window capture timeout。只读 UI 文本仅有标题栏及系统控件，没有游戏内容。关闭控件因 geometry unavailable 失败，重新观察后用标准 Alt+F4，两秒后 list_windows 无参考窗口；没有游戏内输入、素材复制、自定义截图或目录改写。具体错误与边界见[基准记录](docs/benchmark/README.md)。这只证明窗口可识别，不证明加载完成或玩法；目录仍230/221待核实、reference未冻结。旧网页浏览器的原生API限制和本次独立Windows工具失败分列，不重复旧重试。
+
+专属 reviewer actual67 同时完成只读源码穿刺：通用 planner 已支持多个同角色slot，registry 已能组合不可变capture并拒绝路径冲突；但当前产品host的validateTasks和finish固定design/art/coding三任务，game-code只有一个slot和整体game v1/v2产物。coding可写src下多个文件，必需main.ts/index.html，并非只能一个文件；capture立即形成完整候选，没有模块产物分支。下一必要切片先绑定模块ownership、唯一产物版本和最终组合，再接多个coding任务及其验收/修复闭包；不能仅放宽task数量。此为调查，尚未发布或批准新实现，不构成完整游戏能力证据。COS70作者继续TDD。
