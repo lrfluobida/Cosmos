@@ -1,0 +1,39 @@
+# COS67 classic runtime policy implementation plan
+
+> For agentic workers: use the existing dedicated implementer and independent reviewer. Execute the following steps with TDD after PLAN_APPROVED. The batch08 merger alone integrates approved commits into main.
+
+**Goal:** Connect STARTUP and OFFLINE to the existing production candidate verification and retain the complete provisional classic catalog in a partial report.
+
+**Architecture:** Add a strict optional `benchmark: 'classic-pc-runtime-policy/1'` to a browser draft. The interview may propose it for the requested classic scope; the CLI displays it with the full missing coverage before the original explicit confirmation. The stored original draft, confirmation and requirement capture bind this selection; ordinary drafts do not select it. The host captures the existing source-owned reference/catalog without modifying them and captures a mapping of the two policies to the exact requirement, design, candidate, run, task, spec and confirmed scenario. It expands those fixed steps into the existing actual persistent series once the clean launcher URL is available. Build, package, Node launcher and browser execution each run once through their original owners and deadlines.
+
+**Tech stack:** TypeScript, existing artifact registry, normal/persistent browser runner, source-owned JSON catalog and existing draft/reference validators, Node test runner, real Edge fixture.
+
+## Scope and files
+
+- Modify `src/roles/requirements.ts`, `src/roles/interview.ts` and `src/cli/session.ts`: strict selection validation, interview vocabulary and display of partial classic coverage. No new confirmation or budget flow.
+- Create `src/runtime/entrypoint-classic.ts`: source capture, fixed mapping, current-binding checks and partial policy report. Read the unchanged `benchmarks/classic-pc/reference/{reference,catalog}.json` and existing validators relative to the source/dist repository root.
+- Modify `src/runtime/entrypoint-host.ts`: initialize selected captures; add exact policy mapping during the original coding capture; retain its series/report/diagnostics from the existing generic persistent branch; evaluate the policies after clean delivery's finally and before registry verification returns. Include the partial report and captures/raw evidence in independent review.
+- Create focused `tests/roles/classic-policy-draft.test.ts`, `tests/runtime/classic-policy.test.ts`, `tests/runtime/classic-policy-host.test.ts` and `tests/runtime/classic-policy-host.integration.ts`; minimally extend `tests/runtime/generic-persistent-host.fixture.ts` for explicit classic selection and affected transport faults. Reuse its generated harness data, original normal inputs and existing runner.
+- Update this plan with exact safe RED/GREEN outputs and final SHA evidence. Root owns task/spec/progress/tracking updates.
+
+## Policy evidence and outcomes
+
+1. STARTUP checks the original build receipt and actual packaged candidate, fixed clean URL/viewport/browser version and raw first normal-input document, then the durable `delivery-check.json` written by `withCleanDelivery.finally`: exact candidate/deadline, copied package files, `bytesMatched`, helper identity/result, `helperExited` and final outcome. It cannot pass inside the clean action or after a sealed snapshot. A current compiler/build failure is failed; changed or incomplete binding/lifecycle/raw evidence is insufficient_evidence.
+2. OFFLINE checks the existing runner's blocked external-origin policy and actual first/reopened normal-input reports, visible checkpoint values, raw save evidence, owned exit facts, different PID, same private profile and loopback origin, original deadline and exact expanded series. Use `diagnosePersistentBrowser` and `verifyGenericPersistentEvidence`; no new executor, injected storage, model pass, `setOffline` or duplicate browser launch. Valid current assertion defects are failed and retain original failure facts for the existing single bounded repair; invalid binding/lifecycle/raw evidence is insufficient_evidence.
+3. Capture binding checks read the actual capture metadata/files, original confirmed source bytes, task/candidate/scenario identities and expanded plans before launch and after cleanup. Mutation prevents passing. Each original/repair candidate has a separate mapping version; no capture is registered while the registry's verify lock is held.
+4. The report always preserves all 230 catalog rows in original order: 221 `reference_unknown`, seven `policy_not_executed`, and two actual `passed`/`failed`/`insufficient_evidence` policy outcomes. It contains source/candidate/run/task/spec/plan/evidence references, reference validation and mapping errors, missing mappings and unknown requirements/measurements. `acceptance` remains `partial`, `reference_not_frozen` and `full_execution_adapter_pending` remain blockers. No average, percentage, fake reference freeze, G4, final completion or user approval is inferred.
+5. Invalid/removed catalog modes, fake freeze, unknown or duplicate mapping IDs remain errors and cannot shrink the report: the trusted fixed capture is authoritative. The benchmark helper is used by production verification, not merely exported for tests. Build/cleanup failures still write a partial policy report when the current binding permits it; failed task evidence points to the report and original failure receipts.
+
+## Steps and verification
+
+- [ ] Commit this plan and wait for the independent PLAN_APPROVED result.
+- [ ] RED: write strict draft/selection tests and policy tests against legal fixed catalog/mapping/raw fixture inputs; run `node --experimental-strip-types --test tests/roles/classic-policy-draft.test.ts tests/runtime/classic-policy.test.ts` and preserve the expected missing-module/unsupported-field failures.
+- [ ] GREEN: implement the smallest selection and consumer changes; run the same tests.
+- [ ] RED/GREEN production caller checks: verify explicit selection yields a persisted full report after delivery finally, one build and one persistent series; generic selection absence produces no classic report. Negative cases cover wrong build/cleanup/candidate/run/spec/plan/save/raw/exit/current binding, removed mode/fake freeze/duplicate mapping/unknown denominator. Reuse original generic diagnostics and single repair behavior; add only affected assertions where needed.
+- [ ] Run the focused host tests and one real Edge production-chain fixture, with unchanged authored fixture data and no model/provider calls. Persist safe stdout/evidence location; independently review actual captures, mappings, aggregate/segment raw reports, screenshots, cleanup and partial report for the same candidate.
+- [ ] Run `npm run typecheck`, unchanged benchmark draft/reference tests and only directly affected requirements/interview/CLI tests. Reuse accepted Source64/65/66 evidence; do not repeat the 110-second delivery combination or the full old Edge matrix.
+- [ ] Detect/reopen edited text with fatal UTF-8 decoding, check Chinese text and line endings, run `git diff --check`, commit implementation, and report exact SHA, safe raw outputs and known limitations for independent review. Fix actionable findings on this branch and submit the affected diff again.
+
+## Boundaries
+
+Source/TEMP/free fixture work only; actual generation, paid validation and human experience remain NONE. Do not read Root private run/session/key material or the installed reference program; do not mutate GitHub, main or ledgers. COS01 remains provisional/unfrozen; missing classic modes, rules, values, performance 55/30 FPS, stability, assets correspondence and final user acceptance remain explicit. Preserve shared validation ¥150 (prior direct probe reserve ¥0.721771), formal ¥200/12h and optimization ¥100/6h; existing unknown costs still prevent new paid dispatch.
