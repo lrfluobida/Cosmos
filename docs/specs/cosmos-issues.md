@@ -114,7 +114,7 @@
 - [x] [COS-66 接通通用游戏的存档重开与跨阶段媒体验收](https://github.com/lrfluobida/Cosmos/issues/67)
 - [x] [COS-67 执行经典启动与离线政策并保留完整验收分母](https://github.com/lrfluobida/Cosmos/issues/68)
 - [x] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
-- [ ] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
+- [x] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1065,7 +1065,7 @@ src/runtime/entrypoint.ts 的初始路径和显式追加路径都先 publishGene
 
 ### COS-69 · 采集可信的游戏渲染帧与性能样本
 
-- 发布状态：[#70](https://github.com/lrfluobida/Cosmos/issues/70)，id5718776658；正文/native69children #2–#70/旧68保真与父新unchecked项已Root精确读回。in-progress/open/SOURCE_NOT_READY，初始短计划31d9经独审要求具体只读模块/编译staging后，最小plan-only修订`509a7e31e308be94f02d61ad37b9572e6cef38be`获独立PLAN_APPROVED；actual cos67_implementer在cos04独立实现，actual cos65_implementer为本卡独立reviewer、actual cos66_implementer为BATCH11唯一merger，二者未写本卡代码。
+- 发布状态：[#70](https://github.com/lrfluobida/Cosmos/issues/70)，id5718776658；最终`b002120eef65de936a569edca1260797ac18f752`经独立actual65整体APPROVED/RENDER_FRAME_SAMPLING_SOURCE_READY，sole BATCH11 merger actual66合入推送`51c5f9d6f935383f9cd3b6aee58f821614272637`；[公共审批](https://github.com/lrfluobida/Cosmos/issues/70#issuecomment-6004608926)、body/state completed/closed/父69[x]精确读回。本卡source/free fixture采样组件complete，PERFORMANCE仍policy_not_executed；初始SOURCE_NOT_READY为历史。
 
 ## 目标
 
@@ -1098,6 +1098,8 @@ spec 第4B要求冻结本机配置、1280×720，普通场景平均至少55 FPS�
 ## 前置与边界
 
 源码前置通用Phaser模板/Source64媒体观察、Source65 clean delivery、Source66正常保存重开、Source67固定目录部分报告以及现normal runner；相应已审源码即可，不要求完整经典或partial任务closed。输出支持COS14/COS15/COS18的未来性能验收。COS68完整清理计时独立实施，本卡不修改其entrypoint/experience/run关闭代码。
+
+最终证据：source/tests2ac5858、fix14edade与doc-only最终b002，16批准路径（8prod/7tests/1plan）。独审三个实际缺口（正常采样时限/lifecycle误code_defect、native context替换/no-op/ownership、transientCSS/directpause）已affected修正；8RED→10GREEN/WebGL12/12/final24/24（11013.6159ms），旧15focused/32affected证据复用。新编译observer仅一SERIAL native/advisory1/1、0skip（test34840.1815ms/process37972.3953ms），raw `C:/Users/26557/AppData/Local/Temp/cos66-host-nH3wBR`、PIDs26700→21456/331330 unique完成/双scene-multidraw手工POST不多计/tsc-Vite0同observerbytes/clean helper-browser退出。独审7/7（5902.5383ms），raw `C:/Users/26557/AppData/Local/Temp/cos69-independent-fixes.tap`、精确来源/候选/采样/raw/review字节核对在`cos69-independent-final-bytes.txt`；main typecheck/build0、hostselection代表1/1（test4940.4716ms/TAP8647.7357ms）及UTF8LF/中文/diff通过。并行blGGpc整hookFAILED事实和原因未知保留，未kill/unlink/弱化guard、未标baseline。实际800×500/viewport1280×720/headlessEdge154+screencast/deviceunfrozen/GPUunknown；不比较55/30或覆盖未知条件，230/221/7/原两政策partial保持。
 
 共享验证¥150（首阶段¥30/COS16原¥10）、正式¥200/12h和目标¥100/6h保持。Source/freefixture，无新增paid、实际模型生成、human、新窗口；原C6 unknown974882/closure12/C7、参考未冻结、完整经典100%/95%及G4未通过保留。不得复制参考美术/音频，不手写目标经典游戏。
 
