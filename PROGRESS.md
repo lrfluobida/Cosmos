@@ -917,4 +917,4 @@ Root 已发布并精确读回 [COS70 / #71](https://github.com/lrfluobida/Cosmos
 
 2026-10-06 Root 按 computer-use 技能使用 @oai/sky 观察已安装参考。初始无参考窗口，正常启动后返回 GOTY 窗口 id68104；截图首次 FrameArrived timeout，刷新选择/激活后仅重试一次仍 window capture timeout。只读 UI 文本仅有标题栏及系统控件，没有游戏内容。关闭控件因 geometry unavailable 失败，重新观察后用标准 Alt+F4，两秒后 list_windows 无参考窗口；没有游戏内输入、素材复制、自定义截图或目录改写。具体错误与边界见[基准记录](docs/benchmark/README.md)。这只证明窗口可识别，不证明加载完成或玩法；目录仍230/221待核实、reference未冻结。旧网页浏览器的原生API限制和本次独立Windows工具失败分列，不重复旧重试。
 
-专属 reviewer actual67 同时完成只读源码穿刺：通用 planner 已支持多个同角色slot，registry 已能组合不可变capture并拒绝路径冲突；但当前产品host的prepareTasks和finish固定design/art/coding三任务，game-code只有一个slot和整体game v1/v2产物。coding可写src下多个文件，必需main.ts/index.html，并非只能一个文件；capture立即形成完整候选，没有模块产物分支。下一必要切片先绑定模块ownership、唯一产物版本和最终组合，再接多个coding任务及其验收/修复闭包；不能仅放宽task数量。此为调查，尚未发布或批准新实现，不构成完整游戏能力证据。COS70作者继续TDD。
+专属 reviewer actual67 同时完成只读源码穿刺：通用 planner 已支持多个同角色slot，registry 已能组合不可变capture并拒绝路径冲突；但当前产品host的validateTasks和finish固定design/art/coding三任务，game-code只有一个slot和整体game v1/v2产物。coding可写src下多个文件，必需main.ts/index.html，并非只能一个文件；capture立即形成完整候选，没有模块产物分支。下一必要切片先绑定模块ownership、唯一产物版本和最终组合，再接多个coding任务及其验收/修复闭包；不能仅放宽task数量。此为调查，尚未发布或批准新实现，不构成完整游戏能力证据。COS70作者继续TDD。
