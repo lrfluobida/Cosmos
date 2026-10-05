@@ -13,6 +13,7 @@ import { HOST_STAGE_ACCEPTANCE } from '../../src/roles/requirements.ts';
 import { task as taskFixture } from '../contracts/fixtures.ts';
 import type { PreparedTask } from '../../src/runtime/orchestrator.ts';
 import type { ArtifactReference, TaskContract } from '../../src/contracts/index.ts';
+import { prepareValidationAllocationClosure, applyValidationAllocationClosure } from '../../src/runtime/validation-allocations.ts';
 
 export const ids = ['T16-01', 'T16-02', 'T16-03', 'T16-04', 'T16-05', 'T16-06'];
 export const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
@@ -28,28 +29,56 @@ export function syntheticMap(requirement: ArtifactReference) {
 }
 
 /** Real isolated contracts/registry with a synthetic provider and no target game. */
-export async function transferFixture(t: TestContext) {
+export async function transferFixture(t: TestContext, grouped = false, templateRoot?: string) {
+  const cleanup: (() => Promise<unknown>)[] = [];
   const base = await mkdtemp(join(tmpdir(), 'cosmos-transfer-host-'));
   const ledgerRoot = join(base, 'ledger'), repositoryRoot = join(base, 'platform');
   const caseId = 'cos20-transfer-preparation-fixture', root = join(repositoryRoot, '.cosmos/e2e', caseId);
   const old = await RunController.create({ root: ledgerRoot, runId: 'offline-shared', ledgerId: 'offline-ledger', kind: 'evaluation', scope: 'validation', specVersion: '1.0',
-    allocations: [{ taskId: 'legacy', amountMicroCny: 1_000_000 }], durationMs: 1000, now: () => Date.now() - 2000 });
+    allocations: [{ taskId: 'legacy', amountMicroCny: 1_000_000 }, ...(grouped ? [{ taskId: 'COS-16', amountMicroCny: 10_000_000 }] : [])], durationMs: 1000, now: () => Date.now() - 2000 });
   await old.importSettled({ requestId: 'prior', taskId: 'legacy', provider: 'offline', pricingVersion: 'fixture', actualCostMicroCny: 100,
     evidence: [{ artifactId: 'prior', version: 'v1', location: 'prior.json' }] }); await old.close();
   const acceptance = [...ids.map(acceptanceId => ({ acceptanceId, description: '固定迁移验收', steps: ['正常鼠标输入'], expected: '遵循固定规则', evidenceKinds: ['test_report' as const] })), ...HOST_STAGE_ACCEPTANCE];
   const proposal = { profile: 'operator_validation' as const, adapterId: 'cos16-input/1', brief: '固定鼠标推箱子源码接口 fixture', acceptance, unsupported: [] };
   const requirements = JSON.stringify({ requirementVersion: 'fixture-v1', specVersion: '1.0', acceptanceIds: ids,
-    stageAcceptanceIds: HOST_STAGE_ACCEPTANCE.map(item => item.acceptanceId), preparation: proposal });
+    stageAcceptanceIds: HOST_STAGE_ACCEPTANCE.map(item => item.acceptanceId), preparation: proposal,
+    ...(grouped ? { budgetGroup: { parentTaskId: 'COS-16', allocationMicroCny: 10_000_000 } } : {}) });
   const declaration: any = structuredClone(VALIDATION_CASE); declaration.caseId = caseId;
+  if (grouped) {
+    declaration.formatVersion = 'validation-declaration-3'; declaration.budgetGroup = { parentTaskId: 'COS-16', allocationMicroCny: 10_000_000 };
+    for (const [role, amountMicroCny] of Object.entries({ planning: 400_000, design: 1_200_000, art: 2_800_000, coding: 2_800_000, repair: 2_800_000 })) declaration.grants[role].amountMicroCny = amountMicroCny;
+  }
   for (const [role, grant] of Object.entries(declaration.grants) as [string, any][]) grant.taskId = `${caseId}-${role}`;
   declaration.inputs.requirements = { version: 'fixture-v1', path: 'requirements.json', sha256: hash(requirements) };
   const templateNames = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
-  declaration.inputs.template.files = templateNames.map(name => ({ path: `template/${name}`, sha256: hash(name.endsWith('.ts') ? 'export default {}\n' : '{}\n') }));
+  const templateBytes = await Promise.all(templateNames.map(async name => templateRoot ? await readFile(join(templateRoot, name)) : Buffer.from(name.endsWith('.ts') ? 'export default {}\n' : '{}\n')));
+  declaration.inputs.template.files = templateNames.map((name, index) => ({ path: `template/${name}`, sha256: hash(templateBytes[index]) }));
   declaration.inputs.template.sha256 = hash(JSON.stringify(declaration.inputs.template.files));
   await mkdir(repositoryRoot, { recursive: true }); await writeFile(join(repositoryRoot, 'requirements.json'), requirements, 'utf8');
-  for (const file of declaration.inputs.template.files) { await mkdir(dirname(join(repositoryRoot, file.path)), { recursive: true }); await writeFile(join(repositoryRoot, file.path), file.path.endsWith('.ts') ? 'export default {}\n' : '{}\n', 'utf8'); }
+  for (const [index, file] of declaration.inputs.template.files.entries()) { await mkdir(dirname(join(repositoryRoot, file.path)), { recursive: true }); await writeFile(join(repositoryRoot, file.path), templateBytes[index]); }
   let identity = { reviewedPlatformSha: 'a'.repeat(40), frozenCaseInputHash: validationInputHash(declaration) }, clock = Date.now();
   const context = { root: ledgerRoot, repositoryRoot, identityReader: async () => ({ ...identity }), now: () => clock };
+  if (grouped) {
+    const seed: any = structuredClone(VALIDATION_CASE); seed.caseId = 'cos20-synthetic-seed';
+    for (const [role, grant] of Object.entries(seed.grants) as [string, any][]) grant.taskId = `${seed.caseId}-${role}`;
+    const data = JSON.parse(requirements); delete data.budgetGroup; const bytes = JSON.stringify(data);
+    await writeFile(join(repositoryRoot, 'seed-requirements.json'), bytes, 'utf8');
+    seed.inputs = { ...declaration.inputs, requirements: { version: 'fixture-v1', path: 'seed-requirements.json', sha256: hash(bytes) } };
+    const ctx = { ...context, identityReader: async () => ({ reviewedPlatformSha: '0'.repeat(40), frozenCaseInputHash: validationInputHash(seed) }) };
+    const quote = await prepareValidationCase({ ...ctx, declaration: seed });
+    const decision = { kind: 'operator_validation' as const, decisionId: 'synthetic-seed-decision', actorId: 'offline-operator', decidedAt: new Date(clock).toISOString(),
+      source: { artifactId: 'synthetic-seed-operator', version: 'v1', location: 'synthetic-seed-operator.json' }, sourceRefs: [{ artifactId: 'synthetic-seed', version: 'v1', location: 'seed-requirements.json' }] };
+    await writeFile(join(ledgerRoot, decision.source.location), JSON.stringify({ formatVersion: 'operator-validation-decision-1', ...decision, source: undefined, quote }), 'utf8');
+    const window = await RunController.claimValidationCase({ ...ctx, quote, decision });
+    const controller = await RunController.openValidationCase({ ...ctx, caseId: seed.caseId, windowId: window.windowId });
+    await controller.stop('Synthetic seed to establish audited ledger3'); await controller.close();
+    await mkdir(join(repositoryRoot, '.cosmos/e2e', seed.caseId), { recursive: true });
+    const closure = await prepareValidationAllocationClosure({ ...ctx, caseIds: [seed.caseId] });
+    const closeDecision = { ...decision, kind: 'operator_validation_allocation_closure' as const, decisionId: 'synthetic-seed-closure',
+      source: { artifactId: 'synthetic-seed-closure', version: 'v1', location: 'synthetic-seed-closure.json' } };
+    await writeFile(join(ledgerRoot, closeDecision.source.location), JSON.stringify({ formatVersion: 'operator-validation-allocation-closure-decision-1', ...closeDecision, source: undefined, quote: closure }), 'utf8');
+    await applyValidationAllocationClosure({ ...ctx, quote: closure, decision: closeDecision });
+  }
   const quote = await prepareValidationCase({ ...context, declaration });
   const decision = { kind: 'operator_validation' as const, decisionId: 'offline-decision', actorId: 'offline-operator', decidedAt: new Date(clock).toISOString(),
     source: { artifactId: 'operator', version: 'v1', location: 'operator.json' }, sourceRefs: [{ artifactId: 'offline-source', version: 'v1', location: 'offline-source.json' }] };
@@ -57,7 +86,7 @@ export async function transferFixture(t: TestContext) {
   await writeFile(operatorPath, JSON.stringify({ formatVersion: 'operator-validation-decision-1', ...decision, source: undefined, quote }), 'utf8');
   const window = await RunController.claimValidationCase({ ...context, quote, decision });
   const controller = await RunController.openValidationCase({ ...context, caseId, windowId: window.windowId });
-  t.after(async () => { await controller.close().catch(() => {}); assert.ok(base.startsWith(tmpdir())); await rm(base, { recursive: true, force: true }); });
+  t.after(async () => { for (const operation of cleanup.reverse()) await operation(); await controller.close().catch(() => {}); assert.ok(base.startsWith(tmpdir())); await rm(base, { recursive: true, force: true }); });
   await mkdir(join(root, 'requirements'), { recursive: true }); await writeFile(join(root, 'requirements/fixed.json'), requirements, 'utf8');
   await mkdir(join(root, 'toolchain')); for (const name of templateNames) await writeFile(join(root, 'toolchain', name), await readFile(join(repositoryRoot, 'template', name)));
   const requirement = createValidationRequirement({ specVersion: '1.0', sources: [{ artifactId: `${caseId}-input`, version: 'fixture-v1', location: 'requirements/fixed.json' }], acceptance,
@@ -109,7 +138,7 @@ export async function transferFixture(t: TestContext) {
       return { role: policy.role, workspace: policy.workspace, task, expectedArtifacts: refs(policy) };
     });
   }
-  return { input, root, ledgerRoot, controller, requirement, validation, window, calls, configs, prepare, invalidateMap: () => { invalidMap = true; },
+  return { input, root, ledgerRoot, repositoryRoot, controller, requirement, validation, window, calls, configs, prepare, onCleanup: (operation: () => Promise<unknown>) => cleanup.push(operation), invalidateMap: () => { invalidMap = true; },
     omitMap: () => { missingMap = true; },
     setDesignAction: (action: (config: any) => Promise<void>) => { designAction = action; },
     changeIdentity: () => { identity = { ...identity, reviewedPlatformSha: 'b'.repeat(40) }; }, advance: (ms: number) => { clock += ms; } };

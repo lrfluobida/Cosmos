@@ -3,12 +3,15 @@ import { sameValue } from '../contracts/validation.ts';
 import { isValidationRequirement, validateExecutionRequirement } from '../roles/execution-input.ts';
 import type { ExecutionRequirement, ValidationRequirement } from '../roles/execution-input.ts';
 import type { RunController } from './run.ts';
+import type { ArtifactReference } from '../contracts/types.ts';
 import { currentValidationCase } from './validation-validation.ts';
 
 export interface ValidationExecutionBinding {
   caseId: string; windowId: string;
   /** Trusted read-only host capability, like capture/verify. The public driver fixes this implementation. */
   readScope(signal: AbortSignal): Promise<{ requirement: ValidationRequirement; operatorReceipt: Uint8Array }>;
+  /** Private source opt-in. Operator refs bind this exact digest; actual bytes are read at every scope gate. */
+  historicalManifest?: { reference: ArtifactReference; readBytes(signal: AbortSignal): Promise<Uint8Array> };
 }
 export interface ValidationJournalBinding { caseId: string; windowId: string; quoteId: string; startedAt: string; deadlineAt: string }
 
@@ -37,6 +40,13 @@ export async function requireValidationScope(controller: RunController, requirem
     const receipt = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(observed.operatorReceipt));
     if (!sameValue(receipt, { formatVersion: 'operator-validation-decision-1', kind: decision.kind, decisionId: decision.decisionId,
       actorId: decision.actorId, decidedAt: decision.decidedAt, sourceRefs: decision.sourceRefs, quote: window.quote })) throw new Error('Operator source does not bind this exact validation quote.');
+    if (binding.historicalManifest) {
+      const fixed = binding.historicalManifest;
+      if (!/^[a-f0-9]{64}$/.test(fixed.reference.version) || !decision.sourceRefs.some(ref => sameValue(ref, fixed.reference))
+        || typeof fixed.readBytes !== 'function') throw new Error('Historical manifest must use its exact operator-covered digest reference.');
+      const bytes = await Promise.race([Promise.resolve().then(() => fixed.readBytes(signal)), cancelled]);
+      if (!(bytes instanceof Uint8Array) || createHash('sha256').update(bytes).digest('hex') !== fixed.reference.version) throw new Error('Actual historical manifest bytes changed.');
+    }
     controller.requireValidationCase(caseId, windowId);
     const snapshot = await controller.read();
     if (!sameValue(currentValidationCase(snapshot), window) || Date.now() >= Date.parse(window.deadlineAt) - 5000) throw new Error('Validation authority changed while reading fixed scope.');

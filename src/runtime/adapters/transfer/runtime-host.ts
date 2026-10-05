@@ -19,6 +19,7 @@ import { freezeTransferDesign, prepareTransferAcceptance, verifyPreparedTransfer
 import type { FrozenTransferDesign, FrozenTransferAcceptanceDraft, PrepareInput } from './binding.ts';
 import { reserveTransferOrigin } from './loopback-origin.ts';
 import { consumeTransferCandidate, diagnoseTransferBuild } from './runtime-acceptance.ts';
+import type { HistoricalPassedStages } from '../../historical-passed-stages.ts';
 
 type HostInput = Parameters<typeof createValidationPreparedBrowserHost>[0];
 interface PreparedInputs {
@@ -30,10 +31,17 @@ const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: t
 
 /** Runtime-generated data only. This module contains no map, solution, assets or game implementation. */
 export async function createTransferRuntimeHost(input: Omit<HostInput, 'preparation'>) {
+  if (input.historicalStages) throw new Error('Historical stages require the explicit source-owned reuse factory.');
   return createTransferHost(input, false);
 }
 /** Trusted source opt-in only; public/model inputs cannot choose an execution adapter. */
 export async function createTransferConsumerHost(input: Omit<HostInput, 'preparation'>) {
+  if (input.historicalStages) throw new Error('Historical stages require the explicit source-owned reuse factory.');
+  return createTransferHost(input, true);
+}
+/** Trusted source opt-in; historical dependencies never obtain current author authority. */
+export async function createTransferReusedConsumerHost(input: Omit<HostInput, 'preparation'> & { historicalStages: HistoricalPassedStages }) {
+  if (!input.historicalStages) throw new Error('Fixed historical proof binding is required.');
   return createTransferHost(input, true);
 }
 async function createTransferHost(input: Omit<HostInput, 'preparation'>, consumer: boolean) {
@@ -48,7 +56,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
     await guard(); const saved = decode(await regularFile(ctx.root, receiptFile)) as PreparedInputs;
     requireThat(saved.formatVersion === 'transfer-prepared-inputs/1' && saved.taskId === ctx.designTaskId
       && typeof saved.attemptId === 'string' && !!saved.attemptId && typeof saved.sessionRef === 'string' && !!saved.sessionRef
-      && isDeepStrictEqual(saved.frozen.artifact, transfer) && isDeepStrictEqual(saved.frozen.requirement, ctx.requirementCapture)
+      && isDeepStrictEqual(saved.frozen.artifact, transfer) && isDeepStrictEqual(saved.frozen.requirement, ctx.inherited?.verified.requirementCapture ?? ctx.requirementCapture)
       && saved.frozen.specVersion === ctx.requirement.specVersion && saved.frozen.requirementProfile === 'operator_validation'
       && saved.frozen.preserveHostStages === true, 'prepared design receipt changed');
     return saved;
@@ -56,12 +64,21 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
   const preparedInput = (saved: PreparedInputs, version: 'v1' | 'v2'): PrepareInput => {
     requireThat(isValidationRequirement(ctx.requirement), 'explicit validation requirement is missing');
     return { root: ctx.root, registry: ctx.registry, frozen: saved.frozen,
-    currentRequirement: { artifact: ctx.requirementCapture, specVersion: ctx.requirement.specVersion }, candidate: ctx.candidates[version], planArtifact: planRefs[version],
+    currentRequirement: { artifact: ctx.inherited?.verified.requirementCapture ?? ctx.requirementCapture, specVersion: ctx.requirement.specVersion }, candidate: ctx.candidates[version], planArtifact: planRefs[version],
     url: origin.url, runId: ctx.requirement.validation.runId, reportId: ctx.name('transfer-' + version),
     ...(consumer ? { taskId: ctx.candidateTaskIds[version] } : {}) };
   };
   const verify = async (task?: TaskContract) => {
     const saved = await read();
+    if (ctx.inherited) {
+      const fixed = await ctx.inherited.binding.verify(ctx.signal);
+      requireThat(isDeepStrictEqual(saved.frozen, fixed.frozen) && saved.taskId === fixed.stages[0].task.taskId
+        && saved.attemptId === fixed.stages[0].task.attempts[0].attemptId && saved.sessionRef === fixed.stages[0].task.attempts[0].sessionRef,
+        'inherited prepared design lineage changed');
+      for (const version of ['v1', 'v2'] as const) await verifyPreparedTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] });
+      requireThat(isDeepStrictEqual(saved.plans.v1.segments.map(item => item.plan.steps), saved.plans.v2.segments.map(item => item.plan.steps)), 'repair expectations changed');
+      await guard(); return saved;
+    }
     if (task) requireThat(saved.taskId === task.taskId && saved.attemptId === task.attempts.at(-1)?.attemptId && saved.sessionRef === task.attempts.at(-1)?.sessionRef,
       'design author attempt provenance changed');
     const capture = await ctx.registry.getCapture(transfer);
@@ -77,6 +94,34 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
   const requireCurrent = async () => {
     try {
       await guard();
+      if (ctx.inherited) {
+        const saved = await verify(), snapshot = await input.controller.read();
+        for (const version of ['v1', 'v2'] as const) {
+          const coding = snapshot.tasks.find(task => task.taskId === ctx.candidateTaskIds[version]);
+          if (!coding?.artifacts.length) continue;
+          const ref = ctx.candidates[version]; requireThat(isDeepStrictEqual(coding.artifacts, [ref]), 'current inherited coding candidate changed');
+          const origin = decode(await regularFile(ctx.root, `journal/task-${coding.taskId}/origin.json`)) as RecoveryOrigin;
+          requireThat(isDeepStrictEqual(origin.requirement, ctx.requirement) && isDeepStrictEqual(origin.prepared.expectedArtifacts, [ref]), 'current inherited coding origin changed');
+          requireOriginalTask(origin.prepared.task, coding);
+          const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, origin, true);
+          const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', coding.attempts.at(-1)!.attemptId);
+          requireThat(captured && isDeepStrictEqual(captured.captured.artifacts, [ref]) && captured.signature.length === 1, 'current inherited capture receipt missing');
+          const candidate = await ctx.registry.getCandidate(ref), source = await ctx.registry.getCapture(ctx.registry.artifactRef(ctx.name('game-source'), version));
+          const inputs = [ctx.inherited.verified.template, ctx.inherited.verified.requirementCapture, ctx.requirementCapture, ctx.primaryDesign, ctx.primaryMedia, transfer, planRefs[version]];
+          requireThat(candidate.taskId === coding.taskId && candidate.authorId === coding.authorId && candidate.contextId === coding.context.contextId
+            && source.taskId === coding.taskId && isDeepStrictEqual(source.dependencies, inputs) && isDeepStrictEqual(candidate.inputs, [...inputs, source.artifactRef])
+            && isDeepStrictEqual(candidate.expectedDeps, candidate.inputs) && isDeepStrictEqual(candidate.mediaRequirements,
+              [{ artifactRef: ctx.primaryMedia, media: (await ctx.registry.getCapture(ctx.primaryMedia)).metadata.media }]), 'current inherited candidate dependency metadata changed');
+          const fixed = captured.signature[0]; requireThat(fixed.location === ref.location && isDeepStrictEqual(candidate.files.map(file => file.destination).sort(), fixed.files.map(file => file.path).sort()), 'current inherited candidate inventory changed');
+          for (const file of fixed.files) {
+            const item = candidate.files.find(item => item.destination === file.path)!;
+            requireThat([...coding.inputs, source.artifactRef].some(ref => isDeepStrictEqual(ref, item.artifactRef))
+              && sha(await regularFile(ctx.root, ref.location + '/' + file.path)) === file.sha256
+              && sha(await regularFile(ctx.root, item.artifactRef.location + '/' + file.path)) === file.sha256, 'current inherited candidate source bytes changed');
+          }
+        }
+        requireThat(isDeepStrictEqual(saved.frozen, ctx.inherited.verified.frozen), 'inherited frozen map changed'); await guard(); return;
+      }
       const snapshot = await input.controller.read(), design = snapshot.tasks.find(task => task.taskId === ctx.designTaskId);
       const complete = !!design && (design.artifacts.length > 0 || design.state === 'passed');
       if (!preparedPublished && !complete) {
@@ -174,21 +219,33 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
       requireThat(isDeepStrictEqual(ctx.requirement.acceptance.map(item => item.acceptanceId).sort(), expected), 'complete transfer and stage acceptance required');
       for (const stage of HOST_STAGE_ACCEPTANCE) requireThat(isDeepStrictEqual(ctx.requirement.acceptance.find(item => item.acceptanceId === stage.acceptanceId), stage), 'host stage acceptance changed');
       await ctx.requireScope();
-      transfer = ctx.registry.artifactRef(ctx.name('transfer-design'), 'v1');
+      transfer = ctx.inherited?.verified.frozen.artifact ?? ctx.registry.artifactRef(ctx.name('transfer-design'), 'v1');
       planRefs = { v1: ctx.registry.artifactRef(ctx.name('plan-v1'), 'v1'), v2: ctx.registry.artifactRef(ctx.name('plan-v2'), 'v1') };
       captureLayout = `Capture file layout: ${JSON.stringify([{ artifactId: transfer.artifactId, paths: ['_cosmos/transfer-design.json', '_cosmos/transfer-binding.json'] },
         ...[planRefs.v1, planRefs.v2].map(ref => ({ artifactId: ref.artifactId, paths: ['_cosmos/transfer-plan.json'] }))])}. Select each exact artifactId/version reference from the current packet inputs and read reference.location + '/' + the relative path. The two plans have distinct artifact roots despite the same relative filename; read both fixed input references. Only the design author writes authors/design/transfer-design.json before capture; reviewers and downstream roles read these immutable paths, never an authors/design/... suffix below a capture. Read only references already in your packet; this rule adds no permissions.`;
       preparation.designRules.push(captureLayout); preparation.codingRules.push(captureLayout);
-      preparation.designOutputs = [transfer, planRefs.v1, planRefs.v2].map(ref => ({ ...ref, destination: ref.location, type: 'data', schema: ref === transfer ? 'cos16-design/1' : 'cos16-plan/1' }));
+      preparation.designOutputs = (ctx.inherited ? ctx.inherited.verified.designArtifacts.slice(1) : [transfer, planRefs.v1, planRefs.v2]).map(ref => ({ ...ref, destination: ref.location, type: 'data', schema: ref === transfer ? 'cos16-design/1' : 'cos16-plan/1' }));
       preparation.designRules.push(`Use requirement reference ${JSON.stringify(ctx.requirementCapture)}. Write exactly {formatVersion:"cos16-design/1",requirement:thatReference,mapVersion:string,map:{tiles:string[],player:[x,y],boxes:[[x,y],[x,y]],targets:[[x,y],[x,y]]},solution:Direction[],paths:{wall,push,boxWall,doubleBox,restart,restore}}.`);
       origin = await reserveTransferOrigin({ root: ctx.root, resume: ctx.resume, signal: ctx.signal, requireScope: ctx.requireScope,
         binding: { caseId: ctx.requirement.validation.caseId, windowId: ctx.requirement.validation.windowId, sourceVersion: ctx.requirement.validation.reviewedPlatformSha,
           requirementSha256: sha(JSON.stringify(ctx.requirement)), runId: ctx.requirement.validation.runId, specVersion: ctx.requirement.specVersion } });
+      if (ctx.inherited) {
+        const design = ctx.inherited.verified.stages[0].task;
+        const saved: PreparedInputs = { formatVersion: 'transfer-prepared-inputs/1', taskId: design.taskId, attemptId: design.attempts[0].attemptId,
+          sessionRef: design.attempts[0].sessionRef, frozen: ctx.inherited.verified.frozen, plans: {} as PreparedInputs['plans'] };
+        if (ctx.resume) await verify();
+        else {
+          for (const version of ['v1', 'v2'] as const) { await guard(); saved.plans[version] = await prepareTransferAcceptance(preparedInput(saved, version)); }
+          await guard(); await publishReceipt(join(ctx.root, receiptFile), saved, ctx.signal);
+        }
+        preparedPublished = true; return;
+      }
       designValidation = createTransferDesignValidation({ context: ctx, controller: input.controller, guard });
       preparation.designHostTools = designValidation.hostTools;
       preparation.designRules.push('After completing transfer-design.json, call validate-transfer-design with no arguments. A first invalid result permits one semantic rewrite process and one different submission; a second invalid result exhausts it permanently. A pass seals the exact map bytes: keep them unchanged and accurately finish the generic design summary. Identical submissions reuse their complete result. All calls remain in this original author session, attempt, grant and deadline. This static design check is not gameplay acceptance.');
     },
     requireCurrent,
+    currentInputs: () => ctx.inherited ? [planRefs.v1, planRefs.v2] : [],
     async captureDesignExtras(task, workspace) {
       await guard(); const attempt = task.attempts.at(-1)!;
       let sealed: Awaited<ReturnType<typeof designValidation.seal>>;
@@ -247,7 +304,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'>, consume
   if (consumer) preparation.candidateBuildDiagnostic = diagnoseTransferBuild;
   try {
     const host = await createValidationPreparedBrowserHost({ ...input, preparation });
-    host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(captureLayout!);
+    host.taskPolicies.find(policy => policy.role === 'art')?.rules!.push(captureLayout!);
     return host;
   }
   catch (error) { await preparation.close(); throw error; }

@@ -7,6 +7,7 @@ import type { PersistentAcceptanceSeries, PersistentAcceptanceOptions, Persisten
 import type { HostIssue, HostPassedCheck } from './repair/feedback.ts';
 import type { BrowserBuildReport } from './entrypoint-host.ts';
 import type { RoleFactoryOptions } from '../roles/factory.ts';
+import type { HistoricalPassedStages, VerifiedHistoricalStages } from './historical-passed-stages.ts';
 
 export interface BrowserCandidateConsumerContext {
   root: string; task: TaskContract; candidate: ArtifactReference; project: string;
@@ -27,12 +28,15 @@ export interface BrowserPreparationContext {
   mediaTaskId: string; primaryMedia: ArtifactReference; candidateTaskIds: { v1: string; v2: string };
   name(value: string): string; signal: AbortSignal; resume: boolean;
   requireScope(): Promise<void>;
+  inherited?: { binding: HistoricalPassedStages; verified: VerifiedHistoricalStages };
 }
 /** Trusted source-code seam. Models, proposals and games never provide these callbacks. */
 export interface BrowserInputPreparation {
   adapterId: string;
   initialize(context: BrowserPreparationContext): Promise<void>;
   requireCurrent(): Promise<void>;
+  /** Fixed current plans prepared before author context/signatures. */
+  currentInputs?(): ArtifactReference[];
   designOutputs: PlanningRolePolicy['outputs'];
   designWritePaths: string[]; designRules: string[]; codingRules: string[];
   /** Source-owned author tools; audit writes remain mutable and unavailable to reviewers. */
