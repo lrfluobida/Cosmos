@@ -31,7 +31,7 @@ import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft } from '../roles/requirements.ts';
 import type { ExecutionRequirement, ValidationRequirement } from '../roles/execution-input.ts';
-import { validateExecutionInput } from '../roles/execution-input.ts';
+import { isValidationRequirement, validateExecutionInput } from '../roles/execution-input.ts';
 import type { ValidationExecutionBinding } from './validation-scope.ts';
 import { currentValidationCase, requireValidationTask, validationRole } from './validation-validation.ts';
 import { requireValidationBrowserScope, requireValidationPreparationScope } from './entrypoint-validation.ts';
@@ -154,11 +154,13 @@ export interface PreparedBrowserHost extends ValidationBrowserHost {
   closePreparation(): Promise<void>;
   bindPreparedCandidate(candidate: ArtifactReference): Promise<unknown>;
   withPreparation<T>(operation: () => Promise<T>): Promise<T>;
+  bindPreparedTasks(tasks: PreparedTask[]): Promise<void>;
 }
 /** Source-owned preparation opt-in; no public CLI or model-controlled acceptance override. */
 export async function createValidationPreparedBrowserHost(input: Omit<HostInput, 'requirement' | 'draft' | 'binding'> & {
   requirement: ValidationRequirement; proposal: ValidationPreparationProposal; validation: ValidationExecutionBinding;
   preparation: BrowserInputPreparation; io?: BrowserHostIO; sessionFactory?: RoleFactoryOptions['sessionFactory'];
+  historicalStages?: import('./historical-passed-stages.ts').HistoricalPassedStages;
 }): Promise<PreparedBrowserHost> {
   if ('binding' in input || 'draft' in input || !input.preparation) throw new Error('Preparation uses only its explicit proposal, trusted adapter and case binding.');
   try {
@@ -184,21 +186,31 @@ interface BrowserHostCoreInput extends Omit<HostInput, 'requirement' | 'draft'> 
   requirement: ExecutionRequirement; draft: GameDraft | ValidationBrowserProposal | ValidationPreparationProposal; io?: BrowserHostIO; validation?: ValidationExecutionBinding;
   preparation?: BrowserInputPreparation;
   sessionFactory?: RoleFactoryOptions['sessionFactory'];
+  historicalStages?: import('./historical-passed-stages.ts').HistoricalPassedStages;
 }
 async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<GenerationHost> {
   const binding = input.binding ? structuredClone(input.binding) : undefined;
   const validation = input.validation && { ...input.validation }, { root, controller, work } = input;
   const preparation = input.preparation;
+  const historical = input.historicalStages;
   const requirement = structuredClone(input.requirement), draft = structuredClone(input.draft);
   let preparedRequirementRef: ArtifactReference | undefined;
   const validationScope = async () => {
     const scope = preparation ? await requireValidationPreparationScope({ root, controller, requirement: requirement as ValidationRequirement,
     proposal: draft as ValidationPreparationProposal, adapterId: preparation.adapterId, validation: validation! })
     : await requireValidationBrowserScope({ root, controller, requirement: requirement as ValidationRequirement, proposal: draft as ValidationBrowserProposal, validation: validation! });
-    if (preparedRequirementRef && !sameValue(await json(root, `${preparedRequirementRef.location}/_cosmos/execution-requirement.json`), requirement)) throw new Error('Complete captured preparation requirement binding changed.');
+    if (preparedRequirementRef && !sameValue(await json(root, `${preparedRequirementRef.location}/_cosmos/${historical ? 'current-' : ''}execution-requirement.json`), requirement)) throw new Error('Complete captured preparation requirement binding changed.');
+    if (historical) await historical.verify(work.signal);
     return scope;
   };
   const scope = validation ? await validationScope() : undefined;
+  if (historical && (!validation?.historicalManifest || !preparation || resolve(historical.targetRoot) !== resolve(root)
+    || !sameValue(historical.manifestRef, validation.historicalManifest.reference))) throw new Error('Historical host requires its source-owned preparation and exact current scope manifest.');
+  const inherited = historical ? await historical.verify(work.signal) : undefined;
+  if (inherited && (!isValidationRequirement(requirement) || !sameValue(requirement.acceptance, inherited.sourceRequirement.acceptance)
+    || requirement.validation.frozenCaseInputHash !== inherited.sourceRequirement.validation.frozenCaseInputHash)) throw new Error('Current execution changed the accepted historical input or requirements.');
+  if (historical) await historical.import(work.signal);
+  const inheritedTask = (taskId: string) => inherited?.stages.find(stage => stage.task.taskId === taskId);
   if (draft.unsupported.length || requirement.acceptance.some(item => !item.evidenceKinds.includes('test_report'))
     || ![DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID].every(id => requirement.acceptance.some(item => item.acceptanceId === id))) throw new Error('The browser-input host requires separately confirmed design, media and gameplay checks.');
   const gameplayIds = gameplayAcceptance(draft).map(item => item.acceptanceId);
@@ -219,22 +231,22 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   }
   const registry = await createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', work, signal: work.signal }), io = input.io ?? nativeIO(input);
   const name = (value: string) => validation ? `${validation.caseId}-${value}` : value;
-  const template = registry.artifactRef(name('generic-template'), 'v1'), requirements = registry.artifactRef(name('requirement-bundle'), requirement.sources[0].version);
-  const captures = [template, requirements], provenance = { kind: 'original-procedural' as const, generator: 'Cosmos trusted host inputs', sourceRefs: requirement.sources.map(ref => `${ref.artifactId}@${ref.version}`) };
+  const template = inherited?.template ?? registry.artifactRef(name('generic-template'), 'v1'), requirements = registry.artifactRef(name('requirement-bundle'), requirement.sources[0].version);
+  const captures = [...(inherited ? [template, inherited.requirementCapture] : [template]), requirements], provenance = { kind: 'original-procedural' as const, generator: 'Cosmos trusted host inputs', sourceRefs: requirement.sources.map(ref => `${ref.artifactId}@${ref.version}`) };
   if (input.resume) {
     const lock = await lstat(join(root, 'registry/.commit.lock')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
     if (lock) await registry.recoverOwnership();
     await registry.getCapture(template); await registry.getCapture(requirements);
   }
   else {
-    await registry.registerCapture({ taskId: 'host-template', artifactRef: template, sourceRoot: 'toolchain', files: TEMPLATE_FILES.map(name => ({ source: name, destination: name })),
+    if (!inherited) await registry.registerCapture({ taskId: 'host-template', artifactRef: template, sourceRoot: 'toolchain', files: TEMPLATE_FILES.map(name => ({ source: name, destination: name })),
       ownership: { writePaths: ['.'], readOnlyPaths: [] }, dependencies: [], metadata: { kind: 'code', provenance } });
     const folder = await directory(root, 'host-requirements');
     for (const ref of requirement.sources) await writeFile(join(folder, `${ref.artifactId}.json`), await regularFile(root, ref.location), { flag: 'wx' });
     if (preparation) await writeFile(join(folder, 'execution-requirement.json'), JSON.stringify(requirement, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
     await registry.registerCapture({ taskId: 'host-requirements', artifactRef: requirements, sourceRoot: 'host-requirements',
       files: [...requirement.sources.map(ref => ({ source: `${ref.artifactId}.json`, destination: `_cosmos/${ref.artifactId}.json` })),
-        ...(preparation ? [{ source: 'execution-requirement.json', destination: '_cosmos/execution-requirement.json' }] : [])],
+        ...(preparation ? [{ source: 'execution-requirement.json', destination: `_cosmos/${historical ? 'current-' : ''}execution-requirement.json` }] : [])],
       ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: [], metadata: { kind: 'data', provenance } });
   }
   const availableArtifacts = [...requirement.sources, ...captures];
@@ -242,20 +254,24 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   if (!binding && !validation) { await directory(root, 'authors/coding/src'); await directory(root, 'authors/design'); await directory(root, 'authors/art'); }
   const baseAllocation = state.ledger.allocations.filter(item => ['intake', 'planning'].includes(item.taskId)).reduce((sum, item) => sum + item.amountMicroCny, 0);
   const pool = validation ? 0 : state.ledger.limitMicroCny - baseAllocation, output = registry.candidateRef(name('game'), 'v1');
-  const designOutput = registry.artifactRef(name('design'), 'v1'), mediaOutput = registry.artifactRef(name('media'), 'v1');
+  const designOutput = inherited?.designArtifacts[0] ?? registry.artifactRef(name('design'), 'v1'), mediaOutput = inherited?.mediaArtifact ?? registry.artifactRef(name('media'), 'v1');
   if (preparation) {
     if (!validation || !scope) throw new Error('Preparation requires its explicit validation scope.');
     preparedRequirementRef = requirements; await validationScope();
-    await preparation.initialize({ root, registry, requirement, requirementCapture: requirements, requirementFile: '_cosmos/execution-requirement.json',
-      primaryDesign: designOutput, candidates: { v1: output, v2: registry.candidateRef(name('game'), 'v2') }, designTaskId: scope.window.quote.declaration.grants.design.taskId,
-      primaryMedia: mediaOutput, mediaTaskId: scope.window.quote.declaration.grants.art.taskId,
+    await preparation.initialize({ root, registry, requirement, requirementCapture: requirements, requirementFile: `_cosmos/${historical ? 'current-' : ''}execution-requirement.json`,
+      primaryDesign: designOutput, candidates: { v1: output, v2: registry.candidateRef(name('game'), 'v2') }, designTaskId: inherited?.stages[0].task.taskId ?? scope.window.quote.declaration.grants.design.taskId,
+      primaryMedia: mediaOutput, mediaTaskId: inherited?.stages[1].task.taskId ?? scope.window.quote.declaration.grants.art.taskId,
       candidateTaskIds: { v1: scope.window.quote.declaration.grants.coding.taskId, v2: scope.window.quote.declaration.grants.repair.taskId },
-      name, signal: work.signal, resume: input.resume, requireScope: async () => { work.signal.throwIfAborted(); await validationScope(); work.signal.throwIfAborted(); } });
+      name, signal: work.signal, resume: input.resume, ...(inherited && historical ? { inherited: { binding: historical, verified: inherited } } : {}),
+      requireScope: async () => { work.signal.throwIfAborted(); await validationScope(); work.signal.throwIfAborted(); } });
+    if (preparation.currentInputs) availableArtifacts.push(...preparation.currentInputs());
   }
   const proofs = new Map<string, PassedEvidence>(), failures = new Map<string, HostFailure>();
   const pictures = new Map<string, ArtifactReference[]>();
   const validationTasks = new Map<string, PreparedTask>();
   const boundTask = (task: TaskContract) => {
+    const old = inheritedTask(task.taskId);
+    if (old) { requireOriginalTask(old.task, task); if (!sameValue(old.task, task)) throw new Error('Inherited stage result changed.'); return { task: old.task, role: old.role, workspace: historical!.originalRoot, expectedArtifacts: old.task.artifacts }; }
     const item = validation ? validationTasks.get(task.taskId) : binding?.tasks.find(item => item.task.taskId === task.taskId);
     if ((binding || validation) && !item) throw new Error('Task is outside the fixed host binding.');
     if (item) requireOriginalTask(item.task, task);
@@ -284,6 +300,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     return { taskId: task.taskId, windowId: authority.windowId, deadlineAt: authority.deadlineAt };
   }
   async function requirePlanningDispatch(roleInput: Readonly<RoleInput>, signal: AbortSignal) {
+    if (inherited) throw new Error('Inherited stages require a source-owned coding binding; no planner is dispatched.');
     signal.throwIfAborted();
     const { snapshot, window } = await validationScope(), grant = window.quote.declaration.grants.planning;
     if (roleInput.role !== 'cosmos' || roleInput.purpose !== 'planning' || roleInput.task.taskId !== grant.taskId
@@ -296,6 +313,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     signal.throwIfAborted();
   }
   const taskOutput = (task: TaskContract) => {
+    const old = inheritedTask(task.taskId); if (old) { boundTask(task); return old.task.artifacts[0]; }
     const planned = boundTask(task);
     if (planned) {
       const kind = role(task), identity = name(kind === 'coding' ? 'game' : kind === 'design' ? 'design' : 'media');
@@ -351,7 +369,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     return value;
   }
   const selected = (task: TaskContract, id: string) => {
-    const ref = task.inputs.find(ref => ref.artifactId === name(id)); if (!ref) throw new Error(`Missing fixed ${id} dependency.`); return ref;
+    const identity = id === 'design' && inherited ? designOutput.artifactId : id === 'media' && inherited ? mediaOutput.artifactId : name(id);
+    const ref = task.inputs.find(ref => ref.artifactId === identity); if (!ref) throw new Error(`Missing fixed ${id} dependency.`); return ref;
   };
   const designFor = async (task: TaskContract): Promise<DesignDocument> => {
     const ref = selected(task, 'design'); await registry.getCapture(ref);
@@ -397,7 +416,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const active = validation ? await controller.validationAuthority(original.taskId, 'author') : await controller.executionAuthority(original.taskId);
       if (!active.admissionAllowed || currentState.ledger.entries.some(entry => entry.unknown) || Date.parse(authority.deadlineAt) - Date.now() <= 5000) throw new Error('Coding check authority, charges or cleanup deadline is unavailable.');
       for (const kind of ['design', 'art']) {
-        const dependency = currentState.tasks.find(task => original.dependsOn.some(dep => dep.taskId === task.taskId) && role(task) === kind);
+        const dependency = [...(inherited?.stages.map(stage => stage.task) ?? []), ...currentState.tasks].find(task => original.dependsOn.some(dep => dep.taskId === task.taskId) && role(task) === kind);
         if (!dependency || dependency.state !== 'passed' || dependency.review.verdict !== 'approved') throw new Error('Coding check requires passed current design and art inputs.');
       }
       for (const ref of captures) await registry.getCapture(ref);
@@ -454,7 +473,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             || !sameValue(item.task.outputs, policy.outputs.map(({ type, schema, destination }) => ({ type, schema, destination })))
             || !sameValue(item.task.ownership, { writePaths: policy.writePaths, readOnlyPaths: policy.readOnlyPaths }) || !sameValue(item.task.context.rules, policy.rules)
             || !sameValue(item.task.context.tools, policy.tools) || availableArtifacts.some(ref => !item.task.inputs.some(input => sameValue(input, ref)))) throw new Error('Validation task differs from its fixed workspace, inputs or role policy.');
-          const inputs = [...availableArtifacts, ...item.task.dependsOn.flatMap(dep => tasks.find(task => task.task.taskId === dep.taskId)?.expectedArtifacts ?? [])];
+          const inputs = [...availableArtifacts, ...item.task.dependsOn.flatMap(dep => inheritedTask(dep.taskId)?.task.artifacts ?? tasks.find(task => task.task.taskId === dep.taskId)?.expectedArtifacts ?? [])];
           if (item.task.inputs.length !== inputs.length || item.task.inputs.some(ref => !inputs.some(fixed => sameValue(ref, fixed)))) throw new Error('Validation task input versions differ from the complete fixed dependencies.');
         }
       }
@@ -462,9 +481,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         const fixed = boundTask(item.task);
         return !fixed || item.role !== fixed.role || resolve(item.workspace) !== resolve(fixed.workspace) || !sameValue(item.expectedArtifacts, fixed.expectedArtifacts);
       }))) throw new Error('Tasks differ from the fixed complete host binding.');
-      const design = tasks.find(item => item.role === 'design'), art = tasks.find(item => item.role === 'art'), coding = tasks.find(item => item.role === 'coding');
+      const design = tasks.find(item => item.role === 'design') ?? (inherited && { task: inherited.stages[0].task }), art = tasks.find(item => item.role === 'art') ?? (inherited && { task: inherited.stages[1].task }), coding = tasks.find(item => item.role === 'coding');
       const exact = (left: string[], right: string[]) => left.length === right.length && left.every(id => right.includes(id));
-      if (tasks.length !== 3 || !design || !art || !coding || !exact(design.task.acceptanceIds, [DESIGN_ACCEPTANCE_ID]) || !exact(art.task.acceptanceIds, [MEDIA_ACCEPTANCE_ID])
+      if (tasks.length !== (inherited ? 1 : 3) || !design || !art || !coding || !exact(design.task.acceptanceIds, [DESIGN_ACCEPTANCE_ID]) || !exact(art.task.acceptanceIds, [MEDIA_ACCEPTANCE_ID])
         || !exact(coding.task.acceptanceIds, gameplayIds) || design.task.dependsOn.length || !exact(art.task.dependsOn.map(item => item.taskId), [design.task.taskId])
         || !exact(coding.task.dependsOn.map(item => item.taskId), [design.task.taskId, art.task.taskId])) throw new Error('The plan must preserve distinct design, art and coding responsibilities and fixed dependency versions.');
       if (validation) {
@@ -700,8 +719,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         try { current = (await validationScope()).snapshot; for (const task of tasks) { boundTask(task); requireValidationTask(current, task); if (!sameValue(current.tasks.find(item => item.taskId === task.taskId), task)) throw new Error('Final validation task differs from its persistent result.'); } }
         catch { return { gaps: ['Current validation scope or complete persistent task approval is unavailable.'] }; }
       }
+      const effectiveTasks = [...(inherited?.stages.map(stage => stage.task) ?? []), ...tasks];
       const task = tasks.find(task => role(task) === 'coding');
-      if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || tasks.length !== 3 || tasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
+      if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== 3 || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
         || binding && (tasks.some(task => !binding.tasks.some(item => item.task.taskId === task.taskId)) || new Set(tasks.map(task => task.taskId)).size !== binding.tasks.length)) {
         const existing = await registry.current(); return { ...(existing ? { delivery: existing.targetRoot } : {}), gaps: ['Current tasks lack complete host checks and independent approval.'] };
       }
@@ -725,7 +745,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (proof) await registry.promoteCandidate(ref, { evidence: proof, review: { candidateRef: ref, attemptId: proof.attemptId, reviewerId: task.review.reviewerId!, contextId: task.review.contextId!, verdict: 'approved', evidenceIds: task.review.evidenceIds } });
       const accepted = await registry.current();
       if (!accepted || !sameValue(accepted.candidateRef, ref)) return { gaps: ['Candidate promotion cannot be established; preserve the original version and evidence.'] };
-      return { delivery: accepted.targetRoot, gaps: [], acceptedCandidate: accepted, mediaUsage: `evidence/${task.taskId}/media-usage.json` };
+      return { delivery: accepted.targetRoot, gaps: [], acceptedCandidate: accepted, mediaUsage: `evidence/${task.taskId}/media-usage.json`,
+        ...(inherited ? { inheritedStages: inherited.stages.map(stage => ({ taskId: stage.task.taskId, role: stage.role, caseId: inherited.manifest.caseId,
+          windowId: inherited.manifest.windowId, manifestRef: historical!.manifestRef, artifacts: stage.task.artifacts })) } : {}) };
     },
   };
   if (preparation) {
@@ -734,6 +756,28 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     if (preparation.designHostTools) design.tools.push(...preparation.designHostTools.names);
     design.rules!.push(...preparation.designRules); coding.rules!.push(...preparation.codingRules);
     const prepared = host as PreparedBrowserHost;
+    prepared.bindPreparedTasks = async tasks => {
+      const { snapshot, window } = await validationScope(); if (historical) await historical.verify(work.signal);
+      const claimed = window.repair;
+      if (inherited && claimed && tasks.some(item => item.task.taskId === claimed.taskId)) {
+        if (!tasks.length || tasks.length > 2 || tasks.some(item => ![claimed.taskId, claimed.sourceTaskId].includes(item.task.taskId))) throw new Error('Repair binding contains another dispatch task.');
+        const sourceOrigin = await json(root, `journal/task-${claimed.sourceTaskId}/origin.json`) as import('./recovery/task-journal.ts').RecoveryOrigin;
+        host.validateTasks!([sourceOrigin.prepared]);
+        for (const item of tasks) {
+          const origin = await json(root, `journal/task-${item.task.taskId}/origin.json`) as import('./recovery/task-journal.ts').RecoveryOrigin;
+          const recorded = snapshot.tasks.find(task => task.taskId === item.task.taskId);
+          if (!recorded || !sameValue(origin.requirement, requirement) || !sameValue(origin.prepared, item)
+            || origin.artifactRoot !== root || origin.sessionRoot !== join(root, 'sessions') || origin.validationCase?.caseId !== validation!.caseId
+            || origin.validationCase.windowId !== validation!.windowId) throw new Error('Repair binding differs from its durable current-case origin.');
+          requireOriginalTask(origin.prepared.task, recorded); requireValidationTask(snapshot, item.task);
+          await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin, true);
+          if (item.task.taskId === claimed.taskId && (!sameValue(item.expectedArtifacts, [registry.candidateRef(name('game'), 'v2')])
+            || !sameValue(item.task.dependsOn.map(dep => dep.taskId), inherited.stages.map(stage => stage.task.taskId)))) throw new Error('Repair changed its current candidate or inherited dependency identities.');
+          validationTasks.set(item.task.taskId, structuredClone(item));
+        }
+      } else host.validateTasks!(tasks);
+      await preparation.requireCurrent();
+    };
     prepared.closePreparation = () => preparation.close(); prepared.bindPreparedCandidate = candidate => preparation.bindCandidate(candidate);
     prepared.withPreparation = async operation => {
       try { return await work.run(async () => { try {
@@ -795,6 +839,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     host.validateTasks!(binding.tasks);
     for (const item of binding.tasks) if (resolve(item.workspace) !== resolve(root)) await directory(root, relative(root, item.workspace).split(sep).join('/'));
   }
+  if (inherited) host.taskPolicies = host.taskPolicies.filter(policy => policy.role === 'coding');
   return host;
 }
 

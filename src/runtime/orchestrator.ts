@@ -28,6 +28,7 @@ import type { ExecutionRequirement, ValidationRequirement } from '../roles/execu
 import { requireValidationScope, validationJournalBinding } from './validation-scope.ts';
 import type { ValidationExecutionBinding } from './validation-scope.ts';
 import { currentValidationCase, requireValidationTask, validationRole } from './validation-validation.ts';
+import type { HistoricalPassedStages } from './historical-passed-stages.ts';
 
 export interface PreparedTask { task: TaskContract; role: AuthorRole; workspace: string; expectedArtifacts?: ArtifactReference[] }
 export interface AuthorProposal { summary: string; remaining: string[]; uncertainty: string[] }
@@ -37,6 +38,8 @@ export interface DagOptions {
   windowId?: string;
   requirement: ExecutionRequirement;
   validation?: ValidationExecutionBinding;
+  /** Source-owned, read-only old PASS dependencies; they are never dispatched or registered in this case. */
+  historicalDependencies?: HistoricalPassedStages;
   tasks: PreparedTask[];
   sessionRoot: string;
   availableArtifacts: ArtifactReference[];
@@ -107,6 +110,8 @@ export async function resumeTaskDag(options: DagOptions): Promise<RecoveryReport
 }
 
 async function checkProfile(options: DagOptions): Promise<void> {
+  if (options.historicalDependencies && (!options.validation || !options.validation.historicalManifest
+    || !sameValue(options.historicalDependencies.manifestRef, options.validation.historicalManifest.reference))) throw new Error('Historical dependencies require their exact current operator-covered manifest.');
   if (!options.validation) { options.controller.requireExecutionWindow(options.windowId); return; }
   if (options.windowId !== undefined || options.scheduling || !options.recovery) throw new Error('Validation execution requires its explicit serial case and durable host journal.');
   await requireValidationScope(options.controller, options.requirement, options.validation);
@@ -128,6 +133,10 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   if (!prepared.length || prepared.length > 100 || new Set(prepared.map(p => p.task.taskId)).size !== prepared.length) throw new Error('DAG requires 1 to 100 unique tasks.');
   if (options.scheduling) validateScheduling(prepared, options.scheduling);
   const initial = await controller.read();
+  if (options.historicalDependencies && initial.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new RecoveryBlocked('Historical dependency dispatch requires reconciled current charges before any task or journal write.');
+  const inherited = options.historicalDependencies ? await options.historicalDependencies.verify(controller.signal) : undefined;
+  const inheritedTasks = inherited?.stages.map(item => item.task) ?? [];
+  if (prepared.some(item => inheritedTasks.some(old => old.taskId === item.task.taskId))) throw new Error('Historical tasks cannot be included in current dispatch bindings.');
   if (options.validation) {
     const window = currentValidationCase(initial);
     if (options.reviewProtocolCorrections !== window.quote.declaration.limits.reviewProtocolCorrections) throw new Error('Validation review correction policy differs from its declaration.');
@@ -135,7 +144,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       requireValidationTask(initial, item.task);
       let role = validationRole(window, item.task.taskId);
       if (role === 'repair') role = validationRole(window, window.repair!.sourceTaskId);
-      if (role !== item.role || item.task.dependsOn.some(dep => !prepared.some(candidate => candidate.task.taskId === dep.taskId))) throw new Error('Validation requires every current-case dependency and its fixed role.');
+      if (role !== item.role || item.task.dependsOn.some(dep => !prepared.some(candidate => candidate.task.taskId === dep.taskId) && !inheritedTasks.some(old => old.taskId === dep.taskId))) throw new Error('Validation requires every current-case dependency and its fixed role.');
       checked(validateExecutionInput({ requirement, task: item.task, ledger: initial.ledger, run: initial.run }));
     }
   }
@@ -148,7 +157,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     if (!['cosmos', 'design', 'coding', 'art'].includes(item.role)) throw new Error('Invalid author role.');
     if (!resume && prior.has(item.task.taskId)) throw new Error('Task already recorded; reuse its result or create explicit new work.');
     if (item.task.state !== 'not_started') throw new Error('Prepared tasks must be not_started.');
-    if (item.task.dependsOn.some(dep => !prior.has(dep.taskId) && !prepared.some(p => p.task.taskId === dep.taskId))) throw new Error('Missing dependency task.');
+    if (item.task.dependsOn.some(dep => !prior.has(dep.taskId) && !prepared.some(p => p.task.taskId === dep.taskId) && !inheritedTasks.some(old => old.taskId === dep.taskId))) throw new Error('Missing dependency task.');
     const simulation = structuredClone(initial);
     const binding = options.validation ? undefined : taskWindowBinding(initial, item.task.taskId);
     if (binding) requireContinuationTask(initial, item.task);
@@ -183,7 +192,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   }
   const ordered: PreparedTask[] = [], remaining = [...prepared];
   while (remaining.length) {
-    const index = remaining.findIndex(item => item.task.dependsOn.every(dep => (!resume && prior.get(dep.taskId)?.state === 'passed') || (!prepared.some(p => p.task.taskId === dep.taskId) && prior.has(dep.taskId)) || ordered.some(p => p.task.taskId === dep.taskId)));
+    const index = remaining.findIndex(item => item.task.dependsOn.every(dep => inheritedTasks.some(old => old.taskId === dep.taskId) || (!resume && prior.get(dep.taskId)?.state === 'passed') || (!prepared.some(p => p.task.taskId === dep.taskId) && prior.has(dep.taskId)) || ordered.some(p => p.task.taskId === dep.taskId)));
     if (index < 0) throw new Error('Dependency cycle.');
     ordered.push(remaining.splice(index, 1)[0]);
   }
@@ -192,13 +201,15 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   if (fresh.length && !resume) await controller.registerTasks(fresh.map(p => p.task));
   const signal = AbortSignal.any([controller.signal, ...(options.signal ? [options.signal] : [])]);
   const available = structuredClone(options.availableArtifacts);
-  const finished = new Map(prior);
+  const finished = new Map([...prior, ...inheritedTasks.map(task => [task.taskId, task] as const)]);
   const results: TaskContract[] = [];
-  const reusedTaskIds: string[] = [];
-  const validatedDependencies = new Set<string>();
+  const reusedTaskIds: string[] = inheritedTasks.map(task => task.taskId);
+  const validatedDependencies = new Set<string>(reusedTaskIds);
+  for (const task of inheritedTasks) for (const ref of task.artifacts) if (!available.some(item => sameValue(item, ref))) available.push(ref);
   const at = () => new Date((options.now ?? Date.now)()).toISOString();
   async function save(task: TaskContract) { await controller.saveTask(task, { role: 'system', actorId: 'orchestrator' }); }
   async function validate(task: TaskContract) {
+    if (options.historicalDependencies) { await requireValidationScope(controller, requirement, options.validation!); await options.historicalDependencies.verify(signal); }
     const current = await controller.read();
     checked(validateExecutionInput({ requirement, task, ledger: current.ledger, run: current.run }));
   }
@@ -301,6 +312,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         try { await requireValidationScope(controller, requirement, options.validation); }
         catch { throw new RecoveryBlocked('Validation scope or operator source could not be authenticated before this task phase.'); }
       }
+      if (options.historicalDependencies) await options.historicalDependencies.verify(signal);
       signal.throwIfAborted();
       task.dependsOn = task.dependsOn.map(dep => ({ ...dep, state: finished.get(dep.taskId)!.state }));
       if (task.dependsOn.some(dep => dep.state !== 'passed')) {
