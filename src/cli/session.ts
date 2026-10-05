@@ -56,6 +56,7 @@ function displayDraft(draft: StoredDraft): string {
   if (draft.acceptance.some(item => item.acceptanceId === 'COSMOS-MEDIA')) lines.push('最终游戏还会检查素材实际载入、动作和音频触发；未覆盖的项目会保留为差距。美术辨识度与听感留待最终试玩。');
   if (draft.preparation) lines.push('准备模式：先确认需求；地图、解法与自动操作将在同一次生成运行的运行时设计后形成。');
   else {
+    if (draft.benchmark) lines.push('经典 PC 政策：仅执行启动与离线存档重开；完整目录 230 项保留，其中 221 项参考依据待核对、另 7 项政策未执行，完整经典验收仍未通过。');
     lines.push('自动操作与检查：');
     const stages = [{ steps: draft.scenario.steps }, ...(draft.scenario.reopen ? [draft.scenario.reopen] : [])];
     for (const [index, stage] of stages.entries()) {

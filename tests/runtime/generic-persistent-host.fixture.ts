@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import type test from 'node:test';
 import { removeOwned } from '../../src/artifacts/paths.ts';
@@ -8,23 +9,30 @@ import { IntakeController } from '../../src/runtime/intake.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
+import type { BrowserHostIO } from '../../src/runtime/entrypoint-host.ts';
 import { withHostStages, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../../src/roles/requirements.ts';
 import { executePersistentSeries, runPersistentAcceptance } from '../../src/acceptance/persistent.ts';
 import { genericArt, genericDesign, genericPersistentDraft, genericPersistentHtml } from '../acceptance/generic-persistent.fixture.ts';
 
-export async function genericHostFixture(t: test.TestContext, fault = '') {
+export async function genericHostFixture(t: test.TestContext, fault = '', classic = false) {
+  const native = fault === 'native-real';
   const root = await mkdtemp(join(tmpdir(), 'cos66-host-')), intake = await IntakeController.create({ root, runId: 'game', ledgerId: 'budget', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 2,
-    allocations: [{ taskId: 'intake', amountMicroCny: 100 }, { taskId: 'planning', amountMicroCny: 100 }], durationMs: fault === 'real' ? 45_000 : undefined });
-  const draft = withHostStages(genericPersistentDraft()), saved = await intake.saveDraft(draft), requirement = await intake.confirm({ revision: saved.revision, confirmed: true, actorId: 'user', at: new Date().toISOString() });
+    allocations: [{ taskId: 'intake', amountMicroCny: 100 }, { taskId: 'planning', amountMicroCny: 100 }], durationMs: native ? 120_000 : fault === 'real' ? 45_000 : undefined });
+  const draft = withHostStages({ ...genericPersistentDraft(), ...(classic ? { benchmark: 'classic-pc-runtime-policy/1' as const } : {}) }), saved = await intake.saveDraft(draft), requirement = await intake.confirm({ revision: saved.revision, confirmed: true, actorId: 'user', at: new Date().toISOString() });
   await intake.activateGeneration({ environmentReady: true, executionReady: true }); await intake.close();
   const controller = await RunController.open({ root }), work = new OwnedWork(controller.signal), calls: any[] = [];
-  t.after(async () => { await controller.close(); if (fault === 'real') t.diagnostic(`COS66 free source/fixture only; SDK calls=0; evidence=${root}`); else await removeOwned(tmpdir(), root); });
+  t.after(async () => { await controller.close(); if (fault === 'real' || native) t.diagnostic(`Free source/fixture only; SDK calls=0; evidence=${root}`); else await removeOwned(tmpdir(), root); });
   await mkdir(join(root, 'toolchain'), { recursive: true });
-  for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await writeFile(join(root, 'toolchain', file), file === 'vite.config.ts' ? 'export default {}' : '{}', 'utf8');
-  const host = await createBrowserHost({ root, controller, requirement, draft, work, resume: false, io: {
-    async build(project) { await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true });
+  if (native) {
+    const template = resolve(process.env.COSMOS_TEMPLATE_ROOT ?? fileURLToPath(new URL('../../templates/2d', import.meta.url)));
+    await cp(template, join(root, 'toolchain'), { recursive: true, filter: path => !['dist', 'public'].includes(relative(template, path).split(sep)[0]) });
+  } else for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await writeFile(join(root, 'toolchain', file), file === 'vite.config.ts' ? 'export default {}' : '{}', 'utf8');
+  const io: BrowserHostIO = {
+    async build(project) { if (fault === 'classic-build-failed') return { passed: false, diagnostics: 'Fixture source compiler failure', work: project,
+        results: [{ code: 1, stdout: 'src/main.ts(1,1): error TS2304: fixture defect', stderr: '' }] };
+      await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true });
       await writeFile(join(project, 'dist/index.html'), genericPersistentHtml(JSON.parse(await readFile(join(project, 'public/assets/manifest.json'), 'utf8'))), 'utf8');
-      return { passed: true, diagnostics: 'Injected build and authored fixture data; no compiler/model evidence.' }; },
+      return { passed: true, diagnostics: 'Injected build and authored fixture data; no compiler/model evidence.', results: [{ code: 0, stdout: 'Synthetic compiler transport', stderr: '' }, { code: 0, stdout: 'Synthetic bundler transport', stderr: '' }] }; },
     async play() { throw new Error('A reopen draft must use the persistent transport.'); },
     async playPersistent(series, options, authority) {
       calls.push({ series: structuredClone(series), authority: structuredClone(authority), deadlineAt: options.deadlineAt });
@@ -68,13 +76,28 @@ export async function genericHostFixture(t: test.TestContext, fault = '') {
         if (!index && fault === 'design-bytes') await writeFile(join(root, series.formatVersion === 'persistent-acceptance/generic-1' ? series.binding.design.location : '', '_cosmos/design.json'), '{}', 'utf8');
         if (!index && fault === 'candidate-bytes') await writeFile(join(root, plan.artifact.location, 'src/main.ts'), '// changed candidate\n', 'utf8');
         if (!index && fault === 'confirmed-source') await writeFile(join(root, requirement.sources[0].location), '{}', 'utf8');
+        if (!index && fault === 'classic-mapping') {
+          const location = series.segments[0].plan.artifact.location.replace('candidates/game/v1/project', 'captures/classic-policy-mapping-game/v1/files');
+          await writeFile(join(root, location, '_cosmos/classic/mapping.json'), '{}', 'utf8');
+        }
+        if (!index && fault === 'classic-catalog') {
+          const ref = host.availableArtifacts.find(ref => ref.artifactId === 'classic-policy-catalog')!;
+          const path = join(root, ref.location, '_cosmos/classic/catalog.json'), catalog = JSON.parse(await readFile(path, 'utf8'));
+          catalog.entries = catalog.entries.filter((row: any) => row.category !== 'garden'); await writeFile(path, JSON.stringify(catalog), 'utf8');
+        }
+        if (!index && fault === 'classic-build') await writeFile(join(root, 'evidence/coding/build.json'), '{"passed":true}', 'utf8');
+        if (!index && fault === 'classic-plan') plan.specVersion = 'different';
         await writeFile(join(options.evidenceRoot, raw.reportPath), JSON.stringify(raw), 'utf8'); return raw;
       });
       if (fault === 'first-only') report.segments.pop();
       if (fault === 'raw') { await writeFile(join(options.evidenceRoot, report.reportPath), '{}', 'utf8'); }
+      if (fault === 'classic-cleanup') {
+        const ready = JSON.parse(await readFile(join(root, 'delivery-work/coding/ready.json'), 'utf8')); process.kill(ready.pid);
+      }
       return report;
     },
-  } });
+  };
+  const host = await createBrowserHost({ root, controller, requirement, draft, work, resume: false, io: native ? undefined : io });
   const make = (role: string, acceptanceIds: string[]) => { const output = host.taskPolicies.find(policy => policy.role === role)!.outputs[0];
     return { taskId: role, runId: 'game', specVersion: '1.0', authorId: `author-${role}`, context: { contextId: `context-${role}`, interfaces: [] }, inputs: [...host.availableArtifacts],
       outputs: [{ type: output.type, schema: output.schema, destination: output.destination }], artifacts: [], acceptanceIds, acceptance: requirement.acceptance.filter(item => acceptanceIds.includes(item.acceptanceId)),
@@ -84,7 +107,8 @@ export async function genericHostFixture(t: test.TestContext, fault = '') {
   const design = make('design', [DESIGN_ACCEPTANCE_ID]), art = make('art', [MEDIA_ACCEPTANCE_ID]);
   design.artifacts = (await host.capture(design, {}, controller.signal)).artifacts; design.evidence = await host.verify(design, controller.signal); assert.equal(design.evidence[0].outcome, 'passed'); design.state = 'passed';
   art.inputs.push(...design.artifacts); art.artifacts = (await host.capture(art, {}, controller.signal)).artifacts; art.evidence = await host.verify(art, controller.signal); assert.equal(art.evidence[0].outcome, 'passed'); art.state = 'passed';
-  await writeFile(join(root, 'authors/coding/src/main.ts'), '// Authored generic harness fixture; no native generation.\n', 'utf8'); await writeFile(join(root, 'authors/coding/index.html'), '<div id="app"></div>', 'utf8');
+  await writeFile(join(root, 'authors/coding/src/main.ts'), '// Authored generic harness fixture; no native generation.\n', 'utf8');
+  await writeFile(join(root, 'authors/coding/index.html'), native ? genericPersistentHtml(JSON.parse(await readFile(join(root, art.artifacts[0].location, 'public/assets/manifest.json'), 'utf8'))) : '<div id="app"></div>', 'utf8');
   const task = make('coding', ['save', 'resume']); task.inputs.push(...design.artifacts, ...art.artifacts); task.artifacts = (await host.capture(task, {}, controller.signal)).artifacts;
   return { root, host, task, controller, calls, draft, requirement, design, art };
 }

@@ -1,6 +1,6 @@
 # COS67 classic runtime policy implementation plan
 
-> For agentic workers: use the existing dedicated implementer and independent reviewer. Execute the following steps with TDD after PLAN_APPROVED. The batch08 merger alone integrates approved commits into main.
+> For agentic workers: use the existing dedicated implementer and independent reviewer. Execute the following steps with TDD after PLAN_APPROVED. Root assigned the batch09 merger actor `cos66_implementer` to integrate approved commits into main.
 
 **Goal:** Connect STARTUP and OFFLINE to the existing production candidate verification and retain the complete provisional classic catalog in a partial report.
 

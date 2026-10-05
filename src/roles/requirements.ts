@@ -35,7 +35,7 @@ export interface BrowserScenario extends Pick<AcceptancePlan, 'viewport' | 'step
   reopen?: { steps: AcceptancePlan['steps']; checkpoint: { expected: string;
     snapshot: { kind: 'text'; selector: string }; savedSnapshot: { kind: 'text'; selector: string } } };
 }
-export interface BrowserGameDraft extends DraftFields { scenario: BrowserScenario; preparation?: never }
+export interface BrowserGameDraft extends DraftFields { scenario: BrowserScenario; benchmark?: 'classic-pc-runtime-policy/1'; preparation?: never }
 export interface PreparationGameDraft extends DraftFields { preparation: PreparationSelection; scenario?: never }
 export type GameDraft = BrowserGameDraft | PreparationGameDraft;
 
@@ -51,7 +51,7 @@ export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'bro
   const selection = resolveDraftMode(expectedMode);
   const draft = value as GameDraft;
   const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
-  const fields = ['brief', 'questions', 'answers', 'acceptance', 'unsupported', selection ? 'preparation' : 'scenario'];
+  const fields = ['brief', 'questions', 'answers', 'acceptance', 'unsupported', ...(selection ? ['preparation'] : ['scenario', 'benchmark'])];
   if (!draft || typeof draft !== 'object' || Object.keys(draft).some(key => !fields.includes(key))
     || !text(draft.brief) || !Array.isArray(draft.questions) || !draft.answers || typeof draft.answers !== 'object' || Array.isArray(draft.answers)
     || Object.values(draft.answers).some(answer => typeof answer !== 'string') || !Array.isArray(draft.unsupported) || draft.unsupported.some(item => !text(item))) throw new Error('Invalid game draft fields.');
@@ -65,6 +65,7 @@ export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'bro
     return;
   }
   requireBrowserDraft(draft);
+  if (draft.benchmark !== undefined && (draft.benchmark !== 'classic-pc-runtime-policy/1' || !draft.scenario?.reopen)) throw new Error('Classic runtime policies require the exact selection and normal save/reopen scenario.');
   validateBrowserScenario(draft);
 }
 
