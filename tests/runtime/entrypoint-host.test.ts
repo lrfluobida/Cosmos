@@ -10,7 +10,7 @@ import { withHostStages, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../..
 import * as hosts from '../../src/runtime/entrypoint-host.ts';
 import { runAcceptance } from '../../src/acceptance/runner.ts';
 import { genericMediaFixture } from '../acceptance/generic-media.fixture.ts';
-async function fixture(t: test.TestContext, mismatch: boolean | 'media-missing' | 'image' | 'sample-binding' | 'sample-missing' = false, batched = false) {
+async function fixture(t: test.TestContext, mismatch: boolean | 'media-missing' | 'image' | 'sample-binding' | 'sample-missing' | 'frame-deadline' | 'frame-mismatch' = false, batched = false, renderFrames = false) {
   assert.equal(typeof hosts.createBrowserHost, 'function', 'Generic host adapter is required');
   const root = await mkdtemp(join(tmpdir(), 'cosmos-browser-host-'));
   const intake = await IntakeController.create({ root, runId: 'game', ledgerId: 'budget', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 2,
@@ -26,7 +26,7 @@ async function fixture(t: test.TestContext, mismatch: boolean | 'media-missing' 
   await mkdir(join(root, 'toolchain'), { recursive: true });
   for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await writeFile(join(root, 'toolchain', file), file === 'vite.config.ts' ? 'export default {}' : '{}', 'utf8');
   const plays: any[] = [];
-  const host = await hosts.createBrowserHost({ root, controller, requirement, draft, work, resume: false, io: {
+  const host = await hosts.createBrowserHost({ root, controller, requirement, draft, work, resume: false, renderFrames, io: {
     async build(project: string) { await mkdir(join(project, 'dist'));
       await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true });
       if (batched && mismatch === false) {
@@ -41,12 +41,16 @@ async function fixture(t: test.TestContext, mismatch: boolean | 'media-missing' 
       const request = structuredClone(options?.mediaObservations);
       if (request && mismatch === 'sample-binding') request.planBindingSha256 = 'f'.repeat(64);
       const values = request?.fields.map((field: any) => mismatch === 'sample-missing' && field.path.at(-1) === 'seen' ? false : field.expected);
-      return { formatVersion: '1.0.0', kind: 'normal_browser_input', plan: { ...plan, ...(mismatch === true ? { runId: 'wrong-run' } : {}) }, outcome: 'passed',
+      const frameFailure = mismatch === 'frame-deadline' || mismatch === 'frame-mismatch', deadlineFailure = mismatch === 'frame-deadline';
+      return { formatVersion: '1.0.0', kind: 'normal_browser_input', plan: { ...plan, ...(mismatch === true ? { runId: 'wrong-run' } : {}) }, outcome: frameFailure ? 'failed' : 'passed',
       ...(request ? { mediaObservations: { request, recordedAt: new Date().toISOString(), values } } : {}),
-      browser: { version: 'offline-browser' }, cleanup: { processExited: true }, errors: [], reportPath: 'offline-report.json', files: [], evidence: [],
+      browser: { version: 'offline-browser' }, cleanup: { processExited: true, forced: false }, errors: deadlineFailure ? ['Rendered-frame sampling exceeded its original deadline.'] : [], reportPath: 'offline-report.json', files: [], evidence: [],
+      ...(frameFailure ? { failureFacts: { formatVersion: 1, termination: deadlineFailure ? { kind: 'lifecycle' } : null,
+        errors: deadlineFailure ? [{ errorIndex: 0, error: 'Rendered-frame sampling exceeded its original deadline.', kind: 'lifecycle' }] : [] } } : {}),
       steps: plan.steps.map((step: any) => ({ id: step.id, kind: step.kind, acceptanceId: step.acceptanceId,
-        outcome: mismatch === 'media-missing' && step.observation?.path?.at(-1) === 'seen' ? 'failed' : 'passed', expected: step.expected ?? 'input delivered',
-        actual: mismatch === 'media-missing' && step.observation?.path?.at(-1) === 'seen' ? false : step.expected ?? 'input delivered', screenshot: mismatch === 'image' ? 'fixture.png' : null })) }; },
+        outcome: mismatch === 'frame-mismatch' && step.id === 'win' || mismatch === 'media-missing' && step.observation?.path?.at(-1) === 'seen' ? 'failed' : 'passed', expected: step.expected ?? 'input delivered',
+        actual: mismatch === 'frame-mismatch' && step.id === 'win' ? 'observed losing state' : mismatch === 'media-missing' && step.observation?.path?.at(-1) === 'seen' ? false : step.expected ?? 'input delivered',
+        ...(mismatch === 'frame-mismatch' && step.id === 'win' ? { failure: 'mismatch', observation: { completed: 1 } } : {}), screenshot: mismatch === 'image' ? 'fixture.png' : null })) }; },
   } });
   assert.deepEqual(host.taskPolicies.map((policy: any) => policy.role), ['design', 'art', 'coding']);
   const makeTask = (role: string, acceptanceIds: string[]) => {
@@ -78,6 +82,16 @@ async function fixture(t: test.TestContext, mismatch: boolean | 'media-missing' 
   const task = makeTask('coding', ['win']); task.inputs.push(...designTask.artifacts, ...artTask.artifacts);
   return { root, host, task, upstream: [designTask, artTask], plays, envelope, draft };
 }
+for (const fault of ['frame-deadline', 'frame-mismatch'] as const) test(`selected normal sampling ${fault} uses completed browser facts before repair classification`, async t => {
+  const { host, task, plays } = await fixture(t, fault, false, true);
+  task.artifacts = (await host.capture(task, {}, new AbortController().signal)).artifacts;
+  task.evidence = await host.verify(task, new AbortController().signal); assert.equal(task.evidence[0].outcome, 'failed');
+  assert.ok(plays[0].options.renderFrames, 'The selected normal caller must request source sampling.');
+  const failure = host.diagnoseFailure!(task, 'host_verification')!;
+  assert.ok(failure.issues.length);
+  assert.ok(failure.issues.every(issue => issue.classification === (fault === 'frame-deadline' ? 'insufficient_evidence' : 'code_defect')));
+  if (fault === 'frame-deadline') assert.ok(failure.passedChecks.some(check => check.checkId === 'browser/win'));
+});
 test('generic host captures exact source and refuses a browser report for another run', async t => {
   const { host, task, upstream } = await fixture(t, true);
   task.artifacts = (await host.capture(task, {}, new AbortController().signal)).artifacts;

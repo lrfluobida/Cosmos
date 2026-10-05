@@ -14,8 +14,8 @@ import { withHostStages, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../..
 import { executePersistentSeries, runPersistentAcceptance } from '../../src/acceptance/persistent.ts';
 import { genericArt, genericDesign, genericPersistentDraft, genericPersistentHtml } from '../acceptance/generic-persistent.fixture.ts';
 
-export async function genericHostFixture(t: test.TestContext, fault = '', classic = false) {
-  const native = fault === 'native-real';
+export async function genericHostFixture(t: test.TestContext, fault = '', classic = false, renderFrames = false) {
+  const native = fault === 'native-real' || fault === 'frame-native-real';
   const root = await mkdtemp(join(tmpdir(), 'cos66-host-')), intake = await IntakeController.create({ root, runId: 'game', ledgerId: 'budget', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 2,
     allocations: [{ taskId: 'intake', amountMicroCny: 100 }, { taskId: 'planning', amountMicroCny: 100 }], durationMs: native ? 120_000 : fault === 'real' ? 45_000 : undefined });
   const draft = withHostStages({ ...genericPersistentDraft(), ...(classic ? { benchmark: 'classic-pc-runtime-policy/1' as const } : {}) }), saved = await intake.saveDraft(draft), requirement = await intake.confirm({ revision: saved.revision, confirmed: true, actorId: 'user', at: new Date().toISOString() });
@@ -97,7 +97,7 @@ export async function genericHostFixture(t: test.TestContext, fault = '', classi
       return report;
     },
   };
-  const host = await createBrowserHost({ root, controller, requirement, draft, work, resume: false, io: native ? undefined : io });
+  const host = await createBrowserHost({ root, controller, requirement, draft, work, resume: false, io: native ? undefined : io, renderFrames });
   const make = (role: string, acceptanceIds: string[]) => { const output = host.taskPolicies.find(policy => policy.role === role)!.outputs[0];
     return { taskId: role, runId: 'game', specVersion: '1.0', authorId: `author-${role}`, context: { contextId: `context-${role}`, interfaces: [] }, inputs: [...host.availableArtifacts],
       outputs: [{ type: output.type, schema: output.schema, destination: output.destination }], artifacts: [], acceptanceIds, acceptance: requirement.acceptance.filter(item => acceptanceIds.includes(item.acceptanceId)),
@@ -107,8 +107,14 @@ export async function genericHostFixture(t: test.TestContext, fault = '', classi
   const design = make('design', [DESIGN_ACCEPTANCE_ID]), art = make('art', [MEDIA_ACCEPTANCE_ID]);
   design.artifacts = (await host.capture(design, {}, controller.signal)).artifacts; design.evidence = await host.verify(design, controller.signal); assert.equal(design.evidence[0].outcome, 'passed'); design.state = 'passed';
   art.inputs.push(...design.artifacts); art.artifacts = (await host.capture(art, {}, controller.signal)).artifacts; art.evidence = await host.verify(art, controller.signal); assert.equal(art.evidence[0].outcome, 'passed'); art.state = 'passed';
-  await writeFile(join(root, 'authors/coding/src/main.ts'), '// Authored generic harness fixture; no native generation.\n', 'utf8');
-  await writeFile(join(root, 'authors/coding/index.html'), native ? genericPersistentHtml(JSON.parse(await readFile(join(root, art.artifacts[0].location, 'public/assets/manifest.json'), 'utf8'))) : '<div id="app"></div>', 'utf8');
+  const frameSource = `import Phaser from 'phaser'; import {createObservedGame} from '../_cosmos/render-frame-observer';
+class FrameScene extends Phaser.Scene { constructor(){super('frame-fixture');} create(){const shape=this.add.rectangle(400,220,120,120,0x44cc88); const label=this.add.text(30,30,'Normal save/continue fixture',{color:'#ffffff'}); this.events.on('update',()=>{label.setText(document.querySelector('#progress')?.textContent??'');shape.rotation+=0.01;for(let index=0;index<20;index++)this.game.events.emit(Phaser.Core.Events.POST_RENDER,null,0,0);});} }
+class Overlay extends Phaser.Scene { constructor(){super({key:'overlay',active:true});} create(){this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');this.add.rectangle(60,420,40,40,0xffaa22);} }
+createObservedGame({type:Phaser.CANVAS,width:800,height:500,parent:'frame-scene',scene:[FrameScene,Overlay]});
+`;
+  await writeFile(join(root, 'authors/coding/src/main.ts'), fault === 'frame-native-real' ? frameSource : '// Authored generic harness fixture; no native generation.\n', 'utf8');
+  const html = native ? genericPersistentHtml(JSON.parse(await readFile(join(root, art.artifacts[0].location, 'public/assets/manifest.json'), 'utf8'))) : '<div id="app"></div>';
+  await writeFile(join(root, 'authors/coding/index.html'), fault === 'frame-native-real' ? html + '<div id="frame-scene" style="width:800px;height:500px"></div><script type="module" src="/src/main.ts"></script>' : html, 'utf8');
   const task = make('coding', ['save', 'resume']); task.inputs.push(...design.artifacts, ...art.artifacts); task.artifacts = (await host.capture(task, {}, controller.signal)).artifacts;
-  return { root, host, task, controller, calls, draft, requirement, design, art };
+  return { root, host, task, controller, work, calls, draft, requirement, design, art };
 }

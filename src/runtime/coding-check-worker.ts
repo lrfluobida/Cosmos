@@ -6,6 +6,8 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { regularFile, safePath, snapshot, within } from '../artifacts/paths.ts';
 import { roleToolEnvironment } from '../roles/factory.ts';
+import type { ArtifactReference } from '../contracts/types.ts';
+import { OBSERVER_SOURCE, renderFrameBuildArguments } from './entrypoint-frames.ts';
 
 export const CODING_CHECK_RESULT = 'COSMOS_CODING_BUILD_RESULT=';
 export const CODING_TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
@@ -24,8 +26,9 @@ export interface CodingCheckRequest {
   taskId: string; attemptId: string; workspace: string; toolchain: string; template: string; media: string; deadlineAt: string;
   phase: 'typecheck' | 'build'; work?: string;
   sourceSignature: string; templateSignature: string; mediaSignature: string;
+  observer?: { directory: string; ref: ArtifactReference; sha256: string };
 }
-async function projectInputs(input: CodingCheckRequest) {
+export async function projectInputs(input: CodingCheckRequest) {
   const source = await snapshot(await safePath(input.workspace, 'authors/coding'));
   if (source.size < 2 || !source.has('index.html') || !source.has('src/main.ts')
     || [...source.keys()].some(name => name !== 'index.html' && !name.startsWith('src/'))) throw new Error('Coding check requires only current index.html and src files.');
@@ -35,6 +38,14 @@ async function projectInputs(input: CodingCheckRequest) {
   const media = await snapshot(await safePath(input.media, 'public/assets'));
   if (codingSignature(source) !== input.sourceSignature || codingSignature(template) !== input.templateSignature || codingSignature(media) !== input.mediaSignature) {
     throw new Error('Coding check source or fixed input bytes changed.');
+  }
+  if (input.observer) {
+    const bytes = await regularFile(input.observer.directory, OBSERVER_SOURCE);
+    if (input.observer.ref.artifactId !== 'render-frame-observer' || input.observer.ref.version !== 'v1'
+      || input.observer.ref.location !== 'registry/captures/render-frame-observer/v1/files'
+      || !resolve(input.observer.directory).replaceAll('\\', '/').endsWith('/' + input.observer.ref.location)
+      || createHash('sha256').update(bytes).digest('hex') !== input.observer.sha256) throw new Error('Coding check selected observer capture/signature changed.');
+    template.set(OBSERVER_SOURCE, bytes);
   }
   return { source, template, media };
 }
@@ -71,7 +82,7 @@ async function check(input: CodingCheckRequest) {
     if (await realpath(join(work, 'node_modules')) !== modules) throw new Error('Coding check assembled toolchain changed before Vite.');
   } else throw new Error('Coding check requires its fixed compiler phase and isolated project.');
   if (Date.parse(input.deadlineAt) - Date.now() <= 5000) throw new Error('Coding check has insufficient cleanup time.');
-  const args = input.phase === 'typecheck' ? [join(modules, 'typescript/bin/tsc'), '--noEmit', '-p', 'tsconfig.json'] : [join(modules, 'vite/bin/vite.js'), 'build'];
+  const args = input.phase === 'typecheck' ? [join(modules, 'typescript/bin/tsc'), '--noEmit', '-p', 'tsconfig.json'] : renderFrameBuildArguments(input.toolchain, !!input.observer);
   const result = await compiler(args, work);
   await projectInputs(input);
   return { passed: result.code === 0, work, workerPid: process.pid,

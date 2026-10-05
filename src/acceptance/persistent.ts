@@ -38,6 +38,7 @@ export interface PersistentAcceptanceOptions extends AcceptanceOptions {
   ownedChild?: { prepare(): Promise<string>; register(pid: number, ticket: string): Promise<void> };
   /** Each generic document has its own exact plan-bound partial collection request. */
   segmentMediaObservations?: { segmentId: string; request: import('./browser.ts').GenericMediaObservationRequest }[];
+  segmentRenderFrames?: { segmentId: string; request: import('./render-frames.ts').RenderFrameRequest }[];
 }
 export interface PersistentFailureFacts {
   formatVersion: 1;
@@ -383,6 +384,13 @@ export function ownedPersistentBrowserLifecycle(plan: AcceptancePlan, options: P
     } };
 }
 export async function runPersistentAcceptance(value: unknown, options: PersistentAcceptanceOptions): Promise<PersistentAcceptanceReport> {
+  if (options.segmentRenderFrames) {
+    const series = value as GenericPersistentAcceptanceSeries;
+    requireThat(!validatePersistentSeries(series).length && series.formatVersion === 'persistent-acceptance/generic-1' && !options.renderFrames
+      && options.segmentRenderFrames.length === series.segments.length && options.segmentRenderFrames.every((row, index) => row.segmentId === series.segments[index].id
+        && row.request.collection.kind === 'persistent-segment' && row.request.collection.seriesBindingSha256 === series.bindingSha256 && row.request.collection.segmentId === row.segmentId
+        && row.request.planBindingSha256 === createHash('sha256').update(JSON.stringify(series.segments[index].plan)).digest('hex')), 'Invalid generic segment render requests');
+  }
   if (options.segmentMediaObservations) {
     const series = value as GenericPersistentAcceptanceSeries, requests = options.segmentMediaObservations;
     requireThat(!validatePersistentSeries(series).length && series.formatVersion === 'persistent-acceptance/generic-1' && !options.mediaObservations
@@ -393,6 +401,7 @@ export async function runPersistentAcceptance(value: unknown, options: Persisten
   }
   const timeoutMs = options.timeoutMs ?? Math.max(1000, Math.min(43_200_000, options.deadlineAt - Date.now()));
   return executePersistentSeries(value, options, (plan, session) => runAcceptanceInOwnedSession(plan,
-    { ...options, timeoutMs, mediaObservations: options.segmentMediaObservations?.find(item => (value as PersistentAcceptanceSeries).segments.find(segment => segment.id === item.segmentId)?.plan.reportId === plan.reportId)?.request
+    { ...options, timeoutMs, renderFrames: options.segmentRenderFrames?.find(item => (value as PersistentAcceptanceSeries).segments.find(segment => segment.id === item.segmentId)?.plan.reportId === plan.reportId)?.request ?? options.renderFrames,
+      mediaObservations: options.segmentMediaObservations?.find(item => (value as PersistentAcceptanceSeries).segments.find(segment => segment.id === item.segmentId)?.plan.reportId === plan.reportId)?.request
       ?? options.mediaObservations }, ownedPersistentBrowserLifecycle(plan, options, session)));
 }

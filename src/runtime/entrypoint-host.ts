@@ -57,7 +57,9 @@ import type { HumanContinuationInput, HumanContinuationScope } from './entrypoin
 import { modeFromSelection, preparationContract } from '../roles/preparation-mode.ts';
 import { packageStandalone, withCleanDelivery } from './entrypoint-delivery.ts';
 import { createClassicPolicyScope } from './entrypoint-classic.ts';
-import { diagnoseBuild } from './repair/browser-diagnostics.ts';
+import { diagnoseBrowser, diagnoseBuild } from './repair/browser-diagnostics.ts';
+import { createRenderFrameScope, OBSERVER_SOURCE, renderFrameBuildArguments } from './entrypoint-frames.ts';
+import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
@@ -86,17 +88,17 @@ export interface BrowserBuildReport {
 }
 export interface BrowserHostIO {
   build(project: string, name: string, signal: AbortSignal, authority: HostExecutionAuthority): Promise<BrowserBuildReport>;
-  play(plan: AcceptancePlan, signal: AbortSignal, authority: HostExecutionAuthority, options?: { mediaObservations: GenericMediaObservationRequest }): Promise<AcceptanceReport>;
+  play(plan: AcceptancePlan, signal: AbortSignal, authority: HostExecutionAuthority, options?: { mediaObservations?: GenericMediaObservationRequest; renderFrames?: RenderFrameRequest }): Promise<AcceptanceReport>;
   playPersistent?(series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions, authority: HostExecutionAuthority): Promise<PersistentAcceptanceReport>;
 }
-function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'>): BrowserHostIO {
+function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'> & { renderFrames?: boolean }): BrowserHostIO {
   return {
     async build(project, name, signal, authority) {
       if (name !== authority.taskId) throw new Error('Build task differs from its host execution authority.');
       const root = await directory(input.root, `builds/${name}`), toolchain = join(input.root, 'toolchain');
       await cp(toolchain, root, { recursive: true }); await cp(project, root, { recursive: true });
       let diagnostics = ''; const results: NonNullable<BrowserBuildReport['results']> = [];
-      for (const args of [[join(toolchain, 'node_modules/typescript/bin/tsc'), '--noEmit', '-p', 'tsconfig.json'], [join(toolchain, 'node_modules/vite/bin/vite.js'), 'build']]) {
+      for (const args of [[join(toolchain, 'node_modules/typescript/bin/tsc'), '--noEmit', '-p', 'tsconfig.json'], renderFrameBuildArguments(toolchain, !!input.renderFrames)]) {
         const result = await ownedNode(input, authority, args, root, signal, 120000); diagnostics += result.diagnostics; results.push(result);
         if (!result.passed) return { passed: false, diagnostics, work: root, results };
       }
@@ -106,14 +108,16 @@ function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'>): Brows
     async play(plan, signal, authority, options) {
       if (plan.taskId !== authority.taskId) throw new Error('Browser task differs from its host execution authority.');
       const path = `browser-plans/${plan.reportId}.json`; await writeJson(input.root, path, plan);
-      const mediaPath = options ? `browser-plans/${plan.reportId}.media.json` : null;
+      const mediaPath = options?.mediaObservations ? `browser-plans/${plan.reportId}.media.json` : null;
       if (mediaPath) await writeJson(input.root, mediaPath, options!.mediaObservations);
+      const framePath = options?.renderFrames ? `browser-plans/${plan.reportId}.frames.json` : null;
+      if (framePath) await writeJson(input.root, framePath, options!.renderFrames);
       const result = `browser-results/${plan.reportId}.json`; await directory(input.root, 'browser-results');
       const runner = new URL(import.meta.url.endsWith('.ts') ? '../acceptance/runner.ts' : '../acceptance/runner.js', import.meta.url).href;
-      const source = `import {readFile,writeFile} from 'node:fs/promises';import {runAcceptance} from ${JSON.stringify(runner)};const plan=JSON.parse(await readFile(process.argv[1],'utf8'));const mediaObservations=process.argv[5]?JSON.parse(await readFile(process.argv[5],'utf8')):undefined;const report=await runAcceptance(plan,{evidenceRoot:process.argv[2],channel:'msedge',env:process.env,timeoutMs:Number(process.argv[4]),mediaObservations});await writeFile(process.argv[3],JSON.stringify(report),'utf8');`;
+      const source = `import {readFile,writeFile} from 'node:fs/promises';import {runAcceptance} from ${JSON.stringify(runner)};const plan=JSON.parse(await readFile(process.argv[1],'utf8'));const mediaObservations=process.argv[5]?JSON.parse(await readFile(process.argv[5],'utf8')):undefined;const renderFrames=process.argv[6]?JSON.parse(await readFile(process.argv[6],'utf8')):undefined;const report=await runAcceptance(plan,{evidenceRoot:process.argv[2],channel:'msedge',env:process.env,timeoutMs:Number(process.argv[4]),mediaObservations,renderFrames});await writeFile(process.argv[3],JSON.stringify(report),'utf8');`;
       const remaining = Date.parse(authority.deadlineAt) - Date.now() - 5000;
       if (remaining < 1000) throw new Error('Execution window time is insufficient for browser cleanup.');
-      await ownedNode(input, authority, ['--experimental-strip-types', '--input-type=module', '-e', source, join(input.root, path), join(input.root, 'browser-evidence'), join(input.root, result), String(Math.min(180000, remaining)), mediaPath ? join(input.root, mediaPath) : ''], input.root, signal, Math.min(185000, remaining + 1000));
+      await ownedNode(input, authority, ['--experimental-strip-types', '--input-type=module', '-e', source, join(input.root, path), join(input.root, 'browser-evidence'), join(input.root, result), String(Math.min(180000, remaining)), mediaPath ? join(input.root, mediaPath) : '', framePath ? join(input.root, framePath) : ''], input.root, signal, Math.min(185000, remaining + 1000));
       return json(input.root, result);
     },
     async playPersistent(series, options, authority) {
@@ -139,7 +143,7 @@ function validBrowserReport(report: AcceptanceReport, plan: AcceptancePlan): boo
 
 /** Four roles retain separate authority; stage checks never substitute for gameplay. */
 export interface BrowserHostBinding { windowId: string; tasks: PreparedTask[] }
-export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO; binding?: BrowserHostBinding }): Promise<GenerationHost> {
+export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO; binding?: BrowserHostBinding; renderFrames?: boolean }): Promise<GenerationHost> {
   if ('preparation' in input) throw new Error('Only the explicit preparation factory accepts a trusted preparation adapter.');
   requireBrowserDraft(input.draft);
   input.controller.requireExecutionWindow(input.binding?.windowId);
@@ -205,11 +209,13 @@ interface BrowserHostCoreInput extends Omit<HostInput, 'requirement' | 'draft'> 
   sessionFactory?: RoleFactoryOptions['sessionFactory'];
   historicalStages?: import('./historical-passed-stages.ts').HistoricalPassedStages;
   humanPreparation?: HumanPreparationScope | HumanContinuationScope;
+  renderFrames?: boolean;
 }
 async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<GenerationHost> {
   const binding = input.binding ? structuredClone(input.binding) : undefined;
   const validation = input.validation && { ...input.validation }, { root, controller, work } = input;
   const preparation = input.preparation;
+  if (input.renderFrames && (preparation || validation)) throw new Error('Render sampling currently selects the generic normal/persistent host only.');
   const human = input.humanPreparation;
   const historical = input.historicalStages;
   const requirement = structuredClone(input.requirement), draft = structuredClone(input.draft);
@@ -280,6 +286,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const classic = !preparation && !validation && (draft as BrowserGameDraft).benchmark
     ? await createClassicPolicyScope({ root, registry, requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft, requirementCapture: requirements, resume: input.resume }) : undefined;
   if (classic) captures.push(...classic.refs);
+  const frames = input.renderFrames ? await createRenderFrameScope({ root, registry, template, resume: input.resume }) : undefined;
+  if (frames) captures.push(frames.ref);
   const availableArtifacts = [...requirement.sources, ...captures];
   if (validation) for (const ref of captures) await registry.getCapture(ref);
   if (!binding && !validation) { await directory(root, 'authors/coding/src'); await directory(root, 'authors/design'); await directory(root, 'authors/art'); }
@@ -466,13 +474,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       await registry.getCapture(selected(original, 'design')); await registry.getCapture(selected(original, 'media'));
       for (const name of CODING_TEMPLATE_FILES) if (!(await regularFile(root, `toolchain/${name}`)).equals(await regularFile(root, `${template.location}/${name}`))) throw new Error('Coding check selected toolchain configuration changed.');
       if (preparation) await preparation.requireCurrent();
+      await frames?.requireCurrent();
       if (await realpath(workspace(original)) !== fixedWorkspace || await codingInputSignature(root, locations) !== fixedInputs
         || await codingInputSignature(fixedWorkspace, locations) !== fixedInputs) throw new Error('Coding check original workspace or fixed input bytes changed.');
       signal.throwIfAborted(); work.signal.throwIfAborted(); controller.signal.throwIfAborted(); return authority;
     };
     await guard(supplied.signal);
     return [createCodingBuildCheck({ controller, work, workspace: fixedWorkspace, toolchain: join(root, 'toolchain'),
-      template: join(root, template.location), media: join(root, selected(original, 'media').location), taskId: original.taskId, attemptId: attempt.attemptId, guard })];
+      template: join(root, template.location), media: join(root, selected(original, 'media').location), taskId: original.taskId, attemptId: attempt.attemptId,
+      ...(frames ? { observer: { directory: frames.sourcePath, ref: frames.ref, sha256: frames.signature } } : {}), guard })];
   };
   const captureLayout = (...entries: { artifactId: string; paths: string[] }[]) => `Capture file layout: ${JSON.stringify(entries)}. Select the exact current artifactId/version reference in this packet's inputs, including the reviewed task's output artifacts, and read reference.location + '/' + the relative path. Author writes use only the declared authors/... source paths before capture; reviewer and downstream reads use immutable captures. Never append authors/... to a capture root or infer a version/location from an author path. Layout guidance grants no additional read or write permission.`;
   const designLayout = { artifactId: designOutput.artifactId, paths: ['_cosmos/design.json'] };
@@ -622,6 +632,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       let classification: 'code_defect' | 'insufficient_evidence' = 'insufficient_evidence';
       let consumerDiagnostics: import('./entrypoint-preparation.ts').BrowserCandidateConsumerResult['diagnostics'] | undefined;
       let consumerRawEvidence: ArtifactReference[] = [];
+      const recordFrames = async (requests: { request: RenderFrameRequest; report: AcceptanceReport }[]) => {
+        if (!frames) return;
+        await frames.requireCurrent(join(root, ref.location));
+        await writeJson(root, `evidence/${task.taskId}/render-frames.json`, { observer: frames.ref, candidate: ref, requests: requests.map(row => ({ request: row.request })),
+          samples: await Promise.all(requests.map(row => frames.assess(row.request, row.report))), performancePolicy: 'not_executed', scope: 'Candidate/document/window rendering only; machine, workloads and benchmark durations remain unfrozen.' });
+        consumerRawEvidence.push(frames.ref, { artifactId: `${task.taskId}-render-frames`, version: ref.version, location: `evidence/${task.taskId}/render-frames.json` });
+      };
       let classicBuild: BrowserBuildReport | undefined, classicExecution: Awaited<ReturnType<NonNullable<typeof classic>['bindExecution']>> | undefined;
       let classicReport: PersistentAcceptanceReport | undefined, classicEvaluated = false, classicPassed = false;
       const evaluateClassic = async () => {
@@ -714,6 +731,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                   const current = await requireDispatch(task, signal); if (!sameValue(current, authority)) throw new Error('Generic task authority changed.');
                   await server.requireCurrent();
                   await classicExecution?.current();
+                  await frames?.requireCurrent(project);
                   for (const artifact of [requirements, designArtifact, mediaArtifact]) await registry.getCapture(artifact);
                   if (!sameValue(await registry.getCandidate(ref), fixedCandidate) || !isDeepStrictEqual(await snapshot(project), fixedProject)
                     || !isDeepStrictEqual(await snapshot(server.project), fixedProject) || !(await regularFile(root, `${designArtifact.location}/_cosmos/design.json`)).equals(fixedDesign)) throw new Error('Current generic candidate or design bytes changed.');
@@ -729,19 +747,23 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 const requests = series.segments.map(segment => ({ segmentId: segment.id, request: createGenericMediaObservationRequest(media, {
                   media: mediaArtifact, manifestSha256: binding.manifestSha256, plan: segment.plan,
                   collection: { kind: 'persistent-segment', seriesBindingSha256: series.bindingSha256, segmentId: segment.id } }) }));
+                const frameRequests = frames ? series.segments.map(segment => ({ segmentId: segment.id, request: frames.request({ task, plan: segment.plan, requirement: requirements,
+                  design: designArtifact, media: mediaArtifact, manifestSha256: binding.manifestSha256, windowId: authority.windowId, deadlineAt,
+                  collection: { kind: 'persistent-segment', seriesBindingSha256: series.bindingSha256, segmentId: segment.id } }) })) : undefined;
                 const report = await io.playPersistent(series, { evidenceRoot: join(root, 'browser-evidence'), channel: 'msedge', deadlineAt, signal,
-                  verifyBinding: requireCurrent, segmentMediaObservations: requests }, authority);
+                  verifyBinding: requireCurrent, segmentMediaObservations: requests, ...(frameRequests ? { segmentRenderFrames: frameRequests } : {}) }, authority);
                 classicReport = report;
                 await requireCurrent();
                 await writeJson(root, `evidence/${task.taskId}/browser.json`, report);
+                if (frameRequests) await recordFrames(report.segments.map(segment => ({ request: frameRequests.find(row => row.segmentId === segment.id)!.request, report: segment.report })));
                 const coverage = assessGenericSeriesMediaCoverage(media, binding, report);
                 await writeJson(root, `evidence/${task.taskId}/media-usage.json`, { candidate: ref, media: mediaArtifact, series, requests, coverage,
                   scope: 'Actual per-document loading/state/sound observations across the confirmed normal-input save and reopen stages; source review and final user experience follow.' });
                 const diagnostics = await diagnosePersistentBrowser(task, report, { series, deadlineAt, reportPath: report.reportPath },
                   { evidenceRoot: join(root, 'browser-evidence'), signal, verifyBinding: requireCurrent });
                 diagnostics.issues = diagnostics.issues.map(issue => ({ ...issue, evidenceRefs: issue.evidenceRefs.map(path => `browser-evidence/${path}`) }));
-                if (diagnostics.reportValid) consumerRawEvidence = [{ artifactId: `${task.taskId}-persistent-raw`, version: ref.version, location: `browser-evidence/${dirname(report.reportPath).replaceAll('\\', '/')}` },
-                  ...report.segments.map(segment => ({ artifactId: `${task.taskId}-${segment.id}-raw`, version: ref.version, location: `browser-evidence/${dirname(segment.report.reportPath).replaceAll('\\', '/')}` }))];
+                if (diagnostics.reportValid) consumerRawEvidence.push(...[{ artifactId: `${task.taskId}-persistent-raw`, version: ref.version, location: `browser-evidence/${dirname(report.reportPath).replaceAll('\\', '/')}` },
+                  ...report.segments.map(segment => ({ artifactId: `${task.taskId}-${segment.id}-raw`, version: ref.version, location: `browser-evidence/${dirname(segment.report.reportPath).replaceAll('\\', '/')}` }))]);
                 if (diagnostics.reportValid && report.segments.some((segment, index) => {
                   const sample = segment.report.mediaObservations;
                   if (sample === undefined) return segment.report.outcome === 'passed';
@@ -785,12 +807,18 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               const manifestBytes = collectionRequired ? await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`) : null;
               if (manifestBytes && !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), media)) throw new Error('Actual media manifest differs from its capture.');
               const request = manifestBytes ? createGenericMediaObservationRequest(media, { media: mediaArtifact, manifestSha256: validationHash(manifestBytes), plan }) : null;
-              const report = await io.play(plan, signal, validation ? await requireDispatch(task, signal) : authority, request ? { mediaObservations: request } : undefined);
+              const frameRequest = frames ? frames.request({ task, plan, requirement: requirements, design: selected(task, 'design'), media: mediaArtifact,
+                manifestSha256: validationHash(manifestBytes ?? await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`)), windowId: authority.windowId,
+                deadlineAt: Date.parse(authority.deadlineAt), collection: { kind: 'normal', reportId: plan.reportId } }) : undefined;
+              await frames?.requireCurrent(project);
+              const report = await io.play(plan, signal, validation ? await requireDispatch(task, signal) : authority,
+                request || frameRequest ? { ...(request ? { mediaObservations: request } : {}), ...(frameRequest ? { renderFrames: frameRequest } : {}) } : undefined);
               if (validation) await requireDispatch(task, signal);
               if (manifestBytes && !(await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`)).equals(manifestBytes)) throw new Error('Current media manifest changed during normal input.');
               const coverage = request ? assessMediaCoverage(media, request, report.mediaObservations
                 ? [{ segmentId: plan.reportId, reportPath: report.reportPath, sample: report.mediaObservations }] : []) : null;
               await writeJson(root, `evidence/${task.taskId}/browser.json`, report);
+              if (frameRequest) await recordFrames([{ request: frameRequest, report }]);
               await writeJson(root, `evidence/${task.taskId}/media-usage.json`, { candidate: ref, media: mediaArtifact,
                 checks: checks.map(check => ({ ...check, result: report.steps.find(step => step.id === check.stepId) ?? null })),
                 ...(request ? { request, coverage } : {}),
@@ -805,7 +833,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 }
                 pictures.set(task.taskId, chosen.map((location, index) => ({ artifactId: `${task.taskId}-screenshot-${index}`, version: ref.version, location })));
               }
-              if (!valid) { classification = sameValue(report.plan, plan) ? 'code_defect' : 'insufficient_evidence'; actual = 'Normal input report failed or did not match the fixed plan and candidate.'; }
+              if (!valid) {
+                if (frames) consumerDiagnostics = diagnoseBrowser(task, report, plan, `evidence/${task.taskId}/browser.json`);
+                else classification = sameValue(report.plan, plan) ? 'code_defect' : 'insufficient_evidence';
+                actual = 'Normal input report failed or did not match the fixed plan and candidate.';
+              }
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
           }); } finally { await evaluateClassic(); }
             return { ...result, passed: result.passed && (!classic || classicPassed) };
@@ -929,6 +961,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           windowId: inherited.manifest.windowId, manifestRef: historical!.manifestRef, artifacts: stage.task.artifacts })) } : {}) };
     },
   };
+  if (frames) host.taskPolicies.find(policy => policy.role === 'coding')!.rules!.push(`The source-selected render observer ${frames.ref.artifactId}@${frames.ref.version} is read-only at ${OBSERVER_SOURCE}. Import createObservedGame from '../_cosmos/render-frame-observer' and use it for the real Phaser Game. Do not author that module, replace the native renderer, or declare FPS counters. The host only measures rendered frames; PERFORMANCE benchmarks remain unexecuted.`);
   if (preparation) {
     const design = host.taskPolicies.find(policy => policy.role === 'design')!, coding = host.taskPolicies.find(policy => policy.role === 'coding')!;
     design.outputs.push(...structuredClone(preparation.designOutputs)); design.writePaths.push(...preparation.designWritePaths);
@@ -1072,7 +1105,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
 }
 
 /** Uses installed locked generic tools; preparation creates no game-specific output. */
-export function createProductHost(repository: string, hostOptions: Pick<BrowserHostCoreInput, 'io' | 'sessionFactory'> = {}): ProductHost {
+export function createProductHost(repository: string, hostOptions: Pick<BrowserHostCoreInput, 'io' | 'sessionFactory' | 'renderFrames'> = {}): ProductHost {
   const interviewCapabilities = async (options: Parameters<ProductHost['questions']>[0]) => {
     const { draftMode } = await options.controller.read(); modeFromSelection(draftMode);
     return draftMode ? `${preparationContract(draftMode).scope} Use the complete supplied acceptance and preserve unsupported requested scope. Original media uses the existing bounded SVG/PCM formats.` : CAPABILITIES;
