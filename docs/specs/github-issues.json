@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 60
+    "childCount": 61
   },
   "tasks": [
     {
@@ -4208,16 +4208,116 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "implementationPhase": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY",
+      "integrationStatus": "offline-verified-awaiting-live",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "TRANSFER_CASE_SEVEN_SOURCE_READY",
       "actualValidation": "NONE",
       "actualPaid": "NONE",
       "planReviewStatus": "PLAN_APPROVED",
       "planReviewedCommit": "ea1df224a444f13bc3445f5083e7751eb539500e",
-      "planMergeCommit": "bef8f5eb8d8af378b8627c6bee64799428cd2a5f"
+      "planMergeCommit": "bef8f5eb8d8af378b8627c6bee64799428cd2a5f",
+      "reviewedCommit": "a8d4f97bc61e84d0579df952bd39703aabcab2d3",
+      "mergeCommit": "5a15510a1201482d9fa629096a17449463176d31",
+      "readyCommentUrl": "https://github.com/lrfluobida/Cosmos/issues/61#issuecomment-5990992898",
+      "validationEvidence": {
+        "scope": "source-and-temp-only",
+        "transport": "synthetic-native-session",
+        "affectedSourcePaths": 21,
+        "focusedTests": 13,
+        "focusedMs": 22404.4433,
+        "sourceCompiledMutation": {
+          "passed": 1,
+          "skipped": 0
+        },
+        "amendedCurrentColdTool": {
+          "passed": 1,
+          "skipped": 0,
+          "testMs": 178813.0161,
+          "processMs": 181820.1561,
+          "sdkRequests": 0
+        },
+        "reusedMechanism": {
+          "sourceCommit": "991b0d8e1289142b358a0e23c03b4f7e57dd7403",
+          "passed": 1,
+          "skipped": 0,
+          "testMs": 1574865.5669,
+          "processMs": 1577918.5735,
+          "archivedFilesVerified": 314,
+          "syntheticRequests": 3,
+          "syntheticSettledMicroCny": 30
+        },
+        "mergeRepresentative": {
+          "passed": 1,
+          "skipped": 0,
+          "durationMs": 2.0771
+        },
+        "unaffectedEvidenceReused": true,
+        "humanExperience": "NONE"
+      },
+      "actualReadOnlyPreflight": {
+        "sourceCommit": "5a15510a1201482d9fa629096a17449463176d31",
+        "exitCode": 1,
+        "expectedRejection": "unknown or reserved costs require actual reconciliation",
+        "ledgerFilesBytesMtimeUnchanged": true,
+        "snapshotRevision": 1942,
+        "cases": 14,
+        "delegations": 6,
+        "closedGrants": 65,
+        "closureAudits": 11,
+        "unknownRequests": 1,
+        "reservedMicroCny": 974882,
+        "targetRootCreated": false,
+        "targetMarkerCreated": false,
+        "paidRequests": 0
+      }
+    },
+    {
+      "taskId": "COS-61",
+      "title": "接通准备模式首个显式编码追加窗口",
+      "number": 62,
+      "id": 5708959437,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/62",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-52",
+          "number": 53,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/53"
+        },
+        {
+          "id": "COS-53",
+          "number": 54,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/54"
+        },
+        {
+          "id": "COS-58",
+          "number": 59,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/59"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "plan-in-progress",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 60,
+  "verifiedNativeSubIssues": 61,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
