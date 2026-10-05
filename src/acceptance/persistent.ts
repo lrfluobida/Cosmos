@@ -2,7 +2,7 @@ import { chromium } from '@playwright/test';
 import type { Browser, BrowserContext, CDPSession } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { access, lstat, mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
@@ -16,18 +16,28 @@ import { runAcceptanceInOwnedSession } from './runner.ts';
 import type { AcceptanceOptions, AcceptanceReport, OwnedAcceptanceLifecycle, PersistentBrowserIdentity } from './runner.ts';
 
 export const PERSISTENT_PROFILE_CAPABILITY = 'persistent-profile-real-process-reopen-with-evidence';
-export interface PersistentAcceptanceSeries {
-  formatVersion: 'persistent-acceptance/1'; reportId: string; sourceVersion: string; bindingSha256: string;
-  scope?: { requirement: ArtifactReference; design: ArtifactReference; plan: ArtifactReference;
-    designSha256: string; mapVersion: string; acceptanceIds: string[] };
+interface PersistentSeriesFields {
+  reportId: string; bindingSha256: string;
   segments: { id: string; prerequisite: 'fresh-profile' | 'same-profile-reopened'; plan: AcceptancePlan }[];
   checkpoint: { kind: 'close-process-reopen'; afterSegment: string; beforeSegment: string; sameProfile: true; sameOrigin: true;
     origin: string; expected: string; snapshot: Observation; savedSnapshot: Observation };
 }
+export interface TransferPersistentAcceptanceSeries extends PersistentSeriesFields {
+  formatVersion: 'persistent-acceptance/1'; sourceVersion: string; binding?: never;
+  scope?: { requirement: ArtifactReference; design: ArtifactReference; plan: ArtifactReference;
+    designSha256: string; mapVersion: string; acceptanceIds: string[] };
+}
+export interface GenericPersistentAcceptanceSeries extends PersistentSeriesFields {
+  formatVersion: 'persistent-acceptance/generic-1'; sourceVersion?: never; scope?: never;
+  binding: { requirement: ArtifactReference; design: ArtifactReference; candidate: ArtifactReference; acceptanceIds: string[] };
+}
+export type PersistentAcceptanceSeries = TransferPersistentAcceptanceSeries | GenericPersistentAcceptanceSeries;
 export interface PersistentAcceptanceOptions extends AcceptanceOptions {
   deadlineAt: number; signal?: AbortSignal; verifyBinding: () => Promise<void>;
   /** Host-owned controller ticket; defaults keep the existing isolated fixture route. */
   ownedChild?: { prepare(): Promise<string>; register(pid: number, ticket: string): Promise<void> };
+  /** Each generic document has its own exact plan-bound partial collection request. */
+  segmentMediaObservations?: { segmentId: string; request: import('./browser.ts').GenericMediaObservationRequest }[];
 }
 export interface PersistentFailureFacts {
   formatVersion: 1;
@@ -60,9 +70,11 @@ export function validatePersistentSeries(value: unknown): string[] {
   const issues: string[] = [];
   const check = (valid: unknown, text: string) => { if (!valid) issues.push(text); };
   if (!object(value)) return ['Expected a persistent series'];
-  check(hasOnly(value, ['formatVersion', 'reportId', 'sourceVersion', 'bindingSha256', 'scope', 'segments', 'checkpoint']), 'Unknown series field');
-  check(value.formatVersion === 'persistent-acceptance/1' && identifier(value.reportId), 'Invalid series identity');
-  check(typeof value.sourceVersion === 'string' && /^[a-f0-9]{40}$/.test(value.sourceVersion), 'A fixed source SHA is required');
+  const generic = value.formatVersion === 'persistent-acceptance/generic-1';
+  check(hasOnly(value, generic ? ['formatVersion', 'reportId', 'bindingSha256', 'binding', 'segments', 'checkpoint']
+    : ['formatVersion', 'reportId', 'sourceVersion', 'bindingSha256', 'scope', 'segments', 'checkpoint']), 'Unknown series field');
+  check((generic || value.formatVersion === 'persistent-acceptance/1') && identifier(value.reportId), 'Invalid series identity');
+  if (!generic) check(typeof value.sourceVersion === 'string' && /^[a-f0-9]{40}$/.test(value.sourceVersion), 'A fixed source SHA is required');
   check(typeof value.bindingSha256 === 'string' && /^[a-f0-9]{64}$/.test(value.bindingSha256), 'A fixed binding hash is required');
   if (value.scope !== undefined) {
     const scope = value.scope;
@@ -77,6 +89,20 @@ export function validatePersistentSeries(value: unknown): string[] {
     }
   }
   if (!Array.isArray(value.segments) || value.segments.length < 2 || value.segments.length > 16) return [...issues, 'Expected 2..16 segments'];
+  if (generic) {
+    check(value.segments.length === 2, 'Generic save acceptance requires exactly two segments');
+    const binding = value.binding;
+    check(object(binding) && hasOnly(binding, ['requirement', 'design', 'candidate', 'acceptanceIds']), 'Invalid generic capture binding');
+    if (object(binding)) {
+      for (const key of ['requirement', 'design', 'candidate']) check(object(binding[key]) && hasOnly(binding[key], ['artifactId', 'version', 'location'])
+        && identifier(binding[key].artifactId) && identifier(binding[key].version) && !/^(main|master|head|latest|current|dev|develop)$/i.test(binding[key].version)
+        && typeof binding[key].location === 'string' && !!binding[key].location, 'Invalid fixed generic capture reference');
+      check(Array.isArray(binding.acceptanceIds) && binding.acceptanceIds.length > 0 && binding.acceptanceIds.every(identifier)
+        && new Set(binding.acceptanceIds).size === binding.acceptanceIds.length, 'Invalid generic acceptance IDs');
+      check(isDeepStrictEqual([...(Array.isArray(binding.acceptanceIds) ? binding.acceptanceIds : [])].sort(), [...new Set(value.segments.flatMap(item => item?.plan?.acceptanceIds ?? []))].sort()), 'Generic acceptance coverage changed');
+    }
+    check(value.bindingSha256 === createHash('sha256').update(JSON.stringify({ binding, segments: value.segments, checkpoint: value.checkpoint })).digest('hex'), 'Generic fixed plans changed');
+  }
   const ids = new Set(), reports = new Set(); let first: AcceptancePlan | undefined;
   for (const item of value.segments) {
     if (!object(item)) { issues.push('Invalid segment'); continue; }
@@ -86,6 +112,7 @@ export function validatePersistentSeries(value: unknown): string[] {
     const plan = item.plan as AcceptancePlan;
     check(!reports.has(plan.reportId) && plan.reportId !== value.reportId, 'Duplicate report identity'); reports.add(plan.reportId);
     first ??= plan;
+    if (generic) check(isDeepStrictEqual(plan.artifact, value.binding?.candidate), 'Generic candidate binding changed');
     for (const key of ['projectId', 'taskId', 'runId', 'specVersion', 'artifact', 'url', 'viewport'] as const)
       check(isDeepStrictEqual(plan[key], first[key]), 'Segment origin/candidate/scope binding changed');
   }
@@ -99,6 +126,7 @@ export function validatePersistentSeries(value: unknown): string[] {
   check(after === value.segments.length - 2 && before === after + 1, 'Checkpoint must precede the final reopened segment');
   check(typeof c.expected === 'string' && !!c.expected && object(c.snapshot) && object(c.savedSnapshot)
     && !isDeepStrictEqual(c.snapshot, c.savedSnapshot), 'Invalid checkpoint observations');
+  if (generic) check(c.snapshot?.kind === 'text' && c.savedSnapshot?.kind === 'text', 'Generic checkpoint requires visible saved state');
   for (const [index, segment] of value.segments.entries()) {
     check(segment?.prerequisite === (index === before ? 'same-profile-reopened' : 'fresh-profile'), 'Invalid profile prerequisite');
   }
@@ -108,6 +136,8 @@ export function validatePersistentSeries(value: unknown): string[] {
       const plan: AcceptancePlan = value.segments[index].plan;
       check(checksFor(plan, c.snapshot, c.expected).length > 0 && checksFor(plan, c.savedSnapshot, c.expected).length > 0,
         'Missing fixed snapshot/save checks at the checkpoint');
+      if (generic) for (const observation of [c.snapshot, c.savedSnapshot]) check(checksFor(plan, observation, c.expected).some(step =>
+        plan.steps.slice(0, plan.steps.indexOf(step)).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind))), 'Generic checkpoint requires prior normal input');
     }
   }
   return issues;
@@ -153,6 +183,10 @@ async function evidenceFiles(report: AcceptanceReport, root: string) {
   for (const file of report.files) requireThat((await regularFile(root, file)).length > 0, 'evidence file is missing or empty');
   const raw = JSON.parse((await regularFile(root, report.reportPath)).toString('utf8'));
   requireThat(isDeepStrictEqual(raw, report), 'raw segment report changed');
+}
+/** Reuses the same driver facts when a generic host authenticates raw segment output. */
+export async function verifyPersistentSegmentEvidence(report: AcceptanceReport, plan: AcceptancePlan, evidenceRoot: string, profile: string) {
+  exactSegment(report, plan); passedReport(report, plan, profile); await evidenceFiles(report, evidenceRoot);
 }
 export async function verifyReopenCheckpoint(series: PersistentAcceptanceSeries, report: AcceptanceReport, evidenceRoot: string, profile: string) {
   const segment = series.segments.find(item => item.id === series.checkpoint.afterSegment)!;
@@ -349,7 +383,16 @@ export function ownedPersistentBrowserLifecycle(plan: AcceptancePlan, options: P
     } };
 }
 export async function runPersistentAcceptance(value: unknown, options: PersistentAcceptanceOptions): Promise<PersistentAcceptanceReport> {
+  if (options.segmentMediaObservations) {
+    const series = value as GenericPersistentAcceptanceSeries, requests = options.segmentMediaObservations;
+    requireThat(!validatePersistentSeries(series).length && series.formatVersion === 'persistent-acceptance/generic-1' && !options.mediaObservations
+      && requests.length === series.segments.length && requests.every((item, index) => item.segmentId === series.segments[index].id
+        && item.request.collection?.kind === 'persistent-segment' && item.request.collection.segmentId === item.segmentId
+        && item.request.collection.seriesBindingSha256 === series.bindingSha256
+        && item.request.planBindingSha256 === createHash('sha256').update(JSON.stringify(series.segments[index].plan)).digest('hex')), 'Invalid generic segment media requests');
+  }
   const timeoutMs = options.timeoutMs ?? Math.max(1000, Math.min(43_200_000, options.deadlineAt - Date.now()));
   return executePersistentSeries(value, options, (plan, session) => runAcceptanceInOwnedSession(plan,
-    { ...options, timeoutMs }, ownedPersistentBrowserLifecycle(plan, options, session)));
+    { ...options, timeoutMs, mediaObservations: options.segmentMediaObservations?.find(item => (value as PersistentAcceptanceSeries).segments.find(segment => segment.id === item.segmentId)?.plan.reportId === plan.reportId)?.request
+      ?? options.mediaObservations }, ownedPersistentBrowserLifecycle(plan, options, session)));
 }

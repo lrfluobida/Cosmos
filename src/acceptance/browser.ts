@@ -12,6 +12,7 @@ export interface MediaObservationRequest {
 export interface GenericMediaObservationRequest {
   formatVersion: 'readonly-media/generic-1'; media: ArtifactReference; manifestSha256: string;
   candidate: ArtifactReference; planBindingSha256: string; fields: { id: string; path: string[]; expected: Scalar }[];
+  collection?: { kind: 'persistent-segment'; seriesBindingSha256: string; segmentId: string };
 }
 export type ReadonlyMediaObservationRequest = MediaObservationRequest | GenericMediaObservationRequest;
 export interface MediaObservationSample { request: ReadonlyMediaObservationRequest; recordedAt: string; values: Scalar[] }

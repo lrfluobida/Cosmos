@@ -57,10 +57,14 @@ function displayDraft(draft: StoredDraft): string {
   if (draft.preparation) lines.push('准备模式：先确认需求；地图、解法与自动操作将在同一次生成运行的运行时设计后形成。');
   else {
     lines.push('自动操作与检查：');
-    for (const step of draft.scenario.steps) {
-      if (step.kind === 'locator-click') lines.push(`- 点击界面目标 ${step.selector}`);
-      else if (step.kind === 'mouse-click' || step.kind === 'mouse-move') lines.push(`- ${step.kind === 'mouse-click' ? '点击' : '移动鼠标到'} ${step.selector ?? '画面'}（${step.x}, ${step.y}）`);
-      else if (step.kind === 'assert' || step.kind === 'wait-for') lines.push(`- ${step.kind === 'wait-for' ? '等待并检查' : '检查'} ${step.observation.kind === 'debug' ? `辅助观测 ${step.observation.path.join('.')}` : `界面 ${step.observation.selector}`}：应为 ${String(step.expected)}`);
+    const stages = [{ steps: draft.scenario.steps }, ...(draft.scenario.reopen ? [draft.scenario.reopen] : [])];
+    for (const [index, stage] of stages.entries()) {
+      if (index) lines.push(`关闭浏览器进程后，在同一存档位置重开并继续；存档应为：${draft.scenario.reopen!.checkpoint.expected}`);
+      for (const step of stage.steps) {
+        if (step.kind === 'locator-click') lines.push(`- 点击界面目标 ${step.selector}`);
+        else if (step.kind === 'mouse-click' || step.kind === 'mouse-move') lines.push(`- ${step.kind === 'mouse-click' ? '点击' : '移动鼠标到'} ${step.selector ?? '画面'}（${step.x}, ${step.y}）`);
+        else if (step.kind === 'assert' || step.kind === 'wait-for') lines.push(`- ${step.kind === 'wait-for' ? '等待并检查' : '检查'} ${step.observation.kind === 'debug' ? `辅助观测 ${step.observation.path.join('.')}` : `界面 ${step.observation.selector}`}：应为 ${String(step.expected)}`);
+      }
     }
   }
   if (draft.unsupported.length) lines.push('尚不支持的要求：', ...draft.unsupported.map(item => `- ${item}`));

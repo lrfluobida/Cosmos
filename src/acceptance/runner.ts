@@ -216,7 +216,10 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
         || !/^[a-f0-9]{64}$/.test(request.planBindingSha256) || !Array.isArray(request.fields)) throw new Error('Invalid fixed media collection binding');
       if (generic) {
         const scalar = (value: unknown) => value === null || typeof value === 'string' || typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value);
-        if (Object.keys(request).some(key => !['formatVersion', 'media', 'manifestSha256', 'candidate', 'planBindingSha256', 'fields'].includes(key))
+        if (Object.keys(request).some(key => !['formatVersion', 'media', 'manifestSha256', 'candidate', 'planBindingSha256', 'fields', 'collection'].includes(key))
+          || request.collection !== undefined && (!request.collection || request.collection.kind !== 'persistent-segment'
+            || Object.keys(request.collection).some(key => !['kind', 'seriesBindingSha256', 'segmentId'].includes(key))
+            || !/^[a-f0-9]{64}$/.test(request.collection.seriesBindingSha256) || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(request.collection.segmentId))
           || request.planBindingSha256 !== createHash('sha256').update(JSON.stringify(plan)).digest('hex')
           || !request.fields.length || request.fields.length > 4544 || new Set(request.fields.map(field => field.id)).size !== request.fields.length
           || request.fields.some(field => !field || Object.keys(field).some(key => !['id', 'path', 'expected'].includes(key))
@@ -227,10 +230,10 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
           const values = await run(() => observeDebugScalars(page!, request.fields.map(field => field.path), 4544), sampleDeadline - Date.now(), 'Read-only media collection');
           report.mediaObservations = { request, recordedAt: new Date().toISOString(), values };
           complete = values.every((value, index) => value === request.fields[index].expected);
-          if (complete || Date.now() >= sampleDeadline) break;
+          if (request.collection || complete || Date.now() >= sampleDeadline) break;
           await new Promise(resolveWait => setTimeout(resolveWait, Math.min(25, Math.max(0, sampleDeadline - Date.now()))));
         } while (Date.now() < sampleDeadline);
-        if (!complete) recordError('Read-only media collection is incomplete');
+        if (!complete && !request.collection) recordError('Read-only media collection is incomplete');
       } else {
         const values = await run(() => observeDebugScalars(page!, request.fields.map(field => field.path)), 1500, 'Read-only media collection');
         report.mediaObservations = { request, recordedAt: new Date().toISOString(), values };
