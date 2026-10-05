@@ -43,6 +43,8 @@ export async function genericHostFixture(t: test.TestContext, fault = '') {
           ? field.path[4] === String(index) : field.path[2] === String(index));
         if (fault === 'sample' && index) values[5] = false;
         if (fault === 'request' && index) request.planBindingSha256 = 'f'.repeat(64);
+        if (fault === 'resume-mismatch-bad-sample' && !index) values[0] = null;
+        if (fault === 'resume-mismatch-bad-request' && !index) request.planBindingSha256 = 'f'.repeat(64);
         const pid = fault === 'pid' ? 3000 : 3000 + index;
         const raw: any = { formatVersion: '1.0.0', kind: 'normal_browser_input', plan, startedAt, endedAt: new Date().toISOString(), outcome: 'passed',
           browser: { name: 'chromium', channel: 'msedge', version: 'synthetic-browser', headless: true, viewport: plan.viewport }, timeoutMs: 10000,
@@ -54,7 +56,7 @@ export async function genericHostFixture(t: test.TestContext, fault = '') {
           errors: [], files: ['final.png', 'browser.webm', 'browser.log', 'report.json'].map(name => folder + '/' + name), reportPath: folder + '/report.json', evidence: [],
           failureFacts: { formatVersion: 1, termination: null, errors: [] }, mediaObservations: { request, recordedAt: new Date().toISOString(), values } };
         raw.endedAt = raw.mediaObservations.recordedAt;
-        if (fault === 'mismatch' || fault === 'mismatch-exit') {
+        if (fault === 'mismatch' || fault === 'mismatch-exit' || fault.startsWith('resume-mismatch') && index) {
           raw.outcome = 'failed'; delete raw.mediaObservations;
           Object.assign(raw.steps.find((row: any) => row.id === 'saved'), { outcome: 'failed', actual: 'wrong-save', failure: 'mismatch', error: 'Expected the exact visible saved state; observed wrong-save.' });
           if (fault === 'mismatch-exit') raw.cleanup.processExited = false;

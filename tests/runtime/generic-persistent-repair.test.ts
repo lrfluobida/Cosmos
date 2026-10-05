@@ -45,3 +45,12 @@ for (const fault of ['mismatch-exit', 'request', 'raw']) test(`generic ${fault} 
   assert.ok(feedback.issues.every(issue => issue.classification === 'insufficient_evidence')); assert.equal(assessRepair(options).action, 'collect_evidence');
   assert.equal(feedback.passedChecks.length, 0);
 });
+for (const fault of ['resume-mismatch', 'resume-mismatch-bad-sample', 'resume-mismatch-bad-request']) test(`generic ${fault} authenticates preceding samples before repair classification`, async t => {
+  const { root, task, feedback, options } = await diagnosed(t, fault), validSample = fault === 'resume-mismatch';
+  const raw = JSON.parse(await readFile(join(root, 'evidence/coding/browser.json'), 'utf8').catch(() => assert.fail(task.evidence[0].summary)));
+  assert.equal(raw.segments.length, 2); assert.equal(raw.segments[1].report.outcome, 'failed'); assert.equal(raw.segments[1].report.mediaObservations, undefined);
+  assert.ok(feedback.issues.every(issue => issue.classification === (validSample ? 'code_defect' : 'insufficient_evidence')));
+  assert.equal(assessRepair(options).action, validSample ? 'repair' : 'collect_evidence');
+  assert.equal(feedback.passedChecks.length > 0, validSample);
+  assert.equal(raw.segments[0].report.mediaObservations.values[0], fault === 'resume-mismatch-bad-sample' ? null : 'marker');
+});

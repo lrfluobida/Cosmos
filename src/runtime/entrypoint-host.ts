@@ -706,6 +706,19 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 diagnostics.issues = diagnostics.issues.map(issue => ({ ...issue, evidenceRefs: issue.evidenceRefs.map(path => `browser-evidence/${path}`) }));
                 if (diagnostics.reportValid) consumerRawEvidence = [{ artifactId: `${task.taskId}-persistent-raw`, version: ref.version, location: `browser-evidence/${dirname(report.reportPath).replaceAll('\\', '/')}` },
                   ...report.segments.map(segment => ({ artifactId: `${task.taskId}-${segment.id}-raw`, version: ref.version, location: `browser-evidence/${dirname(segment.report.reportPath).replaceAll('\\', '/')}` }))];
+                if (diagnostics.reportValid && report.segments.some((segment, index) => {
+                  const sample = segment.report.mediaObservations;
+                  if (sample === undefined) return segment.report.outcome === 'passed';
+                  const recorded = Date.parse(sample?.recordedAt ?? '');
+                  return !assessMediaCoverage(media, requests[index].request, [{ segmentId: segment.id, reportPath: segment.report.reportPath, sample }]).valid
+                    || !Number.isFinite(recorded) || recorded < Date.parse(segment.report.startedAt) || recorded > Date.parse(segment.report.endedAt);
+                })) {
+                  diagnostics.reportValid = false; diagnostics.passedChecks = [];
+                  diagnostics.issues = [{ acceptanceId: task.acceptanceIds[0], checkId: 'media/report', classification: 'insufficient_evidence',
+                    summary: 'A produced media sample is inconsistent or a successful segment is missing its sample.', actual: 'Per-segment media requests, field types or recording windows are unproven.',
+                    expected: 'Each produced sample matches its own fixed plan and every successful segment supplies a typed current sample.',
+                    reproduction: ['Inspect each actual segment report and its exact media request before diagnosing gameplay.'], evidenceRefs: [`evidence/${task.taskId}/media-usage.json`] }];
+                }
                 if (diagnostics.reportValid && !diagnostics.issues.length) {
                   await verifyGenericPersistentEvidence(series, report, join(root, 'browser-evidence'), deadlineAt);
                   if (!coverage.valid) {
