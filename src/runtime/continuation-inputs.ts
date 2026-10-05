@@ -5,11 +5,13 @@ import { sameValue } from '../contracts/validation.ts';
 import type { PreparedTask } from './orchestrator.ts';
 import type { RunSnapshot } from './run-types.ts';
 import { RecoveryBlocked, requireOriginalTask } from './recovery/task-journal.ts';
+import { deriveHumanContinuationPreparation } from './continuation-preparation.ts';
 
 /** Authority stays in D2. This read-only preflight preserves the authorized sources' topology and fixed inputs. */
 export async function requireContinuationInputs(snapshot: RunSnapshot, prepared: PreparedTask[], artifactRoot: string): Promise<void> {
   if (snapshot.formatVersion !== 2) return;
   const window = snapshot.continuation!.windows.find(item => item.windowId === snapshot.continuation!.currentWindowId)!;
+  const preparation = await deriveHumanContinuationPreparation(artifactRoot, snapshot, window, prepared);
   const recorded = new Map(snapshot.tasks.map(task => [task.taskId, task])), supplied = new Map(prepared.map(item => [item.task.taskId, item]));
   const fail = (message: string): never => { throw new RecoveryBlocked(message); };
   if (window.grants.some(grant => !supplied.has(grant.taskId))) fail('Complete continuation DAG must include every quoted successor.');
@@ -62,11 +64,14 @@ export async function requireContinuationInputs(snapshot: RunSnapshot, prepared:
       return matches[0].to;
     });
     if (!sameValue(item.task.inputs, rebind(original.inputs))) fail('Continuation fixed inputs differ from the quoted source dependency bindings.');
+    const currentPlans = preparation?.taskId === item.task.taskId ? preparation.plans : [];
+    if (preparation && grant && !sameValue(item.task.context.interfaces, [...rebind(original.context.interfaces), ...currentPlans])) fail('Current preparation plan interfaces differ from the fixed descriptor.');
     for (const ref of rebind(original.context.interfaces)) {
       if (!item.task.context.interfaces.some(actual => sameValue(actual, ref))) fail('Continuation lost a fixed source interface.');
     }
     for (const ref of item.task.context.interfaces) {
       const binding = bindings.find(binding => binding.to.artifactId === ref.artifactId);
+      if (currentPlans.some(fixed => sameValue(fixed, ref))) continue;
       if (binding && !sameValue(binding.to, ref)) fail('Continuation interface uses a stale dependency version.');
     }
   }

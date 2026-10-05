@@ -7,6 +7,7 @@ import { validateTask } from '../contracts/validation.ts';
 import { requireOriginalTask } from './recovery/task-journal.ts';
 import { validateSnapshot } from './run-validation.ts';
 import type { RunSnapshot, StopReason } from './run-types.ts';
+import { readHumanContinuationLineage } from './continuation-preparation.ts';
 
 export interface ContinuationQuote {
   formatVersion: 'continuation-quote-1'; kind: 'proposal'; activationAllowed: false; quoteId: string;
@@ -97,6 +98,8 @@ export async function buildContinuationQuote(options: { root: string; additional
   if (!state.stopReason && now < Date.parse(state.run.originalDeadlineAt)) throw new Error('原运行尚未硬停止或到期；只读 quote 不会停止它。');
   if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new Error('原运行仍有未知或预留费用；必须先对账，quote 不会释放这些费用。');
   const { replacements, sources } = await readReplacements(root, state);
+  const preparation = await readHumanContinuationLineage(root, state);
+  if (preparation) sources.push(...preparation.sources.filter(source => !sources.some(item => item.path === source.path)));
   const blockers: ContinuationQuote['blockers'] = [
     { code: 'explicit_confirmation_required', message: '这里只显示提案；尚无本报价的真实用户确认，不能激活。' },
     { code: 'owner_quiescence_unverified', message: '需确认原运行及子进程已停止；缺少锁文件也不能证明它们已停止。' },

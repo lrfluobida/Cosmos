@@ -72,7 +72,7 @@ async function browserClosure(entry: string) {
   }
   return Promise.all([...paths].sort().map(async path => ({ path: await realpath(path), sha256: hash(await readFile(path)) })));
 }
-async function executionSource(root: string) {
+export async function executionSource(root: string) {
   const extension = import.meta.url.endsWith('.js') ? '.js' : '.ts', base = new URL('../', import.meta.url), files = new Map<string, string>();
   async function visit(url: URL, imports = true) {
     const path = await realpath(fileURLToPath(url)); if (files.has(path)) return;
@@ -104,7 +104,7 @@ async function executionSource(root: string) {
     platformLock: { path: lockPath, sha256: hash(await readFile(lockPath)) }, dependencies, toolchain: { lock: { path: toolLockPath, sha256: hash(toolLockBytes) }, tools } };
   return { ...source, sha256: hash(JSON.stringify(source)), sourceVersion: createHash('sha1').update(JSON.stringify(source)).digest('hex') };
 }
-async function requireExecutionSource(source: Awaited<ReturnType<typeof executionSource>>) {
+export async function requireExecutionSource(source: Awaited<ReturnType<typeof executionSource>>) {
   const files = [...source.files, source.platformLock, source.toolchain.lock,
     ...source.dependencies.flatMap(item => [{ path: item.entry, sha256: item.entrySha256 }, { path: item.path, sha256: item.sha256 }, ...item.files]),
     ...source.toolchain.tools.flatMap(item => [{ path: item.path, sha256: item.sha256 }, ...item.files])];

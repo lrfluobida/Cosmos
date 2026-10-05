@@ -103,7 +103,6 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     if (!path?.trim()) throw new Error(usage);
     const { buildContinuationQuote, parseContinuationQuoteOptions } = await import('../runtime/continuation-quote.ts');
     const quoteOnly = options.includes('--quote'), requested = parseContinuationQuoteOptions(quoteOnly ? options : ['--quote', ...options]);
-    await (await import('./session.ts')).rejectPreparationContinuation(resolve(path));
     if (quoteOnly) { const quote = await buildContinuationQuote({ root: resolve(path), ...requested }); (io.output ?? process.stdout).write(JSON.stringify(quote, null, 2) + '\n'); return quote; }
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)));
     const { runContinuationSession } = await import('./continuation-session.ts');
@@ -126,7 +125,6 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
       if (key === '--brief') brief = value; else draftMode = 'cos16-input/1';
     }
     if (command === 'new' && (windowId || !brief)) throw new Error(usage);
-    if (command === 'resume' && windowId) await (await import('./session.ts')).rejectPreparationContinuation(root);
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)));
     if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, host, input: io.input ?? process.stdin, output });
     const { runProductSession } = await import('./session.ts');
