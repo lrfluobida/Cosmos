@@ -20,6 +20,8 @@ import { requireContinuationTask } from './continuation-validation.ts';
 import { OwnedWork } from './recovery/owned-work.ts';
 import { idleAnchor, idleHash, publishWindowIdle, requireNoRegistryWriter, requireWindowIdle } from './window-idle.ts';
 import type { ExecutionAuthority, ExecutionWindow, ImportedCharge, RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
+import type { CompletionBinding, ClosedCompletionProof } from './completion-timing.ts';
+import { bounded } from '../acceptance/deadline.ts';
 export type { ImportedCharge, RequestInput, RunSnapshot } from './run-types.ts';
 
 export interface OpenRunOptions { root: string; now?: () => number; windowId?: string }
@@ -472,12 +474,11 @@ export class RunController {
   }
 
   /** Drain real host work, retain a private nonce through owner close, then publish proof. */
-  async closeAfterDrain(work: OwnedWork): Promise<void> {
+  async closeAfterDrain(work: OwnedWork, completion?: CompletionBinding): Promise<void | ClosedCompletionProof> {
     this.requireExecutionWindow(this.windowId);
     if (!this.windowId || !(work instanceof OwnedWork) || this.closing || this.failed) throw new Error('Idle close requires a current window and its open owned work.');
-    await work.cancelAndDrain('Window owner is closing.');
-    await this.accounting;
-    await requireNoRegistryWriter(this.store.root);
+    if (completion) await this.drainCompletion(work);
+    else { await work.cancelAndDrain('Window owner is closing.'); await this.accounting; await requireNoRegistryWriter(this.store.root); }
     if (this.closing || this.failed) throw new Error('Window owner closed before idle proof was prepared.');
     this.closing = true; clearTimeout(this.timer);
     const nonce = randomBytes(32).toString('hex');
@@ -485,7 +486,7 @@ export class RunController {
       if (this.failed) throw new Error('Window persistence failed before idle proof.');
       await this.expire();
       const next = structuredClone(this.snapshot);
-      this.event(next, 'window_owner_drained', null, JSON.stringify({ windowId: this.windowId, nonceSha256: idleHash(nonce) }));
+      this.event(next, 'window_owner_drained', null, JSON.stringify({ windowId: this.windowId, nonceSha256: idleHash(nonce), ...(completion ? { completionSha256: idleHash(JSON.stringify(completion)) } : {}) }));
       await this.commit(next);
       return { state: structuredClone(this.snapshot), bytes: await regularFile(this.store.root, 'snapshot.json') };
     });
@@ -493,6 +494,33 @@ export class RunController {
     const proof = await anchored;
     await this.close();
     await publishWindowIdle(this.store.root, proof.state, nonce, proof.bytes);
+    if (completion) return { state: proof.state, snapshotBytes: proof.bytes, nonce };
+  }
+
+  /** Formal completion uses the same drained owner boundary, including initial runs. */
+  async closeForCompletion(work: OwnedWork, completion: CompletionBinding): Promise<ClosedCompletionProof> {
+    if (this.windowId) { const proof = await this.closeAfterDrain(work, completion); if (!proof) throw new Error('Window completion proof is missing.'); return proof; }
+    this.requireOriginalExecution();
+    if (this.closing || this.failed || !(work instanceof OwnedWork)) throw new Error('Completion requires its original open owner and owned work.');
+    await this.drainCompletion(work);
+    if (this.closing || this.failed) throw new Error('Generation owner closed before completion was prepared.');
+    this.closing = true; clearTimeout(this.timer);
+    const nonce = randomBytes(32).toString('hex');
+    const anchored = this.pending.then(async () => {
+      await this.expire(); const next = structuredClone(this.snapshot);
+      this.event(next, 'run_owner_drained', null, JSON.stringify({ windowId: null, nonceSha256: idleHash(nonce), completionSha256: idleHash(JSON.stringify(completion)) }));
+      await this.commit(next); return { state: structuredClone(this.snapshot), snapshotBytes: await regularFile(this.store.root, 'snapshot.json') };
+    });
+    this.pending = anchored.catch(() => {}); const proof = await anchored;
+    await this.close(); return { ...proof, nonce };
+  }
+
+  private async drainCompletion(work: OwnedWork): Promise<void> {
+    let failure: unknown;
+    try { await work.cancelAndDrain('Generation owner is closing.'); } catch (error) { failure = error; }
+    try { await bounded(() => this.accounting, Math.max(1, Date.parse(this.deadlineAt()) - this.now() + 5000), 'Completion accounting'); } catch (error) { failure ??= error; }
+    try { await requireNoRegistryWriter(this.store.root); } catch (error) { failure ??= error; }
+    if (failure) throw failure;
   }
 
   async close(): Promise<void> {

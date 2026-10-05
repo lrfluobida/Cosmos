@@ -9,6 +9,7 @@ import { sameValue } from '../contracts/validation.ts';
 import { readRunSnapshot } from '../cli/control.ts';
 import { OwnerLock } from './recovery/ownership.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
+import { readCompletionTiming } from './completion-timing.ts';
 
 const sha256 = (bytes: Buffer | string) => createHash('sha256').update(bytes).digest('hex');
 const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -19,6 +20,7 @@ interface Report {
   formatVersion: 'generation-report-1'; reportedAt: string; automaticAcceptance: 'passed' | 'not_passed';
   outcome: string; runId: string; ledgerId: string; windowId: string | null; delivery?: string; gaps: string[];
   acceptedCandidate?: AcceptedCandidate; acceptanceScope: Scope; effectiveTasks: ReturnType<typeof deliveryTaskProofs>;
+  requiresCompletionTiming?: true;
 }
 export interface ExperienceBinding {
   runId: string; ledgerId: string; windowId: string | null; report: ArtifactReference; reportSha256: string;
@@ -58,6 +60,7 @@ async function currentReport(root: string) {
     || !Array.isArray(report.acceptanceScope.acceptance) || !report.acceptanceScope.acceptance.length || !Array.isArray(report.acceptanceScope.notCovered)) throw new Error('Automatic report has no verifiable experience contract.');
   return { marker, report };
 }
+export { currentReport as readAutomaticReport };
 
 /** Reads only host evidence; it cannot authorize tasks, change time or settle a charge. */
 export async function loadExperienceBinding(root: string): Promise<ExperienceBinding> {
@@ -111,7 +114,13 @@ function view(binding: ExperienceBinding, decision: ExperienceReceipt | null) {
     report: binding.report, reportSha256: binding.reportSha256, candidate: binding.acceptedCandidate.candidateRef, delivery: binding.acceptedCandidate.targetRoot,
     acceptanceScope: binding.acceptanceScope, decision };
 }
-export async function readBoundExperienceStatus(root: string, binding: ExperienceBinding) { return view(binding, await receipt(root, binding)); }
+export async function readBoundExperienceStatus(root: string, binding: ExperienceBinding) {
+  const decision = await receipt(root, binding), completionTiming = await readCompletionTiming(root);
+  const timingPassed = !completionTiming.required || completionTiming.eligible === true;
+  const startedAt = completionTiming.current.endedAt ?? null;
+  return { ...view(binding, decision), completionTiming, ...(!timingPassed ? { finalCompletion: 'pending' } : {}),
+    humanWaiting: { startedAt, decidedAt: decision?.decidedAt ?? null, elapsedMs: startedAt ? Math.max(0, (decision ? Date.parse(decision.decidedAt) : Date.now()) - Date.parse(startedAt)) : null } };
+}
 /** Completed resume reads an existing delivery; it never reopens execution or republishes it. */
 export async function readCompletedGeneration(root: string, requirement: RequirementContract) {
   root = resolve(root);
@@ -123,7 +132,7 @@ export async function readCompletedGeneration(root: string, requirement: Require
   const snapshotBytes = await regularFile(root, 'snapshot.json'), state = await readRunSnapshot(root);
   if (state.formatVersion !== 1 && state.formatVersion !== 2) throw new Error('Completed delivery requires the original formal generation.');
   const stop = state.formatVersion === 2 ? state.continuation!.windows.find(window => window.windowId === state.continuation!.currentWindowId)!.stopReason : state.stopReason;
-  if (stop) throw new Error(`Completed delivery run is durably stopped (${stop.code}); resume cannot clear it.`);
+  if (stop && report.requiresCompletionTiming !== true) throw new Error(`Completed delivery run is durably stopped (${stop.code}); resume cannot clear it.`);
   if (state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) throw new Error('Completed delivery charges require reconciliation; read-only resume cannot settle them.');
   const idle = async () => {
     for (const name of ['.controller.lock', 'registry/.commit.lock']) {
@@ -140,6 +149,8 @@ export async function readCompletedGeneration(root: string, requirement: Require
   await idle();
   if (!selected.equals(await regularFile(root, 'delivery/current-report.json')) || !snapshotBytes.equals(await regularFile(root, 'snapshot.json'))) throw new Error('Completed delivery changed during read-only resume.');
   return { ...report, report: binding.report.location, userExperience: status.userExperience, finalCompletion: status.finalCompletion,
+    completionTiming: status.completionTiming, humanWaiting: status.humanWaiting,
+    ...(status.completionTiming.required && !status.completionTiming.eligible ? { outcome: 'incomplete' } : {}),
     experienceTiming: { automaticReportedAt: report.reportedAt, decidedAt: status.decision?.decidedAt ?? null,
       elapsedSinceAutomaticReportMs: Math.max(0, (status.decision ? Date.parse(status.decision.decidedAt) : Date.now()) - Date.parse(report.reportedAt)) } };
 }
@@ -153,7 +164,8 @@ export async function readExperienceStatus(root: string) {
     let current: Awaited<ReturnType<typeof currentReport>> | undefined;
     try { current = await currentReport(root); } catch { /* Missing or legacy reports stay unverified. */ }
     return { automaticAcceptance: current?.report.automaticAcceptance === 'not_passed' ? 'not_passed' : 'unverified', userExperience: 'not_confirmed', finalCompletion: 'pending',
-      report: current?.marker.report ?? null, acceptanceScope: current?.report.acceptanceScope ?? null, reason: (error as Error).message };
+      report: current?.marker.report ?? null, acceptanceScope: current?.report.acceptanceScope ?? null, reason: (error as Error).message,
+      completionTiming: current ? await readCompletionTiming(root).catch(() => ({ required: true, current: { status: 'unconfirmed' } })) : { required: false, current: { status: 'unverified' } } };
   }
 }
 
@@ -171,6 +183,8 @@ export async function recordExperience(root: string, expected: ExperienceBinding
     await safePath(root, 'registry/.commit.lock'); signal?.throwIfAborted();
     registryOwner = await OwnerLock.acquire(join(root, 'registry'), '.commit.lock'); signal?.throwIfAborted();
     const current = await loadExperienceBinding(root);
+    const timing = await readCompletionTiming(root, true);
+    if (action === 'approve' && timing.required && !timing.eligible) throw new Error('Completion timing is missing, late or unconfirmed; final approval is unavailable.');
     signal?.throwIfAborted();
     if (!sameValue(current, expected)) throw new Error('Current report or candidate changed while waiting; view and try the current version before deciding.');
     const existing = await receipt(root, current), decision = action === 'approve' ? 'approved' : 'rejected';

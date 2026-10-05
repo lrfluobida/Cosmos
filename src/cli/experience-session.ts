@@ -7,15 +7,17 @@ import { loadExperienceBinding, readBoundExperienceStatus, recordExperience } fr
 export async function runExperienceSession(options: { root: string; input: Readable; output: Writable }) {
   const root = resolve(options.root), binding = await loadExperienceBinding(root), { output } = options;
   const status = await readBoundExperienceStatus(root, binding), experience = status.userExperience === 'approved' ? '已通过' : status.userExperience === 'rejected' ? '已拒绝' : '等待确认';
+  const canApprove = !status.completionTiming.required || status.completionTiming.eligible === true;
   output.write(`当前游戏：${binding.acceptedCandidate.candidateRef.artifactId} / ${binding.acceptedCandidate.candidateRef.version}\n试玩工程：${resolve(root, binding.acceptedCandidate.targetRoot)}\n自动验收报告：${resolve(root, binding.report.location)}\n自动验收：通过；最终体验：${experience}。\n已验收范围：\n`);
   for (const item of binding.acceptanceScope.acceptance) output.write(`- ${item.description}\n`);
   output.write('未覆盖范围：\n'); for (const item of binding.acceptanceScope.notCovered) output.write(`- ${item}\n`);
+  output.write(`交付完成计时：${status.completionTiming.current.status}；结束时间：${status.completionTiming.current.endedAt ?? '未核实'}。\n`);
   const lines = createInterface({ input: options.input, crlfDelay: Infinity, terminal: false }), iterator = lines[Symbol.asyncIterator]();
   const cancellation = new AbortController();
   const interrupt = () => { cancellation.abort(); lines.close(); };
   process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
   try {
-    output.write('完成当前版本试玩后，认可请输入 approve，拒绝请输入 reject，退出请输入 cancel。\n');
+    output.write(canApprove ? '完成当前版本试玩后，认可请输入 approve，拒绝请输入 reject，退出请输入 cancel。\n' : '完整交付计时或费用尚未核实；当前不能确认最终完成。拒绝请输入 reject，退出请输入 cancel。\n');
     const answer = await iterator.next();
     if (cancellation.signal.aborted || answer.done || !['approve', 'reject'].includes(answer.value.trim())) {
       output.write('未记录体验决定。\n'); return { outcome: 'unconfirmed' };

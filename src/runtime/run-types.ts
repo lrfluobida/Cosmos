@@ -25,7 +25,7 @@ export interface StopReason {
 export interface RunEvent {
   sequence: number;
   at: string;
-  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved' | 'generation_activated' | 'continuation_activated' | 'window_stopped' | 'window_owner_drained' | 'window_owner_resumed' | 'validation_case_claimed' | 'validation_case_stopped' | 'validation_repair_claimed' | 'validation_allocation_closed';
+  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved' | 'generation_activated' | 'run_owner_drained' | 'continuation_activated' | 'window_stopped' | 'window_owner_drained' | 'window_owner_resumed' | 'validation_case_claimed' | 'validation_case_stopped' | 'validation_repair_claimed' | 'validation_allocation_closed';
   requestId: string | null;
   reason: string;
 }
