@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path';
 import { regularFile, safePath } from '../../../artifacts/paths.ts';
 import type { ArtifactReference } from '../../../contracts/types.ts';
 import { publishReceipt } from '../../recovery/receipt-file.ts';
+import type { CleanDelivery } from '../../entrypoint-delivery.ts';
 
 interface ValidationTransferOriginBinding {
   caseId: string; windowId: string; sourceVersion: string; requirementSha256: string; runId: string; specVersion: string;
@@ -39,7 +40,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
     try { await read(); throw new Error('Original transfer origin receipt already exists; explicit resume is required.'); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
   }
-  let mounted: { project: string; verifyScope(): Promise<void> } | undefined;
+  let mounted: { project: string; cleanDelivery?: CleanDelivery; verifyScope(): Promise<void> } | undefined;
   const server = createServer(async (request, response) => {
     const current = mounted;
     if (!current) { response.writeHead(404, { 'Cache-Control': 'no-store' }); response.end('Preparation only'); return; }
@@ -47,6 +48,13 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
       await current.verifyScope();
       if (mounted !== current) throw new Error('Candidate mount changed during request.');
       const name = decodeURIComponent(new URL(request.url ?? '/', 'http://127.0.0.1').pathname).slice(1) || 'index.html';
+      if (current.cleanDelivery) {
+        const path = new URL(request.url ?? '/', 'http://127.0.0.1'), target = new URL(current.cleanDelivery.url);
+        target.pathname = path.pathname; target.search = path.search;
+        const upstream = await fetch(target, { signal: input.signal, redirect: 'error' }), bytes = Buffer.from(await upstream.arrayBuffer());
+        await current.verifyScope(); if (mounted !== current) throw new Error('Candidate mount changed during clean request.');
+        response.writeHead(upstream.status, { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/octet-stream', 'Cache-Control': 'no-store' }); response.end(bytes); return;
+      }
       const bytes = await regularFile(join(current.project, 'dist'), name);
       if (mounted !== current) throw new Error('Candidate mount changed during read.');
       const type = name.endsWith('.html') ? 'text/html; charset=utf-8' : name.endsWith('.js') ? 'text/javascript; charset=utf-8'
@@ -75,7 +83,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
         if (!server.listening || !isDeepStrictEqual(await read(), receipt)) throw new Error('Owned transfer origin listener or fixed receipt changed.');
       } catch (error) { await close(); throw error; }
     };
-    const mountCandidate = async (value: { candidate: ArtifactReference; project: string; verifyBinding(): Promise<void> }) => {
+    const mountCandidate = async (value: { candidate: ArtifactReference; project: string; cleanDelivery?: CleanDelivery; verifyBinding(): Promise<void> }) => {
       await verify();
       if (mounted || typeof value.verifyBinding !== 'function') throw new Error('Candidate mount is already active or has no current binding guard.');
       const ref = value.candidate;
@@ -84,7 +92,12 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
       const project = await safePath(input.root, ref.location);
       if (project !== resolve(value.project)) throw new Error('Mounted project differs from the registry candidate.');
       await regularFile(join(project, 'dist'), 'index.html'); await value.verifyBinding(); await verify();
-      const current = { project, verifyScope: verify }; mounted = current;
+      if (value.cleanDelivery) {
+        const url = new URL(value.cleanDelivery.url);
+        if (url.origin !== value.cleanDelivery.url || url.hostname !== '127.0.0.1' || url.protocol !== 'http:' || !url.port || !value.cleanDelivery.requireCurrent) throw new Error('Clean mount requires its trusted loopback service.');
+        await value.cleanDelivery.requireCurrent();
+      }
+      const current = { project, cleanDelivery: value.cleanDelivery, verifyScope: async () => { await verify(); await value.verifyBinding(); await value.cleanDelivery?.requireCurrent(); } }; mounted = current;
       return async () => { if (mounted === current) mounted = undefined; };
     };
     return { url: receipt.url, verify, mountCandidate, close };

@@ -41,7 +41,7 @@ test('compiled public human CLI records executed JavaScript and fixed dependenci
   const cli = await import(pathToFileURL(join(compiled, 'dist/cli/index.js')).href), hosts = await import(pathToFileURL(join(compiled, 'dist/runtime/entrypoint-host.js')).href);
   const root = join(compiled, 'run'), calls: string[] = [], consumers: string[] = [], output = new PassThrough(); let text = ''; output.on('data', bytes => { text += bytes; });
   const host = hosts.createProductHost(compiled, { sessionFactory: fakePublicSdk(calls), io: {
-    async build(project: string, taskId: string) { await mkdir(join(project, 'dist'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), 'compiled synthetic ' + taskId, 'utf8'); return { passed: true, diagnostics: '' }; },
+    async build(project: string, taskId: string) { await mkdir(join(project, 'dist'), { recursive: true }); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), 'compiled synthetic ' + taskId, 'utf8'); return { passed: true, diagnostics: '' }; },
     async play() { throw new Error('No generic browser fallback'); },
     async playPersistent(series: any, options: any, authority: any) { await options.verifyBinding(); consumers.push(authority.taskId); return humanPersistentReports(series, options, consumers.length === 1); },
   } });
@@ -59,7 +59,7 @@ test('compiled public human CLI records executed JavaScript and fixed dependenci
 test('human same-window automatic coding repair uses the presealed v2 plan and exact candidate consumer', async t => {
   const f = await humanFixture(t), calls: string[] = [], consumers: string[] = [];
   const createHost = async (input: any) => { const host = await createHumanTransferConsumerHost({ ...input, sessionFactory: fakeHumanSdk(calls), io: {
-    async build(project, taskId) { await mkdir(join(project, 'dist'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), 'synthetic ' + taskId, 'utf8'); return { passed: true, diagnostics: '' }; },
+    async build(project, taskId) { await mkdir(join(project, 'dist'), { recursive: true }); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), 'synthetic ' + taskId, 'utf8'); return { passed: true, diagnostics: '' }; },
     async play() { throw new Error('No browser fallback'); },
     async playPersistent(series, options, authority) { assert.equal(series.segments.length, 8); assert.equal(series.segments[0].plan.taskId, authority.taskId); await options.verifyBinding(); consumers.push(authority.taskId);
       assert.equal(await (await fetch(series.segments[0].plan.url)).text(), 'synthetic ' + authority.taskId);

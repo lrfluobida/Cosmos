@@ -50,4 +50,23 @@
 
 清理回执只证明本次 launcher / browser / helper 收敛；完整运行最终 cleanup 时刻仍需原验收。接受后的自动报告、Source63 完成恢复和最终用户体验继续原版本 binding。完整经典内容与 95% 还原目标由正式生成验证，fixture startup 不替代它们。
 
-Plan-only；生产源码未改。实施和最终证据待 Source64 独审集成及本计划独立批准后补录。
+## 实施与原始证据
+
+专属 reviewer 已批准 plan `17f125f3501be27c22911d95123a5a2357b0a4e8`。Source64 final `076c1107866cec3cb4c00d069efb387ea15ea721` 经独审后合入 `12899e5ad78db5302a1f9823ea0f67d0e4a7300d`；本分支以 no-ff merge `011b525e9f8c77561aac7d55778687a039214dfb` 保留两者祖先后开始实施。
+
+包装在原 build 成功回调内写入；默认 browser 与已连接 transfer consumer 都实际调用同一个 clean lifecycle。transfer 继续原 origin、profile、sourceVersion 和 frozen plan，所有代理请求前后都核原 binding guard。通用 `.mjs` 通过最小 `tsconfig.json` 的 allowJs / include 进入 cold dist，包内 launcher 自身仅依赖 Node 标准库。报告与最终体验模块未改。
+
+来源资料保留 capture metadata；Phaser 3.90.0、EventEmitter3 5.0.4 的实际 package version / MIT 字段逐项对 lock，并按原 bytes 复制 LICENSE。另保留 Phaser 随包 Earcut、Simplify、Matter 和 AudioContext polyfill 的原 notice 源文件；不把 metadata 当作新许可结论。
+
+新资产完整契约要求 fake build 与真实 Vite 一样复制 public/assets。因此对以下已有 synthetic build fixture 仅增加 cp 和必要 import：`tests/cli/continuation-session.fixture.ts`、`tests/runtime/entrypoint-group.test.ts`、`tests/runtime/entrypoint-host-continuation.test.ts`、`tests/runtime/entrypoint-host-validation.fixture.ts`、`tests/transfer/human-continuation.fixture.ts`、`tests/transfer/human-continuation.test.ts`、`tests/transfer/human-preparation.test.ts`、`tests/transfer/passed-stage-reuse.test.ts`、`tests/transfer/runtime-acceptance.test.ts`、`tests/transfer/validation-case-seven-runtime.test.ts`、`tests/transfer/validation-case-six-runtime.test.ts`。这些不是新的真实构建证据。
+
+原始 stdout 均位于 `C:/Users/26557/AppData/Local/Temp/`：
+
+- `cos65-package-red.tap`：真实旧 host verify 已通过，但包无 launcher，1 FAIL / 0 skip；GREEN `cos65-package-green.tap` 1 PASS / 0 skip，1496.1079ms。
+- `cos65-final-twelve-boundaries.tap`：12/12 PASS、0 skip，19606.1222ms；准确来源、promotion 包装漂移、版本 / 路径 / copy bytes、缺 dist / source entry / capture asset、sealed、依赖版本、launcher 启动失败、HTTP 200 但必要浏览器资源失败、目录外 Node CLI、非法路径 / 端口冲突，以及真实 server / Edge / helper 的停止和 deadline 收敛。
+- `cos65-host-representatives.tap`：4/4 PASS、0 skip，8964.0035ms；原 wrong report、独审 proof、最终 review 包与截图代表。`cos65-affected-transport.tap`：3/3 PASS、0 skip，43045.6278ms；已登记 continuation 输出、validation grants 与实际 transfer consumer 同候选晋升。未重跑 Source64 旧 11/3 guard 矩阵或 Source62/63 重型组合。
+- `cos65-clean-node-browser.tap` 首轮整条冷生产链已完成，最后测试把 journal signature 的 `location` 写成 `ref.location`，因此 command 1 FAIL，不能称整命令通过。修正后的 `cos65-clean-node-browser-green.tap` 1/1 PASS、0 skip，14601.3367ms；固定免费模型 / 独审 fixture、实际 tsc/Vite、renderer、干净 Node 和 Edge 154.0.4258.48 的 9 步正常输入 / 媒体，以及独立 review workspace、journal 与 exact promotion。
+- `cos65-delivery-final-boundaries.tap` 旧 deadline fixture 8/9：原 runner 使用自身 cleanup reserve 返回 failed report，但 fixture 只盼 Promise reject。修正为读取实际 lifecycle / deadline failureFacts 后，`cos65-browser-cleanup-green.tap` 2/2 PASS；正式 timeout / reserve 没有为测试改变。最终 12 项也覆盖这两项。
+- `cos65-final-cold-build.txt` 首次因 generic 返回值 required cast 的 TS2352 退出 2；改成先读 optional 字段再收窄布尔类型后，`cos65-final-cold-build-green.txt` cold tsc exit 0 / tool 8.3030181s。此前 typecheck 也通过。
+
+最终冷生产链 `cos65-final-cold-production-chain.tap`：1/1 PASS、0 skip，14685.7862ms / 总17736.8728ms；实际证据保留在 `C:/Users/26557/AppData/Local/Temp/Cosmos COS65 中文交付 UYSAcv`，9/9 normal / media 步骤、errors[]、browser cleanup 和 clean helper exit 均通过。最终准确 SHA 与 reviewer verdict 由独审交接记录。所有 stdout 是免费 source / TEMP 证据，真实 human / model generation / paid 均 NONE；原实际账本与参考安装保持未访问。

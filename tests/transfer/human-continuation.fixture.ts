@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
 import type test from 'node:test';
@@ -18,6 +18,7 @@ export async function humanContinuationFixture(t: test.TestContext, options: { r
       authorities.push(authority);
       if (!continued && (!options.registeredRepair || ++originalBuilds > 1)) return { passed: false, diagnostics: 'Synthetic original toolchain unavailable' };
       await mkdir(join(project, 'dist'), { recursive: true });
+      await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true });
       await writeFile(join(project, 'dist/index.html'), 'Synthetic current coding ' + taskId, 'utf8');
       return { passed: true, diagnostics: '' };
     },

@@ -183,7 +183,7 @@ test('compiled human coding window uses its actual worker and dependencies then 
   const host = hosts.createProductHost(compiled, { sessionFactory, io: {
     async build(project: string, taskId: string) {
       if (!continued) return { passed: false, diagnostics: 'Synthetic original environment gap' };
-      await mkdir(join(project, 'dist'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), 'Synthetic compiled ' + taskId, 'utf8'); return { passed: true, diagnostics: '' };
+      await mkdir(join(project, 'dist'), { recursive: true }); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), 'Synthetic compiled ' + taskId, 'utf8'); return { passed: true, diagnostics: '' };
     }, async play() { throw new Error('No generic browser fallback'); },
     async playPersistent(series: any, options: any) { await options.verifyBinding(); return humanPersistentReports(series, options); },
   } });

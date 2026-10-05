@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type test from 'node:test';
@@ -79,7 +79,7 @@ export async function validationBrowserFixture(t: test.TestContext, options: { t
   };
   const io = { async build(project: string, taskId: string, _signal: AbortSignal, authority: any) { calls.push({ kind: 'build', taskId, authority });
     if (failBuild) return { passed: false, diagnostics: 'src/main.ts(1,1): error TS1000: Offline fixture defect' };
-    await mkdir(join(project, 'dist')); await writeFile(join(project, 'dist/index.html'), '<p>Offline build</p>', 'utf8'); return { passed: true, diagnostics: 'Offline fixture' }; },
+    await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), '<p>Offline build</p>', 'utf8'); return { passed: true, diagnostics: 'Offline fixture' }; },
     async play(plan: any, _signal: AbortSignal, authority: any) { calls.push({ kind: 'play', taskId: plan.taskId, authority }); return { formatVersion: '1.0.0', kind: 'normal_browser_input', plan, outcome: 'passed', browser: { version: 'offline' }, cleanup: { processExited: true }, errors: [], files: [], evidence: [], reportPath: 'offline.json',
       steps: plan.steps.map((step: any) => ({ id: step.id, kind: step.kind, acceptanceId: step.acceptanceId, outcome: 'passed', expected: step.expected ?? 'input', actual: step.expected ?? 'input', screenshot: null })) }; } };
   const input: any = { root, controller, requirement, proposal, validation, resume: false, work: new OwnedWork(controller.signal), io, sessionFactory };

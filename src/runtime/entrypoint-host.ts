@@ -1,7 +1,5 @@
-import { once } from 'node:events';
 import { access, cp, lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
-import { createServer } from 'node:http';
 import type { ProductHost } from '../cli/session.ts';
 import type { ArtifactReference, EvidenceContract, TaskContract } from '../contracts/index.ts';
 import { validateTask } from '../contracts/index.ts';
@@ -54,6 +52,7 @@ import type { HumanPreparationInput, HumanPreparationScope } from './entrypoint-
 import { createHumanContinuationScope } from './entrypoint-human-continuation.ts';
 import type { HumanContinuationInput, HumanContinuationScope } from './entrypoint-human-continuation.ts';
 import { modeFromSelection, preparationContract } from '../roles/preparation-mode.ts';
+import { packageStandalone, withCleanDelivery } from './entrypoint-delivery.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest alongside unchanged normal-input screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
@@ -74,19 +73,6 @@ async function copyRefs(root: string, target: string, refs: ArtifactReference[])
 /** The gated launcher is owned before it may start a compiler or browser worker. */
 async function ownedNode(input: Pick<HostInput, 'controller'>, authority: HostExecutionAuthority, args: string[], cwd: string, signal: AbortSignal, timeoutMs: number) {
   return runOwnedNode({ controller: input.controller, authority, args, cwd, signal, timeoutMs });
-}
-async function serve(project: string) {
-  const server = createServer(async (request, response) => {
-    try {
-      const name = decodeURIComponent(new URL(request.url ?? '/', 'http://127.0.0.1').pathname).slice(1) || 'index.html';
-      const bytes = await regularFile(join(project, 'dist'), name);
-      const type = name.endsWith('.html') ? 'text/html; charset=utf-8' : name.endsWith('.js') ? 'text/javascript; charset=utf-8' : name.endsWith('.css') ? 'text/css' : name.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream';
-      response.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' }); response.end(bytes);
-    } catch { response.writeHead(404); response.end('Not found'); }
-  });
-  server.listen(0, '127.0.0.1'); await once(server, 'listening'); const address = server.address();
-  if (!address || typeof address === 'string') throw new Error('Missing local preview address.');
-  return { url: `http://127.0.0.1:${address.port}`, async close() { server.closeAllConnections(); await new Promise<void>((done, reject) => server.close(error => error ? reject(error) : done())); } };
 }
 export interface HostExecutionAuthority { taskId: string; windowId: string | null; deadlineAt: string; caseId?: string }
 export interface BrowserBuildReport {
@@ -641,6 +627,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             const checked = await io.build(project, task.taskId, signal, validation ? await requireDispatch(task, signal) : authority);
             if (validation) await requireDispatch(task, signal);
             await writeJson(root, `evidence/${task.taskId}/build.json`, checked);
+            if (checked.passed) {
+              await requireDispatch(task, signal);
+              await packageStandalone({ root, project, candidate: ref, task, registry, signal });
+            }
             if (!checked.passed) {
               if (preparation?.candidateConsumer) {
                 consumerDiagnostics = preparation.candidateBuildDiagnostic?.(task, checked, `evidence/${task.taskId}/build.json`);
@@ -650,14 +640,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             }
             return { passed: checked.passed, evidenceIds: [`${task.taskId}-host`] };
           },
-          acceptance: async (_candidate, project) => {
+          acceptance: async (_candidate, project) => withCleanDelivery({ root, project, candidate: ref, controller, work: input.work, authority, signal,
+            requireCurrent: async () => { await requireDispatch(task, signal); } }, async server => {
             if (validation) await requireDispatch(task, signal);
             if (preparation?.candidateConsumer) {
               await preparation.bindCandidate(ref);
               const mediaArtifact = selected(task, 'media'), capture = await registry.getCapture(mediaArtifact);
               const manifestBytes = await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`);
               if (!capture.metadata.media || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), capture.metadata.media)) throw new Error('Actual media manifest differs from its capture.');
-              const result = await preparation.candidateConsumer({ root, task, candidate: ref, project, mediaArtifact, media: capture.metadata.media,
+              const result = await preparation.candidateConsumer({ root, task, candidate: ref, project, cleanDelivery: server, mediaArtifact, media: capture.metadata.media,
                 manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async () => { await requireDispatch(task, signal); await preparation.bindCandidate(ref); },
                 playPersistent: async (series, options) => {
                   if (!io.playPersistent) throw new Error('Trusted persistent transport is unavailable.');
@@ -672,8 +663,6 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               await writeJson(root, `evidence/${task.taskId}/media-usage.json`, result.mediaUsage);
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
             }
-            const server = await serve(project);
-            try {
               const scenario = (draft as BrowserGameDraft | ValidationBrowserProposal).scenario;
               const gameplay: AcceptancePlan = { ...structuredClone(scenario), formatVersion: '1.0.0', projectId: 'game', runId: task.runId, taskId: task.taskId,
                 reportId: `${task.taskId}-browser`, specVersion: requirement.specVersion, artifact: ref, url: server.url, acceptanceIds: task.acceptanceIds };
@@ -704,14 +693,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               }
               if (!valid) { classification = sameValue(report.plan, plan) ? 'code_defect' : 'insufficient_evidence'; actual = 'Normal input report failed or did not match the fixed plan and candidate.'; }
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
-            } finally { await server.close(); }
-          },
+          }),
         });
         proofs.set(task.taskId, proof); passed = true;
         }
       } catch (error) {
         // A trusted consumer boundary failure is evidence insufficiency unless exact diagnostics already established a defect.
-        if (preparation?.candidateConsumer && !consumerDiagnostics) actual = error instanceof Error ? error.message : 'Persistent consumer did not establish current evidence.';
+        if (!consumerDiagnostics) actual = error instanceof Error ? error.message : 'Host consumer did not establish current evidence.';
       }
       const evidence: EvidenceContract = { contractVersion: '1.0.0', evidenceId: `${task.taskId}-host`, taskId: task.taskId, acceptanceIds: task.acceptanceIds,
         kind: 'test_report', source: { artifactId: `${task.taskId}-host-report`, version: ref.version, location: reportPath }, artifactVersions: [...task.inputs, ...task.artifacts],
@@ -728,6 +716,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (passed && kind === 'coding') supplemental.push({ ...evidence, evidenceId: `${task.taskId}-media-usage`, kind: 'log', outcome: 'observed',
         source: { artifactId: `${task.taskId}-media-usage`, version: ref.version, location: `evidence/${task.taskId}/media-usage.json` },
         summary: 'Check the observation implementations against frozen Phaser source and normal-input screenshots. Read-only counters alone do not establish visible or audible quality.' });
+      if (passed && kind === 'coding') supplemental.push({ ...evidence, evidenceId: `${task.taskId}-delivery-check`, kind: 'test_report', outcome: 'observed',
+        source: { artifactId: `${task.taskId}-delivery-check`, version: ref.version, location: `evidence/${task.taskId}/delivery-check.json` },
+        summary: 'This exact package ran through its Node-only launcher in a clean copy; normal-input evidence and helper exit were checked before independent review.' });
       if (passed) {
         const refs = [...task.inputs, ...task.artifacts, ...task.context.interfaces, evidence.source, ...supplemental.map(item => item.source)];
         await copyRefs(root, join(root, `reviews/${task.taskId}`), refs.filter(ref => !consumerRawEvidence.some(parent => ref.location !== parent.location && ref.location.startsWith(parent.location + '/'))));
