@@ -11,11 +11,13 @@ import type { ValidationCaseWindow } from '../../src/runtime/validation-types.ts
 import type { VerifiedHistoricalStages } from '../../src/runtime/historical-passed-stages.ts';
 import type { ArtifactReference } from '../../src/contracts/types.ts';
 import { requireValidationTask, validationHash } from '../../src/runtime/validation-validation.ts';
-import { TRANSFER_VALIDATION_CASE_SIX as D } from './validation-case-six-declaration.ts';
+import type { ValidationDeclaration } from '../../src/runtime/validation-types.ts';
+import { TRANSFER_VALIDATION_CASE_SIX as D6 } from './validation-case-six-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_FIVE as OLD } from './validation-case-five-declaration.ts';
 
+export function createFixedTransferCodingOnlyTasks(D: ValidationDeclaration, manifestLocation: string) {
 /** Deterministic current contract only; the caller separately authenticates historical bytes and current scope. */
-export function deriveTransferValidationCaseSixCodingTask(input: {
+function deriveTransferValidationCaseSixCodingTask(input: {
   state: RunSnapshot; window: ValidationCaseWindow; requirement: ValidationRequirement;
   host: { availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[] };
   historical: Pick<VerifiedHistoricalStages, 'stages' | 'designArtifacts' | 'mediaArtifact'>;
@@ -59,11 +61,11 @@ export function deriveTransferValidationCaseSixCodingTask(input: {
 }
 
 /** Own immutable execution data, not a planner result; cold resume derives current policy again. */
-export async function prepareTransferValidationCaseSixExecution(input: Parameters<typeof deriveTransferValidationCaseSixCodingTask>[0] & {
+async function prepareTransferValidationCaseSixExecution(input: Parameters<typeof deriveTransferValidationCaseSixCodingTask>[0] & {
   root: string; manifestRef: ArtifactReference; capability: string; signal: AbortSignal;
 }, resume: boolean) {
   input.signal.throwIfAborted();
-  if (input.manifestRef.artifactId !== `${D.caseId}-historical-stages` || input.manifestRef.location !== 'cos20-transfer-validation-6-reuse.json'
+  if (input.manifestRef.artifactId !== `${D.caseId}-historical-stages` || input.manifestRef.location !== manifestLocation
     || !/^[a-f0-9]{64}$/.test(input.manifestRef.version)) throw new Error('Current execution requires the fixed historical manifest reference.');
   const item = deriveTransferValidationCaseSixCodingTask(input), value = {
     formatVersion: 'transfer-reused-execution/1', caseId: D.caseId, windowId: input.window.windowId, declaration: D, requirement: input.requirement,
@@ -77,3 +79,8 @@ export async function prepareTransferValidationCaseSixExecution(input: Parameter
   input.signal.throwIfAborted();
   return { tasks: [item], plan: { artifactId: `${D.caseId}-current-execution`, version: validationHash(bytes), location: name } };
 }
+
+return { deriveTransferValidationCaseSixCodingTask, prepareTransferValidationCaseSixExecution };
+}
+export const { deriveTransferValidationCaseSixCodingTask, prepareTransferValidationCaseSixExecution }
+  = createFixedTransferCodingOnlyTasks(D6, 'cos20-transfer-validation-6-reuse.json');

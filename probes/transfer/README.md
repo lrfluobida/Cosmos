@@ -210,3 +210,13 @@ Root manifest 只放在共享 ledger 的固定新文件 `cos20-transfer-validati
 五个正 grants 为 planning323680/design598538/art2633322/coding2122353/repair2800000 微元，合计8477893；原组已用1522107 微元。planning grant 仍授权当前 HOST bootstrap，planning/design/art 的 SDK 调用数为0；未用额度由 Root 沿原审计流程关闭。当前 coding 合同从可信 `game-code` policy、当前需求和已验证的旧 design 四项 outputs/media 派生，使用自己的 task/role/tools/grant/context，不读取未完成的旧 coding 合同或伪造新 planner 结果。
 
 源码已接通 COS56 的已审 consumer 和实际 current coding DAG，并通过 TEMP 原子准入、自己的单次 repair、同窗口真实 owner 重开与精确 v2 晋升组合测试；逻辑 SDK 上下文只有 coding/coding/reviewer，build/browser 使用明确的合成 transport。当前 C6 路径花22分13.365秒，仍须评估真实45分钟窗口余量；这不证明实际生成或浏览器体验。`TRANSFER_CASE_SIX_SOURCE_READY` 仅在独审与合入后登记。实际 C6、真实 manifest 和 human 验收均为 NONE；共享 ¥150/首批 ¥30/COS16 原 ¥10、单案例 ¥5/45 分钟/80 SDK/一次当前 coding repair，以及正式 ¥200/12h、优化 ¥100/6h 保持。计划、阶段耗时和定向证据见 [COS-57 计划](../../docs/plans/2026-10-05-cos57-coding-only-case-six.md)。
+
+## COS-60 · 带编码时限的第七迁移案例源码准备
+
+`validation-case-seven-run.ts` 固定 `cos20-transfer-validation-7`。免费命令为 `node --experimental-strip-types probes/transfer/validation-case-seven-run.ts --validation-preflight <reviewed-main-sha>`；获准后由 Root 使用同一固定入口的 `--validation-case <reviewed-main-sha> <operator-validation-source>`。当前实际 C6 的最后一笔974882微元仍未知，70 grants/12审计尚未齐全，因此当前免费预检必须零写入拒绝，真实 C7、provider 调用和 human 体验均为 NONE。原 C6 保持停止与消费，不能重开。
+
+新声明从原 COS16 五角色初始容量减去六案例实际已结算费用确定性推导；每个剩余额度必须为正，不把 reservation 当作 actual，不因 unknown 清零而编造结算，不从其他角色借款。完整准入还核对14个原停止案例、六笔原 delegation、70个关闭 grants、12笔实际 source-byte 审计、原 parent/首次授权/成员/角色费用、空闲 owner，以及 COS57/59 精确批准 marker 和 reviewed/merge 双祖先。真实费用核实和第12筆 closure 仍由 Root 完成。
+
+Root 为 C7 准备自己的固定 `cos20-transfer-validation-7-reuse.json`，绑定原 C5 两个 passed 阶段和七个 capture，按 COS56 核对原任务、窗口、回执与原始字节。免费预检只返回内存中的 admission envelope：它绑定原 quote2、snapshot revision/字节摘要、实际角色额度、manifest 原始摘要、源码审批、实际 source 或 compiled import 闭包及旧14案例账务前缀。获准入口才不可变发布 envelope 和 operator source；sourceRefs 覆盖二者与 manifest，claim、cold resume、工具与派发前再次读实际字节。旧账务前缀保持固定，当前 C7 自己的新费用按原 controller 连续增长。
+
+当前 planning 仅授权一次 host bootstrap；planner/design/art SDK 为0。当前 coding 与同窗合格的一次 coding repair 使用自己的 task/context/需求/计划/回执，保留旧 C5 design/art 来源，拒绝旧 coding/session 输入。coding author 使用 COS59 的600000ms源码上限，并逐请求按当前原 authority/deadline 减5000ms裁剪；其他角色与 intake 仍120000ms，maxRetries 为0。单案例 ¥5/45分钟/80请求、共享 ¥150/首阶段 ¥30/COS16 原 ¥10、formal ¥200/12h 与目标 ¥100/6h 保持。源码/TEMP synthetic transport、真实付费生成和正常浏览器体验分别记录；源码候选仍待独立实际 diff 审查与 sole merger 集成。
