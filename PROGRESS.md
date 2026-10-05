@@ -78,10 +78,10 @@ closure9历史：免费closure9于UTC2026-10-04T16:34:48.907Z由Root应用（本
 | 记录领域术语 | 持续更新 | [CONTEXT.md](CONTEXT.md) 已记录 Cosmos 与目标游戏 |
 | 比较方案并记录关键决策 | 待前置决策 | 真正涉及重要取舍时再创建 ADR |
 | 编写、审查并确认 spec | v1.0 发布基线 | 结构审查通过，用户已确认 ¥200/12h 硬上限和 ¥100/6h 优化目标 |
-| 真实成本与时延探针 | C8单关已接受，迁移C5设计/美术通过、编码截止取消 | 当前13cases/rev1884/ledger4/shared¥8.530730、unknown/reserved0；C5 66请求记录（65admitted settled+1准入前cancelled）/2695419ms/新增¥1.117003，design/art host与独立review passed、coding未handoff/capture/build/browser/game，closure11后65closed/十一audits；旧历史保留 |
+| 真实成本与时延探针 | C8单关已接受，迁移C6复用设计/美术通过、编码请求超时 | 当前14cases/rev1942/ledger4/shared settled¥8.666261、reserved¥0.974882、committed¥9.641143；C6 13coding admitted（12settled/1unknown）/682889ms/已结算新增¥0.135531，无capture/build/browser/game；65closed/11audits保持、closure12未执行，C5及旧历史保留 |
 | 任务拆分 | 已发布 | [59 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入，COS-44 明确原生规划policyId契约，COS-45 准备第二迁移案例与剩余额度准入，COS-46 提供设计标识符约束与只读自检，COS-47 准备带自检的第三迁移案例，COS-48 绑定规划局部别名与预声明身份，COS-49 准备主机身份绑定的第四迁移案例，COS-50 明确作者输出与捕获产物读取路径，COS-51 准备带路径契约的第五迁移案例，COS-52 将迁移验收与角色host纳入生产运行库，COS-53 保存准备型需求草稿，COS-54 提供准确输入文件清单，COS-55 接通原coding会话编译自检，COS-56 复用已通过阶段固定产物与来源，COS-57 准备仅编码的第六迁移案例，COS-58 接通公开CLI准备模式的生成与恢复，COS-59 修复长编码请求时限 |
 | 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#60；59 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..58 source 已审集成，迁移C4 designreview请求修改，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47源码已审集成，COS48主机身份绑定源码已审集成，COS49源码已审集成，COS50读取路径契约源码已审集成，COS51源码已审集成，COS52/53源码已审集成，COS54/55源码已独审集成、仅source/TEMP验证、actual C6 NONE，COS56已独审集成/HISTORICAL_PASSED_STAGES_SOURCE_READY、COS57已独审集成/TRANSFER_CASE_SIX_SOURCE_READY，COS58源码已独审集成/PUBLIC_HUMAN_PREPARATION_SOURCE_READY、COS59源码实施中/SOURCE_NOT_READY，迁移C6请求时限失败与unknown预留、C5编码截止取消/无game，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
+| 子代理逐项实施 | COS30..58 source 已审集成，迁移C4 designreview请求修改，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47源码已审集成，COS48主机身份绑定源码已审集成，COS49源码已审集成，COS50读取路径契约源码已审集成，COS51源码已审集成，COS52/53源码已审集成，COS54/55源码已独审集成；C6中54读取20次零工具错误、55编译工具尚未被调用，COS56已独审集成/HISTORICAL_PASSED_STAGES_SOURCE_READY、COS57已独审集成/TRANSFER_CASE_SIX_SOURCE_READY，COS58源码已独审集成/PUBLIC_HUMAN_PREPARATION_SOURCE_READY、COS59源码实施中/SOURCE_NOT_READY，迁移C6请求时限失败与unknown预留、C5编码截止取消/无game，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -657,7 +657,7 @@ Root登记COS53/#54 id5702920916、COS54/#55 id5703465426、COS55/#56 id57034664
 
 ROLE_FILE_INVENTORY_SOURCE_READY：`fc9aa8f56131f55d46c89c9e2ea01576695c3b16`→`a75c6147ecb09097492489be877b9384503a4abf`，[公共审批](https://github.com/lrfluobida/Cosmos/issues/55#issuecomment-5985063159)；独审10/10（37.620秒）、旧59/strict复用，联合missing selected ref不猜文件1/1（85.0988ms）。CODING_BUILD_FEEDBACK_SOURCE_READY：`018e02130d1678c35034748e64f3dff236eb1318`→`46dc52387a69c95720687375a92da1b7d66b4e5b`，[公共审批](https://github.com/lrfluobida/Cosmos/issues/56#issuecomment-5985108515)；独审3/3（27.67秒）strict空参/phase input drift/compiled真实tsc失败到同作者修复成功，两TEMP目录/PID-env/零新request，组合actualfactory工具隔离与54清单无冲突1/1（2269.008ms）。五/八paths批准字节/UTF8/LF/中文/diff通过，均offline-verified-awaiting-live/open/source-integrated；所有旧源测试复用。
 
-Source54/55审批时（历史）：当时仅只读评审是否可按严格source/current bindings复用C5已通过design/art，尚无新案例声明或paid运行，actual C6 NONE；已消费grants不重开，不假human continuation。C5/closure11/8530730费用/group1522107+8477893/当时55count与预算原样。当前两项架构审查已完成，Source56已独审集成，Source57正在接入批准依赖，实际C6仍未claim。
+Source54/55审批时（历史）：当时仅只读评审是否可按严格source/current bindings复用C5已通过design/art，尚无新案例声明或paid运行，actual C6 NONE；已消费grants不重开，不假human continuation。C5/closure11/8530730费用/group1522107+8477893/当时55count与预算原样。该时点两项架构审查完成、Source56已独审集成，Source57正在接入批准依赖，实际C6尚未claim；后续实际结果见下。
 
 ### COS56/57 历史通过阶段复用与仅编码C6源码登记
 
@@ -679,7 +679,7 @@ Root本轮只读确认deepseek-flash端点可用、余额至少覆盖原单case�
 
 ### COS58 公开CLI准备模式接线登记
 
-Root发布并精确读回[COS58/#59](https://github.com/lrfluobida/Cosmos/issues/59) id5704951453、native parent58children #2–#59与新checkbox，旧57成员与正文保持。此项接入已有准备型草稿与生产consumer，先覆盖真实stdin确认后的human new/resume；当前not-started/open/SOURCE_NOT_READY。原human RequirementContract、原¥200/12h授权与实际source/compiled字节须核对，计划/current task IDs在context/signature之前绑定；准备模式formal continuation须在确认/激活/新增费用前拒绝，后续另卡。
+Root发布并精确读回[COS58/#59](https://github.com/lrfluobida/Cosmos/issues/59) id5704951453、native parent58children #2–#59与新checkbox，旧57成员与正文保持。此项接入已有准备型草稿与生产consumer，先覆盖真实stdin确认后的human new/resume；注册时not-started/open/SOURCE_NOT_READY为历史。原human RequirementContract、原¥200/12h授权与实际source/compiled字节须核对，计划/current task IDs在context/signature之前绑定；准备模式formal continuation须在确认/激活/新增费用前拒绝，后续另卡。
 
 该卡不新增预算、实际human确认、游戏地图或付费窗口；C6尚未claim，原C5/C8结果、ledger/group费用、未知经典基准与human NONE保持。先完成COS57源码装配与独审，再按专属implementer/reviewer流程实施公开入口。独立架构审查确认边界可实施，并补明确human底层executionAuthority/原workspace接线；规划前仅预留refs、规划后封存真实三role及原规则coding repair身份，地图通过后固定双plan、冷恢复原绑定。同窗口automatic coding repair沿用，额外formal continuation提前拒绝。#59对应补充PATCH+GET精确读回，SOURCE_NOT_READY与预算不变。
 
@@ -697,7 +697,7 @@ COS58计划`78ce36555c2203461365bb9804e9c2922a8518d1`经专属reviewer PLAN_APPR
 
 原流已开始后触发绝对120s取消，无providerusage，SDKusage0不能清账；keyclearedTrue/Nodeexit1/PSexit0/fourlocksabsent，sourcefreeze解除，unknown阻塞新paid与closure；[实际失败证据](docs/research/2026-10-05-native-c6-stream-timeout.md)、[COS16公共结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5988185221)、[COS57公共结果](https://github.com/lrfluobida/Cosmos/issues/58#issuecomment-5988185502)均保留。
 
-Root发布并精确读回[COS59/#60](https://github.com/lrfluobida/Cosmos/issues/60)id5706469248/native59children #2–#60/newcheckbox，旧58成员保持。只codingauthor初值600s并裁剪原deadline/清理余量，body+SDK同值；不加重试、不清unknown、不改role/intake旧默认、预算/请求/repair上限。SOURCE_NOT_READY/notstarted；COS58独审发现实际tsc/vite/Playwright来源遗漏，原author仅扩执行闭包修复中，未SOURCE_READY。原C8/G3、旧失败、经典230/221未知和formal20012保持；Root仅请求provider用量缺项，独立源码继续。
+Root发布并精确读回[COS59/#60](https://github.com/lrfluobida/Cosmos/issues/60)id5706469248/native59children #2–#60/newcheckbox，旧58成员保持。只codingauthor初值600s并裁剪原deadline/清理余量，body+SDK同值；不加重试、不清unknown、不改role/intake旧默认、预算/请求/repair上限。注册时SOURCE_NOT_READY/notstarted；同一时点COS58独审发现实际tsc/vite/Playwright来源遗漏、作者修复中，为早期历史。当前COS58已审集成；COS59候选`b912f0e1751ea49e3749a487dd97759efbea43e4`已提交独立审查，仍SOURCE_NOT_READY。原C8/G3、旧失败、经典230/221未知和formal20012保持；Root仅请求provider用量缺项，独立源码继续。
 
 ### Source58源码审批与Source59实施
 
