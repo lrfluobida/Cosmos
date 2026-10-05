@@ -10,6 +10,7 @@ import { deriveHumanContinuationPreparation, readHumanContinuationLineage } from
 import { executionSource, requireExecutionSource } from './entrypoint-human-preparation.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { requireOriginalTask } from './recovery/task-journal.ts';
+import { taskWindowBinding } from './execution-window.ts';
 
 export interface HumanContinuationInput extends Omit<HostInput, 'draft' | 'binding'> {
   draft: PreparationGameDraft; binding: { windowId: string; tasks: PreparedTask[]; preparation: HumanContinuationPreparation };
@@ -30,9 +31,11 @@ export async function createHumanContinuationScope(input: HumanContinuationInput
   const lineage = (await readHumanContinuationLineage(root, initial))!;
   if (!sameValue(lineage.requirement, requirement) || !sameValue(lineage.draft, input.draft)) throw new Error('Current human continuation changed its confirmed requirement.');
   const execution = await executionSource(root), confirmationBytes = await regularFile(root, window.confirmation.source.location);
+  const authority = taskWindowBinding(initial, preparation.taskId);
+  if (!authority) throw new Error('Current human continuation has no exact window authority.');
   const fixed = { runId: initial.run.runId, ledgerId: initial.ledger.ledgerId, specVersion: initial.run.specVersion,
     startedAt: initial.run.originalStartedAt, deadlineAt: initial.run.originalDeadlineAt, requirement, execution,
-    windowId: window.windowId, decisionId: window.decisionId, preparation };
+    windowId: window.windowId, decisionId: window.decisionId, preparation, authorization: { ...authority, grant: structuredClone(window.grants[0]) } };
   const sourcePath = `continuations/${window.decisionId}/human-source.json`, taskPath = `continuations/${window.decisionId}/human-tasks.json`;
   const source = { formatVersion: 'human-continuation-source/1', ...fixed, quoteId: window.quote.quoteId,
     originalSourceSha256: preparation.originalSources.find(item => item.path === 'host-human-preparation-source.json')!.sha256,

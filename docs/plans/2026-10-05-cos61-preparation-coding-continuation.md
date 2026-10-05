@@ -139,3 +139,27 @@ interface HumanContinuationPreparation {
 - 现有human scope因原安装source漂移拒绝恢复，本卡保持这一保守限制；跨平台版本的历史运行迁移不在本卡。单独封存current closure不能消除原source无法认证的事实。
 - current listener/plans/source写入可能早于immutableplan，恢复必须核验其固定身份后补缺，注册后不能制造缺失回执。关闭时须await listener而非仅依赖signal callback。
 - offline结果只记录`source-and-TEMP-only/offline-verified-awaiting-human`；真实human、paidC7、closure12、COS16迁移和最终完整classic/体验均另行验收。本计划完成不代表`SOURCE_READY`。
+
+## 实施证据与审查修正
+
+所有记录为 source/TEMP、synthetic stdin/SDK/build/browser transport。compiled 的编译自检实际执行两个 owned Node worker，其 tsc/Vite 入口是 TEMP synthetic tools；没有真实模型、浏览器玩法或用户试玩验收。实际 C6/C7/共享账本与参考安装未触及。
+
+| 受影响代表 | RED / 修正 | GREEN / 原始时间 |
+| --- | --- | --- |
+| 公开准备模式 quote / current pipeline | 原统一拒绝，2/2失败，33.594秒 | 只读quote1/1，18.109秒；source current coding+review/八段consumer/exactaccept/cold SDK0，1/1，126.453秒 |
+| 固定 descriptor/interfaces | 缺 preparation descriptor，1/1失败，19.608秒 | 正确当前双plan与错version拒绝1/1，21.728秒；没有放松默认输入guard |
+| fresh CLI依赖 / current origin path | 独立cold进程未加载实际Playwright；current origin误用原路径，2/2失败，19.089秒 | 两者加affected public scope3/3，19.749秒 |
+| 独审P2 mode fallback | missing/browser mode可退回generic，1/1失败，17.848秒 | 先以原confirmed draft/execution/source识别，要求mode一致，1/1，17.681秒 |
+| 独审stop ACK / lost current origin | ACK越过awaitclose，43.420秒；拒绝后仍制造新origin，35.490秒 | stop将close纳入幂等drain且finally避免socket互等；reserve前核durable边界，2/2，74.677秒 |
+| original registered repair | 使用原已登记repair、原v2映射 | 1/1，43.681秒；唯一current candidate/primary，无新增repair权限 |
+| compiled pipeline / owned worker | 实际dist当前factory与current编译工具 | 与repair合并2/2，214.349秒；compiled部分167.532秒，current coding一次、workerPids2、cold SDK0、helper字节漂移拒绝 |
+| current context / source authorization | 旧v1/v2 context候选，24.078秒；注册前缺immutable authorization，明确assert RED24.351秒 | 两audit slots同一current task/candidate，封存taskWindowBinding+唯一grant；source deadline篡改与unknown冷恢复不重发2/2，68.809秒 |
+| cancel/EOF/错确认/确认期间旧proof变化 | 无新授权、无SDK请求 | 1/1，18.631秒，snapshot及旧human回执bytes/mtime保持 |
+| current字段变更后的compiled复验 | 只重验该delta | 1/1、0skip，170.179秒；actual current owned worker2、consumer/review/accept/cold与source drift拒绝仍通过 |
+| 默认/原public入口代表 | 复用未改大矩阵 | 默认continue、默认active stop、public new、非法preparation scope4/4、0skip，7.449秒 |
+
+最新 strict `node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit` 为7.027秒、exit0；`git diff --check` 通过。所有列出的GREEN均0skip，不重跑既有Edge、26分钟matrix或未改预算/编译工具机制。unknown代表明确调用原admission与unknown response hooks；只保留TEMP费用事实，冷恢复不产生第二笔请求。
+
+原四份根目录 human source/tasks/prepared/origin bytes和mtime保持。当前source回执另外记录immutable authorization（当前起止时间、quote/decision/window、effective limit和唯一grant）、实际确认sha与执行闭包。原flat起止时间仅作为原运行历史，跨安装版本或source→compiled切换不放行。当前两计划的steps/expected由原immutable map确定性派生，原registered repair明确关联原v2；current primary始终是第一个当前引用。
+
+独立审查使用实际commits：`c505545` 首批quote/plan、`40dd484` current consumer、`01e4a99` stop/origin修正；最终source candidate另报exact SHA并等待独审。原无变化证明复用，评审新发现由本implementer在同分支修复。此证据不关闭COS16/COS18，不改变最终classic分母或把actualhuman NONE改为通过。

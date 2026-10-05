@@ -15,6 +15,7 @@ import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { createHumanTransferContinuationHost } from '../../src/runtime/adapters/transfer/runtime-host.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { fakePublicSdk, installHumanTools, humanPersistentReports } from './human-preparation.fixture.ts';
+import { createHumanPreparedContinuationHost } from '../../src/runtime/entrypoint-host.ts';
 import { humanContinuationFixture, continuationStreams } from './human-continuation.fixture.ts';
 
 const args = (root: string, quote = false) => ['continue', root, ...(quote ? ['--quote'] : []), '--add-cny', '1', '--add-minutes', '10'];
@@ -211,4 +212,58 @@ test('compiled human coding window uses its actual worker and dependencies then 
   assert.deepEqual(JSON.parse(await readFile(join(root, 'snapshot.json'), 'utf8')).run.fees, state.run.fees);
   const file = join(compiled, 'dist/runtime/entrypoint-human-continuation.js'), bytes = await readFile(file); await writeFile(file, Buffer.concat([bytes, Buffer.from('\n')]));
   await assert.rejects(cli.runCli(['resume', root, '--window', window.windowId], { host, ...continuationStreams() }), /source|execution|changed/i); assert.deepEqual(calls, completed);
+});
+
+test('human current preparation context exposes one task and candidate in both audit slots', async t => {
+  const f = await humanContinuationFixture(t);
+  await runCli(args(f.root), { host: { ...f.host, execute: async () => ({ outcome: 'synthetic_after_activation' }) }, ...continuationStreams(id => `confirm ${id}\n`) });
+  const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8')), window = state.continuation.windows[0];
+  const controller = await RunController.open({ root: f.root, windowId: window.windowId });
+  try {
+    const plan = await loadContinuationPlan({ root: f.root, controller, requirement: f.requirement, windowId: window.windowId });
+    const preparation: any = { adapterId: 'cos16-input/1', designOutputs: [], designWritePaths: [], designRules: [], codingRules: [],
+      async initialize(context: any) {
+        assert.deepEqual(context.candidates.v1, plan.preparation!.candidate); assert.deepEqual(context.candidates.v2, plan.preparation!.candidate);
+        assert.deepEqual(context.candidateTaskIds, { v1: plan.preparation!.taskId, v2: plan.preparation!.taskId }); throw new Error('synthetic_context_checked');
+      }, async close() {} };
+    await assert.rejects(createHumanPreparedContinuationHost({ root: f.root, controller, requirement: f.requirement, draft: f.draft as any, resume: true,
+      work: new OwnedWork(controller.signal), binding: { windowId: window.windowId, tasks: plan.tasks, preparation: plan.preparation! }, preparation, io: f.io, sessionFactory: f.sessionFactory }), /synthetic_context_checked/);
+    const sourcePath = join(f.root, `continuations/${window.decisionId}/human-source.json`), source = JSON.parse(await readFile(sourcePath, 'utf8'));
+    assert.ok(source.authorization, 'current window authority must be sealed before task registration');
+    assert.equal(source.authorization.deadlineAt, window.deadlineAt); assert.equal(source.authorization.startedAt, window.startedAt);
+    assert.deepEqual(source.authorization.grant, window.grants[0]);
+    source.authorization.deadlineAt = new Date(Date.parse(window.deadlineAt) + 60_000).toISOString(); await writeFile(sourcePath, JSON.stringify(source, null, 2) + '\n', 'utf8');
+    await assert.rejects(createHumanPreparedContinuationHost({ root: f.root, controller, requirement: f.requirement, draft: f.draft as any, resume: true,
+      work: new OwnedWork(controller.signal), binding: { windowId: window.windowId, tasks: plan.tasks, preparation: plan.preparation! }, preparation, io: f.io, sessionFactory: f.sessionFactory }), /source|execution|changed/i);
+  } finally { await controller.close(); }
+});
+
+test('human continue cancellation and changed proof never activate or add requests', async t => {
+  const f = await humanContinuationFixture(t), before = await readFile(join(f.root, 'snapshot.json')), calls = [...f.calls];
+  for (const answer of ['cancel\n', '', 'confirm wrong\n']) {
+    const result: any = await runCli(args(f.root), { host: f.host, ...continuationStreams(() => answer) });
+    assert.equal(result.outcome, 'unconfirmed'); assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before); assert.deepEqual(f.calls, calls);
+  }
+  const evidence = f.original.tasks[0].evidence[0].source.location, bytes = await readFile(join(f.root, evidence));
+  await assert.rejects(runCli(args(f.root), { host: f.host, ...continuationStreams(async id => { await writeFile(join(f.root, evidence), Buffer.concat([bytes, Buffer.from('\n')])); return `confirm ${id}\n`; }) }), /signature|content|changed/i);
+  assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before); assert.deepEqual(f.calls, calls); await f.requirePreserved();
+});
+
+test('unknown current human request cannot be repeated by cold resume', async t => {
+  const f = await humanContinuationFixture(t); f.continue(); let prompts = 0;
+  const sessionFactory = async (config: any) => ({ async close() {}, async prompt() {
+    prompts++;
+    await config.budget.beforeRequest({ requestId: 'synthetic-current-unknown', modelId: 'deepseek-flash', maxOutputTokens: config.maxOutputTokens,
+      inputBytes: 100, hasImages: false, estimatedMaxCostMicroCny: 200 + config.maxOutputTokens * 8 });
+    await config.budget.afterResponse({ requestId: 'synthetic-current-unknown', outcome: 'unknown', elapsedMs: 1 });
+    throw new Error('Synthetic unknown provider response');
+  } });
+  const host = { ...f.host, execute: (options: any) => executeGeneration({ ...options, createHost: input => createHumanTransferContinuationHost({ ...input, draft: input.draft as any,
+    binding: { ...input.binding!, preparation: input.binding!.preparation! }, io: f.io, sessionFactory }) }) };
+  const result: any = await runCli(args(f.root), { host, ...continuationStreams(id => `confirm ${id}\n`) }); assert.equal(result.outcome, 'incomplete');
+  const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8')), window = state.continuation.windows[0], fees = state.run.fees;
+  assert.equal(prompts, 1); assert.ok(state.ledger.entries.some((entry: any) => entry.unknown));
+  const resumed: any = await runCli(['resume', f.root, '--window', window.windowId], { host, ...continuationStreams() });
+  assert.equal(resumed.outcome, 'incomplete'); assert.equal(prompts, 1);
+  assert.deepEqual(JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8')).run.fees, fees); await f.requirePreserved();
 });

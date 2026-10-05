@@ -291,13 +291,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const byRole = (role: string) => { const item = human!.tasks().find(item => item.role === role); if (!item) throw new Error('Human preparation task role is missing.'); return item; };
     const identities = human ? {
       get designTaskId() { return byRole('design').task.taskId; }, get mediaTaskId() { return byRole('art').task.taskId; },
-      get candidateTaskIds() { const id = byRole('coding').task.taskId; return { v1: id, v2: `${id.slice(0, 57)}-repair` }; },
+      get candidateTaskIds() { const id = byRole('coding').task.taskId; return { v1: id, v2: binding?.preparation ? id : `${id.slice(0, 57)}-repair` }; },
       human, taskWorkspace: (taskId: string) => { const item = validationTasks.get(taskId) ?? binding?.tasks.find(item => item.task.taskId === taskId); if (!item) throw new Error('Original human task workspace is not bound.'); return item.workspace; },
     } : { designTaskId: inherited?.stages[0].task.taskId ?? scope!.window.quote.declaration.grants.design.taskId,
       mediaTaskId: inherited?.stages[1].task.taskId ?? scope!.window.quote.declaration.grants.art.taskId,
       candidateTaskIds: { v1: scope!.window.quote.declaration.grants.coding.taskId, v2: scope!.window.quote.declaration.grants.repair.taskId } };
     const context = { root, registry, requirement, requirementCapture: requirements, requirementFile: `_cosmos/${historical ? 'current-' : ''}execution-requirement.json`,
-      primaryDesign: designOutput, candidates: { v1: output, v2: registry.candidateRef(name('game'), 'v2') },
+      primaryDesign: designOutput, candidates: binding?.preparation
+        ? { v1: binding.preparation.candidate, v2: binding.preparation.candidate } : { v1: output, v2: registry.candidateRef(name('game'), 'v2') },
       primaryMedia: mediaOutput,
       name, signal: work.signal, resume: input.resume, ...(inherited && historical ? { inherited: { binding: historical, verified: inherited } } : {}),
       requireScope: async () => { work.signal.throwIfAborted(); await preparationScope(); work.signal.throwIfAborted(); } } as import('./entrypoint-preparation.ts').BrowserPreparationContext;
