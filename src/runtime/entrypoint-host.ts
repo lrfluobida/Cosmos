@@ -14,6 +14,7 @@ import { requestDesignDraft, requestDesignQuestions } from '../roles/interview.t
 import { requireBrowserDraft, validateGameDraft, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../roles/requirements.ts';
 import type { AcceptancePlan } from '../acceptance/plan.ts';
 import type { AcceptanceReport } from '../acceptance/runner.ts';
+import type { GenericMediaObservationRequest } from '../acceptance/browser.ts';
 import { runOwnedNode } from './recovery/owned-command.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { HostFailure } from './repair/feedback.ts';
@@ -26,7 +27,7 @@ import { requireContinuationTask } from './continuation-validation.ts';
 import { executionWindowView } from './execution-window.ts';
 import { materializeTaskInputs } from './entrypoint-workspace.ts';
 import { executeGeneration } from './entrypoint.ts';
-import { renderDeclaredMedia, validateDesign, validateDeclaredMedia, withMediaObservations } from './entrypoint-media.ts';
+import { renderDeclaredMedia, validateDesign, validateDeclaredMedia, withMediaObservations, createGenericMediaObservationRequest, assessMediaCoverage } from './entrypoint-media.ts';
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft } from '../roles/requirements.ts';
@@ -55,7 +56,7 @@ import type { HumanContinuationInput, HumanContinuationScope } from './entrypoin
 import { modeFromSelection, preparationContract } from '../roles/preparation-mode.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
-const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-16 characters) and PCM synthesis (0-16 clips, each <=30 seconds). The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks these against the dynamic manifest alongside normal-input screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
+const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest alongside unchanged normal-input screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
 const requestReservation = (request: { inputBytes: number; maxOutputTokens: number; hasImages: boolean }) => (request.hasImages ? 1_000_000 : request.inputBytes) * 2 + request.maxOutputTokens * 8;
 async function writeJson(root: string, name: string, value: unknown) { const path = await safePath(root, name); await mkdir(dirname(path), { recursive: true }); await publishReceipt(path, value); }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
@@ -94,7 +95,7 @@ export interface BrowserBuildReport {
 }
 export interface BrowserHostIO {
   build(project: string, name: string, signal: AbortSignal, authority: HostExecutionAuthority): Promise<BrowserBuildReport>;
-  play(plan: AcceptancePlan, signal: AbortSignal, authority: HostExecutionAuthority): Promise<AcceptanceReport>;
+  play(plan: AcceptancePlan, signal: AbortSignal, authority: HostExecutionAuthority, options?: { mediaObservations: GenericMediaObservationRequest }): Promise<AcceptanceReport>;
   playPersistent?(series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions, authority: HostExecutionAuthority): Promise<PersistentAcceptanceReport>;
 }
 function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'>): BrowserHostIO {
@@ -111,15 +112,17 @@ function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'>): Brows
       signal.throwIfAborted(); await cp(join(root, 'dist'), join(project, 'dist'), { recursive: true, errorOnExist: true, force: false });
       return { passed: true, diagnostics, work: root, results };
     },
-    async play(plan, signal, authority) {
+    async play(plan, signal, authority, options) {
       if (plan.taskId !== authority.taskId) throw new Error('Browser task differs from its host execution authority.');
       const path = `browser-plans/${plan.reportId}.json`; await writeJson(input.root, path, plan);
+      const mediaPath = options ? `browser-plans/${plan.reportId}.media.json` : null;
+      if (mediaPath) await writeJson(input.root, mediaPath, options!.mediaObservations);
       const result = `browser-results/${plan.reportId}.json`; await directory(input.root, 'browser-results');
       const runner = new URL(import.meta.url.endsWith('.ts') ? '../acceptance/runner.ts' : '../acceptance/runner.js', import.meta.url).href;
-      const source = `import {readFile,writeFile} from 'node:fs/promises';import {runAcceptance} from ${JSON.stringify(runner)};const plan=JSON.parse(await readFile(process.argv[1],'utf8'));const report=await runAcceptance(plan,{evidenceRoot:process.argv[2],channel:'msedge',env:process.env,timeoutMs:Number(process.argv[4])});await writeFile(process.argv[3],JSON.stringify(report),'utf8');`;
+      const source = `import {readFile,writeFile} from 'node:fs/promises';import {runAcceptance} from ${JSON.stringify(runner)};const plan=JSON.parse(await readFile(process.argv[1],'utf8'));const mediaObservations=process.argv[5]?JSON.parse(await readFile(process.argv[5],'utf8')):undefined;const report=await runAcceptance(plan,{evidenceRoot:process.argv[2],channel:'msedge',env:process.env,timeoutMs:Number(process.argv[4]),mediaObservations});await writeFile(process.argv[3],JSON.stringify(report),'utf8');`;
       const remaining = Date.parse(authority.deadlineAt) - Date.now() - 5000;
       if (remaining < 1000) throw new Error('Execution window time is insufficient for browser cleanup.');
-      await ownedNode(input, authority, ['--experimental-strip-types', '--input-type=module', '-e', source, join(input.root, path), join(input.root, 'browser-evidence'), join(input.root, result), String(Math.min(180000, remaining))], input.root, signal, Math.min(185000, remaining + 1000));
+      await ownedNode(input, authority, ['--experimental-strip-types', '--input-type=module', '-e', source, join(input.root, path), join(input.root, 'browser-evidence'), join(input.root, result), String(Math.min(180000, remaining)), mediaPath ? join(input.root, mediaPath) : ''], input.root, signal, Math.min(185000, remaining + 1000));
       return json(input.root, result);
     },
     async playPersistent(series, options, authority) {
@@ -483,13 +486,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * 0.15), writePaths: ['authors/design/design.json'],
         readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit', GAME_DESIGN_CHECK], outputs: [{ ...designOutput, destination: designOutput.location, type: 'design', schema: 'game-design/1' }],
         rules: [`Cover only ${DESIGN_ACCEPTANCE_ID}; no dependencies. This is a design deliverable, not proof the game passes.`, captureLayout(designLayout),
-          `Read ${requirement.sources[0].location}. Write authors/design/design.json with exactly {summary:string,implementationNotes:string[],acceptanceMapping:{gameplayId:string},characters:[{id,purpose,states:string[]}],audio:[{id,trigger,loop:boolean}]}. Map every gameplay ID ${JSON.stringify(gameplayIds)}. Declare 1-16 original characters and 0-16 audio clips required by the confirmed brief; preserve every requested actor, action and audio trigger.`,
+          `Read ${requirement.sources[0].location}. Write authors/design/design.json with exactly {summary:string,implementationNotes:string[],acceptanceMapping:{gameplayId:string},characters:[{id,purpose,states:string[]}],audio:[{id,trigger,loop:boolean}]}. Map every gameplay ID ${JSON.stringify(gameplayIds)}. Declare 1-128 original characters and 0-64 audio clips required by the confirmed brief; preserve every requested actor, action and audio trigger.`,
           MEDIA_IDENTIFIER_RULE,
           `Before finishing, call ${GAME_DESIGN_CHECK} with no arguments and correct any errors yourself. It checks current generic design bytes only; the host independently captures and validates outputs. It does not change the map, grant a new attempt or authorize semantic rewrites.`,
           'Use only the supported bounded SVG layer animation and procedural PCM audio formats. Do not shrink the confirmed gameplay or fabricate execution evidence.'] },
       { policyId: 'game-art', role: 'art', workspace: root, allocationMicroCny: Math.floor(pool * 0.25), writePaths: ['authors/art/media.json'],
         readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit'], outputs: [{ ...mediaOutput, destination: mediaOutput.location, type: 'game-media', schema: 'original-media/1' }],
-        rules: [`Cover only ${MEDIA_ACCEPTANCE_ID}; depend on the design task. Read its exact _cosmos/design.json capture. Write authors/art/media.json with exactly {characters:CharacterSpec[],audio:AudioSpec[]}; IDs, states and loops must exactly match design.`, captureLayout(designLayout, mediaLayout),
+        rules: [`Cover only ${MEDIA_ACCEPTANCE_ID}; depend on the design task. Read its exact _cosmos/design.json capture. Write authors/art/media.json as {formatVersion:"batched-media/1",batches:[{characters:CharacterSpec[],audio:AudioSpec[]}]}, with 1-8 nonempty batches, each at most 16 characters/16 clips; total at most 128 characters/64 clips. Use successive file write/edit calls to append completed batches to this one envelope in the same author session. Finish only after the exact unique union of all IDs, states and loops matches design. Legacy {characters:CharacterSpec[],audio:AudioSpec[]} remains supported for a single batch of at most 16/16.`, captureLayout(designLayout, mediaLayout),
           MEDIA_IDENTIFIER_RULE,
           'CharacterSpec: {id,width:16..512,height:16..512,anchor:{x,y},layers:[{id,shape:"rect"|"ellipse",x,y,width,height,fill:"#RRGGBB",stroke:"#RRGGBB",strokeWidth,radius?}],states:[{name,fps:1..60,loop:boolean,frames:[{layerId:{dx?,dy?,rotation?,scaleX?,scaleY?,opacity?}}]}]}. Up to 64 layers, 16 states, 256 total frames; every frame is a pose map and may be {}.',
           'AudioSpec: {id,sampleRate:22050|44100|48000,duration:0.02..30,loop:boolean,notes:[{midi:24..96,start,duration,gain:0..0.5,wave:"sine"|"triangle",attack,release}]}. Notes fit the clip; attack/release each >=0.002, their sum <=note duration. Produce audible original audio. The trusted host renders and validates actual files. Never copy reference artwork/audio.'] },
@@ -674,15 +677,22 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               const scenario = (draft as BrowserGameDraft | ValidationBrowserProposal).scenario;
               const gameplay: AcceptancePlan = { ...structuredClone(scenario), formatVersion: '1.0.0', projectId: 'game', runId: task.runId, taskId: task.taskId,
                 reportId: `${task.taskId}-browser`, specVersion: requirement.specVersion, artifact: ref, url: server.url, acceptanceIds: task.acceptanceIds };
-              const media = (await registry.getCapture(selected(task, 'media'))).metadata.media!;
-              const { plan, checks } = withMediaObservations(gameplay, media);
-              const report = await io.play(plan, signal, validation ? await requireDispatch(task, signal) : authority);
+              const mediaArtifact = selected(task, 'media'), media = (await registry.getCapture(mediaArtifact)).metadata.media!;
+              const { plan, checks, collectionRequired } = withMediaObservations(gameplay, media);
+              const manifestBytes = collectionRequired ? await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`) : null;
+              if (manifestBytes && !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), media)) throw new Error('Actual media manifest differs from its capture.');
+              const request = manifestBytes ? createGenericMediaObservationRequest(media, { media: mediaArtifact, manifestSha256: validationHash(manifestBytes), plan }) : null;
+              const report = await io.play(plan, signal, validation ? await requireDispatch(task, signal) : authority, request ? { mediaObservations: request } : undefined);
               if (validation) await requireDispatch(task, signal);
+              if (manifestBytes && !(await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`)).equals(manifestBytes)) throw new Error('Current media manifest changed during normal input.');
+              const coverage = request ? assessMediaCoverage(media, request, report.mediaObservations
+                ? [{ segmentId: plan.reportId, reportPath: report.reportPath, sample: report.mediaObservations }] : []) : null;
               await writeJson(root, `evidence/${task.taskId}/browser.json`, report);
-              await writeJson(root, `evidence/${task.taskId}/media-usage.json`, { candidate: ref, media: selected(task, 'media'),
+              await writeJson(root, `evidence/${task.taskId}/media-usage.json`, { candidate: ref, media: mediaArtifact,
                 checks: checks.map(check => ({ ...check, result: report.steps.find(step => step.id === check.stepId) ?? null })),
+                ...(request ? { request, coverage } : {}),
                 scope: 'Engine loading/state/sound-start observations under the same normal-input replay, plus independent source review; audible quality and visual recognizability remain user experience checks.' });
-              const valid = validBrowserReport(report, plan);
+              const valid = validBrowserReport(report, plan) && (!coverage || coverage.valid && coverage.complete);
               if (valid) {
                 const paths = [...new Set(report.steps.filter(step => scenario.steps.some(original => original.id === step.id) && step.screenshot).map(step => `browser-evidence/${step.screenshot}`))];
                 const chosen = [...new Set([...paths.slice(0, 4), ...paths.slice(-4)])];

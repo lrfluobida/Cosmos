@@ -38,3 +38,49 @@ test('runtime media checks bind dynamic IDs and actual manifest states without r
   assert.ok(result.plan.steps.some((step: any) => step.observation?.path?.join('.') === 'media.audio.0.started'));
   assert.equal(result.checks.filter((check: any) => check.kind === 'audio_started').length, 1);
 });
+
+function batches() {
+  const characters = Array.from({ length: 17 }, (_, index) => ({ ...structuredClone(specification.characters[0]), id: `actor-${index}` }));
+  const audio = Array.from({ length: 17 }, (_, index) => ({ ...structuredClone(specification.audio[0]), id: `sound-${index}` }));
+  return { declared: { ...structuredClone(design), characters: characters.map(item => ({ id: item.id, purpose: '目标', states: ['idle'] })),
+    audio: audio.map(item => ({ id: item.id, trigger: '点击成功', loop: item.loop })) },
+    envelope: { formatVersion: 'batched-media/1', batches: [{ characters: characters.slice(0, 16), audio: audio.slice(0, 16) }, { characters: characters.slice(16), audio: audio.slice(16) }] } };
+}
+test('bounded batches render one complete roster and retain the original envelope for review and recovery', async t => {
+  const { declared, envelope } = batches(); media.validateDesign(declared, ['win']);
+  const root = await mkdtemp(join(tmpdir(), 'cos64-batches-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const result = await media.renderDeclaredMedia(root, 'rendered', envelope, declared, new AbortController().signal);
+  assert.deepEqual(result.media.characters.map(item => item.manifest.id), declared.characters.map(item => item.id));
+  assert.deepEqual(result.media.audio.map(item => item.manifest.id), declared.audio.map(item => item.id));
+  assert.ok(result.files.includes('public/assets/actor-16/idle-000.svg')); assert.ok(result.files.includes('public/assets/audio/sound-16.wav'));
+  assert.deepEqual(JSON.parse(await readFile(join(root, 'rendered/_cosmos/mediaSpec.json'), 'utf8')), envelope);
+  assert.deepEqual(JSON.parse(await readFile(join(root, 'rendered/public/assets/manifest.json'), 'utf8')), result.media);
+});
+test('batch union rejects duplicates, missing/extra IDs, state/loop changes and all batch/capacity overflow', async t => {
+  const { declared, envelope } = batches();
+  const mutations = [
+    (v: any) => { v.batches[1].characters[0].id = 'actor-0'; }, (v: any) => { v.batches[1].characters = []; },
+    (v: any) => { v.batches[1].characters[0].id = 'extra'; }, (v: any) => { v.batches[1].characters[0].states[0].name = 'wrong'; },
+    (v: any) => { v.batches[1].audio[0].loop = true; }, (v: any) => { v.batches[1].audio[0].id = 'sound-0'; },
+    (v: any) => { v.batches[0].characters.push(v.batches[1].characters[0]); },
+    (v: any) => { v.batches[0].audio.push(v.batches[1].audio[0]); }, (v: any) => { v.batches = Array(9).fill(v.batches[1]); },
+    (v: any) => { v.batches.push({ characters: [], audio: [] }); }, (v: any) => { v.formatVersion = 'unknown'; },
+  ];
+  for (const mutate of mutations) { const changed = structuredClone(envelope); mutate(changed); assert.throws(() => media.validateDeclaredMedia(changed, declared)); }
+  assert.throws(() => media.validateDeclaredMedia({ characters: envelope.batches.flatMap(b => b.characters), audio: envelope.batches.flatMap(b => b.audio) }, declared), /batch|bounded/);
+  assert.throws(() => media.validateDesign({ ...declared, characters: Array.from({ length: 129 }, (_, i) => ({ ...declared.characters[0], id: `a-${i}` })) }, ['win']));
+  assert.throws(() => media.validateDesign({ ...declared, audio: Array.from({ length: 65 }, (_, i) => ({ ...declared.audio[0], id: `a-${i}` })) }, ['win']));
+  const maximum = { ...declared, characters: Array.from({ length: 128 }, (_, i) => ({ ...declared.characters[0], id: `a-${i}` })),
+    audio: Array.from({ length: 64 }, (_, i) => ({ ...declared.audio[0], id: `b-${i}` })) };
+  media.validateDesign(maximum, ['win']);
+  const root = await mkdtemp(join(tmpdir(), 'cos64-rejected-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const invalid = structuredClone(envelope); invalid.batches[1].audio[0].loop = true;
+  await assert.rejects(media.renderDeclaredMedia(root, 'partial', invalid, declared, new AbortController().signal));
+  await assert.rejects(readFile(join(root, 'partial/public/assets/manifest.json')), /ENOENT/);
+});
+test('the complete media union rejects an ID shared by a character and audio before rendering', () => {
+  const shared = { ...structuredClone(design), audio: [{ ...design.audio[0], id: 'star' }] };
+  const art = { ...structuredClone(specification), audio: [{ ...specification.audio[0], id: 'star' }] };
+  assert.throws(() => media.validateDesign(shared, ['win']), /Duplicate/);
+  assert.throws(() => media.validateDeclaredMedia({ formatVersion: 'batched-media/1', batches: [art] }, shared), /Duplicate/);
+});
