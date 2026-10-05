@@ -16,6 +16,7 @@
 - `src/cli/session.ts`、`src/cli/continuation-session.ts`、`src/runtime/entrypoint.ts`：两种恢复入口的完成分支。
 - `tests/cli/continuation-session.fixture.ts`：可选完成原运行；默认中断行为不变。
 - `tests/cli/completed-generation-resume.test.ts`：合法三任务和首追加窗口的公开入口、直接 runtime、冷编译入口与拒绝证明。
+- `docs/development/quickstart.md`：未完成恢复与已完成只读交付的使用边界，以及时间摘要的准确含义。
 - 本计划：原始测试输出位置、最终 SHA 与已知缺口。
 
 ## Task 1: 公开入口 RED
@@ -57,3 +58,5 @@
 - 独立 `npm run typecheck` exit 0 / tool wall 8.1566572s（chunk `e9d1fa`）。后续生产字节未改，最终 cold 编译另有实际退出断言。
 
 以上 TAP 均是本任务局部原始 stdout；测试用真实生产 CLI/runtime/registry，但 transport、build/browser、stdin 和跨 deadline 的时钟明确是 SOURCE/TEMP fixture。没有真实模型、真实用户体验或完整 12h 成绩。`experienceTiming.automaticReportedAt` 仅原报告时间；`decidedAt` 来自绑定回执，`elapsedSinceAutomaticReportMs` 从自动报告起算，可能包含最后清理，不能解释为完整生成结束或纯等待耗时。
+
+最终只补 quickstart 的使用与计时说明，并保留未完成恢复、持久停止及完整计时缺口。生产和测试字节与 `694d36ef1528fc703f863fc3c09a3b6c5f355a68` 相同，未重复已过检查；文档 UTF-8/LF、中文 readback 与 diffcheck 通过。
