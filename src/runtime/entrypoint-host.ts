@@ -1,5 +1,6 @@
 import { access, cp, lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import type { ProductHost } from '../cli/session.ts';
 import type { ArtifactReference, EvidenceContract, TaskContract } from '../contracts/index.ts';
 import { validateTask } from '../contracts/index.ts';
@@ -9,7 +10,7 @@ import type { PassedEvidence } from '../artifacts/index.ts';
 import { directory, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
 import { createRoleFactory } from '../roles/factory.ts';
 import { requestDesignDraft, requestDesignQuestions } from '../roles/interview.ts';
-import { requireBrowserDraft, validateGameDraft, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../roles/requirements.ts';
+import { requireBrowserDraft, validateGameDraft, confirmRequirements, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../roles/requirements.ts';
 import type { AcceptancePlan } from '../acceptance/plan.ts';
 import type { AcceptanceReport } from '../acceptance/runner.ts';
 import type { GenericMediaObservationRequest } from '../acceptance/browser.ts';
@@ -25,7 +26,8 @@ import { requireContinuationTask } from './continuation-validation.ts';
 import { executionWindowView } from './execution-window.ts';
 import { materializeTaskInputs } from './entrypoint-workspace.ts';
 import { executeGeneration } from './entrypoint.ts';
-import { renderDeclaredMedia, validateDesign, validateDeclaredMedia, withMediaObservations, createGenericMediaObservationRequest, assessMediaCoverage } from './entrypoint-media.ts';
+import { renderDeclaredMedia, validateDesign, validateDeclaredMedia, withMediaObservations, createGenericMediaObservationRequest, assessMediaCoverage, assessGenericSeriesMediaCoverage } from './entrypoint-media.ts';
+import { createGenericPersistentSeries, verifyGenericPersistentEvidence } from './entrypoint-persistent.ts';
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft } from '../roles/requirements.ts';
@@ -55,7 +57,7 @@ import { modeFromSelection, preparationContract } from '../roles/preparation-mod
 import { packageStandalone, withCleanDelivery } from './entrypoint-delivery.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
-const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest alongside unchanged normal-input screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
+const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
 const requestReservation = (request: { inputBytes: number; maxOutputTokens: number; hasImages: boolean }) => (request.hasImages ? 1_000_000 : request.inputBytes) * 2 + request.maxOutputTokens * 8;
 async function writeJson(root: string, name: string, value: unknown) { const path = await safePath(root, name); await mkdir(dirname(path), { recursive: true }); await publishReceipt(path, value); }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
@@ -664,6 +666,50 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
             }
               const scenario = (draft as BrowserGameDraft | ValidationBrowserProposal).scenario;
+              if (scenario.reopen) {
+                if (!io.playPersistent) throw new Error('Trusted persistent transport is unavailable.');
+                const designArtifact = selected(task, 'design'), mediaArtifact = selected(task, 'media'), capture = await registry.getCapture(mediaArtifact);
+                const media = capture.metadata.media!, manifestBytes = await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`);
+                if (!sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), media)) throw new Error('Actual media manifest differs from its capture.');
+                const series = createGenericPersistentSeries({ scenario, requirement: requirements, design: designArtifact, candidate: ref,
+                  projectId: 'game', taskId: task.taskId, runId: task.runId, specVersion: requirement.specVersion, reportId: `${task.taskId}-persistent`, url: server.url, acceptanceIds: task.acceptanceIds });
+                const deadlineAt = Date.parse(authority.deadlineAt), binding = { series, media: mediaArtifact, manifestSha256: validationHash(manifestBytes), deadlineAt };
+                const fixedCandidate = await registry.getCandidate(ref), fixedProject = await snapshot(project), fixedDesign = await regularFile(root, `${designArtifact.location}/_cosmos/design.json`);
+                const requireCurrent = async () => {
+                  const current = await requireDispatch(task, signal); if (!sameValue(current, authority)) throw new Error('Generic task authority changed.');
+                  await server.requireCurrent();
+                  for (const artifact of [requirements, designArtifact, mediaArtifact]) await registry.getCapture(artifact);
+                  if (!sameValue(await registry.getCandidate(ref), fixedCandidate) || !isDeepStrictEqual(await snapshot(project), fixedProject)
+                    || !isDeepStrictEqual(await snapshot(server.project), fixedProject) || !(await regularFile(root, `${designArtifact.location}/_cosmos/design.json`)).equals(fixedDesign)) throw new Error('Current generic candidate or design bytes changed.');
+                  for (const source of requirement.sources) if (!(await regularFile(root, source.location)).equals(await regularFile(root, `${requirements.location}/_cosmos/${source.artifactId}.json`))) throw new Error('Confirmed generic source changed.');
+                  if (!validation) {
+                    const confirmation = await json(root, requirement.sources[1].location);
+                    if (!sameValue(await json(root, requirement.sources[0].location), draft) || confirmation.runId !== task.runId
+                      || !sameValue(confirmation.draft, requirement.sources[0]) || !sameValue(confirmRequirements({ ...(draft as BrowserGameDraft), specVersion: requirement.specVersion, sources: requirement.sources }, confirmation), requirement)) throw new Error('Generic draft confirmation changed.');
+                  }
+                  if (!(await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`)).equals(manifestBytes)) throw new Error('Current media manifest changed.');
+                };
+                await requireCurrent();
+                const requests = series.segments.map(segment => ({ segmentId: segment.id, request: createGenericMediaObservationRequest(media, {
+                  media: mediaArtifact, manifestSha256: binding.manifestSha256, plan: segment.plan,
+                  collection: { kind: 'persistent-segment', seriesBindingSha256: series.bindingSha256, segmentId: segment.id } }) }));
+                const report = await io.playPersistent(series, { evidenceRoot: join(root, 'browser-evidence'), channel: 'msedge', deadlineAt, signal,
+                  verifyBinding: requireCurrent, segmentMediaObservations: requests }, authority);
+                await requireCurrent();
+                await writeJson(root, `evidence/${task.taskId}/browser.json`, report);
+                const coverage = assessGenericSeriesMediaCoverage(media, binding, report);
+                await writeJson(root, `evidence/${task.taskId}/media-usage.json`, { candidate: ref, media: mediaArtifact, series, requests, coverage,
+                  scope: 'Actual per-document loading/state/sound observations across the confirmed normal-input save and reopen stages; source review and final user experience follow.' });
+                consumerRawEvidence = await verifyGenericPersistentEvidence(series, report, join(root, 'browser-evidence'), deadlineAt);
+                const valid = coverage.valid && coverage.complete;
+                if (valid) {
+                  const paths = [...new Set(report.segments.flatMap(segment => segment.report.steps.filter(step => step.screenshot).map(step => `browser-evidence/${step.screenshot}`)))];
+                  const chosen = [...new Set([...paths.slice(0, 4), ...paths.slice(-4)])];
+                  for (const path of chosen) if (!(await regularFile(root, path)).subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) throw new Error('Host screenshot is not a PNG.');
+                  pictures.set(task.taskId, chosen.map((location, index) => ({ artifactId: `${task.taskId}-screenshot-${index}`, version: ref.version, location })));
+                } else actual = 'The two exact normal-input documents did not establish complete current media coverage.';
+                return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
+              }
               const gameplay: AcceptancePlan = { ...structuredClone(scenario), formatVersion: '1.0.0', projectId: 'game', runId: task.runId, taskId: task.taskId,
                 reportId: `${task.taskId}-browser`, specVersion: requirement.specVersion, artifact: ref, url: server.url, acceptanceIds: task.acceptanceIds };
               const mediaArtifact = selected(task, 'media'), media = (await registry.getCapture(mediaArtifact)).metadata.media!;

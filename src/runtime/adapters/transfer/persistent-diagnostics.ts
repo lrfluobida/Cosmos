@@ -166,7 +166,7 @@ export async function diagnosePersistentBrowser(task: TaskContract, value: unkno
     check(isDeepStrictEqual(JSON.parse((await regularFile(options.evidenceRoot, current.reportPath)).toString('utf8')), report));
     const diagnostics: Diagnostics = { reportValid: true, issues: [], passedChecks: [] }, profiles = new Set<string>(); let priorEnd = start;
     for (const [index, segment] of report.segments.entries()) {
-      const expectedSegment = current.series.segments[index], plan = expectedSegment.plan;
+      const expectedSegment: PersistentAcceptanceSeries['segments'][number] = current.series.segments[index], plan: AcceptancePlan = expectedSegment.plan;
       check(object(segment) && only(segment, ['id', 'report']) && segment.id === expectedSegment.id && plan.taskId === task.taskId
         && plan.runId === task.runId && plan.specVersion === task.specVersion && plan.acceptanceIds.every(id => task.acceptanceIds.includes(id))
         && task.artifacts.some(artifact => isDeepStrictEqual(artifact, plan.artifact)));

@@ -31,7 +31,11 @@ interface DraftFields {
   acceptance: RequirementContract['acceptance'];
   unsupported: string[];
 }
-export interface BrowserGameDraft extends DraftFields { scenario: Pick<AcceptancePlan, 'viewport' | 'steps'>; preparation?: never }
+export interface BrowserScenario extends Pick<AcceptancePlan, 'viewport' | 'steps'> {
+  reopen?: { steps: AcceptancePlan['steps']; checkpoint: { expected: string;
+    snapshot: { kind: 'text'; selector: string }; savedSnapshot: { kind: 'text'; selector: string } } };
+}
+export interface BrowserGameDraft extends DraftFields { scenario: BrowserScenario; preparation?: never }
 export interface PreparationGameDraft extends DraftFields { preparation: PreparationSelection; scenario?: never }
 export type GameDraft = BrowserGameDraft | PreparationGameDraft;
 
@@ -72,7 +76,7 @@ export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptanc
     || draft.acceptance.some(item => !item || Object.keys(item).some(key => !['acceptanceId', 'description', 'steps', 'expected', 'evidenceKinds'].includes(key))
       || !text(item.acceptanceId) || !text(item.description) || !Array.isArray(item.steps) || !item.steps.length || item.steps.some(step => !text(step))
       || !text(item.expected) || !Array.isArray(item.evidenceKinds) || !item.evidenceKinds.length || item.evidenceKinds.some(kind => !['test_report', 'screenshot', 'video', 'log', 'user_decision'].includes(kind)))) throw new Error('Invalid acceptance draft.');
-  if (!draft.scenario || Object.keys(draft.scenario).some(key => !['viewport', 'steps'].includes(key))) throw new Error('Invalid scenario fields.');
+  if (!draft.scenario || Object.keys(draft.scenario).some(key => !['viewport', 'steps', 'reopen'].includes(key))) throw new Error('Invalid scenario fields.');
   for (const item of draft.acceptance) {
     const stage = HOST_STAGE_ACCEPTANCE.find(stage => stage.acceptanceId === item.acceptanceId);
     if (stage && !sameValue(stage, item)) throw new Error('Host stage acceptance cannot be redefined.');
@@ -80,13 +84,32 @@ export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptanc
   const gameplay = gameplayAcceptance(draft);
   if (!gameplay.length) throw new Error('At least one gameplay acceptance is required.');
   // Placeholder bindings validate declarative input only; they are never evidence or execution authority.
-  const issues = validatePlan({ ...draft.scenario, formatVersion: '1.0.0', projectId: 'draft', taskId: 'draft', runId: 'draft', reportId: 'draft', specVersion: 'draft',
-    artifact: { artifactId: 'draft', version: 'v1', location: 'draft' }, url: 'http://127.0.0.1:1', acceptanceIds: gameplay.map(item => item.acceptanceId) });
-  if (issues.length) throw new Error(`Unsupported acceptance scenario: ${issues.join('; ')}`);
+  const stages = [draft.scenario.steps];
+  if (draft.scenario.reopen !== undefined) {
+    const reopen = draft.scenario.reopen, checkpoint = reopen?.checkpoint;
+    if (!reopen || Object.keys(reopen).some(key => !['steps', 'checkpoint'].includes(key)) || !checkpoint
+      || Object.keys(checkpoint).some(key => !['expected', 'snapshot', 'savedSnapshot'].includes(key)) || !text(checkpoint.expected)
+      || [checkpoint.snapshot, checkpoint.savedSnapshot].some(observation => !observation || observation.kind !== 'text'
+        || Object.keys(observation).some(key => !['kind', 'selector'].includes(key)) || !text(observation.selector))
+      || sameValue(checkpoint.snapshot, checkpoint.savedSnapshot)) throw new Error('Invalid visible save checkpoint.');
+    stages.push(reopen.steps);
+  }
+  for (const steps of stages) {
+    const acceptanceIds = draft.scenario.reopen ? gameplay.filter(item => Array.isArray(steps)
+      && steps.some(step => 'acceptanceId' in step && step.acceptanceId === item.acceptanceId)).map(item => item.acceptanceId) : gameplay.map(item => item.acceptanceId);
+    const issues = validatePlan({ viewport: draft.scenario.viewport, steps, formatVersion: '1.0.0', projectId: 'draft', taskId: 'draft', runId: 'draft', reportId: 'draft', specVersion: 'draft',
+      artifact: { artifactId: 'draft', version: 'v1', location: 'draft' }, url: 'http://127.0.0.1:1', acceptanceIds });
+    if (issues.length) throw new Error(`Unsupported acceptance scenario: ${issues.join('; ')}`);
+    if (draft.scenario.reopen) for (const observation of [draft.scenario.reopen.checkpoint.snapshot, draft.scenario.reopen.checkpoint.savedSnapshot]) {
+      if (!steps.some((step, index) => 'observation' in step && sameValue(step.observation, observation)
+        && step.expected === draft.scenario.reopen!.checkpoint.expected && steps.slice(0, index).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind)))) {
+        throw new Error('Each save stage requires normal input followed by both fixed visible checkpoint checks.');
+      }
+    }
+  }
   for (const item of gameplay) {
-    const assertions = draft.scenario.steps.filter(step => (step.kind === 'assert' || step.kind === 'wait-for') && step.acceptanceId === item.acceptanceId);
-    if (!assertions.some(step => (step.kind === 'assert' || step.kind === 'wait-for') && step.observation.kind !== 'debug'
-      && draft.scenario.steps.slice(0, draft.scenario.steps.indexOf(step)).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind)))) {
+    if (!stages.some(steps => steps.some((step, index) => (step.kind === 'assert' || step.kind === 'wait-for') && step.acceptanceId === item.acceptanceId
+      && step.observation.kind !== 'debug' && steps.slice(0, index).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind))))) {
       throw new Error(`Unsupported acceptance ${item.acceptanceId}: require player input followed by a visible assertion.`);
     }
   }
