@@ -113,7 +113,7 @@
 - [x] [COS-65 接通独立游戏交付与干净目录启动](https://github.com/lrfluobida/Cosmos/issues/66)
 - [x] [COS-66 接通通用游戏的存档重开与跨阶段媒体验收](https://github.com/lrfluobida/Cosmos/issues/67)
 - [x] [COS-67 执行经典启动与离线政策并保留完整验收分母](https://github.com/lrfluobida/Cosmos/issues/68)
-- [ ] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
+- [x] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
 - [ ] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
@@ -1023,7 +1023,7 @@ catalog 当前230行：221 needs_reference、9 requirement_defined。9政策中�
 
 ### COS-68 · 记录完整交付清理终点与单次生成时长
 
-- 发布状态：[#69](https://github.com/lrfluobida/Cosmos/issues/69)，id5718488743；正文/native68children #2–#69/旧67保真与父新unchecked项已Root精确读回。in-progress/open/SOURCE_NOT_READY；专属作者actual cos65_implementer在cos05提交短计划`e9d4a34916385fb3f2fb84ab7cc3af207a204a00`已获独立PLAN_APPROVED，专属独立reviewer actual cos67_implementer、BATCH10唯一merger actual cos66_implementer未写本任务代码。
+- 发布状态：[#69](https://github.com/lrfluobida/Cosmos/issues/69)，id5718488743；最终`11a08bedcb5b5c0061e1c9e72b7eb6dc7b1a84ef`经独立actual cos67_implementer整体APPROVED/COMPLETION_TIMING_SOURCE_READY，sole BATCH10 merger actual cos66_implementer合入推送`6c65ef8c4ba2106f3d9f6bb4910e993f1e600631`；[公共审批](https://github.com/lrfluobida/Cosmos/issues/69#issuecomment-6003816912)、body/state completed/closed/父68[x]精确读回。本卡source/free fixture计时组件complete，非完整游戏真实12h成绩；注册时SOURCE_NOT_READY为历史。
 
 ## 目标
 
@@ -1055,6 +1055,8 @@ src/runtime/entrypoint.ts 的初始路径和显式追加路径都先 publishGene
 ## 前置与边界
 
 源码前置 COS18 现有 entrypoint/report、COS34 体验绑定、COS63 完成后只读 resume、COS65 clean delivery 与现有 owner/window-idle；仅要求相应已审源码，不要求完整 partial 任务 closed。输出支持 COS15/COS18 的正式交付时限，COS67 的启动/离线政策独立继续。
+
+最终证据：source/tests `4be25baa403e7ed503eef00b659e856c44b9579d`、feature baseline merge10ba和doc-only最终11a，15批准路径（9prod/4tests/2docs）。all-cleanup后实际owner释放/精确report-package-task-window-snapshot/原start-deadline；Node builtin Ed25519一次性private仅finish内存、publickey提前绑定completionanchor、post-owner exactbody签名。新标记降级legacy、终点/checksum双改/keyswap、late/failed/stop/未知费用不能最终eligible；legacy计时unverified/旧决定保持，追加重用initial终点不reset原12h，resume/status只读不重开host或重记结束。13runtime/6public/affected6+4/signed3/late-key3/downgrade2/cold-stop2/idle4均0skip，合并基线classicCLI1/1/typecheck0；独立3/3（11875.161ms）、main typecheck/build0及UTF8LF/中文/diff通过，raw `C:/Users/26557/AppData/Local/Temp/cos68-independent-review.tap`，详细RED/GREEN索引在已审计划。模拟clock/fixture输入与实际Node/owner分列，旧Edge/重矩阵未重复。
 
 共享验证 ¥150（首阶段 ¥30/COS16 原 ¥10）、正式 ¥200/12h、优化目标 ¥100/6h保持。本卡 source/free fixture，实际 C6 unknown974882、closure12/C7、human NONE与完整参考未冻结保留；不新增 paid，不把计时组件通过写成完整经典100%/95%或整体验收通过。
 
