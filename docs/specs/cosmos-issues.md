@@ -652,7 +652,7 @@ Root POST+GET/native parent55children #2–#56/checkbox精确读回。原验证1
 
 ### COS-57 · 准备仅编码的第六迁移案例与剩余额度准入
 
-- 依赖/状态：[#58](https://github.com/lrfluobida/Cosmos/issues/58)，id5704092753；source54/55/56已审集成、原foundation exact markers/reviewed+merge双main祖先，outputs16/18；in-progress/open/SOURCE_NOT_READY，cos57_implementer正接入独审批准的56component。固定cos20-transfer-validation-6仅source准备，actual C6 NONE/Root尚未制作真实manifest。
+- 依赖/状态：[#58](https://github.com/lrfluobida/Cosmos/issues/58)，id5704092753；source54/55/56已审集成、原foundation exact markers/reviewed+merge双main祖先，outputs16/18；源码已独审集成：`d7d7e8a4cabe039b99ce41e4d53717e72bde7383`→`9ffd5e2f1c3d81ff80e2d8e8874293e320d359a3`，[公共审批](https://github.com/lrfluobida/Cosmos/issues/58#issuecomment-5987110904)；TRANSFER_CASE_SIX_SOURCE_READY/offline-verified-awaiting-live/source-integrated/open。独立raw终局1/1 pass、164签名匹配，current源码路径22分13.365秒为synthetictransport，merger代表1/1（3.1878ms）/UTF8LF/diffclean。固定cos20-transfer-validation-6仅source准备，actual C6 NONE/Root尚未制作真实manifest。
 - 固定额度/准入：原ledger4/snapshot3/13 stopped cases/currentC5manual/5delegations/65closed十一audits、65settled+1准入前取消、unknown/reserved0/owner idle及COS16 parent index4/refrevision1414/hash/source/首授权成员保真。原groupnet1522107/rem8477893；五正grants planning323680/design598538/art2633322/coding2122353/repair2800000合8477893，只原parent10余量，planning/design/art不dispatch SDK、unused仍原审计关闭；current planning HOST bootstrap仍有当期权限，zero planner仅指zero planner SDK。
 - 驱动/恢复：免费preflight clean/pushed exact HEAD、source gates、Root manifest实际bytes/digest及C5receipts/captures；wrong role/source/member/fee/missing audit/owner等免费拒。旧可信topology派生新coding PreparedTask/自己的policy-role-tools-grants-expectedOutputs-journal，依赖保留旧passed IDs，不伪造新planned/passed或调用planner。不可变derived execution receipt支持原C6内cold resume，不重claim/重计时/重付PASS；56封存new plans/current requirement/loopback origin/source-copy闭包，native pi/Flash仅coding及自身合格一次repair，54/55工具有效。
 - 边界/验收：source/TEMP TDD fixed declaration-parser/history-manifest-rolefee/source拒/只读preflight byte-mtime-file保真/原子claim+host bootstrap/inherited refs/cold resume pending与当前coded failure自身repair。原case¥5/45分钟/80/一次coding repair、design原permission/shared150首30/group10/formal20012/优化1006保持。实际manifest/账本/key/paid仅Root在最终source/docs批准后fresh preflight/funding/operator执行；当前不运行C6、不重开C5、不假human/public CLI/fullclassic通过。
@@ -661,7 +661,7 @@ Root按两个独立架构评审修订并POST+GET精确读回上述正文、nativ
 
 ### COS-58 · 接通公开 CLI 的推箱子准备模式生成与恢复
 
-- 发布状态：[#59](https://github.com/lrfluobida/Cosmos/issues/59)，id5704951453；not-started/open/SOURCE_NOT_READY，源码尚未启动。
+- 发布状态：[#59](https://github.com/lrfluobida/Cosmos/issues/59)，id5704951453；in-progress/open/SOURCE_NOT_READY，计划78ce365已专属PLAN_APPROVED并集成2faa578，Source57已释放，cos58_implementer独立分支实施源码。
 
 #### 目标
 
@@ -695,7 +695,7 @@ Root按两个独立架构评审修订并POST+GET精确读回上述正文、nativ
 
 #### 状态与预算
 
-SOURCE_NOT_READY / not-started / source-and-TEMP-only。真实 human 端到端结果单列；不据此关闭 COS16/COS18 或宣称完整经典游戏通过。未启动新付费运行、未创建额度。共享验证 ¥150（首阶段 ¥30，COS16 原 ¥10），正式 ¥200/12h、目标 ¥100/6h 保持。
+SOURCE_NOT_READY / in-progress / source-and-TEMP-only；计划已独审，产品实现尚未独审通过。真实 human 端到端结果单列；不据此关闭 COS16/COS18 或宣称完整经典游戏通过。未启动新付费运行、未创建额度。共享验证 ¥150（首阶段 ¥30，COS16 原 ¥10），正式 ¥200/12h、目标 ¥100/6h 保持。
 
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
 稳定任务 ID：COS-58
