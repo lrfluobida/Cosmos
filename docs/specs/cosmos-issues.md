@@ -112,7 +112,7 @@
 - [x] [COS-64 接通分批素材生成与完整媒体验收](https://github.com/lrfluobida/Cosmos/issues/65)
 - [x] [COS-65 接通独立游戏交付与干净目录启动](https://github.com/lrfluobida/Cosmos/issues/66)
 - [x] [COS-66 接通通用游戏的存档重开与跨阶段媒体验收](https://github.com/lrfluobida/Cosmos/issues/67)
-- [ ] [COS-67 执行经典启动与离线政策并保留完整验收分母](https://github.com/lrfluobida/Cosmos/issues/68)
+- [x] [COS-67 执行经典启动与离线政策并保留完整验收分母](https://github.com/lrfluobida/Cosmos/issues/68)
 - [ ] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
@@ -975,7 +975,7 @@ actualValidation/Paid/Human/新窗口NONE；不手写targetgame、不改classic�
 
 ### COS-67 · 执行经典启动与离线政策并保留完整验收分母
 
-- 发布状态：[#68](https://github.com/lrfluobida/Cosmos/issues/68)，id5718274808；正文/native67children #2–#68/旧66保真与父新增unchecked项已Root精确读回。in-progress/open/SOURCE_NOT_READY，短计划`0b91a893f8679985f625cf066963665803e15ffe`已获独立PLAN_APPROVED。cos67_implementer在cos04独立分支实施；本批独立reviewer为实际actor cos65_implementer，sole merger为实际actor cos66_implementer，二者未写本任务实现。
+- 发布状态：[#68](https://github.com/lrfluobida/Cosmos/issues/68)，id5718274808；最终`c3340977eb667db04f3d088d1160b5b9adb8a4a8`经独立actual cos65_implementer整体APPROVED/CLASSIC_RUNTIME_POLICY_SOURCE_READY，BATCH09 sole merger actual cos66_implementer合入推送`d07b0f8b71f1d7469f2ff81b26ab3bb8aceb7aaf`；[公共审批](https://github.com/lrfluobida/Cosmos/issues/68#issuecomment-6002531521)、body/state completed/closed/父67[x]已Root精确读回。本卡source/free fixture范围complete，完整经典仍未通过；注册时SOURCE_NOT_READY为历史。
 
 ## 目标
 
@@ -1011,6 +1011,8 @@ catalog 当前230行：221 needs_reference、9 requirement_defined。9政策中�
 ## 前置与边界
 
 源码前置Source64/65/66独审已集成、原reference validator/draft及runner/registry，outputsCOS14/15/18。完整参考冻结仍由COS01承担，不能凭本卡通过G4、完整经典内容、95%、实际生成或最终用户体验。PERFORMANCE的真实FPS测量、其余7政策、完整数值/模式/无尽验收另有缺口，不并入本卡。
+
+免费证据：最终source/tests `c7cab20f7bc0bfb82b28625114207e7a60bf84bf`、doc-only最终c334保持；12批准路径（5prod/6tests/1plan）。最新实际native IO tsc/Vite/clean Node/Edge重开1/1（test20944.5424ms/process23937.3724ms），Edge154.0.4258.48、PID35436→29080、完整退出/同profile-origin，raw `C:/Users/26557/AppData/Local/Temp/cos66-host-C31VSG`；cleanup UTC20:31:00.330Z→policy20:31:00.870Z，230=221unknown+7未执行+2passed且finish保持partial gap。final focused5/5、policy CLI6/6、15affected+31benchmark/reference、typecheck/build/cold module通过；独立3/3、0skip（12724.055ms）及main typecheck/build0、批准字节/UTF8LF/中文/diff通过。原重型矩阵未重复；SDK与game data为fixture，实际process证据分列。
 
 共享验证¥150（首阶段¥30、COS16原¥10）、正式¥200/12h和目标¥100/6h保持；本卡source/freefixture。实际C6unknown974882、closure12/C7/human与fullcleanup计时前置不改，没有新增paid。
 
