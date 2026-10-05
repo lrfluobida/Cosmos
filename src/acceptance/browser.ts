@@ -8,11 +8,17 @@ export interface MediaObservationRequest {
   candidate: ArtifactReference; sourceVersion: string; planBindingSha256: string;
   scope: NonNullable<PersistentAcceptanceSeries['scope']>; fields: { id: string; path: string[] }[];
 }
-export interface MediaObservationSample { request: MediaObservationRequest; recordedAt: string; values: Scalar[] }
+/** Generic host binding has no transfer source or persistent-series scope. */
+export interface GenericMediaObservationRequest {
+  formatVersion: 'readonly-media/generic-1'; media: ArtifactReference; manifestSha256: string;
+  candidate: ArtifactReference; planBindingSha256: string; fields: { id: string; path: string[]; expected: Scalar }[];
+}
+export type ReadonlyMediaObservationRequest = MediaObservationRequest | GenericMediaObservationRequest;
+export interface MediaObservationSample { request: ReadonlyMediaObservationRequest; recordedAt: string; values: Scalar[] }
 
 /** Trusted fixed paths only. Read one document snapshot; never invoke nested getters or setters. */
-export async function observeDebugScalars(page: Pick<Page, 'evaluate'>, paths: string[][]): Promise<Scalar[]> {
-  if (!Array.isArray(paths) || !paths.length || paths.length > 592 || paths.some(path => !Array.isArray(path) || !path.length
+export async function observeDebugScalars(page: Pick<Page, 'evaluate'>, paths: string[][], capacity: 592 | 4544 = 592): Promise<Scalar[]> {
+  if (![592, 4544].includes(capacity) || !Array.isArray(paths) || !paths.length || paths.length > capacity || paths.some(path => !Array.isArray(path) || !path.length
     || path.length > 8 || path.some(key => typeof key !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(key)
       || ['__proto__', 'constructor', 'prototype'].includes(key)))) throw new Error('Invalid trusted debug observation paths');
   return page.evaluate((paths: string[][]) => {
