@@ -10,6 +10,20 @@ import { resolveDraftMode } from '../../src/roles/preparation-mode.ts';
 import { syntheticMap } from './runtime-host.fixture.ts';
 import { mediaObservationDefinitions } from '../../src/runtime/entrypoint-media.ts';
 
+/** Installed tool entrypoints and their direct closures are SYNTHETIC; no target game or native service. */
+export async function installHumanTools(root: string) {
+  const toolchain = join(root, 'toolchain');
+  const tools = [{ name: 'typescript', version: '5.9.3', type: 'commonjs', entry: 'bin/tsc', next: 'lib/compiler.cjs', content: "require('../lib/compiler.cjs');\n" },
+    { name: 'vite', version: '8.3.1', type: 'module', entry: 'bin/vite.js', next: 'dist/node/cli.js', content: "import '../dist/node/cli.js';\n" }];
+  for (const tool of tools) {
+    const folder = join(toolchain, 'node_modules', tool.name);
+    for (const name of [tool.entry, tool.next]) await mkdir(join(folder, name, '..'), { recursive: true });
+    await writeFile(join(folder, 'package.json'), JSON.stringify({ name: tool.name, version: tool.version, type: tool.type }), 'utf8');
+    await writeFile(join(folder, tool.entry), tool.content, 'utf8'); await writeFile(join(folder, tool.next), '// Synthetic fixed compiler closure\n', 'utf8');
+  }
+  await writeFile(join(toolchain, 'package-lock.json'), JSON.stringify({ lockfileVersion: 3, packages: Object.fromEntries(tools.map(tool => ['node_modules/' + tool.name, { version: tool.version }])) }), 'utf8');
+}
+
 /** All confirmations and SDK output in this TEMP fixture are SYNTHETIC; no actual human acceptance. */
 export async function humanFixture(t: test.TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'cos58-human-'));
@@ -21,6 +35,7 @@ export async function humanFixture(t: test.TestContext) {
   const original = await intake.activateGeneration({ environmentReady: true, executionReady: true }); await intake.close();
   await mkdir(join(root, 'toolchain'));
   for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await writeFile(join(root, 'toolchain', file), file.endsWith('.ts') ? 'export default {}\n' : '{}\n', 'utf8');
+  await installHumanTools(root);
   let controller: RunController | undefined;
   t.after(async () => { await controller?.close(); await rm(root, { recursive: true, force: true }); });
   return { root, requirement, draft, original, async input(resume = false) {

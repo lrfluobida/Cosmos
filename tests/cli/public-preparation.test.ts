@@ -8,7 +8,7 @@ import { runCli } from '../../src/cli/index.ts';
 import { preparationAcceptance } from '../../src/roles/requirements.ts';
 import { resolveDraftMode } from '../../src/roles/preparation-mode.ts';
 import { createProductHost } from '../../src/runtime/entrypoint-host.ts';
-import { fakePublicSdk } from '../transfer/human-preparation.fixture.ts';
+import { fakePublicSdk, installHumanTools } from '../transfer/human-preparation.fixture.ts';
 import { fileURLToPath } from 'node:url';
 
 async function fixture(t: test.TestContext) {
@@ -72,7 +72,7 @@ test('public source CLI assembles the actual human product host after SYNTHETIC 
   const host = (createProductHost as any)(fileURLToPath(new URL('../../', import.meta.url)), { sessionFactory, io: {
     async build() { return { passed: false, diagnostics: 'Synthetic environment gap' }; }, async play() { throw new Error('No browser fallback'); },
   } });
-  host.prepare = async () => { await mkdir(join(f.root, 'toolchain'), { recursive: true }); for (const name of ['package.json','package-lock.json','tsconfig.json','vite.config.ts']) await writeFile(join(f.root, 'toolchain', name), name.endsWith('.ts') ? 'export default {}\n' : '{}\n', 'utf8'); return { environmentReady: true, executionReady: true }; };
+  host.prepare = async () => { await mkdir(join(f.root, 'toolchain'), { recursive: true }); for (const name of ['package.json','package-lock.json','tsconfig.json','vite.config.ts']) await writeFile(join(f.root, 'toolchain', name), name.endsWith('.ts') ? 'export default {}\n' : '{}\n', 'utf8'); await installHumanTools(f.root); return { environmentReady: true, executionReady: true }; };
   const result: any = await runCli(['new', f.root, '--adapter', 'sokoban', '--brief', '中文单关推箱子'], { host, output: f.io([]).output, input: Readable.from(['两个箱子\nconfirm 1\n']) });
   assert.equal(result.outcome, 'incomplete'); assert.equal(result.taskHistory.find((task: any) => task.taskId === 'actual-art-58')?.state, 'passed', JSON.stringify(result));
   assert.ok(calls.includes('design:actual-design-58'));

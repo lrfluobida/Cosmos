@@ -116,3 +116,11 @@ source receipt 只记录实际执行的 source `.ts` 或 compiled `.js` 闭包�
 - compiled 代表入口在 TEMP 实际加载 CLI / host / orchestrator 的 `.js`；fake SDK 经真实角色工具写 runtime design，完成原 human 确认、一次 coding repair、cold resume。记录实际 JavaScript 与 resolved SDK / 固定 lock 字节；改 compiled module 后零新派发。初轮 1/1 GREEN，64679.3364 ms；新 bootstrap delta 后 1/1 GREEN、0 skip、exit 0，61540.0529 ms。
 - `npm run typecheck` exit 0；UTF-8/LF、原中文逐行保真与 staged diff 核对随候选提交执行。未重跑真实 Edge、历史费用/生命周期矩阵或付费能力验证。
 - 全部新运行资料、billing、stdin、浏览器传输报告、作者输出均为 SOURCE / TEMP / fake SDK / SYNTHETIC。实际 human 端到端与体验 NONE；不关闭 COS16/COS18、C6 或完整经典验收。
+
+## 独审 P1 修复
+
+- 候选 `7a47ee9abb178f0c8d422af4361fc3e1b9339457` 的独审发现 actual tool sources 未纳入 provenance：原 native build / check-game-build 使用 run/toolchain 安装的 TypeScript/Vite，persistent/runner 直接加载 Playwright。实现者实际复现 2/2 RED：替换工具入口仍进入 callback，Playwright 来源缺失。
+- 最小修复将两个实际 invocation / resolved entry、package version / manifest、原 toolchain lock 和直接模块闭包纳入封存及 current guards；Playwright 绑定实际已加载 CommonJS children 与 ESM wrappers。没有遍历全 repo/package tree、换依赖、扩展角色读权限或更改超时策略。
+- `node --experimental-strip-types --test tests/runtime/human-preparation-tools.test.ts`：核心 4/4 GREEN、0 skip、exit 0，15415.6055 ms；source / compiled 两个工具与 Playwright 入口、工具直接模块、manifest/lock 漂移均在 owned callback / 原 cold scope 前拒绝。compiled 仅复制 TEMP 的小型 @playwright/test 包用于字节变异，未改真实安装依赖。
+- 真实安装 TypeScript wrapper 的单独代表 1/1 GREEN、0 skip、exit 0，3838.3605 ms：记录 bin/tsc → lib/tsc.js → lib/_tsc.js，只读取模块、没有执行编译器。
+- source public ProductHost 受影响代表 1/1 GREEN、0 skip、exit 0，18069.9966 ms；`npm run typecheck` exit 0。合成 fixture 补安装工具与 lock，原 22/73、consumer / cold / bootstrap 和未改 Edge 证据复用。UTF-8/LF/中文与 exact 修复 SHA 随交付报告记录。

@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { createHumanTransferConsumerHost } from '../../src/runtime/adapters/transfer/runtime-host.ts';
-import { humanFixture, fakeHumanSdk, fakePublicSdk, humanPersistentReports } from './human-preparation.fixture.ts';
+import { humanFixture, fakeHumanSdk, fakePublicSdk, humanPersistentReports, installHumanTools } from './human-preparation.fixture.ts';
 
 test('human entrypoint binds planner identities before real tools capture runtime design and cold resume reuses passed stages', async t => {
   const f = await humanFixture(t), calls: string[] = [];
@@ -45,7 +45,7 @@ test('compiled public human CLI records executed JavaScript and fixed dependenci
     async play() { throw new Error('No generic browser fallback'); },
     async playPersistent(series: any, options: any, authority: any) { await options.verifyBinding(); consumers.push(authority.taskId); return humanPersistentReports(series, options, consumers.length === 1); },
   } });
-  host.prepare = async () => { await mkdir(join(root, 'toolchain'), { recursive: true }); for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await writeFile(join(root, 'toolchain', file), file.endsWith('.ts') ? 'export default {}\n' : '{}\n', 'utf8'); return { environmentReady: true, executionReady: true }; };
+  host.prepare = async () => { await mkdir(join(root, 'toolchain'), { recursive: true }); for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await writeFile(join(root, 'toolchain', file), file.endsWith('.ts') ? 'export default {}\n' : '{}\n', 'utf8'); await installHumanTools(root); return { environmentReady: true, executionReady: true }; };
   const result = await cli.runCli(['new', root, '--brief', '中文单关推箱子', '--adapter', 'sokoban'], { host, output, input: Readable.from(['两个箱子\nconfirm 1\n']) });
   assert.equal(result.outcome, 'awaiting_user_experience', JSON.stringify(result.gaps)); assert.match(text, /草稿 v1/); assert.equal(result.userExperience, 'not_confirmed'); assert.deepEqual(consumers, ['actual-code-58', 'actual-code-58-repair']);
   const receipt = JSON.parse(await readFile(join(root, 'host-human-preparation-source.json'), 'utf8')); assert.equal(receipt.execution.variant, 'compiled'); assert.ok(receipt.execution.files.every((file: any) => file.path.endsWith('.js'))); assert.equal(receipt.execution.platformLock.path, join(compiled, 'package-lock.json'));
