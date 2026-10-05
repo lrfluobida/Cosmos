@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 69 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 70 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -115,6 +115,7 @@
 - [x] [COS-67 执行经典启动与离线政策并保留完整验收分母](https://github.com/lrfluobida/Cosmos/issues/68)
 - [x] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
 - [x] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
+- [ ] [COS-70 接通公开 CLI 帧采样选择与恢复绑定](https://github.com/lrfluobida/Cosmos/issues/71)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1105,6 +1106,45 @@ spec 第4B要求冻结本机配置、1280×720，普通场景平均至少55 FPS�
 
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
 稳定任务 ID：COS-69
+
+### COS-70 · 接通公开 CLI 帧采样选择与恢复绑定
+
+- 发布状态：[#71](https://github.com/lrfluobida/Cosmos/issues/71)，id5719982616；正文/native70children #2–#71/旧69保真与父新unchecked70已Root精确读回。in-progress/open/SOURCE_NOT_READY，actual65在cos05从c999d53提交短计划4754935888365e5f0810d387cd5a406fe7022f01（21行/275词），专属独立reviewer actual67已PLAN_APPROVED；作者TDD中、actual66为BATCH12 solemerger，尚未源码审批。
+
+#### 目标
+
+把已审 Source69 的真实渲染帧采样能力接入公开 Windows CLI，并在首次生成、未完成恢复和显式追加窗口中保存同一可信选择与输入。复用已有采样器；不增加FPS基准通过声明、费用或时限。
+
+#### 已核缺口
+
+src/cli/index.ts 的公开入口只接受现有 brief/adapter，创建createProductHost(repository)未传renderFrames；entrypoint-host已支持hostOptions.renderFrames并沿actual normal/generic persistent路径捕获observer/sample。现在普通用户必须改内部JS装配才能启用，公开new/resume/continue无法明确选择或保持它。
+
+#### 范围
+
+1. 公开ordinary生成提供明确的bool帧采样选择，具体flag名称由短计划按现parser定义。不允许model/proposal提供采样脚本、游戏状态注入、duration/FPS常数/阈值、URL、profile、权限或预算。
+2. 在现intake-origin/原完整显示与确认/固定输入闭包持久保存该选择，选项在context/signature/task dispatch前绑定；调用真实createProductHost将同选项传给已审Source69。普通legacy无字段保持旧default行为。
+3. 未完成resume及首个显式coding continuation从原固定来源恢复同selected observer/capture/availableArtifacts，核run/spec/window/requirement/taskplan和真实资料字节，不重建输入，不静默改default。显式冲突、来源漂移、丢选择、换observer拒绝；若必须重新确认只能沿现正规流程，不能重开费用或原截止。
+4. 已完成resume/status继续Source63/68只读分支，返回原报告/sample/decision/completion时间。不能重采样、开host、新收费或按恢复当前时间补结束证据。
+5. preparation不支持本选项时，在确认/激活/角色派发或付费之前明确拒绝。validation固定案例仍按其原声明/授权，不借新flag绕过C7 unknown gate或修改旧case。
+6. 选择使用现Source69 protected observer/capture与normal/persistent runner、Source65 clean delivery、Source68 signed completion、原TaskJournal与独立review闭包。不新造ledger、runner、module框架、游戏或采样策略。
+7. 原单场景、generic重开、角色确认/预算/停止/追加窗口的守卫保留；CLI展示只说明实际采样范围与未知条件，不把high count/旧报告自动当PERFORMANCE通过。
+
+#### 免费验收
+
+- 用公开CLI new+fixture provider在原真实显示/确认/运行记录中保存选择，真实product-host caller确实收到它并使用同capture；取消/EOF/非法flag和不支持preparation在原付费前拒绝。
+- 未完成resume与首个coding continuation恢复原选择和observer字节；用户显式冲突、原source/selection/capture或availableArtifacts漂移不能静默改default。scope/window/ledger/start/deadline保持，不造human确认。
+- completed ordinary/direct/window resume与status只读，原report/sample/decision/completion及文件bytes/mtime/SDK-host calls不变；legacy未选择仍default、未验证计时不回填。
+- 复用Source69 native计量/Source68 lifecycle证据，只新增公开接线fixture和一项现有host seam选择代表，不重Edge/32/24/110秒/30分钟矩阵。
+- 每任务独立implementer/reviewer，≤300词短计划独立PLAN_APPROVED后TDD，actualdiff规格→质量及exactSHA/stdout由本批sole merger核后集成。UTF-8、中文最小patch/readback规则适用。
+
+#### 前置与边界
+
+已审Source18 public生成/追加、Source53/58准备/公开确认、Source61首个追加、Source63已完成只读、Source68计时、Source69sampler为源码前置；仅要求相应已审源码，不要求完整partial任务closed。输出支持COS15/COS18产品入口及COS14未来性能验收。
+
+本卡source/free fixture。PERFORMANCE仍policy_not_executed，230/221待核实/其余7未执行与两项实际partial不变，设备/普通与压力workload/samplewindow未冻结；不声明55/30、完整经典100%/95%或真实完整12h。共享验证150/首30/COS16原10/formal20012/target1006、actualC6unknown974882/14stopped65closed11audits/closure12/C7、参考未冻结与human/model/paid/newwindow NONE保持；新flag不能绕账本或人类确认。
+
+父任务：https://github.com/lrfluobida/Cosmos/issues/1
+稳定任务 ID：COS-70
 
 ## 5. 任务与上下文包模板
 

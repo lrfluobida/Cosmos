@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 69
+    "childCount": 70
   },
   "tasks": [
     {
@@ -5212,8 +5212,97 @@
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE",
       "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-70",
+      "title": "接通公开 CLI 帧采样选择与恢复绑定",
+      "number": 71,
+      "id": 5719982616,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/71",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-53",
+          "number": 54,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/54"
+        },
+        {
+          "id": "COS-58",
+          "number": 59,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/59"
+        },
+        {
+          "id": "COS-61",
+          "number": 62,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/62"
+        },
+        {
+          "id": "COS-63",
+          "number": 64,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/64"
+        },
+        {
+          "id": "COS-68",
+          "number": 69,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/69"
+        },
+        {
+          "id": "COS-69",
+          "number": 70,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/70"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-14",
+          "number": 15,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/15"
+        },
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "implementation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "approvedPlanCommit": "4754935888365e5f0810d387cd5a406fe7022f01",
+      "planPath": "docs/plans/2026-10-06-cos70-cli-frame-selection.md",
+      "actualPlanReviewer": "cos67_implementer",
+      "planLines": 21,
+      "planWords": 275,
+      "implementer": "cos65_implementer (dedicated COS70 implementer)",
+      "reviewer": "cos67_implementer (dedicated COS70 independent reviewer)",
+      "batch": "12",
+      "merger": "cos66_implementer (dedicated BATCH12 sole merger)",
+      "acceptanceScope": "source-free-fixture-public-cli-render-selection",
+      "performancePolicyStatus": "policy_not_executed",
+      "benchmarkConditionsFrozen": false,
+      "catalogRows": 230,
+      "referenceUnknownRows": 221,
+      "otherUnexecutedPolicies": 7,
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 69,
+  "verifiedNativeSubIssues": 70,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
