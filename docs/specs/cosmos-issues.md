@@ -673,7 +673,7 @@ Root按两个独立架构评审修订并POST+GET精确读回上述正文、nativ
 
 #### 范围与约束
 
-- 公开 `new --adapter cos16-input/1 --brief ...` 选择已有可信准备模式；参数在存储和 provider effects 前严格解析。默认 browser 契约保持。原 `resume` 从保存的模式装配 host；任何显式选择必须与原模式一致。
+- 公开 `new --adapter sokoban --brief ...` 映射到已有固定内部 `cos16-input/1` 准备模式；参数在存储和 provider effects 前严格解析。默认 browser 契约保持。原 `resume` 从保存的模式装配 host；任何显式选择必须与原模式一致。
 - 复用现有真实 stdin 问答、草稿展示和 `confirm <revision>`。范围超出该有界 adapter 时保留 unsupported；不得把用户要求自动缩成推箱子、制造确认、地图、解法或已通过结论。
 - 新 source-owned human preparation factory 直接接收真实确认的 RequirementContract 与匹配草稿。核对原 run/ledger/确认资料实际字节/当前 authority/停止与未知费用；保留 human profile、原 ¥200 总账与一次激活的 12h 时钟。
 - 运行时 design 在自己的原会话生成地图，沿既有 oracle、独立评审、固定四输出和原一次语义重写权限；art/coding 读取准确 capture 版本。接入既有八段 persistent consumer、媒体载入观测、build diagnostics 与精确 promotion。
