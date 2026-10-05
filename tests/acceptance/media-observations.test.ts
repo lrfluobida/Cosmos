@@ -77,3 +77,37 @@ test('COS40 healthy nonnull identity mismatches remain actual coverage differenc
   assert.equal(result.checks[0].actual, 'wrong-id');
   assert.deepEqual(result.checks[0].observations, [{ segmentId: 'actual', reportPath: 'actual/report.json', value: 'wrong-id' }]);
 });
+
+test('generic collection covers 4544 fields without widening the default transfer scalar boundary', async () => {
+  const paths = Array.from({ length: 4544 }, () => ['value']); let reads = 0;
+  const page: any = { evaluate: async (fn: any, paths: any) => { reads++; const target = {}; Object.defineProperty(target, 'cosmosDebug', { value: { value: true } });
+    (globalThis as any).window = target; try { return fn(paths); } finally { delete (globalThis as any).window; } } };
+  await assert.rejects(browser.observeDebugScalars(page, paths), /paths/); assert.equal(reads, 0);
+  assert.equal((await (browser.observeDebugScalars as any)(page, paths, 4544)).length, 4544);
+  await assert.rejects((browser.observeDebugScalars as any)(page, [...paths, ['value']], 4544));
+  await assert.rejects((browser.observeDebugScalars as any)(page, paths, 4545));
+});
+test('generic collection binds actual normal plan and leaves it intact when all media cannot fit 200 steps', () => {
+  const manifest: any = { characters: Array.from({ length: 128 }, (_, i) => ({ directory: `assets/a-${i}`, manifest: { id: `a-${i}`,
+    states: Array.from({ length: 16 }, (_, j) => ({ name: `s-${j}`, frames: ['f.svg'] })) } })),
+    audio: Array.from({ length: 64 }, (_, i) => ({ directory: 'assets/audio', manifest: { id: `b-${i}` } })) };
+  const plan: any = { formatVersion: '1.0.0', projectId: 'game', taskId: 'coding', runId: 'game', reportId: 'report', specVersion: '1',
+    artifact: binding.candidate, url: 'http://127.0.0.1:1234', viewport: { width: 1280, height: 720 }, acceptanceIds: ['win'], steps: [
+      { id: 'click', kind: 'locator-click', selector: '#play', timeoutMs: 1000 },
+      { id: 'win', kind: 'assert', acceptanceId: 'win', observation: { kind: 'text', selector: '#result' }, expected: 'win', timeoutMs: 1000 }] };
+  const original = structuredClone(plan), assembled: any = media.withMediaObservations(plan, manifest);
+  assert.deepEqual(assembled.plan, original); assert.equal(assembled.collectionRequired, true); assert.equal(assembled.checks.length, 0);
+  const create: any = (media as any).createGenericMediaObservationRequest; assert.equal(typeof create, 'function');
+  const request = create(manifest, { media: binding.media, manifestSha256: binding.manifestSha256, plan });
+  assert.equal(request.formatVersion, 'readonly-media/generic-1'); assert.equal(request.sourceVersion, undefined); assert.equal(request.scope, undefined);
+  assert.equal(request.fields.length, 4544); assert.equal(request.planBindingSha256, createHash('sha256').update(JSON.stringify(plan)).digest('hex'));
+  const sample = { request: structuredClone(request), recordedAt: new Date().toISOString(), values: request.fields.map((field: any) => field.expected) };
+  const rows = [{ segmentId: 'generic', reportPath: 'report.json', sample }]; assert.equal(media.assessMediaCoverage(manifest, request, rows).complete, true);
+  for (const kind of ['loaded_frames', 'state_seen', 'audio_decoded', 'audio_started']) {
+    const changed = structuredClone(rows); const index = media.mediaObservationDefinitions(manifest).findIndex(field => field.kind === kind);
+    changed[0].sample.values[index] = kind === 'loaded_frames' ? 0 : false;
+    assert.equal(media.assessMediaCoverage(manifest, request, changed).complete, false);
+  }
+  const wrong = structuredClone(rows); wrong[0].sample.request.planBindingSha256 = 'f'.repeat(64);
+  assert.equal(media.assessMediaCoverage(manifest, request, wrong).valid, false); assert.deepEqual(plan, original);
+});

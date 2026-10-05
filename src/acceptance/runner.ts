@@ -1,11 +1,13 @@
 import { chromium } from '@playwright/test';
 import type { Browser, BrowserContext, BrowserServer, Page, Video } from '@playwright/test';
 import type { ChildProcess } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import type { EvidenceContract } from '../contracts/types.ts';
 import { input, observe, observeDebugScalars } from './browser.ts';
-import type { MediaObservationRequest, MediaObservationSample } from './browser.ts';
+import type { ReadonlyMediaObservationRequest, MediaObservationSample } from './browser.ts';
 import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Scalar, Step } from './plan.ts';
 import { bounded, DeadlineError, AcceptanceCancelledError } from './deadline.ts';
@@ -54,7 +56,7 @@ export interface AcceptanceOptions {
   evidenceRoot: string; headless?: boolean; channel?: 'chrome' | 'msedge'; timeoutMs?: number;
   env?: NodeJS.ProcessEnv;
   /** Only trusted source assembly supplies this collection; it is never a plan field. */
-  mediaObservations?: MediaObservationRequest;
+  mediaObservations?: ReadonlyMediaObservationRequest;
 }
 
 const message = (error: unknown) => error instanceof Error ? error.message : String(error);
@@ -208,11 +210,31 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     }
     if (options.mediaObservations && report.steps.every(row => row.outcome === 'passed') && !report.errors.length) {
       const request = structuredClone(options.mediaObservations);
-      if (request.formatVersion !== 'readonly-media/1' || JSON.stringify(request.candidate) !== JSON.stringify(plan.artifact)
-        || !/^[a-f0-9]{64}$/.test(request.manifestSha256) || !/^[a-f0-9]{40}$/.test(request.sourceVersion)
+      const generic = request.formatVersion === 'readonly-media/generic-1';
+      if ((!generic && request.formatVersion !== 'readonly-media/1') || !isDeepStrictEqual(request.candidate, plan.artifact)
+        || !/^[a-f0-9]{64}$/.test(request.manifestSha256) || (!generic && !/^[a-f0-9]{40}$/.test(request.sourceVersion))
         || !/^[a-f0-9]{64}$/.test(request.planBindingSha256) || !Array.isArray(request.fields)) throw new Error('Invalid fixed media collection binding');
-      const values = await run(() => observeDebugScalars(page!, request.fields.map(field => field.path)), 1500, 'Read-only media collection');
-      report.mediaObservations = { request, recordedAt: new Date().toISOString(), values };
+      if (generic) {
+        const scalar = (value: unknown) => value === null || typeof value === 'string' || typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value);
+        if (Object.keys(request).some(key => !['formatVersion', 'media', 'manifestSha256', 'candidate', 'planBindingSha256', 'fields'].includes(key))
+          || request.planBindingSha256 !== createHash('sha256').update(JSON.stringify(plan)).digest('hex')
+          || !request.fields.length || request.fields.length > 4544 || new Set(request.fields.map(field => field.id)).size !== request.fields.length
+          || request.fields.some(field => !field || Object.keys(field).some(key => !['id', 'path', 'expected'].includes(key))
+            || typeof field.id !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(field.id) || !scalar(field.expected))) throw new Error('Invalid fixed generic media collection binding');
+        const sampleDeadline = Math.min(deadline, Date.now() + 1500);
+        let complete = false;
+        do {
+          const values = await run(() => observeDebugScalars(page!, request.fields.map(field => field.path), 4544), sampleDeadline - Date.now(), 'Read-only media collection');
+          report.mediaObservations = { request, recordedAt: new Date().toISOString(), values };
+          complete = values.every((value, index) => value === request.fields[index].expected);
+          if (complete || Date.now() >= sampleDeadline) break;
+          await new Promise(resolveWait => setTimeout(resolveWait, Math.min(25, Math.max(0, sampleDeadline - Date.now()))));
+        } while (Date.now() < sampleDeadline);
+        if (!complete) recordError('Read-only media collection is incomplete');
+      } else {
+        const values = await run(() => observeDebugScalars(page!, request.fields.map(field => field.path)), 1500, 'Read-only media collection');
+        report.mediaObservations = { request, recordedAt: new Date().toISOString(), values };
+      }
     }
   } catch (error) {
     if (error instanceof DeadlineError || error instanceof AcceptanceCancelledError) { forceClose = true; failureFacts.termination ??= { kind: 'lifecycle' }; }
