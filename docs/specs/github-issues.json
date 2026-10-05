@@ -5278,7 +5278,7 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "in-progress",
-      "implementationPhase": "implementation",
+      "implementationPhase": "fixing-independent-review-finding",
       "reviewStatus": "SOURCE_NOT_READY",
       "planReviewStatus": "PLAN_APPROVED",
       "approvedPlanCommit": "4754935888365e5f0810d387cd5a406fe7022f01",
@@ -5300,7 +5300,13 @@
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE",
-      "humanExperience": "NONE"
+      "humanExperience": "NONE",
+      "sourceReviewStatus": "CHANGES_REQUESTED",
+      "candidateSourceCommit": "77e7f3413923a421eebededb2b9a95840236bb12",
+      "candidateSourceTestsCommit": "6425a30da83997c986799b0f14c5fb848992d94d",
+      "actualSourceReviewer": "cos67_implementer",
+      "sourceReviewFinding": "P2: completed history incorrectly requires current installed observer SHA",
+      "sourceReviewReproduction": "TEMP/cos70-independent-completed-source-upgrade.txt"
     },
     {
       "taskId": "COS-71",
@@ -5385,9 +5391,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "in-progress",
-      "implementationPhase": "plan-preparation-awaiting-COS70-source",
+      "implementationPhase": "plan-approved-awaiting-COS70-source",
       "reviewStatus": "SOURCE_NOT_READY",
-      "planReviewStatus": "AWAITING_PLAN",
+      "planReviewStatus": "PLAN_APPROVED",
       "implementer": "cos67_implementer (dedicated COS71 implementer)",
       "reviewer": "cos65_implementer (dedicated COS71 independent reviewer)",
       "batch": "13",
@@ -5407,7 +5413,16 @@
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE",
-      "humanExperience": "NONE"
+      "humanExperience": "NONE",
+      "approvedPlanCommit": "accf52ea4992635089ea6dfc1d3715c828e5757f",
+      "previousPlanCommit": "2ccba2f4801d2325d042bbf5cd44bd8c68c1773b",
+      "actualPlanReviewer": "cos65_implementer",
+      "planPath": "docs/plans/2026-10-06-cos71-modular-coding.md",
+      "planLines": 15,
+      "planWords": 270,
+      "planApprovalCommentId": 6005618925,
+      "planApprovalCommentUrl": "https://github.com/lrfluobida/Cosmos/issues/72#issuecomment-6005618925",
+      "sourceImplementation": "NONE"
     }
   ],
   "verifiedNativeSubIssues": 71,
