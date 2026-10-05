@@ -675,9 +675,9 @@ Root按两个独立架构评审修订并POST+GET精确读回上述正文、nativ
 
 - 公开 `new --adapter sokoban --brief ...` 映射到已有固定内部 `cos16-input/1` 准备模式；参数在存储和 provider effects 前严格解析。默认 browser 契约保持。原 `resume` 从保存的模式装配 host；任何显式选择必须与原模式一致。
 - 复用现有真实 stdin 问答、草稿展示和 `confirm <revision>`。范围超出该有界 adapter 时保留 unsupported；不得把用户要求自动缩成推箱子、制造确认、地图、解法或已通过结论。
-- 新 source-owned human preparation factory 直接接收真实确认的 RequirementContract 与匹配草稿。核对原 run/ledger/确认资料实际字节/当前 authority/停止与未知费用；保留 human profile、原 ¥200 总账与一次激活的 12h 时钟。
+- 新 source-owned human preparation factory 直接接收真实确认的 RequirementContract 与匹配草稿。核对原 run/ledger/确认资料实际字节/当前 authority/停止与未知费用；保留 human profile、原 ¥200 总账与一次激活的 12h 时钟。底层 prepared scope/binding/lifecycle 和 transfer design-validation 一并接入 human 路径，使用原任务 workspace 与 executionAuthority。
 - 运行时 design 在自己的原会话生成地图，沿既有 oracle、独立评审、固定四输出和原一次语义重写权限；art/coding 读取准确 capture 版本。接入既有八段 persistent consumer、媒体载入观测、build diagnostics 与精确 promotion。
-- initial / cold resume / 既有策略允许的 linked repair 在作者派发前 await bindPreparedTasks。当前 task / candidate / origin 的计划与输入先封存，再计算 context 和签名；同原 human run 的恢复使用原 journal，已通过阶段不重派或重付。
+- initial / cold resume / 既有策略允许的 linked repair 在作者派发前 await bindPreparedTasks。当前 task / candidate / origin 的计划与输入先封存，再计算 context 和签名；同原 human run 的恢复使用原 journal，已通过阶段不重派或重付。规划前只准备固定 artifact refs；规划返回后封存实际 design/art/coding 身份与按既有 continuationTargets 规则预留的 coding repair ID，然后派发设计。地图通过后封存两个计划，再启动后续作者；冷恢复读取原绑定。同窗口自动 coding repair 保留，公开 continue 的拒绝只针对额外 formal continuation。
 - 记录并核对实际执行的 source 或 compiled 模块及固定依赖来源；Git HEAD 和声明 sourceVersion 仅辅助溯源。沿用现有工具权限、owned work、listener 清理和当前预算门禁。
 - 本项先支持 new/resume。准备模式的 formal continuation 在确认、窗口激活与新增费用前拒绝；后续扩展另卡。不会把 validation profile、operator 决定或历史 C5 验证记录改写成 human 确认。
 
