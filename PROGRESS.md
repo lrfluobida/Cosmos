@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 57 个原生子任务。早期验证历史：COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 58 个原生子任务。早期验证历史：COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
 
 第六批补充：固定新试验于 `2026-10-01T11:43:38.426Z` 开始，8.204 秒后在首次输入 capture 发布窗口失败，模型请求与新增费用均为零；原因未知。启动恢复实现虽已独立批准并合入，但实际命令被原 `12:43:38.426Z` 截止拒绝，不能再试或延时。COS-13 已独立批准并合入 `d3aab99`，状态为 `offline-verified-awaiting-live`，#14 保持 open；真实长链路尚未执行，当时无通过的生成游戏，#11/#12 与 G3 状态不变。
 
@@ -79,9 +79,9 @@ closure9历史：免费closure9于UTC2026-10-04T16:34:48.907Z由Root应用（本
 | 比较方案并记录关键决策 | 待前置决策 | 真正涉及重要取舍时再创建 ADR |
 | 编写、审查并确认 spec | v1.0 发布基线 | 结构审查通过，用户已确认 ¥200/12h 硬上限和 ¥100/6h 优化目标 |
 | 真实成本与时延探针 | C8单关已接受，迁移C5设计/美术通过、编码截止取消 | 当前13cases/rev1884/ledger4/shared¥8.530730、unknown/reserved0；C5 66请求记录（65admitted settled+1准入前cancelled）/2695419ms/新增¥1.117003，design/art host与独立review passed、coding未handoff/capture/build/browser/game，closure11后65closed/十一audits；旧历史保留 |
-| 任务拆分 | 已发布 | [57 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入，COS-44 明确原生规划policyId契约，COS-45 准备第二迁移案例与剩余额度准入，COS-46 提供设计标识符约束与只读自检，COS-47 准备带自检的第三迁移案例，COS-48 绑定规划局部别名与预声明身份，COS-49 准备主机身份绑定的第四迁移案例，COS-50 明确作者输出与捕获产物读取路径，COS-51 准备带路径契约的第五迁移案例，COS-52 将迁移验收与角色host纳入生产运行库，COS-53 保存准备型需求草稿，COS-54 提供准确输入文件清单，COS-55 接通原coding会话编译自检，COS-56 复用已通过阶段固定产物与来源，COS-57 准备仅编码的第六迁移案例 |
-| 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#58；57 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
-| 子代理逐项实施 | COS30..55 source 已审集成，迁移C4 designreview请求修改，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47源码已审集成，COS48主机身份绑定源码已审集成，COS49源码已审集成，COS50读取路径契约源码已审集成，COS51源码已审集成，COS52/53源码已审集成，COS54/55源码已独审集成、仅source/TEMP验证、actual C6 NONE，COS56实施中/SOURCE_NOT_READY、COS57等待56批准/源码未启动，迁移C5编码截止取消/无game，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
+| 任务拆分 | 已发布 | [57 项任务卡](docs/specs/cosmos-issues.md)，含依赖、产物、验收和上下文包；COS-20 承接原 R6/R7，COS-21 承接原 R5/R11 的发布失败，COS-22 承接更高调用上限实验，COS-23/COS-24 承接作者格式纠正与未用分配额度归还，COS-25 登记纠正后的完整原生验证，COS-26/COS-27 承接有效容量修复与独立 case5，COS-28/COS-29 承接职责澄清与 case6，COS-30/COS-31 承接主机证据/独立评审未决项处理与独立 case7，COS-32/COS-33 承接浏览器失败分类/有界修复与独立 case8，COS-34 承接最终用户体验决定的持久化与版本绑定，COS-35/COS-36 准备共享浏览器host与运行时推箱子设计/可信鼠标计划，COS-37 准备隔离profile/同origin的真实进程重开，COS-38 连接运行时设计与固定角色输入，COS-39 记录持久浏览器失败事实并保守分类，COS-40 接通持久浏览器与生成媒体consumer，COS-41 准备原design会话的有界语义反馈，COS-42 准备原COS16预算组绑定，COS-43 准备固定迁移native入口/准入，COS-44 明确原生规划policyId契约，COS-45 准备第二迁移案例与剩余额度准入，COS-46 提供设计标识符约束与只读自检，COS-47 准备带自检的第三迁移案例，COS-48 绑定规划局部别名与预声明身份，COS-49 准备主机身份绑定的第四迁移案例，COS-50 明确作者输出与捕获产物读取路径，COS-51 准备带路径契约的第五迁移案例，COS-52 将迁移验收与角色host纳入生产运行库，COS-53 保存准备型需求草稿，COS-54 提供准确输入文件清单，COS-55 接通原coding会话编译自检，COS-56 复用已通过阶段固定产物与来源，COS-57 准备仅编码的第六迁移案例，COS-58 接通公开CLI准备模式的生成与恢复 |
+| 发布 spec 主 issue 和子任务 | 已完成 | [主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) + #2–#59；58 项原生父子关系由协调者发布并精确读回；[编号映射](docs/specs/github-issues.json) |
+| 子代理逐项实施 | COS30..56 source 已审集成，迁移C4 designreview请求修改，COS44 policy契约源码已审集成，COS45源码已审集成，COS46只读自检源码已审集成，COS47源码已审集成，COS48主机身份绑定源码已审集成，COS49源码已审集成，COS50读取路径契约源码已审集成，COS51源码已审集成，COS52/53源码已审集成，COS54/55源码已独审集成、仅source/TEMP验证、actual C6 NONE，COS56已独审集成/HISTORICAL_PASSED_STAGES_SOURCE_READY、COS57源码实施中/SOURCE_NOT_READY，COS58已登记/源码未启动，迁移C5编码截止取消/无game，实际 C8 有界单关通过 | COS10/11/13原组件条件独立验收完成并closed/complete；C7失败、C6免费111诊断保持，COS34源码已审集成但实际human NONE；G3 closed-only组件关口自然满足，完整classic/G4和用户体验未通过 |
 
 ## 开发批次
 
@@ -657,15 +657,31 @@ Root登记COS53/#54 id5702920916、COS54/#55 id5703465426、COS55/#56 id57034664
 
 ROLE_FILE_INVENTORY_SOURCE_READY：`fc9aa8f56131f55d46c89c9e2ea01576695c3b16`→`a75c6147ecb09097492489be877b9384503a4abf`，[公共审批](https://github.com/lrfluobida/Cosmos/issues/55#issuecomment-5985063159)；独审10/10（37.620秒）、旧59/strict复用，联合missing selected ref不猜文件1/1（85.0988ms）。CODING_BUILD_FEEDBACK_SOURCE_READY：`018e02130d1678c35034748e64f3dff236eb1318`→`46dc52387a69c95720687375a92da1b7d66b4e5b`，[公共审批](https://github.com/lrfluobida/Cosmos/issues/56#issuecomment-5985108515)；独审3/3（27.67秒）strict空参/phase input drift/compiled真实tsc失败到同作者修复成功，两TEMP目录/PID-env/零新request，组合actualfactory工具隔离与54清单无冲突1/1（2269.008ms）。五/八paths批准字节/UTF8/LF/中文/diff通过，均offline-verified-awaiting-live/open/source-integrated；所有旧源测试复用。
 
-Source54/55审批时（历史）：当时仅只读评审是否可按严格source/current bindings复用C5已通过design/art，尚无新案例声明或paid运行，actual C6 NONE；已消费grants不重开，不假human continuation。C5/closure11/8530730费用/group1522107+8477893/当时55count与预算原样。当前两项架构审查已完成，Source56实施中、Source57源码待56，实际C6仍未claim。
+Source54/55审批时（历史）：当时仅只读评审是否可按严格source/current bindings复用C5已通过design/art，尚无新案例声明或paid运行，actual C6 NONE；已消费grants不重开，不假human continuation。C5/closure11/8530730费用/group1522107+8477893/当时55count与预算原样。当前两项架构审查已完成，Source56已独审集成，Source57正在接入批准依赖，实际C6仍未claim。
 
 ### COS56/57 历史通过阶段复用与仅编码C6源码登记
 
-Root按两项独立架构审查修订并POST+GET精确读回[COS56/#57](https://github.com/lrfluobida/Cosmos/issues/57) id5704091506与[COS57/#58](https://github.com/lrfluobida/Cosmos/issues/58) id5704092753、native parent57children #2–#58/新checkbox，旧55前缀保持。56从327de5b8/codex/cos56-passed-stage-reuse实施，SOURCE_NOT_READY；57源码未启动，须等待56独审集成，SOURCE_NOT_READY。
+Root按两项独立架构审查修订并POST+GET精确读回[COS56/#57](https://github.com/lrfluobida/Cosmos/issues/57) id5704091506与[COS57/#58](https://github.com/lrfluobida/Cosmos/issues/58) id5704092753、native parent57children #2–#58/新checkbox，旧55前缀保持。登记时56从327de5b8/codex/cos56-passed-stage-reuse实施，SOURCE_NOT_READY；57源码未启动、等待56独审集成，SOURCE_NOT_READY。这是登记时的历史状态，当前审批见下段。
 
 复用只认原C5 host+独立review passed的design/art来源，raw receipt/hash/time/inputVersions/evidence/原journalRoot和独立身份按历史scope核；sourceRefs不认证文件内容，manifest expectedSHA与可信path实际bytes在claim前后/cold resume/tools/promotion核对。Import root mapping保留旧origin/receipt，旧audit不调用closed grants/active seal/author workspace。Current await bindPreparedTasks后才能generation/resume/repair，inherited deps不注册派发或计费，Source55 guards识别旧passed role；完整capture closure只stage一template/duplicate目的地仍严格，当前execution requirement另文件名，新候选v1/v2 plans+inputs先封存。
 
 拟固定C6只coding及自身一次合格repair，零planner/design/art SDK而保留current planning HOST authority。仍原ledger4/snapshot3/decl3/quote2/case5/45min/80，五grants323680/598538/2633322/2122353/2800000合8477893；current13cases/rev1884/65closed十一audits/shared8530730/parent10/group1522107+8477893与旧C5 manual consumed/C8/G3/human NONE原样。本次source/TEMP登记，Root尚未真实制作manifest或claim/paid C6，不重开旧grants、不制造human continuation。
+
+### Source56 源码审批与只读历史核对
+
+HISTORICAL_PASSED_STAGES_SOURCE_READY：`40cedc3b953d92c381a8df2fb62c250f24043bd5`→`0bbe4c799880f10f31906637ac2ade1c97797e2f`，[公共审批](https://github.com/lrfluobida/Cosmos/issues/57#issuecomment-5986270559)；独立窄复审1/1（67.482秒）、0 failed/skipped，current CODE capture 类型、精确generator、当前作者会话与需求来源三类篡改均拒，恢复正确metadata可绑定，snapshot/SDK calls不变。完整12文件批准字节、UTF-8/LF/中文与diff通过；merger缺少历史绑定拒绝代表1/1（1.8417ms），已push且本地/origin/远端一致、clean。原历史认证/import/cold/一次repair/compiled及11项legacy证据复用，均为source/TEMP验证，issue保持open/offline-verified-awaiting-live/source-integrated。
+
+Root以真实C5原始来源构造内存manifest并只读验证，2个passed阶段、7份capture闭包通过；原snapshot rev1884字节保持、C6 root不存在、manifest未持久化、paid0。COS57已开始接入批准component，SOURCE_NOT_READY；该核对不等于当前C6生成、human确认或完整经典游戏通过。原shared8530730、groupnet1522107/rem8477893、65closed/十一audits、预算及旧case结果保持。
+
+类型增量审批：`e5cfa78f2fcda111bb6457bfa4f9c41b4229b260`→`384fbd2e59186857113cddc284050490fac389da`，[增量公共审批](https://github.com/lrfluobida/Cosmos/issues/57#issuecomment-5986525798)。新增COS57严格fixture闭包暴露captures隐式any；原作者仅补准确类型/type-only import 2+/1-，独审strict8.113秒exit0且生成JavaScript字节相同。Merger核批准字节/UTF8LF/diff后推送，未重跑未改runtime。COS57完整源码/fixture闭包strict8.715秒exit0，生产consumer/repair/cold组合仍在TEMP验证中。
+
+Root本轮只读确认deepseek-flash端点可用、余额至少覆盖原单case上限，未落盘凭据、paid0；并重新核对[官方人民币价目](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/)高峰每百万token的缓存命中0.04元、未命中2元、输出8元，与原保守计价一致。共享账本估算与实际服务账单分列。
+
+### COS58 公开CLI准备模式接线登记
+
+Root发布并精确读回[COS58/#59](https://github.com/lrfluobida/Cosmos/issues/59) id5704951453、native parent58children #2–#59与新checkbox，旧57成员与正文保持。此项接入已有准备型草稿与生产consumer，先覆盖真实stdin确认后的human new/resume；当前not-started/open/SOURCE_NOT_READY。原human RequirementContract、原¥200/12h授权与实际source/compiled字节须核对，计划/current task IDs在context/signature之前绑定；准备模式formal continuation须在确认/激活/新增费用前拒绝，后续另卡。
+
+该卡不新增预算、实际human确认、游戏地图或付费窗口；C6尚未claim，原C5/C8结果、ledger/group费用、未知经典基准与human NONE保持。先完成COS57源码装配与独审，再按专属implementer/reviewer流程实施公开入口。
 
 参考界面观察：通过 computer-use 正常启动用户提供的游戏，窗口标题为 `Plants vs. Zombies GOTY`。窗口截图在一次刷新重试后仍超时，可访问文本仅包含窗口控件，未取得菜单或玩法证据；不将启动成功写成参考验收通过。本次打开的窗口已用正常关闭快捷键关闭并核实。
 
