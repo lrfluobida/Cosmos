@@ -200,3 +200,13 @@ Bootstrap 使用新 planning grant 的 OwnedWork/runOwnedNode 和现有固定 wo
 原 COS16 group 的 net/committed 必须为 405104 microCNY，四例累计角色费用逐项为 planning 59382、design 345722、其余 0；同总额错角色分布仍拒绝。C5 五 grants 固定 340618/854278/2800000/2800000/2800000，合计 9594896，沿原父 ¥10 的剩余容量、首次授权与 parent 引用。原子 claim 只追加 C5 与五 grants，保留历史请求、四笔 delegation、关闭审计、shared 有效容量及原时钟。
 
 固定 requirements/template、输入哈希 `f52b3846140b9b46733238ec5dc2a8d243c0145326f8c4f799bffc23d4bdc78c`、单案例 ¥5/45 分钟/80 总 SDK 调用、原 design 会话一次地图重作与只读自检、唯一 coding repair、共享 ¥150/首批 ¥30 均沿原契约。本任务只有零付费源码和临时合成测试；真实 C4 失败记录保留，C5 实际生成须由 Root 在独审集成与真实审批记录就绪后重新准入。`TRANSFER_CASE_FIVE_SOURCE_READY` 仅可在独审与合入后登记；源码 Ready 不等于迁移通过或游戏完成，用户体验继续 `not_confirmed`。定向证据见 [COS-51 计划](../../docs/plans/2026-10-05-cos51-transfer-case-five.md)。
+
+## COS-57 · 仅编码的第六迁移案例源码准备
+
+`validation-case-six-run.ts` 固定 `cos20-transfer-validation-6`，保留严格的 preflight/case 参数格式。原 C1–5 的声明、入口和 driver 保持原行为。新的源码入口绑定原 C5 source/window、原 COS16 parent index4/revision1414/hash 和首笔 operator 授权；免费预检核对十三个停止案例、五笔 delegation、65 个关闭 grants、十一笔原始审计、精确角色费用与 Source54/55/56 的批准 marker 及 reviewed/merge 双祖先。C5 的 65 次已准入结算请求与 1 次零费准入前取消分别计数。
+
+Root manifest 只放在共享 ledger 的固定新文件 `cos20-transfer-validation-6-reuse.json`，引用为 `{artifactId:'cos20-transfer-validation-6-historical-stages', version:原始字节SHA256, location:'cos20-transfer-validation-6-reuse.json'}`。实际文件字节、固定位置、C5 来源链和当前 operator 的精确 sourceRef 都须认证；缺文件、未审来源、费用未收敛或 owner 未释放时免费拒绝。旧 C5 caseRoot 保持只读，不新增 manifest，不重开旧阶段或借用旧 grants。
+
+五个正 grants 为 planning323680/design598538/art2633322/coding2122353/repair2800000 微元，合计8477893；原组已用1522107 微元。planning grant 仍授权当前 HOST bootstrap，planning/design/art 的 SDK 调用数为0；未用额度由 Root 沿原审计流程关闭。当前 coding 合同从可信 `game-code` policy、当前需求和已验证的旧 design 四项 outputs/media 派生，使用自己的 task/role/tools/grant/context，不读取未完成的旧 coding 合同或伪造新 planner 结果。
+
+当前验证仅为 source/TEMP，COS56 的已审 consumer 接入和完整 C6 驱动验收仍待完成，`TRANSFER_CASE_SIX_SOURCE_READY` 尚未登记。实际 C6、真实 manifest 和 human 验收均为 NONE；共享 ¥150/首批 ¥30/COS16 原 ¥10、单案例 ¥5/45 分钟/80 SDK/一次当前 coding repair，以及正式 ¥200/12h、优化 ¥100/6h 保持。计划和定向证据见 [COS-57 计划](../../docs/plans/2026-10-05-cos57-coding-only-case-six.md)。
