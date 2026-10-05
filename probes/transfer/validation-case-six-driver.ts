@@ -10,9 +10,8 @@ import { validationHash } from '../../src/runtime/validation-validation.ts';
 import { runOwnedNode } from '../../src/runtime/recovery/owned-command.ts';
 import { publishReceipt } from '../../src/runtime/recovery/receipt-file.ts';
 import type { ValidationHostInput } from '../e2e/validation-run.ts';
-import { TRANSFER_VALIDATION_CASE_SIX as D } from './validation-case-six-declaration.ts';
+import { TRANSFER_VALIDATION_CASE_SIX as D6 } from './validation-case-six-declaration.ts';
 import { TRANSFER_VALIDATION_CASE_FIVE as OLD } from './validation-case-five-declaration.ts';
-import { readTransferValidationCaseSixInput, createTransferValidationCaseSixIdentityReader } from './validation-input.ts';
 import { createTransferReusedConsumerHost } from '../../src/runtime/adapters/transfer/runtime-host.ts';
 import { requireValidationScope } from '../../src/runtime/validation-scope.ts';
 import { executeTaskDag, resumeTaskDag } from '../../src/runtime/orchestrator.ts';
@@ -23,8 +22,16 @@ import type { ValidationHostResult } from '../e2e/validation-run.ts';
 import type { RepairFeedback } from '../../src/runtime/repair/feedback.ts';
 import { TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
 import type { RecoveryOrigin } from '../../src/runtime/recovery/task-journal.ts';
-import { prepareTransferValidationCaseSixExecution } from './validation-case-six-task.ts';
+import type { ValidationDeclaration } from '../../src/runtime/validation-types.ts';
+import { fixedTransferValidationInput } from './validation-input.ts';
+import { createFixedTransferCodingOnlyTasks } from './validation-case-six-task.ts';
+import type { prepareTransferValidationCaseSixExecution } from './validation-case-six-task.ts';
 
+export function createFixedTransferCodingOnlyDriver(D: ValidationDeclaration, manifestLocation: string,
+  requireOwnSource: (input: ValidationHostInput, signal: AbortSignal) => Promise<void> = async () => {},
+  prepareExecution?: typeof prepareTransferValidationCaseSixExecution, workerURL?: URL) {
+const { readTransferValidationInput: readTransferValidationCaseSixInput, createTransferValidationIdentityReader: createTransferValidationCaseSixIdentityReader } = fixedTransferValidationInput(D);
+const prepareTransferValidationCaseSixExecution = prepareExecution ?? createFixedTransferCodingOnlyTasks(D, manifestLocation).prepareTransferValidationCaseSixExecution;
 function fixed(input: ValidationHostInput) {
   input.controller.requireValidationCase(input.window.caseId, input.window.windowId);
   if (input.window.caseId !== D.caseId || !sameValue(input.window.quote.declaration, D)
@@ -33,13 +40,13 @@ function fixed(input: ValidationHostInput) {
   input.signal.throwIfAborted();
 }
 /** Current planning grant authorizes one host bootstrap; it creates no planning session or SDK request. */
-export async function bootstrapTransferValidationCaseSixToolchain(input: ValidationHostInput, execute: typeof runOwnedNode = runOwnedNode) {
+async function bootstrapTransferValidationCaseSixToolchain(input: ValidationHostInput, execute: typeof runOwnedNode = runOwnedNode) {
   fixed(input);
   const folder = await directory(input.root, 'host-jobs'), request = join(folder, 'transfer-bootstrap.json'), response = join(folder, 'transfer-bootstrap-result.json');
   await publishReceipt(request, { formatVersion: 'validation-worker-1', operation: 'bootstrap', root: input.root, repository: input.repository, response }, input.signal);
   const remaining = Date.parse(input.window.deadlineAt) - Date.now() - 5000;
   if (remaining < 1000) throw new Error('Case6 bootstrap cannot cover the current deadline and cleanup.');
-  const worker = new URL('../e2e/validation-worker.ts', import.meta.url);
+  const worker = workerURL ?? new URL('../e2e/validation-worker.ts', import.meta.url);
   const result = await input.work.run(signal => execute({ controller: input.controller,
     authority: { caseId: D.caseId, windowId: input.window.windowId, taskId: D.grants.planning.taskId, deadlineAt: input.window.deadlineAt },
     args: ['--experimental-strip-types', fileURLToPath(worker), request], cwd: input.root,
@@ -55,12 +62,12 @@ async function requireHistorical(input: ValidationHostInput, historical: Histori
   fixed(input);
   const ref = historical.manifestRef, refs = input.window.operatorDecision.sourceRefs.filter(item => item.artifactId === `${D.caseId}-historical-stages`);
   if (resolve(historical.originalRoot) !== join(resolve(input.repository), '.cosmos/e2e', OLD.caseId) || resolve(historical.targetRoot) !== resolve(input.root)
-    || ref.artifactId !== `${D.caseId}-historical-stages` || ref.location !== 'cos20-transfer-validation-6-reuse.json' || !/^[a-f0-9]{64}$/.test(ref.version)
+    || ref.artifactId !== `${D.caseId}-historical-stages` || ref.location !== manifestLocation || !/^[a-f0-9]{64}$/.test(ref.version)
     || refs.length !== 1 || !sameValue(refs[0], ref) || validationHash(Buffer.from(await historical.readManifest(signal))) !== ref.version) throw new Error('Case6 requires the exact operator-covered historical manifest digest and fixed roots.');
-  await historical.verify(signal); signal.throwIfAborted();
+  await historical.verify(signal); await requireOwnSource(input, signal); signal.throwIfAborted();
 }
 /** Current input and immutable operator-covered source exist before host capture/context creation. */
-export async function stageTransferValidationCaseSixInput(input: ValidationHostInput, historical: HistoricalPassedStages, resume = false) {
+async function stageTransferValidationCaseSixInput(input: ValidationHostInput, historical: HistoricalPassedStages, resume = false) {
   await requireHistorical(input, historical, input.signal);
   const frozen = await readTransferValidationCaseSixInput(input.repository), bytes = await regularFile(input.repository, D.inputs.requirements.path);
   if (resume) {
@@ -93,7 +100,7 @@ export async function stageTransferValidationCaseSixInput(input: ValidationHostI
 }
 
 /** Real current coding DAG and its own bounded repair; historical tasks are dependencies only. */
-export async function executeTransferValidationCaseSixDag(input: ValidationHostInput, requirement: ValidationRequirement, validation: ValidationExecutionBinding,
+async function executeTransferValidationCaseSixDag(input: ValidationHostInput, requirement: ValidationRequirement, validation: ValidationExecutionBinding,
   host: PreparedBrowserHost, historical: HistoricalPassedStages, resume = false): Promise<ValidationHostResult> {
   return host.withPreparation(async () => {
     await requireHistorical(input, historical, input.signal); await requireValidationScope(input.controller, requirement, validation);
@@ -148,10 +155,15 @@ export async function executeTransferValidationCaseSixDag(input: ValidationHostI
   });
 }
 /** Fixed native caller; no planner, role, session, map, path or fixture selector is accepted. */
-export async function generateTransferValidationCaseSix(input: ValidationHostInput, historical: HistoricalPassedStages, resume = false): Promise<ValidationHostResult> {
+async function generateTransferValidationCaseSix(input: ValidationHostInput, historical: HistoricalPassedStages, resume = false): Promise<ValidationHostResult> {
   await requireHistorical(input, historical, input.signal);
   if (!resume) await bootstrapTransferValidationCaseSixToolchain(input);
   const { requirement, binding, proposal } = await stageTransferValidationCaseSixInput(input, historical, resume);
   const host = await createTransferReusedConsumerHost({ root: input.root, controller: input.controller, requirement, proposal, validation: binding, work: input.work, resume, historicalStages: historical });
   return executeTransferValidationCaseSixDag(input, requirement, binding, host, historical, resume);
 }
+
+return { bootstrapTransferValidationCaseSixToolchain, stageTransferValidationCaseSixInput, executeTransferValidationCaseSixDag, generateTransferValidationCaseSix };
+}
+export const { bootstrapTransferValidationCaseSixToolchain, stageTransferValidationCaseSixInput, executeTransferValidationCaseSixDag, generateTransferValidationCaseSix }
+  = createFixedTransferCodingOnlyDriver(D6, 'cos20-transfer-validation-6-reuse.json');

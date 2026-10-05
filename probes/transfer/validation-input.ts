@@ -20,7 +20,7 @@ interface TransferRequirements {
   acceptanceIds: string[]; stageAcceptanceIds: string[]; preparation: ValidationPreparationProposal;
 }
 const hash = (bytes: Buffer | string) => createHash('sha256').update(bytes).digest('hex');
-function fixedInput(declaration: typeof TRANSFER_VALIDATION_CASE) {
+export function fixedTransferValidationInput(declaration: typeof TRANSFER_VALIDATION_CASE) {
 /** Only fixed tracked repository inputs. No snapshots, sessions or credentials. */
 async function readTransferValidationInput(repository: string) {
   const root = resolve(repository), expected = declaration.inputs, actual: string[] = [];
@@ -56,6 +56,7 @@ function createTransferValidationIdentityReader(options: { repository: string; r
 }
 return { readTransferValidationInput, createTransferValidationIdentityReader };
 }
+const fixedInput = fixedTransferValidationInput;
 export const { readTransferValidationInput, createTransferValidationIdentityReader } = fixedInput(TRANSFER_VALIDATION_CASE);
 export const { readTransferValidationInput: readTransferValidationCaseTwoInput,
   createTransferValidationIdentityReader: createTransferValidationCaseTwoIdentityReader } = fixedInput(TRANSFER_VALIDATION_CASE_TWO);

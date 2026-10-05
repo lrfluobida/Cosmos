@@ -3,6 +3,10 @@ import test from 'node:test';
 import { VALIDATION_ROLES, validationInputHash, validateValidationDeclaration } from '../../src/runtime/validation-validation.ts';
 import { TRANSFER_VALIDATION_CASE_SIX as D6 } from '../../probes/transfer/validation-case-six-declaration.ts';
 import { caseSevenFeeData } from './validation-case-seven.fixture.ts';
+import { mkdtemp, mkdir, readFile, writeFile, stat, readdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { TRANSFER_CASE_SIX_HISTORICAL_SOURCE } from '../../probes/transfer/validation-case-six-run.ts';
 
 async function api() {
   const a: any = await import('../../probes/transfer/validation-case-seven-declaration.ts').catch(() => null);
@@ -39,4 +43,53 @@ test('C7 parser fixes its case identity and strict public argument contract', as
   const a = await api();
   assert.equal(a.parseTransferValidationCaseSevenEntry(['--validation-preflight', 'a'.repeat(40)]).caseId, 'cos20-transfer-validation-7');
   for (const args of [[], ['--validation-preflight', 'a'.repeat(40), 'extra'], ['--validation-case', 'a'.repeat(40)], ['--validation-case', 'a'.repeat(40), 'source', '--grant']]) assert.throws(() => a.parseTransferValidationCaseSevenEntry(args), /Usage/);
+});
+test('C7 admission envelope binds exact quote, grants, manifest bytes and source approvals', async () => {
+  const a: any = await import('../../probes/transfer/validation-case-seven-entry.ts').catch(() => null);
+  assert.equal(typeof a?.createTransferCaseSevenAdmissionQuote, 'function', 'C7 admission envelope is missing.');
+  const declaration = (await api()).deriveTransferValidationCaseSevenDeclaration(caseSevenFeeData());
+  const quote = { declaration, basis: { revision: 50, snapshotSha256: 'a'.repeat(64) }, quoteId: 'SOURCE-quote', identity: { reviewedPlatformSha: 'c'.repeat(40) } };
+  const manifest = { artifactId: `${declaration.caseId}-historical-stages`, version: 'b'.repeat(64), location: `${declaration.caseId}-reuse.json` };
+  const approvals = [{ taskId: 'COS-59', reviewedCommit: 'c'.repeat(40), mergeCommit: 'd'.repeat(40) }];
+  const first = a.createTransferCaseSevenAdmissionQuote(quote, manifest, approvals);
+  assert.deepEqual(first.quote, quote); assert.deepEqual(first.manifestRef, manifest);
+  assert.deepEqual(first.roleGrants, declaration.grants); assert.equal(first.snapshotRevision, 50);
+  assert.deepEqual(a.createTransferCaseSevenAdmissionQuote(quote, manifest, approvals), first);
+  for (const changed of [a.createTransferCaseSevenAdmissionQuote({ ...quote, basis: { ...quote.basis, revision: 51 } }, manifest, approvals),
+    a.createTransferCaseSevenAdmissionQuote(quote, { ...manifest, version: 'f'.repeat(64) }, approvals),
+    a.createTransferCaseSevenAdmissionQuote({ ...quote, declaration: (await api()).deriveTransferValidationCaseSevenDeclaration(caseSevenFeeData(450_000)) }, manifest, approvals),
+    a.createTransferCaseSevenAdmissionQuote(quote, manifest, [{ ...approvals[0], mergeCommit: 'e'.repeat(40) }])]) assert.notEqual(changed.admissionId, first.admissionId);
+});
+test('C7 readonly entry rejects original unknown cost before host or target publication', async () => {
+  const a: any = await import('../../probes/transfer/validation-case-seven-entry.ts').catch(() => null);
+  assert.equal(typeof a?.createFixedTransferValidationCaseSevenEntry, 'function', 'C7 read-only entry is missing.');
+  const repository = await mkdtemp(join(tmpdir(), 'cos60-unknown-')), root = join(repository, '.cosmos/validation-shared'); await mkdir(root, { recursive: true });
+  const state = caseSevenFeeData(); Object.assign(state.ledger.entries.at(-1)!, { unknown: true, status: 'unknown', reservedMicroCny: 974_882, settledMicroCny: 0 });
+  const path = join(root, 'snapshot.json'); await writeFile(path, JSON.stringify(state), 'utf8');
+  const before = await readFile(path), info = await stat(path), files = await readdir(root);
+  const entry = a.createFixedTransferValidationCaseSevenEntry(TRANSFER_CASE_SIX_HISTORICAL_SOURCE);
+  await assert.rejects(entry.preflightTransferValidationCaseSevenRun({ repository, args: ['--validation-preflight', 'a'.repeat(40)] }), /unknown|reconciliation/);
+  assert.deepEqual(await readFile(path), before); assert.equal((await stat(path)).mtimeMs, info.mtimeMs); assert.deepEqual(await readdir(root), files);
+});
+test('C7 execution closure binds actual entry, native provider, host and worker bytes', async () => {
+  const a: any = await import('../../probes/transfer/validation-case-seven-source.ts').catch(() => null);
+  assert.equal(typeof a?.captureTransferCaseSevenSource, 'function', 'C7 actual execution closure is missing.');
+  const source = await a.captureTransferCaseSevenSource();
+  for (const file of ['validation-case-seven-run.ts', 'validation-case-seven-driver.ts', 'validation-case-seven-task.ts', '/src/providers/pi.ts', '/src/roles/factory.ts', '/src/runtime/entrypoint-host.ts', 'validation-worker.ts', 'coding-check-worker.ts']) assert.ok(source.files.some((item: any) => item.path.replaceAll('\\', '/').endsWith(file)), file);
+  assert.ok(source.dependencies.some((d: any) => d.name === '@earendil-works/pi-ai')); assert.equal(source.variant, 'source');
+  await a.requireTransferCaseSevenSource(source);
+  const wrong = structuredClone(source); wrong.files[0].sha256 = '0'.repeat(64);
+  await assert.rejects(a.requireTransferCaseSevenSource(wrong), /source|bytes/);
+});
+test('C7 frozen accounting prefix permits current charges and refuses changed old receipt metadata', async () => {
+  const a: any = await import('../../probes/transfer/validation-case-seven-entry.ts');
+  assert.equal(typeof a.transferCaseSevenHistoricalAccountingHash, 'function', 'C7 historical accounting seal is missing.');
+  const state: any = caseSevenFeeData(), quote = { basis: { requestIds: state.ledger.entries.map((e: any) => e.requestId) } };
+  state.allocationClosureDecisions = [{ operatorDecision: { sourceSha256: 'a'.repeat(64) } }];
+  const original = a.transferCaseSevenHistoricalAccountingHash(state, quote);
+  const current = structuredClone(state); current.ledger.entries.push({ requestId: 'SOURCE-current-C7', settledMicroCny: 10 }); current.requests.push({ requestId: 'SOURCE-current-C7' });
+  current.validation.cases.push({ caseId: 'cos20-transfer-validation-7' }); current.ledger.allocationDelegations.push({ caseId: 'cos20-transfer-validation-7' });
+  assert.equal(a.transferCaseSevenHistoricalAccountingHash(current, quote), original);
+  current.allocationClosureDecisions[0].operatorDecision.sourceSha256 = 'b'.repeat(64);
+  assert.notEqual(a.transferCaseSevenHistoricalAccountingHash(current, quote), original);
 });

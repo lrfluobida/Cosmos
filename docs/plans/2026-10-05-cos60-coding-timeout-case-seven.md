@@ -47,6 +47,7 @@ Create:
 - `probes/transfer/validation-case-seven-run.ts`: immutable original C5/parent/first-authorization pins, fixed source entry and CLI runner.
 - `probes/transfer/validation-case-seven-driver.ts`: bind the approved common coding driver to the C7 declaration and manifest.
 - `probes/transfer/validation-case-seven-task.ts`: bind current C7 coding/task receipt derivation.
+- `probes/transfer/validation-case-seven-source.ts`: bind the actual fixed source or compiled execution import closure and resolved SDK/lock bytes; no repository tree scan.
 - `probes/transfer/validation-coding-only-entry.ts`: shared post-admission lifecycle only, if this is the minimal extraction required to avoid copied orchestration.
 - `tests/transfer/validation-case-seven.fixture.ts`: source/TEMP history, reconciled cost variants and authentic synthetic C5 manifests.
 - `tests/transfer/validation-case-seven.test.ts`: declaration/parser, fee/closure/history/source refusals, read-only preservation and quote invalidation.
@@ -137,3 +138,9 @@ Files: new runtime fixture/test, compiled representative and README append.
 ## Review checkpoints and remaining prerequisite
 
 This commit is a plan only. No source changes begin until `PLAN_APPROVED`. The two architecture decisions above are agreed with Root; the reviewer must check whether the proposed seams and envelope cover the exact task without weakening C6 or quote2. Actual C7 admission remains blocked by the original unresolved C6 cost and missing closure12 until Root supplies authentic financial reconciliation, closure evidence, current approved main mapping and the C7 manifest. Source work neither resolves nor reinterprets those real prerequisites.
+
+## Approved execution updates
+
+- Independent `PLAN_APPROVED` applies to exact plan commit `ea1df224a444f13bc3445f5083e7751eb539500e`. Root approved the C7-specific actual execution closure module because the existing equivalent is private to the human path. The common factories stay in the existing C6 entry/driver/task files; there is no copied orchestrator or new product workflow.
+- The C7 envelope also seals the exact old14 accounting prefix (old windows, six delegations,70 closures,12 audits and quote-basis request/fee rows). Current C7 rows are excluded. Scope readers re-read old closure source bytes; their hashes cannot be swapped while leaving the role total unchanged.
+- Root approved test-only SOURCE/TEMP checkpoint replay. Setup `cosmos-transfer-entry-TLJJ6N` contains the genuine synthetic C5 two-PASS lineage and an exact before-C7 baseline SHA `0d7db5619c27d5a6001377f3cf7fb1761ef0f664e620cdc6a8cd5ee2bdd0196f`. The old setup helper was stopped because its already-loaded C7 modules preceded the final source edits; its C7 result is not final evidence. Eighty archived raw files, snapshot/operator/envelope/marker/root mapping and recovered ownership are retained under `.cosmos/SOURCE-stale-C7-setup/restore-manifest.json`. The original14 snapshot bytes match the old base quote's snapshot hash exactly. A fresh process uses frozen execution source and reuses the original C1–6 roots/journals/captures unchanged. This is synthetic fixture restoration only; actual C6/C7 are untouched.
