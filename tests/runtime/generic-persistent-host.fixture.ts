@@ -54,6 +54,11 @@ export async function genericHostFixture(t: test.TestContext, fault = '') {
           errors: [], files: ['final.png', 'browser.webm', 'browser.log', 'report.json'].map(name => folder + '/' + name), reportPath: folder + '/report.json', evidence: [],
           failureFacts: { formatVersion: 1, termination: null, errors: [] }, mediaObservations: { request, recordedAt: new Date().toISOString(), values } };
         raw.endedAt = raw.mediaObservations.recordedAt;
+        if (fault === 'mismatch' || fault === 'mismatch-exit') {
+          raw.outcome = 'failed'; delete raw.mediaObservations;
+          Object.assign(raw.steps.find((row: any) => row.id === 'saved'), { outcome: 'failed', actual: 'wrong-save', failure: 'mismatch', error: 'Expected the exact visible saved state; observed wrong-save.' });
+          if (fault === 'mismatch-exit') raw.cleanup.processExited = false;
+        }
         if (fault === 'profile' && index) raw.session.profile += '-changed';
         if (fault === 'origin' && index) raw.session.origin = 'http://localhost:1';
         if (fault === 'stop') await controller.stop('manual', 'Generic fixture stop');

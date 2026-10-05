@@ -12,7 +12,7 @@ import { diagnoseBrowser } from '../../repair/browser-diagnostics.ts';
 import type { Diagnostics } from '../../repair/browser-diagnostics.ts';
 
 export interface PersistentDiagnosticExpected {
-  series: PersistentAcceptanceSeries; deadlineAt: number; sourceVersion: string; reportPath: string;
+  series: PersistentAcceptanceSeries; deadlineAt: number; sourceVersion?: string; reportPath: string;
 }
 export interface PersistentDiagnosticOptions {
   evidenceRoot: string; verifyBinding: () => Promise<void>; signal?: AbortSignal;
@@ -143,7 +143,8 @@ export async function diagnosePersistentBrowser(task: TaskContract, value: unkno
     expected: 'Exact current source, candidate, series, deadline and owned process evidence.', evidenceRefs: [expected.reportPath] }] });
   try {
     const current = structuredClone(expected), report = structuredClone(value) as PersistentAcceptanceReport;
-    check(!validatePersistentSeries(current.series).length && current.sourceVersion === current.series.sourceVersion
+    check(!validatePersistentSeries(current.series).length && (current.series.formatVersion === 'persistent-acceptance/generic-1'
+      ? !Object.hasOwn(current, 'sourceVersion') : current.sourceVersion === current.series.sourceVersion)
       && Number.isSafeInteger(current.deadlineAt) && typeof options.verifyBinding === 'function');
     const guard = async () => {
       await bounded(options.verifyBinding, current.deadlineAt - Date.now(), 'Persistent diagnostic binding', options.signal);

@@ -28,6 +28,7 @@ import { materializeTaskInputs } from './entrypoint-workspace.ts';
 import { executeGeneration } from './entrypoint.ts';
 import { renderDeclaredMedia, validateDesign, validateDeclaredMedia, withMediaObservations, createGenericMediaObservationRequest, assessMediaCoverage, assessGenericSeriesMediaCoverage } from './entrypoint-media.ts';
 import { createGenericPersistentSeries, verifyGenericPersistentEvidence } from './entrypoint-persistent.ts';
+import { diagnosePersistentBrowser } from './adapters/transfer/persistent-diagnostics.ts';
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft } from '../roles/requirements.ts';
@@ -700,14 +701,32 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 const coverage = assessGenericSeriesMediaCoverage(media, binding, report);
                 await writeJson(root, `evidence/${task.taskId}/media-usage.json`, { candidate: ref, media: mediaArtifact, series, requests, coverage,
                   scope: 'Actual per-document loading/state/sound observations across the confirmed normal-input save and reopen stages; source review and final user experience follow.' });
-                consumerRawEvidence = await verifyGenericPersistentEvidence(series, report, join(root, 'browser-evidence'), deadlineAt);
-                const valid = coverage.valid && coverage.complete;
+                const diagnostics = await diagnosePersistentBrowser(task, report, { series, deadlineAt, reportPath: report.reportPath },
+                  { evidenceRoot: join(root, 'browser-evidence'), signal, verifyBinding: requireCurrent });
+                diagnostics.issues = diagnostics.issues.map(issue => ({ ...issue, evidenceRefs: issue.evidenceRefs.map(path => `browser-evidence/${path}`) }));
+                if (diagnostics.reportValid) consumerRawEvidence = [{ artifactId: `${task.taskId}-persistent-raw`, version: ref.version, location: `browser-evidence/${dirname(report.reportPath).replaceAll('\\', '/')}` },
+                  ...report.segments.map(segment => ({ artifactId: `${task.taskId}-${segment.id}-raw`, version: ref.version, location: `browser-evidence/${dirname(segment.report.reportPath).replaceAll('\\', '/')}` }))];
+                if (diagnostics.reportValid && !diagnostics.issues.length) {
+                  await verifyGenericPersistentEvidence(series, report, join(root, 'browser-evidence'), deadlineAt);
+                  if (!coverage.valid) {
+                    diagnostics.reportValid = false; diagnostics.passedChecks = [];
+                    diagnostics.issues.push({ acceptanceId: task.acceptanceIds[0], checkId: 'media/report', classification: 'insufficient_evidence',
+                    summary: 'The exact normal-input documents have missing or inconsistent media samples.', actual: 'Media request, field types or recording windows are unproven.',
+                    expected: 'Complete typed current per-plan samples.', reproduction: ['Inspect both raw normal-input reports and their exact media requests.'], evidenceRefs: [`evidence/${task.taskId}/media-usage.json`] });
+                  }
+                  else for (const check of coverage.checks.filter(check => check.actual !== check.expected)) diagnostics.issues.push({
+                    acceptanceId: task.acceptanceIds.at(-1)!, checkId: `media/${check.id}`, classification: 'code_defect',
+                    summary: `Actual normal-input media coverage is incomplete: ${check.mediaId}/${check.state ?? check.kind}.`, actual: JSON.stringify(check.actual), expected: JSON.stringify(check.expected),
+                    reproduction: ['Run the two confirmed normal-input stages on this exact candidate.', `Read ${check.path.join('.')}.`], evidenceRefs: check.observations.map(row => `browser-evidence/${row.reportPath}`) });
+                }
+                await requireCurrent(); consumerDiagnostics = diagnostics;
+                const valid = diagnostics.reportValid && !diagnostics.issues.length && coverage.valid && coverage.complete;
                 if (valid) {
                   const paths = [...new Set(report.segments.flatMap(segment => segment.report.steps.filter(step => step.screenshot).map(step => `browser-evidence/${step.screenshot}`)))];
                   const chosen = [...new Set([...paths.slice(0, 4), ...paths.slice(-4)])];
                   for (const path of chosen) if (!(await regularFile(root, path)).subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) throw new Error('Host screenshot is not a PNG.');
                   pictures.set(task.taskId, chosen.map((location, index) => ({ artifactId: `${task.taskId}-screenshot-${index}`, version: ref.version, location })));
-                } else actual = 'The two exact normal-input documents did not establish complete current media coverage.';
+                } else actual = diagnostics.issues.map(issue => issue.summary).join('\n').slice(0, 16000) || 'The two exact normal-input documents did not establish complete current media coverage.';
                 return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
               }
               const gameplay: AcceptancePlan = { ...structuredClone(scenario), formatVersion: '1.0.0', projectId: 'game', runId: task.runId, taskId: task.taskId,
