@@ -29,7 +29,7 @@ import { loadContinuationPlan, prepareContinuationPlan } from './continuation-pl
 import type { ContinuationPlan } from './continuation-plan.ts';
 import { executionWindowView } from './execution-window.ts';
 import type { AcceptedCandidate } from '../artifacts/index.ts';
-import { deliveryTaskProofs, publishGenerationReport } from './experience.ts';
+import { deliveryTaskProofs, publishGenerationReport, readCompletedGeneration } from './experience.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
@@ -73,9 +73,10 @@ export async function executeGeneration(options: GenerationOptions) {
   const original = await readRunSnapshot(root);
   if (original.formatVersion !== 1) throw new Error('Generation has not been activated.');
   if (original.stopReason) throw new Error(`Original run is stopped: ${original.stopReason.code}.`);
-  if (Date.now() >= Date.parse(original.run.originalDeadlineAt)) throw new Error('Original deadline expired; no new generation window is allowed.');
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))) throw new Error('Requirement confirmation does not match this original run.');
   if (!sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Confirmed draft source changed.');
+  if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
+  if (Date.now() >= Date.parse(original.run.originalDeadlineAt)) throw new Error('Original deadline expired; no new generation window is allowed.');
   if (options.resume) await recoverRunOwner(root);
   const controller = await RunController.open({ root }), work = new OwnedWork(controller.signal);
   const stop = () => cancelAndDrain(controller, work, 'CLI user requested a durable hard stop.');
@@ -215,6 +216,7 @@ async function executeContinuation(options: GenerationOptions) {
   if (window.stopReason) throw new Error(`Execution window is stopped: ${window.stopReason.code}.`);
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))
     || !sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Original requirement confirmation changed.');
+  if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
   await recoverRunOwner(root);
   const controller = await RunController.open({ root, windowId }), work = new OwnedWork(controller.signal);
   let control: Awaited<ReturnType<typeof startControl>> | undefined, warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined;
