@@ -6,31 +6,35 @@ import ts from 'typescript';
 
 /** Executes the actual factory with synthetic engine/DOM transport; never a native-render claim. */
 async function factory(fault = '') {
-  let now = 1, visibility = 'visible';
+  let now = 1, visibility = 'visible', opacity = '1';
   class Canvas { width = 800; height = 500; isConnected = true; getBoundingClientRect() { return { width: 800, height: 500, left: 0, top: 0, right: 800, bottom: 500 }; } }
   class Context { canvas: any; constructor(canvas: any) { this.canvas = canvas; } drawImage() {} fill() {} stroke() {} fillRect() {} fillText() {} strokeText() {} }
+  class GLContext { canvas: any; constructor(canvas: any) { this.canvas = canvas; } drawArrays() {} drawElements() {}
+    get FRAMEBUFFER_BINDING() { return 0x8ca6; } getParameter(parameter: number) { assert.equal(parameter, 0x8ca6); return null; } }
   class Events { handlers = new Map<string, Function[]>(); on(name: string, action: Function) { this.handlers.set(name, [...this.handlers.get(name) ?? [], action]); }
     emit(name: string, ...args: any[]) { for (const handler of this.handlers.get(name) ?? []) handler(...args); } }
   class Renderer { game: any; gameCanvas: any; gameContext: any; constructor(game: any) { this.game = game; this.gameCanvas = fault === 'canvas' ? new Canvas() : game.canvas; this.gameContext = new Context(game.canvas); }
     preRender() {} render() { this.gameContext.fillRect(); this.gameContext.fillText(); } postRender() {} }
+  class GLRenderer { game: any; canvas: any; gl: any; constructor(game: any) { this.game = game; this.canvas = game.canvas; this.gl = new GLContext(game.canvas); }
+    preRender() {} render() { this.gl.drawArrays(); this.gl.drawElements(); } postRender() {} }
   class Manager { game: any; constructor(game: any) { this.game = game; }
     getScenes() { return this.game.scenes.filter((scene: any) => scene.sys.isActive()); }
     render(renderer: any) { for (const scene of this.game.scenes) renderer.render(scene, [{ active: true, visible: fault !== 'empty', alpha: 1 }], {}); } }
   class Game { canvas = new Canvas(); renderer: any; scene: any; scenes: any[]; isRunning = true; isPaused = false; events = new Events(); loop = { frame: 0, actualFps: 100000 };
-    constructor() { this.renderer = fault === 'null' ? null : new Renderer(this); this.scene = new Manager(this); this.scenes = [0, 1].map(index => ({ sys: {
+    constructor() { this.renderer = fault === 'null' ? null : fault === 'webgl' ? new GLRenderer(this) : new Renderer(this); this.scene = new Manager(this); this.scenes = [0, 1].map(index => ({ sys: {
       game: this, settings: { key: `scene-${index}` }, isActive: () => fault !== 'inactive', isVisible: () => true } })); }
     step() { this.renderer.preRender(); this.scene.render(this.renderer); this.renderer.postRender(); this.events.emit('postrender', this.renderer); }
     headlessStep() { this.events.emit('postrender', null); } getFrame() { return 100000; } }
-  const phaser: any = { VERSION: '3.90.0', Game, Scenes: { SceneManager: Manager }, Renderer: { Canvas: { CanvasRenderer: Renderer }, WebGL: { WebGLRenderer: class {} } },
+  const phaser: any = { VERSION: '3.90.0', Game, Scenes: { SceneManager: Manager }, Renderer: { Canvas: { CanvasRenderer: Renderer }, WebGL: { WebGLRenderer: GLRenderer } },
     Core: { Events: { PAUSE: 'pause', RESUME: 'resume', HIDDEN: 'hidden', VISIBLE: 'visible' } } };
   const exports: any = {}, context = vm.createContext({ exports, require: () => ({ default: phaser }), performance: { now: () => now }, crypto: { randomUUID: () => Math.random().toString() },
-    document: { get visibilityState() { return visibility; }, addEventListener() {} }, HTMLCanvasElement: Canvas, CanvasRenderingContext2D: Context, WebGLRenderingContext: class {},
-    getComputedStyle: () => ({ display: 'block', visibility: 'visible', opacity: '1' }), devicePixelRatio: 1, innerWidth: 1280, innerHeight: 720 });
+    document: { get visibilityState() { return visibility; }, addEventListener() {} }, HTMLCanvasElement: Canvas, CanvasRenderingContext2D: Context, WebGLRenderingContext: GLContext,
+    getComputedStyle: () => ({ display: 'block', visibility: 'visible', opacity }), devicePixelRatio: 1, innerWidth: 1280, innerHeight: 720 });
   const source = await readFile(new URL('../../templates/2d/render-frame-observer.ts', import.meta.url), 'utf8');
   const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInContext(js, context); const game = exports.createObservedGame({});
   const step = () => { now += 17; game.loop.frame++; game.step(now, 17); };
-  return { api: exports, game, step, hide: () => { visibility = 'hidden'; }, changeRenderer: () => { game.renderer = new Renderer(game); } };
+  return { api: exports, game, step, hide: () => { visibility = 'hidden'; }, opacity: (value: string) => { opacity = value; }, changeRenderer: () => { game.renderer = new Renderer(game); } };
 }
 test('actual factory counts once per native completed step across multiple scene/draw calls and ignores empty emits/EMA', async () => {
   const f = await factory(); for (let index = 0; index < 5; index++) f.step(); const before = f.api.readRenderSnapshot();
@@ -52,4 +56,36 @@ test('actual factory rejects hidden/paused, changed renderer and a different Gam
 });
 test('snapshot reads reject an identity change after the last completed frame', async () => {
   const f = await factory(); f.step(); f.changeRenderer(); assert.equal(f.api.readRenderSnapshot().nativePipeline, false);
+});
+for (const key of ['gameContext', 'gameCanvas', 'game', 'contextCanvas']) test(`snapshot reads reject changed native context ownership ${key}`, async () => {
+  const f = await factory(); f.step(); assert.equal(f.api.readRenderSnapshot().nativePipeline, true);
+  if (key === 'contextCanvas') f.game.renderer.gameContext.canvas = {};
+  else f.game.renderer[key] = {};
+  assert.equal(f.api.readRenderSnapshot().nativePipeline, false);
+});
+test('native context draw methods replaced before instrumentation cannot count a completed frame', async () => {
+  const f = await factory(); f.game.renderer.gameContext.fillRect = () => {}; f.game.renderer.gameContext.fillText = () => {};
+  f.step(); const point = f.api.readRenderSnapshot(); assert.equal(point.sequence, 0); assert.equal(point.nativePipeline, false);
+});
+test('WebGL observations retain native draws and reject current context/canvas/game or original method replacement', async () => {
+  const valid = await factory('webgl'); valid.step(); const point = valid.api.readRenderSnapshot();
+  assert.equal(point.nativePipeline, true); assert.equal(point.renderer, 'webgl'); assert.equal(point.sequence, 1); assert.equal(point.frames[0].draws, 4);
+  for (const key of ['gl', 'canvas', 'game', 'contextCanvas']) {
+    const f = await factory('webgl'); f.step();
+    if (key === 'contextCanvas') f.game.renderer.gl.canvas = {}; else f.game.renderer[key] = {};
+    assert.equal(f.api.readRenderSnapshot().nativePipeline, false);
+  }
+  for (const key of ['drawArrays', 'getParameter']) {
+    const f = await factory('webgl'); f.game.renderer.gl[key] = () => null; f.step();
+    assert.equal(f.api.readRenderSnapshot().nativePipeline, false); assert.equal(f.api.readRenderSnapshot().sequence, 0);
+  }
+});
+for (const kind of ['css', 'paused']) test(`transient ${kind} state changes the sampled activity epoch after restoration`, async () => {
+  const f = await factory(); f.step(); const before = f.api.readRenderSnapshot();
+  if (kind === 'css') f.opacity('0'); else f.game.isPaused = true;
+  f.step();
+  if (kind === 'css') f.opacity('1'); else f.game.isPaused = false;
+  f.step(); const after = f.api.readRenderSnapshot();
+  assert.equal(before.visible, true); assert.equal(after.visible, true); assert.equal(after.paused, false);
+  assert.notEqual(after.activityEpoch, before.activityEpoch);
 });

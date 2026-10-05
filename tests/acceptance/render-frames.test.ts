@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assessRenderFrames, validateRenderFrameRequest } from '../../src/acceptance/render-frames.ts';
+import { assessRenderFrames, collectRenderFrames, validateRenderFrameRequest } from '../../src/acceptance/render-frames.ts';
 
 const ref = (artifactId: string) => ({ artifactId, version: 'v1', location: `registry/${artifactId}/v1/files` });
 const request: any = { formatVersion: 'render-frame-request/1', candidate: ref('game'), observer: ref('render-frame-observer'), observerSha256: 'a'.repeat(64),
@@ -38,6 +38,7 @@ test('constant values, missing draws, manual events and invalid windows cannot b
     (value: any) => { value.after.renderer = null; }, (value: any) => { value.after.activeScenes = []; },
     (value: any) => { value.after.surface.width = 0; }, (value: any) => { value.after.visible = false; },
     (value: any) => { value.after.paused = true; }, (value: any) => { value.after.gameId = 'other'; },
+    (value: any) => { value.after.activityEpoch = 1; },
     (value: any) => { value.after.issues = ['observer_changed']; }, (value: any) => { value.request.candidate.version = 'other'; },
     (value: any) => { value.request.planBindingSha256 = 'd'.repeat(64); }, (value: any) => { value.request.windowId = 'other'; },
   ];
@@ -53,4 +54,10 @@ test('a low valid rendered-frame measurement remains a sample with no benchmark 
   const value = sample(); value.after.sequence = 14; value.after.frames = value.after.frames.slice(0, 4).map((row: any, index: number) => ({ ...row, time: 600 + index * 500 }));
   const result = assessRenderFrames(request, value); assert.equal(result.status, 'measured'); assert.equal(result.averageRenderFps, 2);
   assert.equal(result.performancePolicy, 'not_executed'); assert.equal(Object.hasOwn(result, 'classification'), false);
+});
+test('actual collector refuses insufficient original deadline before browser observation', async () => {
+  let observed = false;
+  await assert.rejects(collectRenderFrames({ evaluate: async () => { observed = true; } } as any, { ...request, deadlineAt: Date.now() + 1000 },
+    { viewport: { width: 1280, height: 720 }, browser: { channel: 'synthetic', version: 'synthetic', headless: true }, recording: { kind: 'context-video', enabled: true } }), /insufficient original deadline/);
+  assert.equal(observed, false);
 });

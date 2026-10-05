@@ -4,6 +4,11 @@ import Phaser from 'phaser';
 const nativeStep = Phaser.Game.prototype.step, nativeSceneRender = Phaser.Scenes.SceneManager.prototype.render;
 const nativeNow = performance.now, clock = () => nativeNow.call(performance);
 const CanvasRenderer = Phaser.Renderer.Canvas.CanvasRenderer, WebGLRenderer = Phaser.Renderer.WebGL.WebGLRenderer;
+const CanvasContext = CanvasRenderingContext2D, GLContext = WebGLRenderingContext, GL2Context = typeof WebGL2RenderingContext === 'undefined' ? null : WebGL2RenderingContext;
+const canvasDraws = ['drawImage', 'fill', 'stroke', 'fillRect', 'fillText', 'strokeText'], glDraws = ['drawArrays', 'drawElements'];
+const methods = (prototype: any, names: string[]): Record<string, Function> => Object.fromEntries(names.map(name => [name, prototype[name]]));
+const nativeCanvas = methods(CanvasContext.prototype, canvasDraws), nativeGL = methods(GLContext.prototype, [...glDraws, 'getParameter']);
+const nativeGL2 = GL2Context && methods(GL2Context.prototype, [...glDraws, 'getParameter']), framebufferBinding = GLContext.prototype.FRAMEBUFFER_BINDING;
 const states = new WeakMap<Phaser.Game, State>();
 let current: Phaser.Game | null = null, multipleGames = false;
 interface State {
@@ -11,6 +16,7 @@ interface State {
   renderer: any; canvas: HTMLCanvasElement | null; scene: any; context: any; wrappers: { object: any; key: string; value: Function }[];
   inside: boolean; stage: number; draws: number; renderable: boolean; lastScenes: string; lastSurface: string;
   stepSequence: number; postCalls: number; sceneRenders: number;
+  lastActivity: string;
 }
 function issue(state: State, reason: string) { state.issues.add(reason); }
 function surface(game: Phaser.Game) {
@@ -25,13 +31,24 @@ function visible(game: Phaser.Game) {
   return style.display !== 'none' && style.visibility === 'visible' && +style.opacity > 0 && rect.width > 0 && rect.height > 0
     && rect.right > 0 && rect.bottom > 0 && rect.left < innerWidth && rect.top < innerHeight;
 }
+function observeActivity(game: Phaser.Game, state: State) {
+  const activity = JSON.stringify([visible(game), game.isPaused || !game.isRunning]);
+  if (state.lastActivity && state.lastActivity !== activity) state.epoch++;
+  state.lastActivity = activity;
+}
+function currentOwnership(game: Phaser.Game, state: State) {
+  const renderer = state.renderer;
+  return renderer?.game === game && (renderer instanceof CanvasRenderer ? renderer.gameCanvas : renderer.canvas) === state.canvas
+    && (renderer instanceof CanvasRenderer ? renderer.gameContext : renderer.gl) === state.context && state.context?.canvas === state.canvas;
+}
 function instrument(game: Phaser.Game, state: State) {
   const renderer: any = game.renderer;
   if (!renderer || !(renderer instanceof CanvasRenderer || renderer instanceof WebGLRenderer) || renderer.game !== game
     || (renderer instanceof CanvasRenderer ? renderer.gameCanvas : renderer.canvas) !== game.canvas || !(game.canvas instanceof HTMLCanvasElement)) { issue(state, 'native_renderer_missing'); return; }
   const context: any = renderer instanceof CanvasRenderer ? renderer.gameContext : renderer.gl;
-  if (!context || context.canvas !== game.canvas || !(context instanceof CanvasRenderingContext2D
-    || context instanceof WebGLRenderingContext || typeof WebGL2RenderingContext !== 'undefined' && context instanceof WebGL2RenderingContext)) { issue(state, 'native_context_missing'); return; }
+  if (!context || context.canvas !== game.canvas || !(renderer instanceof CanvasRenderer ? context instanceof CanvasContext
+    : context instanceof GLContext || GL2Context && context instanceof GL2Context)) { issue(state, 'native_context_missing'); return; }
+  const contextMethods = renderer instanceof CanvasRenderer ? nativeCanvas : GL2Context && context instanceof GL2Context ? nativeGL2! : nativeGL;
   state.renderer = renderer; state.canvas = game.canvas; state.scene = game.scene; state.context = context;
   const wrap = (object: any, key: string, action: (original: Function, args: any[]) => any) => {
     const original = object[key];
@@ -60,10 +77,12 @@ function instrument(game: Phaser.Game, state: State) {
     state.postCalls++;
     const result = original.apply(renderer, args); state.stage = 4; return result;
   });
-  for (const name of renderer instanceof CanvasRenderer ? ['drawImage', 'fill', 'stroke', 'fillRect', 'fillText', 'strokeText'] : ['drawArrays', 'drawElements']) {
+  if (renderer instanceof WebGLRenderer) state.wrappers.push({ object: context, key: 'getParameter', value: contextMethods.getParameter });
+  for (const name of renderer instanceof CanvasRenderer ? canvasDraws : glDraws) {
+    if (typeof contextMethods[name] !== 'function' || context[name] !== contextMethods[name]) { issue(state, `native_context_method_changed:${name}`); continue; }
     wrap(context, name, (original, args) => {
       const result = original.apply(context, args);
-      const toCanvas = renderer instanceof CanvasRenderer || (context as any).getParameter((context as any).FRAMEBUFFER_BINDING) === null;
+      const toCanvas = renderer instanceof CanvasRenderer || contextMethods.getParameter.call(context, framebufferBinding) === null;
       if (state.inside && [2, 3].includes(state.stage) && state.renderable && toCanvas) state.draws++;
       return result;
     });
@@ -74,11 +93,12 @@ class ObservedGame extends Phaser.Game {
     const state = states.get(this); if (!state) { nativeStep.call(this, time, delta); return; }
     if (state.inside) { issue(state, 'recursive_game_step'); nativeStep.call(this, time, delta); return; }
     if (!state.renderer) instrument(this, state);
+    observeActivity(this, state);
     const names = JSON.stringify(scenes(this)), size = JSON.stringify(surface(this));
     if (state.lastScenes && state.lastScenes !== names || state.lastSurface && state.lastSurface !== size) state.epoch++;
     state.lastScenes = names; state.lastSurface = size;
     if (this.step !== ObservedGame.prototype.step || this.renderer !== state.renderer || this.canvas !== state.canvas || this.scene !== state.scene
-      || performance.now !== nativeNow || state.wrappers.some(wrapper => wrapper.object[wrapper.key] !== wrapper.value)) issue(state, 'observer_or_game_changed');
+      || !currentOwnership(this, state) || performance.now !== nativeNow || state.wrappers.some(wrapper => wrapper.object[wrapper.key] !== wrapper.value)) issue(state, 'observer_or_game_changed');
     state.inside = true; state.stage = 0; state.draws = 0; state.renderable = false; state.postCalls = 0; state.sceneRenders = 0; state.stepSequence++;
     try {
       nativeStep.call(this, time, delta);
@@ -95,7 +115,7 @@ export function createObservedGame(config: Phaser.Types.Core.GameConfig): Phaser
   const game = new ObservedGame(config);
   if (current) multipleGames = true;
   const state: State = { gameId: crypto.randomUUID(), sequence: 0, frames: [], issues: new Set(), epoch: 0,
-    renderer: null, canvas: null, scene: null, context: null, wrappers: [], inside: false, stage: 0, draws: 0, renderable: false, lastScenes: '', lastSurface: '', stepSequence: 0, postCalls: 0, sceneRenders: 0 };
+    renderer: null, canvas: null, scene: null, context: null, wrappers: [], inside: false, stage: 0, draws: 0, renderable: false, lastScenes: '', lastSurface: '', stepSequence: 0, postCalls: 0, sceneRenders: 0, lastActivity: '' };
   states.set(game, state); current = game;
   for (const event of [Phaser.Core.Events.PAUSE, Phaser.Core.Events.RESUME, Phaser.Core.Events.HIDDEN, Phaser.Core.Events.VISIBLE]) game.events.on(event, () => { state.epoch++; });
   document.addEventListener('visibilitychange', () => { state.epoch++; });
@@ -104,8 +124,9 @@ export function createObservedGame(config: Phaser.Types.Core.GameConfig): Phaser
 /** Read-only module export; author window/debug FPS declarations are never consumed. */
 export function readRenderSnapshot() {
   const game = current, state = game && states.get(game); if (!game || !state) throw new Error('No Game was created by the captured observer factory.');
+  observeActivity(game, state);
   if (state.renderer && (game.renderer !== state.renderer || game.canvas !== state.canvas || game.scene !== state.scene
-    || game.step !== ObservedGame.prototype.step || performance.now !== nativeNow || state.wrappers.some(wrapper => wrapper.object[wrapper.key] !== wrapper.value))) issue(state, 'observer_or_game_changed');
+    || !currentOwnership(game, state) || game.step !== ObservedGame.prototype.step || performance.now !== nativeNow || state.wrappers.some(wrapper => wrapper.object[wrapper.key] !== wrapper.value))) issue(state, 'observer_or_game_changed');
   const point = { formatVersion: 'phaser-render-observer/1', engineVersion: Phaser.VERSION, gameId: state.gameId,
     renderer: game.renderer instanceof CanvasRenderer ? 'canvas' : game.renderer instanceof WebGLRenderer ? 'webgl' : null,
     nativePipeline: !!state.renderer && !state.issues.size && !multipleGames, activeScenes: scenes(game), visible: visible(game), paused: game.isPaused || !game.isRunning,

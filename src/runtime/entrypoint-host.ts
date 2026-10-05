@@ -57,7 +57,7 @@ import type { HumanContinuationInput, HumanContinuationScope } from './entrypoin
 import { modeFromSelection, preparationContract } from '../roles/preparation-mode.ts';
 import { packageStandalone, withCleanDelivery } from './entrypoint-delivery.ts';
 import { createClassicPolicyScope } from './entrypoint-classic.ts';
-import { diagnoseBuild } from './repair/browser-diagnostics.ts';
+import { diagnoseBrowser, diagnoseBuild } from './repair/browser-diagnostics.ts';
 import { createRenderFrameScope, OBSERVER_SOURCE, renderFrameBuildArguments } from './entrypoint-frames.ts';
 import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
 
@@ -833,7 +833,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 }
                 pictures.set(task.taskId, chosen.map((location, index) => ({ artifactId: `${task.taskId}-screenshot-${index}`, version: ref.version, location })));
               }
-              if (!valid) { classification = sameValue(report.plan, plan) ? 'code_defect' : 'insufficient_evidence'; actual = 'Normal input report failed or did not match the fixed plan and candidate.'; }
+              if (!valid) {
+                if (frames) consumerDiagnostics = diagnoseBrowser(task, report, plan, `evidence/${task.taskId}/browser.json`);
+                else classification = sameValue(report.plan, plan) ? 'code_defect' : 'insufficient_evidence';
+                actual = 'Normal input report failed or did not match the fixed plan and candidate.';
+              }
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
           }); } finally { await evaluateClassic(); }
             return { ...result, passed: result.passed && (!classic || classicPassed) };
