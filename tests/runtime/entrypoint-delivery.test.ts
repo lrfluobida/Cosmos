@@ -142,6 +142,25 @@ test('original deadline cleanup reserve drains the actual server without a new w
   assert.equal(report.helperExited, true); assert.equal(report.deadlineAt, f.authority.deadlineAt); assert.equal(report.outcome, 'failed'); assert.ok(exited(report.helperPid));
 });
 
+test('long consumer helper uses its original deadline without a new 185 second cap', async t => {
+  const f = await fixture(t, 600000); await f.pack();
+  const original = globalThis.setTimeout, durations: number[] = [];
+  // Controlled timer fixture: make only the unwanted 185s timer fire immediately.
+  // The actual server/worker still start and stop; no system clock or deadline changes.
+  t.mock.method(globalThis, 'setTimeout', (callback: (...args: any[]) => void, delay?: number, ...args: any[]) => {
+    const ms = Number(delay ?? 0); durations.push(ms);
+    return original(callback, ms >= 185000 && ms <= 185001 ? 1 : ms, ...args);
+  });
+  const result = await withCleanDelivery(f.input, async clean => {
+    assert.equal((await fetch(clean.url)).status, 200);
+    assert.ok(durations.some(ms => ms > 185001 && ms <= 595000), 'Original long deadline must control the helper timer');
+    return { passed: true };
+  });
+  assert.equal(result.passed, true); assert.ok(!durations.some(ms => ms >= 185000 && ms <= 185001));
+  const report = JSON.parse(await readFile(join(f.root, 'evidence/host/delivery-check.json'), 'utf8'));
+  assert.equal(report.deadlineAt, f.authority.deadlineAt); assert.equal(report.helperExited, true); assert.equal(report.outcome, 'passed');
+});
+
 test('transfer frozen origin proxies the actual clean package and guards every request', async t => {
   const f = await fixture(t); await f.pack(); let current = true, calls = 0;
   const origin = await reserveTransferOrigin({ root: f.root, signal: f.signal, resume: false, requireScope: f.input.requireCurrent,

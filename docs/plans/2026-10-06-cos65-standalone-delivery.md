@@ -70,3 +70,9 @@
 - `cos65-final-cold-build.txt` 首次因 generic 返回值 required cast 的 TS2352 退出 2；改成先读 optional 字段再收窄布尔类型后，`cos65-final-cold-build-green.txt` cold tsc exit 0 / tool 8.3030181s。此前 typecheck 也通过。
 
 最终冷生产链 `cos65-final-cold-production-chain.tap`：1/1 PASS、0 skip，14685.7862ms / 总17736.8728ms；实际证据保留在 `C:/Users/26557/AppData/Local/Temp/Cosmos COS65 中文交付 UYSAcv`，9/9 normal / media 步骤、errors[]、browser cleanup 和 clean helper exit 均通过。最终准确 SHA 与 reviewer verdict 由独审交接记录。所有 stdout 是免费 source / TEMP 证据，真实 human / model generation / paid 均 NONE；原实际账本与参考安装保持未访问。
+
+### 独审时限修正
+
+首个 source candidate `8be559de70d86fc2e4574af9cb5c17b5e34289b0` 的 helper lifetime 错用了 default browser 的 185 秒总上限。独审指出 transfer 全部八段沿原 deadline 执行，仍有原窗口时间时不应撤服务。仅将 helper 的 timeoutMs 改成原 deadline 减既有 5 秒余量；`runOwnedNode` 继续按当前 authority 的余量收窄，worker deadline、10 秒 ready、2 秒结束收敛、browser timeout 和所有预算保持。
+
+`cos65-long-consumer-red.tap` 使用受控 setTimeout，仅把错误的 185 秒 timer 提前到 1ms，旧 helper 被取消，1 FAIL / 0 skip（515.6211ms）。修复后的 `cos65-long-consumer-cleanup-green.tap`：长窗口 timer 为大于 185 秒的原余量，实际 clean Node server 启动和主动退出，加真实 stop / 原 deadline cleanup 代表共 3/3 PASS、0 skip（7491.7356ms）；`cos65-long-consumer-typecheck.txt` exit 0 / tool 7.7328763s。受控 timer 属模拟，没有实际等待 185 秒或改本机时钟；原冷 DAG / Edge 全链与未变逻辑证据复用，没有重跑全矩阵。

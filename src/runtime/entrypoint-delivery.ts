@@ -84,7 +84,7 @@ export async function withCleanDelivery<T>(input: { root: string; project: strin
       await input.requireCurrent(); signal.throwIfAborted();
       const worker = fileURLToPath(new URL(import.meta.url.endsWith('.ts') ? './entrypoint-delivery-worker.ts' : './entrypoint-delivery-worker.js', import.meta.url));
       running = runOwnedNode({ controller: input.controller, authority: input.authority, args: ['--experimental-strip-types', worker, JSON.stringify({ project, ready, stop, candidate: input.candidate, deadlineAt })],
-        cwd: project, signal: AbortSignal.any([signal, abort.signal]), timeoutMs: Math.min(185000, remaining) }).then(result => ({ result }), error => ({ error }));
+        cwd: project, signal: AbortSignal.any([signal, abort.signal]), timeoutMs: remaining }).then(result => ({ result }), error => ({ error }));
       const readyDeadline = Math.min(deadlineAt, Date.now() + 10000);
       while (true) {
         signal.throwIfAborted();
