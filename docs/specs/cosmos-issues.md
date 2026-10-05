@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 68 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 69 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -114,6 +114,7 @@
 - [x] [COS-66 接通通用游戏的存档重开与跨阶段媒体验收](https://github.com/lrfluobida/Cosmos/issues/67)
 - [x] [COS-67 执行经典启动与离线政策并保留完整验收分母](https://github.com/lrfluobida/Cosmos/issues/68)
 - [ ] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
+- [ ] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1059,6 +1060,47 @@ src/runtime/entrypoint.ts 的初始路径和显式追加路径都先 publishGene
 
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
 稳定任务 ID：COS-68
+
+### COS-69 · 采集可信的游戏渲染帧与性能样本
+
+- 发布状态：[#70](https://github.com/lrfluobida/Cosmos/issues/70)，id5718776658；正文/native69children #2–#70/旧68保真与父新unchecked项已Root精确读回。in-progress/open/SOURCE_NOT_READY，初始短计划31d9经独审要求具体只读模块/编译staging后，最小plan-only修订`509a7e31e308be94f02d61ad37b9572e6cef38be`获独立PLAN_APPROVED；actual cos67_implementer在cos04独立实现，actual cos65_implementer为本卡独立reviewer、actual cos66_implementer为BATCH11唯一merger，二者未写本卡代码。
+
+## 目标
+
+补充游戏性能验收所需的真实渲染帧计量能力：在既有可信模板、正常输入 runner 和 production host 中采集真正 Phaser Game 的实际渲染完成帧与样本窗口，保留可审核的原始证据。此卡先验证采样能力，PERFORMANCE 基准条件尚未冻结，不把测量值写成完整性能政策通过。
+
+## 已核事实
+
+spec 第4B要求冻结本机配置、1280×720，普通场景平均至少55 FPS、无尽压力场景平均至少30 FPS。当前catalog PERFORMANCE只是requirement_defined，requirements为空，没有固定普通/压力工作量、样本窗口或证据。
+
+已只读核实固定Phaser3.90.0源：Game.step在真实renderer.preRender→scene.render→renderer.postRender后发POST_RENDER；headlessStep也发同事件但renderer为null，须拒。Game.getFrame是loop.frame；TimeStep.actualFps从targetFps初始化且为EMA，都不能当实际游戏渲染帧。当前通用模板为800×500/FIT，1280×720浏览器viewport不证明实际backbuffer同尺寸；现媒体桥只读descriptor/scalar，没有可信渲染帧采样。
+
+## 范围
+
+1. 在既有可信通用模板/捕获闭包加入只读observer，绑定真正Game、非null的真实renderer/canvas和正常游玩的active scene；记录实际渲染完成帧序号、原始monotonic时间和窗口，而非作者填写FPS、RAF/getFrame/actualFps常数或无renderer的手工事件。不能改变游戏状态或注入调试解法。
+2. 使用现normal-input runner和media观察的可信调用路径，在已达到可见场景的正常操作后按host选定、有界的samplewindow采集；不加模型可写script步骤、第二runner/执行器或后台服务。普通单场景及generic重开路径的绑定、exit/profile/origin/deadline保持。
+3. 原始样本绑定实际candidate/run/task/attempt/spec、requirement/design/media/可信observer捕获、exactplan、viewport、真实canvas/backbuffer/DPR、browser/channel/headed、visibility/paused状态和原窗口/截止。可取得的机器与录制配置如实记录；未取得的标unknown，不能默认为冻结设备。
+4. 从可信实际frame count及elapsed计算该采样窗口的平均渲染FPS，标清它只覆盖该candidate/场景/设备/窗口。报告帧丢失、无active renderer、暂停/隐藏、换Game/canvas、样本不足、错绑定或过deadline；不以其它高值补缺项。
+5. 样本与来源在原verification/独立review前产生，进入真实raw/review权限与TaskJournal签名。构建/clean delivery/media/现正常与persistent诊断复用；只改变采集所需接口。
+6. 固定经典目录230行/221待核实和原STARTUP/OFFLINE结果保持。本卡不冻结workload/设备，不新增已通过PERFORMANCE结果；其余7政策仍未完整执行。测量证据可作为未来政策adapter输入，报告说明缺fixed普通/无尽压力配置、时长与全流程证明。
+7. 阈值只在对应固定基准条件和可信测量都具备后才可比较。可信样本低值先如实报告；本卡不能把未冻结/未知条件误判为作者codeDefect，也不能触发新付费修复或放宽55/30要求。
+
+## 免费验收
+
+- 真正production caller选用可信采样器，一次免费真实Phaser/browser代表执行普通操作后采集；实核render事件、非null renderer、实际buffer、frame count/elapsed、source/candidate/plan和raw/review closure。Fixture数据与真实渲染/进程分列，模型调用0。
+- RAF/targetFPS常数、null renderer/headlessStep、手工空事件、无场景/空canvas、暂停/隐藏、observer被改、frame/time缺失或倒退、错candidate/plan/窗口、旧或换Game样本均不能作为有效实际游戏FPS证明。
+- 800×500/FIT在1280×720viewport明确记录真实分辨率差异；高帧数不抹去unknown机器/未冻结工作量/录制开销和PERFORMANCE未执行状态。
+- 原single/generic/transfer媒体/退出/声明确认按真实delta保持；复用已审Source64–67证据，不重复旧Edge全矩阵/110秒/30分钟组合，只新增必要frame代表与负例。
+- 专属implementer/reviewer先短计划独立PLAN_APPROVED再TDD，实际diff规格→质量，exactSHA/stdout/limitations由本批sole merger核后集成。UTF-8、中文最小patch/readback规则适用。
+
+## 前置与边界
+
+源码前置通用Phaser模板/Source64媒体观察、Source65 clean delivery、Source66正常保存重开、Source67固定目录部分报告以及现normal runner；相应已审源码即可，不要求完整经典或partial任务closed。输出支持COS14/COS15/COS18的未来性能验收。COS68完整清理计时独立实施，本卡不修改其entrypoint/experience/run关闭代码。
+
+共享验证¥150（首阶段¥30/COS16原¥10）、正式¥200/12h和目标¥100/6h保持。Source/freefixture，无新增paid、实际模型生成、human、新窗口；原C6 unknown974882/closure12/C7、参考未冻结、完整经典100%/95%及G4未通过保留。不得复制参考美术/音频，不手写目标经典游戏。
+
+父任务：https://github.com/lrfluobida/Cosmos/issues/1
+稳定任务 ID：COS-69
 
 ## 5. 任务与上下文包模板
 

@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 68
+    "childCount": 69
   },
   "tasks": [
     {
@@ -5068,8 +5068,84 @@
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE",
       "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-69",
+      "title": "采集可信的游戏渲染帧与性能样本",
+      "number": 70,
+      "id": 5718776658,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/70",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-05",
+          "number": 6,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/6"
+        },
+        {
+          "id": "COS-64",
+          "number": 65,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/65"
+        },
+        {
+          "id": "COS-65",
+          "number": 66,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/66"
+        },
+        {
+          "id": "COS-66",
+          "number": 67,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/67"
+        },
+        {
+          "id": "COS-67",
+          "number": 68,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/68"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-14",
+          "number": 15,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/15"
+        },
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-implementation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planInitialCommit": "31d9c243c911625d756f2088ca24a602b438de3f",
+      "planReviewedCommit": "509a7e31e308be94f02d61ad37b9572e6cef38be",
+      "implementer": "cos67_implementer (dedicated COS69 implementer)",
+      "reviewer": "cos65_implementer (dedicated COS69 independent reviewer)",
+      "batch": "11",
+      "merger": "cos66_implementer (dedicated BATCH11 sole merger)",
+      "acceptanceScope": "source-free-fixture-rendered-frame-sampling-only",
+      "performancePolicyStatus": "policy_not_executed",
+      "benchmarkConditionsFrozen": false,
+      "catalogRows": 230,
+      "referenceUnknownRows": 221,
+      "otherUnexecutedPolicies": 7,
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 68,
+  "verifiedNativeSubIssues": 69,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
