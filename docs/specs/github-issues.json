@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 62
+    "childCount": 63
   },
   "tasks": [
     {
@@ -4467,8 +4467,64 @@
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE",
       "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-63",
+      "title": "保留已完成运行的报告与试玩决定",
+      "number": 64,
+      "id": 5713969134,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/64",
+      "dependsOn": [
+        {
+          "id": "COS-62",
+          "number": 63,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/63"
+        }
+      ],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-34",
+          "number": 35,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/35"
+        },
+        {
+          "id": "COS-61",
+          "number": 62,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/62"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-17",
+          "number": 18,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/18"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-implementation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "88407ca8b59adf63ca90e2d8bacf71087cd94aed",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 62,
+  "verifiedNativeSubIssues": 63,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

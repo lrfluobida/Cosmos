@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 62 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-05 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 63 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -108,6 +108,7 @@
 - [ ] [COS-60 准备带编码时限的第七迁移案例与已核实余额准入](https://github.com/lrfluobida/Cosmos/issues/61)
 - [ ] [COS-61 接通准备模式首个显式编码追加窗口](https://github.com/lrfluobida/Cosmos/issues/62)
 - [x] [COS-62 验证准备模式追加后的生产交付与试玩](https://github.com/lrfluobida/Cosmos/issues/63)
+- [ ] [COS-63 保留已完成运行的报告与试玩决定](https://github.com/lrfluobida/Cosmos/issues/64)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -782,7 +783,7 @@ TRANSFER_CASE_SEVEN_SOURCE_READY / source-integrated / source-and-TEMP-only；�
 
 ### COS-61 · 接通准备模式首个显式编码追加窗口
 
-- 发布状态：[#62](https://github.com/lrfluobida/Cosmos/issues/62)，id5708959437；native parent已关联、登记时61children为历史，当前62children。最终候选`561a588356110712f40e72fd708e072fd31e5868`经专属cos61_reviewer整体APPROVED，唯一batch08_merger合入`415dfb57bb04042ebc02128fa3c43fffdf055e5f`；[公共审批](https://github.com/lrfluobida/Cosmos/issues/62#issuecomment-5993471549)经Root POST+GET精确读回。PUBLIC_HUMAN_CODING_CONTINUATION_SOURCE_READY审批保持；当前offline-verified-awaiting-human/source-integrated/open；注册时计划准备中/SOURCE_NOT_READY为历史。
+- 发布状态：[#62](https://github.com/lrfluobida/Cosmos/issues/62)，id5708959437；native parent已关联、登记时61children为历史，当前63children。最终候选`561a588356110712f40e72fd708e072fd31e5868`经专属cos61_reviewer整体APPROVED，唯一batch08_merger合入`415dfb57bb04042ebc02128fa3c43fffdf055e5f`；[公共审批](https://github.com/lrfluobida/Cosmos/issues/62#issuecomment-5993471549)经Root POST+GET精确读回。PUBLIC_HUMAN_CODING_CONTINUATION_SOURCE_READY审批保持；当前offline-verified-awaiting-human/source-integrated/open；注册时计划准备中/SOURCE_NOT_READY为历史。
 
 ## 目标与只读穿刺
 
@@ -834,7 +835,7 @@ source1/1（126453.4474ms）、最终compiled1/1（170179.0071ms）、context/au
 
 ### COS-62 · 验证准备模式追加后的生产交付与试玩
 
-- 发布状态：[#63](https://github.com/lrfluobida/Cosmos/issues/63)，id5713122564；标题与正文已修为生产回归验证，native parent62children #2–#63/旧61成员保持。最终`a21d233098d8a70ce8225732113efe21bd489027`经cos62_reviewer对3paths实际diff与GREEN原输出独审APPROVED/HUMAN_CONTINUATION_DELIVERY_VALIDATION_READY，唯一batch08_merger合入推送`fd1983a7b84f0ef4b8c611773d1a6d6ef018c957`，本卡source/TEMP回归范围complete/closed/source-integrated；[公共审批](https://github.com/lrfluobida/Cosmos/issues/63#issuecomment-5996443626)、body/state/父checkbox[x]由Root POST/PATCH+GET精确读回；src/依赖/既有fixture字节未改，无实际模型调用或真实human。
+- 发布状态：[#63](https://github.com/lrfluobida/Cosmos/issues/63)，id5713122564；标题与正文已修为生产回归验证，登记时native parent62children #2–#63/旧61成员保持，当前63children。最终`a21d233098d8a70ce8225732113efe21bd489027`经cos62_reviewer对3paths实际diff与GREEN原输出独审APPROVED/HUMAN_CONTINUATION_DELIVERY_VALIDATION_READY，唯一batch08_merger合入推送`fd1983a7b84f0ef4b8c611773d1a6d6ef018c957`，本卡source/TEMP回归范围complete/closed/source-integrated；[公共审批](https://github.com/lrfluobida/Cosmos/issues/63#issuecomment-5996443626)、body/state/父checkbox[x]由Root POST/PATCH+GET精确读回；src/依赖/既有fixture字节未改，无实际模型调用或真实human。
 - 源码前置：COS18 formal continuation、COS34 experience、COS61 preparation continuation的独立批准集成；outputs COS18/COS34。不要求partial产品任务先closed。
 
 ## 目标与实施范围
@@ -855,6 +856,31 @@ source1/1（126453.4474ms）、最终compiled1/1（170179.0071ms）、context/au
 
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
 稳定任务 ID：COS-62
+
+### COS-63 · 保留已完成运行的报告与试玩决定
+
+- 发布状态：[#64](https://github.com/lrfluobida/Cosmos/issues/64)，id5713969134；Root正文/native63children #2–#64/旧62成员保真与父新增unchecked项POST+GET精确读回。in-progress/open/SOURCE_NOT_READY；专属cos63_implementer从fd198在cos02的`codex/cos63-completed-generation-resume`实施，独立cos63_reviewer已PLAN_APPROVED短计划`88407ca8b59adf63ca90e2d8bacf71087cd94aed`，当前TDD；无最终源码批准或实际运行。
+- 源码前置：COS18/34/61已审集成；COS62已closed的source/TEMP生产回归证据；outputs COS18/COS17。partial产品任务不要求先closed。
+
+## 目标与范围
+
+完成并approve后再次resume可能重新发布UUID报告，使旧体验决定不再属于current report；目前为完整caller链源码推断。先用合法三任务/已accepted候选与公开CLI形成定向RED，不能用非法single-task输入代替生产路径。
+
+公开普通resume、resume --window及直接runtime resume在writer、deadline变更、环境prepare与重新执行前，只读识别可信已完成交付；复用current report/loadExperienceBinding，核原确认/mode/run/ledger/currentwindow/effectiveStop/owner/完成报告unknown与reserved、candidate/task/独立review/原全部AC，返回同一immutable report及当前体验状态。不恢复权限、清停止、对账或延时；完成报告错proof拒绝，未完成/未accepted/无完成报告继续既有recovery/reconcile。
+
+reportedAt只表示自动报告时间，用户decidedAt与等待单列；报告可能早于finally清理，不能据此认定全部清理完成或完整12h成绩，完整计时阶段缺口保持。
+
+## 免费验收与边界
+
+1. 合法成功报告及fixture stdin决定后，两种公开resume与直接runtime保持report UUID/hash/current marker/体验回执；无凭据、环境prepare或新角色调用。
+2. 已完成且无持久停止时跨原deadline只读返回交付；snapshot bytes/mtime、账务、原时钟/stop、报告/候选/calls保持。错window/mode/确认/proof、活动owner、完成报告unknown/reserved等按既有边界拒绝，无writer或新报告。
+3. 未完成恢复及合法费用收据核对保持；时间字段按实际来源表达，fixture不计真人。
+4. 复用Source62 production/full-three-task-one-grant/experience、Source61 compiled/consumer及COS34版本矩阵；新增轻fixture定向RED/GREEN，不重跑110秒生成。专属implementer/reviewer审实际diff，唯一batch08_merger集成。
+
+实际human/window/paid NONE，C6 unknown974882/closure12/真实C7外部前置保持；不增第二次追加、需求变更修复、完整经典适配或服务。共享验证¥150/首¥30/COS16原¥10，正式原¥200/12h、目标¥100/6h不变。
+
+父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
+稳定任务 ID：COS-63
 
 ## 5. 任务与上下文包模板
 
