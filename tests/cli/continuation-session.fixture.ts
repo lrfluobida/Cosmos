@@ -15,9 +15,9 @@ import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { deliveryTaskProofs, publishGenerationReport } from '../../src/runtime/experience.ts';
 
 /** Explicit offline fixture: real runtime/registry, fake model and fake build/browser. */
-export async function continuationSessionFixture(t: test.TestContext, options: { completeOriginal?: boolean; unknownAuthor?: boolean; failContinuationPlay?: boolean; interruptRole?: 'design' | 'art' | 'coding'; onContinuedAuthor?: (signal: AbortSignal) => Promise<void> } = {}) {
+export async function continuationSessionFixture(t: test.TestContext, options: { completeOriginal?: boolean; entrypointOriginal?: boolean; onHost?: (input: HostInput, host: any) => Promise<void>; unknownAuthor?: boolean; failContinuationPlay?: boolean; interruptRole?: 'design' | 'art' | 'coding'; onContinuedAuthor?: (signal: AbortSignal) => Promise<void> } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-public-window-')); t.after(() => rm(root, { recursive: true, force: true }));
-  const time = Date.now() - (options.completeOriginal ? 0 : 13 * 60 * 60 * 1000), now = () => time;
+  const time = Date.now() - (options.completeOriginal || options.entrypointOriginal ? 0 : 13 * 60 * 60 * 1000), now = () => time;
   const draft = withHostStages({ brief: '点击原创星星获胜', questions: [{ id: 'goal', prompt: '目标？' }], answers: { goal: '点击星星显示胜利' }, unsupported: [],
     acceptance: [{ acceptanceId: 'win', description: '点击获胜', steps: ['点击星星'], expected: '胜利', evidenceKinds: ['test_report'] }],
     scenario: { viewport: { width: 1280, height: 720 }, steps: [{ id: 'click', kind: 'locator-click', selector: '#star', timeoutMs: 1000 },
@@ -62,10 +62,12 @@ export async function continuationSessionFixture(t: test.TestContext, options: {
         return { text: JSON.stringify({ summary: 'Offline scoped output', remaining: [], uncertainty: [] }) };
       } };
     };
-    return host;
+    await options.onHost?.(input, host); return host;
   };
-  const controller = await RunController.open({ root, now });
-  try {
+  if (options.entrypointOriginal) await executeGeneration({ root, requirement, draft, resume: false, createHost });
+  else {
+    const controller = await RunController.open({ root, now });
+    try {
     const host = await createHost({ root, controller, requirement, draft, resume: false, work: new OwnedWork(controller.signal) });
     const planned = await planTaskDag({ controller, requirement, planningTaskId: 'planning', workspace: root, sessionRoot: join(root, 'sessions'), availableArtifacts: host.availableArtifacts, taskPolicies: host.taskPolicies, roleFactory: host.roleFactory });
     await writeFile(join(root, 'execution.json'), JSON.stringify({ capability: host.capability, requirement, tasks: planned.tasks, availableArtifacts: host.availableArtifacts, plan: planned.plan }), 'utf8');
@@ -79,7 +81,8 @@ export async function continuationSessionFixture(t: test.TestContext, options: {
       await publishGenerationReport(root, { outcome: 'awaiting_user_experience', runId: 'public-game', ledgerId: 'public-ledger', currentProject: root,
         ...final, effectiveTasks: deliveryTaskProofs(results) }, { capability: host.capability, requirement, unsupported: draft.unsupported });
     } else await controller.stop('Offline original hard stop');
-  } finally { await controller.close(); }
+    } finally { await controller.close(); }
+  }
   const original = JSON.parse(await readFile(join(root, 'snapshot.json'), 'utf8'));
   let ready = true;
   const host = { prepare: async () => ({ environmentReady: ready, executionReady: ready, reason: 'Offline prerequisite fixture' }), questions: async () => { throw new Error('No new interview'); }, draft: async () => { throw new Error('No new draft'); },

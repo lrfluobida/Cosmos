@@ -105,12 +105,12 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     } else {
       const snapshot = await readRunSnapshot(root);
       if (snapshot.formatVersion === 2) throw new Error('This run has an authorized continuation window; select it explicitly with resume --window <id>.');
-      if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
       if (snapshot.formatVersion === 1) {
         const { draft, requirement } = await readConfirmedGeneration(root, snapshot);
         if (options.draftMode !== undefined && !sameValue(draft.preparation, selectedMode)) throw new Error('Resume cannot replace the original draft mode.');
         const completed = await readCompletedGeneration(root, requirement);
         if (completed) { lines.close(); say(JSON.stringify(completed, null, 2)); return completed; }
+        if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
         if (Date.now() >= Date.parse(snapshot.run.originalDeadlineAt)) throw new Error('Original deadline expired; resume cannot extend it.');
         say(`恢复原运行 ${snapshot.run.runId}；费用与截止时间保持连续。`);
         lines.close();
@@ -118,6 +118,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         say(JSON.stringify(result, null, 2)); return result;
       }
       if (snapshot.formatVersion !== 'intake-1') throw new Error('Expected the original intake snapshot.');
+      if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
       if (options.draftMode !== undefined && !sameValue(snapshot.draftMode, selectedMode)) throw new Error('Resume cannot replace the original draft mode.');
       await recoverRunOwner(root);
       intake = await IntakeController.open({ root });

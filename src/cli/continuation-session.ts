@@ -66,10 +66,10 @@ export async function resumeContinuation(options: IO & { windowId: string }) {
   const root = resolve(options.root), state = await readRunSnapshot(root);
   if (state.formatVersion !== 2 || state.continuation?.currentWindowId !== options.windowId) throw new Error('续跑窗口与原运行不匹配。');
   const window = state.continuation.windows.find(item => item.windowId === options.windowId)!;
-  if (window.stopReason) throw new Error(`该窗口已持久停止 (${window.stopReason.code})，不能由 resume 清除。`);
   const inputs = await readConfirmedGeneration(root, state);
   const completed = await readCompletedGeneration(root, inputs.requirement);
   if (completed) { options.output.write(JSON.stringify(completed, null, 2) + '\n'); return completed; }
+  if (window.stopReason) throw new Error(`该窗口已持久停止 (${window.stopReason.code})，不能由 resume 清除。`);
   await rejectPreparationContinuation(root);
   if (!await ready({ ...options, root })) return { outcome: 'waiting_prerequisites' };
   const result = await options.host.execute({ root, ...inputs, resume: true, windowId: window.windowId, notify: message => options.output.write(message + '\n') });

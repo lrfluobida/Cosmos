@@ -43,6 +43,7 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
     if (errors.length || !allocation || task.runId !== run.runId || task.kind !== run.kind || task.specVersion !== run.specVersion || task.budget.ledgerId !== ledger.ledgerId || task.budget.allocationMicroCny !== allocation.amountMicroCny || task.budget.originalDeadlineAt !== run.originalDeadlineAt) throw new Error('Invalid snapshot task or task/run contract mismatch.');
   }
   const eventTypes = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'imported', 'budget_warning', 'stopped', 'task_saved', 'generation_activated',
+    ...(state.formatVersion !== 3 ? ['run_owner_drained'] : []),
     ...(state.formatVersion === 2 ? ['continuation_activated', 'window_stopped', 'window_owner_drained', 'window_owner_resumed'] : []),
     ...(state.formatVersion === 3 ? ['validation_case_claimed', 'validation_case_stopped', 'validation_repair_claimed', 'validation_allocation_closed'] : [])];
   if (!state.events.length || state.events[0].type !== 'created') throw new Error('Missing snapshot creation history.');

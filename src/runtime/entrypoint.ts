@@ -30,6 +30,7 @@ import type { ContinuationPlan } from './continuation-plan.ts';
 import { executionWindowView } from './execution-window.ts';
 import type { AcceptedCandidate } from '../artifacts/index.ts';
 import { deliveryTaskProofs, publishGenerationReport, readCompletedGeneration } from './experience.ts';
+import { finishCompletion } from './completion-timing.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
@@ -72,10 +73,10 @@ export async function executeGeneration(options: GenerationOptions) {
   if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Generation requires the exact confirmed acceptance.');
   const original = await readRunSnapshot(root);
   if (original.formatVersion !== 1) throw new Error('Generation has not been activated.');
-  if (original.stopReason) throw new Error(`Original run is stopped: ${original.stopReason.code}.`);
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))) throw new Error('Requirement confirmation does not match this original run.');
   if (!sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Confirmed draft source changed.');
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
+  if (original.stopReason) throw new Error(`Original run is stopped: ${original.stopReason.code}.`);
   if (Date.now() >= Date.parse(original.run.originalDeadlineAt)) throw new Error('Original deadline expired; no new generation window is allowed.');
   if (options.resume) await recoverRunOwner(root);
   const controller = await RunController.open({ root }), work = new OwnedWork(controller.signal);
@@ -84,6 +85,7 @@ export async function executeGeneration(options: GenerationOptions) {
   let control: Awaited<ReturnType<typeof startControl>> | undefined;
   let warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined;
   let closePreparation: (() => Promise<void>) | undefined;
+  let published: any, completionTiming: any;
   try {
     control = await startControl(root, original.run.runId, stop); process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
     if (options.notify) warnings = await startBudgetWarnings(root, options.notify);
@@ -198,11 +200,14 @@ export async function executeGeneration(options: GenerationOptions) {
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff })),
         replacement: null, reusedTaskIds: [], effectiveTasks: deliveryTaskProofs(state.tasks), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
     });
-    return await publishGenerationReport(root, outcome, { capability: host.capability, requirement, unsupported: draft.unsupported });
+    published = await publishGenerationReport(root, { ...outcome, requiresCompletionTiming: true }, { capability: host.capability, requirement, unsupported: draft.unsupported });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
-    await warnings?.close(); await control?.close(); await closePreparation?.(); await controller.close();
+    completionTiming = await finishCompletion({ root, controller, work, published: published?.report, cleanup: [
+      ...(warnings ? [{ name: 'warnings', close: () => warnings!.close() }] : []), ...(control ? [{ name: 'control', close: () => control!.close() }] : []),
+      ...(closePreparation ? [{ name: 'preparation', close: closePreparation }] : [])] });
   }
+  return { ...published, completionTiming, ...(!completionTiming.eligible ? { outcome: 'incomplete' } : {}) };
 }
 
 /** One existing explicit window, using the same executor and the host's fixed complete binding. */
@@ -213,15 +218,16 @@ async function executeContinuation(options: GenerationOptions) {
   const original = await readRunSnapshot(root);
   if (original.formatVersion !== 2 || original.continuation?.currentWindowId !== windowId) throw new Error('Wrong continuation execution window.');
   const window = original.continuation.windows.find(item => item.windowId === windowId)!;
-  if (window.stopReason) throw new Error(`Execution window is stopped: ${window.stopReason.code}.`);
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))
     || !sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Original requirement confirmation changed.');
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
+  if (window.stopReason) throw new Error(`Execution window is stopped: ${window.stopReason.code}.`);
   await recoverRunOwner(root);
   const controller = await RunController.open({ root, windowId }), work = new OwnedWork(controller.signal);
   let control: Awaited<ReturnType<typeof startControl>> | undefined, warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined;
   let host: GenerationHost | undefined, plan: ContinuationPlan | undefined;
   let preparationClosing: Promise<void> | undefined, stopping: Promise<void> | undefined;
+  let published: any, completionTiming: any;
   const closePreparation = () => preparationClosing ??= Promise.resolve().then(() => host?.closePreparation?.());
   const stop = () => stopping ??= (async () => {
     await cancelAndDrain(controller, work, 'CLI user requested a durable window stop.');
@@ -232,7 +238,7 @@ async function executeContinuation(options: GenerationOptions) {
     controller.signal.throwIfAborted();
     control = await startControl(root, original.run.runId, stop, windowId); process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
     if (options.notify) warnings = await startBudgetWarnings(root, options.notify);
-    return await work.run(async signal => {
+    published = await work.run(async signal => {
       let reusedTaskIds: string[] = [], blocked: { taskId: string; reason: string }[] = [], final: { delivery?: string; gaps: string[]; acceptedCandidate?: AcceptedCandidate } = { gaps: [] };
       try {
         await reconcileEntryReceipts(root, controller);
@@ -266,10 +272,13 @@ async function executeContinuation(options: GenerationOptions) {
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff,
           supersededBy: plan?.replacements.find(item => item.sourceTaskId === task.taskId && state.tasks.some(target => target.taskId === item.replacementTaskId))?.replacementTaskId ?? null })),
         effectiveTasks: deliveryTaskProofs(effective), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
-      return await publishGenerationReport(root, outcome, { capability: host?.capability ?? 'unavailable', requirement, unsupported: draft.unsupported });
+      return await publishGenerationReport(root, { ...outcome, requiresCompletionTiming: true }, { capability: host?.capability ?? 'unavailable', requirement, unsupported: draft.unsupported });
     });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
-    await warnings?.close(); await closePreparation(); await control?.close(); await controller.closeAfterDrain(work);
+    completionTiming = await finishCompletion({ root, controller, work, published: published?.report, cleanup: [
+      ...(warnings ? [{ name: 'warnings', close: () => warnings!.close() }] : []), { name: 'preparation', close: closePreparation },
+      ...(control ? [{ name: 'control', close: () => control!.close() }] : [])] });
   }
+  return { ...published, completionTiming, ...(!completionTiming.eligible ? { outcome: 'incomplete' } : {}) };
 }
