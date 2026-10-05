@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 57
+    "childCount": 58
   },
   "tasks": [
     {
@@ -3833,9 +3833,40 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "in-progress",
-      "implementationPhase": "in-progress",
-      "reviewStatus": "SOURCE_NOT_READY"
+      "integrationStatus": "offline-verified-awaiting-live",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "HISTORICAL_PASSED_STAGES_SOURCE_READY",
+      "reviewedCommit": "e5cfa78f2fcda111bb6457bfa4f9c41b4229b260",
+      "mergeCommit": "384fbd2e59186857113cddc284050490fac389da",
+      "sourceProgressComment": "https://github.com/lrfluobida/Cosmos/issues/57#issuecomment-5986525798",
+      "validationEvidence": {
+        "scope": "source-and-temp-only",
+        "independentFixReview": {
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0,
+          "durationMs": 67482
+        },
+        "mergeRepresentative": {
+          "passed": 1,
+          "skipped": 0,
+          "durationMs": 1.8417
+        },
+        "unaffectedEvidenceReused": true,
+        "actualCaseSix": "not-claimed",
+        "humanExperience": "NONE",
+        "helperStrictFix": {
+          "passed": true,
+          "durationMs": 8113,
+          "generatedJavaScriptUnchanged": true,
+          "typeOnly": true
+        }
+      },
+      "originalSourceApproval": {
+        "reviewedCommit": "40cedc3b953d92c381a8df2fb62c250f24043bd5",
+        "mergeCommit": "0bbe4c799880f10f31906637ac2ade1c97797e2f",
+        "comment": "https://github.com/lrfluobida/Cosmos/issues/57#issuecomment-5986270559"
+      }
     },
     {
       "taskId": "COS-57",
@@ -3880,11 +3911,73 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY"
+    },
+    {
+      "taskId": "COS-58",
+      "title": "接通公开 CLI 的推箱子准备模式生成与恢复",
+      "number": 59,
+      "id": 5704951453,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/59",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-52",
+          "number": 53,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/53"
+        },
+        {
+          "id": "COS-53",
+          "number": 54,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/54"
+        },
+        {
+          "id": "COS-54",
+          "number": 55,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/55"
+        },
+        {
+          "id": "COS-55",
+          "number": 56,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/56"
+        },
+        {
+          "id": "COS-56",
+          "number": 57,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/57"
+        },
+        {
+          "id": "COS-57",
+          "number": 58,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/58"
+        }
+      ],
+      "sourcePrerequisiteScopes": {
+        "COS-16": "frozen-contract-scope",
+        "COS-18": "partial-reviewed-source"
+      },
+      "validationOutputsFor": [
+        {
+          "id": "COS-16",
+          "number": 17,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/17"
+        },
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
       "integrationStatus": "not-started",
       "implementationPhase": "not-started",
       "reviewStatus": "SOURCE_NOT_READY"
     }
   ],
-  "verifiedNativeSubIssues": 57,
+  "verifiedNativeSubIssues": 58,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
