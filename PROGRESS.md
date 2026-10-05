@@ -907,7 +907,7 @@ COS69最终`b002120eef65de936a569edca1260797ac18f752`（source/tests `2ac5858e01
 
 ### COS70 公开 CLI 采样选择与恢复绑定登记
 
-Root 已发布并精确读回 [COS70 / #71](https://github.com/lrfluobida/Cosmos/issues/71)（id5719982616）；父任务实际70个原生子任务 #2–#71，旧69映射及13项完成保持，新COS70未勾选。实际缺口是公开 CLI 创建产品host时未传renderFrames，用户需改内部装配才能启用已审Source69。
+Root 已发布并精确读回 [COS70 / #71](https://github.com/lrfluobida/Cosmos/issues/71)（id5719982616）；父任务实际70个原生子任务 #2–#71，旧69映射及父任务11项完成保持，新COS70未勾选。实际缺口是公开 CLI 创建产品host时未传renderFrames，用户需改内部装配才能启用已审Source69。
 
 作者actual65在专属cos05工作树、codex/cos70-cli-frame-selection从c999d53提交短计划4754935888365e5f0810d387cd5a406fe7022f01（21行/275词）。专属独立reviewer actual67已对实际计划、任务卡和当前公开入口给出PLAN_APPROVED；采用--render-frames true|false，在原来源/显示确认/签名前保存选择，未完成恢复和首个coding追加保持原observer及输入闭包，显式冲突或漂移拒绝，完成恢复/status沿用只读分支。作者开始TDD，当前SOURCE_NOT_READY/in-progress/open，无已批实现SHA；本批仅actual66 merger可集成main。
 
