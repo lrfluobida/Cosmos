@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 61
+    "childCount": 62
   },
   "tasks": [
     {
@@ -4310,7 +4310,7 @@
       ],
       "nativeParentLinked": true,
       "state": "open",
-      "integrationStatus": "offline-verified-awaiting-human",
+      "integrationStatus": "source-integrated-with-host-wiring-gap",
       "implementationPhase": "source-integrated",
       "reviewStatus": "PUBLIC_HUMAN_CODING_CONTINUATION_SOURCE_READY",
       "planReviewStatus": "PLAN_APPROVED",
@@ -4320,6 +4320,20 @@
       "sourceTestsCommit": "400b7aed55496ce413111b7b4217df92833e6e3f",
       "mergeCommit": "415dfb57bb04042ebc02128fa3c43fffdf055e5f",
       "readyCommentUrl": "https://github.com/lrfluobida/Cosmos/issues/62#issuecomment-5993471549",
+      "knownGaps": [
+        {
+          "code": "human-continuation-core-host-wiring",
+          "description": "Injected createHost fixtures passed; actual core factory omits human passed design/art at inherited, validateTasks and finish and rejects the single coding task.",
+          "sourceLocations": "src/runtime/entrypoint-host.ts:239,538,932,783",
+          "trackedBy": "COS-62"
+        },
+        {
+          "code": "continuation-experience-acceptance-coverage",
+          "description": "The continuation report includes only current coding and cannot cover the original design/media acceptance checks required by experience.",
+          "sourceLocations": "src/runtime/entrypoint.ts; src/runtime/experience.ts",
+          "trackedBy": "COS-62"
+        }
+      ],
       "validationEvidence": {
         "scope": "source-and-temp-only",
         "transport": "synthetic-sdk-and-stdin",
@@ -4376,8 +4390,56 @@
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE",
       "humanExperience": "NONE"
+    },
+    {
+      "taskId": "COS-62",
+      "title": "补齐编码追加的主机接线与最终试玩证明",
+      "number": 63,
+      "id": 5713122564,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/63",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-34",
+          "number": 35,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/35"
+        },
+        {
+          "id": "COS-61",
+          "number": 62,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/62"
+        }
+      ],
+      "validationOutputsFor": [
+        {
+          "id": "COS-18",
+          "number": 19,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/19"
+        },
+        {
+          "id": "COS-34",
+          "number": 35,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/35"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "planning",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 61,
+  "verifiedNativeSubIssues": 62,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
