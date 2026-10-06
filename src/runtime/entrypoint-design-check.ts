@@ -3,6 +3,7 @@ import { Type } from 'typebox';
 import { regularFile } from '../artifacts/paths.ts';
 import { identifier } from '../media/validation.ts';
 import { validateDesign } from './entrypoint-media.ts';
+import { validateModuleContracts } from './modular-code.ts';
 
 export const GAME_DESIGN_CHECK = 'validate-game-design';
 export const MEDIA_IDENTIFIER_RULE = 'Media IDs, state names and layer IDs must match ^[a-z][a-z0-9-]{0,47}$; con/prn/aux/nul/com1..9/lpt1..9 are reserved. These restrictions do not apply to Chinese or other display text.';
@@ -10,7 +11,7 @@ const FILE = 'authors/design/design.json';
 interface Feedback { passed: boolean; errors: { path: string; message: string }[] }
 
 /** Advisory author feedback only. Capture and independent review still validate actual output. */
-export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; guard(signal: AbortSignal): Promise<void> }) {
+export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean; guard(signal: AbortSignal): Promise<void> }) {
   const gameplayIds = [...input.gameplayIds];
   function evaluate(bytes: Buffer | null): Feedback {
     const failed = (message: string): Feedback => ({ passed: false, errors: [{ path: FILE, message }] });
@@ -20,7 +21,7 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
     catch { return failed('Design output must use valid UTF-8.'); }
     try { value = JSON.parse(text); }
     catch { return failed('Design output requires one complete JSON object.'); }
-    try { validateDesign(value, gameplayIds); return { passed: true, errors: [] }; }
+    try { validateDesign(value, gameplayIds, input.modular); return { passed: true, errors: [] }; }
     catch (error) {
       const errors: Feedback['errors'] = [];
       const check = (value: unknown, path: string) => { try { identifier(value); } catch { errors.push({ path, message: MEDIA_IDENTIFIER_RULE }); } };
@@ -48,7 +49,9 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
       let bytes: Buffer | null;
       try { bytes = await regularFile(input.workspace, FILE); }
       catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; bytes = null; }
-      const result = evaluate(bytes);
+      let result = evaluate(bytes);
+      if (result.passed && input.modular) try { validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, 'authors/design/module-contracts.d.ts'))); }
+      catch (error) { result = { passed: false, errors: [{ path: 'authors/design/module-contracts.d.ts', message: error instanceof Error ? error.message : 'Protected interfaces are missing.' }] }; }
       await input.guard(active); active.throwIfAborted();
       return { content: [{ type: 'text' as const, text: JSON.stringify(result) }], details: {} };
     },

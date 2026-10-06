@@ -8,6 +8,8 @@ import { regularFile, safePath, snapshot, within } from '../artifacts/paths.ts';
 import { roleToolEnvironment } from '../roles/factory.ts';
 import type { ArtifactReference } from '../contracts/types.ts';
 import { OBSERVER_SOURCE, renderFrameBuildArguments } from './entrypoint-frames.ts';
+import { MODULE_CONTRACTS, MODULE_SLOTS, moduleDirectory, moduleProbe, moduleSource, validateModuleContracts, validateModuleFiles, validateModuleProgram } from './modular-code.ts';
+import type { ModularCompilerInputs } from './modular-code.ts';
 
 export const CODING_CHECK_RESULT = 'COSMOS_CODING_BUILD_RESULT=';
 export const CODING_TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
@@ -27,11 +29,13 @@ export interface CodingCheckRequest {
   phase: 'typecheck' | 'build'; work?: string;
   sourceSignature: string; templateSignature: string; mediaSignature: string;
   observer?: { directory: string; ref: ArtifactReference; sha256: string };
+  modular?: ModularCompilerInputs;
 }
 export async function projectInputs(input: CodingCheckRequest) {
-  const source = await snapshot(await safePath(input.workspace, 'authors/coding'));
-  if (source.size < 2 || !source.has('index.html') || !source.has('src/main.ts')
-    || [...source.keys()].some(name => name !== 'index.html' && !name.startsWith('src/'))) throw new Error('Coding check requires only current index.html and src files.');
+  const slot = input.modular?.slot, source = await snapshot(await safePath(input.workspace, slot && slot !== 'integration' ? moduleSource(slot) : 'authors/coding'));
+  if (slot && slot !== 'integration') validateModuleFiles(source, slot);
+  else if (source.size < 2 || !source.has('index.html') || !source.has('src/main.ts')
+    || [...source.keys()].some(name => name !== 'index.html' && (slot === 'integration' ? name !== 'src/main.ts' && !name.startsWith('src/integration/') : !name.startsWith('src/')))) throw new Error('Coding check requires only current scoped index.html and src files.');
   for (const bytes of source.values()) new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   const template = new Map<string, Buffer>();
   for (const name of CODING_TEMPLATE_FILES) template.set(name, await regularFile(input.template, name));
@@ -46,6 +50,23 @@ export async function projectInputs(input: CodingCheckRequest) {
       || !resolve(input.observer.directory).replaceAll('\\', '/').endsWith('/' + input.observer.ref.location)
       || createHash('sha256').update(bytes).digest('hex') !== input.observer.sha256) throw new Error('Coding check selected observer capture/signature changed.');
     template.set(OBSERVER_SOURCE, bytes);
+  }
+  if (input.modular) {
+    const fixed = input.modular.contracts, bytes = await regularFile(fixed.directory, MODULE_CONTRACTS);
+    if (fixed.ref.artifactId !== 'design' || fixed.ref.version !== 'v1' || fixed.ref.location !== 'registry/captures/design/v1/files'
+      || !resolve(fixed.directory).replaceAll('\\', '/').endsWith('/' + fixed.ref.location) || createHash('sha256').update(bytes).digest('hex') !== fixed.sha256) throw new Error('Protected module interface capture changed.');
+    validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); template.set(MODULE_CONTRACTS, bytes);
+    if (slot !== 'integration') template.set('src/cosmos-module-probe.ts', Buffer.from(moduleProbe(slot!)));
+    else {
+      if (input.modular.modules?.length !== 2) throw new Error('Integration compiler needs both fixed modules.');
+      for (const [index, module] of input.modular.modules.entries()) {
+        if (module.slot !== MODULE_SLOTS[index] || module.ref.artifactId !== `module-${module.slot}` || module.ref.version !== 'v1'
+          || module.ref.location !== `registry/captures/module-${module.slot}/v1/files` || !resolve(module.directory).replaceAll('\\', '/').endsWith('/' + module.ref.location)) throw new Error('Integration module identity changed.');
+        const files = await snapshot(module.directory); validateModuleFiles(files, module.slot);
+        if (codingSignature(files) !== module.signature) throw new Error('Integration module capture bytes changed.');
+        for (const [name, bytes] of files) template.set(name, bytes);
+      }
+    }
   }
   return { source, template, media };
 }
@@ -84,9 +105,14 @@ async function check(input: CodingCheckRequest) {
   if (Date.parse(input.deadlineAt) - Date.now() <= 5000) throw new Error('Coding check has insufficient cleanup time.');
   const args = input.phase === 'typecheck' ? [join(modules, 'typescript/bin/tsc'), '--noEmit', '-p', 'tsconfig.json'] : renderFrameBuildArguments(input.toolchain, !!input.observer);
   const result = await compiler(args, work);
+  let moduleCheck: { passed: boolean; exports?: string[]; error?: string } | undefined;
+  if (input.modular && input.modular.slot !== 'integration' && result.code === 0) {
+    try { moduleCheck = { passed: true, exports: validateModuleProgram(work, input.modular.slot) }; }
+    catch (error) { moduleCheck = { passed: false, error: error instanceof Error ? error.message : 'Actual namespace proof failed.' }; }
+  }
   await projectInputs(input);
-  return { passed: result.code === 0, work, workerPid: process.pid,
-    diagnostics: (result.stdout + result.stderr).slice(0, 24000), results: [result] };
+  return { passed: result.code === 0 && moduleCheck?.passed !== false, work, workerPid: process.pid, ...(moduleCheck ? { moduleCheck } : {}),
+    diagnostics: (result.stdout + result.stderr + (moduleCheck?.error ?? '')).slice(0, 24000), results: [result] };
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try { process.stdout.write(CODING_CHECK_RESULT + JSON.stringify(await check(JSON.parse(process.argv[2]))) + '\n'); }

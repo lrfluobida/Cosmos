@@ -39,10 +39,19 @@ export interface RepairContinuationPlan {
 export class SuccessorBlocked extends Error {}
 const blocked = (message: string): never => { throw new SuccessorBlocked(message); };
 const currentTask = (snapshot: RunSnapshot, id: string) => snapshot.tasks.find(task => task.taskId === id) ?? blocked(`Original task is missing: ${id}`);
+const moduleIds = ['COSMOS-MODULE-A', 'COSMOS-MODULE-B'];
+const isModule = (item: PreparedTask) => item.role === 'coding' && item.task.acceptanceIds.length === 1 && moduleIds.includes(item.task.acceptanceIds[0]);
+function modularDag(originals: readonly PreparedTask[]): boolean {
+  return originals.length === 5 && ['design', 'art'].every(role => originals.filter(item => item.role === role).length === 1)
+    && originals.filter(item => item.role === 'coding' && !isModule(item)).length === 1 && moduleIds.every((id, index) => originals.filter(item => isModule(item)
+      && item.task.acceptanceIds[0] === id && item.expectedArtifacts?.length === 1 && item.expectedArtifacts[0].artifactId === `module-${index ? 'b' : 'a'}`
+      && item.expectedArtifacts[0].version === 'v1' && item.task.outputs[0].schema === 'modular-code/1').length === 1);
+}
 
 function ordered(originals: readonly PreparedTask[]): PreparedTask[] {
-  if (!originals.length || originals.length > 3 || new Set(originals.map(item => item.task.taskId)).size !== originals.length
-    || new Set(originals.map(item => item.role)).size !== originals.length || originals.some(item => !['design', 'art', 'coding'].includes(item.role))) blocked('Successors support only the existing bounded design/art/coding DAG.');
+  const modular = modularDag(originals);
+  if (!originals.length || !modular && (originals.length > 3 || new Set(originals.map(item => item.role)).size !== originals.length)
+    || new Set(originals.map(item => item.task.taskId)).size !== originals.length || originals.some(item => !['design', 'art', 'coding'].includes(item.role))) blocked('Successors require the original bounded role DAG or fixed five-task modular DAG.');
   const result: PreparedTask[] = [], remaining = [...originals];
   while (remaining.length) {
     const index = remaining.findIndex(item => item.task.dependsOn.every(dependency => result.some(parent => parent.task.taskId === dependency.taskId)));
@@ -60,6 +69,7 @@ function ordered(originals: readonly PreparedTask[]): PreparedTask[] {
 /** Data qualification only. The caller must separately inspect the original journals and output paths. */
 export function findUnstartedSuccessors(snapshot: RunSnapshot, originals: readonly PreparedTask[], failedId: string): PreparedTask[] {
   const tasks = ordered(originals), affected = new Set([failedId]);
+  if (modularDag(originals) && !originals.some(item => item.task.taskId === failedId && item.role === 'coding' && !isModule(item))) blocked('Modular repairs support only final integration; preserve module failures without rebinding.');
   if (!tasks.some(item => item.task.taskId === failedId)) blocked('Failed task does not belong to the original plan.');
   const result: PreparedTask[] = [];
   for (const item of tasks) {

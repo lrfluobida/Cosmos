@@ -8,7 +8,7 @@ import { regularFile, safePath } from '../artifacts/paths.ts';
 import { IntakeController } from '../runtime/intake.ts';
 import type { StoredDraft } from '../runtime/intake.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
-import { confirmRequirements, gameplayAcceptance, HOST_STAGE_ACCEPTANCE, validateGameDraft } from '../roles/requirements.ts';
+import { confirmRequirements, gameplayAcceptance, HOST_STAGE_ACCEPTANCE, MODULE_STAGE_ACCEPTANCE, validateGameDraft } from '../roles/requirements.ts';
 import type { GameDraft } from '../roles/requirements.ts';
 import { modeFromSelection, resolveDraftMode } from '../roles/preparation-mode.ts';
 import type { DraftMode } from '../roles/preparation-mode.ts';
@@ -55,7 +55,8 @@ export async function readConfirmedGeneration(root: string, snapshot: RunSnapsho
 function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection): string {
   const lines = [`草稿 v${draft.revision}`, `游戏需求：${draft.brief}`, '已回答的问题：', ...draft.questions.map(question => `- ${question.prompt} ${draft.answers[question.id] ?? '尚未回答'}`), '玩法要求：'];
   for (const item of gameplayAcceptance(draft)) lines.push(`- ${item.description}`, `  操作：${item.steps.join('；')}`, `  期望：${item.expected}`);
-  for (const stage of HOST_STAGE_ACCEPTANCE) if (draft.acceptance.some(item => item.acceptanceId === stage.acceptanceId)) lines.push(stage.description, `- ${stage.expected}`);
+  for (const stage of [...HOST_STAGE_ACCEPTANCE, ...(draft.codeProfile ? MODULE_STAGE_ACCEPTANCE : [])]) if (draft.acceptance.some(item => item.acceptanceId === stage.acceptanceId)) lines.push(stage.description, `- ${stage.expected}`);
+  if (draft.codeProfile) lines.push('编码组织：两个独立模块与最终集成，共五项角色任务；模块只认局部编译、接口和源码审查，最终游戏仍须满足全部玩法。coding 原 40% 内按 10%/10%/20% 分配；仅最终集成可按原策略修复一次，模块失败保留差距。此模式暂不支持追加窗口。');
   if (draft.acceptance.some(item => item.acceptanceId === 'COSMOS-MEDIA')) lines.push('最终游戏还会检查素材实际载入、动作和音频触发；未覆盖的项目会保留为差距。美术辨识度与听感留待最终试玩。');
   if (frames) lines.push('渲染帧采样：记录本次正常游玩窗口的实际帧与画布尺寸；设备与工作量未冻结，完整性能政策仍未执行。');
   if (draft.preparation) lines.push('准备模式：先确认需求；地图、解法与自动操作将在同一次生成运行的运行时设计后形成。');

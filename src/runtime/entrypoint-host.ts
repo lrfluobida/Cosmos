@@ -10,7 +10,7 @@ import type { PassedEvidence } from '../artifacts/index.ts';
 import { directory, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
 import { createRoleFactory } from '../roles/factory.ts';
 import { requestDesignDraft, requestDesignQuestions } from '../roles/interview.ts';
-import { requireBrowserDraft, validateGameDraft, confirmRequirements, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../roles/requirements.ts';
+import { requireBrowserDraft, validateGameDraft, confirmRequirements, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID, MODULE_ACCEPTANCE_IDS } from '../roles/requirements.ts';
 import type { AcceptancePlan } from '../acceptance/plan.ts';
 import type { AcceptanceReport } from '../acceptance/runner.ts';
 import type { GenericMediaObservationRequest } from '../acceptance/browser.ts';
@@ -49,7 +49,7 @@ import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from './r
 import { validationHash } from './validation-validation.ts';
 import { createGameDesignCheck, GAME_DESIGN_CHECK, MEDIA_IDENTIFIER_RULE } from './entrypoint-design-check.ts';
 import { createCodingBuildCheck, GAME_BUILD_CHECK } from './entrypoint-coding-check.ts';
-import { CODING_TEMPLATE_FILES, codingInputSignature } from './coding-check-worker.ts';
+import { CODING_TEMPLATE_FILES, codingInputSignature, codingSignature } from './coding-check-worker.ts';
 import { createHumanPreparationScope } from './entrypoint-human-preparation.ts';
 import type { HumanPreparationInput, HumanPreparationScope } from './entrypoint-human-preparation.ts';
 import { createHumanContinuationScope } from './entrypoint-human-continuation.ts';
@@ -60,6 +60,8 @@ import { createClassicPolicyScope } from './entrypoint-classic.ts';
 import { diagnoseBrowser, diagnoseBuild } from './repair/browser-diagnostics.ts';
 import { createRenderFrameScope, OBSERVER_SOURCE, renderFrameBuildArguments } from './entrypoint-frames.ts';
 import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
+import { MODULE_CONTRACTS, MODULE_SLOTS, moduleDirectory, moduleSlot, moduleSource, validateModuleContracts, validateModuleFiles } from './modular-code.ts';
+import type { ModularCompilerInputs, ModuleSlot } from './modular-code.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
@@ -219,6 +221,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const human = input.humanPreparation;
   const historical = input.historicalStages;
   const requirement = structuredClone(input.requirement), draft = structuredClone(input.draft);
+  const modular = !!(draft as BrowserGameDraft).codeProfile;
+  if (modular && (preparation || validation || binding)) throw new Error('Modular coding currently supports only the original ordinary browser generation.');
   let preparedRequirementRef: ArtifactReference | undefined;
   const validationScope = async () => {
     const scope = preparation ? await requireValidationPreparationScope({ root, controller, requirement: requirement as ValidationRequirement,
@@ -259,7 +263,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       } else if (resolve(item.workspace) !== resolve(root)) throw new Error('Historical passed tasks must retain their original host workspace.');
     }
   }
-  const registry = await createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', work, signal: work.signal }), io = input.io ?? nativeIO(input);
+  const registry = await createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', work, signal: work.signal }), io = modular ? { ...nativeIO(input), ...input.io } : input.io ?? nativeIO(input);
   const name = (value: string) => validation ? `${validation.caseId}-${value}` : value;
   const template = inherited?.template ?? registry.artifactRef(name('generic-template'), 'v1'), requirements = registry.artifactRef(name('requirement-bundle'), requirement.sources[0].version);
   const captures = [...(inherited ? [template, inherited.requirementCapture] : [template]), requirements], provenance = { kind: 'original-procedural' as const, generator: 'Cosmos trusted host inputs', sourceRefs: requirement.sources.map(ref => `${ref.artifactId}@${ref.version}`) };
@@ -281,7 +285,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   }
   if (!preparation && !validation) {
     const originalDraft = await json(root, `${requirements.location}/_cosmos/${requirement.sources[0].artifactId}.json`);
-    if ((originalDraft.benchmark || (draft as BrowserGameDraft).benchmark) && !sameValue(originalDraft, draft)) throw new Error('Original confirmed classic selection/draft differs from its requirement capture.');
+    if ((originalDraft.benchmark || (draft as BrowserGameDraft).benchmark || originalDraft.codeProfile || modular) && !sameValue(originalDraft, draft)) throw new Error('Original confirmed selection/draft differs from its requirement capture.');
   }
   const classic = !preparation && !validation && (draft as BrowserGameDraft).benchmark
     ? await createClassicPolicyScope({ root, registry, requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft, requirementCapture: requirements, resume: input.resume }) : undefined;
@@ -363,6 +367,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     signal.throwIfAborted();
   }
   const taskOutput = (task: TaskContract) => {
+    const slot = modular && moduleSlot(task);
+    if (slot) { const ref = registry.artifactRef(`module-${slot}`, 'v1'); if (task.outputs.length !== 1 || task.outputs[0].destination !== ref.location) throw new Error('Module output differs from its fixed slot/version.'); return ref; }
     const old = inheritedTask(task.taskId); if (old) { boundTask(task); return old.task.artifacts[0]; }
     const planned = boundTask(task);
     if (planned) {
@@ -425,7 +431,58 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   };
   const designFor = async (task: TaskContract): Promise<DesignDocument> => {
     const ref = selected(task, 'design'); await registry.getCapture(ref);
-    const design = await json(root, `${ref.location}/_cosmos/design.json`); validateDesign(design, gameplayIds); return design;
+    const design = await json(root, `${ref.location}/_cosmos/design.json`); validateDesign(design, gameplayIds, modular); return design;
+  };
+  const requireReviewDecision = (task: TaskContract, review: { verdict?: { verdict: string; findings: string[]; inputVersions: ArtifactReference[]; evidenceIds: string[] } }) => {
+    const decision = review.verdict, refs = [...task.inputs, ...task.artifacts];
+    if (!decision || decision.verdict !== 'approved' || !Array.isArray(decision.findings) || decision.findings.length
+      || !sameValue(decision.inputVersions, refs) || !sameValue(task.review.inputVersions, refs) || !sameValue(decision.evidenceIds, task.review.evidenceIds)) throw new Error('Original independent decision or its fixed reviewed versions changed.');
+  };
+  const modularInputs = async (task: TaskContract): Promise<ModularCompilerInputs> => {
+    const design = selected(task, 'design'), bytes = await regularFile(root, `${design.location}/${MODULE_CONTRACTS}`);
+    const state = await controller.read();
+    for (const ref of [design, selected(task, 'media')]) {
+      const parent = state.tasks.find(parent => parent.artifacts.some(input => sameValue(input, ref)));
+      if (!parent || parent.state !== 'passed' || parent.review.verdict !== 'approved' || !task.dependsOn.some(dep => dep.taskId === parent.taskId)) throw new Error('Module contexts require approved fixed design and media.');
+      const origin = await json(root, `journal/task-${parent.taskId}/origin.json`), journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin, true);
+      requireOriginalTask(origin.prepared.task, parent);
+      const verified = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; evidence: EvidenceContract[] }>('verified', parent.attempts.at(-1)!.attemptId);
+      const review = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; reviewerId: string; contextId: string; verdict: Parameters<typeof requireReviewDecision>[1]['verdict'] }>('review', parent.attempts.at(-1)!.attemptId);
+      if (!verified || !review || !sameValue(verified.evidence, parent.evidence) || review.reviewerId !== parent.review.reviewerId || review.contextId !== parent.review.contextId) throw new Error('Module source parent review is unavailable.');
+      requireReviewDecision(parent, review);
+      const refs = [...parent.inputs, ...parent.artifacts, ...parent.evidence.map(item => item.source)];
+      await journal.requireSignature(verified.signature, refs); await journal.requireSignature(review.signature, refs);
+    }
+    await designFor(task); validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    const slot = moduleSlot(task), result: ModularCompilerInputs = { slot: slot ?? 'integration', contracts: { directory: join(root, design.location), ref: design, sha256: validationHash(bytes) } };
+    if (slot) return result;
+    const current = await controller.read();
+    result.modules = await Promise.all(MODULE_SLOTS.map(async slot => {
+      const ref = registry.artifactRef(`module-${slot}`, 'v1');
+      if (task.inputs.filter(input => input.artifactId === ref.artifactId).length !== 1 || !task.inputs.some(input => sameValue(input, ref))) throw new Error('Integration lost a fixed module input.');
+      const module = current.tasks.find(module => moduleSlot(module) === slot);
+      if (!module || module.state !== 'passed' || module.review.verdict !== 'approved' || !sameValue(module.artifacts, [ref])
+        || !task.dependsOn.some(dep => dep.taskId === module.taskId) || module.review.reviewerId === module.authorId || module.review.contextId === module.context.contextId) throw new Error('Integration requires both independently approved original modules.');
+      const capture = await registry.getCapture(ref);
+      if (capture.taskId !== module.taskId || !capture.metadata.provenance.sourceRefs.includes(module.attempts.at(-1)!.sessionRef)
+        || !sameValue(capture.dependencies, [...captures, selected(module, 'design'), selected(module, 'media')])) throw new Error('Original module capture identity or dependencies changed.');
+      const origin = await json(root, `journal/task-${module.taskId}/origin.json`), journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin, true);
+      requireOriginalTask(origin.prepared.task, module);
+      const verified = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; evidence: EvidenceContract[] }>('verified', module.attempts.at(-1)!.attemptId);
+      const review = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; reviewerId: string; contextId: string; verdict: Parameters<typeof requireReviewDecision>[1]['verdict'] }>('review', module.attempts.at(-1)!.attemptId);
+      if (!verified || !review || !sameValue(verified.evidence, module.evidence) || review.reviewerId !== module.review.reviewerId || review.contextId !== module.review.contextId) throw new Error('Original module review proof is unavailable.');
+      requireReviewDecision(module, review);
+      const refs = [...module.inputs, ...module.artifacts, ...module.evidence.map(item => item.source)];
+      await journal.requireSignature(verified.signature, refs); await journal.requireSignature(review.signature, refs);
+      const files = await snapshot(join(root, ref.location)); validateModuleFiles(files, slot);
+      return { slot, ref, directory: join(root, ref.location), signature: codingSignature(files) };
+    }));
+    return result;
+  };
+  const integrationDiagnostics = (diagnostics: ReturnType<typeof diagnoseBuild>) => {
+    if (modular) for (const issue of diagnostics.issues) if (issue.classification === 'code_defect'
+      && !/\b(?:index\.html|src\/main\.ts|src\/integration\/[^\s:]+):\d+:\d+\b/.test(issue.actual)) issue.classification = 'insufficient_evidence';
+    return diagnostics;
   };
   const designHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
     if (supplied.role !== 'design') return [];
@@ -447,7 +504,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (await realpath(workspace(original)) !== fixedWorkspace) throw new Error('Game design check original workspace changed.');
       signal.throwIfAborted(); work.signal.throwIfAborted(); controller.signal.throwIfAborted();
     };
-    return [createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, guard }), ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
+    return [createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard }), ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
   const codingHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
     if (supplied.role !== 'coding') return [];
@@ -475,6 +532,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       for (const name of CODING_TEMPLATE_FILES) if (!(await regularFile(root, `toolchain/${name}`)).equals(await regularFile(root, `${template.location}/${name}`))) throw new Error('Coding check selected toolchain configuration changed.');
       if (preparation) await preparation.requireCurrent();
       await frames?.requireCurrent();
+      if (modular) await modularInputs(original);
       if (await realpath(workspace(original)) !== fixedWorkspace || await codingInputSignature(root, locations) !== fixedInputs
         || await codingInputSignature(fixedWorkspace, locations) !== fixedInputs) throw new Error('Coding check original workspace or fixed input bytes changed.');
       signal.throwIfAborted(); work.signal.throwIfAborted(); controller.signal.throwIfAborted(); return authority;
@@ -482,7 +540,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     await guard(supplied.signal);
     return [createCodingBuildCheck({ controller, work, workspace: fixedWorkspace, toolchain: join(root, 'toolchain'),
       template: join(root, template.location), media: join(root, selected(original, 'media').location), taskId: original.taskId, attemptId: attempt.attemptId,
-      ...(frames ? { observer: { directory: frames.sourcePath, ref: frames.ref, sha256: frames.signature } } : {}), guard })];
+      ...(frames && !moduleSlot(original) ? { observer: { directory: frames.sourcePath, ref: frames.ref, sha256: frames.signature } } : {}),
+      ...(modular ? { modular: await modularInputs(original) } : {}), guard })];
   };
   const captureLayout = (...entries: { artifactId: string; paths: string[] }[]) => `Capture file layout: ${JSON.stringify(entries)}. Select the exact current artifactId/version reference in this packet's inputs, including the reviewed task's output artifacts, and read reference.location + '/' + the relative path. Author writes use only the declared authors/... source paths before capture; reviewer and downstream reads use immutable captures. Never append authors/... to a capture root or infer a version/location from an author path. Layout guidance grants no additional read or write permission.`;
   const designLayout = { artifactId: designOutput.artifactId, paths: ['_cosmos/design.json'] };
@@ -544,21 +603,31 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         const fixed = boundTask(item.task);
         return !fixed || item.role !== fixed.role || resolve(item.workspace) !== resolve(fixed.workspace) || !sameValue(item.expectedArtifacts, fixed.expectedArtifacts);
       }))) throw new Error('Tasks differ from the fixed complete host binding.');
-      const design = tasks.find(item => item.role === 'design') ?? (inherited && { task: inherited.stages[0].task }), art = tasks.find(item => item.role === 'art') ?? (inherited && { task: inherited.stages[1].task }), coding = tasks.find(item => item.role === 'coding');
+      const design = tasks.find(item => item.role === 'design') ?? (inherited && { task: inherited.stages[0].task }), art = tasks.find(item => item.role === 'art') ?? (inherited && { task: inherited.stages[1].task }), coding = tasks.find(item => item.role === 'coding' && (!modular || !moduleSlot(item.task)));
       const exact = (left: string[], right: string[]) => left.length === right.length && left.every(id => right.includes(id));
-      if (tasks.length !== (inherited ? 1 : 3) || !design || !art || !coding || !exact(design.task.acceptanceIds, [DESIGN_ACCEPTANCE_ID]) || !exact(art.task.acceptanceIds, [MEDIA_ACCEPTANCE_ID])
+      const modules = modular ? MODULE_SLOTS.map(slot => tasks.find(item => moduleSlot(item.task) === slot)) : [];
+      if (tasks.length !== (modular ? 5 : inherited ? 1 : 3) || !design || !art || !coding || !exact(design.task.acceptanceIds, [DESIGN_ACCEPTANCE_ID]) || !exact(art.task.acceptanceIds, [MEDIA_ACCEPTANCE_ID])
         || !exact(coding.task.acceptanceIds, gameplayIds) || design.task.dependsOn.length || !exact(art.task.dependsOn.map(item => item.taskId), [design.task.taskId])
-        || !exact(coding.task.dependsOn.map(item => item.taskId), [design.task.taskId, art.task.taskId])) throw new Error('The plan must preserve distinct design, art and coding responsibilities and fixed dependency versions.');
+        || modules.some(item => !item || item.role !== 'coding' || !exact(item.task.dependsOn.map(dep => dep.taskId), [design.task.taskId, art.task.taskId]))
+        || !exact(coding.task.dependsOn.map(item => item.taskId), [design.task.taskId, art.task.taskId, ...modules.map(item => item!.task.taskId)])) throw new Error('The plan must preserve distinct design, art and coding responsibilities and fixed dependency versions.');
+      if (modular) for (const item of tasks) {
+        const slot = moduleSlot(item.task), policy = host.taskPolicies.find(policy => policy.policyId === (slot ? `game-module-${slot}` : item.role === 'coding' ? 'game-code' : `game-${item.role}`));
+        if (!policy || !sameValue(item.task.ownership, { writePaths: policy.writePaths, readOnlyPaths: policy.readOnlyPaths }) || !sameValue(item.task.context.rules, policy.rules)
+          || !sameValue(item.task.context.tools, policy.tools) || item.task.budget.allocationMicroCny !== policy.allocationMicroCny
+          || !sameValue(item.expectedArtifacts, policy.outputs.map(({ artifactId, version, destination }) => ({ artifactId, version, location: destination })))) throw new Error('Modular task slot ownership, allocation or fixed outputs changed.');
+        const inputs = [...availableArtifacts, ...item.task.dependsOn.flatMap(dep => tasks.find(parent => parent.task.taskId === dep.taskId)!.expectedArtifacts ?? [])];
+        if (!sameValue(item.task.inputs, inputs) || !sameValue(item.task.context.interfaces, policy.interfaces ?? [])) throw new Error('Modular task input closure differs from its fixed dependencies.');
+      }
       if (validation) {
         if (validationTasks.size) for (const item of tasks) requireOriginalTask(validationTasks.get(item.task.taskId)!.task, item.task);
         else for (const item of tasks) validationTasks.set(item.task.taskId, structuredClone(item));
       }
       tasks.forEach(item => taskOutput(item.task));
     },
-    ...(binding || validation || human ? { async preAuthor(task: Readonly<TaskContract>, signal: AbortSignal) {
+    ...(binding || validation || human || modular ? { async preAuthor(task: Readonly<TaskContract>, signal: AbortSignal) {
       await requireDispatch(task, signal);
       const target = workspace(task);
-      const humanRepair = human && task.taskId === `${human.tasks().find(item => item.role === 'coding')!.task.taskId.slice(0, 57)}-repair` && resolve(target) === resolve(root);
+      const humanRepair = (human && task.taskId === `${human.tasks().find(item => item.role === 'coding')!.task.taskId.slice(0, 57)}-repair` || modular && !moduleSlot(task) && taskOutput(task).version === 'v2') && resolve(target) === resolve(root);
       if (humanRepair) {
         const fixed = await snapshot(join(root, registry.artifactRef(name('game-source'), 'v1').location)), current = await snapshot(join(target, 'authors/coding'));
         if (current.size !== fixed.size || [...current].some(([path, bytes]) => !fixed.get(path)?.equals(bytes))) throw new Error('Coding repair author bytes differ from the sealed original source.');
@@ -568,7 +637,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         const path = await safePath(target, name), info = await lstat(path).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
         if (info && (!info.isDirectory() || (await snapshot(path)).size)) throw new Error('Fresh author scope contains unknown partial output; preserve it for investigation.');
       }
-      if (!human || resolve(target) !== resolve(root)) await materializeTaskInputs({ artifactRoot: root, workspace: target, task, requirement, signal, ...(validation ? { validation: { caseId: validation.caseId, taskId: task.taskId } } : {}) });
+      if (!human && !modular || resolve(target) !== resolve(root)) await materializeTaskInputs({ artifactRoot: root, workspace: target, task, requirement, signal, ...(validation ? { validation: { caseId: validation.caseId, taskId: task.taskId } } : {}) });
       if (validation && validationRole(currentValidationCase(await controller.read()), task.taskId) === 'repair') {
         const window = currentValidationCase(await controller.read()), source = (await controller.read()).tasks.find(item => item.taskId === window.repair!.sourceTaskId)!;
         const sourceRef = role(task) === 'coding' ? registry.artifactRef(name('game-source'), taskOutput(source).version) : taskOutput(source);
@@ -581,7 +650,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           const targetFile = await safePath(target, `authors/${role(task)}/${output}`); await mkdir(dirname(targetFile), { recursive: true }); await writeFile(targetFile, bytes, { flag: 'wx' });
         }
       }
-      await directory(target, `authors/${role(task) === 'coding' ? 'coding/src' : role(task)}`);
+      if (modular && role(task) === 'coding') await modularInputs(task);
+      await directory(target, modular && moduleSlot(task) ? `${moduleSource(moduleSlot(task)!)}/${moduleDirectory(moduleSlot(task)!)}` : `authors/${role(task) === 'coding' ? 'coding/src' : role(task)}`);
       signal.throwIfAborted();
     } } : {}),
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: 600000, estimatedMaxCostMicroCny: requestReservation,
@@ -596,10 +666,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       await requireDispatch(task, signal); const ref = taskOutput(task), kind = role(task);
       const origin = { kind: 'original-procedural' as const, generator: `Native ${kind} role output`, sourceRefs: [task.attempts.at(-1)!.sessionRef, ...requirement.sources.map(ref => ref.location)] };
       if (kind === 'design') {
-        await readDeclaredOutput(task, 'authors/design/design.json', value => validateDesign(value, gameplayIds));
+        await readDeclaredOutput(task, 'authors/design/design.json', value => validateDesign(value, gameplayIds, modular));
+        if (modular) validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(workspace(task), 'authors/design/module-contracts.d.ts')));
         if (preparation) { await preparation.captureDesignExtras(task, workspace(task)); await requireDispatch(task, signal); }
         if (validation) await requireDispatch(task, signal);
-        await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: sourceRoot(task, 'authors/design'), files: [{ source: 'design.json', destination: '_cosmos/design.json' }],
+        await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: sourceRoot(task, 'authors/design'), files: [{ source: 'design.json', destination: '_cosmos/design.json' }, ...(modular ? [{ source: 'module-contracts.d.ts', destination: MODULE_CONTRACTS }] : [])],
           ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: captures, metadata: { kind: 'data', provenance: origin } });
       } else if (kind === 'art') {
         const design = await designFor(task), value = await readDeclaredOutput(task, 'authors/art/media.json', value => { validateDeclaredMedia(value, design); });
@@ -607,14 +678,30 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: `rendered/${task.taskId}`, files: rendered.files.map(name => ({ source: name, destination: name })),
           ownership: { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }, dependencies: artDependencies(task), metadata: { kind: 'media', provenance: origin, media: rendered.media } });
+      } else if (modular && moduleSlot(task)) {
+        const slot = moduleSlot(task)!, source = moduleSource(slot), authored = await snapshot(join(workspace(task), source));
+        validateModuleFiles(authored, slot); await modularInputs(task);
+        await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: sourceRoot(task, source), files: [...authored.keys()].map(name => ({ source: name, destination: name })),
+          ownership: { writePaths: [moduleDirectory(slot)], readOnlyPaths: [] }, dependencies: [...captures, selected(task, 'design'), selected(task, 'media')], metadata: { kind: 'code', provenance: origin } });
       } else {
         const source = registry.artifactRef(name('game-source'), ref.version), authored = await snapshot(join(workspace(task), 'authors/coding')), files = [...authored.keys()];
         if (files.some(name => name !== 'index.html' && !name.startsWith('src/'))) throw new Error('Out-of-scope author project.');
+        if (modular && files.some(name => name !== 'index.html' && name !== 'src/main.ts' && !name.startsWith('src/integration/'))) throw new Error('Integration author cannot replace module or protected interface files.');
         const missing = ['src/main.ts', 'index.html'].filter(name => !files.includes(name));
         if (missing.length) await preserveFailure(task, 'missing_output', `Required code outputs are missing: ${missing.join(', ')}.`,
           [...[...authored].map(([name, bytes]) => ({ sourcePath: `authors/coding/${name}`, bytes })), ...missing.map(name => ({ sourcePath: `authors/coding/${name}` }))]);
         // Both plans remain fixed task/review inputs. Only this candidate's plan enters the exact staged dependency closure.
-        const inputs = [...captures, selected(task, 'design'), selected(task, 'media'), ...(preparation?.candidateExtraInputs(ref) ?? []),
+        const moduleInputs = modular ? await modularInputs(task) : undefined;
+        let assembly: ArtifactReference | undefined;
+        if (moduleInputs) {
+          assembly = registry.artifactRef('modular-assembly', ref.version); const folder = `host-modular-assembly-${ref.version}`;
+          await writeJson(root, `${folder}/modular-assembly.json`, { formatVersion: 'modular-assembly/1', runId: task.runId, taskId: task.taskId, specVersion: task.specVersion,
+            attemptId: task.attempts.at(-1)!.attemptId, candidate: ref, contracts: { ref: moduleInputs.contracts.ref, sha256: moduleInputs.contracts.sha256 },
+            modules: moduleInputs.modules!.map(({ slot, ref, signature }) => ({ slot, ref, signature })) });
+          await registry.registerCapture({ taskId: task.taskId, artifactRef: assembly, sourceRoot: folder, files: [{ source: 'modular-assembly.json', destination: '_cosmos/modular-assembly.json' }],
+            ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: [...captures, selected(task, 'design'), selected(task, 'media'), ...moduleInputs.modules!.map(module => module.ref)], metadata: { kind: 'data', provenance: origin } });
+        }
+        const inputs = [...captures, selected(task, 'design'), selected(task, 'media'), ...(moduleInputs ? [...moduleInputs.modules!.map(module => module.ref), assembly!] : []), ...(preparation?.candidateExtraInputs(ref) ?? []),
           ...(classic ? [await classic.captureMapping(task, ref, selected(task, 'design'))] : [])], media = await registry.getCapture(selected(task, 'media'));
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: source, sourceRoot: sourceRoot(task, 'authors/coding'), files: files.map(name => ({ source: name, destination: name })),
@@ -657,13 +744,28 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       };
       try {
         if (kind === 'design') {
-          const design = await json(root, `${ref.location}/_cosmos/design.json`); validateDesign(design, gameplayIds);
+          const design = await json(root, `${ref.location}/_cosmos/design.json`); validateDesign(design, gameplayIds, modular);
+          if (modular) validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, `${ref.location}/${MODULE_CONTRACTS}`)));
           if (preparation) { await preparation.verifyDesignExtras(task); await requireDispatch(task, signal); } passed = true;
         } else if (kind === 'art') {
           const captured = await registry.getCapture(ref), design = await designFor(task);
           validateDeclaredMedia(await json(root, `${ref.location}/_cosmos/mediaSpec.json`), design);
           if (!captured.metadata.media) throw new Error('Missing generated media manifest.');
           await validateMedia(captured.metadata.media, join(root, ref.location), captured.files.map(file => file.destination)); passed = true;
+        } else if (modular && moduleSlot(task)) {
+          const slot = moduleSlot(task)!, captured = await registry.getCapture(ref), files = await snapshot(join(root, ref.location)), signature = codingSignature(files);
+          validateModuleFiles(files, slot);
+          if (captured.taskId !== task.taskId || !sameValue(captured.dependencies, [...captures, selected(task, 'design'), selected(task, 'media')])) throw new Error('Current module capture changed.');
+          const inputs = await modularInputs(task), view = await directory(root, `module-checks/${task.taskId}/${ref.version}`);
+          for (const [name, bytes] of files) { const path = await safePath(view, `${moduleSource(slot)}/${name}`); await mkdir(dirname(path), { recursive: true }); await writeFile(path, bytes, { flag: 'wx' }); }
+          const checked = await createCodingBuildCheck({ controller, work, workspace: view, toolchain: join(root, 'toolchain'), template: join(root, template.location),
+            media: join(root, selected(task, 'media').location), taskId: task.taskId, attemptId: task.attempts.at(-1)!.attemptId, modular: inputs,
+            guard: async active => { const current = await requireDispatch(task, active); if (!sameValue(await modularInputs(task), inputs) || !sameValue(await registry.getCapture(ref), captured)
+              || codingSignature(await snapshot(join(root, ref.location))) !== signature) throw new Error('Compiled module inputs changed.'); return current; } }).tool.execute('module-verify', {}, signal, undefined, {} as any);
+          const report = JSON.parse((checked.content[0] as { text: string }).text); await writeJson(root, `evidence/${task.taskId}/module-compile.json`, report);
+          consumerRawEvidence.push({ artifactId: `${task.taskId}-module-compile`, version: ref.version, location: `evidence/${task.taskId}/module-compile.json` });
+          passed = report.passed === true && report.results?.length === 1 && report.results[0].code === 0 && report.moduleCheck?.passed === true;
+          if (!passed) { classification = 'code_defect'; actual = report.diagnostics || 'Actual module namespace did not satisfy its protected interface.'; }
         } else if (preparation && !preparation.candidateConsumer) {
           await preparation.bindCandidate(ref); await requireDispatch(task, signal);
           actual = 'Transfer inputs are bound; persistent/media execution consumer is not connected. Preparation cannot establish gameplay acceptance.';
@@ -683,8 +785,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 consumerDiagnostics = preparation.candidateBuildDiagnostic?.(task, checked, `evidence/${task.taskId}/build.json`);
                 consumerRawEvidence = [{ artifactId: `${task.taskId}-build`, version: ref.version, location: `evidence/${task.taskId}/build.json` }];
                 actual = consumerDiagnostics?.issues.map(issue => issue.summary).join('\n') || 'Build failed without attributable current compiler evidence.';
-              } else if (classic) {
-                consumerDiagnostics = diagnoseBuild(task, { passed: checked.passed, work: checked.work ?? '', results: checked.results ?? [] }, `evidence/${task.taskId}/build.json`);
+              } else if (classic || modular) {
+                consumerDiagnostics = integrationDiagnostics(diagnoseBuild(task, { passed: checked.passed, work: checked.work ?? '', results: checked.results ?? [] }, `evidence/${task.taskId}/build.json`));
                 consumerRawEvidence.push({ artifactId: `${task.taskId}-build`, version: ref.version, location: `evidence/${task.taskId}/build.json` });
                 actual = consumerDiagnostics.issues.map(issue => issue.summary).join('\n');
               } else { classification = 'code_defect'; actual = checked.diagnostics.slice(0, 16000) || 'Typecheck/build failed.'; }
@@ -834,7 +936,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 pictures.set(task.taskId, chosen.map((location, index) => ({ artifactId: `${task.taskId}-screenshot-${index}`, version: ref.version, location })));
               }
               if (!valid) {
-                if (frames) consumerDiagnostics = diagnoseBrowser(task, report, plan, `evidence/${task.taskId}/browser.json`);
+                if (frames || modular) consumerDiagnostics = integrationDiagnostics(diagnoseBrowser(task, report, plan, `evidence/${task.taskId}/browser.json`));
                 else classification = sameValue(report.plan, plan) ? 'code_defect' : 'insufficient_evidence';
                 actual = 'Normal input report failed or did not match the fixed plan and candidate.';
               }
@@ -852,7 +954,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       }
       const evidence: EvidenceContract = { contractVersion: '1.0.0', evidenceId: `${task.taskId}-host`, taskId: task.taskId, acceptanceIds: task.acceptanceIds,
         kind: 'test_report', source: { artifactId: `${task.taskId}-host-report`, version: ref.version, location: reportPath }, artifactVersions: [...task.inputs, ...task.artifacts],
-        outcome: passed ? 'passed' : 'failed', recordedAt: new Date().toISOString(), summary: passed ? kind === 'coding' ? 'Fixed candidate built and passed normal input checks; independent review follows.'
+        outcome: passed ? 'passed' : 'failed', recordedAt: new Date().toISOString(), summary: passed ? modular && moduleSlot(task) ? 'Fixed module compiled and satisfied its protected value interface; independent review follows; gameplay is separate.' : kind === 'coding' ? 'Fixed candidate built and passed normal input checks; independent review follows.'
           : `${kind} stage checks passed on fixed outputs; this is not a gameplay verdict.` : actual };
       if (validation) await requireDispatch(task, signal);
       await writeJson(root, reportPath, { evidence, proof: proofs.get(task.taskId) ?? null });
@@ -862,10 +964,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const supplemental: EvidenceContract[] = (pictures.get(task.taskId) ?? []).map((source, index) => ({ ...evidence, evidenceId: `${task.taskId}-image-${index}`, source, kind: 'screenshot', outcome: 'observed', summary: 'Normal-input screenshot of this exact candidate; interpreted with fixed source and runtime observations.' }));
       supplemental.push(...consumerRawEvidence.map((source, index): EvidenceContract => ({ ...evidence, evidenceId: `${task.taskId}-raw-${index}`, source,
         kind: 'test_report', outcome: 'observed', summary: 'Current persistent raw report directory: screenshots, video, logs and actual process/media facts.' })));
-      if (passed && kind === 'coding') supplemental.push({ ...evidence, evidenceId: `${task.taskId}-media-usage`, kind: 'log', outcome: 'observed',
+      if (passed && kind === 'coding' && (!modular || !moduleSlot(task))) supplemental.push({ ...evidence, evidenceId: `${task.taskId}-media-usage`, kind: 'log', outcome: 'observed',
         source: { artifactId: `${task.taskId}-media-usage`, version: ref.version, location: `evidence/${task.taskId}/media-usage.json` },
         summary: 'Check the observation implementations against frozen Phaser source and normal-input screenshots. Read-only counters alone do not establish visible or audible quality.' });
-      if (passed && kind === 'coding') supplemental.push({ ...evidence, evidenceId: `${task.taskId}-delivery-check`, kind: 'test_report', outcome: 'observed',
+      if (passed && kind === 'coding' && (!modular || !moduleSlot(task))) supplemental.push({ ...evidence, evidenceId: `${task.taskId}-delivery-check`, kind: 'test_report', outcome: 'observed',
         source: { artifactId: `${task.taskId}-delivery-check`, version: ref.version, location: `evidence/${task.taskId}/delivery-check.json` },
         summary: 'This exact package ran through its Node-only launcher in a clean copy; normal-input evidence and helper exit were checked before independent review.' });
       if (passed) {
@@ -887,7 +989,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         if (validation) { const { snapshot } = await validationScope(); boundTask(task); requireValidationTask(snapshot, task); requireOriginalTask(snapshot.tasks.find(item => item.taskId === task.taskId)!, task); }
         const ref = taskOutput(task), kind = role(task);
         if (preparation) { if (kind === 'design') await preparation.verifyDesignExtras(task); else if (kind === 'coding') await preparation.bindCandidate(ref); }
-        if (kind === 'coding') {
+        if (modular && moduleSlot(task)) {
+          const capture = await registry.getCapture(ref); validateModuleFiles(await snapshot(join(root, ref.location)), moduleSlot(task)!); await modularInputs(task);
+          if (capture.taskId !== task.taskId || !capture.metadata.provenance.sourceRefs.includes(task.attempts.at(-1)!.sessionRef)
+            || !sameValue(capture.dependencies, [...captures, selected(task, 'design'), selected(task, 'media')])) return null;
+        } else if (kind === 'coding') {
           const candidate = await registry.getCandidate(ref);
           if (candidate.taskId !== task.taskId || candidate.authorId !== task.authorId || candidate.contextId !== task.context.contextId) return null;
           const code = await registry.getCapture(registry.artifactRef(name('game-source'), ref.version));
@@ -907,6 +1013,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     },
     async repair(task, feedback) {
       if (binding || validation) return null;
+      if (modular && (moduleSlot(task) || role(task) !== 'coding' || taskOutput(task).version !== 'v1')) return null;
       const current = await controller.read(), unallocated = current.ledger.limitMicroCny - current.ledger.allocations.reduce((sum, item) => sum + item.amountMicroCny, 0);
       if (unallocated <= 0) return null;
       await stageFeedback(feedback); const ref = nextOutput(task);
@@ -914,6 +1021,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     },
     async continuationTargets(sources, feedback, grants) {
       if (binding || validation) return null;
+      if (modular && (sources.length !== 1 || moduleSlot(sources[0].task) || role(sources[0].task) !== 'coding' || taskOutput(sources[0].task).version !== 'v1')) return null;
       if (human && (sources.length !== 1 || role(sources[0].task) !== 'coding' || taskOutput(sources[0].task).version !== 'v1')) return null;
       await stageFeedback(feedback);
       return sources.map(source => {
@@ -931,12 +1039,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         catch { return { gaps: ['Current validation scope or complete persistent task approval is unavailable.'] }; }
       }
       const effectiveTasks = [...(inherited?.stages.map(stage => stage.task) ?? []), ...tasks];
-      const task = tasks.find(task => role(task) === 'coding');
-      if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== 3 || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
+      const task = tasks.find(task => role(task) === 'coding' && (!modular || !moduleSlot(task)));
+      if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== (modular ? 5 : 3) || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
         || binding && (tasks.some(task => !binding.tasks.some(item => item.task.taskId === task.taskId)) || new Set(tasks.map(task => task.taskId)).size !== binding.tasks.length)) {
         const existing = await registry.current(); return { ...(existing ? { delivery: existing.targetRoot } : {}), gaps: ['Current tasks lack complete host checks and independent approval.'] };
       }
       const ref = taskOutput(task), proof = proofs.get(task.taskId);
+      if (modular) try { await modularInputs(task); } catch { return { gaps: ['Original approved module inputs or review signatures changed before promotion.'] }; }
       if (preparation?.candidateConsumer) {
         try {
           await preparation.requireCurrent();
@@ -961,7 +1070,21 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           windowId: inherited.manifest.windowId, manifestRef: historical!.manifestRef, artifacts: stage.task.artifacts })) } : {}) };
     },
   };
-  if (frames) host.taskPolicies.find(policy => policy.role === 'coding')!.rules!.push(`The source-selected render observer ${frames.ref.artifactId}@${frames.ref.version} is read-only at ${OBSERVER_SOURCE}. Import createObservedGame from '../_cosmos/render-frame-observer' and use it for the real Phaser Game. Do not author that module, replace the native renderer, or declare FPS counters. The host only measures rendered frames; PERFORMANCE benchmarks remain unexecuted.`);
+  if (modular) {
+    const design = host.taskPolicies.find(policy => policy.role === 'design')!, coding = host.taskPolicies.find(policy => policy.role === 'coding')!;
+    design.writePaths.push('authors/design/module-contracts.d.ts');
+    design.rules!.push('Also write modulePurposes:{a:string,b:string} in design.json. Write authors/design/module-contracts.d.ts containing exactly exported interfaces ModuleA and ModuleB, each with required named callable methods and concrete primitive/structural/Array types. No optional/index/any/unknown/aliases/imports/executable declarations. These immutable interfaces and purposes guide two independent module authors; their source review proves local quality, while final gameplay is checked separately.');
+    const amount = Math.floor(pool * 0.10); coding.allocationMicroCny -= amount * 2;
+    coding.writePaths = ['authors/coding/src/main.ts', 'authors/coding/src/integration', 'authors/coding/index.html'];
+    coding.rules!.push('Integrate both independently approved module-a/module-b captures. Import their actual src/modules/a and src/modules/b namespaces. Write only src/main.ts, index.html and src/integration; do not replace modules, protected interfaces or configuration. The host composes their immutable files and requires every original gameplay check.');
+    host.taskPolicies.splice(2, 0, ...MODULE_SLOTS.map((slot, index) => ({ policyId: `game-module-${slot}`, role: 'coding' as const, workspace: root, allocationMicroCny: amount,
+      writePaths: [`${moduleSource(slot)}/${moduleDirectory(slot)}`], readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit', GAME_BUILD_CHECK],
+      outputs: [{ ...registry.artifactRef(`module-${slot}`, 'v1'), destination: registry.artifactRef(`module-${slot}`, 'v1').location, type: 'code-module', schema: 'modular-code/1' }],
+      rules: [`Cover only ${MODULE_ACCEPTANCE_IDS[index]}; depend on both design and art. Read the design's fixed modulePurposes and ${MODULE_CONTRACTS} from its capture. Implement ${slot === 'a' ? 'ModuleA' : 'ModuleB'} as real named callable value exports in ${moduleSource(slot)}/${moduleDirectory(slot)}/index.ts, plus necessary .ts files inside this one directory.`,
+        'The interface is read-only before this context is created. No declaration files, ambient augmentation, ts-ignore/ts-nocheck/ts-expect-error, external/dynamic imports or compiler configuration changes. Module evidence covers actual compile/interface and independent source review, not gameplay. Call check-game-build with {} for actual local compilation in this same session; correct your own source within the original attempt.',
+        captureLayout(designLayout, mediaLayout)] })));
+  }
+  if (frames) host.taskPolicies.find(policy => policy.policyId === 'game-code')!.rules!.push(`The source-selected render observer ${frames.ref.artifactId}@${frames.ref.version} is read-only at ${OBSERVER_SOURCE}. Import createObservedGame from '../_cosmos/render-frame-observer' and use it for the real Phaser Game. Do not author that module, replace the native renderer, or declare FPS counters. The host only measures rendered frames; PERFORMANCE benchmarks remain unexecuted.`);
   if (preparation) {
     const design = host.taskPolicies.find(policy => policy.role === 'design')!, coding = host.taskPolicies.find(policy => policy.role === 'coding')!;
     design.outputs.push(...structuredClone(preparation.designOutputs)); design.writePaths.push(...preparation.designWritePaths);

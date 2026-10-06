@@ -28,6 +28,8 @@ CLI 集中提问、展示完整草稿，只有真实 stdin 的 `confirm <revisio
 
 ## 文档
 
+普通游戏访谈可提出 `modular-code/1` 编码组织：两个独立模块与最终集成，连同设计、美术共五任务。确认前会显示模块的局部标准与完整玩法要求；模块通过只证明接口、编译和源码审查，最终游戏仍需完整验收。当前只支持最终集成的一次修复，模块失败保留差距；准备模式和追加窗口不支持该组织。默认三任务流程保持。详见 [Windows CLI 指南](docs/development/quickstart.md)。
+
 - [GitHub spec 与子任务](https://github.com/lrfluobida/Cosmos/issues/1)
 - [产品与执行规范](docs/specs/cosmos-spec.md)
 - [任务与依赖](docs/specs/cosmos-issues.md)
