@@ -12,6 +12,7 @@ const usage = `Usage:
   cosmos build <path>                Typecheck and build an installed project
   cosmos preview <path> [--port N]   Preview its build at http://127.0.0.1:4173
   cosmos new <run-dir> [--adapter sokoban] --brief <text>  Interview, confirm exact requirements, then generate
+  new/resume/continue [--render-frames true|false]  Select samples; recovery preserves the original choice
   cosmos status <run-dir>           Read the original run identity, cost, deadline and gaps
   cosmos experience <run-dir>       Review the current delivery and record a final stdin playtest decision
   cosmos stop <run-dir>             Persist a hard stop and wait for owned work to drain
@@ -93,7 +94,22 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     console.log(usage);
     return;
   }
-  const [command, path, ...options] = args;
+  const [command, path, ...supplied] = args;
+  let renderFrames: boolean | undefined;
+  const options: string[] = [];
+  for (let index = 0; index < supplied.length; index++) {
+    if (supplied[index] !== '--render-frames') {
+      options.push(supplied[index]);
+      if (supplied[index] !== '--quote' && supplied[index].startsWith('--') && index + 1 < supplied.length) options.push(supplied[++index]);
+      continue;
+    }
+    if (!['new', 'resume', 'continue'].includes(command) || renderFrames !== undefined || !['true', 'false'].includes(supplied[index + 1])) throw new Error(usage);
+    renderFrames = supplied[++index] === 'true';
+  }
+  const originalFrames = async (root: string) => {
+    const { readFrameSelection } = await import('../runtime/render-frame-selection.ts');
+    return !!await readFrameSelection(root, await (await import('./control.ts')).readRunSnapshot(root), renderFrames);
+  };
   if (command === 'experience') {
     if (!path?.trim() || options.length) throw new Error(usage);
     const { runExperienceSession } = await import('./experience-session.ts');
@@ -101,12 +117,13 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
   }
   if (command === 'continue') {
     if (!path?.trim()) throw new Error(usage);
+    const selectedFrames = await originalFrames(resolve(path));
     const { buildContinuationQuote, parseContinuationQuoteOptions } = await import('../runtime/continuation-quote.ts');
     const quoteOnly = options.includes('--quote'), requested = parseContinuationQuoteOptions(quoteOnly ? options : ['--quote', ...options]);
     if (quoteOnly) { const quote = await buildContinuationQuote({ root: resolve(path), ...requested }); (io.output ?? process.stdout).write(JSON.stringify(quote, null, 2) + '\n'); return quote; }
-    const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)));
+    const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)), selectedFrames ? { renderFrames: true } : {});
     const { runContinuationSession } = await import('./continuation-session.ts');
-    return runContinuationSession({ root: resolve(path), ...requested, host, input: io.input ?? process.stdin, output: io.output ?? process.stdout });
+    return runContinuationSession({ root: resolve(path), ...requested, renderFrames, host, input: io.input ?? process.stdin, output: io.output ?? process.stdout });
   }
   if (['new', 'resume', 'status', 'stop'].includes(command)) {
     if (!path?.trim()) throw new Error(usage);
@@ -125,10 +142,12 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
       if (key === '--brief') brief = value; else draftMode = 'cos16-input/1';
     }
     if (command === 'new' && (windowId || !brief)) throw new Error(usage);
-    const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)));
-    if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, host, input: io.input ?? process.stdin, output });
+    if (draftMode && renderFrames) throw new Error('准备模式暂不支持渲染帧采样；未确认或调用模型。');
+    const selectedFrames = command === 'new' ? renderFrames === true : await originalFrames(root);
+    const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)), selectedFrames ? { renderFrames: true } : {});
+    if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, renderFrames, host, input: io.input ?? process.stdin, output });
     const { runProductSession } = await import('./session.ts');
-    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, draftMode, host, input: io.input ?? process.stdin, output });
+    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, draftMode, renderFrames, host, input: io.input ?? process.stdin, output });
   }
   if (!path?.trim() || !['init', 'run-dir', 'build', 'preview'].includes(command)
     || (command !== 'preview' && options.length)) throw new Error(usage);

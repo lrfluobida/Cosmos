@@ -27,6 +27,15 @@ node .\dist\cli\index.js resume "E:\CosmosRuns\我的游戏"
 
 `new` 要求空目录。Cosmos 先检查运行前置，再由原生 design 角色集中提问；终端接收回答并展示带版本号的需求、玩法验收、设计检查和素材检查。输入 `confirm 1` 这样的当前版本确认才会生成；`edit` 修改回答并产生新版本，旧版本确认失效。`cancel` 或输入结束会保留未确认需求。用户不需要手写需求 JSON 或修改编排器。
 
+普通生成可选择记录正常游玩窗口的实际渲染帧：
+
+```powershell
+node .\dist\cli\index.js new "E:\CosmosRuns\采样游戏" --brief "点击星星获胜" --render-frames true
+node .\dist\cli\index.js resume "E:\CosmosRuns\采样游戏"
+```
+
+`--render-frames` 只接受 `true` 或 `false`。首次 `new` 省略或选择 `false` 时沿用默认行为；确认前会展示已启用的采样范围。后续 `resume` 和首个 `continue` 省略该选项时恢复原选择，显式改变选择或来源资料漂移会拒绝。准备模式不能启用采样。`status` 显示原选择；已完成运行仍只读返回同一报告、采样和试玩决定。采样记录实际画布尺寸与帧率，设备、普通和压力工作量尚未冻结，完整 PERFORMANCE 政策仍未执行。
+
 模型凭据仅由当前进程环境中的 `DEEPSEEK_API_KEY` 提供。访谈与生成使用同一运行身份、同一 ¥200 账本；确认前访谈也预留并记录实际费用。正式 12h 计时只在需求确认、通用环境和执行前置就绪后激活一次，覆盖生成、集成、修复、验收和交付检查。已结算加预留达到 80% 时，终端显示一次提示及剩余额度。¥100/6h 是优化目标。
 
 通用环境还需在 `templates/2d` 执行一次 `npm ci`。产品入口要求 COS-03 至 COS-13 的必需前置完成；当前缺少的真实验收会直接列明，并在任何访谈费用和生成计时发生前退出。离线测试及通用 fixture smoke 不解除这些真实门禁。
