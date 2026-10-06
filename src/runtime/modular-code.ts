@@ -69,6 +69,7 @@ export function validateModuleFiles(source: Map<string, Buffer>, slot: ModuleSlo
       if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) throw new Error('Module source cannot add dynamic compiler inputs.');
       ts.forEachChild(node, visit);
     }; visit(ast);
+    if (!ts.isExternalModule(ast)) throw new Error(`Module source ${name} must use module scope; add a legal import/export or export {} to keep helper declarations local.`);
   }
 }
 /** Inspect actual value exports with the same installed compiler used by the owned worker. */

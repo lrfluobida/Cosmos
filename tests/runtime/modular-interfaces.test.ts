@@ -10,6 +10,17 @@ import { roleToolEnvironment } from '../../src/roles/factory.ts';
 import { moduleProbe, validateModuleContracts, validateModuleFiles, validateModuleProgram } from '../../src/runtime/modular-code.ts';
 
 const contracts = 'export interface ModuleA { advance(value: number): number; }\nexport interface ModuleB { label(): string; }\n';
+test('COS73 every helper has module scope while markers keep the original guards', () => {
+  const index = ['src/modules/a/index.ts', Buffer.from('export function advance(value:number):number{return value;}')] as const;
+  assert.throws(() => validateModuleFiles(new Map([index, ['src/modules/a/types.ts', Buffer.from('interface Window { cosmosBoundaryType: string; }')]]), 'a'), /src\/modules\/a\/types\.ts.*(?:module|import|export)/);
+  for (const source of ['export {}; interface Window { cosmosBoundaryType: string; }', 'export type Value=number;', 'import type {ModuleA} from "../../../_cosmos/module-contracts"; const local: ModuleA|null=null; void local;']) {
+    validateModuleFiles(new Map([index, ['src/modules/a/types.ts', Buffer.from(source)]]), 'a');
+  }
+  for (const source of ['export {}; declare global { interface Window { extra: string; } }', 'export {}; declare module "phaser" {}',
+    'export {}; type Outside=import("C:/outside.d.ts").Value;', 'export {}; // @ts-ignore\nconst value=1;', '/// <reference path="outside.ts"/>\nexport {};']) {
+    assert.throws(() => validateModuleFiles(new Map([index, ['src/modules/a/types.ts', Buffer.from(source)]]), 'a'));
+  }
+});
 test('all TypeScript import forms stay inside captured module/interface or pinned Phaser scope', () => {
   for (const prefix of ['type Outside = import("C:/outside.d.ts").Value;', 'import Outside = require("C:/outside.d.ts");']) {
     assert.throws(() => validateModuleFiles(new Map([['src/modules/a/index.ts', Buffer.from(prefix + '\nexport function advance(value:number):number{return value;}')]]), 'a'));
