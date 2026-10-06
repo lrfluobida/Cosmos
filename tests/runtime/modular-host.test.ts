@@ -13,16 +13,20 @@ import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { planTaskDag } from '../../src/roles/planner.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
+import { currentModularRepairPolicy } from '../../src/runtime/modular-repair-policy.ts';
+import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 
 /** Actual product caller/compiler/registry/journal; model/browser/reviewer replies are synthetic. */
-export async function modularFixture(t: test.TestContext, fault = '') {
+export async function modularFixture(t: test.TestContext, fault = '', options: { newModulePolicy?: boolean; pauseRepair?: boolean; badRepair?: boolean; badSuccessor?: boolean; dirtyIntegration?: boolean } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cos71-host-')); t.after(() => { t.diagnostic(`Source-only pipeline evidence: ${root}`); });
   const draft: any = withHostStages({ codeProfile: 'modular-code/1', brief: '原创点击获胜', questions: [{ id: 'goal', prompt: '目标？' }], answers: { goal: '点击获胜' }, unsupported: [],
     acceptance: [{ acceptanceId: 'win', description: '点击获胜', steps: ['点击目标'], expected: '胜利', evidenceKinds: ['test_report'] }],
     scenario: { viewport: { width: 1280, height: 720 }, steps: [{ id: 'click', kind: 'locator-click', selector: '#target', timeoutMs: 1000 },
       { id: 'win', kind: 'assert', acceptanceId: 'win', observation: { kind: 'text', selector: '#result' }, expected: '胜利', timeoutMs: 1000 }] } } as any);
   const intake = await IntakeController.create({ root, runId: 'modular-game', ledgerId: 'modular-budget', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 2,
+    ...(options.newModulePolicy ? { modularRepairPolicy: currentModularRepairPolicy() } : {}),
     allocations: [{ taskId: 'intake', amountMicroCny: 100 }, { taskId: 'planning', amountMicroCny: 100 }] });
+  if (options.newModulePolicy) await writeFile(join(root, 'intake-origin.json'), JSON.stringify({ runId: 'modular-game', brief: draft.brief, modularRepairPolicy: currentModularRepairPolicy() }), { encoding: 'utf8', flag: 'wx' });
   const saved = await intake.saveDraft(draft), requirement = await intake.confirm({ revision: saved.revision, confirmed: true, actorId: 'synthetic-user', at: new Date().toISOString() });
   await intake.activateGeneration({ environmentReady: true, executionReady: true }); await intake.close();
   const toolchain = resolve(process.env.COSMOS_TEMPLATE_ROOT ?? fileURLToPath(new URL('../../templates/2d', import.meta.url)));
@@ -61,11 +65,13 @@ export async function modularFixture(t: test.TestContext, fault = '') {
         await put('authors/design/module-contracts.d.ts', 'export interface ModuleA { advance(value: number): number; }\nexport interface ModuleB { label(value: number): string; }\n');
       } else if (packet.role === 'art') await put('authors/art/media.json', JSON.stringify({ characters: [{ id: 'target', width: 32, height: 32, anchor: { x: 16, y: 16 },
         layers: [{ id: 'body', shape: 'rect', x: 1, y: 1, width: 30, height: 30, fill: '#FFD700', stroke: '#000000', strokeWidth: 0 }], states: [{ name: 'idle', fps: 1, loop: true, frames: [{}] }] }], audio: [] }));
-      else if (code === 'module-a-task') await put('authors/code-a/src/modules/a/index.ts', fault === 'empty-module' ? 'export {};\n' : 'export function advance(value: number): number { return value + 1; }\n');
-      else if (code === 'module-b-task') await put('authors/code-b/src/modules/b/index.ts', 'export function label(value: number): string { return value > 0 ? "胜利" : "等待"; }\n');
+      else if (code === 'module-a-task' || code === 'module-a-task-repair') await put('authors/code-a/src/modules/a/index.ts', fault === 'empty-module' ? 'export {};\n'
+        : fault === 'COS72-module-a' && (code === 'module-a-task' || options.badRepair) ? 'export function advance(value:number):number{return "wrong";}\n' : 'export function advance(value: number): number { return value + 1; }\n');
+      else if (code === 'module-b-task' || code === 'module-b-task-repair') await put('authors/code-b/src/modules/b/index.ts', fault === 'COS72-module-b' && (code === 'module-b-task' || options.badRepair)
+        ? 'export function label(value:number):string{return value;}\n' : 'export function label(value: number): string { return value > 0 ? "胜利" : "等待"; }\n');
       else {
         await put('authors/coding/index.html', '<button id="target">目标</button><div id="result">等待</div><script type="module" src="/src/main.ts"></script>');
-        await put('authors/coding/src/main.ts', fault === 'integration-repair' && code === 'integration-task' ? 'const broken: number = "wrong"; document.body.textContent=String(broken);\n'
+        await put('authors/coding/src/main.ts', fault === 'integration-repair' && code === 'integration-task' || options.badSuccessor && code === 'integration-task-successor' ? 'const broken: number = "wrong"; document.body.textContent=String(broken);\n'
           : "import {advance} from './modules/a';import {label} from './modules/b';document.querySelector('#target')!.addEventListener('click',()=>{document.querySelector('#result')!.textContent=label(advance(0));});\n");
       }
       return { text: JSON.stringify({ summary: 'Synthetic scoped fixture output', remaining: [], uncertainty: [] }) };
@@ -85,7 +91,18 @@ export async function modularFixture(t: test.TestContext, fault = '') {
         recovery: { artifactRoot: root, journalRoot: join(root, 'journal'), recoverCapture: active.recoverCapture } });
       result = { tasks }; assert.equal(tasks.filter(task => task.state === 'passed').length, 4); assert.equal(tasks.find(task => task.taskId === 'integration-task')!.attempts.length, 0);
     } finally { await controller.close(); }
-  } else result = await host.execute({ root, requirement, draft, resume: false });
+  } else if (options.pauseRepair || options.dirtyIntegration) result = await executeGeneration({ root, requirement, draft, resume: false, createHost: async input => {
+    const active = await createBrowserHost({ ...input, ...hostOptions }), prepare = active.preAuthor!.bind(active);
+    active.preAuthor = async (task, signal) => {
+      if (options.pauseRepair && task.taskId.endsWith('-repair')) throw new Error('Synthetic interruption before registered repair dispatch.');
+      if (options.dirtyIntegration && task.taskId === 'module-b-task') {
+        await mkdir(join(root, 'authors/coding/src'), { recursive: true }); await writeFile(join(root, 'authors/coding/src/main.ts'), '// Unknown original integration writes.\n', 'utf8');
+      }
+      await prepare(task, signal);
+    };
+    return active;
+  } });
+  else result = await host.execute({ root, requirement, draft, resume: false });
   return { root, packets, result, requirement, draft, host };
 }
 test('actual product host runs five isolated tasks and composes two approved compiled modules into one reviewed game', async t => {

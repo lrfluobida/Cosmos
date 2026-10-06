@@ -14,6 +14,8 @@ import { validateSnapshot } from './run-validation.ts';
 import type { RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
 import { frameConfirmationVersion, frameIntakeReason, readFrameSelection, requireCurrentFrameSource, validateFrameSelection } from './render-frame-selection.ts';
 import type { RenderFrameSelection } from './render-frame-selection.ts';
+import { readModularRepairPolicy, requireCurrentModularRepairPolicy, validateModularRepairPolicy } from './modular-repair-policy.ts';
+import type { ModularRepairPolicy } from './modular-repair-policy.ts';
 
 export type StoredDraft = GameDraft & { revision: number; source: ArtifactReference };
 export interface IntakeSnapshot {
@@ -24,6 +26,7 @@ export interface IntakeSnapshot {
   draft: StoredDraft | null;
   draftMode?: PreparationSelection;
   renderFrames?: RenderFrameSelection;
+  modularRepairPolicy?: ModularRepairPolicy;
   confirmation: { revision: number; requirement: RequirementContract; source: ArtifactReference } | null;
 }
 export interface CreateIntakeOptions {
@@ -31,10 +34,11 @@ export interface CreateIntakeOptions {
   interviewTaskId: string; maxRequests: number; limitMicroCny?: number; durationMs?: number; now?: () => number;
   draftMode?: DraftMode;
   renderFrames?: RenderFrameSelection;
+  modularRepairPolicy?: ModularRepairPolicy;
 }
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 const draftRef = (revision: number): ArtifactReference => ({ artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` });
-const confirmationRef = (revision: number, selection?: RenderFrameSelection): ArtifactReference => ({ artifactId: 'user-confirmation', version: frameConfirmationVersion(revision, selection), location: `requirements/v${revision}/confirmation.json` });
+const confirmationRef = (revision: number, selection?: RenderFrameSelection, policy?: ModularRepairPolicy): ArtifactReference => ({ artifactId: 'user-confirmation', version: frameConfirmationVersion(revision, selection, policy), location: `requirements/v${revision}/confirmation.json` });
 const payload = ({ revision: _revision, source: _source, ...draft }: StoredDraft): GameDraft => draft;
 async function requireModeOrigin(root: string, state: IntakeSnapshot): Promise<void> {
   let origin: unknown;
@@ -50,6 +54,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   if (!state || state.formatVersion !== 'intake-1') throw new Error('Expected intake snapshot; this run may already be activated.');
   const mode = modeFromSelection(state.draftMode);
   validateFrameSelection(state.renderFrames);
+  validateModularRepairPolicy(state.modularRepairPolicy);
   if (state.renderFrames && state.draftMode) throw new Error('Render-frame sampling is unsupported in preparation mode.');
   if (!Number.isSafeInteger(state.revision) || state.revision < 1 || !timestamp(state.createdAt)
     || !state.run || state.run.kind !== 'runtime_generation' || Object.keys(state.run).some(key => !['runId', 'kind', 'specVersion'].includes(key))
@@ -68,7 +73,8 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   }
   const events = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'budget_warning', 'stopped'];
   if (!Array.isArray(state.events) || state.events[0]?.type !== 'created') throw new Error('Missing intake history.');
-  if ((state.renderFrames || state.events[0].reason?.includes(' Render-frame observer: ')) && state.events[0].reason !== frameIntakeReason(state.renderFrames)) throw new Error('Original intake render-frame selection changed.');
+  if ((state.renderFrames || state.modularRepairPolicy || / Render-frame observer: | Modular-repair policy: /.test(state.events[0].reason))
+    && state.events[0].reason !== frameIntakeReason(state.renderFrames, state.modularRepairPolicy)) throw new Error('Original intake selection/policy changed.');
   state.events.forEach((event, i) => {
     if (event.sequence !== i + 1 || !timestamp(event.at) || !events.includes(event.type) || typeof event.reason !== 'string'
       || (event.requestId !== null && !state.requests.some(item => item.requestId === event.requestId))) throw new Error('Invalid intake event.');
@@ -79,7 +85,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   }
   if (state.confirmation !== null) {
     const confirmed = state.confirmation;
-    if (!confirmed || !state.draft || confirmed.revision !== state.draft.revision || !sameValue(confirmed.source, confirmationRef(confirmed.revision, state.renderFrames))
+    if (!confirmed || !state.draft || confirmed.revision !== state.draft.revision || !sameValue(confirmed.source, confirmationRef(confirmed.revision, state.renderFrames, state.modularRepairPolicy))
       || validateRequirement(confirmed.requirement).length || !sameValue(confirmed.requirement.acceptance, state.draft.acceptance)
       || confirmed.requirement.specVersion !== state.run.specVersion || !sameValue(confirmed.requirement.sources, [state.draft.source, confirmed.source])) throw new Error('Invalid or stale requirement confirmation.');
   }
@@ -113,10 +119,11 @@ export class IntakeController {
       formatVersion: 'intake-1', revision: 1, run: { runId: options.runId, kind: 'runtime_generation', specVersion: options.specVersion },
       ledger: { contractVersion: '1.0.0', ledgerId: options.ledgerId, scope: 'generation', limitMicroCny: options.limitMicroCny ?? DEFAULT_BUDGETS.generationMicroCny,
         warningThresholdPercent: 80, allocations: structuredClone(options.allocations), entries: [] }, requests: [],
-      events: [{ sequence: 1, at: createdAt, type: 'created', requestId: null, reason: frameIntakeReason(options.renderFrames) }], stopReason: null,
+      events: [{ sequence: 1, at: createdAt, type: 'created', requestId: null, reason: frameIntakeReason(options.renderFrames, options.modularRepairPolicy) }], stopReason: null,
       createdAt, durationMs: options.durationMs ?? DEFAULT_BUDGETS.hardDurationMs, interviewTaskId: options.interviewTaskId, maxRequests: options.maxRequests, draft: null, confirmation: null,
       ...(draftMode ? { draftMode } : {}),
       ...(options.renderFrames ? { renderFrames: structuredClone(options.renderFrames) } : {}),
+      ...(options.modularRepairPolicy ? { modularRepairPolicy: structuredClone(options.modularRepairPolicy) } : {}),
     };
     validateIntakeSnapshot(state);
     const store = await SnapshotStore.acquire(options.root);
@@ -132,6 +139,7 @@ export class IntakeController {
       const state = await store.read(); validateIntakeSnapshot(state);
       await requireModeOrigin(store.root, state);
       if (state.renderFrames) await requireCurrentFrameSource(await readFrameSelection(store.root, state));
+      if (state.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(store.root, state));
       const controller = new IntakeController(store, state, options.now ?? Date.now), next = structuredClone(state);
       if (state.draftMode && state.draft) await controller.requireDraftFile(state.draft);
       for (const record of next.requests) {
@@ -219,7 +227,8 @@ export class IntakeController {
       if (!draft || draft.revision !== confirmation.revision) throw new Error('Confirmation must name the current draft revision.');
       if (draft.unsupported.length) throw new Error('Unsupported requirements need a decision before confirmation.');
       if (next.renderFrames) await requireCurrentFrameSource(await readFrameSelection(this.store.root, next));
-      const source = confirmationRef(draft.revision, next.renderFrames);
+      if (next.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(this.store.root, next));
+      const source = confirmationRef(draft.revision, next.renderFrames, next.modularRepairPolicy);
       const requirement = confirmRequirements({ ...payload(draft), specVersion: next.run.specVersion, sources: [draft.source, source] }, confirmation);
       if (next.draftMode) await this.requireDraftFile(draft);
       if (next.confirmation) {
@@ -228,7 +237,7 @@ export class IntakeController {
       }
       if (!next.draftMode) await this.requireDraftFile(draft);
       await publishReceipt(join(this.store.root, source.location), { ...confirmation, runId: next.run.runId, draft: draft.source,
-        ...(next.renderFrames ? { renderFrames: next.renderFrames } : {}) });
+        ...(next.renderFrames ? { renderFrames: next.renderFrames } : {}), ...(next.modularRepairPolicy ? { modularRepairPolicy: next.modularRepairPolicy } : {}) });
       next.confirmation = { revision: draft.revision, requirement, source };
       await this.commit(next); return structuredClone(requirement);
     });
@@ -245,9 +254,10 @@ export class IntakeController {
       if (budgetSummary(prior.ledger).exhausted) throw new Error('Budget exhausted before activation.');
       await this.requireDraftFile(prior.draft);
       if (prior.renderFrames) await requireCurrentFrameSource(await readFrameSelection(this.store.root, prior));
+      if (prior.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(this.store.root, prior));
       const receipt = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await readFile(join(this.store.root, confirmed.source.location))));
       if (!sameValue(receipt, { revision: confirmed.revision, confirmed: true, actorId: confirmed.requirement.confirmedBy, at: confirmed.requirement.confirmedAt, runId: prior.run.runId, draft: prior.draft.source,
-        ...(prior.renderFrames ? { renderFrames: prior.renderFrames } : {}) })) throw new Error('Confirmation source changed.');
+        ...(prior.renderFrames ? { renderFrames: prior.renderFrames } : {}), ...(prior.modularRepairPolicy ? { modularRepairPolicy: prior.modularRepairPolicy } : {}) })) throw new Error('Confirmation source changed.');
       const startedAt = this.at();
       const active: RunSnapshot = {
         formatVersion: 1, revision: prior.revision + 1, ledger: structuredClone(prior.ledger), requests: structuredClone(prior.requests), events: structuredClone(prior.events), stopReason: null, tasks: [],

@@ -24,6 +24,7 @@ import { schedulerStatus } from './scheduler/index.ts';
 import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from './repair/policy.ts';
 import type { RepairFeedback } from './repair/feedback.ts';
 import { allocateRepairGrants, buildRepairContinuation, findUnstartedSuccessors, prepareRepairContinuation, sealRepairDiagnostics, SuccessorBlocked } from './entrypoint-successors.ts';
+import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
 import type { RepairContinuationPlan, SuccessorTarget, TaskReplacement } from './entrypoint-successors.ts';
 import { loadContinuationPlan, prepareContinuationPlan } from './continuation-plan.ts';
 import type { ContinuationPlan } from './continuation-plan.ts';
@@ -77,8 +78,10 @@ export async function executeGeneration(options: GenerationOptions) {
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))) throw new Error('Requirement confirmation does not match this original run.');
   if (!sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Confirmed draft source changed.');
   const frames = await readFrameSelection(root, original, options.renderFrames);
+  const modulePolicy = await readModularRepairPolicy(root, original);
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
   await requireCurrentFrameSource(frames);
+  await requireCurrentModularRepairPolicy(modulePolicy);
   if (original.stopReason) throw new Error(`Original run is stopped: ${original.stopReason.code}.`);
   if (Date.now() >= Date.parse(original.run.originalDeadlineAt)) throw new Error('Original deadline expired; no new generation window is allowed.');
   if (options.resume) await recoverRunOwner(root);
@@ -137,14 +140,14 @@ export async function executeGeneration(options: GenerationOptions) {
         if (feedback) {
           if (host.continuationTargets) {
             try {
-              const snapshot = await controller.read(), sources = [source, ...findUnstartedSuccessors(snapshot, execution.tasks, failed.taskId)];
+              const snapshot = await controller.read(), sources = [source, ...findUnstartedSuccessors(snapshot, execution.tasks, failed.taskId, modulePolicy)];
               const grants = allocateRepairGrants(snapshot, sources);
               const assessment = assessRepair({ snapshot, requirement, history: [feedback], policy: DEFAULT_REPAIR_POLICY, now: Date.now(),
                 estimate: { costMicroCny: Object.values(grants).reduce((sum, amount) => sum + amount, 0), durationMs: sources.length * 60000, cleanupMs: 5000 } });
               if (assessment.action !== 'repair') throw new SuccessorBlocked(`Bounded continuation blocked: ${assessment.reason}.`);
               const targets = await host.continuationTargets(sources, feedback, grants);
               if (!targets) throw new SuccessorBlocked('Host cannot establish safe fixed continuation outputs.');
-              const plan = await sealRepairDiagnostics(root, buildRepairContinuation({ snapshot, originals: execution.tasks, requirement, originalPlan: execution.plan, failedId: failed.taskId, feedback, targets, now: Date.now() }));
+              const plan = await sealRepairDiagnostics(root, buildRepairContinuation({ snapshot, originals: execution.tasks, requirement, originalPlan: execution.plan, failedId: failed.taskId, feedback, targets, now: Date.now(), modulePolicy }));
               await prepareRepairContinuation({ root, controller, plan, originals: execution.tasks, requirement, originalPlan: execution.plan, now: Date.now() });
               continuation = plan;
               const next = await run(plan.tasks, true);
