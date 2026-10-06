@@ -1238,6 +1238,8 @@ BATCH14：implementer cos65_implementer，独立 reviewer cos67_implementer，�
 
 - 登记时状态：[#74](https://github.com/lrfluobida/Cosmos/issues/74)，id5722514652，Root body/native73/旧72项及父14完成/newunchecked精确读回。BATCH15专属author67/独立reviewer65/solemerger66；短计划待独审，SOURCE_NOT_READY/open、sourceImplementation NONE；[根因与原始证据](../research/2026-10-06-module-global-type-boundary.md)。
 
+- 计划批准时状态：d5e4de1bd126df886bd1d109942f1b852e1cae61（13行271词）由actual65独立读完整spec/card/actualproducer-consumer与计划后PLAN_APPROVED，无finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/74#issuecomment-6008877584)exact。pinned TS5.9.3 isExternalModule作用所有helper/index，worker作者/最终compiler与host capture/verify/recoverCapture/approvedModule/preAuthor/currentreuse为原真实调用；保原augmentation/import/ref/suppression/ABI/readonly历史。Root授权actual67从main28af250专属cos04 TDD实施；sourceNOTREADY/in-progress/open，最终源码另审。
+
 #### 目标
 
 使每个编码模块的辅助 TypeScript 文件保持模块作用域，防止一个模块的脚本级全局类型声明改变另一个模块的编译结果。沿现有模块范围和编译链修复这个已复现缺口。

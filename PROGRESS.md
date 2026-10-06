@@ -4,6 +4,7 @@
 
 ## COS73 模块辅助文件作用域修复启动
 
+- 已审短计划d5e4de1bd126df886bd1d109942f1b852e1cae61（13行271词），actual65全plan/actual调用点独审PLAN_APPROVED、无finding，[公开批准6008877584](https://github.com/lrfluobida/Cosmos/issues/74#issuecomment-6008877584)已exact读回。Root五注册docs b7f独审后sole66合推main28af2503f49af1cdb7e84e59a053ef4066803dd6；Root授权67先合此docs-only基线、从专属managedcos04 TDD实施。当前in-progress/SOURCE_NOT_READY，源码独审及真实新RED/GREEN待完成；以下登记时PENDING/sourceNONE保留历史。
 - [COS-73 / #74](https://github.com/lrfluobida/Cosmos/issues/74) 已登记并挂父任务，native73、旧72项与父14完成保持、新项unchecked exact；BATCH15 author67/reviewer65/solemerger66，plan/PENDING/SOURCE_NOT_READY/open，源码尚未实施。
 - [真实根因记录](docs/research/2026-10-06-module-global-type-boundary.md)：在f8已审source的一次TEMP caller，A/B local owned tsc0及ABI通过/fixture reviewapproved，final实际tsc2两TS2322全在A；B脚本级Window声明改变A条件类型。仅TEMP组装移除Bhelper同pinnedtsc0，原A/B captures全hash/mtime不变、账0/no browser/model/paid。诊断路径不证明owner，先补现有helper模块作用域检查，保已有显式增强/import/ref/抑制守卫；不新增passed-owner框架或tsconfig规避。
 - Source72已审source131/Ready四文档c872由sole66合推931a7191bad113640f6b881daf31ac0035996b39，code15paths未变；RootReady/publicclosed/预算、230/221/7/two政策partial、PERFORMANCE/完整经典/实际12h/human未通过边界保持。本卡新增仅source/free fixtures，C6unknown974882µ/closure12/C7保持。
