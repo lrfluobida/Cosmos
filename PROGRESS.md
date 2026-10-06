@@ -2,9 +2,16 @@
 
 更新时间：2026-10-06
 
+## COS72 单模块修复切片启动
+
+- Source71 READY 四文档472b194经独立67审查，由唯一66合入并推送3e0a01c528ce4430d1f2725c1f047ba4b6d4e5f2；批准bytes/UTF-8/LF/中文/diff/mainclean及实际remote一致，src/tests未变，没有重复代码矩阵。
+- [COS-72 / #73](https://github.com/lrfluobida/Cosmos/issues/73) 已登记并挂原父任务，native72、旧71项前缀及父13项完成保持、新项unchecked已精确读回；BATCH14 author65/独立reviewer67/solemerger66，短计划待独审，SOURCE_NOT_READY/open、sourceImplementation NONE。
+- 核定实际缺口：模块输出与worker固定v1、nextOutput把coding映到整体game v2、模块repair/targets被拒、集成选择可能取旧failed module。限定一个结束且可归属的模块code_defect v1→same模块v2独审，另一模块/design/art/contracts保持；只有从未实际启动且无request/output/writes的集成可形成successor和新candidate。沿原唯一repair group、两logical attempts、剩余未分配grant与原deadline，group后不再给集成第二修复。
+- 原公开确认明示仅最终集成修复；新能力必须在新运行完整展示与真实stdin确认前沿可信来源封存，模型不能赋权。旧确认/停止/完成运行保留旧政策与只读；不自动迁移或重开。新增仅免费source/fixture，actual paid/model/human/window NONE，C6 unknown974882µ/closure12/C7与预算、参考及完整经典/PERFORMANCE未通过边界保持。
+
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 71 个原生子任务。早期验证历史：COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 72 个原生子任务。早期验证历史：COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
 
 第六批补充：固定新试验于 `2026-10-01T11:43:38.426Z` 开始，8.204 秒后在首次输入 capture 发布窗口失败，模型请求与新增费用均为零；原因未知。启动恢复实现虽已独立批准并合入，但实际命令被原 `12:43:38.426Z` 截止拒绝，不能再试或延时。COS-13 已独立批准并合入 `d3aab99`，状态为 `offline-verified-awaiting-live`，#14 保持 open；真实长链路尚未执行，当时无通过的生成游戏，#11/#12 与 G3 状态不变。
 

@@ -117,6 +117,7 @@
 - [x] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
 - [x] [COS-70 接通公开 CLI 帧采样选择与恢复绑定](https://github.com/lrfluobida/Cosmos/issues/71)
 - [x] [COS-71 接通双模块编码任务与最终集成](https://github.com/lrfluobida/Cosmos/issues/72)
+- [ ] [COS-72 接通单模块有界修复与后继集成](https://github.com/lrfluobida/Cosmos/issues/73)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1186,6 +1187,45 @@ src/cli/index.ts 的公开入口只接受现有 brief/adapter，创建createProd
 
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
 稳定任务 ID：COS-71
+
+### COS-72 · 接通单模块有界修复与后继集成
+
+- 登记：[#73](https://github.com/lrfluobida/Cosmos/issues/73)，id5721774423；Root 已精确读回 body/native72/父旧71项及13项完成不变，新项 unchecked。BATCH14 专属 author65 / 独立 reviewer67 / sole merger66；plan/PENDING、SOURCE_NOT_READY/open，尚无本卡实现或新增付费。
+
+#### 目标
+
+在新确认的双模块生成运行中，为一个可归属的模块 v1 代码失败创建同模块 v2 独立修复，并把尚未实际启动的最终集成显式重绑定到新版本。沿原执行器、任务历史、预算和截止时间完成局部修复到完整交付的链路。
+
+#### 已核缺口
+
+COS-71 已接通五任务 DAG、模块实际编译/独审/capture 与最终集成；当前模块输出和 compiler 身份固定 v1，nextOutput 将 coding 修复映到整体 game v2，modular repair/targets 只接纳最终集成。旧公开确认明确“仅最终集成可修复一次，模块失败保留差距”。不能通过平台升级给历史确认静默增加模块修复能力。
+
+#### 范围
+
+1. 沿原可信 intake/确认来源绑定新运行的修复政策；保持 modular-code/1 和原验收 ID，不让模型赋权。新完整展示须说明：一个已结束、可归属的模块 v1 代码失败可消耗原唯一修复机会，生成模块 v2 与未启动集成 successor；整组用完后不给集成第二次修复。最终集成先失败时沿原一次修复。旧已确认/停止/完成运行固定旧政策、历史与只读行为；不自动迁移或重开。来源缺失或篡改不能默认为新能力。
+2. 只修模块 A 或 B 中一个原 v1；另一模块、design/art/受保护接口必须已独立通过且完整回执、输入版本和 journal/capture 签名一致。反馈只能为已结束尝试的 code_defect，沿原一次 repair/两次 logical attempts，新的作者/评审上下文、same artifactId v2、新 capture。写入范围限自己的模块，保留原失败诊断与输出。
+3. 原最终集成仅在 not_started 或纯依赖 blocked，且 attempts、请求、artifact/evidence/review receipt、capture/candidate 与作者写入全部为空时创建 unstarted_successor。已有尝试、在途或 unknown、输出、部分写入或审查均拒自动重绑定并保留差距。新 candidate 与 assembly 绑定修后模块 v2、另一模块原 v1、原设计/美术/契约及全部玩法；不选择列表中的旧失败模块或旧 game 候选。
+4. 复用 buildRepairContinuation、原 entrypoint 注册/封存/派发与 recovery；仅使用原未分配剩余额度和原 deadline，旧 grants/费用/尝试/任务均保留，不回收失败费用，不新建 ledger/runner/profile/module 数或人工续跑政策。模块 v2 未通过则集成不执行；整组后集成失败不追加第二次 repair。
+5. 新版本实际 owned worker 验证当前模块 namespace/接口，独立源码审查固定 v2；集成实际编译 v2+v1+自身入口，并沿原 normal/media/frames/package/clean Node/完整独审/晋升链。模块通过仍只证明局部契约，最终集成覆盖全部原玩法。
+6. 有效恢复精确重核 original/effective 五任务、replacement group、版本/输出、完整回执、预算与原历史，缺/旧/伪造/漂移版本拒绝；完成后 ordinary/direct/status 沿原报告与 tree/mtime 只读，不重发模型、不重采样、不补时间。
+
+#### 免费验收
+
+- 新确认政策完整展示与来源绑定；旧已确认升级仍无 module repair，删除/篡改政策来源拒绝。unsupported validation/preparation/单 coding continuation 保持原声明。
+- 实际 createProductHost + planner/RoleFactory/DAG：一个模块实际 compiler code_defect v1 → 同模块 v2 作者/实际 compiler/独审/capture → 原未启动集成 successor → v2+v1 真实 tsc/Vite/assembly/package/clean Node/完整候选。provider、浏览器报告与运行时评审可注入 fixture；真实 caller/compiler/journal 与 fixture 事实分列。
+- 分别证明 v2 失败挡集成、另一模块/接口/receipt/版本漂移拒绝、旧 module/game 不能被选、原集成有尝试/请求/部分写入不能 successor、额度/时间/unknown 拒绝和 group 后没有第二 repair；保留原失败与费用。
+- 有效 unfinished recovery、缺失 replacement/旧版本 recovery 拒绝、完成只读；只跑受影响的免费代表与负例，复用 COS-71 通过证据，不重复旧 Edge/110 秒/30 分钟矩阵。
+
+#### 交付与边界
+
+BATCH14：implementer cos65_implementer，独立 reviewer cos67_implementer，唯一 merger cos66_implementer。≤300 词计划独立 PLAN_APPROVED 后 TDD，先规格后质量审查实际 diff，提交准确 SHA 与原始证据，由 sole merger 核后集成。UTF-8、中文最小 patch/readback。
+
+源码依赖：COS-71 已审 6bf61a7836f07cece8ae9197da8b20e7ee46535b / main 9f4f8e670e21542af8f2e04c5e608ba2d886504d，以及原 COS-11 修复、COS-30 后继、COS-70 来源绑定。Root READY 文档已合入 3e0a01c528ce4430d1f2725c1f047ba4b6d4e5f2。
+
+仅 source/free fixtures；完整经典100%/95%、真实新模型生成、用户体验、实际完整12h与PERFORMANCE不提升。参考未冻结，230/221待核实/7未执行政策与两政策partial保持。共享验证¥150/首¥30/COS16原¥10、正式¥200/12h/目标¥100/6h、C6 unknown974882µ/closure12/C7保持；新增实际付费/模型/人类确认/窗口 NONE。
+
+父任务：https://github.com/lrfluobida/Cosmos/issues/1
+稳定任务 ID：COS-72
 
 ## 5. 任务与上下文包模板
 
