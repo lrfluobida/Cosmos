@@ -117,7 +117,7 @@
 - [x] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
 - [x] [COS-70 接通公开 CLI 帧采样选择与恢复绑定](https://github.com/lrfluobida/Cosmos/issues/71)
 - [x] [COS-71 接通双模块编码任务与最终集成](https://github.com/lrfluobida/Cosmos/issues/72)
-- [ ] [COS-72 接通单模块有界修复与后继集成](https://github.com/lrfluobida/Cosmos/issues/73)
+- [x] [COS-72 接通单模块有界修复与后继集成](https://github.com/lrfluobida/Cosmos/issues/73)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1192,7 +1192,11 @@ src/cli/index.ts 的公开入口只接受现有 brief/adapter，创建createProd
 
 - 登记时状态：[#73](https://github.com/lrfluobida/Cosmos/issues/73)，id5721774423；Root 已精确读回 body/native72/父旧71项及13项完成不变，新项 unchecked。BATCH14 专属 author65 / 独立 reviewer67 / sole merger66；plan/PENDING、SOURCE_NOT_READY/open，尚无本卡实现或新增付费。
 
-- 已审短计划：原9c5a83因具体reader/caller与历史读取/执行前检查P2待澄清；仅Policybinding/Files两行修订为8eebb554bc859de41ae3b347a414c55bf33852db（19行278词），独立actual67审完整计划/affected与实际callgraph后PLAN_APPROVED，无剩余计划finding；[批准记录](https://github.com/lrfluobida/Cosmos/issues/73#issuecomment-6008000331)已精确读回。原政策/确认/capture历史读取与当前source执行guard分开，旧确认不获新模块权限，anchored删除拒绝，frames来源保留。Root授权actual65从main8ff56c6专属cos05实施TDD；SOURCE_NOT_READY/in-progress/open，最终源码另审，尚无本卡source通过或真实新生成。
+- 计划批准时状态：原9c5a83因具体reader/caller与历史读取/执行前检查P2待澄清；仅Policybinding/Files两行修订为8eebb554bc859de41ae3b347a414c55bf33852db（19行278词），独立actual67审完整计划/affected与实际callgraph后PLAN_APPROVED，无剩余计划finding；[批准记录](https://github.com/lrfluobida/Cosmos/issues/73#issuecomment-6008000331)已精确读回。原政策/确认/capture历史读取与当前source执行guard分开，旧确认不获新模块权限，anchored删除拒绝，frames来源保留。Root授权actual65从main8ff56c6专属cos05实施TDD；SOURCE_NOT_READY/in-progress/open，最终源码另审，尚无本卡source通过或真实新生成。
+
+- 最终源码：f8bfecc694708ad85503bd0fca26e9114c06b1ee（source/tests cf776be、已审policy9a0/原74b、caller ae91及plan8eebb祖先）经actual67完整规格→质量APPROVED/MODULAR_REPAIR_SUCCESSOR_SOURCE_READY；两P2完整确认版本与构造阶段effective绑定闭合，independent affected3/3/0skip（4303.2168ms），15路径8prod/4tests/3docs。sole66合推131f15361c06d875e3dd5de4c3ea6fb98c9017a6；main typecheck/build0、只选实际A修复链1/1/0skip（38074.8187ms/TAP42252.1695ms），批准bytes/UTF8LF中文/diff/Root旧记录/三方SHA/clean均核。新确认模块v2+unstarted集成successor、B有效恢复、3新失败边界、19groups/9policy/8实际guard、冷安装upgrade只读均已验证；provider/browser/review为fixture，编译/capture/组合/package/cleanNode/journal是真实。原失败与费用/预算/clock历史保持，无第二group。
+
+- [公开批准](https://github.com/lrfluobida/Cosmos/issues/73#issuecomment-6008707326)与issue body/closed/completed及父[x]已exact读回：native72、父14完成。本卡仅source/free-fixture scoped complete，不提升真实模型/完整经典100%95%/PERFORMANCE/actual12h/最终human；旧确认仍integration-only，预算、C6unknown/closure12/C7、230/221/7/two-policy partial及未冻结参考保持。
 
 #### 目标
 
