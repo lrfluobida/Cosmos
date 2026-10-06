@@ -1190,7 +1190,9 @@ src/cli/index.ts 的公开入口只接受现有 brief/adapter，创建createProd
 
 ### COS-72 · 接通单模块有界修复与后继集成
 
-- 登记：[#73](https://github.com/lrfluobida/Cosmos/issues/73)，id5721774423；Root 已精确读回 body/native72/父旧71项及13项完成不变，新项 unchecked。BATCH14 专属 author65 / 独立 reviewer67 / sole merger66；plan/PENDING、SOURCE_NOT_READY/open，尚无本卡实现或新增付费。
+- 登记时状态：[#73](https://github.com/lrfluobida/Cosmos/issues/73)，id5721774423；Root 已精确读回 body/native72/父旧71项及13项完成不变，新项 unchecked。BATCH14 专属 author65 / 独立 reviewer67 / sole merger66；plan/PENDING、SOURCE_NOT_READY/open，尚无本卡实现或新增付费。
+
+- 已审短计划：原9c5a83因具体reader/caller与历史读取/执行前检查P2待澄清；仅Policybinding/Files两行修订为8eebb554bc859de41ae3b347a414c55bf33852db（19行278词），独立actual67审完整计划/affected与实际callgraph后PLAN_APPROVED，无剩余计划finding；[批准记录](https://github.com/lrfluobida/Cosmos/issues/73#issuecomment-6008000331)已精确读回。原政策/确认/capture历史读取与当前source执行guard分开，旧确认不获新模块权限，anchored删除拒绝，frames来源保留。Root授权actual65从main8ff56c6专属cos05实施TDD；SOURCE_NOT_READY/in-progress/open，最终源码另审，尚无本卡source通过或真实新生成。
 
 #### 目标
 

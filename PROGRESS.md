@@ -5,7 +5,8 @@
 ## COS72 单模块修复切片启动
 
 - Source71 READY 四文档472b194经独立67审查，由唯一66合入并推送3e0a01c528ce4430d1f2725c1f047ba4b6d4e5f2；批准bytes/UTF-8/LF/中文/diff/mainclean及实际remote一致，src/tests未变，没有重复代码矩阵。
-- [COS-72 / #73](https://github.com/lrfluobida/Cosmos/issues/73) 已登记并挂原父任务，native72、旧71项前缀及父13项完成保持、新项unchecked已精确读回；BATCH14 author65/独立reviewer67/solemerger66，短计划待独审，SOURCE_NOT_READY/open、sourceImplementation NONE。
+- [COS-72 / #73](https://github.com/lrfluobida/Cosmos/issues/73) 已登记并挂原父任务，native72、旧71项前缀及父13项完成保持、新项unchecked已精确读回；BATCH14 author65/独立reviewer67/solemerger66；登记时为plan pending/source NONE，注册四文档ad89d16独审后合推8ff56c6。
+- 短计划原9c5a83有P2：reader/caller路径及历史读取与执行前检查分界不够明确。作者仅两行修订8eebb554bc859de41ae3b347a414c55bf33852db，独立67全plan/affected审PLAN_APPROVED（19行278词）；[公开批准](https://github.com/lrfluobida/Cosmos/issues/73#issuecomment-6008000331)exact。Root授权65从main8ff56c6专属managedworktree TDD实施；当前SOURCE_NOT_READY/in-progress/open，源码独审与实际callerRED/GREEN尚待完成。原source-only预算及未知费用边界保持。
 - 核定实际缺口：模块输出与worker固定v1、nextOutput把coding映到整体game v2、模块repair/targets被拒、集成选择可能取旧failed module。限定一个结束且可归属的模块code_defect v1→same模块v2独审，另一模块/design/art/contracts保持；只有从未实际启动且无request/output/writes的集成可形成successor和新candidate。沿原唯一repair group、两logical attempts、剩余未分配grant与原deadline，group后不再给集成第二修复。
 - 原公开确认明示仅最终集成修复；新能力必须在新运行完整展示与真实stdin确认前沿可信来源封存，模型不能赋权。旧确认/停止/完成运行保留旧政策与只读；不自动迁移或重开。新增仅免费source/fixture，actual paid/model/human/window NONE，C6 unknown974882µ/closure12/C7与预算、参考及完整经典/PERFORMANCE未通过边界保持。
 
