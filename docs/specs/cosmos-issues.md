@@ -115,7 +115,7 @@
 - [x] [COS-67 执行经典启动与离线政策并保留完整验收分母](https://github.com/lrfluobida/Cosmos/issues/68)
 - [x] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
 - [x] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
-- [ ] [COS-70 接通公开 CLI 帧采样选择与恢复绑定](https://github.com/lrfluobida/Cosmos/issues/71)
+- [x] [COS-70 接通公开 CLI 帧采样选择与恢复绑定](https://github.com/lrfluobida/Cosmos/issues/71)
 - [ ] [COS-71 接通双模块编码任务与最终集成](https://github.com/lrfluobida/Cosmos/issues/72)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
@@ -1110,9 +1110,11 @@ spec 第4B要求冻结本机配置、1280×720，普通场景平均至少55 FPS�
 
 ### COS-70 · 接通公开 CLI 帧采样选择与恢复绑定
 
-- 发布状态：[#71](https://github.com/lrfluobida/Cosmos/issues/71)，id5719982616；正文/native70children #2–#71/旧69保真与父新unchecked70已Root精确读回。in-progress/open/SOURCE_NOT_READY，actual65在cos05从c999d53提交短计划4754935888365e5f0810d387cd5a406fe7022f01（21行/275词），专属独立reviewer actual67已PLAN_APPROVED；作者TDD中、actual66为BATCH12 solemerger，尚未源码审批。
+- 发布状态：[#71](https://github.com/lrfluobida/Cosmos/issues/71)，id5719982616；正文/native70children #2–#71/旧69保真与父新unchecked70已Root精确读回。登记时in-progress/open/SOURCE_NOT_READY，actual65在cos05从c999d53提交短计划4754935888365e5f0810d387cd5a406fe7022f01（21行/275词），专属独立reviewer actual67已PLAN_APPROVED；作者TDD中、actual66为BATCH12 solemerger，尚未源码审批。
 
-- 源码检查点：候选77e7f3413923a421eebededb2b9a95840236bb12/source-tests6425a30已交专属actual67独审，实际14diff及3/3代表核查后复现completed读取错误依赖当前installed observer的P2；作者actual65修复中，原77e7未批准/SOURCE_NOT_READY。原封存证据不变，安装副本模板升级会令resume/status拒绝；未完成/追加current-source守卫须保留。验证与原RED见PROGRESS最新检查点，未合入源码。
+- 源码检查点（历史）：候选77e7f3413923a421eebededb2b9a95840236bb12/source-tests6425a30已交专属actual67独审，实际14diff及3/3代表核查后复现completed读取错误依赖当前installed observer的P2；作者actual65修复中，原77e7未批准/SOURCE_NOT_READY。原封存证据不变，安装副本模板升级会令resume/status拒绝；未完成/追加current-source守卫须保留。验证与原RED见PROGRESS最新检查点，未合入源码。
+
+- 最终源码审批：89f4925e7240387422ce8f89a7af4fa2ec343229/fix a4b476be经专属actual67规格/质量整体APPROVED/PUBLIC_RENDER_FRAME_SELECTION_SOURCE_READY；实际compiled升级作者3/3及独立2/2通过，原77e7 P2保留为历史。唯一actual66合推a56b25921ae6118b6bac4922d5f099724cb2c03c，main typecheck/build0/公开只读代表1/1，15批准字节、UTF8LF中文/diff/三方SHA/clean核实。[公共审批](https://github.com/lrfluobida/Cosmos/issues/71#issuecomment-6006019505)、body/closed/completed与父[x]已精确读回。本卡source/free-fixture组件complete，PERFORMANCE与完整游戏验收不提升。
 
 #### 目标
 
@@ -1151,7 +1153,7 @@ src/cli/index.ts 的公开入口只接受现有 brief/adapter，创建createProd
 
 ### COS-71 · 接通双模块编码任务与最终集成
 
-- 发布状态：[#72](https://github.com/lrfluobida/Cosmos/issues/72)，id5720207319；正文/native71/旧70及父11完成保持已Root精确读回。PLAN_APPROVED仅计划/SOURCE_NOT_READY/in-progress/open；actual67专属作者、actual65独立reviewer、actual66为BATCH13 sole merger。原2cc计划被要求修正空接口证明及声明捕获映射；修订accf52ea4992635089ea6dfc1d3715c828e5757f（15行/270词）已actual65独立affected审查批准，[公共记录](https://github.com/lrfluobida/Cosmos/issues/72#issuecomment-6005618925)已精确读回。实施等待COS70 source READY，71prod/tests仍NONE，尚无已批实现。
+- 发布状态：[#72](https://github.com/lrfluobida/Cosmos/issues/72)，id5720207319；正文/native71/旧70及父11完成保持已Root精确读回。PLAN_APPROVED仅计划/SOURCE_NOT_READY/in-progress/open；actual67专属作者、actual65独立reviewer、actual66为BATCH13 sole merger。原2cc计划被要求修正空接口证明及声明捕获映射；修订accf52ea4992635089ea6dfc1d3715c828e5757f（15行/270词）已actual65独立affected审查批准，[公共记录](https://github.com/lrfluobida/Cosmos/issues/72#issuecomment-6005618925)已精确读回。Source70已审合入a56b259，Root已派actual67从该main在专属cos04工作树实施；当前implementation/in-progress/open/SOURCE_NOT_READY，无已批实现。
 
 #### 目标
 
