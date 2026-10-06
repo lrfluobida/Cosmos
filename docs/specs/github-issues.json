@@ -5276,10 +5276,10 @@
         }
       ],
       "nativeParentLinked": true,
-      "state": "open",
-      "integrationStatus": "in-progress",
-      "implementationPhase": "fixing-independent-review-finding",
-      "reviewStatus": "SOURCE_NOT_READY",
+      "state": "closed",
+      "integrationStatus": "complete",
+      "implementationPhase": "source-integrated",
+      "reviewStatus": "PUBLIC_RENDER_FRAME_SELECTION_SOURCE_READY",
       "planReviewStatus": "PLAN_APPROVED",
       "approvedPlanCommit": "4754935888365e5f0810d387cd5a406fe7022f01",
       "planPath": "docs/plans/2026-10-06-cos70-cli-frame-selection.md",
@@ -5301,12 +5301,35 @@
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE",
       "humanExperience": "NONE",
-      "sourceReviewStatus": "CHANGES_REQUESTED",
+      "sourceReviewStatus": "APPROVED",
       "candidateSourceCommit": "77e7f3413923a421eebededb2b9a95840236bb12",
       "candidateSourceTestsCommit": "6425a30da83997c986799b0f14c5fb848992d94d",
       "actualSourceReviewer": "cos67_implementer",
-      "sourceReviewFinding": "P2: completed history incorrectly requires current installed observer SHA",
-      "sourceReviewReproduction": "TEMP/cos70-independent-completed-source-upgrade.txt"
+      "sourceReviewFinding": "Historical P2 completed read required current installed observer; resolved in a4b476be with independent compiled regression",
+      "sourceReviewReproduction": "TEMP/cos70-independent-completed-source-upgrade.txt",
+      "reviewedCommit": "89f4925e7240387422ce8f89a7af4fa2ec343229",
+      "sourceTestsCommit": "6425a30da83997c986799b0f14c5fb848992d94d",
+      "sourceFixCommit": "a4b476be0973c3e9a6c297fd7ac3e64c84831ea1",
+      "mergeCommit": "a56b25921ae6118b6bac4922d5f099724cb2c03c",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/71#issuecomment-6006019505",
+      "sourceReviewFindingResolved": true,
+      "sourceEvidence": {
+        "paths": 15,
+        "productionPaths": 8,
+        "testPaths": 4,
+        "docPaths": 3,
+        "authorPublicRecoveryPassed": 13,
+        "authorLegacyPassed": 7,
+        "authorUpgradePassed": 3,
+        "authorUpgradeMs": 38495.5617,
+        "independentUpgradePassed": 2,
+        "independentUpgradeMs": 26718.0849,
+        "mainTypecheckExit": 0,
+        "mainBuildExit": 0,
+        "mainReadonlyPassed": 1,
+        "mainReadonlyTestMs": 4349.1051,
+        "mainReadonlyTapMs": 7967.6194
+      }
     },
     {
       "taskId": "COS-71",
@@ -5368,9 +5391,7 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/71"
         }
       ],
-      "pendingSourcePrerequisites": [
-        "COS-70"
-      ],
+      "pendingSourcePrerequisites": [],
       "validationOutputsFor": [
         {
           "id": "COS-14",
@@ -5391,7 +5412,7 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "in-progress",
-      "implementationPhase": "plan-approved-awaiting-COS70-source",
+      "implementationPhase": "implementation",
       "reviewStatus": "SOURCE_NOT_READY",
       "planReviewStatus": "PLAN_APPROVED",
       "implementer": "cos67_implementer (dedicated COS71 implementer)",
@@ -5422,7 +5443,8 @@
       "planWords": 270,
       "planApprovalCommentId": 6005618925,
       "planApprovalCommentUrl": "https://github.com/lrfluobida/Cosmos/issues/72#issuecomment-6005618925",
-      "sourceImplementation": "NONE"
+      "sourceImplementation": "in-progress",
+      "implementationBase": "a56b25921ae6118b6bac4922d5f099724cb2c03c"
     }
   ],
   "verifiedNativeSubIssues": 71,
