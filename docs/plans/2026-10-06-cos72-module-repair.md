@@ -4,7 +4,7 @@
 
 **Base:** `3e0a01c528ce4430d1f2725c1f047ba4b6d4e5f2`; [COS72/#73](https://github.com/lrfluobida/Cosmos/issues/73). Goal: one module repair plus virgin integration successor.
 
-**Policy binding:** New trusted intake creation pins source-owned `module-repair/1` in origin/state/created history. For modular-code/1, display its single-group scope before confirmation and bind policy/version bytes into the existing confirmation source/version, preserving observer selection binding. Model GameDraft cannot supply policy. Old intake/confirmation lacking that original version retains integration-only policy; never append authorization during reopen. Deleting/changing anchored policy refuses, rather than defaulting to new permission.
+**Policy binding:** New trusted intake pins source-owned `module-repair/1` in origin/state/created history; display and bind it to original confirmation source/version, preserving observer binding and modular-code/1. Model GameDraft cannot authorize. Old absent policy stays integration-only; deleting/changing anchored policy refuses. Historical reads authenticate stored policy/confirmation/captures only, including after installation upgrades. Current-source checks precede incomplete execution/dispatch.
 
 **Group:** Admit only ended module A/B v1 code_defect with original feedback. Require unchanged independently approved other-module v1, design/art/contracts and complete durable receipts/signatures. Integration must be not_started or dependency-blocked, with no attempts/requests/receipts/artifacts/candidate/output/writes. Otherwise preserve gaps.
 
@@ -12,7 +12,7 @@ Use original successor machinery for same moduleId v2 repair and fresh integrati
 
 One original repair group/two logical attempts; weighted grants only from unallocated remainder. Old grants/fees/history/run/ledger/window/start/deadline remain. Failed v2 blocks integration; successor failure gets no second repair. Recovery authenticates original/effective plans, replacement versions and journal; completed reads stay immutable.
 
-**Files:** intake/CLI policy display and shared provenance reader; modular host/compiler/version selection; entrypoint-successors/runtime bindings; focused fixtures, usage docs, this plan.
+**Files:** `src/runtime/intake.ts`, `src/cli/session.ts`, `src/runtime/modular-repair-policy.ts` (stored-policy reader/active guard), `src/runtime/render-frame-selection.ts` (shared confirmation binding), `src/runtime/entrypoint-host.ts`, `src/runtime/coding-check-worker.ts`, `src/runtime/entrypoint-successors.ts`, `src/runtime/entrypoint.ts`; focused fixtures/usage docs/this plan.
 
 - [ ] RED/GREEN actual product caller: module failure→real v2 namespace compiler/independent capture→successor composition/promotion; A/B same mechanism representative.
 - [ ] Reject old/missing policy, dirty integration, drifted other-module/contract/review, stale module/game, budget/deadline/unknown, v2 failure and exhausted repair; verify recovery/readonly bytes and mtime.
