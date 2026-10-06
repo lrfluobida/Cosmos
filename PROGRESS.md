@@ -948,3 +948,13 @@ COS70 最终89f4925e7240387422ce8f89a7af4fa2ec343229（fix a4b476be0973c3e9a6c29
 COS71 计划accf52ea4992635089ea6dfc1d3715c828e5757f已actual65独立批准，Source70最终审批和main基线齐备；Root已派专属作者actual67在cos04/codex/cos71-modular-coding合入已审a56b259后正式TDD。独立reviewer actual65、BATCH13 sole merger actual66不变。当前COS71 implementation/in-progress/open/SOURCE_NOT_READY，无已批实现；actualproduct五任务/模块真实接口编译与独审/最终组合/恢复/仅integration v2按原卡实施，两个模块不冒充整体游戏通过。
 
 当前71tasks/父12完成（仅新增COS70 scoped完成），COS71未勾选；first69任务/旧历史保持。共享¥150/首¥30/COS16原¥10、正式¥200/12h/目标¥100/6h、C6未知974882µ/closure12/C7、参考230/221和其余7未执行政策/two-policy partial/PERFORMANCE未执不变。真实新增model/paid/human/window NONE，完整经典100%/95%/实际完整12h/最终体验仍未通过。
+
+### COS71 实际五任务宿主链首个通过检查点
+
+作者actual67从已审a56b259与计划accf在专属branch合入1faf668后TDD；profile/interface缺口RED2fail1pass（702.7066ms）→GREEN4/4（5969.5312ms），实际pinned TypeScript namespace正例与empty namespace编译失败负例已执行。随后真实createProductHost.execute→原RoleFactory/DAG fixture RED1fail、0skip（3781.7241ms），证明旧host仅三个policy slots、尚未进入模块capture/组合；原失败保留。
+
+五slot接通后设计/美术独立fixture review通过，两个模块分别产生唯一v1capture。原worker首次拒绝fixture的toolchain/node_modules junction（zH50xe自身raw evidence）；作者仅修fixture为真实依赖复制，safePath守卫保持。normal preAuthor误用continuation-only materializer也曾被原explicit isolated binding检查拒绝，按该事实修正normal-root条件，legacy守卫不变。
+
+首个完整caller GREEN1/1、0skip（test27426.9563ms/process31144.3096ms），raw `C:/Users/26557/AppData/Local/Temp/cos71-host-ckzZUw`：实际五任务、两个模块原owned worker真实tsc/namespace checker及独立fixture review、唯一v1capture→最终assembly→原native build/package/clean Node→正常输入报告及最终fixture review→candidate晋升已走通。provider/browser reports/角色评审数据为synthetic；实际compiler/caller/registry/journal/cleanup分列，不证明真实模型生成完整游戏或native渲染/性能/体验。
+
+本检查点源码仍在作者branch实施，尚无精确源码候选/独立source批准；确认与不支持组合、弱接口/来源漂移/预算、integration-only v2和恢复签名等负例继续补齐。COS71保持in-progress/open/SOURCE_NOT_READY，Root/Reviewer65/sole66继续原分工；未改main源码、私有ledger/key/reference或新增paid，不重旧native/30分钟矩阵。原71task/父12完成/预算与完整经典验收边界保持。
