@@ -16,3 +16,7 @@ test('legacy remains three standards and modular authority cannot be model field
   const legacy = draft(); delete legacy.codeProfile; assert.equal(withHostStages(legacy).acceptance.length, 3);
   for (const delta of [{ codeProfile: 'anything' }, { writePaths: ['.'] }, { codingBudget: 999 }]) assert.throws(() => validateGameDraft({ ...draft(), ...delta }));
 });
+test('unselected legacy gameplay IDs are not reclassified as module slots', () => {
+  const legacy = draft(); delete legacy.codeProfile; legacy.acceptance[0].acceptanceId = 'COSMOS-MODULE-A'; legacy.scenario.steps[1].acceptanceId = 'COSMOS-MODULE-A';
+  const selected = withHostStages(legacy); assert.deepEqual(gameplayAcceptance(selected).map(row => row.acceptanceId), ['COSMOS-MODULE-A']);
+});

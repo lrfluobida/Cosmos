@@ -7,9 +7,16 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { removeOwned } from '../../src/artifacts/paths.ts';
 import { roleToolEnvironment } from '../../src/roles/factory.ts';
-import { moduleProbe, validateModuleContracts, validateModuleProgram } from '../../src/runtime/modular-code.ts';
+import { moduleProbe, validateModuleContracts, validateModuleFiles, validateModuleProgram } from '../../src/runtime/modular-code.ts';
 
 const contracts = 'export interface ModuleA { advance(value: number): number; }\nexport interface ModuleB { label(): string; }\n';
+test('all TypeScript import forms stay inside captured module/interface or pinned Phaser scope', () => {
+  for (const prefix of ['type Outside = import("C:/outside.d.ts").Value;', 'import Outside = require("C:/outside.d.ts");']) {
+    assert.throws(() => validateModuleFiles(new Map([['src/modules/a/index.ts', Buffer.from(prefix + '\nexport function advance(value:number):number{return value;}')]]), 'a'));
+  }
+  validateModuleFiles(new Map([['src/modules/a/index.ts', Buffer.from('type Own=import("./types").Value;export function advance(value:Own):number{return value;}')],
+    ['src/modules/a/types.ts', Buffer.from('export type Value=number;')]]), 'a');
+});
 test('protected declarations require two concrete callable interfaces and reject weakening', () => {
   validateModuleContracts(contracts);
   for (const first of ['export interface ModuleA {}', 'export interface ModuleA { advance?(value: number): number; }',

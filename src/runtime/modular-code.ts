@@ -54,13 +54,18 @@ export function validateModuleFiles(source: Map<string, Buffer>, slot: ModuleSlo
     for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) if ([ts.SyntaxKind.SingleLineCommentTrivia, ts.SyntaxKind.MultiLineCommentTrivia].includes(token)
       && /@ts-(ignore|nocheck|expect-error)\b/.test(scanner.getTokenText())) throw new Error('Module compile evidence cannot suppress compiler checks.');
     if (ast.referencedFiles.length || ast.typeReferenceDirectives.length || ast.libReferenceDirectives.length) throw new Error('Module compiler inputs cannot add external references.');
+    const importPath = (value: string) => {
+      const target = posix.normalize(posix.join(posix.dirname(name), value));
+      if (value !== 'phaser' && (!value.startsWith('.') || !(target.startsWith(prefix + '/') || target === MODULE_CONTRACTS.replace(/\.d\.ts$/, '')))) throw new Error('Module import is outside its fixed source and interface scope.');
+    };
     const visit = (node: ts.Node): void => {
       if (ts.isModuleDeclaration(node)) throw new Error('Module source cannot replace protected declarations.');
       if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
         if (!ts.isStringLiteral(node.moduleSpecifier)) throw new Error('Module import must be static.');
-        const value = node.moduleSpecifier.text, target = posix.normalize(posix.join(posix.dirname(name), value));
-        if (value !== 'phaser' && (!value.startsWith('.') || !(target.startsWith(prefix + '/') || target === MODULE_CONTRACTS.replace(/\.d\.ts$/, '')))) throw new Error('Module import is outside its fixed source and interface scope.');
+        importPath(node.moduleSpecifier.text);
       }
+      if (ts.isImportTypeNode(node)) { if (!ts.isLiteralTypeNode(node.argument) || !ts.isStringLiteral(node.argument.literal)) throw new Error('Module type import must be static.'); importPath(node.argument.literal.text); }
+      if (ts.isExternalModuleReference(node)) { if (!ts.isStringLiteral(node.expression)) throw new Error('Module require import must be static.'); importPath(node.expression.text); }
       if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) throw new Error('Module source cannot add dynamic compiler inputs.');
       ts.forEachChild(node, visit);
     }; visit(ast);

@@ -433,8 +433,26 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const ref = selected(task, 'design'); await registry.getCapture(ref);
     const design = await json(root, `${ref.location}/_cosmos/design.json`); validateDesign(design, gameplayIds, modular); return design;
   };
+  const requireReviewDecision = (task: TaskContract, review: { verdict?: { verdict: string; findings: string[]; inputVersions: ArtifactReference[]; evidenceIds: string[] } }) => {
+    const decision = review.verdict, refs = [...task.inputs, ...task.artifacts];
+    if (!decision || decision.verdict !== 'approved' || !Array.isArray(decision.findings) || decision.findings.length
+      || !sameValue(decision.inputVersions, refs) || !sameValue(task.review.inputVersions, refs) || !sameValue(decision.evidenceIds, task.review.evidenceIds)) throw new Error('Original independent decision or its fixed reviewed versions changed.');
+  };
   const modularInputs = async (task: TaskContract): Promise<ModularCompilerInputs> => {
     const design = selected(task, 'design'), bytes = await regularFile(root, `${design.location}/${MODULE_CONTRACTS}`);
+    const state = await controller.read();
+    for (const ref of [design, selected(task, 'media')]) {
+      const parent = state.tasks.find(parent => parent.artifacts.some(input => sameValue(input, ref)));
+      if (!parent || parent.state !== 'passed' || parent.review.verdict !== 'approved' || !task.dependsOn.some(dep => dep.taskId === parent.taskId)) throw new Error('Module contexts require approved fixed design and media.');
+      const origin = await json(root, `journal/task-${parent.taskId}/origin.json`), journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin, true);
+      requireOriginalTask(origin.prepared.task, parent);
+      const verified = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; evidence: EvidenceContract[] }>('verified', parent.attempts.at(-1)!.attemptId);
+      const review = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; reviewerId: string; contextId: string; verdict: Parameters<typeof requireReviewDecision>[1]['verdict'] }>('review', parent.attempts.at(-1)!.attemptId);
+      if (!verified || !review || !sameValue(verified.evidence, parent.evidence) || review.reviewerId !== parent.review.reviewerId || review.contextId !== parent.review.contextId) throw new Error('Module source parent review is unavailable.');
+      requireReviewDecision(parent, review);
+      const refs = [...parent.inputs, ...parent.artifacts, ...parent.evidence.map(item => item.source)];
+      await journal.requireSignature(verified.signature, refs); await journal.requireSignature(review.signature, refs);
+    }
     await designFor(task); validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     const slot = moduleSlot(task), result: ModularCompilerInputs = { slot: slot ?? 'integration', contracts: { directory: join(root, design.location), ref: design, sha256: validationHash(bytes) } };
     if (slot) return result;
@@ -450,9 +468,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         || !sameValue(capture.dependencies, [...captures, selected(module, 'design'), selected(module, 'media')])) throw new Error('Original module capture identity or dependencies changed.');
       const origin = await json(root, `journal/task-${module.taskId}/origin.json`), journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin, true);
       requireOriginalTask(origin.prepared.task, module);
-      const verified = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature }>('verified', module.attempts.at(-1)!.attemptId);
-      const review = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; reviewerId: string; contextId: string }>('review', module.attempts.at(-1)!.attemptId);
-      if (!verified || !review || review.reviewerId !== module.review.reviewerId || review.contextId !== module.review.contextId) throw new Error('Original module review proof is unavailable.');
+      const verified = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; evidence: EvidenceContract[] }>('verified', module.attempts.at(-1)!.attemptId);
+      const review = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; reviewerId: string; contextId: string; verdict: Parameters<typeof requireReviewDecision>[1]['verdict'] }>('review', module.attempts.at(-1)!.attemptId);
+      if (!verified || !review || !sameValue(verified.evidence, module.evidence) || review.reviewerId !== module.review.reviewerId || review.contextId !== module.review.contextId) throw new Error('Original module review proof is unavailable.');
+      requireReviewDecision(module, review);
       const refs = [...module.inputs, ...module.artifacts, ...module.evidence.map(item => item.source)];
       await journal.requireSignature(verified.signature, refs); await journal.requireSignature(review.signature, refs);
       const files = await snapshot(join(root, ref.location)); validateModuleFiles(files, slot);
@@ -584,7 +603,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         const fixed = boundTask(item.task);
         return !fixed || item.role !== fixed.role || resolve(item.workspace) !== resolve(fixed.workspace) || !sameValue(item.expectedArtifacts, fixed.expectedArtifacts);
       }))) throw new Error('Tasks differ from the fixed complete host binding.');
-      const design = tasks.find(item => item.role === 'design') ?? (inherited && { task: inherited.stages[0].task }), art = tasks.find(item => item.role === 'art') ?? (inherited && { task: inherited.stages[1].task }), coding = tasks.find(item => item.role === 'coding' && !moduleSlot(item.task));
+      const design = tasks.find(item => item.role === 'design') ?? (inherited && { task: inherited.stages[0].task }), art = tasks.find(item => item.role === 'art') ?? (inherited && { task: inherited.stages[1].task }), coding = tasks.find(item => item.role === 'coding' && (!modular || !moduleSlot(item.task)));
       const exact = (left: string[], right: string[]) => left.length === right.length && left.every(id => right.includes(id));
       const modules = modular ? MODULE_SLOTS.map(slot => tasks.find(item => moduleSlot(item.task) === slot)) : [];
       if (tasks.length !== (modular ? 5 : inherited ? 1 : 3) || !design || !art || !coding || !exact(design.task.acceptanceIds, [DESIGN_ACCEPTANCE_ID]) || !exact(art.task.acceptanceIds, [MEDIA_ACCEPTANCE_ID])
@@ -677,7 +696,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         if (moduleInputs) {
           assembly = registry.artifactRef('modular-assembly', ref.version); const folder = `host-modular-assembly-${ref.version}`;
           await writeJson(root, `${folder}/modular-assembly.json`, { formatVersion: 'modular-assembly/1', runId: task.runId, taskId: task.taskId, specVersion: task.specVersion,
-            attemptId: task.attempts.at(-1)!.attemptId, candidate: ref, contracts: moduleInputs.contracts, modules: moduleInputs.modules });
+            attemptId: task.attempts.at(-1)!.attemptId, candidate: ref, contracts: { ref: moduleInputs.contracts.ref, sha256: moduleInputs.contracts.sha256 },
+            modules: moduleInputs.modules!.map(({ slot, ref, signature }) => ({ slot, ref, signature })) });
           await registry.registerCapture({ taskId: task.taskId, artifactRef: assembly, sourceRoot: folder, files: [{ source: 'modular-assembly.json', destination: '_cosmos/modular-assembly.json' }],
             ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: [...captures, selected(task, 'design'), selected(task, 'media'), ...moduleInputs.modules!.map(module => module.ref)], metadata: { kind: 'data', provenance: origin } });
         }
@@ -944,10 +964,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const supplemental: EvidenceContract[] = (pictures.get(task.taskId) ?? []).map((source, index) => ({ ...evidence, evidenceId: `${task.taskId}-image-${index}`, source, kind: 'screenshot', outcome: 'observed', summary: 'Normal-input screenshot of this exact candidate; interpreted with fixed source and runtime observations.' }));
       supplemental.push(...consumerRawEvidence.map((source, index): EvidenceContract => ({ ...evidence, evidenceId: `${task.taskId}-raw-${index}`, source,
         kind: 'test_report', outcome: 'observed', summary: 'Current persistent raw report directory: screenshots, video, logs and actual process/media facts.' })));
-      if (passed && kind === 'coding' && !moduleSlot(task)) supplemental.push({ ...evidence, evidenceId: `${task.taskId}-media-usage`, kind: 'log', outcome: 'observed',
+      if (passed && kind === 'coding' && (!modular || !moduleSlot(task))) supplemental.push({ ...evidence, evidenceId: `${task.taskId}-media-usage`, kind: 'log', outcome: 'observed',
         source: { artifactId: `${task.taskId}-media-usage`, version: ref.version, location: `evidence/${task.taskId}/media-usage.json` },
         summary: 'Check the observation implementations against frozen Phaser source and normal-input screenshots. Read-only counters alone do not establish visible or audible quality.' });
-      if (passed && kind === 'coding' && !moduleSlot(task)) supplemental.push({ ...evidence, evidenceId: `${task.taskId}-delivery-check`, kind: 'test_report', outcome: 'observed',
+      if (passed && kind === 'coding' && (!modular || !moduleSlot(task))) supplemental.push({ ...evidence, evidenceId: `${task.taskId}-delivery-check`, kind: 'test_report', outcome: 'observed',
         source: { artifactId: `${task.taskId}-delivery-check`, version: ref.version, location: `evidence/${task.taskId}/delivery-check.json` },
         summary: 'This exact package ran through its Node-only launcher in a clean copy; normal-input evidence and helper exit were checked before independent review.' });
       if (passed) {
@@ -1019,7 +1039,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         catch { return { gaps: ['Current validation scope or complete persistent task approval is unavailable.'] }; }
       }
       const effectiveTasks = [...(inherited?.stages.map(stage => stage.task) ?? []), ...tasks];
-      const task = tasks.find(task => role(task) === 'coding' && !moduleSlot(task));
+      const task = tasks.find(task => role(task) === 'coding' && (!modular || !moduleSlot(task)));
       if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== (modular ? 5 : 3) || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
         || binding && (tasks.some(task => !binding.tasks.some(item => item.task.taskId === task.taskId)) || new Set(tasks.map(task => task.taskId)).size !== binding.tasks.length)) {
         const existing = await registry.current(); return { ...(existing ? { delivery: existing.targetRoot } : {}), gaps: ['Current tasks lack complete host checks and independent approval.'] };
