@@ -18,6 +18,8 @@ import type { RunSnapshot } from '../runtime/run-types.ts';
 import { readCompletedGeneration } from '../runtime/experience.ts';
 import { readFrameSelection, requireCurrentFrameSource, selectRenderFrames } from '../runtime/render-frame-selection.ts';
 import type { RenderFrameSelection } from '../runtime/render-frame-selection.ts';
+import { currentModularRepairPolicy, readModularRepairPolicy, requireCurrentModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
+import type { ModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
 
 export interface ProductHost {
   prepare(root: string, signal?: AbortSignal): Promise<{ environmentReady: boolean; executionReady: boolean; reason?: string }>;
@@ -52,11 +54,15 @@ export async function readConfirmedGeneration(root: string, snapshot: RunSnapsho
   const frames = await readFrameSelection(root, snapshot);
   return { draft, requirement: confirmRequirements({ ...draft, specVersion: snapshot.run.specVersion, sources: source.evidence }, confirmed), ...(frames ? { renderFrames: true } : {}) };
 }
-function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection): string {
+function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?: ModularRepairPolicy): string {
   const lines = [`草稿 v${draft.revision}`, `游戏需求：${draft.brief}`, '已回答的问题：', ...draft.questions.map(question => `- ${question.prompt} ${draft.answers[question.id] ?? '尚未回答'}`), '玩法要求：'];
   for (const item of gameplayAcceptance(draft)) lines.push(`- ${item.description}`, `  操作：${item.steps.join('；')}`, `  期望：${item.expected}`);
   for (const stage of [...HOST_STAGE_ACCEPTANCE, ...(draft.codeProfile ? MODULE_STAGE_ACCEPTANCE : [])]) if (draft.acceptance.some(item => item.acceptanceId === stage.acceptanceId)) lines.push(stage.description, `- ${stage.expected}`);
-  if (draft.codeProfile) lines.push('编码组织：两个独立模块与最终集成，共五项角色任务；模块只认局部编译、接口和源码审查，最终游戏仍须满足全部玩法。coding 原 40% 内按 10%/10%/20% 分配；仅最终集成可按原策略修复一次，模块失败保留差距。此模式暂不支持追加窗口。');
+  if (draft.codeProfile) {
+    lines.push('编码组织：两个独立模块与最终集成，共五项角色任务；模块只认局部编译、接口和源码审查，最终游戏仍须满足全部玩法。coding 原 40% 内按 10%/10%/20% 分配。');
+    lines.push(policy ? '修复政策 module-repair/1：一个已结束的模块 v1 代码失败可用原唯一修复机会生成同模块 v2 和从未启动的集成后继；另一模块、设计、美术及接口保持已审版本。整组之后不给第二次修复；最终集成先失败时仍只修复一次。此模式暂不支持追加窗口。'
+      : '仅最终集成可按原策略修复一次，模块失败保留差距。此模式暂不支持追加窗口。');
+  }
   if (draft.acceptance.some(item => item.acceptanceId === 'COSMOS-MEDIA')) lines.push('最终游戏还会检查素材实际载入、动作和音频触发；未覆盖的项目会保留为差距。美术辨识度与听感留待最终试玩。');
   if (frames) lines.push('渲染帧采样：记录本次正常游玩窗口的实际帧与画布尺寸；设备与工作量未冻结，完整性能政策仍未执行。');
   if (draft.preparation) lines.push('准备模式：先确认需求；地图、解法与自动操作将在同一次生成运行的运行时设计后形成。');
@@ -89,7 +95,11 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   const ask = async (prompt: string) => { say(prompt); const next = await iterator.next(); return next.done ? null : next.value.trim(); };
   let intake: IntakeController | undefined, control: Awaited<ReturnType<typeof startControl>> | undefined, warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined, active: Promise<unknown> | undefined;
   let frames: RenderFrameSelection | undefined;
-  const run = async <T>(action: () => Promise<T>): Promise<T> => { if (intake) await requireCurrentFrameSource(await readFrameSelection(root, await intake.read())); const work = action(); active = work; try { return await work; } finally { if (active === work) active = undefined; } };
+  let policy: ModularRepairPolicy | undefined;
+  const run = async <T>(action: () => Promise<T>): Promise<T> => {
+    if (intake) { const state = await intake.read(); await requireCurrentFrameSource(await readFrameSelection(root, state)); await requireCurrentModularRepairPolicy(await readModularRepairPolicy(root, state)); }
+    const work = action(); active = work; try { return await work; } finally { if (active === work) active = undefined; }
+  };
   let stopping: Promise<void> | undefined;
   const stop = () => stopping ??= (async () => {
     if (!intake) throw new Error('Intake owner is unavailable.');
@@ -108,14 +118,17 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (entries.length) throw new Error('Choose an empty run directory; existing runs require resume.');
       const runId = `game-${randomUUID()}`;
       frames = options.renderFrames ? await selectRenderFrames() : undefined;
+      policy = currentModularRepairPolicy();
       intake = await IntakeController.create({ root, runId, ledgerId: `${runId}-budget`, specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 8,
         ...(selectedMode ? { draftMode: options.draftMode } : {}),
         ...(frames ? { renderFrames: frames } : {}),
+        modularRepairPolicy: policy,
         allocations: [{ taskId: 'intake', amountMicroCny: 10_000_000 }, { taskId: 'planning', amountMicroCny: 10_000_000 }] });
-      await publishReceipt(join(root, 'intake-origin.json'), { runId, brief: options.brief, ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}) });
+      await publishReceipt(join(root, 'intake-origin.json'), { runId, brief: options.brief, ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), modularRepairPolicy: policy });
     } else {
       const snapshot = await readRunSnapshot(root);
       frames = await readFrameSelection(root, snapshot, options.renderFrames);
+      policy = await readModularRepairPolicy(root, snapshot);
       if (snapshot.formatVersion === 2) throw new Error('This run has an authorized continuation window; select it explicitly with resume --window <id>.');
       if (snapshot.formatVersion === 1) {
         const { draft, requirement } = await readConfirmedGeneration(root, snapshot);
@@ -123,6 +136,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         const completed = await readCompletedGeneration(root, requirement);
         if (completed) { lines.close(); say(JSON.stringify(completed, null, 2)); return completed; }
         await requireCurrentFrameSource(frames);
+        await requireCurrentModularRepairPolicy(policy);
         if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
         if (Date.now() >= Date.parse(snapshot.run.originalDeadlineAt)) throw new Error('Original deadline expired; resume cannot extend it.');
         say(`恢复原运行 ${snapshot.run.runId}；费用与截止时间保持连续。`);
@@ -134,6 +148,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
       if (options.draftMode !== undefined && !sameValue(snapshot.draftMode, selectedMode)) throw new Error('Resume cannot replace the original draft mode.');
       await requireCurrentFrameSource(frames);
+      await requireCurrentModularRepairPolicy(policy);
       await recoverRunOwner(root);
       intake = await IntakeController.open({ root });
     }
@@ -176,7 +191,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         const proposal = await run(() => host.draft({ controller: intake!, roundId: `draft-${version}`, brief: original.brief, questions, answers }));
         current = await intake.saveDraft(proposal);
       }
-      say(displayDraft(current, frames));
+      say(displayDraft(current, frames, policy));
       if (current.unsupported.length) { say('当前可信验收能力不支持上述范围；保留差距，未确认或启动生成。'); return { outcome: 'unsupported', gaps: current.unsupported }; }
       const answer = await ask(`确认当前版本请输入 confirm ${current.revision}；修改回答输入 edit；退出输入 cancel。`);
       if (answer === null || answer === 'cancel') { say('需求未确认，未启动生成。'); return { outcome: 'unconfirmed' }; }

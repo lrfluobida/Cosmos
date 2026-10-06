@@ -5,6 +5,8 @@ import { regularFile } from '../artifacts/paths.ts';
 import { validationHash } from './validation-validation.ts';
 import type { IntakeSnapshot } from './intake.ts';
 import type { RunSnapshot } from './run-types.ts';
+import { policyCreatedSuffix, policyVersionSuffix, readModularRepairPolicy } from './modular-repair-policy.ts';
+import type { ModularRepairPolicy } from './modular-repair-policy.ts';
 
 const observer: ArtifactReference = { artifactId: 'render-frame-observer', version: 'v1', location: 'registry/captures/render-frame-observer/v1/files' };
 export interface RenderFrameSelection { enabled: true; observer: ArtifactReference; observerSha256: string }
@@ -24,13 +26,13 @@ export async function requireCurrentFrameSource(selection?: RenderFrameSelection
   validateFrameSelection(selection);
   if (selection && !isDeepStrictEqual(selection, await selectRenderFrames())) throw new Error('Original render-frame observer source bytes changed.');
 }
-export function frameConfirmationVersion(revision: number, selection?: RenderFrameSelection) {
+export function frameConfirmationVersion(revision: number, selection?: RenderFrameSelection, policy?: ModularRepairPolicy) {
   validateFrameSelection(selection);
-  return `v${revision}${selection ? `-frames-${selection.observerSha256}` : ''}`;
+  return `v${revision}${selection ? `-frames-${selection.observerSha256}` : ''}${policyVersionSuffix(policy)}`;
 }
-export function frameIntakeReason(selection?: RenderFrameSelection) {
+export function frameIntakeReason(selection?: RenderFrameSelection, policy?: ModularRepairPolicy) {
   validateFrameSelection(selection);
-  return `Intake budget fixed; formal generation has not started.${selection ? ` Render-frame observer: ${selection.observerSha256}.` : ''}`;
+  return `Intake budget fixed; formal generation has not started.${selection ? ` Render-frame observer: ${selection.observerSha256}.` : ''}${policyCreatedSuffix(policy)}`;
 }
 async function optionalJson(root: string, path: string): Promise<any | undefined> {
   try { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, path))); }
@@ -40,6 +42,7 @@ async function optionalJson(root: string, path: string): Promise<any | undefined
 export async function readFrameSelection(root: string, state: IntakeSnapshot | RunSnapshot, explicit?: boolean): Promise<RenderFrameSelection | undefined> {
   if (explicit !== undefined && typeof explicit !== 'boolean') throw new Error('Render-frame selection must be boolean.');
   const origin = await optionalJson(root, 'intake-origin.json');
+  const policy = await readModularRepairPolicy(root, state);
   let selection: RenderFrameSelection | undefined;
   if (state.formatVersion === 'intake-1') {
     selection = state.renderFrames; validateFrameSelection(selection);
@@ -49,17 +52,17 @@ export async function readFrameSelection(root: string, state: IntakeSnapshot | R
     const ref = decision?.evidence.find(ref => ref.artifactId === 'user-confirmation');
     const receipt = ref ? await optionalJson(root, ref.location) : undefined;
     selection = receipt?.renderFrames; validateFrameSelection(selection);
-    if (!isDeepStrictEqual(selection, origin?.renderFrames) || (selection ? ref?.version !== frameConfirmationVersion(receipt.revision, selection)
+    if (!isDeepStrictEqual(selection, origin?.renderFrames) || (selection ? ref?.version !== frameConfirmationVersion(receipt.revision, selection, policy)
       : ref?.version.includes('-frames-'))) throw new Error('Original confirmed render-frame selection/source changed.');
     if (selection && (!decision || receipt.confirmed !== true || receipt.runId !== state.run.runId || receipt.actorId !== decision.actorId || receipt.at !== decision.decidedAt
       || !Number.isSafeInteger(receipt.revision) || receipt.revision < 1 || !isDeepStrictEqual(receipt.draft, decision.evidence[0]))) throw new Error('Original render-frame confirmation identity changed.');
   }
   if (explicit !== undefined && explicit !== !!selection) throw new Error('Cannot replace the original render-frame selection.');
   const created = state.events[0]?.reason;
-  if ((selection || created?.includes(' Render-frame observer: ')) && created !== frameIntakeReason(selection)) throw new Error('Original created render-frame selection changed.');
+  if ((selection || policy || created?.includes(' Render-frame observer: ')) && created !== frameIntakeReason(selection, policy)) throw new Error('Original created render-frame selection changed.');
   if (!selection) return undefined;
   if (!origin || origin.runId !== state.run.runId || typeof origin.brief !== 'string' || origin.draftMode !== undefined
-    || Object.keys(origin).some(key => !['runId', 'brief', 'renderFrames'].includes(key))) throw new Error('Original render-frame intake identity changed.');
+    || Object.keys(origin).some(key => !['runId', 'brief', 'renderFrames', 'modularRepairPolicy'].includes(key))) throw new Error('Original render-frame intake identity changed.');
   const execution = await optionalJson(root, 'execution.json');
   if (execution) {
     const refs = execution.availableArtifacts?.filter((ref: ArtifactReference) => ref.artifactId === observer.artifactId);
