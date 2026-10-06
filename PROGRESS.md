@@ -2,6 +2,12 @@
 
 更新时间：2026-10-06
 
+## COS73 模块辅助文件作用域修复启动
+
+- [COS-73 / #74](https://github.com/lrfluobida/Cosmos/issues/74) 已登记并挂父任务，native73、旧72项与父14完成保持、新项unchecked exact；BATCH15 author67/reviewer65/solemerger66，plan/PENDING/SOURCE_NOT_READY/open，源码尚未实施。
+- [真实根因记录](docs/research/2026-10-06-module-global-type-boundary.md)：在f8已审source的一次TEMP caller，A/B local owned tsc0及ABI通过/fixture reviewapproved，final实际tsc2两TS2322全在A；B脚本级Window声明改变A条件类型。仅TEMP组装移除Bhelper同pinnedtsc0，原A/B captures全hash/mtime不变、账0/no browser/model/paid。诊断路径不证明owner，先补现有helper模块作用域检查，保已有显式增强/import/ref/抑制守卫；不新增passed-owner框架或tsconfig规避。
+- Source72已审source131/Ready四文档c872由sole66合推931a7191bad113640f6b881daf31ac0035996b39，code15paths未变；RootReady/publicclosed/预算、230/221/7/two政策partial、PERFORMANCE/完整经典/实际12h/human未通过边界保持。本卡新增仅source/free fixtures，C6unknown974882µ/closure12/C7保持。
+
 ## COS72 单模块修复切片启动
 
 - 最终组件已审合推：MODULAR_REPAIR_SUCCESSOR_SOURCE_READY，candidate f8bfecc/source-tests cf776be，经actual67全diff规格→质量APPROVED/independent affected3/3（4303.2168ms），两P2均闭合；sole66合推main131f15361c06d875e3dd5de4c3ea6fb98c9017a6。15approvedbytes/UTF8LF中文/diff/Root旧milestones/三方SHA/clean保持；main typecheck/build0、只选A实际修复链1/1/0skip（test38074.8187ms/TAP42252.1695ms），raw cos72-merge-integration.tap / pipeline cos71-host-IdWIDp。
@@ -21,7 +27,7 @@
 
 ## 当前阶段
 
-Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 72 个原生子任务。早期验证历史：COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
+Spec v1.0 已发布：[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1)，下挂 73 个原生子任务。早期验证历史：COS-10 首轮及一次有界续跑均失败；续跑 22.379 秒，设计宿主检查通过，但独立评审返回 `approved` 加非空 `findings`，被响应契约拒绝。原 pilot 累计 13 次请求已结算，当时共享验证估算 ¥0.892282，预留与未知费用均为零；其美术、编码及玩法验收未执行，#11 保持 open。评审字段说明修正 `608ac1f` 已独立批准并合入 `00db85a`；原 pilot 仍失败，不再调用现有 `--continue`。COS-11 有界修复与协议纠错 `005f51b` 已独立批准并合入 `e1467f0`，组合检查 170/170、构建与类型检查通过；#12 为 `offline-verified-awaiting-live`，保持 open，G3 仍关闭。[失败证据与决策](docs/research/2026-10-01-first-runtime-failure.md)。COS-18 A/B/C 与角色交接修复已集成；首次 formal 追加窗口公开确认、执行、恢复、停止和交付已审合入 `73ec63a`，主线八项组合检查及严格构建通过，`bacb22d` 已干净推送。多次正式追加决定、最终试玩持久阶段、完整经典适配与真实生成仍有缺口，#19 保持 partial/open；开发验证首个新窗口已执行但启动失败，由 COS-21 免费诊断。COS-01 参考仍未冻结。正式生成原硬上限 ¥200/12h、优化目标 ¥100/6h 的成绩不被追加窗口覆盖。
 
 第六批补充：固定新试验于 `2026-10-01T11:43:38.426Z` 开始，8.204 秒后在首次输入 capture 发布窗口失败，模型请求与新增费用均为零；原因未知。启动恢复实现虽已独立批准并合入，但实际命令被原 `12:43:38.426Z` 截止拒绝，不能再试或延时。COS-13 已独立批准并合入 `d3aab99`，状态为 `offline-verified-awaiting-live`，#14 保持 open；真实长链路尚未执行，当时无通过的生成游戏，#11/#12 与 G3 状态不变。
 
