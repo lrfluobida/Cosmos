@@ -11,7 +11,7 @@ import { IntakeController } from '../../src/runtime/intake.ts';
 import { readModularRepairPolicy } from '../../src/runtime/modular-repair-policy.ts';
 import { readRunSnapshot } from '../../src/cli/control.ts';
 
-async function policyFixture(t: test.TestContext) {
+export async function policyFixture(t: test.TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'cos72-policy-')); t.after(() => removeOwned(tmpdir(), root));
   let text = ''; const calls: any[] = [], output = new PassThrough(); output.on('data', bytes => { text += bytes; });
   const host = { prepare: async () => ({ environmentReady: true, executionReady: true }), questions: async () => [{ id: 'goal', prompt: '目标？' }],

@@ -696,21 +696,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (kind === 'design') {
         await readDeclaredOutput(task, 'authors/design/design.json', value => validateDesign(value, gameplayIds, modular));
         if (modular) validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(workspace(task), 'authors/design/module-contracts.d.ts')));
-        if (modular) host.bindPreparedTasks = async tasks => {
-    const execution = await json(root, 'execution.json'), originals = execution.tasks as PreparedTask[];
-    // Validate original policies once; replacements are authenticated by prepareRepairContinuation.
-    if (!modularTasks.size) host.validateTasks!(originals);
-    const repair = await json(root, 'repair-plan.json').catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
-    const fixed = repair?.formatVersion === 2 ? repair.tasks : originals;
-    if (!sameValue(tasks, fixed)) throw new Error('Modular effective tasks differ from the sealed original or repair plan.');
-    modularTasks.clear();
-    for (const item of tasks) {
-      const recorded = (await controller.read()).tasks.find(task => task.taskId === item.task.taskId);
-      if (recorded) requireOriginalTask(item.task, recorded);
-      modularTasks.set(item.task.taskId, structuredClone(item));
-    }
-  };
-  if (preparation) { await preparation.captureDesignExtras(task, workspace(task)); await requireDispatch(task, signal); }
+        if (preparation) { await preparation.captureDesignExtras(task, workspace(task)); await requireDispatch(task, signal); }
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: sourceRoot(task, 'authors/design'), files: [{ source: 'design.json', destination: '_cosmos/design.json' }, ...(modular ? [{ source: 'module-contracts.d.ts', destination: MODULE_CONTRACTS }] : [])],
           ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: captures, metadata: { kind: 'data', provenance: origin } });
@@ -1139,6 +1125,20 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'The interface is read-only before this context is created. No declaration files, ambient augmentation, ts-ignore/ts-nocheck/ts-expect-error, external/dynamic imports or compiler configuration changes. Module evidence covers actual compile/interface and independent source review, not gameplay. Call check-game-build with {} for actual local compilation in this same session; correct your own source within the original attempt.',
         captureLayout(designLayout, mediaLayout)] })));
   }
+  if (modular) host.bindPreparedTasks = async tasks => {
+    const execution = await json(root, 'execution.json'), originals = execution.tasks as PreparedTask[];
+    // Validate original policies once; replacements are authenticated by prepareRepairContinuation.
+    if (!modularTasks.size) host.validateTasks!(originals);
+    const repair = await json(root, 'repair-plan.json').catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
+    const fixed = repair?.formatVersion === 2 ? repair.tasks : originals;
+    if (!sameValue(tasks, fixed)) throw new Error('Modular effective tasks differ from the sealed original or repair plan.');
+    modularTasks.clear();
+    for (const item of tasks) {
+      const recorded = (await controller.read()).tasks.find(task => task.taskId === item.task.taskId);
+      if (recorded) requireOriginalTask(item.task, recorded);
+      modularTasks.set(item.task.taskId, structuredClone(item));
+    }
+  };
   if (frames) host.taskPolicies.find(policy => policy.policyId === 'game-code')!.rules!.push(`The source-selected render observer ${frames.ref.artifactId}@${frames.ref.version} is read-only at ${OBSERVER_SOURCE}. Import createObservedGame from '../_cosmos/render-frame-observer' and use it for the real Phaser Game. Do not author that module, replace the native renderer, or declare FPS counters. The host only measures rendered frames; PERFORMANCE benchmarks remain unexecuted.`);
   if (preparation) {
     const design = host.taskPolicies.find(policy => policy.role === 'design')!, coding = host.taskPolicies.find(policy => policy.role === 'coding')!;
