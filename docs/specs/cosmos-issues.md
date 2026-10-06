@@ -116,7 +116,7 @@
 - [x] [COS-68 记录完整交付清理终点与单次生成时长](https://github.com/lrfluobida/Cosmos/issues/69)
 - [x] [COS-69 采集可信的游戏渲染帧与性能样本](https://github.com/lrfluobida/Cosmos/issues/70)
 - [x] [COS-70 接通公开 CLI 帧采样选择与恢复绑定](https://github.com/lrfluobida/Cosmos/issues/71)
-- [ ] [COS-71 接通双模块编码任务与最终集成](https://github.com/lrfluobida/Cosmos/issues/72)
+- [x] [COS-71 接通双模块编码任务与最终集成](https://github.com/lrfluobida/Cosmos/issues/72)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1153,7 +1153,9 @@ src/cli/index.ts 的公开入口只接受现有 brief/adapter，创建createProd
 
 ### COS-71 · 接通双模块编码任务与最终集成
 
-- 发布状态：[#72](https://github.com/lrfluobida/Cosmos/issues/72)，id5720207319；正文/native71/旧70及父11完成保持已Root精确读回。PLAN_APPROVED仅计划/SOURCE_NOT_READY/in-progress/open；actual67专属作者、actual65独立reviewer、actual66为BATCH13 sole merger。原2cc计划被要求修正空接口证明及声明捕获映射；修订accf52ea4992635089ea6dfc1d3715c828e5757f（15行/270词）已actual65独立affected审查批准，[公共记录](https://github.com/lrfluobida/Cosmos/issues/72#issuecomment-6005618925)已精确读回。Source70已审合入a56b259，Root已派actual67从该main在专属cos04工作树实施；当前implementation/in-progress/open/SOURCE_NOT_READY，无已批实现。
+- 登记时发布状态：[#72](https://github.com/lrfluobida/Cosmos/issues/72)，id5720207319；正文/native71/旧70及父11完成保持已Root精确读回。PLAN_APPROVED仅计划/SOURCE_NOT_READY/in-progress/open；actual67专属作者、actual65独立reviewer、actual66为BATCH13 sole merger。原2cc计划被要求修正空接口证明及声明捕获映射；修订accf52ea4992635089ea6dfc1d3715c828e5757f（15行/270词）已actual65独立affected审查批准，[公共记录](https://github.com/lrfluobida/Cosmos/issues/72#issuecomment-6005618925)已精确读回。Source70已审合入a56b259，Root已派actual67从该main在专属cos04工作树实施；当前implementation/in-progress/open/SOURCE_NOT_READY，无已批实现。
+
+- 最终源码审批：6bf61a7836f07cece8ae9197da8b20e7ee46535b/source-tests9cea58be经专属actual65规格/质量整卡APPROVED/MODULAR_CODE_GENERATION_SOURCE_READY；独立affected2/2（24902.8019ms）/ABI2/2及原必要caller/修复/恢复负例通过。唯一actual66合推9f4f8e670e21542af8f2e04c5e608ba2d886504d，main typecheck/build0/五任务caller1/1（31673.5757ms/TAP36137.6616ms）、18批准bytes/UTF8LF中文/diff/三方SHA/clean核实。[公共审批](https://github.com/lrfluobida/Cosmos/issues/72#issuecomment-6007709579)、body/closed/completed与父[x]已精确读回。本卡scoped complete；仅integration一次v2，模块自身修复/后继集成重绑定另行切片，原失败/部分证明与完整游戏未验收保持。
 
 #### 目标
 
