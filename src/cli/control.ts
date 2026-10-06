@@ -54,6 +54,7 @@ export async function readRunSnapshot(root: string): Promise<IntakeSnapshot | Ru
 /** Read-only status never opens a writer, reconciles charges or updates a deadline. */
 export async function readRunStatus(root: string) {
   const snapshot = await readRunSnapshot(root), intake = snapshot.formatVersion === 'intake-1';
+  const frames = await (await import('../runtime/render-frame-selection.ts')).readFrameSelection(root, snapshot);
   const generated = intake ? null : snapshot as RunSnapshot;
   const view = generated ? executionWindowView(generated) : null;
   const continuation = generated ? await readContinuationStatus(root, generated) : null;
@@ -61,6 +62,7 @@ export async function readRunStatus(root: string) {
   const window = generated?.continuation?.windows.find(item => item.windowId === generated.continuation?.currentWindowId);
   const successors = new Map((window?.grants ?? []).filter(grant => generated!.tasks.some(task => task.taskId === grant.taskId)).map(grant => [grant.sourceTaskId, grant.taskId]));
   return { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, phase: intake ? 'intake' : 'generation', revision: snapshot.revision,
+    ...(frames ? { renderFrames: { ...frames, performancePolicy: 'not_executed' } } : {}),
     draftRevision: intake ? snapshot.draft?.revision ?? null : null,
     confirmed: intake ? snapshot.confirmation !== null : generated!.run.humanDecisions.some(decision => decision.decisionId.startsWith('requirements-v') && decision.evidence.some(ref => ref.artifactId === 'user-confirmation')),
     originalStartedAt: generated?.run.originalStartedAt ?? null, originalDeadlineAt: generated?.run.originalDeadlineAt ?? null,

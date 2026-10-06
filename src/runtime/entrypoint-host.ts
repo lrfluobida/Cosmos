@@ -1135,10 +1135,13 @@ export function createProductHost(repository: string, hostOptions: Pick<BrowserH
       const draft = await requestDesignDraft({ ...options, capabilities: await interviewCapabilities(options), sessionFactory: hostOptions.sessionFactory, maxOutputTokens: 8192, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation });
       return draft.preparation ? draft : withHostStages(draft);
     },
-    execute: options => executeGeneration({ ...options, createHost: async input => input.draft.preparation
+    execute: async options => {
+      if (hostOptions.renderFrames !== undefined && options.renderFrames !== undefined && hostOptions.renderFrames !== options.renderFrames) throw new Error('Product host render-frame selection conflicts with the original call.');
+      return executeGeneration({ ...options, ...(hostOptions.renderFrames !== undefined ? { renderFrames: hostOptions.renderFrames } : {}), createHost: async input => input.draft.preparation
       ? input.binding?.preparation
         ? (await import('./adapters/transfer/runtime-host.ts')).createHumanTransferContinuationHost({ ...input, binding: { ...input.binding, preparation: input.binding.preparation }, draft: input.draft, ...hostOptions })
         : (await import('./adapters/transfer/runtime-host.ts')).createHumanTransferConsumerHost({ ...input, draft: input.draft, ...hostOptions })
-      : createBrowserHost({ ...input, ...hostOptions }) }),
+      : createBrowserHost({ ...input, ...hostOptions }) });
+    },
   };
 }
