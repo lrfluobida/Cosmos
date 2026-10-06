@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 72
+    "childCount": 73
   },
   "tasks": [
     {
@@ -5628,8 +5628,71 @@
         "referenceOrPerformanceUpgrade": false,
         "originalRedAndIntermediateFailures": "preserved in final plan evidence index"
       }
+    },
+    {
+      "taskId": "COS-73",
+      "title": "保证模块辅助文件使用模块作用域",
+      "number": 74,
+      "id": 5722514652,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/74",
+      "dependsOn": [],
+      "sourcePrerequisiteStage": "independently-reviewed-and-integrated-source",
+      "sourcePrerequisites": [
+        {
+          "id": "COS-71",
+          "number": 72,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/72"
+        },
+        {
+          "id": "COS-72",
+          "number": 73,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/73"
+        }
+      ],
+      "pendingSourcePrerequisites": [],
+      "validationOutputsFor": [
+        {
+          "id": "COS-14",
+          "number": 15,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/15"
+        },
+        {
+          "id": "COS-15",
+          "number": 16,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/16"
+        }
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "pending",
+      "implementationPhase": "plan",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "planReviewStatus": "PENDING",
+      "implementer": "cos67_implementer (dedicated COS73 implementer)",
+      "reviewer": "cos65_implementer (dedicated COS73 independent reviewer)",
+      "batch": "15",
+      "merger": "cos66_implementer (dedicated BATCH15 sole merger)",
+      "acceptanceScope": "source-free-fixture-existing-module-helper-scope-bugfix",
+      "codingProfile": "modular-code/1",
+      "codeModuleCount": 2,
+      "newPolicyOrPermission": false,
+      "reproducedSource": "f8bfecc694708ad85503bd0fca26e9114c06b1ee",
+      "diagnosticPathIsOwnerProof": false,
+      "performancePolicyStatus": "policy_not_executed",
+      "benchmarkConditionsFrozen": false,
+      "catalogRows": 230,
+      "referenceUnknownRows": 221,
+      "otherUnexecutedPolicies": 7,
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE",
+      "humanExperience": "NONE",
+      "sourceImplementation": "NONE",
+      "implementationBase": "931a7191bad113640f6b881daf31ac0035996b39",
+      "rootCauseNote": "docs/research/2026-10-06-module-global-type-boundary.md"
     }
   ],
-  "verifiedNativeSubIssues": 72,
+  "verifiedNativeSubIssues": 73,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

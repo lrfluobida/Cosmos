@@ -118,6 +118,7 @@
 - [x] [COS-70 接通公开 CLI 帧采样选择与恢复绑定](https://github.com/lrfluobida/Cosmos/issues/71)
 - [x] [COS-71 接通双模块编码任务与最终集成](https://github.com/lrfluobida/Cosmos/issues/72)
 - [x] [COS-72 接通单模块有界修复与后继集成](https://github.com/lrfluobida/Cosmos/issues/73)
+- [ ] [COS-73 保证模块辅助文件使用模块作用域](https://github.com/lrfluobida/Cosmos/issues/74)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1232,6 +1233,51 @@ BATCH14：implementer cos65_implementer，独立 reviewer cos67_implementer，�
 
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
 稳定任务 ID：COS-72
+
+### COS-73 · 保证模块辅助文件使用模块作用域
+
+- 登记时状态：[#74](https://github.com/lrfluobida/Cosmos/issues/74)，id5722514652，Root body/native73/旧72项及父14完成/newunchecked精确读回。BATCH15专属author67/独立reviewer65/solemerger66；短计划待独审，SOURCE_NOT_READY/open、sourceImplementation NONE；[根因与原始证据](../research/2026-10-06-module-global-type-boundary.md)。
+
+#### 目标
+
+使每个编码模块的辅助 TypeScript 文件保持模块作用域，防止一个模块的脚本级全局类型声明改变另一个模块的编译结果。沿现有模块范围和编译链修复这个已复现缺口。
+
+#### 原始证据
+
+在已审 COS-72 f8bfecc 上，TEMP 实际 product host / owned workers 验证 A、B 局部 tsc 均 code0、ABI advance/label 通过；运行时独审为 synthetic approved。最终真实 tsc code2，两条 TS2322 都只指向 A 的 index.ts。原因来自 B/global-types.ts 的脚本级 interface Window：它改变了 A 读取全局 Window 的条件类型。只在独立 TEMP 组装副本删除 B 该 helper，同一 pinned tsc 变 code0，A 字节及原 A/B captures 全 SHA/mtime 不变。
+
+安全证据：C:/Users/26557/AppData/Local/Temp/cos73-module-boundary-evidence.json；脚本 cos73-module-boundary-experiment.mts；原 pipeline cos71-host-q9Guxm。没有真实 provider/browser/模型或费用，ledger entries0，无候选接受。全部诊断位于 A 仍不能证明 causal owner=A，不能据此建立 passed-owner 返工框架。
+
+#### 已核根因
+
+src/runtime/modular-code.ts 的 validateModuleFiles 已拒绝 ModuleDeclaration、d.ts、三斜线引用、外部/动态导入及抑制编译注释；显式 declare global 或 module augmentation 已被挡。当前遗漏的是普通 .ts helper 仍可作为共享全局脚本。物理路径隔离和局部 namespace proof 没有排除这种类型影响。
+
+[TypeScript 官方 Modules 文档](https://www.typescriptlang.org/docs/handbook/2/modules.html)说明脚本声明进入共享全局范围，import/export 使文件成为模块；export {} 可声明空导出模块。实施应使用仓库 pinned 编译器的实际 AST 判定。
+
+#### 范围
+
+1. 在现有 validateModuleFiles / 原作者 compiler-check、host 捕获/验证、当前引用输入与最终组合路径落实每个实际源码文件的模块作用域检查。先定位已有真实 caller，不加未使用 helper。保留原显式增强/路径/类型导入/配置/所有权守卫，检查 index 和所有 helper，不只看入口。
+2. 局部类型/函数可通过合法 import/export 或 export {} 保持私有范围；该标记不代替 index 的必需可调用值导出、原实际 compiler/ABI/独审。不由 harness 自动改作者源码、插入标记、修改 protected contract 或改变 tsconfig 来掩盖失败。
+3. 作者的原自检反馈须指明违规 helper 路径与局部化方法；违规来源不得取得 module passed/approved/reusable，集成作者在非法输入下不派发。沿现有失败/差距处理，不改变修复次数、预算、反馈 owner 策略或当前 passed 历史。旧完成报告继续按原证据只读，不因新源检查重写或重跑。
+4. 只有当前模块类型范围被验证，不声称隔离 JavaScript 运行时所有副作用；普通输入失败的 owner 归属与已通过模块的返工另需可信证据。
+
+#### 必要免费验收
+
+- 先把上面一个实际 counterexample 转为 meaningful caller RED：当前 B 会局部通过且误影响 A；修复后 B 源违规在局部批准/集成派发前拒绝并保留原因、原 A 输入和预算。
+- 正确局部化 B helper 的同一源对照应保持 A 原字节，真实局部 tsc/ABI 与完整 tsc/Vite/组合链通过。provider/browser/reviewer 为 fixture，与真实 worker/compiler/capture/组合事实分列。
+- 少数受影响负例覆盖 helper 脚本而非只入口、已有显式 global/module 增强与越界导入守卫、仅空导出不能使空 index 通过；合法局部 helper/类型导入保持。
+- 当前读取到已捕获的违规模块也在不应派发的作者之前拒绝；原完成状态不执行 host/编译、报告与原 files/mtime 不变。只验证改变的行为，复用 COS-71/72 证据，不重 A/B/82秒或旧 Edge/30分钟矩阵。
+
+#### 开发与边界
+
+BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implementer，唯一 merger cos66_implementer。≤300词计划独立 PLAN_APPROVED 后 TDD；实际 diff 规格→质量审查，exact SHA 与真实原证据由 sole merger 核后集成。UTF-8、中文最小 patch/readback。
+
+依赖已审 COS-71 与 COS-72，当前 main931a7191bad113640f6b881daf31ac0035996b39；不新增 profile/module 数、planner/runner/ledger/权限或确认授权。仅 source/free fixture 的现有边界 bugfix。
+
+完整经典100%/95%、真实模型生成、用户体验、实际完整12h及PERFORMANCE不提升；参考未冻结、230/221待核实/7未执行政策与两政策partial、共享验证¥150/首¥30/COS16原¥10、正式¥200/12h/目标¥100/6h、C6 unknown974882µ/closure12/C7保持；新增实际费用/模型/人类确认/窗口 NONE。
+
+父任务：https://github.com/lrfluobida/Cosmos/issues/1
+稳定任务 ID：COS-73
 
 ## 5. 任务与上下文包模板
 
