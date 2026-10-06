@@ -34,6 +34,10 @@
 
 沿用 [已有来源调查](../research/2026-09-30-model-budget.md)，本批只核对与目录直接有关的官方页面。没有采用第三方单位属性表，也没有凭记忆补写名称、出怪或数值。EA 文档同时显示 2009 release date 和 2012 Mac build；仅按前者归类为 Windows 首发资料会造成版本混用。
 
+### 2026-10-06 原设计者的教程陈述
+
+[补充调查](../research/2026-10-06-pvz-designer-tutorial-source.md)记录 GDC 官方 George Fan 2012 原始演讲中的教程引入阶段及双发轮次说明。仅作 designer statement，尚未绑定本机 GOTY 1.2.0.1073；完整名册、精确数值、解锁事件与实际运行仍需固定参考核对。本次不更新机器来源/目录，不提升 verified_for_reference 或冻结状态。
+
 ## 内容矩阵
 
 [catalog.json](../../benchmarks/classic-pc/reference/catalog.json) 是本批唯一机器可读目录。它包含 230 项范围记录，其中 221 项待参考核对、9 项是已确认的目标游戏验收政策。**这不是 230 个已验收玩法，也不是完整名册已闭合。**
