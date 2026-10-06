@@ -4,6 +4,8 @@
 
 ## COS72 单模块修复切片启动
 
+- 作者实际CLI政策检查点：new运行原展示/确认来源缺能力说明的RED2fail/0skip（4330.5298ms）→GREEN2/2/0skip（3506.2585ms），safe TEMP `cos72-policy-red.tap` / `cos72-policy-green.tap` 原始报告已读回；origin与confirmation双方字段删除仍由原ref/version和created锚点拒绝。当前仅政策reader/activeguard、intake、CLI与frame共享绑定接通；模块v2/host/successor尚在实现，稳定partial/独审/完整caller未完成，SOURCE_NOT_READY保持。没有费用或新模型调用，也未因docs-only main变化重复旧测试。
+- 性能下一步只读判断：现有host/frames实际consumer已经采真实native帧，machine未冻结/GPU未知/2秒窗口；classic政策实际mapping仍只有STARTUP/OFFLINE，PERFORMANCE保持not_executed。缺可信冻结设备/browser/renderer/实际1280×720canvas与普通/压力完整workload来源（模式/关卡/出怪/正常输入/热身/计量/重复口径），参考runtime/rules/values/progression/edition仍未闭合。暂不为未使用helper或toy workload创建性能任务；未来新确认与同candidate raw/clean终点齐备后接原consumer，旧确认不升级，30分钟无尽稳定项另算。该判断没有文件/预算/测试或实际运行变更。
 - 并行 COS01 免费来源补充：[原设计者 GDC 教程与双发陈述](docs/research/2026-10-06-pvz-designer-tutorial-source.md)。此前资料未覆盖该 primary 来源；仅记录教学引入和双发轮次的 designer statement/edition-unbound，PDF截图未得可用像素，未核本机玩法。230/221待核实/7未执行政策、两政策partial及reference冻结阻止不变，catalog/reference JSON未改；没有模型、费用、人工确认或窗口。
 - Source71 READY 四文档472b194经独立67审查，由唯一66合入并推送3e0a01c528ce4430d1f2725c1f047ba4b6d4e5f2；批准bytes/UTF-8/LF/中文/diff/mainclean及实际remote一致，src/tests未变，没有重复代码矩阵。
 - [COS-72 / #73](https://github.com/lrfluobida/Cosmos/issues/73) 已登记并挂原父任务，native72、旧71项前缀及父13项完成保持、新项unchecked已精确读回；BATCH14 author65/独立reviewer67/solemerger66；登记时为plan pending/source NONE，注册四文档ad89d16独审后合推8ff56c6。
