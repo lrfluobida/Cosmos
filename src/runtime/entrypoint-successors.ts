@@ -14,6 +14,8 @@ import type { RunController } from './run.ts';
 import { createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from './repair/policy.ts';
 import { failureRecord, feedbackReference, validateHostIssues, validatePassedChecks } from './repair/feedback.ts';
 import type { RepairFeedback } from './repair/feedback.ts';
+import { readModularRepairPolicy, requireCurrentModularRepairPolicy, validateModularRepairPolicy } from './modular-repair-policy.ts';
+import type { ModularRepairPolicy } from './modular-repair-policy.ts';
 
 export interface SuccessorTarget {
   sourceTaskId: string; taskId: string; allocationMicroCny: number;
@@ -67,9 +69,10 @@ function ordered(originals: readonly PreparedTask[]): PreparedTask[] {
 }
 
 /** Data qualification only. The caller must separately inspect the original journals and output paths. */
-export function findUnstartedSuccessors(snapshot: RunSnapshot, originals: readonly PreparedTask[], failedId: string): PreparedTask[] {
+export function findUnstartedSuccessors(snapshot: RunSnapshot, originals: readonly PreparedTask[], failedId: string, modulePolicy?: ModularRepairPolicy): PreparedTask[] {
   const tasks = ordered(originals), affected = new Set([failedId]);
-  if (modularDag(originals) && !originals.some(item => item.task.taskId === failedId && item.role === 'coding' && !isModule(item))) blocked('Modular repairs support only final integration; preserve module failures without rebinding.');
+  validateModularRepairPolicy(modulePolicy);
+  if (modularDag(originals) && !originals.some(item => item.task.taskId === failedId && item.role === 'coding' && (!isModule(item) || modulePolicy))) blocked('Original modular policy supports only final integration; preserve module failures without rebinding.');
   if (!tasks.some(item => item.task.taskId === failedId)) blocked('Failed task does not belong to the original plan.');
   const result: PreparedTask[] = [];
   for (const item of tasks) {
@@ -133,12 +136,13 @@ function rebind(refs: ArtifactReference[], replacements: TaskReplacement[]): Art
 export function buildRepairContinuation(options: {
   snapshot: RunSnapshot; originals: readonly PreparedTask[]; requirement: RequirementContract; originalPlan: ArtifactReference;
   failedId: string; feedback: RepairFeedback; targets: readonly SuccessorTarget[]; now: number;
+  modulePolicy?: ModularRepairPolicy;
 }): RepairContinuationPlan {
   const { snapshot, requirement, failedId, feedback } = options, originals = ordered(options.originals);
   if (snapshot.stopReason || snapshot.run.state !== 'running') blocked('Original run is stopped.');
   if (snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) blocked('Unknown or reserved requests block continuation.');
   const source = originals.find(item => item.task.taskId === failedId) ?? blocked('Missing original repair source.');
-  const descendants = findUnstartedSuccessors(snapshot, originals, failedId), sources = [source, ...descendants];
+  const descendants = findUnstartedSuccessors(snapshot, originals, failedId, options.modulePolicy), sources = [source, ...descendants];
   if (!Number.isSafeInteger(options.now) || options.now + sources.length * 60000 + 5000 >= Date.parse(snapshot.run.originalDeadlineAt)) blocked('Original deadline cannot admit this bounded group.');
   const grants = allocateRepairGrants(snapshot, sources), targets = structuredClone([...options.targets]);
   if (targets.length !== sources.length || new Set(targets.map(item => item.sourceTaskId)).size !== sources.length
@@ -232,7 +236,7 @@ export async function sealRepairDiagnostics(root: string, plan: RepairContinuati
 }
 
 /** Checks the fixed proposal against the original contracts, even after its tasks have run. */
-function validateContinuation(plan: RepairContinuationPlan, state: RunSnapshot, originals: readonly PreparedTask[], requirement: RequirementContract, originalPlan: ArtifactReference, feedback: RepairFeedback) {
+function validateContinuation(plan: RepairContinuationPlan, state: RunSnapshot, originals: readonly PreparedTask[], requirement: RequirementContract, originalPlan: ArtifactReference, feedback: RepairFeedback, modulePolicy?: ModularRepairPolicy) {
   if (plan.formatVersion !== 2 || plan.runId !== state.run.runId || plan.ledgerId !== state.ledger.ledgerId || plan.originalStartedAt !== state.run.originalStartedAt
     || plan.originalDeadlineAt !== state.run.originalDeadlineAt || plan.limitMicroCny !== state.ledger.limitMicroCny || plan.reviewProtocolCorrections !== 1
     || !sameValue(plan.requirement, requirement) || !sameValue(plan.originalPlan, originalPlan) || !Array.isArray(plan.replacements) || !Array.isArray(plan.newTaskIds)
@@ -247,7 +251,7 @@ function validateContinuation(plan: RepairContinuationPlan, state: RunSnapshot, 
     || !sameValue(feedback.acceptance, failed.acceptance) || !sameValue(feedback.artifactVersions, [...failed.inputs, ...failed.artifacts])
     || feedback.issues.some(issue => issue.classification !== 'code_defect')) blocked('Continuation must retain its one completed semantic repair and exact feedback.');
   validateHostIssues(failed, feedback.issues); validatePassedChecks(failed, feedback.issues, feedback.passedChecks);
-  const sources = [source, ...findUnstartedSuccessors(state, originals, plan.failedTaskId)];
+  const sources = [source, ...findUnstartedSuccessors(state, originals, plan.failedTaskId, modulePolicy)];
   if (!sameValue(plan.replacements.map(item => item.sourceTaskId), sources.map(item => item.task.taskId))
     || !sameValue(plan.newTaskIds, plan.replacements.map(item => item.replacementTaskId)) || new Set(plan.newTaskIds).size !== sources.length
     || plan.newTaskIds.some(id => originals.some(item => item.task.taskId === id))) blocked('Continuation replacement map changed.');
@@ -316,7 +320,8 @@ export async function prepareRepairContinuation(options: { root: string; control
   const prior = await exists(root, 'repair-plan.json') ? await readJson(root, 'repair-plan.json') : null;
   if (prior && !sameValue(prior, plan)) blocked('Write-once repair plan changed.');
   const feedback = await readJson(root, plan.feedback.location) as RepairFeedback;
-  const { additions, registered, failed } = validateContinuation(plan, state, originals, requirement, originalPlan, feedback);
+  const modulePolicy = await readModularRepairPolicy(root, state); await requireCurrentModularRepairPolicy(modulePolicy);
+  const { additions, registered, failed } = validateContinuation(plan, state, originals, requirement, originalPlan, feedback, modulePolicy);
   if (registered && !prior) blocked('Registered group has no fixed repair plan.');
   if (!Array.isArray(plan.diagnosticSignatures) || !sameValue(plan.diagnosticSignatures, await diagnosticSignatures(root, plan))) blocked('Fixed diagnostic content signature changed.');
   if (state.stopReason || state.run.state !== 'running' || state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)

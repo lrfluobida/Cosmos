@@ -13,16 +13,19 @@ import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { planTaskDag } from '../../src/roles/planner.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
+import { currentModularRepairPolicy } from '../../src/runtime/modular-repair-policy.ts';
 
 /** Actual product caller/compiler/registry/journal; model/browser/reviewer replies are synthetic. */
-export async function modularFixture(t: test.TestContext, fault = '') {
+export async function modularFixture(t: test.TestContext, fault = '', options: { newModulePolicy?: boolean } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cos71-host-')); t.after(() => { t.diagnostic(`Source-only pipeline evidence: ${root}`); });
   const draft: any = withHostStages({ codeProfile: 'modular-code/1', brief: '原创点击获胜', questions: [{ id: 'goal', prompt: '目标？' }], answers: { goal: '点击获胜' }, unsupported: [],
     acceptance: [{ acceptanceId: 'win', description: '点击获胜', steps: ['点击目标'], expected: '胜利', evidenceKinds: ['test_report'] }],
     scenario: { viewport: { width: 1280, height: 720 }, steps: [{ id: 'click', kind: 'locator-click', selector: '#target', timeoutMs: 1000 },
       { id: 'win', kind: 'assert', acceptanceId: 'win', observation: { kind: 'text', selector: '#result' }, expected: '胜利', timeoutMs: 1000 }] } } as any);
   const intake = await IntakeController.create({ root, runId: 'modular-game', ledgerId: 'modular-budget', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 2,
+    ...(options.newModulePolicy ? { modularRepairPolicy: currentModularRepairPolicy() } : {}),
     allocations: [{ taskId: 'intake', amountMicroCny: 100 }, { taskId: 'planning', amountMicroCny: 100 }] });
+  if (options.newModulePolicy) await writeFile(join(root, 'intake-origin.json'), JSON.stringify({ runId: 'modular-game', brief: draft.brief, modularRepairPolicy: currentModularRepairPolicy() }), { encoding: 'utf8', flag: 'wx' });
   const saved = await intake.saveDraft(draft), requirement = await intake.confirm({ revision: saved.revision, confirmed: true, actorId: 'synthetic-user', at: new Date().toISOString() });
   await intake.activateGeneration({ environmentReady: true, executionReady: true }); await intake.close();
   const toolchain = resolve(process.env.COSMOS_TEMPLATE_ROOT ?? fileURLToPath(new URL('../../templates/2d', import.meta.url)));
@@ -61,8 +64,10 @@ export async function modularFixture(t: test.TestContext, fault = '') {
         await put('authors/design/module-contracts.d.ts', 'export interface ModuleA { advance(value: number): number; }\nexport interface ModuleB { label(value: number): string; }\n');
       } else if (packet.role === 'art') await put('authors/art/media.json', JSON.stringify({ characters: [{ id: 'target', width: 32, height: 32, anchor: { x: 16, y: 16 },
         layers: [{ id: 'body', shape: 'rect', x: 1, y: 1, width: 30, height: 30, fill: '#FFD700', stroke: '#000000', strokeWidth: 0 }], states: [{ name: 'idle', fps: 1, loop: true, frames: [{}] }] }], audio: [] }));
-      else if (code === 'module-a-task') await put('authors/code-a/src/modules/a/index.ts', fault === 'empty-module' ? 'export {};\n' : 'export function advance(value: number): number { return value + 1; }\n');
-      else if (code === 'module-b-task') await put('authors/code-b/src/modules/b/index.ts', 'export function label(value: number): string { return value > 0 ? "胜利" : "等待"; }\n');
+      else if (code === 'module-a-task' || code === 'module-a-task-repair') await put('authors/code-a/src/modules/a/index.ts', fault === 'empty-module' ? 'export {};\n'
+        : fault === 'COS72-module-a' && code === 'module-a-task' ? 'export function advance(value:number):number{return "wrong";}\n' : 'export function advance(value: number): number { return value + 1; }\n');
+      else if (code === 'module-b-task' || code === 'module-b-task-repair') await put('authors/code-b/src/modules/b/index.ts', fault === 'COS72-module-b' && code === 'module-b-task'
+        ? 'export function label(value:number):string{return value;}\n' : 'export function label(value: number): string { return value > 0 ? "胜利" : "等待"; }\n');
       else {
         await put('authors/coding/index.html', '<button id="target">目标</button><div id="result">等待</div><script type="module" src="/src/main.ts"></script>');
         await put('authors/coding/src/main.ts', fault === 'integration-repair' && code === 'integration-task' ? 'const broken: number = "wrong"; document.body.textContent=String(broken);\n'

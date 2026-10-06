@@ -60,8 +60,8 @@ export async function projectInputs(input: CodingCheckRequest) {
     else {
       if (input.modular.modules?.length !== 2) throw new Error('Integration compiler needs both fixed modules.');
       for (const [index, module] of input.modular.modules.entries()) {
-        if (module.slot !== MODULE_SLOTS[index] || module.ref.artifactId !== `module-${module.slot}` || module.ref.version !== 'v1'
-          || module.ref.location !== `registry/captures/module-${module.slot}/v1/files` || !resolve(module.directory).replaceAll('\\', '/').endsWith('/' + module.ref.location)) throw new Error('Integration module identity changed.');
+        if (module.slot !== MODULE_SLOTS[index] || module.ref.artifactId !== `module-${module.slot}` || !['v1', 'v2'].includes(module.ref.version)
+          || module.ref.location !== `registry/captures/module-${module.slot}/${module.ref.version}/files` || !resolve(module.directory).replaceAll('\\', '/').endsWith('/' + module.ref.location)) throw new Error('Integration module identity changed.');
         const files = await snapshot(module.directory); validateModuleFiles(files, module.slot);
         if (codingSignature(files) !== module.signature) throw new Error('Integration module capture bytes changed.');
         for (const [name, bytes] of files) template.set(name, bytes);
