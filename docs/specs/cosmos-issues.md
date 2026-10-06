@@ -118,7 +118,7 @@
 - [x] [COS-70 接通公开 CLI 帧采样选择与恢复绑定](https://github.com/lrfluobida/Cosmos/issues/71)
 - [x] [COS-71 接通双模块编码任务与最终集成](https://github.com/lrfluobida/Cosmos/issues/72)
 - [x] [COS-72 接通单模块有界修复与后继集成](https://github.com/lrfluobida/Cosmos/issues/73)
-- [ ] [COS-73 保证模块辅助文件使用模块作用域](https://github.com/lrfluobida/Cosmos/issues/74)
+- [x] [COS-73 保证模块辅助文件使用模块作用域](https://github.com/lrfluobida/Cosmos/issues/74)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -1239,6 +1239,10 @@ BATCH14：implementer cos65_implementer，独立 reviewer cos67_implementer，�
 - 登记时状态：[#74](https://github.com/lrfluobida/Cosmos/issues/74)，id5722514652，Root body/native73/旧72项及父14完成/newunchecked精确读回。BATCH15专属author67/独立reviewer65/solemerger66；短计划待独审，SOURCE_NOT_READY/open、sourceImplementation NONE；[根因与原始证据](../research/2026-10-06-module-global-type-boundary.md)。
 
 - 计划批准时状态：d5e4de1bd126df886bd1d109942f1b852e1cae61（13行271词）由actual65独立读完整spec/card/actualproducer-consumer与计划后PLAN_APPROVED，无finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/74#issuecomment-6008877584)exact。pinned TS5.9.3 isExternalModule作用所有helper/index，worker作者/最终compiler与host capture/verify/recoverCapture/approvedModule/preAuthor/currentreuse为原真实调用；保原augmentation/import/ref/suppression/ABI/readonly历史。Root授权actual67从main28af250专属cos04 TDD实施；sourceNOTREADY/in-progress/open，最终源码另审。
+
+- 最终源码：c246e8f7179c10c76caeccbb99cafcbedd6ea343/source-tests-quickstart b47c78308e5aae653e1ce6d4d69b981391077019，由actual65全7diff规格→质量APPROVED/MODULE_HELPER_SCOPE_SOURCE_READY，无finding；独立窄2/2/0skip（4570.8175ms）。sole66合推main55a671249aeb38bfa9810e4f7a60e6eae375cec6，7approvedbytes（2prod/3tests/2docs）/UTF8LF中文/diff/Root记录与Source72原路径/三方SHA/clean保持；main typecheck/build0、只选actualbadB拒绝1/1/0skip（test19744.1783ms/TAP23946.0455ms），raw cos73-merge-integration.tap/pipelineu9oJQO。该negative在localapproval/集成前停止，未重finalassembly/cleanNode；合法B helper正向局部/完整compiler及五任务晋升个体32492.759ms、focused5/5/currentcapture拒/旧completedhost0原report与选定hashmtime等证据核验复用。
+
+- [公开批准](https://github.com/lrfluobida/Cosmos/issues/74#issuecomment-6009165651)与body/closed/completed、父73[x]/native73/15完成已exact读回。本卡source/free-fixture scoped complete；wholeFAILED50947.3533和误选incomplete readonlyfixture的失败保留，不改历史或升owner归属授权。仅模块helper scope守卫/原作者规则，预算/未知费用/参考/PERFORMANCE/实际模型与完整经典/actual12h/human未通过边界保持。
 
 #### 目标
 
