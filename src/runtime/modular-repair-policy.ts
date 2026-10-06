@@ -40,8 +40,17 @@ export async function readModularRepairPolicy(root: string, state: IntakeSnapsho
     const decision = state.run.humanDecisions.find(row => row.decisionId.startsWith('requirements-v'));
     const source = decision?.evidence.find(ref => ref.artifactId === 'user-confirmation'); ref = source;
     const receipt = source ? await optional(root, source.location) : undefined; binding = receipt?.modularRepairPolicy;
-    if (binding && (!decision || receipt.runId !== state.run.runId || receipt.confirmed !== true || receipt.actorId !== decision.actorId || receipt.at !== decision.decidedAt
-      || !isDeepStrictEqual(receipt.draft, decision.evidence[0]))) throw new Error('Original policy confirmation identity changed.');
+    if (binding) {
+      const frame: typeof import('./render-frame-selection.ts') = await import('./render-frame-selection.ts');
+      frame.validateFrameSelection(receipt.renderFrames);
+      const revision = receipt.revision;
+      if (!decision || !Number.isSafeInteger(revision) || revision < 1 || decision.decisionId !== `requirements-v${revision}`
+        || receipt.runId !== state.run.runId || receipt.confirmed !== true || receipt.actorId !== decision.actorId || receipt.at !== decision.decidedAt
+        || !isDeepStrictEqual(receipt.renderFrames, origin?.renderFrames)
+        || !isDeepStrictEqual(receipt.draft, { artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` })
+        || !isDeepStrictEqual(receipt.draft, decision.evidence[0]) || decision.evidence.length !== 2
+        || !isDeepStrictEqual(source, { artifactId: 'user-confirmation', version: frame.frameConfirmationVersion(revision, receipt.renderFrames, binding), location: `requirements/v${revision}/confirmation.json` })) throw new Error('Original policy confirmation identity changed.');
+    }
   }
   validateModularRepairPolicy(binding);
   if (!isDeepStrictEqual(binding, origin?.modularRepairPolicy)) throw new Error('Original modular policy source changed.');

@@ -39,6 +39,23 @@ test('COS72 deleting both bound policy sources cannot silently become new or leg
   const before = await readFile(join(f.root, 'snapshot.json')), count = f.calls.length;
   await assert.rejects(f.run('resume'), /policy|政策|来源|original/i); assert.equal(f.calls.length, count); assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(before));
 });
+test('COS72 exact original confirmation revision and source cannot drift before dispatch', async t => {
+  for (const mutation of ['version', 'receipt-revision', 'draft-source']) await t.test(mutation, async t => {
+    const f = await policyFixture(t); await f.run('new', '点击获胜\nconfirm 1\n');
+    const path = join(f.root, 'snapshot.json'), state = JSON.parse(await readFile(path, 'utf8'));
+    const source = state.run.humanDecisions[0].evidence[1], receiptPath = join(f.root, source.location);
+    if (mutation === 'version') { source.version = source.version.replace(/^v1-/, 'v999-'); await writeFile(path, JSON.stringify(state), 'utf8'); }
+    else {
+      const receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
+      if (mutation === 'receipt-revision') receipt.revision = 999;
+      else receipt.draft = { ...receipt.draft, version: 'v999', location: 'requirements/v999/draft.json' };
+      await writeFile(receiptPath, JSON.stringify(receipt), 'utf8');
+    }
+    const before = await readFile(path), count = f.calls.length;
+    await assert.rejects(f.run('resume'), /confirmation|policy|来源|original/i);
+    assert.equal(f.calls.length, count); assert.ok((await readFile(path)).equals(before));
+  });
+});
 test('COS72 old original confirmation remains integration-only when opened by new CLI', async t => {
   const root = await mkdtemp(join(tmpdir(), 'cos72-old-')); t.after(() => removeOwned(tmpdir(), root));
   const intake = await IntakeController.create({ root, runId: 'old-game', ledgerId: 'old-budget', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 2,
