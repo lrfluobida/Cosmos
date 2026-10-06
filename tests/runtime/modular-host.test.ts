@@ -17,7 +17,8 @@ import { currentModularRepairPolicy } from '../../src/runtime/modular-repair-pol
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 
 /** Actual product caller/compiler/registry/journal; model/browser/reviewer replies are synthetic. */
-export async function modularFixture(t: test.TestContext, fault = '', options: { newModulePolicy?: boolean; pauseRepair?: boolean; badRepair?: boolean; badSuccessor?: boolean; dirtyIntegration?: boolean } = {}) {
+export const scopedCounterSource = 'type OriginalCounter = Window extends { cosmosBoundaryType: string } ? string : number;\nexport function advance(value: number): number { const next: OriginalCounter = value + 1; return next; }\n';
+export async function modularFixture(t: test.TestContext, fault = '', options: { newModulePolicy?: boolean; pauseRepair?: boolean; badRepair?: boolean; badSuccessor?: boolean; dirtyIntegration?: boolean; helperScope?: 'script' | 'module' } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cos71-host-')); t.after(() => { t.diagnostic(`Source-only pipeline evidence: ${root}`); });
   const draft: any = withHostStages({ codeProfile: 'modular-code/1', brief: '原创点击获胜', questions: [{ id: 'goal', prompt: '目标？' }], answers: { goal: '点击获胜' }, unsupported: [],
     acceptance: [{ acceptanceId: 'win', description: '点击获胜', steps: ['点击目标'], expected: '胜利', evidenceKinds: ['test_report'] }],
@@ -66,13 +67,21 @@ export async function modularFixture(t: test.TestContext, fault = '', options: {
       } else if (packet.role === 'art') await put('authors/art/media.json', JSON.stringify({ characters: [{ id: 'target', width: 32, height: 32, anchor: { x: 16, y: 16 },
         layers: [{ id: 'body', shape: 'rect', x: 1, y: 1, width: 30, height: 30, fill: '#FFD700', stroke: '#000000', strokeWidth: 0 }], states: [{ name: 'idle', fps: 1, loop: true, frames: [{}] }] }], audio: [] }));
       else if (code === 'module-a-task' || code === 'module-a-task-repair') await put('authors/code-a/src/modules/a/index.ts', fault === 'empty-module' ? 'export {};\n'
-        : fault === 'COS72-module-a' && (code === 'module-a-task' || options.badRepair) ? 'export function advance(value:number):number{return "wrong";}\n' : 'export function advance(value: number): number { return value + 1; }\n');
+        : fault === 'COS72-module-a' && (code === 'module-a-task' || options.badRepair) ? 'export function advance(value:number):number{return "wrong";}\n' : options.helperScope ? scopedCounterSource : 'export function advance(value: number): number { return value + 1; }\n');
       else if (code === 'module-b-task' || code === 'module-b-task-repair') await put('authors/code-b/src/modules/b/index.ts', fault === 'COS72-module-b' && (code === 'module-b-task' || options.badRepair)
         ? 'export function label(value:number):string{return value;}\n' : 'export function label(value: number): string { return value > 0 ? "胜利" : "等待"; }\n');
       else {
         await put('authors/coding/index.html', '<button id="target">目标</button><div id="result">等待</div><script type="module" src="/src/main.ts"></script>');
         await put('authors/coding/src/main.ts', fault === 'integration-repair' && code === 'integration-task' || options.badSuccessor && code === 'integration-task-successor' ? 'const broken: number = "wrong"; document.body.textContent=String(broken);\n'
           : "import {advance} from './modules/a';import {label} from './modules/b';document.querySelector('#target')!.addEventListener('click',()=>{document.querySelector('#result')!.textContent=label(advance(0));});\n");
+      }
+      if (code === 'module-b-task' && packet.role === 'coding' && options.helperScope) await put('authors/code-b/src/modules/b/global-types.ts',
+        'interface Window { cosmosBoundaryType: string; }\n' + (options.helperScope === 'module' ? 'export {};\n' : ''));
+      if (code === 'module-b-task' && packet.role === 'coding' && options.helperScope === 'script') {
+        const tool = config.tools!.find(tool => tool.name === 'check-game-build'); assert.ok(tool);
+        let diagnostic = ''; try { await tool.execute('cos73-helper-check', {}, undefined, undefined, undefined as any); }
+        catch (error) { diagnostic = (error as Error).message; }
+        await put('evidence/cos73-author-check.json', JSON.stringify({ scope: 'Actual original author compiler callback, synthetic author leaves invalid output', diagnostic }));
       }
       return { text: JSON.stringify({ summary: 'Synthetic scoped fixture output', remaining: [], uncertainty: [] }) };
     } };
