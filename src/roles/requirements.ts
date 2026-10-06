@@ -8,6 +8,12 @@ import type { DraftMode, PreparationSelection } from './preparation-mode.ts';
 
 export const DESIGN_ACCEPTANCE_ID = 'COSMOS-DESIGN';
 export const MEDIA_ACCEPTANCE_ID = 'COSMOS-MEDIA';
+export const MODULE_ACCEPTANCE_IDS = ['COSMOS-MODULE-A', 'COSMOS-MODULE-B'] as const;
+export const MODULE_STAGE_ACCEPTANCE = freeze<RequirementContract['acceptance']>(MODULE_ACCEPTANCE_IDS.map((acceptanceId, index) => ({
+  acceptanceId, description: `编码模块 ${index ? 'B' : 'A'}：独立开发并符合固定设计接口。`,
+  steps: ['用固定模板和本模块实际源码编译，核对受保护接口，再由独立上下文审查源码。'],
+  expected: '模块具有必需值导出，实际编译与接口检查通过，固定产物独立审查通过；不表示完整玩法通过。', evidenceKinds: ['test_report'],
+})));
 export const HOST_STAGE_ACCEPTANCE = freeze<RequirementContract['acceptance']>([
   { acceptanceId: DESIGN_ACCEPTANCE_ID, description: '设计检查：玩法要求均有对应设计，角色动作和音频用途清楚。',
     steps: ['检查设计内容覆盖全部已确认玩法，并由独立评审核对。'], expected: '全部玩法都有设计映射；角色、动作、音频与触发用途明确。', evidenceKinds: ['test_report'] },
@@ -15,13 +21,18 @@ export const HOST_STAGE_ACCEPTANCE = freeze<RequirementContract['acceptance']>([
     steps: ['渲染 art 角色的新素材规范，核对来源、全部动作帧和音频文件，再交独立评审。'], expected: '所有设计声明的素材均已生成并通过格式、动作清单和音频检查。', evidenceKinds: ['test_report'] },
 ]);
 export function gameplayAcceptance(draft: Pick<GameDraft, 'acceptance'>) {
-  return draft.acceptance.filter(item => !HOST_STAGE_ACCEPTANCE.some(stage => stage.acceptanceId === item.acceptanceId));
+  return draft.acceptance.filter(item => ![...HOST_STAGE_ACCEPTANCE, ...MODULE_STAGE_ACCEPTANCE].some(stage => stage.acceptanceId === item.acceptanceId));
 }
 /** Host criteria are displayed and frozen in the same user-confirmed revision. */
 export function withHostStages(draft: GameDraft): BrowserGameDraft {
   requireBrowserDraft(draft);
-  validateGameDraft(draft);
-  return { ...structuredClone(draft), acceptance: [...structuredClone(gameplayAcceptance(draft)), ...structuredClone(HOST_STAGE_ACCEPTANCE)] };
+  for (const item of draft.acceptance) {
+    const stage = [...HOST_STAGE_ACCEPTANCE, ...MODULE_STAGE_ACCEPTANCE].find(stage => stage.acceptanceId === item.acceptanceId);
+    if (stage && !sameValue(stage, item) || MODULE_ACCEPTANCE_IDS.includes(item.acceptanceId as any) && !draft.codeProfile) throw new Error('Host stage acceptance cannot be redefined.');
+  }
+  const result = { ...structuredClone(draft), acceptance: [...structuredClone(gameplayAcceptance(draft)), ...structuredClone(HOST_STAGE_ACCEPTANCE),
+    ...(draft.codeProfile ? structuredClone(MODULE_STAGE_ACCEPTANCE) : [])] };
+  validateGameDraft(result); return result;
 }
 
 interface DraftFields {
@@ -35,8 +46,8 @@ export interface BrowserScenario extends Pick<AcceptancePlan, 'viewport' | 'step
   reopen?: { steps: AcceptancePlan['steps']; checkpoint: { expected: string;
     snapshot: { kind: 'text'; selector: string }; savedSnapshot: { kind: 'text'; selector: string } } };
 }
-export interface BrowserGameDraft extends DraftFields { scenario: BrowserScenario; benchmark?: 'classic-pc-runtime-policy/1'; preparation?: never }
-export interface PreparationGameDraft extends DraftFields { preparation: PreparationSelection; scenario?: never }
+export interface BrowserGameDraft extends DraftFields { scenario: BrowserScenario; benchmark?: 'classic-pc-runtime-policy/1'; codeProfile?: 'modular-code/1'; preparation?: never }
+export interface PreparationGameDraft extends DraftFields { preparation: PreparationSelection; scenario?: never; codeProfile?: never }
 export type GameDraft = BrowserGameDraft | PreparationGameDraft;
 
 export function requireBrowserDraft(draft: GameDraft): asserts draft is BrowserGameDraft {
@@ -51,7 +62,7 @@ export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'bro
   const selection = resolveDraftMode(expectedMode);
   const draft = value as GameDraft;
   const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
-  const fields = ['brief', 'questions', 'answers', 'acceptance', 'unsupported', ...(selection ? ['preparation'] : ['scenario', 'benchmark'])];
+  const fields = ['brief', 'questions', 'answers', 'acceptance', 'unsupported', ...(selection ? ['preparation'] : ['scenario', 'benchmark', 'codeProfile'])];
   if (!draft || typeof draft !== 'object' || Object.keys(draft).some(key => !fields.includes(key))
     || !text(draft.brief) || !Array.isArray(draft.questions) || !draft.answers || typeof draft.answers !== 'object' || Array.isArray(draft.answers)
     || Object.values(draft.answers).some(answer => typeof answer !== 'string') || !Array.isArray(draft.unsupported) || draft.unsupported.some(item => !text(item))) throw new Error('Invalid game draft fields.');
@@ -65,6 +76,9 @@ export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'bro
     return;
   }
   requireBrowserDraft(draft);
+  if (draft.codeProfile !== undefined && draft.codeProfile !== 'modular-code/1') throw new Error('Unknown coding profile.');
+  if (draft.codeProfile ? MODULE_STAGE_ACCEPTANCE.some(stage => !draft.acceptance.some(item => sameValue(item, stage)))
+    : draft.acceptance.some(item => MODULE_ACCEPTANCE_IDS.includes(item.acceptanceId as any))) throw new Error('Modular coding requires both complete fixed local standards.');
   if (draft.benchmark !== undefined && (draft.benchmark !== 'classic-pc-runtime-policy/1' || !draft.scenario?.reopen)) throw new Error('Classic runtime policies require the exact selection and normal save/reopen scenario.');
   validateBrowserScenario(draft);
 }
@@ -79,7 +93,7 @@ export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptanc
       || !text(item.expected) || !Array.isArray(item.evidenceKinds) || !item.evidenceKinds.length || item.evidenceKinds.some(kind => !['test_report', 'screenshot', 'video', 'log', 'user_decision'].includes(kind)))) throw new Error('Invalid acceptance draft.');
   if (!draft.scenario || Object.keys(draft.scenario).some(key => !['viewport', 'steps', 'reopen'].includes(key))) throw new Error('Invalid scenario fields.');
   for (const item of draft.acceptance) {
-    const stage = HOST_STAGE_ACCEPTANCE.find(stage => stage.acceptanceId === item.acceptanceId);
+    const stage = [...HOST_STAGE_ACCEPTANCE, ...MODULE_STAGE_ACCEPTANCE].find(stage => stage.acceptanceId === item.acceptanceId);
     if (stage && !sameValue(stage, item)) throw new Error('Host stage acceptance cannot be redefined.');
   }
   const gameplay = gameplayAcceptance(draft);

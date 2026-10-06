@@ -93,6 +93,8 @@ export async function buildContinuationQuote(options: { root: string; additional
   if (state?.formatVersion !== 1) throw new Error('续跑提案只支持正式 generation v1 快照；intake、validation 或未知格式不能通过本入口续跑。');
   validateSnapshot(state);
   if (state.ledger.scope !== 'generation' || state.run.kind !== 'runtime_generation') throw new Error('续跑提案仅支持正式 generation；validation 不获得新窗口或额度。');
+  const decision = state.run.humanDecisions.find(row => row.decisionId.startsWith('requirements-v'));
+  if (decision && decode(await regularFile(root, decision.evidence[0].location)).codeProfile) throw new Error('双模块编码暂不支持单 coding 追加窗口；保留原模块、账本与差距。');
   const now = options.now ?? Date.now();
   if (!Number.isSafeInteger(now) || !Number.isFinite(new Date(now).getTime())) throw new Error('Invalid quote observation time.');
   if (!state.stopReason && now < Date.parse(state.run.originalDeadlineAt)) throw new Error('原运行尚未硬停止或到期；只读 quote 不会停止它。');
