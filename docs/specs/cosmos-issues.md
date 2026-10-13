@@ -1360,7 +1360,9 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 [任务卡 #81](https://github.com/lrfluobida/Cosmos/issues/81)，id5837669130，已由Root核对正文并原生挂父#1。依赖COS38/50/78，由 `cos77_implementer` 实现、`cos76_implementer` 独审，`batch75_76_merger` 负责整合。
 
-短计划 `5324f831b2bb64799ffe10418ff5117781fcb15b` 已交叉独审 PLAN_APPROVED，无finding。源码已进入独审，仍待最终批准，当前 SOURCE_NOT_READY/open；目标标记为 `TRANSFER_CURRENT_PLAN_READING_SOURCE_READY`。作者在独立工作区维护完整计划和任务卡，本次只登记链接与状态，没有合入未审代码。
+短计划 `5324f831b2bb64799ffe10418ff5117781fcb15b` 已交叉独审PLAN_APPROVED。最终版本 `6cf3786` 经独立规格与质量审查通过，没有剩余finding；唯一merger合入 `e2f53fd`。当前为 `TRANSFER_CURRENT_PLAN_READING_SOURCE_READY` / source-integrated/open，待Root公开关闭。
+
+按可信输出路径选择唯一必读计划，保留原refs、权限和宿主校验。共享路径说明的P2已修正并复核；主线v1真实任务包代表及typecheck/build通过，原v2和守卫证据复用。完整SHA和证据见[任务卡](cos80-current-plan.md)，不声明实际模型节费。
 
 稳定任务 ID：COS-80
 
@@ -1368,7 +1370,9 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 [任务卡 #82](https://github.com/lrfluobida/Cosmos/issues/82)，id5837671050，已由Root核对正文并原生挂父#1。依赖COS11/77/79，由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。
 
-短计划 `844305124605ff4d8c675a26f5ca8ced38c44b75` 已交叉独审 PLAN_APPROVED，无finding。源码已进入独审，仍待最终批准，当前 SOURCE_NOT_READY/open；目标标记为 `ADMISSION_FAILURE_FEEDBACK_SOURCE_READY`。两个新任务都限定为免费源码工作，父任务现有81个子项，不新增C10、付费或预算。
+短计划 `844305124605ff4d8c675a26f5ca8ced38c44b75` 已交叉独审PLAN_APPROVED。最终版本 `4f9f0b8` 经独立规格与质量审查通过，没有finding；唯一merger合入 `0f03be1`。当前为 `ADMISSION_FAILURE_FEEDBACK_SOURCE_READY` / source-integrated/open，待Root公开关闭。
+
+仅可信Pi准入拒绝使用准确、安全的失败说明；不透传异常原文，也不把本次零发送说成整轮零费用。原分类和修复路由保持。主线真实持久化代表及typecheck/build通过，74项回归证据复用；完整SHA和证据见[任务卡](cos81-admission-feedback.md)。本批没有新增付费、案例或预算。
 
 稳定任务 ID：COS-81
 

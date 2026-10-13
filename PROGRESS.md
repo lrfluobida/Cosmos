@@ -10,11 +10,11 @@
 - Root已完成closure15，关闭本次五个角色额度。17个案例均已停止，未知费用和预留均为零；编码剩余 **¥0.273028**，预算组剩余 **¥6.628568**，已结算费用保持。原C9不能重跑，COS16/COS18仍partial/open，完整classic和human未通过。COS79的[源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6154080327)只说明本卡源码范围完成。
 - 运行和closure15结束后，Root已解除主线冻结。以下C9 NONE、旧账本版本和等待准入记录均为当时历史；本次只记录结果，没有新付费、案例、预算或生产代码变更。
 
-## 后续两个源码任务的计划已审
+## COS80与COS81已审集成
 
-- [COS80：按当前候选输出选择编码必读验收计划](https://github.com/lrfluobida/Cosmos/issues/81)依赖COS38/50/78，由 `cos77_implementer` 实现、`cos76_implementer` 独审。短计划 `5324f83` 已获 PLAN_APPROVED，没有finding；源码已进入独审，尚未合入主线，状态为 SOURCE_NOT_READY/open。
-- [COS81：在任务失败报告中保留请求准入拒绝原因](https://github.com/lrfluobida/Cosmos/issues/82)依赖COS11/77/79，由 `cos76_implementer` 实现、`cos77_implementer` 独审。短计划 `8443051` 已获 PLAN_APPROVED，没有finding；源码已进入独审，尚未合入主线，状态为 SOURCE_NOT_READY/open。
-- Root已核对两个任务的正文和原生父关联，父任务现有81个子项。完整任务要求见各自issue；作者在独立工作区维护计划和任务卡，只有 `batch75_76_merger` 整合批准后的提交。本轮只登记免费源码工作，不新增C10、付费或预算。
+- [COS80](docs/specs/cos80-current-plan.md)已通过独立审查。编码作者及修复作者按任务包的固定输出路径选择唯一对应的完整计划；设计者的双计划职责、原引用和宿主验收保持。共享路径说明中可能要求逐项全读的P2已闭合。批准版本为 `6cf3786`，合并为 `e2f53fd`。
+- [COS81](docs/specs/cos81-admission-feedback.md)已通过独立审查。可信请求准入拒绝现在会保留安全错误码和“本次请求未发送”的说明；原失败分类、费用记录和修复资格保持。批准版本为 `4f9f0b8`，合并为 `0f03be1`。
+- 两项均为source-integrated/open，待Root公开关闭。主线typecheck/build通过，当前v1任务包和真实准入拒绝持久链两个代表通过2/2；原v2修复链、守卫与74项回归证据复用。没有新案例或付费，也不声明实际节费或游戏通过；C9失败、closure15和预算事实保持。
 
 ## COS79 有界编码上下文压缩已审集成
 

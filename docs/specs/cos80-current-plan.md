@@ -1,14 +1,19 @@
 # COS80 按当前候选选择完整计划
 
-状态：PLAN_APPROVED（只读设计）/ SOURCE_NOT_READY。Issue [#81](https://github.com/lrfluobida/Cosmos/issues/81)，id5837669130；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS38/50/78。
+状态：PLAN_APPROVED / TRANSFER_CURRENT_PLAN_READING_SOURCE_READY / source-integrated / open。Issue [#81](https://github.com/lrfluobida/Cosmos/issues/81)，id5837669130；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS38/50/78。
 
-计划 exact `5324f831b2bb64799ffe10418ff5117781fcb15b` 已独立 PLAN_APPROVED；最小实现完成，等待 exact 源码审查。
+计划 exact `5324f831b2bb64799ffe10418ff5117781fcb15b` 已独立 PLAN_APPROVED。最终实现已由 `cos76_implementer` 完成实际规格与质量独审，没有剩余finding；唯一merger已集成，待Root公开关闭。
+
+| 记录 | 提交 |
+| --- | --- |
+| 批准版本 | `6cf3786c0139db44a77e0d8f6b4ec62eddf4110d` |
+| 合并提交 | `e2f53fdb84405b34c407d3703cbbd78cf954b8ea` |
 
 作者 `cos77_implementer` acting COS80；独立 reviewer `cos76_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos80-current-plan.md](../plans/2026-10-14-cos80-current-plan.md)。
 
 ## 问题与契约
 
-现有 transfer 编码规则两处要求完整读取 v1/v2 计划。C9 两份文件各 93542 UTF-8 bytes、2737 行，八段 220 步操作与断言相同，差异仅候选、任务和报告绑定。当前输入还保留旧 C5 计划；完整读取所有历史计划不是当前作者完成任务的必要条件。
+实施前的 transfer 编码规则有两处要求完整读取 v1/v2 计划。C9 两份文件各 93542 UTF-8 bytes、2737 行，八段 220 步操作与断言相同，差异仅候选、任务和报告绑定。当前输入还保留旧 C5 计划；完整读取所有历史计划不是当前作者完成任务的必要条件。
 
 由 host 在编码规则中提供两项可信映射：`outputDestination` 对应准确的 `plan` artifactId/version/location 及 `_cosmos/transfer-plan.json`。编码作者与同角色修复作者只匹配固定 packet 的 `outputs[].destination`，完整读取唯一匹配计划；不得先读两份 JSON 猜版本，不得根据 artifact version 选择（两份都可能是 v1）。没有唯一匹配时报告阻塞，不猜路径或改计划。
 
@@ -27,4 +32,6 @@
 
 两个实际 packet 代表有效 RED→GREEN；加原候选单计划依赖与 inactive-plan 篡改守卫共4/4、0skip。typecheck/build/受影响测试 strict 编译均退出0；原始 TAP 与命令见计划。真实 v2 linked repair 保留同一映射，随 host 替换的 output destination 选择 v2；两个 plan artifact version 均为 v1。合成 provider/build/browser，仅本地 loopback，无实际模型或新付费。
 
-独审发现共享路径说明仍可能要求逐项全读，已改条件式路径说明；新增 v1 断言有效 RED→1/1 GREEN，修后 typecheck/build/strict0。未改的 v2 和守卫通过证据复用；最终 exact 等待独立复核。
+独审发现共享路径说明仍可能要求逐项全读，已改条件式路径说明；新增 v1 断言有效 RED→1/1 GREEN，修后 typecheck/build/strict0。最终版本已通过受影响部分的独立复核；未改的 v2 和守卫通过证据继续复用。
+
+合并后typecheck/build通过，实际v1 factory任务包代表通过1/1；同批准入反馈代表也通过。原始输出为 `C:/Users/26557/AppData/Local/Temp/cos80-81-merge-integration.tap`。未重跑已通过的长v2修复链；没有新增实际模型运行、付费或节费结论。
