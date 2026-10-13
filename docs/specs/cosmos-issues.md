@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-13最新实际状态：C7停止为insufficient_evidence，closure13已完成；revision2023/15stopped/7delegations/75closed/13audits/unknown与reserved0，共享已结算8932365 micro-CNY，详见COS60。COS16/COS18仍partial/open；其余各卡的旧snapshot/unknown及C7 NONE保留为阶段历史。COS74已公开批准并closed，仅source scoped完成。
+
 状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 71 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
@@ -753,7 +755,8 @@ CODING_REQUEST_TIMEOUT_SOURCE_READY / source-integrated / source-and-TEMP-only�
 
 ### COS-60 · 准备带编码时限的第七迁移案例与已核实余额准入
 
-- 2026-10-13 最新前置：Root 已完成最后 unknown 的供应商小时核对与保守结算207689 micro-CNY，snapshot1943/共享8873950/unknown与reserved0，14 stopped/65 closed/11 audits 不变。Closure12 随后被冻结模板多文件守卫拒绝，尚未执行；COS-74处理源码目录回归，C7仍未运行。以下unknown状态为历史，不能跳过原closure12与全部准入检查。
+- 2026-10-13 最新结果：C6最后207689 micro-CNY结清后，closure12已执行至revision1944/70closed/12audits。C7在`cd6d9a997e85099d4effbda5599d499705fc1dd9`上于UTC14:14:09.410—14:29:55.393运行945983ms，18SDK新增58415 micro-CNY，共享8932365 micro-CNY。作者handoff说明工具阻塞，coding一次attempt insufficient_evidence；capture-started但无完成capture/候选（0文件），review pending、repair null，无game/build/browser通过。首批错误`Owned transfer origin listener or fixed receipt changed`与`Validation scope check was cancelled or timed out`的根因待独立诊断，结果/host-result/候选目录已由`cos16_acceptance_review`核实。
+- C7未用额度closure13经已独审脚本实际完成；当前revision2023/15案例全部stopped/7delegations/75closed/13audits/unknown与reserved0，原案例和费用保留。COS16/COS18仍partial/open，TRANSFER_CASE_SEVEN_SOURCE_READY源码审批保持，完整经典/human未通过。以下unknown、closure12和C7 NONE为当时历史。
 
 - 发布状态：[#61](https://github.com/lrfluobida/Cosmos/issues/61)，id5707067158；native parent已关联。最终`a8d4f97bc61e84d0579df952bd39703aabcab2d3`独立整体APPROVED/TRANSFER_CASE_SEVEN_SOURCE_READY，合入`5a15510a1201482d9fa629096a17449463176d31`，21批准文件/UTF8-LF/diff/parser1/1核对通过；[公共审批](https://github.com/lrfluobida/Cosmos/issues/61#issuecomment-5990992898)精确读回。Source/TEMP13focused、source/compiledmutation1/1及current/cold/tool1/1通过，991机制26min1/1与314archiveSHA独审复用；实际main免费preflight期望拒unknown且ledger bytes/mtime/files不变，实际C7/paid/human NONE。
 
@@ -761,7 +764,7 @@ CODING_REQUEST_TIMEOUT_SOURCE_READY / source-integrated / source-and-TEMP-only�
 
 为修复后的编码请求时限准备新的固定迁移案例 `cos20-transfer-validation-7`。COS59 已独立批准 b912f0e1751ea49e3749a487dd97759efbea43e4 并合入 4139a822d87c9ed8f819d22bd051148c45da45a0；原 C6 在 120 秒流时限失败并停止，不能重开。
 
-当前共享账本仍有一笔 974882 micro-CNY unknown 预留，14 stopped cases、6 delegations、65 closed grants、11 closure audits。本任务只实施源码和 TEMP 验证；真实账务核对与第12笔 allocation closure 由 Root 另行执行，当前不能 claim 或付费。
+登记时历史：共享账本当时有一笔 974882 micro-CNY unknown 预留，14 stopped cases、6 delegations、65 closed grants、11 closure audits。本任务当时只实施源码和 TEMP 验证，不能 claim 或付费；后续真实账务、closure12/C7/closure13见本卡顶部。
 
 ## 范围与契约
 
@@ -788,7 +791,7 @@ CODING_REQUEST_TIMEOUT_SOURCE_READY / source-integrated / source-and-TEMP-only�
 
 ## 状态
 
-TRANSFER_CASE_SEVEN_SOURCE_READY / source-integrated / source-and-TEMP-only；整体源码已独审，当前实际main preflight拒unknown，真实C7 NONE。真实 C7 claim、closure12、provider调用、费用和human体验均 NONE；旧 C6 unknown974882 保持，等待真实费用核对。源码准备可以继续，真实运行不越过门禁。
+TRANSFER_CASE_SEVEN_SOURCE_READY / source-integrated；原source/TEMP审批保持。真实C7已执行并停止为insufficient_evidence，closure13完成；无候选、game/build/browser通过或human验收，COS16/COS18仍partial/open。原main免费preflight因unknown拒绝、C6 unknown974882及当时C7 NONE的记录保留为历史。
 
 源码前置：COS56/57/59 的独立批准集成；结果用于 COS16，公开 CLI 和完整经典目标沿原验收标准。
 父任务：[spec #1](https://github.com/lrfluobida/Cosmos/issues/1)
@@ -1292,10 +1295,11 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 - 发布：[#75](https://github.com/lrfluobida/Cosmos/issues/75)，id5831421845，Root 已挂 native parent；74 个子任务。短计划已独立 PLAN_APPROVED；专属 `cos74_implementer`/`cos74_reviewer`，`cos74_merger` 唯一 merger。
 - 最终审批：`9a423b316f0b0e1acf12565d9761146b2021a50b` 实际13路径经 `cos74_reviewer` 规格→质量独审 APPROVED/FROZEN_TEMPLATE_OBSERVER_ISOLATION_SOURCE_READY，无 finding；合入 `ad1d7f217bb0df0df9661aa673343356db316d76`，main typecheck/build0、真实仓根 native/C6 固定输入代表2/2/0skip（TAP7067.421ms），批准树/原字节/UTF-8/LF/中文/diff核对通过。本卡 source/free-fixture scoped complete，GitHub 状态由 Root 同步。
-- 根因：COS69 将可信 observer 加入严格冻结为八文件的 `templates/2d`；当前真实 native/C6 输入读取均报 file set changed，实际 closure12 因此未执行。
+- [公开批准](https://github.com/lrfluobida/Cosmos/issues/75#issuecomment-6147529687)、#75 closed与父勾选已由Root核实；本卡source scoped完成。后续C7 insufficient_evidence与closure13见COS60，不提升本卡为实际游戏验收通过。
+- 修复前根因：COS69 将可信 observer 加入严格冻结为八文件的 `templates/2d`；当时真实 native/C6 输入读取均报 file set changed，closure12因此未执行。
 - 实施：原11611字节逐字节移至 `templates/rendering/render-frame-observer.ts`，仅改两个 installed-source 读取点及直读测试/安装夹具；capture 的 `_cosmos/render-frame-observer.ts`、选择签名与历史恢复语义保持。不得改旧声明/输入哈希、放宽目录检查或改历史数据。
 - 免费证据：真实仓根2RED；修后固定输入/C6 focused17/17、compiled upgrade3/3、typecheck/build0。采样/选择/恢复/捕获30pass/2fail；两个旧COS72版本后缀断言在ac8874b基线已由独立reviewer精确复现，不属于本次路径变化。命令与原始TAP见[短计划](../plans/2026-10-13-cos74-frozen-template.md)。
-- 边界：source/free fixture，无付费或新窗口；Root负责账务与closure12/C7，当前snapshot1943/unknown与reserved0/14stopped65closed11audits，closure12与C7未完成。原预算、PERFORMANCE未执行、参考未冻结及完整经典/实际12h/human未通过保持。
+- 边界：本卡source/free fixture，无付费或新窗口；集成时snapshot1943/unknown与reserved0/14stopped65closed11audits、closure12与C7未完成为历史。后续Root实际执行closure12/C7/closure13的结果见COS60；原预算、PERFORMANCE未执行、参考未冻结及完整经典/实际12h/human未通过保持。
 
 源码前置：COS69/70已审集成；结果支持COS60的原有准入。
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
