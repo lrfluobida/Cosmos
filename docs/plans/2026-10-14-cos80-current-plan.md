@@ -36,3 +36,9 @@ GREEN 使用同一命令，pattern 扩为 `runtime design prepares|COS40 reliabl
 v1 实际 factory packet 的两项映射与 registry 准确引用一致，inputFiles 保留两个 artifact version 为 v1 的计划；design 仍要求双读。真实 `prepareValidationRepair`→`resumeTaskDag` 的 v2 packet 继承同一映射与全部 inputs，由新 output destination 选 v2，原未改候选依赖/等价 steps/origin 断言通过。未选 v2 计划篡改仍阻止 v1 绑定与恢复。旧 C9 长 seed 与 17 分钟链未重跑。
 
 这些 fixture 使用真实 host、factory、registry 和 linked repair，模型会话及 build/browser 报告为合成；consumer 有本地 loopback HTTP，不调用外部 provider，不付费。它们证明输入契约和原守卫，不能证明实际模型阅读行为或游戏通过。
+
+## 独审修正
+
+独立 reviewer 对 `6d5c924e91ee63fe449c41385067f4fec769c96c` 指出共享 captureLayout 仍有 `Select each ... and read`，可被解释为逐项全读。补实际 v1 packet 负断言后得到有效 RED（1 fail/0skip，TAP 18972.7583ms）；仅将该句改为“需要读取某 capture 时”的条件式路径说明，design 显式双读保持。受影响 v1 GREEN 1/1、0skip，TAP 22462.3638ms。
+
+原始日志：`C:/Users/26557/AppData/Local/Temp/cos80-path-guidance-red.tap`、`cos80-path-guidance-green.tap`。命令同上，仅选择 `runtime design prepares` 与 `tests/transfer/runtime-host.test.ts`。修正后 typecheck/build/两测试 strict 再次退出0；证据为当次 tool 输出，无独立日志。reviewer 明确要求只跑受影响代表，未改 v2、映射、refs 和守卫，复用前述4项通过证据，不声称重跑全套。

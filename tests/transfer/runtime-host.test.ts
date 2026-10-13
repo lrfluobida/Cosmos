@@ -50,6 +50,7 @@ test('runtime design prepares four fixed outputs, complete review/journal and re
   assert.deepEqual(coding.inputs, f.tasks[2].task.inputs);
   for (const item of mapping) assert.ok(coding.inputFiles.some((ref: any) => ref.artifactId === item.plan.artifactId && ref.version === 'v1' && ref.files.includes(item.file)));
   assert.doesNotMatch(coding.rules.join('\n'), /read both|both pre-coding/i);
+  assert.doesNotMatch(coding.rules.join('\n'), /Select each exact artifactId\/version reference.*and read/);
   assert.match(packets.find(packet => packet.role === 'design').rules.join('\n'), /read both/i);
   assert.equal(outputs.length, 4); assert.deepEqual(f.result[0].artifacts, outputs);
   assert.ok(!('confirmedBy' in f.requirement)); assert.deepEqual((await f.controller.read()).run.humanDecisions, []);

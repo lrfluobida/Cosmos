@@ -26,3 +26,5 @@
 ## 作者验证
 
 两个实际 packet 代表有效 RED→GREEN；加原候选单计划依赖与 inactive-plan 篡改守卫共4/4、0skip。typecheck/build/受影响测试 strict 编译均退出0；原始 TAP 与命令见计划。真实 v2 linked repair 保留同一映射，随 host 替换的 output destination 选择 v2；两个 plan artifact version 均为 v1。合成 provider/build/browser，仅本地 loopback，无实际模型或新付费。
+
+独审发现共享路径说明仍可能要求逐项全读，已改条件式路径说明；新增 v1 断言有效 RED→1/1 GREEN，修后 typecheck/build/strict0。未改的 v2 和守卫通过证据复用；最终 exact 等待独立复核。
