@@ -2,6 +2,8 @@
 
 状态：PLAN_APPROVED（只读设计）/ SOURCE_NOT_READY。Issue [#81](https://github.com/lrfluobida/Cosmos/issues/81)，id5837669130；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS38/50/78。
 
+计划 exact `5324f831b2bb64799ffe10418ff5117781fcb15b` 已独立 PLAN_APPROVED；最小实现完成，等待 exact 源码审查。
+
 作者 `cos77_implementer` acting COS80；独立 reviewer `cos76_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos80-current-plan.md](../plans/2026-10-14-cos80-current-plan.md)。
 
 ## 问题与契约
@@ -20,3 +22,7 @@
 4. 原始 RED/GREEN、typecheck/build、UTF-8/中文检查及 exact diff 独审齐备。
 
 仅修正必读输入契约；不增加 JSON 工具、schema、预算、权限、自动重试或新案例，不手改游戏。SOURCE/TEMP 不能证明实际模型阅读行为或节费；C9 的 failed/insufficient_evidence 及费用历史保留，不能宣称本修改足以使其通过。
+
+## 作者验证
+
+两个实际 packet 代表有效 RED→GREEN；加原候选单计划依赖与 inactive-plan 篡改守卫共4/4、0skip。typecheck/build/受影响测试 strict 编译均退出0；原始 TAP 与命令见计划。真实 v2 linked repair 保留同一映射，随 host 替换的 output destination 选择 v2；两个 plan artifact version 均为 v1。合成 provider/build/browser，仅本地 loopback，无实际模型或新付费。
