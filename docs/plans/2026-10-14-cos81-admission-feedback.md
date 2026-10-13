@@ -41,7 +41,7 @@
 | 同两个代表 GREEN | 2/2，0 skip；退出0，3233.4939 ms | `cos81-admission-green.tap` |
 | 两个受影响文件完整回归 | 74/74，0 skip；退出0，7188.72 ms | `cos81-role-regression.tap` |
 | `npm run typecheck` / `npm run build` | 均退出0 | `cos81-typecheck.log` / `cos81-build.log` |
-| 受影响测试 strict 编译 | 退出0，无诊断 | `cos81-test-strict.log` |
+| 受影响测试 strict 编译 | 当次工具返回退出0，无 stdout/诊断；Tee 未生成日志文件 | 当次工具原输出，无独立日志 |
 
 strict 命令：`node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --allowImportingTsExtensions --allowJs --skipLibCheck --types node tests/roles/repair-policy.test.ts tests/roles/roles.test.ts`。
 
