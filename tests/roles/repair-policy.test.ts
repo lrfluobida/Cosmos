@@ -55,6 +55,24 @@ test('typed truncated output keeps a precise safe diagnosis and its charges with
   assert.equal(untyped.issues[0].checkId, 'execution');
 });
 
+test('typed admission rejection preserves its safe reason and charges without repair or service retry', () => {
+  const f = setup();
+  const feedback = buildRepairFeedback(f.task, new PiSessionError('admission_rejected', 'SECRET_RAW_ADMISSION_ERROR'), 'author_handoff', f.snapshot);
+  assert.equal(feedback.issues[0].checkId, 'admission_rejected');
+  assert.equal(feedback.issues[0].classification, 'insufficient_evidence');
+  assert.equal(feedback.issues[0].actual, 'Request admission was rejected (admission_rejected); this request was not sent to the provider.');
+  assert.equal(feedback.issues[0].summary, feedback.issues[0].actual);
+  assert.deepEqual(feedback.charges, f.feedback.charges);
+  assert.equal(assessRepair({ ...f.options, history: [feedback] }).action, 'collect_evidence');
+  assert.throws(() => createLinkedRepairTask({ ...f.options, history: [feedback], source: { task: f.task, role: 'coding', workspace: process.cwd() },
+    taskId: 'admission-repair', allocationMicroCny: 100, outputs: f.task.outputs, expectedArtifacts: f.task.artifacts }), /Repair dispatch blocked: insufficient_evidence/);
+  assert.doesNotMatch(JSON.stringify(feedback), /SECRET_RAW_ADMISSION_ERROR|declares unresolved/);
+  const untyped = buildRepairFeedback(f.task, { code: 'admission_rejected', message: 'SECRET_RAW_ADMISSION_ERROR' }, 'author_handoff', f.snapshot);
+  assert.equal(untyped.issues[0].checkId, 'author_handoff');
+  assert.equal(untyped.issues[0].actual, 'Author handoff declares unresolved assigned work or uncertainty.');
+  assert.doesNotMatch(JSON.stringify(untyped), /SECRET_RAW_ADMISSION_ERROR/);
+});
+
 for (const [classification, action] of [['code_defect', 'repair'], ['external_service', 'retry_service'], ['requirement_conflict', 'wait_user'], ['insufficient_evidence', 'collect_evidence']] as const) test(`routes ${classification} to ${action}`, () => {
   const f = setup();
   const feedback = buildRepairFeedback(f.task, new HostFailure([issue(classification)]), 'host_verification', f.snapshot);
