@@ -1307,8 +1307,8 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 ### COS-75 · 区分局部验证超时与 origin 生命周期
 
-- 发布：[#76](https://github.com/lrfluobida/Cosmos/issues/76)，id5832351218，Root 已确认原生挂父 #1，当前共 76 项子任务；open / source-integrated。专属 implementer `cos75_implementer`，独立 reviewer `cos75_reviewer`，本批唯一 merger `batch75_76_merger`。
-- 计划：`7b2eb4ced11cd56991d3f4e49125eca04f780f5e` 已 PLAN_APPROVED，[短计划与证据](../plans/2026-10-13-cos75-scope-timeout-origin.md)。exact `e6a3eac510bafe105a5dfc182b515156e7b356c0` 已独立规格→质量 APPROVED、无 findings，合入 `005b4ae9557f1e735a3d255f9ccb3e5950163ac6`；`VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`。主线 typecheck/build0、timeout 保留 listener 代表 1/1、0 skip（TAP12752.6716ms）；其他已审证据复用，公开状态由 Root 更新。
+- 发布：[#76](https://github.com/lrfluobida/Cosmos/issues/76)，id5832351218，Root 已确认原生挂父 #1，当前共 76 项子任务；本卡 source/free-fixture scoped complete / closed。[公开批准](https://github.com/lrfluobida/Cosmos/issues/76#issuecomment-6148880003)、closed及父勾选已由Root精确核实。专属 implementer `cos75_implementer`，独立 reviewer `cos75_reviewer`，本批唯一 merger `batch75_76_merger`。
+- 计划：`7b2eb4ced11cd56991d3f4e49125eca04f780f5e` 已 PLAN_APPROVED，[短计划与证据](../plans/2026-10-13-cos75-scope-timeout-origin.md)。exact `e6a3eac510bafe105a5dfc182b515156e7b356c0` 已独立规格→质量 APPROVED、无 findings，合入 `005b4ae9557f1e735a3d255f9ccb3e5950163ac6`；`VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`。主线 typecheck/build0、timeout 保留 listener 代表 1/1、0 skip（TAP12752.6716ms）；其他已审证据复用，公开批准与关闭已由Root核实。
 - 缺陷：私有 scope timer 超时经 origin.verify、runtime-host guard / requireCurrent catch 永久关闭共享 listener，即使固定回执未变、运行未取消。两条真实边界免费 RED 已复现；真实 C7 最初超时的慢步骤尚未确证，不能据此归因于并行。
 - 范围：私有 timer 产生可信 typed error，Promise.race 与最终 controller.read 后的取消检查都保留该身份。仅此错误且原 listener owner signal 仍活跃时不关闭，失败原样抛出；真正运行/owner 取消、receipt/binding 漂移、其他错误、初始化失败及最终清理仍关闭。每次操作完整 scope 验证，不 cache、不自动 retry、不延长 5 秒。
 - 免费验收：两 RED 转 GREEN；新增 source 11/11、compiled 代表 3/3、既有 source/receipt 守卫 2/2，均 0 skip；typecheck/build/显式测试类型检查退出 0。真实 controller/owner abort、timer 竞态、回执和绑定失效仍关；伪造同名同 message 普通 Error 不获得例外；被拒那一次真实作者 file 工具未改原字节，下一次完整验证后写入；未受影响证据复用。
@@ -1318,8 +1318,9 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 ### COS-76 · 准备第八迁移案例固定入口
 
-- 已发布 [#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117，Root 已原生挂父 #1；依赖 COS60/74/75。计划 `594286e` 已 PLAN_APPROVED，专属 `cos76_implementer`，本批唯一 merger `batch75_76_merger`；实现与独立源码审查尚在进行，open / SOURCE_NOT_READY。
-- 独立 C8 的固定准入、coding-only 运行和冷恢复沿用原 COS16 预算与 C5 passed 来源；本次仅登记，不合入实现、不重开 C7，actual C8/paid/human NONE。
+- 已发布 [#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117，Root 已原生挂父 #1；依赖 COS60/74/75。计划 `594286e63b94c6798bdf675e776ca067dfe20ff9` 已 PLAN_APPROVED；专属 `cos76_implementer` 的 exact `ff6b3015081403d2ba5b186c059eb1905ddb8083` 经独立 `cos76_reviewer` 规格→质量 APPROVED、无 findings，唯一 `batch75_76_merger` 合入 `f54d2bbe96055d5c10f82243889f7577422e127a`；`TRANSFER_CASE_EIGHT_SOURCE_READY` / source-integrated / open。
+- [完整任务卡与免费证据](cos76-transfer-case8.md)：固定C8独立身份、quote/manifest/receipts，原COS16逐角色实际settled余额，15stopped/7delegations/75closed/13audits及新增COS60/74/75双祖先门禁；只复用C5两个passed阶段与七capture，零planner/design/art SDK、当前coding与原一次repair和冷恢复。原C7不可重开，预算与时限保持。
+- 主线 typecheck/build0，轻量C8额度派生/当前任务与候选计划代表2/2、0skip（TAP5194.7154ms）；作者focused16/16、compiled1/1、runtime2/2及补充代表经独审复用。当前真实host.prepareValidationRepair+cold driver到repair factory，SDK/build synthetic、cold capture0、无browser/v2 promotion；实际C8/paid/human NONE。COS60元数据修正及全部实际失败事实保留，公开状态与实际准入由Root负责。
 
 稳定任务 ID：COS-76
 

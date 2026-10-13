@@ -2,13 +2,20 @@
 
 更新时间：2026-10-13
 
+## COS76 第八迁移案例固定入口已审集成
+
+- [#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117；`cos76_implementer` 的 exact `ff6b3015081403d2ba5b186c059eb1905ddb8083` 经独立 `cos76_reviewer` 实际规格→质量审查 APPROVED、无 findings，唯一 `batch75_76_merger` 合入 `f54d2bbe96055d5c10f82243889f7577422e127a`。`TRANSFER_CASE_EIGHT_SOURCE_READY` / source-integrated / open；父任务76子项。范围与已审证据见 [COS76任务卡](docs/specs/cos76-transfer-case8.md)。
+- 主线 typecheck/build0；C8 两组 settled 费用派生、当前任务/候选计划恢复及漂移拒绝代表2/2、0skip，TAP5194.7154ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos76-merge-integration.tap`。复用已独读 focused16/16、compiled1/1、runtime2/2与补充当前task/C7代表，不重建20分钟seed或重跑17分钟组合。
+- 当前组合实际经过 C8 host.prepareValidationRepair 与 cold driver 到 repair factory；SDK/build为synthetic，cold capture0，无browser/v2 promotion，旧C7完整promotion机制证据复用。本卡仅source/free fixture，actual C8/paid/human NONE；Root另在clean pushed main冻结后执行实际免费准入。原C7失败、revision2023/8932365µ/15stopped/7delegations/75closed/13audits/unknown与reserved0及预算保持。
+- `d500308f5a26b784968aab8005a9069baa6b848d` 的COS60 source-integrated修正与全部actual失败字段保留；COS75 [公开批准](https://github.com/lrfluobida/Cosmos/issues/76#issuecomment-6148880003)、closed及父勾选已由Root精确核实，本卡source/free-fixture scoped complete。
+
 ## COS75 局部 scope 超时与 origin 生命周期修复
 
-- [#76](https://github.com/lrfluobida/Cosmos/issues/76)，id5832351218；`cos75_implementer` 的 exact `e6a3eac510bafe105a5dfc182b515156e7b356c0` 经独立 `cos75_reviewer` 实际规格→质量审查 APPROVED，无 findings；唯一 `batch75_76_merger` 合入 `005b4ae9557f1e735a3d255f9ccb3e5950163ac6`。`VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY` / source-integrated，GitHub 状态仍 open，公开更新由 Root 负责。
+- [#76](https://github.com/lrfluobida/Cosmos/issues/76)，id5832351218；`cos75_implementer` 的 exact `e6a3eac510bafe105a5dfc182b515156e7b356c0` 经独立 `cos75_reviewer` 实际规格→质量审查 APPROVED，无 findings；唯一 `batch75_76_merger` 合入 `005b4ae9557f1e735a3d255f9ccb3e5950163ac6`。`VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`；[公开批准](https://github.com/lrfluobida/Cosmos/issues/76#issuecomment-6148880003)、closed及父勾选已由Root核实，本卡source/free-fixture scoped complete。
 - 主线 typecheck/build 均退出 0；局部 timeout 保留 listener 的并行与后续调用代表 1/1、0 skip，test 5149.0061ms / TAP 12752.6716ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos75-merge-integration.tap`。复用已审 source 11/11、compiled 3/3 与原守卫 2/2，不重复完整矩阵。
 - 两个免费实际边界回归先 0/2 RED（局部超时关闭 listener），最小修复后 2/2 GREEN。最终新增 source 11/11、compiled 代表 3/3、原 source/receipt 守卫 2/2，均 0 skip；typecheck/build/显式测试类型检查退出 0。可信分类、取消/漂移及真实底层 file 工具阻断证据见[短计划](docs/plans/2026-10-13-cos75-scope-timeout-origin.md)。目标标记为 `VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`；本批唯一 merger 为 `batch75_76_merger`。
 - 只改变局部 timeout 的 listener 清理条件；原调用仍失败，每次操作仍完整 scope 验证。无缓存、自动 retry、5 秒延长、预算/历史修改、付费或新窗口。已证实关闭缺陷，真实 C7 最初慢步骤未确证；下列 C7/closure13 最终事实保持，不声明后续游戏或完整经典通过。
-- Root 已发布 [COS76 #77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117；当前父任务共 76 子项。其依赖 COS60/74/75，计划已独审，源码仍 SOURCE_NOT_READY / open；本次未合入 COS76 实现，实际 C8/paid/human NONE。
+- COS75整合时 [COS76 #77](https://github.com/lrfluobida/Cosmos/issues/77) 的 SOURCE_NOT_READY / open 为历史；其依赖 COS60/74/75，当前已审集成见本页顶部。父任务共76子项，实际 C8/paid/human NONE。
 
 ## C7 实际验证停止与 closure13 完成
 

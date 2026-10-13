@@ -1,8 +1,8 @@
 # COS76 · 准备第八迁移案例固定入口
 
-状态：SOURCE_NOT_READY / PLAN_APPROVED / in-progress / open。稳定任务 ID：COS-76。
+状态：TRANSFER_CASE_EIGHT_SOURCE_READY / PLAN_APPROVED / source-integrated / open。稳定任务 ID：COS-76。
 
-Issue：[#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。专属 implementer `cos76_implementer`、独立 reviewer `cos76_reviewer`、唯一 merger `batch75_76_merger`。计划提交 `594286e63b94c6798bdf675e776ca067dfe20ff9` 已获独立 `PLAN_APPROVED`；源码仍待实际 diff 审查。实施计划：[2026-10-13-cos76-transfer-case8.md](../plans/2026-10-13-cos76-transfer-case8.md)。
+Issue：[#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。专属 implementer `cos76_implementer`、独立 reviewer `cos76_reviewer`、唯一 merger `batch75_76_merger`。计划提交 `594286e63b94c6798bdf675e776ca067dfe20ff9` 已获独立 `PLAN_APPROVED`；exact `ff6b3015081403d2ba5b186c059eb1905ddb8083` 已经实际 diff 规格→质量 APPROVED、无 findings，合入 `f54d2bbe96055d5c10f82243889f7577422e127a`。实施计划：[2026-10-13-cos76-transfer-case8.md](../plans/2026-10-13-cos76-transfer-case8.md)。
 
 ## 目标与范围
 
@@ -29,10 +29,12 @@ Root实际历史为15stopped / 7原COS16 delegations / 75closed grants / 13closu
 
 本卡仅source/free-fixture工作；实际C8、付费、human NONE。完整经典100%/95%、PERFORMANCE、真实完整12h、用户体验与COS16/COS18 partial/open状态不提升。作者不接触真实ledger/keys/sessions/游戏/参考安装。
 
-## 作者免费验证结果（待源码独审）
+## 作者免费验证结果（已独审复用）
 
 基础声明/费用/quote/source与旧C6/C7短回归16/16，另C8当前任务/候选计划/receipt漂移1/1；C7 bootstrap和stage代表通过。post-COS75 compiled C8/JS worker/修改compiled字节拒绝1/1；affected standalone tsc及项目typecheck exit0。
 
 一次重建SOURCE/TEMP15-case seed花1205572ms；真实准入/未知、closure、source、owner、grants负例与两个settled费用变体及oldquote拒绝38152.4706ms。新C8真实host.prepareValidationRepair和cold driver到当前repair factory代表990267.0133ms；runtime2/2、0skip。原coding一次fake SDK、build故障synthetic；第二repair申请拒绝、coldCapture0，无browser/v2promotion。全部旧历史prefix保持；复用已审C7完整promotion证据，不提升为实际游戏验收。
 
-原始TAP、唯一合成seed路径、环境EPERM及修复说明见计划。COS60 integrationStatus由Root按独审结论单字段规范回source-integrated；实际C7失败/费用/双SHA保持，源码不新增状态特例。SOURCE_NOT_READY直到最终exact SHA经专属reviewer规格→质量批准与sole merger集成。
+原始TAP、唯一合成seed路径、环境EPERM及修复说明见计划。COS60 integrationStatus由Root按独审结论单字段规范回source-integrated；实际C7失败/费用/双SHA保持，源码不新增状态特例。最终exact SHA已获专属reviewer规格→质量批准并由sole merger集成。
+
+主线集成 typecheck/build退出0；C8两组费用派生与当前task/候选plan恢复及漂移拒绝代表2/2、0skip，TAP5194.7154ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos76-merge-integration.tap`。已审重型与compiled证据复用，source/tests与批准SHA字节一致；实际C8/paid/human NONE。
