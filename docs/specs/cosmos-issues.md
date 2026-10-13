@@ -1290,7 +1290,8 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 ### COS-74 · 隔离渲染采样源码与冻结验证模板
 
-- 发布：[#75](https://github.com/lrfluobida/Cosmos/issues/75)，id5831421845，Root 已挂 native parent；74 个子任务。短计划已独立 PLAN_APPROVED，源码待独立 exact SHA 审查；专属 `cos74_implementer`/`cos74_reviewer`，Root 唯一 merger。
+- 发布：[#75](https://github.com/lrfluobida/Cosmos/issues/75)，id5831421845，Root 已挂 native parent；74 个子任务。短计划已独立 PLAN_APPROVED；专属 `cos74_implementer`/`cos74_reviewer`，`cos74_merger` 唯一 merger。
+- 最终审批：`9a423b316f0b0e1acf12565d9761146b2021a50b` 实际13路径经 `cos74_reviewer` 规格→质量独审 APPROVED/FROZEN_TEMPLATE_OBSERVER_ISOLATION_SOURCE_READY，无 finding；合入 `ad1d7f217bb0df0df9661aa673343356db316d76`，main typecheck/build0、真实仓根 native/C6 固定输入代表2/2/0skip（TAP7067.421ms），批准树/原字节/UTF-8/LF/中文/diff核对通过。本卡 source/free-fixture scoped complete，GitHub 状态由 Root 同步。
 - 根因：COS69 将可信 observer 加入严格冻结为八文件的 `templates/2d`；当前真实 native/C6 输入读取均报 file set changed，实际 closure12 因此未执行。
 - 实施：原11611字节逐字节移至 `templates/rendering/render-frame-observer.ts`，仅改两个 installed-source 读取点及直读测试/安装夹具；capture 的 `_cosmos/render-frame-observer.ts`、选择签名与历史恢复语义保持。不得改旧声明/输入哈希、放宽目录检查或改历史数据。
 - 免费证据：真实仓根2RED；修后固定输入/C6 focused17/17、compiled upgrade3/3、typecheck/build0。采样/选择/恢复/捕获30pass/2fail；两个旧COS72版本后缀断言在ac8874b基线已由独立reviewer精确复现，不属于本次路径变化。命令与原始TAP见[短计划](../plans/2026-10-13-cos74-frozen-template.md)。
