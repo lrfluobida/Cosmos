@@ -1,6 +1,6 @@
 # COS-79 在成功工具回合接通有界上下文压缩
 
-状态：SOURCE_NOT_READY / PLAN_PENDING / open。Issue [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
+状态：SOURCE_NOT_READY / EXPERIMENT_COMPLETE / DESIGN_REVIEW_PENDING / open。Issue [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
 
 `cos77_implementer` acting COS79 implementer，仍独立审查他人编写的 COS78；`cos76_implementer` 完成 COS78 后独立 review 本卡；唯一 merger `batch75_76_merger`。[实施计划](../plans/2026-10-14-cos79-coding-compaction.md)。
 
@@ -17,12 +17,18 @@ COS77 能按实际请求与当前余额收缩输出，但不能保证后续输�
 3. 原生摘要本次effective cap不超过8192、原cfgcap和有效SDK maxTokens；实际 inputBytes/hasImages 使用原峰值报价与COS77策略，每笔完整reserve/admit/settle。split-turn可能两笔，每笔均占原次数/余额。unknown、deadline、race、不足和非法摘要均保守停止。
 4. 摘要由原生 Pi 生成并按其成功路径追加记录；不得自写摘要、直接删除历史、吞错继续、伪造usage或改旧session。失败锁必须覆盖SDK内部catch；length保持incomplete，不保证8192能完成摘要。已结算费用不可因后来失败清零。
 5. 同一不变投影不得反复付费压缩；无输入/预算收益时不得形成压缩循环。原系统验收包、输入版本、工具loadout/权限及文件、handoff/capture验收保持；模型摘要不成为新的授权。
-6. 固定生产触发条件先由免费大thinking/toolResult原生序列测定，并再次独审。必须证明在251339-byte/1069753µ、普通65536尚可发送时提前触发；阈值只是触发条件，实际摘要费用仍需原子准入。
+6. 实验后提出固定规则，待独审：成功toolUse批次、非readonly、无失败/取消；投影至少131072 bytes，且原普通cap报价超过最新余额一半。相同投影跳过，成功压缩后至少增长32768 bytes才可再次触发；原普通cap保守需求未下降时本session不再自动压缩。阈值只决定触发，实际每笔费用仍需原子准入。
 
 ## 两阶段审批与验证
 
-初次PLAN_APPROVED只允许 SOURCE/TEMP 免费设计实验，不允许生产改动。实验使用真实Pi/session/controller和fake provider、network0；不注入compaction结果，核对实际摘要输入、cap、收费、压缩后输入及同attempt继续。候选128KiB字节阈值/余额压力未冻结为生产策略。
+初始计划exact `e0248f70d96257a7fcac15cb6c8d8e7ad3db2a69` 已获独立PLAN_APPROVED，仅允许免费设计实验。实验前合入COS78已审集成main953f0eb，生产改动仍为空。实验使用真实Pi/session/controller与fake provider、network0；不注入compaction结果，金额均为合成usage/账本，不是供应商收费。
 
-实验须覆盖单/双摘要、摘要不足、第二笔失败、unknown、取消/截止、race、length、摘要工具调用、重复/无收益，以及固定约束和工具/捕获不变。把明确规则与证据补入计划，经独立再审后实施；源码exact SHA再作规格与质量独审。
+主矩阵16/16与费用补充2/2通过，完整脚本/raw TAP/每mode JSON及初次fixture缺依赖修正见计划。251339 bytes/1069753µ、普通65536仍可reserve1026966时触发；两次native摘要5583/4175 bytes各cap8192，将普通输入降至134861/151929。即使分别按76702/73886µ全部预留结算，仍同attempt继续并由真实registry捕获fixture文件。单/双摘要失败、unknown、截止/取消、race、length、非法SDKcap、无收益和重复边界有通过证据。
+
+初审关于 `getSummarizationFailure` 只查error/length的观察不代表完整链遗漏工具检查：已实测native `generateSummaryWithUsage` / `generateTurnPrefixSummary` 后续toolCall检查在append前拒绝非法write，0entry/0工具执行。复用该守卫，不新增schema框架；失败latch仍阻止原生catch吞错后继续。
+
+有效投影来自SDK projection→convertToLlm→normalizeContext的UTF-8 JSON字节，仅作触发观察，Pi仍按发送时实际context估价。临时reserve使本机SDK请求384000，已验证独立8192上限必要且尊重较小SDK值4096。503390-byte摘要在剩1000000µ时原守卫0发送。固定包、active tools、task/attempt、输入版本及中文输出/registry保持；不保证摘要语义或实际C9完成。
+
+本次只申请明确设计独审，批准后才实施生产TDD；最终exact实现仍需规格与质量审查。
 
 实际C9尚未消费时，可加本卡 `VALIDATION_CODING_COMPACTION_SOURCE_READY` 及reviewed/merge双祖先前置；C9此前已审入口与费用来源保持，不另开case10。本卡无paid、真实会话/账本/key读取或实际游戏通过；COS16/COS18、完整classic、PERFORMANCE和human状态不提升。
