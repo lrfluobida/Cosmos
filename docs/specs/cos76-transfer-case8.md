@@ -28,3 +28,11 @@ Root实际历史为15stopped / 7原COS16 delegations / 75closed grants / 13closu
 4. 作者提交exact SHA/原证据/不足；独立reviewer先规格后质量审实际diff。sole merger集成已批准提交并接入共享任务文档/mapping。
 
 本卡仅source/free-fixture工作；实际C8、付费、human NONE。完整经典100%/95%、PERFORMANCE、真实完整12h、用户体验与COS16/COS18 partial/open状态不提升。作者不接触真实ledger/keys/sessions/游戏/参考安装。
+
+## 作者免费验证结果（待源码独审）
+
+基础声明/费用/quote/source与旧C6/C7短回归16/16，另C8当前任务/候选计划/receipt漂移1/1；C7 bootstrap和stage代表通过。post-COS75 compiled C8/JS worker/修改compiled字节拒绝1/1；affected standalone tsc及项目typecheck exit0。
+
+一次重建SOURCE/TEMP15-case seed花1205572ms；真实准入/未知、closure、source、owner、grants负例与两个settled费用变体及oldquote拒绝38152.4706ms。新C8真实host.prepareValidationRepair和cold driver到当前repair factory代表990267.0133ms；runtime2/2、0skip。原coding一次fake SDK、build故障synthetic；第二repair申请拒绝、coldCapture0，无browser/v2promotion。全部旧历史prefix保持；复用已审C7完整promotion证据，不提升为实际游戏验收。
+
+原始TAP、唯一合成seed路径、环境EPERM及修复说明见计划。COS60 integrationStatus由Root按独审结论单字段规范回source-integrated；实际C7失败/费用/双SHA保持，源码不新增状态特例。SOURCE_NOT_READY直到最终exact SHA经专属reviewer规格→质量批准与sole merger集成。

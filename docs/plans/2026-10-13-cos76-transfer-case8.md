@@ -33,30 +33,30 @@ Base: `4ba794efdd5647b9546ad3a5b90507505109a524`。Branch: `codex/cos76-transfer
 
 ### 1. 已结算历史派生与固定身份
 
-- [ ] 写 RED：两组不同实际 C6/C7 settled 金额得到正确 C8各角色余额；原18个 C7 author费用与其动态 D7声明吻合。unknown/reserved、缺费用证据、错 window/member/grant、重复费用、非正剩余额度拒绝。
-- [ ] 最小实现：先复用 C7 派生得到 C7原声明，再验证并扣除 stopped C7 的18个 coding author settled 请求，核对七个原 delegation / closed net / ¥10总额。C8历史列表含该动态 D7；当前 C8费用不进入历史派生。
-- [ ] 验证固定ID/parser、同原 inputs/limits/output caps、old quote因费用变化失效；不修改历史成本或声明。
+- [x] 写 RED：两组不同实际 C6/C7 settled 金额得到正确 C8各角色余额；原18个 C7 author费用与其动态 D7声明吻合。unknown/reserved、缺费用证据、错 window/member/grant、重复费用、非正剩余额度拒绝。
+- [x] 最小实现：先复用 C7 派生得到 C7原声明，再验证并扣除 stopped C7 的18个 coding author settled 请求，核对七个原 delegation / closed net / ¥10总额。C8历史列表含该动态 D7；当前 C8费用不进入历史派生。
+- [x] 验证固定ID/parser、同原 inputs/limits/output caps、old quote因费用变化失效；不修改历史成本或声明。
 
 ### 2. 固定准入与执行闭包
 
-- [ ] 写 RED：未 closure13、旧14-case prefix、错历史来源/manifest/grant、缺/错 COS60/74/75 marker或非祖先SHA、active/recovery owner均拒绝；快照bytes/mtime/filelist不变，host与SDK0。
-- [ ] 按上述最小接口绑定独立 C8 envelope，覆盖实际 quote/grants/manifest/source approvals/execution/accounting digest；claim前及执行/恢复再次验证，保持原 operator receipt与quote2原子claim链。
-- [ ] 复用严格 source/compiled闭包验证；默认 C7 seeds不变，C8捕获自己的固定run/driver/task及原provider/host/workers/依赖。实际源码或compiled字节、锁文件/依赖漂移拒绝。
+- [x] 写 RED：未 closure13、旧14-case prefix、错历史来源/manifest/grant、缺/错 COS60/74/75 marker或非祖先SHA、active/recovery owner均拒绝；快照bytes/mtime/filelist不变，host与SDK0。
+- [x] 按上述最小接口绑定独立 C8 envelope，覆盖实际 quote/grants/manifest/source approvals/execution/accounting digest；claim前及执行/恢复再次验证，保持原 operator receipt与quote2原子claim链。
+- [x] 复用严格 source/compiled闭包验证；默认 C7 seeds不变，C8捕获自己的固定run/driver/task及原provider/host/workers/依赖。实际源码或compiled字节、锁文件/依赖漂移拒绝。
 
 ### 3. 当前任务、一次修复与冷恢复
 
-- [ ] 用一个合法 SOURCE/TEMP 15-case seed，复用既有真实 C5 lineage 与原费用/closure builders；其历史需通过实际 validateSnapshot/receipt/manifest验证，不用虚假history callback替代。合成fixture身份不冒充实际历史。
-- [ ] 验证一次合法 claim只新增自己的 C8，历史 accounting prefix与七个C5 captures不变；当前coding task/plan/input/receipts重派生且同 window/deadline。
-- [ ] 跑一个当前组合代表：真实 production role factory/driver及假SDK/免费build/browser transports，coding缺陷→唯一linked repair→关闭/冷开 owner→原任务恢复；零 planner/design/art SDK，第二次repair拒绝。复用已审 C7 重型 capture/promotion证据，仅核对本次固定绑定变化。
-- [ ] compiled入口短代表验证固定身份/manifest、错误历史拒绝、源码字节漂移拒绝；不启动真实浏览器、不等长请求。
+- [x] 用一个合法 SOURCE/TEMP 15-case seed，复用既有真实 C5 lineage 与原费用/closure builders；其历史需通过实际 validateSnapshot/receipt/manifest验证，不用虚假history callback替代。合成fixture身份不冒充实际历史。
+- [x] 验证一次合法 claim只新增自己的 C8，历史 accounting prefix与七个C5 captures不变；当前coding task/plan/input/receipts重派生且同 window/deadline。
+- [x] 跑一个当前组合代表：真实 production role factory/driver及假SDK/免费build/browser transports，coding缺陷→唯一linked repair→关闭/冷开 owner→原任务恢复；零 planner/design/art SDK，第二次repair拒绝。复用已审 C7 重型 capture/promotion证据，仅核对本次固定绑定变化。
+- [x] compiled入口短代表验证固定身份/manifest、错误历史拒绝、源码字节漂移拒绝；不启动真实浏览器、不等长请求。
 
 ## 验证与交接
 
-- [ ] RED/GREEN: `node --experimental-strip-types --test tests/transfer/validation-case-eight.test.ts`。
-- [ ] 新组合及 compiled短代表：`node --experimental-strip-types --test tests/transfer/validation-case-eight-runtime.test.ts tests/transfer/validation-case-eight-compiled.test.ts`；记录原始TAP/时长与fixture边界。
-- [ ] 仅受影响 C6/C7短回归：固定声明/parser/task/receipt/source factory与旧默认值；不跑现有runtime长fixture。按实际测试名选择并记录命令。
-- [ ] 受影响 probes/tests standalone `tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck --types node --allowImportingTsExtensions`，及 `npm run typecheck`、`git diff --check`。
-- [ ] 编辑前 strict UTF-8检测，保持原 LF/无BOM与中文；编辑后回读。提交 exact SHA、通过证据和已知不足给 Root/专属 reviewer；修review findings后只重受影响检查。
+- [x] RED/GREEN: `node --experimental-strip-types --test tests/transfer/validation-case-eight.test.ts`。
+- [x] 新组合及 compiled短代表：`node --experimental-strip-types --test tests/transfer/validation-case-eight-runtime.test.ts tests/transfer/validation-case-eight-compiled.test.ts`；记录原始TAP/时长与fixture边界。
+- [x] 仅受影响 C6/C7短回归：固定声明/parser/task/receipt/source factory与旧默认值；不跑现有runtime长fixture。按实际测试名选择并记录命令。
+- [x] 受影响 probes/tests standalone `tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck --types node --allowImportingTsExtensions`，及 `npm run typecheck`、`git diff --check`。
+- [x] 编辑前 strict UTF-8检测，保持原 LF/无BOM与中文；编辑后回读。提交 exact SHA、通过证据和已知不足给 Root/专属 reviewer；修review findings后只重受影响检查。
 
 ## 独审执行边界
 
@@ -67,3 +67,15 @@ reviewer 与 Root 确认本次组合代表必须经过当前 C8 的真实 `host.
 原已审 SOURCE/TEMP seed 已丢失；Root批准仅用既有fixture重建一次，保持自己的合成历史并供拒绝/费用变体/当前运行复用。构造期间不改已加载source。seed保存后先提交，再将已审 COS75 main `4a33822d1c08bf5268f83c5deee53415b7942ef1` 合入本 feature branch，最终review以该base排除已审75diff；不改变seed旧历史回执或manifest。
 
 状态：PLAN_APPROVED，SOURCE_NOT_READY。实际 C8/new paid/human NONE；原 C7 failure与全部费用保持。COS75已审修复为实际运行前置条件。
+
+## 已完成免费证据（持续记录）
+
+- RED：新5项因C8 declaration/entry/source API缺失断言失败；最初缺installed SDK依赖的环境错误另列，不作为RED。工作区连接已安装依赖后获得上述有效RED。
+- 基础C8与旧C7声明/quote/source/tasks、C6 tasks：16/16、0skip，TAP9375.4493ms，`C:/Users/26557/AppData/Local/Temp/cos76-focused.tap`。新增C8当前task/candidate-plan/receipt与tools/plan/foreign-case/manifest漂移拒绝1/1，130.7797ms。C7 bootstrap代表2973.7781ms；stage代表首次因Windows复制junction报EPERM，改用工作区内既有依赖副本后独立重跑1/1、27968.5358ms；生产代码/断言未改。
+- 唯一新seed：`C:/Users/26557/AppData/Local/Temp/cosmos-transfer-entry-T81i3U`，setup1205572ms（20m5.572s）；实际原factory构造SOURCE/TEMP C5两个passed阶段与七capture、七案费用/原closure。15stopped/7delegations/75closed/13audits，SOURCE-only revision374/104 synthetic accounting requests；没有provider请求。`.cosmos/SOURCE-C8-fixture.json`绑定before15 snapshot字节；before15 snapshot/mapping备份留同目录。该合成ledger不是Root实际revision2023账本。
+- 源实现提交 `d3abb6c` 后，将已审main4a338合入feature得到 `d27a9734113305db37784555a4b56c5e361241c9`；seed旧历史字节保持，C8捕获新source。最终diff以4a338为base。
+- 合入75后的compiled代表1/1、0skip、14718.8297ms：自己的JS closure/JS worker/compiled task字节漂移拒绝、未知费用零写入；`cos76-compiled.tap`，TEMP root `cos76-compiled-YpP4u8`。affected standalone tsc及项目typecheck均exit0。
+- C8实际准入负例与费用变体1/1、0skip、38152.4706ms：unknown/未closure/旧历史/错误grant/manifest/owner/三项marker与COS75双祖先拒绝；bytes/mtime/filelist及host/SDK0；两个合成实际settled费用推导与oldquote拒绝。复用同seed，原历史snapshot复原，C8首次claim随后开始；raw `C:/Users/26557/AppData/Local/Temp/cos76-runtime.tap`。
+- 当前组合1/1、0skip、990267.0133ms（16m30.267s），同一runtime TAP共2/2、1033386.2116ms。真实C8 entry/claim/bootstrap/stage/current task+execution receipt/production role factory/registry/candidate/failure-snapshot/host.prepareValidationRepair均执行；故障build与SDK为synthetic，原coding仅一个fake请求。第二次host repair拒绝，真实owner关闭后cold driver claimed分支核对原window/deadline/repair origin，进入当前repair作者factory后受控结束，cold capture0、无repair请求、无browser或v2 promotion。原15cases/75closures/13audits/ledger entries prefix保持。旧C7已审完整capture/promotion证据复用。
+- 最终合成状态revision390，16cases、当前C8受控停止；这是免费绑定代表，不是新实际游戏结果。已通过原预算/单次repair/current SDK角色不变断言；当前代表耗时不证明真实45分钟内游戏完成。
+- 独审发现Root tracking曾把C7运行失败写成COS60.integrationStatus=`source-integrated-live-insufficient-evidence`；reviewer批准由Root/sole merger将该单字段规范回`source-integrated`，保留actualValidation/actualPaid/actualTransferResult/state=open/marker/双SHA所有值。实现未增加源码状态例外；此metadata单字段与现有fixture一致，不重复组合验证。
