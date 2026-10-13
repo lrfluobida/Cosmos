@@ -24,7 +24,7 @@ export function renderFrameBuildArguments(toolchain: string, enabled: boolean): 
 /** Selected source module is copied once to a host capture, never to author writable paths. */
 export async function createRenderFrameScope(input: { root: string; registry: ArtifactRegistry; template: ArtifactReference; resume: boolean }) {
   const { root, registry } = input, ref = registry.artifactRef('render-frame-observer', 'v1');
-  const source = fileURLToPath(new URL('../../templates/2d/render-frame-observer.ts', import.meta.url)), bytes = await regularFile(fileURLToPath(new URL('../../templates/2d/', import.meta.url)), 'render-frame-observer.ts');
+  const source = fileURLToPath(new URL('../../templates/rendering/render-frame-observer.ts', import.meta.url)), bytes = await regularFile(fileURLToPath(new URL('../../templates/rendering/', import.meta.url)), 'render-frame-observer.ts');
   new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   if (!input.resume) {
     const folder = await directory(root, 'host-render-frame-observer'); await writeFile(join(folder, 'render-frame-observer.ts'), bytes, { flag: 'wx' });
