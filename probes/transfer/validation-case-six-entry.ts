@@ -62,7 +62,8 @@ export function createFixedTransferValidationCaseSixEntry(sourcePins: Historical
   return createFixedTransferCodingOnlyEntry(sourcePins);
 }
 export interface FixedCodingOnlyEntryConfiguration {
-  declaration: ValidationDeclaration; manifestLocation: 'cos20-transfer-validation-7-reuse.json';
+  declaration: ValidationDeclaration; manifestLocation: 'cos20-transfer-validation-7-reuse.json' | 'cos20-transfer-validation-8-reuse.json';
+  closureAuditCount?: 13; sourceMarkers?: Readonly<Record<string, string>>;
   parseEntry: typeof parseTransferValidationCaseSixEntry; declarations: readonly ValidationDeclaration[];
   deriveDeclaration(state: RunSnapshot): ValidationDeclaration;
   createIdentityReader(options: { repository: string; reviewedPlatformSha: string }): ReturnType<typeof createTransferValidationCaseSixIdentityReader>;
@@ -75,8 +76,8 @@ const pins = freeze(structuredClone(sourcePins)), D = configuration?.declaration
 const declarations = configuration?.declarations ?? [D1, D2, D3, D4, D5], historyCount = declarations.length + 8,
   manifestLocation = configuration?.manifestLocation ?? 'cos20-transfer-validation-6-reuse.json',
   parseEntry = configuration?.parseEntry ?? parseTransferValidationCaseSixEntry;
-const markers: Record<string, string> = { ...SOURCE_MARKERS, ...(configuration ? { 'COS-57': 'TRANSFER_CASE_SIX_SOURCE_READY', 'COS-59': 'CODING_REQUEST_TIMEOUT_SOURCE_READY' } : {}) };
-const prerequisites = configuration ? [...PREREQUISITES, 'COS-57', 'COS-59'] : PREREQUISITES;
+const markers: Record<string, string> = { ...SOURCE_MARKERS, ...(configuration ? { 'COS-57': 'TRANSFER_CASE_SIX_SOURCE_READY', 'COS-59': 'CODING_REQUEST_TIMEOUT_SOURCE_READY', ...configuration.sourceMarkers } : {}) };
+const prerequisites = configuration ? [...new Set([...PREREQUISITES, 'COS-57', 'COS-59', ...Object.keys(configuration.sourceMarkers ?? {})])] : PREREQUISITES;
 
 async function absent(repository: string, path: string, label: string) {
   try { await lstat(await safePath(repository, path)); }
@@ -140,7 +141,7 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
     throw new Error('C5 requires 65 admitted settled requests and one zero-fee pre-admission cancellation.');
   }
   const oldIds = histories.flatMap(window => VALIDATION_ROLES.map(role => window!.quote.declaration.grants[role].taskId));
-  if (state.ledger.allocationClosures?.length !== historyCount * 5 || state.allocationClosureDecisions?.length !== (configuration ? 12 : 11)
+  if (state.ledger.allocationClosures?.length !== historyCount * 5 || state.allocationClosureDecisions?.length !== (configuration?.closureAuditCount ?? (configuration ? 12 : 11))
     || oldIds.some(taskId => !state.ledger.allocationClosures!.some(item => item.taskId === taskId))) throw new Error('The original 65 closed grants and eleven allocation audits are required.');
   const roots = new Map<string, string>(), historicalSources: string[] = [];
   for (const window of histories) {

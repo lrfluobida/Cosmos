@@ -9,6 +9,13 @@ import { deriveTransferValidationCaseSevenDeclaration } from './validation-case-
 import { createTransferCaseSevenAdmissionQuote, transferCaseSevenHistoricalAccountingHash, requireTransferCaseSevenAccountingSources } from './validation-case-seven-entry.ts';
 import { requireTransferCaseSevenSource, requireTransferCaseSevenTemplate, requireTransferCaseSevenToolchain } from './validation-case-seven-source.ts';
 import { prepareTransferValidationCaseSevenExecution } from './validation-case-seven-task.ts';
+interface FixedSettledCodingDriverConfiguration {
+  deriveDeclaration: typeof deriveTransferValidationCaseSevenDeclaration; manifestLocation: string;
+  admissionQuote: typeof createTransferCaseSevenAdmissionQuote; accountingHash: typeof transferCaseSevenHistoricalAccountingHash;
+  requireAccounting: typeof requireTransferCaseSevenAccountingSources; requireSource: typeof requireTransferCaseSevenSource;
+  prepareExecution: typeof prepareTransferValidationCaseSevenExecution;
+}
+export function createFixedSettledCodingDriver(configuration: FixedSettledCodingDriverConfiguration) {
 async function requireOwnSource(current: ValidationHostInput, signal: AbortSignal, requireTools = false) {
     const declaration = current.window.quote.declaration;
     signal.throwIfAborted();
@@ -16,37 +23,43 @@ async function requireOwnSource(current: ValidationHostInput, signal: AbortSigna
     if (refs.length !== 1 || !ref.location.startsWith(`${declaration.caseId}-admission-`) || !ref.location.endsWith('.json')) throw new Error('Current C7 needs its exact operator-covered admission envelope.');
     const bytes = await regularFile(current.ledgerRoot, ref.location), value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     if (validationHash(bytes) !== ref.version || !sameValue(value.quote, current.window.quote) || !sameValue(value.roleGrants, declaration.grants)
-      || !sameValue(createTransferCaseSevenAdmissionQuote(current.window.quote, value.manifestRef, value.sourceApprovals, value.execution, value.accountingSha256), value)
+      || !sameValue(configuration.admissionQuote(current.window.quote, value.manifestRef, value.sourceApprovals, value.execution, value.accountingSha256), value)
       || ref.location !== `${declaration.caseId}-admission-${value.admissionId}.json`
       || !current.window.operatorDecision.sourceRefs.some(item => sameValue(item, value.manifestRef))) throw new Error('Current C7 admission envelope, source or historical digest changed.');
     if (!value.execution) throw new Error('Current C7 actual execution source is missing.');
-    await requireTransferCaseSevenSource(value.execution, signal);
+    await configuration.requireSource(value.execution, signal);
     await requireTransferCaseSevenTemplate(value.execution, current.repository, signal);
     const installed = await lstat(join(current.root, 'toolchain')).then(() => true, error => { if (error.code === 'ENOENT') return false; throw error; });
     if (requireTools || installed) await requireTransferCaseSevenToolchain(value.execution, current.root, signal);
     const state = await current.controller.read();
-    if (!value.accountingSha256 || transferCaseSevenHistoricalAccountingHash(state, current.window.quote) !== value.accountingSha256
-      || !sameValue(deriveTransferValidationCaseSevenDeclaration(state), declaration)) throw new Error('Historical settled-cost prefix changed before C7 dispatch.');
-    await requireTransferCaseSevenAccountingSources(current.ledgerRoot, state, signal);
+    if (!value.accountingSha256 || configuration.accountingHash(state, current.window.quote) !== value.accountingSha256
+      || !sameValue(configuration.deriveDeclaration(state), declaration)) throw new Error('Historical settled-cost prefix changed before C7 dispatch.');
+    await configuration.requireAccounting(current.ledgerRoot, state, signal);
 }
 async function driver(input: ValidationHostInput) {
-  const declaration = deriveTransferValidationCaseSevenDeclaration(await input.controller.read());
+  const declaration = configuration.deriveDeclaration(await input.controller.read());
   if (!sameValue(input.window.quote.declaration, declaration) || input.window.caseId !== declaration.caseId
     || resolve(input.root) !== join(resolve(input.repository), '.cosmos/e2e', declaration.caseId)
     || resolve(input.ledgerRoot) !== join(resolve(input.repository), '.cosmos/validation-shared')) throw new Error('Current C7 driver requires its fixed declaration and roots.');
-  return createFixedTransferCodingOnlyDriver(declaration, 'cos20-transfer-validation-7-reuse.json', requireOwnSource,
-    prepareTransferValidationCaseSevenExecution, new URL(`../e2e/validation-worker${import.meta.url.endsWith('.js') ? '.js' : '.ts'}`, import.meta.url));
+  return createFixedTransferCodingOnlyDriver(declaration, configuration.manifestLocation, requireOwnSource,
+    configuration.prepareExecution, new URL(`../e2e/validation-worker${import.meta.url.endsWith('.js') ? '.js' : '.ts'}`, import.meta.url));
 }
-export async function bootstrapTransferValidationCaseSevenToolchain(input: ValidationHostInput, ...args: Parameters<ReturnType<typeof createFixedTransferCodingOnlyDriver>['bootstrapTransferValidationCaseSixToolchain']> extends [unknown, ...infer Rest] ? Rest : never) {
+async function bootstrapTransferValidationCaseSevenToolchain(input: ValidationHostInput, ...args: Parameters<ReturnType<typeof createFixedTransferCodingOnlyDriver>['bootstrapTransferValidationCaseSixToolchain']> extends [unknown, ...infer Rest] ? Rest : never) {
   const current = await driver(input); await requireOwnSource(input, input.signal);
   const result = await current.bootstrapTransferValidationCaseSixToolchain(input, ...args); await requireOwnSource(input, input.signal, true); return result;
 }
-export async function stageTransferValidationCaseSevenInput(...args: Parameters<ReturnType<typeof createFixedTransferCodingOnlyDriver>['stageTransferValidationCaseSixInput']>) {
+async function stageTransferValidationCaseSevenInput(...args: Parameters<ReturnType<typeof createFixedTransferCodingOnlyDriver>['stageTransferValidationCaseSixInput']>) {
   const current = await driver(args[0]); await requireOwnSource(args[0], args[0].signal, true); return current.stageTransferValidationCaseSixInput(...args);
 }
-export async function executeTransferValidationCaseSevenDag(...args: Parameters<ReturnType<typeof createFixedTransferCodingOnlyDriver>['executeTransferValidationCaseSixDag']>) {
+async function executeTransferValidationCaseSevenDag(...args: Parameters<ReturnType<typeof createFixedTransferCodingOnlyDriver>['executeTransferValidationCaseSixDag']>) {
   const current = await driver(args[0]); await requireOwnSource(args[0], args[0].signal, true); return current.executeTransferValidationCaseSixDag(...args);
 }
-export async function generateTransferValidationCaseSeven(...args: Parameters<ReturnType<typeof createFixedTransferCodingOnlyDriver>['generateTransferValidationCaseSix']>) {
+async function generateTransferValidationCaseSeven(...args: Parameters<ReturnType<typeof createFixedTransferCodingOnlyDriver>['generateTransferValidationCaseSix']>) {
   return (await driver(args[0])).generateTransferValidationCaseSix(...args);
 }
+return { bootstrapTransferValidationCaseSevenToolchain, stageTransferValidationCaseSevenInput, executeTransferValidationCaseSevenDag, generateTransferValidationCaseSeven };
+}
+export const { bootstrapTransferValidationCaseSevenToolchain, stageTransferValidationCaseSevenInput, executeTransferValidationCaseSevenDag, generateTransferValidationCaseSeven }
+  = createFixedSettledCodingDriver({ deriveDeclaration: deriveTransferValidationCaseSevenDeclaration, manifestLocation: 'cos20-transfer-validation-7-reuse.json',
+    admissionQuote: createTransferCaseSevenAdmissionQuote, accountingHash: transferCaseSevenHistoricalAccountingHash, requireAccounting: requireTransferCaseSevenAccountingSources,
+    requireSource: requireTransferCaseSevenSource, prepareExecution: prepareTransferValidationCaseSevenExecution });
