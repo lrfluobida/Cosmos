@@ -1,14 +1,16 @@
 # COS-79 在成功工具回合接通有界上下文压缩
 
-状态：SOURCE_NOT_READY / PRODUCTION_PLAN_APPROVED / IMPLEMENTATION_REVIEW_PENDING / open。Issue [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
+状态：VALIDATION_CODING_COMPACTION_SOURCE_READY / PRODUCTION_PLAN_APPROVED / source-integrated / open。Issue [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
 
 `cos77_implementer` acting COS79 implementer，仍独立审查他人编写的 COS78；`cos76_implementer` 完成 COS78 后独立 review 本卡；唯一 merger `batch75_76_merger`。[实施计划](../plans/2026-10-14-cos79-coding-compaction.md)。
+
+源码 exact `1d783c8f390b9927895d3a2c21c9b7f39a46d6e1` 已经 `cos76_implementer` 实际11paths规格→质量独审 APPROVED、无findings，唯一merger合入 `e06ce718fbec9d72f605d59680db6506aca804e3`。本卡source-integrated/open，公共发布由Root负责；actual C9/paid/human/game NONE。
 
 ## 问题与目标
 
 COS77 能按实际请求与当前余额收缩输出，但不能保证后续输入仍可承担。Root仅以历史C8元数据作反事实计算：新余额1233190µ下前14个cap仍65536，历史费用后剩745662µ；下一普通输入405672 bytes本身需811344µ。此计算不是新模型执行或C9预测，也不授权重开C8。
 
-原生压缩已接同一guarded stream/budget hooks，但目前automatic disabled，runtime没有提前调用方；预算失败后 session 已锁定，busy期间手动 compact 会被拒。SDK摘要通常请求较小cap，但wrapper覆盖成作者65536。单纯开flag不能解决费用触发、摘要本身准入、split-turn双请求及原生overflow retry边界。
+实施前原生压缩已接同一guarded stream/budget hooks，但automatic disabled，runtime没有提前调用方；预算失败后 session 已锁定，busy期间手动 compact 会被拒。当时SDK摘要通常请求较小cap，但wrapper覆盖成作者65536。该缺口由下述已审实现处理，费用触发、摘要本身准入、split-turn双请求及原生overflow retry边界分别验证。
 
 ## 固定契约
 
@@ -29,14 +31,16 @@ COS77 能按实际请求与当前余额收缩输出，但不能保证后续输�
 
 有效投影来自SDK projection→convertToLlm→normalizeContext的UTF-8 JSON字节，仅作触发观察，Pi仍按发送时实际context估价。临时reserve使本机SDK请求384000，已验证独立8192上限必要且尊重较小SDK值4096。503390-byte摘要在剩1000000µ时原守卫0发送。固定包、active tools、task/attempt、输入版本及中文输出/registry保持；不保证摘要语义或实际C9完成。
 
-实验后设计及no-op增量exact `b4918b89a525c0ffb97eb0b2b2c01e948b8cde96` 已获独立PRODUCTION_PLAN_APPROVED，随后实施生产TDD；最终exact实现仍需规格与质量审查。
+实验后设计及no-op增量exact `b4918b89a525c0ffb97eb0b2b2c01e948b8cde96` 已获独立PRODUCTION_PLAN_APPROVED，随后实施生产TDD；最终exact实现已完成规格与质量独审并集成，双SHA见本卡顶部。
 
 独审唯一no-op finding已在实验与设计补清：原生无可摘要历史时无start/end/summary/entry。最小代表先RED（原实验错误把169080记为成功基线），修后1/1，重复相同投影0新增请求、成功基线0/noBenefit=false，原普通准入仍执行。raw为同目录 `native-noop-red.tap`、`native-noop-green.tap` 和 `noop.json`；该阶段只跑新增代表，18项旧证据复用。
 
-## 作者生产实现证据（待exact独审）
+## 作者生产实现证据（已独审复用）
 
 仅Pi adapter、factory、C9 source marker三处生产改动；已完成有效RED→GREEN，真实原生主矩阵18/18、readonly/无收益/no-op补充3/3及角色scope/repair3/3。新增policy-await直接close先RED再最小失败锁修正，affected4/4；当前20个生产场景有通过证据。compiled核心7/7，close修正后仅affected2/2；C9 source marker真实免费准入1/1、compiled闭包代表1/1。受影响61项中旧400ms墙钟断言单独复跑通过，其余60证据复用。typecheck/build/strict通过，全部raw与未通过的环境/时序尝试均在计划保留。
 
 C9门禁沿用原sourceReady及reviewed/merge双祖先核验，免费测试只借用保存SOURCE history视图并恢复原snapshot，没有claim或新费用。为同seed串行，新增门禁代表归于原runtime测试文件，旧长链证据复用。生产失败锁保持最早原因，直接close/取消也不能让SDK吞错后返回成功。
 
 实际C9尚未消费，其入口已要求本卡 `VALIDATION_CODING_COMPACTION_SOURCE_READY` 及reviewed/merge双祖先；C9此前已审入口与费用来源保持，不另开case10。本卡无paid、真实会话/账本/key读取或实际游戏通过；COS16/COS18、完整classic、PERFORMANCE和human状态不提升。
+
+主线typecheck/build退出0；factory目标作者启用、policy-await关闭及native no-op三个代表3/3、0skip，TAP4820.8365ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos79-merge-integration.tap`。merger已读12份生产相关raw TAP，复用既有矩阵、compiled与C9免费marker/闭包证据；源码、测试与计划字节和批准提交一致。main干净推送后保持冻结，实际免费准入与C9执行由Root处理，merger不新增付费运行。

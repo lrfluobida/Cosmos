@@ -4,7 +4,7 @@
 
 专属 implementer `cos76_implementer` acting COS78；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos78-transfer-case9.md](../plans/2026-10-14-cos78-transfer-case9.md)。基线为已推main `352c129f121646f3b359a48d7f6cf6371db25e26`。
 
-计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 已独立 PLAN_APPROVED，无finding；实施前合入docs-only main9698a54，生产基线不变。源码 exact `870fa22a447178e04f2ee345e111328362cb385a` 经 `cos77_implementer` 实际17paths规格→质量独审 APPROVED、无findings，由唯一 `batch75_76_merger` 合入 `06045cafa532d7edcd5399ceb6381acc9af69a3f`。[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6152204919)、closed(completed)及父勾选已由Root精确读回，本卡source/free-fixture scoped complete。此入口准备不意味着后续完整请求轨迹可承担；实际C9仍待COS79压缩修复与免费实验及Root准入，新的上下文/compaction策略不属于本卡。
+计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 已独立 PLAN_APPROVED，无finding；实施前合入docs-only main9698a54，生产基线不变。源码 exact `870fa22a447178e04f2ee345e111328362cb385a` 经 `cos77_implementer` 实际17paths规格→质量独审 APPROVED、无findings，由唯一 `batch75_76_merger` 合入 `06045cafa532d7edcd5399ceb6381acc9af69a3f`。[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6152204919)、closed(completed)及父勾选已由Root精确读回，本卡source/free-fixture scoped complete。此入口准备不意味着后续完整请求轨迹可承担；COS79压缩源码现已独审集成，实际C9仍待Root免费准入；新的上下文/compaction策略由COS79承接。
 
 ## 目标与固定契约
 
