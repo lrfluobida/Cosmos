@@ -1,8 +1,8 @@
 # COS80 按当前候选选择完整计划
 
-状态：PLAN_APPROVED / TRANSFER_CURRENT_PLAN_READING_SOURCE_READY / source-integrated / open。Issue [#81](https://github.com/lrfluobida/Cosmos/issues/81)，id5837669130；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS38/50/78。
+状态：PLAN_APPROVED / TRANSFER_CURRENT_PLAN_READING_SOURCE_READY / source scoped complete / closed。Issue [#81](https://github.com/lrfluobida/Cosmos/issues/81)，id5837669130；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS38/50/78。
 
-计划 exact `5324f831b2bb64799ffe10418ff5117781fcb15b` 已独立 PLAN_APPROVED。最终实现已由 `cos76_implementer` 完成实际规格与质量独审，没有剩余finding；唯一merger已集成，待Root公开关闭。
+计划 exact `5324f831b2bb64799ffe10418ff5117781fcb15b` 已独立 PLAN_APPROVED。最终实现已由 `cos76_implementer` 完成实际规格与质量独审，没有剩余finding；唯一merger已集成。[COS80公开批准](https://github.com/lrfluobida/Cosmos/issues/81#issuecomment-6155519821)、closed(completed)及父勾选已由Root精确读回，本卡源码范围完成。
 
 | 记录 | 提交 |
 | --- | --- |

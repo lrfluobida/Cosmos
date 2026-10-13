@@ -1,8 +1,8 @@
 # COS-81 保留请求准入拒绝的安全失败诊断
 
-状态：ADMISSION_FAILURE_FEEDBACK_SOURCE_READY / source-integrated / open。Issue [#82](https://github.com/lrfluobida/Cosmos/issues/82)，id5837671050；依赖 COS11/77/79。
+状态：ADMISSION_FAILURE_FEEDBACK_SOURCE_READY / source scoped complete / closed。Issue [#82](https://github.com/lrfluobida/Cosmos/issues/82)，id5837671050；依赖 COS11/77/79。
 
-计划 exact `844305124605ff4d8c675a26f5ca8ced38c44b75` 已独审 PLAN_APPROVED。最终实现已由 `cos77_implementer` 完成实际规格与质量独审，没有finding；唯一merger已集成，待Root公开关闭。
+计划 exact `844305124605ff4d8c675a26f5ca8ced38c44b75` 已独审 PLAN_APPROVED。最终实现已由 `cos77_implementer` 完成实际规格与质量独审，没有finding；唯一merger已集成。[COS81公开批准](https://github.com/lrfluobida/Cosmos/issues/82#issuecomment-6155523557)、closed(completed)及父勾选已由Root精确读回，本卡源码范围完成。
 
 | 记录 | 提交 |
 | --- | --- |
