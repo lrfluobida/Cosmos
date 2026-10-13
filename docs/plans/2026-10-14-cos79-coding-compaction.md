@@ -4,7 +4,7 @@
 
 **目标：** validation coding 作者及同角色 repair 作者，在成功工具回合之后、下一次普通请求准入之前，能够在原费用、请求次数和时限内使用原生 Pi 压缩，并继续同一 attempt。
 
-**基线：** 初始计划 `e0248f70d96257a7fcac15cb6c8d8e7ad3db2a69` 基于9698a54，已获独立初阶段 PLAN_APPROVED。实验前合入 docs-only afbe987，再合入 COS78 已审集成 main `953f0eb5dfe4d1c162c3f9a8becf22a2fb3ed57f`；实验生产代码与该main一致。managed `cos74-frozen-template/Cosmos`，分支 `codex/cos79-coding-compaction`。COS79 [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。本次仅申请实验后设计独审，生产实现尚未开始。
+**基线：** 初始计划 `e0248f70d96257a7fcac15cb6c8d8e7ad3db2a69` 已获初阶段 PLAN_APPROVED；实验设计及no-op修正 `b4918b89a525c0ffb97eb0b2b2c01e948b8cde96` 已获独立 PRODUCTION_PLAN_APPROVED。实验与生产基于 COS78 已审集成953f0eb；随后合入docs-only adfcd64及 `2f4177deb6f2a1aa47c6e293ab6e64bf87006b91`，最终review以2f4177d为base。managed `cos74-frozen-template/Cosmos`，分支 `codex/cos79-coding-compaction`。COS79 [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。实现待最终exact独审，未启动实际C9。
 
 ## 已核实调用链与窄设计
 
@@ -24,9 +24,9 @@ SDK 0.99.2 的成功工具回合在 `agent.prepareNextTurnWithContext` 进入现
 - [x] 测定输入字节、余额压力、增长间隔和无收益处理；实际1/2笔摘要、quote/settlement、后续输入及同attempt继续见下节。
 - [x] 摘要不足、第二笔失败、unknown、deadline/stop、race、length、工具调用、相同投影与无收益、固定包/工具/中文文件/真实registry捕获边界通过。
 - [x] 保存原始TAP和每mode JSON，提出下述固定设计。
-- [ ] 独立reviewer审查实验后设计，批准后才进入生产TDD。
+- [x] 独立reviewer批准实验后设计及no-op增量，随后进入生产TDD。
 
-## 实验后固定设计（待独审）
+## 实验后固定设计（已独审）
 
 1. Pi新增可选可信 `requestCompaction` 异步判定能力，元数据只需普通cfgcap、投影inputBytes/hasImages；factory仅为当前validation coding author/同role repair接线，每次核对原case/window/deadline/max-cap和最新admissionAllowed。没有配置则不安装hook；模型、CLI不能选择阈值。
 2. hook只处理成功toolUse后的完整批次（至少一项toolResult且全部非isError）、非readonly格式回合、无失败/取消。用公开 `session.sessionManager.buildSessionProjection().messages → convertToLlm → normalizeContext`，按UTF-8 JSON字节计算投影，图片沿Pi原规则检测。实验的实际普通stream元数据与投影吻合；此值仅供触发，实际发送仍独立重算context与费用。
@@ -61,14 +61,29 @@ SDK 0.99.2 的成功工具回合在 `agent.prepareNextTurnWithContext` 进入现
 
 ## 第二阶段：经实验设计批准后才实施
 
-- [ ] 在 `src/providers/pi.ts` 最小接入可选可信配置、公开 hook、独立摘要cap及失败锁；同一不变投影不得重复摘要，使用本 session 的 SDK 投影/边界状态，不新增仓库或会话扫描框架。
-- [ ] 在 `src/roles/factory.ts` 仅为 validation coding author/同 coding-role repair 接线；reviewer/formal/planner/design/art、只读格式纠正及未配置路径保持。费用仍由既有 provider-budget/controller 处理，无新账本字段、额外额度、次数或时钟。
-- [ ] 将合成实验的必要边界纳入定向 tests，先 RED 再最小实现；运行新 source、compiled 代表、COS77 cap 与现有 compaction/request-window 受影响回归。复用已审重型迁移/repair证据，不重建20分钟seed或重跑17分钟链。
-- [ ] 若实际 C9 尚未消费，在 COS78 固定 C9 entry 的 sourceMarkers 增加 COS79 `VALIDATION_CODING_COMPACTION_SOURCE_READY`，沿用 reviewed/merge 双祖先门禁；覆盖缺标记/非祖先拒绝。不创建 case10、不放宽旧历史来源。
-- [ ] typecheck/build、affected strict 检查、UTF-8/LF/中文回读、git diff --check；提交 exact SHA 与证据交 reviewer 规格→质量独审，再由唯一 merger 集成。共享 PROGRESS/spec/issues/mapping 由 merger 记录。
+- [x] Pi接入可信判定、公开hook、摘要cap和失败锁；native成功事件才更新成功基线，no-op保持去重且恢复settings。前后需求用同一既有estimate函数报价，仅比较投影、不reserve或增加请求次数。
+- [x] factory仅接validation coding author/同role repair，非目标角色和无配置路径保持；预算仍由既有provider-budget/controller处理。
+- [x] 新原生生产测试先RED后GREEN，保留真实SDK/工具/controller/capture，移除实验中的策略实现；source、compiled及受影响回归证据见下。
+- [x] C9新增COS79准确marker，沿用reviewed/merge双祖先；未增加case10。旧C9 fixture仅补合成marker；新增门禁测试与原runtime测试放同文件，串行使用同一保存seed，单独选新增测试运行。
+- [x] typecheck/build、affected strict、UTF-8/LF/中文回读、diff check；准备提交exact SHA。
+- [ ] reviewer最终规格→质量审exact实现，sole merger集成并更新共享tracking。
+
+## 生产实现验证
+
+以下raw TAP均在 `C:/Users/26557/AppData/Local/Temp/`，不含真实会话或keys。测试只有fake provider/合成ledger，真实C9未消费。
+
+- `cos79-production-red.tap`：生产首条有效RED，旧入口在后续普通请求报admission_rejected；`cos79-production-first-green.tap`修后1/1。早先Python版本不支持write_text(newline=)导致fixture未生成，仅环境错误，单独留`cos79-fixture-write-error.tap`，不算RED。
+- `cos79-production-source.tap`：原生生产18/18、0skip、13308.401ms。真正生产hook负责触发/上限/失败锁，fixture只观察；较实验加强noBenefit：超过32KiB增长后仍不再次摘要。随后新增readonly及相关no-op/noBenefit代表3/3（4789.2277ms，tool原输出），新角色/正式/真实claimed repair策略接线3/3（4365.5ms，tool原输出）。
+- 自审补充：policy await期间直接close，SDK吞裸AbortError可能让pending prompt看似成功；`cos79-close-red.tap`有效RED。最小requireActive检查经Pi原fail锁记录cancelled且保持已有首因，close/cancel/length/no-op4/4、4495.8353ms，`cos79-close-green.tap`。当前生产测试20个场景有通过证据，未重复整矩阵。
+- `cos79-production-compiled.tap`：dist Pi/factory下核心、readonly、toolCall、第二笔预算、无收益、no-op、峰值结算7/7，7887.5564ms。close修正后重build，仅affected close/cancel compiled2/2，3663.054ms，`cos79-close-compiled.tap`。
+- `cos79-affected-regression.tap`：Pi原生、COS77实际cap、request-window、manual compaction、factory scope共61条，60/61；唯一旧400ms墙钟断言在并行build时614.5249ms失败。原源码/断言未改，单独复跑该项1/1（254.7914ms），`cos79-window-focused.tap`；其余60复用。新增factory阈值131071/131072与恰好半额/过半、unknown拒绝，以及非目标scope断言均通过。
+- C9新marker有效RED为未批准标记未被拒（`cos79-c9-marker-red.tap`）；缺模板依赖的前次环境错误另存`cos79-c9-marker-env-error.tap`。复用本机已有template node_modules junction，无安装/源码依赖变化。GREEN1/1、12821.0695ms，`cos79-c9-marker-green.tap`：未批准、reviewed非祖先、merge非祖先均拒，合法标记free preflight paidRequests0；每次snapshot bytes/mtime/filelist不变，finally恢复保存的SOURCE snapshot。只复用COS78归档history-1，没有新增费用、claim或重建旧历史。
+- 新门禁逻辑后来仅移至 `validation-case-nine-compaction.fixture.ts`，由原 `validation-case-nine-runtime.test.ts` 注册，以避免两个独立test文件并发改同seed。测试体不变，已过准入证据复用；当前定向命令 `node --experimental-strip-types --test --test-name-pattern='C9 requires reviewed compaction' tests/transfer/validation-case-nine-runtime.test.ts`。不执行旧4分钟runtime主体。
+- `cos79-c9-compiled.tap`：现有compiled C9代表1/1、11028.579ms（TAP15075.3526ms），验证新JS闭包、JS worker路径选择与修改compiled代码拒绝；worker transport合成，无实际build/browser。
+- `npm run typecheck`、`npm run build`及affected strict（`tests/roles/validation-output-limit.test.ts`、`tests/transfer/validation-case-nine-runtime.test.ts`，NodeNext/ES2022/allowJs/checkJs false/noEmit）退出0。仅三份生产文件；旧中文、LF/UTF-8及CNY账本实现保持。
 
 ## 修改范围与状态
 
-仓库当前只有本计划和任务卡delta。设计批准后预计仅改 `src/providers/pi.ts`、`src/roles/factory.ts`、`probes/transfer/validation-case-nine-entry.ts`，增加必要provider/role compaction tests及C9 marker负例；不改SDK依赖、ledger schema、自动重试、author capture或其他框架。尚未编写生产改动。
+生产改动仅 `src/providers/pi.ts`、`src/roles/factory.ts`、`probes/transfer/validation-case-nine-entry.ts`；其余为必要provider/role/marker测试和自有文档。不改SDK依赖、ledger schema、自动重试、author capture或其他框架。独立reviewer已只读预审稳定生产diff无finding，最终exact与全部测试证据仍须正式审查。
 
-Root反事实背景：用同一C8元数据和历史费用从1233190µ开始，前14请求cap仍65536，之后只剩745662µ；下一405672-byte普通请求的输入预留811344µ、加4096输出844112µ均不可承担。这不预测随机C9，也不证明native摘要一定不可承担或必能省钱。C8保持停止；C9未消费，paid暂不开始。当前 SOURCE_NOT_READY / EXPERIMENT_COMPLETE / DESIGN_REVIEW_PENDING，仅源码与免费fixture范围。
+Root反事实背景：用同一C8元数据和历史费用从1233190µ开始，前14请求cap仍65536，之后只剩745662µ；下一405672-byte普通请求的输入预留811344µ、加4096输出844112µ均不可承担。这不预测随机C9，也不证明native摘要一定不可承担或必能省钱。C8保持停止；C9未消费，paid暂不开始。当前 SOURCE_NOT_READY / PRODUCTION_PLAN_APPROVED / IMPLEMENTATION_REVIEW_PENDING，仅源码与免费fixture范围。

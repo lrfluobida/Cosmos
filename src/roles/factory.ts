@@ -180,6 +180,14 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
           else upper = middle - 1;
         }
         return lower;
+      }, requestCompaction: async request => {
+        input.controller.signal.throwIfAborted();
+        const current = await input.controller.validationAuthority(task.taskId, purpose);
+        input.controller.signal.throwIfAborted();
+        if (!current.admissionAllowed || current.caseId !== validation.caseId || current.windowId !== validation.windowId
+          || current.deadlineAt !== validation.deadlineAt || current.maxOutputTokens !== validation.maxOutputTokens
+          || request.maxOutputTokens !== current.maxOutputTokens) throw new Error('Compaction has no current original validation authority.');
+        return request.inputBytes >= 131072 && validationReservation(request) > current.remainingMicroCny / 2;
       } } : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: options.compactionKeepRecentTokens,

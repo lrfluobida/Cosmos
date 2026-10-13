@@ -12,7 +12,7 @@ export function createFixedTransferValidationCaseNineEntry(sourcePins: Historica
     parseEntry: parseTransferValidationCaseNineEntry, deriveDeclaration: deriveTransferValidationCaseNineDeclaration,
     history: transferCaseNineHistory, manifestLocation: 'cos20-transfer-validation-9-reuse.json', closureAuditCount: 14,
     sourceMarkers: { 'COS-60': 'TRANSFER_CASE_SEVEN_SOURCE_READY', 'COS-74': 'FROZEN_TEMPLATE_OBSERVER_ISOLATION_SOURCE_READY', 'COS-75': 'VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY',
-      'COS-76': 'TRANSFER_CASE_EIGHT_SOURCE_READY', 'COS-77': 'VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY' },
+      'COS-76': 'TRANSFER_CASE_EIGHT_SOURCE_READY', 'COS-77': 'VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY', 'COS-79': 'VALIDATION_CODING_COMPACTION_SOURCE_READY' },
     captureSource: captureTransferCaseNineSource, requireSource: requireTransferCaseNineSource, requireAccounting: requireTransferCaseNineAccountingSources,
     admissionQuote: createTransferCaseNineAdmissionQuote, accountingHash: transferCaseNineHistoricalAccountingHash,
     generate: async (...args) => (await import('./validation-case-nine-driver.ts')).generateTransferValidationCaseNine(...args),

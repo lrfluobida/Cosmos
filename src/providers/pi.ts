@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, realpath, stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
-import { InMemoryCredentialStore, lazyStream, type AssistantMessage, type AssistantMessageEvent, type ImageContent, type Usage } from '@earendil-works/pi-ai';
+import { InMemoryCredentialStore, lazyStream, normalizeContext, type AssistantMessage, type AssistantMessageEvent, type ImageContent, type Usage } from '@earendil-works/pi-ai';
 import {
-  createAgentSession, createExtensionRuntime, ModelRuntime, SessionManager, SettingsManager,
+  createAgentSession, createExtensionRuntime, convertToLlm, ModelRuntime, SessionManager, SettingsManager,
   type AgentSessionEvent, type ResourceLoader, type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 
@@ -50,6 +50,8 @@ export interface PiSessionOptions {
   requestWindow?: () => Promise<{ deadlineAt: number; cleanupMs: number }>;
   /** Trusted host policy using actual input bounds; may only reduce the configured output cap. */
   requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>) => Promise<number>;
+  /** Trusted host decision at a successful tool boundary; actual summary requests still need admission. */
+  requestCompaction?: (request: Readonly<Pick<PiRequest, 'maxOutputTokens' | 'inputBytes' | 'hasImages'>>) => Promise<boolean>;
   /** Host must cover the input size and image cost of each request, including compaction. */
   estimatedMaxCostMicroCny: number | ((request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) => number);
   budget: PiBudget;
@@ -109,6 +111,13 @@ export async function createPiSession(config: PiSessionOptions) {
   const records: PiResponse[] = [];
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
   const throwIfFailed = () => { if (failure) throw failure; };
+  function estimateRequest(request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) {
+    try {
+      const estimate = typeof config.estimatedMaxCostMicroCny === 'function' ? config.estimatedMaxCostMicroCny(request) : config.estimatedMaxCostMicroCny;
+      positive(estimate, 'estimatedMaxCostMicroCny');
+      return estimate;
+    } catch { throw fail('invalid_request', 'Request cost estimate must be a positive safe integer'); }
+  }
   async function effectiveRequestTimeout() {
     if (!config.requestWindow) return config.requestTimeoutMs;
     try {
@@ -126,13 +135,19 @@ export async function createPiSession(config: PiSessionOptions) {
     if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled');
     if (readonlyRequests !== undefined && ++readonlyRequests > 1) throw fail('request_limit', 'Format correction permits one provider request');
     if (++requests > config.maxRequests) throw fail('request_limit', 'Session request limit reached');
+    let maxOutputTokens = config.maxOutputTokens;
+    if (config.requestCompaction && session.isCompacting) {
+      try { positive(options?.maxTokens!, 'native compaction maxTokens'); }
+      catch { throw fail('invalid_request', 'Native compaction output limit must be a positive safe integer'); }
+      maxOutputTokens = Math.min(maxOutputTokens, 8192, options!.maxTokens!);
+    }
     const requestContext = config.requestOutputLimit ? structuredClone(context) : context;
     const inputJson = JSON.stringify(requestContext);
     const requireUnchangedInput = () => {
       if (config.requestOutputLimit && JSON.stringify(context) !== inputJson) throw fail('invalid_request', 'Request input changed during output limit admission; no provider request sent');
     };
     const request: Omit<PiRequest, 'estimatedMaxCostMicroCny'> = {
-      requestId: randomUUID(), modelId: DEEPSEEK_MODEL, maxOutputTokens: config.maxOutputTokens,
+      requestId: randomUUID(), modelId: DEEPSEEK_MODEL, maxOutputTokens,
       inputBytes: Buffer.byteLength(inputJson),
       hasImages: requestContext.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image')),
     };
@@ -144,11 +159,7 @@ export async function createPiSession(config: PiSessionOptions) {
       requireUnchangedInput();
       request.maxOutputTokens = limit;
     }
-    let estimate: number;
-    try {
-      estimate = typeof config.estimatedMaxCostMicroCny === 'function' ? config.estimatedMaxCostMicroCny(request) : config.estimatedMaxCostMicroCny;
-      positive(estimate, 'estimatedMaxCostMicroCny');
-    } catch { throw fail('invalid_request', 'Request cost estimate must be a positive safe integer'); }
+    const estimate = estimateRequest(request);
     await effectiveRequestTimeout();
     try {
       await config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: estimate });
@@ -263,6 +274,54 @@ export async function createPiSession(config: PiSessionOptions) {
   if (modelFallbackMessage || session.model?.id !== DEEPSEEK_MODEL) {
     session.dispose();
     throw new Error('SDK model fallback is forbidden');
+  }
+  if (config.requestCompaction) {
+    let lastProjection: string | undefined, lastCompactedBytes: number | undefined, noBenefit = false, compactions = 0;
+    session.subscribe(event => {
+      if (event.type !== 'compaction_end') return;
+      if (event.aborted || event.errorMessage) fail(event.aborted ? 'cancelled' : 'compaction_failed', event.errorMessage ?? 'Native compaction was cancelled');
+      else if (event.result) compactions++;
+    });
+    const projection = () => {
+      const context = normalizeContext({ messages: convertToLlm(manager.buildSessionProjection().messages) }), serialized = JSON.stringify(context);
+      return { serialized, maxOutputTokens: config.maxOutputTokens, inputBytes: Buffer.byteLength(serialized),
+        hasImages: context.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image')) };
+    };
+    const projectedCost = ({ serialized: _serialized, ...bounds }: ReturnType<typeof projection>) =>
+      estimateRequest({ ...bounds, requestId: randomUUID(), modelId: DEEPSEEK_MODEL });
+    const previous = session.agent.prepareNextTurnWithContext!;
+    session.agent.prepareNextTurnWithContext = async (turn, signal) => {
+      const requireActive = () => {
+        throwIfFailed();
+        if (closed || signal?.aborted) throw fail('cancelled', 'Session was cancelled at the compaction boundary');
+      };
+      requireActive();
+      if (readonlyRequests !== undefined || noBenefit || turn.message.stopReason !== 'toolUse'
+        || !turn.toolResults.length || turn.toolResults.some(result => result.isError)) return previous(turn, signal);
+      const before = projection();
+      if (before.serialized === lastProjection || lastCompactedBytes !== undefined && before.inputBytes < lastCompactedBytes + 32768) return previous(turn, signal);
+      let selected: boolean;
+      const { serialized: _serialized, ...bounds } = before;
+      try { selected = await config.requestCompaction!(Object.freeze(bounds)); }
+      catch { throw fail('admission_rejected', 'Native compaction authority rejected; no summary request sent'); }
+      requireActive();
+      if (typeof selected !== 'boolean') throw fail('invalid_request', 'Native compaction decision must be a boolean');
+      if (!selected) return previous(turn, signal);
+      lastProjection = before.serialized;
+      const beforeCost = projectedCost(before), completed = compactions, settings = session.settingsManager.getCompactionSettings(model);
+      session.settingsManager.applyOverrides({ compaction: { enabled: true, reserveTokens: model.contextWindow, keepRecentTokens: settings.keepRecentTokens } });
+      try {
+        const result = await previous(turn, signal);
+        requireActive();
+        // Native preparation may be a no-op: only a saved successful checkpoint updates the baseline.
+        if (compactions > completed) {
+          const after = projection(); lastCompactedBytes = after.inputBytes;
+          noBenefit = projectedCost(after) >= beforeCost;
+        }
+        return result;
+      } catch { throw failure ?? fail(signal?.aborted ? 'cancelled' : 'compaction_failed', 'Native compaction did not complete; session cannot continue'); }
+      finally { session.settingsManager.applyOverrides({ compaction: settings }); }
+    };
   }
   let busy = false;
   let operationDone: Promise<void> | undefined;
