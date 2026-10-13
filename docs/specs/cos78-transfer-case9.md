@@ -4,7 +4,15 @@
 
 专属 implementer `cos76_implementer` acting COS78；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos78-transfer-case9.md](../plans/2026-10-14-cos78-transfer-case9.md)。基线为已推main `352c129f121646f3b359a48d7f6cf6371db25e26`。
 
-计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 已独立 PLAN_APPROVED，无finding；实施前合入docs-only main9698a54，生产基线不变。源码 exact `870fa22a447178e04f2ee345e111328362cb385a` 经 `cos77_implementer` 实际17paths规格→质量独审 APPROVED、无findings，由唯一 `batch75_76_merger` 合入 `06045cafa532d7edcd5399ceb6381acc9af69a3f`。[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6152204919)、closed(completed)及父勾选已由Root精确读回，本卡source/free-fixture scoped complete。此入口准备不意味着后续完整请求轨迹可承担；COS79压缩源码现已独审集成，实际C9仍待Root免费准入；新的上下文/compaction策略由COS79承接。
+计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 已独立 PLAN_APPROVED，无finding；实施前合入docs-only main9698a54，生产基线不变。源码 exact `870fa22a447178e04f2ee345e111328362cb385a` 经 `cos77_implementer` 实际17paths规格→质量独审 APPROVED、无findings，由唯一 `batch75_76_merger` 合入 `06045cafa532d7edcd5399ceb6381acc9af69a3f`。[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6152204919)、closed(completed)及父勾选已由Root精确读回，本卡source/free-fixture scoped complete。此入口准备不意味着后续完整请求轨迹可承担；COS79压缩源码已独审集成；实际C9已停止，结果见下节，原案例不能重开。
+
+## 实际 C9 结果
+
+C9在冻结版本 `730cb4d` 上运行，于北京时间10月14日04:00开始，约29分36秒后结束，早于原定04:45截止时间。31次编码请求均已结算，新增 **¥0.960162**，共享累计 **¥10.380055**；五次原生压缩成功后继续了请求。
+
+最后的SDK请求准入错误被宿主归类为 failed / insufficient_evidence，不是作者主动声明未完成。仅留下6个文件、34,507字节，没有交接、捕获、候选、构建、浏览器验收、评审、修复或接受结果。[实际结果](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6155056831)已公开并精确读回，`cos77_implementer` 已独立核对。
+
+Root已完成closure15：17个案例全部停止，未知费用和预留为零，关闭本次五个角色额度。编码余 **¥0.273028**、预算组余 **¥6.628568**，费用保持，原C9不能重跑。[研究记录](../research/2026-10-14-transfer-c9-budget-stop.md)保留精确时间、账本字段，以及隔离构建和离线重放的边界。本卡source scoped complete保持，但实际C9未通过；下文准入基线和actual NONE为源码准备时历史。
 
 ## 目标与固定契约
 

@@ -1,10 +1,20 @@
 # COS-79 在成功工具回合接通有界上下文压缩
 
-状态：VALIDATION_CODING_COMPACTION_SOURCE_READY / PRODUCTION_PLAN_APPROVED / source-integrated / open。Issue [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
+状态：VALIDATION_CODING_COMPACTION_SOURCE_READY / PRODUCTION_PLAN_APPROVED / scoped complete / closed。Issue [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
 
 `cos77_implementer` acting COS79 implementer，仍独立审查他人编写的 COS78；`cos76_implementer` 完成 COS78 后独立 review 本卡；唯一 merger `batch75_76_merger`。[实施计划](../plans/2026-10-14-cos79-coding-compaction.md)。
 
-源码 exact `1d783c8f390b9927895d3a2c21c9b7f39a46d6e1` 已经 `cos76_implementer` 实际11paths规格→质量独审 APPROVED、无findings，唯一merger合入 `e06ce718fbec9d72f605d59680db6506aca804e3`。本卡source-integrated/open，公共发布由Root负责；actual C9/paid/human/game NONE。
+源码 exact `1d783c8f390b9927895d3a2c21c9b7f39a46d6e1` 已经 `cos76_implementer` 实际11paths规格→质量独审 APPROVED、无findings，唯一merger合入 `e06ce718fbec9d72f605d59680db6506aca804e3`。[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6154080327)、closed(completed)及父勾选已由Root精确读回，本卡source/free-fixture scoped complete；集成时actual C9/paid/human/game NONE为历史，后续结果见下节。
+
+## 实际 C9 使用与状态边界
+
+本卡[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6154080327)、scoped closed/completed及父勾选已由Root核实。C9使用冻结版本 `730cb4d` 时，五次真实原生压缩均成功，并在之后继续了请求。各次上下文字节变化见[研究记录](../research/2026-10-14-transfer-c9-budget-stop.md)。
+
+C9最终仍因SDK `Request output limit authority rejected; no provider request sent` 停止。宿主的 failed / insufficient_evidence 是归一化分类，不是作者主动声明。31次编码请求均已结算，新增 **¥0.960162**，共享累计 **¥10.380055**；输出6个文件、34,507字节，但没有交接、捕获、候选或后续构建、浏览器验收、评审、修复和接受结果。[C9实际结果](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6155056831)已公开。
+
+后续隔离构建的TS2352不是C9实际执行过可信构建的证据；Root离线重放的native no-op也不是已确认的实时事件。closure15完成后，17个案例均已停止，未知费用和预留为零；编码余 **¥0.273028**、预算组余 **¥6.628568**，已结算费用保持。
+
+本卡只完成源码范围，五次压缩不等于游戏通过。COS16/COS18仍partial/open，完整classic与human未通过。下文SOURCE/TEMP、actual NONE和冻结等待为实现阶段历史；本次记录没有新增付费或重开案例。
 
 ## 问题与目标
 
@@ -41,6 +51,6 @@ COS77 能按实际请求与当前余额收缩输出，但不能保证后续输�
 
 C9门禁沿用原sourceReady及reviewed/merge双祖先核验，免费测试只借用保存SOURCE history视图并恢复原snapshot，没有claim或新费用。为同seed串行，新增门禁代表归于原runtime测试文件，旧长链证据复用。生产失败锁保持最早原因，直接close/取消也不能让SDK吞错后返回成功。
 
-实际C9尚未消费，其入口已要求本卡 `VALIDATION_CODING_COMPACTION_SOURCE_READY` 及reviewed/merge双祖先；C9此前已审入口与费用来源保持，不另开case10。本卡无paid、真实会话/账本/key读取或实际游戏通过；COS16/COS18、完整classic、PERFORMANCE和human状态不提升。
+集成时C9尚未消费，其入口已要求本卡 `VALIDATION_CODING_COMPACTION_SOURCE_READY` 及reviewed/merge双祖先；C9此前已审入口与费用来源保持，不另开case10。本卡无paid、真实会话/账本/key读取或实际游戏通过；COS16/COS18、完整classic、PERFORMANCE和human状态不提升。
 
-主线typecheck/build退出0；factory目标作者启用、policy-await关闭及native no-op三个代表3/3、0skip，TAP4820.8365ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos79-merge-integration.tap`。merger已读12份生产相关raw TAP，复用既有矩阵、compiled与C9免费marker/闭包证据；源码、测试与计划字节和批准提交一致。main干净推送后保持冻结，实际免费准入与C9执行由Root处理，merger不新增付费运行。
+主线typecheck/build退出0；factory目标作者启用、policy-await关闭及native no-op三个代表3/3、0skip，TAP4820.8365ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos79-merge-integration.tap`。merger已读12份生产相关raw TAP，复用既有矩阵、compiled与C9免费marker/闭包证据；源码、测试与计划字节和批准提交一致。以上为源码集成时记录；C9与closure15现已结束、Root明确解除冻结，本次只同步事实，merger不新增付费运行。
