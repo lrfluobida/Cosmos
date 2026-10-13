@@ -12,6 +12,7 @@ import { fixedTransferValidationInput } from '../../probes/transfer/validation-i
 import { createTransferReusedConsumerHost } from '../../src/runtime/adapters/transfer/runtime-host.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { outputLimitFixture, syntheticContext } from '../providers/request-output-limit.fixture.mjs';
+import { compactionSourcePrerequisites } from './validation-case-nine-compaction.fixture.ts';
 
 test('C9 reuses before15 accounting, authenticates its new history and binds current task factory and cold input', async t => {
   await withTransferCaseNineFixture(t, async f => {
@@ -120,3 +121,6 @@ test('C9 reuses before15 accounting, authenticates its new history and binds cur
     } finally { await current?.closePreparation().catch(() => {}); await input.work.cancelAndDrain('SOURCE C9 callback cleanup'); await input.controller.close(); }
   });
 });
+
+// Keep users of the same preserved SOURCE seed serial within this test file.
+test('C9 requires reviewed compaction source and both ancestor SHAs before free admission', compactionSourcePrerequisites);

@@ -88,10 +88,24 @@ test('only validation coding authors receive the factory policy', async t => {
   const f = await fixture(t);
   for (const role of ['coding', 'reviewer', 'design', 'art'] as const) {
     await f.create(role); assert.equal(typeof f.configs.at(-1)!.requestOutputLimit, role === 'coding' ? 'function' : 'undefined', role);
+    assert.equal(typeof f.configs.at(-1)!.requestCompaction, role === 'coding' ? 'function' : 'undefined', role);
   }
   assert.equal(f.configs[0].maxOutputTokens, 65536);
   assert.equal(f.packets[0].role, 'cosmos'); assert.equal(f.planningConfig.requestOutputLimit, undefined);
+  assert.equal(f.planningConfig.requestCompaction, undefined);
   assert.equal(f.configs.find(config => JSON.parse(config.context).role === 'reviewer')!.maxOutputTokens, 16384);
+});
+
+test('validation compaction requires 128 KiB and strictly more than half the current balance', async t => {
+  const f = await fixture(t); await f.create(); const policy = f.configs[0].requestCompaction!;
+  const request = { maxOutputTokens: 65536, inputBytes: 131072, hasImages: false };
+  await f.remaining(validationReservation(request) * 2);
+  assert.equal(await policy(request), false);
+  await f.charge(8);
+  assert.equal(await policy({ ...request, inputBytes: 131071 }), false);
+  assert.equal(await policy(request), true);
+  await f.charge(8, true);
+  await assert.rejects(policy(request), /authority/i);
 });
 
 test('formal coding keeps its fixed cap and rejects insufficient budget without using the validation policy', async t => {
@@ -101,7 +115,7 @@ test('formal coding keeps its fixed cap and rejects insufficient budget without 
   try {
     task.budget = { ...task.budget, allocationMicroCny: 1233190, originalDeadlineAt: (await controller.read()).run.originalDeadlineAt };
     const factory = createRoleFactory({ maxOutputTokens: 65536, maxRequests: 1, requestTimeoutMs: 1000, estimatedMaxCostMicroCny: validationReservation,
-      env: { DEEPSEEK_API_KEY: 'offline-synthetic-key' }, sessionFactory: async config => { assert.equal(config.requestOutputLimit, undefined); return pi.create(config); } });
+      env: { DEEPSEEK_API_KEY: 'offline-synthetic-key' }, sessionFactory: async config => { assert.equal(config.requestOutputLimit, undefined); assert.equal(config.requestCompaction, undefined); return pi.create(config); } });
     await factory({ controller, requirement, role: 'coding', task, workspace: pi.workspace, stateDirectory: join(pi.root, 'formal-session') });
     await assert.rejects(pi.dispatch(), /admission rejected/i); assert.equal(pi.dispatches.length, 0);
     assert.equal((await controller.read()).requests.length, 0);
@@ -168,6 +182,6 @@ test('same-role claimed coding repair receives the policy using its own current 
     env: { DEEPSEEK_API_KEY: 'offline-synthetic-key' }, sessionFactory: async options => { config = options; return pi.create(options); } });
   await factory({ controller: f.controller, validation: f.binding, requirement: f.requirement, role: 'coding', task: repair.task,
     workspace: repair.workspace, stateDirectory: join(f.planning.sessionRoot, 'cap-repair') });
-  assert.equal(typeof config.requestOutputLimit, 'function'); await pi.dispatch();
+  assert.equal(typeof config.requestOutputLimit, 'function'); assert.equal(typeof config.requestCompaction, 'function'); await pi.dispatch();
   assert.equal(pi.dispatches[0].maxTokens, 65536); assert.equal((await f.controller.read()).ledger.entries.at(-1)!.taskId, claim.taskId);
 });
