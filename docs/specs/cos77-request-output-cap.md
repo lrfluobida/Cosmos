@@ -1,8 +1,10 @@
 # COS77 · 按实际请求与角色剩余额度收缩编码输出上限
 
-状态：SOURCE_NOT_READY / PLAN_APPROVED / open。稳定任务 ID：COS-77。Issue：[#78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
+状态：VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY / PLAN_APPROVED / source-integrated / open。稳定任务 ID：COS-77。Issue：[#78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
 
 专属 implementer `cos77_implementer`；独立 reviewer `cos76_implementer` acting COS77 reviewer；唯一 merger `batch75_76_merger`。实施计划：[2026-10-14-cos77-request-output-cap.md](../plans/2026-10-14-cos77-request-output-cap.md)。依赖已有 COS59 请求窗口、COS75 origin 守卫、COS76 当前任务与预算 authority。
+
+exact `9d0efc6b362193d81c7fd5c96829a85e399eb5a3` 已由独立 acting reviewer 实际规格→质量 APPROVED、无 findings，合入 `b22120bc5d1012da2ac9df5fc06491b10f6a03e7`。本卡source-ready，GitHub仍open，公共发布由Root负责。
 
 ## 问题与目标
 
@@ -27,4 +29,6 @@ Root提供的真实C8停止数据：14次API新增487528 micro-CNY，coding gran
 
 计划 exact `58a9905df01a137b5b1d6310cf167a4b1e878125` 已独立 `PLAN_APPROVED`。生产改动仅Pi adapter与role factory；异步策略与预留后窗口检查均绑定同一输入快照，原输入发生变化保守拒绝，已预留时报告not_sent。
 
-新增source覆盖共32条：Pi17条与factory/controller15条均有通过证据；新增native SDK工具路径的测试断言修正及按影响范围复用记录见计划。既有SDK/output cap/request window/timeouts回归39/39；compiled Pi/factory/repair代表6/6。源码build/typecheck及新增测试strict检查通过。所有provider为fake、network0，未读取真实会话或账本。SOURCE_NOT_READY等待最终exact implementation规格与质量独审；这些证据不代表原C8重开或游戏生成通过。
+新增source覆盖共32条：Pi17条与factory/controller15条均有通过证据；新增native SDK工具路径的测试断言修正及按影响范围复用记录见计划。merger已读原31/32与修后单条1/1保存TAP；既有SDK/output cap/request window/timeouts回归39/39（4775.3327ms）、compiled Pi/factory/repair代表6/6（5412.8045ms）为作者当次tool输出及计划记录，未另保存TAP，按原批准证据复用。源码build/typecheck及新增测试strict检查通过。所有provider为fake、network0，未读取真实会话或账本；这些证据不代表原C8重开或游戏生成通过。
+
+主线typecheck/build退出0，生产factory选择52730并由Pi发送同一预留cap、final-window输入漂移拒绝代表2/2、0skip，TAP4155.0311ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos77-merge-integration.tap`。输入漂移发生在admission之后时已有账本admission/events和not_sent receipt，再由cancel(provenNoCost)释放预留；零发送不表示账本零变动。主线保留原C8/closure14事实及原审批源码字节，不启动C9，无新增实际paid/window/human/game。

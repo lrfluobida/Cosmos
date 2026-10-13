@@ -1318,11 +1318,19 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 ### COS-76 · 准备第八迁移案例固定入口
 
-- 已发布 [#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117，Root 已原生挂父 #1；依赖 COS60/74/75。计划 `594286e63b94c6798bdf675e776ca067dfe20ff9` 已 PLAN_APPROVED；专属 `cos76_implementer` 的 exact `ff6b3015081403d2ba5b186c059eb1905ddb8083` 经独立 `cos76_reviewer` 规格→质量 APPROVED、无 findings，唯一 `batch75_76_merger` 合入 `f54d2bbe96055d5c10f82243889f7577422e127a`；`TRANSFER_CASE_EIGHT_SOURCE_READY` / source-integrated / open。
+- 已发布 [#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117，Root 已原生挂父 #1；依赖 COS60/74/75。计划 `594286e63b94c6798bdf675e776ca067dfe20ff9` 已 PLAN_APPROVED；专属 `cos76_implementer` 的 exact `ff6b3015081403d2ba5b186c059eb1905ddb8083` 经独立 `cos76_reviewer` 规格→质量 APPROVED、无 findings，唯一 `batch75_76_merger` 合入 `f54d2bbe96055d5c10f82243889f7577422e127a`；`TRANSFER_CASE_EIGHT_SOURCE_READY`；[公开批准](https://github.com/lrfluobida/Cosmos/issues/77#issuecomment-6149728758)、本卡scoped closed及父勾选已由Root核实。
 - [完整任务卡与免费证据](cos76-transfer-case8.md)：固定C8独立身份、quote/manifest/receipts，原COS16逐角色实际settled余额，15stopped/7delegations/75closed/13audits及新增COS60/74/75双祖先门禁；只复用C5两个passed阶段与七capture，零planner/design/art SDK、当前coding与原一次repair和冷恢复。原C7不可重开，预算与时限保持。
-- 主线 typecheck/build0，轻量C8额度派生/当前任务与候选计划代表2/2、0skip（TAP5194.7154ms）；作者focused16/16、compiled1/1、runtime2/2及补充代表经独审复用。当前真实host.prepareValidationRepair+cold driver到repair factory，SDK/build synthetic、cold capture0、无browser/v2 promotion；实际C8/paid/human NONE。COS60元数据修正及全部实际失败事实保留，公开状态与实际准入由Root负责。
+- 主线 typecheck/build0，轻量C8额度派生/当前任务与候选计划代表2/2、0skip（TAP5194.7154ms）；作者focused16/16、compiled1/1、runtime2/2及补充代表经独审复用。当前真实host.prepareValidationRepair+cold driver到repair factory，SDK/build synthetic、cold capture0、无browser/v2 promotion；集成时实际C8/paid/human NONE为历史。后续C8已停止为insufficient_evidence、14SDK/新增487528µ，无author.json或capture-started；closure14已至revision2086/16stopped/8delegations/80closed/14audits/unknown与reserved0/共享9419893µ，详见本卡链接。COS60元数据修正及全部实际失败事实保留。
 
 稳定任务 ID：COS-76
+
+### COS-77 · 按实际剩余额度收紧编码请求输出上限
+
+- 发布 [#78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885，原生挂父 #1；依赖COS59/75/76。专属 `cos77_implementer`、独立 acting reviewer `cos76_implementer`、唯一 merger `batch75_76_merger`。计划 `58a9905df01a137b5b1d6310cf167a4b1e878125` 已PLAN_APPROVED，exact `9d0efc6b362193d81c7fd5c96829a85e399eb5a3` 已实际规格→质量APPROVED、无findings，合入 `b22120bc5d1012da2ac9df5fc06491b10f6a03e7`；`VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY` / source-integrated / open，公开状态由Root负责。
+- [独立任务卡与证据](cos77-request-output-cap.md)：真实Pi inputBytes/hasImages后可信策略只对validation coding作者及同角色repair作者收紧输出cap；原cap可负担则保持，否则取min(4096,原cap)以上最大可负担值，当前authority与最终原子reserve均保持。报价/预留/发送同值；非目标角色、formal、原上限/预算/时限和length/incomplete不变，不重试或新增压缩。
+- 准入后输入漂移零发送，已有admission/events/not_sent receipt后cancel(provenNoCost)，不是账本零变动。主线typecheck/build0、生产factory有效cap与final-window漂移代表2/2、0skip（TAP4155.0311ms）；作者32新case（31原pass+修后1pass）、39旧回归及6compiled证据按来源复用。仅source/free fixture，actual paid/window/human/game NONE；C8已停止及closure14/全部实际费用保持，不启动C9。
+
+稳定任务 ID：COS-77
 
 ## 5. 任务与上下文包模板
 
