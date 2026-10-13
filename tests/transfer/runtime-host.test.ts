@@ -38,6 +38,20 @@ test('runtime design prepares four fixed outputs, complete review/journal and re
   const f = await pipeline(t);
   assert.deepEqual(f.result.map(item => item.state), ['passed', 'passed', 'failed']);
   const outputs = f.tasks[0].expectedArtifacts!;
+  const packets = f.configs.map(config => JSON.parse(config.context)), coding = packets.find(packet => packet.role === 'coding');
+  const prefix = 'Current candidate plan mapping: ';
+  const rule = coding.rules.find((item: string) => item.startsWith(prefix));
+  assert.ok(rule, 'Coding packet must identify its current plan without reading both plan files.');
+  const mapping = JSON.parse(rule.slice(prefix.length));
+  assert.deepEqual(mapping, ['v1', 'v2'].map(version => ({ outputDestination: f.registry.candidateRef(`${f.window.caseId}-game`, version).location,
+    plan: f.registry.artifactRef(`${f.window.caseId}-plan-${version}`, 'v1'), file: '_cosmos/transfer-plan.json' })));
+  const selected = mapping.filter((item: any) => item.outputDestination === coding.outputs[0].destination);
+  assert.equal(selected.length, 1); assert.equal(selected[0].plan.artifactId, `${f.window.caseId}-plan-v1`);
+  assert.deepEqual(coding.inputs, f.tasks[2].task.inputs);
+  for (const item of mapping) assert.ok(coding.inputFiles.some((ref: any) => ref.artifactId === item.plan.artifactId && ref.version === 'v1' && ref.files.includes(item.file)));
+  assert.doesNotMatch(coding.rules.join('\n'), /read both|both pre-coding/i);
+  assert.doesNotMatch(coding.rules.join('\n'), /Select each exact artifactId\/version reference.*and read/);
+  assert.match(packets.find(packet => packet.role === 'design').rules.join('\n'), /read both/i);
   assert.equal(outputs.length, 4); assert.deepEqual(f.result[0].artifacts, outputs);
   assert.ok(!('confirmedBy' in f.requirement)); assert.deepEqual((await f.controller.read()).run.humanDecisions, []);
   for (const ref of outputs) {

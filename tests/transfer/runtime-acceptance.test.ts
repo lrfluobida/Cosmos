@@ -155,6 +155,23 @@ test('COS40 trusted consumer freezes actual task IDs and promotes only complete 
 });
 test('COS40 reliable persistent mismatch uses only the original linked repair v2 with the same frozen map and origin', async t => {
   const f = await consumerPipeline(t, true); assert.equal(f.seriesCalls, 2); assert.equal(f.finished.acceptedCandidate.candidateRef.version, 'v2');
+  const packets = f.configs.map(config => JSON.parse(config.context)).filter(packet => packet.role === 'coding');
+  const author = packets.find(packet => packet.taskId === f.window.quote.declaration.grants.coding.taskId);
+  const repair = packets.find(packet => packet.taskId === f.window.quote.declaration.grants.repair.taskId);
+  assert.ok(author && repair, 'Both original and linked repair must reach the actual role factory.');
+  const prefix = 'Current candidate plan mapping: ', authorRule = author.rules.find((item: string) => item.startsWith(prefix));
+  assert.ok(authorRule, 'Original coding packet must carry the host candidate mapping.');
+  assert.equal(repair.rules.find((item: string) => item.startsWith(prefix)), authorRule);
+  const mapping = JSON.parse(authorRule.slice(prefix.length));
+  for (const [packet, version] of [[author, 'v1'], [repair, 'v2']] as const) {
+    const selected = mapping.filter((item: any) => item.outputDestination === packet.outputs[0].destination);
+    assert.equal(selected.length, 1); assert.equal(selected[0].plan.artifactId, `${f.window.caseId}-plan-${version}`);
+    assert.equal(selected[0].plan.version, 'v1');
+    for (const item of mapping) assert.ok(packet.inputFiles.some((ref: any) => ref.artifactId === item.plan.artifactId && ref.version === item.plan.version && ref.location === item.plan.location && ref.files.includes(item.file)));
+    assert.doesNotMatch(packet.rules.join('\n'), /read both|both pre-coding/i);
+  }
+  assert.deepEqual(repair.inputs, author.inputs);
+  assert.equal(repair.outputs[0].destination, f.finished.acceptedCandidate.candidateRef.location);
   const refs = ['v1', 'v2'].map(version => `registry/captures/${f.window.caseId}-plan-${version}/v1/files/_cosmos/transfer-plan.json`);
   const [first, second] = await Promise.all(refs.map(async path => JSON.parse(await readFile(join(f.root, path), 'utf8'))));
   assert.deepEqual(first.segments.map((item: any) => item.plan.steps), second.segments.map((item: any) => item.plan.steps));
