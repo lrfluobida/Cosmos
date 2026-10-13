@@ -18,15 +18,35 @@
 
 ## 执行步骤
 
-- [ ] 提交本计划与 `docs/specs/cos81-admission-feedback.md`，请独立 reviewer 短核；在批准前只写/执行 RED 测试。
-- [ ] mapper RED：typed admission 的稳定 checkId/安全文案、既有费用保留、无秘密哨兵泄露；普通 `{code}` 不取得 typed 诊断，仍不能派发 repair/service retry。
-- [ ] 真实调用链 RED：复用既有 `outputLimitFixture` fake provider，将真实 Pi session 接入 `createRoleFactory` 和 `executeTaskDag`；可信输出策略拒绝，检查持久 failure.json、returned/persisted task 失败原因，一次准入、零 provider/capture/verify/reviewer/依赖任务派发，保留合成历史费用与原截止。
-- [ ] 只加 mapper typed 分支；运行上述两个新代表 GREEN。
-- [ ] 运行两个受影响测试文件，复用已有 Pi 零发送/失败锁及旧重型验证证据；执行 typecheck/build 和受影响测试 strict 编译。仅对新失败追加检查。
-- [ ] 回读 UTF-8/LF/中文，检查最小 diff，记录原始 TAP/退出码/限制，提交 exact SHA 供独立规格→质量审查。
+- [x] 提交本计划与 `docs/specs/cos81-admission-feedback.md`，请独立 reviewer 短核；在批准前只写/执行 RED 测试。
+- [x] mapper RED：typed admission 的稳定 checkId/安全文案、既有费用保留、无秘密哨兵泄露；普通 `{code}` 不取得 typed 诊断，仍不能派发 repair/service retry。
+- [x] 真实调用链 RED：复用既有 `outputLimitFixture` fake provider，将真实 Pi session 接入 `createRoleFactory` 和 `executeTaskDag`；可信输出策略拒绝，检查持久 failure.json、returned/persisted task 失败原因，一次准入、零 provider/capture/verify/reviewer/依赖任务派发，保留合成历史费用与原截止。
+- [x] 只加 mapper typed 分支；运行上述两个新代表 GREEN。
+- [x] 运行两个受影响测试文件，复用已有 Pi 零发送/失败锁及旧重型验证证据；执行 typecheck/build 和受影响测试 strict 编译。仅对新失败追加检查。
+- [x] 回读 UTF-8/LF/中文，检查最小 diff，记录原始 TAP/退出码/限制，提交 exact SHA 供独立规格→质量审查。
 
 命令：`node --experimental-strip-types --test --test-name-pattern="admission" tests/roles/repair-policy.test.ts tests/roles/roles.test.ts`（先 RED 后 GREEN）；完整受影响文件去掉 name pattern。`npm run typecheck`、`npm run build`。
 
 ## 当前状态
 
-设计已由 `cos77_implementer` 只读 PLAN_APPROVED；本文件等待 exact 短核。SOURCE_NOT_READY，尚无实现通过或新增实际运行。
+设计及计划 exact `844305124605ff4d8c675a26f5ca8ced38c44b75` 已由 `cos77_implementer` PLAN_APPROVED。实现完成待独立 exact 审查，仍为 SOURCE_NOT_READY；批准 marker 统一为 `ADMISSION_FAILURE_FEEDBACK_SOURCE_READY`。尚无新增实际运行。
+
+## 免费实现证据
+
+日志目录：`C:/Users/26557/AppData/Local/Temp/`。
+
+| 验证 | 实际结果 | 原始日志 |
+| --- | --- | --- |
+| 两个新代表 RED | 0/2，均在 checkId 断言得到 author_handoff 而非 admission_rejected；退出1，3407.2577 ms | `cos81-admission-red.tap` |
+| 同两个代表 GREEN | 2/2，0 skip；退出0，3233.4939 ms | `cos81-admission-green.tap` |
+| 两个受影响文件完整回归 | 74/74，0 skip；退出0，7188.72 ms | `cos81-role-regression.tap` |
+| `npm run typecheck` / `npm run build` | 均退出0 | `cos81-typecheck.log` / `cos81-build.log` |
+| 受影响测试 strict 编译 | 退出0，无诊断 | `cos81-test-strict.log` |
+
+strict 命令：`node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --allowImportingTsExtensions --allowJs --skipLibCheck --types node tests/roles/repair-policy.test.ts tests/roles/roles.test.ts`。
+
+生产只有 mapper 两行新增和 checkId 分支。真实 Pi 在合成可信输出策略拒绝时产生 typed failure，经过原 factory/author/orchestrator 保存 failure.json；返回任务与持久任务失败说明相同。一次准入策略、provider dispatch0/network0；无 capture/verify/reviewer，依赖任务 waiting_user 且0 attempt。合成历史 planning40µ、requests、fees 和原截止逐项保持；mapper 另核同任务既有 settled 费用保持、plain code 不升级、linked repair 被原政策拒绝。完整回归同时保留真实作者 remaining/uncertainty、截断与其它失败路由。
+
+三个既有代码/测试文件均 UTF-8/LF/noBOM，非 ASCII 字符序列与基线相同；文档中文回读、diff --check 通过。首次非 ASCII 检查命令因正则转义写错而误报，改用 codePointAt > 127 比较后通过，未因该误报修改源文件。
+
+仅 source/free synthetic 证据。复用未变 Pi guard/失败锁及历史重型证据；未重跑 C9、未修生成游戏、未声称实际 provider 成功或节费。main 和真实历史不变。

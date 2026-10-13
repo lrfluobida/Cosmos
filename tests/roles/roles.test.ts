@@ -10,6 +10,7 @@ import { createRoleFactory } from '../../src/roles/factory.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { planTaskDag } from '../../src/roles/planner.ts';
 import { PiSessionError } from '../../src/providers/pi.ts';
+import { outputLimitFixture } from '../providers/request-output-limit.fixture.mjs';
 import { requirement as requirementFixture, task as taskFixture, artifact } from '../contracts/fixtures.ts';
 
 const requirement = requirementFixture() as RequirementContract;
@@ -307,6 +308,41 @@ test('ambiguous author message cannot reach capture', async t => {
     capture: async () => { assert.fail('Ambiguous response reached capture'); }, verify: async () => [],
   });
   assert.notEqual(results[0].state, 'passed'); assert.equal(seen.length, 1);
+});
+
+test('native Pi admission rejection reaches durable author feedback without downstream dispatch or new fees', async t => {
+  const f = await fixture(t), pi = await outputLimitFixture(t), roles: string[] = []; let admissions = 0;
+  await f.controller.reserve({ requestId: 'prior-planning', taskId: 'planning', provider: 'offline', pricingVersion: 'test', estimatedMaxCostMicroCny: 50 });
+  await f.controller.admit('prior-planning');
+  await f.controller.settle('prior-planning', 40, [artifact('receipt', 'v1', 'receipts/planning.json')]);
+  const before = await f.controller.read(), next = structuredClone(f.task);
+  next.taskId = 'art'; next.authorId = 'artist'; next.context.contextId = 'art-context'; next.ownership.writePaths = ['art'];
+  next.inputs.push(artifact()); next.dependsOn = [{ taskId: f.task.taskId, requiredState: 'passed', state: 'not_started' }];
+  const factory = createRoleFactory({ maxOutputTokens: 100, maxRequests: 1, requestTimeoutMs: 1000, estimatedMaxCostMicroCny: 200,
+    sessionFactory: async config => {
+      roles.push(JSON.parse(config.context).role);
+      return pi.create({ ...config, env: pi.config.env, requestOutputLimit: async () => { admissions++; throw new Error('SECRET_RAW_ADMISSION_ERROR'); } });
+    },
+  });
+  const [result, dependent] = await executeTaskDag({ controller: f.controller, requirement,
+    tasks: [{ task: f.task, role: 'coding', workspace: f.workspace }, { task: next, role: 'art', workspace: f.workspace }],
+    sessionRoot: join(f.root, 'sessions'), availableArtifacts: f.task.inputs, roleFactory: factory, now,
+    capture: async () => { assert.fail('Admission rejection reached capture'); }, verify: async () => { assert.fail('Admission rejection reached verification'); },
+  });
+  assert.equal(result.state, 'failed'); assert.equal(result.attempts.length, 1); assert.equal(result.attempts[0].outcome, 'failed');
+  assert.deepEqual(roles, ['coding']); assert.equal(admissions, 1); assert.equal(pi.dispatches.length, 0);
+  assert.equal(dependent.state, 'waiting_user'); assert.equal(dependent.attempts.length, 0);
+  const feedback = JSON.parse(await readFile(join(result.attempts[0].sessionRef, 'failure.json'), 'utf8'));
+  assert.equal(feedback.issues[0].checkId, 'admission_rejected');
+  assert.equal(feedback.issues[0].classification, 'insufficient_evidence');
+  assert.equal(result.attempts[0].failure?.summary, 'Request admission was rejected (admission_rejected); this request was not sent to the provider.');
+  assert.equal(result.attempts[0].failure?.actual, feedback.issues[0].actual);
+  assert.deepEqual(feedback.charges, []);
+  const after = await f.controller.read();
+  assert.deepEqual(after.tasks.find(task => task.taskId === result.taskId), result);
+  assert.deepEqual(after.ledger.entries, before.ledger.entries); assert.deepEqual(after.requests, before.requests);
+  assert.deepEqual(after.run.fees, before.run.fees); assert.equal(after.run.originalDeadlineAt, before.run.originalDeadlineAt);
+  assert.doesNotMatch(JSON.stringify({ feedback, result }), /SECRET_RAW_ADMISSION_ERROR|declares unresolved/);
 });
 
 test('truncated author response persists its precise diagnosis and settled fee without capture or retry', async t => {

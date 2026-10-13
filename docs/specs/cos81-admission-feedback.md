@@ -2,6 +2,8 @@
 
 状态：SOURCE_NOT_READY / in-progress / open。Issue [#82](https://github.com/lrfluobida/Cosmos/issues/82)，id5837671050；依赖 COS11/77/79。
 
+计划 exact `844305124605ff4d8c675a26f5ca8ced38c44b75` 已独审 PLAN_APPROVED；实现待 exact 审批。批准 marker：`ADMISSION_FAILURE_FEEDBACK_SOURCE_READY`。
+
 专属 implementer：`cos76_implementer` acting COS81；独立 reviewer：`cos77_implementer`；唯一 merger：`batch75_76_merger`。计划：[2026-10-14-cos81-admission-feedback.md](../plans/2026-10-14-cos81-admission-feedback.md)。
 
 ## 问题与契约
@@ -16,3 +18,5 @@ Root 提供的 C9 末条错误为 `Request output limit authority rejected; no p
 ## 免费验收
 
 mapper 与真实 executeTaskDag 作者失败路径先 RED 后 GREEN；复用现有 fake-provider Pi 夹具，证明当前被拒请求零发送、持久反馈和返回任务准确、下游不派发及合成历史费用不变。范围只有 source/free fixture，无 paid、新窗口或游戏验收结论。实现 exact SHA 需独立批准后才可集成。
+
+已完成两个有效 RED→2/2 GREEN；真实 Pi→factory→orchestrator 持久链通过。受影响两文件74/74、0skip；typecheck/build/测试strict均退出0。原始 TAP、命令、UTF-8/中文核对及证据边界见计划。生产只修改 feedback mapper，原 `insufficient_evidence`、费用记录和修复路由保持。
