@@ -2,11 +2,11 @@
 
 更新时间：2026-10-14
 
-## COS79 第一阶段免费设计实验计划已审
+## COS79 生产设计已审，源码TDD中
 
-- [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325，标题“在成功工具回合接通有界上下文压缩”；正文、原生父#1与未勾选checkbox均由Root精确读回，父任务共79子项。依赖COS77/78，专属 `cos77_implementer` acting COS79作者、独立 `cos76_implementer`、唯一merger `batch75_76_merger`；第一阶段计划 exact `e0248f70d96257a7fcac15cb6c8d8e7ad3db2a69` 经 `cos76_implementer` 独立 PLAN_APPROVED，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6152183815)已由Root精确读回，仅授权免费SOURCE/TEMP设计实验。`cos77_implementer` 执行、`cos76_implementer` 独审；生产设计与实现仍待实验固定trigger、去重、无收益处理及guard后另行独审，SOURCE_NOT_READY / open。
+- [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325，标题“在成功工具回合接通有界上下文压缩”；正文、原生父#1与未勾选checkbox均由Root精确读回，父任务共79子项。依赖COS77/78，专属 `cos77_implementer` acting COS79作者、独立 `cos76_implementer`、唯一merger `batch75_76_merger`；第一阶段计划 exact `e0248f70d96257a7fcac15cb6c8d8e7ad3db2a69` 经 `cos76_implementer` 独立 PLAN_APPROVED，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6152183815)已由Root精确读回，仅授权免费SOURCE/TEMP设计实验。`cos77_implementer` 执行、`cos76_implementer` 独审；生产设计 exact `b4918b89a525c0ffb97eb0b2b2c01e948b8cde96` 已获 `cos76_implementer` 独立 PRODUCTION_PLAN_APPROVED、无剩余finding，[公开生产设计批准](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6153006681)由Root精确读回。19个SOURCE/TEMP/fakeprovider/network0边界为16矩阵+2摘要费用边界+1native no-op有效RED→GREEN；`cos77_implementer` 已获准生产TDD，最终源码另审，SOURCE_NOT_READY / open。
 - 依据仅为反事实：以剩余coding1233190µ重放C8历史14次轨迹，前14次cap仍65536；第14次input251339 bytes、调用前余额1069753µ、预留1026966µ、settled324091µ，其后745662µ小于下一405672-byte输入本身811344µ，floor4096总844112µ。此计算不改变原C8费用，不预测C9，不产生新paid。
-- native compact经既有streamSimple hooks；native compaction_end成功事件在保存之后；非法摘要必须在保存之前拒绝。任务要求成功tool-turn受控threshold、summary cap（拟8192）与失败锁，先用免费实验固定触发参数，不直接开启auto overflow、不在busy时调用manual compact。当前真实ledger仍revision2086/共享9419893µ/unknown与reserved0，无C9。
+- native compact仍经过既有streamSimple hooks。固定设计：成功工具回合仅在inputBytes>=131072且原full-cap quote超过剩余额度一半时触发；一次成功后须再增长32768 bytes，同projection去重，成功后保守需求不降则停止本session auto。真实native no-op仅去重并恢复设置，不更新success或noBenefit；失败锁保持。native摘要cap先取8192/cfg/SDK正上限最小值，再经COS77与当前controller准入。native已有保存前toolCall拒绝，复用原规则、不加摘要schema；compaction_end成功事件在保存之后。不直接开启auto overflow、不在busy时调用manual compact。当前真实ledger仍revision2086/共享9419893µ/unknown与reserved0，无C9。
 
 ## COS78 固定迁移 C9 已审集成
 
