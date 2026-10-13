@@ -1,8 +1,18 @@
 # COS76 · 准备第八迁移案例固定入口
 
-状态：TRANSFER_CASE_EIGHT_SOURCE_READY / PLAN_APPROVED / source-integrated / open。稳定任务 ID：COS-76。
+状态：TRANSFER_CASE_EIGHT_SOURCE_READY / PLAN_APPROVED / scoped complete / closed。稳定任务 ID：COS-76。
 
 Issue：[#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。专属 implementer `cos76_implementer`、独立 reviewer `cos76_reviewer`、唯一 merger `batch75_76_merger`。计划提交 `594286e63b94c6798bdf675e776ca067dfe20ff9` 已获独立 `PLAN_APPROVED`；exact `ff6b3015081403d2ba5b186c059eb1905ddb8083` 已经实际 diff 规格→质量 APPROVED、无 findings，合入 `f54d2bbe96055d5c10f82243889f7577422e127a`。实施计划：[2026-10-13-cos76-transfer-case8.md](../plans/2026-10-13-cos76-transfer-case8.md)。
+
+## 实际 C8 结果与 closure14
+
+- [公开源码批准](https://github.com/lrfluobida/Cosmos/issues/77#issuecomment-6149728758)、本卡scoped closed及父勾选已由Root核实；源码审批与双SHA保持。
+- source `00eb698fa39a48ba8c4a0f1eaf33c522587d2281`，UTC2026-10-13 15:59:41.066→16:19:11.866（本地跨10月14日），1170800ms / 14SDK / 新增487528µ / 共享9419893µ。`cos16_acceptance_review` 独立核对任务结果为 insufficient_evidence。
+- 作者仅有 `index.html`（4921 UTF-8 bytes / 4586 chars），引用 `src/main.ts` 但无src；journal仅origin，无author.json、capture-started、candidate/build/browser/coding review/repair/accepted。原C5 design/art仍passed/approved。两次私有scope timeout之后多次读取与write成功，COS75的恢复属性获得实际证据。
+- 第15次调用预算拒绝且未发送。免费精确Pi重现input405672，固定output cap65536预留1335632µ > coding剩1233190µ；可负担cap52730预留1233184µ。后继 [COS77 #78](https://github.com/lrfluobida/Cosmos/issues/78) 已登记待实现，不重开本案例。
+- `reconciliation_review` 独审closure14脚本，Root已执行至revision2086 / 16stopped / 8delegations / 80closed / 14audits / unknown与reserved0 / 共享9419893µ。全部历史费用与失败案例保留；COS16/COS18 partial/open、完整classic/human仍未通过。
+
+以下为源码准入与免费验证记录；C8执行前15/7/75/13、revision2023和actual NONE均为当时历史，不代表当前运行状态。
 
 ## 目标与范围
 
