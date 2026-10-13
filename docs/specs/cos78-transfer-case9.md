@@ -1,8 +1,10 @@
 # COS-78 准备输出额度修复后的固定迁移 C9
 
-状态：SOURCE_NOT_READY / PLAN_PENDING / open。稳定任务ID：COS-78。Issue [#79](https://github.com/lrfluobida/Cosmos/issues/79)，id5834810242；原生父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
+状态：SOURCE_NOT_READY / PLAN_APPROVED / in-progress / open。稳定任务ID：COS-78。Issue [#79](https://github.com/lrfluobida/Cosmos/issues/79)，id5834810242；原生父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
 
 专属 implementer `cos76_implementer` acting COS78；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos78-transfer-case9.md](../plans/2026-10-14-cos78-transfer-case9.md)。基线为已推main `352c129f121646f3b359a48d7f6cf6371db25e26`。
+
+计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 已独立 PLAN_APPROVED，无finding；实施前合入docs-only main9698a54，生产基线不变。最终源码另审。此入口准备不意味着后续完整请求轨迹可承担；新的上下文/compaction策略不属于本卡。
 
 ## 目标与固定契约
 
@@ -24,3 +26,9 @@ C1–8实际settled与闭合原grants决定C9剩余容量；必须保持原COS16
 4. 作者提交exact SHA/测试原证据/不足，reviewer先规格后质量审实际diff；只有sole merger集成main并更新共享tracking。
 
 本卡仅source/free fixture；不读写真实ledger、keys、sessions或参考安装，不付费或启动实际C9。COS16/COS18 partial/open、完整classic、PERFORMANCE、实际完整12h与human未通过状态不提升。
+
+## 作者验证结果（待独审）
+
+新增5项API缺失RED已转GREEN，连C8受影响短回归11/11；compiled C9/JSworker/字节漂移代表1/1；affected tsc、typecheck/build退出0。唯一复用seed的准入/费用/current task+factory+Pi/同窗口冷读代表1/1、291100.9278ms，完整原证据在计划。合成405672-byte请求cap52730/预留1233184一致、fake provider1/network0。
+
+临时账务视图只追加合成C8成本与closure14，原snapshot逐字节恢复revision390，原proof固定文件字节/mtime保持，新结果单独归档；未重建旧20分钟seed或17分钟修复链。只证明固定C9来源、绑定与已审策略接线，完整后续轨迹是否可承担另由Root判断，不新增compaction。SOURCE_NOT_READY直到独立实际diff批准；目标 `TRANSFER_CASE_NINE_SOURCE_READY`。

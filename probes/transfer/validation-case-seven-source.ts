@@ -80,7 +80,7 @@ export async function captureTransferCaseSevenSource(signal = new AbortControlle
   return captureFixedTransferCodingSource('seven', signal);
 }
 /** Source-owned entry seeds only; the public runner accepts no closure selector. */
-export async function captureFixedTransferCodingSource(name: 'seven' | 'eight', signal = new AbortController().signal) {
+export async function captureFixedTransferCodingSource(name: 'seven' | 'eight' | 'nine', signal = new AbortController().signal) {
   const extension = import.meta.url.endsWith('.js') ? '.js' : '.ts', files = new Map<string, string>();
   async function visit(url: URL) {
     signal.throwIfAborted(); const path = await realpath(fileURLToPath(url)); if (files.has(path)) return;
@@ -104,7 +104,7 @@ export async function captureFixedTransferCodingSource(name: 'seven' | 'eight', 
 export async function requireTransferCaseSevenSource(source: Awaited<ReturnType<typeof captureTransferCaseSevenSource>>, signal = new AbortController().signal) {
   return requireFixedTransferCodingSource('seven', source, signal);
 }
-export async function requireFixedTransferCodingSource(name: 'seven' | 'eight', source: Awaited<ReturnType<typeof captureTransferCaseSevenSource>>, signal = new AbortController().signal) {
+export async function requireFixedTransferCodingSource(name: 'seven' | 'eight' | 'nine', source: Awaited<ReturnType<typeof captureTransferCaseSevenSource>>, signal = new AbortController().signal) {
   const { sha256, ...value } = source;
   if (sha256 !== validationHash(JSON.stringify(value))) throw new Error('C7 executed source receipt changed.');
   for (const file of [...source.files, source.platformLock, ...source.dependencies.flatMap(d => [{ path: d.entry, sha256: d.entrySha256 }, { path: d.path, sha256: d.sha256 }, ...d.files])]) {
