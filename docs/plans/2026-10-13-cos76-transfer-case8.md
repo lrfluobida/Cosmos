@@ -58,4 +58,12 @@ Base: `4ba794efdd5647b9546ad3a5b90507505109a524`。Branch: `codex/cos76-transfer
 - [ ] 受影响 probes/tests standalone `tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck --types node --allowImportingTsExtensions`，及 `npm run typecheck`、`git diff --check`。
 - [ ] 编辑前 strict UTF-8检测，保持原 LF/无BOM与中文；编辑后回读。提交 exact SHA、通过证据和已知不足给 Root/专属 reviewer；修review findings后只重受影响检查。
 
-状态：PLAN_PENDING，SOURCE_NOT_READY。实际 C8/new paid/human NONE；原 C7 failure与全部费用保持。COS75批准与合入是实际运行前置条件。
+## 独审执行边界
+
+`594286e63b94c6798bdf675e776ca067dfe20ff9` 的计划由 `cos76_reviewer` 独立 `PLAN_APPROVED`。Root 指定唯一 merger 为 `batch75_76_merger`。
+
+reviewer 与 Root 确认本次组合代表必须经过当前 C8 的真实 `host.prepareValidationRepair(source, feedback, recovery)`，包括当前 prepared binding、failure.json/failure-snapshot/signature、candidate/code provenance，再进入冷开的 `executeTransferValidationCaseEightDag(..., true)` claimed 分支，实际绑定 repair task 并到达作者 factory。可在修复 capture 前受控结束；旧 C7 已审 v2 capture/promotion机制复用，不重跑26分钟旧链。synthetic SDK/build和真实host/controller/journal事实分列。
+
+原已审 SOURCE/TEMP seed 已丢失；Root批准仅用既有fixture重建一次，保持自己的合成历史并供拒绝/费用变体/当前运行复用。构造期间不改已加载source。seed保存后先提交，再将已审 COS75 main `4a33822d1c08bf5268f83c5deee53415b7942ef1` 合入本 feature branch，最终review以该base排除已审75diff；不改变seed旧历史回执或manifest。
+
+状态：PLAN_APPROVED，SOURCE_NOT_READY。实际 C8/new paid/human NONE；原 C7 failure与全部费用保持。COS75已审修复为实际运行前置条件。

@@ -1,8 +1,8 @@
 # COS76 · 准备第八迁移案例固定入口
 
-状态：SOURCE_NOT_READY / PLAN_PENDING / open。稳定任务 ID：COS-76。
+状态：SOURCE_NOT_READY / PLAN_APPROVED / in-progress / open。稳定任务 ID：COS-76。
 
-Issue：[#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。专属 implementer `cos76_implementer`；独立 reviewer 与唯一 merger 由 Root 分配。实施计划：[2026-10-13-cos76-transfer-case8.md](../plans/2026-10-13-cos76-transfer-case8.md)。
+Issue：[#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。专属 implementer `cos76_implementer`、独立 reviewer `cos76_reviewer`、唯一 merger `batch75_76_merger`。计划提交 `594286e63b94c6798bdf675e776ca067dfe20ff9` 已获独立 `PLAN_APPROVED`；源码仍待实际 diff 审查。实施计划：[2026-10-13-cos76-transfer-case8.md](../plans/2026-10-13-cos76-transfer-case8.md)。
 
 ## 目标与范围
 
@@ -18,7 +18,7 @@ Root实际历史为15stopped / 7原COS16 delegations / 75closed grants / 13closu
 
 要求当前clean pushed exact main、实际source/compiled执行闭包、原实际历史manifest与费用prefix、15/7/75/13及全部owner idle。unknown/reserved、未closure、错source/grant/deps/manifest或非祖先审批均在任何发布/claim/SDK前拒绝。
 
-复用COS56/57/59既有守卫，并增加COS60 `TRANSFER_CASE_SEVEN_SOURCE_READY`、COS74 `FROZEN_TEMPLATE_OBSERVER_ISOLATION_SOURCE_READY` 和COS75 `VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY` 的独审状态及reviewed/merge祖先校验。COS75 exact SHA待Root提供；未批准/未合入不得实际运行。
+复用COS56/57/59既有守卫，并增加COS60 `TRANSFER_CASE_SEVEN_SOURCE_READY`、COS74 `FROZEN_TEMPLATE_OBSERVER_ISOLATION_SOURCE_READY` 和COS75 `VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY` 的独审状态及reviewed/merge祖先校验。Root提供COS75 approved `e6a3eac510bafe105a5dfc182b515156e7b356c0` / merge `005b4ae9557f1e735a3d255f9ccb3e5950163ac6`；实际准入重新核对当前main的审批映射和祖先，不以本卡文字代替门禁。
 
 ## 免费验收与交付
 
