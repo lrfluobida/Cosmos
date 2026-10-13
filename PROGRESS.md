@@ -2,6 +2,12 @@
 
 更新时间：2026-10-13
 
+## COS75 局部 scope 超时与 origin 生命周期修复
+
+- [#76](https://github.com/lrfluobida/Cosmos/issues/76)，id5832351218，Root 已原生挂父 #1；75 项子任务。专属 `cos75_implementer` / 独立 `cos75_reviewer`，短计划 `7b2eb4c` 已获 PLAN_APPROVED；源码待 exact SHA 规格与质量审查，open / SOURCE_NOT_READY。
+- 两个免费实际边界回归先 0/2 RED（局部超时关闭 listener），最小修复后 2/2 GREEN。最终新增 source 11/11、compiled 代表 3/3、原 source/receipt 守卫 2/2，均 0 skip；typecheck/build/显式测试类型检查退出 0。可信分类、取消/漂移及真实底层 file 工具阻断证据见[短计划](docs/plans/2026-10-13-cos75-scope-timeout-origin.md)。目标标记为 `VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`；本批唯一 merger 为 `batch75_76_merger`。
+- 只改变局部 timeout 的 listener 清理条件；原调用仍失败，每次操作仍完整 scope 验证。无缓存、自动 retry、5 秒延长、预算/历史修改、付费或新窗口。已证实关闭缺陷，真实 C7 最初慢步骤未确证；下列 C7/closure13 最终事实保持，不声明后续游戏或完整经典通过。
+
 ## C7 实际验证停止与 closure13 完成
 
 - C6 最后一笔207689 micro-CNY结清后，closure12 已执行至 revision1944/70 closed/12 audits。C7 固定源码 `cd6d9a997e85099d4effbda5599d499705fc1dd9`，UTC 2026-10-13 14:14:09.410 至14:29:55.393，elapsed945983ms；18次SDK，新增58415 micro-CNY，共享已结算8932365 micro-CNY。

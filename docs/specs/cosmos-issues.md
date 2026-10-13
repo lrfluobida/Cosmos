@@ -1305,6 +1305,17 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
 稳定任务 ID：COS-74
 
+### COS-75 · 区分局部验证超时与 origin 生命周期
+
+- 发布：[#76](https://github.com/lrfluobida/Cosmos/issues/76)，id5832351218，Root 已确认原生挂父 #1，75 项子任务；open / SOURCE_NOT_READY。专属 implementer `cos75_implementer`，独立 reviewer `cos75_reviewer`，本批唯一 merger `batch75_76_merger` 须获 Root 授权后集成。
+- 计划：`7b2eb4ced11cd56991d3f4e49125eca04f780f5e` 已 PLAN_APPROVED，[短计划与证据](../plans/2026-10-13-cos75-scope-timeout-origin.md)。源码须另行 exact SHA 规格→质量审查；目标 `VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`。
+- 缺陷：私有 scope timer 超时经 origin.verify、runtime-host guard / requireCurrent catch 永久关闭共享 listener，即使固定回执未变、运行未取消。两条真实边界免费 RED 已复现；真实 C7 最初超时的慢步骤尚未确证，不能据此归因于并行。
+- 范围：私有 timer 产生可信 typed error，Promise.race 与最终 controller.read 后的取消检查都保留该身份。仅此错误且原 listener owner signal 仍活跃时不关闭，失败原样抛出；真正运行/owner 取消、receipt/binding 漂移、其他错误、初始化失败及最终清理仍关闭。每次操作完整 scope 验证，不 cache、不自动 retry、不延长 5 秒。
+- 免费验收：两 RED 转 GREEN；新增 source 11/11、compiled 代表 3/3、既有 source/receipt 守卫 2/2，均 0 skip；typecheck/build/显式测试类型检查退出 0。真实 controller/owner abort、timer 竞态、回执和绑定失效仍关；伪造同名同 message 普通 Error 不获得例外；被拒那一次真实作者 file 工具未改原字节，下一次完整验证后写入；未受影响证据复用。
+- 边界：C7 为 18 SDK/58415 micro-CNY/945983 ms、insufficient_evidence/无候选，closure13 后 revision2023/15 stopped/75 closed/13 audits/unknown与reserved0；历史不重开。仅 source/free fixture，不读私有账本/session/凭据、不付费或复制参考资产；共享 ¥150、正式 ¥200/12h、目标 ¥100/6h 保持，不提升完整经典、PERFORMANCE、实际完整 12h 或 human。
+
+稳定任务 ID：COS-75
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

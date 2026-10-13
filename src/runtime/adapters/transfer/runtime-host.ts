@@ -22,6 +22,7 @@ import { reserveTransferOrigin } from './loopback-origin.ts';
 import { consumeTransferCandidate, diagnoseTransferBuild } from './runtime-acceptance.ts';
 import type { HistoricalPassedStages } from '../../historical-passed-stages.ts';
 import type { HumanContinuationInput, HumanContinuationScope } from '../../entrypoint-human-continuation.ts';
+import { isValidationScopeTimeout } from '../../validation-scope.ts';
 
 type HostInput = Parameters<typeof createValidationPreparedBrowserHost>[0];
 export type HumanTransferHostInput = HumanPreparationInput & Pick<HostInput, 'io' | 'sessionFactory'> & { historicalStages?: never };
@@ -163,7 +164,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
   let captureLayout: string;
   let designValidation: ReturnType<typeof createTransferDesignValidation>;
   const receiptFile = 'host-transfer-prepared-inputs.json';
-  const guard = async () => { try { await ctx.requireScope(); await origin.verify(); } catch (error) { await origin.close(); throw error; } };
+  const guard = async () => { try { await ctx.requireScope(); await origin.verify(); } catch (error) { if (ctx.signal.aborted || !isValidationScopeTimeout(error)) await origin.close(); throw error; } };
   const read = async (): Promise<PreparedInputs> => {
     await guard(); const saved = decode(await regularFile(ctx.root, receiptFile)) as PreparedInputs;
     requireThat(saved.formatVersion === 'transfer-prepared-inputs/1' && saved.taskId === ctx.designTaskId
@@ -316,7 +317,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
         }
       }
       await guard();
-    } catch (error) { await origin.close(); throw error; }
+    } catch (error) { if (ctx.signal.aborted || !isValidationScopeTimeout(error)) await origin.close(); throw error; }
   };
   const preparation: BrowserInputPreparation = {
     adapterId: 'cos16-input/1', designOutputs: [], designWritePaths: ['authors/design/transfer-design.json'],
