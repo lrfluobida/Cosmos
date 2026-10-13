@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 77
+    "childCount": 78
   },
   "tasks": [
     {
@@ -5979,10 +5979,13 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/78",
       "dependsOn": ["COS-59", "COS-75", "COS-76"],
       "nativeParentLinked": true,
-      "state": "open",
-      "integrationStatus": "source-integrated",
-      "implementationPhase": "source-integrated",
+      "state": "closed",
+      "stateReason": "completed",
+      "integrationStatus": "complete",
+      "implementationPhase": "scoped-complete",
       "reviewStatus": "VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/78#issuecomment-6151413430",
+      "parentCheckboxChecked": true,
       "targetReviewStatus": "VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY",
       "sourceReviewStatus": "APPROVED",
       "reviewedCommit": "9d0efc6b362193d81c7fd5c96829a85e399eb5a3",
@@ -6022,8 +6025,31 @@
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE"
+    },
+    {
+      "taskId": "COS-78",
+      "title": "准备输出额度修复后的固定迁移 C9",
+      "number": 79,
+      "id": 5834810242,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/79",
+      "dependsOn": ["COS-76", "COS-77"],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "pending",
+      "implementationPhase": "plan-preparation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "sourceReviewStatus": "PENDING",
+      "planReviewStatus": "PENDING",
+      "implementer": "cos76_implementer",
+      "reviewer": "cos77_implementer",
+      "merger": "batch75_76_merger",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 77,
+  "verifiedNativeSubIssues": 78,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

@@ -1,10 +1,10 @@
 # COS77 · 按实际请求与角色剩余额度收缩编码输出上限
 
-状态：VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY / PLAN_APPROVED / source-integrated / open。稳定任务 ID：COS-77。Issue：[#78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
+状态：VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY / PLAN_APPROVED / scoped complete / closed。稳定任务 ID：COS-77。Issue：[#78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
 
 专属 implementer `cos77_implementer`；独立 reviewer `cos76_implementer` acting COS77 reviewer；唯一 merger `batch75_76_merger`。实施计划：[2026-10-14-cos77-request-output-cap.md](../plans/2026-10-14-cos77-request-output-cap.md)。依赖已有 COS59 请求窗口、COS75 origin 守卫、COS76 当前任务与预算 authority。
 
-exact `9d0efc6b362193d81c7fd5c96829a85e399eb5a3` 已由独立 acting reviewer 实际规格→质量 APPROVED、无 findings，合入 `b22120bc5d1012da2ac9df5fc06491b10f6a03e7`。本卡source-ready，GitHub仍open，公共发布由Root负责。
+exact `9d0efc6b362193d81c7fd5c96829a85e399eb5a3` 已由独立 acting reviewer 实际规格→质量 APPROVED、无 findings，合入 `b22120bc5d1012da2ac9df5fc06491b10f6a03e7`。[公开批准](https://github.com/lrfluobida/Cosmos/issues/78#issuecomment-6151413430)、closed(completed)及父勾选已由Root精确读回；本卡source/free-fixture scoped complete。
 
 ## 问题与目标
 

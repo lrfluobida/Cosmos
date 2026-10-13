@@ -2,16 +2,21 @@
 
 更新时间：2026-10-14
 
+## COS78 固定迁移 C9 已登记
+
+- [#79](https://github.com/lrfluobida/Cosmos/issues/79)，id5834810242，标题“准备输出额度修复后的固定迁移 C9”；原生父#1、正文及未勾选checkbox均由Root精确读回，父任务共78子项。依赖COS76/77，专属 `cos76_implementer`、独立 `cos77_implementer`、唯一 merger `batch75_76_merger`；计划准备中，SOURCE_NOT_READY / open。
+- 范围为原C8停止后的16cases/8delegations/80closed/14audits基线，按C1–8真实净额动态派生原角色余额，复用C5七capture、零design/art SDK，新增COS76/77源码守卫。原¥5/45分钟/80请求/一次repair和总role budget保持；作者在独立工作区提交自有计划与任务卡，本次只登记，无实际C9/paid/window/human/game。
+
 ## COS77 按当前请求预算收紧编码输出上限已审集成
 
-- [#78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885；专属 `cos77_implementer` 的 exact `9d0efc6b362193d81c7fd5c96829a85e399eb5a3` 经独立 acting reviewer `cos76_implementer` 实际规格→质量 APPROVED、无 findings，唯一 `batch75_76_merger` 合入 `b22120bc5d1012da2ac9df5fc06491b10f6a03e7`；`VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY` / source-integrated / open，公共状态由Root更新。[任务卡](docs/specs/cos77-request-output-cap.md)与计划保留完整边界。
+- [#78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885；专属 `cos77_implementer` 的 exact `9d0efc6b362193d81c7fd5c96829a85e399eb5a3` 经独立 acting reviewer `cos76_implementer` 实际规格→质量 APPROVED、无 findings，唯一 `batch75_76_merger` 合入 `b22120bc5d1012da2ac9df5fc06491b10f6a03e7`；`VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY`；[公开批准](https://github.com/lrfluobida/Cosmos/issues/78#issuecomment-6151413430)、closed(completed)及父勾选已由Root精确读回，本卡source/free-fixture scoped complete。[任务卡](docs/specs/cos77-request-output-cap.md)与计划保留完整边界。
 - 仅validation coding作者及同角色repair作者按真实inputBytes/hasImages和当前原角色余额选择最大可负担cap，最低min(4096,原cap)；预留、报价与实际发送使用同一值，原子reserve保持。准入后输入漂移零发送，但已有admission/events/not_sent receipt并经cancel(provenNoCost)释放预留，不能记为账本零变动。reviewer/formal/其他角色、原预算和时限、length/incomplete语义保持，无自动重试或新压缩。
 - 主线typecheck/build0；生产factory选择52730并由Pi发送同值、final-window输入漂移拒绝两个代表2/2、0skip，TAP4155.0311ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos77-merge-integration.tap`。新增32项采用原31/32加测试断言修后单条1/1的保存TAP；既有39/39、compiled6/6按作者当次tool输出和计划复用，未另保存TAP，不重复旧长链。
 - 本卡source/free fixture，provider fake/network0，actual paid/window/human/game NONE；不启动C9，不重开C8。下述C8 insufficient_evidence、closure14和全部费用事实保持；其免费Pi重现的405672是inputBytes，元数据字段名已纠正，数值未改。
 
 ## C8 实际验证停止与 closure14 完成
 
-- C8 固定源码 `00eb698fa39a48ba8c4a0f1eaf33c522587d2281`，UTC 2026-10-13 15:59:41.066 至16:19:11.866（本地跨10月14日），elapsed1170800ms；14次SDK，新增487528 micro-CNY，共享已结算9419893 micro-CNY。结果经 `cos16_acceptance_review` 独立核对，为 insufficient_evidence。
+- C8 固定源码 `00eb698fa39a48ba8c4a0f1eaf33c522587d2281`，UTC 2026-10-13 15:59:41.066 至16:19:11.866（本地跨10月14日），elapsed1170800ms；14次SDK，新增487528 micro-CNY，共享已结算9419893 micro-CNY。[实际结果](https://github.com/lrfluobida/Cosmos/issues/77#issuecomment-6151353014)经 `cos16_acceptance_review` 独立核对，为 insufficient_evidence。
 - 作者仅写出 `index.html`（4921 UTF-8 bytes / 4586 chars），引用 `src/main.ts` 但没有 src 目录；journal仅origin，无author.json、capture-started、candidate、build、browser、coding review、repair或accepted。C5 design/art仍passed/approved。两次私有scope timeout之后多次读取和write成功，COS75的局部超时后恢复属性获得实际证据；没有生成通过的游戏。
 - 第15次调用在发送前因预算拒绝。免费精确Pi重现input405672：固定output cap65536需预留1335632µ，超过coding剩余1233190µ；可负担cap52730需预留1233184µ。[COS77 #78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885，已挂父，当前77子项，登记时SOURCE_NOT_READY为历史，当前COS77已审源码见本页顶部。
 - closure14脚本由 `reconciliation_review` 独审，Root已实际执行：revision2086、16案例全部stopped、8delegations、80closed/14audits、unknown/reserved0、共享9419893µ；旧费用与失败案例保留。COS16/COS18仍partial/open，完整classic、human与游戏验收未通过。
