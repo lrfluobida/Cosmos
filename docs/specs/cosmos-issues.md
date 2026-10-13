@@ -1305,6 +1305,24 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
 稳定任务 ID：COS-74
 
+### COS-75 · 区分局部验证超时与 origin 生命周期
+
+- 发布：[#76](https://github.com/lrfluobida/Cosmos/issues/76)，id5832351218，Root 已确认原生挂父 #1，当前共 76 项子任务；open / source-integrated。专属 implementer `cos75_implementer`，独立 reviewer `cos75_reviewer`，本批唯一 merger `batch75_76_merger`。
+- 计划：`7b2eb4ced11cd56991d3f4e49125eca04f780f5e` 已 PLAN_APPROVED，[短计划与证据](../plans/2026-10-13-cos75-scope-timeout-origin.md)。exact `e6a3eac510bafe105a5dfc182b515156e7b356c0` 已独立规格→质量 APPROVED、无 findings，合入 `005b4ae9557f1e735a3d255f9ccb3e5950163ac6`；`VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`。主线 typecheck/build0、timeout 保留 listener 代表 1/1、0 skip（TAP12752.6716ms）；其他已审证据复用，公开状态由 Root 更新。
+- 缺陷：私有 scope timer 超时经 origin.verify、runtime-host guard / requireCurrent catch 永久关闭共享 listener，即使固定回执未变、运行未取消。两条真实边界免费 RED 已复现；真实 C7 最初超时的慢步骤尚未确证，不能据此归因于并行。
+- 范围：私有 timer 产生可信 typed error，Promise.race 与最终 controller.read 后的取消检查都保留该身份。仅此错误且原 listener owner signal 仍活跃时不关闭，失败原样抛出；真正运行/owner 取消、receipt/binding 漂移、其他错误、初始化失败及最终清理仍关闭。每次操作完整 scope 验证，不 cache、不自动 retry、不延长 5 秒。
+- 免费验收：两 RED 转 GREEN；新增 source 11/11、compiled 代表 3/3、既有 source/receipt 守卫 2/2，均 0 skip；typecheck/build/显式测试类型检查退出 0。真实 controller/owner abort、timer 竞态、回执和绑定失效仍关；伪造同名同 message 普通 Error 不获得例外；被拒那一次真实作者 file 工具未改原字节，下一次完整验证后写入；未受影响证据复用。
+- 边界：C7 为 18 SDK/58415 micro-CNY/945983 ms、insufficient_evidence/无候选，closure13 后 revision2023/15 stopped/75 closed/13 audits/unknown与reserved0；历史不重开。仅 source/free fixture，不读私有账本/session/凭据、不付费或复制参考资产；共享 ¥150、正式 ¥200/12h、目标 ¥100/6h 保持，不提升完整经典、PERFORMANCE、实际完整 12h 或 human。
+
+稳定任务 ID：COS-75
+
+### COS-76 · 准备第八迁移案例固定入口
+
+- 已发布 [#77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117，Root 已原生挂父 #1；依赖 COS60/74/75。计划 `594286e` 已 PLAN_APPROVED，专属 `cos76_implementer`，本批唯一 merger `batch75_76_merger`；实现与独立源码审查尚在进行，open / SOURCE_NOT_READY。
+- 独立 C8 的固定准入、coding-only 运行和冷恢复沿用原 COS16 预算与 C5 passed 来源；本次仅登记，不合入实现、不重开 C7，actual C8/paid/human NONE。
+
+稳定任务 ID：COS-76
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

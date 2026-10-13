@@ -15,6 +15,13 @@ export interface ValidationExecutionBinding {
 }
 export interface ValidationJournalBinding { caseId: string; windowId: string; quoteId: string; startedAt: string; deadlineAt: string }
 
+class ValidationScopeTimeoutError extends Error { override name = 'ValidationScopeTimeoutError'; }
+const scopeTimeouts = new WeakSet<ValidationScopeTimeoutError>();
+/** Only errors issued by this module's private scope timer qualify. */
+export function isValidationScopeTimeout(error: unknown): boolean {
+  return error instanceof ValidationScopeTimeoutError && scopeTimeouts.has(error);
+}
+
 /** Read complete scope and real operator receipt before any session, task or journal write. */
 export async function requireValidationScope(controller: RunController, requirement: ExecutionRequirement, binding: ValidationExecutionBinding) {
   const { caseId, windowId, readScope } = binding;
@@ -29,8 +36,8 @@ export async function requireValidationScope(controller: RunController, requirem
   if (timeout <= 0) throw new Error('Validation scope cannot finish inside the current case deadline.');
   const abort = new AbortController(), signal = AbortSignal.any([controller.signal, abort.signal]);
   let onAbort!: () => void;
-  const cancelled = new Promise<never>((_, reject) => { onAbort = () => reject(new Error('Validation scope check was cancelled or timed out.')); signal.addEventListener('abort', onAbort, { once: true }); });
-  const timer = setTimeout(() => abort.abort(), timeout);
+  const cancelled = new Promise<never>((_, reject) => { onAbort = () => reject(signal.reason); signal.addEventListener('abort', onAbort, { once: true }); });
+  const timer = setTimeout(() => { const error = new ValidationScopeTimeoutError('Validation scope check timed out.'); scopeTimeouts.add(error); abort.abort(error); }, timeout);
   try {
     signal.throwIfAborted();
     const observed = await Promise.race([Promise.resolve().then(() => readScope(signal)), cancelled]);
@@ -51,7 +58,8 @@ export async function requireValidationScope(controller: RunController, requirem
     const snapshot = await controller.read();
     if (!sameValue(currentValidationCase(snapshot), window) || Date.now() >= Date.parse(window.deadlineAt) - 5000) throw new Error('Validation authority changed while reading fixed scope.');
     signal.throwIfAborted(); return { snapshot, window };
-  } finally { clearTimeout(timer); signal.removeEventListener('abort', onAbort); abort.abort(); }
+  } catch (error) { controller.signal.throwIfAborted(); throw error; }
+  finally { clearTimeout(timer); signal.removeEventListener('abort', onAbort); abort.abort(); }
 }
 
 export function validationJournalBinding(window: Awaited<ReturnType<typeof requireValidationScope>>['window']): ValidationJournalBinding {

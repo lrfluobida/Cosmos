@@ -5,6 +5,7 @@ import { regularFile, safePath } from '../../../artifacts/paths.ts';
 import type { ArtifactReference } from '../../../contracts/types.ts';
 import { publishReceipt } from '../../recovery/receipt-file.ts';
 import type { CleanDelivery } from '../../entrypoint-delivery.ts';
+import { isValidationScopeTimeout } from '../../validation-scope.ts';
 
 interface ValidationTransferOriginBinding {
   caseId: string; windowId: string; sourceVersion: string; requirementSha256: string; runId: string; specVersion: string;
@@ -81,7 +82,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
       try {
         input.signal.throwIfAborted(); await input.requireScope(); input.signal.throwIfAborted();
         if (!server.listening || !isDeepStrictEqual(await read(), receipt)) throw new Error('Owned transfer origin listener or fixed receipt changed.');
-      } catch (error) { await close(); throw error; }
+      } catch (error) { if (input.signal.aborted || !isValidationScopeTimeout(error)) await close(); throw error; }
     };
     const mountCandidate = async (value: { candidate: ArtifactReference; project: string; cleanDelivery?: CleanDelivery; verifyBinding(): Promise<void> }) => {
       await verify();
