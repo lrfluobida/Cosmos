@@ -228,3 +228,11 @@ Root 为 C7 准备自己的固定 `cos20-transfer-validation-7-reuse.json`，绑
 C8 从原 COS16 各角色固定容量逐项减去 C1–7 实际 settled 费用推导 grants，核对原18个 C7 coding author 请求及其原动态声明、实际费用证据与 closure，不使用固定余额常量、reservation 或其他角色额度。准入要求15个旧 stopped 案例、7笔原 delegation、75 closed grants、13笔实际 source-byte 审计、unknown/reserved0和共享/历史 owner idle。新增 COS60/74/75 的准确 source-ready markers 及 reviewed/merge 双祖先，COS75 marker 为 `VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`；当前 clean pushed exact main 和实际执行 source/compiled 闭包仍每次核对。
 
 Root 准备独立 `cos20-transfer-validation-8-reuse.json`，只引用原 C5 design/art 两个 passed 阶段及七 capture。C8 独立 root/marker/admission envelope/operator receipts 绑定实际 manifest、quote2、费用 prefix、当前输入/任务/候选计划与完整执行闭包；只恢复自己的原窗口、deadline、grants和回执。planner/design/art SDK 为0，原输出上限、单案¥5/45分钟/80请求/一次合格 coding repair、coding600000ms与deadline减5000ms裁剪、共享与正式预算均保持。计划及免费证据见 [COS76计划](../../docs/plans/2026-10-13-cos76-transfer-case8.md)。
+
+## COS-78 · 输出额度修复后的固定迁移 C9（源码准备）
+
+`validation-case-nine-run.ts` 只绑定 `cos20-transfer-validation-9`。免费预检为 `node --experimental-strip-types probes/transfer/validation-case-nine-run.ts --validation-preflight <reviewed-main-sha>`；获准后由Root使用同入口 `--validation-case <reviewed-main-sha> <operator-validation-source>`。原C8已停止，不重开；实际C9由Root另行决定，本卡只准备source/free-fixture。
+
+C9原COS16各角色grants由C1–8已结算费用和closure动态派生；原C8须14个coding author settled请求、无repair、已停止且closed net吻合。固定16stopped/8delegations/80closed/14audits、unknown/reserved0和所有owner idle；新增COS76 `TRANSFER_CASE_EIGHT_SOURCE_READY`、COS77 `VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY`及双SHA祖先，沿原准确marker、clean pushed main和source/compiled执行闭包门禁。
+
+新清单固定为 `cos20-transfer-validation-9-reuse.json`，原C5两个passed阶段与七capture只读复用。C9独立root/marker/quote/receipts/current task/候选plan及同窗口冷恢复，planner/design/art SDK为0；声明输出上限、¥5/45min/80requests/一次repair、共享/角色额度和时限保持。实际每请求cap沿COS77收紧，来源准备不保证整条后续生成轨迹可承担；不新增compaction、retry或预算。短计划与证据见 [COS78计划](../../docs/plans/2026-10-14-cos78-transfer-case9.md)，源码独审前仍 `SOURCE_NOT_READY`。
