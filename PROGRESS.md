@@ -4,9 +4,11 @@
 
 ## COS75 局部 scope 超时与 origin 生命周期修复
 
-- [#76](https://github.com/lrfluobida/Cosmos/issues/76)，id5832351218，Root 已原生挂父 #1；75 项子任务。专属 `cos75_implementer` / 独立 `cos75_reviewer`，短计划 `7b2eb4c` 已获 PLAN_APPROVED；源码待 exact SHA 规格与质量审查，open / SOURCE_NOT_READY。
+- [#76](https://github.com/lrfluobida/Cosmos/issues/76)，id5832351218；`cos75_implementer` 的 exact `e6a3eac510bafe105a5dfc182b515156e7b356c0` 经独立 `cos75_reviewer` 实际规格→质量审查 APPROVED，无 findings；唯一 `batch75_76_merger` 合入 `005b4ae9557f1e735a3d255f9ccb3e5950163ac6`。`VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY` / source-integrated，GitHub 状态仍 open，公开更新由 Root 负责。
+- 主线 typecheck/build 均退出 0；局部 timeout 保留 listener 的并行与后续调用代表 1/1、0 skip，test 5149.0061ms / TAP 12752.6716ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos75-merge-integration.tap`。复用已审 source 11/11、compiled 3/3 与原守卫 2/2，不重复完整矩阵。
 - 两个免费实际边界回归先 0/2 RED（局部超时关闭 listener），最小修复后 2/2 GREEN。最终新增 source 11/11、compiled 代表 3/3、原 source/receipt 守卫 2/2，均 0 skip；typecheck/build/显式测试类型检查退出 0。可信分类、取消/漂移及真实底层 file 工具阻断证据见[短计划](docs/plans/2026-10-13-cos75-scope-timeout-origin.md)。目标标记为 `VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`；本批唯一 merger 为 `batch75_76_merger`。
 - 只改变局部 timeout 的 listener 清理条件；原调用仍失败，每次操作仍完整 scope 验证。无缓存、自动 retry、5 秒延长、预算/历史修改、付费或新窗口。已证实关闭缺陷，真实 C7 最初慢步骤未确证；下列 C7/closure13 最终事实保持，不声明后续游戏或完整经典通过。
+- Root 已发布 [COS76 #77](https://github.com/lrfluobida/Cosmos/issues/77)，id5832425117；当前父任务共 76 子项。其依赖 COS60/74/75，计划已独审，源码仍 SOURCE_NOT_READY / open；本次未合入 COS76 实现，实际 C8/paid/human NONE。
 
 ## C7 实际验证停止与 closure13 完成
 
