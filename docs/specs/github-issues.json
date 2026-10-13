@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 79
+    "childCount": 81
   },
   "tasks": [
     {
@@ -6244,8 +6244,60 @@
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE"
+    },
+    {
+      "taskId": "COS-80",
+      "title": "按当前候选输出选择编码必读验收计划",
+      "number": 81,
+      "id": 5837669130,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/81",
+      "dependsOn": ["COS-38", "COS-50", "COS-78"],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-review-pending",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "targetReviewStatus": "TRANSFER_CURRENT_PLAN_READING_SOURCE_READY",
+      "sourceReviewStatus": "PENDING",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "5324f831b2bb64799ffe10418ff5117781fcb15b",
+      "planReviewFindings": [],
+      "implementer": "cos77_implementer",
+      "reviewer": "cos76_implementer",
+      "merger": "batch75_76_merger",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE"
+    },
+    {
+      "taskId": "COS-81",
+      "title": "在任务失败报告中保留请求准入拒绝原因",
+      "number": 82,
+      "id": 5837671050,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/82",
+      "dependsOn": ["COS-11", "COS-77", "COS-79"],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-review-pending",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "targetReviewStatus": "ADMISSION_FAILURE_FEEDBACK_SOURCE_READY",
+      "sourceReviewStatus": "PENDING",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "844305124605ff4d8c675a26f5ca8ced38c44b75",
+      "planReviewFindings": [],
+      "implementer": "cos76_implementer",
+      "reviewer": "cos77_implementer",
+      "merger": "batch75_76_merger",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 79,
+  "verifiedNativeSubIssues": 81,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

@@ -10,6 +10,12 @@
 - Root已完成closure15，关闭本次五个角色额度。17个案例均已停止，未知费用和预留均为零；编码剩余 **¥0.273028**，预算组剩余 **¥6.628568**，已结算费用保持。原C9不能重跑，COS16/COS18仍partial/open，完整classic和human未通过。COS79的[源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6154080327)只说明本卡源码范围完成。
 - 运行和closure15结束后，Root已解除主线冻结。以下C9 NONE、旧账本版本和等待准入记录均为当时历史；本次只记录结果，没有新付费、案例、预算或生产代码变更。
 
+## 后续两个源码任务的计划已审
+
+- [COS80：按当前候选输出选择编码必读验收计划](https://github.com/lrfluobida/Cosmos/issues/81)依赖COS38/50/78，由 `cos77_implementer` 实现、`cos76_implementer` 独审。短计划 `5324f83` 已获 PLAN_APPROVED，没有finding；源码已进入独审，尚未合入主线，状态为 SOURCE_NOT_READY/open。
+- [COS81：在任务失败报告中保留请求准入拒绝原因](https://github.com/lrfluobida/Cosmos/issues/82)依赖COS11/77/79，由 `cos76_implementer` 实现、`cos77_implementer` 独审。短计划 `8443051` 已获 PLAN_APPROVED，没有finding；源码已进入独审，尚未合入主线，状态为 SOURCE_NOT_READY/open。
+- Root已核对两个任务的正文和原生父关联，父任务现有81个子项。完整任务要求见各自issue；作者在独立工作区维护计划和任务卡，只有 `batch75_76_merger` 整合批准后的提交。本轮只登记免费源码工作，不新增C10、付费或预算。
+
 ## COS79 有界编码上下文压缩已审集成
 
 - [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325，标题“在成功工具回合接通有界上下文压缩”；登记时正文、原生父#1与未勾选checkbox均由Root精确读回，父任务共79子项。依赖COS77/78，专属 `cos77_implementer` acting COS79作者、独立 `cos76_implementer`、唯一merger `batch75_76_merger`；第一阶段计划 exact `e0248f70d96257a7fcac15cb6c8d8e7ad3db2a69` 经 `cos76_implementer` 独立 PLAN_APPROVED，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6152183815)已由Root精确读回，仅授权免费SOURCE/TEMP设计实验。`cos77_implementer` 执行、`cos76_implementer` 独审；生产设计 exact `b4918b89a525c0ffb97eb0b2b2c01e948b8cde96` 已获 `cos76_implementer` 独立 PRODUCTION_PLAN_APPROVED、无剩余finding，[公开生产设计批准](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6153006681)由Root精确读回。19个SOURCE/TEMP/fakeprovider/network0边界为16矩阵+2摘要费用边界+1native no-op有效RED→GREEN；源码 exact `1d783c8f390b9927895d3a2c21c9b7f39a46d6e1` 经独立 `cos76_implementer` 实际11paths规格→质量 APPROVED、无findings，唯一 `batch75_76_merger` 合入 `e06ce718fbec9d72f605d59680db6506aca804e3`；VALIDATION_CODING_COMPACTION_SOURCE_READY；[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6154080327)、closed(completed)及父勾选已由Root精确读回，本卡source/free-fixture scoped complete。

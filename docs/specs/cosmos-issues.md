@@ -1356,6 +1356,22 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 稳定任务 ID：COS-79
 
+### COS-80 · 按当前候选输出选择编码必读验收计划
+
+[任务卡 #81](https://github.com/lrfluobida/Cosmos/issues/81)，id5837669130，已由Root核对正文并原生挂父#1。依赖COS38/50/78，由 `cos77_implementer` 实现、`cos76_implementer` 独审，`batch75_76_merger` 负责整合。
+
+短计划 `5324f831b2bb64799ffe10418ff5117781fcb15b` 已交叉独审 PLAN_APPROVED，无finding。源码已进入独审，仍待最终批准，当前 SOURCE_NOT_READY/open；目标标记为 `TRANSFER_CURRENT_PLAN_READING_SOURCE_READY`。作者在独立工作区维护完整计划和任务卡，本次只登记链接与状态，没有合入未审代码。
+
+稳定任务 ID：COS-80
+
+### COS-81 · 在任务失败报告中保留请求准入拒绝原因
+
+[任务卡 #82](https://github.com/lrfluobida/Cosmos/issues/82)，id5837671050，已由Root核对正文并原生挂父#1。依赖COS11/77/79，由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。
+
+短计划 `844305124605ff4d8c675a26f5ca8ced38c44b75` 已交叉独审 PLAN_APPROVED，无finding。源码已进入独审，仍待最终批准，当前 SOURCE_NOT_READY/open；目标标记为 `ADMISSION_FAILURE_FEEDBACK_SOURCE_READY`。两个新任务都限定为免费源码工作，父任务现有81个子项，不新增C10、付费或预算。
+
+稳定任务 ID：COS-81
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。
