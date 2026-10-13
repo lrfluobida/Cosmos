@@ -1334,10 +1334,18 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 ### COS-78 · 准备输出额度修复后的固定迁移 C9
 
-- 发布 [#79](https://github.com/lrfluobida/Cosmos/issues/79)，id5834810242；Root已精确核对原生父#1、正文及未勾选checkbox，当前78个原生子项。依赖COS76/77，专属implementer `cos76_implementer`、独立reviewer `cos77_implementer`、唯一merger `batch75_76_merger`。计划准备中，SOURCE_NOT_READY / open；自有计划与完整任务卡由作者在独立工作区提交。
+- 发布 [#79](https://github.com/lrfluobida/Cosmos/issues/79)，id5834810242；Root已精确核对原生父#1、正文及未勾选checkbox，当前79个原生子项。依赖COS76/77，专属implementer `cos76_implementer`、独立reviewer `cos77_implementer`、唯一merger `batch75_76_merger`。计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 经 `cos77_implementer` 独立 PLAN_APPROVED，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6151555141)已由Root核实；作者报告11项focused通过，免费fixture证明未完成，源码仍实施中、SOURCE_NOT_READY / open；自有计划与任务卡仍由作者维护，当前未合入未审源码。
 - 范围：从C8已停止的16cases/8delegations/80closed/14audits出发，按C1–8真实净额动态派生原角色余额，复用C5七capture且零design/art SDK，新增COS76/77源码守卫。原单案¥5/45分钟/80请求/一次repair及总role budget保持；不重开C8，本次actual C9/paid/window/human/game NONE。
 
 稳定任务 ID：COS-78
+
+### COS-79 · 在成功工具回合接通有界上下文压缩
+
+- 发布 [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325；正文、原生父#1和未勾选checkbox由Root精确读回，当前79子项。依赖COS77/78，专属implementer `cos77_implementer` acting COS79作者、独立reviewer `cos76_implementer`（COS78完成后）、唯一merger `batch75_76_merger`。短计划准备，SOURCE_NOT_READY / open；最终源码范围按已发布issue和后续独立计划审批。
+- 反事实依据：以coding1233190µ重放C8历史14请求，前14cap仍65536；第14input251339 bytes、before1069753µ、reservation1026966µ、settled324091µ，此后745662µ低于下一405672-byte输入本身811344µ，floor4096需844112µ。这不是C9预测或新实际费用，原C8事实不变。
+- native compact经过既有streamSimple hooks；成功工具回合须有受控threshold、summary cap（拟8192）与失败锁，触发参数先由免费实验确定，不直接开auto overflow或在busy调用manual compact。当前实际revision2086/9419893µ/unknown与reserved0，无C9或新paid；计划与实现由专属作者提交，未合入未审源码。
+
+稳定任务 ID：COS-79
 
 ## 5. 任务与上下文包模板
 
