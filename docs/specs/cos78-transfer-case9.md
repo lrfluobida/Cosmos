@@ -1,10 +1,10 @@
 # COS-78 准备输出额度修复后的固定迁移 C9
 
-状态：SOURCE_NOT_READY / PLAN_APPROVED / in-progress / open。稳定任务ID：COS-78。Issue [#79](https://github.com/lrfluobida/Cosmos/issues/79)，id5834810242；原生父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
+状态：TRANSFER_CASE_NINE_SOURCE_READY / PLAN_APPROVED / source-integrated / open。稳定任务ID：COS-78。Issue [#79](https://github.com/lrfluobida/Cosmos/issues/79)，id5834810242；原生父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
 
 专属 implementer `cos76_implementer` acting COS78；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos78-transfer-case9.md](../plans/2026-10-14-cos78-transfer-case9.md)。基线为已推main `352c129f121646f3b359a48d7f6cf6371db25e26`。
 
-计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 已独立 PLAN_APPROVED，无finding；实施前合入docs-only main9698a54，生产基线不变。最终源码另审。此入口准备不意味着后续完整请求轨迹可承担；新的上下文/compaction策略不属于本卡。
+计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 已独立 PLAN_APPROVED，无finding；实施前合入docs-only main9698a54，生产基线不变。源码 exact `870fa22a447178e04f2ee345e111328362cb385a` 经 `cos77_implementer` 实际17paths规格→质量独审 APPROVED、无findings，由唯一 `batch75_76_merger` 合入 `06045cafa532d7edcd5399ceb6381acc9af69a3f`。本卡仍open，公共状态由Root更新。此入口准备不意味着后续完整请求轨迹可承担；实际C9仍待COS79压缩修复与免费实验及Root准入，新的上下文/compaction策略不属于本卡。
 
 ## 目标与固定契约
 
@@ -27,8 +27,10 @@ C1–8实际settled与闭合原grants决定C9剩余容量；必须保持原COS16
 
 本卡仅source/free fixture；不读写真实ledger、keys、sessions或参考安装，不付费或启动实际C9。COS16/COS18 partial/open、完整classic、PERFORMANCE、实际完整12h与human未通过状态不提升。
 
-## 作者验证结果（待独审）
+## 作者验证结果（已独审复用）
 
 新增5项API缺失RED已转GREEN，连C8受影响短回归11/11；compiled C9/JSworker/字节漂移代表1/1；affected tsc、typecheck/build退出0。唯一复用seed的准入/费用/current task+factory+Pi/同窗口冷读代表1/1、291100.9278ms，完整原证据在计划。合成405672-byte请求cap52730/预留1233184一致、fake provider1/network0。
 
-临时账务视图只追加合成C8成本与closure14，原snapshot逐字节恢复revision390，原proof固定文件字节/mtime保持，新结果单独归档；未重建旧20分钟seed或17分钟修复链。只证明固定C9来源、绑定与已审策略接线，完整后续轨迹是否可承担另由Root判断，不新增compaction。SOURCE_NOT_READY直到独立实际diff批准；目标 `TRANSFER_CASE_NINE_SOURCE_READY`。
+临时账务视图只追加合成C8成本与closure14，原snapshot逐字节恢复revision390，原proof固定文件字节/mtime保持，新结果单独归档；未重建旧20分钟seed或17分钟修复链。独审核对两组费用487528µ/600000µ均16/8/80/14，合成C9结果17/9/80/14且旧prefix一致，唯一fake请求input405672bytes/cap52730，owner均关闭。只证明固定C9来源、绑定与已审策略接线，完整后续轨迹是否可承担另由Root判断，不新增compaction。`TRANSFER_CASE_NINE_SOURCE_READY` 已获exact源码独审批准并集成。
+
+主线typecheck/build退出0；两组费用派生、固定parser/quote和当前费用前缀代表2/2、0skip，TAP4464.7717ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos78-merge-integration.tap`。merger已读四份作者原始TAP并复用runtime/compiled证据；source/tests/plan/README与批准提交字节一致。实际C9/paid/window/human/game NONE，真实账务及C8/closure14事实保持。
