@@ -2,15 +2,15 @@
 
 更新时间：2026-10-14
 
-## COS79 成功工具回合的有界上下文压缩已登记
+## COS79 第一阶段免费设计实验计划已审
 
-- [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325，标题“在成功工具回合接通有界上下文压缩”；正文、原生父#1与未勾选checkbox均由Root精确读回，父任务共79子项。依赖COS77/78，专属 `cos77_implementer` acting COS79作者、独立 `cos76_implementer`（COS78完成后）、唯一merger `batch75_76_merger`；短计划准备，SOURCE_NOT_READY / open。
+- [#80](https://github.com/lrfluobida/Cosmos/issues/80)，id5835178325，标题“在成功工具回合接通有界上下文压缩”；正文、原生父#1与未勾选checkbox均由Root精确读回，父任务共79子项。依赖COS77/78，专属 `cos77_implementer` acting COS79作者、独立 `cos76_implementer`、唯一merger `batch75_76_merger`；第一阶段计划 exact `e0248f70d96257a7fcac15cb6c8d8e7ad3db2a69` 经 `cos76_implementer` 独立 PLAN_APPROVED，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/80#issuecomment-6152183815)已由Root精确读回，仅授权免费SOURCE/TEMP设计实验。`cos77_implementer` 执行、`cos76_implementer` 独审；生产设计与实现仍待实验固定trigger、去重、无收益处理及guard后另行独审，SOURCE_NOT_READY / open。
 - 依据仅为反事实：以剩余coding1233190µ重放C8历史14次轨迹，前14次cap仍65536；第14次input251339 bytes、调用前余额1069753µ、预留1026966µ、settled324091µ，其后745662µ小于下一405672-byte输入本身811344µ，floor4096总844112µ。此计算不改变原C8费用，不预测C9，不产生新paid。
-- native compact经既有streamSimple hooks；任务要求成功tool-turn受控threshold、summary cap（拟8192）与失败锁，先用免费实验固定触发参数，不直接开启auto overflow、不在busy时调用manual compact。当前真实ledger仍revision2086/共享9419893µ/unknown与reserved0，无C9。
+- native compact经既有streamSimple hooks；native compaction_end成功事件在保存之后；非法摘要必须在保存之前拒绝。任务要求成功tool-turn受控threshold、summary cap（拟8192）与失败锁，先用免费实验固定触发参数，不直接开启auto overflow、不在busy时调用manual compact。当前真实ledger仍revision2086/共享9419893µ/unknown与reserved0，无C9。
 
 ## COS78 固定迁移 C9 已审集成
 
-- [#79](https://github.com/lrfluobida/Cosmos/issues/79)，id5834810242，标题“准备输出额度修复后的固定迁移 C9”；原生父#1、正文及未勾选checkbox均由Root精确读回，当前父任务共79子项。依赖COS76/77，专属 `cos76_implementer`、独立 `cos77_implementer`、唯一 merger `batch75_76_merger`；计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 经 `cos77_implementer` 独立 PLAN_APPROVED，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6151555141)已由Root核实；源码 exact `870fa22a447178e04f2ee345e111328362cb385a` 经 `cos77_implementer` 实际17paths规格→质量 APPROVED、无findings，唯一 `batch75_76_merger` 合入 `06045cafa532d7edcd5399ceb6381acc9af69a3f`；TRANSFER_CASE_NINE_SOURCE_READY / source-integrated / open，公共状态由Root更新。
+- [#79](https://github.com/lrfluobida/Cosmos/issues/79)，id5834810242，标题“准备输出额度修复后的固定迁移 C9”；原生父#1与正文已由Root精确读回，当前父checkbox已勾选、父任务共79子项。依赖COS76/77，专属 `cos76_implementer`、独立 `cos77_implementer`、唯一 merger `batch75_76_merger`；计划 exact `6bff761e3bcbc093497ddafeef174582e8439647` 经 `cos77_implementer` 独立 PLAN_APPROVED，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6151555141)已由Root核实；源码 exact `870fa22a447178e04f2ee345e111328362cb385a` 经 `cos77_implementer` 实际17paths规格→质量 APPROVED、无findings，唯一 `batch75_76_merger` 合入 `06045cafa532d7edcd5399ceb6381acc9af69a3f`；TRANSFER_CASE_NINE_SOURCE_READY；[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/79#issuecomment-6152204919)、closed(completed)及父勾选已由Root精确读回，本卡source/free-fixture scoped complete。
 - 范围为原C8停止后的16cases/8delegations/80closed/14audits基线，按C1–8真实净额动态派生原角色余额，复用C5七capture、零design/art SDK，新增COS76/77源码守卫。原¥5/45分钟/80请求/一次repair和总role budget保持；[任务卡](docs/specs/cos78-transfer-case9.md)与计划记录完整证据。本卡source-ready不启动实际C9；COS79压缩修复/免费实验和后续Root准入仍待完成，无实际paid/window/human/game。
 - 主线typecheck/build0；C9两组费用派生及固定parser/quote/当前费用前缀代表2/2、0skip，TAP4464.7717ms，原始输出 `C:/Users/26557/AppData/Local/Temp/cos78-merge-integration.tap`。已核对作者四份TAP：5RED→11GREEN、runtime1/1（test291100.9278ms）、compiled1/1；重型结果复用，不重跑或重建seed。
 - SOURCE两组C8费用487528µ/600000µ均为16/8/80/14，C9合成结果17/9/80/14保持旧prefix；唯一fake请求input405672bytes/cap52730/预留1233184，network0。真实entry/host/factory/Pi/同窗口冷读通过，无游戏生成/build/browser/repair/promotion。独审确认finally恢复原snapshot字节至revision390、owner关闭且新root独立归档；真实C8/closure14仍revision2086/9419893µ/unknown与reserved0。
