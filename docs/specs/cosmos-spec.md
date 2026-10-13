@@ -8,6 +8,8 @@
 
 ## 1. 已确认的产品目标
 
+COS75（[#76](https://github.com/lrfluobida/Cosmos/issues/76)）仅修复局部验证 scope 超时被错误升级为 owned origin 永久关闭的问题。私有计时器产生可信超时类型；当前操作仍失败，原 owner signal 活跃时保留 listener。真正运行/owner 取消、回执或绑定漂移及其他错误仍关闭；每次操作继续完整验证，不缓存、不自动重试、不延长 5 秒或预算。初始化及最终清理保持关闭。计划已独审，源码待审 `SOURCE_NOT_READY`；目标标记 `VALIDATION_SCOPE_TIMEOUT_ORIGIN_SOURCE_READY`。真实 C7 最初慢步骤尚未确证，本卡不重开 C7 或声明后续游戏通过。
+
 2026-10-13 C7 最新实际结果：C6最后207689 micro-CNY结清，closure12已执行至revision1944/70closed/12audits。C7在固定源码`cd6d9a997e85099d4effbda5599d499705fc1dd9`上于UTC14:14:09.410—14:29:55.393运行945983ms，18次SDK新增58415 micro-CNY，共享已结算8932365 micro-CNY。coding一次attempt insufficient_evidence；作者handoff工具阻塞说明，capture-started但无完成capture/候选（0文件），review pending、repair null，无game/build/browser通过。原错误为`Owned transfer origin listener or fixed receipt changed`与`Validation scope check was cancelled or timed out`，根因待独立诊断。`cos16_acceptance_review`核实结果与空候选目录，`reconciliation_review`独审财务脚本；closure13已实际完成，revision2023/15案例全部stopped/7delegations/75closed/13audits/unknown与reserved0。COS16/COS18仍partial/open，完整经典/human未通过。COS74已[公开批准并关闭](https://github.com/lrfluobida/Cosmos/issues/75#issuecomment-6147529687)，仅source scoped完成。下文旧snapshot、unknown及C7未执行状态均为各阶段历史，当前事实以本段为准。
 
 源码集成时历史状态：Root 已按独立核对的供应商小时证据结算 C6 最后一笔 unknown，保守峰值 207689 micro-CNY，snapshot1943/共享8873950 micro-CNY/unknown与reserved0，14 stopped/65 closed/11 audits 保持；原 unknown 回执不变。Closure12 随后因冻结模板目录多出 observer 文件被拒、尚未执行，C7 未运行。[COS-74 / #75](https://github.com/lrfluobida/Cosmos/issues/75) 将原字节观察器移出固定八文件目录，`9a423b316f0b0e1acf12565d9761146b2021a50b` 已独审 FROZEN_TEMPLATE_OBSERVER_ISOLATION_SOURCE_READY，由 sole merger `cos74_merger` 合入 `ad1d7f217bb0df0df9661aa673343356db316d76`；main typecheck/build0、真实仓根 native/C6 固定输入代表2/2。本卡仅 source/free-fixture scoped complete，未更改旧声明、输入哈希或目录检查。下文旧 snapshot1942/unknown 记录为历史，预算、参考冻结与完整游戏验收边界保持。
@@ -185,7 +187,7 @@ Cosmos 为评审创建独立上下文，由评审读取固定要求与交付物�
 
 每项实际 issue 需要明确输入、输出、依赖、文件范围和验收证据。纯调查完成、验证通过、正式功能完成应使用不同的完成条件。
 
-具体拆分见 [73 项任务卡与依赖关口](cosmos-issues.md)。平台实施可与参考资料核对并行；完整基准验收工具的最终版本与完整生成必须等待基准冻结。正式生成的最终打包和干净目录启动检查计入同一次 ¥200/12h；只有等待用户试玩单独记录。父任务完成还需要小型不同机制迁移验证通过，其付费验证共享 ¥150 余额。
+具体拆分见 [75 项任务卡与依赖关口](cosmos-issues.md)。平台实施可与参考资料核对并行；完整基准验收工具的最终版本与完整生成必须等待基准冻结。正式生成的最终打包和干净目录启动检查计入同一次 ¥200/12h；只有等待用户试玩单独记录。父任务完成还需要小型不同机制迁移验证通过，其付费验证共享 ¥150 余额。
 
 ## 7. 执行前置与验证关口
 
