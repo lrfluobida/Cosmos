@@ -1,6 +1,12 @@
 # Cosmos 进度
 
-更新时间：2026-10-06
+更新时间：2026-10-13
+
+## COS74 冻结模板目录修复待独立审查
+
+- Root 已完成原 C6 最后一笔 unknown 的供应商小时证据核对与保守峰值结算 207689 micro-CNY；snapshot1943、共享已结算 8873950 micro-CNY、unknown/reserved0，14 stopped/65 closed/11 audits 保持，原 unknown 回执保留。随后 closure12 在当前源码被 `Fixed transfer template file set changed` 拒绝，尚未执行；C7 未创建窗口或付费。下文旧 snapshot1942/unknown974882 为历史。
+- [COS-74 / #75](https://github.com/lrfluobida/Cosmos/issues/75) 专属 implementer/reviewer、Root sole merger；短计划已独立 PLAN_APPROVED。将 11611 字节 observer 原样移至 `templates/rendering/`，冻结八文件、旧声明/输入哈希、capture 内部路径与恢复语义不变。真实 native/C6 仓根读取 2 项 RED 后转绿；固定输入与 C6 focused 共17/17、compiled upgrade 3/3、typecheck/build0。
+- 采样/选择/恢复/捕获 focused 30pass/2fail；两项 COS72 版本后缀旧断言已由独立 reviewer 在原 ac8874b 基线精确复现，未扩改。详见[短计划与结果](docs/plans/2026-10-13-cos74-frozen-template.md)。源码待 exact SHA 独立审查；本卡仅免费 source/fixture，无新 paid/human/game/window，不声明 closure12、C7、PERFORMANCE 或完整经典通过。
 
 ## COS73 模块辅助文件作用域修复启动
 

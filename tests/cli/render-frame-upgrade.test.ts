@@ -29,14 +29,14 @@ async function installation(t: test.TestContext) {
   await cp(join(repo, 'dist'), join(root, 'dist'), { recursive: true });
   await writeFile(join(root, 'package.json'), '{"type":"module"}\n', 'utf8');
   await symlink(join(repo, 'node_modules'), join(root, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
-  await mkdir(join(root, 'templates/2d'), { recursive: true });
-  const observer = await readFile(join(repo, 'templates/2d/render-frame-observer.ts'));
-  await writeFile(join(root, 'templates/2d/render-frame-observer.ts'), observer);
+  await mkdir(join(root, 'templates/rendering'), { recursive: true });
+  const observer = await readFile(join(repo, 'templates/rendering/render-frame-observer.ts'));
+  await writeFile(join(root, 'templates/rendering/render-frame-observer.ts'), observer);
   const execute = (args: string[]) => spawnSync(process.execPath, args, { encoding: 'utf8', env: roleToolEnvironment(), windowsHide: true, timeout: 15000 });
   return { root, cli: (...args: string[]) => execute([join(root, 'dist/cli/index.js'), ...args]),
     direct: (f: any, windowId?: string) => execute(['--input-type=module', '-e', `import {executeGeneration} from ${JSON.stringify(pathToFileURL(join(root, 'dist/runtime/entrypoint.js')).href)};const result=await executeGeneration(${JSON.stringify({ root: f.root, requirement: f.requirement, draft: f.draft, resume: true, ...(windowId ? { windowId } : {}) })});console.log(JSON.stringify(result));`]),
     guarded: (f: any, command: 'resume' | 'continue') => execute(['--input-type=module', '-e', `import {runCli} from ${JSON.stringify(pathToFileURL(join(root, 'dist/cli/index.js')).href)};import{Readable}from'node:stream';const fail=async()=>{throw new Error('Host dispatched before source refusal');};await runCli(${JSON.stringify([command, f.root, ...(command === 'continue' ? ['--add-cny', '1', '--add-minutes', '10'] : [])])},{host:{prepare:fail,execute:fail,questions:fail,draft:fail},input:Readable.from([]),output:process.stdout});`]),
-    upgrade: () => writeFile(join(root, 'templates/2d/render-frame-observer.ts'), Buffer.concat([observer, Buffer.from('\n// Isolated upgraded installation fixture.\n')])) };
+    upgrade: () => writeFile(join(root, 'templates/rendering/render-frame-observer.ts'), Buffer.concat([observer, Buffer.from('\n// Isolated upgraded installation fixture.\n')])) };
 }
 test('compiled completed original/direct/status survives installation upgrade and still refuses original capture drift', async t => {
   const f = await continuationSessionFixture(t, { completeOriginal: true, entrypointOriginal: true, renderFrames: true }), installed = await installation(t);

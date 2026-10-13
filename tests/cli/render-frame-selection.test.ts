@@ -74,7 +74,7 @@ test('actual runtime assembly restores the selected source into the existing hos
   const host = createProductHost(fileURLToPath(new URL('../../', import.meta.url)), { sessionFactory: async config => {
     const packet = JSON.parse(config.context!);
     const ref = packet.inputs.find((ref: any) => ref.artifactId === 'render-frame-observer'); assert.ok(ref);
-    assert.ok((await readFile(join(f.root, ref.location, '_cosmos/render-frame-observer.ts'))).equals(await readFile(new URL('../../templates/2d/render-frame-observer.ts', import.meta.url))));
+    assert.ok((await readFile(join(f.root, ref.location, '_cosmos/render-frame-observer.ts'))).equals(await readFile(new URL('../../templates/rendering/render-frame-observer.ts', import.meta.url))));
     captured = true;
     return { close: async () => {}, prompt: async () => { throw new Error('Synthetic session boundary; no provider request'); } };
   } });

@@ -54,6 +54,11 @@ test('entry parsing rejects arbitrary case IDs, roots, clocks, resets and incomp
   }
 });
 
+test('current repository satisfies the original fixed native input declaration', async () => {
+  const value = await inputs.readValidationInput(repository);
+  assert.deepEqual(value.manifest, declaration.VALIDATION_CASE.inputs);
+});
+
 test('frozen source verification returns evaluation input without a fabricated confirmation, window or file mutation', async t => {
   const root = await fixture(t), path = join(root, 'probes/e2e/requirements.json'), before = await readFile(path), modified = (await stat(path)).mtimeMs;
   const value = await inputs.readValidationInput(root);

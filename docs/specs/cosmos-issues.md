@@ -119,6 +119,7 @@
 - [x] [COS-71 接通双模块编码任务与最终集成](https://github.com/lrfluobida/Cosmos/issues/72)
 - [x] [COS-72 接通单模块有界修复与后继集成](https://github.com/lrfluobida/Cosmos/issues/73)
 - [x] [COS-73 保证模块辅助文件使用模块作用域](https://github.com/lrfluobida/Cosmos/issues/74)
+- [ ] [COS-74 隔离渲染采样源码与冻结验证模板](https://github.com/lrfluobida/Cosmos/issues/75)
 
 发布时优先把上述任务登记为 GitHub 原生 sub-issues；无论工具是否支持原生关系，父子 issue 的正文与元数据均须保留父任务链接、稳定任务 ID 和依赖链接。本文是 2026-10-01 已确认实施基线的发布稿，不表示任务已执行或依赖已通过。
 
@@ -752,6 +753,8 @@ CODING_REQUEST_TIMEOUT_SOURCE_READY / source-integrated / source-and-TEMP-only�
 
 ### COS-60 · 准备带编码时限的第七迁移案例与已核实余额准入
 
+- 2026-10-13 最新前置：Root 已完成最后 unknown 的供应商小时核对与保守结算207689 micro-CNY，snapshot1943/共享8873950/unknown与reserved0，14 stopped/65 closed/11 audits 不变。Closure12 随后被冻结模板多文件守卫拒绝，尚未执行；COS-74处理源码目录回归，C7仍未运行。以下unknown状态为历史，不能跳过原closure12与全部准入检查。
+
 - 发布状态：[#61](https://github.com/lrfluobida/Cosmos/issues/61)，id5707067158；native parent已关联。最终`a8d4f97bc61e84d0579df952bd39703aabcab2d3`独立整体APPROVED/TRANSFER_CASE_SEVEN_SOURCE_READY，合入`5a15510a1201482d9fa629096a17449463176d31`，21批准文件/UTF8-LF/diff/parser1/1核对通过；[公共审批](https://github.com/lrfluobida/Cosmos/issues/61#issuecomment-5990992898)精确读回。Source/TEMP13focused、source/compiledmutation1/1及current/cold/tool1/1通过，991机制26min1/1与314archiveSHA独审复用；实际main免费preflight期望拒unknown且ledger bytes/mtime/files不变，实际C7/paid/human NONE。
 
 ## 目标与当前事实
@@ -1284,6 +1287,18 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 父任务：https://github.com/lrfluobida/Cosmos/issues/1
 稳定任务 ID：COS-73
+
+### COS-74 · 隔离渲染采样源码与冻结验证模板
+
+- 发布：[#75](https://github.com/lrfluobida/Cosmos/issues/75)，id5831421845，Root 已挂 native parent；74 个子任务。短计划已独立 PLAN_APPROVED，源码待独立 exact SHA 审查；专属 `cos74_implementer`/`cos74_reviewer`，Root 唯一 merger。
+- 根因：COS69 将可信 observer 加入严格冻结为八文件的 `templates/2d`；当前真实 native/C6 输入读取均报 file set changed，实际 closure12 因此未执行。
+- 实施：原11611字节逐字节移至 `templates/rendering/render-frame-observer.ts`，仅改两个 installed-source 读取点及直读测试/安装夹具；capture 的 `_cosmos/render-frame-observer.ts`、选择签名与历史恢复语义保持。不得改旧声明/输入哈希、放宽目录检查或改历史数据。
+- 免费证据：真实仓根2RED；修后固定输入/C6 focused17/17、compiled upgrade3/3、typecheck/build0。采样/选择/恢复/捕获30pass/2fail；两个旧COS72版本后缀断言在ac8874b基线已由独立reviewer精确复现，不属于本次路径变化。命令与原始TAP见[短计划](../plans/2026-10-13-cos74-frozen-template.md)。
+- 边界：source/free fixture，无付费或新窗口；Root负责账务与closure12/C7，当前snapshot1943/unknown与reserved0/14stopped65closed11audits，closure12与C7未完成。原预算、PERFORMANCE未执行、参考未冻结及完整经典/实际12h/human未通过保持。
+
+源码前置：COS69/70已审集成；结果支持COS60的原有准入。
+父任务：https://github.com/lrfluobida/Cosmos/issues/1
+稳定任务 ID：COS-74
 
 ## 5. 任务与上下文包模板
 

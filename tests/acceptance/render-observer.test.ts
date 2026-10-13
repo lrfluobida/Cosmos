@@ -30,7 +30,7 @@ async function factory(fault = '') {
   const exports: any = {}, context = vm.createContext({ exports, require: () => ({ default: phaser }), performance: { now: () => now }, crypto: { randomUUID: () => Math.random().toString() },
     document: { get visibilityState() { return visibility; }, addEventListener() {} }, HTMLCanvasElement: Canvas, CanvasRenderingContext2D: Context, WebGLRenderingContext: GLContext,
     getComputedStyle: () => ({ display: 'block', visibility: 'visible', opacity }), devicePixelRatio: 1, innerWidth: 1280, innerHeight: 720 });
-  const source = await readFile(new URL('../../templates/2d/render-frame-observer.ts', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../../templates/rendering/render-frame-observer.ts', import.meta.url), 'utf8');
   const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   vm.runInContext(js, context); const game = exports.createObservedGame({});
   const step = () => { now += 17; game.loop.frame++; game.step(now, 17); };

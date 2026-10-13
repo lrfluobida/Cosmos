@@ -17,7 +17,7 @@ export function validateFrameSelection(value: unknown): asserts value is RenderF
     || !/^[a-f0-9]{64}$/.test(selection.observerSha256) || Object.keys(selection).some(key => !['enabled', 'observer', 'observerSha256'].includes(key))) throw new Error('Original render-frame selection is invalid.');
 }
 export async function selectRenderFrames(): Promise<RenderFrameSelection> {
-  const bytes = await regularFile(fileURLToPath(new URL('../../templates/2d/', import.meta.url)), 'render-frame-observer.ts');
+  const bytes = await regularFile(fileURLToPath(new URL('../../templates/rendering/', import.meta.url)), 'render-frame-observer.ts');
   new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   return { enabled: true, observer: { ...observer }, observerSha256: validationHash(bytes) };
 }
