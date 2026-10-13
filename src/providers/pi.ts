@@ -48,6 +48,8 @@ export interface PiSessionOptions {
   requestTimeoutMs: number;
   /** Trusted host authority, refreshed before admission and immediately before dispatch. */
   requestWindow?: () => Promise<{ deadlineAt: number; cleanupMs: number }>;
+  /** Trusted host policy using actual input bounds; may only reduce the configured output cap. */
+  requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>) => Promise<number>;
   /** Host must cover the input size and image cost of each request, including compaction. */
   estimatedMaxCostMicroCny: number | ((request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) => number);
   budget: PiBudget;
@@ -124,11 +126,24 @@ export async function createPiSession(config: PiSessionOptions) {
     if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled');
     if (readonlyRequests !== undefined && ++readonlyRequests > 1) throw fail('request_limit', 'Format correction permits one provider request');
     if (++requests > config.maxRequests) throw fail('request_limit', 'Session request limit reached');
+    const requestContext = config.requestOutputLimit ? structuredClone(context) : context;
+    const inputJson = JSON.stringify(requestContext);
+    const requireUnchangedInput = () => {
+      if (config.requestOutputLimit && JSON.stringify(context) !== inputJson) throw fail('invalid_request', 'Request input changed during output limit admission; no provider request sent');
+    };
     const request: Omit<PiRequest, 'estimatedMaxCostMicroCny'> = {
       requestId: randomUUID(), modelId: DEEPSEEK_MODEL, maxOutputTokens: config.maxOutputTokens,
-      inputBytes: Buffer.byteLength(JSON.stringify(context)),
-      hasImages: context.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image')),
+      inputBytes: Buffer.byteLength(inputJson),
+      hasImages: requestContext.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image')),
     };
+    if (config.requestOutputLimit) {
+      let limit: number;
+      try { limit = await config.requestOutputLimit(Object.freeze({ ...request })); }
+      catch { throw fail('admission_rejected', 'Request output limit authority rejected; no provider request sent'); }
+      if (!Number.isSafeInteger(limit) || limit <= 0 || limit > request.maxOutputTokens) throw fail('invalid_request', 'Request output limit must be a positive safe integer within the configured cap');
+      requireUnchangedInput();
+      request.maxOutputTokens = limit;
+    }
     let estimate: number;
     try {
       estimate = typeof config.estimatedMaxCostMicroCny === 'function' ? config.estimatedMaxCostMicroCny(request) : config.estimatedMaxCostMicroCny;
@@ -174,14 +189,15 @@ export async function createPiSession(config: PiSessionOptions) {
         const requestTimeoutMs = await effectiveRequestTimeout();
         throwIfFailed();
         if (closed || signal.aborted) throw fail('cancelled', 'Session was cancelled before dispatch');
+        requireUnchangedInput();
         // The SDK's HTTP timeout ends at response headers; retain a deadline through the body stream.
         timeout = setTimeout(() => {
           fail('timeout', 'Provider stream exceeded requestTimeoutMs');
           deadline.abort();
         }, requestTimeoutMs);
         sent = true;
-        const stream = originalStream(requestModel, context, {
-          ...options, signal, maxTokens: config.maxOutputTokens, maxRetries: 0, timeoutMs: requestTimeoutMs,
+        const stream = originalStream(requestModel, requestContext, {
+          ...options, signal, maxTokens: request.maxOutputTokens, maxRetries: 0, timeoutMs: requestTimeoutMs,
           onProviderStreamEvent: async (data, model) => {
             firstResponseMs ??= performance.now() - started;
             if (data && typeof data === 'object') {

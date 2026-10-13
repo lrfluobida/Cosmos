@@ -15,7 +15,7 @@ import { validateExecutionInput, validateExecutionRequirement } from './executio
 import type { ExecutionRequirement } from './execution-input.ts';
 import { requireValidationScope } from '../runtime/validation-scope.ts';
 import type { ValidationExecutionBinding } from '../runtime/validation-scope.ts';
-import { validationRole } from '../runtime/validation-validation.ts';
+import { validationReservation, validationRole } from '../runtime/validation-validation.ts';
 import { requireOriginalTask } from '../runtime/recovery/task-journal.ts';
 import { codingConcernReviewProtocol } from '../runtime/repair/coding-concerns.ts';
 import type { CodingConcernReview } from '../runtime/repair/coding-concerns.ts';
@@ -161,6 +161,26 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         input.controller.signal.throwIfAborted();
         return { deadlineAt: Date.parse(current.deadlineAt), cleanupMs: 5000 };
       },
+      ...(validation && input.role === 'coding' && purpose === 'author' ? { requestOutputLimit: async (request: Parameters<NonNullable<PiSessionOptions['requestOutputLimit']>>[0]) => {
+        input.controller.signal.throwIfAborted();
+        const current = await input.controller.validationAuthority(task.taskId, purpose);
+        input.controller.signal.throwIfAborted();
+        if (!current.admissionAllowed || current.caseId !== validation.caseId || current.windowId !== validation.windowId
+          || current.deadlineAt !== validation.deadlineAt || current.maxOutputTokens !== validation.maxOutputTokens
+          || request.maxOutputTokens > current.maxOutputTokens || !Number.isSafeInteger(current.remainingMicroCny) || current.remainingMicroCny <= 0) {
+          throw new Error('Coding output limit has no current original validation authority.');
+        }
+        const affordable = (cap: number) => validationReservation({ ...request, maxOutputTokens: cap }) <= current.remainingMicroCny;
+        if (affordable(request.maxOutputTokens)) return request.maxOutputTokens;
+        let lower = Math.min(4096, request.maxOutputTokens), upper = request.maxOutputTokens;
+        if (!affordable(lower)) throw new Error('Validation budget cannot afford the minimum coding output limit.');
+        while (lower < upper) {
+          const middle = lower + Math.ceil((upper - lower) / 2);
+          if (affordable(middle)) lower = middle;
+          else upper = middle - 1;
+        }
+        return lower;
+      } } : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,

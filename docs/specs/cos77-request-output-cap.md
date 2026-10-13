@@ -1,6 +1,6 @@
 # COS77 · 按实际请求与角色剩余额度收缩编码输出上限
 
-状态：SOURCE_NOT_READY / open。稳定任务 ID：COS-77。Issue：[#78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
+状态：SOURCE_NOT_READY / PLAN_APPROVED / open。稳定任务 ID：COS-77。Issue：[#78](https://github.com/lrfluobida/Cosmos/issues/78)，id5834357885；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
 
 专属 implementer `cos77_implementer`；独立 reviewer `cos76_implementer` acting COS77 reviewer；唯一 merger `batch75_76_merger`。实施计划：[2026-10-14-cos77-request-output-cap.md](../plans/2026-10-14-cos77-request-output-cap.md)。依赖已有 COS59 请求窗口、COS75 origin 守卫、COS76 当前任务与预算 authority。
 
@@ -22,3 +22,9 @@ Root提供的真实C8停止数据：14次API新增487528 micro-CNY，coding gran
 使用无真实会话内容的合成405672-byte context，经实际Pi边界证明原路径拒绝且零发送、有效cap52730假provider一次且网络0，实际 metadata/报价/发送一致。覆盖52731、NaN/negative/fractional/unsafe/above original、await输入变化、余额race、unknown、deadline、input/floor以及生产factory接线与非目标兼容。复用旧已审重型迁移fixture证据。
 
 仅 source/free-fixture 工作，无新 paid/window/human/game通过；作者不得读取真实ledger/key/用户对话/实际sessions，也不读写参考安装。标记目标为 `VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY`，必须以独立规格与质量批准的 exact SHA 为准。
+
+## 作者实现与证据
+
+计划 exact `58a9905df01a137b5b1d6310cf167a4b1e878125` 已独立 `PLAN_APPROVED`。生产改动仅Pi adapter与role factory；异步策略与预留后窗口检查均绑定同一输入快照，原输入发生变化保守拒绝，已预留时报告not_sent。
+
+新增source覆盖共32条：Pi17条与factory/controller15条均有通过证据；新增native SDK工具路径的测试断言修正及按影响范围复用记录见计划。既有SDK/output cap/request window/timeouts回归39/39；compiled Pi/factory/repair代表6/6。源码build/typecheck及新增测试strict检查通过。所有provider为fake、network0，未读取真实会话或账本。SOURCE_NOT_READY等待最终exact implementation规格与质量独审；这些证据不代表原C8重开或游戏生成通过。
