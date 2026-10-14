@@ -1376,6 +1376,16 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 稳定任务 ID：COS-81
 
+### COS-82 · 准备 ¥3 上限的固定迁移 C10
+
+[任务卡 #83](https://github.com/lrfluobida/Cosmos/issues/83)，id5846224228，已由Root发布、精确读回并原生挂父#1；父任务现有82个子项。依赖COS78/79/80/81，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger为 `batch75_76_merger`。
+
+用户于2026-10-14在明确最多¥3、45分钟的提案后回复“继续”。本轮只按该安排推进，仍计入原¥150总额，COS16原预算组保持¥10。固定额度按规划、设计、美术、编码、修复顺序为¥0.000001、¥0.000001、¥0.000001、¥2.40、¥0.599997，合计¥3；旧C9余额与费用保留为历史。
+
+当前 SOURCE_NOT_READY/open，目标标记为 `TRANSFER_CASE_TEN_SOURCE_READY`。短计划 `371ef1d9e641c331cfca1812ec9ab94a815d422c` 已由cos77独立审查为PLAN_APPROVED，没有finding；作者进入TDD，最终源码另审。自有计划与任务卡由作者维护，当前仅登记已发布issue，不合入未审代码。实际C10尚未准入、开始或付费。
+
+稳定任务 ID：COS-82
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

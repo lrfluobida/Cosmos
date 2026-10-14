@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 81
+    "childCount": 82
   },
   "tasks": [
     {
@@ -6335,8 +6335,53 @@
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE"
+    },
+    {
+      "taskId": "COS-82",
+      "title": "准备 ¥3 上限的固定迁移 C10",
+      "number": 83,
+      "id": 5846224228,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/83",
+      "dependsOn": ["COS-78", "COS-79", "COS-80", "COS-81"],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-implementation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "targetReviewStatus": "TRANSFER_CASE_TEN_SOURCE_READY",
+      "sourceReviewStatus": "PENDING",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "371ef1d9e641c331cfca1812ec9ab94a815d422c",
+      "planReviewFindings": [],
+      "plannedPlanPath": "docs/plans/2026-10-14-cos82-transfer-case10.md",
+      "plannedTaskCardPath": "docs/specs/cos82-transfer-case10.md",
+      "implementer": "cos76_implementer",
+      "reviewer": "cos77_implementer",
+      "merger": "batch75_76_merger",
+      "userAuthorization": {
+        "date": "2026-10-14",
+        "reply": "继续",
+        "context": "用户在明确本轮最多¥3、45分钟且仍计入原¥150总额的提案后回复继续",
+        "maxCostMicroCny": 3000000,
+        "maxDurationMs": 2700000,
+        "sharedLimitMicroCny": 150000000,
+        "originalCos16ParentMicroCny": 10000000
+      },
+      "plannedRoleGrantsMicroCny": {
+        "planning": 1,
+        "design": 1,
+        "art": 1,
+        "coding": 2400000,
+        "repair": 599997
+      },
+      "liveExecutionStatus": "not-admitted-source-not-ready",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 81,
+  "verifiedNativeSubIssues": 82,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
