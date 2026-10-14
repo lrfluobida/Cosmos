@@ -1,6 +1,6 @@
 # COS-92 持久浏览器启动截止与准备校验
 
-状态：`PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡 source scoped complete；GitHub当前open，待Root公开源码审批与关闭。计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，无剩余 finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 精确读回。Issue [#93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，父 #1。依赖 COS37/COS52 持久浏览器路径及 COS91 / #92 的实际 C14 结果。
+状态：`PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡 source scoped complete/closed；[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180910087)、closed(completed)及父勾选已由Root精确读回。计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，无剩余 finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 精确读回。Issue [#93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，父 #1。依赖 COS37/COS52 持久浏览器路径及 COS91 / #92 的实际 C14 结果。
 
 专职作者 `cos92_implementer`；独立 reviewer 与唯一 merger 由 Root 指派。分支 `codex/cos92-browser-launch`，复用 managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点为已解冻主线 `b20e9a43f26712a1f5a13468057df46b6c012b69`。[实施计划](../plans/2026-10-15-cos92-browser-launch.md)。本次先提交两份文档，独审批准后才修改生产实现；共享 tracking 由另一作者维护。
 

@@ -87,7 +87,7 @@ P2后 `npm run typecheck` / `npm run build` 均退出0，实际日志 `C:/Users/
 
 ## 已审集成
 
-作者 `cos92_implementer` 最终 `ffa0ce2918735f5b21b22c4373a390b156e63d33` 经 `cos92_reviewer` 独立规格→质量 APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger` 合入 `e74815f468b7158b5555ca2e5887ad3459b74dda`，标记 `PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡 source scoped complete。GitHub当前open，Root后续公开源码审批与关闭；main保持unfrozen。
+作者 `cos92_implementer` 最终 `ffa0ce2918735f5b21b22c4373a390b156e63d33` 经 `cos92_reviewer` 独立规格→质量 APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger` 合入 `e74815f468b7158b5555ca2e5887ad3459b74dda`，标记 `PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡 source scoped complete/closed。[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180910087)、closed(completed)及父勾选已由Root精确读回；main保持unfrozen。
 
 主线 `npm run typecheck` / `npm run build` 均退出0，raw为 `C:/Users/26557/AppData/Local/Temp/cos92-merge-typecheck.log` 和 `cos92-merge-build.log`。短集成命令 `node --experimental-strip-types --test --test-name-pattern='persisted ticket while raw prepare|timely prepare spawns once|failed late release reaches public drain|rollback failure before handle delivery|ordinary rejected work' tests/acceptance/persistent-launch.test.ts tests/runtime/recovery/owned-work.test.ts` 通过5/5、0skip，4151.1296ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-merge-focused.tap`。覆盖迟到handle的drain责任、正常spawn/register、两类公开清理失败及普通取消。
 
