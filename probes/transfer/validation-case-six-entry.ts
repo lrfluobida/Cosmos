@@ -62,8 +62,9 @@ export function createFixedTransferValidationCaseSixEntry(sourcePins: Historical
   return createFixedTransferCodingOnlyEntry(sourcePins);
 }
 export interface FixedCodingOnlyEntryConfiguration {
-  declaration: ValidationDeclaration; manifestLocation: 'cos20-transfer-validation-7-reuse.json' | 'cos20-transfer-validation-8-reuse.json' | 'cos20-transfer-validation-9-reuse.json';
-  closureAuditCount?: 13 | 14; sourceMarkers?: Readonly<Record<string, string>>;
+  declaration: ValidationDeclaration; manifestLocation: 'cos20-transfer-validation-7-reuse.json' | 'cos20-transfer-validation-8-reuse.json' | 'cos20-transfer-validation-9-reuse.json' | 'cos20-transfer-validation-10-reuse.json';
+  closureAuditCount?: 13 | 14 | 15; sourceMarkers?: Readonly<Record<string, string>>;
+  partialGroupAllocation?: true;
   parseEntry: typeof parseTransferValidationCaseSixEntry; declarations: readonly ValidationDeclaration[];
   deriveDeclaration(state: RunSnapshot): ValidationDeclaration;
   createIdentityReader(options: { repository: string; reviewedPlatformSha: string }): ReturnType<typeof createTransferValidationCaseSixIdentityReader>;
@@ -127,8 +128,10 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
     || !sameValue(fees, [76_320, 601_462, 166_678, 677_647, 0]) || state.ledger.allocationDelegations?.length !== (resume ? 6 : 5)
     || !sameValue(state.ledger.allocationDelegations.slice(0, 5).map(item => item.caseId), members)
     || resume && state.ledger.allocationDelegations[5].caseId !== D.caseId)) throw new Error('The original five delegations and exact COS16 role fee distribution/remaining capacity are required.');
+  const expectedAllocated = configuration?.partialGroupAllocation && resume
+    ? state.validation!.cases[historyCount].quote.budgetGroup!.allocatedMicroCny + Object.values(D.grants).reduce((sum, grant) => sum + grant.amountMicroCny, 0) : 10_000_000;
   if (configuration && (!group || state.ledger.allocationDelegations.length !== declarations.length + (resume ? 1 : 0)
-    || resume && (state.ledger.allocationDelegations.at(-1)?.caseId !== D.caseId || group.allocatedMicroCny !== 10_000_000))) throw new Error('Exact historical delegations and current derived grant net are required.');
+    || resume && (state.ledger.allocationDelegations.at(-1)?.caseId !== D.caseId || group.allocatedMicroCny !== expectedAllocated))) throw new Error('Exact historical delegations and current derived grant net are required.');
   for (let i = 0; i < declarations.length; i++) {
     if (!sameValue(histories[8 + i]!.quote.declaration, declarations[i]) || histories[8 + i]!.quote.formatVersion !== 'validation-case-quote-2') throw new Error('The original five fixed declarations and quote2 identities are required.');
   }

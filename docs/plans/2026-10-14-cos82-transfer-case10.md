@@ -26,12 +26,12 @@
 
 ## 步骤与免费证据
 
-- [ ] 短计划/卡 exact 提交独审；批准前不改生产代码。
-- [ ] RED：两组不同 C9 settled 合成金额保持新向量固定，同时准确改变 group available；拒绝31条数量/role/window/费用证据/closure/grant/旧 prefix漂移、unknown/reserved、余额不足及旧 quote。余额不足在现有真实预算 helper/quote 路径验证，不伪称真实历史余额已不足。
-- [ ] GREEN：最小声明、固定 wrapper 与恢复 seam；旧入口默认10m回归保持。新 quote完整写入3m向量与上限，claim只追加一次并保留全部旧前缀。
-- [ ] 一个真实 SOURCE host/factory/Pi fake 代表：空新作者目录、C5复用与当前映射/绑定，原守卫下请求/费用；关闭 owner 后同窗口/deadline/task/quote冷恢复通过，证明 group allocated未满10m仍是合法本案。伪造 partial净额或quote基数拒绝。旧 repair/v2编排未改，复用 COS76真实host repair/cold分支与 COS80 v2 packet证据，另核599997 repair grant沿原524488预估门槛与资格门禁。
-- [ ] compiled 固定入口/JS worker路径与新闭包代表，source/compiled mutation拒绝；准确区分 synthetic worker transport 与实际 build/spawn。
-- [ ] affected unit/旧 C9短回归、typecheck/build及 probes/tests strict；UTF-8/LF/中文回读与 diff check。保存原始 TAP/命令/退出码，提交 exact SHA 独审，sole merger整合。
+- [x] 短计划/卡 exact 提交独审；批准前不改生产代码。
+- [x] RED：两组不同 C9 settled 合成金额保持新向量固定，同时准确改变 group available；拒绝31条数量/role/window/费用证据/closure/grant/旧 prefix漂移、unknown/reserved、余额不足及旧 quote。余额不足在现有真实预算 helper/quote 路径验证，不伪称真实历史余额已不足。
+- [x] GREEN：最小声明、固定 wrapper 与恢复 seam；旧入口默认10m回归保持。新 quote完整写入3m向量与上限，claim只追加一次并保留全部旧前缀。
+- [x] 一个真实 SOURCE host/factory/Pi fake 代表：空新作者目录、C5复用与当前映射/绑定，原守卫下请求/费用；关闭 owner 后同窗口/deadline/task/quote冷恢复通过，证明 group allocated未满10m仍是合法本案。伪造 partial净额或quote基数拒绝。旧 repair/v2编排未改，复用 COS76真实host repair/cold分支与 COS80 v2 packet证据，另核599997 repair grant沿原524488预估门槛与资格门禁。
+- [x] compiled 固定入口/JS worker路径与新闭包代表，source/compiled mutation拒绝；准确区分 synthetic worker transport 与实际 build/spawn。
+- [x] affected unit/旧 C9短回归、typecheck/build及 probes/tests strict；UTF-8/LF/中文回读与 diff check。保存原始 TAP/命令/退出码，提交 exact SHA 独审；最终批准与 sole merger整合待完成。
 
 拟定命令：`node --experimental-strip-types --test tests/transfer/validation-case-ten.test.ts tests/transfer/validation-case-nine.test.ts`；runtime与compiled分别执行，避免并行占用同一 SOURCE seed；`npm run typecheck`、`npm run build`，显式 strict 编译同 C9 命令仅替换新 runner/tests。先RED后GREEN，不重旧长矩阵。
 
@@ -41,4 +41,25 @@
 
 新 SOURCE 决策/费用/closure 文件使用新身份；不改已归档 C8/C9 proof。finally先关全部 owner，再将原 snapshot 字节/mtime、被临时更换的 SOURCE mapping恢复；新视图/结果单独归档。若保存视图不再自洽，先报告精确失配，不自动重建长链。不得读取真实 ledger/session/thinking/key、真实 C9作者文件或参考游戏；Root另行执行实际准入/paid。
 
-状态：计划待独审，SOURCE_NOT_READY。目标 marker `TRANSFER_CASE_TEN_SOURCE_READY`；源码准备不代表实际 C10已启动、生成完成或人工通过。
+状态：计划 exact `371ef1d9e641c331cfca1812ec9ab94a815d422c` 已由 `cos77_implementer` 独立 PLAN_APPROVED。实现完成待 exact 独审，仍为 SOURCE_NOT_READY。目标 marker `TRANSFER_CASE_TEN_SOURCE_READY`；源码准备不代表实际 C10已启动、生成完成或人工通过。
+
+## 实现证据
+
+| 检查 | 实际结果 | 原始证据 |
+| --- | --- | --- |
+| 新 C10 unit RED | 0/6，均因固定 API 缺失失败；退出1，TAP4818.8761ms | `C:/Users/26557/AppData/Local/Temp/cos82-unit-red.tap` |
+| C10六项与原C9五项 GREEN | 11/11，0skip；退出0，TAP5301.3911ms | `C:/Users/26557/AppData/Local/Temp/cos82-unit-green.tap` |
+| compiled 新闭包/JS worker路径/unknown及字节变更拒绝 | 1/1，0skip；退出0，test10842.2561ms/TAP14292.1935ms | `C:/Users/26557/AppData/Local/Temp/cos82-compiled.tap` |
+| SOURCE 当前host/Pi/partial冷恢复 | 1/1，0skip；退出0，test398125.6724ms/TAP401597.7236ms | `C:/Users/26557/AppData/Local/Temp/cos82-runtime.tap` |
+| `npm run typecheck` / `npm run build` | 均退出0 | `C:/Users/26557/AppData/Local/Temp/cos82-typecheck.log` / `cos82-build.log` |
+| 新 runner/probes/tests strict | 退出0，无stdout/诊断 | 当次工具原输出，无独立日志 |
+
+命令：unit按上文两文件；compiled/runtime分别为 `node --experimental-strip-types --test tests/transfer/validation-case-ten-compiled.test.ts` 与 `validation-case-ten-runtime.test.ts`。strict为 `node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck --types node --allowImportingTsExtensions --allowJs --checkJs false probes/transfer/validation-case-ten-run.ts tests/transfer/validation-case-ten.test.ts tests/transfer/validation-case-ten-runtime.test.ts tests/transfer/validation-case-ten-compiled.test.ts`。首次strict仅新fixture九处可选字段类型检查失败，按已验证快照形状补非空标记后通过，生产源码未因此变化。
+
+runtime直接复用保存的16-case视图，经真实预算/claim/settlement/closure API构造两组31笔C9合成费用（960162与800000µ）。新向量两次均为3m，available差额正确、旧quote失效；unknown/closure/grant/delegation/owner/manifest/实际closure source及COS80/81审批/双祖先拒绝保持零host派发。当前C10仅一个coding任务，作者目录为空；真实host/factory/Pi guarded stream对合成405672-byte输入保留65536cap，预留1335632µ，fake provider1/network0。关闭owner后用同window/deadline/requirement冷恢复，group allocated=quote.budgetGroup prior allocated+3m且小于10m；伪造quote基数拒绝。旧17-case/费用/closure/audit前缀保持。旧入口默认10m条件仅由窄diff确认并复用旧冷恢复证据，没有重跑旧冷启动长链。
+
+归档：`C:/Users/26557/AppData/Local/Temp/cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C10-proof-f99d7222-2af2-48df-97c7-89c0ae61c0c2`，包含original snapshot、两个history视图、result snapshot、case10和marker、合成C9历史目录。finally先关闭owner再恢复原snapshot字节/mtime、原SOURCE mapping字节，旧C8 proof各固定文件字节/mtime和已归档C9 proof保持。未重建seed，也未修改真实历史。
+
+source代表核固定新wrapper与原closure依赖并拒绝篡改source receipt；compiled代表实际拒绝改过的JS task字节。JS worker路径选择已验证，worker job transport是synthetic，并非实际worker spawn/build。C10 repair/build/browser/完整生成未跑；599997>524488仅为新grant与未改host预估门槛的源契约核对，原COS76 repair/cold与COS80 v2 packet证据复用，不能写成C10修复实测。
+
+16paths严格UTF-8/LF/noBOM；三个既有源码文件非ASCII序列保持，README原字节前缀保持，中文回读与diff check通过。全部生产源码在compiled/runtime期间稳定；无真实ledger/session/key读取、实际新窗口或付费操作。
