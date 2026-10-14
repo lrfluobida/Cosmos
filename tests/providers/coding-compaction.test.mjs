@@ -25,6 +25,24 @@ test('native split summaries are both charged before one checkpoint is saved', a
   assert.equal(report.settlements.filter(item => item.kind === 'summary' && item.outcome === 'settled').length, 3);
 });
 
+for (const mode of ['length-single', 'length-split']) test(`settled optional ${mode} retains context and continues the same author attempt`, async t => {
+  const { report } = await codingCompactionFixture(t, mode, mode === 'length-split');
+  assert.equal(report.networkCalls, 0); assert.equal(report.partialToolCalls, 0);
+  const failed = report.events.filter(event => event.type === 'compaction_end');
+  assert.equal(failed.length, 1); assert.equal(failed[0].saved, 0);
+  assert.equal(failed[0].projectionUnchanged, true); assert.equal(failed[0].entriesUnchanged, true);
+  const summaryRows = report.ledger.filter(row => report.admissions.some(request => request.kind === 'summary' && request.requestId === row.requestId));
+  assert.equal(summaryRows.length, mode === 'length-split' ? 2 : 1);
+  assert.ok(summaryRows.every(row => row.status === 'settled' && row.settledMicroCny === 10));
+  assert.equal(report.error, undefined, 'The discarded summary must not latch the author failure');
+  assert.equal(report.compactions, 0); assert.equal(report.ordinary, mode === 'length-split' ? 6 : 5);
+  assert.equal(report.summaryRequests, summaryRows.length); assert.equal(report.captured, true);
+  assert.equal(report.currentTaskUnchanged, true); assert.equal(report.fixedPacketAndToolsRetained, true);
+  assert.equal(report.autoCompactionRestoredDisabled, true);
+  assert.ok(report.boundaries.at(-1).inputBytes >= report.boundaries.find(boundary => boundary.trigger).inputBytes + 32768);
+  assert.equal(report.boundaries.at(-1).trigger, false, 'Discarded summary disables later automatic compaction');
+});
+
 test('a read-only format turn cannot trigger compaction and restores its tool loadout', async t => {
   const f = await codingCompactionFixture(t), before = f.requestCounts(), policies = f.report.policies.length;
   await f.readonlyPrompt();
@@ -33,21 +51,46 @@ test('a read-only format turn cannot trigger compaction and restores its tool lo
   assert.deepEqual(f.native.getActiveToolNames().sort(), ['synthetic_read', 'write']);
 });
 
-for (const mode of ['toolcall', 'length', 'unknown', 'budget-first', 'budget-second', 'balance-race', 'deadline', 'cancel', 'invalid-sdk-cap']) {
+for (const mode of ['toolcall', 'unknown', 'budget-first', 'budget-second', 'balance-race', 'deadline', 'cancel', 'invalid-sdk-cap']) {
   test(`production compaction ${mode} stops before checkpoint or further ordinary dispatch`, async t => {
     const { report, role, f, requestCounts } = await codingCompactionFixture(t, mode, mode === 'budget-second');
     assert.ok(report.error); assert.equal(report.compactions, 0); assert.equal(report.ordinary, mode === 'budget-second' ? 4 : 3);
-    assert.equal(report.summaryRequests, ['toolcall', 'length', 'unknown', 'budget-second'].includes(mode) ? 1 : 0);
+    assert.equal(report.summaryRequests, ['toolcall', 'unknown', 'budget-second'].includes(mode) ? 1 : 0);
     assert.ok(report.events.filter(event => event.type === 'compaction_end').every(event => event.saved === 0));
     const counts = requestCounts(); await assert.rejects(role.prompt('Do not retry')); assert.deepEqual(requestCounts(), counts);
     await assert.rejects(readFile(join(f.artifactRoot, 'authors/coding.txt')), { code: 'ENOENT' });
-    if (mode === 'length') assert.equal(report.error.code, 'incomplete');
     if (mode === 'unknown') {
       assert.equal(report.error.code, 'usage_unknown'); assert.equal(report.ledger.at(-1).status, 'unknown'); assert.ok(report.ledger.at(-1).reservedMicroCny > 0);
     }
     if (mode === 'toolcall') { assert.equal(report.error.code, 'compaction_failed'); assert.equal(report.ledger.at(-1).status, 'settled'); }
     if (mode === 'budget-second') assert.equal(report.settlements.filter(item => item.kind === 'summary' && item.outcome === 'settled').length, 1);
     assert.equal(report.autoCompactionRestoredDisabled, true);
+  });
+}
+
+test('discarded optional length still rejects a later unaffordable ordinary request', async t => {
+  const { report, role, requestCounts } = await codingCompactionFixture(t, 'length');
+  assert.equal(report.error?.code, 'admission_rejected'); assert.equal(report.ordinary, 4);
+  assert.equal(report.summaryRequests, 1); assert.equal(report.compactions, 0); assert.equal(report.partialToolCalls, 0);
+  assert.equal(report.ledger.filter(row => row.status === 'settled').length, 5);
+  assert.equal(report.dispatches.at(-1).kind, 'ordinary'); assert.equal(report.autoCompactionRestoredDisabled, true);
+  const counts = requestCounts(); await assert.rejects(role.prompt('No retry'), { code: 'admission_rejected' }); assert.deepEqual(requestCounts(), counts);
+});
+
+for (const mode of ['unknown', 'model', 'accounting', 'cancel', 'close', 'deadline', 'source', 'history']) {
+  test(`optional length cannot hide ${mode} failure`, async t => {
+    const { report, role, requestCounts, f } = await codingCompactionFixture(t, `length-${mode}`);
+    assert.ok(report.error); assert.equal(report.ordinary, 3); assert.equal(report.summaryRequests, 1);
+    assert.equal(report.compactions, 0); assert.equal(report.partialToolCalls, 0); assert.equal(report.networkCalls, 0);
+    assert.equal(report.autoCompactionRestoredDisabled, true);
+    const summaryRow = report.ledger.find(row => report.admissions.some(request => request.kind === 'summary' && request.requestId === row.requestId));
+    assert.equal(summaryRow.status, ['unknown', 'model'].includes(mode) ? 'unknown' : 'settled');
+    if (mode === 'accounting') assert.equal(report.error.code, 'accounting_error');
+    if (mode === 'model') assert.equal(report.error.code, 'model_mismatch');
+    if (mode === 'history') assert.equal(report.error.code, 'compaction_failed');
+    if (['deadline', 'source'].includes(mode)) assert.equal(report.error.code, 'admission_rejected');
+    const counts = requestCounts(); await assert.rejects(role.prompt('No retry')); assert.deepEqual(requestCounts(), counts);
+    await assert.rejects(readFile(join(f.artifactRoot, 'authors/coding.txt')), { code: 'ENOENT' });
   });
 }
 
