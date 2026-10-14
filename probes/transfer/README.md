@@ -260,3 +260,11 @@ C11要求原18stopped/10delegations/90closed/16audits、C10原40个coding author
 C12要求原19stopped/11delegations/95closed/17audits、C11原41个coding author admitted/settled请求及closure17、无repair/unknown/reserved。新grants为1/1/1/2400000/599997µ，¥3/45min/80requests/一次合格repair；原COS16组¥10/phase¥30/shared¥150、availableAllocation准入与partial恢复公式保持。旧C10/C11行为不变，C11不重开。
 
 独立清单 `cos20-transfer-validation-12-reuse.json` 只读复用C5两passed阶段七capture，零planner/design/art SDK，新作者为空，不预置C11六个文件。新增COS84 `TRANSFER_CASE_ELEVEN_SOURCE_READY`、COS85 `OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY` 和各自reviewed/merge祖先；保留原source/compiled、当前输入/候选、owner和请求守卫。免费SOURCE与编译证据见 [COS86计划](../../docs/plans/2026-10-14-cos86-transfer-case12.md)，不能当作实际C12或游戏通过。
+
+## COS-88 · 原预算组余量内的固定迁移 C13（源码准备）
+
+`validation-case-thirteen-run.ts` 只绑定 `cos20-transfer-validation-13`。免费预检为 `node --experimental-strip-types probes/transfer/validation-case-thirteen-run.ts --validation-preflight <reviewed-main-sha>`；真实执行只由 Root 使用同入口 `--validation-case <reviewed-main-sha> <operator-validation-source>`。
+
+C13要求原20stopped/12delegations/100closed/18audits、C12原52个coding author admitted/settled请求及closure18、无repair/unknown/reserved。新固定grants为1/1/1/1900000/599997µ，合计¥2.50；45min/80requests/一次合格repair保持。原COS16组¥10/phase¥30/shared¥150、availableAllocation准入和partial恢复公式不变；C10/C11/C12原¥3声明及费用保持，旧C12不重开。
+
+独立清单 `cos20-transfer-validation-13-reuse.json` 只读复用C5两passed阶段七capture，零planner/design/art SDK，新作者为空，不预置C12任何版本源码。新增COS86 `TRANSFER_CASE_TWELVE_SOURCE_READY`、COS87 `PARALLEL_GIT_IDENTITY_SOURCE_READY` 和各自reviewed/merge祖先，保留原source/compiled、当前输入/候选、owner、请求和工具守卫。详见 [COS88计划](../../docs/plans/2026-10-15-cos88-transfer-case13.md)；SOURCE或编译证据不能当作实际C13、完整经典或human通过。
