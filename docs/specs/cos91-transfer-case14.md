@@ -1,6 +1,6 @@
 # COS-91 补充分配后的固定迁移 C14
 
-状态：source scoped complete/closed / source-only；actual C14 / paid / 真实supplement apply / human 均 NONE。Issue [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，Root 已报告原生挂父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，登记时91个子任务。依赖 COS88 #89、COS89 #90、COS90 #91。
+状态：source scoped complete/closed；实际C14 failed且身份已消费，新增付费¥0.792063、真实supplement一次应用、closure20已完成，human仍NONE。Issue [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，Root 已报告原生挂父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，登记时91个子任务。依赖 COS88 #89、COS89 #90、COS90 #91。
 
 专职作者 `cos91_implementer`；Root 指派独立 reviewer 和唯一 merger。分支 `codex/cos91-transfer-case14`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`；[实施计划](../plans/2026-10-15-cos91-transfer-case14.md)。本卡和计划先独立审查，COS90 生产接口独审稳定且 Root 指定集成基线后才实施。作者不更新共享 tracking、不写 GitHub、不读写真实账本或会话。
 
@@ -41,7 +41,7 @@ SOURCE覆盖未补充与各种source/quote/vector/marker/ancestor/owner漂移拒
 
 实际C14另记时间、费用、自检、作者文件、handoff/capture、正式build/browser/review/repair/accepted及清理。源码或synthetic通过不等于实际游戏通过；COS16/COS18、完整经典和human仍未完成。
 
-## 作者免费实现证据与已知限制
+## 作者免费实现证据与已知限制（实际运行前）
 
 六项有效RED后，C14 unit6/6、compiled1/1、最终SOURCE补充代表1/1，均0skip；typecheck/build/affected strict退出0。旧C7/C13首次短代表9pass/1fail仅因COS90新错误文字，正则最小适配后受影响项1/1通过，另九项复用。COS90源码、旧声明返回固定契约和quote2历史保持；实际文件范围、命令、raw与归档见[计划](../plans/2026-10-15-cos91-transfer-case14.md)。
 
@@ -51,4 +51,12 @@ SOURCE覆盖未补充与各种source/quote/vector/marker/ancestor/owner漂移拒
 
 提交前将两个新文件中共4个CRLF规范为仓库要求的LF，保存原字节并确认只有这两路径换行改变，其余171个捕获文件保持；最终SOURCE SHA为`5ed07064e2476d7fc241926b82aa5d85227c938a77edd1c48a1906d1a5b6258a`。最终短source capture/compiled各1/1，前后src/probes全部180个发射JS逐字节相同，详见计划的raw及`cos91-line-ending-emit.json`。按该仅EOL/JS等价证据复用长SOURCE，不能称最终173个TS字节与初次完全相同。
 
-两个费用视图D14相同；标准费用1641136µ的supplement成功，1100000µ视图固定supplement拒绝。最终report财务代表committed10100314µ、limit11600314µ，无错误的旧10m超限gap；report本身failed且没有游戏SDK/验收。compiled简化窗口只证明JS source/worker，所有真实运行和human仍NONE。最终 `28e89554b933da9409fac7820a12948cc2159271` 已经 `cos91_reviewer` 实际diff独立规格→质量APPROVED，无finding；唯一 `batch_cos90_91_merger` 合入 `f67979daf2c46752b67778c7433b4b54f202b7a2`，标记 `TRANSFER_CASE_FOURTEEN_SOURCE_READY`，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6178757721)、closed(completed)及父勾选已由Root精确读回，发布主线 `b28fff1589c649dc412826edfd5d187f02a0471e`。主线typecheck/build退出0，C14 unit6/6、旧C7/C13短代表2/2、0skip；原始输出为 `C:/Users/26557/AppData/Local/Temp/cos91-merge-typecheck.log`、`cos91-merge-build.log`、`cos91-merge-unit.tap`（9050.6385ms）及 `cos91-merge-old.tap`（6364.6168ms）。已独审的SOURCE组合证据、恢复限制、最终source capture/compiled及180个JS等价证据按前述边界复用，未重新seed或长跑。Root后续operator源码前提已具备：在shared¥150硬上限内，先沿COS90对原组固定内部分配1600314µ，再按新quote准入C14的¥2.50/45分钟/80请求/一次合格repair；仍须Root独立核quote、显式apply和最终冻结。真实账本仍revision2965/v4、原组¥10/可分配899686µ、sharedsettled16108937µ，未quote/apply或运行C14。main保持unfrozen，phase¥30、正式¥200/12h保持，COS16/18、完整经典和human仍未完成。
+两个费用视图D14相同；标准费用1641136µ的supplement成功，1100000µ视图固定supplement拒绝。最终report财务代表committed10100314µ、limit11600314µ，无错误的旧10m超限gap；report本身failed且没有游戏SDK/验收。compiled简化窗口只证明JS source/worker，所有真实运行和human仍NONE。最终 `28e89554b933da9409fac7820a12948cc2159271` 已经 `cos91_reviewer` 实际diff独立规格→质量APPROVED，无finding；唯一 `batch_cos90_91_merger` 合入 `f67979daf2c46752b67778c7433b4b54f202b7a2`，标记 `TRANSFER_CASE_FOURTEEN_SOURCE_READY`，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6178757721)、closed(completed)及父勾选已由Root精确读回，发布主线 `b28fff1589c649dc412826edfd5d187f02a0471e`。主线typecheck/build退出0，C14 unit6/6、旧C7/C13短代表2/2、0skip；原始输出为 `C:/Users/26557/AppData/Local/Temp/cos91-merge-typecheck.log`、`cos91-merge-build.log`、`cos91-merge-unit.tap`（9050.6385ms）及 `cos91-merge-old.tap`（6364.6168ms）。已独审的SOURCE组合证据、恢复限制、最终source capture/compiled及180个JS等价证据按前述边界复用，未重新seed或长跑。源码审批证据保留。COS90固定¥1.600314补充分配已在C14前一次实际应用，原parent仍¥10，组有效容量¥11.600314；shared¥150、phase¥30、正式¥200/12h保持。C14已failed并消费，closure20后revision3114、sharedsettled16901000µ、组可分配1707937µ；Root已解除main冻结，实际结果见下述记录。COS16/COS18、完整经典和human仍未完成。
+
+## C14实际结果与后续
+
+C14已在冻结版本 `b20e9a43` 实际运行并failed，身份已消费：41分13.754秒、35次请求全部settled，新增¥0.792063，共享累计¥16.901000，unknown/reserved为0。运行时作者生成10文件35,771字节，与末次成功自检、capture、candidate v1及正式构建输入逐字节一致；三次自检失败/通过/通过，正式TypeScript/Vite退出0，814ms仅为Vite时间。持久浏览器首段15秒启动超时，21步全部skipped，未记录session、PID/exit为null，不能证明历史OS spawn；coding review仍pending，无repair/accepted/human。
+
+COS90固定¥1.600314补充分配已在C14前一次实际应用，原parent仍¥10，组有效容量¥11.600314；shared¥150、phase¥30、正式¥200/12h保持。原锁首次归档调用因PID复用在写入前拒绝；独审精确代际守卫后实际归档一次，原字节/mtime与文件身份保持，失败及清理证据不足结论保留。closure20已一次执行并独立核对，revision3114、22stopped/14delegations/110closed/20audits，释放及组可分配¥1.707937；原费用、历史和补充分配保持。Root已解除main冻结。[COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6180211123)与[C14结果](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6180211817)已由Root精确读回。详见[完整研究记录](../research/2026-10-15-transfer-c14-browser-launch.md)。
+
+免费只读诊断每组件测一次且全部通过。单次源码校验873.523ms、源码推导24次约20.96秒仅为外推，不是整链或C14历史耗时；OS spawn是否发生仍未证明。[COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，当前92个子任务。依赖COS37/52/91，作者`cos92_implementer`，open / `SOURCE_NOT_READY`；承接启动重复校验、本地取消/截止与迟到启动意图的免费源码修复及确定性回归，计划和源码待独审。没有新付费案例，COS16/COS18、完整经典和human仍未完成。

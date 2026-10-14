@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 91
+    "childCount": 92
   },
   "tasks": [
     {
@@ -7272,19 +7272,32 @@
         "evidenceScope": "free-source-and-synthetic-fixtures-only"
       },
       "mainFreeze": {
-        "status": "unfrozen",
+        "status": "unfrozen-by-Root-after-closure20",
         "releaseAuthority": "Root"
       },
       "workScope": "free-source-and-synthetic-fixtures-only",
       "actualValidation": "NONE",
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
-      "actualSupplementApply": "NONE",
+      "actualSupplementApply": "APPLIED_ONCE-1600314-micro-CNY",
       "liveLedger": {
-        "revision": 2965,
+        "revision": 3114,
+        "contractVersion": "5.0.0",
         "parentLimitMicroCny": 10000000,
-        "parentAvailableMicroCny": 899686,
-        "sharedSettledMicroCny": 16108937
+        "effectiveGroupLimitMicroCny": 11600314,
+        "parentAvailableMicroCny": 1707937,
+        "sharedSettledMicroCny": 16901000
+      },
+      "actualSupplementResult": {
+        "appliedOnce": true,
+        "additionalMicroCny": 1600314,
+        "beforeRevision": 2965,
+        "afterRevision": 2966,
+        "parentLimitMicroCny": 10000000,
+        "effectiveGroupLimitMicroCny": 11600314,
+        "availableAfterApplyMicroCny": 2500000,
+        "paidRequests": 0,
+        "independentPostcheck": "VERIFIED"
       }
     },
     {
@@ -7354,34 +7367,121 @@
         "evidenceScope": "free-source-and-synthetic-fixtures-only; composite-source-evidence-with-recorded-cleanup-limit"
       },
       "operatorPreparation": {
-        "sourcePrerequisites": "ready-for-Root-quote-review-and-explicit-apply",
+        "sourcePrerequisites": "completed-Root-quote-review-and-single-explicit-apply",
         "sharedCapMicroCny": 150000000,
         "fixedInternalSupplementMicroCny": 1600314,
         "caseBudgetMicroCny": 2500000,
         "caseDeadlineMinutes": 45,
         "caseRequestLimit": 80,
         "repairAttempts": 1,
-        "actualQuote": "NONE",
-        "actualApply": "NONE"
+        "actualQuote": "INDEPENDENTLY_VERIFIED",
+        "actualApply": "APPLIED_ONCE"
       },
       "liveLedger": {
-        "revision": 2965,
-        "contractVersion": "4.0.0",
+        "revision": 3114,
+        "contractVersion": "5.0.0",
         "parentLimitMicroCny": 10000000,
-        "parentAvailableMicroCny": 899686,
-        "sharedSettledMicroCny": 16108937
+        "effectiveGroupLimitMicroCny": 11600314,
+        "parentAvailableMicroCny": 1707937,
+        "sharedSettledMicroCny": 16901000
       },
       "mainFreeze": {
-        "status": "unfrozen",
+        "status": "unfrozen-by-Root-after-closure20",
         "releaseAuthority": "Root"
       },
       "workScope": "free-source-and-synthetic-fixtures-only",
+      "actualValidation": "FAILED",
+      "actualPaid": "792063-micro-CNY-settled",
+      "actualHumanConfirmation": "NONE",
+      "actualSupplementApply": "APPLIED_ONCE-1600314-micro-CNY",
+      "actualContinuationWindow": "consumed-C14",
+      "liveExecutionStatus": "failed-browser-launch-timeout-closure20-complete",
+      "actualResult": {
+        "status": "failed",
+        "classification": "insufficient_evidence",
+        "sourceCommit": "b20e9a43f26712a1f5a13468057df46b6c012b69",
+        "startedAt": "2026-10-14T21:31:18.853Z",
+        "endedAt": "2026-10-14T22:12:32.607Z",
+        "durationMs": 2473754,
+        "settledRequests": 35,
+        "incrementalMicroCny": 792063,
+        "sharedMicroCny": 16901000,
+        "unknownMicroCny": 0,
+        "reservedMicroCny": 0,
+        "sourceFiles": 10,
+        "sourceBytes": 35771,
+        "currentCaptureCandidateLastPassedAndBuildBytesMatch": true,
+        "selfChecks": [
+          "failed",
+          "passed",
+          "passed"
+        ],
+        "formalTypecheckExit": 0,
+        "formalViteExit": 0,
+        "formalViteOnlyMs": 814,
+        "browserLaunchTimeoutMs": 15000,
+        "browserStepsSkipped": 21,
+        "browserSessionRecorded": false,
+        "browserPid": null,
+        "processExited": null,
+        "historicalOsSpawnProven": false,
+        "codingReview": "pending",
+        "repair": null,
+        "accepted": false,
+        "humanConfirmed": false,
+        "ownerArchiveInvocations": 2,
+        "ownerActualArchives": 1,
+        "firstArchiveInvocation": "PID-reuse-guard-rejected-before-writes",
+        "ownerArchiveOriginalBytesAndMtimePreserved": true,
+        "ownerArchivePostcheck": "VERIFIED",
+        "closureAudit": 20,
+        "closureRevision": 3114,
+        "stoppedCases": 22,
+        "delegations": 14,
+        "closedGrants": 110,
+        "releasedMicroCny": 1707937,
+        "parentAvailableAllocationMicroCny": 1707937,
+        "closurePostcheck": "VERIFIED",
+        "historicalFeesRequestsCasesAndSupplementUnchanged": true,
+        "researchPath": "docs/research/2026-10-15-transfer-c14-browser-launch.md"
+      },
+      "actualResultComments": [
+        "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6180211123",
+        "https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6180211817"
+      ],
+      "actualResultReviewStatus": "APPROVED",
+      "actualResultImplementer": "c14_outcome_docs_implementer",
+      "actualResultReviewer": "c14_outcome_docs_reviewer",
+      "actualResultMerger": "batch_c14_cos92_merger",
+      "actualResultReviewedCommit": "4d86dd1be9d03e4a71fd502ea46a1bc799e9b1c1",
+      "actualResultMergeCommit": "a77141707419e599307e3e4daa81878287b96afa"
+    },
+    {
+      "taskId": "COS-92",
+      "title": "修复持久浏览器启动的重复校验与迟到启动意图",
+      "number": 93,
+      "id": 5856929672,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/93",
+      "dependsOn": [
+        "COS-37",
+        "COS-52",
+        "COS-91"
+      ],
+      "nativeParentLinked": true,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "implementer": "cos92_implementer",
+      "reviewer": "cos92_reviewer",
+      "merger": "batch_c14_cos92_merger",
+      "planPath": "docs/plans/2026-10-15-cos92-browser-launch.md",
+      "taskCardPath": "docs/specs/cos92-browser-launch.md",
+      "workScope": "free-source-and-deterministic-regression-only",
       "actualValidation": "NONE",
       "actualPaid": "NONE",
-      "actualHumanConfirmation": "NONE",
-      "actualSupplementApply": "NONE"
+      "actualHumanConfirmation": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 91,
+  "verifiedNativeSubIssues": 92,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
