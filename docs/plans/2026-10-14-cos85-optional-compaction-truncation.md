@@ -1,6 +1,6 @@
 # COS85 可选摘要截断实施计划
 
-> 使用 writing-plans；批准后按 executing-plans、TDD、verification-before-completion逐项执行。作者 `cos76_implementer`，独立 reviewer `cos77_implementer`，唯一 merger `batch75_76_merger`。
+> 使用 writing-plans；批准后按 executing-plans、TDD、verification-before-completion逐项执行。作者 `cos76_implementer`，原计划独审 `cos77_implementer`；接续源码独审 `cos85_reviewer`，本批唯一 merger `batch85_86_merger`。
 
 **目标：** 已结算但截断的可选自动摘要不保存、不重试；保留原上下文，让同一作者attempt的下一普通请求继续经过原准入。
 
@@ -32,7 +32,7 @@ C11末条实际length与8192上限已确认；它属于摘要是源码与时序�
 - [x] `node --experimental-strip-types --test tests/providers/coding-compaction.test.mjs`；Pi受影响代表按`--test-name-pattern`选择，复用已通过项。
 - [x] `npm run typecheck`、`npm run build`；`COSMOS_COMPACTION_COMPILED=1`下只运行新截断/后续拒绝代表。TS测试按原NodeNext/ES2022/allowImportingTsExtensions/noEmit strict命令检查。
 - [x] UTF-8/LF/中文回读、完整base diffcheck。
-- [ ] 提交exact SHA，独立规格→质量审查后交唯一merger。仅source/free fixture，不声明游戏或human通过。
+- [x] 提交exact SHA，独立规格→质量审查后交唯一merger。仅source/free fixture，不声明游戏或human通过。
 
 ## 实现证据
 
@@ -55,4 +55,6 @@ C11末条实际length与8192上限已确认；它属于摘要是源码与时序�
 
 单摘要及split第二摘要代表分别保留1/2笔已结算费用，每笔10µ，原projection与entries逐字节相等、0checkpoint、0部分工具执行；同attempt后续普通请求真实派发并通过原registry capture。后续超过32768字节的工具回合没有再触发摘要。另一代表实际进入下一普通请求，但随后余额不足仍为admission_rejected且再次prompt零新增请求；未知费用、错误model、结算完成异常、取消、关闭、下一请求截止/source拒绝及意外历史entry均不被吞掉。registry捕获的是合成文本，不是游戏/build/browser/human证据；旧C11、预算和历史未改。
 
-当前 **SOURCE_NOT_READY**，等待最终exact独立源码审查；目标marker为 **OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY**。原¥150验证总额、COS16组¥10、正式¥200/12h及现有请求/窗口上限保持，不新建paid案例或读取真实ledger/session/key。
+最终 `b5e879472b9c1a585a9bde6cb9f1823c044c26fa` 经接续 `cos85_reviewer` 实际6路径规格→质量APPROVED，无finding；唯一 `batch85_86_merger` 合入 `f63399fa77bd725e379eb8d119b7160a04180f32`。当前 **OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY / source-integrated**，公开issue仍open、等待Root关闭。原¥150验证总额、COS16组¥10、正式¥200/12h及现有请求/窗口上限保持，不新建paid案例或读取真实ledger/session/key。
+
+主线集成验证：`npm run typecheck`、`npm run build`退出0；`node --experimental-strip-types --test .cosmos/reconciliation/2026-10-13-c6-provider-usage/cos85-reproduce.mjs` 1/1、0skip、TAP6126.7789ms，原作者进入下一普通请求后仍受预算准入约束；设置`COSMOS_COMPACTION_COMPILED=1`后运行`node --experimental-strip-types --test --test-name-pattern='settled optional length-split|optional length cannot hide accounting' tests/providers/coding-compaction.test.mjs`，dist代表2/2、0skip、TAP4719.856ms，随后移除env。raw为TEMP下`cos85-merge-typecheck.log`、`cos85-merge-build.log`、`cos85-merge-root-reproduce.tap`、`cos85-merge-compiled.tap`。已核作者上表9份原始输出并复用通过证据，未重source矩阵或旧长链。

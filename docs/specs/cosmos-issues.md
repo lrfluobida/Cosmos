@@ -1418,13 +1418,23 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 ### COS-85 · 保留可选摘要截断后的原作者会话
 
-[任务 #86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421，已由Root发布、精确读回并原生挂父#1；当前85个子项，父勾选为空。依赖COS79/84，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger为 `batch75_76_merger`。
+[任务 #86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421，已由Root发布、精确读回并原生挂父#1；发布时85个子项，父勾选仍为空。依赖COS79/84，由 `cos76_implementer` 实现，最终独立reviewer为 `cos85_reviewer`，唯一merger为 `batch85_86_merger`。
 
-短计划候选 `c108e9a797e708167f289d8b05227900be765a80` 正在独审，当前SOURCE_NOT_READY/open，目标标记为 `OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY`。拟仅允许可信可选自动摘要已结算的length丢弃部分摘要、保留原上下文并关闭后续自动摘要；同一作者attempt的下一普通请求仍经过原准入。普通作者与其它摘要失败、费用、预算和时限保持。
+短计划 `c108e9a797e708167f289d8b05227900be765a80` 已由原cos77独立PLAN_APPROVED。最终 `b5e879472b9c1a585a9bde6cb9f1823c044c26fa` 经接续reviewer实际规格与质量APPROVED，无finding，合入 `f63399fa77bd725e379eb8d119b7160a04180f32`，标记 `OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY`；源码已集成，公开issue仍open、等待Root关闭。仅可信可选自动摘要已结算的length可丢弃部分摘要、保留原上下文并关闭后续自动摘要；同一作者attempt的下一普通请求仍经过原准入。普通作者与其它摘要失败、费用、预算和时限保持。
 
-仅免费源码和合成夹具；作者自有计划/任务卡尚未合入，不登记源码批准SHA，不恢复C11或新增付费案例。
+主线typecheck/build0，Root原复现1/1、下一普通请求进入后正确预算拒绝；dist split恢复/accounting失败2/2、0skip。已核作者原始TAP并复用30项source矩阵及其它通过证据；[任务卡](cos85-optional-compaction-truncation.md)保留完整SHA、命令和证据。仅免费源码与合成夹具，不恢复C11或新增付费案例。
 
 稳定任务 ID：COS-85
+
+### COS-86 · 验证摘要截断恢复后的固定迁移 C12
+
+[任务 #87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246，已由Root发布、精确读回并原生挂父#1；当前86个子项，父勾选为空。依赖COS84/85，由接续 `cos86_implementer` 实现、`cos86_reviewer` 独审，唯一merger为 `batch85_86_merger`。
+
+短计划 `fc2a06e8b4668145133b393533d91d2dc8987d96` 已由cos86_reviewer独立PLAN_APPROVED，无finding，已授权实施；当前SOURCE_NOT_READY/open，目标标记 `TRANSFER_CASE_TWELVE_SOURCE_READY`；自有文档尚未合入，源码尚未批准。准备验证19stopped/11delegations/95closed/17audits及C11全部41笔已结算coding请求与closure17，C5两passed阶段和七capture只读复用，新作者为空，旧C11不能重开。
+
+新向量为planning/design/art各1µ、coding2400000µ、repair599997µ，共¥3；45分钟、80请求、一次合格repair，原COS16组¥10/phase¥30/shared¥150保持。Root报告closure17后组可分配¥4.205748，仍须按availableAllocation重新核准。仅免费源码与合成fixture，禁止触碰真实ledger/session/key；已推清洁来源、COS84/85已批双祖先及免费准入通过后由Root安排实际C12。本次没有新付费、窗口或游戏/human完成状态，main未冻结。
+
+稳定任务 ID：COS-86
 
 ## 5. 任务与上下文包模板
 
