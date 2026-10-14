@@ -1,8 +1,16 @@
 # COS-88 原预算组余量内的固定迁移 C13
 
-状态：TRANSFER_CASE_THIRTEEN_SOURCE_READY / source scoped complete / closed。Issue [#89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，已由 Root 精确读回并原生挂父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)；依赖 COS86 #87、COS87 #88。
+状态：TRANSFER_CASE_THIRTEEN_SOURCE_READY / source scoped complete / closed；实际C13 failed，详见下文。Issue [#89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，已由 Root 精确读回并原生挂父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)；依赖 COS86 #87、COS87 #88。
 
-作者 `cos88_implementer`，独立 reviewer `cos88_reviewer`，唯一 merger `batch_c12_reference_merger`。分支 `codex/cos88-transfer-case13`，起点 main `49e892992749e5511f2bb4135ec67be4459fa30b`；[实施计划](../plans/2026-10-15-cos88-transfer-case13.md)。计划 exact `6ad3235c52cd1e0f2a11dfaaa0b5bfc38eeefeff` 已独立 PLAN_APPROVED，无 finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175247486)由 Root 精确读回。实际 C13 尚未执行。
+作者 `cos88_implementer`，独立 reviewer `cos88_reviewer`，唯一 merger `batch_c12_reference_merger`。分支 `codex/cos88-transfer-case13`，起点 main `49e892992749e5511f2bb4135ec67be4459fa30b`；[实施计划](../plans/2026-10-15-cos88-transfer-case13.md)。计划 exact `6ad3235c52cd1e0f2a11dfaaa0b5bfc38eeefeff` 已独立 PLAN_APPROVED，无 finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175247486)由 Root 精确读回。
+
+## 实际 C13 结果（2026-10-15）
+
+C13在冻结版本`388defc543ab4445b5446be6618215a61785168c`运行26分26.253秒后failed。唯一coding attempt `eb089674-d935-4cf7-a749-b94e501aa266`为`insufficient_evidence`：请求准入被拒绝，该失败请求未发送给provider。47次已准入请求全部settled，新增¥1.641136，共享累计¥16.108937，unknown/reserved均0；coding原¥1.90剩¥0.258864。清理的`manual`文字表示单次身份已消费，本次由准入拒绝失败，没有触及45分钟截止或发生用户/Root中断。
+
+作者只有空src、0源码文件，53次read/53个tool results/0个tool errors，write/edit/check均0；当前计划v1/v2读取调用为30/1次，不代表每次完整读取。C5 design/art仍passed，journal只有origin、候选为空；registry保留7个C5输入及3个C13计划/需求capture，无编码handoff、游戏capture或正式build/browser/review/repair/accepted，用户体验未确认。10次成功原生压缩后，末次付费响应为8192输出length；是否为可选预算摘要仍是源码及时序推断，请求kind未持久化。条件成立时原projection普通输出下限至少需294912µ，超过剩余258864µ；未取得被拒请求的精确输入字节数。
+
+Root已一次完成closure19，释放¥0.858864；revision2965、21stopped/13delegations/105closed/19audits，旧费用与历史保持，进程及owner/locks已清理并解除main冻结。原COS16组可分配¥0.899686，C13不能重跑或延长。[COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6176958554)与[C13结果](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6176959551)已由Root精确读回。完整时间、压缩预算推断和后续边界见[研究记录](../research/2026-10-15-transfer-c13-compaction-budget.md)；COS89正在隔离免费修复，最终实现未批准。COS16/COS18、完整经典及human仍未完成。下文保留源码准备及集成时的历史记录。
 
 ## 前提与目标
 
@@ -41,4 +49,4 @@ SOURCE 结束后补充了一处遗漏的 `audits` TypeScript union 字面量 `18
 
 主线执行计划所列affected strict，退出0；`node --experimental-strip-types --test --test-name-pattern "C13 (fixes|rejects|uses|fixed parser|unknown admission)|C12 (fixes|fixed parser)" tests/transfer/validation-case-thirteen.test.ts tests/transfer/validation-case-twelve.test.ts` 通过7/7、0skip，TAP5874.938ms，覆盖C13额度、历史、可分配容量、quote/准入及两项C12旧代表。raw为 `C:/Users/26557/AppData/Local/Temp/cos88-merge-affected-strict.log` 和 `C:/Users/26557/AppData/Local/Temp/cos88-merge-integration.tap`。作者typecheck/build、SOURCE、最终compiled及source capture按已审证据复用，未重长矩阵。
 
-本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175718904)，closed(completed)及父勾选已由Root精确读回。本次最终元数据推送后main冻结供Root一次C13免费预检及有界运行，仅Root可解除。实际C13、paid、human仍NONE，本次集成不执行预检或操作脚本。
+本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175718904)，closed(completed)及父勾选已由Root精确读回。该次最终元数据推送后main冻结供Root一次C13免费预检及有界运行；集成当时实际C13、paid、human为NONE。实际C13现已结束，closure19后Root已解除冻结，结果见上文。
