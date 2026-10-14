@@ -12,7 +12,7 @@
 
 规格：[COS92](../specs/cos92-browser-launch.md)。起点 `b20e9a43f26712a1f5a13468057df46b6c012b69`。本阶段只提交 spec/plan；独审批准后才执行下列步骤。作者不改 main、共享 tracking 或 GitHub，不访问真实账本，不启动 paid/provider/C14。
 
-计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 读回。实现开始前合入指定 main `2aca018c59a9fd16ac7b0a318139958f53e5af06`，本分支 merge `dd05d246d38997e7ceb983d5f8804fdbccb9ea8d`；该基线差异仅文档。下列步骤现获准执行，最终源码仍待独审。
+计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 读回。实现开始前合入指定 main `2aca018c59a9fd16ac7b0a318139958f53e5af06`，本分支 merge `dd05d246d38997e7ceb983d5f8804fdbccb9ea8d`；该基线差异仅文档。下列步骤已完成，最终源码已独审集成，记录见文末。
 
 ## 已运行的最小 RED
 
@@ -53,7 +53,7 @@
 - [x] Run: `node --experimental-strip-types --test tests/acceptance/persistent.test.ts tests/acceptance/generic-persistent.test.ts tests/runtime/run.test.ts tests/runtime/recovery/owned-work.test.ts tests/runtime/owned-command.test.ts tests/runtime/entrypoint-host-preparation.test.ts`；复用Task1/2中无变化的通过项。运行 `npm run typecheck`、`npm run build`、`git diff --check`，保留exit与pass/fail/skip。两个旧ownedChild辅助文件最小适配接口并验证受影响fixture。
 - [x] Run: `node --experimental-strip-types --test --test-name-pattern="COS40 new observer records real Phaser" tests/acceptance/media-observations.integration.ts`。只运行这一项免费 TEMP 真实 Edge 正例，验证 prepare→register（CDP调用前）→CDP/PID/profile 身份→close事件/退出码/PID已不存在，保留 qa-summary 与原始报告；预期正例通过，另一负例因名称过滤跳过须如实记载。不跑全矩阵、不重放 C14、不接触真实账本或付费 provider。
 - [x] 用同输入/环境列出修复前后实测次数与耗时。免费回归没有证明实际C14或下一次真实游戏启动通过；完整历史链耗时未测时明确标注，后续性能调查不扩大本次实现。
-- [ ] 提交最终SHA、测试证据和已知缺口给独立reviewer；先规格再质量查实际diff，作者修finding并重审。唯一merger集成后Root才能登记SOURCE_READY。C14仍failed/consumed；COS16/COS18、完整经典与human保持未完成。
+- [x] 最终SHA、测试证据和已知缺口已由独立reviewer先规格再质量审查；P2修正经复审闭合，唯一merger已集成并登记PERSISTENT_BROWSER_LAUNCH_SOURCE_READY。C14仍failed/consumed；COS16/COS18、完整经典与human保持未完成。
 
 ## 实现证据（持续补充）
 
@@ -73,7 +73,7 @@ Task2没有另建 `tests/runtime/entrypoint-host-launch.test.ts`：真实nativeI
 
 **已知strict限制：** `tests/runtime/generic-persistent-host.fixture.ts:74` TS2554（stop多传一个参数），108/109/118行 TS2345（空对象缺AuthorProposal字段），本次未改这些行。最初仅替换旧fixture而保留新接口的对照不充分，已弃用其7条诊断；最终通过TypeScript CompilerHost同时使用 `f9f43eb` 的fixture与全部6个已改生产文件，再与当前代码编译结果作deepEqual，恰同4条诊断，COMPARE_EXIT=0。证据 `C:/Users/26557/AppData/Local/Temp/cos92-generic-strict-baseline-current.json`。此文件整个strict不能声称通过；其已改ownedChild接口无新增诊断，运行时15项及真实Edge均通过。
 
-作者验证结束；最终实际diff仍交独审，未授予SOURCE_READY或合入main。保留C14失败/已消费、实际完整链时间未知、COS16/COS18/完整经典/human未完成。Task1已审且代码无再变的17项按Root指令复用；主线纯文档推进不导致重跑。
+作者验证结束时，最终实际diff仍待独审，尚未授予SOURCE_READY或合入main；后续批准与集成见文末。保留C14失败/已消费、实际完整链时间未知、COS16/COS18/完整经典/human未完成。Task1已审且代码无再变的17项按Root指令复用；主线纯文档推进不导致重跑。
 
 ## 最终独审 P2 修订
 
@@ -84,3 +84,11 @@ Task2没有另建 `tests/runtime/entrypoint-host-launch.test.ts`：真实nativeI
 定向 `persistent-launch.test.ts`、`owned-work.test.ts`、`ownership.test.ts` 共27/27、0skip、3943.42ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-propagation-green.tap`；随后追加未交付handle的回滚失败公开传播用例1/1、0skip、3402.5653ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-prehandoff.tap`。均检查原cause对象/消息、零spawn及残留ticket；普通取消不变。原Task1、consumer、generic与Edge已审证据复用，正常prepare/register/CDP/退出接线未变。
 
 P2后 `npm run typecheck` / `npm run build` 均退出0，实际日志 `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-typecheck-build.log`。使用上表相同tsc strict参数，仅选择此次受影响的 `tests/acceptance/persistent-launch.test.ts`、`tests/runtime/recovery/owned-work.test.ts`、`tests/runtime/recovery/ownership.test.ts`，退出0；实际含`TSC_EXIT=0`的日志为 `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-strict.log`。这次编译验证源于P2代码变化，没有为旧路径问题重跑旧矩阵。
+
+## 已审集成
+
+作者 `cos92_implementer` 最终 `ffa0ce2918735f5b21b22c4373a390b156e63d33` 经 `cos92_reviewer` 独立规格→质量 APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger` 合入 `e74815f468b7158b5555ca2e5887ad3459b74dda`，标记 `PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡 source scoped complete。GitHub当前open，Root后续公开源码审批与关闭；main保持unfrozen。
+
+主线 `npm run typecheck` / `npm run build` 均退出0，raw为 `C:/Users/26557/AppData/Local/Temp/cos92-merge-typecheck.log` 和 `cos92-merge-build.log`。短集成命令 `node --experimental-strip-types --test --test-name-pattern='persisted ticket while raw prepare|timely prepare spawns once|failed late release reaches public drain|rollback failure before handle delivery|ordinary rejected work' tests/acceptance/persistent-launch.test.ts tests/runtime/recovery/owned-work.test.ts` 通过5/5、0skip，4151.1296ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-merge-focused.tap`。覆盖迟到handle的drain责任、正常spawn/register、两类公开清理失败及普通取消。
+
+主线src/tests与批准提交完全一致；复用前述Task1 17/17、受影响59/59、generic15/15、consumer2/2、真实Edge1/1、P2定向27/27及补充回滚1/1和affected strict证据。generic fixture的4条既有strict诊断仍保留，没有声称该文件整体strict通过。C14原冻结`b20e9a43f26712a1f5a13468057df46b6c012b69`、failed/consumed和closure20历史不变，完整链诊断尚未执行；没有付费、C14重放或真实账本操作，COS16/COS18、完整经典及human仍未完成。

@@ -1483,7 +1483,7 @@ COS91 / [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，�
 
 ### COS-92 · 修复持久浏览器启动的重复校验与迟到启动意图
 
-[COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，当前92个子任务。依赖COS37/52/91，作者`cos92_implementer`，open / `SOURCE_NOT_READY`；承接启动重复校验、本地取消/截止与迟到启动意图的免费源码修复及确定性回归，计划和源码待独审。没有新付费案例，COS16/COS18、完整经典和human仍未完成。
+[COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，当前92个子任务，依赖COS37/52/91。作者`cos92_implementer`最终`ffa0ce2918735f5b21b22c4373a390b156e63d33`经`cos92_reviewer`独立规格→质量APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger`合入`e74815f468b7158b5555ca2e5887ad3459b74dda`，标记`PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡source scoped complete。主线typecheck/build退出0，短集成5/5、0skip；源码与测试等同批准版本，作者长回归及真实Edge证据复用，generic fixture的4条既有strict诊断保持，详见[任务卡](cos92-browser-launch.md)。GitHub当前open，待Root公开源码审批与关闭；main保持unfrozen。C14原冻结`b20e9a43`失败/已消费事实不变，完整链诊断尚未执行，无新付费或C14重放；COS16/COS18、完整经典和human仍未完成。
 
 稳定任务 ID：COS-92
 

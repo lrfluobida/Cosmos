@@ -1,6 +1,6 @@
 # COS-92 持久浏览器启动截止与准备校验
 
-状态：计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，无剩余 finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 精确读回。生产实现及作者免费验证完成，待最终独审；SOURCE_READY 未授予。Issue [#93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，父 #1。依赖 COS37/COS52 持久浏览器路径及 COS91 / #92 的实际 C14 结果。
+状态：`PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡 source scoped complete；GitHub当前open，待Root公开源码审批与关闭。计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，无剩余 finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 精确读回。Issue [#93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，父 #1。依赖 COS37/COS52 持久浏览器路径及 COS91 / #92 的实际 C14 结果。
 
 专职作者 `cos92_implementer`；独立 reviewer 与唯一 merger 由 Root 指派。分支 `codex/cos92-browser-launch`，复用 managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点为已解冻主线 `b20e9a43f26712a1f5a13468057df46b6c012b69`。[实施计划](../plans/2026-10-15-cos92-browser-launch.md)。本次先提交两份文档，独审批准后才修改生产实现；共享 tracking 由另一作者维护。
 
@@ -59,3 +59,9 @@ Task2 使用 `entrypoint-host.ts` 内的 `createPersistentOwnedChild` 作为 nat
 生产typecheck/build退出0；六个新增/受影响测试文件strict退出0。generic-persistent-host.fixture的单独strict仍有4个原有诊断，已对完整旧生产接口与当前接口做内存编译对照，精确一致；未扩大修改。所有编辑文件UTF-8/LF、中文回读与diffcheck通过。没有新付费或真实C14运行，实际游戏与human结论保持。
 
 最终独审另发现迟到release失败未传播到生产drain，已按P2修正：只保留原生交接明确报告的清理错误，公开drain在等待结束后连同原cause拒绝，operation移除后也不丢失；普通取消语义保持。公开路径RED后，定向27/27与补充回滚传播1/1通过，详见计划。原六文件strict命令成功但无输出，Tee未创建原列日志；已撤回不存在的路径，保留实际工具返回的exit0证据。
+
+## 已审集成
+
+作者 `cos92_implementer` 最终 `ffa0ce2918735f5b21b22c4373a390b156e63d33` 经 `cos92_reviewer` 独立规格→质量 APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger` 合入 `e74815f468b7158b5555ca2e5887ad3459b74dda`。主线src/tests与批准提交完全一致；typecheck/build退出0，迟到handle、正常spawn/register、两类公开drain失败与普通取消短集成5/5、0skip，4151.1296ms；命令及三个主线原始日志见计划。
+
+已审Task1 17/17、受影响59/59、generic15/15、consumer2/2、真实Edge1/1、P2定向27/27及补充回滚1/1和affected strict证据复用，generic fixture的4条既有strict诊断保持。main保持unfrozen；C14原冻结`b20e9a43f26712a1f5a13468057df46b6c012b69`的失败/已消费与closure20历史保持，完整链诊断尚未执行。没有新付费、C14重放或真实账本操作；本卡源码完成不代表实际游戏、COS16/COS18、完整经典或human完成。
