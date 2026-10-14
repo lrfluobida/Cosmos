@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 86
+    "childCount": 87
   },
   "tasks": [
     {
@@ -25,7 +25,20 @@
       "reviewStatus": "PROJECTILE_STATIC_SOURCE_READY",
       "reviewedCommit": "3a20bae1e7f78133d893b353257de51366e7aba8",
       "mergeCommit": "89f816240f1c56ce0595250e33fec61ba8deb99d",
-      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5925396505"
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-5925396505",
+      "nameMappingEvidence": {
+        "status": "reviewed-static-evidence-only",
+        "reviewedCommit": "b850459f88b1743627b033a87a404bcfc8f9f83e",
+        "reviewer": "reference_mapping_docs_reviewer",
+        "mergeCommit": "b94d0d49f032888d46d8e1a56e774713fe8fe973",
+        "researchPath": "docs/research/2026-10-15-reference-name-mapping.md",
+        "dataPath": "benchmarks/classic-pc/reference/name-mappings.json",
+        "unitRecords": 87,
+        "selectedLabels": 167,
+        "catalogEntries": 230,
+        "needsReference": 221,
+        "referenceFrozen": false
+      }
     },
     {
       "taskId": "COS-02",
@@ -505,10 +518,10 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial",
-      "liveValidationStatus": "native-transfer-coding-insufficient-evidence",
+      "liveValidationStatus": "native-transfer-coding-deadline-failed",
       "actualTransferValidated": false,
-      "actualTransferCaseId": "cos20-transfer-validation-11",
-      "actualTransferResultRef": "COS-84.actualTransferResult",
+      "actualTransferCaseId": "cos20-transfer-validation-12",
+      "actualTransferResultRef": "COS-86.actualTransferResult",
       "historicalTransferCaseSixComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5988185221",
       "liveValidationHistory": [
         {
@@ -540,6 +553,11 @@
           "caseId": "cos20-transfer-validation-11",
           "status": "native-transfer-coding-insufficient-evidence",
           "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637"
+        },
+        {
+          "caseId": "cos20-transfer-validation-12",
+          "status": "native-transfer-coding-deadline-failed",
+          "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6174293178"
         }
       ],
       "historicalTransferCaseSixResult": {
@@ -6816,11 +6834,13 @@
         "COS-85"
       ],
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "integrationStatus": "source-integrated",
-      "implementationPhase": "source-integrated-pending-public-closure",
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "stateReason": "completed",
+      "integrationStatus": "complete",
+      "implementationPhase": "scoped-complete",
       "reviewStatus": "TRANSFER_CASE_TWELVE_SOURCE_READY",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/87#issuecomment-6172760100",
       "targetReviewStatus": "TRANSFER_CASE_TWELVE_SOURCE_READY",
       "sourceReviewStatus": "APPROVED",
       "reviewedCommit": "08012122685cb66e104f85c1da00bbe7915cebee",
@@ -6869,19 +6889,121 @@
         ],
         "evidenceScope": "source-and-temp-only"
       },
-      "liveExecutionStatus": "source-ready-awaiting-root-free-preflight",
+      "resultDocumentation": {
+        "reviewedCommit": "923ff949f5bc03ac48092e1398588c539bc38eeb",
+        "reviewer": "c12_docs_reviewer",
+        "mergeCommit": "1ea1ec27932b38a02124d66bfd59ec527541e3d5",
+        "merger": "batch_c12_reference_merger"
+      },
+      "liveExecutionStatus": "deadline-cancelled-closure18-complete",
       "mainFreeze": {
-        "status": "frozen-after-integration-push",
+        "status": "released-after-closure18",
         "releaseAuthority": "Root",
         "scope": "C12-free-preflight-and-one-bounded-run"
       },
-      "workScope": "free-source-and-synthetic-fixtures-only",
-      "actualValidation": "NONE",
-      "actualPaid": "NONE",
+      "workScope": "source-and-completed-c12-evidence",
+      "actualValidation": "native-coding-deadline-cancelled",
+      "actualPaid": "1664926 micro-CNY",
+      "actualTransferResult": {
+        "caseId": "cos20-transfer-validation-12",
+        "frozenSource": "3cde457f77ef8990d73a650319b76900df3cdc11",
+        "startedAt": "2026-10-14T16:12:55.983Z",
+        "deadlineAt": "2026-10-14T16:57:55.983Z",
+        "cleanupTimerAt": "2026-10-14T16:57:51.053Z",
+        "endedAt": "2026-10-14T16:57:51.996Z",
+        "elapsedMs": 2696013,
+        "admittedRequests": 52,
+        "settledRequests": 52,
+        "deltaSettledMicroCny": 1664926,
+        "totalSettledMicroCny": 14467801,
+        "status": "failed",
+        "taskHistoryCoding": "cancelled",
+        "codingAttemptId": "13fc5130-fb5b-4bf4-bc57-80d393ecb809",
+        "stopCause": "scheduled-pre-deadline-cleanup",
+        "journal": "origin-only",
+        "hostResultPresent": false,
+        "handoff": false,
+        "capture": false,
+        "candidateFiles": 0,
+        "formalBuild": false,
+        "browser": false,
+        "review": false,
+        "repair": false,
+        "accepted": false,
+        "human": "NONE",
+        "authorFileCount": 7,
+        "authorBytes": 36508,
+        "matchesLastFailedCheckOriginalSourceBytes": true,
+        "firstCheckDirectoryName": "check-MLs3Pc",
+        "lastCheckDirectoryName": "check-62Irti",
+        "filesChangedSinceFirstPassedCheck": 2,
+        "authorSelfChecks": [
+          {
+            "typecheckExit": 0,
+            "viteExit": 0,
+            "toolElapsedMs": 271409,
+            "viteReportedMs": 994
+          },
+          {
+            "typecheckExit": 2,
+            "error": "src/boardScene.ts(150,18): TS2339: Property 'on' does not exist on type 'AnimationState'",
+            "toolElapsedMs": 155216
+          }
+        ],
+        "authorSelfCheckScope": "not-formal-acceptance",
+        "successfulNativeCompactions": 6,
+        "optionalSummaryRecoveryInference": "source-and-timing-supported-request-kind-not-persisted",
+        "ownerCleanup": {
+          "launcherAndNodeAbsent": true,
+          "checkWorkersAbsent": true,
+          "ownersAndLocksAbsent": true,
+          "mainFreezeReleasedByRoot": true
+        },
+        "closure18AppliedOnce": true,
+        "revision": 2770,
+        "cases": 20,
+        "allCasesStopped": true,
+        "delegations": 12,
+        "closedGrants": 100,
+        "closureAudits": 18,
+        "releasedMicroCny": 1335074,
+        "originalCos16AvailableAllocationMicroCny": 2540822,
+        "unknownRequests": 0,
+        "totalReservedMicroCny": 0,
+        "historicalCostsPreserved": true,
+        "caseConsumed": true,
+        "publicResults": {
+          "cos16": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6174293178",
+          "c12Entry": "https://github.com/lrfluobida/Cosmos/issues/87#issuecomment-6174294365"
+        },
+        "researchPath": "docs/research/2026-10-15-transfer-c12-deadline.md"
+      },
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE"
+    },
+    {
+      "taskId": "COS-87",
+      "title": "并行读取独立 Git 身份字段，减少工具校验耗时",
+      "number": 88,
+      "id": 5852635000,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/88",
+      "dependsOn": [
+        "COS-83",
+        "COS-86"
+      ],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "pending-plan-review",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "targetReviewStatus": "PARALLEL_GIT_IDENTITY_SOURCE_READY",
+      "implementer": "cos87_implementer",
+      "merger": "batch_c12_reference_merger",
+      "workScope": "free-source-and-synthetic-fixtures-only",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 86,
+  "verifiedNativeSubIssues": 87,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

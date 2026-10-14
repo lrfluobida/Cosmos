@@ -1,8 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-13最新实际状态：C7停止为insufficient_evidence，closure13已完成；revision2023/15stopped/7delegations/75closed/13audits/unknown与reserved0，共享已结算8932365 micro-CNY，详见COS60。COS16/COS18仍partial/open；其余各卡的旧snapshot/unknown及C7 NONE保留为阶段历史。COS74已公开批准并closed，仅source scoped完成。
+2026-10-15最新实际状态：C12因既定截止清理结束，failed / coding cancelled；52次请求全部结算，新增1664926 micro-CNY、共享14467801 micro-CNY。closure18已一次完成，revision2770/20stopped/12delegations/100closed/18audits/unknown与reserved0，释放1335074 micro-CNY，原COS16组可分配2540822 micro-CNY，Root已解除main冻结。详见[C12研究记录](../research/2026-10-15-transfer-c12-deadline.md)。COS86已在源码范围closed，COS16/COS18仍partial/open；旧snapshot、unknown和actual NONE均保留为阶段历史，完整经典与human仍未完成。
 
-状态：2026-10-06 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 71 个原生子任务已核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-15 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 87 个原生子任务已由Root核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -146,11 +146,12 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-01 · P0 · 固定参考来源与完整验收清单
 
+- 名称静态证据：`b850459` 经 `reference_mapping_docs_reviewer` 独立APPROVED并合入 `b94d0d4`；[名称对应报告](../research/2026-10-15-reference-name-mapping.md)及数据保存87条定义名称记录、167个选定资源标签。用户报告窗口化及全部模式已解锁，仍缺可读画面与正常输入证据；catalog230/221、provisional/未冻结及#2 open保持。
 - 本次进展：静态基础值证据 `fdd64c8` 已独立审查并合入 `80d4d75`；记录 53 行 × 9 DWORD，字段语义与源码推导分开。53 行不代表可选植物分母，launchRate 不按秒解释；catalog 仍为 230 项、221 项待核实，未冻结，#2 保持 open。
 - 后续静态证据：Zombie 定义表 `e292b49` 已获独立批准并合入 `73cf4fe`，34 行 × 7 DWORD 原始值与源码语义推导分列；34 含特殊项/Zombatar，不是经典分母。mZombieValue 不是 HP，基础关卡/波次/权重不证明实际出怪；原 catalog、未知项及未冻结状态保持不变。
 - 初始化 HP 静态证据：`a1c1371` 已获独立批准并合入 `80794c3`，保存 17 处短指令样本和 270/370/1100 三处立即数赋值；语义仍属源码推导，最终有效 HP、完整分支及经典等价性未验证，230/221 与未冻结状态不变。
 - 投射物静态证据：`3a20bae` 获独立 PROJECTILE_STATIC_SOURCE_READY 并合入 `89f8162`，保存 14×3 原始 DWORD 与 11 处短指令样本；普通豌豆基础字段 20 不证明最终命中伤害。非 UTF-8 cpp 已停止读取，只用 UTF-8 头文件推导字段，护甲、倍率、交互、运行与经典等价性仍未知，230/221 与未冻结状态不变。
-- 依赖/状态：用户已提供安装来源，`reference.json` 已固定 GOTY 1.2.0.1073 与文件 hash，状态 metadata_pinned_content_pending；外部前提仍是可见、可留证的正常输入观察通道及可达未解锁内容，目前 native capture 不可用，尚未 verified_for_reference 或内容冻结。清单冻结引用最终 spec 第 4B 节标准。
+- 依赖/状态：用户已提供安装来源，`reference.json` 已固定 GOTY 1.2.0.1073 与历史文件 hash，状态 metadata_pinned_content_pending；用户已报告全部模式解锁，外部前提仍是可见、可留证的正常输入观察通道，目前 native capture 不可用，尚未 verified_for_reference 或内容冻结。清单冻结引用最终 spec 第 4B 节标准。
 - 输入：用户提供的可运行参考版、spec 已定模式范围、现有调研与来源资料；精确版本由本任务记录。
 - 输出/范围：`docs/benchmark/` 下版本标识、来源台账、完整内容矩阵、数值与计时表、排除项和待核实项；不写游戏实现。
 - 工作：核对 50 冒险关与全部主要模式；逐项记录版本、来源位置和可信状态，区分原始事实、推导与未知。
@@ -298,7 +299,8 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-16 · P2 · 验证不同需求的有限迁移
 
-- 当前C11：冻结版本 `2a7a291`，41次请求均结算，新增¥1.336555、共享¥12.802875；自检通过后输出截断，failed / insufficient_evidence，无handoff/capture或正式后续验收。closure17已完成，19stopped/11delegations/95closed/17audits，unknown/reserved0；本卡仍partial/open。[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637)与[研究记录](../research/2026-10-14-transfer-c11-summary-truncation.md)保留细节；下列为各旧案例当时记录。
+- 当前C12：冻结版本 `3cde457`，52次请求均结算，新增¥1.664926、共享¥14.467801；首次自检通过、作者修改后末次TS2339失败，截止定时器触发后failed / coding cancelled，无handoff/capture或正式后续验收。closure18已一次完成，20stopped/12delegations/100closed/18audits，unknown/reserved0，原组可分配¥2.540822，Root已解除冻结；本卡仍partial/open。[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6174293178)与[研究记录](../research/2026-10-15-transfer-c12-deadline.md)保留细节；C12身份已消费，下列为各旧案例当时记录。
+- C11历史：冻结版本 `2a7a291`，41次请求均结算，新增¥1.336555、共享¥12.802875；自检通过后输出截断，failed / insufficient_evidence，无handoff/capture或正式后续验收。closure17已完成，19stopped/11delegations/95closed/17audits，unknown/reserved0。[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637)与[研究记录](../research/2026-10-14-transfer-c11-summary-truncation.md)保留细节。
 - 依赖/状态：COS-10、COS-13、COS-18；partial/open，真实迁移C1规划失败/C2设计schema失败/C3规划身份失败/C4独立review请求修改/C5编码截止取消/C6编码流请求超时，固定用例与原契约保持；用例先固定，可与完整基准工具准备并行。
 - 最新迁移C6：source6b8aa15/UTC2026-10-05T02:50:02.916Z→03:01:25.805Z/deadline03:35:02.916Z，682889ms；13codingauthor admitted、12settled135531µ/1unknown974882µ，shared settled8666261/reserved974882/committed9641143。原C5 design/art两passed及7capture复用通过，planner/design/art SDK0；coding20read/0toolerror，无write/compile/capture/build/browser/review/repair/accepted，manual consumed。当前14cases/rev1942/6delegations/65closed/11audits，未closure12、paid阻塞；[真实结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5988185221)与[研究记录](../research/2026-10-05-native-c6-stream-timeout.md)。COS59已审源码修时限，COS60只准备新案例，不重开C6。
 - 迁移C5（历史）：source9e7f771/UTC2026-10-04T20:11:59.648Z→20:56:55.067Z/deadline20:56:59.648Z/cutoff20:56:54.690Z，2695419ms；66records=65admitted settled+1准入前cancelled/admittedAt null。Role records1/14/12/39/0（coding38admitted+1cancelled）/purpose1planning54author11reviewer；new1117003/shared8530730 micro-CNY（fees16938/255740/166678/677647/0），unknown/reserved0。Design/art原host与独立review passed，mapcheck1passed/rewritesRemaining0；coding截止取消、未handoff/capture/build/browser/accepted/game/repair，manual consumed，exec18517exit1/key清理/owners释放。[实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5984507367)/[研究记录](../research/2026-10-05-transfer-coding-deadline-failure.md)，COS16仍partial/open。
@@ -1428,13 +1430,23 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 ### COS-86 · 验证摘要截断恢复后的固定迁移 C12
 
-[任务 #87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246，已由Root发布、精确读回并原生挂父#1；当前86个子项，父勾选为空。依赖COS84/85，由接续 `cos86_implementer` 实现、`cos86_reviewer` 独审，唯一merger为 `batch85_86_merger`。
+[任务 #87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246，已由Root发布、精确读回并原生挂父#1；登记时86个子项，当前父勾选已由Root核实。依赖COS84/85，由接续 `cos86_implementer` 实现、`cos86_reviewer` 独审，唯一merger为 `batch85_86_merger`。
 
-短计划 `fc2a06e8b4668145133b393533d91d2dc8987d96` 已由cos86_reviewer独立PLAN_APPROVED。最终 `08012122685cb66e104f85c1da00bbe7915cebee` 经同一独立reviewer实际18路径规格与质量APPROVED，无finding，唯一merger合入 `c8f5ecb117e7a68715aa7d8ce0c31f5562ec86ee`，标记 `TRANSFER_CASE_TWELVE_SOURCE_READY`；source-integrated/open待Root公开关闭，详见[任务卡](cos86-transfer-case12.md)。准备验证19stopped/11delegations/95closed/17audits及C11全部41笔已结算coding请求与closure17，C5两passed阶段和七capture只读复用，新作者为空，旧C11不能重开。
+短计划 `fc2a06e8b4668145133b393533d91d2dc8987d96` 已由cos86_reviewer独立PLAN_APPROVED。最终 `08012122685cb66e104f85c1da00bbe7915cebee` 经同一独立reviewer实际18路径规格与质量APPROVED，无finding，唯一merger合入 `c8f5ecb117e7a68715aa7d8ce0c31f5562ec86ee`，标记 `TRANSFER_CASE_TWELVE_SOURCE_READY`；本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/87#issuecomment-6172760100)，closed(completed)及父勾选由Root精确读回，详见[任务卡](cos86-transfer-case12.md)。源码准备时验证19stopped/11delegations/95closed/17audits及C11全部41笔已结算coding请求与closure17，C5两passed阶段和七capture只读复用，新作者为空，旧C11不能重开。
 
-新向量为planning/design/art各1µ、coding2400000µ、repair599997µ，共¥3；45分钟、80请求、一次合格repair，原COS16组¥10/phase¥30/shared¥150保持。Root报告closure17后组可分配¥4.205748，仍须按availableAllocation重新核准。仅免费源码与合成fixture，禁止触碰真实ledger/session/key；已推清洁来源、COS84/85已批双祖先及免费准入通过后由Root安排实际C12。主线typecheck/build0、五项C12额度/quote/历史/准入及两项C11旧回归7/7、0skip；作者18项unit、runtime1/1及compiled1/1证据复用，未重长SOURCE。本次没有新付费、窗口或游戏/human完成状态；集成推送后main冻结供Root免费预检及一次有界C12运行，仅Root可解除。
+源码准备时向量为planning/design/art各1µ、coding2400000µ、repair599997µ，共¥3；45分钟、80请求、一次合格repair，原COS16组¥10/phase¥30/shared¥150保持。Root当时报告closure17后组可分配¥4.205748。主线typecheck/build0、五项C12额度/quote/历史/准入及两项C11旧回归7/7、0skip；作者18项unit、runtime1/1及compiled1/1证据复用，未重长SOURCE。以上为免费源码与合成fixture证据。
+
+实际C12运行44分56.013秒后由既定截止定时器停止，failed / coding cancelled；52次请求全结算，新增¥1.664926、共享¥14.467801。首次自检0/0，末次TS2339失败；当前7文件36,508字节匹配失败副本，无handoff/capture或正式验收。closure18一次完成，revision2770/20stopped/12delegations/100closed/18audits/unknown与reserved0，释放¥1.335074，原组可分配¥2.540822，进程与owner/locks清理后Root已解除main冻结。[公开结果](https://github.com/lrfluobida/Cosmos/issues/87#issuecomment-6174294365)和[研究记录](../research/2026-10-15-transfer-c12-deadline.md)保留细节；C12已消费，COS16/COS18、完整经典和human仍未完成。
 
 稳定任务 ID：COS-86
+
+### COS-87 · 并行读取独立 Git 身份字段，减少工具校验耗时
+
+[任务 #88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000，已由Root发布并原生挂父#1；当前87个子项，open且父项未勾选。依赖COS83/86，由 `cos87_implementer` 准备短计划，唯一merger为 `batch_c12_reference_merger`。
+
+当前pending plan-review / `SOURCE_NOT_READY`，目标 `PARALLEL_GIT_IDENTITY_SOURCE_READY`；计划与源码尚未批准或合入。只优化每次身份检查中独立只读Git查询的等待时间，保留前后检查顺序、完整校验、原5秒总截止与取消处理，不加跨调用缓存。免费源码与合成夹具范围，不修改生成游戏、不重跑C12或启动新付费案例。
+
+稳定任务 ID：COS-87
 
 ## 5. 任务与上下文包模板
 
