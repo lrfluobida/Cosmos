@@ -13,7 +13,7 @@ import { bounded, DeadlineError, AcceptanceCancelledError } from './deadline.ts'
 import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Observation } from './plan.ts';
 import { runAcceptanceInOwnedSession } from './runner.ts';
-import type { AcceptanceOptions, AcceptanceReport, OwnedAcceptanceLifecycle, PersistentBrowserIdentity } from './runner.ts';
+import type { AcceptanceOptions, AcceptanceReport, OwnedAcceptanceLifecycle, PersistentBrowserIdentity, BrowserLaunchLifetime } from './runner.ts';
 
 export const PERSISTENT_PROFILE_CAPABILITY = 'persistent-profile-real-process-reopen-with-evidence';
 interface PersistentSeriesFields {
@@ -32,10 +32,12 @@ export interface GenericPersistentAcceptanceSeries extends PersistentSeriesField
   binding: { requirement: ArtifactReference; design: ArtifactReference; candidate: ArtifactReference; acceptanceIds: string[] };
 }
 export type PersistentAcceptanceSeries = TransferPersistentAcceptanceSeries | GenericPersistentAcceptanceSeries;
+export interface PreparedPersistentChild { ticket: string; register(pid: number): Promise<void>; releaseUnspawned(): Promise<void> }
+export interface PersistentLaunch extends BrowserLaunchLifetime { completion: Promise<void> }
 export interface PersistentAcceptanceOptions extends AcceptanceOptions {
   deadlineAt: number; signal?: AbortSignal; verifyBinding: () => Promise<void>;
   /** Host-owned controller ticket; defaults keep the existing isolated fixture route. */
-  ownedChild?: { prepare(): Promise<string>; register(pid: number, ticket: string): Promise<void> };
+  ownedChild?: { prepare(launch: PersistentLaunch): Promise<PreparedPersistentChild> };
   /** Each generic document has its own exact plan-bound partial collection request. */
   segmentMediaObservations?: { segmentId: string; request: import('./browser.ts').GenericMediaObservationRequest }[];
   segmentRenderFrames?: { segmentId: string; request: import('./render-frames.ts').RenderFrameRequest }[];
@@ -329,16 +331,40 @@ export function ownedPersistentBrowserLifecycle(plan: AcceptancePlan, options: P
   const origin = new URL(plan.url).origin;
   return { deadlineAt: session.deadlineAt, signal: session.signal, process: () => child,
     identity: () => { if (identity) identity.closeEvent = closeEvent; return identity; },
-    async open(directory, timeoutMs) {
-      const started = Date.now(), end = Math.min(session.deadlineAt - 1000, started + timeoutMs);
-      const run = <T>(op: () => Promise<T>, label: string) => bounded(op, end - Date.now(), label, session.signal);
+    async open(directory, timeoutMs, outerLaunch) {
+      const started = Date.now(), end = Math.min(session.deadlineAt - 1000, started + timeoutMs, outerLaunch?.deadlineAt ?? Infinity);
+      const abort = new AbortController(), signal = AbortSignal.any([abort.signal, ...(session.signal ? [session.signal] : []), ...(outerLaunch ? [outerLaunch.signal] : [])]);
+      const check = () => {
+        if (signal.aborted) throw signal.reason instanceof DeadlineError ? signal.reason : new AcceptanceCancelledError('Persistent launch cancelled');
+        if (Date.now() >= end) throw new DeadlineError('Persistent launch expired');
+      };
+      const timer = setTimeout(() => abort.abort(new DeadlineError('Persistent launch deadline reached')), Math.max(0, end - Date.now()));
+      let complete!: () => void, fail!: (error: unknown) => void;
+      const completion = new Promise<void>((resolveCompletion, rejectCompletion) => { complete = resolveCompletion; fail = rejectCompletion; });
+      void completion.catch(() => {});
+      let prepared: PreparedPersistentChild | undefined, preparing = false, spawnStarted = false, releasing: Promise<void> | undefined;
+      const release = () => releasing ??= Promise.resolve().then(() => prepared!.releaseUnspawned()).then(complete, error => { fail(error); throw error; });
+      const run = <T>(op: () => Promise<T>, label: string) => bounded(op, end - Date.now(), label, signal);
+      try {
       const path = await executable(options.channel); await safePath(session.profile);
       requireThat((await lstat(session.profile)).isDirectory(), 'private profile is not a directory');
       // Remove only our previous endpoint file; never accept a stale endpoint during the second launch.
       const portFile = join(session.profile, 'DevToolsActivePort');
       try { await removeOwned(session.profile, portFile); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-      if (session.signal?.aborted || Date.now() >= end) throw new DeadlineError('Persistent launch cancelled or expired');
-      const ticket = options.ownedChild ? await run(options.ownedChild.prepare, 'Owned browser launch ticket') : undefined;
+      check();
+      if (options.ownedChild) {
+        // Observe the raw result even after bounded rejects, retaining exact release responsibility.
+        const raw = options.ownedChild.prepare({ signal, deadlineAt: end, completion }); preparing = true;
+        const received = raw.then(async handle => {
+          prepared = handle;
+          try { check(); }
+          catch (error) { try { await release(); } catch (cleanup) { throw new AggregateError([error, cleanup], `Unspawned browser launch cleanup failed: ${String(error)}; ${String(cleanup)}`); } throw error; }
+          return handle;
+        }, error => { fail(error); throw error; });
+        void received.catch(() => {});
+        await run(() => received, 'Owned browser launch ticket');
+      }
+      check(); spawnStarted = true;
       child = spawn(path, ['--user-data-dir=' + session.profile, '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
         '--enable-automation', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-component-update',
         '--disable-extensions', '--disable-default-apps', '--disable-sync', ...(options.headless === false ? [] : ['--headless=new']), 'about:blank'],
@@ -346,9 +372,12 @@ export function ownedPersistentBrowserLifecycle(plan: AcceptancePlan, options: P
       let launchError: Error | undefined;
       child.on('error', error => { launchError = error; });
       closed = new Promise(resolveClose => child!.once('close', () => { closeEvent = true; resolveClose(); }));
-      if (options.ownedChild) {
-        requireThat(child.pid && ticket, 'owned browser has no PID or prepared ticket');
-        await run(() => options.ownedChild!.register(child!.pid!, ticket), 'Owned browser PID registration');
+      complete(); // The existing process/registration/exit path now owns this spawned child.
+      if (prepared) {
+        requireThat(child.pid && prepared.ticket, 'owned browser has no PID or prepared ticket');
+        // Start registration even if the local deadline just expired; PID evidence must survive.
+        const registration = prepared.register(child.pid); void registration.catch(() => {});
+        await run(() => registration, 'Owned browser PID registration');
       }
       let port = '';
       while (!port) {
@@ -376,6 +405,15 @@ export function ownedPersistentBrowserLifecycle(plan: AcceptancePlan, options: P
       await run(() => blockPersistentServiceWorkers(context), 'Persistent service worker block');
       // The default CDP context persists on disk; no newContext or storage seed is used.
       return { browser, context };
+      } catch (caught) {
+        const error = signal.reason instanceof DeadlineError ? signal.reason : caught;
+        abort.abort(error);
+        if (prepared && !spawnStarted) {
+          try { await release(); }
+          catch (cleanup) { throw new AggregateError([error, cleanup], `Unspawned browser launch cleanup failed: ${String(error)}; ${String(cleanup)}`); }
+        } else if (!preparing || spawnStarted) fail(error);
+        throw error;
+      } finally { clearTimeout(timer); }
     },
     async close(timeoutMs) {
       requireThat(cdp && identity && child?.pid === identity.browserPid, 'cannot close an unverified browser identity');

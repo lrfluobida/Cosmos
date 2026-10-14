@@ -40,7 +40,8 @@ import { requireValidationBrowserScope, requireValidationPreparationScope } from
 import type { ValidationBrowserProposal, ValidationPreparationProposal } from './entrypoint-validation.ts';
 import type { BrowserInputPreparation } from './entrypoint-preparation.ts';
 import { runPersistentAcceptance } from '../acceptance/persistent.ts';
-import type { PersistentAcceptanceSeries, PersistentAcceptanceOptions, PersistentAcceptanceReport } from '../acceptance/persistent.ts';
+import type { PersistentAcceptanceSeries, PersistentAcceptanceOptions, PersistentAcceptanceReport, PreparedPersistentChild } from '../acceptance/persistent.ts';
+import { AcceptanceCancelledError, DeadlineError } from '../acceptance/deadline.ts';
 import type { RoleFactoryOptions } from '../roles/factory.ts';
 import type { RoleInput } from '../roles/factory.ts';
 import { TaskJournal } from './recovery/task-journal.ts';
@@ -94,6 +95,44 @@ export interface BrowserHostIO {
   play(plan: AcceptancePlan, signal: AbortSignal, authority: HostExecutionAuthority, options?: { mediaObservations?: GenericMediaObservationRequest; renderFrames?: RenderFrameRequest }): Promise<AcceptanceReport>;
   playPersistent?(series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions, authority: HostExecutionAuthority): Promise<PersistentAcceptanceReport>;
 }
+/** Source-owned launch handoff: returning a handle does not end tracked ticket ownership. */
+export function createPersistentOwnedChild(input: Pick<HostInput, 'controller' | 'work'>, authority: HostExecutionAuthority,
+  verifyBinding: () => Promise<void>): NonNullable<PersistentAcceptanceOptions['ownedChild']> {
+  return { prepare(launch) {
+    let ready!: (handle: PreparedPersistentChild) => void, rejectReady!: (error: unknown) => void;
+    const result = new Promise<PreparedPersistentChild>((resolveReady, reject) => { ready = resolveReady; rejectReady = reject; });
+    const operation = input.work.run(async workSignal => {
+      const check = () => {
+        if (launch.signal.aborted || workSignal.aborted) throw launch.signal.reason instanceof DeadlineError ? launch.signal.reason : new AcceptanceCancelledError('Persistent launch cancelled');
+        if (Date.now() >= launch.deadlineAt) throw new DeadlineError('Persistent launch expired');
+      };
+      let ticket: string | undefined, delivered = false;
+      try {
+        check(); await verifyBinding(); check();
+        ticket = await input.controller.prepareOwnedChild(authority.windowId ? { taskId: authority.taskId, windowId: authority.windowId } : undefined, check);
+        check(); const exactTicket = ticket;
+        let state: 'unspawned' | 'registered' | 'releasing' | 'released' = 'unspawned';
+        ready({ ticket: exactTicket,
+          register: async pid => {
+            if (state !== 'unspawned') throw new Error('Persistent launch ticket was already consumed.');
+            state = 'registered'; await input.controller.registerOwnedChild(pid, exactTicket); await verifyBinding();
+          },
+          releaseUnspawned: async () => {
+            if (state !== 'unspawned') throw new Error('Persistent launch ticket is no longer unspawned.');
+            state = 'releasing'; await input.controller.releaseUnspawnedChild(exactTicket); state = 'released';
+          } });
+        delivered = true; await launch.completion;
+      } catch (error) {
+        if (ticket && !delivered) {
+          try { await input.controller.releaseUnspawnedChild(ticket); }
+          catch (cleanup) { throw new AggregateError([error, cleanup], `Unspawned browser launch cleanup failed: ${String(error)}; ${String(cleanup)}`); }
+        }
+        throw error;
+      }
+    });
+    void operation.catch(rejectReady); return result;
+  } };
+}
 function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'> & { renderFrames?: boolean }): BrowserHostIO {
   return {
     async build(project, name, signal, authority) {
@@ -127,10 +166,7 @@ function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'> & { ren
       if (series.segments.some(segment => segment.plan.taskId !== authority.taskId)
         || options.deadlineAt !== Date.parse(authority.deadlineAt)) throw new Error('Persistent browser task or deadline differs from host authority.');
       return input.work.run(async signal => runPersistentAcceptance(series, { ...options, signal: AbortSignal.any([signal, ...(options.signal ? [options.signal] : [])]),
-        ownedChild: {
-          prepare: async () => { await options.verifyBinding(); return input.controller.prepareOwnedChild(authority.windowId ? { taskId: authority.taskId, windowId: authority.windowId } : undefined); },
-          register: async (pid, ticket) => { await input.controller.registerOwnedChild(pid, ticket); await options.verifyBinding(); },
-        } }));
+        ownedChild: createPersistentOwnedChild(input, authority, options.verifyBinding) }));
     },
   };
 }

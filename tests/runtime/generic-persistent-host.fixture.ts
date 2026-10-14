@@ -8,7 +8,7 @@ import { removeOwned } from '../../src/artifacts/paths.ts';
 import { IntakeController } from '../../src/runtime/intake.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
-import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
+import { createBrowserHost, createPersistentOwnedChild } from '../../src/runtime/entrypoint-host.ts';
 import type { BrowserHostIO } from '../../src/runtime/entrypoint-host.ts';
 import { withHostStages, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../../src/roles/requirements.ts';
 import { executePersistentSeries, runPersistentAcceptance } from '../../src/acceptance/persistent.ts';
@@ -38,7 +38,7 @@ export async function genericHostFixture(t: test.TestContext, fault = '', classi
       calls.push({ series: structuredClone(series), authority: structuredClone(authority), deadlineAt: options.deadlineAt });
       assert.equal(options.deadlineAt, Date.parse(authority.deadlineAt));
       if (fault === 'real') return runPersistentAcceptance(series, { ...options, channel: 'msedge', timeoutMs: 25_000,
-        ownedChild: { prepare: async () => controller.prepareOwnedChild(), register: async (pid, ticket) => controller.registerOwnedChild(pid, ticket) } });
+        ownedChild: createPersistentOwnedChild({ controller, work }, authority, options.verifyBinding) });
       let count = 0;
       const report = await executePersistentSeries(series, options, async (plan, lifecycle) => {
         const index = count++, folder = [plan.projectId, plan.artifact.artifactId, plan.artifact.version, plan.runId, plan.reportId].join('/');

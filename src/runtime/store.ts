@@ -26,7 +26,8 @@ export class SnapshotStore {
     return OwnerLock.recover(await realpath(root), '.controller.lock');
   }
 
-  prepareOwnedChild(): Promise<string> { this.assertWritable(); return this.lock.prepareOwnedChild(); }
+  prepareOwnedChild(checkLaunch?: () => void): Promise<string> { this.assertWritable(); return this.lock.prepareOwnedChild(checkLaunch); }
+  releaseUnspawnedChild(ticket: string): Promise<void> { this.assertWritable(); return this.lock.releaseUnspawnedChild(ticket); }
   registerOwnedChild(pid: number, ticket: string): Promise<void> { this.assertWritable(); return this.lock.registerOwnedChild(pid, ticket); }
 
   private async checkTarget(): Promise<boolean> {

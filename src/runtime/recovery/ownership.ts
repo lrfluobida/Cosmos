@@ -89,10 +89,27 @@ export class OwnerLock {
       await this.assertOwner(); await rename(temporary, this.path); this.record = next;
     } finally { await file.close().catch(() => {}); await unlink(temporary).catch(error => { if (error.code !== 'ENOENT') throw error; }); }
   }
-  prepareOwnedChild(): Promise<string> {
+  prepareOwnedChild(checkLaunch?: () => void): Promise<string> {
     return this.serial(async () => {
+      checkLaunch?.();
       const ticket = randomUUID(), next = structuredClone(this.record);
-      next.children.push({ ticket, pid: null }); await this.save(next); return ticket;
+      next.children.push({ ticket, pid: null }); await this.save(next);
+      try { checkLaunch?.(); }
+      catch (error) {
+        const cancelled = structuredClone(this.record); cancelled.children = cancelled.children.filter(child => child.ticket !== ticket);
+        try { await this.save(cancelled); }
+        catch (cleanup) { throw new AggregateError([error, cleanup], `Expired launch intent cleanup failed; retaining ownership: ${String(error)}; ${String(cleanup)}`); }
+        throw error;
+      }
+      return ticket;
+    });
+  }
+  /** Only the current launcher can prove it never invoked spawn for this exact intent. */
+  releaseUnspawnedChild(ticket: string): Promise<void> {
+    return this.serial(async () => {
+      const next = structuredClone(this.record), child = next.children.find(child => child.ticket === ticket);
+      if (!child || child.pid !== null) throw new Error('Release requires an exact unresolved child spawn intent.');
+      next.children = next.children.filter(child => child.ticket !== ticket); await this.save(next);
     });
   }
   registerOwnedChild(childPid: number, ticket: string): Promise<void> {

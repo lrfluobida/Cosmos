@@ -15,6 +15,8 @@ import type { AcceptancePlan } from '../../src/acceptance/plan.ts';
 import { runAcceptanceInOwnedSession } from '../../src/acceptance/runner.ts';
 import * as persistent from '../../src/acceptance/persistent.ts';
 import { RunController } from '../../src/runtime/run.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+import { createPersistentOwnedChild } from '../../src/runtime/entrypoint-host.ts';
 import { browserProcessAbsent } from '../../src/acceptance/process.ts';
 import { createMediaObservationRequest, assessMediaCoverage } from '../../src/runtime/entrypoint-media.ts';
 
@@ -54,15 +56,20 @@ async function fixture(t: any, rejectRegistration = false) {
   const connect = chromium.connectOverCDP;
   chromium.connectOverCDP = ((...args: any[]) => { cdpCalls++; return (connect as any).apply(chromium, args); }) as typeof connect;
   t.after(() => { chromium.connectOverCDP = connect; });
+  const work = new OwnedWork(controller.signal), nativeChild = createPersistentOwnedChild({ controller, work },
+    { taskId: 'observer', windowId: null, deadlineAt: new Date(deadlineAt).toISOString() }, async () => { controller.signal.throwIfAborted(); });
   const options = { evidenceRoot, deadlineAt, channel: 'msedge' as const, timeoutMs: 30_000, mediaObservations: request, verifyBinding: async () => { controller.signal.throwIfAborted(); },
-    ownedChild: { prepare: async () => { order.push('ticket'); assert.equal(lifecycle.process(), undefined); return controller.prepareOwnedChild(); },
-      register: async (id: number, ticket: string) => { pid = id; order.push('register'); assert.equal(cdpCalls, 0); assert.equal(lifecycle.process()!.pid, id);
-        lifecycle.process()!.once('close', () => { closeEvent = true; }); assert.equal(browserProcessAbsent(id), false); await controller.registerOwnedChild(id, ticket);
-        if (rejectRegistration) throw new Error('Synthetic registration rejection'); } } };
+    ownedChild: { prepare: async (launch: persistent.PersistentLaunch) => {
+      order.push('ticket'); assert.equal(lifecycle.process(), undefined); const handle = await nativeChild.prepare(launch);
+      return { ...handle, register: async (id: number) => { pid = id; order.push('register'); assert.equal(cdpCalls, 0); assert.equal(lifecycle.process()!.pid, id);
+        lifecycle.process()!.once('close', () => { closeEvent = true; }); assert.equal(browserProcessAbsent(id), false); await handle.register(id);
+        if (rejectRegistration) throw new Error('Synthetic registration rejection'); } };
+    } } };
   const make: any = (persistent as any).ownedPersistentBrowserLifecycle;
   assert.equal(typeof make, 'function', 'The existing persistent lifecycle must expose its trusted transport for the short observer QA');
   lifecycle = make(plan, options, { profile, deadlineAt, signal: controller.signal });
   const report = await runAcceptanceInOwnedSession(plan, options, lifecycle);
+  await work.cancelAndDrain('Observer fixture complete');
   const digest = createHash('sha256');
   for (const path of ['./fixtures/media-observer.html', './media-observations.integration.ts', '../../src/acceptance/browser.ts', '../../src/acceptance/runner.ts', '../../src/acceptance/persistent.ts', '../../src/runtime/entrypoint-media.ts']) {
     digest.update(path); digest.update(await readFile(fileURLToPath(new URL(path, import.meta.url))));
