@@ -9,6 +9,7 @@ import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { snapshot } from '../../src/artifacts/paths.ts';
 import { createTransferRuntimeHost } from '../../src/runtime/adapters/transfer/runtime-host.ts';
 import { codingSignature } from '../../src/runtime/coding-check-worker.ts';
+import type { ValidationExecutionBinding } from '../../src/runtime/validation-scope.ts';
 import { validationBrowserFixture } from './entrypoint-host-validation.fixture.ts';
 import { transferFixture } from '../transfer/runtime-host.fixture.ts';
 
@@ -30,8 +31,12 @@ test('COS55 declares the trusted compile tool only in the original coding policy
 });
 
 /** Real production host/factory, isolated synthetic upstream captures, no prompt in the coding session. */
-export async function codingAuthor(t: test.TestContext, options: { templateRoot?: string; createHost?: (input: any) => Promise<any>; transfer?: boolean } = {}) {
+export async function codingAuthor(t: test.TestContext, options: { templateRoot?: string; createHost?: (input: any) => Promise<any>; transfer?: boolean; observeScope?: (signal: AbortSignal) => Promise<void> } = {}) {
   const f = options.transfer ? await transferFixture(t) : await validationBrowserFixture(t, options);
+  if (options.observeScope) {
+    const readScope = f.validation.readScope as ValidationExecutionBinding['readScope'];
+    Object.assign(f.validation, { readScope: async (signal: AbortSignal) => { await options.observeScope!(signal); return readScope(signal); } });
+  }
   const host = options.transfer ? await createTransferRuntimeHost(f.input) : options.createHost ? await options.createHost(f.input) : await (f as Awaited<ReturnType<typeof validationBrowserFixture>>).create();
   if (options.transfer) t.after(() => host.closePreparation());
   const tasks = f.prepare(host);
@@ -51,7 +56,7 @@ export async function codingAuthor(t: test.TestContext, options: { templateRoot?
   const roleInput = { controller: f.controller, requirement: f.requirement, role: 'coding' as const, task, workspace: tasks[2].workspace,
     stateDirectory: join(f.root, `sessions/${attemptId}/author`) };
   const session = await host.roleFactory(roleInput); t.after(() => session.close());
-  const config = f.configs.at(-1)!, tool = config.tools.find(tool => tool.name === NAME)!;
+  const config = f.configs.at(-1)!, tool = config.tools.find((tool: { name: string }) => tool.name === NAME)!;
   assert.ok(tool, 'Production factory callback must supply the declared coding compile tool');
   const call = async (args: any = {}, signal?: AbortSignal) => JSON.parse((await (tool.execute as any)('coding-build-check', args, signal, undefined, undefined)).content[0].text);
   return { ...f, host, tasks, task, config, tool, call, roleInput };
@@ -63,10 +68,10 @@ test('COS55 callback supplies strict empty arguments and stays absent from nonco
   for (const args of [{ command: 'echo unexpected' }, { env: {} }, { path: 'other' }, { version: 'v2' }, [], null, new Date()]) {
     await assert.rejects(f.call(args), /no arguments|empty object/i);
   }
-  assert.ok(f.configs.filter(config => JSON.parse(config.context).role !== 'coding').every(config => !config.tools.some(tool => tool.name === NAME)));
+  assert.ok(f.configs.filter(config => JSON.parse(config.context).role !== 'coding').every(config => !config.tools.some((tool: { name: string }) => tool.name === NAME)));
   const review = join(f.root, 'reviews', f.task.taskId); await mkdir(review, { recursive: true });
   const reviewer = await f.host.roleFactory({ ...f.roleInput, role: 'reviewer', workspace: review, stateDirectory: join(f.root, `sessions/${f.task.attempts[0].attemptId}/review`) });
-  await reviewer.close(); assert.ok(!f.configs.at(-1)!.tools.some(tool => tool.name === NAME));
+  await reviewer.close(); assert.ok(!f.configs.at(-1)!.tools.some((tool: { name: string }) => tool.name === NAME));
   assert.deepEqual(await f.controller.read(), before);
 });
 
@@ -102,8 +107,8 @@ test('COS55 original coding callback rejects unknown charges and reserves cleanu
   assert.deepEqual(await f.controller.read(), before); assert.equal(f.calls.some(call => call.kind === 'build'), false);
 });
 
-async function fixedCompiler(t: test.TestContext, waiting = false, transfer = false) {
-  const f = await codingAuthor(t, { transfer }), modules = join(f.root, 'toolchain/node_modules');
+async function fixedCompiler(t: test.TestContext, waiting = false, transfer = false, observeScope?: (signal: AbortSignal) => Promise<void>) {
+  const f = await codingAuthor(t, { transfer, observeScope }), modules = join(f.root, 'toolchain/node_modules');
   const tsc = join(modules, 'typescript/bin'), vite = join(modules, 'vite/bin');
   await mkdir(tsc, { recursive: true }); await mkdir(vite, { recursive: true });
   await writeFile(join(tsc, 'tsc'), `const fs=require('node:fs');fs.writeFileSync('compiler-ready.json',JSON.stringify({pid:process.pid,unlisted:process.env.COSMOS_TEST_UNLISTED??null,nodeOptions:process.env.NODE_OPTIONS??null}));${waiting ? "const timer=setInterval(()=>{if(fs.existsSync('compiler-release')){clearInterval(timer);}},20);" : ''}\n`, 'utf8');
@@ -127,6 +132,28 @@ async function ready(paths: () => Promise<string[]>) {
   throw new Error('Synthetic owned compiler did not reach its ready barrier.');
 }
 const exited = (pid: number) => { try { process.kill(pid, 0); return false; } catch (error) { return (error as NodeJS.ErrnoException).code === 'ESRCH'; } };
+
+test('COS83 transfer compile reduces duplicate scope reads and freshly checks each independent call', async t => {
+  let reads = 0, scopeDelay = 0, delayTotalMs = 0;
+  const f = await fixedCompiler(t, false, true, async signal => {
+    reads++;
+    if (scopeDelay) { const start = performance.now(); await delay(scopeDelay, undefined, { signal }); delayTotalMs += performance.now() - start; }
+  });
+  const before = await f.controller.read(), registry = await snapshot(join(f.root, 'registry')), source = await snapshot(f.author), records = [];
+  let network = 0;
+  t.mock.method(globalThis, 'fetch', async () => { network++; throw new Error('SOURCE external network disabled'); });
+  for (const delayMs of [0, 5]) {
+    reads = 0; delayTotalMs = 0; scopeDelay = delayMs;
+    const start = performance.now(), report = await f.call();
+    records.push({ delayMs, scopeCalls: reads, toolElapsedMs: performance.now() - start, requestedDelayTotalMs: delayMs * reads, measuredDelayTotalMs: delayTotalMs });
+    assert.equal(report.passed, true); assert.deepEqual(report.results.map((result: any) => result.code), [0, 0]);
+    assert.equal(report.workerPids.length, 2); assert.ok(report.workerPids.every(exited)); assert.ok(report.results.every((result: any) => exited(result.pid)));
+    assert.ok(reads > 0); assert.deepEqual(await f.controller.read(), before); assert.deepEqual(await snapshot(join(f.root, 'registry')), registry); assert.deepEqual(await snapshot(f.author), source);
+  }
+  t.diagnostic(JSON.stringify({ baselineScopeCalls: 160, records, network, originalSnapshotRegistryAndSourcePreserved: true }));
+  assert.equal(network, 0); assert.equal(records[0].scopeCalls, records[1].scopeCalls);
+  assert.ok(records.every(record => record.scopeCalls < 160), 'The actual factory tool must reduce the measured 160 duplicate scope reads without caching across calls.');
+});
 
 test('COS55 registers its owned PID before any TEMP assembly and filters compiler environment', async t => {
   const f = await fixedCompiler(t), register = f.controller.registerOwnedChild.bind(f.controller);

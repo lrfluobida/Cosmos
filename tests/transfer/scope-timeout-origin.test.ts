@@ -70,7 +70,7 @@ test('local scope timeout preserves origin for a healthy parallel and later veri
   assert.equal(initReads, 2); await assert.rejects(fetch(f.origin.url), 'Initialization failure still closes its newly owned listener');
 });
 
-test('real transfer host outer guard timeout preserves its origin before origin.verify is reached', async t => {
+test('real transfer host guard timeout preserves its origin before candidate binding', async t => {
   const f = await transferFixture(t), readScope = f.validation.readScope;
   let stall = false, reads = 0;
   f.validation.readScope = async signal => { reads++; if (stall) await interrupted(signal); return readScope(signal); };

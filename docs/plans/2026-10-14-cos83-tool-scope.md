@@ -21,7 +21,9 @@ Root报告 C10 的两次 check-game-build 分别约226秒和378秒，第二次 T
 - [x] 命令只选择 `SOURCE COS83`。最终脚本直接导入fixture和public runtime，不注册旧测试；实际1/1、0skip，不重跑矩阵。诊断用普通prepared transfer夹具，不冒充C10 inherited路径实测或付费节省。
 - [x] 报告实测次数、耗时与具体调用链；阶段二生产选择仍待独审。夹具接线问题先定位，不改生产去迁就基准、不重建C10长seed。
 
-## 阶段二：基线后的最小选择，等待独审
+## 阶段二：已审最小选择
+
+阶段二方案 exact `7d5ed7102d9a5ad00c70a888b3001861b4fd61ec` 已由 `cos77_implementer` PRODUCTION_PLAN_APPROVED。
 
 选择只删 `src/runtime/adapters/transfer/runtime-host.ts` 的 transfer guard 中先行 `ctx.requireScope()`，保留 `await origin.verify()`；后者仍在listener/receipt检查前完整读取当前scope。已核 `initialize` 先await reserveTransferOrigin赋值，再进入继承verify或构建设计校验工具；外部host只在initialize完成后返回，因此guard可使用已绑定origin。原异常/abort/COS75局部timeout关闭逻辑保持。两个scope调用间没有其它业务读取或执行边界；保留的origin.verify自身执行当前scope及listener/receipt读取，不以先前检查结果代替新授权。
 
@@ -31,10 +33,10 @@ Root报告 C10 的两次 check-game-build 分别约226秒和378秒，第二次 T
 
 ## 阶段二验证边界
 
-- [ ] 实际check性能代表先RED后GREEN，报告新旧实测scope次数及受控延迟，两个独立调用仍各自验证当前scope；不增加授权cache。
-- [ ] 定向复用/运行现有COS55代表：源码或固定输入在compiler期间变化、取消、TypeScript后Vite前输入变化仍拒绝；worker注册屏障、清理与120秒phase时限保持。
-- [ ] 定向COS75：真实transfer guard局部scope timeout保持origin、后续独立调用重新校验；真实abort/owner取消、receipt或binding变更仍关闭/拒绝，不能凭新位置吞错误。未变长矩阵复用。
-- [ ] typecheck/build/受影响strict、UTF-8/LF/中文回读、完整base diff check；保存原始证据与exact SHA交独审。只有通过后可使用 `AUTHOR_TOOL_SCOPE_SOURCE_READY`。
+- [x] 实际check性能代表先RED后GREEN，报告新旧实测scope次数及受控延迟，两个独立调用仍各自验证当前scope；不增加授权cache。
+- [x] 定向复用/运行现有COS55代表：源码或固定输入在compiler期间变化、取消、TypeScript后Vite前输入变化仍拒绝；worker注册屏障、清理与120秒phase时限保持。
+- [x] 定向COS75：真实transfer guard局部scope timeout保持origin、后续独立调用重新校验；真实abort/owner取消、receipt或binding变更仍关闭/拒绝，不能凭新位置吞错误。未变长矩阵复用。
+- [x] typecheck/build/受影响strict、UTF-8/LF/中文回读、完整base diff check；保存原始证据与exact SHA交独审。最终源码批准后才可使用 `AUTHOR_TOOL_SCOPE_SOURCE_READY`。
 
 ## 排除范围
 
@@ -55,4 +57,32 @@ Root报告 C10 的两次 check-game-build 分别约226秒和378秒，第二次 T
 
 setup10817.4109ms/337次scope在测量区间外。5ms定时器实际累计明显大于请求800ms，因此不把预设延迟当实际耗时。工具从真实factory的config.tools取出执行，包含entrypoint-host启用的beforeTool→requireDispatch；不是直接调用裸checker。两次均真实启动typecheck/build两个owned worker及合成compiler，codes[0,0]、所有worker/compiler PID退出，原snapshot/registry/author字节保持、network0；TAP正常结束包含owner/目录清理。没有C10 inherited或实际Git-reader成本实测，160不能与静态60/94直接比较。
 
-该反馈能确定当前工具仍有大量scope读取，且两次独立调用均重新读取；生产候选的实际降幅必须在阶段二GREEN测得后报告，不先声称提速比例。状态：阶段一完成 / 阶段二生产方案待独审 / SOURCE_NOT_READY。
+该反馈能确定当前工具仍有大量scope读取，且两次独立调用均重新读取；生产候选的实际降幅在下述阶段二GREEN记录。状态：实现完成待exact独审 / SOURCE_NOT_READY。
+
+## 阶段二实现与证据
+
+生产只删transfer guard的先行 `await ctx.requireScope()`。`origin.verify()`、原catch/close和所有其它guard保持；未增加缓存。测试helper在host创建前观察scope，始终继续原reader；既有COS75测试只改不再准确的位置标题。受影响strict指出原有三个tool回调参数缺少显式类型（基线已有该写法），仅补测试类型注解后通过；没有因此改生产或重跑已过运行矩阵。
+
+| 真实工具测量 | 0ms scopeCalls / toolElapsedMs | 5ms scopeCalls / toolElapsedMs | 实际注入延迟累计ms |
+| --- | --- | --- | --- |
+| 仓内回归 RED，旧生产 | 160 / 11003.4269 | 160 / 13548.3075 | 2259.129 |
+| 同回归 GREEN，单点删除后 | 83 / 10415.5136 | 83 / 11801.9904 | 1025.859 |
+
+两个独立调用都减少77次scope读取（此夹具次数减少48.125%），仍各自fresh读取。上述墙钟仅原样记录，不据此推导真实C10提速、Git成本或节费。两个phase均退出0，全部worker/compiler PID已退出，原snapshot/registry/author字节保持，工具阶段network0。
+
+原始目录仍为 `C:/Users/26557/AppData/Local/Temp/cos83-tool-scope/`：
+
+| 验证 | 结果 | 原始文件 |
+| --- | --- | --- |
+| 实际tool计数RED | 0/1、0skip、退出1，准确失败于仍160；TAP38543.33ms | `production-red.tap` |
+| 实际tool计数GREEN | 1/1、0skip、退出0；TAP34329.476ms | `production-green.tap` |
+| COS55/COS75定向边界 | 18/18、0skip、退出0；TAP65243.7576ms | `boundaries.tap` |
+| compiled真实transfer guard局部timeout | 1/1、0skip、退出0；TAP10221.3603ms | `compiled-guard.tap` |
+| typecheck/build | 均退出0 | `typecheck.log` / `build.log` |
+| 受影响两tests strict | 最终退出0、无stdout | 当次工具原输出，无独立日志 |
+
+计数命令：`node --experimental-strip-types --test --test-name-pattern="COS83 transfer compile" tests/runtime/entrypoint-coding-check.test.ts`。边界命令使用两文件 `tests/runtime/entrypoint-coding-check.test.ts tests/transfer/scope-timeout-origin.test.ts`，pattern为 `COS55 withholds compiler results|COS55 rechecks original authority|COS55 registers its owned PID|COS55 prepared transfer compile|COS55 original compile callback refuses|COS55 original coding callback rejects unknown|local scope timeout preserves|real transfer host guard timeout|controller abort closes|receipt still closes|binding still closes|owner work cancellation|real author file tool stops`。
+
+compiled先 `npm run build`，仅在本次命令设置 `COSMOS_TEST_COMPILED=1`，运行 `node --experimental-strip-types --test --test-name-pattern="real transfer host guard timeout" tests/transfer/scope-timeout-origin.test.ts`。strict命令为 `node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck --types node --allowImportingTsExtensions --allowJs --checkJs false tests/runtime/entrypoint-coding-check.test.ts tests/transfer/scope-timeout-origin.test.ts`。
+
+五个变更路径严格UTF-8/LF/noBOM；三个既有代码/测试文件非ASCII序列保持，文档中文回读及完整a464基线diff check通过。真实C10/原ledger/session/key/游戏未读取或改写，无新付费、C11或旧长seed运行；source单点修改的最终exact等待独审。
