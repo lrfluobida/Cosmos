@@ -2,9 +2,19 @@
 
 更新时间：2026-10-15
 
-用户于2026-10-14授权在原¥150总额内持续推进，C12采用¥3、45分钟上限，已结束并新增费用¥1.664926，未使用额度已通过closure18释放。COS87及COS88源码均已公开关闭；实际C13尚未执行，本次最终关闭元数据推送后主线冻结供Root预检及一次有界运行，仅Root可解除。
+用户于2026-10-14授权在原¥150总额内持续推进。C13已failed并完成closure19，main冻结已由Root解除；COS87/88保持源码范围公开关闭，COS89已独审集成、待Root公开关闭。本批未新增付费运行。
 
-## C12截止取消，末次作者自检失败
+## C13准入拒绝，未产出源码
+
+- C13在冻结版本 `388defc` 运行26分26.253秒后因请求准入拒绝failed；47次请求全部settled，新增 **¥1.641136**，共享累计 **¥16.108937**，unknown/reserved均0。作者0源码文件、53次read、10次成功原生压缩，无编码handoff、游戏capture或正式build/browser/review/repair/accepted。末次8192输出length属于摘要仍是源码及时序推断；COS16/COS18、完整经典与human仍未完成。
+- Root已一次完成closure19，释放 **¥0.858864**；revision2965、21stopped/13delegations/105closed/19audits，进程及owner/locks已清理，main冻结已解除。原COS16组可分配 **¥0.899686**，C13身份已消费。[COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6176958554)与[C13结果](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6176959551)已由Root精确读回；详见[研究记录](docs/research/2026-10-15-transfer-c13-compaction-budget.md)。
+- C13结果文档 `35896240a8f3f771987ff8b3f346fa5885b97cc1` 经 `cos88_reviewer` APPROVED，由 `batch_c13_cos89_merger` 合入 `2986a63ea2b5024b99267a8ca343eb2e29c92a3b`。
+
+## COS89可负担编码上下文保留已审集成
+
+- [COS89 / #90](https://github.com/lrfluobida/Cosmos/issues/90)，id5854211592，父#1当前89个原生子项，依赖COS79/85/88。计划 `66c51d6a05c5d833242ade918f480a5655926859` 已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/90#issuecomment-6177021623)。最终 `b35124a8e48e532bda530607cfa04e25b3e1b57c` 经 `cos89_reviewer` 独立规格→质量APPROVED，无finding；唯一 `batch_c13_cos89_merger` 合入 `11c823a7fd1358cb570b1b80edd4b3300ee0115b`，标记 `AFFORDABLE_CODING_COMPACTION_SOURCE_READY`，source-integrated/pending-public-closure。仅普通既有输出下限 `min(4096, cap)` 无法负担时才选择预算摘要；原预算、来源、身份、输出及准入守卫保持。主线typecheck/build退出0，compiled7/7、0skip；作者factory28/28、native31+修正2/2及strict按独审证据复用。免费fixture不证明实际游戏改善；main保持unfrozen，没有新增付费运行。
+
+## C12历史：截止取消，末次作者自检失败
 
 - 冻结版本 `3cde457`，运行44分56.013秒，由既定截止前5秒定时器结束，结果`failed`、唯一coding attempt为`cancelled`。52次请求全部准入和结算，新增 **¥1.664926**，共享累计 **¥14.467801**，unknown/reserved均0。[COS16结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6174293178)与[C12结果](https://github.com/lrfluobida/Cosmos/issues/87#issuecomment-6174294365)已由Root精确读回。
 - 第一次作者自检TypeScript/Vite退出码0/0；作者修改后第二次因`boardScene.ts:150`的TS2339失败，TypeScript退出2。当前7文件36,508字节与末次失败副本一致，与首次通过副本有2个文件变化。没有handoff/capture、正式候选或正式build/browser/review/repair/accepted，体验未确认；两份已有自检副本已保留，未人工修改或重建。
@@ -23,12 +33,12 @@
 - 每组四个独立Git查询用`allSettled`收齐后按原字段顺序校验，root/before/固定输入/after顺序、每次fresh检查、原5秒总截止和全部已启动进程清理保持。主线受影响strict退出0，并发与真实child失败清理代表2/2、0skip；原19/19、typecheck/build、abort/timeout及性能证据复用。
 - 同环境旧/新各预热1次、交替5次，中位755.5810→348.6017ms，下降53.8631%；每次仍9个真实Git查询、峰值1→4。该结果只适用于身份读取，不外推C12、自检总时长、费用或游戏性能。该卡集成时main未冻结；本卡无新增付费。
 
-## COS88固定迁移C13源码已关闭，最终版本冻结供Root预检
+## COS88固定迁移C13源码已关闭，实际运行已结束
 
 - [COS88 / #89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，已由Root原生挂父#1，当前88个子项。依赖COS86/87；`cos88_implementer` 的计划 `6ad3235` 已[公开批准](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175247486)，最终 `0ef6003` 经 `cos88_reviewer` 独立规格→质量APPROVED，无剩余finding。唯一 `batch_c12_reference_merger` 合入 `9b8be05`，标记 `TRANSFER_CASE_THIRTEEN_SOURCE_READY`；[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175718904)、closed(completed)及父勾选已由Root精确读回，本卡source scoped complete。完整SHA见[任务卡](docs/specs/cos88-transfer-case13.md)。
 - C13固定¥2.50/45分钟/80请求/一次合格repair，planning/design/art各1µ、coding1900000µ、repair599997µ；原COS16组¥10、phase¥30、shared¥150保持。核C12全部52笔已结算历史与closure18，C5两passed阶段七capture只读复用、新作者为空；旧C10/C11/C12的¥3声明字节不变。
 - 主线受影响strict退出0，C13额度/历史/可分配容量/quote/准入及两项C12旧代表7/7、0skip。复用作者unit6/6、旧C12短回归5/5、SOURCE1/1、最终compiled1/1与source capture1/1；长SOURCE后的唯一union类型补18未改变TS5.9.3发射JS，独审批准复用。SOURCE两组各52笔、20/12/100/18与564926µ容量差额、旧prefix及finally恢复已核；compiled transport为synthetic，不代表实际游戏通过。
-- 实际C13/paid/human仍NONE，本次不执行预检或操作脚本。Root已公开关闭，本次最终metadata推送后main冻结供一次C13免费预检及有界运行，仅Root可解除；COS16/COS18、完整经典与体验仍未完成。
+- 以上为源码准备时证据；实际C13 failed及closure19已结束，Root已解除main冻结，结果见本节顶部。COS16/COS18、完整经典与体验仍未完成。
 
 ## C11历史：自检通过后输出截断，未完成验收
 

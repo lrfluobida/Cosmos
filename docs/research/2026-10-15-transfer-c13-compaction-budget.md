@@ -45,4 +45,4 @@ Root已一次执行closure19，释放未用额度 **¥0.858864**；原费用、�
 
 原shared ¥150、phase ¥30、COS16 group ¥10不变。C13身份已消费，不能重跑或延长；[COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6176958554)与[C13入口结果](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6176959551)已由Root精确读回。COS88保持源码范围完成，COS16/COS18、完整经典基准和最终用户试玩仍未完成。
 
-[COS89 #90](https://github.com/lrfluobida/Cosmos/issues/90)正在隔离环境修正预算摘要选择：拟仅在普通`min(4096, cap)`输出也无法准入时才选择摘要。短计划`66c51d6`已独审批准，最终实现尚未批准，不能据此声称本轮原因已全部解决或新运行已获准。
+[COS89 #90](https://github.com/lrfluobida/Cosmos/issues/90)最终 `b35124a8` 已经 `cos89_reviewer` 独审APPROVED并合入 `11c823a7`：仅在普通`min(4096, cap)`输出也无法准入时才选择预算摘要，源码范围待公开关闭。短计划 `66c51d6` 已独审及公开批准；免费fixture不证明本轮原因已全部解决或实际生成改善，没有新付费运行。

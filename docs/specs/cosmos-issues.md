@@ -299,7 +299,8 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-16 · P2 · 验证不同需求的有限迁移
 
-- 当前C12：冻结版本 `3cde457`，52次请求均结算，新增¥1.664926、共享¥14.467801；首次自检通过、作者修改后末次TS2339失败，截止定时器触发后failed / coding cancelled，无handoff/capture或正式后续验收。closure18已一次完成，20stopped/12delegations/100closed/18audits，unknown/reserved0，原组可分配¥2.540822，Root已解除冻结；本卡仍partial/open。[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6174293178)与[研究记录](../research/2026-10-15-transfer-c12-deadline.md)保留细节；C12身份已消费，下列为各旧案例当时记录。
+- 当前C13：冻结版本 `388defc`，47次请求全部settled，新增¥1.641136、共享¥16.108937；请求准入拒绝failed，作者0源码文件，无编码handoff、游戏capture或正式后续验收。closure19已一次完成，21stopped/13delegations/105closed/19audits，unknown/reserved0，原组可分配¥0.899686，Root已解除main冻结；本卡仍partial/open，C13身份已消费。[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6176958554)与[研究记录](../research/2026-10-15-transfer-c13-compaction-budget.md)保留细节。
+- C12历史：冻结版本 `3cde457`，52次请求均结算，新增¥1.664926、共享¥14.467801；首次自检通过、作者修改后末次TS2339失败，截止定时器触发后failed / coding cancelled，无handoff/capture或正式后续验收。closure18已一次完成，20stopped/12delegations/100closed/18audits，unknown/reserved0，原组可分配¥2.540822，Root已解除冻结；本卡仍partial/open。[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6174293178)与[研究记录](../research/2026-10-15-transfer-c12-deadline.md)保留细节；C12身份已消费，下列为各旧案例当时记录。
 - C11历史：冻结版本 `2a7a291`，41次请求均结算，新增¥1.336555、共享¥12.802875；自检通过后输出截断，failed / insufficient_evidence，无handoff/capture或正式后续验收。closure17已完成，19stopped/11delegations/95closed/17audits，unknown/reserved0。[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637)与[研究记录](../research/2026-10-14-transfer-c11-summary-truncation.md)保留细节。
 - 依赖/状态：COS-10、COS-13、COS-18；partial/open，真实迁移C1规划失败/C2设计schema失败/C3规划身份失败/C4独立review请求修改/C5编码截止取消/C6编码流请求超时，固定用例与原契约保持；用例先固定，可与完整基准工具准备并行。
 - 最新迁移C6：source6b8aa15/UTC2026-10-05T02:50:02.916Z→03:01:25.805Z/deadline03:35:02.916Z，682889ms；13codingauthor admitted、12settled135531µ/1unknown974882µ，shared settled8666261/reserved974882/committed9641143。原C5 design/art两passed及7capture复用通过，planner/design/art SDK0；coding20read/0toolerror，无write/compile/capture/build/browser/review/repair/accepted，manual consumed。当前14cases/rev1942/6delegations/65closed/11audits，未closure12、paid阻塞；[真实结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5988185221)与[研究记录](../research/2026-10-05-native-c6-stream-timeout.md)。COS59已审源码修时限，COS60只准备新案例，不重开C6。
@@ -1458,9 +1459,15 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 C13固定¥2.50/45分钟/80请求/一次合格repair，角色向量为1/1/1/1900000/599997微元；原COS16组¥10、phase¥30、shared¥150保持。C12全部52笔历史及closure18须核对；C5两passed阶段七capture只读复用，新作者为空，旧C10/C11/C12声明字节保持。主线受影响strict退出0，五项C13与两项C12短代表7/7、0skip；作者unit6/6、旧回归5/5、SOURCE1/1、最终compiled1/1和source capture1/1按已审证据复用。SOURCE后仅union补18，发射JS一致；两组52笔、20/12/100/18、费用差额564926µ与finally恢复均经独审，compiled transport为synthetic。
 
-实际C13/paid/human仍NONE。Root已公开关闭，本次最终元数据推送后main冻结供一次C13免费预检及有界运行，仅Root可解除；本次不执行预检或操作脚本，COS16/COS18、完整经典与human仍未完成。
+C13在冻结版本 `388defc` 运行26分26.253秒后因请求准入拒绝failed；47次请求全部settled，新增 **¥1.641136**，共享累计 **¥16.108937**，unknown/reserved均0。作者0源码文件、53次read、10次成功原生压缩，无编码handoff、游戏capture或正式build/browser/review/repair/accepted。末次8192输出length属于摘要仍是源码及时序推断；COS16/COS18、完整经典与human仍未完成。 Root已一次完成closure19，释放 **¥0.858864**；revision2965、21stopped/13delegations/105closed/19audits，进程及owner/locks已清理，main冻结已解除。原COS16组可分配 **¥0.899686**，C13身份已消费。[COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6176958554)与[C13结果](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6176959551)已由Root精确读回；详见[研究记录](../research/2026-10-15-transfer-c13-compaction-budget.md)。
 
 稳定任务 ID：COS-88
+
+### COS-89 · 避免在编码请求仍可准入时提前压缩上下文
+
+[COS89 / #90](https://github.com/lrfluobida/Cosmos/issues/90)，id5854211592，父#1当前89个原生子项，依赖COS79/85/88。计划 `66c51d6a05c5d833242ade918f480a5655926859` 已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/90#issuecomment-6177021623)。最终 `b35124a8e48e532bda530607cfa04e25b3e1b57c` 经 `cos89_reviewer` 独立规格→质量APPROVED，无finding；唯一 `batch_c13_cos89_merger` 合入 `11c823a7fd1358cb570b1b80edd4b3300ee0115b`，标记 `AFFORDABLE_CODING_COMPACTION_SOURCE_READY`，source-integrated/pending-public-closure。仅普通既有输出下限 `min(4096, cap)` 无法负担时才选择预算摘要；原预算、来源、身份、输出及准入守卫保持。主线typecheck/build退出0，compiled7/7、0skip；作者factory28/28、native31+修正2/2及strict按独审证据复用。免费fixture不证明实际游戏改善；main保持unfrozen，没有新增付费运行。 [任务卡](cos89-affordable-compaction.md)保存实际链、证据复用及运行边界。
+
+稳定任务 ID：COS-89
 
 ## 5. 任务与上下文包模板
 
