@@ -1,6 +1,6 @@
 # COS-86 验证摘要截断恢复后的固定迁移 C12
 
-状态：PLAN_APPROVED / 实现完成待 exact 源码独审 / SOURCE_NOT_READY。Issue [#87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS84 #85、COS85 #86。目标 `TRANSFER_CASE_TWELVE_SOURCE_READY`。
+状态：TRANSFER_CASE_TWELVE_SOURCE_READY / source-integrated / open pending public closure。Issue [#87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS84 #85、COS85 #86。
 
 作者 `cos86_implementer`；独立 reviewer `cos86_reviewer`；唯一 merger `batch85_86_merger`。分支 `codex/cos86-transfer-case12`，初始基线 `ecd8d8e0c3f28e6d8f4cd34ea6219342900b9328`，最终 review base `d1064fdcb7532d1c565b8048b0a2922338dcb7d4`；[实施计划](../plans/2026-10-14-cos86-transfer-case12.md)。
 
@@ -22,4 +22,12 @@
 
 SOURCE 通过原 API 补足两组各 41 笔 C11 合成费用与 closure17，保留 19/11/95/17 及旧历史；空作者、C5 两阶段七 capture、当前 host/factory/Pi、审批双祖先和 partial 冷恢复通过。原 snapshot/mapping/目录与 owner 已恢复，证据归档及全部原始命令/TAP见计划。compiled worker transport为synthetic，未执行C12正式build/browser/repair或完整游戏。
 
-后并入 `d1064fdcb7532d1c565b8048b0a2922338dcb7d4` 的六文档关闭记录；核实源码、依赖、固定输入、夹具及 COS84/85 marker/approved/merge未变，定向元数据和祖先检查通过，复用已通过证据。生产/测试最终 exact 尚待独立规格→质量审查，源码 ready 标记仍未授予。
+后并入 `d1064fdcb7532d1c565b8048b0a2922338dcb7d4` 的六文档关闭记录；核实源码、依赖、固定输入、夹具及 COS84/85 marker/approved/merge未变，定向元数据和祖先检查通过，复用已通过证据。最终 exact 已独立规格→质量APPROVED，源码ready标记与主线证据见下。
+
+## 独立审查与主线集成
+
+最终源码 `08012122685cb66e104f85c1da00bbe7915cebee` 经 `cos86_reviewer` 对base `d1064fdcb7532d1c565b8048b0a2922338dcb7d4` 的实际18路径规格→质量APPROVED，无finding。唯一 `batch85_86_merger` 合入 `c8f5ecb117e7a68715aa7d8ce0c31f5562ec86ee`；批准源码、测试及README字节保持。公开issue仍open，等待Root关闭；本次集成推送后main冻结供Root免费预检及一次有界C12运行，仅Root可解除。
+
+主线 `npm run typecheck`、`npm run build` 退出0。`node --experimental-strip-types --test --test-name-pattern='C12 (fixes|rejects|uses|fixed parser|unknown admission)|C11 (fixes|rejects)' tests/transfer/validation-case-twelve.test.ts tests/transfer/validation-case-eleven.test.ts` 7/7、0skip、TAP6571.5138ms：C12五项固定额度、历史拒绝、available、quote与unknown准入，以及C11两项旧额度/历史拒绝。原始输出均位于 `C:/Users/26557/AppData/Local/Temp/`：`cos86-merge-typecheck.log`、`cos86-merge-build.log`、`cos86-merge-integration.tap`。已核作者八份raw，复用18项unit、runtime1/1、compiled1/1及finally恢复证据，未重长SOURCE。
+
+仅免费SOURCE/TEMP合成证据，compiled worker transport为synthetic；没有新付费、真实台账/会话/凭据/启动器读取或实际C12 build/browser/repair/accepted/human结果。C11失败和费用、COS16/COS18及完整经典未完成状态保持。

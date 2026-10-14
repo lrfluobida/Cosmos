@@ -18,7 +18,7 @@ Root已一次完成closure17，释放 **¥1.663445**；revision2555、19stopped/
 
 [COS85：保留可选摘要截断后的原作者会话](https://github.com/lrfluobida/Cosmos/issues/86)已审集成：cos76实现的 `b5e8794` 经接续独立 `cos85_reviewer` 实际规格与质量APPROVED，无finding，唯一 `batch85_86_merger` 合入 `f63399f`，标记 OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY。计划 `c108e9a` 的原cos77批准保持，本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/86#issuecomment-6172184717)，closed(completed)及父勾选已由Root精确读回。可信可选自动摘要已结算的length丢弃部分摘要并保留原上下文、停用后续auto；下一普通请求保持原准入。主线typecheck/build0、Root原复现1/1和dist恢复/accounting失败2/2通过，其他已审证据复用；完整SHA与边界见[任务卡](cos85-optional-compaction-truncation.md)。
 
-[COS86：固定迁移 C12](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246，已由Root原生挂父，当前86个子项。依赖COS84/85，由接续 `cos86_implementer` 实现、`cos86_reviewer` 独审，唯一merger为 `batch85_86_merger`。计划 `fc2a06e` 已独立PLAN_APPROVED，无finding，已授权实施；SOURCE_NOT_READY/open，目标 TRANSFER_CASE_TWELVE_SOURCE_READY；自有文档尚未合入。准备以19stopped/11delegations/95closed/17audits和41笔C11已结算历史为基线，C5两阶段七capture只读复用、新作者为空；原¥150/COS16组¥10/单轮¥3与45分钟保持。本次无新付费或案例，C11不恢复，main未冻结。
+[COS86：固定迁移 C12](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246，已由Root原生挂父，当前86个子项。依赖COS84/85，由接续 `cos86_implementer` 实现、`cos86_reviewer` 独审，唯一merger为 `batch85_86_merger`。计划 `fc2a06e` 与最终实现 `0801212` 均已独审APPROVED，无finding；合入 `c8f5ecb`，标记 TRANSFER_CASE_TWELVE_SOURCE_READY，source-integrated/open待Root公开关闭，详见[任务卡](cos86-transfer-case12.md)。准备以19stopped/11delegations/95closed/17audits和41笔C11已结算历史为基线，C5两阶段七capture只读复用、新作者为空；原¥150/COS16组¥10/单轮¥3与45分钟保持。主线typecheck/build0、C12与旧C11短代表7/7、0skip；作者18项unit、runtime1/1及compiled1/1证据复用，SOURCE与synthetic transport不代表实际游戏通过。本次无新付费或案例，C11不恢复；集成推送后main冻结供Root免费预检及一次有界C12运行，仅Root可解除。
 
 ### C10历史结果：因时限取消
 

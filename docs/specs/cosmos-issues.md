@@ -1430,9 +1430,9 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 [任务 #87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246，已由Root发布、精确读回并原生挂父#1；当前86个子项，父勾选为空。依赖COS84/85，由接续 `cos86_implementer` 实现、`cos86_reviewer` 独审，唯一merger为 `batch85_86_merger`。
 
-短计划 `fc2a06e8b4668145133b393533d91d2dc8987d96` 已由cos86_reviewer独立PLAN_APPROVED，无finding，已授权实施；当前SOURCE_NOT_READY/open，目标标记 `TRANSFER_CASE_TWELVE_SOURCE_READY`；自有文档尚未合入，源码尚未批准。准备验证19stopped/11delegations/95closed/17audits及C11全部41笔已结算coding请求与closure17，C5两passed阶段和七capture只读复用，新作者为空，旧C11不能重开。
+短计划 `fc2a06e8b4668145133b393533d91d2dc8987d96` 已由cos86_reviewer独立PLAN_APPROVED。最终 `08012122685cb66e104f85c1da00bbe7915cebee` 经同一独立reviewer实际18路径规格与质量APPROVED，无finding，唯一merger合入 `c8f5ecb117e7a68715aa7d8ce0c31f5562ec86ee`，标记 `TRANSFER_CASE_TWELVE_SOURCE_READY`；source-integrated/open待Root公开关闭，详见[任务卡](cos86-transfer-case12.md)。准备验证19stopped/11delegations/95closed/17audits及C11全部41笔已结算coding请求与closure17，C5两passed阶段和七capture只读复用，新作者为空，旧C11不能重开。
 
-新向量为planning/design/art各1µ、coding2400000µ、repair599997µ，共¥3；45分钟、80请求、一次合格repair，原COS16组¥10/phase¥30/shared¥150保持。Root报告closure17后组可分配¥4.205748，仍须按availableAllocation重新核准。仅免费源码与合成fixture，禁止触碰真实ledger/session/key；已推清洁来源、COS84/85已批双祖先及免费准入通过后由Root安排实际C12。本次没有新付费、窗口或游戏/human完成状态，main未冻结。
+新向量为planning/design/art各1µ、coding2400000µ、repair599997µ，共¥3；45分钟、80请求、一次合格repair，原COS16组¥10/phase¥30/shared¥150保持。Root报告closure17后组可分配¥4.205748，仍须按availableAllocation重新核准。仅免费源码与合成fixture，禁止触碰真实ledger/session/key；已推清洁来源、COS84/85已批双祖先及免费准入通过后由Root安排实际C12。主线typecheck/build0、五项C12额度/quote/历史/准入及两项C11旧回归7/7、0skip；作者18项unit、runtime1/1及compiled1/1证据复用，未重长SOURCE。本次没有新付费、窗口或游戏/human完成状态；集成推送后main冻结供Root免费预检及一次有界C12运行，仅Root可解除。
 
 稳定任务 ID：COS-86
 

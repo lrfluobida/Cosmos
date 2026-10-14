@@ -53,7 +53,7 @@ git diff --check ecd8d8e0c3f28e6d8f4cd34ea6219342900b9328...HEAD
 
 GREEN 预期上述命令退出 0；记录实际 count/skip，不用 SOURCE 证明正式游戏通过。复用未改 C10/C11 partial、旧 repair/v2 和 COS85 最终矩阵，不重复长 seed、作者生成或相同验证。真实免费预检、付费启动及真实账本只能由 Root 执行；不接触 launcher/session/key，不 push/merge main。
 
-状态：计划 `fc2a06e8b4668145133b393533d91d2dc8987d96` 已由 `cos86_reviewer` 独立 PLAN_APPROVED，无 finding；实现完成待 exact 源码独审 / SOURCE_NOT_READY。目标 `TRANSFER_CASE_TWELVE_SOURCE_READY` 只在最终 exact 实现批准后由 merger 登记；实际 C12、完整经典与 human 均未通过。
+状态：计划 `fc2a06e8b4668145133b393533d91d2dc8987d96` 与最终实现均已由 `cos86_reviewer` 独立APPROVED，无finding；当前 `TRANSFER_CASE_TWELVE_SOURCE_READY / source-integrated`，公开issue仍open、等待Root关闭。实际C12、完整经典与human均未通过。
 
 ## 实现证据
 
@@ -75,3 +75,7 @@ GREEN 预期上述命令退出 0；记录实际 count/skip，不用 SOURCE 证�
 实际当前 host/factory/Pi 对 405672-byte 合成输入保留 65536 输出 cap，预留 1335632µ；只有 coding SDK，空作者、C5 两 passed 阶段七 capture、当前 plan/quote 与同窗口/截止时间/requirement 冷恢复通过。缺 COS84/85 marker、两者各自 reviewed/merge 非祖先、未知费用、closure 来源、历史 grant/delegation、owner、manifest 和伪造 partial quote 均拒绝。finally 关闭全部 owner，恢复原 snapshot/mapping 字节及 mtime、原缺失目录状态，旧 proof/C5 字节保持。
 
 compiled 的 JS worker 路径与变更后 JS task 的派发前拒绝已验证；worker job transport 为 synthetic，不声称真实 worker spawn/game build。未执行 C12 build/browser/repair/accepted/human；复用未改 C10/C11 partial、旧 repair/v2 与 COS85 已审 30 项 compaction/source、6 项 dist 及主线定向证据，见 [COS85任务卡](../specs/cos85-optional-compaction-truncation.md)。最终文档同步只改变 COS85 关闭状态/URL（`source-integrated`→`complete` 均被原门禁接受），源码/依赖/固定输入/夹具未变，复用上述通过证据，没有重复长 SOURCE。
+
+## 主线集成
+
+最终 `08012122685cb66e104f85c1da00bbe7915cebee` 经 `cos86_reviewer` 实际18路径规格→质量APPROVED，无finding；唯一 `batch85_86_merger` 合入 `c8f5ecb117e7a68715aa7d8ce0c31f5562ec86ee`。主线typecheck/build0、五项C12与两项C11短代表7/7、0skip、TAP6571.5138ms，命令及三份raw见[任务卡](../specs/cos86-transfer-case12.md#独立审查与主线集成)。作者八份raw已核，runtime/compiled/长SOURCE证据复用。公开issue仍open；本次集成推送后main冻结供Root免费预检及一次有界C12运行，仅Root可解除。
