@@ -8,7 +8,15 @@
 
 ## 1. 已确认的产品目标
 
-### 当前实际结果：C10因时限取消
+### 当前实际结果：C11自检通过后输出截断
+
+C11在冻结版本 `2a7a291` 上运行31分03.893秒，早于45分钟截止。41次请求均已准入和结算，新增 **¥1.336555**，共享累计 **¥12.802875**，未知费用和预留为0。唯一作者自检的TypeScript/Vite退出码均为0；六个文件共37,377字节，cos77已核与成功自检副本逐字节一致。
+
+最终为`failed / insufficient_evidence`，末条SDK错误为输出截断，最后计费记录`stopReason=length`、output8192，¥0.086264已结算。无handoff/capture、正式候选、build/browser/review/repair/accepted，体验未确认。摘要阶段是源码推断，回执未直接记录请求kind；当前共享失败锁确会将摘要length传至原作者会话。不能归因为预算耗尽或截止时间，详见[研究记录](../research/2026-10-14-transfer-c11-summary-truncation.md)。
+
+Root已一次完成closure17，释放 **¥1.663445**；revision2555、19stopped/11delegations/95closed/17audits，旧费用和历史保持，进程及owner/lock已释放，main冻结已解除。[COS16结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637)和[C11入口结果](https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6170782350)已精确读回。C11身份已消费，COS16/COS18及完整游戏/human仍未完成；本次只记录结果，不新增付费或案例。
+
+### C10历史结果：因时限取消
 
 C10已在用户授权的最多¥3、45分钟窗口内结束。冻结版本为 `a464b0f`，运行约44分56秒后，既定的截止前5秒清理定时器触发，编码任务记为`cancelled`。40次请求均已准入和结算，新增 **¥1.086265**，共享累计 **¥11.466320**，未知费用和预留均为零。
 
@@ -20,9 +28,9 @@ Root已一次完成closure16，释放未使用的 **¥1.913735**。18个案例�
 
 后续源码工作为[COS83：减少作者工具中的重复来源校验](https://github.com/lrfluobida/Cosmos/issues/84)。任务已原生挂父，当前83个子项；cos76负责实现，cos77独审，唯一merger保持不变。基线、生产方案及最终源码均已独审通过；版本 `c8afd76` 已合入 `32af0aa`，本卡已[公开批准](https://github.com/lrfluobida/Cosmos/issues/84#issuecomment-6169208468)并在源码范围内关闭，父勾选已由Root核实。生产只删除一处直接重复scope调用，每次origin.verify仍执行完整校验。普通prepared fixture两次工具调用均从160次降到83次，48.125%仅为该夹具的校验次数降幅，不代表C10实际速度或费用变化。主线typecheck/build和真实guard超时代表通过，旧边界证据复用；[任务卡](cos83-tool-scope.md)保留完整证据。本轮不新增付费、C11或预算。
 
-下一项准备工作是[COS84固定迁移C11](cos84-transfer-case11.md)。任务已原生挂父，当前84个子项；cos76实现的 `7173766` 已由cos77独立规格与质量审查批准，无剩余finding，唯一merger合入 `f4856f9`，标记为 TRANSFER_CASE_ELEVEN_SOURCE_READY。本卡source-integrated/open，等待Root公开关闭。沿原¥150持续推进授权，单轮仍最多¥3、45分钟，原COS16预算组¥10不变；Root报告可分配¥5.542303，新向量保持规划、设计、美术各¥0.000001，编码¥2.40、修复¥0.599997。
+[COS84固定迁移C11](cos84-transfer-case11.md)任务已原生挂父，当前84个子项；cos76实现的 `7173766` 已由cos77独立规格与质量审查批准，无剩余finding，唯一merger合入 `f4856f9`，标记为 TRANSFER_CASE_ELEVEN_SOURCE_READY。本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6169906507)。沿原¥150持续推进授权，单轮仍最多¥3、45分钟，原COS16预算组¥10不变；准备时Root报告可分配¥5.542303，新向量保持规划、设计、美术各¥0.000001，编码¥2.40、修复¥0.599997。
 
-主线typecheck/build及7项短集成回归通过，作者12项unit、runtime和compiled证据复用。SOURCE证明合成历史、真实host/factory与fake Pi、同窗口partial冷恢复；compiled worker transport为synthetic，尚无C11正式build/browser/repair或游戏通过证据。实际C11尚未免费准入或付费，启动脚本的只读审查不代表实际准入。本批推送核验后冻结main供Root执行，公开关闭和实际结果待明确解冻后统一补录；C10失败与费用保持。
+主线typecheck/build及7项短集成回归通过，作者12项unit、runtime和compiled证据复用。SOURCE证明合成历史、真实host/factory与fake Pi、同窗口partial冷恢复；compiled worker transport为synthetic。以上为源码准备证据，实际C11与closure17已结束，结果见本节顶部；C10失败与费用保持。
 
 ### C9历史结果：未通过
 

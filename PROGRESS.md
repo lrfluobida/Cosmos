@@ -2,7 +2,14 @@
 
 更新时间：2026-10-14
 
-用户于2026-10-14授权在原¥150总额内运行最多¥3、45分钟的C10。该轮已结束，新增费用¥1.086265，未使用额度已通过closure16释放。沿持续推进授权准备的C11源码现已审集成，单轮仍最多¥3、45分钟；实际准入和付费尚未开始。
+用户于2026-10-14授权在原¥150总额内持续推进，最近单轮上限为¥3、45分钟。C11已结束，新增费用¥1.336555，未使用额度已通过closure17释放；本次只记录结果，不启动新案例或付费。
+
+## C11自检通过后输出截断，未完成验收
+
+- 冻结版本 `2a7a291`；UTC13:54:37.457至14:25:41.350，用时31分03.893秒。41次请求均已准入并结算，新增 **¥1.336555**，共享累计 **¥12.802875**，未知费用和预留均为0。[COS16结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637)与[C11入口结果](https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6170782350)已由Root精确读回。
+- 唯一一次作者自检的TypeScript/Vite退出码均为0；六个文件共37,377字节，cos77已核与成功自检副本逐字节一致。最终为`failed / insufficient_evidence`，末次SDK报输出截断，计费`stopReason=length`、output8192，¥0.086264已结算；没有handoff/capture、正式候选、build/browser/review/repair/accepted，体验未确认。
+- 当前共享失败锁会让摘要length终止原作者会话；末次属于摘要阶段是源码推断，生产回执未直接记录summary kind。不能归因为预算耗尽或截止时间。精确时间、三次read scope超时的未知原因及证据边界见[研究记录](docs/research/2026-10-14-transfer-c11-summary-truncation.md)。
+- closure17已一次完成：revision2555、19stopped/11delegations/95closed/17audits，释放 **¥1.663445**；旧费用与历史保持，进程及owner/lock已清理，Root已解除冻结。C11不能重跑，COS16/COS18仍partial；以下C10与源码准备记录保留其当时范围。
 
 ## C10因时限取消，第二次作者自检曾通过
 
@@ -14,10 +21,10 @@
 
 ## COS84已审集成：来源校验去重后的固定迁移 C11
 
-- [任务 #85](https://github.com/lrfluobida/Cosmos/issues/85)已由Root发布、核对并原生挂父，当前84个子项。依赖COS82/83，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger `batch75_76_merger` 合入 `f4856f9`。批准版本为 `7173766`，无剩余finding，标记为 TRANSFER_CASE_ELEVEN_SOURCE_READY；本卡source-integrated/open，等待Root公开关闭。完整SHA见[任务卡](docs/specs/cos84-transfer-case11.md)。
+- [任务 #85](https://github.com/lrfluobida/Cosmos/issues/85)已由Root发布、核对并原生挂父，当前84个子项。依赖COS82/83，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger `batch75_76_merger` 合入 `f4856f9`。批准版本为 `7173766`，无剩余finding，标记为 TRANSFER_CASE_ELEVEN_SOURCE_READY；本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6169906507)。完整SHA见[任务卡](docs/specs/cos84-transfer-case11.md)。
 - 按Root确认的原¥150持续推进授权，单轮仍最多¥3、45分钟，COS16原预算组保持¥10。Root报告该组可分配¥5.542303；新向量仍为规划、设计、美术各¥0.000001，编码¥2.40、修复¥0.599997。
 - 主线typecheck/build及7项C11额度、quote、历史边界和旧C10短回归通过；作者12项unit、runtime和compiled原始证据复用。SOURCE使用合成费用及fake provider；compiled worker transport为synthetic，C11正式build/browser/repair尚未执行。
-- 实际C11尚未执行免费准入或付费；操作脚本的只读审查不算准入结果。本批推送核验后冻结main，供Root实际预检和有界运行；公开关闭与实际结果待Root明确解冻后统一记录。
+- 上述为源码准备时证据；实际C11与closure17现已结束，Root已解除冻结，结果见本页顶部。源码通过不提升为游戏验收通过。
 
 ## COS83已审集成：删除一处重复来源校验
 
