@@ -1,6 +1,6 @@
 # COS-84 验证来源校验去重后的固定迁移 C11
 
-状态：TRANSFER_CASE_ELEVEN_SOURCE_READY / PLAN_APPROVED / source-integrated / open，等待Root公开关闭。Issue [#85](https://github.com/lrfluobida/Cosmos/issues/85)，id5848367426；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS82/83。
+状态：TRANSFER_CASE_ELEVEN_SOURCE_READY / PLAN_APPROVED / source scoped complete / closed，[公开源码关闭](https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6169906507)已由Root核实。Issue [#85](https://github.com/lrfluobida/Cosmos/issues/85)，id5848367426；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS82/83。
 
 作者 `cos76_implementer` acting COS84；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos84-transfer-case11.md](../plans/2026-10-14-cos84-transfer-case11.md)。分支 `codex/cos84-transfer-case11`；实际评审基线 `cb22fb22a76b131088585ebdb4298c76cc5ebab5`。
 
@@ -33,4 +33,10 @@
 
 合并后typecheck/build退出0；C11新额度、quote、历史拒绝及旧C10短回归7/7通过，0skip，TAP5119.302ms。命令为 `node --experimental-strip-types --test --test-name-pattern='C1[01] fixes the new three yuan vector|C1[01] uses available allocation|C1[01] fixed parser quote|C11 rejects wrong original C10' tests/transfer/validation-case-eleven.test.ts tests/transfer/validation-case-ten.test.ts`，原始输出 `C:/Users/26557/AppData/Local/Temp/cos84-merge-integration.tap`。merger已读取作者RED/GREEN、runtime、compiled及首次参数拼写错误记录，复用重型证据。
 
-实际C11仍未准入或付费。本批推送核验后冻结main供Root真实预检和有界运行；公开关闭URL与实际结果在Root明确解冻后统一补录。C10与旧历史、原预算及游戏/human未通过状态保持。
+## 实际C11结果
+
+Root在冻结版本 `2a7a291389b58bbd7dd4e4a4f34a61f7237e0141` 上执行本案，UTC13:54:37.457至14:25:41.350，用时31分03.893秒。41次请求全部准入并结算，新增 **¥1.336555**，共享累计 **¥12.802875**。唯一作者自检的TypeScript/Vite退出码均为0；六个文件共37,377字节，cos77已核与`check-M040lo`原始副本逐字节一致。
+
+最终failed / insufficient_evidence，末次SDK报输出截断，计费stopReason=length、output8192，¥0.086264已结算。无handoff/capture、正式候选build/browser、独立coding review、repair或accepted，体验未确认。摘要阶段为源码推断，不能仅凭8192上限当作实测请求标识；[研究记录](../research/2026-10-14-transfer-c11-summary-truncation.md)保留错误传播、工具统计及未知项。
+
+Root已一次完成closure17，释放 **¥1.663445**；revision2555、19stopped/11delegations/95closed/17audits，unknown/reserved均0，旧历史与费用保持。进程和owner/lock已退出，main冻结已解除。[COS16结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637)与[C11入口结果](https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6170782350)已精确读回；C11身份已消费，不能重跑，COS16/COS18及完整游戏/human仍未通过。

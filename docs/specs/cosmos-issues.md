@@ -298,6 +298,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-16 · P2 · 验证不同需求的有限迁移
 
+- 当前C11：冻结版本 `2a7a291`，41次请求均结算，新增¥1.336555、共享¥12.802875；自检通过后输出截断，failed / insufficient_evidence，无handoff/capture或正式后续验收。closure17已完成，19stopped/11delegations/95closed/17audits，unknown/reserved0；本卡仍partial/open。[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637)与[研究记录](../research/2026-10-14-transfer-c11-summary-truncation.md)保留细节；下列为各旧案例当时记录。
 - 依赖/状态：COS-10、COS-13、COS-18；partial/open，真实迁移C1规划失败/C2设计schema失败/C3规划身份失败/C4独立review请求修改/C5编码截止取消/C6编码流请求超时，固定用例与原契约保持；用例先固定，可与完整基准工具准备并行。
 - 最新迁移C6：source6b8aa15/UTC2026-10-05T02:50:02.916Z→03:01:25.805Z/deadline03:35:02.916Z，682889ms；13codingauthor admitted、12settled135531µ/1unknown974882µ，shared settled8666261/reserved974882/committed9641143。原C5 design/art两passed及7capture复用通过，planner/design/art SDK0；coding20read/0toolerror，无write/compile/capture/build/browser/review/repair/accepted，manual consumed。当前14cases/rev1942/6delegations/65closed/11audits，未closure12、paid阻塞；[真实结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5988185221)与[研究记录](../research/2026-10-05-native-c6-stream-timeout.md)。COS59已审源码修时限，COS60只准备新案例，不重开C6。
 - 迁移C5（历史）：source9e7f771/UTC2026-10-04T20:11:59.648Z→20:56:55.067Z/deadline20:56:59.648Z/cutoff20:56:54.690Z，2695419ms；66records=65admitted settled+1准入前cancelled/admittedAt null。Role records1/14/12/39/0（coding38admitted+1cancelled）/purpose1planning54author11reviewer；new1117003/shared8530730 micro-CNY（fees16938/255740/166678/677647/0），unknown/reserved0。Design/art原host与独立review passed，mapcheck1passed/rewritesRemaining0；coding截止取消、未handoff/capture/build/browser/accepted/game/repair，manual consumed，exec18517exit1/key清理/owners释放。[实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5984507367)/[研究记录](../research/2026-10-05-transfer-coding-deadline-failure.md)，COS16仍partial/open。
@@ -1405,11 +1406,13 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 [任务卡 #85](https://github.com/lrfluobida/Cosmos/issues/85)，id5848367426，已由Root发布、精确读回并原生挂父#1；当前84个子项。依赖COS82/83，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger为 `batch75_76_merger`。
 
-计划 `4a0adbe931386cd55f163d212c58498ed2587bad` 已独审批准。最终版本 `7173766a02700179a5017e49676bf880bc812940` 经cos77实际规格与质量审查APPROVED，无剩余finding，唯一merger合入 `f4856f9db02020a56fe95b245a3316409a438dd0`。标记为 `TRANSFER_CASE_ELEVEN_SOURCE_READY`，本卡source-integrated/open，等待Root公开关闭；详见[独立任务卡](cos84-transfer-case11.md)。
+计划 `4a0adbe931386cd55f163d212c58498ed2587bad` 已独审批准。最终版本 `7173766a02700179a5017e49676bf880bc812940` 经cos77实际规格与质量审查APPROVED，无剩余finding，唯一merger合入 `f4856f9db02020a56fe95b245a3316409a438dd0`。标记为 `TRANSFER_CASE_ELEVEN_SOURCE_READY`，本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6169906507)；详见[独立任务卡](cos84-transfer-case11.md)。
 
 沿原¥150持续推进授权，单轮仍限¥3、45分钟，COS16预算组保持¥10。Root报告原组可分配¥5.542303；固定向量按规划、设计、美术、编码、修复为¥0.000001、¥0.000001、¥0.000001、¥2.40、¥0.599997，合计¥3。C10历史与费用保持。
 
-主线typecheck/build和7项C11额度、quote、历史边界及旧C10短回归通过；原12项unit、runtime和compiled证据复用。SOURCE仅合成历史与fake provider，compiled worker transport为synthetic，C11正式build/browser/repair未执行。实际C11尚未免费准入或付费；本批推送核验后冻结main供Root执行，公共状态与实际结果待明确解冻后统一补录。
+主线typecheck/build和7项C11额度、quote、历史边界及旧C10短回归通过；原12项unit、runtime和compiled证据复用。SOURCE仅合成历史与fake provider，compiled worker transport为synthetic，未执行C11正式build/browser/repair。上述为源码准备时证据。
+
+实际C11在 `2a7a291` 上运行31分03.893秒，41次请求全部结算，新增 **¥1.336555**，共享 **¥12.802875**。作者自检一次通过，六文件37,377字节与成功副本一致；末次输出length截断，最终failed / insufficient_evidence，无handoff/capture或正式后续验收。Root已完成closure17，释放 **¥1.663445**，revision2555/19stopped/11delegations/95closed/17audits/unknown与reserved0，清理后解除冻结。[公开实际结果](https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6170782350)和[研究记录](../research/2026-10-14-transfer-c11-summary-truncation.md)区分实测与摘要阶段推断；C11不能重跑，COS16/COS18和human仍未通过。
 
 稳定任务 ID：COS-84
 
