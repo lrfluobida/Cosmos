@@ -1382,7 +1382,9 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 用户于2026-10-14在明确最多¥3、45分钟的提案后回复“继续”。本轮只按该安排推进，仍计入原¥150总额，COS16原预算组保持¥10。固定额度按规划、设计、美术、编码、修复顺序为¥0.000001、¥0.000001、¥0.000001、¥2.40、¥0.599997，合计¥3；旧C9余额与费用保留为历史。
 
-当前 SOURCE_NOT_READY/open，目标标记为 `TRANSFER_CASE_TEN_SOURCE_READY`。短计划 `371ef1d9e641c331cfca1812ec9ab94a815d422c` 已由cos77独立审查为PLAN_APPROVED，没有finding；作者进入TDD，最终源码另审。自有计划与任务卡由作者维护，当前仅登记已发布issue，不合入未审代码。实际C10尚未准入、开始或付费。
+短计划 `371ef1d9e641c331cfca1812ec9ab94a815d422c` 已独审PLAN_APPROVED。最终实现 `66c0980` 经cos77完成规格与质量审查，没有剩余finding；唯一merger合入 `82c50dd`，当前为 `TRANSFER_CASE_TEN_SOURCE_READY` / source-integrated/open。完整SHA与边界见[任务卡](cos82-transfer-case10.md)。
+
+主线typecheck/build通过，新的¥3向量、容量边界和报价检查加原C9短回归共8/8通过；作者runtime和compiled证据复用。compiled worker为路径选择/synthetic transport，C10实际repair/build/browser未运行。主线推送后冻结交给Root做真实免费准入和付费；目前C10尚未准入或开始，公开关闭及实际结果统一等解冻后记录。
 
 稳定任务 ID：COS-82
 

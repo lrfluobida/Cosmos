@@ -2,13 +2,14 @@
 
 更新时间：2026-10-14
 
-用户在明确本轮最多¥3、45分钟的提案后，于2026-10-14回复“继续”。本轮按该授权准备C10，费用仍计入原¥150总额；目前尚未完成源码准备或真实准入，没有实际付费。
+用户在明确本轮最多¥3、45分钟的提案后，于2026-10-14回复“继续”。本轮按该授权准备C10，费用仍计入原¥150总额；源码已独审集成，实际准入仍由Root后续执行，目前没有实际付费。
 
 ## COS82：准备 ¥3 上限的固定迁移 C10
 
-- [任务 #83](https://github.com/lrfluobida/Cosmos/issues/83)已由Root发布、精确读回并挂到原生父任务，当前共有82个子项。依赖COS78/79/80/81；由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。短计划 `371ef1d` 已由cos77独立批准，作者进入TDD；最终源码另审，当前仍为 SOURCE_NOT_READY/open。
+- [任务 #83](https://github.com/lrfluobida/Cosmos/issues/83)已由Root发布、精确读回并挂到原生父任务，当前共有82个子项。依赖COS78/79/80/81；由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。短计划 `371ef1d` 及最终实现均已独审批准，没有剩余finding。批准版本为 `66c0980`，合并为 `82c50dd`，当前为 TRANSFER_CASE_TEN_SOURCE_READY/source-integrated/open。
 - COS16原预算组仍为¥10。本轮固定额度为：规划、设计、美术各¥0.000001，编码¥2.40，修复¥0.599997，合计¥3。这里只记录本轮安排，旧C9余额和费用历史保持。
-- 作者在独立工作区维护计划与任务卡。实际C10尚未准入或开始，真实账本和API操作仍由Root负责；本次只登记授权与任务状态。
+- [任务卡](docs/specs/cos82-transfer-case10.md)保留完整SHA与证据。主线typecheck/build和八项短集成检查通过；作者11项unit、runtime和compiled结果按原证据复用。compiled worker只核路径选择，transport为synthetic；未实际执行C10 repair/build/browser，不提升为游戏通过。
+- 实际C10尚未准入或开始。主线干净推送后冻结，真实账本、免费准入和API仍由Root操作；公开关闭链接及实际结果等运行结束、Root解冻后统一补录。
 
 ## C9 实际验证停止与 closure15 完成
 
