@@ -244,3 +244,11 @@ C9原COS16各角色grants由C1–8已结算费用和closure动态派生；原C8�
 C10 核17stopped/9delegations/85closed/15audits及原C9的31个settled coding author请求、无repair、closure15与全部历史来源。新授权 grants 为 planning1/design1/art1/coding2400000/repair599997µ，合计¥3；原COS16 parent和历史不改。单案¥3/45min/80requests/一次合格repair，原output cap/floor和请求时限保持；余额按原组availableAllocation准入，恢复只按本案quote的组prior allocated加新grants核验，不要求本案用满¥10。
 
 独立清单为 `cos20-transfer-validation-10-reuse.json`，继续只读复用C5两个passed阶段和七capture，零planner/design/art SDK；新author目录为空，不预置C9代码。新增COS78/79/80/81及双祖先门禁，保留旧source/compiled/current输入和候选绑定。源码准备不代表已启动C10或游戏通过；计划和免费证据见 [COS82计划](../../docs/plans/2026-10-14-cos82-transfer-case10.md)。
+
+## COS-84 · 来源校验去重后的固定迁移 C11（源码准备）
+
+`validation-case-eleven-run.ts` 只绑定 `cos20-transfer-validation-11`。免费预检为 `node --experimental-strip-types probes/transfer/validation-case-eleven-run.ts --validation-preflight <reviewed-main-sha>`；真实执行只由 Root 使用同入口 `--validation-case <reviewed-main-sha> <operator-validation-source>`。
+
+C11要求原18stopped/10delegations/90closed/16audits、C10原40个coding author admitted/settled请求及closure16、无repair/unknown/reserved。新grants仍为1/1/1/2400000/599997µ，¥3/45min/80requests/一次合格repair；原父¥10/phase¥30/shared¥150及partial恢复公式保持。C10原31笔前案推导语义不变，不重开旧案例。
+
+新清单 `cos20-transfer-validation-11-reuse.json` 复用C5两阶段七capture，新作者为空，不预置C10失败文件。新增COS82 `TRANSFER_CASE_TEN_SOURCE_READY` 和COS83 `AUTHOR_TOOL_SCOPE_SOURCE_READY` 及双祖先，旧源码/输入/当前候选与费用前缀守卫保持。Source准备不能证明实际C11或游戏通过；详见 [COS84计划](../../docs/plans/2026-10-14-cos84-transfer-case11.md)。
