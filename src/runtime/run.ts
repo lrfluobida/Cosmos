@@ -9,6 +9,7 @@ import { validateSnapshot } from './run-validation.ts';
 import { activateContinuation } from './continuation-authority.ts';
 import { claimValidationCase, verifyOperatorDecision, verifyValidationIdentity } from './validation-window.ts';
 import { applyValidationAllocationClosure, prepareValidationAllocationClosure } from './validation-allocations.ts';
+import { applyValidationGroupSupplement, prepareValidationGroupSupplement } from './validation-group-supplement.ts';
 import { currentValidationCase, requireValidationRepairSource, requireValidationTask, validationOutputCap, validationReservation, validationRole, validationUsage } from './validation-validation.ts';
 import { sameValue } from '../contracts/validation.ts';
 import { validationBudgetGroup } from '../contracts/budget.ts';
@@ -42,6 +43,8 @@ export class RunController {
   static claimValidationCase = claimValidationCase;
   static prepareValidationAllocationClosure = prepareValidationAllocationClosure;
   static applyValidationAllocationClosure = applyValidationAllocationClosure;
+  static prepareValidationGroupSupplement = prepareValidationGroupSupplement;
+  static applyValidationGroupSupplement = applyValidationGroupSupplement;
   private store: SnapshotStore;
   private snapshot: RunSnapshot;
   private now: () => number;
@@ -102,7 +105,7 @@ export class RunController {
       if (this.windowId) {
         if (!authority || authority.windowId !== this.windowId) throw new Error('Owned child requires its explicit task and window authority.');
         this.requireTaskAuthority(authority.taskId);
-        if (this.snapshot.ledger.contractVersion === '4.0.0') await this.checkValidationIdentity();
+        if (['4.0.0', '5.0.0'].includes(this.snapshot.ledger.contractVersion)) await this.checkValidationIdentity();
       }
       const ticket = await this.store.prepareOwnedChild();
       if (authority && this.windowId) this.childTasks.set(ticket, authority.taskId);
@@ -114,7 +117,7 @@ export class RunController {
     return this.serial(async () => {
       // Retain the PID even when authority expired, so close/recovery cannot lose a writer.
       await this.store.registerOwnedChild(pid, ticket);
-      if (this.windowId) { this.requireActive(); this.requireTaskAuthority(this.childTasks.get(ticket) ?? ''); if (this.snapshot.ledger.contractVersion === '4.0.0') await this.checkValidationIdentity(); }
+      if (this.windowId) { this.requireActive(); this.requireTaskAuthority(this.childTasks.get(ticket) ?? ''); if (['4.0.0', '5.0.0'].includes(this.snapshot.ledger.contractVersion)) await this.checkValidationIdentity(); }
     });
   }
 

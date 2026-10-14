@@ -1,8 +1,8 @@
 # COS-90 同账本的固定验证预算组补充分配
 
-状态：plan awaiting independent review / source-only。Issue [#91](https://github.com/lrfluobida/Cosmos/issues/91)，id5854823746，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，原生第90个子任务；Root 已发布并精确读回。
+状态：plan approved / implementation awaiting independent review / source-only。Issue [#91](https://github.com/lrfluobida/Cosmos/issues/91)，id5854823746，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，原生第90个子任务；Root 已发布并精确读回。
 
-作者 `cos90_implementer`，独立 reviewer 与唯一 merger 由 Root 指派。分支 `codex/cos90-validation-group-supplement`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`；[实施计划](../plans/2026-10-15-cos90-validation-group-supplement.md)。先独审计划提交，收到批准后实施。
+作者 `cos90_implementer`，独立 reviewer `cos90_reviewer`，唯一 merger 由 Root 指派。分支 `codex/cos90-validation-group-supplement`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`；[实施计划](../plans/2026-10-15-cos90-validation-group-supplement.md)。计划 exact `0bd6683fd7ec80405da6ebb143e6c4b05715a6c8` 已独立 PLAN_APPROVED，无blocker，随后才实施。
 
 ## 问题与范围
 
@@ -21,3 +21,11 @@ Root只读核对revision2965确认sharedallocated90488261µ、unallocated5951173
 ## 交付边界
 
 COS90仅源级固定补充分配能力，不执行真实补充分配/付费/新窗口，不修改真实台账或GitHub。COS91负责C14固定wrappers与当前sourcebinding；本任务不预置生成游戏或重跑C13。Root/merger维护共享tracking与公开证据；源码准备不能表示实际生成、COS16/18、完整经典或human通过。
+
+## 实现与验证
+
+实现16个生产路径、5个测试/fixture路径及自有plan/card：ledger5单条固定记录、原snapshot原子receipt/event、casequote3准确target/vector与有效组上限、closurequote3及按revision恢复旧历史；原parent10m保持，sharedallocated恰增1600314µ，phase校验使用完整2500000µ。quote保留必要prefix计数与摘要，idle仅检查已有案例。
+
+新7项用例通过，最终fake provider/source/coldrestore/closure及phase负例在最后改动后分别1/1复验；budget3/3、typecheck/build/strict退出0。初始受影响集成98/99，唯一失败为基线declaration3已支持却期待unsupported；Root批准一行fixture改为尚不支持的4，单项1/1通过，其余98项复用。原始TAP、时长、测试输入修正和严格类型修正详见实施计划。
+
+当前只提交源码供独立规格→质量审查，尚未标SOURCE_READY或执行真实supplement；后续由唯一merger记录批准SHA及集成结果。

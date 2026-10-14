@@ -101,7 +101,7 @@ export function requireValidationRepairSource(state: RunSnapshot, sourceTaskId: 
 
 export function validateValidationProfile(state: RunSnapshot): void {
   if (state.formatVersion !== 3) { if (state.validation !== undefined || state.requests.some(record => record.validation !== undefined)) fail('Legacy snapshots cannot contain operator validation authority.'); return; }
-  if (state.continuation !== undefined || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0', '4.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== 150_000_000
+  if (state.continuation !== undefined || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== 150_000_000
     || state.validation?.profile !== 'operator_validation' || !Array.isArray(state.validation.cases) || !state.validation.cases.length) fail('Invalid validation profile or shared ledger.');
   const cases = state.validation.cases;
   for (const key of ['caseId', 'windowId'] as const) if (new Set(cases.map(item => item[key])).size !== cases.length) fail('Case claims cannot be repeated or renamed.');
@@ -111,7 +111,8 @@ export function validateValidationProfile(state: RunSnapshot): void {
     const quote = window.quote; validateValidationDeclaration(quote?.declaration);
     const { quoteId, ...payload } = quote;
     const grouped = quote.declaration.formatVersion === 'validation-declaration-3';
-    if (quote.formatVersion !== (grouped ? 'validation-case-quote-2' : 'validation-case-quote-1') || (!grouped && quote.budgetGroup !== undefined) || quote.profile !== 'operator_validation' || quote.activationAllowed !== false || quoteId !== `${grouped ? 'vq2' : 'vq1'}-${validationHash(JSON.stringify(payload))}`
+    const supplemented = quote.formatVersion === 'validation-case-quote-3';
+    if ((grouped ? !['validation-case-quote-2', 'validation-case-quote-3'].includes(quote.formatVersion) : quote.formatVersion !== 'validation-case-quote-1') || (!grouped && quote.budgetGroup !== undefined) || quote.profile !== 'operator_validation' || quote.activationAllowed !== false || quoteId !== `${supplemented ? 'vq3' : grouped ? 'vq2' : 'vq1'}-${validationHash(JSON.stringify(payload))}`
       || window.caseId !== quote.declaration.caseId || window.windowId !== `validation-${quoteId}` || !timestamp(window.startedAt) || window.claimedAt !== window.startedAt || !timestamp(window.deadlineAt)
       || Date.parse(window.deadlineAt) - Date.parse(window.startedAt) !== quote.declaration.limits.durationMs || !sha(quote.identity.reviewedPlatformSha, 40)
       || quote.identity.frozenCaseInputHash !== validationInputHash(quote.declaration) || quote.basis.runId !== state.run.runId || quote.basis.ledgerId !== state.ledger.ledgerId

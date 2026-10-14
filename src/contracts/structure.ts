@@ -70,9 +70,17 @@ const validationGroupLedgerShape = object({
   allocationClosures: array(object({ taskId: text, decisionId: text, releasedMicroCny: money })),
   allocationDelegations: array(object({ parentTaskId: enumeration(['COS-16']), authorizationDecisionId: text, caseId: text, decisionId: text, taskIds: array(text, 5) }), 1),
 });
+const grantShape = object({ taskId: text, amountMicroCny: money });
+const supplementedGroupLedgerShape = object({
+  contractVersion: enumeration(['5.0.0']), ...ledgerFields,
+  allocationClosures: array(object({ taskId: text, decisionId: text, releasedMicroCny: money })),
+  allocationDelegations: array(object({ parentTaskId: enumeration(['COS-16']), authorizationDecisionId: text, caseId: text, decisionId: text, taskIds: array(text, 5) }), 1),
+  allocationSupplements: array(object({ parentTaskId: enumeration(['COS-16']), authorizationDecisionId: text, decisionId: text, basisRevision: money,
+    targetCaseId: text, additionalMicroCny: money, grants: object({ planning: grantShape, design: grantShape, art: grantShape, coding: grantShape, repair: grantShape }) }), 1),
+});
 export const ledgerShape: Check = (value, path, issues) => {
   const version = (value as { contractVersion?: unknown })?.contractVersion;
-  (version === '4.0.0' ? validationGroupLedgerShape : version === '3.0.0' ? validationClosureLedgerShape : version === '2.0.0' ? continuationLedgerShape : originalLedgerShape)(value, path, issues);
+  (version === '5.0.0' ? supplementedGroupLedgerShape : version === '4.0.0' ? validationGroupLedgerShape : version === '3.0.0' ? validationClosureLedgerShape : version === '2.0.0' ? continuationLedgerShape : originalLedgerShape)(value, path, issues);
 };
 export const runShape = object({
   contractVersion: version, runId: text, kind, specVersion: text, ledgerId: text, originalStartedAt: timestamp, originalDeadlineAt: timestamp, state, taskIds: nonEmptyStrings,

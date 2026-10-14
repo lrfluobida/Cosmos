@@ -15,14 +15,14 @@ export const hash = (value: string | Buffer) => createHash('sha256').update(valu
 const evidence = [{ artifactId: 'offline-billing', version: 'v1', location: 'offline-billing.json' }];
 
 /** Synthetic original allocations. No private snapshot, provider or generated game is used. */
-export async function groupFixture(t: TestContext) {
+export async function groupFixture(t: TestContext, initialChargeMicroCny = 1_116_402) {
   const base = await mkdtemp(join(tmpdir(), 'cosmos-validation-group-')), root = join(base, 'ledger'), repositoryRoot = join(base, 'repository');
   let clock = Date.parse('2026-10-01T06:16:16.857Z'), serial = 0, current: any;
   const now = () => clock, owners: RunController[] = [];
   t.after(async () => { for (const owner of owners) await owner.close().catch(() => {}); assert.ok(base.startsWith(tmpdir())); await rm(base, { recursive: true, force: true }); });
   const original = await RunController.create({ root, runId: 'validation-2026-10-01', ledgerId: 'cosmos-validation', specVersion: '1.0', kind: 'evaluation', scope: 'validation', now,
     allocations: [{ taskId: 'COS-16', amountMicroCny: 10_000_000 }, { taskId: 'offline-other-legacy', amountMicroCny: 74_596_040 }] });
-  await original.importSettled({ requestId: 'prior-deepseek-direct-probes', taskId: 'offline-other-legacy', provider: 'offline', pricingVersion: 'fixture', actualCostMicroCny: 1_116_402, evidence });
+  await original.importSettled({ requestId: 'prior-deepseek-direct-probes', taskId: 'offline-other-legacy', provider: 'offline', pricingVersion: 'fixture', actualCostMicroCny: initialChargeMicroCny, evidence });
   await original.close(); clock = Date.parse('2026-10-01T18:16:16.858Z');
   await mkdir(join(repositoryRoot, 'template'), { recursive: true }); await writeFile(join(repositoryRoot, 'template/package.json'), '{}\n', 'utf8');
   const files = [{ path: 'template/package.json', sha256: hash('{}\n') }];

@@ -1,6 +1,6 @@
 import type { ArtifactContract, ArtifactReference, BudgetLedger, ContextPackage, EvidenceContract, ExecutionContracts, RequirementContract, RunManifest, TaskContract, ValidationIssue } from './types.ts';
 import { artifactShape, checkShape, contextShape, evidenceShape, issue, ledgerShape, referenceShape, requirementShape, runShape, taskShape } from './structure.ts';
-import { budgetCapacity, budgetSummary, DEFAULT_BUDGETS, COS16_GROUP_GRANTS, validationBudgetGroup } from './budget.ts';
+import { budgetCapacity, budgetSummary, DEFAULT_BUDGETS, COS16_GROUP_GRANTS, COS16_SUPPLEMENT_CASE, COS16_SUPPLEMENT_GRANTS, COS16_SUPPLEMENT_MICRO_CNY, validationBudgetGroup } from './budget.ts';
 
 export function sameValue(left: unknown, right: unknown): boolean {
   if (left === right) return true;
@@ -110,7 +110,7 @@ export function validateLedger(value: unknown): ValidationIssue[] {
       if (!allocation || !ledger.authorizations!.some(item => item.decisionId === closure.decisionId) || entries.some(item => item.reservedMicroCny || item.unknown || !['settled', 'cancelled'].includes(item.status)) || closure.releasedMicroCny !== allocation.amountMicroCny - spent) issue(issues, '$.allocationClosures', 'invalid_closure', 'Close a reconciled grant exactly once, releasing only its unused amount.');
     }
   }
-  if (['3.0.0', '4.0.0'].includes(ledger.contractVersion)) {
+  if (['3.0.0', '4.0.0', '5.0.0'].includes(ledger.contractVersion)) {
     if (ledger.scope !== 'validation') issue(issues, '$.scope', 'validation_closure_scope', 'Allocation closure v3 is validation only.');
     unique(ledger.allocationClosures!.map(item => item.taskId), '$.allocationClosures', issues);
     for (const closure of ledger.allocationClosures!) {
@@ -121,7 +121,7 @@ export function validateLedger(value: unknown): ValidationIssue[] {
         || closure.releasedMicroCny !== allocation.amountMicroCny - spent) issue(issues, '$.allocationClosures', 'invalid_closure', 'Close a reconciled validation grant exactly once, releasing only its unused amount.');
     }
   }
-  if (ledger.contractVersion === '4.0.0') {
+  if (['4.0.0', '5.0.0'].includes(ledger.contractVersion)) {
     const delegations = ledger.allocationDelegations!, group = validationBudgetGroup(ledger)!, parent = ledger.allocations.find(item => item.taskId === 'COS-16');
     if (ledger.scope !== 'validation' || parent?.amountMicroCny !== 10_000_000 || ledger.allocationClosures!.some(item => item.taskId === 'COS-16')) issue(issues, '$.allocationDelegations', 'invalid_delegation', 'The original unclosed COS-16 allocation must remain exactly ten yuan.');
     unique(delegations.map(item => item.caseId), '$.allocationDelegations', issues); unique(delegations.map(item => item.decisionId), '$.allocationDelegations', issues);
@@ -132,8 +132,15 @@ export function validateLedger(value: unknown): ValidationIssue[] {
         || delegation.authorizationDecisionId !== delegations[0].decisionId || !sameValue(delegation.taskIds, expected)
         || expected.some((id, index) => { const grant = ledger.allocations.find(item => item.taskId === id); return !grant || grant.amountMicroCny < 1 || grant.amountMicroCny > Object.values(COS16_GROUP_GRANTS)[index]; })) issue(issues, '$.allocationDelegations', 'invalid_delegation', 'Delegation requires its exact five grants and the original parent authorization.');
     }
-    if (![group.derivedNetMicroCny, group.allocatedMicroCny, group.committedMicroCny].every(Number.isSafeInteger) || group.derivedNetMicroCny < 0 || group.allocatedMicroCny > 10_000_000) issue(issues, '$.allocationDelegations', 'group_overallocated', 'Derived grants exceed the original COS-16 allocation capacity.');
-    if (group.committedMicroCny > 10_000_000) issue(issues, '$.entries', 'group_budget_exceeded', 'COS-16 settled and reserved exposure exceeds its original ten yuan.');
+    if (![group.derivedNetMicroCny, group.allocatedMicroCny, group.committedMicroCny].every(Number.isSafeInteger) || group.derivedNetMicroCny < 0 || group.allocatedMicroCny > group.limitMicroCny) issue(issues, '$.allocationDelegations', 'group_overallocated', 'Derived grants exceed authenticated COS-16 allocation capacity.');
+    if (group.committedMicroCny > group.limitMicroCny) issue(issues, '$.entries', 'group_budget_exceeded', 'COS-16 settled and reserved exposure exceeds its authenticated capacity.');
+    if (ledger.contractVersion === '5.0.0') {
+      const records = ledger.allocationSupplements!, item = records[0];
+      if (records.length !== 1 || item.parentTaskId !== 'COS-16' || item.authorizationDecisionId !== delegations[0].decisionId
+        || item.basisRevision < 1 || item.additionalMicroCny !== COS16_SUPPLEMENT_MICRO_CNY || item.targetCaseId !== COS16_SUPPLEMENT_CASE
+        || !sameValue(item.grants, COS16_SUPPLEMENT_GRANTS) || delegations.some(d => d.decisionId === item.decisionId)
+        || ledger.allocationClosures!.some(c => c.decisionId === item.decisionId)) issue(issues, '$.allocationSupplements', 'invalid_supplement', 'Only one exact internal COS-16 supplement for the fixed next case is supported.');
+    }
   }
   if (summary.allocatedMicroCny > summary.effectiveLimitMicroCny) issue(issues, '$.allocations', 'overallocated', 'Task allocations cannot create additional budget.');
   ledger.entries.forEach((entry, index) => {

@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript、Node 原生测试、既有 RunController / SnapshotStore；TEMP 合成历史、fake provider、零网络。
 
-**状态与基线：** plan awaiting independent review。Issue [#91](https://github.com/lrfluobida/Cosmos/issues/91)，id5854823746，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。分支 `codex/cos90-validation-group-supplement`，managed worktree `E:/CodexData/.codex/worktrees/cos74-frozen-template/Cosmos`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`。计划提交只创建本计划和 [任务卡](../specs/cos90-validation-group-supplement.md)。
+**状态与基线：** plan exact `0bd6683fd7ec80405da6ebb143e6c4b05715a6c8` 经独立 `cos90_reviewer` 规格/架构审查 PLAN_APPROVED，无 blocker；实现及免费检查完成，等待实际 diff 独审。Issue [#91](https://github.com/lrfluobida/Cosmos/issues/91)，id5854823746，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。分支 `codex/cos90-validation-group-supplement`，managed worktree `E:/CodexData/.codex/worktrees/cos74-frozen-template/Cosmos`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`。计划提交只创建本计划和 [任务卡](../specs/cos90-validation-group-supplement.md)。
 
 ## 固定契约与授权
 
@@ -51,12 +51,12 @@ prepare/apply 都要求已存在 ledger4 的原组、所有案例显式 stopped�
 
 ## 实施与免费验收
 
-- [ ] 独立 reviewer 审查本 plan/card exact SHA；收到 Root PLAN_APPROVED 后才开始生产代码。
-- [ ] RED：通过既有 groupFixture / RunController claim/reserve/admit/settle/stop/closure API 在 TEMP 建立可恢复的 ledger4。多次独立 group grants 合成累计9100314µ，全部关闭得899686µ；不手工伪造收费或历史。新测试调用缺失静态 API，记录实际 assertion failure。
-- [ ] GREEN：实现固定 supplement quote/apply 与 ledger5，验证补充前/后 shared allocated 恰增加1600314µ、effective limit/settled不变、group available变2500000µ；原parent行10m及历史 prefixes逐项深相等。重复同决定零写入、并发竞争最多一笔、冲突/第二笔拒绝。
-- [ ] 绑定负例：逐项变更 case、1600314µ、五角色任一 taskId/amount、first authorization、parent source、revision/SHA、identity/operator源；真unallocated不足但unspent充足、unknown/reserved、running、owner/writer/缺root、未关闭或overrun均拒绝，检查snapshot字节不变。所有 fake provider/network计数为0。
-- [ ] 新版本闭环：新 C14 仅用测试 declaration3（无正式 wrapper）claim精确向量，原 RunController reserve/admit/settle、可信host/tool/child边界拒绝源漂移；stop/close后ledger5 closure3成功。冷读 validateSnapshot 与 accounting reopen保留原时钟/历史/补充来源，oldclosure1/2仍通过；篡改或去掉回执、重复记录、伪造event拒绝。
-- [ ] 旧版本与集成：受影响 budget/group/allocations/window/routing 用例、typecheck/build/affected strict、UTF8/中文回读及diffcheck；只补验实际受影响范围。保存原始命令、TAP、TEMP来源与已知限制，提交 exact SHA 供独立规格→质量审查。作者不合 main、不 push。
+- [x] 独立 reviewer 审查本 plan/card exact SHA；收到 Root PLAN_APPROVED 后才开始生产代码。
+- [x] RED：通过既有 groupFixture / RunController claim/reserve/admit/settle/stop/closure API 在 TEMP 建立可恢复的 ledger4。多次独立 group grants 合成累计9100314µ，全部关闭得899686µ；不手工伪造收费或历史。新测试调用缺失静态 API，记录实际 assertion failure。
+- [x] GREEN：实现固定 supplement quote/apply 与 ledger5，验证补充前/后 shared allocated 恰增加1600314µ、effective limit/settled不变、group available变2500000µ；原parent行10m及历史 prefixes逐项深相等。重复同决定零写入、并发竞争最多一笔、冲突/第二笔拒绝。
+- [x] 绑定负例：逐项变更 case、1600314µ、五角色任一 taskId/amount、first authorization、parent source、revision/SHA、identity/operator源；真unallocated不足但unspent充足、unknown/reserved、running、owner/writer/缺root、未关闭均拒绝，检查snapshot字节不变。拒绝路径 fake provider 调用为0；合法 fake 响应一次，网络调用为0。overrun沿既有守卫及回归验证。
+- [x] 新版本闭环：新 C14 仅用测试 declaration3（无正式 wrapper）claim精确向量，原 RunController reserve/admit/settle、可信host/tool/child边界拒绝源漂移；stop/close后ledger5 closure3成功。冷读 validateSnapshot 与 accounting reopen保留原时钟/历史/补充来源，oldclosure1/2仍通过；篡改或去掉回执、重复记录、伪造event拒绝。
+- [x] 旧版本与集成：受影响 budget/group/allocations/window/routing 用例、typecheck/build/affected strict；只补验实际受影响范围。保存原始命令、TAP、TEMP来源与已知限制，提交 exact SHA 供独立规格→质量审查。作者不合 main、不 push。
 
 ```powershell
 node --experimental-strip-types --test tests/runtime/validation-group-supplement.test.ts
@@ -68,3 +68,26 @@ git diff --check
 ```
 
 预期 RED 因新能力缺失退出1；GREEN及最终命令退出0，测试数量/时长记录实际输出。旧来源证据不因文档更新重复跑；本轮 TEMP 不使用真实台账、会话、key、参考安装或任何付费能力。源码独审并由唯一 merger 集成后才标 `VALIDATION_GROUP_SUPPLEMENT_SOURCE_READY`；这不表示补充已实际应用、C14已执行、COS16/18或完整游戏/human通过。
+
+## 实际实现与免费证据
+
+最终范围为16个生产路径、5个测试/fixture路径及本plan/card。新增两个补充分配模块，沿上述版本与接口实现；quote仅保存历史计数和摘要，没有完整历史副本。独审澄清已落实：idle只检查已有case roots，C14尚未创建不是前置。原group fixture只新增可选初始已结算费用参数，默认值及旧调用行为保持，用来证明phase必须容纳完整2500000µ，而非仅1600314µ。
+
+`prepareValidationGroupSupplement(ValidationContextOptions)` / `applyValidationGroupSupplement(ApplyValidationGroupSupplementOptions)` 位于 `src/runtime/validation-group-supplement.ts` 并有RunController静态入口；公共类型在 `validation-types.ts`。casequote3的原budgetGroup字段后追加 `supplement:{decisionId,limitMicroCny}`；实际来源复核复用导出的 `verifyValidationBudgetSources(root,state)`，同时检查原group与supplement receipt字节。
+
+raw均在 `C:/Users/26557/AppData/Local/Temp/`：
+
+| 检查 | 实际结果 | raw |
+| --- | --- | --- |
+| 有效 RED | 3/3 assertion failed，原因均为缺新静态quote API；外层PowerShell最后读取TAP，因此其退出0不能当测试通过 | `cos90-red.tap` |
+| 新supplement测试 | 7/7、0skip，4305.5474ms、exit0 | `cos90-green5.tap` |
+| 最终fake provider/源漂移/冷恢复/closure代表 | 1/1、0skip，1298.881ms、exit0；拒绝前0次fake，合法1次fake，网络0 | `cos90-provider-final.tap` |
+| 最终完整phase envelope负例 | 1/1、0skip，1026.9657ms、exit0；phase剩2099686µ，足够补充而不足整案 | `cos90-phase-final.tap` |
+| budget ledger4/5 | 3/3、0skip，292.7183ms、exit0 | `cos90-budget-final.tap` |
+| 受影响集成首次 | 98pass/1fail、0skip，17918.9249ms；唯一失败为基线旧断言 | `cos90-regression.tap` |
+| 旧断言修正后单项 | 1/1、0skip，3117.6424ms、exit0；其余98项证据复用 | `cos90-window-correction.tap` |
+| typecheck/build/最终affected strict | exit0，无诊断 | `cos90-typecheck.log` / `cos90-build.log` / `cos90-strict-final.log` |
+
+首次GREEN的两项失败为测试输入错误：planning固定1µ不能预留8µ，及`rm`不能非递归删除目录；改为合法coding来源检查和`rmdir`后3/3通过（`cos90-green1.tap` / `cos90-green2.tap`）。后续running夹具直接not_started→running违反既有状态机，增加真实ready保存后通过（`cos90-green3.tap` / `cos90-green4.tap`）。初始strict仅报新测试索引/optional字段3处类型问题，补`as const`及已断言存在字段后通过，生产运行时未放宽（`cos90-strict.log`）。
+
+基线 `3b2002` 的 `validation-window.test.ts` 原本把已支持的declaration3当unsupported，当前`validateValidationDeclaration`函数未改变。Root批准最小fixture修正3→4；只有该断言一行改变，不改生产校验。最后两个新测试代表在phase输入加强及fake provider补充后分别复验；其余新用例及98项旧通过证据按无相关运行时变化复用。TEMP由finally关闭owner并删除自有目录，不访问真实台账/会话/凭据/参考安装。尚待独立实际diff审批与唯一merger集成。

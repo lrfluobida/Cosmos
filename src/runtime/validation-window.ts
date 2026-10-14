@@ -59,7 +59,8 @@ export async function verifyValidationIdentity(options: ValidationContextOptions
 }
 
 function eligible(state: RunSnapshot, declaration: ValidationDeclaration, now: number): void {
-  if (![1, 3].includes(state.formatVersion) || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0', '4.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== declaration.limits.lifetimeMicroCny) throw new Error('Use the original shared validation ledger; formal generation is not this profile.');
+  if (![1, 3].includes(state.formatVersion) || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== declaration.limits.lifetimeMicroCny) throw new Error('Use the original shared validation ledger; formal generation is not this profile.');
+  if (state.ledger.contractVersion === '5.0.0' && declaration.formatVersion !== 'validation-declaration-3') throw new Error('Supplement requires its fixed grouped target declaration.');
   if (state.stopReason?.code === 'charge_overrun' || state.validation?.cases.some(item => item.stopReason?.code === 'charge_overrun')) throw new Error('Historical validation overrun requires separate resolution.');
   if (state.ledger.entries.some(entry => entry.reservedMicroCny || entry.unknown || !['settled', 'cancelled'].includes(entry.status))) throw new Error('Unknown or reserved historical charges require reconciliation.');
   if (state.formatVersion === 1 && !state.stopReason && now < Date.parse(state.run.originalDeadlineAt)) throw new Error('Original validation window is still active.');
@@ -84,13 +85,13 @@ export async function prepareValidationCase(options: ValidationContextOptions & 
   if (observed.requirements.specVersion !== state.run.specVersion) throw new Error('Frozen validation requirements differ from the original spec version.');
   if (!bytes.equals(await regularFile(options.root, 'snapshot.json'))) throw new Error('Validation baseline changed during quote preparation.');
   const value: Omit<ValidationCaseQuote, 'quoteId'> = {
-    formatVersion: declaration.formatVersion === 'validation-declaration-3' ? 'validation-case-quote-2' : 'validation-case-quote-1', profile: 'operator_validation', activationAllowed: false, declaration, ...observed,
+    formatVersion: declaration.formatVersion === 'validation-declaration-3' ? state.ledger.contractVersion === '5.0.0' ? 'validation-case-quote-3' : 'validation-case-quote-2' : 'validation-case-quote-1', profile: 'operator_validation', activationAllowed: false, declaration, ...observed,
     basis: { runId: state.run.runId, ledgerId: state.ledger.ledgerId, specVersion: state.run.specVersion, revision: state.revision, snapshotSha256: validationHash(bytes),
       originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt, originalLimitMicroCny: state.ledger.limitMicroCny, stopReason: state.stopReason,
       committedMicroCny: budgetSummary(state.ledger).committedMicroCny, allocatedMicroCny: budgetCapacity(state.ledger).allocatedMicroCny, requestIds: state.ledger.entries.map(entry => entry.requestId) },
   };
   if (declaration.formatVersion === 'validation-declaration-3') value.budgetGroup = prepareValidationBudgetGroup(state, declaration);
-  return { ...value, quoteId: `${declaration.formatVersion === 'validation-declaration-3' ? 'vq2' : 'vq1'}-${validationHash(JSON.stringify(value))}` };
+  return { ...value, quoteId: `${value.formatVersion === 'validation-case-quote-3' ? 'vq3' : declaration.formatVersion === 'validation-declaration-3' ? 'vq2' : 'vq1'}-${validationHash(JSON.stringify(value))}` };
 }
 
 export async function verifyOperatorDecision(root: string, quote: ValidationCaseQuote, decision: OperatorValidationDecision, now: number) {
@@ -122,7 +123,8 @@ export async function claimValidationCase(options: ClaimValidationCaseOptions): 
     const bytes = await regularFile(store.root, 'snapshot.json');
     if (previous.revision !== quote.basis.revision || validationHash(bytes) !== quote.basis.snapshotSha256 || !sameValue(observed.requirements, quote.requirements)) throw new Error('Validation baseline or quote is stale.');
     const { quoteId, ...payload } = quote;
-    if (quote.formatVersion !== (quote.declaration.formatVersion === 'validation-declaration-3' ? 'validation-case-quote-2' : 'validation-case-quote-1') || quoteId !== `${quote.declaration.formatVersion === 'validation-declaration-3' ? 'vq2' : 'vq1'}-${validationHash(JSON.stringify(payload))}`) throw new Error('Validation quote was altered.');
+    const format = quote.declaration.formatVersion === 'validation-declaration-3' ? previous.ledger.contractVersion === '5.0.0' ? 'validation-case-quote-3' : 'validation-case-quote-2' : 'validation-case-quote-1';
+    if (quote.formatVersion !== format || quoteId !== `${format === 'validation-case-quote-3' ? 'vq3' : format === 'validation-case-quote-2' ? 'vq2' : 'vq1'}-${validationHash(JSON.stringify(payload))}`) throw new Error('Validation quote was altered.');
     const next = structuredClone(previous), startedAt = at(now());
     const event = (type: 'stopped' | 'validation_case_claimed' | 'validation_case_stopped', reason: string) => next.events.push({ sequence: next.events.length + 1, at: startedAt, type, requestId: null, reason });
     if (!next.stopReason && now() >= Date.parse(next.run.originalDeadlineAt)) {
@@ -138,7 +140,7 @@ export async function claimValidationCase(options: ClaimValidationCaseOptions): 
     next.validation = { profile: 'operator_validation', currentCaseId: window.caseId, cases: [...(next.validation?.cases ?? []), window] };
     for (const role of VALIDATION_ROLES) { const grant = quote.declaration.grants[role]; next.ledger.allocations.push(structuredClone(grant)); next.run.taskIds.push(grant.taskId); }
     if (quote.declaration.formatVersion === 'validation-declaration-3') {
-      next.ledger.contractVersion = '4.0.0'; next.ledger.allocationDelegations = [...(next.ledger.allocationDelegations ?? []), {
+      next.ledger.contractVersion = previous.ledger.contractVersion === '5.0.0' ? '5.0.0' : '4.0.0'; next.ledger.allocationDelegations = [...(next.ledger.allocationDelegations ?? []), {
         parentTaskId: 'COS-16', authorizationDecisionId: quote.budgetGroup!.authorizationDecisionId ?? decision.decisionId,
         caseId: window.caseId, decisionId: decision.decisionId, taskIds: VALIDATION_ROLES.map(role => quote.declaration.grants[role].taskId) }];
     }
