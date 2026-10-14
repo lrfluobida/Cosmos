@@ -1,8 +1,10 @@
 # COS-92 持久浏览器启动截止与准备校验
 
-状态：计划待独审；生产源码未改，SOURCE_READY 未授予。Issue [#93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，父 #1。依赖 COS37/COS52 持久浏览器路径及 COS91 / #92 的实际 C14 结果。
+状态：计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，无剩余 finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 精确读回。生产实现进行中，SOURCE_READY 未授予。Issue [#93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，父 #1。依赖 COS37/COS52 持久浏览器路径及 COS91 / #92 的实际 C14 结果。
 
 专职作者 `cos92_implementer`；独立 reviewer 与唯一 merger 由 Root 指派。分支 `codex/cos92-browser-launch`，复用 managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点为已解冻主线 `b20e9a43f26712a1f5a13468057df46b6c012b69`。[实施计划](../plans/2026-10-15-cos92-browser-launch.md)。本次先提交两份文档，独审批准后才修改生产实现；共享 tracking 由另一作者维护。
+
+实现基线已合入 Root 指定 `2aca018c59a9fd16ac7b0a318139958f53e5af06`（仅 C14 文档），本分支 merge `dd05d246d38997e7ceb983d5f8804fdbccb9ea8d` 保留计划提交。独立 reviewer `cos92_reviewer`，唯一 merger `batch_c14_cos92_merger`；作者不合 main、不 push。
 
 ## 事实与缺口
 

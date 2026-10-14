@@ -339,7 +339,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     : task.acceptanceIds.length === 1 && task.acceptanceIds[0] === MEDIA_ACCEPTANCE_ID ? 'art' : 'coding');
   const workspace = (task: TaskContract) => boundTask(task)?.workspace ?? root;
   const sourceRoot = (task: TaskContract, folder: string) => relative(root, join(workspace(task), folder)).split(sep).join('/');
-  async function requireDispatch(task: TaskContract, signal: AbortSignal) {
+  async function requireDispatch(task: TaskContract, signal: AbortSignal, candidate?: ArtifactReference) {
     signal.throwIfAborted();
     if (modular) {
       const policy = await readModularRepairPolicy(root, await controller.read());
@@ -353,14 +353,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       requireOriginalTask(recorded, task);
       const authority = await controller.validationAuthority(task.taskId, 'reviewer');
       if (!authority.admissionAllowed) throw new Error('Validation task has no active host execution authority.');
-      if (preparation) await preparation.requireCurrent();
+      if (preparation) { if (candidate) await preparation.bindCandidate(candidate); else await preparation.requireCurrent(); }
       signal.throwIfAborted(); return { taskId: task.taskId, caseId: window.caseId, windowId: window.windowId, deadlineAt: authority.deadlineAt };
     }
     controller.requireExecutionWindow(binding?.windowId);
     boundTask(task);
     const authority = await controller.executionAuthority(task.taskId);
     if ((binding || human || modular) && !authority.admissionAllowed) throw new Error('Task has no active host execution authority.');
-    if (human) { await human.requireCurrent(); await preparation!.requireCurrent(); }
+    if (human) { await human.requireCurrent(); if (candidate) await preparation!.bindCandidate(candidate); else await preparation!.requireCurrent(); }
     return { taskId: task.taskId, windowId: authority.windowId, deadlineAt: authority.deadlineAt };
   }
   async function requirePlanningDispatch(roleInput: Readonly<RoleInput>, signal: AbortSignal) {
@@ -837,7 +837,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               const manifestBytes = await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`);
               if (!capture.metadata.media || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), capture.metadata.media)) throw new Error('Actual media manifest differs from its capture.');
               const result = await preparation.candidateConsumer({ root, task, candidate: ref, project, cleanDelivery: server, mediaArtifact, media: capture.metadata.media,
-                manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async () => { await requireDispatch(task, signal); await preparation.bindCandidate(ref); },
+                manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async () => { await requireDispatch(task, signal, ref); },
                 playPersistent: async (series, options) => {
                   if (!io.playPersistent) throw new Error('Trusted persistent transport is unavailable.');
                   return io.playPersistent(series, options, await requireDispatch(task, signal));

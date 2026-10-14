@@ -12,6 +12,8 @@
 
 规格：[COS92](../specs/cos92-browser-launch.md)。起点 `b20e9a43f26712a1f5a13468057df46b6c012b69`。本阶段只提交 spec/plan；独审批准后才执行下列步骤。作者不改 main、共享 tracking 或 GitHub，不访问真实账本，不启动 paid/provider/C14。
 
+计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 读回。实现开始前合入指定 main `2aca018c59a9fd16ac7b0a318139958f53e5af06`，本分支 merge `dd05d246d38997e7ceb983d5f8804fdbccb9ea8d`；该基线差异仅文档。下列步骤现获准执行，最终源码仍待独审。
+
 ## 已运行的最小 RED
 
 证据目录：`C:/Users/26557/AppData/Local/Temp/cos92-launch-red-41b8414ba8624ef1beaaf94e60269a6b`。两脚本直接导入该 managed worktree 的未改生产模块；不计作新生产测试提交。
@@ -52,3 +54,7 @@
 - [ ] Run: `node --experimental-strip-types --test --test-name-pattern="COS40 new observer records real Phaser" tests/acceptance/media-observations.integration.ts`。只运行这一项免费 TEMP 真实 Edge 正例，验证 prepare→register（CDP调用前）→CDP/PID/profile 身份→close事件/退出码/PID已不存在，保留 qa-summary 与原始报告；预期正例通过，另一负例因名称过滤跳过须如实记载。不跑全矩阵、不重放 C14、不接触真实账本或付费 provider。
 - [ ] 用同输入/环境列出修复前后实测次数与耗时。免费回归没有证明实际C14或下一次真实游戏启动通过；完整历史链耗时未测时明确标注，后续性能调查不扩大本次实现。
 - [ ] 提交最终SHA、测试证据和已知缺口给独立reviewer；先规格再质量查实际diff，作者修finding并重审。唯一merger集成后Root才能登记SOURCE_READY。C14仍failed/consumed；COS16/COS18、完整经典与human保持未完成。
+
+## 实现证据（持续补充）
+
+Task1 已观察仓库内新增计数 RED：13≠8，0pass/1fail，16300.5313ms。最小复用后 `tests/transfer/runtime-host.test.ts` 与 `tests/runtime/entrypoint-host-preparation.test.ts` 共17/17、0skip，88704.77ms；raw `C:/Users/26557/AppData/Local/Temp/cos92-binding-green.tap`。两次独立绑定各8次scope，333.523ms/322.474ms；同一输入/宿主的旧探针各13次、429.516ms/440.323ms，仅此小夹具比较，不外推C14。当前scope漂移、候选/全部计划与恢复的原断言通过；真实consumer组合回调计数仍待短夹具补验。

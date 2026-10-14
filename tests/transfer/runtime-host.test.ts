@@ -102,6 +102,20 @@ test('real v1/v2 candidates stage only the matching plan with exact dependencies
   assert.equal((await f.controller.read()).validation!.cases[0].repair, null);
 });
 
+test('COS92 each candidate binding reuses only its own verified inputs and checks scope afresh', async t => {
+  const f = await pipeline(t), candidate = f.registry.candidateRef(`${f.window.caseId}-game`, 'v1');
+  const requireHost = f.controller.requireValidationHost.bind(f.controller); let scopes = 0;
+  t.mock.method(f.controller, 'requireValidationHost', async (...args: Parameters<typeof requireHost>) => { scopes++; return requireHost(...args); });
+  for (let operation = 1; operation <= 2; operation++) {
+    scopes = 0; const start = performance.now();
+    const bound: any = await f.host.bindPreparedCandidate(candidate);
+    assert.equal(bound.artifact.artifactId, `${f.window.caseId}-plan-v1`);
+    t.diagnostic(JSON.stringify({ operation, scopes, elapsedMs: +(performance.now() - start).toFixed(3) }));
+    assert.equal(scopes, 8, 'Do not verify the same prepared inputs twice in one binding');
+  }
+  f.changeIdentity(); await assert.rejects(f.host.bindPreparedCandidate(candidate), /identity|source|platform/i);
+});
+
 test('invalid semantic design preserves raw bytes and stops art/coding without claiming coding repair', async t => {
   const f = await pipeline(t, true); assert.equal(f.result[0].state, 'failed');
   assert.ok(!f.calls.some(item => ['art', 'coding'].includes(item.kind)));
