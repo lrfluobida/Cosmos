@@ -23,6 +23,7 @@ const usage = (big = false) => big
   : { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
 
 export async function codingCompactionFixture(t, mode = 'success', priorHistory = false) {
+  const affordableBalance = { 'affordable-full': 1067661, 'affordable-reduced': 500000, 'affordable-floor': 294912 }[mode];
   const f = await validationRoutingFixture(t), plan = await planTaskDag(f.planning);
   const task = structuredClone(plan.tasks.find(item => item.role === 'coding').task);
   // Isolated coding contract uses the fixture's real fixed requirement capture only.
@@ -34,7 +35,7 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
   task.state = 'running'; task.attempts = [{ attemptId: randomUUID(), sessionRef: join(f.artifactRoot, 'SOURCE-COS79-session'),
     startedAt: new Date().toISOString(), endedAt: null, outcome: 'running', failure: null }];
   await f.controller.saveTask(task, { role: 'system', actorId: 'SOURCE-COS79' });
-  const originalTask = structuredClone(task), admissions = [], dispatches = [], events = [], boundaries = [], summaries = [], settlements = [], selections = [], policies = [];
+  const originalTask = structuredClone(task), admissions = [], dispatches = [], events = [], boundaries = [], summaries = [], settlements = [], selections = [], policies = [], pressures = [];
   let native, ordinary = 0, summaryRequests = 0, networkCalls = 0, roleConfig, readonlyTurn = false, closing;
   let mainStarted = false, sdkOutputCap, injected = false, lastTurn, compactionBefore, partialToolCalls = 0;
   let syntheticCharge = 0;
@@ -73,21 +74,45 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
       native.agent.prepareNextTurnWithContext = async (turn, signal) => {
         lastTurn = turn;
         if (mode === 'summary-too-large' && ordinary === 2 && !injected) { injected = true; await spendTo(1000000); }
-        const current = await f.controller.validationAuthority(task.taskId, 'author');
+        let current = await f.controller.validationAuthority(task.taskId, 'author'), pressure;
+        const inputBytes = bytesOf(projected()), floor = validationReservation({ inputBytes, hasImages: false, maxOutputTokens: 4096 });
+        // Existing lifecycle cases need real temporary pressure now that an affordable ordinary floor skips compaction.
+        // Keep the original grant and settle/cancel only through the controller; the policy remains the real factory hook.
+        if (affordableBalance === undefined && !['disabled', 'low-pressure', 'summary-too-large'].includes(mode)
+          && inputBytes >= 131072 && current.remainingMicroCny >= floor) {
+          const requestId = 'SOURCE-temporary-pressure-' + (pressures.length + 1), amount = current.remainingMicroCny - floor + 1;
+          assert.ok(amount >= 8);
+          pressure = { requestId, inputBytes, beforeMicroCny: current.remainingMicroCny, reservedMicroCny: amount };
+          await f.controller.reserve({ requestId, taskId: task.taskId, provider: 'deepseek', pricingVersion: 'deepseek-flash-peak-cny-2026-10-01', estimatedMaxCostMicroCny: amount,
+            validation: { caseId: f.window.caseId, windowId: f.window.windowId, purpose: 'author', modelId: 'deepseek-flash', maxOutputTokens: 1, inputBytes: 0, hasImages: false } });
+          pressures.push(pressure); current = await f.controller.validationAuthority(task.taskId, 'author');
+          assert.equal(current.remainingMicroCny, floor - 1);
+        }
+        const beforeProjection = JSON.stringify(projected());
         const boundary = { inputBytes: bytesOf(projected()), remainingMicroCny: current.remainingMicroCny, ordinaryBefore: ordinary,
           summaryBefore: summaryRequests, savedBefore: compactCount(native), policyBefore: policies.length };
         boundaries.push(boundary);
-        const result = await previous(turn, signal);
-        boundary.afterBytes = bytesOf(projected()); boundary.savedAfter = compactCount(native);
-        boundary.trigger = policies.slice(boundary.policyBefore).some(item => item.selected);
-        if (mode === 'noop' && !injected) {
-          injected = true;
-          const counts = { ordinary, summaryRequests, policies: policies.length };
-          await previous(turn, signal);
-          assert.deepEqual({ ordinary, summaryRequests, policies: policies.length }, counts);
-          boundary.repeatedSameProjectionVerified = true;
+        try {
+          const result = await previous(turn, signal);
+          boundary.afterBytes = bytesOf(projected()); boundary.savedAfter = compactCount(native);
+          boundary.projectionUnchanged = JSON.stringify(projected()) === beforeProjection;
+          boundary.trigger = policies.slice(boundary.policyBefore).some(item => item.selected);
+          if (mode === 'noop' && !injected) {
+            injected = true;
+            const counts = { ordinary, summaryRequests, policies: policies.length };
+            await previous(turn, signal);
+            assert.deepEqual({ ordinary, summaryRequests, policies: policies.length }, counts);
+            boundary.repeatedSameProjectionVerified = true;
+          }
+          return result;
+        } finally {
+          if (pressure) {
+            // stop() already cancels unadmitted reservations; do not cancel a closed row twice.
+            const row = (await f.controller.read()).ledger.entries.find(entry => entry.requestId === pressure.requestId);
+            if (row.status !== 'cancelled') await f.controller.cancel(pressure.requestId, [{ artifactId: pressure.requestId, version: 'SOURCE-only', location: 'SOURCE unadmitted synthetic reservation; no provider' }]);
+            pressure.released = true;
+          }
         }
-        return result;
       };
     }
     return originalPrompt.apply(this, args);
@@ -119,7 +144,7 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
         content = [{ type: 'text', text: 'Earlier synthetic turn retained as history. '.repeat(200) }];
       } else {
         const n = ordinary - (priorHistory ? 1 : 0);
-        if (mode === 'no-benefit' && n >= 3 || mode === 'noop' && n >= 3) content = [{ type: 'text', text: JSON.stringify({ summary: 'Synthetic bounded continuation', remaining: [], uncertainty: [] }) }];
+        if (mode === 'no-benefit' && n >= 3 || mode === 'noop' && n >= 3 || affordableBalance !== undefined && n >= 4) content = [{ type: 'text', text: JSON.stringify({ summary: 'Synthetic bounded continuation', remaining: [], uncertainty: [] }) }];
         else if (n <= 3) { stopReason = 'toolUse'; largeHistory = mode === 'summary-too-large' && n === 1;
           content = [{ type: 'thinking', thinking: largeHistory ? 'x'.repeat(500000) : 'synthetic reading rationale' },
           { type: 'toolCall', id: 'read-' + n, name: 'synthetic_read', arguments: { ordinal: n } }]; }
@@ -146,7 +171,8 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
       const context = normalizeContext({ messages: convertToLlm([...native.sessionManager.buildSessionProjection().messages, message]) });
       const target = mode === 'no-benefit' ? args.ordinal === 1 ? 251339 : bytesOf(context) + 40000
         : mode === 'noop' ? bytesOf(context) + 100
-        : mode === 'summary-too-large' ? [600000, 700000][args.ordinal - 1] : [80000, 125000, 251339][args.ordinal - 1], difference = target - bytesOf(context);
+        : mode === 'summary-too-large' ? [600000, 700000][args.ordinal - 1]
+        : affordableBalance !== undefined ? [40000, 80000, 131072][args.ordinal - 1] : [80000, 125000, 251339][args.ordinal - 1], difference = target - bytesOf(context);
       assert.ok(difference > 0); content[0].text = 'r'.repeat(difference); assert.equal(bytesOf(context), target);
       return { content, details: {} };
     } };
@@ -158,7 +184,10 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
       return createPiSession({ ...config,
         requestCompaction: mode === 'disabled' ? undefined : config.requestCompaction && (async request => {
           if (mode === 'close-during-policy' && request.inputBytes >= 131072) closing = role.close();
-          const selected = await config.requestCompaction(request); policies.push({ ...request, selected }); return selected;
+          const selected = await config.requestCompaction(request), current = await f.controller.validationAuthority(task.taskId, 'author');
+          policies.push({ ...request, selected, remainingMicroCny: current.remainingMicroCny });
+          if (selected) assert.ok(validationReservation({ ...request, maxOutputTokens: Math.min(4096, request.maxOutputTokens) }) > current.remainingMicroCny);
+          return selected;
         }), requestOutputLimit: async request => {
         if (native?.isCompacting && !injected) {
           if (mode === 'budget-first') { injected = true; await spendTo(100); }
@@ -189,7 +218,7 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
     workspace: f.artifactRoot, stateDirectory: join(task.attempts[0].sessionRef, 'author') });
   t.after(async () => { await role.close(); assert.equal(networkCalls, 0); });
   if (priorHistory) await role.prompt('A separate synthetic history turn.');
-  const authority = await f.controller.validationAuthority(task.taskId, 'author'), charge = authority.remainingMicroCny - (['low-pressure', 'summary-too-large'].includes(mode) ? 4000000 : 1069783);
+  const authority = await f.controller.validationAuthority(task.taskId, 'author'), charge = authority.remainingMicroCny - (affordableBalance !== undefined ? affordableBalance + 30 : ['low-pressure', 'summary-too-large'].includes(mode) ? 4000000 : 1069783);
   await f.controller.reserve({ requestId: 'SOURCE-budget-baseline', taskId: task.taskId, provider: 'deepseek', pricingVersion: 'deepseek-flash-peak-cny-2026-10-01', estimatedMaxCostMicroCny: charge,
     validation: { caseId: f.window.caseId, windowId: f.window.windowId, purpose: 'author', modelId: 'deepseek-flash', maxOutputTokens: 1, inputBytes: 0, hasImages: false } });
   await f.controller.admit('SOURCE-budget-baseline'); await f.controller.settle('SOURCE-budget-baseline', charge, [{ artifactId: 'SOURCE-budget-baseline', version: 'v1', location: 'SOURCE synthetic budget fixture; no provider charge' }]);
@@ -200,12 +229,18 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
   const snapshot = await f.controller.read(), compactEntries = native.sessionManager.getEntries().filter(entry => entry.type === 'compaction');
   assert.deepEqual(snapshot.tasks.find(item => item.taskId === task.taskId), originalTask);
   let captured = false;
-  if (!error && !['no-benefit', 'noop', 'close-during-policy'].includes(mode)) {
+  if (!error && affordableBalance === undefined && !['no-benefit', 'noop', 'close-during-policy'].includes(mode)) {
     const capture = await f.capture(task);
     assert.equal(await readFile(join(f.artifactRoot, capture.artifacts[0].location, 'fixture.txt'), 'utf8'), 'Synthetic Cosmos output. 中文保持。');
     captured = true;
   }
-  const report = { mode, priorHistory, error, result, networkCalls, ordinary, summaryRequests, partialToolCalls, admissions, dispatches, boundaries, events, settlements, selections, policies,
+  assert.ok(pressures.every(pressure => pressure.released));
+  for (const pressure of pressures) {
+    const row = snapshot.ledger.entries.find(entry => entry.requestId === pressure.requestId);
+    assert.equal(row.status, 'cancelled'); assert.equal(row.reservedMicroCny, 0); assert.equal(row.settledMicroCny, 0);
+    assert.equal(snapshot.requests.find(request => request.requestId === pressure.requestId).admittedAt, null);
+  }
+  const report = { mode, priorHistory, error, result, networkCalls, ordinary, summaryRequests, partialToolCalls, admissions, dispatches, boundaries, events, settlements, selections, policies, pressures,
     compactions: compactEntries.length, summaryCharacters: compactEntries.map(entry => entry.summary.length), remainingMicroCny: (await f.controller.validationAuthority(task.taskId, 'author')).remainingMicroCny,
     currentTaskUnchanged: true, fixedPacketAndToolsRetained: true, captured, ledger: snapshot.ledger.entries.filter(entry => admissions.some(request => request.requestId === entry.requestId)),
     autoCompactionRestoredDisabled: native.settingsManager.getCompactionSettings(native.model).enabled === false };
