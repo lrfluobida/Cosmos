@@ -2,7 +2,7 @@
 
 2026-10-15最新实际状态：C12因既定截止清理结束，failed / coding cancelled；52次请求全部结算，新增1664926 micro-CNY、共享14467801 micro-CNY。closure18已一次完成，revision2770/20stopped/12delegations/100closed/18audits/unknown与reserved0，释放1335074 micro-CNY，原COS16组可分配2540822 micro-CNY，Root已解除main冻结。详见[C12研究记录](../research/2026-10-15-transfer-c12-deadline.md)。COS86已在源码范围closed，COS16/COS18仍partial/open；旧snapshot、unknown和actual NONE均保留为阶段历史，完整经典与human仍未完成。
 
-状态：2026-10-15 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 87 个原生子任务已由Root核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-15 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 88 个原生子任务已由Root核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -1442,11 +1442,21 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 ### COS-87 · 并行读取独立 Git 身份字段，减少工具校验耗时
 
-[任务 #88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000，已由Root发布并原生挂父#1；当前87个子项，open且父项未勾选。依赖COS83/86，由 `cos87_implementer` 准备短计划，唯一merger为 `batch_c12_reference_merger`。
+[任务 #88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000，已由Root发布并原生挂父#1；登记时87个子项，open且父项未勾选。依赖COS83/86，由 `cos87_implementer` 实现、`cos87_reviewer` 独立审查，唯一merger为 `batch_c12_reference_merger`。
 
-当前pending plan-review / `SOURCE_NOT_READY`，目标 `PARALLEL_GIT_IDENTITY_SOURCE_READY`；计划与源码尚未批准或合入。只优化每次身份检查中独立只读Git查询的等待时间，保留前后检查顺序、完整校验、原5秒总截止与取消处理，不加跨调用缓存。免费源码与合成夹具范围，不修改生成游戏、不重跑C12或启动新付费案例。
+计划 `f509606a8da1ebe6e5f73ff2d0c430d787fe85c9` 和最终源码 `ac91cff85ddbdd08720623fd600161f2e61bd6b6` 均已独立APPROVED，无剩余finding；合入 `49e892992749e5511f2bb4135ec67be4459fa30b`，标记 `PARALLEL_GIT_IDENTITY_SOURCE_READY`，source-integrated/open待Root公开关闭。[任务卡](cos87-parallel-git-identity.md)保留完整证据。
+
+只并行每次inspect的四个独立只读Git查询；全部settled后按原字段顺序校验，前后检查顺序、完整守卫、每次fresh读取、原5秒总截止与取消清理保持。主线受影响strict退出0，并发与真实child失败清理代表2/2、0skip；原19/19、typecheck/build及abort/timeout证据复用。同环境短基准中位755.5810→348.6017ms，下降53.8631%，每次仍9个Git查询；仅identity范围，不外推C12、自检总时长或游戏性能。main不冻结，本次无付费或游戏产物变更。
 
 稳定任务 ID：COS-87
+
+### COS-88 · 在原预算组余量内验证并行校验后的固定迁移 C13
+
+[任务 #89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，已由Root发布并原生挂父#1；当前88个子项，open且父项未勾选。依赖COS86/87，作者 `cos88_implementer`，唯一merger `batch_c12_reference_merger`。
+
+当前pending plan-review / `SOURCE_NOT_READY`，计划及源码尚未批准或合入。仅准备固定¥2.50/45分钟/80请求/一次合格repair的C13，角色向量为1/1/1/1900000/599997微元；原COS16组¥10、phase¥30、shared¥150保持。实际必须等待前置源码批准、集成和免费准入；C12不恢复，没有新付费。
+
+稳定任务 ID：COS-88
 
 ## 5. 任务与上下文包模板
 

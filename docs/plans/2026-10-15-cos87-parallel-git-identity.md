@@ -53,7 +53,7 @@
 - [x] `npm run typecheck`、`npm run build`：退出0。
 - [x] `node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck --types node --allowImportingTsExtensions --allowJs --checkJs false tests/e2e/validation-identity.test.ts`：退出0；该项覆盖未纳入主 tsconfig 的 probe/test。
 - [x] 等 Root 确认 main 干净后，固定当时最新 reviewed SHA，在同一仓库、同一 manifest、同一 Node/Git 环境交替调用旧与新 identity reader。各记录一次预热与至少5个样本，报告9次实际 Git 查询的原始毫秒值和中位数；旧代码取精确起点版本，新代码取作者分支，两者只读取同一真实main。基准不绕过真实 Git，不读实际账本/session/key，不启动模型；保留TEMP脚本与JSON，墙钟不作为单元测试通过条件。
-- [ ] 严格 UTF-8 回读、非ASCII内容检查、`git diff --check`、完整差异审查。提交 exact SHA、原始证据路径与局限给独立 reviewer；修复 findings 后复审。唯一 merger 合入及更新共享跟踪，作者不写 main、不 push。
+- [x] 严格 UTF-8 回读、非ASCII内容检查、`git diff --check`、完整差异审查。最终 exact `ac91cff85ddbdd08720623fd600161f2e61bd6b6` 经 `cos87_reviewer` 独立APPROVED，无剩余finding；唯一 merger 合入 `49e892992749e5511f2bb4135ec67be4459fa30b` 并更新共享跟踪，作者不写 main、不 push。
 
 ## 验收边界
 
@@ -88,4 +88,4 @@
 
 该短基准中位数下降53.8631%；旧峰值1、新峰值4，每次仍9次查询。此数值只描述该环境的完整身份读取；没有重跑135秒工具夹具，不能推导工具总时长、实际C12速度或节费，也不构成游戏性能验收。无网络、付费、实际ledger/session/key或参考安装操作。
 
-状态：实现验证完成，等待最终exact差异独审及唯一merger集成；SOURCE_NOT_READY。
+状态：PARALLEL_GIT_IDENTITY_SOURCE_READY / source-integrated，等待Root公开关闭；主线strict与两项短集成代表通过，合并记录见[任务卡](../specs/cos87-parallel-git-identity.md)。
