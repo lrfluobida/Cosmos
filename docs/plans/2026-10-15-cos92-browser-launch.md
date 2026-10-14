@@ -37,8 +37,9 @@
 
 **Files:** 修改 `src/acceptance/runner.ts`、`src/acceptance/persistent.ts`、`src/runtime/entrypoint-host.ts`、`src/runtime/run.ts`、`src/runtime/store.ts`、`src/runtime/recovery/ownership.ts`；新增 `tests/acceptance/persistent-launch.test.ts`，扩 `tests/runtime/recovery/ownership.test.ts` 与 `tests/runtime/entrypoint-host-launch.test.ts`。最小适配 `tests/acceptance/media-observations.integration.ts`、`tests/runtime/generic-persistent-host.fixture.ts` 的两个已有 ownedChild 调用点。
 
-- [ ] 先迁入两个RED，加deferred binding、deferred持久化、controller identity及close/drain门；使用mock Date/setTimeout和拦截spawn/CDP，记录真实ticket状态。不可用真实浏览器/任意sleep制造竞态。
-- [ ] runner向open传入可信 `{signal, deadlineAt}`，失败/外层race超时即abort。persistent直接调用时创建等价寿命，内部bounded与prepare共享它。`ownedChild.prepare(launch)` 的nativeIO实现检查binding前后并作为独立OwnedWork被drain跟踪；返回 `{ticket, register(pid), releaseUnspawned()}`，回调闭包捕获本次ticket，调用方不能传入其他票。旧controller/owned-command的string ticket API保留。
+- [ ] 先迁入两个RED，加deferred binding、deferred持久化、controller identity及close/drain门；使用mock Date/setTimeout和拦截spawn/CDP，记录真实ticket状态。另加 ticket 已持久化但 handle 交付被 gate 阻塞的用例：abort 并开始 drain，断言 drain 尚未成功；释放 gate 后 raw prepare 交付 handle，断言零 spawn/零残留本次 ticket、drain 完成且 owner 可 close。不可用真实浏览器/任意sleep制造竞态。
+- [ ] runner向open传入可信 `{signal, deadlineAt}`，失败/外层race超时即abort。persistent直接调用时创建等价寿命，内部bounded与prepare共享它。`ownedChild.prepare(launch)` 的nativeIO实现检查binding前后；返回 `{ticket, register(pid), releaseUnspawned()}`，回调闭包捕获本次ticket，调用方不能传入其他票。旧controller/owned-command的string ticket API保留。
+- [ ] persistent 在 bounded race 之外始终观察 raw prepare，单一 attempt 状态处理全部成功/拒绝结果。每次启动的 completion promise 另交 nativeIO：ready promise 可以先返回 handle，但独立 OwnedWork 继续等待 completion，直到同步 spawn 交接进入既有登记/退出路径或 exact release 真正完成。race 失败后的迟到 handle 仍只释放本次 ticket；spawn/release 不能同时赢。prepare 拒绝且没有 ticket 也结束 completion；release 失败使 completion 失败并保留意图和原错误，不能把跟踪结束当成清理通过。始终不返回的 prepare 沿原 drain 截止失败并保留 owner。测试覆盖这三条终止分支。
 - [ ] 给 `RunController.prepareOwnedChild(authority?, launch?)` 增可选局部寿命检查，旧owned-command调用保持原行为；原identity/expire/requireActive保留。向store/OwnerLock传入可信检查闭包，在队列执行且持久化前检查；若持久化期间过期，在同一串行operation中只移除本次仍null ticket后抛出原截止/取消错误，不递归进入serial。
 - [ ] 增 `releaseUnspawnedChild(ticket)` 的lock/store/controller窄链路：exact owner + exact existing null ticket，更新childTasks；不要求运行active但拒绝已close/failed，不修改recover。未知ticket、registered PID、owner漂移及release失败必须保留事实并拒绝。调用方闭包只持有本次ticket，只有spawnStarted=false可释放；另造一张null ticket验证它不被这次release清除。
 - [ ] prepare返回后检查signal和绝对截止，最后检查与spawn无await；调用spawn前同步置spawnStarted。一旦spawn开始不走null-ticket释放；PID立即走既有register，即使随后截止失败仍保留PID并走终止/完整退出/profile证明。同步spawn错误也不假定无进程。
@@ -47,6 +48,7 @@
 ## Task 3: 集成、独审与交接
 
 - [ ] 只读核对UTF-8后最小修改；每次写后中文回读。确认生产路径没有新通用授权缓存、全局skip flag、加长15秒或历史恢复捷径。
-- [ ] Run: `node --experimental-strip-types --test tests/acceptance/persistent.test.ts tests/acceptance/generic-persistent.test.ts tests/runtime/run.test.ts tests/runtime/recovery/owned-work.test.ts tests/runtime/owned-command.test.ts tests/runtime/entrypoint-host-preparation.test.ts`；复用Task1/2中无变化的通过项。运行 `npm run typecheck`、`npm run build`、`git diff --check`，保留exit与pass/fail/skip。两个旧ownedChild辅助文件只改接口，免费类型/受影响fixture验证，不在本任务启动实际浏览器集成。
+- [ ] Run: `node --experimental-strip-types --test tests/acceptance/persistent.test.ts tests/acceptance/generic-persistent.test.ts tests/runtime/run.test.ts tests/runtime/recovery/owned-work.test.ts tests/runtime/owned-command.test.ts tests/runtime/entrypoint-host-preparation.test.ts`；复用Task1/2中无变化的通过项。运行 `npm run typecheck`、`npm run build`、`git diff --check`，保留exit与pass/fail/skip。两个旧ownedChild辅助文件最小适配接口并验证受影响fixture。
+- [ ] Run: `node --experimental-strip-types --test --test-name-pattern="COS40 new observer records real Phaser" tests/acceptance/media-observations.integration.ts`。只运行这一项免费 TEMP 真实 Edge 正例，验证 prepare→register（CDP调用前）→CDP/PID/profile 身份→close事件/退出码/PID已不存在，保留 qa-summary 与原始报告；预期正例通过，另一负例因名称过滤跳过须如实记载。不跑全矩阵、不重放 C14、不接触真实账本或付费 provider。
 - [ ] 用同输入/环境列出修复前后实测次数与耗时。免费回归没有证明实际C14或下一次真实游戏启动通过；完整历史链耗时未测时明确标注，后续性能调查不扩大本次实现。
 - [ ] 提交最终SHA、测试证据和已知缺口给独立reviewer；先规格再质量查实际diff，作者修finding并重审。唯一merger集成后Root才能登记SOURCE_READY。C14仍failed/consumed；COS16/COS18、完整经典与human保持未完成。

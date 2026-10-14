@@ -26,7 +26,9 @@
 
 runner 为每次 open 建立同一绝对启动截止与 AbortSignal，传给 OwnedAcceptanceLifecycle.open；超时、原取消及 open 失败时同步取消该寿命。persistent 的内部 bounded、prepare 与 prespawn 共用它，保留现有 15 秒及原运行清理余量。直接调用 lifecycle 的夹具仍建立等价局部寿命。
 
-`ownedChild.prepare(launch)` 接收可信 `{ signal, deadlineAt }`，返回本次专属 `{ ticket, register(pid), releaseUnspawned() }`。nativeIO 在 binding 前后检查，并传入 RunController.prepareOwnedChild 的可选局部 guard；两个返回回调只闭包捕获这张 ticket，不接收调用方选票。controller 在原身份检查后、OwnerLock 持久化意图前检查；持久化期间取消则在返回 ticket 前结清本次未 spawn 意图。prepare 作为独立 OwnedWork operation 被 drain 跟踪，避免外层 race 先结束后 owner 关闭。取消不等待无响应的 binding 才生效；binding 即使迟到返回也不能继续造 ticket。
+`ownedChild.prepare(launch)` 接收可信 `{ signal, deadlineAt }`，返回本次专属 `{ ticket, register(pid), releaseUnspawned() }`。nativeIO 在 binding 前后检查，并传入 RunController.prepareOwnedChild 的可选局部 guard；两个返回回调只闭包捕获这张 ticket，不接收调用方选票。controller 在原身份检查后、OwnerLock 持久化意图前检查；持久化期间取消则在返回 ticket 前结清本次未 spawn 意图。取消不等待无响应的 binding 才生效；binding 即使迟到返回也不能继续造 ticket。
+
+persistent 始终观察 raw prepare promise，不能只接收 bounded race 的赢家。每次启动另建 completion promise；nativeIO 用独立 ready promise 交付 handle，OwnedWork 则继续等待 completion，直到 persistent 同步将子进程交给既有登记/退出路径，或等待 exact release 完成。单一 attempt 状态决定 spawn 与 release，二者不能同时发生；race 已拒绝时，迟到 handle 仍进入同一释放路径。prepare 拒绝且没有 ticket 时 completion 也须结束；release 失败使 completion 失败并保留意图和原错误，结束跟踪不等于清理成功。若 prepare 始终不返回，现有 drain 截止失败且保留 owner，不伪造已清理。
 
 persistent 在 prepare 完成后立刻检查局部寿命，且从最后检查到 spawn 调用之间无 await。生命周期独占本次 ticket 与 spawnStarted 状态；一旦调用 spawn，不能走无进程清理分支。已经得到 PID 时先登记、保留 PID，即使随后身份或截止失败也按原 owned process 路径终止和核验退出。
 
@@ -38,7 +40,9 @@ persistent 在 prepare 完成后立刻检查局部寿命，且从最后检查到
 
 ## 验收边界
 
-用 deferred gate 和模拟时钟覆盖 binding/prepare 迟到、ticket 后 spawn 前截止、正常一次 spawn/register、已登记 PID、原运行取消/截止、来源变化、exact ticket/foreign ticket/owner 变化及 close/drain 竞态。测试真实 lifecycle、nativeIO 接线、controller/store/OwnerLock；只替换 OS spawn/CDP 与 provider transport。
+用 deferred gate 和模拟时钟覆盖 binding/prepare 迟到、ticket 后 spawn 前截止、正常一次 spawn/register、已登记 PID、原运行取消/截止、来源变化、exact ticket/foreign ticket/owner 变化及 close/drain 竞态。必须另测 ticket 已持久化但 handle 交付被 gate 阻塞：abort 并开始 drain，确认 drain 尚未成功；之后交付 handle，确认零 spawn、零残留本次意图，drain 完成且 owner 可关闭。测试真实 lifecycle、nativeIO 接线、controller/store/OwnerLock，确定性竞态替换 OS spawn/CDP 与 provider transport。
+
+再运行一项隔离 TEMP 的免费真实 Edge 正例，复用现有 media-observations 正例验证 prepare→register（CDP 前）→CDP/PID/profile 身份→完整退出，并保留原始报告。无需完整浏览器矩阵；该正例不重放 C14，不接触真实账本或付费 provider。
 
 计数与耗时在同一夹具、同一输入环境前后比较，第二次操作须重新检查；不以计数外推代替 C14 完整链计时。仅跑受影响免费回归、typecheck/build、UTF-8 中文回读及 diff check，复用无变化证据。独审实际 diff 后由唯一 merger 集成；SOURCE_READY 只表示源码范围完成，不表示实际游戏、COS16/COS18、完整经典或 human 通过。
 
