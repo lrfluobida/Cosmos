@@ -12,10 +12,11 @@
 - Root已完成closure16，释放未使用的 **¥1.913735**。18个案例均已停止，旧费用和历史保留。COS82已[在源码范围内完成并关闭](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)，COS16/COS18仍partial，实际游戏和human未通过。
 - 启动器和Node已退出、两个controller锁已释放，Root已解除main冻结。以下C10未准入及冻结等待为当时的源码准备记录；本次不修改生产代码或重新运行案例。
 
-## COS83：先测量作者工具的来源校验开销
+## COS83已审集成：删除一处重复来源校验
 
-- [任务 #84：减少作者工具中的重复来源校验](https://github.com/lrfluobida/Cosmos/issues/84)已由Root登记并挂到原生父任务，当前83个子项。依赖COS55/75/82，由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。
-- 阶段一计划 `a7b420a` 已通过独立审查，仅授权免费的SOURCE/TEMP基线实验。先测实际工具路径，再确定最小生产方案并另行独审；静态校验次数不是计时结果。当前 SOURCE_NOT_READY/open，没有新付费、C11或预算调整。
+- [任务 #84](https://github.com/lrfluobida/Cosmos/issues/84)由cos76实现、cos77独审，最终版本 `c8afd76` 已获批准，没有finding；唯一merger合入 `32af0aa`。当前为 AUTHOR_TOOL_SCOPE_SOURCE_READY/source-integrated/open，待Root公开关闭，完整SHA见[任务卡](docs/specs/cos83-tool-scope.md)。
+- 生产仅删除transfer guard先行的一次重复调用，完整校验仍在每次origin.verify中执行；跨await、worker、签名、预算和时限检查保持。普通prepared fixture的两次工具调用均从160次scope读取降到83次，每次少77次（48.125%）；这仅是该夹具的次数变化，不代表C10实际提速或节费。
+- 主线typecheck/build和真实guard局部超时代表通过。作者18项边界及compiled guard证据复用，没有重跑基线、C10或旧长矩阵；首轮0次计数只属于接线失败。没有新付费、C11或预算变化，主线不为本卡额外冻结。
 
 ## COS82：准备 ¥3 上限的固定迁移 C10
 
