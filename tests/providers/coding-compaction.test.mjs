@@ -4,13 +4,33 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { codingCompactionFixture } from './coding-compaction.fixture.mjs';
 
-test('production coding compacts before an affordable 251339-byte turn and captures in the same attempt', async t => {
+for (const [mode, balance, cap] of [['affordable-full', 1067661, 65536], ['affordable-reduced', 500000, 29732], ['affordable-floor', 294912, 4096]]) {
+  test(`affordable coding ${mode} preserves context and sends its maximum affordable ordinary cap`, async t => {
+    const { report } = await codingCompactionFixture(t, mode);
+    assert.equal(report.networkCalls, 0); assert.equal(report.error, undefined);
+    assert.equal(report.summaryRequests, 0, 'An affordable ordinary turn must not buy a summary');
+    assert.equal(report.compactions, 0); assert.deepEqual(report.events, []); assert.equal(report.ordinary, 4);
+    const boundary = report.boundaries.find(item => item.inputBytes === 131072);
+    assert.equal(boundary.remainingMicroCny, balance); assert.equal(boundary.trigger, false); assert.equal(boundary.projectionUnchanged, true);
+    assert.ok(boundary.inputBytes * 2 + 65536 * 8 > balance / 2, 'The old half-balance policy would select a summary');
+    const request = report.admissions.at(-1), sent = report.dispatches.at(-1);
+    assert.equal(request.inputBytes, boundary.inputBytes); assert.equal(request.maxOutputTokens, cap); assert.equal(sent.sentCap, cap);
+    assert.equal(request.estimatedMaxCostMicroCny, request.inputBytes * 2 + cap * 8);
+    assert.ok(request.estimatedMaxCostMicroCny <= balance);
+    if (cap < 65536) assert.ok(request.inputBytes * 2 + (cap + 1) * 8 > balance);
+    assert.equal(report.currentTaskUnchanged, true); assert.equal(report.fixedPacketAndToolsRetained, true);
+    assert.equal(report.autoCompactionRestoredDisabled, true);
+  });
+}
+
+test('minimum coding output is unaffordable during a temporary reservation and native compaction keeps the same attempt', async t => {
   const { report } = await codingCompactionFixture(t);
   assert.equal(report.error, undefined); assert.equal(report.captured, true);
   assert.equal(report.ordinary, 5); assert.equal(report.summaryRequests, 2); assert.equal(report.compactions, 2);
   const boundary = report.boundaries.find(item => item.inputBytes === 251339);
-  assert.equal(boundary.remainingMicroCny, 1069753); assert.equal(boundary.trigger, true);
-  assert.ok(boundary.inputBytes * 2 + 65536 * 8 <= boundary.remainingMicroCny);
+  assert.equal(boundary.remainingMicroCny, 535445); assert.equal(boundary.trigger, true);
+  assert.equal(report.pressures[0].beforeMicroCny, 1069753); assert.equal(report.pressures[0].released, true);
+  assert.ok(boundary.inputBytes * 2 + 4096 * 8 > boundary.remainingMicroCny);
   assert.ok(boundary.afterBytes < boundary.inputBytes);
   assert.ok(report.dispatches.filter(item => item.kind === 'summary').every(item => item.sentCap === 8192 && item.sentCap <= item.sdkRequestedCap));
   for (const request of report.admissions) assert.equal(request.estimatedMaxCostMicroCny, request.inputBytes * 2 + request.maxOutputTokens * 8);
@@ -142,7 +162,7 @@ test('peak-cost summaries remain accounted and allow the same attempt to finish'
   assert.ok(report.remainingMicroCny > 0);
 });
 
-test('the native summary input itself can be unaffordable and sends nothing', async t => {
+test('summary input admission still rejects an unaffordable native request and sends nothing', async t => {
   const { report } = await codingCompactionFixture(t, 'summary-too-large');
   assert.ok(report.error); assert.equal(report.summaryRequests, 0); assert.equal(report.compactions, 0); assert.equal(report.ordinary, 2);
   assert.equal(report.remainingMicroCny, 1000000);

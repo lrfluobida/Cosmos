@@ -96,14 +96,42 @@ test('only validation coding authors receive the factory policy', async t => {
   assert.equal(f.configs.find(config => JSON.parse(config.context).role === 'reviewer')!.maxOutputTokens, 16384);
 });
 
-test('validation compaction requires 128 KiB and strictly more than half the current balance', async t => {
+for (const [name, balance, hasImages, selected] of [
+  ['full cap', 1067661, false, false], ['reduced cap', 500000, false, false],
+  ['exact floor', 294912, false, false], ['one below floor', 294911, false, true],
+  ['exact image floor', 2032768, true, false], ['one below image floor', 2032767, true, true],
+] as const) test(`validation compaction ${name} respects ordinary affordability`, async t => {
+  const f = await fixture(t); await f.create(); const policy = f.configs[0].requestCompaction!;
+  const request = { maxOutputTokens: 65536, inputBytes: 131072, hasImages };
+  await f.remaining(balance);
+  assert.equal(await policy(request), selected);
+  assert.equal(await policy({ ...request, inputBytes: 131071 }), false);
+  if (!selected) {
+    const cap = await f.configs[0].requestOutputLimit!({ ...request, requestId: 'ordinary-affordable', modelId: 'deepseek-flash' });
+    assert.ok(cap >= 4096); assert.ok(validationReservation({ ...request, maxOutputTokens: cap }) <= balance);
+  }
+});
+
+for (const change of ['caseId', 'windowId', 'deadlineAt', 'maxOutputTokens', 'admissionAllowed', 'cancel'] as const) {
+  test(`validation compaction rejects stale ${change} authority before selecting a summary`, async t => {
+    const f = await fixture(t); await f.create(); const policy = f.configs[0].requestCompaction!;
+    const request = { maxOutputTokens: 65536, inputBytes: 131072, hasImages: false };
+    await f.remaining(294911);
+    const before = (await f.controller.read()).requests.length;
+    if (change === 'cancel') await f.controller.stop('Synthetic cancellation at compaction policy');
+    else {
+      const authority = f.controller.validationAuthority.bind(f.controller);
+      t.mock.method(f.controller, 'validationAuthority', async (...args: Parameters<typeof authority>) => ({ ...await authority(...args),
+        [change]: change === 'maxOutputTokens' ? 32768 : change === 'admissionAllowed' ? false : 'stale' }));
+    }
+    await assert.rejects(policy(request));
+    assert.equal((await f.controller.read()).requests.length, before);
+  });
+}
+
+test('validation compaction rejects unknown usage through its original authority guard', async t => {
   const f = await fixture(t); await f.create(); const policy = f.configs[0].requestCompaction!;
   const request = { maxOutputTokens: 65536, inputBytes: 131072, hasImages: false };
-  await f.remaining(validationReservation(request) * 2);
-  assert.equal(await policy(request), false);
-  await f.charge(8);
-  assert.equal(await policy({ ...request, inputBytes: 131071 }), false);
-  assert.equal(await policy(request), true);
   await f.charge(8, true);
   await assert.rejects(policy(request), /authority/i);
 });

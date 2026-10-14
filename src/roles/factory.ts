@@ -187,7 +187,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         if (!current.admissionAllowed || current.caseId !== validation.caseId || current.windowId !== validation.windowId
           || current.deadlineAt !== validation.deadlineAt || current.maxOutputTokens !== validation.maxOutputTokens
           || request.maxOutputTokens !== current.maxOutputTokens) throw new Error('Compaction has no current original validation authority.');
-        return request.inputBytes >= 131072 && validationReservation(request) > current.remainingMicroCny / 2;
+        return request.inputBytes >= 131072
+          && validationReservation({ ...request, maxOutputTokens: Math.min(4096, request.maxOutputTokens) }) > current.remainingMicroCny;
       } } : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: options.compactionKeepRecentTokens,
