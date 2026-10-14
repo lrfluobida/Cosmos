@@ -50,7 +50,7 @@ test('C13 uses available allocation rather than unspent group balance and requir
   const a = await api(), state = caseThirteenFeeData(), declaration = a.deriveTransferValidationCaseThirteenDeclaration(state);
   state.ledger.allocationClosures.splice(-7);
   assert.ok(validationBudgetGroup(state.ledger)!.remainingMicroCny > 2_500_000);
-  assert.throws(() => prepareValidationBudgetGroup(state, declaration), /remaining original group capacity/);
+  assert.throws(() => prepareValidationBudgetGroup(state, declaration), /remaining (original|authenticated) group capacity/);
   const wrong = caseThirteenFeeData(); wrong.ledger.allocations[0].amountMicroCny--;
   assert.throws(() => a.deriveTransferValidationCaseThirteenDeclaration(wrong), /parent/);
 });

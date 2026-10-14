@@ -62,9 +62,9 @@ export function createFixedTransferValidationCaseSixEntry(sourcePins: Historical
   return createFixedTransferCodingOnlyEntry(sourcePins);
 }
 export interface FixedCodingOnlyEntryConfiguration {
-  declaration: ValidationDeclaration; manifestLocation: 'cos20-transfer-validation-7-reuse.json' | 'cos20-transfer-validation-8-reuse.json' | 'cos20-transfer-validation-9-reuse.json' | 'cos20-transfer-validation-10-reuse.json' | 'cos20-transfer-validation-11-reuse.json' | 'cos20-transfer-validation-12-reuse.json' | 'cos20-transfer-validation-13-reuse.json';
-  closureAuditCount?: 13 | 14 | 15 | 16 | 17 | 18; sourceMarkers?: Readonly<Record<string, string>>;
-  partialGroupAllocation?: true;
+  declaration: ValidationDeclaration; manifestLocation: 'cos20-transfer-validation-7-reuse.json' | 'cos20-transfer-validation-8-reuse.json' | 'cos20-transfer-validation-9-reuse.json' | 'cos20-transfer-validation-10-reuse.json' | 'cos20-transfer-validation-11-reuse.json' | 'cos20-transfer-validation-12-reuse.json' | 'cos20-transfer-validation-13-reuse.json' | 'cos20-transfer-validation-14-reuse.json';
+  closureAuditCount?: 13 | 14 | 15 | 16 | 17 | 18 | 19; sourceMarkers?: Readonly<Record<string, string>>;
+  partialGroupAllocation?: true; ledgerVersion?: '5.0.0';
   parseEntry: typeof parseTransferValidationCaseSixEntry; declarations: readonly ValidationDeclaration[];
   deriveDeclaration(state: RunSnapshot): ValidationDeclaration;
   createIdentityReader(options: { repository: string; reviewedPlatformSha: string }): ReturnType<typeof createTransferValidationCaseSixIdentityReader>;
@@ -103,11 +103,11 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   for (const path of ['.controller.lock', '.controller.lock.recovery', 'registry/.commit.lock', 'registry/.commit.lock.recovery']) await absent(repository, `.cosmos/validation-shared/${path}`, 'Original writer ownership');
   const bytes = await regularFile(ledgerRoot, 'snapshot.json'), state = decode(bytes); validateSnapshot(state);
   if (configuration && !sameValue(configuration.deriveDeclaration(state), D)) throw new Error('Current declaration differs from actual historical settled costs.');
-  if (state.formatVersion !== 3 || state.ledger.contractVersion !== '4.0.0' || state.run.runId !== 'validation-2026-10-01'
+  if (state.formatVersion !== 3 || state.ledger.contractVersion !== (configuration?.ledgerVersion ?? '4.0.0') || state.run.runId !== 'validation-2026-10-01'
     || state.ledger.ledgerId !== 'cosmos-validation' || state.run.specVersion !== '1.0' || state.run.originalStartedAt !== '2026-10-01T06:16:16.857Z'
     || state.run.originalDeadlineAt !== '2026-10-01T18:16:16.857Z' || !state.stopReason
     || !state.ledger.entries.some(entry => entry.requestId === 'prior-deepseek-direct-probes' && entry.status === 'settled' && entry.settledMicroCny >= 721_771)) {
-    throw new Error('The original audited ledger4, snapshot3, run, clock and historical charges are required.');
+    throw new Error('The required audited ledger, snapshot3, run, clock and historical charges are required.');
   }
   const histories = [...Array.from({ length: 8 }, (_, i) => state.validation?.cases.find(window => window.caseId === `cos20-native-validation-${i + 1}`)),
     ...declarations.map(d => state.validation?.cases.find(window => window.caseId === d.caseId))];
@@ -287,7 +287,7 @@ async function runTransferValidationCaseSixWithHost(options: { repository: strin
     const after = await controller.read(), view = validationCaseView(after), group = validationBudgetGroup(after.ledger);
     if (!ownsStop || after.events.slice(before.events.length).filter(event => event.type === 'validation_case_stopped').length !== 1 || view.validationCase.stopReason?.code !== 'manual') gaps.push('A separate stop preceded normal completion.');
     if (Date.now() >= Date.parse(window.deadlineAt) || after.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) gaps.push('Cleanup exceeded the deadline or left unresolved fees.');
-    if (!group || group.committedMicroCny > 10_000_000 || view.validationCase.caseCommittedMicroCny > D.limits.incrementalMicroCny
+    if (!group || group.committedMicroCny > (configuration?.ledgerVersion === '5.0.0' ? group.limitMicroCny : 10_000_000) || view.validationCase.caseCommittedMicroCny > D.limits.incrementalMicroCny
       || view.validationCase.committedMicroCny > D.limits.cumulativeMicroCny || view.validationCase.committedMicroCny > D.limits.lifetimeMicroCny) gaps.push('Applicable fee limits were exceeded.');
     if (result.outcome === 'passed' && !sameValue((await new ArtifactRegistry(input.root, 'registry').current().catch(() => null))?.candidateRef, result.accepted)) gaps.push('Accepted promotion changed during cleanup.');
     const report = { outcome: result.outcome === 'passed' && !gaps.length ? 'passed' : 'failed', ...view.validationCase, platformHead: intent.reviewedPlatformSha,

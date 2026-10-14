@@ -16,7 +16,7 @@ import { captureTransferCaseSevenSource, requireTransferCaseSevenSource, require
 export function transferCaseSevenHistoricalAccountingHash(state: RunSnapshot, quote: ValidationCaseQuote) {
   return fixedTransferHistoricalAccountingHash(state, quote, 14, 12);
 }
-export function fixedTransferHistoricalAccountingHash(state: RunSnapshot, quote: ValidationCaseQuote, cases: 14 | 15 | 16 | 17 | 18 | 19 | 20, audits: 12 | 13 | 14 | 15 | 16 | 17 | 18) {
+export function fixedTransferHistoricalAccountingHash(state: RunSnapshot, quote: ValidationCaseQuote, cases: 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21, audits: 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19) {
   const ids = new Set(quote.basis.requestIds);
   return validationHash(JSON.stringify({ cases: state.validation!.cases.slice(0, cases), delegations: state.ledger.allocationDelegations!.slice(0, cases - 8),
     closures: state.ledger.allocationClosures!.slice(0, cases * 5), audits: state.allocationClosureDecisions?.slice(0, audits),
@@ -25,7 +25,7 @@ export function fixedTransferHistoricalAccountingHash(state: RunSnapshot, quote:
 export async function requireTransferCaseSevenAccountingSources(root: string, state: RunSnapshot, signal: AbortSignal) {
   return requireFixedTransferAccountingSources(root, state, signal, 12);
 }
-export async function requireFixedTransferAccountingSources(root: string, state: RunSnapshot, signal: AbortSignal, audits: 12 | 13 | 14 | 15 | 16 | 17 | 18) {
+export async function requireFixedTransferAccountingSources(root: string, state: RunSnapshot, signal: AbortSignal, audits: 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19) {
   for (const receipt of state.allocationClosureDecisions!.slice(0, audits)) {
     signal.throwIfAborted(); const { sourceSha256, ...decision } = receipt.operatorDecision, bytes = await regularFile(root, decision.source.location);
     if (validationHash(bytes) !== sourceSha256 || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)), {
@@ -39,7 +39,7 @@ export function createTransferCaseSevenAdmissionQuote(quote: ValidationCaseQuote
   sourceApprovals: { taskId: string; reviewedCommit: string; mergeCommit: string }[], execution?: Awaited<ReturnType<typeof captureTransferCaseSevenSource>>, accountingSha256?: string) {
   return createFixedTransferAdmissionQuote('transfer-case-seven-admission/1', quote, manifestRef, sourceApprovals, execution, accountingSha256);
 }
-export function createFixedTransferAdmissionQuote(formatVersion: 'transfer-case-seven-admission/1' | 'transfer-case-eight-admission/1' | 'transfer-case-nine-admission/1' | 'transfer-case-ten-admission/1' | 'transfer-case-eleven-admission/1' | 'transfer-case-twelve-admission/1' | 'transfer-case-thirteen-admission/1', quote: ValidationCaseQuote, manifestRef: ArtifactReference,
+export function createFixedTransferAdmissionQuote(formatVersion: 'transfer-case-seven-admission/1' | 'transfer-case-eight-admission/1' | 'transfer-case-nine-admission/1' | 'transfer-case-ten-admission/1' | 'transfer-case-eleven-admission/1' | 'transfer-case-twelve-admission/1' | 'transfer-case-thirteen-admission/1' | 'transfer-case-fourteen-admission/1', quote: ValidationCaseQuote, manifestRef: ArtifactReference,
   sourceApprovals: { taskId: string; reviewedCommit: string; mergeCommit: string }[], execution?: Awaited<ReturnType<typeof captureTransferCaseSevenSource>>, accountingSha256?: string) {
   const value = { formatVersion, quote, snapshotRevision: quote.basis.revision,
     snapshotSha256: quote.basis.snapshotSha256, roleGrants: quote.declaration.grants, manifestRef, sourceApprovals, ...(execution ? { execution } : {}), ...(accountingSha256 ? { accountingSha256 } : {}) };
@@ -58,8 +58,8 @@ export function createFixedTransferValidationCaseSevenEntry(sourcePins: Historic
 interface FixedSettledCodingConfiguration {
   parseEntry: typeof parseTransferValidationCaseSevenEntry; deriveDeclaration: typeof deriveTransferValidationCaseSevenDeclaration;
   history(state: RunSnapshot): FixedCodingOnlyEntryConfiguration['declarations']; manifestLocation: FixedCodingOnlyEntryConfiguration['manifestLocation'];
-  closureAuditCount?: 13 | 14 | 15 | 16 | 17 | 18; sourceMarkers?: Readonly<Record<string, string>>;
-  partialGroupAllocation?: true;
+  closureAuditCount?: 13 | 14 | 15 | 16 | 17 | 18 | 19; sourceMarkers?: Readonly<Record<string, string>>;
+  partialGroupAllocation?: true; ledgerVersion?: '5.0.0';
   captureSource: typeof captureTransferCaseSevenSource; requireSource: typeof requireTransferCaseSevenSource;
   requireAccounting: typeof requireTransferCaseSevenAccountingSources; admissionQuote: typeof createTransferCaseSevenAdmissionQuote;
   accountingHash: typeof transferCaseSevenHistoricalAccountingHash; generate: FixedCodingOnlyEntryConfiguration['generate'];
@@ -73,7 +73,7 @@ export function createFixedSettledCodingEntry(sourcePins: HistoricalCaseSixSourc
     const declaration = configuration.deriveDeclaration(state), input = fixedTransferValidationInput(declaration), execution = await configuration.captureSource(options.signal);
     return createFixedTransferCodingOnlyEntry(sourcePins, { declaration, declarations: configuration.history(state),
       manifestLocation: configuration.manifestLocation, parseEntry: configuration.parseEntry, closureAuditCount: configuration.closureAuditCount, sourceMarkers: configuration.sourceMarkers,
-      partialGroupAllocation: configuration.partialGroupAllocation,
+      partialGroupAllocation: configuration.partialGroupAllocation, ledgerVersion: configuration.ledgerVersion,
       deriveDeclaration: configuration.deriveDeclaration, createIdentityReader: identityOptions => {
         const read = input.createTransferValidationIdentityReader(identityOptions);
         return async signal => { await configuration.requireSource(execution, signal); await requireTransferCaseSevenTemplate(execution, options.repository, signal); await configuration.requireAccounting(join(resolve(options.repository), '.cosmos/validation-shared'), state, signal); return read(signal); };

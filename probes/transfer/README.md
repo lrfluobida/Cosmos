@@ -268,3 +268,11 @@ C12要求原19stopped/11delegations/95closed/17audits、C11原41个coding author
 C13要求原20stopped/12delegations/100closed/18audits、C12原52个coding author admitted/settled请求及closure18、无repair/unknown/reserved。新固定grants为1/1/1/1900000/599997µ，合计¥2.50；45min/80requests/一次合格repair保持。原COS16组¥10/phase¥30/shared¥150、availableAllocation准入和partial恢复公式不变；C10/C11/C12原¥3声明及费用保持，旧C12不重开。
 
 独立清单 `cos20-transfer-validation-13-reuse.json` 只读复用C5两passed阶段七capture，零planner/design/art SDK，新作者为空，不预置C12任何版本源码。新增COS86 `TRANSFER_CASE_TWELVE_SOURCE_READY`、COS87 `PARALLEL_GIT_IDENTITY_SOURCE_READY` 和各自reviewed/merge祖先，保留原source/compiled、当前输入/候选、owner、请求和工具守卫。详见 [COS88计划](../../docs/plans/2026-10-15-cos88-transfer-case13.md)；SOURCE或编译证据不能当作实际C13、完整经典或human通过。
+
+## COS-91 · 补充分配后的固定迁移 C14（源码准备）
+
+`validation-case-fourteen-run.ts` 只绑定 `cos20-transfer-validation-14`，固定1/1/1/1900000/599997µ，合计¥2.50，45min/80requests/一次合格coding repair。要求原21stopped/13delegations/105closed/19audits及47笔C13 admitted/settled coding-author费用和closure19；原C13已消费，不重跑或预载其源码。C5两passed阶段七capture只读复用，新coding author为空，零planner/design/art SDK。
+
+Root先从真实ledger4停止历史推导D14，使用`fixedTransferValidationInput(D14).createTransferValidationIdentityReader`核固定requirements/template，再独立审查并显式应用COS90的一次1600314µ补充。推导不调用可负担检查、不构造假quote；补充后的ledger5再次推导须得到同一D14。原parent10000000µ/首授权保持，有效组容量11600314µ；shared¥150/phase¥30/正式生成¥200及12h保持。入口不自动补充、重试或选择其他预算。
+
+随后免费预检为`node --experimental-strip-types probes/transfer/validation-case-fourteen-run.ts --validation-preflight <reviewed-main-sha>`；Root获准后的真实执行使用同入口`--validation-case <reviewed-main-sha> <operator-validation-source>`。正常准入要求真实ledger5/case-quote3、准确supplement target/vector与实际receipt字节、独立`cos20-transfer-validation-14-reuse.json`、COS88/COS89/COS90 marker和reviewed/merge双祖先。旧入口仍要求ledger4，旧声明/quote2历史保持；partial按本案quote preallocated加新grants核验。详见[COS91计划](../../docs/plans/2026-10-15-cos91-transfer-case14.md)，源码/TEMP证据不代表实际C14或游戏/human通过。
