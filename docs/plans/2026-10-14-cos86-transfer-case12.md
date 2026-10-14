@@ -1,6 +1,6 @@
 # COS86 固定迁移 C12 Implementation Plan
 
-> **For agentic workers:** 使用 superpowers:executing-plans / test-driven-development 逐项实施。作者 `cos86_implementer` 接续尚未开工的 COS86；独立 reviewer 由 Root 另行指派；唯一 merger `batch85_86_merger`。独立 PLAN_APPROVED 后才修改生产代码。
+> **For agentic workers:** 使用 superpowers:executing-plans / test-driven-development 逐项实施。作者 `cos86_implementer` 接续 COS86；独立 reviewer `cos86_reviewer`；唯一 merger `batch85_86_merger`。独立 PLAN_APPROVED 后才修改生产代码。
 
 **Goal:** 准备固定 `cos20-transfer-validation-12`，在 COS85 最终源码批准后验证摘要截断恢复后的完整交接链。
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript、Node 原生测试、现有 RunController 与 SOURCE/TEMP 合成夹具；无付费调用。
 
-**基线：** main `ecd8d8e0c3f28e6d8f4cd34ea6219342900b9328`；分支 `codex/cos86-transfer-case12`；managed worktree `E:/CodexData/.codex/worktrees/cos74-frozen-template/Cosmos`。Issue [#87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246；父 #1，依赖 COS84 #85、COS85 #86。Root 已报告 COS85 `b5e879472b9c1a585a9bde6cb9f1823c044c26fa` 由 `cos85_reviewer` 最终 APPROVED、无 finding；merge/pushed main 尚待 Root 提供核实 SHA，生产测试前并入该最终主线。
+**基线：** 初始 main `ecd8d8e0c3f28e6d8f4cd34ea6219342900b9328`；分支 `codex/cos86-transfer-case12`；managed worktree `E:/CodexData/.codex/worktrees/cos74-frozen-template/Cosmos`。Issue [#87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246；父 #1，依赖 COS84 #85、COS85 #86。COS85 `b5e879472b9c1a585a9bde6cb9f1823c044c26fa` 由 `cos85_reviewer` 最终 APPROVED、无 finding；测试前实际并入的已推主线及后续文档同步见实现证据。
 
 ## 固定契约
 
@@ -32,12 +32,12 @@
 
 ## 实施步骤与免费验收
 
-- [ ] 将本计划和任务卡 exact SHA 交独立计划审查；取得 PLAN_APPROVED，生产测试前并入 Root 指定 COS85 最终主线。
-- [ ] RED：新增 C12 unit，验证两组 C11 成本均得固定 3m、available 随真实成本变化；拒绝 41 笔数量/role/purpose/window/admission/settled/evidence/repair/closure/grant 漂移、unknown/reserved、容量不足和旧 quote。记录缺 API 的真实失败。
-- [ ] GREEN：只实施固定 helper、six/seven 字面量和六个 wrapper；原 ten/eleven unit 同跑，确认 31/40 笔语义及所有历史前缀保持。
-- [ ] SOURCE：一次 C12 准入与当前 host/factory/Pi fake，检查 19 案/95 closures/17 audits 完整前缀、空作者、C5 七 capture、当前 plan/quote、COS84/85 marker 与 reviewed/merge 双祖先。关闭 owner 后同窗口/截止时间/requirement 冷恢复，partial 公式及伪造 quote 拒绝。
-- [ ] compiled：核 C12 JS 入口、JS worker 路径、import 闭包；source receipt 与 compiled bytes 漂移须在派发前拒绝。synthetic worker transport 明确标注，不能声称实际 worker spawn/build。
-- [ ] 执行 affected strict、typecheck/build、UTF-8/中文回读和完整 base diff check；保存原始 TAP、失败与修正、恢复证据及限制，提交实现 exact SHA 供独立规格→质量审查。
+- [x] 将本计划和任务卡 exact SHA 交独立计划审查；取得 PLAN_APPROVED，生产测试前并入 Root 指定 COS85 最终主线。
+- [x] RED：新增 C12 unit，验证两组 C11 成本均得固定 3m、available 随真实成本变化；拒绝 41 笔数量/role/purpose/window/admission/settled/evidence/repair/closure/grant 漂移、unknown/reserved、容量不足和旧 quote。记录缺 API 的真实失败。
+- [x] GREEN：只实施固定 helper、six/seven 字面量和六个 wrapper；原 ten/eleven unit 同跑，确认 31/40 笔语义及所有历史前缀保持。
+- [x] SOURCE：一次 C12 准入与当前 host/factory/Pi fake，检查 19 案/95 closures/17 audits 完整前缀、空作者、C5 七 capture、当前 plan/quote、COS84/85 marker 与 reviewed/merge 双祖先。关闭 owner 后同窗口/截止时间/requirement 冷恢复，partial 公式及伪造 quote 拒绝。
+- [x] compiled：核 C12 JS 入口、JS worker 路径、import 闭包；source receipt 与 compiled bytes 漂移须在派发前拒绝。synthetic worker transport 明确标注，不能声称实际 worker spawn/build。
+- [x] 执行 affected strict、typecheck/build、UTF-8/中文回读和完整 base diff check；保存原始 TAP、失败与修正、恢复证据及限制，提交实现 exact SHA 供独立规格→质量审查。
 
 命令（runtime 单独串行使用共享 SOURCE）：
 
@@ -53,4 +53,25 @@ git diff --check ecd8d8e0c3f28e6d8f4cd34ea6219342900b9328...HEAD
 
 GREEN 预期上述命令退出 0；记录实际 count/skip，不用 SOURCE 证明正式游戏通过。复用未改 C10/C11 partial、旧 repair/v2 和 COS85 最终矩阵，不重复长 seed、作者生成或相同验证。真实免费预检、付费启动及真实账本只能由 Root 执行；不接触 launcher/session/key，不 push/merge main。
 
-状态：计划待独审 / SOURCE_NOT_READY。目标 `TRANSFER_CASE_TWELVE_SOURCE_READY` 只在最终 exact 实现批准后由 merger 登记；实际 C12、完整经典与 human 均未通过。
+状态：计划 `fc2a06e8b4668145133b393533d91d2dc8987d96` 已由 `cos86_reviewer` 独立 PLAN_APPROVED，无 finding；实现完成待 exact 源码独审 / SOURCE_NOT_READY。目标 `TRANSFER_CASE_TWELVE_SOURCE_READY` 只在最终 exact 实现批准后由 merger 登记；实际 C12、完整经典与 human 均未通过。
+
+## 实现证据
+
+测试前并入已推主线 `5b2f16387ea0cfee79eaecba632cd06924c60ee8`，本分支 merge `929229182f66df8a93d8f3ea65db9b6ae1f56a60`，继承 COS85 approved `b5e879472b9c1a585a9bde6cb9f1823c044c26fa`、merge `f63399fa77bd725e379eb8d119b7160a04180f32`；执行闭包包含当前 `pi.ts`。测试期间生产/测试文件保持稳定；runtime finally 完成后并入仅六文档状态同步 `d1064fdcb7532d1c565b8048b0a2922338dcb7d4`，本分支 merge `ecb69f57f7c31ede9ce55f1d375befa2aa9203ff`，前者作为最终 review base。
+
+下列原始输出均位于 `C:/Users/26557/AppData/Local/Temp/`，命令为上文；RED仅运行新 C12 unit。SOURCE/compiled 都是免费合成证据。
+
+| 检查 | 实际结果 | 原始文件 |
+| --- | --- | --- |
+| C12 unit RED | 0/6，全部缺 C12 API；退出1，TAP4826.6853ms | `cos86-unit-red.tap` |
+| C10/C11/C12 unit GREEN | 18/18、0skip；退出0，TAP6740.9991ms | `cos86-unit-green.tap` |
+| compiled C12 闭包/JS worker/字节漂移 | 1/1、0skip；退出0，test18801.5634ms / TAP24755.4615ms | `cos86-compiled.tap` |
+| SOURCE 历史/准入/host/Pi/冷恢复 | 1/1、0skip；退出0，test475976.2448ms / TAP480667.6478ms | `cos86-runtime.tap` |
+| typecheck / build / affected strict | 均退出0；strict 无诊断 | `cos86-typecheck.log` / `cos86-build.log` / `cos86-strict.log` |
+| docs-only 差异、审批祖先与 SOURCE 恢复 | 退出0；六文档，COS84/85 marker/双祖先保持，旧 snapshot/目录/owner 已恢复 | `cos86-final-metadata.log` |
+
+运行归档：`C:/Users/26557/AppData/Local/Temp/cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C12-proof-75afa07b-c73d-4916-b84b-4de8e5372fa0`。history-1/2 经原 API 新身份生成各 41 笔 C11 synthetic admitted/settled author 请求，费用分别 1336555/1100000µ，均 19 stopped / 11 delegations / 95 closed / 17 audits；available 差 236555µ，新向量均 3m，旧 quote 拒绝。result 保留 41 笔前案与全部历史前缀，另有本次 C12 单笔 fake provider 请求；不是实际游戏记录。
+
+实际当前 host/factory/Pi 对 405672-byte 合成输入保留 65536 输出 cap，预留 1335632µ；只有 coding SDK，空作者、C5 两 passed 阶段七 capture、当前 plan/quote 与同窗口/截止时间/requirement 冷恢复通过。缺 COS84/85 marker、两者各自 reviewed/merge 非祖先、未知费用、closure 来源、历史 grant/delegation、owner、manifest 和伪造 partial quote 均拒绝。finally 关闭全部 owner，恢复原 snapshot/mapping 字节及 mtime、原缺失目录状态，旧 proof/C5 字节保持。
+
+compiled 的 JS worker 路径与变更后 JS task 的派发前拒绝已验证；worker job transport 为 synthetic，不声称真实 worker spawn/game build。未执行 C12 build/browser/repair/accepted/human；复用未改 C10/C11 partial、旧 repair/v2 与 COS85 已审 30 项 compaction/source、6 项 dist 及主线定向证据，见 [COS85任务卡](../specs/cos85-optional-compaction-truncation.md)。最终文档同步只改变 COS85 关闭状态/URL（`source-integrated`→`complete` 均被原门禁接受），源码/依赖/固定输入/夹具未变，复用上述通过证据，没有重复长 SOURCE。
