@@ -18,7 +18,7 @@ C10已在用户授权的最多¥3、45分钟窗口内结束。冻结版本为 `a
 
 Root已一次完成closure16，释放未使用的 **¥1.913735**。18个案例均已停止，费用和旧历史保持；启动器、Node及锁已清理，主线冻结已解除。[COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6168008318)、[C10入口结果](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6168010789)和[COS82源码关闭](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)已由Root精确读回。COS16/COS18仍partial，实际游戏和human未通过；本次不新增付费、C11或预算。
 
-后续源码工作为[COS83：减少作者工具中的重复来源校验](https://github.com/lrfluobida/Cosmos/issues/84)。任务已原生挂父，当前83个子项；cos76负责实现，cos77独审，唯一merger保持不变。阶段一计划 `a7b420a` 仅获免费SOURCE/TEMP基线批准，先测实际工具路径，再根据结果确定最小生产方案并另行独审；静态调用次数不能作为计时实测。当前SOURCE_NOT_READY/open，不新增付费、C11或预算。
+后续源码工作为[COS83：减少作者工具中的重复来源校验](https://github.com/lrfluobida/Cosmos/issues/84)。任务已原生挂父，当前83个子项；cos76负责实现，cos77独审，唯一merger保持不变。基线、生产方案及最终源码均已独审通过；版本 `c8afd76` 已合入 `32af0aa`，当前AUTHOR_TOOL_SCOPE_SOURCE_READY/source-integrated/open，待Root公开关闭。生产只删除一处直接重复scope调用，每次origin.verify仍执行完整校验。普通prepared fixture两次工具调用均从160次降到83次，48.125%仅为该夹具的校验次数降幅，不代表C10实际速度或费用变化。主线typecheck/build和真实guard超时代表通过，旧边界证据复用；[任务卡](cos83-tool-scope.md)保留完整证据。本轮不新增付费、C11或预算。
 
 ### C9历史结果：未通过
 
