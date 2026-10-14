@@ -21,7 +21,7 @@ function requireThat(condition: unknown, message: string): asserts condition {
 /** Pure derivation from authenticated settled history; never a reservation or execution authority. */
 export function deriveTransferValidationCaseSevenDeclaration(state: RunSnapshot): ValidationDeclaration {
   const declarations = TRANSFER_CASE_SEVEN_HISTORY, members = declarations.map(d => d.caseId);
-  requireThat(state.ledger.contractVersion === '4.0.0' && state.validation, 'original ledger4 history is required.');
+  requireThat(['4.0.0', '5.0.0'].includes(state.ledger.contractVersion) && state.validation, 'authenticated ledger4/5 history is required.');
   requireThat(!state.ledger.entries.some(e => e.unknown || e.reservedMicroCny || !['settled', 'cancelled'].includes(e.status)), 'unknown or reserved costs require actual reconciliation.');
   requireThat(new Set(state.ledger.entries.map(e => e.requestId)).size === state.ledger.entries.length
     && new Set(state.requests.map(r => r.requestId)).size === state.requests.length, 'duplicate request or cost.');

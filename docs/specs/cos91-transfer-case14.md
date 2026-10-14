@@ -1,10 +1,12 @@
 # COS-91 补充分配后的固定迁移 C14
 
-状态：plan awaiting independent review；未开始生产实现，actual C14 / paid / supplement apply / human 均 NONE。Issue [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，Root 已报告原生挂父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，登记时91个子任务。依赖 COS88 #89、COS89 #90、COS90 #91。
+状态：PLAN_APPROVED / 作者免费实现候选待独审；actual C14 / paid / 真实supplement apply / human 均 NONE。Issue [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，Root 已报告原生挂父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，登记时91个子任务。依赖 COS88 #89、COS89 #90、COS90 #91。
 
 专职作者 `cos91_implementer`；Root 指派独立 reviewer 和唯一 merger。分支 `codex/cos91-transfer-case14`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`；[实施计划](../plans/2026-10-15-cos91-transfer-case14.md)。本卡和计划先独立审查，COS90 生产接口独审稳定且 Root 指定集成基线后才实施。作者不更新共享 tracking、不写 GitHub、不读写真实账本或会话。
 
 计划首版 `2fd886bc1394c40606de0b7f3907ef9653bb1584` 独审 P1 指出递归历史推导中的 C7 ledger4-only guard 会阻断补充后的 C14；本次只修订 plan/card，待独立复审，不开始生产实现。
+
+修订计划 `dfe83f13c425a8952e1987adb7043eae37170a3b` 已由`cos91_reviewer`独立PLAN_APPROVED，无finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6177975415)由Root交接。COS90最终源码`ca350ea612c924150e9f4501932a5799e4fcfbc4`、merge`7b676094fc16ddb3012804fdc3c78502f34fd0ab`已独审集成；作者已同步Root指定最终main`d44c5689e429836f0b3a7cd4eb281f014b977f50`，开始免费实施。唯一merger为`batch_cos90_91_merger`；上文未实施状态保留首版时点。
 
 ## 前提与目标
 
@@ -31,8 +33,22 @@ Root已转交稳定接口说明：`RunController.prepareValidationGroupSupplemen
 
 从同一未改history前缀分别经原API追加47个C13合成请求和closure19，再经已审COS90原prepare/apply生成真实ledger5测试补充与receipt。标准C13费用1641136µ，第二视图改变C13合成费用；D14必须相等，容量行为按最终COS90契约。保留原parent、费用与历史前缀，使用真实SOURCE finance验证正常quote3准入；纯算术fixture或compiled简化窗口不作资金授权证明。
 
+最终COS90要求原available+1600314µ恰为2500000µ；标准费用视图apply成功，较低C13费用1100000µ的第二视图应在prepare时拒绝固定supplement，保存零写入证据。共用最终报告只为显式C14使用已认证组limit11600314µ，旧入口保留10m检查。另仅调整旧C13一条错误文字正则以接受COS90新`authenticated`文字，容量拒绝断言不变。
+
 SOURCE覆盖未补充与各种source/quote/vector/marker/ancestor/owner漂移拒绝，成功路径用真实host/factory/Pi配fake transport验证空作者、历史复用、当前绑定和同窗口partial冷恢复。compiled只验证JS闭包、JS worker及源码漂移拒绝。finally恢复原snapshot/mapping/已有fixture字节与mtime、原缺失目录和owner状态，核C5与旧proof保持。原始命令/TAP、实际计数、时间、恢复证据与局限写入计划，不能把合成历史称为实际C13/C14费用。
 
 不重跑旧长seed或已通过且无实质变化的矩阵。源码作者不执行付费、新真实窗口或operator操作脚本，不访问真实ledger/session/key或只读参考安装；不修改生成游戏。Root负责后续独立审查真实supplement quote、显式apply、免费预检、一次性脚本和一次有界C14；没有自动top-up、retry或旧案例重跑。
 
 实际C14另记时间、费用、自检、作者文件、handoff/capture、正式build/browser/review/repair/accepted及清理。源码或synthetic通过不等于实际游戏通过；COS16/COS18、完整经典和human仍未完成。
+
+## 作者免费实现证据与已知限制
+
+六项有效RED后，C14 unit6/6、compiled1/1、最终SOURCE补充代表1/1，均0skip；typecheck/build/affected strict退出0。旧C7/C13首次短代表9pass/1fail仅因COS90新错误文字，正则最小适配后受影响项1/1通过，另九项复用。COS90源码、旧声明返回固定契约和quote2历史保持；实际文件范围、命令、raw与归档见[计划](../plans/2026-10-15-cos91-transfer-case14.md)。
+
+首次SOURCE所有正文断言完成：原API新增两组各47笔C13合成请求和closure19、标准COS90 ledger5 supplement、真实host/factory/Pi fake、空作者/C5历史、同窗口冷恢复与旧历史前缀。**首次整体0pass/1fail**，finally多余mtime重设造成C8受保护marker0.0002ms舍入差异；该循环已删除，已知marker精确ticks恢复，首次其余纳秒时间无保存，不能声称所有首次mtime逐bit不变。来源、费用与文件字节保持。
+
+补充负例执行时173个捕获生产文件逐字节保持，tests不在闭包；该SOURCE SHA为`3b75fe6e7d87f4db8f92e73631e9c9eeff7ca0b2a1d87fe681d0c7350f5efb2a`。只复用原API认证历史补验真实D14补充前identity、前后deepEqual、旧entry ledger5拒绝、supplement实际source/target/vector、stale quote、派发前worker0、超过旧10m报告，最终1/1及finally恢复通过；未重复47笔seed或完整host正例。snapshot/mapping按既有<1ms时间容差检查，未改proof字节/mtime严格检查。
+
+提交前将两个新文件中共4个CRLF规范为仓库要求的LF，保存原字节并确认只有这两路径换行改变，其余171个捕获文件保持；最终SOURCE SHA为`5ed07064e2476d7fc241926b82aa5d85227c938a77edd1c48a1906d1a5b6258a`。最终短source capture/compiled各1/1，前后src/probes全部180个发射JS逐字节相同，详见计划的raw及`cos91-line-ending-emit.json`。按该仅EOL/JS等价证据复用长SOURCE，不能称最终173个TS字节与初次完全相同。
+
+两个费用视图D14相同；标准费用1641136µ的supplement成功，1100000µ视图固定supplement拒绝。最终report财务代表committed10100314µ、limit11600314µ，无错误的旧10m超限gap；report本身failed且没有游戏SDK/验收。compiled简化窗口只证明JS source/worker，所有真实运行和human仍NONE。本卡等待`cos91_reviewer`实际diff规格→质量批准和唯一`batch_cos90_91_merger`集成；未标SOURCE_READY。

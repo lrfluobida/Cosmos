@@ -8,9 +8,11 @@
 
 **Tech Stack:** TypeScript、Node 原生测试、RunController、SnapshotStore、既有 SOURCE/TEMP 存档、真实 host/factory/Pi 配合 fake provider transport；零付费、零网络。
 
-**状态与基线：** plan awaiting independent review / production implementation not started。Issue [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，Root 已报告原生挂父，登记时 91 个子任务。依赖 COS88 #89、COS89 #90、COS90 #91；[任务卡](../specs/cos91-transfer-case14.md)。分支 `codex/cos91-transfer-case14`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`。本次计划提交仅创建这两份文档，不更新共享 tracking。
+**状态与基线：** PLAN_APPROVED / author candidate awaiting independent source review。Issue [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，Root 已报告原生挂父，登记时 91 个子任务。依赖 COS88 #89、COS89 #90、COS90 #91；[任务卡](../specs/cos91-transfer-case14.md)。分支 `codex/cos91-transfer-case14`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`。本次计划提交仅创建这两份文档，不更新共享 tracking。
 
 计划首版 `2fd886bc1394c40606de0b7f3907ef9653bb1584` 独审提出 P1：递归旧历史推导最终进入 C7 的 ledger4-only guard，补充后的 genuine ledger5 无法推导。以下修订仅增加最小纯历史推导兼容方案和验证要求，等待独立复审；生产仍未开始。
+
+修订计划 `dfe83f13c425a8952e1987adb7043eae37170a3b` 已经 `cos91_reviewer` 独立 PLAN_APPROVED，无finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6177975415)由Root交接。COS90最终已审源码 `ca350ea612c924150e9f4501932a5799e4fcfbc4`、merge `7b676094fc16ddb3012804fdc3c78502f34fd0ab`、marker已在Root指定最终main `d44c5689e429836f0b3a7cd4eb281f014b977f50`；[公开源码关闭](https://github.com/lrfluobida/Cosmos/issues/91#issuecomment-6178073975)由Root核实。作者分支通过merge `c60d9da083d00c3e65807b481f2d01acb7d3253a` 同步最终main后开始实施。唯一merger为 `batch_cos90_91_merger`。
 
 ## 固定契约
 
@@ -63,7 +65,7 @@ return declaration; // No affordability check here; normal quote3 admission foll
 | `probes/transfer/validation-case-fourteen-entry.ts`（新） | C14 manifest/admission/accounting wrappers，21 cases/19 audits；要求 ledger5、COS90 supplement 实际来源与目标/向量绑定。 |
 | `probes/transfer/validation-case-fourteen-{driver,task,source,run}.ts`（四个新文件） | 沿原工厂连接真实运行、同窗口恢复、固定 source/compiled 闭包；run 沿原历史 source pins。 |
 | `probes/transfer/validation-case-seven-declaration.ts` | 只扩纯历史推导的 ledger4/5 version guard 及对应错误说明；保留原角色向量、费用检查与返回固定契约。C14 ledger5 调用前验证完整 snapshot。 |
-| `probes/transfer/validation-case-six-entry.ts` | 最小扩 C14 manifest、closure19 literal，以及固定配置显式选择 ledger5，缺省仍 ledger4。旧 C1–C13 历史 quote2 校验保持；resume 按当前 quote3 和原公式核 grant net。 |
+| `probes/transfer/validation-case-six-entry.ts` | 最小扩 C14 manifest、closure19 literal，以及固定配置显式选择 ledger5，缺省仍 ledger4。旧 C1–C13 历史 quote2 校验保持；resume 按当前 quote3 和原公式核 grant net。最终报告只为显式C14使用已认证`group.limitMicroCny`，旧入口仍10m。 |
 | `probes/transfer/validation-case-seven-entry.ts` | 扩 21 cases/19 audits、C14 admission format/config 类型；在已有 requireAccounting/identity 链接入 COS90 已审 `verifyValidationBudgetSources(root, state)` 实际补充 source 守卫。 |
 | `probes/transfer/validation-case-seven-source.ts` | 只扩 fourteen seed；闭包自然包含已审 COS89、COS90 执行依赖。 |
 | `tests/transfer/validation-case-fourteen{,-runtime,-compiled}.test.ts`、`validation-case-fourteen.fixture.ts`（四个新文件） | 纯声明算术、认证 SOURCE finance、真实 host/factory/Pi fake、partial 冷恢复、compiled worker 与防漂移。 |
@@ -85,7 +87,7 @@ COS90 exact SHAs 待 Root 最终交接，禁止临时填实现分支 head 当批
 
 采用已评估存档 `C:/Users/26557/AppData/Local/Temp/cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C13-proof-6daadf13-4334-44c6-b00b-006f3116c153`。history-1/2 都为 ledger4/snapshot3/revision928、20 stopped / 12 delegations / 100 closures / 18 audits，含 52 笔 C12 admitted rows、无 C13，unknown/reserved 为 0；C12 合成费用分别 1664926µ / 1100000µ。result 只有一笔 C13 mock、没有 closure19，**不得作为 C14 的资金基线**。
 
-从未改的 history-1 前缀用原 prepare/claim、RunController reserve/admit/settle/stop/closure API 追加 47 笔 C13 合成请求和 closure19，得到 21/13/105/19。标准 C13 费用为 1641136µ；第二个独立视图从同一未改前缀出发改变 C13 合成费用，重新走实际 API closure 和 COS90 prepare/apply。两视图固定 D14 相等，费用/容量差异遵循 COS90 最终契约；不伪造 ledger5 字段或 receipt，不能将算术 fixture 称作认证财务证据。
+从未改的 history-1 前缀用原 prepare/claim、RunController reserve/admit/settle/stop/closure API 追加 47 笔 C13 合成请求和 closure19，得到 21/13/105/19。标准 C13 费用为 1641136µ；第二个独立视图从同一未改前缀出发改变 C13 合成费用，重新走实际 API closure 和 COS90 prepare。最终COS90要求`available +1600314 ==2500000`，所以较低费用1100000µ的视图应拒绝固定supplement，并记录零写入负例，不声称第二个apply成功。两视图固定 D14 相等；不伪造 ledger5 字段或 receipt，不能将算术 fixture 称作认证财务证据。
 
 用最终已审 COS90 原 API 在 TEMP 应用精确一次 supplement，检查父 allocation 与历史前缀不变、effective group capacity 和 shared allocated 恰增加 1600314µ，再进行真实 C14 preflight/claim。finance 证明来自此认证 SOURCE；compiled 简化窗口只证明 JavaScript source/worker 选择与防漂移，不能充当 ledger5 资金授权证明。
 
@@ -139,3 +141,43 @@ git diff --check
 唯一 merger 核批准 exact SHAs、组合已审 COS90/COS91、执行受影响集成验证并记录结果后，Root 更新 shared tracking 与 own SOURCE_READY。Root 才负责真实 supplement quote 的独审/显式 apply、免费预检、独立审查的一次性操作脚本及一次 C14 有界运行；没有自动加钱、重试、续跑 C13 或开启第二个 C14。
 
 本任务作者只做免费 source/TEMP；实际付费、窗口、supplement apply、游戏生成、正式 build/browser/review/repair/accepted 与 human 均尚未发生。实际运行另记时间、费用、作者文件、自检、handoff/capture、正式验收与清理。SOURCE_READY 或 synthetic 成功不能表示 Cosmos 已生成目标游戏，COS16/COS18、完整经典与 human 仍未完成。
+
+## 作者实施与原始免费证据
+
+实施基线为Root指定main `d44c5689e429836f0b3a7cd4eb281f014b977f50`，分支merge `c60d9da083d00c3e65807b481f2d01acb7d3253a`。实际范围为六个C14文件、四个共用生产文件（C7 declaration、six-entry、seven-entry、seven-source）、四个新测试文件、旧C13一个错误文字正则、README和两份自有文档；未修改COS90实现、旧C13声明或共享tracking。专职作者交候选后等待 `cos91_reviewer` 审实际diff，唯一merger为 `batch_cos90_91_merger`；本节不表示独审或SOURCE_READY。
+
+raw均位于 `C:/Users/26557/AppData/Local/Temp/`。前述完整runtime命令首次运行后，按实际生产字节不变依据复用已经完成的host正例，再用下面命令只补缺少的负例和恢复，不重复host正例或47笔历史seed：
+
+```powershell
+$env:COS91_SOURCE_REUSE = Join-Path $env:TEMP 'cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C14-proof-b41ce6d7-934b-4a30-8099-7e91a460c73d'
+node --experimental-strip-types --test --test-name-pattern='C14 supplement finance negatives' tests/transfer/validation-case-fourteen-runtime.test.ts
+Remove-Item Env:COS91_SOURCE_REUSE
+```
+
+该环境变量只选择TEMP认证测试历史，不是生产入口参数。fixture只接受同TEMP repository内`SOURCE-C14-proof-*`，重读原API history-1/2、完整validateSnapshot、原前缀、47行费用、ledger4/closure19；恢复原C13 operator/closure实际source bytes，再用COS90原API准备和应用新的标准supplement。第二费用视图prepare拒绝固定supplement；没有复制ledger5授权字段或声称第二次成功。
+
+| 检查 | 实际结果 | raw |
+| --- | --- | --- |
+| 有效RED | 0pass/6fail/0skip，均缺C14 API的assertion；外层读取日志未单独保存Node退出码 | `cos91-red.tap` |
+| 首次GREEN调整 | 2pass/4fail；新entry遗漏async及测试沿用了C13资金断言，修正后通过；不计额外有效RED | `cos91-unit-first.tap` |
+| C14 unit | 6/6，0skip，5451.9898ms，Node通过 | `cos91-unit.log` |
+| 旧C7/C13短代表 | 首次9pass/1fail：COS90错误文字变更；保留容量拒绝，正则允许original或authenticated，受影响一项重跑1/1，其余九项复用 | `cos91-old-regression.log`、`cos91-c13-regex-green.log` |
+| 首次SOURCE host/Pi/partial | 所有正文断言完成，含两个47笔原API费用视图、closure19、genuine supplement、C5复用、空作者、当前task/factory/Pi、同窗口冷恢复和历史前缀；**整体0pass/1fail**，finally的mtime断言失败，328790.3653ms | `cos91-runtime.tap` |
+| SOURCE补充负例与恢复 | 最终1/1，0skip，27459.3135ms；含真实identity引导、旧entry ledger5拒绝、supplement实际字节/target/vector、stale quote、worker0调用、超过旧10m报告及finally恢复 | `cos91-runtime-extra-final.tap` |
+| compiled | 1/1，0skip，17735.2667ms；仅JS闭包/worker/source拒绝，不作ledger5授权证明 | `cos91-compiled.log` |
+| 最终LF source / compiled | source capture1/1，4341.0906ms；compiled1/1，14714.5613ms，均0skip/exit0 | `cos91-source-final.log`、`cos91-compiled-final.log` |
+| typecheck / build / 最终affected strict | 均exit0；typecheck通过原工具输出保留，未另存raw；build及strict无诊断 | `cos91-build.log`、`cos91-strict-final.log` |
+
+首次strict补充断言发现identity reader返回plain identity，修正测试访问；fixture cache的nullable类型一并补齐，raw `cos91-strict-extra.log`。最终worker0断言回调的`Promise<void>`不符合真实runner类型；增加未触发分支的显式throw后strict通过，未改变生产字节或已观察到的worker0路径。最终strict raw已覆盖两项修正。
+
+首次SOURCE归档为 `C:/Users/26557/AppData/Local/Temp/cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C14-proof-b41ce6d7-934b-4a30-8099-7e91a460c73d`：history-1/2为原API认证21/13/105/19，C13合成费用1641136µ /1100000µ；funded-1为真实COS90生成ledger5，标准group available2500000µ、limit11600314µ，共享allocated只增加1600314µ。result保存当前C14一个Pi fake请求后的状态，fake cap65536、预留1335632µ、零planner/design/art SDK，没有正式game build/browser/repair。
+
+首次finally已恢复snapshot/mapping字节、归档新目录与文件，却多余地对所有原ledger文件重新设置mtime，浮点换算使第一个受保护C8 marker的mtime产生0.0002ms差异。删除了该多余utimes循环；已用精确.NET ticks将该已知marker恢复为`1791905356945.7615`ms。首次其余原文件未保存纳秒时间原值，不能声称那次所有mtime逐bit一致；费用、来源文件字节和历史没有变。后续验证仅恢复实际改动的snapshot/mapping时间，按既有<1ms平台容差检查，未改proof字节/mtime严格保持。该首次整体失败仍按失败报告，不改写为通过。
+
+最终补充负例归档为 `C:/Users/26557/AppData/Local/Temp/cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C14-proof-6a66b182-230b-475c-b1df-3dc17f393aa6`，finally所有断言通过，原snapshot/mapping、C9–C14原缺失目录、owner/locks恢复。`report-above-old-capacity.json`记录当前合成费用1000000µ后group committed10100314µ、limit11600314µ，未出现`Applicable fee limits were exceeded.`；报告本身failed，因为是财务代表，不能作游戏通过证据。中间补充版本也1/1通过，raw `cos91-runtime-extra.tap`，最终增加bootstrap派发前实际source拒绝后又执行一次短代表。
+
+原SOURCE admission捕获173个生产文件、0个tests文件；第一次host正文之后到补充负例结束只改测试/文档，逐文件SHA256核对全部相等，记录 `cos91-source-byte-reuse.json`，当时execution source SHA为`3b75fe6e7d87f4db8f92e73631e9c9eeff7ca0b2a1d87fe681d0c7350f5efb2a`。
+
+提交前发现仓库`.gitattributes`要求LF，而两个新文件中插入的4行仍为CRLF，Git index会规范换行。为使工作副本与候选提交一致，保存改前原字节到`cos91-source-before-lf/`，只将`validation-case-fourteen-declaration.ts`的一行、`validation-case-fourteen-entry.ts`的三行CRLF改为LF；其余171个捕获生产文件逐字节保持。`cos91-final-source-reuse.json`记录精确两路径、仅换行差异及最终execution source SHA `5ed07064e2476d7fc241926b82aa5d85227c938a77edd1c48a1906d1a5b6258a`。最终短source capture与compiled已重验；改前`cos91-compiled-Bn25Li`与改后`cos91-compiled-lyvlQE`中src/probes全部180个发射JS逐字节相同，依据`cos91-line-ending-emit.json`。
+
+因此按明确仅EOL变化与JS等价证据复用之前完成的host正文/补充负例，不声称173个最终TS字节与第一次SOURCE完全相同，也不声称最终测试文件上的完整host又跑了一次。compiled transport synthetic，不能代替认证SOURCE finance或实际游戏验收。
