@@ -3,6 +3,7 @@ import test from 'node:test';
 import { budgetCapacity, validateLedger, validateLedgerUpdate } from '../../src/contracts/index.ts';
 import { reserveEntry } from '../../src/budget/ledger.ts';
 import { vector } from '../runtime/validation-group.fixture.ts';
+import { COS16_SUPPLEMENT_CASE, COS16_SUPPLEMENT_GRANTS, COS16_SUPPLEMENT_MICRO_CNY } from '../../src/contracts/budget.ts';
 
 function ledger(): any {
   const caseId = 'cos20-group-ledger', taskIds = Object.keys(vector).map(role => `${caseId}-${role}`);
@@ -25,5 +26,21 @@ test('ledger4 rejects invented parents, duplicated membership, overdelegation an
     (v: any) => { v.allocationDelegations[0].taskIds.pop(); }, (v: any) => { v.allocationDelegations.push({ ...v.allocationDelegations[0] }); },
     (v: any) => { v.allocations.at(-1).amountMicroCny++; }, (v: any) => { v.authorizations = []; }]) {
     const value = ledger(); alter(value); assert.ok(validateLedger(value).length);
+  }
+});
+
+test('ledger5 adds one supplement to shared allocated capacity without changing any hard limit', () => {
+  const original = ledger(), next = structuredClone(original); next.contractVersion = '5.0.0';
+  next.allocationSupplements = [{ parentTaskId: 'COS-16', authorizationDecisionId: 'operator', decisionId: 'supplement', basisRevision: 5,
+    targetCaseId: COS16_SUPPLEMENT_CASE, additionalMicroCny: COS16_SUPPLEMENT_MICRO_CNY, grants: structuredClone(COS16_SUPPLEMENT_GRANTS) }];
+  assert.deepEqual(validateLedger(next), []);
+  assert.deepEqual(budgetCapacity(next), { effectiveLimitMicroCny: 150_000_000, allocatedMicroCny: 86_196_354 });
+  assert.ok(validateLedgerUpdate(original, next, { role: 'system', actorId: 'fixture' }).length);
+  assert.deepEqual(validateLedgerUpdate(original, next, { role: 'system', actorId: 'fixture' }, { validationSupplementUpgrade: true }), []);
+  assert.ok(validateLedgerUpdate(original, next, { role: 'author', actorId: 'fixture' }, { validationSupplementUpgrade: true }).length);
+  for (const alter of [(v: any) => { v.contractVersion = '4.0.0'; }, (v: any) => { v.allocationSupplements.push(v.allocationSupplements[0]); },
+    (v: any) => { v.allocationSupplements[0].additionalMicroCny++; }, (v: any) => { v.allocationSupplements[0].grants.coding.amountMicroCny--; },
+    (v: any) => { v.allocationSupplements[0].authorizationDecisionId = 'forged'; }]) {
+    const bad = structuredClone(next); alter(bad); assert.ok(validateLedger(bad).length);
   }
 });

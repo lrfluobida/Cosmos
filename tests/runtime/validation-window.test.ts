@@ -167,7 +167,7 @@ test('declaration versions retain v1 forty and allow only v2 up to eighty reques
   for (const maxRequests of [41, 80]) assert.throws(() => validateValidationDeclaration(changed('validation-declaration-1', maxRequests)), /limits|authorization/i);
   assert.doesNotThrow(() => validateValidationDeclaration(changed('validation-declaration-2', 80)));
   assert.throws(() => validateValidationDeclaration(changed('validation-declaration-2', 81)), /limits|authorization/i);
-  assert.throws(() => validateValidationDeclaration(changed('validation-declaration-3', 40)), /unsupported/i);
+  assert.throws(() => validateValidationDeclaration(changed('validation-declaration-4', 40)), /unsupported/i);
   for (const limits of [{ incrementalMicroCny: 5_000_001 }, { cumulativeMicroCny: 30_000_001 }, { lifetimeMicroCny: 150_000_001 },
     { durationMs: 2_700_001 }, { maxRepairTasks: 2 }]) {
     const value = changed('validation-declaration-2', 80); Object.assign(value.limits, limits);
