@@ -62,8 +62,8 @@ export function createFixedTransferValidationCaseSixEntry(sourcePins: Historical
   return createFixedTransferCodingOnlyEntry(sourcePins);
 }
 export interface FixedCodingOnlyEntryConfiguration {
-  declaration: ValidationDeclaration; manifestLocation: 'cos20-transfer-validation-7-reuse.json' | 'cos20-transfer-validation-8-reuse.json' | 'cos20-transfer-validation-9-reuse.json' | 'cos20-transfer-validation-10-reuse.json' | 'cos20-transfer-validation-11-reuse.json' | 'cos20-transfer-validation-12-reuse.json';
-  closureAuditCount?: 13 | 14 | 15 | 16 | 17; sourceMarkers?: Readonly<Record<string, string>>;
+  declaration: ValidationDeclaration; manifestLocation: 'cos20-transfer-validation-7-reuse.json' | 'cos20-transfer-validation-8-reuse.json' | 'cos20-transfer-validation-9-reuse.json' | 'cos20-transfer-validation-10-reuse.json' | 'cos20-transfer-validation-11-reuse.json' | 'cos20-transfer-validation-12-reuse.json' | 'cos20-transfer-validation-13-reuse.json';
+  closureAuditCount?: 13 | 14 | 15 | 16 | 17 | 18; sourceMarkers?: Readonly<Record<string, string>>;
   partialGroupAllocation?: true;
   parseEntry: typeof parseTransferValidationCaseSixEntry; declarations: readonly ValidationDeclaration[];
   deriveDeclaration(state: RunSnapshot): ValidationDeclaration;

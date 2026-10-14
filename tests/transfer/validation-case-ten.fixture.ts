@@ -2,6 +2,7 @@ import { caseNineFeeData } from './validation-case-nine.fixture.ts';
 import { deriveTransferValidationCaseNineDeclaration } from '../../probes/transfer/validation-case-nine-declaration.ts';
 import { deriveTransferValidationCaseTenDeclaration } from '../../probes/transfer/validation-case-ten-declaration.ts';
 import { deriveTransferValidationCaseElevenDeclaration } from '../../probes/transfer/validation-case-eleven-declaration.ts';
+import { deriveTransferValidationCaseTwelveDeclaration } from '../../probes/transfer/validation-case-twelve-declaration.ts';
 import { VALIDATION_ROLES } from '../../src/runtime/validation-validation.ts';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -37,19 +38,20 @@ export function caseTenFeeData(c9Cost = 960_162) {
   return structuredClone(state);
 }
 
-/** Three fixed SOURCE views only; append predecessor accounting without rebuilding historical roles. */
-export async function withFixedThreeYuanTransferFixture(t: TestContext, selected: 'ten' | 'eleven' | 'twelve', operation: (f: {
+/** Four fixed SOURCE views only; append predecessor accounting without rebuilding historical roles. */
+export async function withFixedTransferSuccessorFixture(t: TestContext, selected: 'ten' | 'eleven' | 'twelve' | 'thirteen', operation: (f: {
   repository: string; ledgerRoot: string; root: string; head: string; pins: any; baseline: any; manifest: any;
   args: string[]; git(...args: string[]): Promise<string>; costs(amount: number): Promise<any>; track(input: ValidationHostInput): void;
 }) => Promise<void>) {
-  assert.ok(selected === 'ten' || selected === 'eleven' || selected === 'twelve');
-  const ten = selected === 'ten', eleven = selected === 'eleven', currentCase = ten ? 10 : eleven ? 11 : 12;
-  const beforeCases = currentCase + 6, beforeAudits = currentCase + 4, requestCount = ten ? 31 : eleven ? 40 : 41;
+  assert.ok(selected === 'ten' || selected === 'eleven' || selected === 'twelve' || selected === 'thirteen');
+  const ten = selected === 'ten', eleven = selected === 'eleven', twelve = selected === 'twelve', currentCase = ten ? 10 : eleven ? 11 : twelve ? 12 : 13;
+  const beforeCases = currentCase + 6, beforeAudits = currentCase + 4, requestCount = ten ? 31 : eleven ? 40 : twelve ? 41 : 52;
   const repository = await realpath(resolve(join(tmpdir(), 'cosmos-transfer-entry-T81i3U')));
   assert.ok(repository.startsWith(resolve(tmpdir()) + sep) && /^cosmos-transfer-entry-[a-z0-9]+$/i.test(basename(repository)));
   const saved = join(repository, ten ? '.cosmos/SOURCE-C9-proof-d40980df-e6ec-490f-902b-a592ef4c86ac/history-1.json'
     : eleven ? '.cosmos/SOURCE-C10-proof-f99d7222-2af2-48df-97c7-89c0ae61c0c2/history-1.json'
-    : '.cosmos/SOURCE-C11-proof-78dbfb2d-c819-4830-8f0c-294b8d94d49c/history-1.json');
+    : twelve ? '.cosmos/SOURCE-C11-proof-78dbfb2d-c819-4830-8f0c-294b8d94d49c/history-1.json'
+    : '.cosmos/SOURCE-C12-proof-75afa07b-c73d-4916-b84b-4de8e5372fa0/history-1.json');
   const beforeBytes = await readFile(saved), before = JSON.parse(beforeBytes.toString('utf8')); validateSnapshot(before);
   assert.equal(before.validation!.cases.length, beforeCases); assert.equal(before.ledger.allocationDelegations!.length, beforeCases - 8);
   assert.equal(before.ledger.allocationClosures!.length, beforeCases * 5); assert.equal(before.allocationClosureDecisions!.length, beforeAudits);
@@ -65,7 +67,7 @@ export async function withFixedThreeYuanTransferFixture(t: TestContext, selected
   const protectedFiles = await Promise.all(proofFiles.map(async path => ({ path, bytes: await readFile(path), info: await stat(path) })));
   const marker = JSON.parse(await readFile(join(repository, '.cosmos/SOURCE-C8-fixture.json'), 'utf8'));
   const manifest = JSON.parse(protectedFiles[3].bytes.toString('utf8')), previous = ten ? deriveTransferValidationCaseNineDeclaration(before)
-    : eleven ? deriveTransferValidationCaseTenDeclaration(before) : deriveTransferValidationCaseElevenDeclaration(before), id = randomUUID();
+    : eleven ? deriveTransferValidationCaseTenDeclaration(before) : twelve ? deriveTransferValidationCaseElevenDeclaration(before) : deriveTransferValidationCaseTwelveDeclaration(before), id = randomUUID();
   const archive = join(repository, `.cosmos/SOURCE-C${currentCase}-proof-${id}`); await mkdir(archive); await writeFile(join(archive, 'original-snapshot.json'), original);
   const git = async (...args: string[]) => { const result = await runChild('git', ['-c', 'user.name=SOURCE Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'commit.gpgsign=false', '--no-optional-locks', ...args], { cwd: repository, signal: new AbortController().signal, timeoutMs: 5000 }); assert.equal(result.code, 0); return result.stdout.trim(); };
   const mappingPath = join(repository, 'docs/specs/github-issues.json'), mappingBytes = await readFile(mappingPath), mappingInfo = await stat(mappingPath), mapping = JSON.parse(mappingBytes.toString('utf8')), oldHead = await git('rev-parse', 'HEAD');
@@ -109,7 +111,8 @@ export async function withFixedThreeYuanTransferFixture(t: TestContext, selected
     for (const [taskId, reviewStatus] of Object.entries({ 'COS-76': 'TRANSFER_CASE_EIGHT_SOURCE_READY', 'COS-77': 'VALIDATION_CODING_OUTPUT_CAP_SOURCE_READY',
       'COS-78': 'TRANSFER_CASE_NINE_SOURCE_READY', 'COS-79': 'VALIDATION_CODING_COMPACTION_SOURCE_READY', 'COS-80': 'TRANSFER_CURRENT_PLAN_READING_SOURCE_READY', 'COS-81': 'ADMISSION_FAILURE_FEEDBACK_SOURCE_READY',
       ...(!ten ? { 'COS-82': 'TRANSFER_CASE_TEN_SOURCE_READY', 'COS-83': 'AUTHOR_TOOL_SCOPE_SOURCE_READY' } : {}),
-      ...(selected === 'twelve' ? { 'COS-84': 'TRANSFER_CASE_ELEVEN_SOURCE_READY', 'COS-85': 'OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY' } : {}) })) {
+      ...(!ten && !eleven ? { 'COS-84': 'TRANSFER_CASE_ELEVEN_SOURCE_READY', 'COS-85': 'OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY' } : {}),
+      ...(selected === 'thirteen' ? { 'COS-86': 'TRANSFER_CASE_TWELVE_SOURCE_READY', 'COS-87': 'PARALLEL_GIT_IDENTITY_SOURCE_READY' } : {}) })) {
       let item = mapping.tasks.find((item: any) => item.taskId === taskId); if (!item) { item = { taskId }; mapping.tasks.push(item); }
       Object.assign(item, { reviewedCommit: oldHead, mergeCommit: oldHead, reviewStatus, integrationStatus: 'source-integrated' });
     }
@@ -117,8 +120,8 @@ export async function withFixedThreeYuanTransferFixture(t: TestContext, selected
     const head = await git('rev-parse', 'HEAD'); await git('update-ref', 'refs/remotes/origin/main', head); for (const path of historyRoots) await mkdir(path);
     const manifestPath = join(ledgerRoot, `cos20-transfer-validation-${currentCase}-reuse.json`);
     try { assert.deepEqual(await readFile(manifestPath), protectedFiles[3].bytes); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; await writeFile(manifestPath, protectedFiles[3].bytes); }
-    const baseline = await costs(ten ? 960_162 : eleven ? 1_086_265 : 1_336_555);
-    await operation({ repository, ledgerRoot, root, head, pins: marker.pins, baseline, manifest, args: ['--validation-case', head, `SOURCE C${currentCase} fixed three yuan envelope; no paid/human claim`], git, costs, track: input => { owners.add(input); } });
+    const baseline = await costs(ten ? 960_162 : eleven ? 1_086_265 : twelve ? 1_336_555 : 1_664_926);
+    await operation({ repository, ledgerRoot, root, head, pins: marker.pins, baseline, manifest, args: ['--validation-case', head, `SOURCE C${currentCase} fixed ${selected === 'thirteen' ? 'two-and-a-half' : 'three'} yuan envelope; no paid/human claim`], git, costs, track: input => { owners.add(input); } });
   } finally {
     await controller?.close();
     for (const input of owners) { await input.work.cancelAndDrain(`SOURCE C${currentCase} fixture cleanup`); await input.controller.close(); }
@@ -137,6 +140,10 @@ export async function withFixedThreeYuanTransferFixture(t: TestContext, selected
     assert.deepEqual(await readFile(snapshot), original); assert.ok(Math.abs((await stat(snapshot)).mtimeMs - originalInfo.mtimeMs) < 1); assert.deepEqual(await readFile(mappingPath), mappingBytes);
     t.diagnostic(`SOURCE C${currentCase} proof ${archive}; original snapshot and prior proof bytes preserved.`);
   }
+}
+export function withFixedThreeYuanTransferFixture(t: TestContext, selected: 'ten' | 'eleven' | 'twelve', operation: Parameters<typeof withFixedTransferSuccessorFixture>[2]) {
+  assert.ok(selected === 'ten' || selected === 'eleven' || selected === 'twelve');
+  return withFixedTransferSuccessorFixture(t, selected, operation);
 }
 export function withTransferCaseTenFixture(t: TestContext, operation: Parameters<typeof withFixedThreeYuanTransferFixture>[2]) {
   return withFixedThreeYuanTransferFixture(t, 'ten', operation);
