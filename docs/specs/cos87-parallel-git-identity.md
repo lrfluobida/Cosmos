@@ -1,8 +1,8 @@
 # COS-87 并行读取独立 Git 身份字段
 
-状态：PLAN_REVIEW_PENDING / SOURCE_NOT_READY。Issue [#88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS83、COS86 的源码及 C12 结果记录。
+状态：PLAN_APPROVED / 实现验证完成待最终独审 / SOURCE_NOT_READY。Issue [#88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS83、COS86 的源码及 C12 结果记录。
 
-作者 `cos87_implementer`；独立 reviewer 由 Root 指派；唯一 merger `batch_c12_reference_merger`。实施计划：[2026-10-15-cos87-parallel-git-identity.md](../plans/2026-10-15-cos87-parallel-git-identity.md)。基线 `b94d0d49f032888d46d8e1a56e774713fe8fe973`。
+作者 `cos87_implementer`；独立 reviewer `cos87_reviewer`；唯一 merger `batch_c12_reference_merger`。实施计划：[2026-10-15-cos87-parallel-git-identity.md](../plans/2026-10-15-cos87-parallel-git-identity.md)。基线 `b94d0d49f032888d46d8e1a56e774713fe8fe973`；计划批准 exact `f509606a8da1ebe6e5f73ff2d0c430d787fe85c9`，无 findings。
 
 ## 目标与不变量
 
@@ -18,8 +18,8 @@
 
 ## 交付与验证
 
-计划先独审，后按 RED→GREEN 修改源码。最小受控测试证明同组重叠、跨组有序、失败收齐与确定性错误；真实child测试证明取消/超时后PID退出。保留现有身份守卫测试，补固定输入期间变更与根目录错误。运行完整identity测试、typecheck/build及受影响strict检查。
+计划批准后，旧生产RED准确失败于仅branch开始；最小生产修改后受控5/5、完整identity19/19、0skip，typecheck/build/受影响strict全部退出0。两次调用仍18次fresh查询；组内最大4个、root/input/前后组顺序保持。真实child查询失败、caller abort与原5秒timeout均确认全部4个PID在读取器拒绝前退出。现有身份守卫保留，根目录错误与输入读取期间变更补齐。
 
-同环境旧/新身份读取实测保存原始样本与中位数，不设置墙钟通过阈值，不重跑原135秒大夹具。证据目录：`C:/Users/26557/AppData/Local/Temp/cos87-parallel-git-identity/`。计划阶段不声明实际提速。
+同环境真实main `59b89897435c2acd8d9cf64b878fd8306f3d154a` 上各预热1次、交替5次；每次仍9个真实Git查询且身份一致。中位数755.5810ms→348.6017ms，下降53.8631%，仅适用于此环境的身份读取。未重跑原135秒大夹具，不外推实际C12、自检总时长或费用。原始样本、命令与预检拒绝记录见计划及 `C:/Users/26557/AppData/Local/Temp/cos87-parallel-git-identity/`。
 
 仅免费source/TEMP工作；不读真实ledger/session/key，不修改生成游戏，不访问参考安装，不重跑已消费C12，不开启新付费案例。共享 ¥150、正式 ¥200/12h、目标 ¥100/6h 保持；COS16/COS18、完整经典、PERFORMANCE、human仍按原验收要求推进。最终实际diff须独审后由唯一merger集成。
