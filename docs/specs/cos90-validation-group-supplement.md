@@ -1,6 +1,6 @@
 # COS-90 同账本的固定验证预算组补充分配
 
-状态：plan approved / implementation awaiting independent review / source-only。Issue [#91](https://github.com/lrfluobida/Cosmos/issues/91)，id5854823746，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，原生第90个子任务；Root 已发布并精确读回。
+状态：source-integrated / pending-public-closure / source-only。Issue [#91](https://github.com/lrfluobida/Cosmos/issues/91)，id5854823746，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，原生第90个子任务；Root 已发布并精确读回。
 
 作者 `cos90_implementer`，独立 reviewer `cos90_reviewer`，唯一 merger 由 Root 指派。分支 `codex/cos90-validation-group-supplement`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`；[实施计划](../plans/2026-10-15-cos90-validation-group-supplement.md)。计划 exact `0bd6683fd7ec80405da6ebb143e6c4b05715a6c8` 已独立 PLAN_APPROVED，无blocker，随后才实施。
 
@@ -28,4 +28,4 @@ COS90仅源级固定补充分配能力，不执行真实补充分配/付费/新�
 
 新7项用例通过，最终fake provider/source/coldrestore/closure及phase负例在最后改动后分别1/1复验；budget3/3、typecheck/build/strict退出0。初始受影响集成98/99，唯一失败为基线declaration3已支持却期待unsupported；Root批准一行fixture改为尚不支持的4，单项1/1通过，其余98项复用。原始TAP、时长、测试输入修正和严格类型修正详见实施计划。
 
-当前只提交源码供独立规格→质量审查，尚未标SOURCE_READY或执行真实supplement；后续由唯一merger记录批准SHA及集成结果。
+最终 `ca350ea612c924150e9f4501932a5799e4fcfbc4` 已经 `cos90_reviewer` 独立规格→质量APPROVED，无finding。唯一 `batch_cos90_91_merger` 合入 `7b676094fc16ddb3012804fdc3c78502f34fd0ab`，标记 `VALIDATION_GROUP_SUPPLEMENT_SOURCE_READY`；公开源码关闭待Root发布。主线typecheck/build退出0，provider/source/coldrestore/closure与完整phase代表2/2、0skip、2025.8667ms；其余已审作者证据复用。原始输出为 `C:/Users/26557/AppData/Local/Temp/cos90-merge-typecheck.log`、`cos90-merge-build.log`、`cos90-merge-focused.tap`。ledger5仅源码能力；真实组仍¥10、可分配899686µ，共享settled16108937µ、revision2965。未实际supplement apply或C14运行，main保持unfrozen；shared¥150、phase¥30、正式¥200/12h保持，COS16/18、完整经典与human仍未完成。
