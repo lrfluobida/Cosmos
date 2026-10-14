@@ -1,6 +1,6 @@
 # COS-85 保留可选摘要截断后的原作者会话
 
-状态：**OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY / source-integrated / open pending public closure**。Issue [#86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421；父[#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖COS79/84。作者 `cos76_implementer`，计划原独审 `cos77_implementer`，接续源码独立reviewer `cos85_reviewer`，唯一merger `batch85_86_merger`。
+状态：**OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY / source scoped complete / closed**。Issue [#86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421；父[#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖COS79/84。作者 `cos76_implementer`，计划原独审 `cos77_implementer`，接续源码独立reviewer `cos85_reviewer`，唯一merger `batch85_86_merger`。
 
 ## 问题与范围
 
@@ -26,6 +26,6 @@
 
 ## 独立审查与主线集成
 
-最终源码 `b5e879472b9c1a585a9bde6cb9f1823c044c26fa` 经 `cos85_reviewer` 对base `ecd8d8e0c3f28e6d8f4cd34ea6219342900b9328` 的实际6路径规格→质量审查APPROVED，无finding。唯一 `batch85_86_merger` 合入 `f63399fa77bd725e379eb8d119b7160a04180f32`，主线typecheck/build退出0，批准源码和测试字节保持。公开issue仍open，等待Root关闭同步。
+最终源码 `b5e879472b9c1a585a9bde6cb9f1823c044c26fa` 经 `cos85_reviewer` 对base `ecd8d8e0c3f28e6d8f4cd34ea6219342900b9328` 的实际6路径规格→质量审查APPROVED，无finding。唯一 `batch85_86_merger` 合入 `f63399fa77bd725e379eb8d119b7160a04180f32`，主线typecheck/build退出0，批准源码和测试字节保持。本卡source scoped complete；[公开批准](https://github.com/lrfluobida/Cosmos/issues/86#issuecomment-6172184717)、closed(completed)及父勾选已由Root精确读回。
 
 主线原始输出均在 `C:/Users/26557/AppData/Local/Temp/`：`cos85-merge-typecheck.log`、`cos85-merge-build.log`；`cos85-merge-root-reproduce.tap` 为原Root `cos85-reproduce.mjs` 1/1、0skip、TAP6126.7789ms，下一普通请求达到ordinary4后仍正确admission_rejected，summary1/compaction0/network0；`cos85-merge-compiled.tap` 为dist split恢复与accounting失败代表2/2、0skip、TAP4719.856ms。命令与证据复用范围见计划。主线仅验证免费SOURCE/compiled合成fixture，不声明实际C12或游戏通过。
