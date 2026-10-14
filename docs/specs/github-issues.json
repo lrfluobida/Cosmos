@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 83
+    "childCount": 84
   },
   "tasks": [
     {
@@ -6522,11 +6522,13 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/84",
       "dependsOn": ["COS-55", "COS-75", "COS-82"],
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "integrationStatus": "source-integrated",
-      "implementationPhase": "source-integrated",
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "stateReason": "completed",
+      "integrationStatus": "complete",
+      "implementationPhase": "scoped-complete",
       "reviewStatus": "AUTHOR_TOOL_SCOPE_SOURCE_READY",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/84#issuecomment-6169208468",
       "targetReviewStatus": "AUTHOR_TOOL_SCOPE_SOURCE_READY",
       "sourceReviewStatus": "APPROVED",
       "reviewedCommit": "c8afd7643ae4c19d8035206ebf8530fb055a8531",
@@ -6570,8 +6572,53 @@
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE"
+    },
+    {
+      "taskId": "COS-84",
+      "title": "验证来源校验去重后的固定迁移 C11",
+      "number": 85,
+      "id": 5848367426,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/85",
+      "dependsOn": ["COS-82", "COS-83"],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "source-implementation",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "targetReviewStatus": "TRANSFER_CASE_ELEVEN_SOURCE_READY",
+      "sourceReviewStatus": "PENDING",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "4a0adbe931386cd55f163d212c58498ed2587bad",
+      "plannedPlanPath": "docs/plans/2026-10-14-cos84-transfer-case11.md",
+      "plannedTaskCardPath": "docs/specs/cos84-transfer-case11.md",
+      "implementer": "cos76_implementer",
+      "reviewer": "cos77_implementer",
+      "merger": "batch75_76_merger",
+      "authorizationBasis": "Root确认原¥150持续推进授权，沿用单轮最多¥3、45分钟上限",
+      "plannedLimits": {
+        "incrementalMicroCny": 3000000,
+        "maxDurationMs": 2700000,
+        "sharedLimitMicroCny": 150000000,
+        "originalCos16ParentMicroCny": 10000000
+      },
+      "reportedAvailableAllocationMicroCny": 5542303,
+      "availableAllocationReference": "Root-after-closure16",
+      "plannedRoleGrantsMicroCny": {
+        "planning": 1,
+        "design": 1,
+        "art": 1,
+        "coding": 2400000,
+        "repair": 599997
+      },
+      "operationalScriptReviewStatus": "readonly-reviewed-not-executed",
+      "liveExecutionStatus": "not-preflighted-source-not-ready",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 83,
+  "verifiedNativeSubIssues": 84,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

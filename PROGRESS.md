@@ -12,11 +12,17 @@
 - Root已完成closure16，释放未使用的 **¥1.913735**。18个案例均已停止，旧费用和历史保留。COS82已[在源码范围内完成并关闭](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)，COS16/COS18仍partial，实际游戏和human未通过。
 - 启动器和Node已退出、两个controller锁已释放，Root已解除main冻结。以下C10未准入及冻结等待为当时的源码准备记录；本次不修改生产代码或重新运行案例。
 
+## COS84：准备来源校验去重后的固定迁移 C11
+
+- [任务 #85](https://github.com/lrfluobida/Cosmos/issues/85)已由Root发布、核对并原生挂父，当前84个子项。依赖COS82/83，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger保持不变。短计划 `4a0adbe` 已获PLAN_APPROVED；源码仍为SOURCE_NOT_READY/open。
+- 按Root确认的原¥150持续推进授权，单轮仍最多¥3、45分钟，COS16原预算组保持¥10。Root报告该组可分配¥5.542303；新向量仍为规划、设计、美术各¥0.000001，编码¥2.40、修复¥0.599997。
+- 实际C11尚未执行免费准入或付费；操作脚本的只读审查不算准入结果。作者维护自有计划和任务卡，源码最终批准并整合后才冻结主线供Root执行。
+
 ## COS83已审集成：删除一处重复来源校验
 
-- [任务 #84](https://github.com/lrfluobida/Cosmos/issues/84)由cos76实现、cos77独审，最终版本 `c8afd76` 已获批准，没有finding；唯一merger合入 `32af0aa`。当前为 AUTHOR_TOOL_SCOPE_SOURCE_READY/source-integrated/open，待Root公开关闭，完整SHA见[任务卡](docs/specs/cos83-tool-scope.md)。
+- [任务 #84](https://github.com/lrfluobida/Cosmos/issues/84)由cos76实现、cos77独审，最终版本 `c8afd76` 已获批准，没有finding；唯一merger合入 `32af0aa`。本卡已[公开批准](https://github.com/lrfluobida/Cosmos/issues/84#issuecomment-6169208468)并在源码范围内关闭，父勾选已由Root核实，完整SHA见[任务卡](docs/specs/cos83-tool-scope.md)。
 - 生产仅删除transfer guard先行的一次重复调用，完整校验仍在每次origin.verify中执行；跨await、worker、签名、预算和时限检查保持。普通prepared fixture的两次工具调用均从160次scope读取降到83次，每次少77次（48.125%）；这仅是该夹具的次数变化，不代表C10实际提速或节费。
-- 主线typecheck/build和真实guard局部超时代表通过。作者18项边界及compiled guard证据复用，没有重跑基线、C10或旧长矩阵；首轮0次计数只属于接线失败。没有新付费、C11或预算变化，主线不为本卡额外冻结。
+- 主线typecheck/build和真实guard局部超时代表通过。作者18项边界及compiled guard证据复用，没有重跑基线、C10或旧长矩阵；首轮0次计数只属于接线失败。本卡未新增付费或实际案例操作，主线不为这次文档同步冻结。
 
 ## COS82：准备 ¥3 上限的固定迁移 C10
 

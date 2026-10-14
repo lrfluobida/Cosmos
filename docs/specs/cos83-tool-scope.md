@@ -1,10 +1,10 @@
 # COS-83 减少作者工具中的重复来源校验
 
-状态：AUTHOR_TOOL_SCOPE_SOURCE_READY / PRODUCTION_PLAN_APPROVED / source-integrated / open。Issue [#84](https://github.com/lrfluobida/Cosmos/issues/84)，id5847590995；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS55/75/82。
+状态：AUTHOR_TOOL_SCOPE_SOURCE_READY / PRODUCTION_PLAN_APPROVED / source scoped complete / closed。Issue [#84](https://github.com/lrfluobida/Cosmos/issues/84)，id5847590995；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS55/75/82。
 
 作者 `cos76_implementer` acting COS83；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos83-tool-scope.md](../plans/2026-10-14-cos83-tool-scope.md)。生产基线 `a464b0fb523ce29f6e688a92a08ccd156b6502a7`。
 
-最终五个文件已通过独立规格与质量审查，没有finding；唯一merger已集成，待Root公开关闭。
+最终五个文件已通过独立规格与质量审查，没有finding；唯一merger已集成。[公开批准](https://github.com/lrfluobida/Cosmos/issues/84#issuecomment-6169208468)、closed及父勾选已由Root精确核实，本卡源码范围完成。
 
 | 记录 | 提交 |
 | --- | --- |

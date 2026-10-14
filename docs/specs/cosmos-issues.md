@@ -1395,11 +1395,23 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 [任务卡 #84](https://github.com/lrfluobida/Cosmos/issues/84)，id5847590995，已由Root登记并原生挂父#1；当前83个子项。依赖COS55/75/82，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger为 `batch75_76_merger`。
 
-阶段一基线计划 `a7b420a`、生产方案 `7d5ed71` 和最终源码均已独审通过。最终版本 `c8afd76` 没有finding，由唯一merger合入 `32af0aa`；当前为 `AUTHOR_TOOL_SCOPE_SOURCE_READY` / source-integrated/open，待Root公开关闭。完整SHA、原始证据与边界见[任务卡](cos83-tool-scope.md)。
+阶段一基线计划 `a7b420a`、生产方案 `7d5ed71` 和最终源码均已独审通过。最终版本 `c8afd76` 没有finding，由唯一merger合入 `32af0aa`；当前为 `AUTHOR_TOOL_SCOPE_SOURCE_READY` / source scoped complete/closed；[公开批准](https://github.com/lrfluobida/Cosmos/issues/84#issuecomment-6169208468)、父勾选及评论正文均由Root精确核实。完整SHA、原始证据与边界见[任务卡](cos83-tool-scope.md)。
 
 生产只删一处直接重复scope调用，每次origin.verify仍完成当前校验，其他执行边界保持。普通prepared fixture两次均由160次降到83次，48.125%仅是读取次数降幅；不外推C10 inherited速度或费用。主线typecheck/build及真实guard超时代表通过；18项边界和compiled guard证据复用，未重长矩阵。没有新付费、C11或预算变化。
 
 稳定任务 ID：COS-83
+
+### COS-84 · 验证来源校验去重后的固定迁移 C11
+
+[任务卡 #85](https://github.com/lrfluobida/Cosmos/issues/85)，id5848367426，已由Root发布、精确读回并原生挂父#1；当前84个子项。依赖COS82/83，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger为 `batch75_76_merger`。
+
+计划 `4a0adbe931386cd55f163d212c58498ed2587bad` 已由cos77检查两份文档和调用链后批准。源码仍为SOURCE_NOT_READY/open，目标标记为 `TRANSFER_CASE_ELEVEN_SOURCE_READY`；作者将在独立工作区维护计划和任务卡，本次不合入未审代码。
+
+沿原¥150持续推进授权，单轮仍限¥3、45分钟，COS16预算组保持¥10。Root报告原组可分配¥5.542303；固定向量按规划、设计、美术、编码、修复为¥0.000001、¥0.000001、¥0.000001、¥2.40、¥0.599997，合计¥3。C10历史与费用保持。
+
+实际C11尚未执行免费准入或付费；启动脚本仅完成只读审查，不代表源码就绪或实际准入。最终源码另行独审，整合推送后才按Root安排冻结。
+
+稳定任务 ID：COS-84
 
 ## 5. 任务与上下文包模板
 
