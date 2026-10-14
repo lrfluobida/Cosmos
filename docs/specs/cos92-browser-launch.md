@@ -57,3 +57,5 @@ Task1 `f9f43eb7441db1bf5b47efc08e49fc0dbe0d0bb4` 已获独立 TASK1_DIFF_APPROVE
 Task2 使用 `entrypoint-host.ts` 内的 `createPersistentOwnedChild` 作为 nativeIO 的真实交接实现，直接由测试调用。启动10项覆盖外层runner、迟到binding/handle、原停止/截止、exact prespawn释放、登记PID与清理失败；ownership14项和其余受影响回归合计59/59、0skip。generic host15/15、0skip。真实TEMP Edge正例1/1、0skip：PID13640，登记先于CDP，profile一致、closeEvent/exitConfirmed/PID已不存在均true，exit0、无强制终止或provider调用。证据与命令见计划。
 
 生产typecheck/build退出0；六个新增/受影响测试文件strict退出0。generic-persistent-host.fixture的单独strict仍有4个原有诊断，已对完整旧生产接口与当前接口做内存编译对照，精确一致；未扩大修改。所有编辑文件UTF-8/LF、中文回读与diffcheck通过。没有新付费或真实C14运行，实际游戏与human结论保持。
+
+最终独审另发现迟到release失败未传播到生产drain，已按P2修正：只保留原生交接明确报告的清理错误，公开drain在等待结束后连同原cause拒绝，operation移除后也不丢失；普通取消语义保持。公开路径RED后，定向27/27与补充回滚传播1/1通过，详见计划。原六文件strict命令成功但无输出，Tee未创建原列日志；已撤回不存在的路径，保留实际工具返回的exit0证据。

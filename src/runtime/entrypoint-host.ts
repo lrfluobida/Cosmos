@@ -42,6 +42,7 @@ import type { BrowserInputPreparation } from './entrypoint-preparation.ts';
 import { runPersistentAcceptance } from '../acceptance/persistent.ts';
 import type { PersistentAcceptanceSeries, PersistentAcceptanceOptions, PersistentAcceptanceReport, PreparedPersistentChild } from '../acceptance/persistent.ts';
 import { AcceptanceCancelledError, DeadlineError } from '../acceptance/deadline.ts';
+import { UnspawnedChildCleanupError } from './recovery/ownership.ts';
 import type { RoleFactoryOptions } from '../roles/factory.ts';
 import type { RoleInput } from '../roles/factory.ts';
 import { TaskJournal } from './recovery/task-journal.ts';
@@ -125,8 +126,11 @@ export function createPersistentOwnedChild(input: Pick<HostInput, 'controller' |
       } catch (error) {
         if (ticket && !delivered) {
           try { await input.controller.releaseUnspawnedChild(ticket); }
-          catch (cleanup) { throw new AggregateError([error, cleanup], `Unspawned browser launch cleanup failed: ${String(error)}; ${String(cleanup)}`); }
+          catch (cleanup) {
+            const failure = new UnspawnedChildCleanupError(error, cleanup); input.work.retainCleanupFailure(failure); throw failure;
+          }
         }
+        if (delivered || error instanceof UnspawnedChildCleanupError) input.work.retainCleanupFailure(error);
         throw error;
       }
     });

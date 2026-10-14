@@ -2,6 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { lstat, open, readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
+/** A failed rollback must remain visible even when its launch already timed out. */
+export class UnspawnedChildCleanupError extends AggregateError {
+  constructor(operation: unknown, cleanup: unknown) {
+    super([operation, cleanup], `Unspawned child cleanup failed; retaining ownership: ${String(operation)}; ${String(cleanup)}`);
+  }
+}
+
 export interface OwnerRecord {
   formatVersion: 1;
   token: string;
@@ -98,7 +105,7 @@ export class OwnerLock {
       catch (error) {
         const cancelled = structuredClone(this.record); cancelled.children = cancelled.children.filter(child => child.ticket !== ticket);
         try { await this.save(cancelled); }
-        catch (cleanup) { throw new AggregateError([error, cleanup], `Expired launch intent cleanup failed; retaining ownership: ${String(error)}; ${String(cleanup)}`); }
+        catch (cleanup) { throw new UnspawnedChildCleanupError(error, cleanup); }
         throw error;
       }
       return ticket;

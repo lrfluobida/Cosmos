@@ -5,6 +5,7 @@ import { DEFAULT_BUDGETS, budgetCapacity, budgetSummary, validateLedgerUpdate, v
 import type { ArtifactReference, BudgetLedger, LedgerEntry, TaskContract, TaskKind, UpdateActor } from '../contracts/index.ts';
 import { appendEvidence, evidenceReferences, findRequest, money, nonEmpty, requireOpen, reserveEntry, settleEntry } from '../budget/ledger.ts';
 import { SnapshotStore } from './store.ts';
+import { UnspawnedChildCleanupError } from './recovery/ownership.ts';
 import { validateSnapshot } from './run-validation.ts';
 import { activateContinuation } from './continuation-authority.ts';
 import { claimValidationCase, verifyOperatorDecision, verifyValidationIdentity } from './validation-window.ts';
@@ -112,7 +113,7 @@ export class RunController {
       try { checkLaunch?.(); }
       catch (error) {
         try { await this.store.releaseUnspawnedChild(ticket); }
-        catch (cleanup) { throw new AggregateError([error, cleanup], `Expired launch intent cleanup failed; retaining ownership: ${String(error)}; ${String(cleanup)}`); }
+        catch (cleanup) { throw new UnspawnedChildCleanupError(error, cleanup); }
         throw error;
       }
       if (authority && this.windowId) this.childTasks.set(ticket, authority.taskId);

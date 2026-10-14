@@ -69,8 +69,18 @@ Task2没有另建 `tests/runtime/entrypoint-host-launch.test.ts`：真实nativeI
 | `node --experimental-strip-types --test tests/runtime/generic-persistent-host.test.ts` | 15/15、0skip、44498.6188ms，exit0；`C:/Users/26557/AppData/Local/Temp/cos92-generic-host.tap`。 |
 | Task3所列单项Edge命令 | 1/1、0skip、7335.4075ms，exit0；Node按名称过滤时未计入另一测试，实际不是预估的1skip。raw `C:/Users/26557/AppData/Local/Temp/cos92-edge-positive.tap`；原始 `qa-summary.json` 和报告在 `C:/Users/26557/AppData/Local/Temp/cos40-observer-7wZOcj`。PID13640、order=ticket/register、CDP1、closeEvent/exitConfirmed/pidAbsent=true、exit0、forced=false、providerCalls0。随后只改失败消息保留与测试类型标注，正常路径未变，复用这项真实证据。 |
 | `npm run typecheck`；`npm run build` | 均exit0，生产完整编译。 |
-| 六个受影响测试的单独strict | `node node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --esModuleInterop --skipLibCheck --types node tests/acceptance/persistent-launch.test.ts tests/runtime/recovery/ownership.test.ts tests/acceptance/media-observations.integration.ts tests/transfer/runtime-host.test.ts tests/transfer/runtime-acceptance.test.ts tests/transfer/passed-stage-reuse.test.ts` exit0；`C:/Users/26557/AppData/Local/Temp/cos92-affected-strict.log`。新增测试两个隐式参数类型已修正。 |
+| 六个受影响测试的单独strict | `node node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --esModuleInterop --skipLibCheck --types node tests/acceptance/persistent-launch.test.ts tests/runtime/recovery/ownership.test.ts tests/acceptance/media-observations.integration.ts tests/transfer/runtime-host.test.ts tests/transfer/runtime-acceptance.test.ts tests/transfer/passed-stage-reuse.test.ts` exit0；成功时无编译输出，Tee未创建文件，原列`cos92-affected-strict.log`路径撤回。已有工具session67441回读`TSC_EXIT=0`且退出0；不因路径问题重跑。新增测试两个隐式参数类型已修正。 |
 
 **已知strict限制：** `tests/runtime/generic-persistent-host.fixture.ts:74` TS2554（stop多传一个参数），108/109/118行 TS2345（空对象缺AuthorProposal字段），本次未改这些行。最初仅替换旧fixture而保留新接口的对照不充分，已弃用其7条诊断；最终通过TypeScript CompilerHost同时使用 `f9f43eb` 的fixture与全部6个已改生产文件，再与当前代码编译结果作deepEqual，恰同4条诊断，COMPARE_EXIT=0。证据 `C:/Users/26557/AppData/Local/Temp/cos92-generic-strict-baseline-current.json`。此文件整个strict不能声称通过；其已改ownedChild接口无新增诊断，运行时15项及真实Edge均通过。
 
 作者验证结束；最终实际diff仍交独审，未授予SOURCE_READY或合入main。保留C14失败/已消费、实际完整链时间未知、COS16/COS18/完整经典/human未完成。Task1已审且代码无再变的17项按Root指令复用；主线纯文档推进不导致重跑。
+
+## 最终独审 P2 修订
+
+独审确认 `c43fdcc` 的迟到release失败虽使私有completion拒绝，公开drain仍allSettled成功，原异常未传给生产调用方。公开 `cancelAndDrain(controller, work)` 的新RED为1fail/1pass（普通拒绝仍通过），3514.6137ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-propagation-red.tap`。
+
+仅原生启动交接明确报告清理失败：`OwnedWork.retainCleanupFailure` 保留原因，drain等待原operations后抛出带原异常对象和消息的AggregateError；普通run拒绝仍沿原allSettled。nativeIO的已交付handle若completion失败会报告；未交付时的exact release/持久化回滚失败以窄`UnspawnedChildCleanupError`传递并报告，正常binding取消不升级为清理失败。失败在operation移除后仍可由后续公开drain读取；原ticket保持未解决，owner.close继续拒绝。
+
+定向 `persistent-launch.test.ts`、`owned-work.test.ts`、`ownership.test.ts` 共27/27、0skip、3943.42ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-propagation-green.tap`；随后追加未交付handle的回滚失败公开传播用例1/1、0skip、3402.5653ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-prehandoff.tap`。均检查原cause对象/消息、零spawn及残留ticket；普通取消不变。原Task1、consumer、generic与Edge已审证据复用，正常prepare/register/CDP/退出接线未变。
+
+P2后 `npm run typecheck` / `npm run build` 均退出0，实际日志 `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-typecheck-build.log`。使用上表相同tsc strict参数，仅选择此次受影响的 `tests/acceptance/persistent-launch.test.ts`、`tests/runtime/recovery/owned-work.test.ts`、`tests/runtime/recovery/ownership.test.ts`，退出0；实际含`TSC_EXIT=0`的日志为 `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-strict.log`。这次编译验证源于P2代码变化，没有为旧路径问题重跑旧矩阵。

@@ -4,6 +4,7 @@ import type { RunController } from '../run.ts';
 export class OwnedWork {
   private abort = new AbortController();
   private operations = new Set<Promise<unknown>>();
+  private cleanupFailures: unknown[] = [];
   readonly signal: AbortSignal;
   constructor(signal?: AbortSignal) { this.signal = signal ? AbortSignal.any([this.abort.signal, signal]) : this.abort.signal; }
 
@@ -15,6 +16,9 @@ export class OwnedWork {
     return operation;
   }
 
+  /** Explicit cleanup failures survive operation removal; ordinary cancellation stays unchanged. */
+  retainCleanupFailure(error: unknown): void { this.cleanupFailures.push(error); }
+
   async cancelAndDrain(reason: string, timeoutMs = 5000): Promise<void> {
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) throw new Error('Drain timeout must be positive.');
     this.abort.abort(new Error(reason));
@@ -24,6 +28,7 @@ export class OwnedWork {
         Promise.allSettled([...this.operations]),
         new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Owned work did not quiesce before the drain deadline; stopped state is unconfirmed.')), timeoutMs); }),
       ]);
+      if (this.cleanupFailures.length) throw new AggregateError([...this.cleanupFailures], `Owned cleanup failed: ${this.cleanupFailures.map(String).join('; ')}`);
     } finally { clearTimeout(timer); }
   }
 }

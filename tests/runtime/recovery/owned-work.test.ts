@@ -50,3 +50,9 @@ test('an operation that has not quiesced produces a bounded failure, never a sto
   await assert.rejects(work.cancelAndDrain('cancel', 10), /drain|quiesce/i);
   release(); await operation; await work.cancelAndDrain('cancel');
 });
+
+test('ordinary rejected work keeps its existing settled cancellation behavior', async () => {
+  const work = new recovery.OwnedWork();
+  await assert.rejects(work.run(async () => { throw new Error('Ordinary operation rejected'); }), /Ordinary operation rejected/);
+  await work.cancelAndDrain('ordinary cancellation');
+});

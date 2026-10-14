@@ -12,7 +12,7 @@ import { chromium } from '@playwright/test';
 import { ownedPersistentBrowserLifecycle } from '../../src/acceptance/persistent.ts';
 import { runAcceptanceInOwnedSession } from '../../src/acceptance/runner.ts';
 import { RunController } from '../../src/runtime/run.ts';
-import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+import { OwnedWork, cancelAndDrain } from '../../src/runtime/recovery/owned-work.ts';
 import * as host from '../../src/runtime/entrypoint-host.ts';
 
 function deferred<T = void>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
@@ -118,15 +118,35 @@ test('COS92 source rejection without a ticket completes tracking and cannot spaw
   assert.deepEqual(await f.children(), []); assert.equal(f.counts().spawns, 0); await f.controller.close();
 });
 
-test('COS92 failed late release rejects completion and retains the exact unresolved intent', async t => {
+test('COS92 failed late release reaches public drain and retains the exact unresolved intent', async t => {
   const f = await fixture(t), entered = deferred(), gate = deferred(), original = f.options.ownedChild.prepare;
   let completion!: Promise<void>;
   f.options.ownedChild.prepare = async (launch: any) => { completion = launch.completion; const handle = await original(launch); entered.resolve(); await gate.promise; return handle; };
-  t.mock.method(f.controller, 'releaseUnspawnedChild', async () => { throw new Error('Fixture release persistence failed'); });
+  const releaseError = new Error('Fixture release persistence failed');
+  t.mock.method(f.controller, 'releaseUnspawnedChild', async () => { throw releaseError; });
   const opening = f.lifecycle().open(f.root, 15000), rejection = assert.rejects(opening, /cancel/i);
-  await entered.promise; const before = await f.children(), draining = f.work.cancelAndDrain('fixture cancellation'); await rejection;
+  const drainFailure = (error: unknown) => { assert.ok(error instanceof AggregateError); assert.ok(error.errors.includes(releaseError)); assert.match(error.message, /Fixture release persistence failed/); return true; };
+  await entered.promise; const before = await f.children(), draining = assert.rejects(cancelAndDrain(f.controller, f.work, 'fixture cancellation'), drainFailure); await rejection;
   const cleanup = assert.rejects(completion, /release|cleanup/i); gate.resolve(); await cleanup; await draining;
   assert.deepEqual(await f.children(), before); assert.equal(f.counts().spawns, 0);
+  await assert.rejects(f.work.cancelAndDrain('later drain after completed work'), drainFailure);
+  await assert.rejects(f.controller.close(), /Unresolved child spawn intent/);
+});
+
+test('COS92 rollback failure before handle delivery also reaches public drain with its causes', async t => {
+  const f = await fixture(t), owner = (f.controller as any).store.lock, save = owner.save.bind(owner);
+  const rollbackError = new Error('Fixture rollback persistence failed'); let written = false, draining!: Promise<void>;
+  t.mock.method(owner, 'save', async (next: any) => {
+    if (written) throw rollbackError;
+    await save(next); written = true;
+    draining = assert.rejects(cancelAndDrain(f.controller, f.work, 'fixture cancellation during persistence'), error => {
+      assert.ok(error instanceof AggregateError); const failure = error.errors[0];
+      assert.ok(failure instanceof AggregateError); assert.ok(failure.errors.includes(rollbackError));
+      assert.match(failure.message, /Persistent launch cancelled/); assert.match(failure.message, /Fixture rollback persistence failed/); return true;
+    });
+  });
+  await assert.rejects(f.lifecycle().open(f.root, 15000), /cancel/i); await draining;
+  assert.equal((await f.children())[0].pid, null); assert.equal(f.counts().spawns, 0);
   await assert.rejects(f.controller.close(), /Unresolved child spawn intent/);
 });
 
