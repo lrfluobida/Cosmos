@@ -14,20 +14,20 @@ Root报告 C10 的两次 check-game-build 分别约226秒和378秒，第二次 T
 
 ## 阶段一：免费可执行基线，生产不改
 
-- [ ] exact计划/卡交独审，PLAN_APPROVED后才运行基线。
-- [ ] 在 `C:/Users/26557/AppData/Local/Temp/cos83-tool-scope/` 保存独立诊断脚本/结果/TAP。复用 `tests/runtime/entrypoint-coding-check.test.ts` 导出的 `codingAuthor(t,{transfer:true})`，沿真实 transfer host、factory提供的tool.execute、checker、owned launcher/worker；合成tsc/vite只写阶段标志并退出，不安装依赖或编译真实游戏。
-- [ ] 仅包装夹具已有 `validation.readScope`：每次计数/计时后仍调用原reader；可加入固定5ms且响应原signal的SOURCE延迟。host其它guard、scope验证、controller/registry和原worker边界全部保留，不用计数stub代替它们。
-- [ ] 同一原作者上下文执行两次完整check（0ms/5ms延迟），分别记录scopeCalls、实际toolElapsedMs、受控延迟累计、两个compiler退出/PID；断言都产生当前scope读取、两次计数稳定、原费用/任务/registry不变。用调用次数作确定性反馈，墙钟仅记录，不设脆弱性能断言。
-- [ ] 导入测试文件会注册其既有测试，使用 `--test-name-pattern="SOURCE COS83"` 只执行新基线，准确记录其余未选测试；不重跑矩阵。诊断用普通prepared transfer夹具，不冒充C10 inherited路径实测或付费节省。
-- [ ] 报告实测次数、耗时与具体调用链，独立 reviewer 确认最小生产选择后再实施。若出现夹具阻塞，先定位，不改生产去迁就基准、不重建C10长seed。
+- [x] exact计划/卡交独审，PLAN_APPROVED后才运行基线。
+- [x] 在 `C:/Users/26557/AppData/Local/Temp/cos83-tool-scope/` 保存独立诊断脚本/结果/TAP。复用现有 transferFixture 与 codingAuthor 的公开API装配顺序，沿真实 transfer host、factory提供的tool.execute、checker、owned launcher/worker；合成tsc/vite只写阶段标志并退出，不安装依赖或编译真实游戏。reader须在host创建前包装，见下文首次接线失败。
+- [x] 仅包装夹具已有 `validation.readScope`：每次计数/计时后仍调用原reader；可加入固定5ms且响应原signal的SOURCE延迟。host其它guard、scope验证、controller/registry和原worker边界全部保留，不用计数stub代替它们。
+- [x] 同一原作者上下文执行两次完整check（0ms/5ms延迟），分别记录scopeCalls、实际toolElapsedMs、受控延迟累计、两个compiler退出/PID；断言都产生当前scope读取、两次计数稳定、原费用/任务/registry不变。用调用次数作确定性反馈，墙钟仅记录，不设脆弱性能断言。
+- [x] 命令只选择 `SOURCE COS83`。最终脚本直接导入fixture和public runtime，不注册旧测试；实际1/1、0skip，不重跑矩阵。诊断用普通prepared transfer夹具，不冒充C10 inherited路径实测或付费节省。
+- [x] 报告实测次数、耗时与具体调用链；阶段二生产选择仍待独审。夹具接线问题先定位，不改生产去迁就基准、不重建C10长seed。
 
-## 阶段二：候选最小改动，等待实测后再审
+## 阶段二：基线后的最小选择，等待独审
 
-首选只删 `src/runtime/adapters/transfer/runtime-host.ts` 的 transfer guard 中先行 `ctx.requireScope()`，保留 `await origin.verify()`；后者仍在listener/receipt检查前完整读取当前scope。必须先确认所有guard调用发生在origin初始化后，原异常/abort/COS75局部timeout关闭逻辑保持。两个调用间没有其它业务读取或执行边界，是本卡优先验证的窄候选。
+选择只删 `src/runtime/adapters/transfer/runtime-host.ts` 的 transfer guard 中先行 `ctx.requireScope()`，保留 `await origin.verify()`；后者仍在listener/receipt检查前完整读取当前scope。已核 `initialize` 先await reserveTransferOrigin赋值，再进入继承verify或构建设计校验工具；外部host只在initialize完成后返回，因此guard可使用已绑定origin。原异常/abort/COS75局部timeout关闭逻辑保持。两个scope调用间没有其它业务读取或执行边界；保留的origin.verify自身执行当前scope及listener/receipt读取，不以先前检查结果代替新授权。
 
 不改 `entrypoint-host.ts` 的第二次 preparation.requireCurrent，不删工具/worker/付费执行前后guard，不改输入/输出签名、完整历史验证或owner绑定。若实测不能支持该单点收益，先提交证据与新方案审查，不能扩大到跨可变await去重。
 
-若该候选获批，预计最小文件范围：生产仅上述一个文件；在 `tests/runtime/entrypoint-coding-check.test.ts` 增加实际tool计数回归（基于实测旧值先RED，再验证下降和每次调用重新读取）；必要更新 `tests/transfer/scope-timeout-origin.test.ts` 中描述被删除外层位置的测试标题/受影响断言，保留其实际语义。本计划与 `docs/specs/cos83-tool-scope.md` 自有，shared tracking由merger负责。
+若该候选获批，预计最小文件范围：生产仅上述一个文件；在 `tests/runtime/entrypoint-coding-check.test.ts` 给现成测试helper增加创建host前的可选scope观察回调（始终调用原reader，不是生产开关），增加实际tool计数回归：以实测旧160为基线先断言应减少得到RED，再记录GREEN实际值；两次各自读取、状态/费用/输入不变。必要更新 `tests/transfer/scope-timeout-origin.test.ts` 中描述被删除外层位置的测试标题，保留实际语义。本计划与 `docs/specs/cos83-tool-scope.md` 自有，shared tracking由merger负责。
 
 ## 阶段二验证边界
 
@@ -40,4 +40,19 @@ Root报告 C10 的两次 check-game-build 分别约226秒和378秒，第二次 T
 
 不加跨请求授权cache、通用预算/ledger/schema/CLI，不扩大tool120秒或窗口时限。不读取真实ledger/session/thinking/key、C10作者文件或参考游戏；不重C10付费、不启动C11，不用实际生成游戏作免费基准。若确需真实生成代码，须先说明文件范围并由Root显式提供独立副本。
 
-状态：阶段一计划待独审 / SOURCE_NOT_READY；尚无性能实测或生产修改。
+## 阶段一实测
+
+阶段一计划 exact `a7b420a2c70249e0ae025c96601bce518a1063a6` 已由 `cos77_implementer` PLAN_APPROVED。运行期间生产与仓内测试均未修改。
+
+首轮直接调用codingAuthor返回后替换f.validation.readScope，真实工具虽完成，但计数为0，断言失败（TAP28050.9589ms）。定位为 `entrypoint-host.ts:219` 在创建host时浅拷贝validation，后换原对象方法无效。改为在TEMP按原codingAuthor公开装配顺序复用transferFixture，先包装原reader再创建host。首轮脚本和TAP保存在 `baseline-reader-hook-miss.mjs`、`baseline-reader-hook-miss.tap`，不计作性能RED或“0次校验”证据。
+
+有效命令：`node --experimental-strip-types --test --test-name-pattern="SOURCE COS83" C:/Users/26557/AppData/Local/Temp/cos83-tool-scope/baseline.mjs`。原始 `baseline.mjs`、`baseline.json`、`baseline.tap` 均保存在该目录。结果1/1、0skip，退出0，test36580.1998ms/TAP40257.063ms。
+
+| 实际调用 | scopeCalls | toolElapsedMs | requestedDelayTotalMs | 实际延迟累计ms | reader累计ms |
+| --- | --- | --- | --- | --- | --- |
+| 第一次，0ms延迟 | 160 | 11544.607 | 0 | 0 | 48.108 |
+| 第二次，每次请求5ms延迟 | 160 | 13847.8701 | 800 | 2067.3611 | 2154.5817 |
+
+setup10817.4109ms/337次scope在测量区间外。5ms定时器实际累计明显大于请求800ms，因此不把预设延迟当实际耗时。工具从真实factory的config.tools取出执行，包含entrypoint-host启用的beforeTool→requireDispatch；不是直接调用裸checker。两次均真实启动typecheck/build两个owned worker及合成compiler，codes[0,0]、所有worker/compiler PID退出，原snapshot/registry/author字节保持、network0；TAP正常结束包含owner/目录清理。没有C10 inherited或实际Git-reader成本实测，160不能与静态60/94直接比较。
+
+该反馈能确定当前工具仍有大量scope读取，且两次独立调用均重新读取；生产候选的实际降幅必须在阶段二GREEN测得后报告，不先声称提速比例。状态：阶段一完成 / 阶段二生产方案待独审 / SOURCE_NOT_READY。
