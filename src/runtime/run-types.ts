@@ -1,6 +1,6 @@
 import type { ArtifactReference, BudgetLedger, RunManifest, TaskContract } from '../contracts/index.ts';
 import type { ContinuationQuote } from './continuation-quote.ts';
-import type { ValidationAllocationClosureReceipt, ValidationProfile, ValidationRequestMetadata } from './validation-types.ts';
+import type { ValidationAllocationClosureReceipt, ValidationGroupSupplementReceipt, ValidationProfile, ValidationRequestMetadata } from './validation-types.ts';
 
 export interface RequestInput {
   requestId: string;
@@ -25,7 +25,7 @@ export interface StopReason {
 export interface RunEvent {
   sequence: number;
   at: string;
-  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved' | 'generation_activated' | 'run_owner_drained' | 'continuation_activated' | 'window_stopped' | 'window_owner_drained' | 'window_owner_resumed' | 'validation_case_claimed' | 'validation_case_stopped' | 'validation_repair_claimed' | 'validation_allocation_closed';
+  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved' | 'generation_activated' | 'run_owner_drained' | 'continuation_activated' | 'window_stopped' | 'window_owner_drained' | 'window_owner_resumed' | 'validation_case_claimed' | 'validation_case_stopped' | 'validation_repair_claimed' | 'validation_allocation_closed' | 'validation_group_supplemented';
   requestId: string | null;
   reason: string;
 }
@@ -43,6 +43,7 @@ export interface RunSnapshot {
   continuation?: { currentWindowId: string; windows: ExecutionWindow[] };
   validation?: ValidationProfile;
   allocationClosureDecisions?: ValidationAllocationClosureReceipt[];
+  allocationSupplementDecisions?: ValidationGroupSupplementReceipt[];
 }
 
 /** Supplied only by the trusted host after collecting a real user decision. */

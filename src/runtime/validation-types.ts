@@ -26,6 +26,7 @@ export interface ValidationBudgetGroupBinding {
   parentAllocation: { index: number; taskId: 'COS-16'; amountMicroCny: 10_000_000; sha256: string; source: ArtifactReference };
   authorizationDecisionId: string | null; memberCaseIds: string[];
   committedMicroCny: number; allocatedMicroCny: number; availableAllocationMicroCny: number;
+  supplement?: { decisionId: string; limitMicroCny: number };
 }
 
 export interface ValidationIdentity { reviewedPlatformSha: string; frozenCaseInputHash: string }
@@ -37,7 +38,7 @@ export interface ValidationContextOptions {
   identityTimeoutMs?: number; now?: () => number; signal?: AbortSignal;
 }
 export interface ValidationCaseQuote {
-  formatVersion: 'validation-case-quote-1' | 'validation-case-quote-2'; profile: 'operator_validation'; activationAllowed: false; quoteId: string;
+  formatVersion: 'validation-case-quote-1' | 'validation-case-quote-2' | 'validation-case-quote-3'; profile: 'operator_validation'; activationAllowed: false; quoteId: string;
   declaration: ValidationDeclaration; identity: ValidationIdentity;
   requirements: { specVersion: string; requirementVersion: string; acceptanceIds: string[]; stageAcceptanceIds: string[] };
   basis: {
@@ -77,7 +78,7 @@ export interface OpenValidationCaseOptions extends ValidationContextOptions { ca
 export interface ClaimValidationCaseOptions extends ValidationContextOptions { quote: ValidationCaseQuote; decision: OperatorValidationDecision }
 
 export interface ValidationAllocationClosureQuote {
-  formatVersion: 'validation-allocation-closure-quote-1' | 'validation-allocation-closure-quote-2'; profile: 'operator_validation_allocation_closure'; activationAllowed: false; quoteId: string;
+  formatVersion: 'validation-allocation-closure-quote-1' | 'validation-allocation-closure-quote-2' | 'validation-allocation-closure-quote-3'; profile: 'operator_validation_allocation_closure'; activationAllowed: false; quoteId: string;
   identity: ValidationIdentity;
   basis: {
     runId: string; ledgerId: string; specVersion: string; revision: number; snapshotSha256: string; currentCaseId: string;
@@ -85,6 +86,7 @@ export interface ValidationAllocationClosureQuote {
     allocatedMicroCny: number; committedMicroCny: number;
     allocations: BudgetLedger['allocations']; entries: LedgerEntry[]; requests: RunSnapshot['requests'];
     allocationDelegations?: NonNullable<BudgetLedger['allocationDelegations']>;
+    allocationSupplements?: NonNullable<BudgetLedger['allocationSupplements']>;
   };
   cases: {
     caseId: string; artifactRoot: string; windowId: string; stopReason: StopReason;
@@ -104,4 +106,28 @@ export interface ValidationAllocationClosureReceipt {
 export interface PrepareValidationAllocationClosureOptions extends ValidationContextOptions { caseIds: string[] }
 export interface ApplyValidationAllocationClosureOptions extends ValidationContextOptions {
   quote: ValidationAllocationClosureQuote; decision: OperatorValidationAllocationClosureDecision;
+}
+
+export interface ValidationGroupSupplementQuote {
+  formatVersion: 'validation-group-supplement-quote-1'; profile: 'operator_validation_group_supplement'; activationAllowed: false; quoteId: string;
+  identity: ValidationIdentity;
+  basis: {
+    runId: string; ledgerId: string; specVersion: string; revision: number; snapshotSha256: string; currentCaseId: string;
+    originalStartedAt: string; originalDeadlineAt: string; originalLimitMicroCny: number;
+    allocatedMicroCny: number; committedMicroCny: number; unallocatedMicroCny: number;
+    allocationCount: number; entryCount: number; caseCount: number; closureDecisionCount: number; taskCount: number; eventCount: number; historySha256: string;
+  };
+  parentAllocation: ValidationBudgetGroupBinding['parentAllocation']; authorizationDecisionId: string;
+  group: { limitMicroCny: number; allocatedMicroCny: number; committedMicroCny: number; availableAllocationMicroCny: number };
+  targetCaseId: string; additionalMicroCny: number; grants: ValidationDeclaration['grants'];
+}
+export interface OperatorValidationGroupSupplementDecision {
+  kind: 'operator_validation_group_supplement'; decisionId: string; actorId: string; decidedAt: string; source: ArtifactReference; sourceRefs: ArtifactReference[];
+}
+export interface ValidationGroupSupplementReceipt {
+  appliedAt: string; quote: ValidationGroupSupplementQuote;
+  operatorDecision: OperatorValidationGroupSupplementDecision & { sourceSha256: string };
+}
+export interface ApplyValidationGroupSupplementOptions extends ValidationContextOptions {
+  quote: ValidationGroupSupplementQuote; decision: OperatorValidationGroupSupplementDecision;
 }

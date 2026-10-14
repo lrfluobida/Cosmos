@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 89
+    "childCount": 91
   },
   "tasks": [
     {
@@ -7217,8 +7217,114 @@
       "actualValidation": "NONE",
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE"
+    },
+    {
+      "taskId": "COS-90",
+      "title": "同账本固定验证预算组补充分配",
+      "number": 91,
+      "id": 5854823746,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/91",
+      "dependsOn": [
+        "COS-42",
+        "COS-88",
+        "COS-89"
+      ],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "stateReason": "completed",
+      "integrationStatus": "complete",
+      "implementationPhase": "scoped-complete",
+      "reviewStatus": "VALIDATION_GROUP_SUPPLEMENT_SOURCE_READY",
+      "targetReviewStatus": "VALIDATION_GROUP_SUPPLEMENT_SOURCE_READY",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/91#issuecomment-6178073975",
+      "sourcePublicationMain": "d868de09a67f10aa4c2d6c5919e55be543ea0c88",
+      "sourceReviewStatus": "APPROVED",
+      "reviewedCommit": "ca350ea612c924150e9f4501932a5799e4fcfbc4",
+      "mergeCommit": "7b676094fc16ddb3012804fdc3c78502f34fd0ab",
+      "sourceReviewFindings": [],
+      "implementationBase": "3b2002ddd1541e20580e123ded819137dcc23e4c",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "0bd6683fd7ec80405da6ebb143e6c4b05715a6c8",
+      "planReviewComment": "https://github.com/lrfluobida/Cosmos/issues/91#issuecomment-6177529514",
+      "planReviewFindings": [],
+      "planPath": "docs/plans/2026-10-15-cos90-validation-group-supplement.md",
+      "taskCardPath": "docs/specs/cos90-validation-group-supplement.md",
+      "implementer": "cos90_implementer",
+      "reviewer": "cos90_reviewer",
+      "merger": "batch_cos90_91_merger",
+      "validationEvidence": {
+        "authorNewPassed": 7,
+        "authorOldPassedReused": 98,
+        "authorCorrectedFixturePassed": 1,
+        "authorBudgetPassed": 3,
+        "authorAffectedStrictExit": 0,
+        "mainTypecheckExit": 0,
+        "mainBuildExit": 0,
+        "mainFocusedPassed": 2,
+        "mainSkipped": 0,
+        "mainTapMs": 2025.8667,
+        "mainRaw": [
+          "C:/Users/26557/AppData/Local/Temp/cos90-merge-typecheck.log",
+          "C:/Users/26557/AppData/Local/Temp/cos90-merge-build.log",
+          "C:/Users/26557/AppData/Local/Temp/cos90-merge-focused.tap"
+        ],
+        "evidenceScope": "free-source-and-synthetic-fixtures-only"
+      },
+      "mainFreeze": {
+        "status": "unfrozen",
+        "releaseAuthority": "Root"
+      },
+      "workScope": "free-source-and-synthetic-fixtures-only",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualSupplementApply": "NONE",
+      "liveLedger": {
+        "revision": 2965,
+        "parentLimitMicroCny": 10000000,
+        "parentAvailableMicroCny": 899686,
+        "sharedSettledMicroCny": 16108937
+      }
+    },
+    {
+      "taskId": "COS-91",
+      "title": "补充分配后的固定迁移C14",
+      "number": 92,
+      "id": 5855021876,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/92",
+      "dependsOn": [
+        "COS-88",
+        "COS-89",
+        "COS-90"
+      ],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "plan-approved",
+      "implementationPhase": "planned",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "targetReviewStatus": "TRANSFER_CASE_FOURTEEN_SOURCE_READY",
+      "planReviewStatus": "PLAN_APPROVED",
+      "planReviewedCommit": "dfe83f13c425a8952e1987adb7043eae37170a3b",
+      "planReviewComment": "https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6177975415",
+      "planReviewFindings": [],
+      "planPath": "docs/plans/2026-10-15-cos91-transfer-case14.md",
+      "taskCardPath": "docs/specs/cos91-transfer-case14.md",
+      "implementer": "cos91_implementer",
+      "reviewer": "cos91_reviewer",
+      "merger": "batch_cos90_91_merger",
+      "mainFreeze": {
+        "status": "unfrozen",
+        "releaseAuthority": "Root"
+      },
+      "workScope": "free-source-and-synthetic-fixtures-only",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualSupplementApply": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 89,
+  "verifiedNativeSubIssues": 91,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

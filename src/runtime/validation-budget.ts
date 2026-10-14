@@ -5,6 +5,7 @@ import { COS16_GROUP_GRANTS, validationBudgetGroup } from '../contracts/budget.t
 import type { BudgetLedger } from '../contracts/types.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ValidationBudgetGroupBinding, ValidationCaseQuote, ValidationDeclaration } from './validation-types.ts';
+import { historicalSupplements } from './validation-group-supplement-validation.ts';
 
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
 function requireThat(condition: unknown, message: string): asserts condition { if (!condition) throw new Error('COS-16 budget group: ' + message); }
@@ -12,7 +13,7 @@ function requireThat(condition: unknown, message: string): asserts condition { i
 /** Read-only exact parent source; the operator receipt authorizes this complete quote. */
 export function prepareValidationBudgetGroup(state: RunSnapshot, declaration: ValidationDeclaration): ValidationBudgetGroupBinding | undefined {
   if (declaration.formatVersion !== 'validation-declaration-3') return undefined;
-  requireThat(state.formatVersion === 3 && ['3.0.0', '4.0.0'].includes(state.ledger.contractVersion), 'requires the existing audited validation ledger.');
+  requireThat(state.formatVersion === 3 && ['3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion), 'requires the existing audited validation ledger.');
   const index = state.ledger.allocations.findIndex(item => item.taskId === 'COS-16'), parent = state.ledger.allocations[index];
   requireThat(parent?.amountMicroCny === 10_000_000 && !state.ledger.allocationClosures?.some(item => item.taskId === 'COS-16'), 'original parent allocation is missing, changed or closed.');
   const delegations = state.ledger.allocationDelegations ?? [], group = validationBudgetGroup(state.ledger);
@@ -23,10 +24,14 @@ export function prepareValidationBudgetGroup(state: RunSnapshot, declaration: Va
   const parentAllocation = first?.quote.budgetGroup?.parentAllocation ?? { index, taskId: 'COS-16' as const, amountMicroCny: 10_000_000 as const,
     sha256: hash(JSON.stringify(parent)), source: { artifactId: 'original-COS-16-allocation', version: `revision-${state.revision}`, location: `snapshot.json#ledger/allocations/${index}` } };
   requireThat(parentAllocation.index === index && parentAllocation.sha256 === hash(JSON.stringify(parent)), 'immutable parent allocation source changed.');
-  const amount = Object.values(declaration.grants).reduce((sum, item) => sum + item.amountMicroCny, 0), availableAllocationMicroCny = 10_000_000 - allocatedMicroCny;
-  requireThat(Number.isSafeInteger(availableAllocationMicroCny) && amount <= availableAllocationMicroCny && committedMicroCny <= 10_000_000, 'new child grants exceed remaining original group capacity.');
+  const supplement = state.ledger.contractVersion === '5.0.0' ? state.ledger.allocationSupplements![0] : undefined;
+  if (supplement) requireThat(declaration.caseId === supplement.targetCaseId && sameValue(declaration.grants, supplement.grants), 'supplement requires the fixed target case and complete grant vector.');
+  const limitMicroCny = group?.limitMicroCny ?? 10_000_000;
+  const amount = Object.values(declaration.grants).reduce((sum, item) => sum + item.amountMicroCny, 0), availableAllocationMicroCny = limitMicroCny - allocatedMicroCny;
+  requireThat(Number.isSafeInteger(availableAllocationMicroCny) && amount <= availableAllocationMicroCny && committedMicroCny <= limitMicroCny, 'new child grants exceed remaining authenticated group capacity.');
   return { parentAllocation: structuredClone(parentAllocation), authorizationDecisionId: delegations[0]?.authorizationDecisionId ?? null,
-    memberCaseIds: delegations.map(item => item.caseId), committedMicroCny, allocatedMicroCny, availableAllocationMicroCny };
+    memberCaseIds: delegations.map(item => item.caseId), committedMicroCny, allocatedMicroCny, availableAllocationMicroCny,
+    ...(supplement ? { supplement: { decisionId: supplement.decisionId, limitMicroCny } } : {}) };
 }
 
 /** The old audit prefixes retain their original capacity; only ledger4 delegations are projected. */
@@ -36,8 +41,8 @@ export function historicalDelegations(state: RunSnapshot, allocations: BudgetLed
 
 export function validateValidationBudgetGroups(state: RunSnapshot): void {
   const grouped = state.validation?.cases.filter(item => item.quote.declaration.formatVersion === 'validation-declaration-3') ?? [];
-  if (!grouped.length) { requireThat(state.ledger.contractVersion !== '4.0.0' && state.ledger.allocationDelegations === undefined, 'ledger4 requires authenticated grouped cases.'); return; }
-  requireThat(state.formatVersion === 3 && state.ledger.contractVersion === '4.0.0', 'grouped cases require the explicit ledger4 contract.');
+  if (!grouped.length) { requireThat(!['4.0.0', '5.0.0'].includes(state.ledger.contractVersion) && state.ledger.allocationDelegations === undefined, 'group ledger requires authenticated grouped cases.'); return; }
+  requireThat(state.formatVersion === 3 && ['4.0.0', '5.0.0'].includes(state.ledger.contractVersion), 'grouped cases require the explicit group ledger contract.');
   const expected: NonNullable<BudgetLedger['allocationDelegations']> = [], firstDecision = grouped[0].operatorDecision.decisionId;
   for (const window of grouped) {
     const quote = window.quote, grantIds = (Object.keys(COS16_GROUP_GRANTS) as (keyof typeof COS16_GROUP_GRANTS)[]).map(role => quote.declaration.grants[role].taskId);
@@ -45,12 +50,14 @@ export function validateValidationBudgetGroups(state: RunSnapshot): void {
     requireThat(start >= 0 && sameValue(state.ledger.allocations.slice(start, start + 5).map(item => item.taskId), grantIds), 'child grants are not the exact appended case envelope.');
     const oldClosures = (state.allocationClosureDecisions ?? []).filter(item => item.quote.basis.revision < quote.basis.revision)
       .flatMap(item => item.quote.closures.map(closure => ({ taskId: closure.taskId, decisionId: item.operatorDecision.decisionId, releasedMicroCny: closure.releasedMicroCny })));
+    const supplements = historicalSupplements(state, quote.basis.revision);
     const prior: RunSnapshot = { ...state, revision: quote.basis.revision,
-      ledger: { ...state.ledger, contractVersion: expected.length ? '4.0.0' : '3.0.0', allocations: state.ledger.allocations.slice(0, start),
+      ledger: { ...state.ledger, contractVersion: supplements.length ? '5.0.0' : expected.length ? '4.0.0' : '3.0.0', allocations: state.ledger.allocations.slice(0, start),
         entries: state.ledger.entries.filter(item => quote.basis.requestIds.includes(item.requestId)), allocationClosures: oldClosures,
+        allocationSupplements: supplements.length ? supplements : undefined,
         ...(expected.length ? { allocationDelegations: structuredClone(expected) } : { allocationDelegations: undefined }) },
       validation: { ...state.validation!, cases: state.validation!.cases.filter(item => item.quote.basis.revision < quote.basis.revision) } };
-    requireThat(quote.formatVersion === 'validation-case-quote-2' && sameValue(quote.budgetGroup, prepareValidationBudgetGroup(prior, quote.declaration)), 'parent source, group basis or historical membership changed.');
+    requireThat(quote.formatVersion === (supplements.length ? 'validation-case-quote-3' : 'validation-case-quote-2') && sameValue(quote.budgetGroup, prepareValidationBudgetGroup(prior, quote.declaration)), 'parent source, group basis or historical membership changed.');
     if (!expected.length) requireThat(quote.budgetGroup!.parentAllocation.source.version === `revision-${quote.basis.revision}`
       && quote.budgetGroup!.parentAllocation.source.artifactId === 'original-COS-16-allocation'
       && quote.budgetGroup!.parentAllocation.source.location === `snapshot.json#ledger/allocations/${quote.budgetGroup!.parentAllocation.index}`, 'parent allocation reference changed.');
@@ -61,12 +68,17 @@ export function validateValidationBudgetGroups(state: RunSnapshot): void {
 
 /** Re-read actual source bytes before every grouped provider/tool/child dispatch. */
 export async function verifyValidationBudgetSources(root: string, state: RunSnapshot): Promise<void> {
-  if (state.ledger.contractVersion !== '4.0.0') return;
+  if (!['4.0.0', '5.0.0'].includes(state.ledger.contractVersion)) return;
   for (const delegation of state.ledger.allocationDelegations!) {
     const window = state.validation!.cases.find(item => item.caseId === delegation.caseId)!;
     const { sourceSha256, source, ...decision } = window.operatorDecision;
     const bytes = await regularFile(root, source.location), value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     requireThat(hash(bytes) === sourceSha256 && sameValue(value, { formatVersion: 'operator-validation-decision-1', ...decision, quote: window.quote }), 'actual operator delegation source changed.');
+  }
+  for (const receipt of state.allocationSupplementDecisions ?? []) {
+    const { sourceSha256, source, ...decision } = receipt.operatorDecision;
+    const bytes = await regularFile(root, source.location), value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    requireThat(hash(bytes) === sourceSha256 && sameValue(value, { formatVersion: 'operator-validation-group-supplement-decision-1', ...decision, quote: receipt.quote }), 'actual operator supplement source changed.');
   }
 }
 
