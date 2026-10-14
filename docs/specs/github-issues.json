@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 84
+    "childCount": 85
   },
   "tasks": [
     {
@@ -507,8 +507,8 @@
       "integrationStatus": "partial",
       "liveValidationStatus": "native-transfer-coding-insufficient-evidence",
       "actualTransferValidated": false,
-      "actualTransferCaseId": "cos20-transfer-validation-7",
-      "actualTransferResultRef": "COS-60.actualTransferResult",
+      "actualTransferCaseId": "cos20-transfer-validation-11",
+      "actualTransferResultRef": "COS-84.actualTransferResult",
       "historicalTransferCaseSixComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5988185221",
       "liveValidationHistory": [
         {
@@ -535,6 +535,11 @@
           "caseId": "cos20-transfer-validation-5",
           "status": "native-transfer-coding-deadline-failed",
           "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5984507367"
+        },
+        {
+          "caseId": "cos20-transfer-validation-11",
+          "status": "native-transfer-coding-insufficient-evidence",
+          "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637"
         }
       ],
       "historicalTransferCaseSixResult": {
@@ -6581,11 +6586,13 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/85",
       "dependsOn": ["COS-82", "COS-83"],
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "integrationStatus": "source-integrated",
-      "implementationPhase": "source-integrated",
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "stateReason": "completed",
+      "integrationStatus": "complete",
+      "implementationPhase": "scoped-complete",
       "reviewStatus": "TRANSFER_CASE_ELEVEN_SOURCE_READY",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6169906507",
       "targetReviewStatus": "TRANSFER_CASE_ELEVEN_SOURCE_READY",
       "sourceReviewStatus": "APPROVED",
       "reviewedCommit": "7173766a02700179a5017e49676bf880bc812940",
@@ -6615,8 +6622,8 @@
         "coding": 2400000,
         "repair": 599997
       },
-      "operationalScriptReviewStatus": "readonly-reviewed-not-executed",
-      "liveExecutionStatus": "awaiting-root-free-preflight",
+      "operationalScriptReviewStatus": "reviewed-executed-by-root-case-consumed",
+      "liveExecutionStatus": "output-truncated-closure17-complete",
       "validationEvidence": {
         "authorUnitRedFailed": 6,
         "authorUnitPassed": 12,
@@ -6634,12 +6641,136 @@
         "mainTapMs": 5119.302,
         "mainRaw": "C:/Users/26557/AppData/Local/Temp/cos84-merge-integration.tap"
       },
+      "actualValidation": "native-coding-insufficient-evidence-output-truncated",
+      "actualPaid": "1336555 micro-CNY",
+      "actualTransferResult": {
+        "caseId": "cos20-transfer-validation-11",
+        "frozenSource": "2a7a291389b58bbd7dd4e4a4f34a61f7237e0141",
+        "startedAt": "2026-10-14T13:54:37.457Z",
+        "deadlineAt": "2026-10-14T14:39:37.457Z",
+        "endedAt": "2026-10-14T14:25:41.350Z",
+        "elapsedMs": 1863893,
+        "admittedRequests": 41,
+        "settledRequests": 41,
+        "deltaSettledMicroCny": 1336555,
+        "totalSettledMicroCny": 12802875,
+        "taskHistoryCoding": "failed",
+        "classification": "insufficient_evidence",
+        "journal": "origin-only",
+        "hostResultPresent": true,
+        "hostAndResultAgree": true,
+        "handoff": false,
+        "capture": false,
+        "candidateFiles": 0,
+        "formalBuild": false,
+        "browser": false,
+        "review": false,
+        "repair": false,
+        "accepted": false,
+        "human": "NONE",
+        "authorFileCount": 6,
+        "authorBytes": 37377,
+        "matchesSuccessfulCheckOriginalSourceBytes": true,
+        "successfulCheckDirectoryName": "check-M040lo",
+        "independentFileReviewer": "cos77_implementer",
+        "c5ExecutionOriginDependencyStatus": "passed",
+        "authorSelfChecks": [{
+          "startedAt": "2026-10-14T14:14:59.726Z",
+          "endedAt": "2026-10-14T14:18:24.375Z",
+          "codes": [0, 0],
+          "toolElapsedMs": 204649,
+          "viteReportedMs": 844,
+          "scope": "author-self-check-only-not-formal-acceptance"
+        }],
+        "lastRequest": {
+          "requestId": "8f3f9ec7-7f13-475b-ab50-a4ff8ac59255",
+          "admittedAt": "2026-10-14T14:24:42.521Z",
+          "purpose": "author",
+          "maxOutputTokens": 8192,
+          "inputBytes": 38376,
+          "stopReason": "length",
+          "inputTokens": 10364,
+          "outputTokens": 8192,
+          "reasoningTokens": 1209,
+          "elapsedMs": 28624.7745,
+          "settledMicroCny": 86264,
+          "errorObservedAt": "2026-10-14T14:25:11.938Z",
+          "error": "Provider output was truncated; task is incomplete",
+          "summaryPhaseInference": "source-supported-not-directly-tagged-in-billing"
+        },
+        "rootToolMetadata": {
+          "successfulNativeCompactions": 5,
+          "lastSuccessfulCompactionAt": "2026-10-14T14:23:47.794Z",
+          "checkpointAfterLastRequest": false,
+          "read": 39,
+          "write": 6,
+          "edit": 2,
+          "check": 1,
+          "currentPlanReadCalls": 18,
+          "currentPlanReadCallsAfterSuccessfulCompile": 13,
+          "readScopeTimeouts": 3,
+          "unauthorizedPhaserTypeReadRejected": 1,
+          "scopeTimeoutInnerCause": "not-determined",
+          "motiveInference": "NONE"
+        },
+        "ownerCleanup": {
+          "launcherAndNodeAbsent": true,
+          "checkWorkersAbsent": true,
+          "ownersAndLocksAbsent": true,
+          "mainFreezeReleasedByRoot": true
+        },
+        "closure17AppliedOnce": true,
+        "revision": 2555,
+        "cases": 19,
+        "allCasesStopped": true,
+        "delegations": 11,
+        "closedGrants": 95,
+        "closureAudits": 17,
+        "releasedMicroCny": 1663445,
+        "unknownRequests": 0,
+        "totalReservedMicroCny": 0,
+        "historicalCostsPreserved": true,
+        "publicResults": {
+          "cos16": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637",
+          "c11Entry": "https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6170782350"
+        },
+        "researchPath": "docs/research/2026-10-14-transfer-c11-summary-truncation.md"
+      },
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE"
+    },
+    {
+      "taskId": "COS-85",
+      "title": "保留可选摘要截断后的原作者会话",
+      "number": 86,
+      "id": 5849778421,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/86",
+      "dependsOn": [
+        "COS-79",
+        "COS-84"
+      ],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "plan-review",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "targetReviewStatus": "OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY",
+      "sourceReviewStatus": "PENDING",
+      "planReviewStatus": "PENDING",
+      "planCandidateCommit": "c108e9a797e708167f289d8b05227900be765a80",
+      "plannedPlanPath": "docs/plans/2026-10-14-cos85-optional-compaction-truncation.md",
+      "plannedTaskCardPath": "docs/specs/cos85-optional-compaction-truncation.md",
+      "implementer": "cos76_implementer",
+      "reviewer": "cos77_implementer",
+      "merger": "batch75_76_merger",
+      "workScope": "free-source-and-synthetic-fixtures-only",
       "actualValidation": "NONE",
       "actualPaid": "NONE",
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 84,
+  "verifiedNativeSubIssues": 85,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
