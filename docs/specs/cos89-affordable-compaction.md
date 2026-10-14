@@ -1,6 +1,6 @@
 # COS89 避免在编码请求仍可准入时提前压缩上下文
 
-状态：**AFFORDABLE_CODING_COMPACTION_SOURCE_READY / source-integrated / pending-public-closure**。Issue [#90](https://github.com/lrfluobida/Cosmos/issues/90)，id5854211592；父#1，依赖COS79/COS85/COS88。[实施计划](../plans/2026-10-15-cos89-affordable-compaction.md)。专属implementer `cos89_implementer`，独立reviewer `cos89_reviewer`，唯一merger `batch_c13_cos89_merger`。计划exact `66c51d6a05c5d833242ade918f480a5655926859` 已独立批准、无阻塞finding。
+状态：**AFFORDABLE_CODING_COMPACTION_SOURCE_READY / source scoped complete / closed**。Issue [#90](https://github.com/lrfluobida/Cosmos/issues/90)，id5854211592；父#1，依赖COS79/COS85/COS88。[实施计划](../plans/2026-10-15-cos89-affordable-compaction.md)。专属implementer `cos89_implementer`，独立reviewer `cos89_reviewer`，唯一merger `batch_c13_cos89_merger`。计划exact `66c51d6a05c5d833242ade918f480a5655926859` 已独立批准、无阻塞finding。
 
 ## 问题与范围
 
@@ -30,6 +30,6 @@ dist7/7、typecheck/build/affected strict退出0；strict补项目已有allowJs�
 
 ## 独立批准与主线集成
 
-[COS89 / #90](https://github.com/lrfluobida/Cosmos/issues/90)，id5854211592，父#1当前89个原生子项，依赖COS79/85/88。计划 `66c51d6a05c5d833242ade918f480a5655926859` 已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/90#issuecomment-6177021623)。最终 `b35124a8e48e532bda530607cfa04e25b3e1b57c` 经 `cos89_reviewer` 独立规格→质量APPROVED，无finding；唯一 `batch_c13_cos89_merger` 合入 `11c823a7fd1358cb570b1b80edd4b3300ee0115b`，标记 `AFFORDABLE_CODING_COMPACTION_SOURCE_READY`，source-integrated/pending-public-closure。仅普通既有输出下限 `min(4096, cap)` 无法负担时才选择预算摘要；原预算、来源、身份、输出及准入守卫保持。主线typecheck/build退出0，compiled7/7、0skip；作者factory28/28、native31+修正2/2及strict按独审证据复用。免费fixture不证明实际游戏改善；main保持unfrozen，没有新增付费运行。
+[COS89 / #90](https://github.com/lrfluobida/Cosmos/issues/90)，id5854211592，父#1当前89个原生子项，依赖COS79/85/88。计划 `66c51d6a05c5d833242ade918f480a5655926859` 已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/90#issuecomment-6177021623)。最终 `b35124a8e48e532bda530607cfa04e25b3e1b57c` 经 `cos89_reviewer` 独立规格→质量APPROVED，无finding；唯一 `batch_c13_cos89_merger` 合入 `11c823a7fd1358cb570b1b80edd4b3300ee0115b`，标记 `AFFORDABLE_CODING_COMPACTION_SOURCE_READY`，source scoped complete/closed；[公开批准与关闭](https://github.com/lrfluobida/Cosmos/issues/90#issuecomment-6177248473)、closed(completed)及父勾选已由Root精确读回。仅普通既有输出下限 `min(4096, cap)` 无法负担时才选择预算摘要；原预算、来源、身份、输出及准入守卫保持。主线typecheck/build退出0，compiled7/7、0skip；作者factory28/28、native31+修正2/2及strict按独审证据复用。免费fixture不证明实际游戏改善；main保持unfrozen，没有新增付费运行。
 
 合并提交 `11c823a7fd1358cb570b1b80edd4b3300ee0115b` 的六个批准路径与作者提交逐字节一致；结果报告另由 `cos88_reviewer` 批准。主线compiled TAP 7209.762ms，覆盖完整/缩减/等额普通输出、临时真实reserve/cancel、单笔/split length续行及摘要自身准入拒绝。原始输出为 `C:/Users/26557/AppData/Local/Temp/cos89-merge-typecheck.log`、`cos89-merge-build.log`、`cos89-merge-compiled.tap`。不重跑长SOURCE、真实case或closure，不访问付费凭据。

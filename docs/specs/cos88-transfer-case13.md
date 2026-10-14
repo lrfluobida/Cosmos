@@ -10,7 +10,7 @@ C13在冻结版本`388defc543ab4445b5446be6618215a61785168c`运行26分26.253秒
 
 作者只有空src、0源码文件，53次read/53个tool results/0个tool errors，write/edit/check均0；当前计划v1/v2读取调用为30/1次，不代表每次完整读取。C5 design/art仍passed，journal只有origin、候选为空；registry保留7个C5输入及3个C13计划/需求capture，无编码handoff、游戏capture或正式build/browser/review/repair/accepted，用户体验未确认。10次成功原生压缩后，末次付费响应为8192输出length；是否为可选预算摘要仍是源码及时序推断，请求kind未持久化。条件成立时原projection普通输出下限至少需294912µ，超过剩余258864µ；未取得被拒请求的精确输入字节数。
 
-Root已一次完成closure19，释放¥0.858864；revision2965、21stopped/13delegations/105closed/19audits，旧费用与历史保持，进程及owner/locks已清理并解除main冻结。原COS16组可分配¥0.899686，C13不能重跑或延长。[COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6176958554)与[C13结果](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6176959551)已由Root精确读回。完整时间、压缩预算推断和后续边界见[研究记录](../research/2026-10-15-transfer-c13-compaction-budget.md)；COS89最终 `b35124a8` 已经独审APPROVED并合入 `11c823a7`，源码范围待公开关闭；免费fixture不证明实际游戏改善。COS16/COS18、完整经典及human仍未完成。下文保留源码准备及集成时的历史记录。
+Root已一次完成closure19，释放¥0.858864；revision2965、21stopped/13delegations/105closed/19audits，旧费用与历史保持，进程及owner/locks已清理并解除main冻结。原COS16组可分配¥0.899686，C13不能重跑或延长。[COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6176958554)与[C13结果](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6176959551)已由Root精确读回。完整时间、压缩预算推断和后续边界见[研究记录](../research/2026-10-15-transfer-c13-compaction-budget.md)；COS89最终 `b35124a8` 已经独审APPROVED并合入 `11c823a7`，已[在源码范围公开关闭](https://github.com/lrfluobida/Cosmos/issues/90#issuecomment-6177248473)；免费fixture不证明实际游戏改善。COS16/COS18、完整经典及human仍未完成。下文保留源码准备及集成时的历史记录。
 
 ## 前提与目标
 

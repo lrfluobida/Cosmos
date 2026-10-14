@@ -2,7 +2,7 @@
 
 更新时间：2026-10-15
 
-用户于2026-10-14授权在原¥150总额内持续推进。C13已failed并完成closure19，main冻结已由Root解除；COS87/88保持源码范围公开关闭，COS89已独审集成、待Root公开关闭。本批未新增付费运行。
+用户于2026-10-14授权在原¥150总额内持续推进。C13已failed并完成closure19，main冻结已由Root解除；COS87/88保持源码范围公开关闭，COS89已独审集成并在源码范围公开关闭。本批未新增付费运行。
 
 ## C13准入拒绝，未产出源码
 
@@ -12,7 +12,7 @@
 
 ## COS89可负担编码上下文保留已审集成
 
-- [COS89 / #90](https://github.com/lrfluobida/Cosmos/issues/90)，id5854211592，父#1当前89个原生子项，依赖COS79/85/88。计划 `66c51d6a05c5d833242ade918f480a5655926859` 已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/90#issuecomment-6177021623)。最终 `b35124a8e48e532bda530607cfa04e25b3e1b57c` 经 `cos89_reviewer` 独立规格→质量APPROVED，无finding；唯一 `batch_c13_cos89_merger` 合入 `11c823a7fd1358cb570b1b80edd4b3300ee0115b`，标记 `AFFORDABLE_CODING_COMPACTION_SOURCE_READY`，source-integrated/pending-public-closure。仅普通既有输出下限 `min(4096, cap)` 无法负担时才选择预算摘要；原预算、来源、身份、输出及准入守卫保持。主线typecheck/build退出0，compiled7/7、0skip；作者factory28/28、native31+修正2/2及strict按独审证据复用。免费fixture不证明实际游戏改善；main保持unfrozen，没有新增付费运行。
+- [COS89 / #90](https://github.com/lrfluobida/Cosmos/issues/90)，id5854211592，父#1当前89个原生子项，依赖COS79/85/88。计划 `66c51d6a05c5d833242ade918f480a5655926859` 已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/90#issuecomment-6177021623)。最终 `b35124a8e48e532bda530607cfa04e25b3e1b57c` 经 `cos89_reviewer` 独立规格→质量APPROVED，无finding；唯一 `batch_c13_cos89_merger` 合入 `11c823a7fd1358cb570b1b80edd4b3300ee0115b`，标记 `AFFORDABLE_CODING_COMPACTION_SOURCE_READY`，source scoped complete/closed；[公开批准与关闭](https://github.com/lrfluobida/Cosmos/issues/90#issuecomment-6177248473)、closed(completed)及父勾选已由Root精确读回。仅普通既有输出下限 `min(4096, cap)` 无法负担时才选择预算摘要；原预算、来源、身份、输出及准入守卫保持。主线typecheck/build退出0，compiled7/7、0skip；作者factory28/28、native31+修正2/2及strict按独审证据复用。免费fixture不证明实际游戏改善；main保持unfrozen，没有新增付费运行。
 
 ## C12历史：截止取消，末次作者自检失败
 
