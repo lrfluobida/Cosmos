@@ -2,7 +2,7 @@
 
 更新时间：2026-10-15
 
-用户于2026-10-14授权在原¥150总额内持续推进，最近单轮上限为¥3、45分钟。C12已结束，新增费用¥1.664926，未使用额度已通过closure18释放；本批只归档结果与参考名称证据，不启动新案例或付费。
+用户于2026-10-14授权在原¥150总额内持续推进，C12采用¥3、45分钟上限，已结束并新增费用¥1.664926，未使用额度已通过closure18释放。本次集成COS87免费源码优化；COS88仅准备更低¥2.50上限的C13，尚未批准或执行。
 
 ## C12截止取消，末次作者自检失败
 
@@ -15,10 +15,17 @@
 
 - C12文档 `923ff949f5bc03ac48092e1398588c539bc38eeb` 经 `c12_docs_reviewer` 独立APPROVED，合入 `1ea1ec27932b38a02124d66bfd59ec527541e3d5`；参考名称文档与数据 `b850459f88b1743627b033a87a404bcfc8f9f83e` 经 `reference_mapping_docs_reviewer` 独立APPROVED，合入 `b94d0d49f032888d46d8e1a56e774713fe8fe973`。本批唯一merger为 `batch_c12_reference_merger`，两项均无剩余finding。
 - [参考名称报告](docs/research/2026-10-15-reference-name-mapping.md)保存87条定义名称记录与167个选定资源标签，属于静态对应证据。用户报告窗口化及全部模式解锁，尚无可读画面证据；catalog仍230项、221项`needs_reference`，provisional且未冻结，COS01 / #2保持open。
+- [参考静态结果](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-6174667183)已由Root公开并精确读回；后续一次只读`get_window_state(include_screenshot:false, include_text:true)`绑定窗口67714 / PlantsVsZombies.exe / Plants vs. Zombies GOTY，screenshotCount0，仅取得系统标题栏和窗口按钮，无游戏菜单/模式文本，仍无游戏UI核验证据，COS01/catalog状态保持。
 
-## COS87已登记，等待短计划独立审查
+## COS87并行身份查询已审集成，等待公开关闭
 
-[COS87 / #88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000，已由Root发布并原生挂父#1，当前87个子项，open且父项未勾选。依赖COS83/86，由 `cos87_implementer` 准备短计划，唯一merger保持 `batch_c12_reference_merger`；当前 `SOURCE_NOT_READY`，目标 `PARALLEL_GIT_IDENTITY_SOURCE_READY`。范围为免费优化独立Git身份查询的等待时间，计划与源码尚未批准或合入，不新增付费案例。
+- [COS87 / #88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000，依赖COS83/86。`cos87_implementer` 的计划 `f509606` 与最终 `ac91cff` 均经 `cos87_reviewer` 独立APPROVED，无剩余finding；唯一 `batch_c12_reference_merger` 合入 `49e8929`，标记 `PARALLEL_GIT_IDENTITY_SOURCE_READY`，source-integrated/open待Root公开关闭。完整SHA和证据见[任务卡](docs/specs/cos87-parallel-git-identity.md)。
+- 每组四个独立Git查询用`allSettled`收齐后按原字段顺序校验，root/before/固定输入/after顺序、每次fresh检查、原5秒总截止和全部已启动进程清理保持。主线受影响strict退出0，并发与真实child失败清理代表2/2、0skip；原19/19、typecheck/build、abort/timeout及性能证据复用。
+- 同环境旧/新各预热1次、交替5次，中位755.5810→348.6017ms，下降53.8631%；每次仍9个真实Git查询、峰值1→4。该结果只适用于身份读取，不外推C12、自检总时长、费用或游戏性能。当前main不冻结，没有新付费。
+
+## COS88已登记，等待短计划独立审查
+
+[COS88 / #89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，已由Root发布并原生挂父#1，当前88个子项，open且父项未勾选。依赖COS86/87，`cos88_implementer` 准备短计划，唯一merger保持 `batch_c12_reference_merger`；当前 `SOURCE_NOT_READY`。仅准备原预算组内¥2.50上限的固定C13，计划和源码未批准或合入，实际仍须前置源码批准与免费准入。
 
 ## C11历史：自检通过后输出截断，未完成验收
 

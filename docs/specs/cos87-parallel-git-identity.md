@@ -1,6 +1,6 @@
 # COS-87 并行读取独立 Git 身份字段
 
-状态：PLAN_APPROVED / 实现验证完成待最终独审 / SOURCE_NOT_READY。Issue [#88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS83、COS86 的源码及 C12 结果记录。
+状态：PARALLEL_GIT_IDENTITY_SOURCE_READY / source-integrated / open pending public closure。Issue [#88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS83、COS86 的源码及 C12 结果记录。
 
 作者 `cos87_implementer`；独立 reviewer `cos87_reviewer`；唯一 merger `batch_c12_reference_merger`。实施计划：[2026-10-15-cos87-parallel-git-identity.md](../plans/2026-10-15-cos87-parallel-git-identity.md)。基线 `b94d0d49f032888d46d8e1a56e774713fe8fe973`；计划批准 exact `f509606a8da1ebe6e5f73ff2d0c430d787fe85c9`，无 findings。
 
@@ -22,4 +22,10 @@
 
 同环境真实main `59b89897435c2acd8d9cf64b878fd8306f3d154a` 上各预热1次、交替5次；每次仍9个真实Git查询且身份一致。中位数755.5810ms→348.6017ms，下降53.8631%，仅适用于此环境的身份读取。未重跑原135秒大夹具，不外推实际C12、自检总时长或费用。原始样本、命令与预检拒绝记录见计划及 `C:/Users/26557/AppData/Local/Temp/cos87-parallel-git-identity/`。
 
-仅免费source/TEMP工作；不读真实ledger/session/key，不修改生成游戏，不访问参考安装，不重跑已消费C12，不开启新付费案例。共享 ¥150、正式 ¥200/12h、目标 ¥100/6h 保持；COS16/COS18、完整经典、PERFORMANCE、human仍按原验收要求推进。最终实际diff须独审后由唯一merger集成。
+仅免费source/TEMP工作；不读真实ledger/session/key，不修改生成游戏，不访问参考安装，不重跑已消费C12，不开启新付费案例。共享 ¥150、正式 ¥200/12h、目标 ¥100/6h 保持；COS16/COS18、完整经典、PERFORMANCE、human仍按原验收要求推进。
+
+## 独立审查与主线集成
+
+最终 `ac91cff85ddbdd08720623fd600161f2e61bd6b6` 经 `cos87_reviewer` 实际规格及质量审查APPROVED，无剩余finding；唯一 `batch_c12_reference_merger` 合入 `49e892992749e5511f2bb4135ec67be4459fa30b`。计划 `f509606a8da1ebe6e5f73ff2d0c430d787fe85c9` 与基线祖先已核对，合并时全部5文件与批准提交逐字节一致。本卡源码已集成，等待Root公开关闭；不冻结main或启动付费验证。
+
+主线受影响strict命令复用上述完整参数，退出0；`node --experimental-strip-types --test --test-name-pattern "COS87 identity (overlap|child-failure)$" tests/e2e/validation-identity.test.ts` 通过2/2、0skip，TAP1250.9167ms。两次独立读取共18个查询、峰值4、active0；真实失败场景4个PID均在返回前退出。原始记录为 `C:/Users/26557/AppData/Local/Temp/cos87-merge-affected-strict.log` 和 `C:/Users/26557/AppData/Local/Temp/cos87-merge-integration.tap`。原19/19、typecheck/build、abort/5秒清理及短性能基准按已审证据复用；没有重复长矩阵或性能采样。
