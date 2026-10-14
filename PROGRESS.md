@@ -8,7 +8,7 @@
 - COS90固定¥1.600314补充分配已在C14前一次实际应用，原parent仍¥10，组有效容量¥11.600314；shared¥150、phase¥30、正式¥200/12h保持。原锁首次归档调用因PID复用在写入前拒绝；独审精确代际守卫后实际归档一次，原字节/mtime与文件身份保持，失败及清理证据不足结论保留。closure20已一次执行并独立核对，revision3114、22stopped/14delegations/110closed/20audits，释放及组可分配¥1.707937；原费用、历史和补充分配保持。Root已解除main冻结。
 - [COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6180211123)与[C14结果](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6180211817)已由Root精确读回。详见[研究记录](docs/research/2026-10-15-transfer-c14-browser-launch.md)。
 - C14结果文档作者`c14_outcome_docs_implementer`（Git author LRF）的`4d86dd1be9d03e4a71fd502ea46a1bc799e9b1c1`经`c14_outcome_docs_reviewer`独立APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`a77141707419e599307e3e4daa81878287b96afa`。本批六个文档的UTF-8、中文回读、JSON 92个唯一任务和diff检查通过；未变更源码，复用既有通过证据。
-- [COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，当前92个子任务。依赖COS37/52/91，作者`cos92_implementer`、独立reviewer `cos92_reviewer`、唯一merger `batch_c14_cos92_merger`，open / `SOURCE_NOT_READY`；承接启动重复校验、本地取消/截止与迟到启动意图的免费源码修复及确定性回归，计划和源码待独审。没有新付费案例，COS16/COS18、完整经典和human仍未完成。
+- [COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，当前92个子任务。依赖COS37/52/91，作者`cos92_implementer`、独立reviewer `cos92_reviewer`、唯一merger `batch_c14_cos92_merger`，open / `SOURCE_NOT_READY`；承接启动重复校验、本地取消/截止与迟到启动意图的免费源码修复及确定性回归。计划`4472e7bdea4227b7fb671880c0862628703943c6`已独审`PLAN_APPROVED`、无finding及[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181)，两份计划文档合入`96b9d7b976d67bbe4ca2dd4d2f639329e580681b`；整体源码尚未完成和批准。没有新付费案例，COS16/COS18、完整经典和human仍未完成。
 
 ## COS90固定组补充分配与COS91固定C14源码已公开关闭
 
