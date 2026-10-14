@@ -4,6 +4,8 @@
 
 专职作者 `cos91_implementer`；Root 指派独立 reviewer 和唯一 merger。分支 `codex/cos91-transfer-case14`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`；[实施计划](../plans/2026-10-15-cos91-transfer-case14.md)。本卡和计划先独立审查，COS90 生产接口独审稳定且 Root 指定集成基线后才实施。作者不更新共享 tracking、不写 GitHub、不读写真实账本或会话。
 
+计划首版 `2fd886bc1394c40606de0b7f3907ef9653bb1584` 独审 P1 指出递归历史推导中的 C7 ledger4-only guard 会阻断补充后的 C14；本次只修订 plan/card，待独立复审，不开始生产实现。
+
 ## 前提与目标
 
 C13 已 failed 并消费，47 个 admitted coding-author 请求全部 settled，新增1641136µ，unknown/reserved为0，无 repair；没有生成源码。Root 完成 closure19 后为21 stopped / 13 delegations / 105 closed grants / 19 audits，原组 committed/allocated9100314µ、available899686µ，历史来源见 [C13结果](cos88-transfer-case13.md)。C13 不得重开、延长或借用其身份。
@@ -15,13 +17,13 @@ Root已转交稳定接口说明：`RunController.prepareValidationGroupSupplemen
 ## 固定范围与完成条件
 
 1. 新独立案例 `cos20-transfer-validation-14`，固定2500000µ / 45min / 80requests / 一次合格coding repair、原两次logical attempts。planning/design/art各1µ、coding1900000µ、repair599997µ；五角色taskId固定为`cos20-transfer-validation-14-<role>`。旧声明、费用、窗口和审计不变，不提供CLI/模型预算、案例或角色选择。
-2. 从真实停止C13推导D14：13个迁移历史声明，47个唯一request/entry精确对应coding-author/window/admitted/settled/evidence、zero unknown/reserved/no repair、每个grant恰一个实际closure及正确释放额。独立函数不调用预算可负担检查；费用变体只改变可用容量，不改变固定向量。
+2. 从真实停止C13推导D14：13个迁移历史声明，47个唯一request/entry精确对应coding-author/window/admitted/settled/evidence、zero unknown/reserved/no repair、每个grant恰一个实际closure及正确释放额。独立函数不调用预算可负担检查；费用变体只改变可用容量，不改变固定向量。递归会进入C7纯helper；最小扩`validation-case-seven-declaration.ts:24` version guard为ledger4/5并更新对应错误说明，原`COS16_GROUP_GRANTS`/10000000µ角色向量、费用检查与返回声明不变。C14 ledger5推导边界先`validateSnapshot(state)`；不得伪装ledger4、移除supplements或用新有效容量生成旧grant。旧声明保持指返回固定契约/序列化字节及持久历史保持，允许该必要guard调整；旧entry仍要求ledger4、旧历史quote2保持。
 3. **资金引导分两步。** 未补充的ledger4也可推导真实D14，调用已有`fixedTransferValidationInput(D14).createTransferValidationIdentityReader`读取固定tracked requirements/template，供Root调用COS90 prepare/apply。该过程不生成窗口、不自动补充、不伪造quote/identity、不使用skip flag。C14正常预检随后必须要求已应用的精确supplement、ledger5和genuine case-quote3；补充不足或漂移即在host/provider/写入前拒绝。
 4. 补充前available899686µ，COS90一次补充1600314µ后effective group capacity11600314µ、available2500000µ；原parent仍10000000µ。共享150000000µ、phase30000000µ、正式生成¥200/12h与优化目标¥100/6h保持。实际准入使用新snapshot/quote/source，不用本卡余额代替核账。
 5. C5两passed阶段及七capture只读复用，零planner/design/art SDK；新coding author为空并运行时生成。保留旧C5 origin，当前C14 task/role/requirements/plan/candidate/manifest/operator receipt绑定准确，source/owner/请求/工具/child/截止守卫保持。
 6. 六个C14薄wrapper，最小扩共用manifest/closure19、21cases/19audits、admission format与fourteen source seed。共用entry只为固定C14显式选择ledger5，旧缺省ledger4及旧C1–C13 quote2校验保持。partial沿原公式`preallocated + current grants`，标准样本11600314µ；旧C13的`<10000000`测试不复制到C14。
 7. 继承旧prerequisites，再核COS88/COS89/COS90 marker与精确reviewed/merge双祖先。绑定完整quote3、snapshot fees/revision/hash、COS90实际supplement source bytes、manifest、source与roles。复用COS90已审source guard，在恢复/provider/tool/child边界拒绝stale、篡改或向量变化，不追加重复财务hash框架。
-8. 独审计划后RED→GREEN，认证SOURCE、原host/factory/Pi fake、partial冷恢复、compiled与旧C13短代表、typecheck/build/affected strict、UTF-8/中文回读及diffcheck通过。独立reviewer查实际diff先规格后质量，作者修finding并重审。唯一merger集成推送、记录SHAs后才由Root登记`TRANSFER_CASE_FOURTEEN_SOURCE_READY`；计划作者不合main、不push。
+8. 独审计划后RED→GREEN，认证SOURCE、原host/factory/Pi fake、partial冷恢复、compiled与旧C7/C13短代表、typecheck/build/affected strict、UTF-8/中文回读及diffcheck通过。通过真实COS90 apply获取ledger5，断言补充前后D14 deepEqual、C1–C13历史声明序列化字节与quote2/parent/grants不变；正常entry/driver/task及冷恢复都实际递归推导成功，旧C7/C13 entry对ledger5仍零写入拒绝。独立reviewer查实际diff先规格后质量，作者修finding并重审。唯一merger集成推送、记录SHAs后才由Root登记`TRANSFER_CASE_FOURTEEN_SOURCE_READY`；计划作者不合main、不push。
 
 ## 免费证据安排
 

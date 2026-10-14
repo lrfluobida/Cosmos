@@ -10,6 +10,8 @@
 
 **状态与基线：** plan awaiting independent review / production implementation not started。Issue [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，Root 已报告原生挂父，登记时 91 个子任务。依赖 COS88 #89、COS89 #90、COS90 #91；[任务卡](../specs/cos91-transfer-case14.md)。分支 `codex/cos91-transfer-case14`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点 main `3b2002ddd1541e20580e123ded819137dcc23e4c`。本次计划提交仅创建这两份文档，不更新共享 tracking。
 
+计划首版 `2fd886bc1394c40606de0b7f3907ef9653bb1584` 独审提出 P1：递归旧历史推导最终进入 C7 的 ledger4-only guard，补充后的 genuine ledger5 无法推导。以下修订仅增加最小纯历史推导兼容方案和验证要求，等待独立复审；生产仍未开始。
+
 ## 固定契约
 
 - C13 已 failed 并消费，不能重跑或延长；前缀为 21 stopped / 13 delegations / 105 closed grants / 19 closure audits。47 笔 admitted coding-author 请求全部 settled，共 1641136µ，unknown/reserved 为 0，无 repair。closure19 五角色实际释放合计 858864µ；新作者不使用 C13 会话、工作目录或源码，C13 实际为 0 源码文件。
@@ -32,9 +34,11 @@ Root 随后转交 COS90 作者的稳定接口说明（首次 GREEN 3/3，尚非�
 2. `fixedTransferValidationInput(D14).createTransferValidationIdentityReader({ repository, reviewedPlatformSha })` 是已有的固定 tracked requirements/template 身份读取入口；它不读预算。Root 使用该 reader 和真实 D14 调用 COS90 prepare、审查 quote，再显式 apply 独立 operator decision。不能为引导构造假 quote、fake identity、skip flag、特殊 C14 预算 bypass 或自动 supplement。
 3. 补充已应用后，原 C14 `--validation-preflight` / `--validation-case` 走正常 entry 与 `prepareValidationCase`，生成 genuine quote3 并检查补充 target/vector、实际 source、容量、source approvals 和当前 snapshot。未补充、补充错目标/向量、过期或篡改 quote 均在 host/provider/发布前拒绝。
 
-固定历史由 `transferCaseThirteenHistory(state)` 加上 `deriveTransferValidationCaseThirteenDeclaration(state)` 组成 13 个迁移声明；C13 已存在，因此旧 C13 函数不会重新为它申请可用容量。另检查八个 native 与十三个 transfer 的全部历史、13 个 delegation 和 19 个原始 closure receipt，由现有 entry/validator 完成真实性验证。声明推导不替代完整 snapshot 验证。
+固定历史由 `transferCaseThirteenHistory(state)` 加上 `deriveTransferValidationCaseThirteenDeclaration(state)` 组成 13 个迁移声明；这条递归链会进入 `deriveTransferValidationCaseSevenDeclaration`。其 `validation-case-seven-declaration.ts:24` 目前只允许 ledger4，必须对纯推导作必要兼容：只将该 version guard 扩为 ledger4 或 ledger5，更新对应错误说明，其余历史费用、原 `COS16_GROUP_GRANTS`、10000000µ 原始角色向量与固定声明构造保持。C14 的 ledger5 推导边界先调用 `validateSnapshot(state)` 验证完整真实状态，再递归旧 helper；不得改写/克隆为 fake ledger4、删除 supplements，或用有效新容量重新分配旧 grants。
 
-推导核心沿用 C13 最小形状，仅改变固定新身份，不更改旧函数：
+C7/C8/C9 已存在时，原 helper 的 group 检查走历史分支，不用新剩余容量生成旧 grant；C10/C11/C12/C13 已存在时，原 helper 也不会再为旧案例调用 `prepareValidationBudgetGroup` 申请容量。因此评估范围是 C7 的最小 version guard 兼容，无需复制旧声明链或抽象新框架。返回的 C1–C13 固定声明序列化字节、各历史 quote2、费用和审计必须与补充前一致；旧 entry 仍单独拒绝 ledger5，这个纯 helper 的返回值不授予旧案例执行或资金权限。另检查八个 native 与十三个 transfer 的全部历史、13 个 delegation 和 19 个原始 closure receipt，由现有 entry/validator 完成真实性验证。
+
+推导核心沿用 C13 最小形状，仅改变固定新身份；旧 helper 的唯一必要生产调整是上述 C7 纯推导 version guard：
 
 ```typescript
 const amounts = { planning: 1, design: 1, art: 1, coding: 1_900_000, repair: 599_997 };
@@ -58,13 +62,14 @@ return declaration; // No affordability check here; normal quote3 admission foll
 | `probes/transfer/validation-case-fourteen-declaration.ts`（新） | 固定 D14、13 个历史声明和固定 parser；资金前可推导，不包含可负担检查。 |
 | `probes/transfer/validation-case-fourteen-entry.ts`（新） | C14 manifest/admission/accounting wrappers，21 cases/19 audits；要求 ledger5、COS90 supplement 实际来源与目标/向量绑定。 |
 | `probes/transfer/validation-case-fourteen-{driver,task,source,run}.ts`（四个新文件） | 沿原工厂连接真实运行、同窗口恢复、固定 source/compiled 闭包；run 沿原历史 source pins。 |
+| `probes/transfer/validation-case-seven-declaration.ts` | 只扩纯历史推导的 ledger4/5 version guard 及对应错误说明；保留原角色向量、费用检查与返回固定契约。C14 ledger5 调用前验证完整 snapshot。 |
 | `probes/transfer/validation-case-six-entry.ts` | 最小扩 C14 manifest、closure19 literal，以及固定配置显式选择 ledger5，缺省仍 ledger4。旧 C1–C13 历史 quote2 校验保持；resume 按当前 quote3 和原公式核 grant net。 |
 | `probes/transfer/validation-case-seven-entry.ts` | 扩 21 cases/19 audits、C14 admission format/config 类型；在已有 requireAccounting/identity 链接入 COS90 已审 `verifyValidationBudgetSources(root, state)` 实际补充 source 守卫。 |
 | `probes/transfer/validation-case-seven-source.ts` | 只扩 fourteen seed；闭包自然包含已审 COS89、COS90 执行依赖。 |
 | `tests/transfer/validation-case-fourteen{,-runtime,-compiled}.test.ts`、`validation-case-fourteen.fixture.ts`（四个新文件） | 纯声明算术、认证 SOURCE finance、真实 host/factory/Pi fake、partial 冷恢复、compiled worker 与防漂移。 |
 | `probes/transfer/README.md`、本计划、任务卡 | 追加固定 C14 使用顺序及原始免费证据/限制。 |
 
-优先让新 fixture 复用旧夹具工具与 SOURCE history，不修改旧 C13 声明/测试断言。仅当确需共享测试 seam 才最小修改 `tests/transfer/validation-case-ten.fixture.ts`；实施时记录原因和旧代表结果。无需另建通用预算框架。共用 driver/task 若现有 requireAccounting 回调已覆盖则不改；实际缺口才补最小 hook 并记录受影响路径。COS90 的 ledger/type/validator 实现由其专职作者负责，COS91 不复制或重写。
+优先让新 fixture 复用旧夹具工具与 SOURCE history，不修改旧 C13 声明源码或旧测试断言。“旧声明保持”指返回的固定契约、序列化字节和持久历史保持；不排除上述必要的 C7 纯 helper version guard 调整。仅当确需共享测试 seam 才最小修改 `tests/transfer/validation-case-ten.fixture.ts`；实施时记录原因和旧代表结果。无需另建通用预算框架。共用 driver/task 若现有 requireAccounting 回调已覆盖则不改；实际缺口才补最小 hook 并记录受影响路径。COS90 的 ledger/type/validator 实现由其专职作者负责，COS91 不复制或重写。
 
 旧 accounting hash 仍覆盖旧 cases/delegations/closures/audits/requests/entries；C14 admission 已绑定完整 quote3、snapshot revision/hash、角色 grant、manifest 和执行 source。补充记录与真实 receipt 字节由 COS90 已审守卫核对，不为了形式另加重复 hash。当前 request、tool 与 child dispatch 边界及 partial 冷恢复都必须重新验证实际来源，不只在首次 quote 验证。
 
@@ -93,20 +98,21 @@ finally 关闭本夹具全部 controller/owner/locks，恢复原 snapshot/mappin
 - [ ] Root 指定独立 reviewer 对本 plan/card exact SHA 作规格→架构审查；PLAN_APPROVED 后继续等待 COS90 最终接口和 Root 指定已审集成基线。
 - [ ] 在作者分支合入 Root 指定基线，核 clean status、COS90 reviewed/merge/marker，重读已审接口。仅补受接口变动影响的计划内容和独审，不复制未审源。
 - [ ] 新 `validation-case-fourteen.fixture.ts` 添加纯算术数据；新增单元动态 API 断言，先运行下方 C14 unit 命令，记录缺 C14 API 的实际 RED（exit1），排除 import/环境设置错误。
-- [ ] RED 具体行为：47 笔历史/五 closure 校验、固定向量/旧声明不变、ledger4 未补充仍可 derive D14 与真实固定 identity、但正常预检零 host/provider/写入拒绝；为后续 ledger5/supplement 正反例写断言。
+- [ ] RED 具体行为：47 笔历史/五 closure 校验、固定向量/旧返回契约不变、ledger4 未补充仍可 derive D14 与真实固定 identity、但正常预检零 host/provider/写入拒绝；补充后的真实 ledger5 递归推导应通过，旧 C7 guard 尚未兼容时记录实际失败。
 
 ### Task 2：最小 wrapper 与版本选择
 
-- [ ] 实现六个 C14 wrapper、必要字面量与显式 ledger5 配置，运行 unit 至 GREEN。旧无配置和 C7–C13 配置仍要求 ledger4，历史 quote2 loop 不放宽；新当前 C14 必须 genuine quote3。
+- [ ] 实现六个 C14 wrapper、必要字面量与显式 ledger5 配置；仅扩 C7 纯 helper guard，C14 ledger5 递归前执行完整 `validateSnapshot`。运行 unit 至 GREEN。旧无配置和 C7–C13 entry 配置仍要求 ledger4，历史 quote2 loop 不放宽；新当前 C14 必须 genuine quote3。
+- [ ] 通过真实 COS90 apply 取得 genuine ledger5 后，断言 `deepEqual(D14_before, D14_after)` 及全部 C1–C13 历史声明序列化字节相等、原 parent/grants/quote2 历史不变；正常 C14 entry/driver/task 均可重新推导。错误 ledger5 supplement/receipt 状态在完整验证时拒绝，不以伪装 ledger4 规避。
 - [ ] 使用已审 COS90 verifier 核 supplement actual source、target/vector、parent/首授权与 quote3；在 provider/tool/child 前保持原 guard。补充前 declaration/identity 成功不得创建 quote3/window 或触发自动资金操作。
-- [ ] 单元反例覆盖 request 数量/重复/费用/证据/role/purpose/window/repair/closure、unknown/reserved、错误 parent、CLI 额外预算/案例参数、admission format/vector/source/hash 漂移；受影响旧 C13 五项短代表通过后提交生产与单元变更。
+- [ ] 单元反例覆盖 request 数量/重复/费用/证据/role/purpose/window/repair/closure、unknown/reserved、错误 parent、CLI 额外预算/案例参数、admission format/vector/source/hash 漂移；新增旧 C7/C13 entry 对 genuine ledger5 的零写入拒绝与旧 quote2 保持检查，受影响旧 C7 短代表及 C13 五项短代表通过后提交生产与单元变更。
 
 ### Task 3：认证 SOURCE 与恢复
 
 - [ ] 新 fixture 只读验证并复用上述 history 前缀，通过原 API 追加两套 C13/closure19/COS90 supplement；逐项保存历史未改证据、补充前后组容量/shared allocation、原始 receipt 与 query 输出。
 - [ ] SOURCE 负例：未补充、补充/当前 quote revision 或 snapshot stale、金额/target/vector/source receipt 篡改、marker缺失、reviewed/merge非祖先、C5 manifest/capture/current plan 或执行 source 漂移、unknown/reserved/owner/root异常，均零 host/provider/发布/新增写入；分别恢复原夹具字节和 mtime。
 - [ ] 以真实当前 host/factory/Pi + fake provider transport 执行一个 C14 coding request，核空作者、C5两阶段七capture、零 planning/design/art SDK、准确当前角色/计划/quote3/grant、原 source/fees 前缀和源字节守卫。fake 内容不作为实际游戏证据。
-- [ ] 同窗口 partial 停止/关闭 owner 后冷恢复，验证原截止、需求/当前绑定、ledger5 supplement/actual receipt 和 partial 11600314µ 标准公式；篡改 quote allocated 拒绝。保存 finally 恢复原 bytes/mtime/dirs/owner 的独立核对，再提交 SOURCE 测试。
+- [ ] 同窗口 partial 停止/关闭 owner 后冷恢复，重新读取 genuine ledger5 并实际执行 C14 历史声明/driver/task 推导，验证 D14 与补充前 deepEqual、原截止、需求/当前绑定、supplement/actual receipt 和 partial 11600314µ 标准公式；篡改 quote allocated 拒绝。保存 finally 恢复原 bytes/mtime/dirs/owner 的独立核对，再提交 SOURCE 测试。
 
 ### Task 4：compiled、文档与作者交付
 
@@ -116,6 +122,7 @@ finally 关闭本夹具全部 controller/owner/locks，恢复原 snapshot/mappin
 
 ```powershell
 node --experimental-strip-types --test tests/transfer/validation-case-fourteen.test.ts
+node --experimental-strip-types --test --test-name-pattern='C7 (declaration|parser|admission|readonly entry)' tests/transfer/validation-case-seven.test.ts
 node --experimental-strip-types --test --test-name-pattern='C13 (fixes|rejects|uses|fixed parser|unknown admission)' tests/transfer/validation-case-thirteen.test.ts
 node --experimental-strip-types --test tests/transfer/validation-case-fourteen-runtime.test.ts
 node --experimental-strip-types --test tests/transfer/validation-case-fourteen-compiled.test.ts
@@ -125,7 +132,7 @@ node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext 
 git diff --check
 ```
 
-有效 RED 预期因缺新 API 退出1；GREEN/最终检查预期退出0，旧 C13 pattern 命中五项，测试计数/skip/时长按 raw 记载。计划本轮只检两份文档的 UTF-8、中文回读、diffcheck，不运行无源码变化的测试。
+有效 RED 预期因缺新 API 或 C7 ledger4-only guard 退出1；GREEN/最终检查预期退出0，旧 C7 pattern 命中五项、C13 pattern 命中五项，测试计数/skip/时长按 raw 记载。计划本轮只检两份文档的 UTF-8、中文回读、diffcheck，不运行无源码变化的测试。
 
 ## 集成与实际运行边界
 
