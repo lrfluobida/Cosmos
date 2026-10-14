@@ -36,7 +36,7 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
   await f.controller.saveTask(task, { role: 'system', actorId: 'SOURCE-COS79' });
   const originalTask = structuredClone(task), admissions = [], dispatches = [], events = [], boundaries = [], summaries = [], settlements = [], selections = [], policies = [];
   let native, ordinary = 0, summaryRequests = 0, networkCalls = 0, roleConfig, readonlyTurn = false, closing;
-  let mainStarted = false, sdkOutputCap, injected = false, lastTurn;
+  let mainStarted = false, sdkOutputCap, injected = false, lastTurn, compactionBefore, partialToolCalls = 0;
   let syntheticCharge = 0;
   const spendTo = async target => {
     const before = await f.controller.validationAuthority(task.taskId, 'author'), amount = before.remainingMicroCny - target;
@@ -62,8 +62,11 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
         return sdkStream(model, context, options);
       };
       native.subscribe(event => {
+        if (event.type === 'compaction_start') compactionBefore = { projection: JSON.stringify(projected()), entries: JSON.stringify(native.sessionManager.getEntries()) };
         if (event.type.startsWith('compaction')) events.push({ type: event.type, reason: event.reason, willRetry: event.willRetry,
-          aborted: event.aborted, errorMessage: event.errorMessage, saved: compactCount(native) });
+          aborted: event.aborted, errorMessage: event.errorMessage, saved: compactCount(native),
+          ...(event.type === 'compaction_end' ? { projectionUnchanged: JSON.stringify(projected()) === compactionBefore.projection,
+            entriesUnchanged: JSON.stringify(native.sessionManager.getEntries()) === compactionBefore.entries } : {}) });
       });
       // Observe the real production hook; this fixture does not implement compaction.
       const previous = native.agent.prepareNextTurnWithContext;
@@ -107,7 +110,10 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
         assert.ok(options.maxTokens <= 8192);
         content = mode === 'toolcall' ? [{ type: 'toolCall', id: 'illegal-summary-tool', name: 'write', arguments: { path: 'authors/coding.txt', content: 'must not run' } }]
           : [{ type: 'text', text: 'Synthetic provider summary. Preserve the fixed task and known read results; continue writing only authors/coding.txt.' }];
-        if (mode === 'length') stopReason = 'length';
+        if (mode === 'length' || mode.startsWith('length-') && (mode !== 'length-split' || summaryRequests === 2)) {
+          stopReason = 'length';
+          content.push({ type: 'toolCall', id: 'truncated-partial', name: 'synthetic_read', arguments: { ordinal: 99 } });
+        }
         if (mode === 'toolcall') stopReason = 'toolUse';
       } else if (priorHistory && !mainStarted) {
         content = [{ type: 'text', text: 'Earlier synthetic turn retained as history. '.repeat(200) }];
@@ -117,14 +123,14 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
         else if (n <= 3) { stopReason = 'toolUse'; largeHistory = mode === 'summary-too-large' && n === 1;
           content = [{ type: 'thinking', thinking: largeHistory ? 'x'.repeat(500000) : 'synthetic reading rationale' },
           { type: 'toolCall', id: 'read-' + n, name: 'synthetic_read', arguments: { ordinal: n } }]; }
-        else if (n === 4) { stopReason = 'toolUse'; big = true; content = [{ type: 'thinking', thinking: 'x'.repeat(142685) },
+        else if (n === 4) { stopReason = 'toolUse'; big = !mode.startsWith('length-'); content = [{ type: 'thinking', thinking: 'x'.repeat(142685) },
           { type: 'toolCall', id: 'write-final', name: 'write', arguments: { path: 'authors/coding.txt', content: 'Synthetic Cosmos output. 中文保持。' } }]; }
         else content = [{ type: 'text', text: JSON.stringify({ summary: 'Synthetic file completed', remaining: [], uncertainty: [] }) }];
       }
       return lazyStream(model, async () => (async function* () {
         const actualUsage = summary && mode === 'summary-peak' ? { ...usage(), input: observed.inputBytes, output: observed.sentCap, totalTokens: observed.inputBytes + observed.sentCap }
           : largeHistory ? { ...usage(), output: 62500, totalTokens: 62501 } : usage(big);
-        if (!(summary && mode === 'unknown')) await options.onProviderStreamEvent({ model: 'deepseek-flash',
+        if (!(summary && ['unknown', 'length-unknown'].includes(mode))) await options.onProviderStreamEvent({ model: summary && mode === 'length-model' ? 'wrong-model' : 'deepseek-flash',
           usage: { prompt_tokens: actualUsage.input + actualUsage.cacheRead, completion_tokens: actualUsage.output } }, model);
         const message = { role: 'assistant', content, api: 'openai-completions', provider: 'deepseek', model: 'deepseek-flash', stopReason, timestamp: Date.now(), usage: actualUsage };
         yield { type: 'done', reason: stopReason, message };
@@ -134,6 +140,7 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
   });
   const syntheticTool = { name: 'synthetic_read', label: 'Synthetic read', description: 'Produce synthetic fixture data only',
     parameters: Type.Object({ ordinal: Type.Number() }, { additionalProperties: false }), async execute(id, args) {
+      if (args.ordinal === 99) { partialToolCalls++; throw new Error('Truncated summary tool must not execute'); }
       const content = [{ type: 'text', text: '' }], message = { role: 'toolResult', toolCallId: id, toolName: 'synthetic_read', content,
         details: {}, isError: false, timestamp: Date.now() };
       const context = normalizeContext({ messages: convertToLlm([...native.sessionManager.buildSessionProjection().messages, message]) });
@@ -168,6 +175,14 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
         settlements.push({ ...response, kind: native?.isCompacting ? 'summary' : 'ordinary' });
         await config.budget.afterResponse(response);
         if (native?.isCompacting && mode === 'budget-second' && !injected) { injected = true; await spendTo(100); }
+        if (native?.isCompacting && response.stopReason === 'length') {
+          if (mode === 'length-accounting') throw new Error('Synthetic accounting completion failure');
+          if (mode === 'length-cancel') await f.controller.stop('SOURCE cancelled during summary settlement');
+          if (mode === 'length-close') closing = role.close();
+          if (mode === 'length-deadline') t.mock.method(Date, 'now', () => Date.parse(f.window.deadlineAt));
+          if (mode === 'length-source') f.setIdentityCheck(async () => { throw new Error('SOURCE identity changed after summary'); });
+          if (mode === 'length-history') native.sessionManager.appendCustomEntry('SOURCE-unexpected-entry', { changed: true });
+        }
       } } });
     } });
   const role = await factory({ role: 'coding', task, requirement: f.requirement, validation: f.binding, controller: f.controller,
@@ -190,7 +205,7 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
     assert.equal(await readFile(join(f.artifactRoot, capture.artifacts[0].location, 'fixture.txt'), 'utf8'), 'Synthetic Cosmos output. 中文保持。');
     captured = true;
   }
-  const report = { mode, priorHistory, error, result, networkCalls, ordinary, summaryRequests, admissions, dispatches, boundaries, events, settlements, selections, policies,
+  const report = { mode, priorHistory, error, result, networkCalls, ordinary, summaryRequests, partialToolCalls, admissions, dispatches, boundaries, events, settlements, selections, policies,
     compactions: compactEntries.length, summaryCharacters: compactEntries.map(entry => entry.summary.length), remainingMicroCny: (await f.controller.validationAuthority(task.taskId, 'author')).remainingMicroCny,
     currentTaskUnchanged: true, fixedPacketAndToolsRetained: true, captured, ledger: snapshot.ledger.entries.filter(entry => admissions.some(request => request.requestId === entry.requestId)),
     autoCompactionRestoredDisabled: native.settingsManager.getCompactionSettings(native.model).enabled === false };

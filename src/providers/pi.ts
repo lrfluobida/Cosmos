@@ -108,6 +108,7 @@ export async function createPiSession(config: PiSessionOptions) {
   let callerSignal: AbortSignal | undefined;
   let readonlyRequests: number | undefined;
   let closed = false;
+  let optionalCompaction: { truncatedRequestId?: string; rejected: boolean } | undefined;
   const records: PiResponse[] = [];
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
   const throwIfFailed = () => { if (failure) throw failure; };
@@ -135,6 +136,7 @@ export async function createPiSession(config: PiSessionOptions) {
     if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled');
     if (readonlyRequests !== undefined && ++readonlyRequests > 1) throw fail('request_limit', 'Format correction permits one provider request');
     if (++requests > config.maxRequests) throw fail('request_limit', 'Session request limit reached');
+    const compaction = session.isCompacting ? optionalCompaction : undefined;
     let maxOutputTokens = config.maxOutputTokens;
     if (config.requestCompaction && session.isCompacting) {
       try { positive(options?.maxTokens!, 'native compaction maxTokens'); }
@@ -226,7 +228,16 @@ export async function createPiSession(config: PiSessionOptions) {
             const message = event.type === 'done' ? event.message : event.error;
             await report(message);
             if (responseModel && responseModel !== DEEPSEEK_MODEL) fail('model_mismatch', 'Provider returned an unexpected model');
-            if (message.stopReason === 'length') fail('incomplete', 'Provider output was truncated; task is incomplete');
+            if (message.stopReason === 'length') {
+              if (event.type === 'done' && compaction && compaction === optionalCompaction && !failure && !closed && !signal.aborted
+                && receivedUsage && responseModel === DEEPSEEK_MODEL) {
+                // Accounting succeeded. Let native summary validation reject the partial result without poisoning the author turn.
+                compaction.truncatedRequestId = request.requestId;
+                yield { type: 'done', reason: 'length', message: { ...message, content: [] } };
+                return;
+              }
+              fail('incomplete', 'Provider output was truncated; task is incomplete');
+            }
             if (message.stopReason === 'aborted') fail('cancelled', 'Provider request was cancelled');
             if (message.stopReason === 'error') fail('provider_error', 'Provider request failed');
             if (!receivedUsage) fail('usage_unknown', 'Provider usage is unknown; reconciliation is required');
@@ -276,9 +287,14 @@ export async function createPiSession(config: PiSessionOptions) {
     throw new Error('SDK model fallback is forbidden');
   }
   if (config.requestCompaction) {
-    let lastProjection: string | undefined, lastCompactedBytes: number | undefined, noBenefit = false, compactions = 0;
+    let lastProjection: string | undefined, lastCompactedBytes: number | undefined, autoCompactionDisabled = false, compactions = 0;
     session.subscribe(event => {
       if (event.type !== 'compaction_end') return;
+      if (optionalCompaction?.truncatedRequestId && !optionalCompaction.rejected && !failure
+        && event.reason === 'threshold' && !event.aborted && !event.result && event.errorMessage) {
+        optionalCompaction.rejected = true;
+        return;
+      }
       if (event.aborted || event.errorMessage) fail(event.aborted ? 'cancelled' : 'compaction_failed', event.errorMessage ?? 'Native compaction was cancelled');
       else if (event.result) compactions++;
     });
@@ -296,7 +312,7 @@ export async function createPiSession(config: PiSessionOptions) {
         if (closed || signal?.aborted) throw fail('cancelled', 'Session was cancelled at the compaction boundary');
       };
       requireActive();
-      if (readonlyRequests !== undefined || noBenefit || turn.message.stopReason !== 'toolUse'
+      if (readonlyRequests !== undefined || autoCompactionDisabled || turn.message.stopReason !== 'toolUse'
         || !turn.toolResults.length || turn.toolResults.some(result => result.isError)) return previous(turn, signal);
       const before = projection();
       if (before.serialized === lastProjection || lastCompactedBytes !== undefined && before.inputBytes < lastCompactedBytes + 32768) return previous(turn, signal);
@@ -309,18 +325,26 @@ export async function createPiSession(config: PiSessionOptions) {
       if (!selected) return previous(turn, signal);
       lastProjection = before.serialized;
       const beforeCost = projectedCost(before), completed = compactions, settings = session.settingsManager.getCompactionSettings(model);
+      const leaf = manager.getLeafId(), operation = { rejected: false } as NonNullable<typeof optionalCompaction>;
+      optionalCompaction = operation;
       session.settingsManager.applyOverrides({ compaction: { enabled: true, reserveTokens: model.contextWindow, keepRecentTokens: settings.keepRecentTokens } });
       try {
         const result = await previous(turn, signal);
         requireActive();
+        if (operation.truncatedRequestId) {
+          if (!operation.rejected || compactions !== completed || manager.getLeafId() !== leaf || projection().serialized !== before.serialized) {
+            throw fail('compaction_failed', 'Discarded summary changed the original context; session cannot continue');
+          }
+          autoCompactionDisabled = true;
+        }
         // Native preparation may be a no-op: only a saved successful checkpoint updates the baseline.
         if (compactions > completed) {
           const after = projection(); lastCompactedBytes = after.inputBytes;
-          noBenefit = projectedCost(after) >= beforeCost;
+          autoCompactionDisabled = projectedCost(after) >= beforeCost;
         }
         return result;
       } catch { throw failure ?? fail(signal?.aborted ? 'cancelled' : 'compaction_failed', 'Native compaction did not complete; session cannot continue'); }
-      finally { session.settingsManager.applyOverrides({ compaction: settings }); }
+      finally { optionalCompaction = undefined; session.settingsManager.applyOverrides({ compaction: settings }); }
     };
   }
   let busy = false;

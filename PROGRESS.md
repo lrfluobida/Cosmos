@@ -8,14 +8,15 @@
 
 - 冻结版本 `2a7a291`；UTC13:54:37.457至14:25:41.350，用时31分03.893秒。41次请求均已准入并结算，新增 **¥1.336555**，共享累计 **¥12.802875**，未知费用和预留均为0。[COS16结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6170776637)与[C11入口结果](https://github.com/lrfluobida/Cosmos/issues/85#issuecomment-6170782350)已由Root精确读回。
 - 唯一一次作者自检的TypeScript/Vite退出码均为0；六个文件共37,377字节，cos77已核与成功自检副本逐字节一致。最终为`failed / insufficient_evidence`，末次SDK报输出截断，计费`stopReason=length`、output8192，¥0.086264已结算；没有handoff/capture、正式候选、build/browser/review/repair/accepted，体验未确认。
-- 当前共享失败锁会让摘要length终止原作者会话；末次属于摘要阶段是源码推断，生产回执未直接记录summary kind。不能归因为预算耗尽或截止时间。精确时间、三次read scope超时的未知原因及证据边界见[研究记录](docs/research/2026-10-14-transfer-c11-summary-truncation.md)。
+- C11冻结版本的共享失败锁会让摘要length终止原作者会话；末次属于摘要阶段是源码推断，生产回执未直接记录summary kind。不能归因为预算耗尽或截止时间。精确时间、三次read scope超时的未知原因及证据边界见[研究记录](docs/research/2026-10-14-transfer-c11-summary-truncation.md)。
 - closure17已一次完成：revision2555、19stopped/11delegations/95closed/17audits，释放 **¥1.663445**；旧费用与历史保持，进程及owner/lock已清理，Root已解除冻结。C11不能重跑，COS16/COS18仍partial；以下C10与源码准备记录保留其当时范围。
 
-## COS85：准备处理可选摘要截断
+## COS85 已审集成；COS86 准备固定迁移 C12
 
-- [任务 #86](https://github.com/lrfluobida/Cosmos/issues/86)已由Root发布并原生挂父，当前85个子项，父勾选仍为空。依赖COS79/84，由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。
-- 短计划候选 `c108e9a` 正在独审，当前SOURCE_NOT_READY/open。拟仅处理可信可选自动摘要已结算的length：丢弃部分摘要，保留原上下文，停止本会话后续自动摘要；同一作者attempt的下一普通请求仍须通过原准入。其它失败、费用、预算和时限保持。
-- 本卡只做免费源码与合成夹具，目标标记为 OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY；作者计划和任务卡仍在独立分支，不代表实现完成，不恢复C11或启动新付费案例。
+- [COS85 / #86](https://github.com/lrfluobida/Cosmos/issues/86)由 `cos76_implementer` 实现；计划 `c108e9a` 已获原 `cos77_implementer` 批准，最终 `b5e8794` 经接续独立 `cos85_reviewer` 实际规格与质量审查APPROVED，无finding。唯一 `batch85_86_merger` 合入 `f63399f`，标记为 OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY；源码已集成，公开issue仍open、父勾选为空，等待Root关闭同步。完整SHA和证据见[任务卡](docs/specs/cos85-optional-compaction-truncation.md)。
+- 仅可信可选自动摘要已结算的length可丢弃部分摘要并保留原上下文，随后关闭本会话自动摘要；同一作者attempt继续原准入。主线typecheck/build退出0，Root原复现1/1：下一普通请求已到达，随后预算不足仍为admission_rejected；dist split恢复与accounting失败代表2/2、0skip。作者30项source矩阵与其余已审证据复用；仅合成fixture、fake provider、network0，不提升为实际游戏通过。
+- [COS86 / #87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246，已由Root发布、核对并原生挂父#1，当前86个子项。依赖COS84/85；接续作者 `cos86_implementer`、独立 `cos86_reviewer`、唯一merger `batch85_86_merger`。短计划 `fc2a06e` 已独立PLAN_APPROVED，无finding，已授权实施；SOURCE_NOT_READY/open，目标 TRANSFER_CASE_TWELVE_SOURCE_READY；自有文档尚未合入。
+- C12拟复用C5两passed阶段与七capture，新作者为空；19stopped/11delegations/95closed/17audits和C11全部41笔历史必须验证。原¥150、COS16组¥10及单轮¥3/45分钟/80请求/一次repair保持；Root报告closure17后组可分配¥4.205748，实际仍须重新准入。本次只准备免费源码，不恢复C11或启动新付费案例，main未冻结。
 
 ## C10因时限取消，第二次作者自检曾通过
 
