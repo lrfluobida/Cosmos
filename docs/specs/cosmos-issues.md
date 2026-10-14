@@ -1382,9 +1382,12 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 用户于2026-10-14在明确最多¥3、45分钟的提案后回复“继续”。本轮只按该安排推进，仍计入原¥150总额，COS16原预算组保持¥10。固定额度按规划、设计、美术、编码、修复顺序为¥0.000001、¥0.000001、¥0.000001、¥2.40、¥0.599997，合计¥3；旧C9余额与费用保留为历史。
 
-短计划 `371ef1d9e641c331cfca1812ec9ab94a815d422c` 已独审PLAN_APPROVED。最终实现 `66c0980` 经cos77完成规格与质量审查，没有剩余finding；唯一merger合入 `82c50dd`，当前为 `TRANSFER_CASE_TEN_SOURCE_READY` / source-integrated/open。完整SHA与边界见[任务卡](cos82-transfer-case10.md)。
+短计划 `371ef1d9e641c331cfca1812ec9ab94a815d422c` 已独审PLAN_APPROVED。最终实现 `66c0980` 经cos77完成规格与质量审查，没有剩余finding；唯一merger合入 `82c50dd`，标记为 `TRANSFER_CASE_TEN_SOURCE_READY`；[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)、closed及父勾选已由Root核实，本卡源码范围完成。完整SHA与边界见[任务卡](cos82-transfer-case10.md)。
 
-主线typecheck/build通过，新的¥3向量、容量边界和报价检查加原C9短回归共8/8通过；作者runtime和compiled证据复用。compiled worker为路径选择/synthetic transport，C10实际repair/build/browser未运行。主线推送后冻结交给Root做真实免费准入和付费；目前C10尚未准入或开始，公开关闭及实际结果统一等解冻后记录。
+主线typecheck/build通过，新的¥3向量、容量边界和报价检查加原C9短回归共8/8通过；作者runtime和compiled证据复用。compiled worker为路径选择/synthetic transport，C10实际repair/build/browser未运行。上述为源码准备时证据；C10运行和closure16现已结束，Root已解除冻结。
+
+- 实际C10在冻结版本 `a464b0f` 上运行约44分56秒，由截止前5秒的清理定时器取消。40次请求均已准入和结算，新增 **¥1.086265**，共享累计 **¥11.466320**，未知费用和预留为零。作者修正第一次自检的TS2352后，第二次两项退出码均为0，但没有交接、捕获、正式候选或后续验收，体验未确认。6个源码文件共30,046字节，cos77已核对与成功自检临时副本逐字节一致。
+- Root已完成closure16，释放 **¥1.913735**；18个案例均停止，旧费用和历史保持。旧C6标签来自共享handler，取消后的`Historical source changed`不证明来源改变。[公开实际结果](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6168010789)及[研究记录](../research/2026-10-14-transfer-c10-deadline-stop.md)保留完整统计与解释；没有新付费或C11。
 
 稳定任务 ID：COS-82
 

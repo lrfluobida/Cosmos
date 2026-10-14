@@ -2,14 +2,22 @@
 
 更新时间：2026-10-14
 
-用户在明确本轮最多¥3、45分钟的提案后，于2026-10-14回复“继续”。本轮按该授权准备C10，费用仍计入原¥150总额；源码已独审集成，实际准入仍由Root后续执行，目前没有实际付费。
+用户于2026-10-14授权在原¥150总额内运行最多¥3、45分钟的C10。该轮已结束，新增费用¥1.086265，未使用额度已通过closure16释放；本次只记录结果，没有新付费或C11。
+
+## C10因时限取消，第二次作者自检曾通过
+
+- C10在冻结版本 `a464b0f` 上运行，约44分56秒后由既定清理定时器停止，编码任务记为`cancelled`。40次请求均已准入和结算，新增 **¥1.086265**，共享累计 **¥11.466320**，未知费用和预留均为零。[COS16结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6168008318)和[C10入口结果](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6168010789)已公开并精确读回。
+- 第一次自检发现`scene.ts:279`的TS2352错误。作者自主修改后，第二次检查的两项退出码均为0；但没有交接、捕获或正式候选，也没有正式构建、浏览器验收、评审、修复和接受结果。6个作者文件共30,046字节，已由cos77确认与成功自检临时副本逐字节一致，体验仍未确认。
+- 日志中的旧C6标签来自共享handler。取消后出现的`Historical source changed`来自`readManifest`首行的取消检查及统一catch，不能证明来源文件变化。自检时间、读取次数、来源清单准备和清理情况见[研究记录](docs/research/2026-10-14-transfer-c10-deadline-stop.md)；工具调用次数不用于推断动机。
+- Root已完成closure16，释放未使用的 **¥1.913735**。18个案例均已停止，旧费用和历史保留。COS82已[在源码范围内完成并关闭](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)，COS16/COS18仍partial，实际游戏和human未通过。
+- 启动器和Node已退出、两个controller锁已释放，Root已解除main冻结。以下C10未准入及冻结等待为当时的源码准备记录；本次不修改生产代码或重新运行案例。
 
 ## COS82：准备 ¥3 上限的固定迁移 C10
 
-- [任务 #83](https://github.com/lrfluobida/Cosmos/issues/83)已由Root发布、精确读回并挂到原生父任务，当前共有82个子项。依赖COS78/79/80/81；由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。短计划 `371ef1d` 及最终实现均已独审批准，没有剩余finding。批准版本为 `66c0980`，合并为 `82c50dd`，当前为 TRANSFER_CASE_TEN_SOURCE_READY/source-integrated/open。
+- [任务 #83](https://github.com/lrfluobida/Cosmos/issues/83)已由Root发布、精确读回并挂到原生父任务，当前共有82个子项。依赖COS78/79/80/81；由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。短计划 `371ef1d` 及最终实现均已独审批准，没有剩余finding。批准版本为 `66c0980`，合并为 `82c50dd`，标记为 TRANSFER_CASE_TEN_SOURCE_READY；[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)、closed及父勾选已由Root核实，本卡源码范围完成。
 - COS16原预算组仍为¥10。本轮固定额度为：规划、设计、美术各¥0.000001，编码¥2.40，修复¥0.599997，合计¥3。这里只记录本轮安排，旧C9余额和费用历史保持。
 - [任务卡](docs/specs/cos82-transfer-case10.md)保留完整SHA与证据。主线typecheck/build和八项短集成检查通过；作者11项unit、runtime和compiled结果按原证据复用。compiled worker只核路径选择，transport为synthetic；未实际执行C10 repair/build/browser，不提升为游戏通过。
-- 实际C10尚未准入或开始。主线干净推送后冻结，真实账本、免费准入和API仍由Root操作；公开关闭链接及实际结果等运行结束、Root解冻后统一补录。
+- 以上为源码集成时的准备证据；实际C10和closure16现已结束，Root已解除冻结，结果见本页顶部。
 
 ## C9 实际验证停止与 closure15 完成
 

@@ -8,15 +8,17 @@
 
 ## 1. 已确认的产品目标
 
-### C10准备已获预算授权，尚未运行
+### 当前实际结果：C10因时限取消
 
-用户在明确本轮最多¥3、45分钟的提案后，于2026-10-14回复“继续”。[COS82：准备 ¥3 上限的固定迁移 C10](https://github.com/lrfluobida/Cosmos/issues/83)已由Root发布并核对原生父关联，当前共82个子项；依赖COS78/79/80/81，由cos76实现、cos77独审，唯一merger保持不变。
+C10已在用户授权的最多¥3、45分钟窗口内结束。冻结版本为 `a464b0f`，运行约44分56秒后，既定的截止前5秒清理定时器触发，编码任务记为`cancelled`。40次请求均已准入和结算，新增 **¥1.086265**，共享累计 **¥11.466320**，未知费用和预留均为零。
 
-原共享¥150上限和COS16预算组¥10保持。本轮固定额度为规划、设计、美术各¥0.000001，编码¥2.40、修复¥0.599997，合计¥3。短计划与最终实现均已独审批准。源码 `66c0980` 已由唯一merger合入 `82c50dd`，标记为 `TRANSFER_CASE_TEN_SOURCE_READY`，当前source-integrated/open；完整记录见[任务卡](cos82-transfer-case10.md)。主线typecheck/build及新预算和原C9短回归共8/8通过，重型runtime/compiled证据复用。compiled worker只验证路径选择和synthetic transport，实际C10 repair/build/browser未运行。
+第一次作者自检发现 `scene.ts:279` 的TS2352错误。作者自主修改后，第二次两项退出码均为0，但仍没有交接、捕获或正式候选，也没有正式build/browser/review/repair/accepted；体验未确认。六个作者文件共30,046字节，cos77已确认与成功自检的临时副本逐字节一致。自检通过不等于正式验收通过。
 
-实际C10尚未准入、开始或付费。主线干净推送后冻结，由Root在真实历史上执行免费准入及后续运行；公开关闭链接和实际结果在运行结束、Root解冻后统一记录。旧C9余额、结果与费用仍按下文保留，作者计划和任务卡由其独立工作区维护。
+首次免费预检因C10来源清单尚未准备而拒绝，账本和付费请求数保持不变；Root补齐纯C5历史清单后通过。取消后的旧C6标签来自共享handler，`Historical source changed`来自取消检查的统一catch，不能作为文件改变证据。精确时间、自检记录和工具统计见[研究记录](../research/2026-10-14-transfer-c10-deadline-stop.md)，其中读取次数不用于推断作者动机。
 
-### 当前实际结果：C9未通过
+Root已一次完成closure16，释放未使用的 **¥1.913735**。18个案例均已停止，费用和旧历史保持；启动器、Node及锁已清理，主线冻结已解除。[COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6168008318)、[C10入口结果](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6168010789)和[COS82源码关闭](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)已由Root精确读回。COS16/COS18仍partial，实际游戏和human未通过；本次不新增付费、C11或预算。
+
+### C9历史结果：未通过
 
 C9在冻结版本 `730cb4d` 上运行，于北京时间10月14日04:00开始，约29分36秒后结束，早于原定04:45截止时间。31次编码请求均已结算，新增 **¥0.960162**，共享累计 **¥10.380055**。五次真实原生压缩成功后继续了请求，但最终没有交付通过的游戏。
 

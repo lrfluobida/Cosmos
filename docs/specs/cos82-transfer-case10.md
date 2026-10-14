@@ -1,15 +1,23 @@
 # COS-82 准备 ¥3 上限的固定迁移 C10
 
-状态：TRANSFER_CASE_TEN_SOURCE_READY / PLAN_APPROVED / source-integrated / open。Issue [#83](https://github.com/lrfluobida/Cosmos/issues/83)，id5846224228；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
+状态：TRANSFER_CASE_TEN_SOURCE_READY / PLAN_APPROVED / source scoped complete / closed。Issue [#83](https://github.com/lrfluobida/Cosmos/issues/83)，id5846224228；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)。
 
 专属 implementer `cos76_implementer` acting COS82；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos82-transfer-case10.md](../plans/2026-10-14-cos82-transfer-case10.md)。基线 main `007cd1042d73abeed2d8d1384aee2400a6f3dc8a`。
 
-最终16个文件已通过独立规格与质量审查，没有剩余finding；唯一merger已集成，公共关闭与实际运行结果待Root后续记录。
+最终16个文件已通过独立规格与质量审查，没有剩余finding；唯一merger已集成。[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)、closed及父勾选已由Root核实。
 
 | 记录 | 提交 |
 | --- | --- |
 | 批准版本 | `66c09807bc83651c2c62bd5ac891c9c336c7f085` |
 | 合并提交 | `82c50dd183bd5af6b0cfcc9b851f668e7a09c5c9` |
+
+## 实际C10结果
+
+C10在冻结版本 `a464b0f` 上运行约44分56秒，被`deadline - 5000ms`清理定时器取消。40次请求均已准入和结算，新增 **¥1.086265**，共享累计 **¥11.466320**。第一次作者自检报TS2352，作者自主修改后第二次两项退出码均为0；这仍不是正式候选验收通过。
+
+作者留下6个文件、30,046字节，与成功自检的`check-Z1sPsZ`临时副本原始源码逐字节一致。journal仅origin，候选目录为空；没有host-result、handoff、capture或正式build/browser/review/repair/accepted，体验未确认。取消后的`Historical source changed`文字并不证明来源文件改变。
+
+[实际结果](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6168010789)已由Root精确读回。closure16释放 **¥1.913735**，18个案例全部停止，未知费用和预留为零；原窗口不重开，费用与历史保持。完整时间、工具统计和日志解释见[研究记录](../research/2026-10-14-transfer-c10-deadline-stop.md)。Root已解除main冻结；下文SOURCE/TEMP和未准入状态为源码准备时历史，本卡源码完成不等于C10游戏通过。
 
 ## 授权与契约
 
@@ -23,7 +31,7 @@
 
 ## 完成条件
 
-独立exact规格与质量审查已完成，标记为 `TRANSFER_CASE_TEN_SOURCE_READY`。Root还需在干净且已推送的主线及真实历史上重新验证准入；本卡source完成不代表实际C10、游戏或human通过。共享tracking由sole merger整合。
+独立exact规格与质量审查已完成，标记为 `TRANSFER_CASE_TEN_SOURCE_READY`。Root随后已完成实际准入与C10运行，结果见前节；本卡source完成不代表游戏或human通过。共享tracking由sole merger整合。
 
 ## 免费实现证据
 
@@ -31,4 +39,4 @@
 
 C10实际repair/build/browser未跑。599997 repair额度与原524488门槛只作源契约核对，复用已审未变repair/v2证据；compiled worker仅验证路径选择，transport为synthetic，没有实际worker spawn/build。全部SOURCE seed恢复完成，无新paid或真实案例操作；最终版本现已独审批准并集成。
 
-合并后typecheck/build通过，新的¥3向量、可分配容量边界和固定报价三项检查，加上原C9五项短回归，共8/8通过。原始输出：`C:/Users/26557/AppData/Local/Temp/cos82-merge-integration.tap`。merger已读四份作者TAP及类型/构建日志，复用重型runtime和compiled证据；strict为作者当次工具退出0，无独立日志。主线干净推送后冻结，真实免费准入和付费由Root执行；本地公开关闭链接及实际结果统一在运行结束、Root解冻后补录。
+合并后typecheck/build通过，新的¥3向量、可分配容量边界和固定报价三项检查，加上原C9五项短回归，共8/8通过。原始输出：`C:/Users/26557/AppData/Local/Temp/cos82-merge-integration.tap`。merger已读四份作者TAP及类型/构建日志，复用重型runtime和compiled证据；strict为作者当次工具退出0，无独立日志。上述为源码准备时检查；实际运行和closure16结束后，Root已明确解冻，本次仅补录公开状态与结果。
