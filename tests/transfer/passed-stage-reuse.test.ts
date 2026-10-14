@@ -154,12 +154,20 @@ test('reserved, unknown and stopped current authority refuse before inherited im
 test('one current CodeDefect repair retains inherited IDs and promotes only exact v2 with fresh coding approval', async t => {
   const a = await api(), runtime = await import('../../src/runtime/adapters/transfer/runtime-host.ts');
   const f = await passedStageFixture(t), current = await successorFixture(t, f), historicalStages = a.createHistoricalPassedStages(f.input);
+  let scopeCalls = 0; const bindingSamples: { scopes: number; elapsedMs: number }[] = [], requireHost = current.controller.requireValidationHost.bind(current.controller);
+  t.mock.method(current.controller, 'requireValidationHost', async (...args: Parameters<typeof requireHost>) => { scopeCalls++; return requireHost(...args); });
   const io = { async build(project: string, taskId: string) {
     if (taskId === current.window.quote.declaration.grants.coding.taskId) return { passed: false, work: project, diagnostics: 'Synthetic generated source defect',
       results: [{ code: 1, stdout: 'src/main.ts(1,1): error TS2322: synthetic fixture', stderr: '' }] };
     await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), '<p>Synthetic host transport</p>', 'utf8');
     return { passed: true, work: project, diagnostics: 'Synthetic host build transport', results: [{ code: 0, stdout: '', stderr: '' }, { code: 0, stdout: '', stderr: '' }] };
-  }, async play() { throw new Error('Persistent adapter required'); }, playPersistent: (series: any, options: any) => syntheticReports(series, options) };
+  }, async play() { throw new Error('Persistent adapter required'); }, playPersistent: async (series: any, options: any) => {
+    for (let operation = 0; operation < 2; operation++) {
+      const before = scopeCalls, start = performance.now(); await options.verifyBinding();
+      bindingSamples.push({ scopes: scopeCalls - before, elapsedMs: +(performance.now() - start).toFixed(3) });
+    }
+    return syntheticReports(series, options);
+  } };
   const host = await runtime.createTransferReusedConsumerHost({ ...current.input, io, historicalStages }); f.onCleanup(() => host.closePreparation());
   const prepared = codingTask(f, current, host); await host.bindPreparedTasks([prepared]);
   const recovery = { artifactRoot: f.targetRoot, journalRoot: join(f.targetRoot, 'journal'), recoverCapture: host.recoverCapture };
@@ -181,6 +189,7 @@ test('one current CodeDefect repair retains inherited IDs and promotes only exac
     t.diagnostic(JSON.stringify(details?.issues?.map((issue: any) => ({ checkId: issue.checkId, actual: issue.actual })) ?? details));
   }
   assert.equal(result.tasks[0].state, 'passed');
+  t.diagnostic('COS92 actual inherited consumer binding: ' + JSON.stringify(bindingSamples)); assert.deepEqual(bindingSamples.map(sample => sample.scopes), [6, 6]);
   const finished: any = await host.finish(result.tasks); assert.deepEqual(finished.gaps, []);
   assert.equal(finished.acceptedCandidate.candidateRef.version, 'v2');
   assert.deepEqual(finished.inheritedStages.map((stage: any) => stage.taskId), f.result.map(task => task.taskId));
