@@ -1,6 +1,6 @@
 # COS-87 并行读取独立 Git 身份字段
 
-状态：PARALLEL_GIT_IDENTITY_SOURCE_READY / source-integrated / open pending public closure。Issue [#88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS83、COS86 的源码及 C12 结果记录。
+状态：PARALLEL_GIT_IDENTITY_SOURCE_READY / source scoped complete / closed。Issue [#88](https://github.com/lrfluobida/Cosmos/issues/88)，id5852635000；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS83、COS86 的源码及 C12 结果记录。
 
 作者 `cos87_implementer`；独立 reviewer `cos87_reviewer`；唯一 merger `batch_c12_reference_merger`。实施计划：[2026-10-15-cos87-parallel-git-identity.md](../plans/2026-10-15-cos87-parallel-git-identity.md)。基线 `b94d0d49f032888d46d8e1a56e774713fe8fe973`；计划批准 exact `f509606a8da1ebe6e5f73ff2d0c430d787fe85c9`，无 findings。
 
@@ -26,6 +26,6 @@
 
 ## 独立审查与主线集成
 
-最终 `ac91cff85ddbdd08720623fd600161f2e61bd6b6` 经 `cos87_reviewer` 实际规格及质量审查APPROVED，无剩余finding；唯一 `batch_c12_reference_merger` 合入 `49e892992749e5511f2bb4135ec67be4459fa30b`。计划 `f509606a8da1ebe6e5f73ff2d0c430d787fe85c9` 与基线祖先已核对，合并时全部5文件与批准提交逐字节一致。本卡源码已集成，等待Root公开关闭；不冻结main或启动付费验证。
+最终 `ac91cff85ddbdd08720623fd600161f2e61bd6b6` 经 `cos87_reviewer` 实际规格及质量审查APPROVED，无剩余finding；唯一 `batch_c12_reference_merger` 合入 `49e892992749e5511f2bb4135ec67be4459fa30b`。计划 `f509606a8da1ebe6e5f73ff2d0c430d787fe85c9` 与基线祖先已核对，合并时全部5文件与批准提交逐字节一致。本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/88#issuecomment-6175145772)，closed(completed)及父勾选已由Root精确读回；本卡不启动付费验证。
 
 主线受影响strict命令复用上述完整参数，退出0；`node --experimental-strip-types --test --test-name-pattern "COS87 identity (overlap|child-failure)$" tests/e2e/validation-identity.test.ts` 通过2/2、0skip，TAP1250.9167ms。两次独立读取共18个查询、峰值4、active0；真实失败场景4个PID均在返回前退出。原始记录为 `C:/Users/26557/AppData/Local/Temp/cos87-merge-affected-strict.log` 和 `C:/Users/26557/AppData/Local/Temp/cos87-merge-integration.tap`。原19/19、typecheck/build、abort/5秒清理及短性能基准按已审证据复用；没有重复长矩阵或性能采样。

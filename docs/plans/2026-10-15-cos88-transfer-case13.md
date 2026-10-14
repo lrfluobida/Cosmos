@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript、Node 原生测试、既有 RunController 和 SOURCE/TEMP 夹具；本任务作者只做免费源码及合成验证。
 
-**状态与基线：** SOURCE_NOT_READY，目标 `TRANSFER_CASE_THIRTEEN_SOURCE_READY`。Issue [#89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，父 #1，依赖 COS86 #87 / COS87 #88。分支 `codex/cos88-transfer-case13`，managed worktree `E:/CodexData/.codex/worktrees/cos74-frozen-template/Cosmos`，起点 main `49e892992749e5511f2bb4135ec67be4459fa30b`。
+**状态与基线：** TRANSFER_CASE_THIRTEEN_SOURCE_READY / source-integrated，待Root公开关闭。Issue [#89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，父 #1，依赖 COS86 #87 / COS87 #88。分支 `codex/cos88-transfer-case13`，managed worktree `E:/CodexData/.codex/worktrees/cos74-frozen-template/Cosmos`，起点 main `49e892992749e5511f2bb4135ec67be4459fa30b`。
 
 ## 固定契约与依赖
 
@@ -89,4 +89,4 @@ strict 与第一次 compiled 发现共用 accounting-source 参数类型漏列 `
 
 新 SOURCE 存档为 `C:/Users/26557/AppData/Local/Temp/cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C13-proof-6daadf13-4334-44c6-b00b-006f3116c153`。history-1/2 各 20/12/100/18，均含 52 个原 API admitted/settled C12 合成请求，费用分别为 1664926µ / 1100000µ；两组 C13 均固定 2500000µ，available 差额 564926µ，旧 quote 拒绝。result 有新 C13 合成案例，保留原前缀；Pi fake 的一个 coding request 使用 65536 output cap、1335632µ 预留，零 planner/design/art SDK。没有正式游戏 build/browser/repair。
 
-finally 已恢复 snapshot/mapping 字节与 mtime，关闭 owner，归档新 C9–C13 目录和 C13 marker。补充只读核对原 snapshot 字节一致、C9–C13 原缺失目录恢复、owner locks 缺失，记录 `cos88-source-restoration.json`；C5 两 passed 阶段、七 capture 与旧 proof 均保持。compiled TEMP 为 `C:/Users/26557/AppData/Local/Temp/cos88-compiled-61ut3H`，worker transport 为 synthetic。最终源码等待独立规格→质量审查，SOURCE_NOT_READY 保持。
+finally 已恢复 snapshot/mapping 字节与 mtime，关闭 owner，归档新 C9–C13 目录和 C13 marker。补充只读核对原 snapshot 字节一致、C9–C13 原缺失目录恢复、owner locks 缺失，记录 `cos88-source-restoration.json`；C5 两 passed 阶段、七 capture 与旧 proof 均保持。compiled TEMP 为 `C:/Users/26557/AppData/Local/Temp/cos88-compiled-61ut3H`，worker transport 为 synthetic。最终 `0ef600389fb10990fad516e85b4389aa4fecbd42` 已经 `cos88_reviewer` 独立APPROVED，无剩余finding，唯一merger合入 `9b8be0553c2c43b77ac0724b096d04185ab0cc5d`；主线strict及7项短集成通过，详见[任务卡](../specs/cos88-transfer-case13.md)。最终关闭元数据推送后main冻结供Root一次C13预检及有界运行，仅Root可解除；实际C13仍NONE。

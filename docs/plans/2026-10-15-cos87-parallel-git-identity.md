@@ -88,4 +88,4 @@
 
 该短基准中位数下降53.8631%；旧峰值1、新峰值4，每次仍9次查询。此数值只描述该环境的完整身份读取；没有重跑135秒工具夹具，不能推导工具总时长、实际C12速度或节费，也不构成游戏性能验收。无网络、付费、实际ledger/session/key或参考安装操作。
 
-状态：PARALLEL_GIT_IDENTITY_SOURCE_READY / source-integrated，等待Root公开关闭；主线strict与两项短集成代表通过，合并记录见[任务卡](../specs/cos87-parallel-git-identity.md)。
+状态：PARALLEL_GIT_IDENTITY_SOURCE_READY / source scoped complete / closed；[公开批准与关闭](https://github.com/lrfluobida/Cosmos/issues/88#issuecomment-6175145772)及父勾选已由Root精确读回。主线strict与两项短集成代表通过，合并记录见[任务卡](../specs/cos87-parallel-git-identity.md)。

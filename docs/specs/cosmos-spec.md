@@ -14,7 +14,9 @@ C12在冻结版本 `3cde457` 上运行44分56.013秒，由既定截止前5秒定
 
 Root已一次完成closure18，释放 **¥1.335074**；revision2770、20stopped/12delegations/100closed/18audits，进程及owner/locks已释放，main冻结已解除。原COS16组可分配 **¥2.540822**，不足新的固定¥3案例。C12身份已消费，COS16/COS18、完整经典与human仍未完成。[COS16结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6174293178)和[C12结果](https://github.com/lrfluobida/Cosmos/issues/87#issuecomment-6174294365)已由Root精确读回；[研究记录](../research/2026-10-15-transfer-c12-deadline.md)保留自检版本、压缩推断及清理边界。本批只归档现有证据，没有新付费或案例。
 
-[COS87](cos87-parallel-git-identity.md)最终 `ac91cff` 经 `cos87_reviewer` 独立APPROVED，无剩余finding，唯一 `batch_c12_reference_merger` 合入 `49e8929`；`PARALLEL_GIT_IDENTITY_SOURCE_READY` / source-integrated待公开关闭。每组四个独立Git查询并行并收齐结果，原校验顺序、守卫、5秒截止和清理保持。主线受影响strict与两项短代表通过，原19/19及typecheck/build证据复用；短基准身份读取中位755.5810→348.6017ms仅属于该环境的identity范围，不代表实际游戏、自检总时长或费用改善。后续[COS88 / #89](https://github.com/lrfluobida/Cosmos/issues/89)仅登记准备¥2.50上限C13，计划与源码未批准，尚未执行；main当前不冻结。
+[COS87](cos87-parallel-git-identity.md)最终 `ac91cff` 经 `cos87_reviewer` 独立APPROVED，无剩余finding，唯一 `batch_c12_reference_merger` 合入 `49e8929`；`PARALLEL_GIT_IDENTITY_SOURCE_READY`，已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/88#issuecomment-6175145772)，父勾选已由Root核实。每组四个独立Git查询并行并收齐结果，原校验顺序、守卫、5秒截止和清理保持。主线受影响strict与两项短代表通过，原19/19及typecheck/build证据复用；短基准身份读取中位755.5810→348.6017ms仅属于该环境的identity范围，不代表实际游戏、自检总时长或费用改善。
+
+[COS88固定C13](cos88-transfer-case13.md)最终 `0ef6003` 经 `cos88_reviewer` 独立规格→质量APPROVED，无剩余finding，唯一merger合入 `9b8be05`，标记 `TRANSFER_CASE_THIRTEEN_SOURCE_READY` / source-integrated待公开关闭；计划 `6ad3235` 的[公开批准](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175247486)已由Root读回。仅新C13为¥2.50/45分钟/80请求/一次repair，固定向量1/1/1/1900000/599997µ，原COS16组¥10、phase¥30、shared¥150及旧¥3声明保持。主线受影响strict与7项短集成通过，已审SOURCE/compiled等证据复用；SOURCE类型补18发射JS不变，长运行的复用边界见任务卡。实际C13、paid和human仍NONE；公开关闭及最终元数据推送后main冻结供Root一次免费预检及有界运行，仅Root可解除。
 
 ### C11历史结果：自检通过后输出截断
 

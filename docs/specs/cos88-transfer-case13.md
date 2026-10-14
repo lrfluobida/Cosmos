@@ -1,6 +1,6 @@
 # COS-88 原预算组余量内的固定迁移 C13
 
-状态：PLAN_APPROVED / 实现验证完成待最终独审 / SOURCE_NOT_READY；目标 `TRANSFER_CASE_THIRTEEN_SOURCE_READY`。Issue [#89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，已由 Root 精确读回并原生挂父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)；依赖 COS86 #87、COS87 #88。
+状态：TRANSFER_CASE_THIRTEEN_SOURCE_READY / source-integrated / open pending public closure。Issue [#89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，已由 Root 精确读回并原生挂父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)；依赖 COS86 #87、COS87 #88。
 
 作者 `cos88_implementer`，独立 reviewer `cos88_reviewer`，唯一 merger `batch_c12_reference_merger`。分支 `codex/cos88-transfer-case13`，起点 main `49e892992749e5511f2bb4135ec67be4459fa30b`；[实施计划](../plans/2026-10-15-cos88-transfer-case13.md)。计划 exact `6ad3235c52cd1e0f2a11dfaaa0b5bfc38eeefeff` 已独立 PLAN_APPROVED，无 finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175247486)由 Root 精确读回。实际 C13 尚未执行。
 
@@ -33,4 +33,12 @@ Root 负责最终真实免费预检、独立审查的一次性操作脚本和后
 
 认证 SOURCE 通过原 API 追加两组各 52 笔 C12 合成请求和 closure18，保留 20/12/100/18、C5 两阶段七 capture，验证空作者、当前 host/factory/Pi、COS86/COS87 marker/双祖先拒绝、stale quote 及同窗口 partial 冷恢复。finally 恢复原 snapshot/mapping 字节和 mtime、owner 与缺失目录；compiled worker transport 为 synthetic。
 
-SOURCE 结束后补充了一处遗漏的 `audits` TypeScript union 字面量 `18`。修正前运行字节与 diff 已单独保存；JavaScript emit 逐字节不变，其余八个生产 TS 字节不变。最终 strict、compiled、source capture 已重验，长 SOURCE 按此依据复用；其结果不是最终源字节的重新完整运行。实现 exact diff 仍待 `cos88_reviewer` 独立规格→质量审查及唯一 merger 集成。
+SOURCE 结束后补充了一处遗漏的 `audits` TypeScript union 字面量 `18`。修正前运行字节与 diff 已单独保存；JavaScript emit 逐字节不变，其余八个生产 TS 字节不变。最终 strict、compiled、source capture 已重验，长 SOURCE 按此依据复用；其结果不是最终源字节的重新完整运行。独立 `cos88_reviewer` 已核实际 diff、原始输出与 SOURCE 三份 snapshot，批准该复用依据。
+
+## 独立批准与主线集成
+
+最终 `0ef600389fb10990fad516e85b4389aa4fecbd42` 经 `cos88_reviewer` 实际规格→质量审查APPROVED，无剩余finding；review base 为 `c62499250a5e0dbcdd530d3482c99de068783814`。唯一 `batch_c12_reference_merger` 合入 `9b8be0553c2c43b77ac0724b096d04185ab0cc5d`，17个批准路径在合并时逐字节一致，计划及COS87 reviewed/merge祖先已核对，旧C10/C11/C12声明字节保持。
+
+主线执行计划所列affected strict，退出0；`node --experimental-strip-types --test --test-name-pattern "C13 (fixes|rejects|uses|fixed parser|unknown admission)|C12 (fixes|fixed parser)" tests/transfer/validation-case-thirteen.test.ts tests/transfer/validation-case-twelve.test.ts` 通过7/7、0skip，TAP5874.938ms，覆盖C13额度、历史、可分配容量、quote/准入及两项C12旧代表。raw为 `C:/Users/26557/AppData/Local/Temp/cos88-merge-affected-strict.log` 和 `C:/Users/26557/AppData/Local/Temp/cos88-merge-integration.tap`。作者typecheck/build、SOURCE、最终compiled及source capture按已审证据复用，未重长矩阵。
+
+本卡先保持source-integrated/open，Root公开关闭后同步必要元数据；最终元数据推送后main冻结供Root一次C13免费预检及有界运行，仅Root可解除。实际C13、paid、human仍NONE，本次集成不执行预检或操作脚本。
