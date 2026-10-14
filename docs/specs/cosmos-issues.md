@@ -1418,9 +1418,9 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 ### COS-85 · 保留可选摘要截断后的原作者会话
 
-[任务 #86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421，已由Root发布、精确读回并原生挂父#1；发布时85个子项，父勾选仍为空。依赖COS79/84，由 `cos76_implementer` 实现，最终独立reviewer为 `cos85_reviewer`，唯一merger为 `batch85_86_merger`。
+[任务 #86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421，已由Root发布、精确读回并原生挂父#1；发布时85个子项，当前父勾选已由Root精确核实。依赖COS79/84，由 `cos76_implementer` 实现，最终独立reviewer为 `cos85_reviewer`，唯一merger为 `batch85_86_merger`。
 
-短计划 `c108e9a797e708167f289d8b05227900be765a80` 已由原cos77独立PLAN_APPROVED。最终 `b5e879472b9c1a585a9bde6cb9f1823c044c26fa` 经接续reviewer实际规格与质量APPROVED，无finding，合入 `f63399fa77bd725e379eb8d119b7160a04180f32`，标记 `OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY`；源码已集成，公开issue仍open、等待Root关闭。仅可信可选自动摘要已结算的length可丢弃部分摘要、保留原上下文并关闭后续自动摘要；同一作者attempt的下一普通请求仍经过原准入。普通作者与其它摘要失败、费用、预算和时限保持。
+短计划 `c108e9a797e708167f289d8b05227900be765a80` 已由原cos77独立PLAN_APPROVED。最终 `b5e879472b9c1a585a9bde6cb9f1823c044c26fa` 经接续reviewer实际规格与质量APPROVED，无finding，合入 `f63399fa77bd725e379eb8d119b7160a04180f32`，标记 `OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY`；本卡source scoped complete/closed；[公开批准](https://github.com/lrfluobida/Cosmos/issues/86#issuecomment-6172184717)、closed(completed)及父勾选已由Root精确读回。仅可信可选自动摘要已结算的length可丢弃部分摘要、保留原上下文并关闭后续自动摘要；同一作者attempt的下一普通请求仍经过原准入。普通作者与其它摘要失败、费用、预算和时限保持。
 
 主线typecheck/build0，Root原复现1/1、下一普通请求进入后正确预算拒绝；dist split恢复/accounting失败2/2、0skip。已核作者原始TAP并复用30项source矩阵及其它通过证据；[任务卡](cos85-optional-compaction-truncation.md)保留完整SHA、命令和证据。仅免费源码与合成夹具，不恢复C11或新增付费案例。
 

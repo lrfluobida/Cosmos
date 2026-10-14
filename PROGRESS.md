@@ -13,7 +13,7 @@
 
 ## COS85 已审集成；COS86 准备固定迁移 C12
 
-- [COS85 / #86](https://github.com/lrfluobida/Cosmos/issues/86)由 `cos76_implementer` 实现；计划 `c108e9a` 已获原 `cos77_implementer` 批准，最终 `b5e8794` 经接续独立 `cos85_reviewer` 实际规格与质量审查APPROVED，无finding。唯一 `batch85_86_merger` 合入 `f63399f`，标记为 OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY；源码已集成，公开issue仍open、父勾选为空，等待Root关闭同步。完整SHA和证据见[任务卡](docs/specs/cos85-optional-compaction-truncation.md)。
+- [COS85 / #86](https://github.com/lrfluobida/Cosmos/issues/86)由 `cos76_implementer` 实现；计划 `c108e9a` 已获原 `cos77_implementer` 批准，最终 `b5e8794` 经接续独立 `cos85_reviewer` 实际规格与质量审查APPROVED，无finding。唯一 `batch85_86_merger` 合入 `f63399f`，标记为 OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY；本卡source scoped complete/closed；[公开批准](https://github.com/lrfluobida/Cosmos/issues/86#issuecomment-6172184717)、closed(completed)及父勾选已由Root精确读回。完整SHA和证据见[任务卡](docs/specs/cos85-optional-compaction-truncation.md)。
 - 仅可信可选自动摘要已结算的length可丢弃部分摘要并保留原上下文，随后关闭本会话自动摘要；同一作者attempt继续原准入。主线typecheck/build退出0，Root原复现1/1：下一普通请求已到达，随后预算不足仍为admission_rejected；dist split恢复与accounting失败代表2/2、0skip。作者30项source矩阵与其余已审证据复用；仅合成fixture、fake provider、network0，不提升为实际游戏通过。
 - [COS86 / #87](https://github.com/lrfluobida/Cosmos/issues/87)，id5850243246，已由Root发布、核对并原生挂父#1，当前86个子项。依赖COS84/85；接续作者 `cos86_implementer`、独立 `cos86_reviewer`、唯一merger `batch85_86_merger`。短计划 `fc2a06e` 已独立PLAN_APPROVED，无finding，已授权实施；SOURCE_NOT_READY/open，目标 TRANSFER_CASE_TWELVE_SOURCE_READY；自有文档尚未合入。
 - C12拟复用C5两passed阶段与七capture，新作者为空；19stopped/11delegations/95closed/17audits和C11全部41笔历史必须验证。原¥150、COS16组¥10及单轮¥3/45分钟/80请求/一次repair保持；Root报告closure17后组可分配¥4.205748，实际仍须重新准入。本次只准备免费源码，不恢复C11或启动新付费案例，main未冻结。
@@ -1059,6 +1059,8 @@ Root 已发布并精确读回 [COS70 / #71](https://github.com/lrfluobida/Cosmos
 本卡只新增公开接线fixture及既有host seam代表，复用Source69采样、Source68计时和Source63/61恢复证据，不重跑旧Edge或耗时矩阵。PERFORMANCE仍policy_not_executed，230行/221待参考核实/其余7未执行及两项实际partial保持；设备、普通与压力工作量和窗口未冻结。实际新模型/paid/human/窗口均NONE；C6未知费用974882µ、closure12/C7、未冻结参考和完整经典目标仍待核实，正式¥200/12h、目标¥100/6h与共享验证¥150保持。
 
 ### 参考窗口观察与多任务编码缺口核查
+
+2026-10-14补充：用户先确认参考游戏处于主菜单、全部主要模式已解锁，随后确认本来就是窗口模式。Root用computer-use 26.1007的@oai/sky list/launch识别到Plants vs. Zombies GOTY；首次capture报`FrameArrived timed out`，重新选择并激活后仍报`window capture timed out`，已停止重复抓屏。菜单、解锁及窗口模式属于用户提供的可访问性状态；本次没有成功截图，也没有新增数值或规则核实。230项目录、221项待核实、reference未冻结与COS01未完成状态保持。
 
 2026-10-06 Root 按 computer-use 技能使用 @oai/sky 观察已安装参考。初始无参考窗口，正常启动后返回 GOTY 窗口 id68104；截图首次 FrameArrived timeout，刷新选择/激活后仅重试一次仍 window capture timeout。只读 UI 文本仅有标题栏及系统控件，没有游戏内容。关闭控件因 geometry unavailable 失败，重新观察后用标准 Alt+F4，两秒后 list_windows 无参考窗口；没有游戏内输入、素材复制、自定义截图或目录改写。具体错误与边界见[基准记录](docs/benchmark/README.md)。这只证明窗口可识别，不证明加载完成或玩法；目录仍230/221待核实、reference未冻结。旧网页浏览器的原生API限制和本次独立Windows工具失败分列，不重复旧重试。
 
