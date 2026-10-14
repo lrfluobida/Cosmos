@@ -1,6 +1,6 @@
 # COS-84 验证来源校验去重后的固定迁移 C11
 
-状态：SOURCE_NOT_READY / plan pending / open。Issue [#85](https://github.com/lrfluobida/Cosmos/issues/85)，id5848367426；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS82/83。
+状态：SOURCE_NOT_READY / PLAN_APPROVED / implementation pending review / open。Issue [#85](https://github.com/lrfluobida/Cosmos/issues/85)，id5848367426；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS82/83。
 
 作者 `cos76_implementer` acting COS84；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos84-transfer-case11.md](../plans/2026-10-14-cos84-transfer-case11.md)。分支 `codex/cos84-transfer-case11`；当前base `32af0aa4c101bd03ccfd759d64a482231aefd970`，测试前接Root最终已审main。
 
@@ -17,3 +17,9 @@
 ## 完成条件
 
 新历史/额度/quote拒绝、当前host/Pi fake/partial冷恢复、compiled闭包和旧C10回归通过，原始证据与exact SHA独审后才可用 `TRANSFER_CASE_ELEVEN_SOURCE_READY`。SOURCE准备不代表实际C11、游戏或human通过；公共tracking由sole merger收口。
+
+## 免费实现证据
+
+计划 `4a0adbe931386cd55f163d212c58498ed2587bad` 已独审批准；测试前并入最终已推main `cb22fb22a76b131088585ebdb4298c76cc5ebab5`。新6项有效RED→新旧12/12 GREEN；SOURCE runtime1/1、compiled1/1，typecheck/build/affected strict退出0。原始TAP、首次compiled测试选项拼写错误及更正、完整命令和恢复归档见计划。
+
+实际SOURCE证明40笔新合成C10费用/closure16、固定新3m向量、旧18case全前缀、空新作者、host/factory/Pi与partial冷恢复。C11 build/browser/repair未跑，JS worker transport为synthetic；旧repair/v2及COS83矩阵复用。全部owner与SOURCE视图已恢复，无真实账本/会话/key/C10代码读取或付费操作。最终exact仍待独立审查。

@@ -31,13 +31,38 @@ Root提供的实际背景为C10 40笔author/coding/admitted/settled、1086265µ�
 
 ## 步骤与最小免费验证
 
-- [ ] exact计划/卡交独审；并入Root指定最终已审main后才开始生产测试。
-- [ ] RED：两组合成C10费用均生成相同新3m向量、group available准确变化；拒绝数量/role/purpose/window/settled/evidence/closure/grant/prefix漂移、unknown/reserved与容量不足。原C10 unit证明helper重用未改变31笔/closure15语义。
-- [ ] GREEN：仅固定helper和eleven wrappers、计数字面量；claim一次且保留原18case全部费用/request/closure/audit前缀，旧quote失效。
-- [ ] SOURCE一次新C11准入/current host+factory/Pi fake/同窗口冷恢复代表，证明空作者、C5复用、当前plan/quote绑定和COS82/83审批双祖先。基于保存历史只补合成费用，不重C10约6分钟运行链。
-- [ ] compiled新入口/JS worker路径与closure，source receipt和compiled字节变更拒绝；worker transport若为synthetic须准确标注。C10 partial、旧repair/v2与COS83性能矩阵复用，不重跑未变证据。
-- [ ] affected C10/C11 unit、typecheck/build/probes/tests strict；UTF-8/LF/中文回读及完整base diff check，保存命令/原始TAP/限制，提交exact给独立规格→质量审查后交sole merger。
+- [x] exact计划/卡交独审；并入Root指定最终已审main后才开始生产测试。
+- [x] RED：两组合成C10费用均生成相同新3m向量、group available准确变化；拒绝数量/role/purpose/window/settled/evidence/closure/grant/prefix漂移、unknown/reserved与容量不足。原C10 unit证明helper重用未改变31笔/closure15语义。
+- [x] GREEN：仅固定helper和eleven wrappers、计数字面量；claim一次且保留原18case全部费用/request/closure/audit前缀，旧quote失效。
+- [x] SOURCE一次新C11准入/current host+factory/Pi fake/同窗口冷恢复代表，证明空作者、C5复用、当前plan/quote绑定和COS82/83审批双祖先。基于保存历史只补合成费用，不重C10约6分钟运行链。
+- [x] compiled新入口/JS worker路径与closure，source receipt和compiled字节变更拒绝；worker transport若为synthetic须准确标注。C10 partial、旧repair/v2与COS83性能矩阵复用，不重跑未变证据。
+- [x] affected C10/C11 unit、typecheck/build/probes/tests strict；UTF-8/LF/中文回读及完整base diff check，保存命令/原始TAP/限制，提交exact给独立规格→质量审查；最终批准与sole merger整合待完成。
 
 拟定命令：`node --experimental-strip-types --test tests/transfer/validation-case-eleven.test.ts tests/transfer/validation-case-ten.test.ts`；runtime、compiled各自运行，避免同SOURCE seed并发。`npm run typecheck`、`npm run build`及C11 runner/三tests显式strict使用C10已审参数。
 
-状态：计划待独审 / SOURCE_NOT_READY，目标marker `TRANSFER_CASE_ELEVEN_SOURCE_READY`。无真实ledger/session/thinking/key/C10生成文件读取或写入，无实际C11或付费操作。
+状态：计划 exact `4a0adbe931386cd55f163d212c58498ed2587bad` 已由 `cos77_implementer` PLAN_APPROVED。实施前合入最终已推main `cb22fb22a76b131088585ebdb4298c76cc5ebab5`（本分支merge `d99173f739258d7b6686d678a5e97024e2a93ac5`）。实现完成待exact独审 / SOURCE_NOT_READY，目标marker `TRANSFER_CASE_ELEVEN_SOURCE_READY`。无真实ledger/session/thinking/key/C10生成文件读取或写入，无实际C11或付费操作。
+
+## 实现证据
+
+生产为原ten声明提取固定ten/eleven helper、六个eleven薄wrapper与字面量扩展；partial公式未改。测试把已有C10账务fixture窄复用为两个固定SOURCE视图，C10原wrapper仍绑定ten，C11只选择新17-case前缀及40笔。
+
+| 检查 | 实际结果 | 原始证据 |
+| --- | --- | --- |
+| 新C11 unit RED | 0/6，准确失败于固定API缺失；退出1，TAP4131.5721ms | `C:/Users/26557/AppData/Local/Temp/cos84-unit-red.tap` |
+| C11六项与原C10六项 GREEN | 12/12，0skip；退出0，TAP5455.3237ms | `C:/Users/26557/AppData/Local/Temp/cos84-unit-green.tap` |
+| compiled入口/JS worker路径/unknown及字节漂移 | 1/1，0skip；退出0，test12263.3054ms/TAP16327.3746ms | `C:/Users/26557/AppData/Local/Temp/cos84-compiled.tap` |
+| SOURCE当前host/Pi/partial冷恢复 | 1/1，0skip；退出0，test353244.0816ms/TAP356815.3022ms | `C:/Users/26557/AppData/Local/Temp/cos84-runtime.tap` |
+| typecheck/build | 均退出0 | `C:/Users/26557/AppData/Local/Temp/cos84-typecheck.log` / `cos84-build.log` |
+| affected runner/tests strict | 退出0，无stdout/诊断 | 当次工具原输出，无独立日志 |
+
+首次compiled未进入产品路径：新测试将tsc的 `--rewriteRelativeImportExtensions` 选项误拼，退出1/TAP3712.4738ms；仅修测试字符串后上述代表通过。原始 `C:/Users/26557/AppData/Local/Temp/cos84-compiled-initial.tap` 保留，不记作生产RED。
+
+命令：unit按上文；runtime和compiled分别为 `node --experimental-strip-types --test tests/transfer/validation-case-eleven-runtime.test.ts` 与 `validation-case-eleven-compiled.test.ts`。strict为 `node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --skipLibCheck --types node --allowImportingTsExtensions --allowJs --checkJs false probes/transfer/validation-case-eleven-run.ts tests/transfer/validation-case-eleven.test.ts tests/transfer/validation-case-eleven-runtime.test.ts tests/transfer/validation-case-eleven-compiled.test.ts tests/transfer/validation-case-ten-runtime.test.ts`。
+
+runtime从已存17-case视图经真实底层API构造两组40笔C10合成费用（1086265/900000µ）及closure16，C11新向量均为3m、available差186265µ且旧quote拒绝。unknown/闭合额/历史grant/delegation/owner/manifest/实际closure来源、COS82/83审批及双祖先拒绝保持零host派发。新C11只有当前coding任务，作者目录为空；实际host/factory/Pi guarded stream对405672-byte合成输入保留65536cap，预留1335632µ，fake provider1/network0。关闭owner后同window/deadline/requirement冷恢复，partial allocated等于quote组prior allocated+3m且小于10m；伪造quote基数拒绝。原18cases及fees/requests/tasks/closures/audits前缀保持。
+
+归档为 `C:/Users/26557/AppData/Local/Temp/cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C11-proof-78dbfb2d-c819-4830-8f0c-294b8d94d49c`。finally关闭owner，恢复原snapshot字节/mtime、SOURCE mapping及临时历史目录缺失状态；新history/result/case11/marker与合成历史目录独立归档，旧C8/C9/C10 proof不改。未使用旧1request result，也未重建旧seed。
+
+source代表拒绝篡改receipt，compiled实际拒绝变更后的JS task字节；JS worker路径已验，worker job transport为synthetic，不声称真实worker spawn/build。C11 build/browser/repair/完整生成未跑，复用未变C10 partial、旧repair/v2与COS83性能证据；不能把SOURCE结果当作实际游戏或human通过。
+
+18paths UTF-8/LF/noBOM，四个既有生产文件及共享fixture非ASCII序列保持，README原字节前缀保持；中文回读、完整cb22基线diff check通过。生产代码在compiled/runtime期间稳定，真实paid仍仅由Root决定执行。
