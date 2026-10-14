@@ -164,7 +164,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
   let captureLayout: string;
   let designValidation: ReturnType<typeof createTransferDesignValidation>;
   const receiptFile = 'host-transfer-prepared-inputs.json';
-  const guard = async () => { try { await ctx.requireScope(); await origin.verify(); } catch (error) { if (ctx.signal.aborted || !isValidationScopeTimeout(error)) await origin.close(); throw error; } };
+  const guard = async () => { try { await origin.verify(); } catch (error) { if (ctx.signal.aborted || !isValidationScopeTimeout(error)) await origin.close(); throw error; } };
   const read = async (): Promise<PreparedInputs> => {
     await guard(); const saved = decode(await regularFile(ctx.root, receiptFile)) as PreparedInputs;
     requireThat(saved.formatVersion === 'transfer-prepared-inputs/1' && saved.taskId === ctx.designTaskId
