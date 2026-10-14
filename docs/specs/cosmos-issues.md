@@ -1391,6 +1391,16 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 稳定任务 ID：COS-82
 
+### COS-83 · 减少作者工具中的重复来源校验
+
+[任务卡 #84](https://github.com/lrfluobida/Cosmos/issues/84)，id5847590995，已由Root登记并原生挂父#1；当前83个子项。依赖COS55/75/82，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger为 `batch75_76_merger`。
+
+阶段一计划 `a7b420a2c70249e0ae025c96601bce518a1063a6` 已由cos77检查两份文档与fixture调用链并批准，仅限免费SOURCE/TEMP基线。作者先执行实际工具路径实验，生产方案需根据实测结果另行独审；不把静态调用次数写成耗时实测。
+
+当前 SOURCE_NOT_READY/open，目标标记为 `AUTHOR_TOOL_SCOPE_SOURCE_READY`。作者维护自有计划和任务卡，本次不合入生产代码；没有新付费、C11或预算变化。
+
+稳定任务 ID：COS-83
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

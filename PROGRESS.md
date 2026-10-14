@@ -12,6 +12,11 @@
 - Root已完成closure16，释放未使用的 **¥1.913735**。18个案例均已停止，旧费用和历史保留。COS82已[在源码范围内完成并关闭](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)，COS16/COS18仍partial，实际游戏和human未通过。
 - 启动器和Node已退出、两个controller锁已释放，Root已解除main冻结。以下C10未准入及冻结等待为当时的源码准备记录；本次不修改生产代码或重新运行案例。
 
+## COS83：先测量作者工具的来源校验开销
+
+- [任务 #84：减少作者工具中的重复来源校验](https://github.com/lrfluobida/Cosmos/issues/84)已由Root登记并挂到原生父任务，当前83个子项。依赖COS55/75/82，由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。
+- 阶段一计划 `a7b420a` 已通过独立审查，仅授权免费的SOURCE/TEMP基线实验。先测实际工具路径，再确定最小生产方案并另行独审；静态校验次数不是计时结果。当前 SOURCE_NOT_READY/open，没有新付费、C11或预算调整。
+
 ## COS82：准备 ¥3 上限的固定迁移 C10
 
 - [任务 #83](https://github.com/lrfluobida/Cosmos/issues/83)已由Root发布、精确读回并挂到原生父任务，当前共有82个子项。依赖COS78/79/80/81；由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。短计划 `371ef1d` 及最终实现均已独审批准，没有剩余finding。批准版本为 `66c0980`，合并为 `82c50dd`，标记为 TRANSFER_CASE_TEN_SOURCE_READY；[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)、closed及父勾选已由Root核实，本卡源码范围完成。

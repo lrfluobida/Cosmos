@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 82
+    "childCount": 83
   },
   "tasks": [
     {
@@ -6513,8 +6513,38 @@
       },
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE"
+    },
+    {
+      "taskId": "COS-83",
+      "title": "减少作者工具中的重复来源校验",
+      "number": 84,
+      "id": 5847590995,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/84",
+      "dependsOn": ["COS-55", "COS-75", "COS-82"],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "free-source-temp-baseline",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "targetReviewStatus": "AUTHOR_TOOL_SCOPE_SOURCE_READY",
+      "sourceReviewStatus": "PENDING",
+      "planReviewStatus": "BASELINE_APPROVED",
+      "planReviewedCommit": "a7b420a2c70249e0ae025c96601bce518a1063a6",
+      "planReviewScope": "phase-one-free-source-temp-path-baseline-only",
+      "productionDesignReviewStatus": "PENDING",
+      "productionImplementationStatus": "not-started-awaiting-baseline-and-design-review",
+      "plannedPlanPath": "docs/plans/2026-10-14-cos83-tool-scope.md",
+      "plannedTaskCardPath": "docs/specs/cos83-tool-scope.md",
+      "implementer": "cos76_implementer",
+      "reviewer": "cos77_implementer",
+      "merger": "batch75_76_merger",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 82,
+  "verifiedNativeSubIssues": 83,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
