@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript、Node 原生测试、既有 RunController 和 SOURCE/TEMP 夹具；本任务作者只做免费源码及合成验证。
 
-**状态与基线：** TRANSFER_CASE_THIRTEEN_SOURCE_READY / source-integrated，待Root公开关闭。Issue [#89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，父 #1，依赖 COS86 #87 / COS87 #88。分支 `codex/cos88-transfer-case13`，managed worktree `E:/CodexData/.codex/worktrees/cos74-frozen-template/Cosmos`，起点 main `49e892992749e5511f2bb4135ec67be4459fa30b`。
+**状态与基线：** TRANSFER_CASE_THIRTEEN_SOURCE_READY / source scoped complete / closed；[公开批准与关闭](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175718904)及父勾选已由Root精确读回。Issue [#89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，父 #1，依赖 COS86 #87 / COS87 #88。分支 `codex/cos88-transfer-case13`，managed worktree `E:/CodexData/.codex/worktrees/cos74-frozen-template/Cosmos`，起点 main `49e892992749e5511f2bb4135ec67be4459fa30b`。
 
 ## 固定契约与依赖
 

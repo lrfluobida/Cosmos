@@ -1446,19 +1446,19 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 计划 `f509606a8da1ebe6e5f73ff2d0c430d787fe85c9` 和最终源码 `ac91cff85ddbdd08720623fd600161f2e61bd6b6` 均已独立APPROVED，无剩余finding；合入 `49e892992749e5511f2bb4135ec67be4459fa30b`，标记 `PARALLEL_GIT_IDENTITY_SOURCE_READY`；本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/88#issuecomment-6175145772)。[任务卡](cos87-parallel-git-identity.md)保留完整证据。
 
-只并行每次inspect的四个独立只读Git查询；全部settled后按原字段顺序校验，前后检查顺序、完整守卫、每次fresh读取、原5秒总截止与取消清理保持。主线受影响strict退出0，并发与真实child失败清理代表2/2、0skip；原19/19、typecheck/build及abort/timeout证据复用。同环境短基准中位755.5810→348.6017ms，下降53.8631%，每次仍9个Git查询；仅identity范围，不外推C12、自检总时长或游戏性能。main不冻结，本次无付费或游戏产物变更。
+只并行每次inspect的四个独立只读Git查询；全部settled后按原字段顺序校验，前后检查顺序、完整守卫、每次fresh读取、原5秒总截止与取消清理保持。主线受影响strict退出0，并发与真实child失败清理代表2/2、0skip；原19/19、typecheck/build及abort/timeout证据复用。同环境短基准中位755.5810→348.6017ms，下降53.8631%，每次仍9个Git查询；仅identity范围，不外推C12、自检总时长或游戏性能。该卡集成时main未冻结，本卡无付费或游戏产物变更。
 
 稳定任务 ID：COS-87
 
 ### COS-88 · 在原预算组余量内验证并行校验后的固定迁移 C13
 
-[任务 #89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，已由Root发布并原生挂父#1；当前88个子项，open且父项未勾选。依赖COS86/87，作者 `cos88_implementer`，唯一merger `batch_c12_reference_merger`。
+[任务 #89](https://github.com/lrfluobida/Cosmos/issues/89)，id5852981194，已由Root发布并原生挂父#1；当前88个子项，closed(completed)及父勾选已由Root精确读回。依赖COS86/87，作者 `cos88_implementer`，唯一merger `batch_c12_reference_merger`。
 
-短计划 `6ad3235c52cd1e0f2a11dfaaa0b5bfc38eeefeff` 已独立PLAN_APPROVED，且[公开批准](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175247486)已由Root读回。最终 `0ef600389fb10990fad516e85b4389aa4fecbd42` 经 `cos88_reviewer` 实际规格→质量APPROVED，无剩余finding，唯一merger合入 `9b8be0553c2c43b77ac0724b096d04185ab0cc5d`。标记 `TRANSFER_CASE_THIRTEEN_SOURCE_READY`，source-integrated/open待Root公开关闭；[任务卡](cos88-transfer-case13.md)保留边界与原始证据。
+短计划 `6ad3235c52cd1e0f2a11dfaaa0b5bfc38eeefeff` 已独立PLAN_APPROVED，且[公开批准](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175247486)已由Root读回。最终 `0ef600389fb10990fad516e85b4389aa4fecbd42` 经 `cos88_reviewer` 实际规格→质量APPROVED，无剩余finding，唯一merger合入 `9b8be0553c2c43b77ac0724b096d04185ab0cc5d`。标记 `TRANSFER_CASE_THIRTEEN_SOURCE_READY`；本卡已[在源码范围完成并关闭](https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175718904)。[任务卡](cos88-transfer-case13.md)保留边界与原始证据。
 
 C13固定¥2.50/45分钟/80请求/一次合格repair，角色向量为1/1/1/1900000/599997微元；原COS16组¥10、phase¥30、shared¥150保持。C12全部52笔历史及closure18须核对；C5两passed阶段七capture只读复用，新作者为空，旧C10/C11/C12声明字节保持。主线受影响strict退出0，五项C13与两项C12短代表7/7、0skip；作者unit6/6、旧回归5/5、SOURCE1/1、最终compiled1/1和source capture1/1按已审证据复用。SOURCE后仅union补18，发射JS一致；两组52笔、20/12/100/18、费用差额564926µ与finally恢复均经独审，compiled transport为synthetic。
 
-实际C13/paid/human仍NONE。Root公开关闭、完成必要元数据同步并推送后main冻结供一次C13免费预检及有界运行，仅Root可解除；本次不执行预检或操作脚本，COS16/COS18、完整经典与human仍未完成。
+实际C13/paid/human仍NONE。Root已公开关闭，本次最终元数据推送后main冻结供一次C13免费预检及有界运行，仅Root可解除；本次不执行预检或操作脚本，COS16/COS18、完整经典与human仍未完成。
 
 稳定任务 ID：COS-88
 

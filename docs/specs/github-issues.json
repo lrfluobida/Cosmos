@@ -7062,11 +7062,13 @@
         "COS-87"
       ],
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "integrationStatus": "source-integrated",
-      "implementationPhase": "source-integrated-pending-public-closure",
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "stateReason": "completed",
+      "integrationStatus": "complete",
+      "implementationPhase": "scoped-complete",
       "reviewStatus": "TRANSFER_CASE_THIRTEEN_SOURCE_READY",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/89#issuecomment-6175718904",
       "targetReviewStatus": "TRANSFER_CASE_THIRTEEN_SOURCE_READY",
       "sourceReviewStatus": "APPROVED",
       "reviewedCommit": "0ef600389fb10990fad516e85b4389aa4fecbd42",
@@ -7138,9 +7140,9 @@
         ],
         "evidenceScope": "source-and-temp-only"
       },
-      "liveExecutionStatus": "source-ready-awaiting-public-closure-metadata-and-root-free-preflight",
+      "liveExecutionStatus": "source-ready-awaiting-root-free-preflight",
       "mainFreeze": {
-        "status": "pending-final-public-closure-metadata-push",
+        "status": "frozen-after-final-public-closure-metadata-push",
         "releaseAuthority": "Root",
         "scope": "C13-free-preflight-and-one-bounded-run"
       },
