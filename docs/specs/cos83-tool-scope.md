@@ -1,0 +1,17 @@
+# COS-83 减少作者工具中的重复来源校验
+
+状态：SOURCE_NOT_READY / baseline plan pending / open。Issue [#84](https://github.com/lrfluobida/Cosmos/issues/84)，id5847590995；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS55/75/82。
+
+作者 `cos76_implementer` acting COS83；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos83-tool-scope.md](../plans/2026-10-14-cos83-tool-scope.md)。生产基线 `a464b0fb523ce29f6e688a92a08ccd156b6502a7`。
+
+## 目标与硬边界
+
+Root的C10工具总时长与Vite执行时长显示需要区分来源校验和compiler开销；静态调用次数仅是调查线索。先沿真实host/factory/checker建立可执行SOURCE基线，实测完整工具操作的scope次数和受控延迟，随后独审选择最小改动。
+
+1. 每次工具、worker和付费执行仍检查当前window/deadline/owner、scope、实际receipt与输入/输出字节。不得缓存跨请求授权，或把跨可变await的前后检查机械合并。
+2. 首选调查transfer guard中 `ctx.requireScope` 后 `origin.verify` 内部再次同scope的连续重复。保留origin自己的scope与listener/receipt校验、abort及COS75私有局部timeout行为；未获实测及方案批准前不改生产。
+3. coding guard中requireDispatch与后preparation.requireCurrent之间有可变读取，当前方案保留后检查。原120秒phase时限、清理和费用策略不变，不加新框架、schema或CLI。
+4. 基线复用现有prepared transfer夹具、真实tool/owned worker路径，compiler和上游会话为合成、无外部provider；统计次数作确定性验证，墙钟仅记录。不能以此宣称实际C10提速或节费。
+5. 定向回归覆盖输入/源码漂移、phase间变更、取消/截止/owner、receipt、局部timeout与后续重新校验；复用未变重型证据，不重付费或6分钟C10seed。
+
+仅免费source/TEMP工作；不读取真实ledger/session/key或C10生成产物，不启动新案例。阶段一计划批准只允许基线诊断；生产选择及最终exact分别独审。最终marker `AUTHOR_TOOL_SCOPE_SOURCE_READY`。
