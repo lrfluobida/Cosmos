@@ -11,6 +11,12 @@
 - 当前共享失败锁会让摘要length终止原作者会话；末次属于摘要阶段是源码推断，生产回执未直接记录summary kind。不能归因为预算耗尽或截止时间。精确时间、三次read scope超时的未知原因及证据边界见[研究记录](docs/research/2026-10-14-transfer-c11-summary-truncation.md)。
 - closure17已一次完成：revision2555、19stopped/11delegations/95closed/17audits，释放 **¥1.663445**；旧费用与历史保持，进程及owner/lock已清理，Root已解除冻结。C11不能重跑，COS16/COS18仍partial；以下C10与源码准备记录保留其当时范围。
 
+## COS85：准备处理可选摘要截断
+
+- [任务 #86](https://github.com/lrfluobida/Cosmos/issues/86)已由Root发布并原生挂父，当前85个子项，父勾选仍为空。依赖COS79/84，由 `cos76_implementer` 实现、`cos77_implementer` 独审，`batch75_76_merger` 负责整合。
+- 短计划候选 `c108e9a` 正在独审，当前SOURCE_NOT_READY/open。拟仅处理可信可选自动摘要已结算的length：丢弃部分摘要，保留原上下文，停止本会话后续自动摘要；同一作者attempt的下一普通请求仍须通过原准入。其它失败、费用、预算和时限保持。
+- 本卡只做免费源码与合成夹具，目标标记为 OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY；作者计划和任务卡仍在独立分支，不代表实现完成，不恢复C11或启动新付费案例。
+
 ## C10因时限取消，第二次作者自检曾通过
 
 - C10在冻结版本 `a464b0f` 上运行，约44分56秒后由既定清理定时器停止，编码任务记为`cancelled`。40次请求均已准入和结算，新增 **¥1.086265**，共享累计 **¥11.466320**，未知费用和预留均为零。[COS16结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6168008318)和[C10入口结果](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6168010789)已公开并精确读回。

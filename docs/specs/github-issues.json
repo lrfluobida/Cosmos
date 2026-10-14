@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 84
+    "childCount": 85
   },
   "tasks": [
     {
@@ -6738,8 +6738,39 @@
       },
       "actualHumanConfirmation": "NONE",
       "actualContinuationWindow": "NONE"
+    },
+    {
+      "taskId": "COS-85",
+      "title": "保留可选摘要截断后的原作者会话",
+      "number": 86,
+      "id": 5849778421,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/86",
+      "dependsOn": [
+        "COS-79",
+        "COS-84"
+      ],
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "in-progress",
+      "implementationPhase": "plan-review",
+      "reviewStatus": "SOURCE_NOT_READY",
+      "targetReviewStatus": "OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY",
+      "sourceReviewStatus": "PENDING",
+      "planReviewStatus": "PENDING",
+      "planCandidateCommit": "c108e9a797e708167f289d8b05227900be765a80",
+      "plannedPlanPath": "docs/plans/2026-10-14-cos85-optional-compaction-truncation.md",
+      "plannedTaskCardPath": "docs/specs/cos85-optional-compaction-truncation.md",
+      "implementer": "cos76_implementer",
+      "reviewer": "cos77_implementer",
+      "merger": "batch75_76_merger",
+      "workScope": "free-source-and-synthetic-fixtures-only",
+      "actualValidation": "NONE",
+      "actualPaid": "NONE",
+      "actualHumanConfirmation": "NONE",
+      "actualContinuationWindow": "NONE"
     }
   ],
-  "verifiedNativeSubIssues": 84,
+  "verifiedNativeSubIssues": 85,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

@@ -1416,6 +1416,16 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 稳定任务 ID：COS-84
 
+### COS-85 · 保留可选摘要截断后的原作者会话
+
+[任务 #86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421，已由Root发布、精确读回并原生挂父#1；当前85个子项，父勾选为空。依赖COS79/84，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger为 `batch75_76_merger`。
+
+短计划候选 `c108e9a797e708167f289d8b05227900be765a80` 正在独审，当前SOURCE_NOT_READY/open，目标标记为 `OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY`。拟仅允许可信可选自动摘要已结算的length丢弃部分摘要、保留原上下文并关闭后续自动摘要；同一作者attempt的下一普通请求仍经过原准入。普通作者与其它摘要失败、费用、预算和时限保持。
+
+仅免费源码和合成夹具；作者自有计划/任务卡尚未合入，不登记源码批准SHA，不恢复C11或新增付费案例。
+
+稳定任务 ID：COS-85
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。
