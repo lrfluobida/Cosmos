@@ -12,7 +12,11 @@ COS90 / [#91](https://github.com/lrfluobida/Cosmos/issues/91)，id5854823746，�
 
 COS91 / [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，依赖COS88/89/90，计划 `dfe83f13c425a8952e1987adb7043eae37170a3b` 已独审PLAN_APPROVED并[公开批准](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6177975415)。作者 `cos91_implementer` 最终 `28e89554b933da9409fac7820a12948cc2159271` 经 `cos91_reviewer` 独立规格→质量APPROVED，无finding；唯一 `batch_cos90_91_merger` 合入 `f67979daf2c46752b67778c7433b4b54f202b7a2`，标记 `TRANSFER_CASE_FOURTEEN_SOURCE_READY`，source scoped complete/closed；[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6178757721)、closed(completed)及父勾选已由Root精确读回，发布主线 `b28fff1589c649dc412826edfd5d187f02a0471e`。主线typecheck/build退出0，C14 unit6/6及旧C7/C13短代表2/2、0skip；已审SOURCE组合证据与最终compiled/source capture复用，首次SOURCE整体清理失败及其恢复限制保留在[任务卡](cos91-transfer-case14.md)。源码关闭时父#1为91个原生子项。 源码审批证据保留。COS90固定¥1.600314补充分配已在C14前一次实际应用，原parent仍¥10，组有效容量¥11.600314；shared¥150、phase¥30、正式¥200/12h保持。C14已failed并消费，closure20后revision3114、sharedsettled16901000µ、组可分配1707937µ；Root已解除main冻结，实际结果见下述记录。COS16/COS18、完整经典和human仍未完成。
 
-### 当前实际结果：C14正式构建通过，浏览器启动失败
+### 当前补充证据：封存C14候选独立玩法通过
+
+在已审`e634119`上对原候选逐字节一致副本单次诊断，40.827秒内原8段220步全部通过、0失败/0跳过；T16-01～06和存档重开checkpoint保留，原游戏生成版本仍为`b20e9a43`。独立评审确认浏览器正常退出、进程/服务清理和原文件保持；新模型请求/费用为0，账本仍revision3114、共享¥16.901000，Root后核后解除main冻结。[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6181057183)与[研究记录](../research/2026-10-15-c14-independent-gameplay.md)保留证据。仅gameplay通过；媒体62字段、性能、coding批准、accepted和human未执行，省略ownedChild/controller的诊断不证明真实nativeIO完整启动链≤15秒。COS16/COS18与完整经典仍未完成，COS91/COS92源码范围关闭保持。
+
+### C14原运行结果：正式构建通过，浏览器启动失败
 
 C14已在冻结版本 `b20e9a43` 实际运行并failed，身份已消费：41分13.754秒、35次请求全部settled，新增¥0.792063，共享累计¥16.901000，unknown/reserved为0。运行时作者生成10文件35,771字节，与末次成功自检、capture、candidate v1及正式构建输入逐字节一致；三次自检失败/通过/通过，正式TypeScript/Vite退出0，814ms仅为Vite时间。持久浏览器首段15秒启动超时，21步全部skipped，未记录session、PID/exit为null，不能证明历史OS spawn；coding review仍pending，无repair/accepted/human。
 

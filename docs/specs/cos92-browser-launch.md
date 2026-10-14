@@ -65,3 +65,7 @@ Task2 使用 `entrypoint-host.ts` 内的 `createPersistentOwnedChild` 作为 nat
 作者 `cos92_implementer` 最终 `ffa0ce2918735f5b21b22c4373a390b156e63d33` 经 `cos92_reviewer` 独立规格→质量 APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger` 合入 `e74815f468b7158b5555ca2e5887ad3459b74dda`。主线src/tests与批准提交完全一致；typecheck/build退出0，迟到handle、正常spawn/register、两类公开drain失败与普通取消短集成5/5、0skip，4151.1296ms；命令及三个主线原始日志见计划。
 
 已审Task1 17/17、受影响59/59、generic15/15、consumer2/2、真实Edge1/1、P2定向27/27及补充回滚1/1和affected strict证据复用，generic fixture的4条既有strict诊断保持。main保持unfrozen；C14原冻结`b20e9a43f26712a1f5a13468057df46b6c012b69`的失败/已消费与closure20历史保持，完整链诊断尚未执行。没有新付费、C14重放或真实账本操作；本卡源码完成不代表实际游戏、COS16/COS18、完整经典或human完成。
+
+## 后续独立玩法证据
+
+在已审`e634119`上对封存C14候选的逐字节一致副本单次诊断，原8段220步全部通过、0失败/0跳过，用时40.827秒，8个浏览器均正常退出，进程与服务清理已独审。原游戏、构建输出及账本保持，新模型请求/费用为0；[研究记录](../research/2026-10-15-c14-independent-gameplay.md)保存来源与公开结果。纯浏览器harness省略ownedChild/controller，所以真实nativeIO完整启动链≤15秒仍未证明；原C14 failed/已消费、本卡源码范围关闭以及COS16/COS18与human未完成的状态保持。

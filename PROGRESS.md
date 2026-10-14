@@ -2,7 +2,13 @@
 
 更新时间：2026-10-15
 
-## C14正式构建通过、浏览器启动失败，closure20已完成
+## 封存C14候选的独立玩法诊断通过
+
+- 在已审`e634119`上单次执行原候选的逐字节一致TEMP副本：2026-10-14 UTC 23:44:19.845–23:45:00.672，共40.827秒。原8段220步全部passed、0failed/0skipped，46次正常点击、174项断言；T16-01～06与原步骤/checkpoint保留。原游戏生成版本仍为`b20e9a43`，代码和构建输出未改、未重新编译。
+- `c14_diagnostic_reviewer`已独立核查：同profile/origin、不同PID重开；8个浏览器exit0且无强制终止，Node与静态服务结束，专用profile进程和端口监听已不存在。原14处197文件（含账本）、105文件候选副本与26个harness文件保持；新增模型请求和费用均0，revision3114、共享¥16.901000不变。Root后核后已解除main冻结。
+- [公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6181057183)已由Root精确读回；[研究记录与胜利截图](docs/research/2026-10-15-c14-independent-gameplay.md)保存来源和稳定私有副本位置。本次为gameplay-only：未执行媒体62字段、渲染性能、coding批准、accepted提升或human；省略ownedChild/controller，真实nativeIO完整启动链≤15秒仍未证明。原C14仍failed/已消费，COS16/COS18、完整经典与human仍未整体通过。
+
+## C14原运行：正式构建通过、浏览器启动失败，closure20已完成
 
 - C14已在冻结版本 `b20e9a43` 实际运行并failed，身份已消费：41分13.754秒、35次请求全部settled，新增¥0.792063，共享累计¥16.901000，unknown/reserved为0。运行时作者生成10文件35,771字节，与末次成功自检、capture、candidate v1及正式构建输入逐字节一致；三次自检失败/通过/通过，正式TypeScript/Vite退出0，814ms仅为Vite时间。持久浏览器首段15秒启动超时，21步全部skipped，未记录session、PID/exit为null，不能证明历史OS spawn；coding review仍pending，无repair/accepted/human。
 - COS90固定¥1.600314补充分配已在C14前一次实际应用，原parent仍¥10，组有效容量¥11.600314；shared¥150、phase¥30、正式¥200/12h保持。原锁首次归档调用因PID复用在写入前拒绝；独审精确代际守卫后实际归档一次，原字节/mtime与文件身份保持，失败及清理证据不足结论保留。closure20已一次执行并独立核对，revision3114、22stopped/14delegations/110closed/20audits，释放及组可分配¥1.707937；原费用、历史和补充分配保持。Root已解除main冻结。
