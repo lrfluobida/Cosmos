@@ -156,6 +156,18 @@ test('manual SDK compaction is accounted and frozen task context survives resume
   assert.match(JSON.stringify(f.requests[2].messages), /验收 A-1/);
 });
 
+test('manual summary length stays fatal even when optional compaction is configured', async t => {
+  const f = await fixture(t, [reply('Manual history '.repeat(200)), reply('Partial manual summary', 'length')]);
+  const session = await f.create({ tools: [], compactionKeepRecentTokens: 0, requestCompaction: async () => true });
+  await session.prompt('Keep the original history');
+  await assert.rejects(session.compact(), /Provider output was truncated; task is incomplete/);
+  assert.equal(f.requests.length, 2); assert.equal(f.settlements[1].outcome, 'settled');
+  assert.equal(f.settlements[1].stopReason, 'length');
+  assert.doesNotMatch(await readFile(session.sessionFile!, 'utf8'), /"type":"compaction"/);
+  await assert.rejects(session.prompt('No retry'), { code: 'incomplete' });
+  assert.equal(f.requests.length, 2);
+});
+
 test('image attachments reach the native provider', async t => {
   const f = await fixture(t, [reply('image seen')]);
   const png = await readFile(new URL('../../probes/2026-10-01-deepseek/vision-fixture-2026-09-30T17-47-57.205Z.png', import.meta.url));

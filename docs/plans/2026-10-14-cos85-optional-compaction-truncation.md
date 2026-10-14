@@ -4,7 +4,7 @@
 
 **目标：** 已结算但截断的可选自动摘要不保存、不重试；保留原上下文，让同一作者attempt的下一普通请求继续经过原准入。
 
-**基线：** `2a7a291389b58bbd7dd4e4a4f34a61f7237e0141`；managed `cos76-transfer-case8/Cosmos`，分支 `codex/cos85-compaction-truncation`。COS85 [#86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421，父#1，依赖COS79/84。C11结果文档另支 `22762c566cb84f7ca0477520f970465983b7f5ed` 交审，本卡不改共享tracking。
+**基线：** 初始 `2a7a291389b58bbd7dd4e4a4f34a61f7237e0141`；计划 `c108e9a797e708167f289d8b05227900be765a80` 已由cos77独立PLAN_APPROVED、无finding。测试前合入docs-only main，最终review base为 `ecd8d8e0c3f28e6d8f4cd34ea6219342900b9328`。managed `cos76-transfer-case8/Cosmos`，分支 `codex/cos85-compaction-truncation`。COS85 [#86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421，父#1，依赖COS79/84。C11结果文档另支 `22762c566cb84f7ca0477520f970465983b7f5ed` 已独审整合，本卡不改共享tracking。
 
 **实现方式：** 仅修改Pi adapter现有公开native hook和局部失败处理；不修改SDK、factory、预算或会话格式。技术为TypeScript、Pi 0.99.2与现有node:test真实factory/controller/native compaction夹具，provider为fake/network0。
 
@@ -26,11 +26,33 @@ C11末条实际length与8192上限已确认；它属于摘要是源码与时序�
 
 - 生产仅 `src/providers/pi.ts`。
 - 测试复用 `tests/providers/coding-compaction.fixture.mjs`、`tests/providers/coding-compaction.test.mjs`；在 `tests/providers/pi.test.ts` 补最小manual length负例，原ordinary length与失败锁代表复用。不复制原生压缩策略到fixture。
-- [ ] 独立PLAN_APPROVED后，先补单摘要和split第二摘要截断的真实路径RED；增加合成可负担后续与下一普通拒绝两类fixture。检查原projection/entries、无checkpoint/部分工具执行、同task/attempt、费用、settings及自动摘要不再尝试。
-- [ ] 只实施上述Pi局部状态；运行新RED对应GREEN。若SDK行为或projection不符合计划，先记录具体失败并交独审，不扩大可恢复错误。
-- [ ] 定向保留length伴unknown/model/accounting、取消/截止、普通author/manual length、后续预算拒绝与source拒绝；复用无delta长链，运行现有no-op/no-benefit/readonly与split正常代表。
-- [ ] `node --experimental-strip-types --test tests/providers/coding-compaction.test.mjs`；Pi受影响代表按`--test-name-pattern`选择，必要时复用原文件通过证据。
-- [ ] `npm run typecheck`、`npm run build`；`COSMOS_COMPACTION_COMPILED=1`下只运行新截断/后续拒绝代表。TS测试按原NodeNext/ES2022/allowImportingTsExtensions/noEmit strict命令检查；保存真实命令、原始TAP、退出码，不用缺失日志路径代替证据。
-- [ ] UTF-8/LF/中文回读、完整base diffcheck；提交exact SHA，独立规格→质量审查后交唯一merger。仅source/free fixture，不声明游戏或human通过。
+- [x] 独立PLAN_APPROVED后，先补单摘要和split第二摘要截断的真实路径RED；增加合成可负担后续与下一普通拒绝两类fixture。检查原projection/entries、无checkpoint/部分工具执行、同task/attempt、费用、settings及自动摘要不再尝试。
+- [x] 只实施上述Pi局部状态；运行新RED对应GREEN。SDK按原长度校验拒绝、原projection与entries保持，没有扩大可恢复错误。
+- [x] 定向保留length伴unknown/model/accounting、取消/关闭/截止、普通author/manual length、后续预算拒绝与source拒绝；补原历史leaf变动拒绝，运行现有no-op/no-benefit/readonly与split正常代表。
+- [x] `node --experimental-strip-types --test tests/providers/coding-compaction.test.mjs`；Pi受影响代表按`--test-name-pattern`选择，复用已通过项。
+- [x] `npm run typecheck`、`npm run build`；`COSMOS_COMPACTION_COMPILED=1`下只运行新截断/后续拒绝代表。TS测试按原NodeNext/ES2022/allowImportingTsExtensions/noEmit strict命令检查。
+- [x] UTF-8/LF/中文回读、完整base diffcheck。
+- [ ] 提交exact SHA，独立规格→质量审查后交唯一merger。仅source/free fixture，不声明游戏或human通过。
 
-当前 **SOURCE_NOT_READY**，生产修改等待本计划独审；目标marker为 **OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY**。原¥150验证总额、COS16组¥10、正式¥200/12h及现有请求/窗口上限保持，不新建paid案例或读取真实ledger/session/key。
+## 实现证据
+
+生产仅`pi.ts`：操作对象绑定当前摘要请求，在已结算length时移除部分内容、保持length交由SDK拒绝；只识别该操作的threshold失败事件，检查原leaf/projection及无成功checkpoint后停止本session后续auto。原全局failure从未清除，普通/manual错误及原所有请求准入保持。源码与测试没有复制原生压缩实现或改SDK。
+
+以下原始输出位于 `C:/Users/26557/AppData/Local/Temp/`。所有provider均fake/network0；使用真实factory/controller/Pi/native，原会话为新建合成fixture。
+
+| 文件 | 命令与结果 |
+| --- | --- |
+| `cos85-summary-red.tap` | `node --experimental-strip-types --test --test-name-pattern='settled optional length-' tests/providers/coding-compaction.test.mjs`；2 FAIL/0skip，4047.5612ms，单摘要及split第二摘要均精确命中旧incomplete锁 |
+| `cos85-summary-green.tap` | 同命令，2/2、4895.4179ms |
+| `cos85-compaction-source.tap` | `node --experimental-strip-types --test tests/providers/coding-compaction.test.mjs`；30/30、0skip、17334.32ms，含新截断恢复与8种fatal/后续拒绝组合、旧真实native代表 |
+| `cos85-exact-fees.tap` | 将两成功代表的摘要费用断言收紧为每笔恰好10µ后，仅重跑`settled optional length-`；2/2、4101.4818ms；生产及其他测试不变 |
+| `cos85-pi-regression.tap` | `node --experimental-strip-types --test --test-name-pattern='length\|manual SDK compaction\|settlement failure\|network errors\|returned model mismatch\|cancellation waits\|request deadline' tests/providers/pi.test.ts`；7/8，2946.8863ms。新增manual断言误要求本次SDK异常具有code；实际本次抛原生错误，下一prompt才抛已锁定incomplete。这是测试断言错误，不是生产RED |
+| `cos85-manual-green.tap` | 仅修manual当次断言为原错误文字，仍验证下次prompt的incomplete及零新增请求；`node --experimental-strip-types --test --test-name-pattern='manual summary length stays fatal' tests/providers/pi.test.ts`；1/1、2775.0599ms，复用其余7项 |
+| `cos85-compiled.tap` | 设置`COSMOS_COMPACTION_COMPILED=1`，运行`node --experimental-strip-types --test --test-name-pattern='settled optional length-\|discarded optional length\|optional length cannot hide (unknown\|accounting\|source)' tests/providers/coding-compaction.test.mjs`后移除env；dist Pi/factory 6/6、0skip、5795.2168ms |
+| `cos85-typecheck.log`、`cos85-build.log` | `npm run typecheck`、`npm run build`均退出0 |
+
+表中pattern的`\|`是Markdown表格转义，实际命令传给Node的是`|`。最终 `node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --strict --skipLibCheck tests/providers/pi.test.ts` 当次工具退出0、无stdout，未生成独立日志文件。
+
+单摘要及split第二摘要代表分别保留1/2笔已结算费用，每笔10µ，原projection与entries逐字节相等、0checkpoint、0部分工具执行；同attempt后续普通请求真实派发并通过原registry capture。后续超过32768字节的工具回合没有再触发摘要。另一代表实际进入下一普通请求，但随后余额不足仍为admission_rejected且再次prompt零新增请求；未知费用、错误model、结算完成异常、取消、关闭、下一请求截止/source拒绝及意外历史entry均不被吞掉。registry捕获的是合成文本，不是游戏/build/browser/human证据；旧C11、预算和历史未改。
+
+当前 **SOURCE_NOT_READY**，等待最终exact独立源码审查；目标marker为 **OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY**。原¥150验证总额、COS16组¥10、正式¥200/12h及现有请求/窗口上限保持，不新建paid案例或读取真实ledger/session/key。

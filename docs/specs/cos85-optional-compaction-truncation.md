@@ -1,6 +1,6 @@
 # COS-85 保留可选摘要截断后的原作者会话
 
-状态：**SOURCE_NOT_READY / plan review pending**。Issue [#86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421；父[#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖COS79/84。作者 `cos76_implementer`，独立reviewer `cos77_implementer`，唯一merger `batch75_76_merger`。
+状态：**SOURCE_NOT_READY / PLAN_APPROVED / implementation review pending**。Issue [#86](https://github.com/lrfluobida/Cosmos/issues/86)，id5849778421；父[#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖COS79/84。作者 `cos76_implementer`，独立reviewer `cos77_implementer`，唯一merger `batch75_76_merger`。
 
 ## 问题与范围
 
@@ -15,3 +15,11 @@
 生产预期仅`src/providers/pi.ts`，测试沿现有compaction fixture/test与Pi测试。单摘要/split第二摘要截断的RED→GREEN须实际经过factory/controller/Pi/native，证明原context、费用、settings、同attempt后续准入及无摘要重试；后续普通拒绝和所有fatal边界仍保持。source/compiled定向代表、typecheck/build/strict和UTF-8/diff检查通过，exact独审后才可标记 **OPTIONAL_COMPACTION_TRUNCATION_SOURCE_READY**。
 
 本卡只免费源码及合成fixture，不读取真实ledger/session/key，不恢复C11或创建下一paid案例。共享¥150、COS16组¥10、正式¥200/12h保持，COS16/COS18、完整经典及human状态不提升。共享tracking由sole merger登记。
+
+## 实现与证据
+
+计划 `c108e9a797e708167f289d8b05227900be765a80` 已独立PLAN_APPROVED，无finding；测试前并入docs-only main，review base为 `ecd8d8e0c3f28e6d8f4cd34ea6219342900b9328`。生产仅`src/providers/pi.ts`，另3个既有fixture/test与本卡/计划。
+
+真实单摘要及split第二摘要2 RED→2 GREEN；compaction source30/30，摘要费用收紧断言后affected2/2；Pi定向回归最初7/8，新增manual测试断言错误修正后1/1、其余7项复用，生产未因该误断言改变。dist Pi/factory核心及拒绝6/6；typecheck/build/affected strict退出0。原始TAP、命令与确切时长见计划，strict只有当次工具exit0、无独立日志。
+
+成功代表实际保留原entries/projection与每笔摘要费用、没有checkpoint或部分工具执行、同attempt后续普通请求经原guard及合成文本capture。后续预算不足、unknown/model/accounting/cancel/close/deadline/source及历史变动仍停止，普通author/manual length保持fatal；settings恢复且本session不重试摘要。无新实际游戏、窗口或费用，等待最终exact源码独审。
