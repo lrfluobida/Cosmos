@@ -5,6 +5,7 @@ import { DEFAULT_BUDGETS, budgetCapacity, budgetSummary, validateLedgerUpdate, v
 import type { ArtifactReference, BudgetLedger, LedgerEntry, TaskContract, TaskKind, UpdateActor } from '../contracts/index.ts';
 import { appendEvidence, evidenceReferences, findRequest, money, nonEmpty, requireOpen, reserveEntry, settleEntry } from '../budget/ledger.ts';
 import { SnapshotStore } from './store.ts';
+import { UnspawnedChildCleanupError } from './recovery/ownership.ts';
 import { validateSnapshot } from './run-validation.ts';
 import { activateContinuation } from './continuation-authority.ts';
 import { claimValidationCase, verifyOperatorDecision, verifyValidationIdentity } from './validation-window.ts';
@@ -99,18 +100,29 @@ export class RunController {
   }
 
   /** Persist before spawn; a pending ticket blocks automatic recovery after a crash. */
-  prepareOwnedChild(authority?: { taskId: string; windowId: string }): Promise<string> {
+  prepareOwnedChild(authority?: { taskId: string; windowId: string }, checkLaunch?: () => void): Promise<string> {
     return this.serial(async () => {
-      this.requireActive();
+      this.requireActive(); checkLaunch?.();
       if (this.windowId) {
         if (!authority || authority.windowId !== this.windowId) throw new Error('Owned child requires its explicit task and window authority.');
         this.requireTaskAuthority(authority.taskId);
         if (['4.0.0', '5.0.0'].includes(this.snapshot.ledger.contractVersion)) await this.checkValidationIdentity();
       }
-      const ticket = await this.store.prepareOwnedChild();
+      checkLaunch?.();
+      const ticket = await this.store.prepareOwnedChild(checkLaunch);
+      try { checkLaunch?.(); }
+      catch (error) {
+        try { await this.store.releaseUnspawnedChild(ticket); }
+        catch (cleanup) { throw new UnspawnedChildCleanupError(error, cleanup); }
+        throw error;
+      }
       if (authority && this.windowId) this.childTasks.set(ticket, authority.taskId);
       return ticket;
     });
+  }
+  /** Cleanup remains possible after cancellation, but never after owner close or for a PID. */
+  releaseUnspawnedChild(ticket: string): Promise<void> {
+    return this.serial(async () => { await this.store.releaseUnspawnedChild(ticket); this.childTasks.delete(ticket); });
   }
   /** Bind the waiting child before releasing its startup barrier or allowing writes. */
   registerOwnedChild(pid: number, ticket: string): Promise<void> {

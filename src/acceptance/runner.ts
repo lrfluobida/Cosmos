@@ -48,9 +48,10 @@ export interface PersistentBrowserIdentity {
   cdp?: { browserProcessIds: number[]; profileArguments: string[] }; environmentKeys?: string[];
 }
 /** Trusted host transport only; never accepted as game/model plan data. */
+export interface BrowserLaunchLifetime { signal: AbortSignal; deadlineAt: number }
 export interface OwnedAcceptanceLifecycle {
   deadlineAt: number; signal?: AbortSignal;
-  open(directory: string, timeoutMs: number): Promise<{ browser: Browser; context: BrowserContext }>;
+  open(directory: string, timeoutMs: number, launch?: BrowserLaunchLifetime): Promise<{ browser: Browser; context: BrowserContext }>;
   process(): ChildProcess | undefined;
   close(timeoutMs: number): Promise<void>;
   identity(): PersistentBrowserIdentity | undefined;
@@ -130,7 +131,10 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   }
   try {
     if (lifecycle) {
-      ({ browser, context } = await run(() => lifecycle.open(directory, Math.max(1, remaining(15_000))), 15_000, 'Persistent browser launch'));
+      const launch = new AbortController(), launchTimeout = Math.max(1, remaining(15_000));
+      const lifetime = { deadlineAt: Date.now() + launchTimeout, signal: AbortSignal.any([launch.signal, ...(lifecycle.signal ? [lifecycle.signal] : [])]) };
+      try { ({ browser, context } = await run(() => lifecycle.open(directory, launchTimeout, lifetime), 15_000, 'Persistent browser launch')); }
+      catch (error) { launch.abort(error); throw error; }
       report.cleanup.browserPid = lifecycle.process()?.pid ?? null;
       report.cleanup.processExited = false;
     } else {

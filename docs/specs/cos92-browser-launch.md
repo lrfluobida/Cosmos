@@ -1,8 +1,10 @@
 # COS-92 持久浏览器启动截止与准备校验
 
-状态：计划待独审；生产源码未改，SOURCE_READY 未授予。Issue [#93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，父 #1。依赖 COS37/COS52 持久浏览器路径及 COS91 / #92 的实际 C14 结果。
+状态：计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，无剩余 finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 精确读回。生产实现及作者免费验证完成，待最终独审；SOURCE_READY 未授予。Issue [#93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，父 #1。依赖 COS37/COS52 持久浏览器路径及 COS91 / #92 的实际 C14 结果。
 
 专职作者 `cos92_implementer`；独立 reviewer 与唯一 merger 由 Root 指派。分支 `codex/cos92-browser-launch`，复用 managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`，起点为已解冻主线 `b20e9a43f26712a1f5a13468057df46b6c012b69`。[实施计划](../plans/2026-10-15-cos92-browser-launch.md)。本次先提交两份文档，独审批准后才修改生产实现；共享 tracking 由另一作者维护。
+
+实现基线已合入 Root 指定 `2aca018c59a9fd16ac7b0a318139958f53e5af06`（仅 C14 文档），本分支 merge `dd05d246d38997e7ceb983d5f8804fdbccb9ea8d` 保留计划提交。独立 reviewer `cos92_reviewer`，唯一 merger `batch_c14_cos92_merger`；作者不合 main、不 push。
 
 ## 事实与缺口
 
@@ -47,3 +49,13 @@ persistent 在 prepare 完成后立刻检查局部寿命，且从最后检查到
 计数与耗时在同一夹具、同一输入环境前后比较，第二次操作须重新检查；不以计数外推代替 C14 完整链计时。仅跑受影响免费回归、typecheck/build、UTF-8 中文回读及 diff check，复用无变化证据。独审实际 diff 后由唯一 merger 集成；SOURCE_READY 只表示源码范围完成，不表示实际游戏、COS16/COS18、完整经典或 human 通过。
 
 本任务不运行 paid/provider/新真实窗口，不重跑 C14，不读写真实 ledger/controller，不改生成游戏或参考安装，不追加预算。共享 ¥150、phase ¥30、正式生成 ¥200/12h 及优化目标 ¥100/6h 保持。
+
+## 作者实现与免费验证
+
+Task1 `f9f43eb7441db1bf5b47efc08e49fc0dbe0d0bb4` 已获独立 TASK1_DIFF_APPROVED，无 finding，17/17 原绑定/来源回归复用。追加真实 consumer 回调代表2/2：非继承两次各9 scopes、573.413/549.744ms；继承两次各6 scopes、2076.790/1874.086ms。小型TEMP夹具真实调用链通过；旧C14完整链耗时仍未知。
+
+Task2 使用 `entrypoint-host.ts` 内的 `createPersistentOwnedChild` 作为 nativeIO 的真实交接实现，直接由测试调用。启动10项覆盖外层runner、迟到binding/handle、原停止/截止、exact prespawn释放、登记PID与清理失败；ownership14项和其余受影响回归合计59/59、0skip。generic host15/15、0skip。真实TEMP Edge正例1/1、0skip：PID13640，登记先于CDP，profile一致、closeEvent/exitConfirmed/PID已不存在均true，exit0、无强制终止或provider调用。证据与命令见计划。
+
+生产typecheck/build退出0；六个新增/受影响测试文件strict退出0。generic-persistent-host.fixture的单独strict仍有4个原有诊断，已对完整旧生产接口与当前接口做内存编译对照，精确一致；未扩大修改。所有编辑文件UTF-8/LF、中文回读与diffcheck通过。没有新付费或真实C14运行，实际游戏与human结论保持。
+
+最终独审另发现迟到release失败未传播到生产drain，已按P2修正：只保留原生交接明确报告的清理错误，公开drain在等待结束后连同原cause拒绝，operation移除后也不丢失；普通取消语义保持。公开路径RED后，定向27/27与补充回滚传播1/1通过，详见计划。原六文件strict命令成功但无输出，Tee未创建原列日志；已撤回不存在的路径，保留实际工具返回的exit0证据。

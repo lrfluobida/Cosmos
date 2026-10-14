@@ -237,7 +237,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
               && sha(await regularFile(ctx.root, item.artifactRef.location + '/' + file.path)) === file.sha256, 'current inherited candidate source bytes changed');
           }
         }
-        requireThat(isDeepStrictEqual(saved.frozen, ctx.inherited.verified.frozen), 'inherited frozen map changed'); await guard(); return;
+        requireThat(isDeepStrictEqual(saved.frozen, ctx.inherited.verified.frozen), 'inherited frozen map changed'); await guard(); return saved;
       }
       const snapshot = await input.controller.read(), design = snapshot.tasks.find(task => task.taskId === ctx.designTaskId);
       const complete = !!design && (design.artifacts.length > 0 || design.state === 'passed');
@@ -316,7 +316,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
           }
         }
       }
-      await guard();
+      await guard(); return saved;
     } catch (error) { if (ctx.signal.aborted || !isValidationScopeTimeout(error)) await origin.close(); throw error; }
   };
   const preparation: BrowserInputPreparation = {
@@ -367,7 +367,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
       preparation.designHostTools = designValidation.hostTools;
       preparation.designRules.push('After completing transfer-design.json, call validate-transfer-design with no arguments. A first invalid result permits one semantic rewrite process and one different submission; a second invalid result exhausts it permanently. A pass seals the exact map bytes: keep them unchanged and accurately finish the generic design summary. Identical submissions reuse their complete result. All calls remain in this original author session, attempt, grant and deadline. This static design check is not gameplay acceptance.');
     },
-    requireCurrent,
+    requireCurrent: async () => { await requireCurrent(); },
     currentInputs: () => ctx.inherited ? [planRefs.v1, planRefs.v2] : [],
     async captureDesignExtras(task, workspace) {
       await guard(); const attempt = task.attempts.at(-1)!;
@@ -408,8 +408,8 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
       return [transfer, planRefs[version]];
     },
     async bindCandidate(candidate) {
-      await requireCurrent();
-      const saved = await verify(); preparation.candidateExtraInputs(candidate);
+      const saved = await requireCurrent();
+      requireThat(saved, 'candidate inputs are not prepared'); preparation.candidateExtraInputs(candidate);
       const version = candidate.version as 'v1' | 'v2';
       const result = await bindTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] });
       await guard(); return result;

@@ -40,7 +40,9 @@ import { requireValidationBrowserScope, requireValidationPreparationScope } from
 import type { ValidationBrowserProposal, ValidationPreparationProposal } from './entrypoint-validation.ts';
 import type { BrowserInputPreparation } from './entrypoint-preparation.ts';
 import { runPersistentAcceptance } from '../acceptance/persistent.ts';
-import type { PersistentAcceptanceSeries, PersistentAcceptanceOptions, PersistentAcceptanceReport } from '../acceptance/persistent.ts';
+import type { PersistentAcceptanceSeries, PersistentAcceptanceOptions, PersistentAcceptanceReport, PreparedPersistentChild } from '../acceptance/persistent.ts';
+import { AcceptanceCancelledError, DeadlineError } from '../acceptance/deadline.ts';
+import { UnspawnedChildCleanupError } from './recovery/ownership.ts';
 import type { RoleFactoryOptions } from '../roles/factory.ts';
 import type { RoleInput } from '../roles/factory.ts';
 import { TaskJournal } from './recovery/task-journal.ts';
@@ -94,6 +96,47 @@ export interface BrowserHostIO {
   play(plan: AcceptancePlan, signal: AbortSignal, authority: HostExecutionAuthority, options?: { mediaObservations?: GenericMediaObservationRequest; renderFrames?: RenderFrameRequest }): Promise<AcceptanceReport>;
   playPersistent?(series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions, authority: HostExecutionAuthority): Promise<PersistentAcceptanceReport>;
 }
+/** Source-owned launch handoff: returning a handle does not end tracked ticket ownership. */
+export function createPersistentOwnedChild(input: Pick<HostInput, 'controller' | 'work'>, authority: HostExecutionAuthority,
+  verifyBinding: () => Promise<void>): NonNullable<PersistentAcceptanceOptions['ownedChild']> {
+  return { prepare(launch) {
+    let ready!: (handle: PreparedPersistentChild) => void, rejectReady!: (error: unknown) => void;
+    const result = new Promise<PreparedPersistentChild>((resolveReady, reject) => { ready = resolveReady; rejectReady = reject; });
+    const operation = input.work.run(async workSignal => {
+      const check = () => {
+        if (launch.signal.aborted || workSignal.aborted) throw launch.signal.reason instanceof DeadlineError ? launch.signal.reason : new AcceptanceCancelledError('Persistent launch cancelled');
+        if (Date.now() >= launch.deadlineAt) throw new DeadlineError('Persistent launch expired');
+      };
+      let ticket: string | undefined, delivered = false;
+      try {
+        check(); await verifyBinding(); check();
+        ticket = await input.controller.prepareOwnedChild(authority.windowId ? { taskId: authority.taskId, windowId: authority.windowId } : undefined, check);
+        check(); const exactTicket = ticket;
+        let state: 'unspawned' | 'registered' | 'releasing' | 'released' = 'unspawned';
+        ready({ ticket: exactTicket,
+          register: async pid => {
+            if (state !== 'unspawned') throw new Error('Persistent launch ticket was already consumed.');
+            state = 'registered'; await input.controller.registerOwnedChild(pid, exactTicket); await verifyBinding();
+          },
+          releaseUnspawned: async () => {
+            if (state !== 'unspawned') throw new Error('Persistent launch ticket is no longer unspawned.');
+            state = 'releasing'; await input.controller.releaseUnspawnedChild(exactTicket); state = 'released';
+          } });
+        delivered = true; await launch.completion;
+      } catch (error) {
+        if (ticket && !delivered) {
+          try { await input.controller.releaseUnspawnedChild(ticket); }
+          catch (cleanup) {
+            const failure = new UnspawnedChildCleanupError(error, cleanup); input.work.retainCleanupFailure(failure); throw failure;
+          }
+        }
+        if (delivered || error instanceof UnspawnedChildCleanupError) input.work.retainCleanupFailure(error);
+        throw error;
+      }
+    });
+    void operation.catch(rejectReady); return result;
+  } };
+}
 function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'> & { renderFrames?: boolean }): BrowserHostIO {
   return {
     async build(project, name, signal, authority) {
@@ -127,10 +170,7 @@ function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'> & { ren
       if (series.segments.some(segment => segment.plan.taskId !== authority.taskId)
         || options.deadlineAt !== Date.parse(authority.deadlineAt)) throw new Error('Persistent browser task or deadline differs from host authority.');
       return input.work.run(async signal => runPersistentAcceptance(series, { ...options, signal: AbortSignal.any([signal, ...(options.signal ? [options.signal] : [])]),
-        ownedChild: {
-          prepare: async () => { await options.verifyBinding(); return input.controller.prepareOwnedChild(authority.windowId ? { taskId: authority.taskId, windowId: authority.windowId } : undefined); },
-          register: async (pid, ticket) => { await input.controller.registerOwnedChild(pid, ticket); await options.verifyBinding(); },
-        } }));
+        ownedChild: createPersistentOwnedChild(input, authority, options.verifyBinding) }));
     },
   };
 }
@@ -339,7 +379,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     : task.acceptanceIds.length === 1 && task.acceptanceIds[0] === MEDIA_ACCEPTANCE_ID ? 'art' : 'coding');
   const workspace = (task: TaskContract) => boundTask(task)?.workspace ?? root;
   const sourceRoot = (task: TaskContract, folder: string) => relative(root, join(workspace(task), folder)).split(sep).join('/');
-  async function requireDispatch(task: TaskContract, signal: AbortSignal) {
+  async function requireDispatch(task: TaskContract, signal: AbortSignal, candidate?: ArtifactReference) {
     signal.throwIfAborted();
     if (modular) {
       const policy = await readModularRepairPolicy(root, await controller.read());
@@ -353,14 +393,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       requireOriginalTask(recorded, task);
       const authority = await controller.validationAuthority(task.taskId, 'reviewer');
       if (!authority.admissionAllowed) throw new Error('Validation task has no active host execution authority.');
-      if (preparation) await preparation.requireCurrent();
+      if (preparation) { if (candidate) await preparation.bindCandidate(candidate); else await preparation.requireCurrent(); }
       signal.throwIfAborted(); return { taskId: task.taskId, caseId: window.caseId, windowId: window.windowId, deadlineAt: authority.deadlineAt };
     }
     controller.requireExecutionWindow(binding?.windowId);
     boundTask(task);
     const authority = await controller.executionAuthority(task.taskId);
     if ((binding || human || modular) && !authority.admissionAllowed) throw new Error('Task has no active host execution authority.');
-    if (human) { await human.requireCurrent(); await preparation!.requireCurrent(); }
+    if (human) { await human.requireCurrent(); if (candidate) await preparation!.bindCandidate(candidate); else await preparation!.requireCurrent(); }
     return { taskId: task.taskId, windowId: authority.windowId, deadlineAt: authority.deadlineAt };
   }
   async function requirePlanningDispatch(roleInput: Readonly<RoleInput>, signal: AbortSignal) {
@@ -837,7 +877,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               const manifestBytes = await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`);
               if (!capture.metadata.media || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), capture.metadata.media)) throw new Error('Actual media manifest differs from its capture.');
               const result = await preparation.candidateConsumer({ root, task, candidate: ref, project, cleanDelivery: server, mediaArtifact, media: capture.metadata.media,
-                manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async () => { await requireDispatch(task, signal); await preparation.bindCandidate(ref); },
+                manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async () => { await requireDispatch(task, signal, ref); },
                 playPersistent: async (series, options) => {
                   if (!io.playPersistent) throw new Error('Trusted persistent transport is unavailable.');
                   return io.playPersistent(series, options, await requireDispatch(task, signal));

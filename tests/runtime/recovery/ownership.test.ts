@@ -82,6 +82,23 @@ test('an unresolved durable spawn intent blocks recovery even when its owner exi
 });
 
 for (const layer of ['owner', 'store', 'controller'] as const) {
+  test(`COS92 ${layer} releases only an exact unspawned ticket and preserves another intent`, async t => {
+    const root = await fixture(t);
+    const resource = layer === 'owner' ? await OwnerLock.acquire(root, '.controller.lock')
+      : layer === 'store' ? await SnapshotStore.acquire(root)
+      : await RunController.create({ root, runId: 'run', ledgerId: 'ledger', kind: 'evaluation', specVersion: 'v1', scope: 'validation', allocations: [{ taskId: 'writer', amountMicroCny: 1 }] });
+    const first = await resource.prepareOwnedChild(), other = await resource.prepareOwnedChild();
+    const lockPath = join(root, '.controller.lock'), before = await readFile(lockPath, 'utf8');
+    await assert.rejects(async () => resource.releaseUnspawnedChild('unknown'), /unresolved|intent|ticket/i);
+    assert.equal(await readFile(lockPath, 'utf8'), before);
+    if (layer === 'controller') await (resource as RunController).stop('Cancelled before spawn');
+    await resource.releaseUnspawnedChild(first);
+    assert.deepEqual(JSON.parse(await readFile(lockPath, 'utf8')).children, [{ ticket: other, pid: null }]);
+    await assert.rejects(resource.releaseUnspawnedChild(first), /unresolved|intent|ticket/i);
+    await resource.releaseUnspawnedChild(other); await resource.close();
+    await assert.rejects(async () => resource.releaseUnspawnedChild(other), /closed/i);
+  });
+
   test(`${layer} close retries release after its child exits and shares concurrent close results`, async t => {
     const root = await fixture(t);
     const resource = layer === 'owner' ? await OwnerLock.acquire(root, '.controller.lock')
@@ -93,6 +110,8 @@ for (const layer of ['owner', 'store', 'controller'] as const) {
     t.after(async () => { if (writer.exitCode === null && writer.signalCode === null) writer.kill(); await exited; await resource.close().catch(() => {}); });
     await resource.registerOwnedChild(writer.pid!, ticket);
     const original = await readFile(join(root, '.controller.lock'), 'utf8');
+    await assert.rejects(resource.releaseUnspawnedChild(ticket), /unresolved|intent|ticket/i);
+    assert.equal(await readFile(join(root, '.controller.lock'), 'utf8'), original);
     const blocked = await Promise.allSettled([resource.close(), resource.close()]);
     assert.deepEqual(blocked.map(result => result.status), ['rejected', 'rejected']);
     assert.equal(await readFile(join(root, '.controller.lock'), 'utf8'), original);
@@ -108,3 +127,31 @@ for (const layer of ['owner', 'store', 'controller'] as const) {
     } finally { await successor.close(); }
   });
 }
+
+test('COS92 cancellation during durable intent persistence rolls back only that unspawned intent', async t => {
+  const root = await fixture(t), owner = await OwnerLock.acquire(root, '.controller.lock');
+  const other = await owner.prepareOwnedChild(), save = (owner as any).save.bind(owner);
+  let expired = false, first = true;
+  t.mock.method(owner as any, 'save', async (next: any) => { await save(next); if (first) { first = false; expired = true; } });
+  await assert.rejects(owner.prepareOwnedChild(() => { if (expired) throw new Error('Local launch expired'); }), /Local launch expired/);
+  assert.deepEqual(JSON.parse(await readFile(join(root, '.controller.lock'), 'utf8')).children, [{ ticket: other, pid: null }]);
+  await owner.releaseUnspawnedChild(other); await owner.close();
+});
+
+test('COS92 unspawned release refuses a replaced owner and preserves its record', async t => {
+  const root = await fixture(t), owner = await OwnerLock.acquire(root, '.controller.lock'), ticket = await owner.prepareOwnedChild();
+  const path = join(root, '.controller.lock'), record = JSON.parse(await readFile(path, 'utf8'));
+  const changed = JSON.stringify({ ...record, token: 'different-owner' }) + '\n'; await writeFile(path, changed, 'utf8');
+  await assert.rejects(owner.releaseUnspawnedChild(ticket), /ownership changed/i); assert.equal(await readFile(path, 'utf8'), changed);
+});
+
+test('COS92 cancelled intent rollback preserves both errors when persistence fails', async t => {
+  const root = await fixture(t), owner = await OwnerLock.acquire(root, '.controller.lock'), save = (owner as any).save.bind(owner);
+  let expired = false;
+  t.mock.method(owner as any, 'save', async (next: any) => { if (expired) throw new Error('Fixture rollback write failed'); await save(next); expired = true; });
+  await assert.rejects(owner.prepareOwnedChild(() => { if (expired) throw new Error('Fixture local deadline'); }), error => {
+    assert.match(String(error), /Fixture local deadline/); assert.match(String(error), /Fixture rollback write failed/); return true;
+  });
+  assert.equal(JSON.parse(await readFile(join(root, '.controller.lock'), 'utf8')).children[0].pid, null);
+  await assert.rejects(owner.close(), /Unresolved child spawn intent/);
+});

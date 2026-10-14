@@ -12,6 +12,8 @@
 
 规格：[COS92](../specs/cos92-browser-launch.md)。起点 `b20e9a43f26712a1f5a13468057df46b6c012b69`。本阶段只提交 spec/plan；独审批准后才执行下列步骤。作者不改 main、共享 tracking 或 GitHub，不访问真实账本，不启动 paid/provider/C14。
 
+计划 `4472e7bdea4227b7fb671880c0862628703943c6` 已独审 PLAN_APPROVED，[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181) 已由 Root 读回。实现开始前合入指定 main `2aca018c59a9fd16ac7b0a318139958f53e5af06`，本分支 merge `dd05d246d38997e7ceb983d5f8804fdbccb9ea8d`；该基线差异仅文档。下列步骤现获准执行，最终源码仍待独审。
+
 ## 已运行的最小 RED
 
 证据目录：`C:/Users/26557/AppData/Local/Temp/cos92-launch-red-41b8414ba8624ef1beaaf94e60269a6b`。两脚本直接导入该 managed worktree 的未改生产模块；不计作新生产测试提交。
@@ -27,28 +29,58 @@
 
 **Files:** 修改 `src/runtime/adapters/transfer/runtime-host.ts`、`src/runtime/entrypoint-host.ts`；测试 `tests/transfer/runtime-host.test.ts`，必要时新增 `tests/runtime/entrypoint-host-launch.test.ts` 验证真实 consumer 回调接线。
 
-- [ ] 先将上述计数RED归入现有fixture；分别覆盖第二次独立调用、来源变化、候选/计划/历史绑定变化。原回调不得替换为无条件成功。
-- [ ] 私有 requireCurrent 返回它本次已验证的 PreparedInputs；公开 requireCurrent 包装成 void。bindCandidate 使用这个返回值，不再调用第二次 verify，保留最后 guard 和实际 bind 文件核验。未准备好的输入继续拒绝。
-- [ ] 私有 requireDispatch 增加当前 candidate 参数，仅在 consumer.requireCurrent 路径选择完整 bindCandidate 替代 preparation.requireCurrent；保留 scope、task、authority 与 signal 检查，消除随后重复的 bindCandidate 调用。其他调用点不改变。
-- [ ] 测量同一fixture两次bind，目标每次8次完整scope/readScope，记录实际耗时；测真实consumer组合回调次数。继承路径静态12→6须通过继承fixture观测确认后才能写成实测；可复用已封存历史的临时副本，禁止重建长历史seed或原C14重放。若现有短fixture不能提供该观察，记录缺口并先提交可证明的删减，不推导15秒成功。
-- [ ] Run: `node --experimental-strip-types --test tests/transfer/runtime-host.test.ts tests/runtime/entrypoint-host-preparation.test.ts`。预期受影响绑定/来源/恢复检查通过，两个独立操作都重新验证；提交该最小改动及证据。
+- [x] 先将上述计数RED归入现有fixture；分别覆盖第二次独立调用、来源变化、候选/计划/历史绑定变化。原回调不得替换为无条件成功。
+- [x] 私有 requireCurrent 返回它本次已验证的 PreparedInputs；公开 requireCurrent 包装成 void。bindCandidate 使用这个返回值，不再调用第二次 verify，保留最后 guard 和实际 bind 文件核验。未准备好的输入继续拒绝。
+- [x] 私有 requireDispatch 增加当前 candidate 参数，仅在 consumer.requireCurrent 路径选择完整 bindCandidate 替代 preparation.requireCurrent；保留 scope、task、authority 与 signal 检查，消除随后重复的 bindCandidate 调用。其他调用点不改变。
+- [x] 测量同一fixture两次bind，目标每次8次完整scope/readScope，记录实际耗时；测真实consumer组合回调次数。继承路径静态12→6须通过继承fixture观测确认后才能写成实测；可复用已封存历史的临时副本，禁止重建长历史seed或原C14重放。若现有短fixture不能提供该观察，记录缺口并先提交可证明的删减，不推导15秒成功。
+- [x] Run: `node --experimental-strip-types --test tests/transfer/runtime-host.test.ts tests/runtime/entrypoint-host-preparation.test.ts`。预期受影响绑定/来源/恢复检查通过，两个独立操作都重新验证；提交该最小改动及证据。
 
 ## Task 2: 把局部取消传到意图持久化与 spawn
 
-**Files:** 修改 `src/acceptance/runner.ts`、`src/acceptance/persistent.ts`、`src/runtime/entrypoint-host.ts`、`src/runtime/run.ts`、`src/runtime/store.ts`、`src/runtime/recovery/ownership.ts`；新增 `tests/acceptance/persistent-launch.test.ts`，扩 `tests/runtime/recovery/ownership.test.ts` 与 `tests/runtime/entrypoint-host-launch.test.ts`。最小适配 `tests/acceptance/media-observations.integration.ts`、`tests/runtime/generic-persistent-host.fixture.ts` 的两个已有 ownedChild 调用点。
+**Files:** 修改 `src/acceptance/runner.ts`、`src/acceptance/persistent.ts`、`src/runtime/entrypoint-host.ts`、`src/runtime/run.ts`、`src/runtime/store.ts`、`src/runtime/recovery/ownership.ts`；新增 `tests/acceptance/persistent-launch.test.ts`，扩 `tests/runtime/recovery/ownership.test.ts`，nativeIO交接测试集中于前者。最小适配 `tests/acceptance/media-observations.integration.ts`、`tests/runtime/generic-persistent-host.fixture.ts` 的两个已有 ownedChild 调用点。
 
-- [ ] 先迁入两个RED，加deferred binding、deferred持久化、controller identity及close/drain门；使用mock Date/setTimeout和拦截spawn/CDP，记录真实ticket状态。另加 ticket 已持久化但 handle 交付被 gate 阻塞的用例：abort 并开始 drain，断言 drain 尚未成功；释放 gate 后 raw prepare 交付 handle，断言零 spawn/零残留本次 ticket、drain 完成且 owner 可 close。不可用真实浏览器/任意sleep制造竞态。
-- [ ] runner向open传入可信 `{signal, deadlineAt}`，失败/外层race超时即abort。persistent直接调用时创建等价寿命，内部bounded与prepare共享它。`ownedChild.prepare(launch)` 的nativeIO实现检查binding前后；返回 `{ticket, register(pid), releaseUnspawned()}`，回调闭包捕获本次ticket，调用方不能传入其他票。旧controller/owned-command的string ticket API保留。
-- [ ] persistent 在 bounded race 之外始终观察 raw prepare，单一 attempt 状态处理全部成功/拒绝结果。每次启动的 completion promise 另交 nativeIO：ready promise 可以先返回 handle，但独立 OwnedWork 继续等待 completion，直到同步 spawn 交接进入既有登记/退出路径或 exact release 真正完成。race 失败后的迟到 handle 仍只释放本次 ticket；spawn/release 不能同时赢。prepare 拒绝且没有 ticket 也结束 completion；release 失败使 completion 失败并保留意图和原错误，不能把跟踪结束当成清理通过。始终不返回的 prepare 沿原 drain 截止失败并保留 owner。测试覆盖这三条终止分支。
-- [ ] 给 `RunController.prepareOwnedChild(authority?, launch?)` 增可选局部寿命检查，旧owned-command调用保持原行为；原identity/expire/requireActive保留。向store/OwnerLock传入可信检查闭包，在队列执行且持久化前检查；若持久化期间过期，在同一串行operation中只移除本次仍null ticket后抛出原截止/取消错误，不递归进入serial。
-- [ ] 增 `releaseUnspawnedChild(ticket)` 的lock/store/controller窄链路：exact owner + exact existing null ticket，更新childTasks；不要求运行active但拒绝已close/failed，不修改recover。未知ticket、registered PID、owner漂移及release失败必须保留事实并拒绝。调用方闭包只持有本次ticket，只有spawnStarted=false可释放；另造一张null ticket验证它不被这次release清除。
-- [ ] prepare返回后检查signal和绝对截止，最后检查与spawn无await；调用spawn前同步置spawnStarted。一旦spawn开始不走null-ticket释放；PID立即走既有register，即使随后截止失败仍保留PID并走终止/完整退出/profile证明。同步spawn错误也不假定无进程。
-- [ ] Run: `node --experimental-strip-types --test tests/acceptance/persistent-launch.test.ts tests/runtime/recovery/ownership.test.ts tests/runtime/entrypoint-host-launch.test.ts`。预期迟到prepare零spawn/零残留ticket，owner在drain后可close；及时路径恰一次spawn/register；注册PID不能被release。两种原运行停止与来源漂移仍拒绝。故意release失败时报告failed并保留意图，不伪造cleanup成功。提交实现及原始输出。
+- [x] 先迁入两个RED，加deferred binding、deferred持久化、controller identity及close/drain门；使用mock Date/setTimeout和拦截spawn/CDP，记录真实ticket状态。另加 ticket 已持久化但 handle 交付被 gate 阻塞的用例：abort 并开始 drain，断言 drain 尚未成功；释放 gate 后 raw prepare 交付 handle，断言零 spawn/零残留本次 ticket、drain 完成且 owner 可 close。不可用真实浏览器/任意sleep制造竞态。
+- [x] runner向open传入可信 `{signal, deadlineAt}`，失败/外层race超时即abort。persistent直接调用时创建等价寿命，内部bounded与prepare共享它。`ownedChild.prepare(launch)` 的nativeIO实现检查binding前后；返回 `{ticket, register(pid), releaseUnspawned()}`，回调闭包捕获本次ticket，调用方不能传入其他票。旧controller/owned-command的string ticket API保留。
+- [x] persistent 在 bounded race 之外始终观察 raw prepare，单一 attempt 状态处理全部成功/拒绝结果。每次启动的 completion promise 另交 nativeIO：ready promise 可以先返回 handle，但独立 OwnedWork 继续等待 completion，直到同步 spawn 交接进入既有登记/退出路径或 exact release 真正完成。race 失败后的迟到 handle 仍只释放本次 ticket；spawn/release 不能同时赢。prepare 拒绝且没有 ticket 也结束 completion；release 失败使 completion 失败并保留意图和原错误，不能把跟踪结束当成清理通过。始终不返回的 prepare 沿原 drain 截止失败并保留 owner。测试覆盖这三条终止分支。
+- [x] 给 `RunController.prepareOwnedChild(authority?, launch?)` 增可选局部寿命检查，旧owned-command调用保持原行为；原identity/expire/requireActive保留。向store/OwnerLock传入可信检查闭包，在队列执行且持久化前检查；若持久化期间过期，在同一串行operation中只移除本次仍null ticket后抛出原截止/取消错误，不递归进入serial。
+- [x] 增 `releaseUnspawnedChild(ticket)` 的lock/store/controller窄链路：exact owner + exact existing null ticket，更新childTasks；不要求运行active但拒绝已close/failed，不修改recover。未知ticket、registered PID、owner漂移及release失败必须保留事实并拒绝。调用方闭包只持有本次ticket，只有spawnStarted=false可释放；另造一张null ticket验证它不被这次release清除。
+- [x] prepare返回后检查signal和绝对截止，最后检查与spawn无await；调用spawn前同步置spawnStarted。一旦spawn开始不走null-ticket释放；PID立即走既有register，即使随后截止失败仍保留PID并走终止/完整退出/profile证明。同步spawn错误也不假定无进程。
+- [x] Run: `node --experimental-strip-types --test tests/acceptance/persistent-launch.test.ts tests/runtime/recovery/ownership.test.ts`。迟到prepare零spawn/零残留ticket，owner在drain后可close；及时路径恰一次spawn/register；注册PID不能被release。两种原运行停止与来源漂移仍拒绝。故意release失败时报告failed并保留意图，不伪造cleanup成功。原nativeIO接线单独文件计划合并到同一启动测试，提交实现及原始输出。
 
 ## Task 3: 集成、独审与交接
 
-- [ ] 只读核对UTF-8后最小修改；每次写后中文回读。确认生产路径没有新通用授权缓存、全局skip flag、加长15秒或历史恢复捷径。
-- [ ] Run: `node --experimental-strip-types --test tests/acceptance/persistent.test.ts tests/acceptance/generic-persistent.test.ts tests/runtime/run.test.ts tests/runtime/recovery/owned-work.test.ts tests/runtime/owned-command.test.ts tests/runtime/entrypoint-host-preparation.test.ts`；复用Task1/2中无变化的通过项。运行 `npm run typecheck`、`npm run build`、`git diff --check`，保留exit与pass/fail/skip。两个旧ownedChild辅助文件最小适配接口并验证受影响fixture。
-- [ ] Run: `node --experimental-strip-types --test --test-name-pattern="COS40 new observer records real Phaser" tests/acceptance/media-observations.integration.ts`。只运行这一项免费 TEMP 真实 Edge 正例，验证 prepare→register（CDP调用前）→CDP/PID/profile 身份→close事件/退出码/PID已不存在，保留 qa-summary 与原始报告；预期正例通过，另一负例因名称过滤跳过须如实记载。不跑全矩阵、不重放 C14、不接触真实账本或付费 provider。
-- [ ] 用同输入/环境列出修复前后实测次数与耗时。免费回归没有证明实际C14或下一次真实游戏启动通过；完整历史链耗时未测时明确标注，后续性能调查不扩大本次实现。
+- [x] 只读核对UTF-8后最小修改；每次写后中文回读。确认生产路径没有新通用授权缓存、全局skip flag、加长15秒或历史恢复捷径。
+- [x] Run: `node --experimental-strip-types --test tests/acceptance/persistent.test.ts tests/acceptance/generic-persistent.test.ts tests/runtime/run.test.ts tests/runtime/recovery/owned-work.test.ts tests/runtime/owned-command.test.ts tests/runtime/entrypoint-host-preparation.test.ts`；复用Task1/2中无变化的通过项。运行 `npm run typecheck`、`npm run build`、`git diff --check`，保留exit与pass/fail/skip。两个旧ownedChild辅助文件最小适配接口并验证受影响fixture。
+- [x] Run: `node --experimental-strip-types --test --test-name-pattern="COS40 new observer records real Phaser" tests/acceptance/media-observations.integration.ts`。只运行这一项免费 TEMP 真实 Edge 正例，验证 prepare→register（CDP调用前）→CDP/PID/profile 身份→close事件/退出码/PID已不存在，保留 qa-summary 与原始报告；预期正例通过，另一负例因名称过滤跳过须如实记载。不跑全矩阵、不重放 C14、不接触真实账本或付费 provider。
+- [x] 用同输入/环境列出修复前后实测次数与耗时。免费回归没有证明实际C14或下一次真实游戏启动通过；完整历史链耗时未测时明确标注，后续性能调查不扩大本次实现。
 - [ ] 提交最终SHA、测试证据和已知缺口给独立reviewer；先规格再质量查实际diff，作者修finding并重审。唯一merger集成后Root才能登记SOURCE_READY。C14仍failed/consumed；COS16/COS18、完整经典与human保持未完成。
+
+## 实现证据（持续补充）
+
+Task1 已观察仓库内新增计数 RED：13≠8，0pass/1fail，16300.5313ms。最小复用后 `tests/transfer/runtime-host.test.ts` 与 `tests/runtime/entrypoint-host-preparation.test.ts` 共17/17、0skip，88704.77ms；raw `C:/Users/26557/AppData/Local/Temp/cos92-binding-green.tap`。两次独立绑定各8次scope，333.523ms/322.474ms；同一输入/宿主的旧探针各13次、429.516ms/440.323ms，仅此小夹具比较，不外推C14。当前scope漂移、候选/全部计划与恢复的原断言通过；真实consumer组合回调计数仍待短夹具补验。
+
+Task1稳定提交 `f9f43eb7441db1bf5b47efc08e49fc0dbe0d0bb4` 已获 `cos92_reviewer` TASK1_DIFF_APPROVED、无finding。后续组合计数已补齐：`node --experimental-strip-types --test --test-name-pattern='COS40 trusted consumer|one current CodeDefect' tests/transfer/runtime-acceptance.test.ts tests/transfer/passed-stage-reuse.test.ts`，2/2、0skip、128698.3968ms（含TEMP夹具准备）。两次真实普通consumer回调各9 scopes、573.413/549.744ms；两次真实继承consumer回调各6 scopes、2076.790/1874.086ms。raw `C:/Users/26557/AppData/Local/Temp/cos92-consumer-counts.tap`。继承旧12次为源码推导，旧完整链耗时未实测；新夹具不等同原C14。没有重建C14长历史seed。
+
+Task2没有另建 `tests/runtime/entrypoint-host-launch.test.ts`：真实nativeIO实现提取为同文件 `createPersistentOwnedChild`，其接线与controller/store/OwnerLock在 `tests/acceptance/persistent-launch.test.ts` 统一验证，避免重复夹具。前两项行为RED按本计划复用；ownership新增4项先失败（缺释放接口/缺持久化后检查），新原生交接seam先缺失7项失败。最终启动10项全部通过。一次新原截止测试失败源于fixture预先捕获真实Date.now；改为fixture注入 `now: () => Date.now()` 后通过，生产截止行为未改。
+
+| 最终免费验证 | 结果与证据 |
+|---|---|
+| `node --experimental-strip-types --test tests/acceptance/persistent.test.ts tests/acceptance/generic-persistent.test.ts tests/runtime/run.test.ts tests/runtime/recovery/owned-work.test.ts tests/runtime/owned-command.test.ts tests/acceptance/persistent-launch.test.ts tests/runtime/recovery/ownership.test.ts` | 59/59、0skip、8860.4702ms，exit0；`C:/Users/26557/AppData/Local/Temp/cos92-affected-regressions.tap`。包含启动10项、ownership14项，精确释放、登记PID、owner变化与回滚错误均保留。 |
+| `node --experimental-strip-types --test tests/runtime/generic-persistent-host.test.ts` | 15/15、0skip、44498.6188ms，exit0；`C:/Users/26557/AppData/Local/Temp/cos92-generic-host.tap`。 |
+| Task3所列单项Edge命令 | 1/1、0skip、7335.4075ms，exit0；Node按名称过滤时未计入另一测试，实际不是预估的1skip。raw `C:/Users/26557/AppData/Local/Temp/cos92-edge-positive.tap`；原始 `qa-summary.json` 和报告在 `C:/Users/26557/AppData/Local/Temp/cos40-observer-7wZOcj`。PID13640、order=ticket/register、CDP1、closeEvent/exitConfirmed/pidAbsent=true、exit0、forced=false、providerCalls0。随后只改失败消息保留与测试类型标注，正常路径未变，复用这项真实证据。 |
+| `npm run typecheck`；`npm run build` | 均exit0，生产完整编译。 |
+| 六个受影响测试的单独strict | `node node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --esModuleInterop --skipLibCheck --types node tests/acceptance/persistent-launch.test.ts tests/runtime/recovery/ownership.test.ts tests/acceptance/media-observations.integration.ts tests/transfer/runtime-host.test.ts tests/transfer/runtime-acceptance.test.ts tests/transfer/passed-stage-reuse.test.ts` exit0；成功时无编译输出，Tee未创建文件，原列`cos92-affected-strict.log`路径撤回。已有工具session67441回读`TSC_EXIT=0`且退出0；不因路径问题重跑。新增测试两个隐式参数类型已修正。 |
+
+**已知strict限制：** `tests/runtime/generic-persistent-host.fixture.ts:74` TS2554（stop多传一个参数），108/109/118行 TS2345（空对象缺AuthorProposal字段），本次未改这些行。最初仅替换旧fixture而保留新接口的对照不充分，已弃用其7条诊断；最终通过TypeScript CompilerHost同时使用 `f9f43eb` 的fixture与全部6个已改生产文件，再与当前代码编译结果作deepEqual，恰同4条诊断，COMPARE_EXIT=0。证据 `C:/Users/26557/AppData/Local/Temp/cos92-generic-strict-baseline-current.json`。此文件整个strict不能声称通过；其已改ownedChild接口无新增诊断，运行时15项及真实Edge均通过。
+
+作者验证结束；最终实际diff仍交独审，未授予SOURCE_READY或合入main。保留C14失败/已消费、实际完整链时间未知、COS16/COS18/完整经典/human未完成。Task1已审且代码无再变的17项按Root指令复用；主线纯文档推进不导致重跑。
+
+## 最终独审 P2 修订
+
+独审确认 `c43fdcc` 的迟到release失败虽使私有completion拒绝，公开drain仍allSettled成功，原异常未传给生产调用方。公开 `cancelAndDrain(controller, work)` 的新RED为1fail/1pass（普通拒绝仍通过），3514.6137ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-propagation-red.tap`。
+
+仅原生启动交接明确报告清理失败：`OwnedWork.retainCleanupFailure` 保留原因，drain等待原operations后抛出带原异常对象和消息的AggregateError；普通run拒绝仍沿原allSettled。nativeIO的已交付handle若completion失败会报告；未交付时的exact release/持久化回滚失败以窄`UnspawnedChildCleanupError`传递并报告，正常binding取消不升级为清理失败。失败在operation移除后仍可由后续公开drain读取；原ticket保持未解决，owner.close继续拒绝。
+
+定向 `persistent-launch.test.ts`、`owned-work.test.ts`、`ownership.test.ts` 共27/27、0skip、3943.42ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-propagation-green.tap`；随后追加未交付handle的回滚失败公开传播用例1/1、0skip、3402.5653ms，raw `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-prehandoff.tap`。均检查原cause对象/消息、零spawn及残留ticket；普通取消不变。原Task1、consumer、generic与Edge已审证据复用，正常prepare/register/CDP/退出接线未变。
+
+P2后 `npm run typecheck` / `npm run build` 均退出0，实际日志 `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-typecheck-build.log`。使用上表相同tsc strict参数，仅选择此次受影响的 `tests/acceptance/persistent-launch.test.ts`、`tests/runtime/recovery/owned-work.test.ts`、`tests/runtime/recovery/ownership.test.ts`，退出0；实际含`TSC_EXIT=0`的日志为 `C:/Users/26557/AppData/Local/Temp/cos92-cleanup-strict.log`。这次编译验证源于P2代码变化，没有为旧路径问题重跑旧矩阵。

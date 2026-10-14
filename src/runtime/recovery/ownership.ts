@@ -2,6 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { lstat, open, readFile, rename, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
+/** A failed rollback must remain visible even when its launch already timed out. */
+export class UnspawnedChildCleanupError extends AggregateError {
+  constructor(operation: unknown, cleanup: unknown) {
+    super([operation, cleanup], `Unspawned child cleanup failed; retaining ownership: ${String(operation)}; ${String(cleanup)}`);
+  }
+}
+
 export interface OwnerRecord {
   formatVersion: 1;
   token: string;
@@ -89,10 +96,27 @@ export class OwnerLock {
       await this.assertOwner(); await rename(temporary, this.path); this.record = next;
     } finally { await file.close().catch(() => {}); await unlink(temporary).catch(error => { if (error.code !== 'ENOENT') throw error; }); }
   }
-  prepareOwnedChild(): Promise<string> {
+  prepareOwnedChild(checkLaunch?: () => void): Promise<string> {
     return this.serial(async () => {
+      checkLaunch?.();
       const ticket = randomUUID(), next = structuredClone(this.record);
-      next.children.push({ ticket, pid: null }); await this.save(next); return ticket;
+      next.children.push({ ticket, pid: null }); await this.save(next);
+      try { checkLaunch?.(); }
+      catch (error) {
+        const cancelled = structuredClone(this.record); cancelled.children = cancelled.children.filter(child => child.ticket !== ticket);
+        try { await this.save(cancelled); }
+        catch (cleanup) { throw new UnspawnedChildCleanupError(error, cleanup); }
+        throw error;
+      }
+      return ticket;
+    });
+  }
+  /** Only the current launcher can prove it never invoked spawn for this exact intent. */
+  releaseUnspawnedChild(ticket: string): Promise<void> {
+    return this.serial(async () => {
+      const next = structuredClone(this.record), child = next.children.find(child => child.ticket === ticket);
+      if (!child || child.pid !== null) throw new Error('Release requires an exact unresolved child spawn intent.');
+      next.children = next.children.filter(child => child.ticket !== ticket); await this.save(next);
     });
   }
   registerOwnedChild(childPid: number, ticket: string): Promise<void> {

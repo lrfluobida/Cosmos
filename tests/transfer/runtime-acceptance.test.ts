@@ -67,6 +67,8 @@ async function syntheticReports(series: PersistentAcceptanceSeries, options: Per
 async function consumerPipeline(t: any, repair = false, mutateMedia = false, mutateCandidate = false, mode?: string) {
   assert.equal(typeof (runtime as any).createTransferConsumerHost, 'function', 'COS40 explicit consumer factory is missing');
   const f = await transferFixture(t); let host: any, seriesCalls = 0;
+  let scopeCalls = 0; const bindingSamples: { scopes: number; elapsedMs: number }[] = [], requireHost = f.controller.requireValidationHost.bind(f.controller);
+  if (mode === 'cos92-count') t.mock.method(f.controller, 'requireValidationHost', async (...args: Parameters<typeof requireHost>) => { scopeCalls++; return requireHost(...args); });
   const io: any = { ...f.input.io,
     build: async (project: string, taskId: string, _signal: AbortSignal, authority: any) => {
       assert.equal(taskId, authority.taskId); f.calls.push({ kind: 'build', taskId });
@@ -93,6 +95,10 @@ async function consumerPipeline(t: any, repair = false, mutateMedia = false, mut
     },
     playPersistent: async (series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions, authority: any) => {
       seriesCalls++; assert.equal(series.segments[0].plan.taskId, authority.taskId); await options.verifyBinding();
+      if (mode === 'cos92-count') for (let operation = 0; operation < 2; operation++) {
+        const before = scopeCalls, start = performance.now(); await options.verifyBinding();
+        bindingSamples.push({ scopes: scopeCalls - before, elapsedMs: +(performance.now() - start).toFixed(3) });
+      }
       assert.equal(await (await fetch(series.segments[0].plan.url)).text(), 'synthetic ' + authority.taskId);
       return syntheticReports(series, options, repair && seriesCalls === 1, mode);
     } };
@@ -126,7 +132,7 @@ async function consumerPipeline(t: any, repair = false, mutateMedia = false, mut
   });
   if (mode === 'coding-origin-requirement' || mode === 'coding-origin-output') await assert.rejects(pending, /original coding binding changed|Owned transfer origin listener/);
   else await pending;
-  return { ...f, result, finished, seriesCalls };
+  return { ...f, result, finished, seriesCalls, bindingSamples };
 }
 
 test('COS40 explicit consumer factory is source-owned and separate from default preparation', () => {
@@ -142,8 +148,9 @@ test('COS40 consumer envelope rejects late origin receipt drift before returning
   await assert.rejects(fetch(original.url)); assert.equal(f.calls.length, 0);
 });
 test('COS40 trusted consumer freezes actual task IDs and promotes only complete current synthetic evidence plus independent review', async t => {
-  const f = await consumerPipeline(t);
+  const f = await consumerPipeline(t, false, false, false, 'cos92-count');
   assert.deepEqual(f.result.map(task => task.state), ['passed', 'passed', 'passed'], JSON.stringify(f.result[2].handoff)); assert.equal(f.seriesCalls, 1);
+  t.diagnostic('COS92 actual consumer binding: ' + JSON.stringify(f.bindingSamples)); assert.deepEqual(f.bindingSamples.map(sample => sample.scopes), [9, 9]);
   assert.equal(f.finished.acceptedCandidate.candidateRef.version, 'v1');
   const registry = await createArtifactRegistry({ workspaceRoot: f.root, registryRoot: 'registry' });
   const plan = await registry.getCapture(registry.artifactRef(f.window.caseId + '-plan-v1', 'v1'));
