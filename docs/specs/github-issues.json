@@ -7448,7 +7448,13 @@
       "actualResultComments": [
         "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6180211123",
         "https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6180211817"
-      ]
+      ],
+      "actualResultReviewStatus": "APPROVED",
+      "actualResultImplementer": "c14_outcome_docs_implementer",
+      "actualResultReviewer": "c14_outcome_docs_reviewer",
+      "actualResultMerger": "batch_c14_cos92_merger",
+      "actualResultReviewedCommit": "4d86dd1be9d03e4a71fd502ea46a1bc799e9b1c1",
+      "actualResultMergeCommit": "a77141707419e599307e3e4daa81878287b96afa"
     },
     {
       "taskId": "COS-92",
@@ -7466,6 +7472,8 @@
       "integrationStatus": "in-progress",
       "reviewStatus": "SOURCE_NOT_READY",
       "implementer": "cos92_implementer",
+      "reviewer": "cos92_reviewer",
+      "merger": "batch_c14_cos92_merger",
       "planPath": "docs/plans/2026-10-15-cos92-browser-launch.md",
       "taskCardPath": "docs/specs/cos92-browser-launch.md",
       "workScope": "free-source-and-deterministic-regression-only",
