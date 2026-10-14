@@ -101,3 +101,23 @@ for (const flag of ['--assume-unchanged', '--skip-worktree']) test(`hidden index
   await assert.rejects(f.read(signal()), /index|assume|skip.worktree/i);
   assert.deepEqual(await files(f.root), before, 'Refusal must not clear or rewrite index flags');
 });
+
+test('identity requires the exact repository root', async t => {
+  const f = await fixture(t), read = identity.createValidationIdentityReader({ repository: join(f.root, 'src'), reviewedPlatformSha: f.head });
+  await assert.rejects(read(signal()), /exact repository root/);
+});
+
+test('source changes during fixed input reading are rejected by the after inspection', async t => {
+  const f = await fixture(t), read = identity.createReviewedValidationIdentityReader({ repository: f.root, reviewedPlatformSha: f.head }, async () => {
+    await writeFile(join(f.root, 'src/platform.ts'), '// Changed during fixed input reading\n', 'utf8');
+    return { manifest: VALIDATION_CASE.inputs };
+  });
+  await assert.rejects(read(signal()), /clean main/);
+});
+
+for (const scenario of ['overlap', 'failures', 'child-failure', 'abort', 'timeout']) test(`COS87 identity ${scenario}`, async t => {
+  const result = await runChild(process.execPath, ['--experimental-strip-types', fileURLToPath(new URL('./validation-identity.fixture.mjs', import.meta.url)), scenario],
+    { cwd: repository, signal: t.signal, timeoutMs: 20_000 });
+  assert.equal(result.code, 0, result.stderr || result.stdout);
+  t.diagnostic(result.stdout.trim());
+});
