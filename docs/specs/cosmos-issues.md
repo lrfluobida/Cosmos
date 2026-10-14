@@ -1405,11 +1405,11 @@ BATCH15：专属 implementer cos67_implementer，独立 reviewer cos65_implement
 
 [任务卡 #85](https://github.com/lrfluobida/Cosmos/issues/85)，id5848367426，已由Root发布、精确读回并原生挂父#1；当前84个子项。依赖COS82/83，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger为 `batch75_76_merger`。
 
-计划 `4a0adbe931386cd55f163d212c58498ed2587bad` 已由cos77检查两份文档和调用链后批准。源码仍为SOURCE_NOT_READY/open，目标标记为 `TRANSFER_CASE_ELEVEN_SOURCE_READY`；作者将在独立工作区维护计划和任务卡，本次不合入未审代码。
+计划 `4a0adbe931386cd55f163d212c58498ed2587bad` 已独审批准。最终版本 `7173766a02700179a5017e49676bf880bc812940` 经cos77实际规格与质量审查APPROVED，无剩余finding，唯一merger合入 `f4856f9db02020a56fe95b245a3316409a438dd0`。标记为 `TRANSFER_CASE_ELEVEN_SOURCE_READY`，本卡source-integrated/open，等待Root公开关闭；详见[独立任务卡](cos84-transfer-case11.md)。
 
 沿原¥150持续推进授权，单轮仍限¥3、45分钟，COS16预算组保持¥10。Root报告原组可分配¥5.542303；固定向量按规划、设计、美术、编码、修复为¥0.000001、¥0.000001、¥0.000001、¥2.40、¥0.599997，合计¥3。C10历史与费用保持。
 
-实际C11尚未执行免费准入或付费；启动脚本仅完成只读审查，不代表源码就绪或实际准入。最终源码另行独审，整合推送后才按Root安排冻结。
+主线typecheck/build和7项C11额度、quote、历史边界及旧C10短回归通过；原12项unit、runtime和compiled证据复用。SOURCE仅合成历史与fake provider，compiled worker transport为synthetic，C11正式build/browser/repair未执行。实际C11尚未免费准入或付费；本批推送核验后冻结main供Root执行，公共状态与实际结果待明确解冻后统一补录。
 
 稳定任务 ID：COS-84
 

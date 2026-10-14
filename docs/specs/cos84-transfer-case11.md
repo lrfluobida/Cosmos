@@ -1,8 +1,15 @@
 # COS-84 验证来源校验去重后的固定迁移 C11
 
-状态：SOURCE_NOT_READY / PLAN_APPROVED / implementation pending review / open。Issue [#85](https://github.com/lrfluobida/Cosmos/issues/85)，id5848367426；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS82/83。
+状态：TRANSFER_CASE_ELEVEN_SOURCE_READY / PLAN_APPROVED / source-integrated / open，等待Root公开关闭。Issue [#85](https://github.com/lrfluobida/Cosmos/issues/85)，id5848367426；父 [#1](https://github.com/lrfluobida/Cosmos/issues/1)，依赖 COS82/83。
 
-作者 `cos76_implementer` acting COS84；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos84-transfer-case11.md](../plans/2026-10-14-cos84-transfer-case11.md)。分支 `codex/cos84-transfer-case11`；当前base `32af0aa4c101bd03ccfd759d64a482231aefd970`，测试前接Root最终已审main。
+作者 `cos76_implementer` acting COS84；独立 reviewer `cos77_implementer`；唯一 merger `batch75_76_merger`。计划：[2026-10-14-cos84-transfer-case11.md](../plans/2026-10-14-cos84-transfer-case11.md)。分支 `codex/cos84-transfer-case11`；实际评审基线 `cb22fb22a76b131088585ebdb4298c76cc5ebab5`。
+
+最终18个文件已通过独立规格与质量审查，没有剩余finding；唯一merger已集成。作者计划保留提交时的证据与待审状态，本卡记录最终审批。
+
+| 记录 | 提交 |
+| --- | --- |
+| 批准版本 | `7173766a02700179a5017e49676bf880bc812940` |
+| 合并提交 | `f4856f9db02020a56fe95b245a3316409a438dd0` |
 
 ## 契约
 
@@ -22,4 +29,8 @@
 
 计划 `4a0adbe931386cd55f163d212c58498ed2587bad` 已独审批准；测试前并入最终已推main `cb22fb22a76b131088585ebdb4298c76cc5ebab5`。新6项有效RED→新旧12/12 GREEN；SOURCE runtime1/1、compiled1/1，typecheck/build/affected strict退出0。原始TAP、首次compiled测试选项拼写错误及更正、完整命令和恢复归档见计划。
 
-实际SOURCE证明40笔新合成C10费用/closure16、固定新3m向量、旧18case全前缀、空新作者、host/factory/Pi与partial冷恢复。C11 build/browser/repair未跑，JS worker transport为synthetic；旧repair/v2及COS83矩阵复用。全部owner与SOURCE视图已恢复，无真实账本/会话/key/C10代码读取或付费操作。最终exact仍待独立审查。
+实际SOURCE证明40笔新合成C10费用/closure16、固定新3m向量、旧18case全前缀、空新作者、host/factory/Pi与partial冷恢复。C11 build/browser/repair未跑，JS worker transport为synthetic；旧repair/v2及COS83矩阵复用。全部owner与SOURCE视图已恢复，无真实账本/会话/key/C10代码读取或付费操作。最终exact已独审批准并集成。
+
+合并后typecheck/build退出0；C11新额度、quote、历史拒绝及旧C10短回归7/7通过，0skip，TAP5119.302ms。命令为 `node --experimental-strip-types --test --test-name-pattern='C1[01] fixes the new three yuan vector|C1[01] uses available allocation|C1[01] fixed parser quote|C11 rejects wrong original C10' tests/transfer/validation-case-eleven.test.ts tests/transfer/validation-case-ten.test.ts`，原始输出 `C:/Users/26557/AppData/Local/Temp/cos84-merge-integration.tap`。merger已读取作者RED/GREEN、runtime、compiled及首次参数拼写错误记录，复用重型证据。
+
+实际C11仍未准入或付费。本批推送核验后冻结main供Root真实预检和有界运行；公开关闭URL与实际结果在Root明确解冻后统一补录。C10与旧历史、原预算及游戏/human未通过状态保持。

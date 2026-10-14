@@ -20,9 +20,9 @@ Root已一次完成closure16，释放未使用的 **¥1.913735**。18个案例�
 
 后续源码工作为[COS83：减少作者工具中的重复来源校验](https://github.com/lrfluobida/Cosmos/issues/84)。任务已原生挂父，当前83个子项；cos76负责实现，cos77独审，唯一merger保持不变。基线、生产方案及最终源码均已独审通过；版本 `c8afd76` 已合入 `32af0aa`，本卡已[公开批准](https://github.com/lrfluobida/Cosmos/issues/84#issuecomment-6169208468)并在源码范围内关闭，父勾选已由Root核实。生产只删除一处直接重复scope调用，每次origin.verify仍执行完整校验。普通prepared fixture两次工具调用均从160次降到83次，48.125%仅为该夹具的校验次数降幅，不代表C10实际速度或费用变化。主线typecheck/build和真实guard超时代表通过，旧边界证据复用；[任务卡](cos83-tool-scope.md)保留完整证据。本轮不新增付费、C11或预算。
 
-下一项准备工作是[COS84固定迁移C11](https://github.com/lrfluobida/Cosmos/issues/85)。任务已原生挂父，当前84个子项；计划 `4a0adbe` 已由cos77独审批准，cos76负责实现，源码仍为SOURCE_NOT_READY/open。沿原¥150持续推进授权，单轮仍最多¥3、45分钟，原COS16预算组¥10不变；Root报告可分配¥5.542303，新向量保持规划、设计、美术各¥0.000001，编码¥2.40、修复¥0.599997。
+下一项准备工作是[COS84固定迁移C11](cos84-transfer-case11.md)。任务已原生挂父，当前84个子项；cos76实现的 `7173766` 已由cos77独立规格与质量审查批准，无剩余finding，唯一merger合入 `f4856f9`，标记为 TRANSFER_CASE_ELEVEN_SOURCE_READY。本卡source-integrated/open，等待Root公开关闭。沿原¥150持续推进授权，单轮仍最多¥3、45分钟，原COS16预算组¥10不变；Root报告可分配¥5.542303，新向量保持规划、设计、美术各¥0.000001，编码¥2.40、修复¥0.599997。
 
-实际C11尚未免费准入或付费，启动脚本的只读审查不代表实际准入。作者计划和任务卡仍在独立工作区维护，最终源码批准并整合后才由Root安排冻结和运行；C10失败、费用和本卡fixture证据边界保持。
+主线typecheck/build及7项短集成回归通过，作者12项unit、runtime和compiled证据复用。SOURCE证明合成历史、真实host/factory与fake Pi、同窗口partial冷恢复；compiled worker transport为synthetic，尚无C11正式build/browser/repair或游戏通过证据。实际C11尚未免费准入或付费，启动脚本的只读审查不代表实际准入。本批推送核验后冻结main供Root执行，公开关闭和实际结果待明确解冻后统一补录；C10失败与费用保持。
 
 ### C9历史结果：未通过
 

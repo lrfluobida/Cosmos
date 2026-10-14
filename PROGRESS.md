@@ -2,7 +2,7 @@
 
 更新时间：2026-10-14
 
-用户于2026-10-14授权在原¥150总额内运行最多¥3、45分钟的C10。该轮已结束，新增费用¥1.086265，未使用额度已通过closure16释放；本次只记录结果，没有新付费或C11。
+用户于2026-10-14授权在原¥150总额内运行最多¥3、45分钟的C10。该轮已结束，新增费用¥1.086265，未使用额度已通过closure16释放。沿持续推进授权准备的C11源码现已审集成，单轮仍最多¥3、45分钟；实际准入和付费尚未开始。
 
 ## C10因时限取消，第二次作者自检曾通过
 
@@ -12,11 +12,12 @@
 - Root已完成closure16，释放未使用的 **¥1.913735**。18个案例均已停止，旧费用和历史保留。COS82已[在源码范围内完成并关闭](https://github.com/lrfluobida/Cosmos/issues/83#issuecomment-6167055060)，COS16/COS18仍partial，实际游戏和human未通过。
 - 启动器和Node已退出、两个controller锁已释放，Root已解除main冻结。以下C10未准入及冻结等待为当时的源码准备记录；本次不修改生产代码或重新运行案例。
 
-## COS84：准备来源校验去重后的固定迁移 C11
+## COS84已审集成：来源校验去重后的固定迁移 C11
 
-- [任务 #85](https://github.com/lrfluobida/Cosmos/issues/85)已由Root发布、核对并原生挂父，当前84个子项。依赖COS82/83，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger保持不变。短计划 `4a0adbe` 已获PLAN_APPROVED；源码仍为SOURCE_NOT_READY/open。
+- [任务 #85](https://github.com/lrfluobida/Cosmos/issues/85)已由Root发布、核对并原生挂父，当前84个子项。依赖COS82/83，由 `cos76_implementer` 实现、`cos77_implementer` 独审，唯一merger `batch75_76_merger` 合入 `f4856f9`。批准版本为 `7173766`，无剩余finding，标记为 TRANSFER_CASE_ELEVEN_SOURCE_READY；本卡source-integrated/open，等待Root公开关闭。完整SHA见[任务卡](docs/specs/cos84-transfer-case11.md)。
 - 按Root确认的原¥150持续推进授权，单轮仍最多¥3、45分钟，COS16原预算组保持¥10。Root报告该组可分配¥5.542303；新向量仍为规划、设计、美术各¥0.000001，编码¥2.40、修复¥0.599997。
-- 实际C11尚未执行免费准入或付费；操作脚本的只读审查不算准入结果。作者维护自有计划和任务卡，源码最终批准并整合后才冻结主线供Root执行。
+- 主线typecheck/build及7项C11额度、quote、历史边界和旧C10短回归通过；作者12项unit、runtime和compiled原始证据复用。SOURCE使用合成费用及fake provider；compiled worker transport为synthetic，C11正式build/browser/repair尚未执行。
+- 实际C11尚未执行免费准入或付费；操作脚本的只读审查不算准入结果。本批推送核验后冻结main，供Root实际预检和有界运行；公开关闭与实际结果待Root明确解冻后统一记录。
 
 ## COS83已审集成：删除一处重复来源校验
 
