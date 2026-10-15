@@ -145,4 +145,12 @@
 
 原始日志根`C:/Users/26557/AppData/Local/Temp/cos97-native-waits-1b7732209ed34c1b95002b7640383398`：`helper-red.tap`、首次语法失败`helper-green.tap`、最终`helper-green-2.tap`与`helper-strict.log`。无真实browser、provider、715历史seed、actual或付费；下一步先写真实scope/identity deferred-reader RED，再接生产raw所有权。
 
+## 作者源码切片 2：scope/identity 内层 raw 预登记（局部，待源码独审）
+
+真实`requireValidationScope`的readScope/readBytes与`verifyValidationIdentity`的完整work使用同一helper，在native caller关联下取得host所有权再派发；scope增加可信可选caller并保留原controller reason优先/私有5秒品牌。无native关联时保留原reader调用形态，外层race仍及时返回；完整host/controller/consumer信号链接线仍待后续切片。
+
+`node --experimental-strip-types --test --test-name-pattern="COS97" tests/runtime/validation-scope-authority.test.ts`：实际RED 0/4、4fail、0skip、exit1（raw pending错误为0，caller原因被原private timer取代），GREEN 4/4、0skip、exit0、487.0636ms。deferred未释放时owner/raw仍pending，100ms有界drain拒绝；释放后收敛且不开始下一轮，原scope品牌与exact caller Error保持。
+
+受影响完整`tests/runtime/validation-scope-authority.test.ts`回归17/17、0skip、exit0、1483.9687ms，覆盖旧队列/expiry/window/authority/source默认；helper/scope/window/test定向strict exit0。日志仍在上述TEMP：`inner-readers-red.tap`、`inner-readers-green.tap`、`scope-authority-regression.tap`、`inner-readers-strict.log`。新增fixture只用隔离TEMP的小controller和免费固定来源，没有715历史、browser/provider/actual或付费。下一步为helper的generation/导航/HTTP及贯穿闭包写新的RED。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
