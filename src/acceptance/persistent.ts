@@ -14,6 +14,7 @@ import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Observation } from './plan.ts';
 import { runAcceptanceInOwnedSession } from './runner.ts';
 import type { AcceptanceOptions, AcceptanceReport, OwnedAcceptanceLifecycle, PersistentBrowserIdentity, BrowserLaunchLifetime } from './runner.ts';
+import type { NativeValidationWaits } from './native-validation-waits.ts';
 
 export const PERSISTENT_PROFILE_CAPABILITY = 'persistent-profile-real-process-reopen-with-evidence';
 interface PersistentSeriesFields {
@@ -32,10 +33,16 @@ export interface GenericPersistentAcceptanceSeries extends PersistentSeriesField
   binding: { requirement: ArtifactReference; design: ArtifactReference; candidate: ArtifactReference; acceptanceIds: string[] };
 }
 export type PersistentAcceptanceSeries = TransferPersistentAcceptanceSeries | GenericPersistentAcceptanceSeries;
-export interface PreparedPersistentChild { ticket: string; register(pid: number): Promise<void>; releaseUnspawned(): Promise<void> }
+export interface PreparedPersistentChild {
+  ticket: string;
+  /** PID persistence starts first; only the native fresh guard waits for its separately owned phase. */
+  register(pid: number, registrationLifetime?: BrowserLaunchLifetime | Promise<BrowserLaunchLifetime>): Promise<void>;
+  releaseUnspawned(): Promise<void>;
+}
 export interface PersistentLaunch extends BrowserLaunchLifetime { completion: Promise<void> }
 export interface PersistentAcceptanceOptions extends AcceptanceOptions {
-  deadlineAt: number; signal?: AbortSignal; verifyBinding: () => Promise<void>;
+  deadlineAt: number; signal?: AbortSignal; verifyBinding: (callerSignal?: AbortSignal) => Promise<void>;
+  nativeValidationWaits?: NativeValidationWaits;
   /** Host-owned controller ticket; defaults keep the existing isolated fixture route. */
   ownedChild?: { prepare(launch: PersistentLaunch): Promise<PreparedPersistentChild> };
   /** Each generic document has its own exact plan-bound partial collection request. */

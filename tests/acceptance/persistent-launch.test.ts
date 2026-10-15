@@ -14,9 +14,10 @@ import { runAcceptanceInOwnedSession } from '../../src/acceptance/runner.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { OwnedWork, cancelAndDrain } from '../../src/runtime/recovery/owned-work.ts';
 import * as host from '../../src/runtime/entrypoint-host.ts';
+import { createNativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
 
 function deferred<T = void>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
-async function fixture(t: TestContext, verifyBinding: () => Promise<void> = async () => {}) {
+async function fixture(t: TestContext, verifyBinding: (callerSignal?: AbortSignal) => Promise<void> = async () => {}) {
   const root = await mkdtemp(join(tmpdir(), 'cos92-launch-')), profile = join(root, 'profile'); await mkdir(profile);
   const controller = await RunController.create({ root, runId: 'fixture', ledgerId: 'fixture', kind: 'evaluation', scope: 'validation', specVersion: 'v1',
     allocations: [{ taskId: 'browser', amountMicroCny: 1 }], durationMs: 60000, now: () => Date.now() });
@@ -157,4 +158,36 @@ test('COS92 an unresolved prepare makes bounded drain fail without clearing owne
   await entered.promise; const draining = assert.rejects(f.work.cancelAndDrain('fixture cancellation', 100), /did not quiesce/);
   await rejection; t.mock.timers.tick(101); await draining; assert.deepEqual(await f.children(), []);
   gate.resolve(); await f.work.cancelAndDrain('fixture finally'); assert.equal(f.counts().spawns, 0);
+});
+
+test('COS97 owned prepare forwards its original native phase caller', async t => {
+  let received: AbortSignal | undefined;
+  const f = await fixture(t, async caller => { received = caller; });
+  const waits = createNativeValidationWaits({ caseId: 'fixture', windowId: 'window', taskId: 'browser', deadlineAt: f.options.deadlineAt,
+    signal: f.work.signal, trackRaw: start => f.work.run(start) }), segment = waits.beginSegment('native-prepare'), completion = deferred();
+  const ownedChild = host.createPersistentOwnedChild({ controller: f.controller, work: f.work },
+    { taskId: 'browser', windowId: null, deadlineAt: new Date(f.options.deadlineAt).toISOString() }, f.options.verifyBinding, waits);
+  let expected: AbortSignal | undefined;
+  const handle = await segment.runStage('prepare_authority', life => { expected = life.signal; return ownedChild.prepare({ ...life, completion: completion.promise }); });
+  try { assert.equal(received, expected); }
+  finally { await handle.releaseUnspawned(); completion.resolve(); segment.revoke(); await segment.settle(f.options.deadlineAt); await f.work.cancelAndDrain('fixture complete'); }
+});
+
+test('COS97 raw PID registration stays owned after completion and a rejected pending lifetime', async t => {
+  let bindings = 0; const f = await fixture(t, async () => { bindings++; }), completion = deferred(), entered = deferred(), gate = deferred();
+  const handle = await f.options.ownedChild.prepare({ signal: f.work.signal, deadlineAt: f.options.deadlineAt, completion: completion.promise });
+  const persist = f.controller.registerOwnedChild.bind(f.controller), reason = new Error('Native registration phase expired');
+  t.mock.method(f.controller, 'registerOwnedChild', async (pid: number, ticket: string) => { entered.resolve(); await gate.promise; return persist(pid, ticket); });
+  let rejectLifetime!: (error: unknown) => void;
+  const lifetime = new Promise<never>((_done, reject) => { rejectLifetime = reject; });
+  void lifetime.catch(() => {}); // The source must also observe it immediately while its PID write is pending.
+  const registration = handle.register(f.child.pid, lifetime), rejected = assert.rejects(registration, error => error === reason);
+  await entered.promise; rejectLifetime(reason); completion.resolve();
+  try {
+    await assert.rejects(f.work.cancelAndDrain('fixture stop', 100), /did not quiesce/);
+    assert.equal(bindings, 1, 'Fresh registration binding must not start after its native lifetime rejects');
+  } finally { gate.resolve(); await rejected; }
+  assert.equal((await f.children())[0].pid, f.child.pid, 'The original PID write still completes after phase expiry');
+  await assert.rejects(f.work.cancelAndDrain('fixture settled'), error => error instanceof AggregateError && error.errors.includes(reason));
+  assert.equal(f.counts().connections, 0);
 });

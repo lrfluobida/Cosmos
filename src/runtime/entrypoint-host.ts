@@ -65,7 +65,8 @@ import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
 import { MODULE_CONTRACTS, MODULE_SLOTS, moduleDirectory, moduleSlot, moduleSource, validateModuleContracts, validateModuleFiles } from './modular-code.ts';
 import type { ModularCompilerInputs, ModuleSlot } from './modular-code.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
-import { associateNativeReadSignal } from '../acceptance/native-validation-waits.ts';
+import { associateNativeReadSignal, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
+import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
@@ -99,31 +100,53 @@ export interface BrowserHostIO {
 }
 /** Source-owned launch handoff: returning a handle does not end tracked ticket ownership. */
 export function createPersistentOwnedChild(input: Pick<HostInput, 'controller' | 'work'>, authority: HostExecutionAuthority,
-  verifyBinding: () => Promise<void>): NonNullable<PersistentAcceptanceOptions['ownedChild']> {
+  verifyBinding: (callerSignal?: AbortSignal) => Promise<void>, nativeValidationWaits?: NativeValidationWaits): NonNullable<PersistentAcceptanceOptions['ownedChild']> {
   return { prepare(launch) {
     let ready!: (handle: PreparedPersistentChild) => void, rejectReady!: (error: unknown) => void;
     const result = new Promise<PreparedPersistentChild>((resolveReady, reject) => { ready = resolveReady; rejectReady = reject; });
     const operation = input.work.run(async workSignal => {
       const check = () => {
+        if (nativeValidationWaits) {
+          input.controller.signal.throwIfAborted(); workSignal.throwIfAborted(); launch.signal.throwIfAborted();
+          if (Date.now() >= launch.deadlineAt) throw new NativeWaitDeadlineError('prepare_authority');
+          return;
+        }
         if (launch.signal.aborted || workSignal.aborted) throw launch.signal.reason instanceof DeadlineError ? launch.signal.reason : new AcceptanceCancelledError('Persistent launch cancelled');
         if (Date.now() >= launch.deadlineAt) throw new DeadlineError('Persistent launch expired');
       };
       let ticket: string | undefined, delivered = false;
       try {
-        check(); await verifyBinding(); check();
+        check(); if (nativeValidationWaits) await verifyBinding(launch.signal); else await verifyBinding(); check();
         ticket = await input.controller.prepareOwnedChild(authority.windowId ? { taskId: authority.taskId, windowId: authority.windowId } : undefined, check);
         check(); const exactTicket = ticket;
         let state: 'unspawned' | 'registered' | 'releasing' | 'released' = 'unspawned';
+        let registration: Promise<void> | undefined, nativeRegistration = false;
         ready({ ticket: exactTicket,
-          register: async pid => {
-            if (state !== 'unspawned') throw new Error('Persistent launch ticket was already consumed.');
-            state = 'registered'; await input.controller.registerOwnedChild(pid, exactTicket); await verifyBinding();
+          register: (pid, registrationLifetime) => {
+            if (state !== 'unspawned') return Promise.reject(new Error('Persistent launch ticket was already consumed.'));
+            const lifetime = registrationLifetime && Promise.resolve(registrationLifetime);
+            nativeRegistration = !!lifetime;
+            void lifetime?.catch(() => {}); // It may reject before the original PID write settles.
+            state = 'registered';
+            registration = (async () => {
+              await input.controller.registerOwnedChild(pid, exactTicket);
+              const active = lifetime && await lifetime;
+              const checkRegistration = () => {
+                if (!active) return;
+                input.controller.signal.throwIfAborted(); workSignal.throwIfAborted(); active.signal.throwIfAborted();
+                if (Date.now() >= active.deadlineAt) throw new NativeWaitDeadlineError('register_authority');
+              };
+              checkRegistration(); if (active) await verifyBinding(active.signal); else await verifyBinding(); checkRegistration();
+            })();
+            void registration.catch(() => {}); return registration;
           },
           releaseUnspawned: async () => {
             if (state !== 'unspawned') throw new Error('Persistent launch ticket is no longer unspawned.');
             state = 'releasing'; await input.controller.releaseUnspawnedChild(exactTicket); state = 'released';
           } });
-        delivered = true; await launch.completion;
+        delivered = true;
+        try { await launch.completion; }
+        finally { if (nativeRegistration && registration) await registration; }
       } catch (error) {
         if (ticket && !delivered) {
           try { await input.controller.releaseUnspawnedChild(ticket); }

@@ -213,4 +213,8 @@ BrowserPreparationContext/BrowserInputPreparation/consumer类型与host真实val
 
 Root核实并授权design-validation.ts现有seal→binding/records/audit/authority/实际bytes读取链最小caller接线。共享helper默认caller为undefined，tool validate及写流程保持，seal叶读取保留native owner；此链无Promise.all。真实有效审计字节正例先通过，预取消零guard、guard内原caller取消、首个实际binding字节后取消零后续读取三子例RED0/4→GREEN4/4、0skip、20551.0707ms，定向strict0。`design-seal-red-2.tap`、`design-seal-green.tap`、`design-seal-strict.log`同TEMP；不重跑design tool整套。最初用不完整context测试的失败日志`design-seal-red.tap`保留，未当有效RED证据。
 
+## 作者源码切片 11：native owned-child handoff（局部）
+
+PreparedPersistentChild.register可选registrationLifetime或其promise：原PID持久化无条件先开始，promise传入即观察rejection，之后才等待fresh phase caller。Root已确认这是窄source内部ABI；native raw register在completion提前结算后仍由原owned prepare等待，无追认work.run或自等待drain。省略lifetime的legacy保留原无参guard与旧完成等待。native prepare保留原phase caller。两项RED0/2→GREEN2/2、0skip、4866.0647ms；进一步保留legacy正常登记/迟到release失败/回滚失败代表，连同新例5/5、0skip、3914.9501ms，strict0。PID write deferred中lifetime先拒、completion已settled，100ms drain仍失败；write释放后保留PID与原Error，零fresh/CDP。`registration-owner-{red,green}.tap`、`registration-owner-compat.tap`、`registration-owner-strict.log`同TEMP；只用合成child/CDP，无真实browser。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
