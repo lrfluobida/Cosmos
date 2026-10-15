@@ -229,4 +229,8 @@ ownedPersistentBrowserLifecycle仅可信native对象选择prepare60/register60/b
 
 `registration-segment-{red,green}.tap`、`native-open-{red,green}.tap`、`native-open-compat.tap`、`native-open-strict.log`、`native-open-strict-2.log`同TEMP。此片只合成process/CDP transport；runner/nativeIO/consumer尚待接上，真实browser未授权。
 
+## 作者源码切片 14：pre-mount source owner（局部）
+
+已审probe原提交a440d044fb3a60bf3a26c005e99b3e2a16836995在ownbranch cherry-pick为29783f4，7源码与1新测试无冲突，复用其已审11/11、默认5/5、identity3/3和source1/1/strict证据，不改其内容。Root确认pre-mount真实路径新增nativeValidationWaitsForCaller只读lookup，原readSignal/phase可找回同一source waits；derived无authority，旧phase仍须nativeCallerDisposition拒绝。BrowserPreparationContext初始化由原work固定提供retainCleanupFailure，runtime-host reserve origin转同hook并保receiver。lookup单项RED0/1→GREEN1/1、356.4354ms；初始化hook新子例RED缺hook（组3pass/2fail）→closure组GREEN5/5、0skip、5395.9816ms，strict0。`pre-mount-{lookup,hook}-{red,green}.tap`与`pre-mount-strict.log`同TEMP。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

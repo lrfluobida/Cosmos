@@ -94,6 +94,10 @@ export function runNativeValidationRead<T>(signal: AbortSignal, start: (signal: 
 export function isNativeValidationWaits(value: unknown): value is NativeValidationWaits {
   return !!value && typeof value === 'object' && sources.has(value);
 }
+/** Pre-mount guards recover only the immutable source owner; callers still require a generation check. */
+export function nativeValidationWaitsForCaller(signal: AbortSignal | undefined): NativeValidationWaits | undefined {
+  return signal ? callers.get(signal)?.owner.waits : undefined;
+}
 /** Only original source lifetimes qualify; derived read signals carry ownership alone. */
 export function nativeCallerDisposition(signal: AbortSignal | undefined, waits: NativeValidationWaits | undefined, error: unknown): 'ordinary' | 'active' | 'stale' | 'local_abort' {
   const association = signal && callers.get(signal);

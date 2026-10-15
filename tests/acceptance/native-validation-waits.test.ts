@@ -263,3 +263,16 @@ test('COS97 spawned registration remains pending when its next authority phase c
   const failed = assert.rejects(segment.settle(f.base + 100), /settle|pending/i); t.mock.timers.tick(100); await failed;
   gate.resolve(); await raw; await segment.settle(f.base + 5000); assert.equal(segment.snapshot().rawOperationsPending, 0);
 });
+
+test('COS97 pre-mount lookup recognizes only original source callers and leaves generation checks separate', async () => {
+  assert.equal(typeof api.nativeValidationWaitsForCaller, 'function');
+  const f = fixture(), segment = f.waits.beginSegment('segment'); let phase!: AbortSignal;
+  assert.equal(api.nativeValidationWaitsForCaller(f.waits.readSignal), f.waits);
+  await segment.runStage('prepare_authority', async (life: any) => { phase = life.signal; });
+  assert.equal(api.nativeValidationWaitsForCaller(phase), f.waits);
+  const derived = api.associateNativeReadSignal(phase, AbortSignal.any([phase]));
+  assert.equal(api.nativeValidationWaitsForCaller(derived), undefined); assert.equal(api.nativeValidationWaitsForCaller(new AbortController().signal), undefined);
+  segment.revoke(); await segment.settle(f.base + 5000); f.waits.beginSegment('next');
+  assert.equal(api.nativeValidationWaitsForCaller(phase), f.waits);
+  assert.equal(api.nativeCallerDisposition(phase, f.waits, phase.reason), 'stale');
+});

@@ -394,6 +394,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         ? { v1: binding.preparation.candidate, v2: binding.preparation.candidate } : { v1: output, v2: registry.candidateRef(name('game'), 'v2') },
       primaryMedia: mediaOutput,
       name, signal: work.signal, resume: input.resume, ...(inherited && historical ? { inherited: { binding: historical, verified: inherited } } : {}),
+      retainCleanupFailure: (error: unknown) => input.work.retainCleanupFailure(error),
       requireScope: async callerSignal => { checkCaller(callerSignal); work.signal.throwIfAborted(); await preparationScope(callerSignal); checkCaller(callerSignal); work.signal.throwIfAborted(); } } as import('./entrypoint-preparation.ts').BrowserPreparationContext;
     Object.defineProperties(context, Object.getOwnPropertyDescriptors(identities));
     await preparation.initialize(context);

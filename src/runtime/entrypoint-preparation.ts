@@ -34,6 +34,7 @@ export interface BrowserPreparationContext {
   designTaskId: string;
   mediaTaskId: string; primaryMedia: ArtifactReference; candidateTaskIds: { v1: string; v2: string };
   name(value: string): string; signal: AbortSignal; resume: boolean;
+  retainCleanupFailure?(error: unknown): void;
   requireScope(callerSignal?: AbortSignal): Promise<void>;
   human?: HumanPreparationScope | HumanContinuationScope;
   taskWorkspace?(taskId: string): string;

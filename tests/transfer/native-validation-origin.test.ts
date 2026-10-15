@@ -117,4 +117,10 @@ test('COS97 prepared host closures forward the original optional caller', async 
     await assert.rejects(host.bindPreparedCandidate(context.candidates.v1, caller.signal), error => error === reason);
     assert.equal(received, caller.signal);
   });
+  await t.test('preparation initialization retains exact cleanup failures in its original owner', async () => {
+    const failures: unknown[] = [], reason = new Error('pre-mount listener close failed');
+    t.mock.method(f.input.work, 'retainCleanupFailure', (error: unknown) => { failures.push(error); });
+    try { assert.equal(typeof context.retainCleanupFailure, 'function'); context.retainCleanupFailure!(reason); assert.deepEqual(failures, [reason]); }
+    finally { t.mock.restoreAll(); }
+  });
 });
