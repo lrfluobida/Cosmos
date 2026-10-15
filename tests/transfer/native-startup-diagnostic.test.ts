@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { OwnedAcceptanceLifecycle } from '../../src/acceptance/runner.ts';
-import { createDiagnosticObserver, createMethodPatches } from './native-startup-observer.fixture.ts';
+import { createDiagnosticObserver, createMethodPatches, recordedProcessesExited } from './native-startup-observer.fixture.ts';
 import type { DiagnosticObserver, DiagnosticPatches } from './native-startup-observer.fixture.ts';
 
 const actualSelected = process.env.COS93_DIAGNOSTIC_SOURCE !== undefined || process.env.COS93_DIAGNOSTIC_HISTORY !== undefined;
@@ -228,6 +228,27 @@ test('COS93 actual history native startup', { skip: !actualSelected }, async t =
     assert.ok(report.steps.every((step: { outcome: string }) => step.outcome === 'skipped'));
     assert.equal(report.cleanup.forced, false); assert.equal(report.session?.exitConfirmed, true); assert.equal(report.session?.closeEvent, true);
   } else assert.ok(result.startup.reason, 'An unsuccessful or unreached startup must preserve its reason');
+});
+
+test('COS93 process exit observation accepts closed records with reused or duplicate PIDs', { skip: actualSelected }, t => {
+  const kill = t.mock.method(process, 'kill', (pid: number) => {
+    if (pid === process.pid) return true;
+    throw Object.assign(new Error('Synthetic missing PID'), { code: 'ESRCH' });
+  });
+  assert.equal(recordedProcessesExited([{ pid: process.pid, exit: true }, { pid: process.pid, exit: true }]), true);
+  assert.equal(kill.mock.callCount(), 0, 'Exit observation must not query the current PID owner');
+});
+
+test('COS93 process exit observation rejects every unclosed record regardless of PID state', { skip: actualSelected }, t => {
+  const kill = t.mock.method(process, 'kill', (pid: number) => {
+    if (pid === process.pid) return true;
+    throw Object.assign(new Error('Synthetic missing PID'), { code: 'ESRCH' });
+  });
+  const closed = { pid: process.pid, exit: true }, pending = { pid: process.pid, exit: false };
+  assert.equal(recordedProcessesExited([closed, pending]), false);
+  assert.equal(recordedProcessesExited([pending, closed]), false);
+  assert.equal(recordedProcessesExited([{ pid: process.pid + 1, exit: false }]), false);
+  assert.equal(kill.mock.callCount(), 0, 'A missing PID cannot substitute for an original close event');
 });
 
 test('COS93 observer preserves this, exact Promise and errors and restores own or inherited methods', { skip: actualSelected }, async () => {

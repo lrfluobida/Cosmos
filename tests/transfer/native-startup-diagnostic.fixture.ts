@@ -35,7 +35,7 @@ import { prepareTransferValidationCaseFourteenExecution } from '../../probes/tra
 import { fixedTransferValidationInput } from '../../probes/transfer/validation-input.ts';
 import { runChild } from '../../probes/e2e/host.ts';
 import type { PersistentAcceptanceReport } from '../../src/acceptance/persistent.ts';
-import { createMethodPatches, openDiagnosticProgress, writeProtectedBefore } from './native-startup-observer.fixture.ts';
+import { createMethodPatches, openDiagnosticProgress, recordedProcessesExited, writeProtectedBefore } from './native-startup-observer.fixture.ts';
 import type { DiagnosticObserver, DiagnosticPatches } from './native-startup-observer.fixture.ts';
 
 const CASE = 'cos20-transfer-validation-14', OLD = 'cos20-transfer-validation-5';
@@ -403,7 +403,7 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
     const locks = [join(ledgerRoot, '.controller.lock'), join(ledgerRoot, '.controller.lock.recovery'), join(root, 'registry/.commit.lock'), join(root, 'registry/.commit.lock.recovery')];
     try { cleanup.locksAbsent = (await Promise.all(locks.map(path => lstat(path).then(() => false, (e: NodeJS.ErrnoException) => { if (e.code === 'ENOENT') return true; throw e; })))).every(Boolean); }
     catch (caught) { cleanup.errors.push(failure(caught)); }
-    cleanup.processesExited = spawned.every(item => { try { process.kill(item.pid, 0); return false; } catch (e) { return item.exit && (e as NodeJS.ErrnoException).code === 'ESRCH'; } });
+    cleanup.processesExited = recordedProcessesExited(spawned);
     const urls = new Set(observedPorts);
     for (const path of [join(root, 'host-transfer-origin.json'), join(root, `evidence/${CASE}-coding/delivery-check.json`)]) {
       try { const receipt = decode(await readFile(path)); if (receipt.url) urls.add(new URL(receipt.url).origin); }

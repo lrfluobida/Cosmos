@@ -38,10 +38,18 @@
 - [ ] 对三个诊断文件运行strict；核UTF-8无BOM、LF、中文回读和diff。记录实际结果、命令及raw路径，不将预期当作通过。
 - [ ] 提交exact SHA交cos93_reviewer复审实际diff，由唯一merger集成；作者不写main或共享tracking、不push。COS93仍open/partial/startup-failed，本修正不能证明15秒启动通过，不授予第四次actual或付费调用。
 
-计划批准后的定向命令（当前未运行）：
+实施使用的定向命令：
 
 ```powershell
 node --experimental-strip-types --experimental-test-module-mocks --test --test-name-pattern='COS93 process exit observation' tests/transfer/native-startup-diagnostic.test.ts
 node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --strict --skipLibCheck tests/transfer/native-startup-observer.fixture.ts tests/transfer/native-startup-diagnostic.fixture.ts tests/transfer/native-startup-diagnostic.test.ts
 git diff --check
 ```
+
+## 作者实现与验证（待源码独审）
+
+计划 `30f7c402052dbf85c27696284b59d63126b0d5c8` 已获cos93_reviewer独立PLAN_APPROVED、无finding；[Root公开批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6188476349)已精确读回。已导出 `recordedProcessesExited` 纯谓词，actual仅改import和最终赋值；原close listener、记录字段及其他startup/OS后核gate未改。
+
+旧判据原样提取后取得受控RED：已close的复用/重复PID被误判false，另一个测试发现3次模拟PID查询；2fail/0skip、211.4982ms。process.kill始终由测试替身接管，无真实OS查询。改为every(exit)后2/2、0skip、222.4616ms：已close的同号记录通过；同号记录中任一个未close、或模拟不存在PID但未close都拒绝；两测试均确认kill调用数为0。三文件strict退出0，UTF-8无BOM/LF、中文回读及diff检查通过。
+
+原始证据在 `C:/Users/26557/AppData/Local/Temp/` 下：`cos93-process-exit-observation-red.tap`、`cos93-process-exit-observation-green.tap`、`cos93-process-exit-observation-strict.log`。只运行上述新短检查与strict，其余已过证据复用；没有真实子进程fixture、浏览器、历史构造或actual重跑。原v3 raw及后核不变，COS93仍open/partial/startup-failed，待独立源码复审。
