@@ -917,6 +917,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               if (!capture.metadata.media || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), capture.metadata.media)) throw new Error('Actual media manifest differs from its capture.');
               const result = await preparation.candidateConsumer({ root, task, candidate: ref, project, cleanDelivery: server, mediaArtifact, media: capture.metadata.media,
                 manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async callerSignal => { await requireDispatch(task, signal, ref, callerSignal); },
+                retainCleanupFailure: error => input.work.retainCleanupFailure(error),
                 playPersistent: async (series, options) => {
                   if (!io.playPersistent) throw new Error('Trusted persistent transport is unavailable.');
                   return io.playPersistent(series, options, await requireDispatch(task, signal));

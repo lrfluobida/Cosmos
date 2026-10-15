@@ -5,7 +5,7 @@ const caps = { prepare_authority: 60_000, register_authority: 60_000, browser_tr
   navigation: 300_000, http_pre_authority: 60_000, http_body: 15_000, http_post_authority: 60_000 } as const;
 export type NativeWaitStage = keyof typeof caps;
 type NativeHttpStage = Extract<NativeWaitStage, `http_${string}`>;
-export interface NativeReadLifetime { readonly signal: AbortSignal; readonly deadlineAt: number }
+export interface NativeReadLifetime { readonly signal: AbortSignal; readonly deadlineAt: number; check(): void }
 export interface NativeWaitInput {
   caseId: string; windowId: string; taskId: string; deadlineAt: number; signal: AbortSignal;
   trackRaw<T>(start: (ownedSignal: AbortSignal) => Promise<T>): Promise<T>;
@@ -32,6 +32,7 @@ export interface NativeSegmentWaits {
 export interface NativeRequestWaits {
   runStage<T>(stage: NativeHttpStage, operation: (life: NativeReadLifetime) => Promise<T>): Promise<T>;
   check(): void;
+  recordFailure(error: unknown): void;
 }
 export interface NativeValidationWaits {
   readonly contractVersion: typeof NATIVE_VALIDATION_WAIT_CONTRACT;
@@ -133,18 +134,20 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
     let onAbort!: () => void;
     const cancelled = new Promise<never>((_, reject) => { onAbort = () => reject(signal.reason); signal.addEventListener('abort', onAbort, { once: true }); });
     const timer = setTimeout(() => abort.abort(new NativeWaitDeadlineError(stage)), Math.max(0, deadlineAt - Date.now()));
-    const raw = Promise.resolve().then(() => {
+    const life: NativeReadLifetime = Object.freeze({ signal, deadlineAt, check() {
+      fixed.signal.throwIfAborted(); signal.throwIfAborted();
+      if (Date.now() >= deadlineAt) { abort.abort(new NativeWaitDeadlineError(stage)); signal.throwIfAborted(); }
       check(segment); signal.throwIfAborted();
-      if (Date.now() >= deadlineAt) throw new NativeWaitDeadlineError(stage);
-      return operation({ signal, deadlineAt });
+    } });
+    const raw = Promise.resolve().then(() => {
+      life.check(); return operation(life);
     });
     segment.operations.add(raw);
     const rawSettled = () => { record.rawPending = false; segment.operations.delete(raw); };
     void raw.then(rawSettled, rawSettled);
     try {
       const result = await Promise.race([raw, cancelled]);
-      check(segment); signal.throwIfAborted();
-      if (Date.now() >= deadlineAt) throw new NativeWaitDeadlineError(stage);
+      life.check();
       record.outcome = 'passed'; return result;
     } catch (caught) {
       const error = fixed.signal.aborted ? fixed.signal.reason : caught;
@@ -207,12 +210,18 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
       const segment = current;
       if (!segment || !['navigating', 'input'].includes(segment.state)) return Promise.reject(new Error('Native traffic is closed'));
       const deadlineAt = segment.state === 'navigating' ? segment.navigation!.deadlineAt : workDeadlineAt;
-      let closed = false, step = 0;
+      let closed = false, step = 0, activeStage: NativeHttpStage = 'http_pre_authority';
       const request: NativeRequestWaits = Object.freeze({
         check() { if (closed) throw new Error('Native request closed'); check(segment, deadlineAt); },
+        recordFailure(error: unknown) {
+          if (closed || current !== segment || !['navigating', 'input'].includes(segment.state)) return;
+          segment.firstCause ??= { stage: activeStage, name: error instanceof Error ? error.name : 'Error',
+            message: error instanceof Error ? error.message : String(error) };
+        },
         async runStage<T>(stage: NativeHttpStage, action: (life: NativeReadLifetime) => Promise<T>): Promise<T> {
           request.check();
           if (stage !== segment.http.stages[step]?.stage) throw new Error('Native HTTP stage order changed');
+          activeStage = stage;
           const result = await executeStage(segment, stage, action, deadlineAt); step++; return result;
         },
       });

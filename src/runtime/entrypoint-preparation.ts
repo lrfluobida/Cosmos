@@ -17,6 +17,7 @@ export interface BrowserCandidateConsumerContext {
   root: string; task: TaskContract; candidate: ArtifactReference; project: string; cleanDelivery: CleanDelivery;
   mediaArtifact: ArtifactReference; media: MediaMetadata; manifestSha256: string; signal: AbortSignal; deadlineAt: number;
   nativeValidationWaits?: NativeValidationWaits;
+  retainCleanupFailure?(error: unknown): void;
   requireCurrent(callerSignal?: AbortSignal): Promise<void>;
   playPersistent(series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions): Promise<PersistentAcceptanceReport>;
 }

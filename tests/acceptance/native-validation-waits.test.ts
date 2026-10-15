@@ -202,3 +202,31 @@ test('COS97 only original native caller signals carry generation invalidation id
   assert.equal(api.nativeCallerDisposition(signal, f.waits, signal.reason), 'stale');
   assert.equal(api.nativeCallerDisposition(f.waits.readSignal, fixture().waits, new Error('old mount')), 'stale');
 });
+
+test('COS97 source lifetime check aborts with its exact frozen stage deadline reason', async t => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'); let signal!: AbortSignal, reason: unknown;
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());
+  const pending = segment.runStage('prepare_authority', async (life: any) => {
+    signal = life.signal; t.mock.timers.setTime(f.base + 60_000);
+    try { life.check(); } catch (error) { reason = error; throw error; }
+  });
+  await assert.rejects(pending, (error: any) => error === reason && error.stage === 'prepare_authority');
+  assert.equal(signal.aborted, true); assert.equal(signal.reason, reason);
+});
+
+test('COS97 request records an observed source first cause without changing caller or later generation', async () => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'), cause = new Error('actual payload changed'), cleanup = new Error('later close failed');
+  await transportReady(segment); segment.beginNavigation(); let previous: any;
+  const pending = segment.runStage('navigation', async () => f.waits.runRequest(async (request: any) => {
+    previous = request;
+    await request.runStage('http_pre_authority', async () => {}); await request.runStage('http_body', async () => {});
+    await request.runStage('http_post_authority', async (life: any) => {
+      request.recordFailure(cause); assert.equal(life.signal.aborted, false);
+      assert.equal(segment.snapshot().firstCause.message, cause.message); throw cleanup;
+    });
+  }));
+  await assert.rejects(pending, error => error === cleanup);
+  assert.equal(segment.snapshot().firstCause.message, cause.message);
+  segment.revoke(); await segment.settle(f.base + 5000); const next = f.waits.beginSegment('next'), before = next.snapshot();
+  previous.recordFailure(new Error('late obsolete callback')); assert.deepEqual(next.snapshot(), before);
+});
