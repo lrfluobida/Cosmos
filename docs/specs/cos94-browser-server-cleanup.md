@@ -1,6 +1,6 @@
 # COS-94 普通浏览器服务清理
 
-任务：[COS-94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，父 #1；依赖 COS40 / #41、COS64 / #65、COS92 / #93。起点 `61d13817ca871d2be04576b4d6fb51fa8a86b541`。计划 `e9e60894cea81fac3f99bfb4735635d8510f0e03` 已由独立 reviewer 批准；最小实现、静态/确定性检查及唯一真实正例已完成，待源码独审。
+任务：[COS-94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，父 #1；依赖 COS40 / #41、COS64 / #65、COS92 / #93。起点 `61d13817ca871d2be04576b4d6fb51fa8a86b541`。计划 `e9e60894cea81fac3f99bfb4735635d8510f0e03` 已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)。当前 `GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡 source scoped complete；GitHub暂open，待Root公开源码审批与关闭。
 
 ## 范围与历史
 
@@ -61,3 +61,9 @@ Generic 视频仅在 `saveAs` 完成后记为保存成功，后续关闭失败�
 生产提交 `f8b3b2f5f0002ce08b2f7e1f0348cf7e0f5417d1`，测试先行提交 `3e7d0641df20e4fbee9110ffe4e0a1f279776a35`。新清理测试 10 项与既有 deadline 1 项共 11/11 通过、0 skip；typecheck/build 和受影响 strict 退出 0。具体 RED/GREEN 与边界见[计划记录](../plans/2026-10-15-cos94-browser-server-cleanup.md)。
 
 已在固定生产提交上执行唯一真实正例：1/1 通过、0 skip，测试 1,387.2406 ms；context 147.797 ms、video 7.280 ms、client 2.528 ms、server 236.621 ms。Edge PID13548 的 exit/close 均为 0，forced=false；原 15 秒预算内结束。外部 guard 的 Node3196 exit0、2,178 ms、未触发。OS 后核未见本次 Node/Edge、可追溯直接子进程或 HTTP64638/WS64639 listener。证据 `C:/Users/26557/AppData/Local/Temp/cos94-cleanup-real-FV5N3a`，guard `C:/Users/26557/AppData/Local/Temp/cos94-real-guard-b194da483a874474b11ff5b412073af9`。视频仅证明保存完成，未验证播放；该快速正例不证明原慢退出原因已消除。
+
+## 已审集成
+
+作者 `cos94_implementer` 最终 `c772c9c340a8118878190d62755d837a3bf1f511` 经 `cos94_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger `batch_c14_cos92_merger` 合入 `41de11f697eb79183515a0d71a5101f4bf91c10e`。主线src/tests与批准版本一致，typecheck/build退出0，短集成3/3、0skip，729.7282ms；命令与原始日志见计划。作者及reviewer各11/11、唯一真实正例1/1、affected strict证据复用，没有追加真实浏览器或旧玩法/媒体运行。
+
+通常最多2秒的等待只使用既有清理reserve，原绝对截止保持；自然正常关闭超过1秒尚未观察，原Windows/Edge延迟根因未知，视频播放未验证。main保持unfrozen；COS93尚未实测/未SOURCE_READY，原媒体和C14仍failed，COS16/COS18、完整经典与human未提升。

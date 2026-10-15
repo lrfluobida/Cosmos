@@ -72,7 +72,7 @@ if (server) await bounded(() => server!.close(),
 - [ ] 独立 reviewer 读取实际 diff，先规格再质量；作者修复可执行 finding，提交精确 SHA 后复审受影响部分。作者只提交自己的分支，不合 main、不推 batch。
 - [ ] 将批准 SHAs、真实/TEMP 证据、检查结果和未确定 OS 根因的限制交唯一 merger。仅 source scoped complete；原 C14 与媒体补采失败事实不改。
 
-## 作者实现证据（待源码独审）
+## 作者实现证据（已获源码独审）
 
 - 测试提交 `3e7d0641df20e4fbee9110ffe4e0a1f279776a35`：新 10 项确定性 runner 回归先得 6 pass / 4 fail / 0 skip、exit1、829.8609 ms；四项目标 RED 为 1,200 ms 正常关闭、2 秒局部上限、短预算零余量及保存后视频误报。该提交受影响 strict 退出 0。
 - 生产补丁仅 `src/acceptance/runner.ts`：通常最多 2 秒且受原 gracefulDeadline 限制；成功 generic `saveAs` 后不再追加 unavailable。Persistent 分支、强制终止和退出判断代码保持。
@@ -81,4 +81,12 @@ if (server) await bounded(() => server!.close(),
 - 生产提交 `f8b3b2f5f0002ce08b2f7e1f0348cf7e0f5417d1` 上唯一真实正例已在协调者交接的独占 slot 执行：1/1 pass、0 skip、测试 1,387.2406 ms、TAP 总 2,023.4926 ms；外部 guard 2,178 ms，Node3196 exit0、guard 未触发。完成后立即释放 slot，无追加样本。
 - 实际 context/video/client/server 关闭分别 147.797 / 7.280 / 2.528 / 236.621 ms；Edge13548 exit/close=0、forced=false、processExited=true，报告在原 15 秒预算内完成。保存了视频文件，不宣称可播放；原 Windows 慢退出原因仍未确定。
 - 实际证据 `C:/Users/26557/AppData/Local/Temp/cos94-cleanup-real-FV5N3a/{events.jsonl,summary.json,postcheck.json}` 及相对 `cos94-synthetic/inline/v1/real/cleanup/report.json`；guard/TAP 在 `C:/Users/26557/AppData/Local/Temp/cos94-real-guard-b194da483a874474b11ff5b412073af9`。后核 Node3196、Edge13548、直接子进程及 HTTP64638/WS64639 listener 均未残留。
-- 所有编辑文件严格 UTF-8/noBOM/LF、中文回读及 diffcheck 通过。原 C14、paid/ledger/window、生成资产与共享 tracking 均未写入。作者验证完成，等待独立源码评审和唯一 merger。
+- 所有编辑文件严格 UTF-8/noBOM/LF、中文回读及 diffcheck 通过。原 C14、paid/ledger/window、生成资产与共享 tracking 均未写入。作者验证完成时等待独立源码评审和唯一 merger；后续集成见下。
+
+## 已审集成
+
+作者 `cos94_implementer` 最终 `c772c9c340a8118878190d62755d837a3bf1f511` 经 `cos94_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger `batch_c14_cos92_merger` 合入 `41de11f697eb79183515a0d71a5101f4bf91c10e`。生产提交 `f8b3b2f5f0002ce08b2f7e1f0348cf7e0f5417d1` 保留，主线src/tests与批准版本完全一致；标记 `GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡source scoped complete，GitHub暂open待Root公开关闭。
+
+主线 `npm run typecheck` / `npm run build` 均退出0，raw分别为 `C:/Users/26557/AppData/Local/Temp/cos94-merge-typecheck.log`、`cos94-merge-build.log`。命令 `node --experimental-strip-types --test --test-name-pattern='normal server close after 1200 ms|server failure retains successfully saved video|persistent cancellation' tests/acceptance/generic-cleanup.test.ts` 通过3/3、0skip，729.7282ms；raw `C:/Users/26557/AppData/Local/Temp/cos94-merge-focused.tap`。仅使用模拟外部边界，验证既有reserve内1200ms关闭、成功保存后失败文案及persistent取消保持。
+
+作者及reviewer各11/11、唯一真实正例1/1及affected strict通过证据复用。自然正常退出超过1秒的样本未见、原OS根因未知及视频播放未验证的限制保留；没有新增真实浏览器、旧220步/62字段重跑、付费或账本操作。COS93仍未实测/未SOURCE_READY，原媒体与C14失败及原预算保持，main保持unfrozen。

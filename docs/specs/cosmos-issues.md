@@ -1505,7 +1505,7 @@ COS91 / [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，�
 
 ### COS-94 · 诊断并修复普通浏览器验收的服务关闭超时
 
-[COS94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，已原生挂父#1，依赖COS40/64/92。计划`e9e60894cea81fac3f99bfb4735635d8510f0e03`经`cos94_reviewer`独立PLAN_APPROVED、无finding并[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)；`cos94_implementer`实现中、open，源码尚未批准/就绪。承接[媒体补测](../research/2026-10-15-c14-independent-media.md)的1000毫秒服务关闭超时，保留原报告failed及清理字段解释。两项登记后父#1为94个原生子任务；旧92项身份、依赖、状态及COS91实际结果保持。
+[COS94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，已原生挂父#1，依赖COS40/64/92。计划`e9e60894cea81fac3f99bfb4735635d8510f0e03`已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)。作者`cos94_implementer`最终`c772c9c340a8118878190d62755d837a3bf1f511`经`cos94_reviewer`独立规格→质量APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`41de11f697eb79183515a0d71a5101f4bf91c10e`，标记`GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡source scoped complete，GitHub暂open待Root公开关闭。主线typecheck/build退出0，短集成3/3、0skip；已审11/11及唯一真实正例1/1复用，正常慢退出超过1秒尚未观察、原OS根因未知，详见[任务卡](cos94-browser-server-cleanup.md)。原[媒体补测](../research/2026-10-15-c14-independent-media.md)及C14的failed保持；父#1为94个原生子任务，COS93仍未实测/未SOURCE_READY，旧任务及预算保持，main保持unfrozen。
 
 稳定任务 ID：COS-94
 
