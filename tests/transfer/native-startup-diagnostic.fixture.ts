@@ -35,6 +35,8 @@ import { prepareTransferValidationCaseFourteenExecution } from '../../probes/tra
 import { fixedTransferValidationInput } from '../../probes/transfer/validation-input.ts';
 import { runChild } from '../../probes/e2e/host.ts';
 import type { PersistentAcceptanceReport } from '../../src/acceptance/persistent.ts';
+import { PERSISTENT_PROFILE_CAPABILITY, validatePersistentSeries } from '../../src/acceptance/persistent.ts';
+import type { PersistentAcceptanceSeries } from '../../src/acceptance/persistent.ts';
 import type { OwnedAcceptanceLifecycle } from '../../src/acceptance/runner.ts';
 import { associateNativeReadSignal, isNativeValidationWaits, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
 import type { NativeReadLifetime, NativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
@@ -215,6 +217,7 @@ export function createNavigationDiagnosticMode(observer: DiagnosticObserver) {
   let firstCause: unknown;
   let source: NativeValidationWaits | undefined;
   let expectation: ReadyExpectation | undefined;
+  const stoppedReports = new WeakSet<object>();
   const fail = (error: unknown) => { if (!state.failed) { state.failed = true; firstCause = error; observer.event('diagnostic.navigation.failure', failure(error)); } return error; };
   return {
     bindNativeWaits(value: NativeValidationWaits) { assert.ok(isNativeValidationWaits(value)); assert.ok(!source || source === value); source = value; },
@@ -224,6 +227,7 @@ export function createNavigationDiagnosticMode(observer: DiagnosticObserver) {
     snapshot: (): NavigationDiagnosticState => ({ ...state }),
     expectedReportError: () => 'Browser startup/execution: ' + completed.message,
     isIntentionalStop: (error: unknown) => error === completed && state.stopCount === 1,
+    stoppedReport: (value: object) => state.stopCount === 1 && !state.failed && stoppedReports.has(value),
     observeGoto(page: { goto: (...args: any[]) => Promise<unknown>; url: () => string }, options: { origin: string; ready: () => Promise<void> }) {
       const patches = createMethodPatches(observer);
       patches.replace(page, 'goto', original => async function (this: unknown, ...args: unknown[]) {
@@ -264,7 +268,11 @@ export function createNavigationDiagnosticMode(observer: DiagnosticObserver) {
           return result;
         });
         const result = operation();
-        void result.then(restore, error => { fail(error); restore(); });
+        void result.then(value => {
+          if (state.stopCount === 1 && !state.failed && value && typeof value === 'object'
+            && sameValue((value as { errors?: unknown }).errors, ['Browser startup/execution: ' + completed.message])) stoppedReports.add(value);
+          restore();
+        }, error => { fail(error); restore(); });
         if (!captured) { void result.catch(() => {}); throw fail(new Error('Diagnostic runner did not synchronously clone the exact plan')); }
         return result;
       } catch (error) { fail(error); restore(); throw error; }
@@ -272,25 +280,75 @@ export function createNavigationDiagnosticMode(observer: DiagnosticObserver) {
   };
 }
 
-export function navigationReportVerified(report: PersistentAcceptanceReport | undefined, native: NativeValidationWaits | undefined,
-  envelope: { diagnostics?: { reportValid?: boolean }; nativeWaits?: { contractVersion: string; consumerStartedAt: number; consumerEndedAt: number; consumerElapsedMs: number } } | undefined): boolean {
-  if (!report || !native || !isNativeValidationWaits(native) || envelope?.diagnostics?.reportValid !== true || !envelope.nativeWaits) return false;
-  const value = report.nativeWaits, consumer = envelope.nativeWaits;
-  if (!value || value.contractVersion !== native.contractVersion || value.caseId !== native.caseId || value.windowId !== native.windowId
-    || value.taskId !== native.taskId || value.deadlineAt !== native.deadlineAt || value.workDeadlineAt !== native.workDeadlineAt
-    || consumer.contractVersion !== native.contractVersion || consumer.consumerStartedAt !== value.consumerStartedAt
-    || !Number.isSafeInteger(consumer.consumerEndedAt) || consumer.consumerEndedAt < value.seriesEndedAt
-    || !Number.isFinite(consumer.consumerElapsedMs) || Math.abs(consumer.consumerElapsedMs - (consumer.consumerEndedAt - consumer.consumerStartedAt)) > 5
-    || value.seriesStartedAt !== Date.parse(report.startedAt) || value.seriesEndedAt !== Date.parse(report.endedAt)
-    || !Number.isFinite(value.seriesElapsedMs) || Math.abs(value.seriesElapsedMs - (value.seriesEndedAt - value.seriesStartedAt)) > 5
-    || value.segments.length !== 1 || report.segments.length !== 1 || value.rawReads.pending !== 0 || value.rawReads.started !== value.rawReads.settled) return false;
-  const segment = value.segments[0], actual = report.segments[0].report.nativeWaits;
-  return !!actual && actual.contractVersion === native.contractVersion && actual.deadlineAt === native.deadlineAt
-    && actual.workDeadlineAt === native.workDeadlineAt && sameValue(segment, actual.segment) && segment.state === 'closed'
-    && !segment.firstCause && !segment.rawReadsPending && !segment.rawOperationsPending && !segment.http.pending
-    && segment.http.started > 0 && segment.http.started === segment.http.settled && segment.http.rejected === 0
-    && segment.stages.every(stage => stage.outcome === 'passed' && !stage.rawPending)
-    && segment.http.stages.every(stage => stage.count === segment.http.started);
+export async function navigationReportVerified(report: PersistentAcceptanceReport | undefined, native: NativeValidationWaits | undefined,
+  envelope: { diagnostics?: { reportValid?: boolean; issues?: { classification: string; checkId: string }[]; passedChecks?: unknown[] };
+    nativeWaits?: { contractVersion: string; consumerStartedAt: number; consumerEndedAt: number; consumerElapsedMs: number } } | undefined,
+  proof?: { mode: ReturnType<typeof createNavigationDiagnosticMode>; evidenceRoot: string; series: PersistentAcceptanceSeries }): Promise<boolean> {
+  if (!report || !native || !isNativeValidationWaits(native) || !proof || proof.mode.source() !== native
+    || envelope?.diagnostics?.reportValid !== false || !envelope.nativeWaits
+    || !sameValue(envelope.diagnostics.passedChecks, []) || envelope.diagnostics.issues?.length !== 1
+    || envelope.diagnostics.issues[0].classification !== 'insufficient_evidence' || envelope.diagnostics.issues[0].checkId !== 'persistent/report') return false;
+  const expired = new Error('Diagnostic raw proof deadline reached');
+  const check = () => { native.checkRead(); native.readSignal.throwIfAborted(); if (Date.now() >= native.workDeadlineAt) throw expired; };
+  check();
+  try {
+    const value = report.nativeWaits, consumer = envelope.nativeWaits;
+    if (!value || value.contractVersion !== native.contractVersion || value.caseId !== native.caseId || value.windowId !== native.windowId
+      || value.taskId !== native.taskId || value.deadlineAt !== native.deadlineAt || value.workDeadlineAt !== native.workDeadlineAt
+      || consumer.contractVersion !== native.contractVersion || consumer.consumerStartedAt !== value.consumerStartedAt
+      || !Number.isSafeInteger(consumer.consumerEndedAt) || consumer.consumerEndedAt < value.seriesEndedAt
+      || !Number.isFinite(consumer.consumerElapsedMs) || Math.abs(consumer.consumerElapsedMs - (consumer.consumerEndedAt - consumer.consumerStartedAt)) > 5
+      || value.seriesStartedAt !== Date.parse(report.startedAt) || value.seriesEndedAt !== Date.parse(report.endedAt)
+      || !Number.isFinite(value.seriesElapsedMs) || Math.abs(value.seriesElapsedMs - (value.seriesEndedAt - value.seriesStartedAt)) > 5
+      || value.segments.length !== 1 || report.segments.length !== 1 || value.rawReads.pending !== 0 || value.rawReads.started !== value.rawReads.settled) return false;
+    const segment = value.segments[0], actual = report.segments[0].report.nativeWaits;
+    if (!(actual && actual.contractVersion === native.contractVersion && actual.deadlineAt === native.deadlineAt
+      && actual.workDeadlineAt === native.workDeadlineAt && sameValue(segment, actual.segment) && segment.state === 'closed'
+      && !segment.firstCause && !segment.rawReadsPending && !segment.rawOperationsPending && !segment.http.pending
+      && segment.http.started > 0 && segment.http.started === segment.http.settled && segment.http.rejected === 0
+      && segment.stages.every(stage => stage.outcome === 'passed' && !stage.rawPending)
+      && segment.http.stages.every(stage => stage.count === segment.http.started))) return false;
+    const source = native.snapshot();
+    assert.ok(sameValue(value.segments, source.segments) && source.rawReads.pending === 0, 'Native source snapshot changed or still pending');
+    assert.ok(!validatePersistentSeries(proof.series).length && sameValue(report.series, proof.series));
+    assert.ok(report.formatVersion === '1.0.0' && report.kind === 'persistent_profile_process_reopen'
+      && report.capability === PERSISTENT_PROFILE_CAPABILITY && report.deadlineAt === native.deadlineAt && report.outcome === 'failed');
+    const first = proof.series.segments[0], row = report.segments[0].report, stop = proof.mode.expectedReportError();
+    assert.ok(proof.mode.stoppedReport(row) && report.segments[0].id === first.id && sameValue(row.plan, first.plan));
+    assert.ok(report.errors.length === 1 && sameValue(report.failureFacts, { formatVersion: 1, errors: [
+      { errorIndex: 0, error: report.errors[0], phase: 'segment_report', kind: 'segment_failed', segmentId: first.id }] }));
+    assert.ok(sameValue(row.errors, [stop]) && sameValue(row.failureFacts, { formatVersion: 1, termination: null,
+      errors: [{ errorIndex: 0, error: stop, kind: 'lifecycle' }] }));
+    assert.ok(row.formatVersion === '1.0.0' && row.kind === 'normal_browser_input' && row.outcome === 'failed'
+      && row.browser.name === 'chromium' && row.browser.version && sameValue(row.browser.viewport, first.plan.viewport));
+    assert.ok(sameValue(row.steps, first.plan.steps.map(step => ({ id: step.id, kind: step.kind,
+      ...('acceptanceId' in step ? { acceptanceId: step.acceptanceId } : {}), outcome: 'skipped',
+      expected: 'expected' in step ? step.expected : 'input delivered', actual: null, error: null, screenshot: null }))));
+    const identity = row.session;
+    assert.ok(identity && Number.isSafeInteger(identity.browserPid) && identity.browserPid > 0
+      && row.cleanup.browserPid === identity.browserPid && row.cleanup.forced === false && row.cleanup.processExited === true
+      && identity.closeEvent && identity.exitConfirmed && (identity.exitCode !== null || identity.signalCode !== null)
+      && isAbsolute(identity.profile) && resolve(identity.profile) === identity.profile && dirname(identity.profile) === report.profileRoot
+      && identity.commandLineProfile === identity.profile && identity.origin === new URL(first.plan.url).origin
+      && sameValue(identity.cdp?.browserProcessIds, [identity.browserPid])
+      && sameValue(identity.cdp?.profileArguments, ['--user-data-dir=' + identity.profile]));
+    assert.ok(sameValue(report.checkpoint, { outcome: 'skipped', expected: proof.series.checkpoint.expected,
+      actual: null, savedActual: null, before: null, after: null }));
+    const folder = [first.plan.projectId, first.plan.artifact.artifactId, first.plan.artifact.version, first.plan.runId].join('/');
+    assert.equal(report.reportPath, folder + '/' + proof.series.reportId + '/report.json');
+    assert.equal(row.reportPath, folder + '/' + first.plan.reportId + '/report.json');
+    assert.ok(value.seriesStartedAt <= Date.parse(row.startedAt) && Date.parse(row.startedAt) <= Date.parse(row.endedAt)
+      && Date.parse(row.endedAt) <= value.seriesEndedAt && value.seriesEndedAt < native.workDeadlineAt);
+    await runNativeValidationRead(native.readSignal, async active => {
+      const read = diagnosticReadCheckpoint('navigation', active), prefix = folder + '/' + first.plan.reportId + '/';
+      assert.ok(new Set(row.files).size === row.files.length && row.files.includes(row.reportPath) && row.files.every(file => file.startsWith(prefix)));
+      for (const extension of ['.png', '.webm', '.log']) assert.ok(row.files.some(file => file.endsWith(extension)));
+      for (const file of row.files) { check(); assert.ok((await read(() => regularFile(proof.evidenceRoot, file, active))).length > 0); }
+      assert.ok(sameValue(decode(await read(() => regularFile(proof.evidenceRoot, row.reportPath, active))), row));
+      assert.ok(sameValue(decode(await read(() => regularFile(proof.evidenceRoot, report.reportPath, active))), report)); check();
+    });
+    check(); assert.equal(native.snapshot().rawReads.pending, 0); return true;
+  } catch (error) { check(); if (error instanceof assert.AssertionError) return false; throw error; }
 }
 
 export function observeNavigationDiagnosticLifecycle(lifecycle: OwnedAcceptanceLifecycle, mode: ReturnType<typeof createNavigationDiagnosticMode>,
@@ -361,6 +419,8 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
   };
   let controller: RunController | undefined, work: OwnedWork | undefined, host: Awaited<ReturnType<typeof createTransferReusedConsumerHost>> | undefined;
   let report: PersistentAcceptanceReport | undefined, error: ReturnType<typeof failure> | undefined, phase = 'preparation';
+  let navigationEnvelope: Parameters<typeof navigationReportVerified>[2], navigationProof = false;
+  let navigationProofError: ReturnType<typeof failure> | undefined;
   let hostEvidence: EvidenceContract[] | undefined;
   let before: ReturnType<typeof counts> | undefined, preparedCounts: ReturnType<typeof counts> | undefined, baselineBytes = 0, preparedBytes = 0;
   const cleanup = { preparationClosed: false, drained: false, controllerClosed: false, locksAbsent: false, processesExited: false,
@@ -627,6 +687,14 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
       return browser;
     }); });
     hostEvidence = await observer.span('host.verify', () => { observer.phase('host.verify.started'); return host!.verify(task, currentWork.signal); });
+    if (navigation) try {
+      const native = navigation.source(); assert.ok(native); native.checkRead(); assert.ok(Date.now() < native.workDeadlineAt);
+      navigationEnvelope = decode(await runNativeValidationRead(native.readSignal, active =>
+        regularFile(root, `evidence/${CASE}-coding/browser.json`, active)));
+      navigationProof = await navigationReportVerified(report, native, navigationEnvelope,
+        { mode: navigation, evidenceRoot: join(root, 'browser-evidence'), series: literalSeries as PersistentAcceptanceSeries });
+      observer.event('diagnostic.rawProof', { verified: navigationProof });
+    } catch (caught) { navigationProofError = failure(caught); throw caught; }
     phase = 'cleanup';
   } catch (caught) { error = failure(caught); observer.event('diagnostic.error', { phase, ...error }); }
   finally {
@@ -671,9 +739,6 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
     observation: trace.observation, progress: progress?.status() ?? null,
     limitation: 'Synthetic fixture on existing candidate bytes; no model/provider, fixed CLI admission, gameplay, media, coding review, accepted or human pass.' };
   if (navigation) {
-    let envelope: Parameters<typeof navigationReportVerified>[2], envelopeError: ReturnType<typeof failure> | undefined;
-    try { envelope = decode(await regularFile(root, `evidence/${CASE}-coding/browser.json`)); }
-    catch (caught) { envelopeError = failure(caught); }
     const normalCleanup = nativeCalls === 1 && opens.length === 1 && opens[0].outcome === 'returned' && stops.length === 1
       && report?.outcome === 'failed' && report.segments.length === 1 && segment?.outcome === 'failed'
       && segment.cleanup.browserPid !== null && segment.cleanup.forced === false && segment.cleanup.processExited === true
@@ -681,12 +746,13 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
       && sameValue(segment.errors, [navigation.expectedReportError()]) && registeredBrowserBeforeCdp(trace, identity?.browserPid)
       && cleanup.preparationClosed && cleanup.drained && cleanup.controllerClosed && cleanup.locksAbsent && cleanup.processesExited
       && cleanup.ports.length >= 2 && cleanup.ports.every(port => port.closed) && !cleanup.errors.length && !error;
-    const summary = summarizeNavigationDiagnostic({ state: navigation.snapshot(), nativeContractVerified: navigationReportVerified(report, navigation.source(), envelope),
+    const summary = summarizeNavigationDiagnostic({ state: navigation.snapshot(), nativeContractVerified: navigationProof,
       normalCleanup: !!normalCleanup, preservation: preservation.unchanged, observationIncomplete: trace.observation.incomplete,
       openMs: opens[0]?.durationMs ?? null, navigationMs: report?.segments[0]?.report.nativeWaits?.segment.stages[3]?.elapsedMs ?? null });
     const navigationResult = { ...result, ...summary,
       startup: { ...startup, outcome: 'failed' as const, reason: 'The original COS93 whole-open 15-second contract remains failed; navigation mode has its own result.' },
-      nativeWaits: report?.nativeWaits ?? null, consumer: envelope?.nativeWaits ?? null, envelopeError: envelopeError ?? null,
+      nativeWaits: report?.nativeWaits ?? null, consumer: navigationEnvelope?.nativeWaits ?? null, envelopeError: navigationProofError ?? null,
+      gameDiagnostics: navigationEnvelope?.diagnostics ?? null,
       exit: trace.spans.find(span => span.name === 'lifecycle.close') ?? null };
     await output('trace.json', trace); await output('preservation.json', preservation); await output('result.json', navigationResult);
     t.diagnostic(`COS93 raw result: ${join(outputRoot, 'result.json')}`); return navigationResult;

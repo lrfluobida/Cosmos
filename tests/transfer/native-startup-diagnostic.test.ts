@@ -685,9 +685,9 @@ test('COS93 navigation diagnostic production ready expectation binds sealed worl
 test('COS93 navigation diagnostic production result refuses invented native proof and keeps v1 default', async () => {
   const api: any = await import('./native-startup-diagnostic.fixture.ts');
   assert.equal(typeof api.navigationReportVerified, 'function');
-  assert.equal(api.navigationReportVerified(undefined, undefined, undefined), false);
+  assert.equal(await api.navigationReportVerified(undefined, undefined, undefined), false);
   const f = await navigationNativeFixture();
-  assert.equal(api.navigationReportVerified({ nativeWaits: { ...f.waits.snapshot(), taskId: 'browser' } }, f.waits,
+  assert.equal(await api.navigationReportVerified({ nativeWaits: { ...f.waits.snapshot(), taskId: 'browser' } }, f.waits,
     { diagnostics: { reportValid: true } }), false);
   const state = { loadPassed: true, readyPassed: true, navigationPassed: true, stopCount: 1, failed: false };
   for (const timing of [null, -1, Number.NaN]) assert.equal(api.summarizeNavigationDiagnostic({ state, nativeContractVerified: true,
@@ -710,30 +710,87 @@ test('COS93 navigation diagnostic production lifetime keeps original phase and c
   segment.finishNavigation(); segment.revoke(); await segment.settle(f.deadlineAt); await f.work.cancelAndDrain('unit complete');
 });
 
-test('COS93 navigation diagnostic production result accepts real settled stages and rejects native pending or failed evidence', async () => {
-  const api: any = await import('./native-startup-diagnostic.fixture.ts'), f = await navigationNativeFixture(), segment = f.waits.beginSegment('verified');
-  const startedAt = Date.now();
-  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
-  segment.beginNavigation();
-  await segment.runStage('navigation', async () => { await f.waits.runRequest(async request => {
-    for (const stage of ['http_pre_authority', 'http_body', 'http_post_authority'] as const) await request.runStage(stage, async life => { life.check(); });
-  }); });
-  segment.finishNavigation(); segment.revoke(); await segment.settle(f.deadlineAt);
-  const endedAt = Date.now(), snapshot = f.waits.snapshot();
-  const report: any = { startedAt: new Date(startedAt).toISOString(), endedAt: new Date(endedAt).toISOString(),
-    nativeWaits: { ...snapshot, caseId: f.waits.caseId, windowId: f.waits.windowId, taskId: f.waits.taskId,
-      seriesStartedAt: startedAt, seriesEndedAt: endedAt, seriesElapsedMs: endedAt - startedAt },
-    segments: [{ report: { nativeWaits: { contractVersion: f.waits.contractVersion, deadlineAt: f.deadlineAt,
-      workDeadlineAt: f.waits.workDeadlineAt, segment: snapshot.segments[0] } } }] };
-  const envelope = { diagnostics: { reportValid: true }, nativeWaits: { contractVersion: f.waits.contractVersion,
-    consumerStartedAt: snapshot.consumerStartedAt, consumerEndedAt: endedAt, consumerElapsedMs: endedAt - snapshot.consumerStartedAt! } };
-  assert.equal(api.navigationReportVerified(report, f.waits, envelope), true);
-  for (const mutate of [
-    (copy: any) => { copy.nativeWaits.rawReads.pending = 1; },
-    (copy: any) => { copy.nativeWaits.segments[0].firstCause = { stage: 'navigation', name: 'Error', message: 'HTTP rejected' }; },
-    (copy: any) => { copy.nativeWaits.seriesElapsedMs += 6; },
-    (copy: any) => { copy.nativeWaits.taskId = 'different'; },
-  ]) { const copy = structuredClone(report); mutate(copy); assert.equal(api.navigationReportVerified(copy, f.waits, envelope), false); }
-  assert.equal(api.navigationReportVerified(report, f.waits, { ...envelope, diagnostics: { reportValid: false } }), false);
-  await f.work.cancelAndDrain('unit complete');
+async function stoppedNavigationSeries(t: TestContext) {
+  const api = await import('./native-startup-diagnostic.fixture.ts'), { executePersistentSeries } = await import('../../src/acceptance/persistent.ts');
+  const { runAcceptanceInOwnedSession } = await import('../../src/acceptance/runner.ts');
+  const { diagnosePersistentBrowser } = await import('../../src/runtime/adapters/transfer/persistent-diagnostics.ts');
+  const f = await navigationNativeFixture(), root = await temporary(t), mode = api.createNavigationDiagnosticMode(observer()); mode.bindNativeWaits(f.waits);
+  // Deterministic absence seam; no OS query, browser process or server starts.
+  t.mock.method(process, 'kill', () => { throw Object.assign(new Error('Synthetic absent PID'), { code: 'ESRCH' }); });
+  const artifact = { artifactId: 'game', version: 'v1', location: 'registry/game/v1/project' };
+  const plan = (id: string): any => ({ formatVersion: '1.0.0', projectId: 'fixture', taskId: 'browser', runId: 'fixture', reportId: id, specVersion: 'v1',
+    artifact, url: 'http://127.0.0.1:32123/', viewport: { width: 1280, height: 720 }, acceptanceIds: ['visible'], steps: [
+      { id: 'click', kind: 'locator-click', selector: '#start', timeoutMs: 100 },
+      { id: 'visible', kind: 'assert', acceptanceId: 'visible', observation: { kind: 'visible', selector: '#game' }, expected: true, timeoutMs: 100 },
+      { id: 'snapshot', kind: 'assert', acceptanceId: 'visible', observation: { kind: 'debug', path: ['transfer', 'snapshot'] }, expected: 'saved', timeoutMs: 100 },
+      { id: 'saved', kind: 'assert', acceptanceId: 'visible', observation: { kind: 'debug', path: ['transfer', 'saveSnapshot'] }, expected: 'saved', timeoutMs: 100 }] });
+  const series: any = { formatVersion: 'persistent-acceptance/1', reportId: 'stopped-series', sourceVersion: 'a'.repeat(40), bindingSha256: 'b'.repeat(64),
+    scope: { requirement: { artifactId: 'requirement', version: 'v1', location: 'requirement.json' }, design: { artifactId: 'design', version: 'v1', location: 'design.json' },
+      plan: { artifactId: 'plan', version: 'v1', location: 'plan.json' }, designSha256: 'd'.repeat(64), mapVersion: 'map', acceptanceIds: ['visible'] },
+    segments: ['start', 'restore', 'victory'].map(id => ({ id, prerequisite: id === 'victory' ? 'same-profile-reopened' : 'fresh-profile', plan: plan(id) })),
+    checkpoint: { kind: 'close-process-reopen', afterSegment: 'restore', beforeSegment: 'victory', sameProfile: true, sameOrigin: true,
+      origin: 'http://127.0.0.1:32123', expected: 'saved', snapshot: { kind: 'debug', path: ['transfer', 'snapshot'] }, savedSnapshot: { kind: 'debug', path: ['transfer', 'saveSnapshot'] } } };
+  const report = await executePersistentSeries(series, { evidenceRoot: root, deadlineAt: f.deadlineAt, nativeValidationWaits: f.waits,
+    signal: f.work.signal, verifyBinding: async () => {} }, async (p, session) => {
+    const segment = f.waits.beginSegment(p.reportId), identity = { browserPid: 424242, profile: session.profile, commandLineProfile: session.profile,
+      origin: new URL(p.url).origin, closeEvent: false, exitConfirmed: false, exitCode: null as number | null, signalCode: null,
+      cdp: { browserProcessIds: [424242], profileArguments: ['--user-data-dir=' + session.profile] } };
+    const process = { pid: identity.browserPid, exitCode: null as number | null, signalCode: null };
+    const page: any = { ...navigationReadyPage().page, goto: async () => { await f.waits.runRequest(async request => {
+      for (const stage of ['http_pre_authority', 'http_body', 'http_post_authority'] as const) await request.runStage(stage, async life => { life.check(); });
+    }); return { ok: () => true, status: () => 200 }; }, url: () => p.url, video: () => null, setViewportSize: async () => {},
+      screencast: { start: async (options: { path: string }) => writeFile(options.path, 'synthetic recording', 'utf8'), stop: async () => {} },
+      setDefaultTimeout() {}, on() {}, isClosed: () => false, screenshot: async (options: { path: string }) => writeFile(options.path, 'synthetic frame', 'utf8') };
+    const context: any = { route: async () => {}, newPage: async () => page, newCDPSession: async () => ({ on() {}, send: async () => {} }) };
+    const lifecycle: OwnedAcceptanceLifecycle = { deadlineAt: f.deadlineAt, signal: f.work.signal, nativeValidationWaits: f.waits, nativeSegmentWaits: segment,
+      open: async () => { for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async life => { life.check(); });
+        return { browser: { version: () => 'synthetic', close: async () => {} } as any, context }; },
+      identity: () => identity, process: () => process as any, close: async () => { process.exitCode = 0; identity.closeEvent = true; } };
+    const observed = api.observeNavigationDiagnosticLifecycle(lifecycle, mode, observer(), { player: [4, 4], playerIndex: 0, idleIndex: 0 });
+    try { return await mode.run(p, () => runAcceptanceInOwnedSession(p, { evidenceRoot: root, timeoutMs: 60_000 }, observed.lifecycle), observed.navigationSucceeded); }
+    finally { observed.restore(); }
+  });
+  t.after(async () => { await f.work.cancelAndDrain('unit complete'); assert.ok(report.profileRoot.startsWith(resolve(tmpdir()) + sep));
+    assert.ok(report.profileRoot.includes('cosmos-browser-')); await rm(report.profileRoot, { recursive: true, force: true }); });
+  const task: any = { taskId: 'browser', runId: 'fixture', specVersion: 'v1', acceptanceIds: ['visible'], artifacts: [artifact] };
+  const diagnostics = await diagnosePersistentBrowser(task, report, { series, deadlineAt: f.deadlineAt, sourceVersion: series.sourceVersion,
+    reportPath: report.reportPath, nativeWaitContract: f.waits.contractVersion }, { evidenceRoot: root, verifyBinding: async () => {}, signal: f.work.signal });
+  const consumerEndedAt = Date.now(), consumerStartedAt = f.waits.snapshot().consumerStartedAt!;
+  const envelope = { diagnostics, nativeWaits: { contractVersion: f.waits.contractVersion, consumerStartedAt, consumerEndedAt,
+    consumerElapsedMs: consumerEndedAt - consumerStartedAt } };
+  return { ...f, api, mode, root, report, envelope, proof: { mode, evidenceRoot: root, series } };
+}
+
+test('COS93 navigation diagnostic planned stop accepts real production false diagnosis without promoting game outcome', async t => {
+  const f = await stoppedNavigationSeries(t);
+  assert.equal(f.report.outcome, 'failed'); assert.equal(f.envelope.diagnostics.reportValid, false);
+  assert.deepEqual(f.envelope.diagnostics.passedChecks, []);
+  assert.ok(f.envelope.diagnostics.issues.every(issue => issue.classification === 'insufficient_evidence'));
+  const original = structuredClone({ report: f.report, envelope: f.envelope });
+  const verified = await f.api.navigationReportVerified(f.report, f.waits, f.envelope, f.proof);
+  assert.equal(verified, true);
+  assert.deepEqual({ report: f.report, envelope: f.envelope }, original);
+  await f.work.cancelAndDrain('proof is fixed before cleanup');
+  assert.equal(f.api.summarizeNavigationDiagnostic({ state: f.mode.snapshot(), nativeContractVerified: verified, normalCleanup: true,
+    preservation: true, observationIncomplete: false, openMs: 1, navigationMs: 1 }).navigation.outcome, 'passed');
+  assert.equal(f.envelope.diagnostics.reportValid, false, 'Final diagnosis never promotes the production game classification');
+});
+
+test('COS93 navigation diagnostic planned stop rejects added source HTTP cleanup and durable raw failures', async t => {
+  const f = await stoppedNavigationSeries(t), row = f.report.segments[0].report;
+  const original = structuredClone(f.report);
+  row.cleanup.forced = true;
+  assert.equal(await (f.api.navigationReportVerified as any)(f.report, f.waits, f.envelope, f.proof), false); row.cleanup.forced = false;
+  f.report.nativeWaits!.segments[0].firstCause = { stage: 'http_post_authority', name: 'Error', message: 'Original source changed' };
+  assert.equal(await (f.api.navigationReportVerified as any)(f.report, f.waits, f.envelope, f.proof), false);
+  f.report.nativeWaits!.segments[0].firstCause = null;
+  f.report.nativeWaits!.segments[0].http.rejected = 1;
+  assert.equal(await (f.api.navigationReportVerified as any)(f.report, f.waits, f.envelope, f.proof), false);
+  f.report.nativeWaits!.segments[0].http.rejected = 0;
+  await writeFile(join(f.root, row.reportPath), JSON.stringify({ ...row, errors: ['extra raw failure'] }), 'utf8');
+  assert.equal(await (f.api.navigationReportVerified as any)(f.report, f.waits, f.envelope, f.proof), false);
+  await writeFile(join(f.root, row.reportPath), JSON.stringify(row) + '\n', 'utf8');
+  const extra = { ...f.envelope, diagnostics: { ...f.envelope.diagnostics, issues: [...f.envelope.diagnostics.issues, { ...f.envelope.diagnostics.issues[0], checkId: 'HTTP/source' }] } };
+  assert.equal(await (f.api.navigationReportVerified as any)(f.report, f.waits, extra, f.proof), false);
+  assert.deepEqual(f.report, original);
 });
