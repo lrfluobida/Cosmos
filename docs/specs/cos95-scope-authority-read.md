@@ -2,7 +2,7 @@
 
 任务：[COS95 / #96](https://github.com/lrfluobida/Cosmos/issues/96)，id5858781735，父 #1，登记时 95 个原生子任务。依赖 COS52 / #53、COS91 / #92、COS92 / #93，以及 COS93 / #94 已审诊断实现与证据；不要求 COS93 的完整启动目标已经通过。
 
-状态：实现完成待源码独审，`SOURCE_NOT_READY`。计划 `bd4247cc5afd2d8c78e2e5b6c71d7265a8f400f4` 已由 `cos95_reviewer` 独立 `PLAN_APPROVED`、无 finding，Root 授权实施。作者 `cos95_implementer`，唯一 merger 为 `batch_c14_cos92_merger`；[实施计划及证据](../plans/2026-10-15-cos95-scope-authority-read.md)。
+状态：`VALIDATION_SCOPE_AUTHORITY_READ_SOURCE_READY`，本卡source scoped complete，GitHub暂open待Root公开关闭。计划 `bd4247cc5afd2d8c78e2e5b6c71d7265a8f400f4` 已由 `cos95_reviewer` 独立 `PLAN_APPROVED`、无 finding，并[公开批准](https://github.com/lrfluobida/Cosmos/issues/96#issuecomment-6182899219)。作者 `cos95_implementer`，唯一 merger 为 `batch_c14_cos92_merger`；[实施计划及证据](../plans/2026-10-15-cos95-scope-authority-read.md)。
 
 ## 问题与证据边界
 
@@ -52,7 +52,7 @@
 
 任务关闭至多表示本窄范围源码验收通过。完整原生启动仍由 COS93 后续有界诊断验证；COS16/COS18、accepted、完整经典与 human 不因本卡改变。一次组件样本不能证明整体 startup 提速、消除原 5 秒超时或确定长尾根因。
 
-## 作者实施证据（待源码独审）
+## 作者实施证据（已获源码独审）
 
 - 目标 RED 提交 `8e81933c190c8b4e0eb65402da8ab2e76c615962`：一次真实 scope 调用实际传入两份完整 snapshot，`2 !== 1`，0/1 pass、exit1。实现提交 `b0d987cb5e3facd6ef8a432e2c4c4c11c2337aa3` 后，同一观察方式得到一份身份/完整 window 投影和一份完整 snapshot，1/1 pass。仅新增 `run.ts` 方法并改 scope 首次读取，其他完整读取、原 timeout 与全部授权检查保持。
 - 新增 13 项测试覆盖完整 window 值与深层隔离、串行 repair、到期持久化、closed/legacy/wrong-window、reader 期间 repair/stop/deadline、5 秒截止余量、最终完整 snapshot 新鲜度及下一独立操作的 source/receipt 重验。受影响组首次 23/25；一个新 legacy fixture 补齐合法 grant 后通过，另一个既有 guard 断言按下述基线证据修正并通过；其余 23 项复用。另两项旧 routing/manifest 代表和 compiled 最终 read 用例通过，均 0 skip；typecheck/build 和最终 affected strict 退出 0。
@@ -61,3 +61,9 @@
 - 测试证据：`C:/Users/26557/AppData/Local/Temp/cos95-scope-authority-9b7e0d05544c4e7ebcfc951cb7f25598`；唯一组件对照：`C:/Users/26557/AppData/Local/Temp/cos95-scope-copy-a78343bd2aba48f99b93c3be024639c3/{measure.mjs,result.json,snapshot.json,measure.log}`。所有修改文件 UTF-8/noBOM/LF、中文回读与 diffcheck 通过；没有重造 715 请求、浏览器、付费或原账本操作。
 
 收益仅是每次 scope 少一次多余完整复制。原 1.54 秒长尾原因、原 5 秒失败能否消除和完整 native startup 仍未知；COS93 raw/preserved failed/incomplete 与原 C14 结果保持。
+
+## 已审集成
+
+作者最终 `04fdb8bd0b44bd059f49dcf7b43029f7647beb13` 经 `cos95_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger `batch_c14_cos92_merger` 合入 `862514f269638d7489bb7438dc764777d8ed5c0e`，保留生产/测试提交 `b0d987cb5e3facd6ef8a432e2c4c4c11c2337aa3`。主线批准的COS93/COS94/COS95源码与测试组合一致，typecheck/build退出0，scope复制投影、最终read私有timeout和COS93失败evidence helper共3/3、0skip，10254.1566ms；命令与raw见计划。
+
+原25项行为的23+2组合证据、旧2/2、compiled1/1及strict通过复用，组件对照没有重跑。原5秒scope、15秒open、最终full read和全部授权保持；没有COS93 actual、715请求重建、浏览器、模型或原账本操作。COS93保持open/partial/actual-incomplete，原C14及媒体失败、COS16/COS18和human状态不变，main保持unfrozen。

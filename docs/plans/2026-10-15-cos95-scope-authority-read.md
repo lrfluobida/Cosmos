@@ -14,7 +14,7 @@
 
 本阶段仅提交本计划和任务卡，随后交独立计划评审，批准前不修改生产源码。作者不合 main、不 push、不改共享 tracking。唯一 merger 为 `batch_c14_cos92_merger`，独立 reviewer 由 Root 分配，不与作者共享实现上下文。
 
-计划 `bd4247cc5afd2d8c78e2e5b6c71d7265a8f400f4` 已由 `cos95_reviewer` 独立 `PLAN_APPROVED`、无 finding，Root 已授权实施。下述计划正文保留批准时要求，作者执行结果见文末；当前等待源码独审。
+计划 `bd4247cc5afd2d8c78e2e5b6c71d7265a8f400f4` 已由 `cos95_reviewer` 独立 `PLAN_APPROVED`、无 finding，并[公开批准](https://github.com/lrfluobida/Cosmos/issues/96#issuecomment-6182899219)。下述计划正文保留批准时要求，作者执行结果与最终源码独审集成见文末。
 
 ## Task 1: 真实小 fixture 的目标 RED
 
@@ -82,7 +82,7 @@ async readValidationScopeAuthority(): Promise<{
 
 本任务无付费、浏览器、模型或原账本操作。原 COS93 raw/preserved 与 C14 失败事实保持；只减少首次复制量，最终 read 的那次完整 clone 继续存在。闭卡不能提升 COS16/COS18、accepted、完整经典或 human 状态。
 
-## 作者执行证据（待源码独审）
+## 作者执行证据（已获源码独审）
 
 目标 RED 提交 `8e81933c190c8b4e0eb65402da8ab2e76c615962`，生产与边界测试提交 `b0d987cb5e3facd6ef8a432e2c4c4c11c2337aa3`。实现保持固定基线，不吸收并行 tracking；生产 diff 只有 `run.ts` 新方法和 scope 首次读取的三处接线。原 `read`、`serial`、`expire`、`validationWindow`、`requireOwnSource`、5 秒 scope、15 秒 open 和整体 deadline 无修改。
 
@@ -129,4 +129,12 @@ node --experimental-strip-types --test --test-name-pattern='^real transfer host 
 
 序列化字节不是堆分配量。单次进程按旧→新顺序测量，四份结果保留至等价检查，内存/GC/顺序噪声未控制；无预热、循环、择优重测、controller 队列、expire、可信 reader、source 校验或 native startup。此样本与生产复制计数共同支持减少复制输入量，不能证明整体 startup 加速、原超时已修复或 GC 根因。
 
-所有改动文件严格 UTF-8/noBOM/LF，中文回读与 `git diff --check` 通过。等待独立 reviewer 审实际最终 diff，再交唯一 merger；作者未改 main、共享 tracking、原账本、原始证据或生成内容，也未 push、重造历史请求、调用浏览器或付费模型。
+所有改动文件严格 UTF-8/noBOM/LF，中文回读与 `git diff --check` 通过。提交时等待独立 reviewer 审实际最终 diff，再交唯一 merger；作者未改 main、共享 tracking、原账本、原始证据或生成内容，也未 push、重造历史请求、调用浏览器或付费模型。
+
+## 已审集成
+
+作者 `cos95_implementer` 最终 `04fdb8bd0b44bd059f49dcf7b43029f7647beb13` 经 `cos95_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger `batch_c14_cos92_merger` 合入 `862514f269638d7489bb7438dc764777d8ed5c0e`，保留生产/测试提交 `b0d987cb5e3facd6ef8a432e2c4c4c11c2337aa3`。当前 `VALIDATION_SCOPE_AUTHORITY_READ_SOURCE_READY`，本卡source scoped complete，GitHub暂open待Root公开关闭。
+
+主线COS95的两个生产文件和两个测试文件等同批准提交，COS93入口/fixture与COS94 runner/测试保持。`npm run typecheck` / `npm run build` 均退出0，raw `C:/Users/26557/AppData/Local/Temp/cos95-merge-typecheck.log`、`cos95-merge-build.log`。确认actual与compiled环境选择变量均未设置后执行 `node --experimental-strip-types --test --test-name-pattern='^scope clones one full snapshot and one isolated authority view$|^timeout during the final controller read retains the private timeout identity$|^COS93 fixture preserves returned verification failure' tests/runtime/validation-scope-authority.test.ts tests/transfer/scope-timeout-origin.test.ts tests/transfer/native-startup-diagnostic.test.ts`：3/3、0skip，10254.1566ms，raw `C:/Users/26557/AppData/Local/Temp/cos95-merge-focused.tap`。实际观察一次完整snapshot和一次身份/window投影；最终read仍保留私有timeout身份，COS93未到达分类保持。
+
+复用原25项的23+2组合证据、旧2/2、compiled1/1、affected strict及唯一组件样本；没有重跑完整组或组件测量。复制输入减少不证明scope长尾、5秒历史失败或完整startup改善。COS93仍open/partial/actual-incomplete，原C14、媒体、ledger和human结果保持；未执行actual、715请求重建、浏览器或付费调用，main保持unfrozen。
