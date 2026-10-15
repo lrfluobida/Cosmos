@@ -56,3 +56,25 @@
 SOURCE97 与 navigation diagnostic 两份源码均独审集成后，actual 仍须 Root 另行授权并批准一次性 launcher；launcher 须单独提交、独审。冻结 SOURCE97 与诊断集成 exact source/toolchain/hash，使用新 `cos93-native-startup-navigation-...` TEMP root、新 root intent 与只读旧来源，复用原准备／保全机制，只运行一次，无自动重试；当前不创建 launcher、不启动 actual。
 
 原 ledger revision3114／715／16901000µ、reserved/unknown0，¥150验证含prior¥0.721771、正式¥200/12h、优化¥100/6h保持；参考安装只读，API keys 不入文件／日志／Git。COS93仍open/partial/startup-failed，原C14 failed/consumed，accepted/human/完整经典等未提升。本提交仅新增本计划，UTF-8无BOM/LF；提交前严格解码、中文回读与 `git diff --check`，不声称测试或导航已通过。
+
+## 2026-10-16 源码接线与免费证据（待最终独审）
+
+已审独立 helper `ae0fc5e6a096cbc03d71c18d9d2d9280a0486da7` 的10/10、strict0及v1兼容证据复用。生产前置为已审 SOURCE97 `1f9ae8f7aaccad8c0df0b19dd7a2f8deca508913`、published base `cfe8b646fab55421333d4409569101d5870fa05b`；本分支另合入 `5036bb89be009abd4b14068797c81516e182e68f` 的状态文档更新，确认src/tests/probes无delta，不重复源码检查。
+
+本轮仅修改两个既定诊断文件：新增显式 navigation mode；真实factory的同parent wait引用、segment delegate捕获原navigation lifetime、3秒ready与nav/W夹紧及原caller raw预登记；sourceIdentity/readScope/admission/fixed读链在navigation mode逐await取消检查；原response失败保留；生产finishNavigation之后精确clone/entries普通stop；v2从生产nativeWaits和consumer envelope分类，旧15秒失败独立保留。封存media实际为characters[].manifest，期望派生按该格式读取，不改任何资产或游戏源码。默认v1 observer、stop与结果字段保持，observer文件未改。
+
+新接线首RED为4个新导出缺失的断言失败；之后production lifecycle/3秒timeout/原controller cause/迟到raw归属/下一leaf拒绝为4/4、0skip（4016.7593ms）。合成plan缺验收check及把phase pending误作raw reader pending的两次夹具试错不计feature RED。结果与期望派生RED2→GREEN2/2；真实manifest嵌套格式负例RED1，最小解构修正后由最终影响组覆盖。work deadline夹紧、原phase/derived read身份及真实已收敛阶段的结果正负代表2/2（3967.6111ms）。
+
+最终命令为 `node --experimental-strip-types --experimental-test-module-mocks --test --test-name-pattern="^COS93 (navigation diagnostic production|navigation diagnostic ready preserves legacy runner|native factory exposes|fixture preserves returned)" tests/transfer/native-startup-diagnostic.test.ts`：13/13、0skip、4742.2459ms、AFFECTED_EXIT=0；三文件原strict命令STRICT_EXIT=0。raw目录 `C:/Users/26557/AppData/Local/Temp/cos93-navigation-wired-263fc2ea6135414ba03538531a941607`，保留red.tap、green-lifecycle.tap、result-red.tap、result-green.tap、manifest-red.tap、clamp-result.tap、affected-final.tap和strict-final.log；最终两份日志含明确EXIT行。
+
+本轮仅证明源码适配与无浏览器夹具。完整715来源路径、真实goto/load/ready、exact浏览器PID及全部实际清理/保全尚未执行；没有browser/launcher/actual/provider/paid。最终actual仍须源码独审集成、Root另审一次性launcher与单次运行，原COS93/C14失败和全部预算保持。
+
+## 2026-10-16 唯一P2修订：计划停止的独立诊断判定
+
+独审对 `c0248711d6927b67f89c5fa3dfe40bad918feb29` 提出一项P2：production diagnosePersistentBrowser将intentional sentinel的lifecycle issue归为insufficient_evidence并返回reportValid=false，因此要求envelope.reportValid=true会永久拒绝真实完成的导航；旧正例手造true未覆盖此路径。其余接线已审无finding，原13项及独立helper10项无delta证据复用。
+
+修订只在诊断fixture/test：保留生产failed/false原值，私有WeakSet仅佐证本mode唯一sentinel实际停止的原runner report对象；独立核对原literal series、唯一lifecycle failure fact、全部skipped/零输入、PID/CDP正常退出、同source native当前closed snapshot/HTTP/零pending、consumer时钟及aggregate/segment durable raw完整内容。生产游戏诊断未改，v2另保留gameDiagnostics原false。可信raw proof在host.verify返回后、原work/controller活跃及W以内，以原readSignal预登记并逐await检查；public cleanup之后只组合已固定proof与实际清理/保全结果。
+
+有效RED来自executePersistentSeries→production runner合成transport→真实diagnosePersistentBrowser的false结果，旧分类正例false!=true；red-classifier.tap为1fail/1pass、0skip、3903.8496ms。初始夹具缺checkpoint检查的失败不计feature RED。GREEN覆盖同一真实false正例、proof先于cleanup/final分类，以及额外source/HTTP/cleanup/raw漂移和额外issue拒绝；不伪造reportValid=true，不调用浏览器/OS查询/715负载/provider。
+
+最终影响命令 `node --experimental-strip-types --experimental-test-module-mocks --test --test-name-pattern="^COS93 navigation diagnostic (planned stop|production result refuses)" tests/transfer/native-startup-diagnostic.test.ts`：3/3、0skip、4638.4633ms、AFFECTED_EXIT=0；三文件strict为STRICT_EXIT=0。raw目录 `C:/Users/26557/AppData/Local/Temp/cos93-planned-stop-fix-40897b66a75e47efa6550d51b29449a5`，red-classifier.tap、green-first.tap、green-final.tap、strict-final.log保持；最终日志包含明确EXIT行。原src/probes/observer零delta，真实actual及launcher仍未授权，修订待affected独审。

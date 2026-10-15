@@ -35,6 +35,11 @@ import { prepareTransferValidationCaseFourteenExecution } from '../../probes/tra
 import { fixedTransferValidationInput } from '../../probes/transfer/validation-input.ts';
 import { runChild } from '../../probes/e2e/host.ts';
 import type { PersistentAcceptanceReport } from '../../src/acceptance/persistent.ts';
+import { PERSISTENT_PROFILE_CAPABILITY, validatePersistentSeries } from '../../src/acceptance/persistent.ts';
+import type { PersistentAcceptanceSeries } from '../../src/acceptance/persistent.ts';
+import type { OwnedAcceptanceLifecycle } from '../../src/acceptance/runner.ts';
+import { associateNativeReadSignal, isNativeValidationWaits, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
+import type { NativeReadLifetime, NativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
 import { createMethodPatches, openDiagnosticProgress, recordedProcessesExited, writeProtectedBefore } from './native-startup-observer.fixture.ts';
 import type { DiagnosticObserver, DiagnosticPatches } from './native-startup-observer.fixture.ts';
 
@@ -131,13 +136,280 @@ async function closedLoopbackPort(url: string) {
   });
 }
 
+type DiagnosticMode = 'navigation' | undefined;
+type ReadyExpectation = { player: readonly [number, number]; playerIndex: number; idleIndex: number };
+export function deriveNavigationReadyExpectation(world: string, design: { map: { player: number[] } }, media: { characters: { manifest: { id: string; states: { name: string }[] } }[] }): ReadyExpectation {
+  const declarations = [...world.matchAll(/export const INITIAL_PLAYER: Pos = \[(\d+),\s*(\d+)\];/g)];
+  assert.equal(declarations.length, 1, 'Sealed source must have one explicit initial player');
+  const player: [number, number] = [Number(declarations[0][1]), Number(declarations[0][2])];
+  assert.deepEqual(player, design.map.player, 'Sealed initial state differs from the bound design');
+  const players = media.characters.map(({ manifest: character }, index) => ({ character, index })).filter(row => row.character.id === 'player');
+  assert.equal(players.length, 1); const idle = players[0].character.states.map((state, index) => ({ state, index })).filter(row => row.state.name === 'idle');
+  assert.equal(idle.length, 1); return { player, playerIndex: players[0].index, idleIndex: idle[0].index };
+}
+export function diagnosticReadCheckpoint(mode: DiagnosticMode, caller?: AbortSignal) {
+  return async <T>(operation: () => Promise<T>): Promise<T> => {
+    if (mode) caller?.throwIfAborted();
+    try { const result = await operation(); if (mode) caller?.throwIfAborted(); return result; }
+    catch (error) { if (mode) caller?.throwIfAborted(); throw error; }
+  };
+}
+
+export async function readNavigationDiagnosticReady(page: Pick<import('@playwright/test').Page, 'locator' | 'evaluate'>,
+  expected: ReadyExpectation, lifetime: { signal: AbortSignal; deadlineAt: number; check?(): void }) {
+  const checkpoint = () => {
+    lifetime.check?.();
+    lifetime.signal.throwIfAborted();
+    if (Date.now() >= lifetime.deadlineAt) throw new Error('Diagnostic ready deadline reached');
+  };
+  const read = async <T>(operation: () => Promise<T>) => {
+    checkpoint(); let value: T;
+    try { value = await operation(); } catch (error) { lifetime.signal.throwIfAborted(); throw error; }
+    checkpoint(); return value;
+  };
+  assert.ok([...expected.player, expected.playerIndex, expected.idleIndex].every(value => Number.isSafeInteger(value) && value >= 0));
+  if (!await read(() => page.locator('[data-testid="start"]').isVisible())
+    || await read(() => page.locator('[data-testid="start"]').innerText({ timeout: lifetime.deadlineAt - Date.now() })) !== '开始'
+    || !await read(() => page.locator('[data-testid="board"]').isVisible())
+    || !await read(() => page.locator('[data-testid="cell-' + expected.player.join('-') + '"][data-player="true"]').isVisible())) {
+    throw new Error('Diagnostic game board is not ready');
+  }
+  const { observeDebugScalars } = await import('../../src/acceptance/browser.ts'); checkpoint();
+  const player = ['media', 'characters', String(expected.playerIndex)], idle = [...player, 'states', String(expected.idleIndex)];
+  const [id, name, seen] = await read(() => observeDebugScalars(page, [[...player, 'id'], [...idle, 'name'], [...idle, 'seen']]));
+  if (id !== 'player' || name !== 'idle' || seen !== true) throw new Error('Diagnostic game engine is not ready');
+}
+
+/** The original phase caller registers the raw read; only reading receives the derived timeout signal. */
+export async function runNavigationDiagnosticReady(life: NativeReadLifetime, native: NativeValidationWaits,
+  ready: (active: NativeReadLifetime) => Promise<void>): Promise<void> {
+  life.check(); native.checkRead();
+  const deadlineAt = Math.min(Date.now() + 3000, life.deadlineAt, native.workDeadlineAt), stop = new AbortController();
+  const check = () => { life.check(); native.checkRead(); stop.signal.throwIfAborted();
+    if (Date.now() >= deadlineAt) { stop.abort(new Error('Diagnostic ready deadline reached')); stop.signal.throwIfAborted(); } };
+  let onAbort!: () => void;
+  const signal = associateNativeReadSignal(life.signal, AbortSignal.any([life.signal, stop.signal]));
+  const cancelled = new Promise<never>((_, reject) => { onAbort = () => { try { check(); } catch (error) { reject(error); } };
+    signal.addEventListener('abort', onAbort, { once: true }); });
+  const timer = setTimeout(() => stop.abort(new Error('Diagnostic ready deadline reached')), Math.max(0, deadlineAt - Date.now()));
+  try {
+    const raw = runNativeValidationRead(life.signal, async ownedSignal => {
+      const active = associateNativeReadSignal(life.signal, AbortSignal.any([ownedSignal, signal]));
+      check(); await ready({ signal: active, deadlineAt, check }); check();
+    });
+    await Promise.race([raw, cancelled]); check();
+  }
+  catch (error) { life.check(); native.checkRead(); throw error; }
+  finally { clearTimeout(timer); signal.removeEventListener('abort', onAbort); }
+}
+
+export function observeDiagnosticBinding<T>(observer: DiagnosticObserver, verify: (callerSignal?: AbortSignal) => Promise<T>) {
+  return (callerSignal?: AbortSignal) => observer.span('consumer.verifyBinding', () => verify(callerSignal));
+}
+
+export interface NavigationDiagnosticState {
+  loadPassed: boolean; readyPassed: boolean; navigationPassed: boolean; stopCount: number; failed: boolean;
+}
+export function createNavigationDiagnosticMode(observer: DiagnosticObserver) {
+  const state: NavigationDiagnosticState = { loadPassed: false, readyPassed: false, navigationPassed: false, stopCount: 0, failed: false };
+  const completed = new Error('DiagnosticNavigationComplete: native navigation and existing engine ready; no gameplay input');
+  completed.name = 'DiagnosticNavigationComplete';
+  let firstCause: unknown;
+  let source: NativeValidationWaits | undefined;
+  let expectation: ReadyExpectation | undefined;
+  const stoppedReports = new WeakSet<object>();
+  const fail = (error: unknown) => { if (!state.failed) { state.failed = true; firstCause = error; observer.event('diagnostic.navigation.failure', failure(error)); } return error; };
+  return {
+    bindNativeWaits(value: NativeValidationWaits) { assert.ok(isNativeValidationWaits(value)); assert.ok(!source || source === value); source = value; },
+    source: () => source,
+    configureReady(value: ReadyExpectation) { assert.ok(!expectation); expectation = value; },
+    readyExpectation() { assert.ok(expectation, 'Navigation mode requires its sealed ready expectation'); return expectation; },
+    snapshot: (): NavigationDiagnosticState => ({ ...state }),
+    expectedReportError: () => 'Browser startup/execution: ' + completed.message,
+    isIntentionalStop: (error: unknown) => error === completed && state.stopCount === 1,
+    stoppedReport: (value: object) => state.stopCount === 1 && !state.failed && stoppedReports.has(value),
+    observeGoto(page: { goto: (...args: any[]) => Promise<unknown>; url: () => string }, options: { origin: string; ready: () => Promise<void> }) {
+      const patches = createMethodPatches(observer);
+      patches.replace(page, 'goto', original => async function (this: unknown, ...args: unknown[]) {
+        try {
+          const response = await observer.span('page.goto', () => Reflect.apply(original, this, args)) as { ok(): boolean } | null;
+          if (!response || !response.ok() || new URL(page.url()).origin !== options.origin) return response;
+          state.loadPassed = true;
+          await observer.span('diagnostic.ready', options.ready); state.readyPassed = true;
+          return response;
+        } catch (error) { throw fail(error); }
+      });
+      return () => { if (!patches.restore()) fail(new Error('Navigation page descriptor restoration failed')); };
+    },
+    run<T>(value: unknown, operation: () => Promise<T>, navigationSucceeded: () => boolean): Promise<T> {
+      const clonePatches = createMethodPatches(observer), entriesPatches = createMethodPatches(observer);
+      let target: unknown[] | undefined, captured = false;
+      const restore = () => {
+        const cloneRestored = clonePatches.restore(), entriesRestored = entriesPatches.restore(); target = undefined;
+        if (!cloneRestored || !entriesRestored) fail(new Error('Navigation stop descriptor restoration failed'));
+      };
+      try {
+        entriesPatches.replace(Array.prototype, 'entries', original => function (this: unknown, ...args: unknown[]) {
+          if (!target || this !== target) return Reflect.apply(original, this, args);
+          target = undefined;
+          if (state.failed) throw firstCause;
+          if (!state.loadPassed || !state.readyPassed || !navigationSucceeded()) throw fail(new Error('Diagnostic navigation stop gate incomplete'));
+          state.navigationPassed = true; state.stopCount++;
+          observer.event('diagnostic.stop', { point: 'plan.steps.entries', mode: 'navigation' });
+          throw completed;
+        });
+        clonePatches.replace(globalThis, 'structuredClone', original => function (this: unknown, ...args: unknown[]) {
+          const result = Reflect.apply(original, this, args);
+          if (args[0] === value) {
+            if (!Array.isArray(result?.steps)) throw fail(new Error('Diagnostic runner clone has no steps array'));
+            target = result.steps; captured = true;
+            if (!clonePatches.restore()) throw fail(new Error('Navigation clone descriptor restoration failed'));
+          }
+          return result;
+        });
+        const result = operation();
+        void result.then(value => {
+          if (state.stopCount === 1 && !state.failed && value && typeof value === 'object'
+            && sameValue((value as { errors?: unknown }).errors, ['Browser startup/execution: ' + completed.message])) stoppedReports.add(value);
+          restore();
+        }, error => { fail(error); restore(); });
+        if (!captured) { void result.catch(() => {}); throw fail(new Error('Diagnostic runner did not synchronously clone the exact plan')); }
+        return result;
+      } catch (error) { fail(error); restore(); throw error; }
+    },
+  };
+}
+
+export async function navigationReportVerified(report: PersistentAcceptanceReport | undefined, native: NativeValidationWaits | undefined,
+  envelope: { diagnostics?: { reportValid?: boolean; issues?: { classification: string; checkId: string }[]; passedChecks?: unknown[] };
+    nativeWaits?: { contractVersion: string; consumerStartedAt: number; consumerEndedAt: number; consumerElapsedMs: number } } | undefined,
+  proof?: { mode: ReturnType<typeof createNavigationDiagnosticMode>; evidenceRoot: string; series: PersistentAcceptanceSeries }): Promise<boolean> {
+  if (!report || !native || !isNativeValidationWaits(native) || !proof || proof.mode.source() !== native
+    || envelope?.diagnostics?.reportValid !== false || !envelope.nativeWaits
+    || !sameValue(envelope.diagnostics.passedChecks, []) || envelope.diagnostics.issues?.length !== 1
+    || envelope.diagnostics.issues[0].classification !== 'insufficient_evidence' || envelope.diagnostics.issues[0].checkId !== 'persistent/report') return false;
+  const expired = new Error('Diagnostic raw proof deadline reached');
+  const check = () => { native.checkRead(); native.readSignal.throwIfAborted(); if (Date.now() >= native.workDeadlineAt) throw expired; };
+  check();
+  try {
+    const value = report.nativeWaits, consumer = envelope.nativeWaits;
+    if (!value || value.contractVersion !== native.contractVersion || value.caseId !== native.caseId || value.windowId !== native.windowId
+      || value.taskId !== native.taskId || value.deadlineAt !== native.deadlineAt || value.workDeadlineAt !== native.workDeadlineAt
+      || consumer.contractVersion !== native.contractVersion || consumer.consumerStartedAt !== value.consumerStartedAt
+      || !Number.isSafeInteger(consumer.consumerEndedAt) || consumer.consumerEndedAt < value.seriesEndedAt
+      || !Number.isFinite(consumer.consumerElapsedMs) || Math.abs(consumer.consumerElapsedMs - (consumer.consumerEndedAt - consumer.consumerStartedAt)) > 5
+      || value.seriesStartedAt !== Date.parse(report.startedAt) || value.seriesEndedAt !== Date.parse(report.endedAt)
+      || !Number.isFinite(value.seriesElapsedMs) || Math.abs(value.seriesElapsedMs - (value.seriesEndedAt - value.seriesStartedAt)) > 5
+      || value.segments.length !== 1 || report.segments.length !== 1 || value.rawReads.pending !== 0 || value.rawReads.started !== value.rawReads.settled) return false;
+    const segment = value.segments[0], actual = report.segments[0].report.nativeWaits;
+    if (!(actual && actual.contractVersion === native.contractVersion && actual.deadlineAt === native.deadlineAt
+      && actual.workDeadlineAt === native.workDeadlineAt && sameValue(segment, actual.segment) && segment.state === 'closed'
+      && !segment.firstCause && !segment.rawReadsPending && !segment.rawOperationsPending && !segment.http.pending
+      && segment.http.started > 0 && segment.http.started === segment.http.settled && segment.http.rejected === 0
+      && segment.stages.every(stage => stage.outcome === 'passed' && !stage.rawPending)
+      && segment.http.stages.every(stage => stage.count === segment.http.started))) return false;
+    const source = native.snapshot();
+    assert.ok(sameValue(value.segments, source.segments) && source.rawReads.pending === 0, 'Native source snapshot changed or still pending');
+    assert.ok(!validatePersistentSeries(proof.series).length && sameValue(report.series, proof.series));
+    assert.ok(report.formatVersion === '1.0.0' && report.kind === 'persistent_profile_process_reopen'
+      && report.capability === PERSISTENT_PROFILE_CAPABILITY && report.deadlineAt === native.deadlineAt && report.outcome === 'failed');
+    const first = proof.series.segments[0], row = report.segments[0].report, stop = proof.mode.expectedReportError();
+    assert.ok(proof.mode.stoppedReport(row) && report.segments[0].id === first.id && sameValue(row.plan, first.plan));
+    assert.ok(report.errors.length === 1 && sameValue(report.failureFacts, { formatVersion: 1, errors: [
+      { errorIndex: 0, error: report.errors[0], phase: 'segment_report', kind: 'segment_failed', segmentId: first.id }] }));
+    assert.ok(sameValue(row.errors, [stop]) && sameValue(row.failureFacts, { formatVersion: 1, termination: null,
+      errors: [{ errorIndex: 0, error: stop, kind: 'lifecycle' }] }));
+    assert.ok(row.formatVersion === '1.0.0' && row.kind === 'normal_browser_input' && row.outcome === 'failed'
+      && row.browser.name === 'chromium' && row.browser.version && sameValue(row.browser.viewport, first.plan.viewport));
+    assert.ok(sameValue(row.steps, first.plan.steps.map(step => ({ id: step.id, kind: step.kind,
+      ...('acceptanceId' in step ? { acceptanceId: step.acceptanceId } : {}), outcome: 'skipped',
+      expected: 'expected' in step ? step.expected : 'input delivered', actual: null, error: null, screenshot: null }))));
+    const identity = row.session;
+    assert.ok(identity && Number.isSafeInteger(identity.browserPid) && identity.browserPid > 0
+      && row.cleanup.browserPid === identity.browserPid && row.cleanup.forced === false && row.cleanup.processExited === true
+      && identity.closeEvent && identity.exitConfirmed && (identity.exitCode !== null || identity.signalCode !== null)
+      && isAbsolute(identity.profile) && resolve(identity.profile) === identity.profile && dirname(identity.profile) === report.profileRoot
+      && identity.commandLineProfile === identity.profile && identity.origin === new URL(first.plan.url).origin
+      && sameValue(identity.cdp?.browserProcessIds, [identity.browserPid])
+      && sameValue(identity.cdp?.profileArguments, ['--user-data-dir=' + identity.profile]));
+    assert.ok(sameValue(report.checkpoint, { outcome: 'skipped', expected: proof.series.checkpoint.expected,
+      actual: null, savedActual: null, before: null, after: null }));
+    const folder = [first.plan.projectId, first.plan.artifact.artifactId, first.plan.artifact.version, first.plan.runId].join('/');
+    assert.equal(report.reportPath, folder + '/' + proof.series.reportId + '/report.json');
+    assert.equal(row.reportPath, folder + '/' + first.plan.reportId + '/report.json');
+    assert.ok(value.seriesStartedAt <= Date.parse(row.startedAt) && Date.parse(row.startedAt) <= Date.parse(row.endedAt)
+      && Date.parse(row.endedAt) <= value.seriesEndedAt && value.seriesEndedAt < native.workDeadlineAt);
+    await runNativeValidationRead(native.readSignal, async active => {
+      const read = diagnosticReadCheckpoint('navigation', active), prefix = folder + '/' + first.plan.reportId + '/';
+      assert.ok(new Set(row.files).size === row.files.length && row.files.includes(row.reportPath) && row.files.every(file => file.startsWith(prefix)));
+      for (const extension of ['.png', '.webm', '.log']) assert.ok(row.files.some(file => file.endsWith(extension)));
+      for (const file of row.files) { check(); assert.ok((await read(() => regularFile(proof.evidenceRoot, file, active))).length > 0); }
+      assert.ok(sameValue(decode(await read(() => regularFile(proof.evidenceRoot, row.reportPath, active))), row));
+      assert.ok(sameValue(decode(await read(() => regularFile(proof.evidenceRoot, report.reportPath, active))), report)); check();
+    });
+    check(); assert.equal(native.snapshot().rawReads.pending, 0); return true;
+  } catch (error) { check(); if (error instanceof assert.AssertionError) return false; throw error; }
+}
+
+export function observeNavigationDiagnosticLifecycle(lifecycle: OwnedAcceptanceLifecycle, mode: ReturnType<typeof createNavigationDiagnosticMode>,
+  observer: DiagnosticObserver, expected: ReadyExpectation, requireIdentity = true) {
+  const native = lifecycle.nativeValidationWaits, segment = lifecycle.nativeSegmentWaits;
+  assert.ok(native && segment && native === mode.source(), 'Diagnostic lifecycle must retain the source-owned native waits');
+  let navigationLife: NativeReadLifetime | undefined;
+  const patches = createMethodPatches(observer), pageRestores: (() => void)[] = [];
+  const delegated = { ...segment, runStage<T>(stage: Parameters<typeof segment.runStage>[0], operation: (life: NativeReadLifetime) => Promise<T>) {
+    return segment.runStage(stage, life => { if (stage === 'navigation') navigationLife = life; return operation(life); });
+  } };
+  const view: OwnedAcceptanceLifecycle = { ...lifecycle, nativeValidationWaits: native, nativeSegmentWaits: delegated,
+    identity: () => lifecycle.identity(), process: () => lifecycle.process(),
+    async open(...args) {
+      observer.event('lifecycle.open.arguments', { timeoutMs: args[1], deadlineAt: args[2]?.deadlineAt }); observer.phase('open.started');
+      const result = await observer.span('lifecycle.open', () => lifecycle.open(...args)); observer.phase('open.returned');
+      const identity = lifecycle.identity();
+      if (requireIdentity) {
+        assert.ok(identity); assert.deepEqual(identity.cdp?.browserProcessIds, [identity.browserPid]);
+        assert.deepEqual(identity.cdp?.profileArguments, ['--user-data-dir=' + identity.profile]); assert.equal(identity.commandLineProfile, identity.profile);
+        observer.event('lifecycle.identity', { browserPid: identity.browserPid, profile: identity.profile, commandLineProfile: identity.commandLineProfile,
+          origin: identity.origin, cdpBrowserPid: identity.cdp?.browserProcessIds[0] ?? null });
+      }
+      patches.replace(result.context, 'newPage', original => async function (this: unknown, ...pageArgs: unknown[]) {
+        const page = await Reflect.apply(original, this, pageArgs);
+        pageRestores.push(mode.observeGoto(page, { origin: identity?.origin ?? new URL(page.url()).origin,
+          ready: () => { assert.ok(navigationLife); return runNavigationDiagnosticReady(navigationLife, native,
+            active => readNavigationDiagnosticReady(page, expected, active)); } }));
+        return page;
+      });
+      return result;
+    },
+    close(...args) { observer.phase('close.started'); return observer.span('lifecycle.close', () => lifecycle.close(...args)); },
+  };
+  return { lifecycle: view, navigationSucceeded: () => {
+    const snapshot = segment.snapshot(); return snapshot.state === 'input' && snapshot.stages[3].outcome === 'passed' && !snapshot.firstCause;
+  }, restore() { for (const restore of pageRestores) restore(); patches.restore(); } };
+}
+
+export function summarizeNavigationDiagnostic(input: { state: NavigationDiagnosticState; nativeContractVerified: boolean; normalCleanup: boolean;
+  preservation: boolean; observationIncomplete: boolean; openMs: number | null; navigationMs: number | null }) {
+  const timing = (measuredMs: number | null) => ({ limitMs: 15_000, measuredMs,
+    withinLimit: measuredMs !== null && Number.isFinite(measuredMs) && measuredMs >= 0 ? measuredMs <= 15_000 : null });
+  const validTiming = [input.openMs, input.navigationMs].every(value => value !== null && Number.isFinite(value) && value >= 0);
+  const passed = input.nativeContractVerified && validTiming && input.state.loadPassed && input.state.readyPassed && input.state.navigationPassed
+    && input.state.stopCount === 1 && !input.state.failed && input.normalCleanup && input.preservation && !input.observationIncomplete;
+  return { formatVersion: 'cos93-native-startup-diagnostic/2', navigation: { contractVersion: 'native-validation-waits/1',
+    outcome: passed ? 'passed' : input.state.loadPassed ? 'failed' : 'not_reached' },
+    oldLimits: { wholeOpen: timing(input.openMs), navigation: timing(input.navigationMs) } };
+}
+
 /** Only a full, explicit private-material run calls this. Ordinary tests never create this history. */
-export async function diagnoseNativeStartup(options: { sourceRepository: string; historySnapshot: string; observer: DiagnosticObserver; patches?: DiagnosticPatches }, t: TestContext) {
+export async function diagnoseNativeStartup(options: { sourceRepository: string; historySnapshot: string; observer: DiagnosticObserver; patches?: DiagnosticPatches;
+  mode?: 'navigation'; navigation?: ReturnType<typeof createNavigationDiagnosticMode> }, t: TestContext) {
   const { sourceRepository, historySnapshot } = await requireDiagnosticInputs(options.sourceRepository, options.historySnapshot);
   const observer = options.observer, protectedInputs = new ProtectedInputs(), signal = new AbortController().signal;
   const patches = options.patches ?? createMethodPatches(observer);
+  const mode = options.mode, navigation = options.navigation;
+  assert.equal(!!mode, !!navigation, 'Navigation mode requires its explicit shared observer');
   let progress: Awaited<ReturnType<typeof openDiagnosticProgress>> | undefined;
-  const outputRoot = await mkdtemp(join(tmpdir(), 'cos93-native-startup-'));
+  const outputRoot = await mkdtemp(join(tmpdir(), mode ? 'cos93-native-startup-navigation-' : 'cos93-native-startup-'));
   await assertDiagnosticWriteRoot(outputRoot, sourceRepository);
   const repository = join(outputRoot, 'repository'), ledgerRoot = join(repository, '.cosmos/validation-shared'), root = join(repository, '.cosmos/e2e', CASE);
   const output = async (name: string, value: unknown) => { const path = await safePath(outputRoot, name); await writeFile(path, JSON.stringify(value, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' }); return path; };
@@ -147,6 +419,8 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
   };
   let controller: RunController | undefined, work: OwnedWork | undefined, host: Awaited<ReturnType<typeof createTransferReusedConsumerHost>> | undefined;
   let report: PersistentAcceptanceReport | undefined, error: ReturnType<typeof failure> | undefined, phase = 'preparation';
+  let navigationEnvelope: Parameters<typeof navigationReportVerified>[2], navigationProof = false;
+  let navigationProofError: ReturnType<typeof failure> | undefined;
   let hostEvidence: EvidenceContract[] | undefined;
   let before: ReturnType<typeof counts> | undefined, preparedCounts: ReturnType<typeof counts> | undefined, baselineBytes = 0, preparedBytes = 0;
   const cleanup = { preparationClosed: false, drained: false, controllerClosed: false, locksAbsent: false, processesExited: false,
@@ -194,6 +468,13 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
     const originalDist = join(originalCase, originalCandidate.location, 'dist');
     await protectedInputs.tree(sourceProject); await protectedInputs.tree(join(originalCase, originalCandidate.location));
     const authored = await snapshot(sourceProject); assert.equal(authored.size, 10); assert.equal([...authored.values()].reduce((sum, bytes) => sum + bytes.length, 0), 35771);
+    if (navigation) {
+      const plan = decode(await protectedInputs.file(join(originalCase, originalCandidate.location, '_cosmos/transfer-plan.json')));
+      const design = decode(await protectedInputs.file(join(oldRoot, plan.binding.design.artifact.location, '_cosmos/transfer-design.json')));
+      const media = decode(await protectedInputs.file(join(originalCase, originalCandidate.location, 'public/assets/manifest.json')));
+      const world = authored.get('src/world.ts'); assert.ok(world);
+      navigation.configureReady(deriveNavigationReadyExpectation(new TextDecoder('utf-8', { fatal: true }).decode(world), design, media));
+    }
     const head = await git(platform, 'rev-parse', 'HEAD'); assert.equal(await git(platform, 'status', '--porcelain'), '', 'Commit reviewed diagnostic code before real material execution');
     await git(outputRoot, 'clone', '--local', '--no-hardlinks', '--no-checkout', platform, repository);
     await git(repository, 'checkout', '-B', 'main', head); await git(repository, 'update-ref', 'refs/remotes/origin/main', head);
@@ -230,15 +511,16 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
     const historicalRaw = createHistoricalPassedStages({ originalRoot: oldRoot, targetRoot: root,
       expected: { caseId: manifest.caseId, windowId: manifest.windowId, reviewedPlatformSha: manifest.reviewedPlatformSha, frozenCaseInputHash: manifest.frozenCaseInputHash,
         designTaskId: manifest.stages[0].task.taskId, artTaskId: manifest.stages[1].task.taskId }, manifestRef,
-      readManifest: async readSignal => { readSignal.throwIfAborted(); return regularFile(ledgerRoot, manifestRef.location); } });
+      readManifest: async readSignal => { readSignal.throwIfAborted(); return diagnosticReadCheckpoint(mode, readSignal)(() => regularFile(ledgerRoot, manifestRef.location, mode ? readSignal : undefined)); } });
     const historical = { ...historicalRaw, verify: (readSignal: AbortSignal) => observer.span('history.verify', () => historicalRaw.verify(readSignal)) };
     const fixed = fixedTransferValidationInput(declaration), frozen = await fixed.readTransferValidationInput(repository);
     const readIdentity = fixed.createTransferValidationIdentityReader({ repository, reviewedPlatformSha: head });
     const sourceIdentity = async (readSignal: AbortSignal) => {
-      await observer.span('identity.source', () => requireTransferCaseFourteenSource(execution, readSignal));
-      await observer.span('identity.template', () => requireTransferCaseFourteenTemplate(execution, repository, readSignal));
-      await observer.span('identity.accounting', () => requireTransferCaseFourteenAccountingSources(ledgerRoot, baseline, readSignal));
-      return observer.span('identity.git-fixed-input', () => readIdentity(readSignal));
+      const read = diagnosticReadCheckpoint(mode, readSignal);
+      await read(() => observer.span('identity.source', () => requireTransferCaseFourteenSource(execution, readSignal)));
+      await read(() => observer.span('identity.template', () => requireTransferCaseFourteenTemplate(execution, repository, readSignal)));
+      await read(() => observer.span('identity.accounting', () => requireTransferCaseFourteenAccountingSources(ledgerRoot, baseline, readSignal)));
+      return read(() => observer.span('identity.git-fixed-input', () => readIdentity(readSignal)));
     };
     const context = { root: ledgerRoot, repositoryRoot: repository, identityReader: sourceIdentity };
     await writeProtectedBefore(outputRoot, sourceRepository, { formatVersion: 'cos93-protected-before/1', recordedAt: new Date().toISOString(),
@@ -260,8 +542,12 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
       source: { artifactId: key, version: 'synthetic-only', location: `${key}.json` }, sourceRefs: [manifestRef, admissionRef] };
     await publishReceipt(join(ledgerRoot, decision.source.location), { formatVersion: 'operator-validation-decision-1', ...decision, source: undefined, quote });
     const window = await RunController.claimValidationCase({ ...context, quote, decision });
-    const verifyAdmission = async () => { assert.deepEqual(await regularFile(ledgerRoot, admissionRef.location), admissionBytes, 'Current admission changed'); };
-    const scopeIdentity = async (readSignal: AbortSignal) => { const identity = await sourceIdentity(readSignal); await historical.verify(readSignal); await verifyAdmission(); return identity; };
+    const verifyAdmission = async (readSignal?: AbortSignal) => {
+      assert.deepEqual(await diagnosticReadCheckpoint(mode, readSignal)(() => regularFile(ledgerRoot, admissionRef.location, mode ? readSignal : undefined)), admissionBytes, 'Current admission changed');
+    };
+    const scopeIdentity = async (readSignal: AbortSignal) => { const read = diagnosticReadCheckpoint(mode, readSignal);
+      const identity = await read(() => sourceIdentity(readSignal)); await read(() => historical.verify(readSignal));
+      await read(() => verifyAdmission(mode ? readSignal : undefined)); return identity; };
     controller = await RunController.openValidationCase({ ...context, caseId: CASE, windowId: window.windowId, identityReader: scopeIdentity });
     work = new OwnedWork(controller.signal);
     const currentController = controller, currentWork = work;
@@ -270,27 +556,35 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
     const requirement = createValidationRequirement({ specVersion: frozen.requirements.specVersion, sources, acceptance: frozen.requirements.preparation.acceptance,
       validation: { runId: quote.basis.runId, ledgerId: quote.basis.ledgerId, caseId: CASE, windowId: window.windowId, ...quote.identity, decision } });
     const ownSource = async (readSignal: AbortSignal) => {
-      readSignal.throwIfAborted(); await verifyAdmission(); assert.ok(window.operatorDecision.sourceRefs.some(ref => sameValue(ref, admissionRef)));
+      const read = diagnosticReadCheckpoint(mode, readSignal);
+      readSignal.throwIfAborted(); await read(() => verifyAdmission(mode ? readSignal : undefined)); assert.ok(window.operatorDecision.sourceRefs.some(ref => sameValue(ref, admissionRef)));
       assert.deepEqual(createTransferCaseFourteenAdmissionQuote(window.quote, manifestRef, approvals, execution, admission.accountingSha256), admission);
-      await observer.span('scope.source', () => requireTransferCaseFourteenSource(execution, readSignal));
-      await observer.span('scope.template', () => requireTransferCaseFourteenTemplate(execution, repository, readSignal));
-      await observer.span('scope.toolchain', () => requireTransferCaseFourteenToolchain(execution, root, readSignal));
-      const state = await currentController.read();
+      await read(() => observer.span('scope.source', () => requireTransferCaseFourteenSource(execution, readSignal)));
+      await read(() => observer.span('scope.template', () => requireTransferCaseFourteenTemplate(execution, repository, readSignal)));
+      await read(() => observer.span('scope.toolchain', () => requireTransferCaseFourteenToolchain(execution, root, readSignal)));
+      const state = await read(() => currentController.read(mode ? readSignal : undefined));
       assert.equal(transferCaseFourteenHistoricalAccountingHash(state, window.quote), admission.accountingSha256);
       assert.deepEqual(deriveTransferValidationCaseFourteenDeclaration(state), declaration);
-      await observer.span('scope.accounting', () => requireTransferCaseFourteenAccountingSources(ledgerRoot, state, readSignal));
+      await read(() => observer.span('scope.accounting', () => requireTransferCaseFourteenAccountingSources(ledgerRoot, state, readSignal)));
     };
     const validation: ValidationExecutionBinding = { caseId: CASE, windowId: window.windowId, historicalManifest: { reference: manifestRef, readBytes: historical.readManifest },
       readScope: readSignal => observer.span('scope.read', async () => {
+        const read = diagnosticReadCheckpoint(mode, readSignal), active = mode ? readSignal : undefined;
         currentController.requireValidationCase(CASE, window.windowId); assert.equal(historical.originalRoot, oldRoot); assert.equal(historical.targetRoot, root);
         assert.ok(window.operatorDecision.sourceRefs.some(ref => sameValue(ref, manifestRef)));
-        assert.equal(sha(await historical.readManifest(readSignal)), manifestRef.version);
-        await historical.verify(readSignal); await ownSource(readSignal);
-        const identity = await observer.span('scope.git-fixed-input', () => readIdentity(readSignal)), observed = await fixed.readTransferValidationInput(repository);
+        assert.equal(sha(await read(() => historical.readManifest(readSignal))), manifestRef.version);
+        await read(() => historical.verify(readSignal)); await read(() => ownSource(readSignal));
+        const identity = await read(() => observer.span('scope.git-fixed-input', () => readIdentity(readSignal)));
+        const observed = await read(() => fixed.readTransferValidationInput(repository, active));
         assert.deepEqual(identity, window.quote.identity); assert.deepEqual(observed.manifest, frozen.manifest);
-        assert.deepEqual(await regularFile(root, 'requirements/fixed.json'), await regularFile(repository, declaration.inputs.requirements.path));
-        for (const file of declaration.inputs.template.files) assert.deepEqual(await regularFile(root, 'toolchain/' + file.path.slice('templates/2d/'.length)), await regularFile(repository, file.path));
-        const { sourceSha256, source, ...currentDecision } = window.operatorDecision, operatorReceipt = await regularFile(ledgerRoot, source.location);
+        const requirementBytes = await read(() => regularFile(root, 'requirements/fixed.json', active));
+        assert.deepEqual(requirementBytes, await read(() => regularFile(repository, declaration.inputs.requirements.path, active)));
+        for (const file of declaration.inputs.template.files) {
+          const toolBytes = await read(() => regularFile(root, 'toolchain/' + file.path.slice('templates/2d/'.length), active));
+          assert.deepEqual(toolBytes, await read(() => regularFile(repository, file.path, active)));
+        }
+        const { sourceSha256, source, ...currentDecision } = window.operatorDecision;
+        const operatorReceipt = await read(() => regularFile(ledgerRoot, source.location, active));
         assert.equal(sha(operatorReceipt), sourceSha256); assert.deepEqual(decode(operatorReceipt), { formatVersion: 'operator-validation-decision-1', ...currentDecision, quote: window.quote });
         readSignal.throwIfAborted(); return { requirement, operatorReceipt };
       }) };
@@ -303,7 +597,8 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
           nativeCalls++; assert.equal(nativeCalls, 1, 'Only one actual startup sample is allowed'); assert.equal(series.segments.length, 8);
           assert.equal(series.segments.reduce((sum, segment) => sum + segment.plan.steps.length, 0), 220);
           literalSeries = structuredClone(series); observer.event('measurement.start', { preparationMs: performance.now() - prepareStart }); phase = 'nativeIO'; observer.phase('nativeIO.started');
-          const verifyBinding = () => observer.span('consumer.verifyBinding', input.verifyBinding);
+          if (navigation) { assert.ok(input.nativeValidationWaits); navigation.bindNativeWaits(input.nativeValidationWaits); }
+          const verifyBinding = navigation ? observeDiagnosticBinding(observer, input.verifyBinding) : () => observer.span('consumer.verifyBinding', input.verifyBinding);
           report = await native.playPersistent!(series, { ...input, verifyBinding }, authority);
           assert.deepEqual(series, literalSeries); return report;
         });
@@ -392,6 +687,14 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
       return browser;
     }); });
     hostEvidence = await observer.span('host.verify', () => { observer.phase('host.verify.started'); return host!.verify(task, currentWork.signal); });
+    if (navigation) try {
+      const native = navigation.source(); assert.ok(native); native.checkRead(); assert.ok(Date.now() < native.workDeadlineAt);
+      navigationEnvelope = decode(await runNativeValidationRead(native.readSignal, active =>
+        regularFile(root, `evidence/${CASE}-coding/browser.json`, active)));
+      navigationProof = await navigationReportVerified(report, native, navigationEnvelope,
+        { mode: navigation, evidenceRoot: join(root, 'browser-evidence'), series: literalSeries as PersistentAcceptanceSeries });
+      observer.event('diagnostic.rawProof', { verified: navigationProof });
+    } catch (caught) { navigationProofError = failure(caught); throw caught; }
     phase = 'cleanup';
   } catch (caught) { error = failure(caught); observer.event('diagnostic.error', { phase, ...error }); }
   finally {
@@ -435,6 +738,25 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
     nativeCalls, buildReused, report: report ?? null, series: literalSeries ?? null, cleanup, spawned, preservation, outputRoot,
     observation: trace.observation, progress: progress?.status() ?? null,
     limitation: 'Synthetic fixture on existing candidate bytes; no model/provider, fixed CLI admission, gameplay, media, coding review, accepted or human pass.' };
+  if (navigation) {
+    const normalCleanup = nativeCalls === 1 && opens.length === 1 && opens[0].outcome === 'returned' && stops.length === 1
+      && report?.outcome === 'failed' && report.segments.length === 1 && segment?.outcome === 'failed'
+      && segment.cleanup.browserPid !== null && segment.cleanup.forced === false && segment.cleanup.processExited === true
+      && identity?.exitConfirmed === true && identity.closeEvent === true && segment.steps.every(step => step.outcome === 'skipped')
+      && sameValue(segment.errors, [navigation.expectedReportError()]) && registeredBrowserBeforeCdp(trace, identity?.browserPid)
+      && cleanup.preparationClosed && cleanup.drained && cleanup.controllerClosed && cleanup.locksAbsent && cleanup.processesExited
+      && cleanup.ports.length >= 2 && cleanup.ports.every(port => port.closed) && !cleanup.errors.length && !error;
+    const summary = summarizeNavigationDiagnostic({ state: navigation.snapshot(), nativeContractVerified: navigationProof,
+      normalCleanup: !!normalCleanup, preservation: preservation.unchanged, observationIncomplete: trace.observation.incomplete,
+      openMs: opens[0]?.durationMs ?? null, navigationMs: report?.segments[0]?.report.nativeWaits?.segment.stages[3]?.elapsedMs ?? null });
+    const navigationResult = { ...result, ...summary,
+      startup: { ...startup, outcome: 'failed' as const, reason: 'The original COS93 whole-open 15-second contract remains failed; navigation mode has its own result.' },
+      nativeWaits: report?.nativeWaits ?? null, consumer: navigationEnvelope?.nativeWaits ?? null, envelopeError: navigationProofError ?? null,
+      gameDiagnostics: navigationEnvelope?.diagnostics ?? null,
+      exit: trace.spans.find(span => span.name === 'lifecycle.close') ?? null };
+    await output('trace.json', trace); await output('preservation.json', preservation); await output('result.json', navigationResult);
+    t.diagnostic(`COS93 raw result: ${join(outputRoot, 'result.json')}`); return navigationResult;
+  }
   await output('trace.json', trace); await output('preservation.json', preservation); await output('result.json', result);
   t.diagnostic(`COS93 raw result: ${join(outputRoot, 'result.json')}`);
   return result;
