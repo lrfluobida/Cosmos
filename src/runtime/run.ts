@@ -211,6 +211,14 @@ export class RunController {
 
   async read(): Promise<RunSnapshot> { return this.serial(async () => structuredClone(this.snapshot)); }
 
+  /** Detached scope identity and complete current window, with the same read queue and expiry. */
+  async readValidationScopeAuthority(): Promise<{ runId: string; specVersion: string; ledgerId: string; window: ValidationCaseWindow }> {
+    return this.serial(async () => structuredClone({
+      runId: this.snapshot.run.runId, specVersion: this.snapshot.run.specVersion,
+      ledgerId: this.snapshot.ledger.ledgerId, window: this.validationWindow(),
+    }));
+  }
+
   /** One authority view for all window-aware host admission paths. */
   executionAuthority(taskId: string): Promise<ExecutionAuthority> {
     if (this.snapshot.formatVersion === 3) return Promise.reject(new Error('Validation profile requires validationAuthority; the legacy SDK path is unsupported.'));
