@@ -71,6 +71,17 @@ function nextCount(value: number): number {
   if (!Number.isSafeInteger(value) || value < 0 || value === Number.MAX_SAFE_INTEGER) throw new Error('Native wait counter overflow');
   return value + 1;
 }
+function nativeRecordedCause(owner: ReadOwner, segment: SegmentData | undefined): { error: unknown } | undefined {
+  if (owner.input.controllerSignal?.aborted) return { error: owner.input.controllerSignal.reason };
+  return segment?.firstCauseRaw;
+}
+function nativeError(owner: ReadOwner, segment: SegmentData | undefined, fallback: unknown): unknown {
+  const cause = nativeRecordedCause(owner, segment); return cause ? cause.error : fallback;
+}
+function checkNativeRead(owner: ReadOwner, segment: SegmentData | undefined, ...signals: AbortSignal[]): void {
+  const cause = nativeRecordedCause(owner, segment); if (cause) throw cause.error;
+  owner.input.signal.throwIfAborted(); for (const signal of signals) signal.throwIfAborted();
+}
 
 export class NativeWaitDeadlineError extends DeadlineError {
   readonly stage: NativeWaitStage;
@@ -87,17 +98,15 @@ export function runNativeValidationRead<T>(signal: AbortSignal, start: (signal: 
   const association = readers.get(signal);
   if (!association) return start(signal);
   const { owner, segment } = association;
-  if (owner.input.controllerSignal?.aborted) return Promise.reject(owner.input.controllerSignal.reason);
-  if (owner.input.signal.aborted) return Promise.reject(owner.input.signal.reason);
-  if (signal.aborted) return Promise.reject(signal.reason);
+  const captured = segment ?? owner.current; // A root reader keeps its entry generation for late error selection.
+  try { checkNativeRead(owner, captured, signal); } catch (error) { return Promise.reject(error); }
   const startedCount = nextCount(owner.started);
   const started = owner.input.trackRaw(async ownedSignal => {
-    owner.input.controllerSignal?.throwIfAborted();
-    owner.input.signal.throwIfAborted(); signal.throwIfAborted(); ownedSignal.throwIfAborted();
+    checkNativeRead(owner, captured, signal, ownedSignal);
     const active = associateNativeReadSignal(signal, AbortSignal.any([ownedSignal, signal]));
     return start(active);
   });
-  const operation = owner.input.controllerSignal ? started.catch(error => { owner.input.controllerSignal!.throwIfAborted(); throw error; }) : started;
+  const operation = started.catch(error => { throw nativeError(owner, captured, error); });
   owner.started = startedCount; // Count owned operations, including cancellation before the reader thunk starts.
   owner.raw.add(operation); segment?.raw.add(operation);
   const settled = () => { owner.raw.delete(operation); segment?.raw.delete(operation); owner.settled = nextCount(owner.settled); };
@@ -189,9 +198,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
       life.check();
       record.outcome = 'passed'; return result;
     } catch (caught) {
-      const observed = segment.firstCauseRaw ? segment.firstCauseRaw.error : caught;
-      const error = fixed.controllerSignal?.aborted ? fixed.controllerSignal.reason : fixed.controllerSignal && segment.firstCauseRaw
-        ? observed : fixed.signal.aborted ? fixed.signal.reason : observed;
+      const error = nativeError(owner, segment, fixed.signal.aborted ? fixed.signal.reason : caught);
       record.outcome = 'failed'; segment.state = 'closing';
       rememberNativeFailure(segment, stage, error);
       segment.abort.abort(error); throw error;
@@ -204,7 +211,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
   const waits: NativeValidationWaits = {
     contractVersion: NATIVE_VALIDATION_WAIT_CONTRACT, caseId: fixed.caseId, windowId: fixed.windowId, taskId: fixed.taskId,
     deadlineAt: fixed.deadlineAt, workDeadlineAt, readSignal,
-    checkRead() { fixed.controllerSignal?.throwIfAborted(); fixed.signal.throwIfAborted(); },
+    checkRead() { checkNativeRead(owner, current); },
     startConsumer() {
       fixed.controllerSignal?.throwIfAborted(); fixed.signal.throwIfAborted();
       if (consumerStartedAt !== null) throw new Error('Native consumer already started');
@@ -221,9 +228,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
       current = owner.current = segment; segments.push(segment);
       return Object.freeze({ reportId, generation: segment.generation, snapshot: () => view(segment),
         check() {
-          fixed.controllerSignal?.throwIfAborted();
-          if (fixed.controllerSignal && current === segment && segment.firstCauseRaw) throw segment.firstCauseRaw.error;
-          check(segment); if (segment.firstCauseRaw) throw segment.firstCauseRaw.error;
+          checkNativeRead(owner, segment); check(segment);
         },
         trackRegistration<T>(start: () => Promise<T>): Promise<T> {
           if (current !== segment || segment.registrationTracked || !['registering', 'closing'].includes(segment.state)

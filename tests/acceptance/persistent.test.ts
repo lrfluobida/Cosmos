@@ -8,7 +8,7 @@ import type { Observation } from '../../src/acceptance/plan.ts';
 import type { AcceptanceReport } from '../../src/acceptance/runner.ts';
 import * as api from '../../src/acceptance/persistent.ts';
 import * as consumer from '../../probes/transfer/acceptance.ts';
-import { createNativeValidationWaits, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
+import { createNativeValidationWaits, recordNativeValidationFailure, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 
 const snapshot: Observation = { kind: 'debug', path: ['transfer', 'snapshot'] };
@@ -269,5 +269,21 @@ test('COS97 actual series guard preserves the effective controller reason after 
     const report = await api.executePersistentSeries(series(), { evidenceRoot: root, deadlineAt, signal: work.signal, nativeValidationWaits: waits,
       verifyBinding: async () => { bindings++; } }, async () => { dispatches++; throw new Error('No browser is allowed'); });
     assert.equal(report.outcome, 'failed'); assert.equal(report.errors[0], reason.message); assert.equal(bindings, 0); assert.equal(dispatches, 0);
+  } finally { await work.cancelAndDrain('fixture complete'); await rm(root, { recursive: true, force: true }); }
+});
+
+test('COS97 actual series root guard preserves recorded source before a later work cleanup', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'cos97-root-source-')), controller = new AbortController(), workAbort = new AbortController(), work = new OwnedWork();
+  const deadlineAt = Date.now() + 30000, source = new Error('Original recorded source before series root guard'), cleanup = new Error('Later work cleanup');
+  const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'COS-37', deadlineAt,
+    signal: workAbort.signal, controllerSignal: controller.signal, trackRaw: start => work.run(start) }); waits.startConsumer();
+  const segment = waits.beginSegment('failed-before-series'); let bindings = 0;
+  await assert.rejects(segment.runStage('prepare_authority', async life => {
+    recordNativeValidationFailure(life.signal, source); workAbort.abort(cleanup); throw cleanup;
+  }), error => error === source); await segment.settle(deadlineAt);
+  try {
+    const report = await api.executePersistentSeries(series(), { evidenceRoot: root, deadlineAt, signal: workAbort.signal,
+      nativeValidationWaits: waits, verifyBinding: async () => { bindings++; } }, async () => { throw new Error('No browser is allowed'); });
+    assert.equal(controller.signal.aborted, false); assert.equal(report.errors[0], source.message); assert.equal(bindings, 0);
   } finally { await work.cancelAndDrain('fixture complete'); await rm(root, { recursive: true, force: true }); }
 });

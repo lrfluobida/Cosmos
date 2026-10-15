@@ -15,7 +15,7 @@ import { createTransferDesignValidation } from '../../src/runtime/adapters/trans
 import type { BrowserPreparationContext } from '../../src/runtime/entrypoint-preparation.ts';
 import type { BrowserCandidateConsumerContext } from '../../src/runtime/entrypoint-preparation.ts';
 import { consumeTransferCandidate } from '../../src/runtime/adapters/transfer/runtime-acceptance.ts';
-import { createNativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
+import { createNativeValidationWaits, recordNativeValidationFailure } from '../../src/acceptance/native-validation-waits.ts';
 
 async function api() {
   const result: any = await import('../../probes/transfer/runtime-host.ts').catch(error => {
@@ -254,6 +254,31 @@ test('COS97 complete native host binding and consumer evidence keep the original
     assert.equal(result.nativeWaits?.contractVersion, waits.contractVersion); assert.ok(result.nativeWaits!.consumerElapsedMs > 0);
     assert.ok(result.nativeWaits!.consumerStartedAt <= result.nativeWaits!.consumerEndedAt);
   });
+});
+
+test('COS97 actual consumer root guard preserves recorded source before a later work cleanup', async t => {
+  const f = await pipeline(t), saved = JSON.parse(await readFile(join(f.root, 'host-transfer-prepared-inputs.json'), 'utf8'));
+  const prepared = saved.plans.v1, first = prepared.segments[0], candidate = prepared.binding.candidate, task = { ...f.result[2], taskId: first.plan.taskId };
+  const input: BindInput = { root: f.root, registry: f.registry, frozen: saved.frozen,
+    currentRequirement: { artifact: saved.frozen.requirement, specVersion: saved.frozen.specVersion }, candidate, planArtifact: prepared.artifact,
+    url: first.plan.url, runId: prepared.binding.runId, reportId: first.plan.reportId.slice(0, -('-' + first.id).length), taskId: task.taskId, prepared };
+  const mediaArtifact = f.result[1].artifacts[0], capture = await f.registry.getCapture(mediaArtifact), bytes = await readFile(join(f.root, mediaArtifact.location, 'public/assets/manifest.json'));
+  const workAbort = new AbortController(), source = new Error('Original recorded source before consumer root guard'), cleanup = new Error('Later consumer work cleanup');
+  const waits = createNativeValidationWaits({ caseId: f.window.caseId, windowId: f.window.windowId, taskId: task.taskId,
+    deadlineAt: Date.parse(f.window.deadlineAt), signal: workAbort.signal, controllerSignal: f.controller.signal, trackRaw: start => f.input.work.run(start) });
+  let rootObserved: unknown;
+  await assert.rejects(consumeTransferCandidate({ root: f.root, task, candidate, project: join(f.root, candidate.location),
+    cleanDelivery: { project: join(f.root, candidate.location), url: new URL(first.plan.url).origin, requireCurrent: async () => {} },
+    mediaArtifact, media: capture.metadata.media!, manifestSha256: hash(bytes), signal: workAbort.signal, deadlineAt: waits.deadlineAt, nativeValidationWaits: waits,
+    requireCurrent: async () => {}, playPersistent: async (_series, options) => {
+      const segment = waits.beginSegment('consumer-root');
+      await assert.rejects(segment.runStage('prepare_authority', async life => {
+        recordNativeValidationFailure(life.signal, source); workAbort.abort(cleanup); throw cleanup;
+      }), error => error === source); await segment.settle(waits.deadlineAt);
+      try { await options.verifyBinding(); } catch (error) { rootObserved = error; throw error; }
+      throw new Error('Known source failure must stop the root guard');
+    } }, { input, sourceVersion: 'a'.repeat(40), mount: async () => async () => {} }), error => error === source);
+  assert.equal(rootObserved, source); assert.equal(f.controller.signal.aborted, false);
 });
 
 test('invalid semantic design preserves raw bytes and stops art/coding without claiming coding repair', async t => {

@@ -281,4 +281,12 @@ Origin已审e16e7fa04ba869347a4f9fc25f8797ae4b048f64真实merge为6dcfaf9，无�
 
 日志同TEMP：`final-review-series-{red,green}.tap`、`final-review-timing-{red,green}.tap`、`final-review-http-rounding.tap`、`final-review-publication-regression.tap`；本次有实际源码delta的strict/typecheck/build分别`final-review-strict.log`、`final-review-typecheck.log`、`final-review-build.log`，均明确保存`EXIT=0`并读回。UTF8/noBOM/LF、原中文与diff检查完成后提交同一修订批次给affected复审；actual/browser/715/provider/paid边界保持。
 
+## root 首因组合补正（2026-10-16）
+
+8f77aba4c8833e5be52b9f22c615cb1d30eb646b的三P2复审有效后，独审确认同一首因规则在root checkRead/native reader precheck/catch仍会被晚work cleanup覆盖。仅helper复用私有canonical presence wrapper统一选取：已生效原controller第一，root入口捕获current或phase固定关联segment的原source值第二，晚work/caller cleanup最后；包含undefined/primitive，不能取新generation的原因。checkRead/read precheck/owned thunk/catch及原phase/segment出口共用选择；derived仍只有reader owner，无local invalidation权限，generic无关联默认不变。
+
+实际series root guard RED晚work文本→GREEN1/1、872.5712ms；实际consumer root options.verifyBinding() RED晚cleanup对象→GREEN1/1、16854.823ms，controller仍active且严格保原source Error对象。consumer用有效SOURCE/TEMP固定audit/candidate/media夹具与fake mount/transport，未跑57s整链或浏览器。root reader catch的Error/undefined两子项RED0/3含父；修后连原controller后生效、普通默认、derived旧段不影响新段代表影响组11/11、318.9473ms。只重复本次影响区，原probe/Origin/耗时矩阵复用。
+
+原始日志同TEMP：`root-source-series-{red,green}.tap`、`root-source-consumer-{red,green}.tap`、`root-source-reader-{red,green}.tap`；`root-source-strict.log`、`root-source-typecheck.log`明确保存并读回`EXIT=0`。生产只改native-validation-waits.ts，另外为上述三测试文件与本计划证据；UTF8/noBOM/LF、原中文/diff核验后交affected确认整卡，实际验收和付费边界保持。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

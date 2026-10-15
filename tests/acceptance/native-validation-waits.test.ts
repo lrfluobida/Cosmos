@@ -330,3 +330,25 @@ test('COS97 original controller reason wins once it is effective after an earlie
     await assert.rejects(pending, error => error === source);
   });
 });
+
+test('COS97 root reader catch preserves its captured canonical source including undefined', async t => {
+  for (const source of [new Error('Captured source before root reader cleanup'), undefined]) await t.test(source ? 'Error object' : 'undefined presence', async () => {
+    const controller = new AbortController(), f = fixture(controller.signal), segment = f.waits.beginSegment('reader-root'), cleanup = new Error('Later reader cleanup');
+    const reading = api.runNativeValidationRead(f.waits.readSignal, async () => {
+      await assert.rejects(segment.runStage('prepare_authority', async (life: any) => { api.recordNativeValidationFailure(life.signal, source); throw cleanup; }), error => error === source);
+      f.owner.abort(cleanup); throw cleanup;
+    });
+    await assert.rejects(reading, error => error === source); assert.equal(f.waits.snapshot().rawReads.pending, 0);
+  });
+});
+
+test('COS97 a derived old reader preserves only its captured source and cannot affect a new generation', async () => {
+  const f = fixture(), segment = f.waits.beginSegment('old'), source = new Error('Old captured source'); let previous!: AbortSignal;
+  await assert.rejects(segment.runStage('prepare_authority', async (life: any) => {
+    previous = api.associateNativeReadSignal(life.signal, AbortSignal.any([life.signal])); api.recordNativeValidationFailure(life.signal, source); throw source;
+  }), error => error === source); await segment.settle(f.base + 5000);
+  const next = f.waits.beginSegment('new'), before = next.snapshot(); let calls = 0;
+  await assert.rejects(api.runNativeValidationRead(previous, async () => { calls++; }), error => error === source);
+  assert.equal(calls, 0); assert.equal(api.nativeCallerDisposition(previous, f.waits, source), 'ordinary');
+  api.recordNativeValidationFailure(previous, new Error('Derived cannot invalidate')); f.waits.checkRead(); assert.deepEqual(next.snapshot(), before);
+});
