@@ -50,7 +50,7 @@
 ```powershell
 $env:COS93_DIAGNOSTIC_SOURCE = 'E:/develop/Cosmos'
 $env:COS93_DIAGNOSTIC_HISTORY = 'E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/snapshot-after-case14-supplement.json'
-node --experimental-strip-types --test --test-name-pattern='COS93 actual history native startup' tests/transfer/native-startup-diagnostic.test.ts
+node --experimental-strip-types --experimental-test-module-mocks --test --test-name-pattern='COS93 actual history native startup' tests/transfer/native-startup-diagnostic.test.ts
 Remove-Item Env:COS93_DIAGNOSTIC_SOURCE, Env:COS93_DIAGNOSTIC_HISTORY
 ```
 
@@ -61,10 +61,27 @@ Remove-Item Env:COS93_DIAGNOSTIC_SOURCE, Env:COS93_DIAGNOSTIC_HISTORY
 ## 定向检查与证据复用
 
 ```powershell
-node --experimental-strip-types --test --test-name-pattern='COS93 fixture|COS93 diagnostic stop|COS93 timing' tests/transfer/native-startup-diagnostic.test.ts
+node --experimental-strip-types --test --test-name-pattern='COS93 native factory|COS93 fixture|COS93 diagnostic stop|COS93 timing' tests/transfer/native-startup-diagnostic.test.ts
 npm.cmd run typecheck
 npm.cmd run build
 git diff --check
 ```
 
-上述命令待实现及门禁解除后才运行，当前没有测试通过声明。复用COS92作者/merger已通过的17、59、15、2、1、27项及补充1项，按原卡保留各自范围，不合并成新总数。旧generic fixture四条strict诊断保持；不因本轮文档更动重跑。仅对新源码/fixture差异运行必要检查、严格UTF-8及中文回读。诊断完成不等于15秒启动通过，更不等于COS16/COS18或完整目标游戏完成。
+初次计划提交时尚未执行上述命令；实现后的实际证据见下节。复用COS92作者/merger已通过的17、59、15、2、1、27项及补充1项，按原卡保留各自范围，不合并成新总数。旧generic fixture四条strict诊断保持；不因本轮文档更动重跑。仅对新源码/fixture差异运行必要检查、严格UTF-8及中文回读。诊断完成不等于15秒启动通过，更不等于COS16/COS18或完整目标游戏完成。
+
+## 实现准备与轻检查（尚无真实历史样本）
+
+计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 已获 `cos93_reviewer` 的 `PLAN_APPROVED`，无finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)。Root随后授权代码准备及轻检查，专用测量时段已交COS93，真实历史样本仍须实现diff独审后单次执行。
+
+实现仅把原 `nativeIO` 改名导出为 `createNativeBrowserHostIO`，默认host使用同一函数。fixture保留生产quote3/claim/open、全部原历史及真实C5来源；新35行通过原API记账，不建provider/session。构建回调复用原dist并明确标为synthetic，未运行编译器。停止点及计时helper由实现侧独立helper编写并交回，随后由专职作者整合；此helper工作不替代独立reviewer。
+
+Root批准用Node内建 `mock.module` 透明包装 `runAcceptanceInOwnedSession` 收到的真实lifecycle；原open的起止单列，实际route设置和newPage sentinel在其后。该方式需要上方actual命令的 `--experimental-test-module-mocks`，模块观测差异写入结果；不改生产runner或deadline。短确定性测试实际调用原lifecycle/runner/controller/OwnerLock，只有OS spawn/CDP为测试transport。
+
+| 检查 | 实际结果 | 原始证据 |
+| --- | --- | --- |
+| factory RED | 缺少导出，1fail/0skip，exit1 | `C:/Users/26557/AppData/Local/Temp/cos93-native-factory-red.tap` |
+| helper短GREEN | 4/4、0skip；停止点、正常close/drain、错误保留与独立时钟 | `C:/Users/26557/AppData/Local/Temp/cos93-diagnostic-short.tap` |
+| 整合轻检查 | 6/6、0skip，5952.0068ms，exit0；含原根/缺材料拒绝及无效snapshot在controller/browser前拒绝并保留来源 | `C:/Users/26557/AppData/Local/Temp/cos93-integrated-short.tap` |
+| 生产typecheck/build | 均exit0 | 本轮工具原始输出；没有虚构独立日志文件 |
+
+两个新测试文件strict检查exit0，命令为 `node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --strict --skipLibCheck tests/transfer/native-startup-diagnostic.fixture.ts tests/transfer/native-startup-diagnostic.test.ts`；原始工具输出为空且退出0，不声称有独立日志文件。原预算target/grants拒绝沿用未修改的production API及COS90/COS91已审证据，不为了本诊断重seed历史重复测财务守卫。新增fixture的实际重负载路径仍待独审后首次运行，当前不能宣称TEMP历史准备或15秒启动通过。运行时profile按原生产逻辑保留为新TEMP诊断证据，另核PID退出、精确端口不再监听、owner/drain和原保护集保持；不删除原历史或恢复时间戳。

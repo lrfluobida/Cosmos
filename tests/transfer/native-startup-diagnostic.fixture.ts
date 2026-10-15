@@ -1,0 +1,400 @@
+import assert from 'node:assert/strict';
+import { createHash, randomUUID } from 'node:crypto';
+import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import { syncBuiltinESMExports } from 'node:module';
+import childProcess from 'node:child_process';
+import { createConnection } from 'node:net';
+import { chromium } from '@playwright/test';
+import type { TestContext } from 'node:test';
+import { regularFile, safePath, snapshot, within } from '../../src/artifacts/paths.ts';
+import { sameValue } from '../../src/contracts/validation.ts';
+import { createValidationRequirement } from '../../src/roles/execution-input.ts';
+import { RunController } from '../../src/runtime/run.ts';
+import { validateSnapshot } from '../../src/runtime/run-validation.ts';
+import type { RunSnapshot } from '../../src/runtime/run-types.ts';
+import { prepareValidationCase, verifyOperatorDecision } from '../../src/runtime/validation-window.ts';
+import { verifyValidationBudgetSources } from '../../src/runtime/validation-budget.ts';
+import { validationJournalBinding } from '../../src/runtime/validation-scope.ts';
+import type { ValidationExecutionBinding } from '../../src/runtime/validation-scope.ts';
+import { createHistoricalPassedStages } from '../../src/runtime/historical-passed-stages.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+import { OwnerLock } from '../../src/runtime/recovery/ownership.ts';
+import { TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
+import { publishReceipt } from '../../src/runtime/recovery/receipt-file.ts';
+import { createNativeBrowserHostIO } from '../../src/runtime/entrypoint-host.ts';
+import type { BrowserHostIO } from '../../src/runtime/entrypoint-host.ts';
+import { createTransferReusedConsumerHost } from '../../src/runtime/adapters/transfer/runtime-host.ts';
+import { deriveTransferValidationCaseFourteenDeclaration } from '../../probes/transfer/validation-case-fourteen-declaration.ts';
+import { createTransferCaseFourteenAdmissionQuote, transferCaseFourteenHistoricalAccountingHash, requireTransferCaseFourteenAccountingSources } from '../../probes/transfer/validation-case-fourteen-entry.ts';
+import { captureTransferCaseFourteenSource, requireTransferCaseFourteenSource, requireTransferCaseFourteenTemplate, requireTransferCaseFourteenToolchain } from '../../probes/transfer/validation-case-fourteen-source.ts';
+import { prepareTransferValidationCaseFourteenExecution } from '../../probes/transfer/validation-case-fourteen-task.ts';
+import { fixedTransferValidationInput } from '../../probes/transfer/validation-input.ts';
+import { runChild } from '../../probes/e2e/host.ts';
+import type { PersistentAcceptanceReport } from '../../src/acceptance/persistent.ts';
+
+const CASE = 'cos20-transfer-validation-14', OLD = 'cos20-transfer-validation-5';
+const platform = resolve(fileURLToPath(new URL('../../', import.meta.url)));
+const sha = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
+const decode = (bytes: Uint8Array) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+const failure = (error: unknown) => ({ name: error instanceof Error ? error.name : 'Unknown', message: error instanceof Error ? error.message : String(error) });
+const diagnosticStopMessage = 'Browser startup/execution: DiagnosticStartupComplete: verified native startup reached context.newPage';
+export interface DiagnosticObserver {
+  span<T>(name: string, operation: () => Promise<T>): Promise<T>;
+  event(name: string, data?: unknown): void;
+  snapshot(): { spans: { name: string; startMs: number; endMs: number | null; durationMs: number | null; outcome: string }[]; events: { name: string; atMs: number; data?: any }[]; [key: string]: unknown };
+}
+
+export async function assertDiagnosticWriteRoot(target: string, sourceRepository: string): Promise<void> {
+  assert.ok(isAbsolute(target) && isAbsolute(sourceRepository), 'Explicit absolute diagnostic roots required');
+  assert.ok(!within(sourceRepository, target) && !within(target, sourceRepository), 'Diagnostic writes must be separate from original source');
+  assert.ok(within(tmpdir(), target) && /^cos93-native-startup-/.test(basename(target)), 'Diagnostic writes require a new COS93 TEMP root');
+  assert.equal(await realpath(await safePath(target)), resolve(target));
+  assert.ok((await lstat(target)).isDirectory());
+}
+export async function requireDiagnosticInputs(sourceRepository: string, historySnapshot: string) {
+  assert.ok(isAbsolute(sourceRepository) && isAbsolute(historySnapshot), 'Explicit private source and history paths required');
+  const root = await realpath(await safePath(sourceRepository));
+  assert.ok(within(join(root, '.cosmos/reconciliation'), historySnapshot)
+    && basename(historySnapshot) === 'snapshot-after-case14-supplement.json', 'Exact preclaim history snapshot required');
+  await regularFile(root, relative(root, historySnapshot).split(sep).join('/'));
+  return { sourceRepository: root, historySnapshot: await realpath(historySnapshot) };
+}
+
+/** An allowlist of immutable source bytes. No original restoration or timestamp writes exist. */
+class ProtectedInputs {
+  files = new Map<string, { sha256: string; bytes: number; mtimeNs: string }>();
+  directories = new Map<string, string[]>();
+  async file(path: string) {
+    path = resolve(path); const bytes = await regularFile(dirname(path), basename(path)), info = await stat(path, { bigint: true });
+    const value = { sha256: sha(bytes), bytes: bytes.length, mtimeNs: String(info.mtimeNs) };
+    if (this.files.has(path)) assert.deepEqual(value, this.files.get(path), 'Original source changed during fixture preparation');
+    else this.files.set(path, value);
+    return bytes;
+  }
+  async tree(path: string): Promise<void> {
+    const info = await lstat(path);
+    if (info.isFile()) { await this.file(path); return; }
+    assert.ok(info.isDirectory() && !info.isSymbolicLink(), 'Only independent source directories are read');
+    const names = (await readdir(path)).sort(); this.directories.set(resolve(path), names);
+    for (const name of names) await this.tree(join(path, name));
+  }
+  async check() {
+    const changed: string[] = [];
+    for (const [path, before] of this.files) {
+      try { const bytes = await regularFile(dirname(path), basename(path)), info = await stat(path, { bigint: true });
+        if (sha(bytes) !== before.sha256 || bytes.length !== before.bytes || String(info.mtimeNs) !== before.mtimeNs) changed.push(path);
+      } catch { changed.push(path); }
+    }
+    for (const [path, names] of this.directories) try { if (!sameValue((await readdir(path)).sort(), names)) changed.push(path); } catch { changed.push(path); }
+    return { unchanged: changed.length === 0, changed, files: [...this.files].map(([path, info]) => ({ path, ...info })), directories: [...this.directories].map(([path, names]) => ({ path, names })) };
+  }
+}
+const counts = (state: RunSnapshot) => ({ revision: state.revision, cases: state.validation!.cases.length,
+  delegations: state.ledger.allocationDelegations!.length, closures: state.ledger.allocationClosures!.length,
+  audits: state.allocationClosureDecisions!.length, requests: state.requests.length, entries: state.ledger.entries.length,
+  tasks: state.tasks.length, events: state.events.length, settledMicroCny: state.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny, 0),
+  reservedMicroCny: state.ledger.entries.reduce((sum, entry) => sum + entry.reservedMicroCny, 0), unknown: state.ledger.entries.filter(entry => entry.unknown).length });
+async function closedLoopbackPort(url: string) {
+  const target = new URL(url); assert.equal(target.hostname, '127.0.0.1'); assert.ok(Number(target.port) > 0);
+  return new Promise<{ url: string; closed: boolean; observation: string }>(done => {
+    const socket = createConnection({ host: '127.0.0.1', port: Number(target.port) }); let finished = false;
+    const finish = (closed: boolean, observation: string) => { if (finished) return; finished = true; socket.destroy(); done({ url, closed, observation }); };
+    socket.setTimeout(500, () => finish(false, 'timeout-unproven')); socket.once('connect', () => finish(false, 'still-accepting'));
+    socket.once('error', (error: NodeJS.ErrnoException) => finish(error.code === 'ECONNREFUSED', error.code ?? 'unproved-error'));
+  });
+}
+
+/** Only a full, explicit private-material run calls this. Ordinary tests never create this history. */
+export async function diagnoseNativeStartup(options: { sourceRepository: string; historySnapshot: string; observer: DiagnosticObserver }, t: TestContext) {
+  const { sourceRepository, historySnapshot } = await requireDiagnosticInputs(options.sourceRepository, options.historySnapshot);
+  const observer = options.observer, protectedInputs = new ProtectedInputs(), signal = new AbortController().signal;
+  const outputRoot = await mkdtemp(join(tmpdir(), 'cos93-native-startup-'));
+  await assertDiagnosticWriteRoot(outputRoot, sourceRepository);
+  const repository = join(outputRoot, 'repository'), ledgerRoot = join(repository, '.cosmos/validation-shared'), root = join(repository, '.cosmos/e2e', CASE);
+  const output = async (name: string, value: unknown) => { const path = await safePath(outputRoot, name); await writeFile(path, JSON.stringify(value, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' }); return path; };
+  const git = async (cwd: string, ...args: string[]) => {
+    const result = await runChild('git', ['--no-optional-locks', ...args], { cwd, signal, timeoutMs: 60000 });
+    assert.equal(result.code, 0, `Diagnostic Git ${args[0]} failed: ${result.stderr}`); return result.stdout.trim();
+  };
+  let controller: RunController | undefined, work: OwnedWork | undefined, host: Awaited<ReturnType<typeof createTransferReusedConsumerHost>> | undefined;
+  let report: PersistentAcceptanceReport | undefined, error: ReturnType<typeof failure> | undefined, phase = 'preparation';
+  let before: ReturnType<typeof counts> | undefined, preparedCounts: ReturnType<typeof counts> | undefined, baselineBytes = 0, preparedBytes = 0;
+  const cleanup = { preparationClosed: false, drained: false, controllerClosed: false, locksAbsent: false, processesExited: false,
+    ports: [] as Awaited<ReturnType<typeof closedLoopbackPort>>[], profile: null as null | { path: string; retainedForDiagnosis: true; markerSha256: string; entries: string[] }, errors: [] as ReturnType<typeof failure>[] };
+  const spawned: { pid: number; command: string; exit: boolean; code: number | null; signal: string | null }[] = [];
+  const observedPorts = new Set<string>();
+  let nativeCalls = 0, buildReused = false, sourceSummary: unknown, beforeOriginal: ReturnType<typeof counts> | undefined, literalSeries: unknown;
+  const prepareStart = performance.now();
+  try {
+    const historyBytes = await protectedInputs.file(historySnapshot), baseline: RunSnapshot = decode(historyBytes); validateSnapshot(baseline); baselineBytes = historyBytes.length;
+    before = counts(baseline);
+    assert.deepEqual([before.revision, before.cases, before.delegations, before.closures, before.audits, before.requests, before.tasks], [2966, 21, 13, 105, 19, 680, 45]);
+    assert.ok(baseline.validation!.cases.every(window => window.stopReason)); assert.equal(baseline.ledger.contractVersion, '5.0.0');
+    assert.equal(baseline.allocationSupplementDecisions?.length, 1);
+    const originalLedger = join(sourceRepository, '.cosmos/validation-shared');
+    const current: RunSnapshot = decode(await protectedInputs.file(join(originalLedger, 'snapshot.json'))); validateSnapshot(current); beforeOriginal = counts(current);
+    assert.deepEqual([beforeOriginal.revision, beforeOriginal.requests, beforeOriginal.settledMicroCny, beforeOriginal.reservedMicroCny, beforeOriginal.unknown], [3114, 715, 16901000, 0, 0]);
+    const declaration = deriveTransferValidationCaseFourteenDeclaration(baseline), originalWindow = current.validation!.cases.find(window => window.caseId === CASE)!;
+    assert.ok(originalWindow?.stopReason); assert.deepEqual(originalWindow.quote.declaration, declaration);
+    await protectedInputs.file(join(originalLedger, originalWindow.operatorDecision.source.location));
+    const { sourceSha256: originalDecisionHash, ...originalDecision } = originalWindow.operatorDecision;
+    assert.equal((await verifyOperatorDecision(originalLedger, originalWindow.quote, originalDecision, Date.now())).sourceSha256, originalDecisionHash);
+    const oldAdmissionRef = originalWindow.operatorDecision.sourceRefs.find(ref => ref.artifactId === `${CASE}-admission`)!;
+    assert.ok(oldAdmissionRef); const oldAdmissionBytes = await protectedInputs.file(join(originalLedger, oldAdmissionRef.location));
+    assert.equal(sha(oldAdmissionBytes), oldAdmissionRef.version); const oldAdmission = decode(oldAdmissionBytes);
+    const originalCase = join(sourceRepository, '.cosmos/e2e', CASE), oldRoot = join(sourceRepository, '.cosmos/e2e', OLD);
+    const manifestRef = originalWindow.operatorDecision.sourceRefs.find(ref => ref.artifactId === `${CASE}-historical-stages`)!;
+    assert.ok(manifestRef); const manifestBytes = await protectedInputs.file(join(originalLedger, manifestRef.location)), manifest = decode(manifestBytes);
+    assert.equal(sha(manifestBytes), manifestRef.version); assert.equal(manifest.originalRoot, oldRoot); assert.equal(manifest.captures.length, 7);
+    for (const capture of manifest.captures) {
+      await protectedInputs.file(join(oldRoot, capture.ref.location.slice(0, -'/files'.length), 'capture.json'));
+      await protectedInputs.tree(join(oldRoot, capture.ref.location));
+    }
+    for (const stage of manifest.stages) {
+      for (const name of Object.keys(stage.receipts)) await protectedInputs.file(join(oldRoot, `journal/task-${stage.task.taskId}/${name}.json`));
+      const refs = [...stage.task.inputs, ...stage.task.artifacts, ...stage.task.evidence.map((item: any) => item.source), ...stage.task.context.interfaces];
+      for (const ref of refs) await protectedInputs.tree(join(oldRoot, ref.location));
+    }
+    await protectedInputs.file(join(oldRoot, 'host-transfer-prepared-inputs.json'));
+    const audit = `host-transfer-design-validation/${manifest.stages[0].task.taskId}/${manifest.stages[0].task.attempts[0].attemptId}`;
+    for (const name of ['raw', 'started', 'result']) await protectedInputs.file(join(oldRoot, `${audit}/check-1-${name}.json`));
+    const sourceProject = join(originalCase, `registry/captures/${CASE}-game-source/v1/files`);
+    const originalCandidate = current.tasks.find(task => task.taskId === declaration.grants.coding.taskId)!.artifacts[0];
+    const originalDist = join(originalCase, originalCandidate.location, 'dist');
+    await protectedInputs.tree(sourceProject); await protectedInputs.tree(join(originalCase, originalCandidate.location));
+    const authored = await snapshot(sourceProject); assert.equal(authored.size, 10); assert.equal([...authored.values()].reduce((sum, bytes) => sum + bytes.length, 0), 35771);
+    const head = await git(platform, 'rev-parse', 'HEAD'); assert.equal(await git(platform, 'status', '--porcelain'), '', 'Commit reviewed diagnostic code before real material execution');
+    await git(outputRoot, 'clone', '--local', '--no-hardlinks', '--no-checkout', platform, repository);
+    await git(repository, 'checkout', '-B', 'main', head); await git(repository, 'update-ref', 'refs/remotes/origin/main', head);
+    await mkdir(ledgerRoot, { recursive: true }); await mkdir(root, { recursive: true });
+    await writeFile(join(ledgerRoot, 'snapshot.json'), historyBytes, { flag: 'wx' });
+    const sourceLocations = new Set([...baseline.validation!.cases.map(window => window.operatorDecision.source.location),
+      ...baseline.allocationClosureDecisions!.map(receipt => receipt.operatorDecision.source.location),
+      ...baseline.allocationSupplementDecisions!.map(receipt => receipt.operatorDecision.source.location)]);
+    for (const location of sourceLocations) { const bytes = await protectedInputs.file(join(originalLedger, location)), target = await safePath(ledgerRoot, location); await mkdir(dirname(target), { recursive: true }); await writeFile(target, bytes, { flag: 'wx' }); }
+    await writeFile(await safePath(ledgerRoot, manifestRef.location), manifestBytes, { flag: 'wx' });
+    await requireTransferCaseFourteenAccountingSources(ledgerRoot, baseline, signal); await verifyValidationBudgetSources(ledgerRoot, baseline);
+    const execution = await captureTransferCaseFourteenSource(signal);
+    for (const file of [...execution.files, execution.platformLock, ...execution.dependencies.flatMap(item => [{ path: item.entry }, { path: item.path }, ...item.files])]) await protectedInputs.file(file.path);
+    sourceSummary = { head, executionSha256: execution.sha256, executionFiles: execution.files.length,
+      dependencies: execution.dependencies.map(item => ({ name: item.name, version: item.version, files: item.files.length })), node: process.version,
+      instrumentation: 'node:test mock.module wraps real runner/lifecycle; production source bytes are unchanged except native IO factory export' };
+    const toolchain = join(root, 'toolchain'); await mkdir(toolchain);
+    for (const file of declaration.inputs.template.files) {
+      const name = file.path.slice('templates/2d/'.length), bytes = await protectedInputs.file(join(platform, file.path)), target = await safePath(toolchain, name);
+      await mkdir(dirname(target), { recursive: true }); await writeFile(target, bytes, { flag: 'wx' });
+    }
+    // Copy only the actual executable closure and licenses used by unchanged production checks.
+    const copyTool = async (source: string, target: string) => { const bytes = await protectedInputs.file(source); await safePath(outputRoot, relative(outputRoot, target).split(sep).join('/')); await mkdir(dirname(target), { recursive: true }); await writeFile(target, bytes, { flag: 'wx' }); };
+    for (const tool of execution.toolchain.tools) {
+      const target = join(toolchain, 'node_modules', tool.name); await copyTool(tool.path, join(target, 'package.json'));
+      for (const file of tool.files) await copyTool(join(dirname(tool.path), file.relative), join(target, file.relative));
+    }
+    for (const name of ['phaser', 'eventemitter3']) {
+      const source = await realpath(join(platform, 'templates/2d/node_modules', name)), target = join(toolchain, 'node_modules', name);
+      await copyTool(join(source, 'package.json'), join(target, 'package.json'));
+      for (const name of (await readdir(source)).filter(file => /^licen[sc]e(?:\.[a-z]+)?$/i.test(file))) await copyTool(join(source, name), join(target, name));
+      if (name === 'phaser') for (const file of ['src/geom/polygon/Earcut.js', 'src/geom/polygon/Simplify.js', 'src/physics/matter-js/lib/license.js', 'src/polyfills/AudioContextMonkeyPatch.js']) await copyTool(join(source, file), join(target, file));
+    }
+    const historicalRaw = createHistoricalPassedStages({ originalRoot: oldRoot, targetRoot: root,
+      expected: { caseId: manifest.caseId, windowId: manifest.windowId, reviewedPlatformSha: manifest.reviewedPlatformSha, frozenCaseInputHash: manifest.frozenCaseInputHash,
+        designTaskId: manifest.stages[0].task.taskId, artTaskId: manifest.stages[1].task.taskId }, manifestRef,
+      readManifest: async readSignal => { readSignal.throwIfAborted(); return regularFile(ledgerRoot, manifestRef.location); } });
+    const historical = { ...historicalRaw, verify: (readSignal: AbortSignal) => observer.span('history.verify', () => historicalRaw.verify(readSignal)) };
+    const fixed = fixedTransferValidationInput(declaration), frozen = await fixed.readTransferValidationInput(repository);
+    const readIdentity = fixed.createTransferValidationIdentityReader({ repository, reviewedPlatformSha: head });
+    const sourceIdentity = async (readSignal: AbortSignal) => {
+      await observer.span('identity.source', () => requireTransferCaseFourteenSource(execution, readSignal));
+      await observer.span('identity.template', () => requireTransferCaseFourteenTemplate(execution, repository, readSignal));
+      await observer.span('identity.accounting', () => requireTransferCaseFourteenAccountingSources(ledgerRoot, baseline, readSignal));
+      return observer.span('identity.git-fixed-input', () => readIdentity(readSignal));
+    };
+    const context = { root: ledgerRoot, repositoryRoot: repository, identityReader: sourceIdentity };
+    const quote = await prepareValidationCase({ ...context, declaration });
+    const mapping = decode(await regularFile(repository, 'docs/specs/github-issues.json')), approvals = oldAdmission.sourceApprovals;
+    assert.ok(Array.isArray(approvals) && approvals.length > 0);
+    for (const approved of approvals) {
+      const rows = mapping.tasks.filter((item: any) => item.taskId === approved.taskId); assert.equal(rows.length, 1);
+      assert.deepEqual({ taskId: rows[0].taskId, reviewedCommit: rows[0].reviewedCommit, mergeCommit: rows[0].mergeCommit }, approved);
+    }
+    for (const ancestor of new Set([...baseline.validation!.cases.map(window => window.quote.identity.reviewedPlatformSha),
+      ...approvals.flatMap((item: any) => [item.reviewedCommit, item.mergeCommit])])) await git(repository, 'merge-base', '--is-ancestor', ancestor as string, head);
+    const admission = createTransferCaseFourteenAdmissionQuote(quote, manifestRef, approvals, execution, transferCaseFourteenHistoricalAccountingHash(baseline, quote));
+    const admissionBytes = Buffer.from(JSON.stringify(admission, null, 2) + '\n'), admissionRef = { artifactId: `${CASE}-admission`, version: sha(admissionBytes), location: `${CASE}-admission-${admission.admissionId}.json` };
+    await writeFile(join(ledgerRoot, admissionRef.location), admissionBytes, { flag: 'wx' });
+    const key = `COS93-fixture-${randomUUID()}`, decision = { kind: 'operator_validation' as const, decisionId: key, actorId: 'COS93-offline-fixture', decidedAt: new Date().toISOString(),
+      source: { artifactId: key, version: 'synthetic-only', location: `${key}.json` }, sourceRefs: [manifestRef, admissionRef] };
+    await publishReceipt(join(ledgerRoot, decision.source.location), { formatVersion: 'operator-validation-decision-1', ...decision, source: undefined, quote });
+    const window = await RunController.claimValidationCase({ ...context, quote, decision });
+    const verifyAdmission = async () => { assert.deepEqual(await regularFile(ledgerRoot, admissionRef.location), admissionBytes, 'Current admission changed'); };
+    const scopeIdentity = async (readSignal: AbortSignal) => { const identity = await sourceIdentity(readSignal); await historical.verify(readSignal); await verifyAdmission(); return identity; };
+    controller = await RunController.openValidationCase({ ...context, caseId: CASE, windowId: window.windowId, identityReader: scopeIdentity });
+    work = new OwnedWork(controller.signal);
+    const currentController = controller, currentWork = work;
+    const frozenBytes = await regularFile(repository, declaration.inputs.requirements.path); await mkdir(join(root, 'requirements')); await writeFile(join(root, 'requirements/fixed.json'), frozenBytes, { flag: 'wx' });
+    const sources = [{ artifactId: `${CASE}-input`, version: declaration.inputs.requirements.version, location: 'requirements/fixed.json' }];
+    const requirement = createValidationRequirement({ specVersion: frozen.requirements.specVersion, sources, acceptance: frozen.requirements.preparation.acceptance,
+      validation: { runId: quote.basis.runId, ledgerId: quote.basis.ledgerId, caseId: CASE, windowId: window.windowId, ...quote.identity, decision } });
+    const ownSource = async (readSignal: AbortSignal) => {
+      readSignal.throwIfAborted(); await verifyAdmission(); assert.ok(window.operatorDecision.sourceRefs.some(ref => sameValue(ref, admissionRef)));
+      assert.deepEqual(createTransferCaseFourteenAdmissionQuote(window.quote, manifestRef, approvals, execution, admission.accountingSha256), admission);
+      await observer.span('scope.source', () => requireTransferCaseFourteenSource(execution, readSignal));
+      await observer.span('scope.template', () => requireTransferCaseFourteenTemplate(execution, repository, readSignal));
+      await observer.span('scope.toolchain', () => requireTransferCaseFourteenToolchain(execution, root, readSignal));
+      const state = await currentController.read();
+      assert.equal(transferCaseFourteenHistoricalAccountingHash(state, window.quote), admission.accountingSha256);
+      assert.deepEqual(deriveTransferValidationCaseFourteenDeclaration(state), declaration);
+      await observer.span('scope.accounting', () => requireTransferCaseFourteenAccountingSources(ledgerRoot, state, readSignal));
+    };
+    const validation: ValidationExecutionBinding = { caseId: CASE, windowId: window.windowId, historicalManifest: { reference: manifestRef, readBytes: historical.readManifest },
+      readScope: readSignal => observer.span('scope.read', async () => {
+        currentController.requireValidationCase(CASE, window.windowId); assert.equal(historical.originalRoot, oldRoot); assert.equal(historical.targetRoot, root);
+        assert.ok(window.operatorDecision.sourceRefs.some(ref => sameValue(ref, manifestRef)));
+        assert.equal(sha(await historical.readManifest(readSignal)), manifestRef.version);
+        await historical.verify(readSignal); await ownSource(readSignal);
+        const identity = await observer.span('scope.git-fixed-input', () => readIdentity(readSignal)), observed = await fixed.readTransferValidationInput(repository);
+        assert.deepEqual(identity, window.quote.identity); assert.deepEqual(observed.manifest, frozen.manifest);
+        assert.deepEqual(await regularFile(root, 'requirements/fixed.json'), await regularFile(repository, declaration.inputs.requirements.path));
+        for (const file of declaration.inputs.template.files) assert.deepEqual(await regularFile(root, 'toolchain/' + file.path.slice('templates/2d/'.length)), await regularFile(repository, file.path));
+        const { sourceSha256, source, ...currentDecision } = window.operatorDecision, operatorReceipt = await regularFile(ledgerRoot, source.location);
+        assert.equal(sha(operatorReceipt), sourceSha256); assert.deepEqual(decode(operatorReceipt), { formatVersion: 'operator-validation-decision-1', ...currentDecision, quote: window.quote });
+        readSignal.throwIfAborted(); return { requirement, operatorReceipt };
+      }) };
+    const native = createNativeBrowserHostIO({ root, controller, work });
+    const io: BrowserHostIO = { ...native,
+      async build(project) { assert.ok(within(root, project)); await cp(originalDist, join(project, 'dist'), { recursive: true, errorOnExist: true, force: false }); buildReused = true;
+        return { passed: true, work: project, diagnostics: 'COS93 synthetic fixture: sealed original dist reused; no compiler or game generation executed.' }; },
+      async playPersistent(series, input, authority) {
+        nativeCalls++; assert.equal(nativeCalls, 1, 'Only one actual startup sample is allowed'); assert.equal(series.segments.length, 8);
+        assert.equal(series.segments.reduce((sum, segment) => sum + segment.plan.steps.length, 0), 220);
+        literalSeries = structuredClone(series); observer.event('measurement.start', { preparationMs: performance.now() - prepareStart }); phase = 'nativeIO';
+        const verifyBinding = () => observer.span('consumer.verifyBinding', input.verifyBinding);
+        report = await observer.span('nativeIO.playPersistent', () => native.playPersistent!(series, { ...input, verifyBinding }, authority));
+        assert.deepEqual(series, literalSeries); return report;
+      } };
+    host = await createTransferReusedConsumerHost({ root, controller, work, requirement, proposal: frozen.requirements.preparation, validation, historicalStages: historical, resume: false, io,
+      sessionFactory: async () => { throw new Error('COS93 must never create a model session'); } });
+    const prepared = (await prepareTransferValidationCaseFourteenExecution({ state: await controller.read(), window, requirement, host,
+      historical: await historical.verify(work.signal), root, manifestRef, capability: host.capability, signal: work.signal }, false)).tasks[0];
+    await host.bindPreparedTasks([prepared]); await controller.registerTasks([prepared.task]);
+    const journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, { formatVersion: 3, validationCase: validationJournalBinding(window),
+      runId: baseline.run.runId, ledgerId: baseline.ledger.ledgerId, originalStartedAt: baseline.run.originalStartedAt, originalDeadlineAt: baseline.run.originalDeadlineAt,
+      limitMicroCny: baseline.ledger.limitMicroCny, requirement, prepared, reviewProtocolCorrections: 1, artifactRoot: root, sessionRoot: join(root, 'sessions') }, false);
+    const task = structuredClone(prepared.task); task.state = 'ready'; await controller.saveTask(task, { role: 'system', actorId: 'COS93-fixture' });
+    await host.preAuthor!(task, work.signal); task.state = 'running'; const attemptId = randomUUID();
+    task.attempts = [{ attemptId, sessionRef: join(root, 'sessions', attemptId), startedAt: new Date().toISOString(), endedAt: null, outcome: 'running', failure: null }];
+    await controller.saveTask(task, { role: 'system', actorId: 'COS93-fixture' });
+    for (const [name, bytes] of authored) { const target = await safePath(prepared.workspace, 'authors/coding/' + name); await mkdir(dirname(target), { recursive: true }); await writeFile(target, bytes, { flag: 'wx' }); }
+    const requests = current.requests.filter(item => item.validation?.caseId === CASE); assert.equal(requests.length, 35);
+    await publishReceipt(join(ledgerRoot, 'COS93-accounting-only-no-provider.json'), { formatVersion: 'cos93-synthetic-accounting/1', providerCalls: 0,
+      explanation: 'The following amounts reproduce sealed C14 accounting workload in this TEMP fixture; they are not new charges.',
+      originalSnapshotSha256: protectedInputs.files.get(join(originalLedger, 'snapshot.json'))?.sha256,
+      rows: requests.map((request, index) => ({ requestId: `${key}-${index}`, originalRequestId: request.requestId,
+        settledMicroCny: current.ledger.entries.find(entry => entry.requestId === request.requestId)!.settledMicroCny })) });
+    for (const [index, request] of requests.entries()) {
+      const entry = current.ledger.entries.find(entry => entry.requestId === request.requestId)!; assert.equal(entry.status, 'settled'); assert.ok(request.admittedAt);
+      const validation = { ...request.validation!, windowId: window.windowId }, requestId = `${key}-${index}`;
+      const estimatedMaxCostMicroCny = Math.max(entry.settledMicroCny, (validation.hasImages ? 1000000 : validation.inputBytes) * 2 + validation.maxOutputTokens * 8);
+      await controller.reserve({ requestId, taskId: task.taskId, provider: entry.provider, pricingVersion: entry.pricingVersion, estimatedMaxCostMicroCny, validation });
+      await controller.admit(requestId); await controller.settle(requestId, entry.settledMicroCny, [{ artifactId: requestId, version: 'synthetic-accounting', location: 'COS93-accounting-only-no-provider.json' }]);
+    }
+    const proposal = { summary: 'COS93 copied sealed C14 candidate bytes as synthetic fixture input; no generation', remaining: [], uncertainty: [] };
+    await journal.write('author', attemptId, { proposal, signature: await journal.signature(task.inputs) });
+    await journal.write('capture-started', attemptId, { startedAt: new Date().toISOString() });
+    const captured = await host.capture(task, proposal, work.signal); await journal.write('capture', attemptId, { captured, signature: await journal.signature(captured.artifacts) });
+    task.artifacts = captured.artifacts; await controller.saveTask(task, { role: 'system', actorId: 'COS93-fixture' });
+    preparedCounts = counts(await controller.read()); preparedBytes = (await readFile(join(ledgerRoot, 'snapshot.json'))).length;
+    assert.deepEqual([preparedCounts.cases, preparedCounts.delegations, preparedCounts.closures, preparedCounts.audits, preparedCounts.requests, preparedCounts.tasks], [22, 14, 105, 19, 715, 46]);
+    assert.deepEqual([preparedCounts.settledMicroCny, preparedCounts.reservedMicroCny, preparedCounts.unknown], [16901000, 0, 0]);
+    await output('prepared.json', { kind: 'synthetic-accounting-and-candidate-only', sourceSummary, before, preparedCounts, baselineBytes, preparedBytes,
+      original: beforeOriginal, oldRoot, currentRoot: root, ledgerRoot, sourceProject, originalDist, manifestRef, admissionRef, windowId: window.windowId,
+      limitation: 'Original historical roots remain read-only; fixture composes production guards and does not execute the fixed CLI entry.' });
+    // Observe the real queues and persistence. No callback becomes an authorization substitute.
+    const initialOwner = decode(await readFile(join(ledgerRoot, '.controller.lock')));
+    observer.event('owner.acquired', { root: ledgerRoot, name: '.controller.lock', untrackedWriters: initialOwner.untrackedWriters });
+    const acquire = OwnerLock.acquire.bind(OwnerLock);
+    t.mock.method(OwnerLock, 'acquire', async (...args: Parameters<typeof acquire>) => {
+      const owner = await acquire(...args), actual = decode(await readFile(join(args[0], args[1])));
+      observer.event('owner.acquired', { root: args[0], name: args[1], untrackedWriters: actual.untrackedWriters }); return owner;
+    });
+    for (const [prototype, name] of [[RunController.prototype, 'controller'], [OwnerLock.prototype, 'owner']] as const) {
+      const original = (prototype as any).serial;
+      t.mock.method(prototype as any, 'serial', function (this: unknown, action: () => Promise<unknown>) {
+        return observer.span(`${name}.queue`, () => original.call(this, () => observer.span(`${name}.execute`, action)));
+      });
+    }
+    for (const name of ['prepareOwnedChild', 'registerOwnedChild', 'releaseUnspawnedChild'] as const) {
+      const original = currentController[name].bind(currentController) as (...args: any[]) => Promise<any>;
+      t.mock.method(currentController, name, (...args: any[]) => observer.span(`controller.${name}`, async () => {
+        const value = await original(...args); observer.event(`controller.${name}.done`, { args, value }); return value;
+      }) as any);
+    }
+    const originalSave = (OwnerLock.prototype as any).save;
+    t.mock.method(OwnerLock.prototype as any, 'save', function (this: unknown, record: any) {
+      return observer.span('owner.persist', async () => { const result = await originalSave.call(this, record); observer.event('owner.record', { untrackedWriters: record.untrackedWriters, children: record.children }); return result; });
+    });
+    const spawn = childProcess.spawn;
+    t.mock.method(childProcess, 'spawn', function (...args: Parameters<typeof spawn>) {
+      const started = performance.now(), child = spawn(...args);
+      observer.event('os.spawn', { command: args[0], pid: child.pid ?? null, callMs: performance.now() - started });
+      if (child.pid) { const record = { pid: child.pid, command: args[0], exit: false, code: null as number | null, signal: null as string | null }; spawned.push(record);
+        child.once('close', (code, signal) => { Object.assign(record, { exit: true, code, signal }); observer.event('os.close', record); }); }
+      return child;
+    } as typeof spawn); syncBuiltinESMExports();
+    const connect = chromium.connectOverCDP.bind(chromium);
+    t.mock.method(chromium, 'connectOverCDP', (...args: Parameters<typeof connect>) => observer.span('cdp.connect', async () => {
+      if (typeof args[0] === 'string') observedPorts.add(new URL(args[0]).origin);
+      const browser = await connect(...args), session = browser.newBrowserCDPSession.bind(browser);
+      t.mock.method(browser, 'newBrowserCDPSession', async () => { const cdp = await session(), send = cdp.send.bind(cdp);
+        t.mock.method(cdp, 'send', ((method: string, params: any) => observer.span(`cdp.${method}`, () => (send as any)(method, params))) as any); return cdp; });
+      return browser;
+    }));
+    await observer.span('host.verify', () => host!.verify(task, currentWork.signal));
+    phase = 'cleanup';
+  } catch (caught) { error = failure(caught); observer.event('diagnostic.error', { phase, ...error }); }
+  finally {
+    const finish = async (name: keyof typeof cleanup, action: () => Promise<unknown>) => { try { await observer.span(`cleanup.${name}`, action); (cleanup as any)[name] = true; } catch (caught) { cleanup.errors.push(failure(caught)); } };
+    if (host) await finish('preparationClosed', () => host!.closePreparation());
+    if (work) await finish('drained', () => work!.cancelAndDrain('COS93 diagnostic completed; synthetic fixture only'));
+    if (controller) { await finish('controllerClosed', async () => { await controller!.stop('COS93 synthetic diagnostic; no game acceptance or provider'); await controller!.close(); }); }
+    const locks = [join(ledgerRoot, '.controller.lock'), join(ledgerRoot, '.controller.lock.recovery'), join(root, 'registry/.commit.lock'), join(root, 'registry/.commit.lock.recovery')];
+    try { cleanup.locksAbsent = (await Promise.all(locks.map(path => lstat(path).then(() => false, (e: NodeJS.ErrnoException) => { if (e.code === 'ENOENT') return true; throw e; })))).every(Boolean); }
+    catch (caught) { cleanup.errors.push(failure(caught)); }
+    cleanup.processesExited = spawned.every(item => { try { process.kill(item.pid, 0); return false; } catch (e) { return item.exit && (e as NodeJS.ErrnoException).code === 'ESRCH'; } });
+    const urls = new Set(observedPorts);
+    for (const path of [join(root, 'host-transfer-origin.json'), join(root, `evidence/${CASE}-coding/delivery-check.json`)]) {
+      try { const receipt = decode(await readFile(path)); if (receipt.url) urls.add(new URL(receipt.url).origin); }
+      catch (caught) { if ((caught as NodeJS.ErrnoException).code !== 'ENOENT') cleanup.errors.push(failure(caught)); }
+    }
+    if (report?.profileRoot) try {
+      assert.ok(within(tmpdir(), report.profileRoot) && basename(report.profileRoot).startsWith('cosmos-browser-'));
+      cleanup.profile = { path: report.profileRoot, retainedForDiagnosis: true, markerSha256: sha(await regularFile(report.profileRoot, '.owner')), entries: (await readdir(report.profileRoot)).sort() };
+    } catch (caught) { cleanup.errors.push(failure(caught)); }
+    for (const url of urls) try { cleanup.ports.push(await closedLoopbackPort(url)); } catch (caught) { cleanup.errors.push(failure(caught)); }
+    // Restoring the test mock does not modify source files; keep ESM builtins on the real spawn.
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+  const preservation = await protectedInputs.check(), trace = observer.snapshot();
+  const opens = trace.spans.filter(span => span.name === 'lifecycle.open'), stops = trace.events.filter(event => event.name === 'diagnostic.stop');
+  const segment = report?.segments[0]?.report, identity = segment?.session;
+  const registration = trace.events.find(event => event.name === 'controller.registerOwnedChild.done' && event.data?.args[0] === identity?.browserPid);
+  const cdp = trace.spans.find(span => span.name === 'cdp.connect');
+  const startupPassed = nativeCalls === 1 && opens.length === 1 && opens[0].outcome === 'returned' && opens[0].durationMs !== null && opens[0].durationMs <= 15000
+    && stops.length === 1 && report?.outcome === 'failed' && report.segments.length === 1 && segment?.outcome === 'failed'
+    && segment.cleanup.browserPid !== null && segment.cleanup.forced === false && segment.cleanup.processExited === true
+    && identity?.exitConfirmed === true && identity.closeEvent === true && segment.steps.every(step => step.outcome === 'skipped')
+    && sameValue(segment.errors, [diagnosticStopMessage]) && registration && cdp && registration.atMs <= cdp.startMs
+    && cleanup.preparationClosed && cleanup.drained && cleanup.controllerClosed && cleanup.locksAbsent && cleanup.processesExited
+    && cleanup.ports.length >= 2 && cleanup.ports.every(port => port.closed) && preservation.unchanged && !cleanup.errors.length && !error;
+  const result = { formatVersion: 'cos93-native-startup-diagnostic/1', outcome: nativeCalls === 1 && opens.length === 1 && preservation.unchanged && cleanup.errors.length === 0 ? 'diagnostic_completed' : 'diagnostic_incomplete',
+    startup: { outcome: startupPassed ? 'passed' : 'failed', reason: startupPassed ? 'Single original-limit open, exact diagnostic stop, PID/CDP identity and normal cleanup proved' : 'Startup or cleanup was not fully proved; inspect trace and failed report',
+      open: opens[0] ?? null, stop: stops[0] ?? null }, phase, error: error ?? null, sourceSummary, counts: { before, prepared: preparedCounts, original: beforeOriginal },
+    nativeCalls, buildReused, report: report ?? null, series: literalSeries ?? null, cleanup, spawned, preservation, outputRoot,
+    limitation: 'Synthetic fixture on existing candidate bytes; no model/provider, fixed CLI admission, gameplay, media, coding review, accepted or human pass.' };
+  await output('trace.json', trace); await output('preservation.json', preservation); await output('result.json', result);
+  t.diagnostic(`COS93 raw result: ${join(outputRoot, 'result.json')}`);
+  return result;
+}

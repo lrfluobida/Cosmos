@@ -1,8 +1,8 @@
 # COS-93 真实历史负载下的原生浏览器启动诊断
 
-状态：计划待独审；未执行计时诊断。Issue [#94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，父 #1，原生子项计数93；依赖 COS52/COS56/COS91/COS92。任务来源为 Root 的私有 `cos93-issue-body.md` 与 `cos93-published.json`，位于 `E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/`。
+状态：计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 经 `cos93_reviewer` 独审 `PLAN_APPROVED`，无finding；[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)。实现准备中，尚未执行真实历史计时诊断。Issue [#94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，父 #1，原生子项计数93；依赖 COS52/COS56/COS91/COS92。任务来源为 Root 的私有 `cos93-issue-body.md` 与 `cos93-published.json`，位于 `E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/`。
 
-专职作者 `cos93_implementer`，独立 reviewer 与唯一 merger 由 Root 指派。分支 `codex/cos93-native-startup-diagnostic`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`；从指定主线 `61d13817ca871d2be04576b4d6fb51fa8a86b541` 建立，旧 COS92 工作树干净且 HEAD 是该主线祖先。当前只提交本卡和[实施计划](../plans/2026-10-15-cos93-native-startup-diagnostic.md)，独审和 Root 测量门禁解除后才实施、运行；作者不改 main、共享 tracking 或 GitHub。
+专职作者 `cos93_implementer`，独立 reviewer `cos93_reviewer`，唯一 merger 由 Root 指派。分支 `codex/cos93-native-startup-diagnostic`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`；从指定主线 `61d13817ca871d2be04576b4d6fb51fa8a86b541` 建立，旧 COS92 工作树干净且 HEAD 是该主线祖先。首阶段只提交本卡和[实施计划](../plans/2026-10-15-cos93-native-startup-diagnostic.md)；当前按批准计划准备实现，具体diff独审后才执行真实历史样本。作者不改 main、共享 tracking 或 GitHub。
 
 ## 事实与问题
 
@@ -40,6 +40,8 @@ COS92 作者批准提交 `ffa0ce2918735f5b21b22c4373a390b156e63d33`，合入 `e7
 为只启动一次，保留consumer的原series与绑定，在测试专有的 `context.newPage` 接缝于真实CDP身份验证完成、lifecycle返回后抛出明确的 `DiagnosticStartupComplete`。它不改变启动前guard，不取消启动、不修改15秒，也不执行玩法步骤；runner按普通异常进行正常 `Browser.close`，后续segment不运行。整体验收报告预期failed，诊断分别记录“启动是否在原界限内完成”“预定停止点是否到达”“清理是否完成”，不得将该报告转换成游戏通过。只有真实PID登记、CDP/profile身份、15秒内open、正常close和drain均被证实，独立startup结论才为passed；测试停止点必须独审确认可达且发生于身份验证之后。
 
 计时使用单调时钟，记录UTC对应点；透明包装只记录事件并调用原函数，保持参数、返回值、错误和串行顺序。区分nativeIO入口到返回、原15秒 `lifecycle.open` 区间、binding各次调用、identity/source/accounting/history、controller和OwnerLock的排队/执行、意图持久化、spawn/PID登记、CDP连接/身份、正常或强制退出、drain/owner关闭。嵌套区间不能相加当总耗时，准备和组件独立样本不能代替整链；未到达的阶段写null及原因。
+
+Root已批准测试专有的Node `mock.module` 观测方式：在fixture/nativeIO导入前，透明包装runner接收的真实lifecycle，分别包裹原 `open`/`close`，再调用原runner。命令需 `--experimental-test-module-mocks`；不改生产生命周期代码。`open` 的返回点独立记录，后续route setup与newPage另计，不能以停止点时间替代open。此mock与实验旗标均列为相对生产运行的差异。已构建dist复用是合成fixture的准备步骤，不代表本轮正式编译通过。
 
 一个真实样本足以给出本机诊断，不做热身或多次重跑直到通过。失败时记录超时边界、迟到prepare/ticket最终状态、保留的cleanup错误；15秒失败不授权放宽时限、来源守卫或跨操作缓存。先依据实际结果提出最小后续方向交独审。
 
