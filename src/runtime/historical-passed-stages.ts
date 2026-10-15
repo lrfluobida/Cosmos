@@ -58,8 +58,8 @@ function capturePath(ref: ArtifactReference): string {
   const path = `registry/captures/${ref.artifactId}/${ref.version}`;
   requireThat(ref.location === path + '/files', 'capture has a foreign registry location'); return path;
 }
-async function optional(root: string, path: string): Promise<Buffer | null> {
-  try { return await regularFile(root, path); }
+async function optional(root: string, path: string, signal?: AbortSignal): Promise<Buffer | null> {
+  try { return await regularFile(root, path, signal); }
   catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
 }
 
@@ -80,6 +80,7 @@ export function createHistoricalPassedStages(input: {
   }
   async function verify(signal: AbortSignal): Promise<VerifiedHistoricalStages> {
     const bytes = await readManifest(signal), value = decode(bytes) as HistoricalPassedManifest;
+    signal.throwIfAborted();
     keys(value, ['formatVersion', 'originalRoot', ...Object.keys(expected), 'requirement', 'stages', 'captures', 'preparedSha256', 'designAudit'], 'manifest');
     requireThat(value.formatVersion === 'historical-passed-stages/1' && value.originalRoot === originalRoot
       && Object.entries(expected).every(([key, item]) => value[key as keyof HistoricalSourceIdentity] === item)
@@ -96,7 +97,8 @@ export function createHistoricalPassedStages(input: {
     const signature = async (refs: ArtifactReference[], journal: TaskJournal): Promise<ContentSignature> => {
       const locations = [...new Set(refs.map(ref => ref.location))].sort();
       await Promise.all(locations.map(async location => {
-        if (!signatures.has(location)) signatures.set(location, (await journal.signature([refs.find(ref => ref.location === location)!]))[0]);
+        signal.throwIfAborted();
+        if (!signatures.has(location)) signatures.set(location, (await journal.signature([refs.find(ref => ref.location === location)!], signal))[0]);
       }));
       return locations.map(location => signatures.get(location)!);
     };
@@ -104,15 +106,16 @@ export function createHistoricalPassedStages(input: {
       requireThat(sameValue(fixed, await signature(refs, journal)), 'fixed historical signature content changed');
     };
     for (const item of value.captures) {
+      signal.throwIfAborted();
       keys(item, ['ref', 'manifestSha256', 'signature'], 'capture proof'); digest(item.manifestSha256);
-      const path = capturePath(item.ref), raw = await regularFile(originalRoot, path + '/capture.json');
+      const path = capturePath(item.ref), raw = await regularFile(originalRoot, path + '/capture.json', signal);
       requireThat(sha(raw) === item.manifestSha256, 'capture manifest bytes changed');
       const capture = decode(raw) as Capture;
       keys(capture, ['taskId', 'artifactRef', 'sourceRoot', 'files', 'ownership', 'metadata', 'dependencies', 'capturedAt'], 'canonical capture');
       requireThat(sameValue(capture.artifactRef, item.ref) && Array.isArray(capture.files) && capture.files.length > 0
         && Array.isArray(capture.dependencies), 'capture identity or inventory changed');
       noConflicts(capture.files.map(file => file.destination));
-      const files = await snapshot(join(originalRoot, item.ref.location)); captureFiles.set(item.ref.location, files);
+      const files = await snapshot(join(originalRoot, item.ref.location), signal); captureFiles.set(item.ref.location, files);
       signatures.set(item.ref.location, { location: item.ref.location, files: [...files].sort(([a], [b]) => a.localeCompare(b)).map(([path, bytes]) => ({ path, sha256: sha(bytes) })) });
       requireThat(sameValue([...files.keys()].sort(), capture.files.map(file => file.destination).sort()), 'capture file inventory changed');
       captures.push(capture);
@@ -121,6 +124,7 @@ export function createHistoricalPassedStages(input: {
     for (const capture of captures) for (const ref of capture.dependencies) requireThat(captures.some(item => sameValue(item.artifactRef, ref)), 'capture dependency closure is incomplete');
     let designOrigin!: RecoveryOrigin;
     for (const [index, stage] of value.stages.entries()) {
+      signal.throwIfAborted();
       keys(stage, ['role', 'task', 'receipts'], 'stage'); keys(stage.receipts, [...receiptNames], 'receipt digest');
       const task = stage.task, taskId = index ? expected.artTaskId : expected.designTaskId, attempt = task.attempts?.[0];
       requireThat(!validateTask(task).length && task.taskId === taskId && task.runId === source.runId && task.budget.ledgerId === source.ledgerId
@@ -131,7 +135,7 @@ export function createHistoricalPassedStages(input: {
       const start = time(attempt.startedAt), end = time(attempt.endedAt); requireThat(start <= end && end <= Date.now(), 'attempt time changed');
       const raw: Record<string, any> = {};
       await Promise.all(receiptNames.map(async name => {
-        digest(stage.receipts[name]); const receipt = await regularFile(originalRoot, `journal/task-${encodeURIComponent(taskId)}/${name}.json`);
+        signal.throwIfAborted(); digest(stage.receipts[name]); const receipt = await regularFile(originalRoot, `journal/task-${encodeURIComponent(taskId)}/${name}.json`, signal);
         requireThat(sha(receipt) === stage.receipts[name], `${name} receipt bytes changed`); raw[name] = decode(receipt);
       }));
       const origin = raw.origin as RecoveryOrigin;
@@ -143,10 +147,10 @@ export function createHistoricalPassedStages(input: {
       requireOriginalTask(origin.prepared.task, task);
       requireThat(time(origin.validationCase.startedAt) <= start && end < time(origin.validationCase.deadlineAt), 'stage exceeds its original window');
       // Open only the actual source Root. Never project an old origin into the new Root.
-      const journal = await TaskJournal.open({ artifactRoot: originalRoot, journalRoot: join(originalRoot, 'journal') }, origin, true);
-      const author = await journal.read<any>('author', attempt.attemptId), capture = await journal.read<any>('capture', attempt.attemptId);
-      const verified = await journal.read<any>('verified', attempt.attemptId), begun = await journal.read<any>('review-started', attempt.attemptId), review = await journal.read<any>('review', attempt.attemptId);
-      for (const name of ['capture-started', 'verify-started'] as const) requireThat(await journal.read(name, attempt.attemptId), 'missing phase start receipt');
+      const journal = await TaskJournal.open({ artifactRoot: originalRoot, journalRoot: join(originalRoot, 'journal') }, origin, true, signal);
+      const author = await journal.read<any>('author', attempt.attemptId, signal), capture = await journal.read<any>('capture', attempt.attemptId, signal);
+      const verified = await journal.read<any>('verified', attempt.attemptId, signal), begun = await journal.read<any>('review-started', attempt.attemptId, signal), review = await journal.read<any>('review', attempt.attemptId, signal);
+      for (const name of ['capture-started', 'verify-started'] as const) requireThat(await journal.read(name, attempt.attemptId, signal), 'missing phase start receipt');
       requireThat(author && typeof author.proposal?.summary === 'string' && author.proposal.summary.trim()
         && sameValue(Object.keys(author.proposal).sort(), ['remaining', 'summary', 'uncertainty']) && sameValue(author.proposal.remaining, []) && sameValue(author.proposal.uncertainty, []), 'original author handoff is incomplete');
       await requireSignature(author.signature, task.inputs, journal);
@@ -169,7 +173,7 @@ export function createHistoricalPassedStages(input: {
           && [...task.inputs, ...task.artifacts].every(ref => item.artifactVersions.some(actual => sameValue(ref, actual)))), 'selected evidence does not pass the fixed versions');
       }
       for (const evidence of task.evidence) if (evidence.kind === 'test_report' && evidence.outcome === 'passed') {
-        const report = decode(await regularFile(originalRoot, evidence.source.location)); requireThat(sameValue(report.evidence, evidence), 'actual host report differs from selected evidence');
+        const report = decode(await regularFile(originalRoot, evidence.source.location, signal)); requireThat(sameValue(report.evidence, evidence), 'actual host report differs from selected evidence');
       }
       for (const ref of task.artifacts) {
         const selected = captures.find(item => sameValue(item.artifactRef, ref));
@@ -177,7 +181,7 @@ export function createHistoricalPassedStages(input: {
       }
       if (!index) designOrigin = origin;
     }
-    const journal = await TaskJournal.open({ artifactRoot: originalRoot, journalRoot: join(originalRoot, 'journal') }, designOrigin, true);
+    const journal = await TaskJournal.open({ artifactRoot: originalRoot, journalRoot: join(originalRoot, 'journal') }, designOrigin, true, signal);
     for (const item of value.captures) await requireSignature(item.signature, [item.ref], journal);
     const design = value.stages[0].task, art = value.stages[1].task;
     requireThat(design.artifacts.length === 4 && art.artifacts.length === 1 && art.inputs.filter(ref => ref.location.startsWith('registry/captures/')).length === 6, 'historical stage output closure changed');
@@ -188,21 +192,21 @@ export function createHistoricalPassedStages(input: {
       && sameValue(design.artifacts, ['design', 'transfer-design', 'plan-v1', 'plan-v2'].map(ref)) && sameValue(art.artifacts, [ref('media')]), 'original named stage capture identities changed');
     requireThat(sameValue(design.inputs, [...value.requirement.sources, template.artifactRef, requirement.artifactRef])
       && sameValue(art.inputs, [...design.inputs, ...design.artifacts]), 'original complete task inputs changed');
-    requireThat(sameValue(decode(await regularFile(originalRoot, requirement.artifactRef.location + '/_cosmos/execution-requirement.json')), value.requirement), 'original captured requirement changed');
-    digest(value.preparedSha256); const preparedBytes = await regularFile(originalRoot, 'host-transfer-prepared-inputs.json');
+    requireThat(sameValue(decode(await regularFile(originalRoot, requirement.artifactRef.location + '/_cosmos/execution-requirement.json', signal)), value.requirement), 'original captured requirement changed');
+    digest(value.preparedSha256); const preparedBytes = await regularFile(originalRoot, 'host-transfer-prepared-inputs.json', signal);
     requireThat(sha(preparedBytes) === value.preparedSha256, 'original prepared receipt bytes changed'); const prepared = decode(preparedBytes);
     requireThat(prepared.formatVersion === 'transfer-prepared-inputs/1' && prepared.taskId === design.taskId && prepared.attemptId === design.attempts[0].attemptId
       && prepared.sessionRef === design.attempts[0].sessionRef && sameValue(prepared.frozen.requirement, requirement.artifactRef)
       && design.artifacts.some(ref => sameValue(ref, prepared.frozen.artifact)), 'original prepared map binding changed');
-    const mapBytes = await regularFile(originalRoot, prepared.frozen.artifact.location + '/_cosmos/transfer-design.json');
+    const mapBytes = await regularFile(originalRoot, prepared.frozen.artifact.location + '/_cosmos/transfer-design.json', signal);
     const map = validateTransferDesign(decode(mapBytes), requirement.artifactRef);
     requireThat(sha(mapBytes) === prepared.frozen.designSha256 && map.design.mapVersion === prepared.frozen.mapVersion, 'canonical sealed map changed');
     keys(value.designAudit, ['startedSha256', 'resultSha256', 'rawSha256'], 'design audit');
     const auditPath = `host-transfer-design-validation/${design.taskId}/${design.attempts[0].attemptId}/check-1-`;
-    const auditRaw = await regularFile(originalRoot, auditPath + 'raw.json'), startedRaw = await regularFile(originalRoot, auditPath + 'started.json'), resultRaw = await regularFile(originalRoot, auditPath + 'result.json');
+    const auditRaw = await regularFile(originalRoot, auditPath + 'raw.json', signal), startedRaw = await regularFile(originalRoot, auditPath + 'started.json', signal), resultRaw = await regularFile(originalRoot, auditPath + 'result.json', signal);
     for (const hash of Object.values(value.designAudit)) digest(hash);
     requireThat(sha(auditRaw) === value.designAudit.rawSha256 && sha(startedRaw) === value.designAudit.startedSha256 && sha(resultRaw) === value.designAudit.resultSha256 && auditRaw.equals(mapBytes), 'design audit raw receipt bytes changed');
-    requireThat(!await optional(originalRoot, auditPath.replace('check-1-', 'check-2-') + 'started.json'), 'source map used a different audit chain');
+    requireThat(!await optional(originalRoot, auditPath.replace('check-1-', 'check-2-') + 'started.json', signal), 'source map used a different audit chain');
     const started = decode(startedRaw), completed = decode(resultRaw), attempt = design.attempts[0], originalWindow = designOrigin.validationCase!;
     keys(started, ['formatVersion', 'binding', 'check', 'startedAt', 'authority', 'raw'], 'design audit start');
     requireThat(started.formatVersion === 'transfer-design-check-started/1' && started.check === 1
@@ -218,6 +222,7 @@ export function createHistoricalPassedStages(input: {
     const sourceRefs = value.requirement.sources.map(item => item.location);
     const procedural = (generator: string, refs: string[]) => ({ kind: 'original-procedural', generator, sourceRefs: refs });
     for (const capture of captures) {
+      signal.throwIfAborted();
       const name = capture.artifactRef.artifactId.slice(expected.caseId.length + 1);
       const deps = name === 'design' ? [template.artifactRef, requirement.artifactRef] : name === 'transfer-design' ? [requirement.artifactRef]
         : name.startsWith('plan-') ? [requirement.artifactRef, prepared.frozen.artifact]
@@ -230,21 +235,21 @@ export function createHistoricalPassedStages(input: {
         : procedural('Cosmos trusted host inputs', value.requirement.sources.map(item => item.artifactId + '@' + item.version));
       requireThat(sameValue(capture.dependencies, deps) && sameValue(capture.metadata.provenance, provenance)
         && capture.metadata.kind === (name === 'generic-template' ? 'code' : name === 'media' ? 'media' : 'data'), 'original capture dependencies or provenance changed');
-      if (name === 'media') requireThat(sameValue(decode(await regularFile(originalRoot, capture.artifactRef.location + '/public/assets/manifest.json')), capture.metadata.media), 'actual original media metadata changed');
+      if (name === 'media') requireThat(sameValue(decode(await regularFile(originalRoot, capture.artifactRef.location + '/public/assets/manifest.json', signal)), capture.metadata.media), 'actual original media metadata changed');
     }
     for (const plan of Object.values(prepared.plans) as any[]) {
       const ref = design.artifacts.find(item => sameValue(item, plan.artifact)); requireThat(ref, 'original plan output missing');
-      const raw = await regularFile(originalRoot, ref.location + '/_cosmos/transfer-plan.json'), { planSha256, ...data } = plan;
+      const raw = await regularFile(originalRoot, ref.location + '/_cosmos/transfer-plan.json', signal), { planSha256, ...data } = plan;
       requireThat(sha(raw) === planSha256 && sameValue(decode(raw), data) && sameValue(plan.binding.design, prepared.frozen), 'original plan bytes or lineage changed');
     }
     const closure = [...design.inputs, ...design.artifacts, ...art.inputs, ...art.artifacts].filter(ref => ref.location.startsWith('registry/captures/'));
     requireThat(captures.every(item => closure.some(ref => sameValue(item.artifactRef, ref))), 'manifest contains unrelated captures');
-    const imported = await optional(targetRoot, mappingPath);
+    const imported = await optional(targetRoot, mappingPath, signal);
     if (imported) {
       requireThat(sameValue(decode(imported), mapping(value)), 'import Root mapping receipt changed');
       for (const item of value.captures) {
-        requireThat((await regularFile(targetRoot, capturePath(item.ref) + '/capture.json')).equals(await regularFile(originalRoot, capturePath(item.ref) + '/capture.json')), 'imported capture manifest changed');
-        const files = await snapshot(join(targetRoot, item.ref.location)), original = captureFiles.get(item.ref.location)!;
+        requireThat((await regularFile(targetRoot, capturePath(item.ref) + '/capture.json', signal)).equals(await regularFile(originalRoot, capturePath(item.ref) + '/capture.json', signal)), 'imported capture manifest changed');
+        const files = await snapshot(join(targetRoot, item.ref.location), signal), original = captureFiles.get(item.ref.location)!;
         requireThat(files.size === original.size && [...files].every(([path, raw]) => original.get(path)?.equals(raw)), 'imported canonical capture bytes changed');
       }
     }

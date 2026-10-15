@@ -185,4 +185,10 @@ safePath/regularFile/snapshot添加可信可选signal，目录/文件前后检�
 
 509路径切片独审补正safePath await与readdir派发之间的取消窗口：受控真实lstat continuation后取消，RED实际启动1次readdir；拆target await→原caller检查→readdir后GREEN1/1、0skip、266.9658ms，strict0。日志`path-dispatch-{red,green}.tap`、`path-dispatch-strict.log`同TEMP；不重跑无delta4路径/旧capture2/23等组。
 
+## 作者源码切片 6：历史来源与只读 journal caller（局部）
+
+history.verify的capture/receipt/signature/实际字节与目标副本读取贯穿已有signal，保留原per-call复用与读序。TaskJournal只读resume open/read/signature/requireSignature增加可选caller；原取消Error不被RecoveryBlocked吞并，write/非resume默认保持。2项实际RED中，历史取消后仍读69次，journal预取消未拒；GREEN2/2、0skip、19624.4369ms，第一历史字节后取消现只读1次。另扩journal实际读取中取消的三个catch路径，并以旧完整closure验证/双次import代表校验兼容，2/2、0skip、20541.1103ms；定向strict0。
+
+日志`history-journal-red.tap`、`history-journal-green.tap`、`history-journal-compat.tap`、`history-journal-strict.log`在同TEMP。仅真实SOURCE/TEMP固定回执与合成已通过stage，没有实际账本/715或浏览器。consumer/host/origin等余下闭包接线仍待完成。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
