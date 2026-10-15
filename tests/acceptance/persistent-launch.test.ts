@@ -212,7 +212,7 @@ test('COS97 native lifecycle keeps two full authority waits before its independe
     assert.equal(settled, undefined, 'Native preparation is still legal after the old whole-open 15 seconds'); prepareGate.resolve();
     await registerEntered.promise; t.mock.timers.tick(20000); await new Promise(setImmediate);
     assert.equal(settled, undefined); assert.equal(f.counts().connections, 0); registerGate.resolve(); await opening;
-    assert.deepEqual(waits.snapshot().segments[0].stages.map(row => [row.stage, row.capMs, row.outcome]),
+    assert.deepEqual(waits.snapshot().segments[0].stages.filter(row => row.outcome !== 'skipped').map(row => [row.stage, row.capMs, row.outcome]),
       [['prepare_authority', 60000, 'passed'], ['register_authority', 60000, 'passed'], ['browser_transport', 15000, 'passed']]);
     assert.deepEqual(f.counts(), { spawns: 1, registrations: 1, connections: 1 }); await lifecycle.close(1000);
   } finally {

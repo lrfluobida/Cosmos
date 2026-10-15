@@ -32,6 +32,7 @@ export async function consumeTransferCandidate(context: BrowserCandidateConsumer
   const native = context.nativeValidationWaits;
   requireThat(native === undefined || isNativeValidationWaits(native) && native.taskId === context.task.taskId && native.deadlineAt === context.deadlineAt,
     'consumer native wait source differs from its exact task/deadline');
+  const consumerStartedAt = native?.startConsumer(), consumerClock = performance.now();
   const bound = native ? await runNativeValidationRead(native.readSignal, active => bindTransferAcceptance(options.input, active)) : await bindTransferAcceptance(options.input);
   const series = transferPersistentSeries(bound, options.sourceVersion, `${context.task.taskId}-persistent`);
   requireThat(series.segments.every(segment => segment.plan.taskId === context.task.taskId), 'actual task differs from the frozen plans');
@@ -66,16 +67,23 @@ export async function consumeTransferCandidate(context: BrowserCandidateConsumer
       channel: 'msedge', headless: true, mediaObservations: request });
   } finally { await unmount(); }
   await guard();
-  const diagnostics = await diagnosePersistentBrowser(context.task, report, { series, deadlineAt: context.deadlineAt, sourceVersion: options.sourceVersion, reportPath },
+  const diagnostics = await diagnosePersistentBrowser(context.task, report, { series, deadlineAt: context.deadlineAt, sourceVersion: options.sourceVersion, reportPath,
+    ...(native ? { nativeWaitContract: native.contractVersion } : {}) },
     { evidenceRoot, verifyBinding: guard, signal: context.signal });
   diagnostics.issues = diagnostics.issues.map(issue => ({ ...issue, evidenceRefs: issue.evidenceRefs.map(path => 'browser-evidence/' + path) }));
   await guard();
   const usage: Record<string, unknown> = { candidate: context.candidate, media: context.mediaArtifact, request, coverage: null,
     scope: 'Actual per-document engine observations during the frozen normal-input series, with independent source/PNG review.' };
   const result: BrowserCandidateConsumerResult = { passed: false, reportPath: 'browser-evidence/' + reportPath, mediaUsage: usage, pictures: [], rawEvidence: [], diagnostics };
+  const finish = () => {
+    if (native) {
+      result.nativeWaits = { contractVersion: native.contractVersion, consumerStartedAt: consumerStartedAt!, consumerEndedAt: Date.now(), consumerElapsedMs: performance.now() - consumerClock };
+    }
+    return result;
+  };
   if (diagnostics.reportValid) result.rawEvidence = [reportPath, ...report.segments.map(segment => segment.report.reportPath)].map((path, index) => ({ artifactId: `${context.task.taskId}-raw-${index}`,
     version: context.candidate.version, location: 'browser-evidence/' + dirname(path) }));
-  if (!diagnostics.reportValid || diagnostics.issues.length || report.outcome !== 'passed') return result;
+  if (!diagnostics.reportValid || diagnostics.issues.length || report.outcome !== 'passed') return finish();
   const currentRaw = async () => {
     requireThat(isDeepStrictEqual(JSON.parse((await regularFile(evidenceRoot, reportPath)).toString('utf8')), report), 'persistent raw aggregate changed');
     for (const segment of report.segments) requireThat(isDeepStrictEqual(JSON.parse((await regularFile(evidenceRoot, segment.report.reportPath)).toString('utf8')), segment.report), 'persistent raw segment changed');
@@ -105,5 +113,5 @@ export async function consumeTransferCandidate(context: BrowserCandidateConsumer
     for (const picture of result.pictures) requireThat((await regularFile(context.root, picture.location)).subarray(0, 8)
       .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), 'current screenshot is not PNG');
   }
-  await guard(); return result;
+  await guard(); return finish();
 }

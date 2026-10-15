@@ -939,7 +939,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               actual = valid ? 'Current candidate passed persistent normal inputs and generated-media coverage.'
                 : result.diagnostics.issues.map(issue => issue.summary).join('\n').slice(0, 16000) || 'Persistent/media evidence is incomplete.';
               pictures.set(task.taskId, result.pictures); consumerRawEvidence = result.rawEvidence;
-              await writeJson(root, `evidence/${task.taskId}/browser.json`, { reportPath: result.reportPath, diagnostics: result.diagnostics });
+              await writeJson(root, `evidence/${task.taskId}/browser.json`, { reportPath: result.reportPath, diagnostics: result.diagnostics,
+                ...(result.nativeWaits ? { nativeWaits: result.nativeWaits } : {}) });
               await writeJson(root, `evidence/${task.taskId}/media-usage.json`, result.mediaUsage);
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
             }

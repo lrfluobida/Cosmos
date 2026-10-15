@@ -24,6 +24,7 @@ export interface BrowserCandidateConsumerContext {
 export interface BrowserCandidateConsumerResult {
   passed: boolean; reportPath: string; mediaUsage: unknown; pictures: ArtifactReference[]; rawEvidence: ArtifactReference[];
   diagnostics: { reportValid: boolean; issues: HostIssue[]; passedChecks: Omit<HostPassedCheck, 'evidenceId'>[] };
+  nativeWaits?: { contractVersion: NativeValidationWaits['contractVersion']; consumerStartedAt: number; consumerEndedAt: number; consumerElapsedMs: number };
 }
 
 export interface BrowserPreparationContext {

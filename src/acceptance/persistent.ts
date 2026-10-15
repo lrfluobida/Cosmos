@@ -67,6 +67,8 @@ export interface PersistentAcceptanceReport {
   checkpoint: { outcome: 'passed' | 'failed' | 'skipped'; expected: string; actual: string | null; savedActual: string | null;
     before: PersistentBrowserIdentity | null; after: PersistentBrowserIdentity | null };
   errors: string[]; reportPath: string; failureFacts?: PersistentFailureFacts;
+  nativeWaits?: ReturnType<NativeValidationWaits['snapshot']> & { caseId: string; windowId: string; taskId: string;
+    seriesStartedAt: number; seriesEndedAt: number; seriesElapsedMs: number };
 }
 function requireThat(valid: unknown, message: string): asserts valid { if (!valid) throw new Error('Persistent acceptance: ' + message); }
 const identifier = (value: unknown) => typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(value)
@@ -219,10 +221,13 @@ export async function executePersistentSeries(value: unknown, options: Persisten
   const issues = validatePersistentSeries(value);
   requireThat(!issues.length, 'invalid series: ' + issues.join('; '));
   const start = Date.now();
+  const clock = performance.now(), native = options.nativeValidationWaits;
   requireThat(Number.isSafeInteger(options.deadlineAt) && options.deadlineAt > start && options.deadlineAt - start <= 43_200_000,
     'invalid original absolute deadline');
   requireThat(typeof options.verifyBinding === 'function', 'host binding guard is required');
   const series = structuredClone(value) as PersistentAcceptanceSeries, first = series.segments[0].plan;
+  requireThat(native === undefined || isNativeValidationWaits(native) && series.formatVersion === 'persistent-acceptance/1'
+    && native.taskId === first.taskId && native.deadlineAt === options.deadlineAt, 'native series source differs from task/deadline');
   const cleanupReserveMs = Math.min(3000, Math.floor((options.timeoutMs ?? options.deadlineAt - start) / 3));
   const reportPath = [first.projectId, first.artifact.artifactId, first.artifact.version, first.runId, series.reportId, 'report.json'].join('/');
   const folder = await safePath(options.evidenceRoot, reportPath.slice(0, -'/report.json'.length));
@@ -244,7 +249,8 @@ export async function executePersistentSeries(value: unknown, options: Persisten
   const guard = async (launch = false, publication = false) => {
     const currentPhase = publication ? 'final_publication' : 'guard';
     at(currentPhase, 'cancelled');
-    if (options.signal?.aborted) throw new AcceptanceCancelledError('acceptance cancelled');
+    if (native) native.readSignal.throwIfAborted();
+    if (options.signal?.aborted) { if (native) throw options.signal.reason; throw new AcceptanceCancelledError('acceptance cancelled'); }
     at(currentPhase, 'deadline');
     if (options.deadlineAt - Date.now() <= (launch ? cleanupReserveMs + 1000 : 0)) throw new DeadlineError('original deadline leaves no safe browser launch/cleanup time');
     at(currentPhase, 'private_profile');
@@ -252,7 +258,7 @@ export async function executePersistentSeries(value: unknown, options: Persisten
     await safePath(profileRoot);
     requireThat((await regularFile(profileRoot, '.owner')).toString('utf8') === owner, 'private profile root ownership changed');
     at(currentPhase, 'binding');
-    try { await bounded(options.verifyBinding, options.deadlineAt - Date.now(), 'Host binding guard', options.signal); }
+    try { if (native) await options.verifyBinding(native.readSignal); else await bounded(options.verifyBinding, options.deadlineAt - Date.now(), 'Host binding guard', options.signal); }
     catch (error) {
       if (error instanceof AcceptanceCancelledError) kind = 'cancelled'; else if (error instanceof DeadlineError) kind = 'deadline';
       throw error;
@@ -301,12 +307,21 @@ export async function executePersistentSeries(value: unknown, options: Persisten
     if (report.checkpoint.outcome !== 'skipped') report.checkpoint.outcome = 'failed';
   }
   report.endedAt = new Date().toISOString();
+  const recordNative = () => {
+    if (!native) return;
+    report.nativeWaits = { ...native.snapshot(), caseId: native.caseId, windowId: native.windowId, taskId: native.taskId,
+      seriesStartedAt: start, seriesEndedAt: Date.parse(report.endedAt), seriesElapsedMs: performance.now() - clock };
+    requireThat(report.nativeWaits.rawReads.pending === 0 && report.nativeWaits.segments.every(segment => segment.state === 'closed'
+      && !segment.rawReadsPending && !segment.rawOperationsPending && !segment.http.pending), 'native raw operations are still pending at publication');
+  };
+  try { recordNative(); } catch (error) { at('final_publication', 'publication'); recordError(error); report.outcome = 'failed'; }
   await writeFile(join(folder, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
   try {
     await guard(false, true); // Drain publication races for failed segments as well as successful series.
   } catch (error) {
     report.outcome = 'failed'; if (report.checkpoint.outcome !== 'skipped') report.checkpoint.outcome = 'failed'; report.endedAt = new Date().toISOString();
     recordError(error);
+    try { recordNative(); } catch { /* The original pending publication failure is retained. */ }
     await writeFile(join(folder, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
   }
   // Retain only these private test profiles for diagnosis; process cleanup is required independently.

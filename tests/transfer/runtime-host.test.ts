@@ -225,6 +225,37 @@ test('COS97 consumer forwards the exact native phase caller and stops binding af
   } finally { t.mock.restoreAll(); syncBuiltinESMExports(); segment?.revoke(); await segment?.settle(waits.deadlineAt); }
 });
 
+test('COS97 complete native host binding and consumer evidence keep the original wait owner', async t => {
+  const f = await pipeline(t), saved = JSON.parse(await readFile(join(f.root, 'host-transfer-prepared-inputs.json'), 'utf8'));
+  const prepared = saved.plans.v1, first = prepared.segments[0], candidate = prepared.binding.candidate, task = { ...f.result[2], taskId: first.plan.taskId };
+  const createWaits = () => createNativeValidationWaits({ caseId: f.window.caseId, windowId: f.window.windowId, taskId: task.taskId,
+    deadlineAt: Date.parse(f.window.deadlineAt), signal: f.input.work.signal, controllerSignal: f.controller.signal, trackRaw: start => f.input.work.run(start) });
+  await t.test('host binding pre-cancel starts no source scope', async () => {
+    const waits = createWaits(), segment = waits.beginSegment('host-caller'); let reads = 0;
+    const read = f.validation.readScope, reason = new Error('Native complete host cancellation');
+    t.mock.method(f.validation, 'readScope', async (signal: AbortSignal) => { reads++; return read(signal); });
+    try { await assert.rejects(segment.runStage('prepare_authority', async life => {
+      segment.revoke(reason); return f.host.bindPreparedCandidate(candidate, life.signal);
+    }), error => error === reason); await segment.settle(waits.deadlineAt); assert.equal(reads, 0); }
+    finally { t.mock.restoreAll(); }
+  });
+  await t.test('consumer independently finishes its honest envelope after the final guard', async () => {
+    const waits = createWaits(), mediaArtifact = f.result[1].artifacts[0], capture = await f.registry.getCapture(mediaArtifact);
+    const bytes = await readFile(join(f.root, mediaArtifact.location, 'public/assets/manifest.json')); let checks = 0, transport: unknown;
+    const input: BindInput = { root: f.root, registry: f.registry, frozen: saved.frozen,
+      currentRequirement: { artifact: saved.frozen.requirement, specVersion: saved.frozen.specVersion }, candidate, planArtifact: prepared.artifact,
+      url: first.plan.url, runId: prepared.binding.runId, reportId: first.plan.reportId.slice(0, -('-' + first.id).length), taskId: task.taskId, prepared };
+    const result = await consumeTransferCandidate({ root: f.root, task, candidate, project: join(f.root, candidate.location),
+      cleanDelivery: { project: join(f.root, candidate.location), url: new URL(first.plan.url).origin, requireCurrent: async () => {} },
+      mediaArtifact, media: capture.metadata.media!, manifestSha256: hash(bytes), signal: f.input.work.signal, deadlineAt: waits.deadlineAt, nativeValidationWaits: waits,
+      requireCurrent: async () => { checks++; }, playPersistent: async (_series, options) => { transport = options.nativeValidationWaits; return {} as any; } },
+    { input, sourceVersion: 'a'.repeat(40), mount: async () => async () => {} });
+    assert.equal(transport, waits); assert.equal(result.passed, false); assert.ok(checks >= 3); assert.equal(waits.snapshot().rawReads.pending, 0);
+    assert.equal(result.nativeWaits?.contractVersion, waits.contractVersion); assert.ok(result.nativeWaits!.consumerElapsedMs > 0);
+    assert.ok(result.nativeWaits!.consumerStartedAt <= result.nativeWaits!.consumerEndedAt);
+  });
+});
+
 test('invalid semantic design preserves raw bytes and stops art/coding without claiming coding repair', async t => {
   const f = await pipeline(t, true); assert.equal(f.result[0].state, 'failed');
   assert.ok(!f.calls.some(item => ['art', 'coding'].includes(item.kind)));

@@ -10,9 +10,11 @@ import { PERSISTENT_PROFILE_CAPABILITY, validatePersistentSeries } from '../../.
 import type { PersistentAcceptanceReport, PersistentAcceptanceSeries } from '../../../acceptance/persistent.ts';
 import { diagnoseBrowser } from '../../repair/browser-diagnostics.ts';
 import type { Diagnostics } from '../../repair/browser-diagnostics.ts';
+import { NATIVE_VALIDATION_WAIT_CONTRACT } from '../../../acceptance/native-validation-waits.ts';
 
 export interface PersistentDiagnosticExpected {
   series: PersistentAcceptanceSeries; deadlineAt: number; sourceVersion?: string; reportPath: string;
+  nativeWaitContract?: typeof NATIVE_VALIDATION_WAIT_CONTRACT;
 }
 export interface PersistentDiagnosticOptions {
   evidenceRoot: string; verifyBinding: () => Promise<void>; signal?: AbortSignal;
@@ -22,6 +24,50 @@ const only = (value: Record<string, any>, keys: string[]) => Object.keys(value).
 const scalar = (value: unknown) => value === null || typeof value === 'string' || typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value);
 function check(valid: unknown): asserts valid { if (!valid) throw new Error('Incomplete persistent evidence'); }
 const directory = (plan: AcceptancePlan) => [plan.projectId, plan.artifact.artifactId, plan.artifact.version, plan.runId, plan.reportId].join('/');
+const count = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+const time = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0;
+const elapsed = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number, end: number, deadlineAt: number) {
+  check(object(value) && only(value, ['contractVersion', 'deadlineAt', 'workDeadlineAt', 'segment'])
+    && value.contractVersion === NATIVE_VALIDATION_WAIT_CONTRACT && value.deadlineAt === deadlineAt && value.workDeadlineAt === deadlineAt - 5000);
+  const segment = value.segment;
+  check(object(segment) && only(segment, ['reportId', 'generation', 'state', 'stages', 'rawReadsPending', 'rawOperationsPending', 'http', 'firstCause'])
+    && segment.reportId === plan.reportId && count(segment.generation) && segment.generation > 0 && segment.state === 'closed'
+    && segment.rawReadsPending === 0 && segment.rawOperationsPending === 0 && segment.firstCause === null && Array.isArray(segment.stages) && segment.stages.length === 4);
+  let previous = start;
+  for (const [index, [stage, cap]] of (['prepare_authority', 'register_authority', 'browser_transport', 'navigation'] as const).map((stage, index) => [stage, [60000, 60000, 15000, 300000][index]] as const).entries()) {
+    const row = segment.stages[index];
+    check(object(row) && only(row, ['stage', 'capMs', 'startedAt', 'deadlineAt', 'endedAt', 'elapsedMs', 'outcome', 'rawPending'])
+      && row.stage === stage && row.capMs === cap && row.outcome === 'passed' && row.rawPending === false
+      && time(row.startedAt) && time(row.deadlineAt) && time(row.endedAt) && elapsed(row.elapsedMs)
+      && previous <= row.startedAt && row.startedAt <= row.endedAt && row.endedAt < row.deadlineAt && row.endedAt <= end
+      && row.deadlineAt === Math.min(deadlineAt - 5000, row.startedAt + cap));
+    previous = row.endedAt;
+  }
+  const http = segment.http;
+  check(object(http) && only(http, ['started', 'settled', 'rejected', 'pending', 'stages']) && count(http.started) && count(http.settled)
+    && http.started === http.settled && http.rejected === 0 && http.pending === 0 && Array.isArray(http.stages) && http.stages.length === 3);
+  for (const [index, stage] of ['http_pre_authority', 'http_body', 'http_post_authority'].entries()) {
+    const row = http.stages[index]; check(object(row) && only(row, ['stage', 'capMs', 'count', 'totalMs', 'maxMs']) && row.stage === stage
+      && row.capMs === [60000, 15000, 60000][index] && row.count === http.started && elapsed(row.totalMs) && elapsed(row.maxMs)
+      && row.maxMs <= row.totalMs && (row.count > 0 || row.totalMs === 0 && row.maxMs === 0));
+  }
+  return segment;
+}
+function validNativeAggregate(report: PersistentAcceptanceReport, task: TaskContract, expected: PersistentDiagnosticExpected, start: number, end: number) {
+  check(expected.nativeWaitContract === NATIVE_VALIDATION_WAIT_CONTRACT && report.series.formatVersion === 'persistent-acceptance/1');
+  const value = report.nativeWaits;
+  check(object(value) && only(value, ['contractVersion', 'deadlineAt', 'workDeadlineAt', 'consumerStartedAt', 'rawReads', 'segments', 'caseId', 'windowId', 'taskId', 'seriesStartedAt', 'seriesEndedAt', 'seriesElapsedMs'])
+    && value.contractVersion === expected.nativeWaitContract && value.deadlineAt === expected.deadlineAt && value.workDeadlineAt === expected.deadlineAt - 5000
+    && value.taskId === task.taskId && [value.caseId, value.windowId].every(id => typeof id === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(id))
+    && time(value.consumerStartedAt) && value.consumerStartedAt <= start && value.seriesStartedAt === start && value.seriesEndedAt === end && elapsed(value.seriesElapsedMs)
+    && object(value.rawReads) && only(value.rawReads, ['started', 'settled', 'pending']) && count(value.rawReads.started)
+    && value.rawReads.started === value.rawReads.settled && value.rawReads.pending === 0 && Array.isArray(value.segments) && value.segments.length === report.segments.length);
+  for (const [index, row] of report.segments.entries()) {
+    const segment = validNativeSegment(row.report.nativeWaits, row.report.plan, Date.parse(row.report.startedAt), Date.parse(row.report.endedAt), expected.deadlineAt);
+    check(segment.generation === index + 1 && isDeepStrictEqual(segment, value.segments[index]));
+  }
+}
 
 function validFacts(report: PersistentAcceptanceReport) {
   const facts = report.failureFacts;
@@ -163,6 +209,7 @@ export async function diagnosePersistentBrowser(task: TaskContract, value: unkno
     check(current.reportPath === [first.projectId, first.artifact.artifactId, first.artifact.version, first.runId, current.series.reportId, 'report.json'].join('/'));
     const start = Date.parse(report.startedAt), end = Date.parse(report.endedAt);
     check(Number.isFinite(start) && Number.isFinite(end) && start <= end && end < current.deadlineAt);
+    if (current.nativeWaitContract !== undefined) validNativeAggregate(report, task, current, start, end);
     validFacts(report);
     check(isDeepStrictEqual(JSON.parse((await regularFile(options.evidenceRoot, current.reportPath)).toString('utf8')), report));
     const diagnostics: Diagnostics = { reportValid: true, issues: [], passedChecks: [] }, profiles = new Set<string>(); let priorEnd = start;

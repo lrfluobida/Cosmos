@@ -261,4 +261,16 @@ consumer复核native source task/D，初始binding与完整guard在已有runNati
 
 f704独审P2：native raw settle不能用整D剩余等待。最终截图后冻结min(D,当前时间+原cleanupReserveMs)，原graceful/force/raw settle共享剩余额度，不延长父deadline；超界report failed并保留pending与raw owner。早source失败/未spawn/独立deferred reader真实RED传D而非原3000ms→GREEN1/1、0skip、5901.8067ms、strict0：cleanup边界返回failed、rawReadsPending1、外部100ms drain仍失败，释放后才归零。`runner-cleanup-{red,green}.tap`与`runner-cleanup-strict.log`同TEMP；不重跑无delta33/legacy15组。
 
+## 作者源码最终装配候选（待整卡独审）
+
+Origin已审e16e7fa04ba869347a4f9fc25f8797ae4b048f64真实merge为6dcfaf9，无冲突，仅其3files新增、作者未改其内容。runtime-host guard/read/verify/requireCurrent/bindCandidate完整透传原caller，实际来源/candidate/journal/seal读取在边界检查，用真实origin.failCurrent统一两catch；consumer mount传同一waits/controller/cleanup owner。原校验顺序、设计工具写流程、nonclean/generic/human默认及COS96fixed4不另改。
+
+新native raw segment固定4阶段含skipped、3类HTTP聚合含rejected/pending及有界safe-integer计数；series记录实际起止/monotonic elapsed、source身份与consumer入口，publication pending非零失败。consumer最后一次原guard之后单独结束envelope，host保存摘要；不加新完整guard、不向aggregate回写尚未发生consumer end。diagnostic仅可信expected契约选择新校验：版本/task/D/W/阶段顺序/cap/起止边界/HTTP/raw pending/source首因一致性，缺失或漂移insufficient evidence；旧expected保原诊断。
+
+必要行为RED/GREEN：完整host/consumer envelope缺新结束字段（父子1pass/2fail）→3/3，22556.3239ms；新版expected旧缺字段报告RED→1/1，5142.04ms。实际helper生成完整新report正例与9类tamper/pending/source拒绝1/1，4294.9354ms；不硬写expected来代替实际helper。真实SOURCE/TEMP runtime-host→withCleanDelivery→owned origin mount→HTTP完整pre/body/post→consumer published envelope1/1，57738.0415ms，耗时包含来源、HTTP与夹具/DAG工作，浏览器/玩法transport仍为合成packet，未运行actual browser。helper/launch因skipped/新计数形状实际变化组合45/45，5528.5822ms；diagnostic/host影响短组合37/37，7019.0332ms；safe counter接真实origin代表1/1，3124.636ms。未把嵌套统计相加，也未重跑已审历史/source/probe矩阵、220 gameplay或62media。
+
+原始日志均在`C:/Users/26557/AppData/Local/Temp/cos97-native-waits-1b7732209ed34c1b95002b7640383398`：`assembly-host-{red,green}.tap`、`assembly-diagnostic-{red,green}.tap`、`assembly-diagnostic-positive.tap`、`assembly-real-mount.tap`、`assembly-native-lifecycle.tap`、`assembly-diagnostic-host-regression.tap`、`assembly-origin-counter.tap`。`assembly-typecheck.log`、`assembly-build.log`、`assembly-strict-2.log`均exit0；full SOURCE typecheck/build与受影响src/test strict通过。旧局部日志索引见以上各切片；probe与Origin独审证据复用。
+
+实现候选已完成已审源码接线和必要免费验证，待fresh reviewer按完整spec→quality审实际diff及唯一merger集成。真实browser/715/actual/provider/付费仍未执行、未授权；后续actual须按已审新launcher另授权，旧COS93 wholeopen15仍failed、旧C14 consumed/failed和所有原验收/账本结论保持。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
