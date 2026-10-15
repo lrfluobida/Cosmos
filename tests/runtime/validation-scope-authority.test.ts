@@ -10,6 +10,9 @@ import { prepareValidationCase, validationInputHash } from '../../src/runtime/va
 import type { ValidationDeclaration } from '../../src/runtime/validation-types.ts';
 import { createValidationRequirement } from '../../src/roles/execution-input.ts';
 import { requireValidationScope } from '../../src/runtime/validation-scope.ts';
+import { currentValidationCase } from '../../src/runtime/validation-validation.ts';
+import type { TaskContract } from '../../src/contracts/index.ts';
+import { task as taskFixture } from '../contracts/fixtures.ts';
 
 const hash = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
@@ -72,6 +75,37 @@ async function fixture(t: TestContext) {
     now, advance: (ms: number) => { clock += ms; }, reads: () => reads };
 }
 
+type Fixture = Awaited<ReturnType<typeof fixture>>;
+const actor = { role: 'system' as const, actorId: 'scope-fixture' };
+
+function codingTask(f: Fixture): TaskContract {
+  const task = taskFixture() as TaskContract, grant = f.declaration.grants.coding;
+  Object.assign(task, { taskId: grant.taskId, kind: 'evaluation', runId: f.original.run.runId, specVersion: f.original.run.specVersion,
+    authorId: 'coding-author', dependsOn: [], state: 'not_started', attempts: [], evidence: [], artifacts: [], acceptanceIds: ['game-1'] });
+  task.acceptance[0].acceptanceId = 'game-1'; task.context.contextId = 'coding-context';
+  task.budget = { ledgerId: f.original.ledger.ledgerId, allocationMicroCny: grant.amountMicroCny, originalDeadlineAt: f.original.run.originalDeadlineAt };
+  return task;
+}
+
+async function repairSource(f: Fixture) {
+  const task = codingTask(f), feedback = { artifactId: 'failure-feedback', version: 'coding-attempt', location: 'feedback/coding.json' };
+  await f.controller.registerTasks([task]); task.state = 'ready'; await f.controller.saveTask(task, actor);
+  task.state = 'running'; task.attempts = [{ attemptId: feedback.version, sessionRef: 'sessions/coding', startedAt: new Date(f.now()).toISOString(), endedAt: null, outcome: 'running', failure: null }];
+  await f.controller.saveTask(task, actor);
+  task.state = 'failed'; task.stateReason = '合成编译失败'; task.attempts[0].endedAt = new Date(f.now()).toISOString(); task.attempts[0].outcome = 'failed';
+  task.attempts[0].failure = { classification: 'code_defect', summary: '合成失败', reproduction: ['fixture'], actual: 'failed', expected: 'passed', evidenceRefs: [feedback.location] };
+  await f.controller.saveTask(task, actor);
+  return { sourceTaskId: task.taskId, feedback };
+}
+
+function pauseReader(f: Fixture) {
+  const read = f.binding.readScope;
+  let entered!: () => void, release!: () => void;
+  const started = new Promise<void>(resolve => { entered = resolve; }), gate = new Promise<void>(resolve => { release = resolve; });
+  f.binding.readScope = async signal => { const result = await read(signal); entered(); await gate; return result; };
+  return { started, release };
+}
+
 test('scope clones one full snapshot and one isolated authority view', async t => {
   const f = await fixture(t), clone = globalThis.structuredClone, inputs: string[][] = [];
   let fullCopies = 0;
@@ -88,4 +122,107 @@ test('scope clones one full snapshot and one isolated authority view', async t =
   assert.equal(fullCopies, 1, 'A scope call must copy the full snapshot only after the trusted reader');
   assert.deepEqual(inputs, [['runId', 'specVersion', 'ledgerId', 'window'], Object.keys(await f.controller.read())]);
   assert.equal(f.reads(), 1);
+});
+
+test('authority view preserves every window field without mutable controller aliases', async t => {
+  const f = await fixture(t), source = await repairSource(f);
+  await f.controller.claimValidationRepair(source);
+  const snapshot = await f.controller.read(), view = await f.controller.readValidationScopeAuthority();
+  const expected = { runId: snapshot.run.runId, specVersion: snapshot.run.specVersion, ledgerId: snapshot.ledger.ledgerId, window: currentValidationCase(snapshot) };
+  assert.deepEqual(view, expected); assert.deepEqual(Object.keys(view.window), Object.keys(expected.window));
+  view.runId = 'changed'; view.specVersion = 'changed'; view.ledgerId = 'changed';
+  view.window.deadlineAt = 'changed'; view.window.operatorDecision.sourceRefs[0].location = 'changed';
+  view.window.quote.identity.reviewedPlatformSha = 'changed'; view.window.quote.basis.requestIds.push('changed');
+  assert.ok(view.window.repair); view.window.repair.feedback.location = 'changed';
+  assert.deepEqual(await f.controller.read(), snapshot);
+  await f.controller.stop('合成窗口停止');
+  const stopped = await f.controller.read(), stoppedView = await f.controller.readValidationScopeAuthority();
+  assert.deepEqual(stoppedView.window, currentValidationCase(stopped));
+  assert.ok(stoppedView.window.stopReason); stoppedView.window.stopReason.reason = 'changed';
+  assert.deepEqual(await f.controller.read(), stopped);
+});
+
+test('authority projection waits for the preceding repair update in the controller queue', async t => {
+  const f = await fixture(t), source = await repairSource(f);
+  const pending = f.controller.claimValidationRepair(source), projected = f.controller.readValidationScopeAuthority();
+  const repair = await pending;
+  assert.deepEqual((await projected).window.repair, repair);
+});
+
+test('authority projection expires the current window through the original persistence queue', async t => {
+  const f = await fixture(t);
+  f.advance(f.declaration.limits.durationMs);
+  const view = await f.controller.readValidationScopeAuthority(), snapshot = await f.controller.read();
+  assert.equal(view.window.stopReason?.code, 'deadline'); assert.equal(f.controller.signal.aborted, true);
+  assert.deepEqual(view.window, currentValidationCase(snapshot));
+  assert.deepEqual(JSON.parse(await readFile(join(f.context.root, 'snapshot.json'), 'utf8')), snapshot);
+  await assert.rejects(requireValidationScope(f.controller, f.requirement, f.binding), /deadline|stopped/i);
+  assert.equal(f.reads(), 0);
+});
+
+test('closed owners, non-validation runs and wrong window opens cannot supply scope authority', async t => {
+  const f = await fixture(t);
+  await f.controller.close();
+  await assert.rejects(f.controller.readValidationScopeAuthority(), /closed/);
+  await assert.rejects(RunController.openValidationCase({ ...f.context, caseId: f.window.caseId, windowId: 'wrong-window' }), /Wrong validation/);
+  const legacy = await RunController.create({ root: join(f.context.repositoryRoot, 'legacy'), runId: 'legacy', ledgerId: 'legacy-ledger', kind: 'evaluation', scope: 'validation', specVersion: '1.0', allocations: [{ taskId: 'legacy', amountMicroCny: 100 }] });
+  try { await assert.rejects(legacy.readValidationScopeAuthority(), /operator validation profile/); }
+  finally { await legacy.close(); }
+});
+
+test('scope rejects a real repair window change while the trusted reader is pending', async t => {
+  const f = await fixture(t), source = await repairSource(f), gate = pauseReader(f);
+  const result = assert.rejects(requireValidationScope(f.controller, f.requirement, f.binding), /authority changed/);
+  await gate.started;
+  try { await f.controller.claimValidationRepair(source); }
+  finally { gate.release(); }
+  await result; assert.equal(f.controller.signal.aborted, false);
+});
+
+for (const boundary of ['stop', 'deadline'] as const) test(`scope rejects ${boundary} while the trusted reader is pending`, async t => {
+  const f = await fixture(t), gate = pauseReader(f);
+  const result = assert.rejects(requireValidationScope(f.controller, f.requirement, f.binding), boundary === 'stop' ? /Synthetic stop/ : /deadline/i);
+  await gate.started;
+  try {
+    if (boundary === 'stop') await f.controller.stop('Synthetic stop during scope');
+    else f.advance(f.declaration.limits.durationMs);
+  } finally { gate.release(); }
+  await result;
+});
+
+for (const duringRead of [false, true]) test(`scope retains its five second deadline reserve (reader pending: ${duringRead})`, async t => {
+  const f = await fixture(t), deadline = Date.parse(f.window.deadlineAt);
+  if (!duringRead) {
+    t.mock.method(Date, 'now', () => deadline - 5000);
+    await assert.rejects(requireValidationScope(f.controller, f.requirement, f.binding), /cannot finish inside/);
+    assert.equal(f.reads(), 0);
+  } else {
+    const gate = pauseReader(f), result = assert.rejects(requireValidationScope(f.controller, f.requirement, f.binding), /authority changed/);
+    await gate.started;
+    t.mock.method(Date, 'now', () => deadline - 5000); gate.release();
+    await result; assert.equal(f.controller.signal.aborted, false);
+  }
+});
+
+test('scope returns the latest full snapshot after a legal task update during its reader', async t => {
+  const f = await fixture(t), task = codingTask(f);
+  await f.controller.registerTasks([task]); const before = await f.controller.read(), gate = pauseReader(f);
+  const pending = requireValidationScope(f.controller, f.requirement, f.binding);
+  await gate.started;
+  try { task.state = 'ready'; await f.controller.saveTask(task, actor); }
+  finally { gate.release(); }
+  const { snapshot, window } = await pending;
+  assert.equal(snapshot.revision, before.revision + 1); assert.deepEqual(snapshot.tasks.find(item => item.taskId === task.taskId), task);
+  assert.equal(snapshot.events.length, before.events.length + 1); assert.equal(snapshot.events.at(-1)?.type, 'task_saved');
+  assert.deepEqual(snapshot, await f.controller.read()); assert.deepEqual(window, currentValidationCase(before));
+});
+
+for (const source of ['input', 'receipt'] as const) test(`the next independent scope rereads changed ${source} bytes`, async t => {
+  const f = await fixture(t), path = source === 'input' ? f.sourcePath : f.operatorPath, bytes = await readFile(path);
+  await requireValidationScope(f.controller, f.requirement, f.binding); assert.equal(f.reads(), 1);
+  await writeFile(path, Buffer.concat([bytes, Buffer.from('\n')]));
+  await assert.rejects(requireValidationScope(f.controller, f.requirement, f.binding), source === 'input' ? /Fixed source bytes changed/ : /operator source bytes changed/);
+  assert.equal(f.reads(), 2); assert.equal(f.controller.signal.aborted, false);
+  await writeFile(path, bytes);
+  await requireValidationScope(f.controller, f.requirement, f.binding); assert.equal(f.reads(), 3);
 });

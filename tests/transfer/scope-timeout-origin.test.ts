@@ -33,7 +33,9 @@ async function originFixture(t: TestContext) {
     acceptance: [{ acceptanceId: 'SOURCE-check', description: 'Synthetic check', steps: ['Check'], expected: 'Passed', evidenceKinds: ['test_report'] }],
     validation: { runId: 'SOURCE-run', ledgerId: 'SOURCE-ledger', caseId: window.caseId, windowId: window.windowId, ...identity, decision } };
   const state = { formatVersion: 3, run: { runId: 'SOURCE-run', specVersion: '1.0' }, ledger: { ledgerId: 'SOURCE-ledger' }, validation: { currentCaseId: window.caseId, cases: [window] } };
-  const controller = { signal: abort.signal, requireValidationCase() {}, async read() { return structuredClone(state); } } as unknown as RunController;
+  const controller = { signal: abort.signal, requireValidationCase() {}, async read() { return structuredClone(state); },
+    async readValidationScopeAuthority() { return structuredClone({ runId: state.run.runId, specVersion: state.run.specVersion, ledgerId: state.ledger.ledgerId, window }); },
+  } as unknown as RunController;
   const binding = { caseId: window.caseId, windowId: window.windowId, async readScope(_signal: AbortSignal) { return { requirement, operatorReceipt }; } };
   const input = { root, binding: { caseId: window.caseId, windowId: window.windowId, sourceVersion: identity.reviewedPlatformSha,
     requirementSha256: 'c'.repeat(64), runId: 'SOURCE-run', specVersion: '1.0' }, resume: false, signal: abort.signal,
@@ -83,7 +85,7 @@ test('real transfer host guard timeout preserves its origin before candidate bin
   assert.equal(reads, 1, 'Failure is in guard scope before origin.verify'); stall = false;
   assert.equal((await fetch(url)).status, 404);
   const later = await failure(host.bindPreparedCandidate(candidate));
-  assert.match(later.message, /ENOENT/, 'New call must progress to the absent synthetic prepared input');
+  assert.equal(later.message, 'Transfer design: candidate inputs are not prepared', 'New call must progress to the absent synthetic prepared input');
   assert.ok(reads > 1); assert.deepEqual(await readFile(join(f.root, 'host-transfer-origin.json')), before);
   assert.equal(f.controller.signal.aborted, false); assert.equal(f.calls.length, 0);
   await assert.rejects(host.withPreparation(async () => { throw timeoutError; }), error => error === timeoutError);
@@ -92,13 +94,17 @@ test('real transfer host guard timeout preserves its origin before candidate bin
 
 test('timeout during the final controller read retains the private timeout identity', async t => {
   const f = await originFixture(t), read = f.controller.read.bind(f.controller);
-  let reads = 0, scopeSignal!: AbortSignal;
+  const authority = f.controller.readValidationScopeAuthority.bind(f.controller);
+  let reads = 0, authorityReads = 0, scopeSignal: AbortSignal | undefined;
+  t.mock.method(f.controller, 'readValidationScopeAuthority', async () => { authorityReads++; return authority(); });
   f.binding.readScope = async signal => { scopeSignal = signal; return { requirement: f.requirement, operatorReceipt: f.operatorReceipt }; };
   f.controller.read = async () => {
-    if (++reads === 2) await new Promise<void>(resolve => scopeSignal.addEventListener('abort', () => resolve(), { once: true }));
+    reads++; assert.ok(scopeSignal, 'The complete read must follow the trusted scope reader');
+    await new Promise<void>(resolve => scopeSignal!.addEventListener('abort', () => resolve(), { once: true }));
     return read();
   };
   const error = await failure(f.origin.verify());
+  assert.equal(reads, 1); assert.equal(authorityReads, 1);
   assert.equal(scopeApi.isValidationScopeTimeout(error), true); assert.equal(f.abort.signal.aborted, false);
   f.controller.read = read; await f.origin.verify(); assert.equal((await fetch(f.origin.url)).status, 404);
 });

@@ -27,10 +27,10 @@ export async function requireValidationScope(controller: RunController, requirem
   const { caseId, windowId, readScope } = binding;
   controller.requireValidationCase(caseId, windowId);
   if (!isValidationRequirement(requirement) || validateExecutionRequirement(requirement, 'operator_validation').length || typeof readScope !== 'function') throw new Error('Explicit validation requirement and trusted scope reader are required.');
-  const before = await controller.read(), window = currentValidationCase(before), data = requirement.validation;
+  const before = await controller.readValidationScopeAuthority(), window = before.window, data = requirement.validation;
   const { sourceSha256, ...decision } = window.operatorDecision;
-  if (data.runId !== before.run.runId || data.ledgerId !== before.ledger.ledgerId || data.caseId !== caseId || data.windowId !== windowId
-    || requirement.specVersion !== before.run.specVersion || !sameValue(decision, data.decision)
+  if (data.runId !== before.runId || data.ledgerId !== before.ledgerId || data.caseId !== caseId || data.windowId !== windowId
+    || requirement.specVersion !== before.specVersion || !sameValue(decision, data.decision)
     || data.reviewedPlatformSha !== window.quote.identity.reviewedPlatformSha || data.frozenCaseInputHash !== window.quote.identity.frozenCaseInputHash) throw new Error('Validation input differs from its current persistent case authority.');
   const timeout = Math.min(5000, Date.parse(window.deadlineAt) - Date.now() - 5000);
   if (timeout <= 0) throw new Error('Validation scope cannot finish inside the current case deadline.');
