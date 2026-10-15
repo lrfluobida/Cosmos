@@ -247,4 +247,10 @@ native runner复核source对象/task/deadline/segment，启动使用lifecycle三
 
 nativeIO在原task/deadline检查后、OwnedWork派发前复核native waits私有来源、transfer series、exact case/window/task/D；复制对象、错case/window、generic series和human authority均零派发。真实临时controller与dispatch sentinel证实旧代码五项都走入派发，有效RED组1pass/6fail（含父）→GREEN7/7、0skip、5161.1851ms、strict0；legacy无对象仍一次原派发。ownedChild接收同一trusted waits，不引入selector。`native-io-red-2.tap`、`native-io-green.tap`、`native-io-strict.log`同TEMP；最初red累计计数污染legacy断言日志保留，以每子项重置计数的red-2为证据。factory/consumer生产装配仍在后续切片。
 
+## 作者源码切片 17：固定 controller reason 与 native factory（局部）
+
+Root确认合并signal无法保留后生效controller优先，授权trusted optional controllerSignal（默认undefined无selector）。先API字段缺失RED日志留存，再仅识别字段后真实phase/check/raw precheck/next input三子例全返回先work reason（RED0/4含父）；实际路径在当前controller已abort时保原reason，未生效不提前假造优先。生产有独立controller时已record source不被后到cleanup work取消替换；默认undefined保原固定signal语义。四子例GREEN5/5、0skip、283.5443ms、strict0。新native BrowserPreparationContext固定controller.signal并透传reserve origin，非consumer prep undefined保持；真实初始化RED1pass/2fail→GREEN3/3、5752.1415ms，整体strict0。
+
+entrypoint native validation+candidateConsumer装配同一waits，固定case/window/task/当前authority D、原controller/work/task signals和原work.run raw callback；完整prebind传root readSignal，consumer context与nativeIO传同一对象，拒绝替换对象，generic/human不构造。consumer/mount/diagnostics剩余接线仍在后续，尚无整卡完成结论。`controller-priority-{api-red,red,green}.tap`、`controller-priority-strict.log`、`controller-producer-{red,green}.tap`、`controller-producer-strict.log`同TEMP。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

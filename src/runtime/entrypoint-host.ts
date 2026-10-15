@@ -65,7 +65,7 @@ import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
 import { MODULE_CONTRACTS, MODULE_SLOTS, moduleDirectory, moduleSlot, moduleSource, validateModuleContracts, validateModuleFiles } from './modular-code.ts';
 import type { ModularCompilerInputs, ModuleSlot } from './modular-code.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
-import { associateNativeReadSignal, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
+import { associateNativeReadSignal, createNativeValidationWaits, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
 import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
@@ -398,6 +398,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         ? { v1: binding.preparation.candidate, v2: binding.preparation.candidate } : { v1: output, v2: registry.candidateRef(name('game'), 'v2') },
       primaryMedia: mediaOutput,
       name, signal: work.signal, resume: input.resume, ...(inherited && historical ? { inherited: { binding: historical, verified: inherited } } : {}),
+      ...(validation && preparation.candidateConsumer ? { controllerSignal: controller.signal } : {}),
       retainCleanupFailure: (error: unknown) => input.work.retainCleanupFailure(error),
       requireScope: async callerSignal => { checkCaller(callerSignal); work.signal.throwIfAborted(); await preparationScope(callerSignal); checkCaller(callerSignal); work.signal.throwIfAborted(); } } as import('./entrypoint-preparation.ts').BrowserPreparationContext;
     Object.defineProperties(context, Object.getOwnPropertyDescriptors(identities));
@@ -916,16 +917,22 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             requireCurrent: async (callerSignal?: AbortSignal) => { await requireDispatch(task, signal, undefined, callerSignal); } }, async server => {
             if (validation) await requireDispatch(task, signal);
             if (preparation?.candidateConsumer) {
-              await preparation.bindCandidate(ref);
+              const nativeValidationWaits = validation ? createNativeValidationWaits({ caseId: validation.caseId, windowId: validation.windowId,
+                taskId: task.taskId, deadlineAt: Date.parse(authority.deadlineAt), signal: AbortSignal.any([controller.signal, work.signal, signal]),
+                controllerSignal: controller.signal, trackRaw: start => input.work.run(start) }) : undefined;
+              await preparation.bindCandidate(ref, nativeValidationWaits?.readSignal);
               const mediaArtifact = selected(task, 'media'), capture = await registry.getCapture(mediaArtifact);
               const manifestBytes = await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`);
               if (!capture.metadata.media || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), capture.metadata.media)) throw new Error('Actual media manifest differs from its capture.');
               const result = await preparation.candidateConsumer({ root, task, candidate: ref, project, cleanDelivery: server, mediaArtifact, media: capture.metadata.media,
+                ...(nativeValidationWaits ? { nativeValidationWaits } : {}),
                 manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async callerSignal => { await requireDispatch(task, signal, ref, callerSignal); },
                 retainCleanupFailure: error => input.work.retainCleanupFailure(error),
                 playPersistent: async (series, options) => {
                   if (!io.playPersistent) throw new Error('Trusted persistent transport is unavailable.');
-                  return io.playPersistent(series, options, await requireDispatch(task, signal));
+                  if (options.nativeValidationWaits !== undefined && options.nativeValidationWaits !== nativeValidationWaits) throw new Error('Consumer changed its source-owned native wait context.');
+                  return io.playPersistent(series, { ...options, ...(nativeValidationWaits ? { nativeValidationWaits } : {}) },
+                    await requireDispatch(task, signal, undefined, nativeValidationWaits?.readSignal));
                 } });
               await requireDispatch(task, signal); consumerDiagnostics = result.diagnostics;
               const valid = result.passed && result.diagnostics.reportValid && !result.diagnostics.issues.length;

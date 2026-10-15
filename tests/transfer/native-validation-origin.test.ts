@@ -148,3 +148,15 @@ test('COS97 nativeIO rejects an untrusted or mismatched wait source before dispa
     await assert.rejects(io.playPersistent!(series, plain, authority), error => error === sentinel); assert.equal(dispatches, 1);
   });
 });
+
+test('COS97 native preparation pins the original controller signal while ordinary preparation keeps its default', async t => {
+  for (const consumer of [false, true]) await t.test(consumer ? 'native consumer' : 'preparation only', async () => {
+    const f = await transferFixture(t); let context!: BrowserPreparationContext;
+    const preparation: BrowserInputPreparation = { adapterId: 'cos16-input/1', designOutputs: [], designWritePaths: [], designRules: [], codingRules: [],
+      initialize: async value => { context = value; }, requireCurrent: async () => {}, captureDesignExtras: async () => {}, verifyDesignExtras: async () => {},
+      artExtraInputs: () => [], candidateExtraInputs: () => [], bindCandidate: async () => {}, close: async () => {},
+      ...(consumer ? { candidateConsumer: async () => { throw new Error('Fixture must not dispatch consumer'); } } : {}) };
+    await createValidationPreparedBrowserHost({ ...f.input, preparation });
+    assert.equal(context.controllerSignal, consumer ? f.controller.signal : undefined);
+  });
+});
