@@ -175,4 +175,10 @@ controller read/readValidationScopeAuthority/validationAuthority/requireValidati
 
 host/preparation/origin/clean delivery/固定输入与历史的余下可选caller接线、payload发前核验及runner物理启动仍待后续切片；不把本次组件通过提升为整卡完成。
 
+## 作者源码切片 5：路径读取 caller（局部）
+
+safePath/regularFile/snapshot添加可信可选signal，目录/文件前后检查，实际readFile传signal并按原reason重抛；budget receipt转交同signal。原默认路径、链接/nlink/ownership与读取顺序保持。3种预取消与真实首文件完成时取消共4项RED0/4→GREEN4/4、0skip、253.7643ms；下一文件零派发。旧capture与路径/符号链接代表2/2、0skip、642.5088ms，定向strict0。
+
+`path-caller-{red,green}.tap`、`path-default-regression.tap`、`path-caller-strict.log`仍在同TEMP。测试的readFile gate实际观察生产读取，不以mock计数替代真实文件字节；无browser/provider/actual或真实账本。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
