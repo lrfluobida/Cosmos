@@ -54,3 +54,9 @@ Node v22.22.2内置 `internal/test_runner/mock/mock` 的 `#setupMock` 在每次�
 - 稳定的选择范围崩溃副本：上述reconciliation目录下 `cos93-v2-crash-preserved`，337文件、201目录、38976394字节；范围为prepared、完整TEMP ledger/current case及profile，不含Git/tracked checkout。相邻 `cos93-v2-crash-preservation.json`记录源目标hash、原source纳秒mtime/dev/ino、空目录和三个最终文件缺失；这是后置崩溃副本，不是完整v2 before/after保全。原TEMP/profile/owner锁未移动或修改。
 
 下一步仅修观测器：actual路径去method调用记录、去args/函数引用，有界标量trace，危险阶段前一次写保护清单，并只在阶段边界写有界进度。原5秒/15秒/45分钟、heap、预算和真实guard保持；进度文件不能冒充cleanup证明。
+
+## 有界观测实现待独审
+
+计划fb0f341已独审批准。作者已把actual method mock替换为手工descriptor包装，scope/queue观测只存标量；before清单在quote/claim前写一次，阶段进度有64行/128KiB上限，细粒度trace有数量和8MiB序列化预算。observer安装/恢复、上限或I/O错误会阻止完整诊断分类；PID登记事件及其调用方已一起改用标量pid。
+
+短集12/12及后续受影响进度、queue引用、字符串检查通过；真实controller8次读取在正常pending中最多留最后1份，stop后归零。小子进程显式exit23后仅留下已写before/阶段行，没有final或cleanup成功声明。三文件strict退出0，原始命令与独立raw路径见计划。未重造715历史、未运行真实浏览器或第三次actual；v1/v2原始记录及其证据局限保持。

@@ -63,3 +63,24 @@ git diff --check
 ```
 
 无生产src修改、无新依赖/框架、无heap扩大。原5秒scope、15秒open、45分钟外guard、原run deadline、共享¥150/phase¥30/正式¥200与12h保持。Root负责公开结果、PROGRESS和共享映射，作者不改这些文件。
+
+## 作者实现与短验证（待源码独审）
+
+计划 `fb0f341779ff8afd04a77cecb887e5381f02438a` 已获 `cos93_reviewer` 的独立 `PLAN_APPROVED`，无finding。实施范围为表列三个test/fixture文件及本轮自有文档；src和共享tracking无改动。
+
+actual路径已移除所有method mock。手工包装逆序恢复descriptor，继承方法删除实例override；纯计时返回原Promise，CDP/session/sentinel保留已审await及错误传播顺序。controller.done改为pid/taskId/windowId/ticket标量，成功判据同步改用pid；短的真实lifecycle/controller+模拟OS/CDP集成已验证正确PID在CDP前登记可以通过该判据，错误PID或缺记录拒绝。
+
+before清单在quote/claim/open之前发布；进度仅在当前新TEMP打开一次，以阶段行写入，enqueue耗时为单独标量，flush耗时为单独span；未把观测开销从总耗时减去。trace和进度按计划上限处理，非标量、超限、安装/恢复或I/O失败均保留incomplete；即使输入声称startupPassed，也不能覆盖观测失败。没有通过增大heap解决保留链。
+
+| 验证 | 实际结果 | raw路径（均为`C:/Users/26557/AppData/Local/Temp/`下） |
+| --- | --- | --- |
+| helper契约RED | 4fail/0skip，缺新API，exit1 | `cos93-bounded-observer-red.tap` |
+| helper GREEN | 4/4、0skip，449.4061ms | `cos93-bounded-observer-helper-green.tap` |
+| I/O失败分类RED | 已发生写失败仍被分类passed，1fail/0skip，exit1 | `cos93-observer-io-red.tap` |
+| 组合短集 | 12/12、0skip，5530.9061ms | `cos93-bounded-observer-final.tap` |
+| 最终进度/异常退出补充 | 4/4、0skip，4161.9274ms；小子进程exit23后before与已写阶段行可读，无final result/cleanup成功声明 | `cos93-observer-progress-final.tap` |
+| 实际queue/execute包装的8-read引用检查 | 1/1、0skip，466.317ms；仅正常pending最多1份，stop后0，descriptor恢复 | `cos93-observer-queue-retention.tap` |
+| 字符串/中文及Error保留补充 | 1/1、0skip，243.7251ms；2048字符上限，原Error及原3000字符消息不改 | `cos93-observer-string-bound.tap` |
+| 最终三文件strict | exit0；命令同上 | `cos93-bounded-observer-final-strict.log` |
+
+上述检查分属不同提交前差异，数量不相加成一次完整suite。原无变化生产typecheck/build和COS93/COS95证据复用。新fixture未在真实715历史或浏览器上执行；原v1/v2数据、launcher、intent、owner/profile均未修改，第三次actual未获本轮授权。作者提交具体diff后交独审；COS93继续open/partial。

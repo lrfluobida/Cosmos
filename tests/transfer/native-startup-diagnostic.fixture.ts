@@ -35,6 +35,8 @@ import { prepareTransferValidationCaseFourteenExecution } from '../../probes/tra
 import { fixedTransferValidationInput } from '../../probes/transfer/validation-input.ts';
 import { runChild } from '../../probes/e2e/host.ts';
 import type { PersistentAcceptanceReport } from '../../src/acceptance/persistent.ts';
+import { createMethodPatches, openDiagnosticProgress, writeProtectedBefore } from './native-startup-observer.fixture.ts';
+import type { DiagnosticObserver, DiagnosticPatches } from './native-startup-observer.fixture.ts';
 
 const CASE = 'cos20-transfer-validation-14', OLD = 'cos20-transfer-validation-5';
 const platform = resolve(fileURLToPath(new URL('../../', import.meta.url)));
@@ -42,26 +44,30 @@ const sha = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).d
 const decode = (bytes: Uint8Array) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
 const failure = (error: unknown) => ({ name: error instanceof Error ? error.name : 'Unknown', message: error instanceof Error ? error.message : String(error) });
 const diagnosticStopMessage = 'Browser startup/execution: DiagnosticStartupComplete: verified native startup reached context.newPage';
-export interface DiagnosticObserver {
-  span<T>(name: string, operation: () => Promise<T>): Promise<T>;
-  event(name: string, data?: unknown): void;
-  snapshot(): { spans: { id?: number; name: string; startMs: number; endMs: number | null; durationMs: number | null; outcome: string; error?: { name: string; message: string } }[]; events: { name: string; atMs: number; data?: any }[]; [key: string]: unknown };
-}
 
 /** A returned failed evidence contract is a failure even when host.verify did not throw. */
 export function classifyDiagnosticStartup(input: { nativeCalls: number; startupPassed: boolean; hostEvidence?: readonly EvidenceContract[];
   trace: ReturnType<DiagnosticObserver['snapshot']>; phase: string; error?: ReturnType<typeof failure> }) {
-  if (input.nativeCalls === 1 && input.startupPassed) return { outcome: 'passed' as const,
+  const observationFailure = input.trace.observation?.incomplete ? input.trace.observation.firstFailure : null;
+  if (input.nativeCalls === 1 && input.startupPassed && !input.trace.observation?.incomplete) return { outcome: 'passed' as const,
     reason: 'Single original-limit open, exact diagnostic stop, PID/CDP identity and normal cleanup proved', failingGate: null };
   const first = input.hostEvidence?.find(evidence => evidence.outcome === 'failed');
   const scope = first && input.trace.spans.find(span => span.name === 'scope.read' && span.outcome === 'threw'
     && span.error?.name === 'ValidationScopeTimeoutError' && span.error.message === first.summary);
   const failingGate = first ? { operation: scope ? 'scope.read' : 'host.verify', summary: first.summary, source: structuredClone(first.source),
     traceSpanId: scope?.id ?? null, durationMs: scope?.durationMs ?? null }
-    : input.error ? { operation: input.phase, summary: input.error.message, source: null, traceSpanId: null, durationMs: null } : null;
+    : input.error ? { operation: input.phase, summary: input.error.message, source: null, traceSpanId: null, durationMs: null }
+      : observationFailure ? { operation: 'observer', summary: observationFailure.message, source: null, traceSpanId: null, durationMs: null } : null;
   return { outcome: input.nativeCalls === 0 ? 'not_reached' as const : 'failed' as const,
-    reason: first?.summary ?? input.error?.message ?? (input.nativeCalls === 0 ? 'Native IO was not reached; inspect host verification and preparation evidence'
+    reason: first?.summary ?? input.error?.message ?? observationFailure?.message ?? (input.nativeCalls === 0 ? 'Native IO was not reached; inspect host verification and preparation evidence'
       : 'Startup or cleanup was not fully proved; inspect trace and failed report'), failingGate };
+}
+
+export function registeredBrowserBeforeCdp(trace: ReturnType<DiagnosticObserver['snapshot']>, browserPid: number | undefined) {
+  if (!Number.isSafeInteger(browserPid) || browserPid! <= 0) return false;
+  const registration = trace.events.find(event => event.name === 'controller.registerOwnedChild.done' && event.data?.pid === browserPid);
+  const cdp = trace.spans.find(span => span.name === 'cdp.connect');
+  return !!registration && !!cdp && registration.atMs <= cdp.startMs;
 }
 
 export async function assertDiagnosticWriteRoot(target: string, sourceRepository: string): Promise<void> {
@@ -84,6 +90,7 @@ export async function requireDiagnosticInputs(sourceRepository: string, historyS
 class ProtectedInputs {
   files = new Map<string, { sha256: string; bytes: number; mtimeNs: string }>();
   directories = new Map<string, string[]>();
+  manifest() { return { files: [...this.files].map(([path, info]) => ({ path, ...info })), directories: [...this.directories].map(([path, names]) => ({ path, names: [...names] })) }; }
   async file(path: string) {
     path = resolve(path); const bytes = await regularFile(dirname(path), basename(path)), info = await stat(path, { bigint: true });
     const value = { sha256: sha(bytes), bytes: bytes.length, mtimeNs: String(info.mtimeNs) };
@@ -125,9 +132,11 @@ async function closedLoopbackPort(url: string) {
 }
 
 /** Only a full, explicit private-material run calls this. Ordinary tests never create this history. */
-export async function diagnoseNativeStartup(options: { sourceRepository: string; historySnapshot: string; observer: DiagnosticObserver }, t: TestContext) {
+export async function diagnoseNativeStartup(options: { sourceRepository: string; historySnapshot: string; observer: DiagnosticObserver; patches?: DiagnosticPatches }, t: TestContext) {
   const { sourceRepository, historySnapshot } = await requireDiagnosticInputs(options.sourceRepository, options.historySnapshot);
   const observer = options.observer, protectedInputs = new ProtectedInputs(), signal = new AbortController().signal;
+  const patches = options.patches ?? createMethodPatches(observer);
+  let progress: Awaited<ReturnType<typeof openDiagnosticProgress>> | undefined;
   const outputRoot = await mkdtemp(join(tmpdir(), 'cos93-native-startup-'));
   await assertDiagnosticWriteRoot(outputRoot, sourceRepository);
   const repository = join(outputRoot, 'repository'), ledgerRoot = join(repository, '.cosmos/validation-shared'), root = join(repository, '.cosmos/e2e', CASE);
@@ -147,6 +156,7 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
   let nativeCalls = 0, buildReused = false, sourceSummary: unknown, beforeOriginal: ReturnType<typeof counts> | undefined, literalSeries: unknown;
   const prepareStart = performance.now();
   try {
+    progress = await openDiagnosticProgress(outputRoot, sourceRepository, observer); observer.phase('preparation.started');
     const historyBytes = await protectedInputs.file(historySnapshot), baseline: RunSnapshot = decode(historyBytes); validateSnapshot(baseline); baselineBytes = historyBytes.length;
     before = counts(baseline);
     assert.deepEqual([before.revision, before.cases, before.delegations, before.closures, before.audits, before.requests, before.tasks], [2966, 21, 13, 105, 19, 680, 45]);
@@ -199,7 +209,7 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
     for (const file of [...execution.files, execution.platformLock, ...execution.dependencies.flatMap(item => [{ path: item.entry }, { path: item.path }, ...item.files])]) await protectedInputs.file(file.path);
     sourceSummary = { head, executionSha256: execution.sha256, executionFiles: execution.files.length,
       dependencies: execution.dependencies.map(item => ({ name: item.name, version: item.version, files: item.files.length })), node: process.version,
-      instrumentation: 'node:test mock.module wraps real runner/lifecycle; production source bytes are unchanged except native IO factory export' };
+      instrumentation: 'Plain runner module seam, non-recording method timing, bounded scalar trace and stage progress; original production calls and guards remain active' };
     const toolchain = join(root, 'toolchain'); await mkdir(toolchain);
     for (const file of declaration.inputs.template.files) {
       const name = file.path.slice('templates/2d/'.length), bytes = await protectedInputs.file(join(platform, file.path)), target = await safePath(toolchain, name);
@@ -231,6 +241,9 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
       return observer.span('identity.git-fixed-input', () => readIdentity(readSignal));
     };
     const context = { root: ledgerRoot, repositoryRoot: repository, identityReader: sourceIdentity };
+    await writeProtectedBefore(outputRoot, sourceRepository, { formatVersion: 'cos93-protected-before/1', recordedAt: new Date().toISOString(),
+      sourceRepository, historySnapshot, sourceSummary, before, original: beforeOriginal, ...protectedInputs.manifest() });
+    observer.phase('protected.before.published'); await progress.flush();
     const quote = await prepareValidationCase({ ...context, declaration });
     const mapping = decode(await regularFile(repository, 'docs/specs/github-issues.json')), approvals = oldAdmission.sourceApprovals;
     assert.ok(Array.isArray(approvals) && approvals.length > 0);
@@ -286,12 +299,14 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
       async build(project) { assert.ok(within(root, project)); await cp(originalDist, join(project, 'dist'), { recursive: true, errorOnExist: true, force: false }); buildReused = true;
         return { passed: true, work: project, diagnostics: 'COS93 synthetic fixture: sealed original dist reused; no compiler or game generation executed.' }; },
       async playPersistent(series, input, authority) {
-        nativeCalls++; assert.equal(nativeCalls, 1, 'Only one actual startup sample is allowed'); assert.equal(series.segments.length, 8);
-        assert.equal(series.segments.reduce((sum, segment) => sum + segment.plan.steps.length, 0), 220);
-        literalSeries = structuredClone(series); observer.event('measurement.start', { preparationMs: performance.now() - prepareStart }); phase = 'nativeIO';
-        const verifyBinding = () => observer.span('consumer.verifyBinding', input.verifyBinding);
-        report = await observer.span('nativeIO.playPersistent', () => native.playPersistent!(series, { ...input, verifyBinding }, authority));
-        assert.deepEqual(series, literalSeries); return report;
+        return observer.span('nativeIO.playPersistent', async () => {
+          nativeCalls++; assert.equal(nativeCalls, 1, 'Only one actual startup sample is allowed'); assert.equal(series.segments.length, 8);
+          assert.equal(series.segments.reduce((sum, segment) => sum + segment.plan.steps.length, 0), 220);
+          literalSeries = structuredClone(series); observer.event('measurement.start', { preparationMs: performance.now() - prepareStart }); phase = 'nativeIO'; observer.phase('nativeIO.started');
+          const verifyBinding = () => observer.span('consumer.verifyBinding', input.verifyBinding);
+          report = await native.playPersistent!(series, { ...input, verifyBinding }, authority);
+          assert.deepEqual(series, literalSeries); return report;
+        });
       } };
     host = await createTransferReusedConsumerHost({ root, controller, work, requirement, proposal: frozen.requirements.preparation, validation, historicalStages: historical, resume: false, io,
       sessionFactory: async () => { throw new Error('COS93 must never create a model session'); } });
@@ -330,50 +345,57 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
     await output('prepared.json', { kind: 'synthetic-accounting-and-candidate-only', sourceSummary, before, preparedCounts, baselineBytes, preparedBytes,
       original: beforeOriginal, oldRoot, currentRoot: root, ledgerRoot, sourceProject, originalDist, manifestRef, admissionRef, windowId: window.windowId,
       limitation: 'Original historical roots remain read-only; fixture composes production guards and does not execute the fixed CLI entry.' });
+    observer.phase('prepared'); await progress.flush();
     // Observe the real queues and persistence. No callback becomes an authorization substitute.
     const initialOwner = decode(await readFile(join(ledgerRoot, '.controller.lock')));
     observer.event('owner.acquired', { root: ledgerRoot, name: '.controller.lock', untrackedWriters: initialOwner.untrackedWriters });
-    const acquire = OwnerLock.acquire.bind(OwnerLock);
-    t.mock.method(OwnerLock, 'acquire', async (...args: Parameters<typeof acquire>) => {
-      const owner = await acquire(...args), actual = decode(await readFile(join(args[0], args[1])));
+    patches.replace(OwnerLock, 'acquire', original => async function (this: unknown, ...args: Parameters<typeof OwnerLock.acquire>) {
+      const owner = await Reflect.apply(original, this, args), actual = decode(await readFile(join(args[0], args[1])));
       observer.event('owner.acquired', { root: args[0], name: args[1], untrackedWriters: actual.untrackedWriters }); return owner;
     });
     for (const [prototype, name] of [[RunController.prototype, 'controller'], [OwnerLock.prototype, 'owner']] as const) {
-      const original = (prototype as any).serial;
-      t.mock.method(prototype as any, 'serial', function (this: unknown, action: () => Promise<unknown>) {
-        return observer.span(`${name}.queue`, () => original.call(this, () => observer.span(`${name}.execute`, action)));
+      patches.replace(prototype, 'serial', original => function (this: unknown, action: (...args: unknown[]) => Promise<unknown>) {
+        return observer.span(`${name}.queue`, () => Reflect.apply(original, this, [function (this: unknown, ...args: unknown[]) {
+          return observer.span(`${name}.execute`, () => Reflect.apply(action, this, args));
+        }]));
       });
     }
     for (const name of ['prepareOwnedChild', 'registerOwnedChild', 'releaseUnspawnedChild'] as const) {
-      const original = currentController[name].bind(currentController) as (...args: any[]) => Promise<any>;
-      t.mock.method(currentController, name, (...args: any[]) => observer.span(`controller.${name}`, async () => {
-        const value = await original(...args); observer.event(`controller.${name}.done`, { args, value }); return value;
-      }) as any);
+      patches.replace(currentController, name, original => function (this: unknown, ...args: any[]) {
+        const taskId = name === 'prepareOwnedChild' ? args[0]?.taskId ?? null : null, windowId = name === 'prepareOwnedChild' ? args[0]?.windowId ?? null : null;
+        const pid = name === 'registerOwnedChild' ? args[0] : null, ticket = name === 'registerOwnedChild' ? args[1] : name === 'releaseUnspawnedChild' ? args[0] : null;
+        const result: Promise<unknown> = observer.span(`controller.${name}`, () => Reflect.apply(original, this, args));
+        void result.then(value => observer.event(`controller.${name}.done`, { taskId, windowId, pid, ticket: typeof value === 'string' ? value : ticket }), () => {});
+        return result;
+      });
     }
-    const originalSave = (OwnerLock.prototype as any).save;
-    t.mock.method(OwnerLock.prototype as any, 'save', function (this: unknown, record: any) {
-      return observer.span('owner.persist', async () => { const result = await originalSave.call(this, record); observer.event('owner.record', { untrackedWriters: record.untrackedWriters, children: record.children }); return result; });
+    patches.replace(OwnerLock.prototype, 'save', original => function (this: unknown, record: any) {
+      const result: Promise<unknown> = observer.span('owner.persist', () => Reflect.apply(original, this, [record]));
+      void result.then(() => {
+        try { observer.event('owner.record', { untrackedWriters: record.untrackedWriters, childCount: record.children.length });
+          for (const child of record.children) observer.event('owner.child', { ticket: child.ticket, pid: child.pid }); }
+        catch (error) { observer.fail('owner_metadata', error); }
+      }, () => {}); return result;
     });
-    const spawn = childProcess.spawn;
-    t.mock.method(childProcess, 'spawn', function (...args: Parameters<typeof spawn>) {
-      const started = performance.now(), child = spawn(...args);
+    patches.replace(childProcess, 'spawn', original => function (this: unknown, ...args: Parameters<typeof childProcess.spawn>) {
+      const started = performance.now(), child: ReturnType<typeof childProcess.spawn> = Reflect.apply(original, this, args);
       observer.event('os.spawn', { command: args[0], pid: child.pid ?? null, callMs: performance.now() - started });
       if (child.pid) { const record = { pid: child.pid, command: args[0], exit: false, code: null as number | null, signal: null as string | null }; spawned.push(record);
         child.once('close', (code, signal) => { Object.assign(record, { exit: true, code, signal }); observer.event('os.close', record); }); }
       return child;
-    } as typeof spawn); syncBuiltinESMExports();
-    const connect = chromium.connectOverCDP.bind(chromium);
-    t.mock.method(chromium, 'connectOverCDP', (...args: Parameters<typeof connect>) => observer.span('cdp.connect', async () => {
+    }); syncBuiltinESMExports();
+    patches.replace(chromium, 'connectOverCDP', original => function (this: unknown, ...args: Parameters<typeof chromium.connectOverCDP>) { return observer.span('cdp.connect', async () => {
       if (typeof args[0] === 'string') observedPorts.add(new URL(args[0]).origin);
-      const browser = await connect(...args), session = browser.newBrowserCDPSession.bind(browser);
-      t.mock.method(browser, 'newBrowserCDPSession', async () => { const cdp = await session(), send = cdp.send.bind(cdp);
-        t.mock.method(cdp, 'send', ((method: string, params: any) => observer.span(`cdp.${method}`, () => (send as any)(method, params))) as any); return cdp; });
+      const browser = await Reflect.apply(original, this, args);
+      patches.replace(browser, 'newBrowserCDPSession', session => async function (this: unknown, ...args: unknown[]) { const cdp = await Reflect.apply(session, this, args);
+        patches.replace(cdp, 'send', send => function (this: unknown, method: string, ...params: unknown[]) { return observer.span(`cdp.${method}`, () => Reflect.apply(send, this, [method, ...params])); }); return cdp; });
       return browser;
-    }));
-    hostEvidence = await observer.span('host.verify', () => host!.verify(task, currentWork.signal));
+    }); });
+    hostEvidence = await observer.span('host.verify', () => { observer.phase('host.verify.started'); return host!.verify(task, currentWork.signal); });
     phase = 'cleanup';
   } catch (caught) { error = failure(caught); observer.event('diagnostic.error', { phase, ...error }); }
   finally {
+    observer.phase('cleanup.started');
     const finish = async (name: keyof typeof cleanup, action: () => Promise<unknown>) => { try { await observer.span(`cleanup.${name}`, action); (cleanup as any)[name] = true; } catch (caught) { cleanup.errors.push(failure(caught)); } };
     if (host) await finish('preparationClosed', () => host!.closePreparation());
     if (work) await finish('drained', () => work!.cancelAndDrain('COS93 diagnostic completed; synthetic fixture only'));
@@ -392,27 +414,26 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
       cleanup.profile = { path: report.profileRoot, retainedForDiagnosis: true, markerSha256: sha(await regularFile(report.profileRoot, '.owner')), entries: (await readdir(report.profileRoot)).sort() };
     } catch (caught) { cleanup.errors.push(failure(caught)); }
     for (const url of urls) try { cleanup.ports.push(await closedLoopbackPort(url)); } catch (caught) { cleanup.errors.push(failure(caught)); }
-    // Restoring the test mock does not modify source files; keep ESM builtins on the real spawn.
-    t.mock.restoreAll(); syncBuiltinESMExports();
+    patches.restore(); t.mock.restoreAll(); syncBuiltinESMExports();
+    observer.phase('cleanup.finished'); await progress?.close();
   }
   const preservation = await protectedInputs.check(), trace = observer.snapshot();
   const opens = trace.spans.filter(span => span.name === 'lifecycle.open'), stops = trace.events.filter(event => event.name === 'diagnostic.stop');
   const segment = report?.segments[0]?.report, identity = segment?.session;
-  const registration = trace.events.find(event => event.name === 'controller.registerOwnedChild.done' && event.data?.args[0] === identity?.browserPid);
-  const cdp = trace.spans.find(span => span.name === 'cdp.connect');
   const startupPassed = nativeCalls === 1 && opens.length === 1 && opens[0].outcome === 'returned' && opens[0].durationMs !== null && opens[0].durationMs <= 15000
     && stops.length === 1 && report?.outcome === 'failed' && report.segments.length === 1 && segment?.outcome === 'failed'
     && segment.cleanup.browserPid !== null && segment.cleanup.forced === false && segment.cleanup.processExited === true
     && identity?.exitConfirmed === true && identity.closeEvent === true && segment.steps.every(step => step.outcome === 'skipped')
-    && sameValue(segment.errors, [diagnosticStopMessage]) && registration && cdp && registration.atMs <= cdp.startMs
+    && sameValue(segment.errors, [diagnosticStopMessage]) && registeredBrowserBeforeCdp(trace, identity?.browserPid)
     && cleanup.preparationClosed && cleanup.drained && cleanup.controllerClosed && cleanup.locksAbsent && cleanup.processesExited
-    && cleanup.ports.length >= 2 && cleanup.ports.every(port => port.closed) && preservation.unchanged && !cleanup.errors.length && !error;
+    && cleanup.ports.length >= 2 && cleanup.ports.every(port => port.closed) && preservation.unchanged && !cleanup.errors.length && !error && !trace.observation.incomplete;
   const startup = classifyDiagnosticStartup({ nativeCalls, startupPassed: !!startupPassed, hostEvidence, trace, phase, error });
-  const result = { formatVersion: 'cos93-native-startup-diagnostic/1', outcome: nativeCalls === 1 && opens.length === 1 && preservation.unchanged && cleanup.errors.length === 0 ? 'diagnostic_completed' : 'diagnostic_incomplete',
+  const result = { formatVersion: 'cos93-native-startup-diagnostic/1', outcome: nativeCalls === 1 && opens.length === 1 && preservation.unchanged && cleanup.errors.length === 0 && !trace.observation.incomplete ? 'diagnostic_completed' : 'diagnostic_incomplete',
     startup: { ...startup, open: opens[0] ?? null, stop: stops[0] ?? null },
     hostVerification: { returned: hostEvidence !== undefined, evidence: hostEvidence ?? null },
     phase, error: error ?? null, sourceSummary, counts: { before, prepared: preparedCounts, original: beforeOriginal },
     nativeCalls, buildReused, report: report ?? null, series: literalSeries ?? null, cleanup, spawned, preservation, outputRoot,
+    observation: trace.observation, progress: progress?.status() ?? null,
     limitation: 'Synthetic fixture on existing candidate bytes; no model/provider, fixed CLI admission, gameplay, media, coding review, accepted or human pass.' };
   await output('trace.json', trace); await output('preservation.json', preservation); await output('result.json', result);
   t.diagnostic(`COS93 raw result: ${join(outputRoot, 'result.json')}`);

@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TestContext } from 'node:test';
-import { AsyncLocalStorage } from 'node:async_hooks';
 import childProcess from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -9,70 +8,56 @@ import { writeFileSync } from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { OwnedAcceptanceLifecycle } from '../../src/acceptance/runner.ts';
+import { createDiagnosticObserver, createMethodPatches } from './native-startup-observer.fixture.ts';
+import type { DiagnosticObserver, DiagnosticPatches } from './native-startup-observer.fixture.ts';
 
 const actualSelected = process.env.COS93_DIAGNOSTIC_SOURCE !== undefined || process.env.COS93_DIAGNOSTIC_HISTORY !== undefined;
 const stopMessage = 'DiagnosticStartupComplete: verified native startup reached context.newPage';
 
-interface Span {
-  id: number; parentId: number | null; name: string; startMs: number; endMs: number | null; durationMs: number | null;
-  outcome: 'pending' | 'returned' | 'threw'; error?: { name: string; message: string };
-}
-function observer(clock: () => number = () => performance.now()) {
-  const clockOrigin = { kind: 'performance.now', originUtc: new Date().toISOString(), originMonotonicMs: clock() };
-  const parents = new AsyncLocalStorage<number>(), spans: Span[] = [], events: { name: string; atMs: number; data?: unknown }[] = [];
-  return {
-    async span<T>(name: string, operation: () => Promise<T>): Promise<T> {
-      const row: Span = { id: spans.length + 1, parentId: parents.getStore() ?? null, name, startMs: clock(), endMs: null, durationMs: null, outcome: 'pending' };
-      spans.push(row);
-      return parents.run(row.id, async () => {
-        try { const result = await operation(); row.outcome = 'returned'; return result; }
-        catch (error) { row.outcome = 'threw'; row.error = error instanceof Error ? { name: error.name, message: error.message } : { name: typeof error, message: String(error) }; throw error; }
-        finally { row.endMs = clock(); row.durationMs = row.endMs - row.startMs; }
-      });
-    },
-    event(name: string, data?: unknown) { events.push({ name, atMs: clock(), ...(data === undefined ? {} : { data }) }); },
-    snapshot() { return structuredClone({ clock: clockOrigin, spans, events }); },
-  };
-}
-type Observer = ReturnType<typeof observer>;
+const observer = (now?: () => number) => createDiagnosticObserver({ now });
+type Observer = DiagnosticObserver;
 
 class DiagnosticStartupComplete extends Error {
   constructor() { super(stopMessage); this.name = 'DiagnosticStartupComplete'; }
 }
 
-function observedLifecycle(t: TestContext, lifecycle: OwnedAcceptanceLifecycle, trace: Observer): OwnedAcceptanceLifecycle {
+function observedLifecycle(t: TestContext, lifecycle: OwnedAcceptanceLifecycle, trace: Observer, patches = createMethodPatches(trace)): OwnedAcceptanceLifecycle {
+  t.after(() => { patches.restore(); });
   return {
     ...lifecycle,
     async open(...args) {
       trace.event('lifecycle.open.arguments', { timeoutMs: args[1], deadlineAt: args[2]?.deadlineAt });
+      trace.phase('open.started');
       const result = await trace.span('lifecycle.open', () => lifecycle.open(...args));
+      trace.phase('open.returned');
       const identity = lifecycle.identity();
       assert.ok(identity, 'The stop seam requires the completed native identity');
       assert.deepEqual(identity.cdp?.browserProcessIds, [identity.browserPid]);
       assert.deepEqual(identity.cdp?.profileArguments, ['--user-data-dir=' + identity.profile]);
       assert.equal(identity.commandLineProfile, identity.profile);
-      trace.event('lifecycle.identity', structuredClone(identity));
-      const route = result.context.route.bind(result.context);
-      t.mock.method(result.context, 'route', (...routeArgs: Parameters<typeof route>) => trace.span('context.route', () => route(...routeArgs)));
-      t.mock.method(result.context, 'newPage', async () => {
-        trace.event('diagnostic.stop', { point: 'context.newPage', identity: structuredClone(lifecycle.identity()) });
+      trace.event('lifecycle.identity', { browserPid: identity.browserPid, profile: identity.profile, commandLineProfile: identity.commandLineProfile,
+        origin: identity.origin, cdpBrowserPid: identity.cdp?.browserProcessIds[0] ?? null });
+      patches.replace(result.context, 'route', original => function (this: unknown, ...routeArgs: unknown[]) { return trace.span('context.route', () => Reflect.apply(original, this, routeArgs)); });
+      patches.replace(result.context, 'newPage', () => async () => {
+        trace.event('diagnostic.stop', { point: 'context.newPage', browserPid: lifecycle.identity()?.browserPid ?? null });
         throw new DiagnosticStartupComplete();
       });
       return result;
     },
-    close(...args) { return trace.span('lifecycle.close', () => lifecycle.close(...args)); },
+    close(...args) { trace.phase('close.started'); return trace.span('lifecycle.close', () => lifecycle.close(...args)); },
   };
 }
 
-async function installActualLifecycleObserver(t: TestContext, trace: Observer) {
+async function installActualLifecycleObserver(t: TestContext, trace: Observer, patches: DiagnosticPatches) {
   assert.ok(process.execArgv.includes('--experimental-test-module-mocks'), 'Actual diagnosis requires --experimental-test-module-mocks to observe the literal lifecycle.open call');
   const runnerUrl = new URL('../../src/acceptance/runner.ts', import.meta.url);
   const runner = await import(runnerUrl.href);
   t.mock.module(runnerUrl, { namedExports: {
     ...runner,
     runAcceptanceInOwnedSession: (plan: unknown, options: unknown, lifecycle: OwnedAcceptanceLifecycle) =>
-      runner.runAcceptanceInOwnedSession(plan, options, observedLifecycle(t, lifecycle, trace)),
+      runner.runAcceptanceInOwnedSession(plan, options, observedLifecycle(t, lifecycle, trace, patches)),
   } });
 }
 
@@ -125,7 +110,8 @@ test('COS93 diagnostic stop follows native CDP identity and closes normally befo
   const child: any = Object.assign(new EventEmitter(), { pid: 424242, exitCode: null, signalCode: null });
   let spawns = 0, registrations = 0, connections = 0, routes = 0, pageCreations = 0;
   const register = controller.registerOwnedChild.bind(controller);
-  t.mock.method(controller, 'registerOwnedChild', async (pid: number, ticket: string) => { registrations++; assert.equal(connections, 0); await register(pid, ticket); });
+  t.mock.method(controller, 'registerOwnedChild', async (pid: number, ticket: string) => { registrations++; assert.equal(connections, 0); await register(pid, ticket);
+    trace.event('controller.registerOwnedChild.done', { pid, ticket, taskId: null, windowId: null }); });
   // This is a deterministic transport seam; no browser process or CDP server starts.
   t.mock.method(childProcess, 'spawn', () => { spawns++; writeFileSync(join(profile, 'DevToolsActivePort'), '12345\n/devtools/browser/mock\n', 'utf8'); return child; });
   syncBuiltinESMExports();
@@ -136,8 +122,8 @@ test('COS93 diagnostic stop follows native CDP identity and closes normally befo
     if (method === 'Browser.close') { child.exitCode = 0; child.emit('close'); return {}; }
     throw new Error('Unexpected CDP method: ' + method);
   } };
-  t.mock.method(chromium, 'connectOverCDP', async () => { connections++; return { version: () => 'synthetic-transport', close: async () => {},
-    newBrowserCDPSession: async () => cdp, contexts: () => [context] } as any; });
+  t.mock.method(chromium, 'connectOverCDP', () => trace.span('cdp.connect', async () => { connections++; return { version: () => 'synthetic-transport', close: async () => {},
+    newBrowserCDPSession: async () => cdp, contexts: () => [context] } as any; }));
   const plan: any = { formatVersion: '1.0.0', projectId: 'fixture', taskId: 'browser', runId: 'fixture', reportId: 'diagnostic', specVersion: 'v1',
     artifact: { artifactId: 'game', version: 'v1', location: 'game' }, url: 'http://127.0.0.1:32123/', viewport: { width: 1280, height: 720 },
     acceptanceIds: ['visible'], steps: [{ id: 'visible', kind: 'assert', acceptanceId: 'visible', observation: { kind: 'visible', selector: '#game' }, expected: true, timeoutMs: 100 }] };
@@ -158,6 +144,10 @@ test('COS93 diagnostic stop follows native CDP identity and closes normally befo
   assert.equal(stops.length, 1); assert.equal(open.outcome, 'returned'); assert.equal(close.outcome, 'returned');
   assert.ok(open.endMs! <= route.startMs && route.endMs! <= stops[0].atMs && stops[0].atMs <= close.startMs);
   assert.equal((snapshot.events.find(row => row.name === 'lifecycle.open.arguments')!.data as any).timeoutMs, 15_000);
+  const { registeredBrowserBeforeCdp } = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(registeredBrowserBeforeCdp(snapshot, report.session!.browserPid), true, 'The actual scalar PID event feeds the startup success condition');
+  assert.equal(registeredBrowserBeforeCdp(snapshot, report.session!.browserPid + 1), false);
+  assert.equal(registeredBrowserBeforeCdp({ ...snapshot, events: snapshot.events.filter(event => event.name !== 'controller.registerOwnedChild.done') }, report.session!.browserPid), false);
   assert.deepEqual(JSON.parse(await readFile(join(root, report.reportPath), 'utf8')), report);
 });
 
@@ -222,10 +212,10 @@ test('COS93 actual history native startup', { skip: !actualSelected }, async t =
   const sourceRepository = process.env.COS93_DIAGNOSTIC_SOURCE, historySnapshot = process.env.COS93_DIAGNOSTIC_HISTORY;
   assert.ok(sourceRepository && sourceRepository.trim(), 'COS93_DIAGNOSTIC_SOURCE is required when actual history diagnosis is selected');
   assert.ok(historySnapshot && historySnapshot.trim(), 'COS93_DIAGNOSTIC_HISTORY is required when actual history diagnosis is selected');
-  const trace = observer();
-  await installActualLifecycleObserver(t, trace);
+  const trace = observer(), patches = createMethodPatches(trace);
+  await installActualLifecycleObserver(t, trace, patches);
   const { diagnoseNativeStartup } = await import('./native-startup-diagnostic.fixture.ts');
-  const result = await diagnoseNativeStartup({ sourceRepository, historySnapshot, observer: trace }, t);
+  const result = await diagnoseNativeStartup({ sourceRepository, historySnapshot, observer: trace, patches }, t);
   assert.equal(result.outcome, 'diagnostic_completed', JSON.stringify(result.startup));
   assert.equal(result.preservation.unchanged, true, 'Original input bytes, metadata and directory lists must remain unchanged');
   if (result.report) { assert.equal(result.report.outcome, 'failed'); assert.equal(result.report.series.segments.length, 8); }
@@ -238,4 +228,156 @@ test('COS93 actual history native startup', { skip: !actualSelected }, async t =
     assert.ok(report.steps.every((step: { outcome: string }) => step.outcome === 'skipped'));
     assert.equal(report.cleanup.forced, false); assert.equal(report.session?.exitConfirmed, true); assert.equal(report.session?.closeEvent, true);
   } else assert.ok(result.startup.reason, 'An unsuccessful or unreached startup must preserve its reason');
+});
+
+test('COS93 observer preserves this, exact Promise and errors and restores own or inherited methods', { skip: actualSelected }, async () => {
+  const api: any = await import('./native-startup-observer.fixture.ts');
+  assert.equal(typeof api.createDiagnosticObserver, 'function', 'Bounded observer is missing');
+  const trace = api.createDiagnosticObserver(), patches = api.createMethodPatches(trace), value = {}, promise = Promise.resolve(value);
+  const syncError = new Error('exact synchronous error'), asyncError = new Error('exact rejection');
+  const base = { read(this: any, input: unknown) { assert.equal(input, value); assert.equal(this.tag, 'receiver'); return promise; } };
+  const target = Object.assign(Object.create(base), { tag: 'receiver', fail() { throw syncError; } });
+  const own = Object.getOwnPropertyDescriptor(target, 'fail'); let calls = 0;
+  patches.replace(target, 'read', (original: Function) => function (this: unknown, ...args: unknown[]) { calls++; return trace.span('read', () => Reflect.apply(original, this, args)); });
+  patches.replace(target, 'fail', (original: Function) => function (this: unknown) { return trace.span('fail', () => Reflect.apply(original, this, [])); });
+  assert.equal(target.read(value), promise); assert.equal(await promise, value); assert.equal(calls, 1);
+  assert.throws(() => target.fail(), error => error === syncError);
+  const rejected = Promise.reject(asyncError); assert.equal(trace.span('reject', () => rejected), rejected);
+  await assert.rejects(rejected, error => error === asyncError);
+  assert.equal(patches.restore(), true); assert.equal(Object.hasOwn(target, 'read'), false);
+  assert.deepEqual(Object.getOwnPropertyDescriptor(target, 'fail'), own);
+  patches.replace(target, 'read', (original: Function) => original);
+  const fixed = Object.freeze({ method() {} });
+  assert.throws(() => patches.replace(fixed, 'method', () => () => {}));
+  assert.equal(Object.hasOwn(target, 'read'), false, 'A failed installation rolls prior replacements back');
+  assert.equal(trace.status().incomplete, true);
+});
+
+test('COS93 observer retains no per-call real controller snapshots', { skip: actualSelected }, async t => {
+  assert.equal(typeof global.gc, 'function', 'Use --expose-gc for the bounded reference test');
+  const api: any = await import('./native-startup-observer.fixture.ts');
+  assert.equal(typeof api.createMethodPatches, 'function', 'Non-recording method wrapper is missing');
+  const { RunController } = await import('../../src/runtime/run.ts');
+  let cleanup = async () => {}; const root = await temporary(t, () => cleanup());
+  const controller = await RunController.create({ root: join(root, 'ledger'), runId: 'small-retention', ledgerId: 'small-retention',
+    kind: 'evaluation', scope: 'validation', specVersion: '1.0', durationMs: 60000, allocations: [{ taskId: 'tiny', amountMicroCny: 1 }] });
+  const trace = api.createDiagnosticObserver(), patches = api.createMethodPatches(trace), before = Object.getOwnPropertyDescriptor(RunController.prototype, 'serial');
+  cleanup = async () => { patches.restore(); await controller.close(); };
+  patches.replace(RunController.prototype, 'serial', (original: Function) => function (this: unknown, action: (...args: unknown[]) => unknown) {
+    return trace.span('controller.queue', () => Reflect.apply(original, this, [function (this: unknown, ...args: unknown[]) {
+      return trace.span('controller.execute', () => Reflect.apply(action, this, args));
+    }]));
+  });
+  const refs: WeakRef<object>[] = [];
+  async function reads() { for (let index = 0; index < 8; index++) refs.push(new WeakRef(await controller.read())); }
+  async function collect() { for (let index = 0; index < 4; index++) { await new Promise<void>(resolve => setImmediate(resolve)); global.gc!(); } await new Promise<void>(resolve => setImmediate(resolve)); }
+  await reads(); await collect(); assert.ok(refs.filter(ref => ref.deref()).length <= 1, 'Only the original pending Promise may retain the last result');
+  await controller.stop('Bounded small observer fixture'); await collect(); assert.equal(refs.filter(ref => ref.deref()).length, 0);
+  assert.equal(patches.restore(), true); assert.deepEqual(Object.getOwnPropertyDescriptor(RunController.prototype, 'serial'), before);
+  assert.equal(trace.status().incomplete, false); assert.equal(trace.snapshot().spans.length, 18);
+  assert.equal(trace.snapshot().spans.filter((span: any) => span.name === 'controller.queue').length, 9);
+});
+
+test('COS93 observer bounds scalar records and does not retain object arguments', { skip: actualSelected }, async () => {
+  const api: any = await import('./native-startup-observer.fixture.ts');
+  assert.equal(typeof api.createDiagnosticObserver, 'function');
+  const trace = api.createDiagnosticObserver({ maxSpans: 1, maxEvents: 2, maxBytes: 1024 });
+  const value = {}; assert.equal(trace.span('first', () => value), value); assert.equal(trace.span('overflow', () => value), value);
+  trace.event('one', { pid: 1 }); trace.event('two', { pid: 2 }); trace.event('three', { pid: 3 });
+  assert.equal(trace.snapshot().spans.length, 1); assert.equal(trace.snapshot().events.length, 2); assert.equal(trace.status().incomplete, true);
+  const objectTrace = api.createDiagnosticObserver(); objectTrace.event('bad', { value, callback() {} });
+  assert.deepEqual(objectTrace.snapshot().events, []); assert.equal(objectTrace.status().firstFailure.kind, 'non_scalar');
+  const byteTrace = api.createDiagnosticObserver({ maxBytes: 80 }); byteTrace.event('oversized', { message: 'x'.repeat(100) });
+  assert.equal(byteTrace.snapshot().events.length, 0); assert.equal(byteTrace.status().incomplete, true);
+  const stringTrace = api.createDiagnosticObserver(), originalError = new Error('x'.repeat(3000));
+  stringTrace.event('bounded-text', { message: '中'.repeat(3000) });
+  assert.equal(stringTrace.snapshot().events[0].data.message, '中'.repeat(2048));
+  assert.throws(() => stringTrace.span('bounded-error', () => { throw originalError; }), error => error === originalError);
+  assert.equal(stringTrace.snapshot().spans[0].error.message.length, 2048); assert.equal(originalError.message.length, 3000);
+});
+
+test('COS93 observer publishes before evidence once and writes bounded stage progress', { skip: actualSelected }, async t => {
+  const api: any = await import('./native-startup-observer.fixture.ts');
+  assert.equal(typeof api.writeProtectedBefore, 'function', 'Fatal-before evidence is missing');
+  const root = await temporary(t), source = join(root, 'source'); await mkdir(source);
+  await assert.rejects(api.writeProtectedBefore(source, source, {}));
+  const protectedRoot = join(tmpdir(), 'cos93-protected-source');
+  await api.writeProtectedBefore(root, protectedRoot, { files: [{ path: 'fixture', sha256: 'a'.repeat(64) }], directories: [] });
+  const before = await readFile(join(root, 'protected-before.json'));
+  await assert.rejects(api.writeProtectedBefore(root, protectedRoot, {})); assert.deepEqual(await readFile(join(root, 'protected-before.json')), before);
+  const trace = api.createDiagnosticObserver(), progress = await api.openDiagnosticProgress(root, protectedRoot, trace, { maxRecords: 2 });
+  trace.phase('prepared'); await progress.flush();
+  assert.equal((await readFile(join(root, 'progress.ndjson'), 'utf8')).trim().split('\n').length, 1, 'Evidence exists before finally');
+  trace.phase('host.verify'); trace.phase('overflow'); await progress.close();
+  const lines = (await readFile(join(root, 'progress.ndjson'), 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  assert.deepEqual(lines.map(line => line.phase), ['prepared', 'host.verify']); assert.equal(trace.status().incomplete, true);
+  assert.ok(progress.status().enqueueMs >= 0); assert.ok(trace.snapshot().spans.some((span: any) => span.name === 'observer.progress.flush' && span.durationMs >= 0));
+  assert.ok(lines.every(line => !Object.hasOwn(line, 'cleanupPassed')));
+  await assert.rejects(api.openDiagnosticProgress(root, protectedRoot, trace));
+});
+
+test('COS93 observer reports restoration and progress I/O failure without replacing operation errors', { skip: actualSelected }, async t => {
+  const api = await import('./native-startup-observer.fixture.ts'), trace = api.createDiagnosticObserver(), patches = api.createMethodPatches(trace);
+  const subject = { method() {} }, descriptor = Object.getOwnPropertyDescriptor(subject, 'method')!, restoreError = new Error('synthetic restore failure');
+  let blocked = false;
+  const proxy = new Proxy(subject, { defineProperty(target, key, value) { if (blocked) throw restoreError; return Reflect.defineProperty(target, key, value); } });
+  patches.replace(proxy, 'method', original => original); blocked = true;
+  assert.equal(patches.restore(), false); assert.equal(trace.status().firstFailure?.kind, 'restore');
+  blocked = false; Object.defineProperty(subject, 'method', descriptor);
+  const root = await temporary(t), ioTrace = api.createDiagnosticObserver(), fs = (await import('node:fs/promises')).default;
+  const original = fs.open, ioError = new Error('synthetic progress write failure'); let opens = 0;
+  t.mock.method(fs, 'open', async (...args: Parameters<typeof original>) => {
+    opens++; const file = await Reflect.apply(original, fs, args);
+    t.mock.method(file, 'write', async () => { throw ioError; }); return file;
+  }); syncBuiltinESMExports();
+  try {
+    const progress = await api.openDiagnosticProgress(root, join(tmpdir(), 'cos93-protected-source'), ioTrace);
+    ioTrace.phase('prepared'); ioTrace.phase('host.verify'); await progress.flush(); await progress.close();
+    assert.equal(opens, 1); assert.equal(progress.status().failed, true); assert.equal(progress.status().written, 0);
+    assert.equal(ioTrace.status().firstFailure?.kind, 'progress_write'); assert.equal(ioTrace.status().firstFailure?.message, ioError.message);
+    const actualError = new Error('original operation failed'); assert.throws(() => ioTrace.span('actual', () => { throw actualError; }), error => error === actualError);
+    const { classifyDiagnosticStartup } = await import('./native-startup-diagnostic.fixture.ts');
+    const result = classifyDiagnosticStartup({ nativeCalls: 1, startupPassed: true, trace: ioTrace.snapshot(), phase: 'cleanup' });
+    assert.equal(result.outcome, 'failed', 'Incomplete observation cannot become a completed startup');
+    assert.equal(result.failingGate?.operation, 'observer');
+  } finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+});
+
+test('COS93 observer enforces before, progress record and total byte ceilings', { skip: actualSelected }, async t => {
+  const api = await import('./native-startup-observer.fixture.ts'), source = join(tmpdir(), 'cos93-protected-source');
+  const root = await temporary(t); let dangerousCalls = 0;
+  await assert.rejects(async () => { await api.writeProtectedBefore(root, source, { files: ['too long'] }, 8); dangerousCalls++; }, /size limit/);
+  assert.equal(dangerousCalls, 0); await assert.rejects(readFile(join(root, 'protected-before.json')), (error: NodeJS.ErrnoException) => error.code === 'ENOENT');
+  for (const limit of [{ maxRecordBytes: 8 }, { maxBytes: 8 }]) {
+    const output = await temporary(t), trace = api.createDiagnosticObserver(), progress = await api.openDiagnosticProgress(output, source, trace, limit);
+    trace.phase('prepared'); await progress.close(); assert.equal(progress.status().queued, 0); assert.equal(progress.status().written, 0);
+    assert.equal((await readFile(join(output, 'progress.ndjson'))).length, 0); assert.equal(trace.status().firstFailure?.kind, 'progress_limit');
+  }
+});
+
+test('COS93 observer module seam keeps a plain function without automatic call records', { skip: actualSelected }, async t => {
+  assert.ok(process.execArgv.includes('--experimental-test-module-mocks'));
+  const root = await temporary(t), file = join(root, 'module.mjs'); await writeFile(file, 'export function call(value) { return value; }\n', 'utf8');
+  const url = pathToFileURL(file), expected = {}, rejected = new Error('module original error'); let calls = 0;
+  const implementation = (value: unknown) => { calls++; if (value === rejected) throw rejected; return value; };
+  const context = t.mock.module(url, { namedExports: { call: implementation } });
+  const module = await import(url.href); assert.equal(module.call, implementation); assert.equal(module.call(expected), expected);
+  assert.throws(() => module.call(rejected), error => error === rejected); assert.equal(calls, 2);
+  assert.equal(Object.hasOwn(module.call, 'mock'), false); context.restore();
+});
+
+test('COS93 observer preserves only written before and stage evidence after a small process exit', { skip: actualSelected }, async t => {
+  const root = await temporary(t), source = join(tmpdir(), 'cos93-protected-source'), helper = new URL('./native-startup-observer.fixture.ts', import.meta.url).href;
+  const script = `import {createDiagnosticObserver,writeProtectedBefore,openDiagnosticProgress} from ${JSON.stringify(helper)};
+    const root=${JSON.stringify(root)}, source=${JSON.stringify(source)}, observer=createDiagnosticObserver();
+    await writeProtectedBefore(root,source,{formatVersion:'small-fatal-fixture',files:[],directories:[]});
+    const progress=await openDiagnosticProgress(root,source,observer);observer.phase('prepared');await progress.flush();process.exit(23);`;
+  const child = childProcess.spawn(process.execPath, ['--experimental-strip-types', '--input-type=module', '-e', script], { windowsHide: true, stdio: 'ignore' });
+  const timer = setTimeout(() => child.kill(), 5000);
+  let code: number | null;
+  try { code = await new Promise<number | null>((done, reject) => { child.once('error', reject); child.once('close', done); }); } finally { clearTimeout(timer); }
+  assert.equal(code, 23); assert.equal(JSON.parse(await readFile(join(root, 'protected-before.json'), 'utf8')).formatVersion, 'small-fatal-fixture');
+  const lines = (await readFile(join(root, 'progress.ndjson'), 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  assert.deepEqual(lines.map(line => line.phase), ['prepared']); assert.ok(lines.every(line => !Object.hasOwn(line, 'cleanupPassed')));
+  await assert.rejects(readFile(join(root, 'result.json')), (error: NodeJS.ErrnoException) => error.code === 'ENOENT');
 });
