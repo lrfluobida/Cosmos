@@ -87,3 +87,22 @@ test('COS97 ordinary reader keeps its immediate default and gains no native owne
   const reading = api.runNativeValidationRead(plain, async (signal: AbortSignal) => { assert.equal(signal, plain); started = true; return 3; });
   assert.equal(started, true); assert.equal(await reading, 3);
 });
+
+test('COS97 expired stage dispatches no operation even when its timer callback is delayed', async t => {
+  const f = fixture(); let calls = 0;
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());
+  const segment = f.waits.beginSegment('segment');
+  const pending = segment.runStage('prepare_authority', async () => { calls++; });
+  t.mock.timers.setTime(f.base + 60_000);
+  await assert.rejects(pending, (error: any) => error.stage === 'prepare_authority');
+  assert.equal(calls, 0, 'The frozen stage deadline must be checked before operation dispatch');
+});
+
+test('COS97 cancellation after ownership registration counts one settled operation with zero reader dispatches', async () => {
+  const f = fixture(), reason = new Error('queued native cancellation'); let calls = 0;
+  const pending = api.runNativeValidationRead(f.waits.readSignal, async () => { calls++; });
+  const failed = assert.rejects(pending, (error: unknown) => error === reason);
+  f.owner.abort(reason); await failed;
+  assert.equal(calls, 0);
+  assert.deepEqual(f.waits.snapshot().rawReads, { started: 1, settled: 1, pending: 0 }, 'Counts describe owned operations, including cancellation before reader dispatch');
+});

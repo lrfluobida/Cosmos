@@ -153,4 +153,10 @@
 
 受影响完整`tests/runtime/validation-scope-authority.test.ts`回归17/17、0skip、exit0、1483.9687ms，覆盖旧队列/expiry/window/authority/source默认；helper/scope/window/test定向strict exit0。日志仍在上述TEMP：`inner-readers-red.tap`、`inner-readers-green.tap`、`scope-authority-regression.tap`、`inner-readers-strict.log`。新增fixture只用隔离TEMP的小controller和免费固定来源，没有715历史、browser/provider/actual或付费。下一步为helper的generation/导航/HTTP及贯穿闭包写新的RED。
 
+## 局部审查修正：阶段到期派发与排队取消计数
+
+独审49058切片提出两项P2：timer回调迟到时raw microtask仍可派发已过stageEnd的操作；reader启动才计started而所有已登记operation均计settled，排队取消会出现0/1。两项先做真实RED 0/2，再在operation之前检查冻结deadline，统一started/settled为已取得所有权的operation计数（不冒充实际reader派发次数）。queued取消的reader调用仍为0，计数1/1/pending0。
+
+受影响helper完整GREEN8/8、0skip、exit0、243.1437ms，定向strict exit0；`helper-p2-red.tap`、`helper-p2-green.tap`、`helper-p2-strict.log`在同TEMP。未改scope/window生产或其17项行为，复用此前4/17通过证据；继续完整navigation/HTTP/lease与host信号链实施。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

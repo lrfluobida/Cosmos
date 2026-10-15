@@ -60,9 +60,9 @@ export function runNativeValidationRead<T>(signal: AbortSignal, start: (signal: 
   const operation = owner.input.trackRaw(async ownedSignal => {
     owner.input.signal.throwIfAborted(); signal.throwIfAborted(); ownedSignal.throwIfAborted();
     const active = associateNativeReadSignal(signal, AbortSignal.any([ownedSignal, signal]));
-    owner.started++;
     return start(active);
   });
+  owner.started++; // Count owned operations, including cancellation before the reader thunk starts.
   owner.raw.add(operation); segment?.raw.add(operation);
   const settled = () => { owner.raw.delete(operation); segment?.raw.delete(operation); owner.settled++; };
   void operation.then(settled, settled);
@@ -112,7 +112,11 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
           let onAbort!: () => void;
           const cancelled = new Promise<never>((_, reject) => { onAbort = () => reject(signal.reason); signal.addEventListener('abort', onAbort, { once: true }); });
           const timer = setTimeout(() => abort.abort(new NativeWaitDeadlineError(stage)), Math.max(0, deadlineAt - Date.now()));
-          const raw = Promise.resolve().then(() => { check(); signal.throwIfAborted(); return operation({ signal, deadlineAt }); });
+          const raw = Promise.resolve().then(() => {
+            check(); signal.throwIfAborted();
+            if (Date.now() >= deadlineAt) throw new NativeWaitDeadlineError(stage);
+            return operation({ signal, deadlineAt });
+          });
           void raw.then(() => { record.rawPending = false; }, () => { record.rawPending = false; });
           try {
             const result = await Promise.race([raw, cancelled]);
