@@ -9,6 +9,8 @@ import { safePath, regularFile, snapshot } from '../../src/artifacts/paths.ts';
 import { requireValidationPreparationScope } from '../../src/runtime/entrypoint-validation.ts';
 import { transferFixture } from './runtime-host.fixture.ts';
 import { createNativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
+import { createValidationPreparedBrowserHost } from '../../src/runtime/entrypoint-host.ts';
+import type { BrowserInputPreparation, BrowserPreparationContext } from '../../src/runtime/entrypoint-preparation.ts';
 
 async function files(t: test.TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'cos97-origin-'));
@@ -86,4 +88,39 @@ test('COS97 active preparation caller preserves complete fixed scope and native 
   const scope = await requireValidationPreparationScope({ ...f.input, adapterId: 'cos16-input/1' }, waits.readSignal);
   assert.deepEqual(scope.window, f.window); assert.ok(waits.snapshot().rawReads.started >= 2);
   assert.equal(waits.snapshot().rawReads.pending, 0);
+});
+
+test('COS97 prepared host closures forward the original optional caller', async t => {
+  const f = await transferFixture(t); let context!: BrowserPreparationContext, received: AbortSignal | undefined;
+  const preparation: BrowserInputPreparation = { adapterId: 'cos16-input/1', designOutputs: [], designWritePaths: [], designRules: [], codingRules: [],
+    initialize: async value => { context = value; }, requireCurrent: async () => {}, captureDesignExtras: async () => {}, verifyDesignExtras: async () => {},
+    artExtraInputs: () => [], candidateExtraInputs: () => [], bindCandidate: async (_candidate, caller?: AbortSignal) => { received = caller; caller?.throwIfAborted(); },
+    close: async () => {} };
+  const host = await createValidationPreparedBrowserHost({ ...f.input, preparation });
+  await t.test('pre-cancelled preparation scope', async () => {
+    const caller = new AbortController(), reason = new Error('cancelled before captured preparation closure'); let reads = 0;
+    const original = f.validation.readScope;
+    t.mock.method(f.validation, 'readScope', async (signal: AbortSignal) => { reads++; return original(signal); }); caller.abort(reason);
+    try { await assert.rejects(context.requireScope(caller.signal), error => error === reason); assert.equal(reads, 0); }
+    finally { t.mock.restoreAll(); }
+  });
+  await t.test('cancellation after controller host blocks the next scope', async () => {
+    const caller = new AbortController(), reason = new Error('cancelled inside captured host scope'); let reads = 0;
+    const original = f.controller.requireValidationHost.bind(f.controller), reader = f.validation.readScope;
+    t.mock.method(f.controller, 'requireValidationHost', async (...args: Parameters<typeof original>) => { await original(...args); caller.abort(reason); });
+    t.mock.method(f.validation, 'readScope', async (signal: AbortSignal) => { reads++; return reader(signal); });
+    try { await assert.rejects(context.requireScope(caller.signal), error => error === reason); assert.equal(reads, 0); }
+    finally { t.mock.restoreAll(); }
+  });
+  await t.test('candidate binding preserves caller identity', async () => {
+    const caller = new AbortController(), reason = new Error('cancelled captured candidate binding'); caller.abort(reason);
+    await assert.rejects(host.bindPreparedCandidate(context.candidates.v1, caller.signal), error => error === reason);
+    assert.equal(received, caller.signal);
+  });
+  await t.test('preparation initialization retains exact cleanup failures in its original owner', async () => {
+    const failures: unknown[] = [], reason = new Error('pre-mount listener close failed');
+    t.mock.method(f.input.work, 'retainCleanupFailure', (error: unknown) => { failures.push(error); });
+    try { assert.equal(typeof context.retainCleanupFailure, 'function'); context.retainCleanupFailure!(reason); assert.deepEqual(failures, [reason]); }
+    finally { t.mock.restoreAll(); }
+  });
 });

@@ -11,6 +11,8 @@ import fs from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
 import { bindTransferAcceptance, verifyPreparedTransferAcceptance } from '../../src/runtime/adapters/transfer/binding.ts';
 import type { BindInput } from '../../src/runtime/adapters/transfer/binding.ts';
+import { createTransferDesignValidation } from '../../src/runtime/adapters/transfer/design-validation.ts';
+import type { BrowserPreparationContext } from '../../src/runtime/entrypoint-preparation.ts';
 
 async function api() {
   const result: any = await import('../../probes/transfer/runtime-host.ts').catch(error => {
@@ -147,6 +149,47 @@ test('COS97 fixed transfer binding forwards caller cancellation through actual p
       assert.equal(reads, 1, 'Cancellation after metadata must prevent the next actual binding file read');
     } finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
   });
+});
+
+test('COS97 read-only design seal stops at caller boundaries on valid audit bytes', async t => {
+  const f = await pipeline(t), task = f.result[0]; let guards = 0, received: AbortSignal | undefined, cancel: AbortController | undefined;
+  const context = { root: f.root, signal: f.input.work.signal, requirement: f.requirement, designTaskId: task.taskId,
+    requirementCapture: f.registry.artifactRef(`${f.window.caseId}-requirement-bundle`, 'fixture-v1') } as BrowserPreparationContext;
+  const validation = createTransferDesignValidation({ context, controller: f.controller,
+    guard: async (caller?: AbortSignal) => { guards++; received = caller; cancel?.abort(reason); } });
+  const reason = new Error('cancelled read-only design seal');
+  assert.ok((await validation.seal(task)).bytes.length > 0, 'The original audit and source must be valid before cancellation'); guards = 0;
+  await t.test('pre-cancelled seal starts no guard', async () => {
+    const caller = new AbortController(); caller.abort(reason);
+    await assert.rejects(validation.seal(task, undefined, caller.signal), error => error === reason); assert.equal(guards, 0);
+  });
+  await t.test('cancellation inside guard preserves caller before binding reads', async () => {
+    cancel = new AbortController(); guards = 0;
+    try { await assert.rejects(validation.seal(task, undefined, cancel.signal), error => error === reason); assert.equal(received, cancel.signal); assert.equal(guards, 1); }
+    finally { cancel = undefined; }
+  });
+  await t.test('cancellation after first actual binding bytes stops subsequent reads', async () => {
+    const caller = new AbortController(), original = fs.promises.readFile; let reads = 0;
+    t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+      const bytes = await original(...args); if (String(args[0]).startsWith(f.root)) { reads++; if (reads === 1) caller.abort(reason); } return bytes;
+    }); syncBuiltinESMExports();
+    try { await assert.rejects(validation.seal(task, undefined, caller.signal), error => error === reason); assert.equal(reads, 1); }
+    finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+  });
+});
+
+test('COS97 design seal preserves a caller ENOENT reason during its final valid MAP read', async t => {
+  const f = await pipeline(t), task = f.result[0], context = { root: f.root, signal: f.input.work.signal, requirement: f.requirement, designTaskId: task.taskId,
+    requirementCapture: f.registry.artifactRef(`${f.window.caseId}-requirement-bundle`, 'fixture-v1') } as BrowserPreparationContext;
+  const validation = createTransferDesignValidation({ context, controller: f.controller, guard: async () => {} });
+  assert.ok((await validation.seal(task)).bytes.length > 0);
+  const caller = new AbortController(), reason = Object.assign(new Error('Caller ENOENT is cancellation, not a missing MAP'), { code: 'ENOENT' });
+  const original = fs.promises.readFile, target = join(f.tasks[0].workspace, 'authors/design/transfer-design.json'); let reads = 0;
+  t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+    const bytes = await original(...args); if (String(args[0]) === target) { reads++; caller.abort(reason); } return bytes;
+  }); syncBuiltinESMExports();
+  try { await assert.rejects(validation.seal(task, undefined, caller.signal), error => error === reason); assert.equal(reads, 1); }
+  finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
 });
 
 test('invalid semantic design preserves raw bytes and stops art/coding without claiming coding repair', async t => {

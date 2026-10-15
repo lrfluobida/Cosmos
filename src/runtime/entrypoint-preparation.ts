@@ -11,11 +11,14 @@ import type { HistoricalPassedStages, VerifiedHistoricalStages } from './histori
 import type { HumanPreparationScope } from './entrypoint-human-preparation.ts';
 import type { HumanContinuationScope } from './entrypoint-human-continuation.ts';
 import type { CleanDelivery } from './entrypoint-delivery.ts';
+import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
 
 export interface BrowserCandidateConsumerContext {
   root: string; task: TaskContract; candidate: ArtifactReference; project: string; cleanDelivery: CleanDelivery;
   mediaArtifact: ArtifactReference; media: MediaMetadata; manifestSha256: string; signal: AbortSignal; deadlineAt: number;
-  requireCurrent(): Promise<void>;
+  nativeValidationWaits?: NativeValidationWaits;
+  retainCleanupFailure?(error: unknown): void;
+  requireCurrent(callerSignal?: AbortSignal): Promise<void>;
   playPersistent(series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions): Promise<PersistentAcceptanceReport>;
 }
 export interface BrowserCandidateConsumerResult {
@@ -31,7 +34,8 @@ export interface BrowserPreparationContext {
   designTaskId: string;
   mediaTaskId: string; primaryMedia: ArtifactReference; candidateTaskIds: { v1: string; v2: string };
   name(value: string): string; signal: AbortSignal; resume: boolean;
-  requireScope(): Promise<void>;
+  retainCleanupFailure?(error: unknown): void;
+  requireScope(callerSignal?: AbortSignal): Promise<void>;
   human?: HumanPreparationScope | HumanContinuationScope;
   taskWorkspace?(taskId: string): string;
   inherited?: { binding: HistoricalPassedStages; verified: VerifiedHistoricalStages };
@@ -40,7 +44,7 @@ export interface BrowserPreparationContext {
 export interface BrowserInputPreparation {
   adapterId: string;
   initialize(context: BrowserPreparationContext): Promise<void>;
-  requireCurrent(): Promise<void>;
+  requireCurrent(callerSignal?: AbortSignal): Promise<void>;
   /** Fixed current plans prepared before author context/signatures. */
   currentInputs?(): ArtifactReference[];
   designOutputs: PlanningRolePolicy['outputs'];
@@ -51,7 +55,7 @@ export interface BrowserInputPreparation {
   verifyDesignExtras(task: TaskContract): Promise<void>;
   artExtraInputs(): ArtifactReference[];
   candidateExtraInputs(candidate: ArtifactReference): ArtifactReference[];
-  bindCandidate(candidate: ArtifactReference): Promise<unknown>;
+  bindCandidate(candidate: ArtifactReference, callerSignal?: AbortSignal): Promise<unknown>;
   candidateConsumer?: (context: BrowserCandidateConsumerContext) => Promise<BrowserCandidateConsumerResult>;
   candidateBuildDiagnostic?: (task: TaskContract, report: BrowserBuildReport, path: string) => BrowserCandidateConsumerResult['diagnostics'];
   close(): Promise<void>;

@@ -202,3 +202,90 @@ test('COS97 only original native caller signals carry generation invalidation id
   assert.equal(api.nativeCallerDisposition(signal, f.waits, signal.reason), 'stale');
   assert.equal(api.nativeCallerDisposition(f.waits.readSignal, fixture().waits, new Error('old mount')), 'stale');
 });
+
+test('COS97 source lifetime check aborts with its exact frozen stage deadline reason', async t => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'); let signal!: AbortSignal, reason: unknown;
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());
+  const pending = segment.runStage('prepare_authority', async (life: any) => {
+    signal = life.signal; t.mock.timers.setTime(f.base + 60_000);
+    try { life.check(); } catch (error) { reason = error; throw error; }
+  });
+  await assert.rejects(pending, (error: any) => error === reason && error.stage === 'prepare_authority');
+  assert.equal(signal.aborted, true); assert.equal(signal.reason, reason);
+});
+
+test('COS97 request records an observed source first cause without changing caller or later generation', async () => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'), cause = new Error('actual payload changed'), cleanup = new Error('later close failed');
+  await transportReady(segment); segment.beginNavigation(); let previous: any;
+  const pending = segment.runStage('navigation', async () => f.waits.runRequest(async (request: any) => {
+    previous = request;
+    await request.runStage('http_pre_authority', async () => {}); await request.runStage('http_body', async () => {});
+    await request.runStage('http_post_authority', async (life: any) => {
+      request.recordFailure(cause); assert.equal(life.signal.aborted, false);
+      assert.equal(segment.snapshot().firstCause.message, cause.message); throw cleanup;
+    });
+  }));
+  await assert.rejects(pending, error => error === cause);
+  assert.equal(segment.snapshot().firstCause.message, cause.message);
+  segment.revoke(); await segment.settle(f.base + 5000); const next = f.waits.beginSegment('next'), before = next.snapshot();
+  previous.recordFailure(new Error('late obsolete callback')); assert.deepEqual(next.snapshot(), before);
+});
+
+test('COS97 original phase caller records source failure before deferred invalidation closes', async t => {
+  assert.equal(typeof api.recordNativeValidationFailure, 'function');
+  const f = fixture(), segment = f.waits.beginSegment('segment'), cause = new Error('source observed before close'), cleanup = new Error('later close failure');
+  const entered = deferred(), gate = deferred(); let previous!: AbortSignal;
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());
+  const pending = segment.runStage('prepare_authority', async (life: any) => {
+    previous = life.signal;
+    const derived = api.associateNativeReadSignal(life.signal, AbortSignal.any([life.signal]));
+    api.recordNativeValidationFailure(derived, new Error('derived has no invalidation authority')); assert.equal(segment.snapshot().firstCause, null);
+    api.recordNativeValidationFailure(life.signal, cause); assert.equal(life.signal.aborted, false); entered.resolve();
+    await gate.promise; throw cleanup;
+  });
+  const rejected = assert.rejects(pending, error => error === cause);
+  await entered.promise; assert.equal(segment.snapshot().firstCause.message, cause.message);
+  t.mock.timers.tick(60_000);
+  try {
+    await rejected; assert.equal(segment.snapshot().rawOperationsPending, 1);
+    const failed = assert.rejects(segment.settle(f.base + 60_100), /settle|pending/i); t.mock.timers.tick(100); await failed;
+  } finally { gate.resolve(); segment.revoke(); await segment.settle(f.base + 65_000); }
+  const next = f.waits.beginSegment('next'), before = next.snapshot(); api.recordNativeValidationFailure(previous, new Error('old callback'));
+  assert.deepEqual(next.snapshot(), before); let settled!: AbortSignal;
+  await next.runStage('prepare_authority', async (life: any) => { settled = life.signal; });
+  api.recordNativeValidationFailure(settled, new Error('settled phase')); assert.equal(next.snapshot().firstCause, null);
+});
+
+test('COS97 recorded undefined first cause retains presence through a later cleanup error', async () => {
+  const f = fixture(), segment = f.waits.beginSegment('segment');
+  const pending = segment.runStage('prepare_authority', async (life: any) => {
+    api.recordNativeValidationFailure(life.signal, undefined); throw new Error('secondary cleanup failure');
+  });
+  await assert.rejects(pending, error => error === undefined); assert.equal(segment.snapshot().firstCause.message, 'undefined');
+});
+
+test('COS97 spawned registration remains pending when its next authority phase cannot dispatch', async t => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'), entered = deferred(), gate = deferred(); let calls = 0;
+  assert.equal(typeof segment.trackRegistration, 'function');
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());
+  await segment.runStage('prepare_authority', async () => {});
+  const raw = segment.trackRegistration(async () => { entered.resolve(); await gate.promise; });
+  await entered.promise; segment.revoke(new Error('cancelled immediately after spawn'));
+  await assert.rejects(segment.runStage('register_authority', async () => { calls++; }), /cancelled immediately/);
+  assert.equal(calls, 0); assert.equal(segment.snapshot().rawOperationsPending, 1);
+  const failed = assert.rejects(segment.settle(f.base + 100), /settle|pending/i); t.mock.timers.tick(100); await failed;
+  gate.resolve(); await raw; await segment.settle(f.base + 5000); assert.equal(segment.snapshot().rawOperationsPending, 0);
+});
+
+test('COS97 pre-mount lookup recognizes only original source callers and leaves generation checks separate', async () => {
+  assert.equal(typeof api.nativeValidationWaitsForCaller, 'function');
+  const f = fixture(), segment = f.waits.beginSegment('segment'); let phase!: AbortSignal;
+  assert.equal(api.nativeValidationWaitsForCaller(f.waits.readSignal), f.waits);
+  await segment.runStage('prepare_authority', async (life: any) => { phase = life.signal; });
+  assert.equal(api.nativeValidationWaitsForCaller(phase), f.waits);
+  const derived = api.associateNativeReadSignal(phase, AbortSignal.any([phase]));
+  assert.equal(api.nativeValidationWaitsForCaller(derived), undefined); assert.equal(api.nativeValidationWaitsForCaller(new AbortController().signal), undefined);
+  segment.revoke(); await segment.settle(f.base + 5000); f.waits.beginSegment('next');
+  assert.equal(api.nativeValidationWaitsForCaller(phase), f.waits);
+  assert.equal(api.nativeCallerDisposition(phase, f.waits, phase.reason), 'stale');
+});

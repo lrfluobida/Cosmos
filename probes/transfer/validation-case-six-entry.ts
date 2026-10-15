@@ -87,13 +87,16 @@ async function absent(repository: string, path: string, label: string) {
 }
 /** Fixed caller reads only the manifest path it owns; the actual digest is covered by the new operator receipt. */
 async function historicalSource(repository: string, targetRoot: string, source: any, signal: AbortSignal) {
-  const ledgerRoot = join(repository, '.cosmos/validation-shared'), bytes = await regularFile(ledgerRoot, manifestLocation), manifestRef = {
+  signal.throwIfAborted();
+  const ledgerRoot = join(repository, '.cosmos/validation-shared'), bytes = await regularFile(ledgerRoot, manifestLocation, signal); signal.throwIfAborted();
+  const manifestRef = {
     artifactId: `${D.caseId}-historical-stages`, version: validationHash(bytes), location: manifestLocation };
   const { createHistoricalPassedStages } = await import('../../src/runtime/historical-passed-stages.ts');
+  signal.throwIfAborted();
   const historical = createHistoricalPassedStages({ originalRoot: join(repository, '.cosmos/e2e', D5.caseId), targetRoot,
     expected: { caseId: D5.caseId, windowId: source.windowId, ...source.quote.identity, designTaskId: D5.grants.design.taskId, artTaskId: D5.grants.art.taskId }, manifestRef,
-    readManifest: async readSignal => { readSignal.throwIfAborted(); return regularFile(ledgerRoot, manifestLocation); } });
-  await historical.verify(signal); return historical;
+    readManifest: async readSignal => { readSignal.throwIfAborted(); const bytes = await regularFile(ledgerRoot, manifestLocation, readSignal); readSignal.throwIfAborted(); return bytes; } });
+  await historical.verify(signal); signal.throwIfAborted(); return historical;
 }
 async function prepare(options: { repository: string; args: string[]; signal?: AbortSignal }, resume = false) {
   const repository = resolve(options.repository), intent = parseEntry(options.args), signal = options.signal ?? new AbortController().signal;
@@ -197,7 +200,7 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   const admission = admissionValue ? { value: admissionValue, ref: { artifactId: `${D.caseId}-admission`, version: validationHash(JSON.stringify(admissionValue, null, 2) + '\n'), location: `${D.caseId}-admission-${admissionValue.admissionId}.json` } } : undefined;
   async function verifyAdmission(readSignal: AbortSignal) {
     if (!admission) return; readSignal.throwIfAborted();
-    const actual = await regularFile(ledgerRoot, admission.ref.location);
+    const actual = await regularFile(ledgerRoot, admission.ref.location, readSignal); readSignal.throwIfAborted();
     if (validationHash(actual) !== admission.ref.version || !sameValue(decode(actual), admission.value)) throw new Error('Current admission envelope bytes changed.');
   }
   if (window) {
@@ -234,7 +237,11 @@ async function startTransferValidationCaseSix(options: { repository: string; arg
     value = current;
   }
   const { repository, ledgerRoot, caseRoot, historical, identityReader, quote, signal, intent } = value;
-  const scopeIdentity = async (readSignal: AbortSignal) => { const identity = await identityReader(readSignal); await historical.verify(readSignal); await value.verifyAdmission(readSignal); return identity; };
+  const scopeIdentity = async (readSignal: AbortSignal) => {
+    readSignal.throwIfAborted(); const identity = await identityReader(readSignal); readSignal.throwIfAborted();
+    await historical.verify(readSignal); readSignal.throwIfAborted();
+    await value.verifyAdmission(readSignal); readSignal.throwIfAborted(); return identity;
+  };
   let window = value.window;
   if (!window) {
     if (value.admission) { await publishReceipt(join(ledgerRoot, value.admission.ref.location), value.admission.value, signal); await value.verifyAdmission(signal); }

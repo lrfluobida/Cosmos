@@ -205,4 +205,36 @@ verifyPreparedTransferAcceptance/bindTransferAcceptance及内部capturedFiles/re
 
 `binding-caller-{red,green}.tap`、`binding-caller-strict.log`同TEMP。Root另为probe子任务授权validation-case-seven-source.ts必要signal透传，本作者一并预留不修改；其他primary接线继续。
 
+## 作者源码切片 9：host preparation 闭包 caller（局部）
+
+BrowserPreparationContext/BrowserInputPreparation/consumer类型与host真实validationScope/preparationScope/requireDispatch闭包透传原caller；实际固定requirement/history读取用保留native raw owner的组合signal，默认路径保持。createValidationPreparedBrowserHost真实闭包下，预取消、controller host返回后取消与候选绑定caller identity三子例RED0/4→GREEN4/4、0skip、4751.6895ms，定向strict0；不重复无delta的旧scope/history/binding组。`host-closures-{red,green}.tap`、`host-closures-strict.log`在同TEMP。origin+cleanDelivery两源码及专属新测试已由Root交另一独立作者，本作者不修改，待APPROVED SHA组合。
+
+## 作者源码切片 10：只读 design seal caller（局部）
+
+Root核实并授权design-validation.ts现有seal→binding/records/audit/authority/实际bytes读取链最小caller接线。共享helper默认caller为undefined，tool validate及写流程保持，seal叶读取保留native owner；此链无Promise.all。真实有效审计字节正例先通过，预取消零guard、guard内原caller取消、首个实际binding字节后取消零后续读取三子例RED0/4→GREEN4/4、0skip、20551.0707ms，定向strict0。`design-seal-red-2.tap`、`design-seal-green.tap`、`design-seal-strict.log`同TEMP；不重跑design tool整套。最初用不完整context测试的失败日志`design-seal-red.tap`保留，未当有效RED证据。
+
+## 作者源码切片 11：native owned-child handoff（局部）
+
+PreparedPersistentChild.register可选registrationLifetime或其promise：原PID持久化无条件先开始，promise传入即观察rejection，之后才等待fresh phase caller。Root已确认这是窄source内部ABI；native raw register在completion提前结算后仍由原owned prepare等待，无追认work.run或自等待drain。省略lifetime的legacy保留原无参guard与旧完成等待。native prepare保留原phase caller。两项RED0/2→GREEN2/2、0skip、4866.0647ms；进一步保留legacy正常登记/迟到release失败/回滚失败代表，连同新例5/5、0skip、3914.9501ms，strict0。PID write deferred中lifetime先拒、completion已settled，100ms drain仍失败；write释放后保留PID与原Error，零fresh/CDP。`registration-owner-{red,green}.tap`、`registration-owner-compat.tap`、`registration-owner-strict.log`同TEMP；只用合成child/CDP，无真实browser。
+
+## 作者源码切片 12：origin 需要的 source lifetime 与首因接口（局部）
+
+Root收敛新增NativeReadLifetime.check，复用冻结stage deadline并在到期先以该NativeWaitDeadlineError abort本phase；NativeRequestWaits.recordFailure只对当前未结束request/generation同步登记已观察HTTP首因，不abort caller、覆盖首因或影响后续段。consumer context新增可选retainCleanupFailure，生产固定闭包直通原OwnedWork；origin作者负责使用hook。两个API缺失RED0/2→helper完整GREEN16/16、0skip、378.9152ms，定向strict0；原预算、阶段顺序与普通路径保持。`origin-lifetime-{red,green}.tap`、`origin-lifetime-strict.log`同TEMP。
+
+origin作者真实RED补查显示verify内部等待close可先于request外层catch。Root收敛导出recordNativeValidationFailure(originalCaller,error)，复用私有caller WeakMap的stage/active marker，在任何phase的来源guard await close之前登记firstCause；derived、旧段、已settled均无权登记。request.recordFailure委托同一机制。单项API缺失有效RED0/1→helper完整GREEN17/17、0skip、305.7908ms，strict0；deferred invalidation前已保留来源首因，后续cleanup失败不覆盖。`origin-firstcause-red-2.tap`、`origin-firstcause-green.tap`、`origin-firstcause-strict.log`同TEMP；最初测试异步缺失API触发unhandled的red日志保留但以显式API断言的red-2为证据。
+
+## 作者源码切片 13：native lifecycle 三阶段（局部）
+
+ownedPersistentBrowserLifecycle仅可信native对象选择prepare60/register60/browser_transport15三阶段；preflight在prepare内，完整post-register fresh通过后才读CDP endpoint/连接/核身份/清恢复页/阻SW。native raw阶段不再内嵌先返回的bounded；generic旧wholeopen15与原handoff保持。segment.trackRegistration在已成功prepare后仅一次记录已spawn PID的raw thunk，原owned prepare仍为work所有者；即使下一phase已取消不能派发，segment仍保持pending。helper单项RED1→GREEN1；完整pre25s+post20s后连接与W=55s注册到期/latePID零CDP两项RED0/2→GREEN2/2、0skip、4807.3952ms。共享open有实际delta，合并原launch影响组+helper33/33、0skip、4406.4933ms。首次strict仅nested child窄化TS18048失败，修为既有child非空断言后strict0；随后补registration尚未建立的异常completion分支，保留已spawn未知intent失败责任。
+
+`registration-segment-{red,green}.tap`、`native-open-{red,green}.tap`、`native-open-compat.tap`、`native-open-strict.log`、`native-open-strict-2.log`同TEMP。此片只合成process/CDP transport；runner/nativeIO/consumer尚待接上，真实browser未授权。
+
+## 作者源码切片 14：pre-mount source owner（局部）
+
+已审probe原提交a440d044fb3a60bf3a26c005e99b3e2a16836995在ownbranch cherry-pick为29783f4，7源码与1新测试无冲突，复用其已审11/11、默认5/5、identity3/3和source1/1/strict证据，不改其内容。Root确认pre-mount真实路径新增nativeValidationWaitsForCaller只读lookup，原readSignal/phase可找回同一source waits；derived无authority，旧phase仍须nativeCallerDisposition拒绝。BrowserPreparationContext初始化由原work固定提供retainCleanupFailure，runtime-host reserve origin转同hook并保receiver。lookup单项RED0/1→GREEN1/1、356.4354ms；初始化hook新子例RED缺hook（组3pass/2fail）→closure组GREEN5/5、0skip、5395.9816ms，strict0。`pre-mount-{lookup,hook}-{red,green}.tap`与`pre-mount-strict.log`同TEMP。
+
+1e53独审P2：design-validation.optional的ENOENT catch会吞掉合法caller取消reason同名code。有效审计正例后在seal最后MAP实际read取消（reason带ENOENT），RED首因被替换为sealed bytes changed；catch入口先checkCaller再保留原缺文件规则，GREEN1/1、0skip、18201.1964ms、strict0。`design-seal-enoent-{red,green}.tap`与`design-seal-enoent-strict.log`同TEMP；不重复旧设计tool/取消整组。
+
+0ed/46独审P2：首因仅标量metadata不能保存classifier收到的原Error。segment私有presence wrapper保留canonical原值（含undefined），stage catch保持原固定service signal reason优先，其次已记录原source error；后到timer/cleanup不得替换出口。原两个不正确cleanup出口断言改为source对象严格相等，新增deferred close跨60s timer、raw/drain仍pending直到释放，以及undefined presence代表：RED0/3→GREEN3/3、0skip、308.8056ms、strict0。`canonical-firstcause-{red,green}.tap`和`canonical-firstcause-strict.log`同TEMP；未重跑无delta17组，cleanup失败仍由独立hook留证。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

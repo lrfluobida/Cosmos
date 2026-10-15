@@ -42,8 +42,10 @@ function fixed(input: ValidationHostInput) {
 /** Current planning grant authorizes one host bootstrap; it creates no planning session or SDK request. */
 async function bootstrapTransferValidationCaseSixToolchain(input: ValidationHostInput, execute: typeof runOwnedNode = runOwnedNode) {
   fixed(input);
-  const folder = await directory(input.root, 'host-jobs'), request = join(folder, 'transfer-bootstrap.json'), response = join(folder, 'transfer-bootstrap-result.json');
+  const folder = await directory(input.root, 'host-jobs'); input.signal.throwIfAborted();
+  const request = join(folder, 'transfer-bootstrap.json'), response = join(folder, 'transfer-bootstrap-result.json');
   await publishReceipt(request, { formatVersion: 'validation-worker-1', operation: 'bootstrap', root: input.root, repository: input.repository, response }, input.signal);
+  input.signal.throwIfAborted();
   const remaining = Date.parse(input.window.deadlineAt) - Date.now() - 5000;
   if (remaining < 1000) throw new Error('Case6 bootstrap cannot cover the current deadline and cleanup.');
   const worker = workerURL ?? new URL('../e2e/validation-worker.ts', import.meta.url);
@@ -51,43 +53,59 @@ async function bootstrapTransferValidationCaseSixToolchain(input: ValidationHost
     authority: { caseId: D.caseId, windowId: input.window.windowId, taskId: D.grants.planning.taskId, deadlineAt: input.window.deadlineAt },
     args: ['--experimental-strip-types', fileURLToPath(worker), request], cwd: input.root,
     signal: AbortSignal.any([signal, input.signal]), timeoutMs: Math.min(190000, remaining) }));
-  if (!result.passed) throw new Error('Case6 fixed bootstrap worker did not complete.');
-  const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.root, 'host-jobs/transfer-bootstrap-result.json')));
+  input.signal.throwIfAborted(); if (!result.passed) throw new Error('Case6 fixed bootstrap worker did not complete.');
+  const bytes = await regularFile(input.root, 'host-jobs/transfer-bootstrap-result.json', input.signal); input.signal.throwIfAborted();
+  const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
   if (value?.formatVersion !== 'validation-worker-result-1' || value.operation !== 'bootstrap' || value.outcome !== 'completed'
     || typeof value.result !== 'string' || resolve(value.result) !== join(resolve(input.root), 'toolchain')) throw new Error('Case6 fixed bootstrap result changed.');
   fixed(input); return value.result as string;
 }
 
 async function requireHistorical(input: ValidationHostInput, historical: HistoricalPassedStages, signal: AbortSignal) {
-  fixed(input);
+  signal.throwIfAborted(); fixed(input);
   const ref = historical.manifestRef, refs = input.window.operatorDecision.sourceRefs.filter(item => item.artifactId === `${D.caseId}-historical-stages`);
   if (resolve(historical.originalRoot) !== join(resolve(input.repository), '.cosmos/e2e', OLD.caseId) || resolve(historical.targetRoot) !== resolve(input.root)
     || ref.artifactId !== `${D.caseId}-historical-stages` || ref.location !== manifestLocation || !/^[a-f0-9]{64}$/.test(ref.version)
-    || refs.length !== 1 || !sameValue(refs[0], ref) || validationHash(Buffer.from(await historical.readManifest(signal))) !== ref.version) throw new Error('Case6 requires the exact operator-covered historical manifest digest and fixed roots.');
-  await historical.verify(signal); await requireOwnSource(input, signal); signal.throwIfAborted();
+    || refs.length !== 1 || !sameValue(refs[0], ref)) throw new Error('Case6 requires the exact operator-covered historical manifest digest and fixed roots.');
+  const bytes = await historical.readManifest(signal); signal.throwIfAborted();
+  if (validationHash(Buffer.from(bytes)) !== ref.version) throw new Error('Case6 requires the exact operator-covered historical manifest digest and fixed roots.');
+  await historical.verify(signal); signal.throwIfAborted();
+  await requireOwnSource(input, signal); signal.throwIfAborted();
 }
 /** Current input and immutable operator-covered source exist before host capture/context creation. */
 async function stageTransferValidationCaseSixInput(input: ValidationHostInput, historical: HistoricalPassedStages, resume = false) {
-  await requireHistorical(input, historical, input.signal);
-  const frozen = await readTransferValidationCaseSixInput(input.repository), bytes = await regularFile(input.repository, D.inputs.requirements.path);
+  await requireHistorical(input, historical, input.signal); input.signal.throwIfAborted();
+  const frozen = await readTransferValidationCaseSixInput(input.repository, input.signal); input.signal.throwIfAborted();
+  const bytes = await regularFile(input.repository, D.inputs.requirements.path, input.signal); input.signal.throwIfAborted();
   if (resume) {
-    if (!(await regularFile(input.root, 'requirements/fixed.json')).equals(bytes)) throw new Error('Resumed C6 fixed input changed.');
+    const actual = await regularFile(input.root, 'requirements/fixed.json', input.signal); input.signal.throwIfAborted();
+    if (!actual.equals(bytes)) throw new Error('Resumed C6 fixed input changed.');
   } else {
-    await directory(input.root, 'requirements'); await writeFile(await safePath(input.root, 'requirements/fixed.json'), bytes, { flag: 'wx', signal: input.signal });
+    await directory(input.root, 'requirements'); input.signal.throwIfAborted();
+    const path = await safePath(input.root, 'requirements/fixed.json', input.signal); input.signal.throwIfAborted();
+    await writeFile(path, bytes, { flag: 'wx', signal: input.signal }); input.signal.throwIfAborted();
   }
   const sources = [{ artifactId: `${D.caseId}-input`, version: D.inputs.requirements.version, location: 'requirements/fixed.json' }];
   const identityReader = createTransferValidationCaseSixIdentityReader({ repository: input.repository, reviewedPlatformSha: input.window.quote.identity.reviewedPlatformSha });
   const binding: ValidationExecutionBinding & { historicalManifest: { reference: HistoricalPassedStages['manifestRef']; readBytes: HistoricalPassedStages['readManifest'] } } = {
-    caseId: D.caseId, windowId: input.window.windowId, historicalManifest: { reference: historical.manifestRef, readBytes: historical.readManifest },
+    caseId: D.caseId, windowId: input.window.windowId, historicalManifest: { reference: historical.manifestRef,
+      readBytes: async signal => { signal.throwIfAborted(); const bytes = await historical.readManifest(signal); signal.throwIfAborted(); return bytes; } },
     async readScope(signal) {
-      await requireHistorical(input, historical, signal);
-      const identity = await identityReader(signal), current = await readTransferValidationCaseSixInput(input.repository);
-      if (!sameValue(identity, input.window.quote.identity) || !sameValue(current.manifest, frozen.manifest)
-        || !(await regularFile(input.root, 'requirements/fixed.json')).equals(await regularFile(input.repository, D.inputs.requirements.path))) throw new Error('Current C6 frozen source or input changed.');
+      signal.throwIfAborted(); await requireHistorical(input, historical, signal); signal.throwIfAborted();
+      const identity = await identityReader(signal); signal.throwIfAborted();
+      const current = await readTransferValidationCaseSixInput(input.repository, signal); signal.throwIfAborted();
+      if (!sameValue(identity, input.window.quote.identity) || !sameValue(current.manifest, frozen.manifest)) throw new Error('Current C6 frozen source or input changed.');
+      const fixedBytes = await regularFile(input.root, 'requirements/fixed.json', signal); signal.throwIfAborted();
+      const requirementBytes = await regularFile(input.repository, D.inputs.requirements.path, signal); signal.throwIfAborted();
+      if (!fixedBytes.equals(requirementBytes)) throw new Error('Current C6 frozen source or input changed.');
       for (const file of D.inputs.template.files) {
-        if (!(await regularFile(input.root, 'toolchain/' + file.path.slice('templates/2d/'.length))).equals(await regularFile(input.repository, file.path))) throw new Error('Current C6 fixed toolchain input changed.');
+        signal.throwIfAborted();
+        const installed = await regularFile(input.root, 'toolchain/' + file.path.slice('templates/2d/'.length), signal); signal.throwIfAborted();
+        const source = await regularFile(input.repository, file.path, signal); signal.throwIfAborted();
+        if (!installed.equals(source)) throw new Error('Current C6 fixed toolchain input changed.');
       }
-      const { sourceSha256, ...decision } = input.window.operatorDecision, operatorReceipt = await regularFile(input.ledgerRoot, decision.source.location);
+      const { sourceSha256, ...decision } = input.window.operatorDecision, operatorReceipt = await regularFile(input.ledgerRoot, decision.source.location, signal);
+      signal.throwIfAborted();
       if (validationHash(operatorReceipt) !== sourceSha256 || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(operatorReceipt)), {
         formatVersion: 'operator-validation-decision-1', kind: decision.kind, decisionId: decision.decisionId, actorId: decision.actorId,
         decidedAt: decision.decidedAt, sourceRefs: decision.sourceRefs, quote: input.window.quote })) throw new Error('Current C6 operator source bytes changed.');
@@ -96,15 +114,17 @@ async function stageTransferValidationCaseSixInput(input: ValidationHostInput, h
         validation: { runId: input.window.quote.basis.runId, ledgerId: input.window.quote.basis.ledgerId, caseId: D.caseId, windowId: input.window.windowId, ...identity, decision } }), operatorReceipt };
     },
   };
-  const { requirement } = await binding.readScope(input.signal); return { requirement, binding, proposal: frozen.requirements.preparation };
+  const { requirement } = await binding.readScope(input.signal); input.signal.throwIfAborted(); return { requirement, binding, proposal: frozen.requirements.preparation };
 }
 
 /** Real current coding DAG and its own bounded repair; historical tasks are dependencies only. */
 async function executeTransferValidationCaseSixDag(input: ValidationHostInput, requirement: ValidationRequirement, validation: ValidationExecutionBinding,
   host: PreparedBrowserHost, historical: HistoricalPassedStages, resume = false): Promise<ValidationHostResult> {
   return host.withPreparation(async () => {
-    await requireHistorical(input, historical, input.signal); await requireValidationScope(input.controller, requirement, validation);
-    const inherited = await historical.verify(input.signal), initial = await input.controller.read();
+    input.signal.throwIfAborted(); await requireHistorical(input, historical, input.signal); input.signal.throwIfAborted();
+    await requireValidationScope(input.controller, requirement, validation, input.signal); input.signal.throwIfAborted();
+    const inherited = await historical.verify(input.signal); input.signal.throwIfAborted();
+    const initial = await input.controller.read(input.signal); input.signal.throwIfAborted();
     const execution = await prepareTransferValidationCaseSixExecution({ state: initial, window: input.window, requirement, host, historical: inherited,
       root: input.root, manifestRef: historical.manifestRef, capability: host.capability, signal: input.signal }, resume);
     const coding = execution.tasks[0]; await host.bindPreparedTasks([coding]);
@@ -117,20 +137,23 @@ async function executeTransferValidationCaseSixDag(input: ValidationHostInput, r
     const claimed = initial.validation!.cases.find(window => window.caseId === D.caseId)!.repair;
     if (claimed) {
       if (!resume || claimed.sourceTaskId !== D.grants.coding.taskId || claimed.taskId !== D.grants.repair.taskId) throw new Error('C6 repair must retain its own current coding source.');
-      const origin = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.root, `journal/task-${claimed.taskId}/origin.json`))) as RecoveryOrigin;
+      const originBytes = await regularFile(input.root, `journal/task-${claimed.taskId}/origin.json`, input.signal); input.signal.throwIfAborted();
+      const origin = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(originBytes)) as RecoveryOrigin;
       if (origin.validationCase?.caseId !== D.caseId || origin.validationCase.windowId !== input.window.windowId || !sameValue(origin.requirement, requirement)
         || origin.artifactRoot !== input.root || origin.sessionRoot !== join(input.root, 'sessions') || origin.prepared.role !== 'coding'
         || origin.prepared.task.taskId !== D.grants.repair.taskId) throw new Error('Cold C6 repair origin changed.');
-      await TaskJournal.open(recovery, origin, true); effective = origin.prepared; await host.bindPreparedTasks([effective]);
+      await TaskJournal.open(recovery, origin, true, input.signal); input.signal.throwIfAborted(); effective = origin.prepared; await host.bindPreparedTasks([effective]);
       const result = await resumeTaskDag({ ...common, tasks: [effective], availableArtifacts: host.availableArtifacts }); gaps.push(...result.blocked.map(item => `${item.taskId}: ${item.reason}`));
     } else {
       if (resume && initial.tasks.some(task => task.taskId === coding.task.taskId)) {
         const result = await resumeTaskDag({ ...common, tasks: [coding], availableArtifacts: host.availableArtifacts }); gaps.push(...result.blocked.map(item => `${item.taskId}: ${item.reason}`));
       } else await executeTaskDag({ ...common, tasks: [coding], availableArtifacts: host.availableArtifacts });
-      const current = (await input.controller.read()).tasks.find(task => task.taskId === coding.task.taskId)!;
+      const snapshot = await input.controller.read(input.signal); input.signal.throwIfAborted();
+      const current = snapshot.tasks.find(task => task.taskId === coding.task.taskId)!;
       if (current && ['failed', 'needs_changes'].includes(current.state) && current.attempts.length === 1 && current.attempts[0].failure?.classification === 'code_defect' && !input.signal.aborted) {
         const path = relative(input.root, join(current.attempts[0].sessionRef, 'failure.json')).split(sep).join('/');
-        const feedback = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.root, path))) as RepairFeedback;
+        const feedbackBytes = await regularFile(input.root, path, input.signal); input.signal.throwIfAborted();
+        const feedback = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(feedbackBytes)) as RepairFeedback;
         try {
           effective = await host.prepareValidationRepair({ ...coding, task: current }, feedback, recovery); await host.bindPreparedTasks([effective]);
           await publishReceipt(join(input.root, 'repair-dispatch.json'), { sourceTaskId: D.grants.coding.taskId, sourceAttemptId: current.attempts[0].attemptId,
@@ -139,13 +162,16 @@ async function executeTransferValidationCaseSixDag(input: ValidationHostInput, r
         } catch { gaps.push('The current bounded coding repair did not complete; retain its source attempt and feedback.'); }
       }
     }
-    await requireValidationScope(input.controller, requirement, validation); const verified = await historical.verify(input.signal);
-    const current = (await input.controller.read()).tasks.find(task => task.taskId === effective.task.taskId);
+    input.signal.throwIfAborted(); await requireValidationScope(input.controller, requirement, validation, input.signal); input.signal.throwIfAborted();
+    const verified = await historical.verify(input.signal); input.signal.throwIfAborted();
+    const snapshot = await input.controller.read(input.signal); input.signal.throwIfAborted();
+    const current = snapshot.tasks.find(task => task.taskId === effective.task.taskId);
     if (!current) throw new Error('Current C6 coding result is missing.');
     const final = await host.finish([current]); gaps.push(...final.gaps);
     if (current.state !== 'passed' || current.review.verdict !== 'approved') gaps.push(...current.handoff.remaining);
     if (!final.delivery || !final.acceptedCandidate) gaps.push('No exact accepted current C6 candidate is available.');
-    await requireValidationScope(input.controller, requirement, validation); await historical.verify(input.signal);
+    input.signal.throwIfAborted(); await requireValidationScope(input.controller, requirement, validation, input.signal); input.signal.throwIfAborted();
+    await historical.verify(input.signal); input.signal.throwIfAborted();
     const tasks = [...verified.stages.map(stage => stage.task), current];
     await publishReceipt(join(input.root, 'host-result.json'), { outcome: gaps.length ? 'failed' : 'passed', plan: execution.plan,
       inheritedSource: historical.manifestRef, inheritedTaskIds: verified.stages.map(stage => stage.task.taskId), effectiveTaskId: current.taskId,
@@ -156,9 +182,11 @@ async function executeTransferValidationCaseSixDag(input: ValidationHostInput, r
 }
 /** Fixed native caller; no planner, role, session, map, path or fixture selector is accepted. */
 async function generateTransferValidationCaseSix(input: ValidationHostInput, historical: HistoricalPassedStages, resume = false): Promise<ValidationHostResult> {
-  await requireHistorical(input, historical, input.signal);
+  await requireHistorical(input, historical, input.signal); input.signal.throwIfAborted();
   if (!resume) await bootstrapTransferValidationCaseSixToolchain(input);
+  input.signal.throwIfAborted();
   const { requirement, binding, proposal } = await stageTransferValidationCaseSixInput(input, historical, resume);
+  input.signal.throwIfAborted();
   const host = await createTransferReusedConsumerHost({ root: input.root, controller: input.controller, requirement, proposal, validation: binding, work: input.work, resume, historicalStages: historical });
   return executeTransferValidationCaseSixDag(input, requirement, binding, host, historical, resume);
 }
