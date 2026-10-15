@@ -6,6 +6,9 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { safePath, regularFile, snapshot } from '../../src/artifacts/paths.ts';
+import { requireValidationPreparationScope } from '../../src/runtime/entrypoint-validation.ts';
+import { transferFixture } from './runtime-host.fixture.ts';
+import { createNativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
 
 async function files(t: test.TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'cos97-origin-'));
@@ -56,4 +59,31 @@ test('COS97 cancellation between safePath completion and directory dispatch star
   syncBuiltinESMExports();
   await assert.rejects(snapshot(root, caller.signal), error => error === reason);
   assert.equal(directories, 0, 'The caller must be checked after the awaited path and before the next directory read');
+});
+
+test('COS97 preparation scope forwards a pre-cancelled caller before any scope reader', async t => {
+  const f = await transferFixture(t), caller = new AbortController(), reason = new Error('cancelled preparation scope'); let reads = 0;
+  const original = f.validation.readScope;
+  t.mock.method(f.validation, 'readScope', async (signal: AbortSignal) => { reads++; return original(signal); }); caller.abort(reason);
+  await assert.rejects(requireValidationPreparationScope({ ...f.input, adapterId: 'cos16-input/1' }, caller.signal), error => error === reason);
+  assert.equal(reads, 0);
+});
+
+test('COS97 caller cancelled after the controller host guard cannot start the next preparation scope', async t => {
+  const f = await transferFixture(t), caller = new AbortController(), reason = new Error('cancelled between host and scope'); let reads = 0;
+  const host = f.controller.requireValidationHost.bind(f.controller), read = f.validation.readScope;
+  t.mock.method(f.controller, 'requireValidationHost', async (...args: Parameters<typeof host>) => { await host(...args); caller.abort(reason); });
+  t.mock.method(f.validation, 'readScope', async (signal: AbortSignal) => { reads++; return read(signal); });
+  await assert.rejects(requireValidationPreparationScope({ ...f.input, adapterId: 'cos16-input/1' }, caller.signal), error => error === reason);
+  assert.equal(reads, 0);
+});
+
+test('COS97 active preparation caller preserves complete fixed scope and native inner ownership', async t => {
+  const f = await transferFixture(t);
+  const waits = createNativeValidationWaits({ caseId: f.window.caseId, windowId: f.window.windowId,
+    taskId: f.window.quote.declaration.grants.coding.taskId, deadlineAt: Date.parse(f.window.deadlineAt),
+    signal: f.input.work.signal, trackRaw: start => f.input.work.run(start) });
+  const scope = await requireValidationPreparationScope({ ...f.input, adapterId: 'cos16-input/1' }, waits.readSignal);
+  assert.deepEqual(scope.window, f.window); assert.ok(waits.snapshot().rawReads.started >= 2);
+  assert.equal(waits.snapshot().rawReads.pending, 0);
 });
