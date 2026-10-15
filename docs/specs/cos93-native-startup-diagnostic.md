@@ -1,14 +1,14 @@
 # COS-93 真实历史负载下的原生浏览器启动诊断
 
-状态：source-reviewed / actual-incomplete；诊断实现已独审合入，issue #94保持open、integration partial。v1在浏览器前5秒scope失败；v2在 `5e6847ba465b863367e476aa84f4fcaa276d3301` 上实际15秒launch失败，之后约4GB堆OOM，缺最终trace/preservation/result，正常drain未证实。[有界观测计划](../plans/2026-10-15-cos93-bounded-observer.md) `fb0f341779ff8afd04a77cecb887e5381f02438a` 已独审PLAN_APPROVED，实现及短验证完成待源码独审；未授权或执行第三次actual。原计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 已独审PLAN_APPROVED、无finding，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)保持。Issue [#94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，父 #1，登记时原生子项计数93；依赖 COS52/COS56/COS91/COS92。任务来源为 Root 的私有 `cos93-issue-body.md` 与 `cos93-published.json`，位于 `E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/`。
+状态：source-reviewed / diagnostic-completed / startup-failed；issue #94保持open、integration partial。v3在 `84f9c8857908d9db7ecbc404c6d5afbdfdc32542` 上983679ms、exit0，无OOM，完整trace/before/final已保存；原15秒open在浏览器ticket前的binding校验中失败。独立后核无关联活进程、原466文件/61目录零变，Root已解冻；不等于浏览器启动通过，无第四次actual授权。v1的5秒scope失败与v2的15秒launch失败、后续OOM及证据缺口保留。原计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 已独审PLAN_APPROVED、无finding，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)保持。Issue [#94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，父 #1，登记时原生子项计数93；依赖 COS52/COS56/COS91/COS92。任务来源为 Root 的私有 `cos93-issue-body.md` 与 `cos93-published.json`，位于 `E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/`。
 
-专职作者 `cos93_implementer`，独立 reviewer `cos93_reviewer`，唯一 merger `batch_c14_cos92_merger`。分支 `codex/cos93-native-startup-diagnostic`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`；从指定主线 `61d13817ca871d2be04576b4d6fb51fa8a86b541` 建立，旧 COS92 工作树干净且 HEAD 是该主线祖先。首阶段只提交本卡和[实施计划](../plans/2026-10-15-cos93-native-startup-diagnostic.md)；现已完成一次未达浏览器阶段的实际诊断，fixture结果记录修正已独审集成。作者不改 main、共享 tracking 或 GitHub。
+专职作者 `cos93_implementer`，独立 reviewer `cos93_reviewer`，唯一 merger `batch_c14_cos92_merger`。分支 `codex/cos93-native-startup-diagnostic`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`；从指定主线 `61d13817ca871d2be04576b4d6fb51fa8a86b541` 建立，旧 COS92 工作树干净且 HEAD 是该主线祖先。首阶段只提交本卡和[实施计划](../plans/2026-10-15-cos93-native-startup-diagnostic.md)；随后v1未达浏览器阶段，fixture结果记录修正已独审集成。作者不改 main、共享 tracking 或 GitHub。
 
-当前观测器修正分支为 `codex/cos93-bounded-observer`，沿用该managed worktree，从固定 `5e6847ba465b863367e476aa84f4fcaa276d3301` 新建；旧0b475已合入且旧分支/ignored证据保留。该轮先提交计划及记录，独审后再改fixture/test，生产src不在范围。
+观测器修正分支为 `codex/cos93-bounded-observer`，沿用该managed worktree，从固定 `5e6847ba465b863367e476aa84f4fcaa276d3301` 新建；旧0b475已合入且旧分支/ignored证据保留。该轮先提交计划及记录，独审后再改fixture/test，生产src不在范围。当前v3证据文档分支为 `codex/cos93-v3-evidence`，从84f9c885新建，仅改本卡及新研究记录。
 
-本轮已实现无调用记录的方法包装、有界标量trace、quote/claim之前的before清单及单句柄阶段进度；原module入口和全部实际guard保持。短检查覆盖引用回收、原Promise/错误、descriptor恢复、PID事件调用方、上限/I/O失败、异常退出证据，具体结果见新计划。当前仅交源码独审，不提升真实启动或完整任务结论。
+观测器修正已实现无调用记录的方法包装、有界标量trace、quote/claim之前的before清单及单句柄阶段进度；原module入口和全部实际guard保持。短检查覆盖引用回收、原Promise/错误、descriptor恢复、PID事件调用方、上限/I/O失败、异常退出证据，具体结果见[有界观测计划](../plans/2026-10-15-cos93-bounded-observer.md)。计划fb0f341已独审PLAN_APPROVED，源码复审及集成已完成，不提升真实启动或完整任务结论。
 
-`f0eb58f1009c3c9ce590919e082bcaecf590da78` 独审提出pending Promise额外保留operation闭包的P2，作者已将settlement handlers移到独立作用域、无row分支不再安装回调。3个1KiB pending对照RED→GREEN及受影响检查4/4通过，三文件strict退出0；旧12/12等无变化证据复用，详情见[计划P2记录](../plans/2026-10-15-cos93-bounded-observer.md)。修正待独立复审，无第三次actual，COS93仍open/partial。
+`f0eb58f1009c3c9ce590919e082bcaecf590da78` 独审提出pending Promise额外保留operation闭包的P2，作者已将settlement handlers移到独立作用域、无row分支不再安装回调。3个1KiB pending对照RED→GREEN及受影响检查4/4通过，三文件strict退出0；旧12/12等无变化证据复用，详情见[计划P2记录](../plans/2026-10-15-cos93-bounded-observer.md)。修正 `40b9a310cc15deab962b92d805e0ed1edc1bacd3` 已独审APPROVED，唯一merger合入 `c39819036464495353bedd72ba7d46891013527f`，[源码批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6187110787)已公开；Root随后另行批准单次v3。
 
 ## 事实与问题
 
@@ -76,3 +76,11 @@ Root已批准测试专有的Node `mock.module` 观测方式：在fixture/nativeI
 最终 `0b475c1fe2918af5e6b61594f29d3060da766078` 经 `cos93_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger合入 `3d67a50a09a00d98b8fa6d54ee7745337d7e803d`。COS93入口与两测试文件等同批准提交；主线已审COS94 runner及测试保持。typecheck/build退出0，native factory导出与failed evidence分类短检查2/2、0skip，4786.382ms；原6/6、P2 2/2及strict证据复用，命令和主线日志见计划。
 
 本次合入没有第二次actual、浏览器或35行历史重建；执行59dd、历史宿主7df及原游戏b20的区别保持。原C14失败与真实revision3114/共享¥16.901000不变；COS93完整目标、COS16/COS18及human均未完成，main已由Root解冻。
+
+## v3完整诊断与原15秒启动失败
+
+执行源码及历史宿主均为84f9c885；[单次启动](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6187320821)后983679ms、parent exit0，无OOM、外guard触发或kill。3994 spans／5024 events、1117950字节累计序列化计数、0 dropped；8行阶段进度2460字节，before与最终trace/preservation/result齐全。`#2869 lifecycle.open`在14998.7753ms抛ticket超时；其子`#2870 consumer.verifyBinding`迟到31908.9892ms返回，超时发生于第4个scope `#2946`的source `#2948`。六scope均低于5秒，超时前controller实际排队仅0.0262–0.0727ms；同轮open前完整binding已各耗时25.418／25.129秒。没有浏览器ticket、OS spawn、CDP或identity。
+
+fixture正常finally/drain/controller关闭有证据；raw `processesExited=false`保留。独审UTC08:18:06 `POSTCHECK_NO_LIVE_RESIDUE`核到delivery10532/helper17812 exit0、端口64624/65221与20个owner/recovery锁无，12个同号PID为后建复用；原466文件／61目录与真实ledger3114／715／16901000µ保持。profile只有36字节.owner和空子目录，无DevToolsActivePort，未删除或恢复；浏览器正常exit不成立。
+
+[v3研究记录](../research/2026-10-15-cos93-v3-native-startup-diagnostic.md)保存exact SHA、launcher hash、raw及344文件／201目录／41769581字节的选择范围副本路径、超时后重叠与证据限制；[公开结果及后核](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6187833755)已由Root精确读回。首段21步均skipped，下一步仅评估完整来源校验内部的有界并发，未实施或证明15秒通过，无第四次actual授权。COS93继续open/partial/startup-failed；本次只更新文档，全部已有测试和实际后核证据复用。
