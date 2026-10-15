@@ -1,6 +1,6 @@
 # COS-97 · 原生验证的权限等待与浏览器时限
 
-状态：`design-revision / REVIEW_PENDING`。前版 `994dd1e387c464597218e59d3b6db7e9f18f8ddc` 独审为 CHANGES_REQUESTED；本版仅修两项 P2 的信号贯穿与转发前实际 payload 核验，待重新独审。本提交只提出规格、ADR 与计划，不授权源码实施、测试、actual 或付费运行。任务 [COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449，父 #1；依赖 COS52/92、COS93 已审诊断及 v3 证据、COS96 已审源码。作者 `cos97_implementer`，独审 `cos97_reviewer`，唯一 merger `batch_c14_cos92_merger`。
+状态：`design-revision / REVIEW_PENDING`。前版 `2d61d0aaaf8ead576d4e3ac8107c1d3bc25d1127` 的caller signal、generation失效与payload两项P2已独审解决；本版只补剩余P2：scope/identity内部race后的raw reader所有权，待affected复审。本提交只提出规格、ADR 与计划，不授权源码实施、测试、actual 或付费运行。任务 [COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449，父 #1；依赖 COS52/92、COS93 已审诊断及 v3 证据、COS96 已审源码。作者 `cos97_implementer`，独审 `cos97_reviewer`，唯一 merger `batch_c14_cos92_merger`。
 
 规划基线为已发布主线 `dd367c5dd007ecbd43e2daf5b4e29635afc87fbb`；分支 `codex/cos97-native-validation-waits`，独立 managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`。关联 [ADR0002](../adr/0002-native-validation-waits.md) 与[实施计划](../plans/2026-10-15-cos97-native-validation-waits.md)。工程选择交由 Root 和独立 reviewer 审查；已确认的产品范围、游戏验收要求与预算保持。
 
@@ -88,7 +88,7 @@ open 的有界等待完整包含前三阶段，最多 135000ms 且受 W 夹紧�
 - `PersistentAcceptanceOptions.nativeValidationWaits?` 和 `OwnedAcceptanceLifecycle.nativeValidationWaits?`：可信 transport seam，nativeIO 复核后传给 lifecycle 与 runner；generic 无对象。
 - `PreparedPersistentChild.register(pid, registrationLifetime?)`：可选第二参数保持现有调用兼容。新路径将 register 阶段的 signal/deadline 传给 native source handoff；旧调用保持原含义。
 - `PersistentAcceptanceOptions.verifyBinding(callerSignal?: AbortSignal)` 与各层可信 guard 的同名可选参数贯穿真实闭包，不能只在外围 race 中使用。具体签名与文件见下一节。
-- 内部对象只公开 `beginSegment(reportId)`、`runRequest(operation)`、`snapshot()`。`beginSegment` 返回捕获唯一 generation 的只读 segment handle，只有该 handle 才有 `runStage(stage, operation)`、`beginNavigation()`、`finishNavigation()`、`revoke(reason?)` 与当前段 snapshot。`runStage` 给 operation 本阶段只读 `{signal,deadlineAt}`；允许的阶段是固定联合类型。`runRequest` 向 origin 提供请求入口捕获的不可替换 lease 和三个阶段执行器。
+- 内部对象只公开只读`readSignal`、`beginSegment(reportId)`、`runRequest(operation)`、`snapshot()`。readSignal仅为同owner的consumer/series原读取提供跟踪关联。`beginSegment` 返回捕获唯一 generation 的只读 segment handle，只有该 handle 才有 `runStage(stage, operation)`、`beginNavigation()`、`finishNavigation()`、`revoke(reason?)` 与当前段 snapshot。`runStage` 给 operation 本阶段只读 `{signal,deadlineAt}`；允许的阶段是固定联合类型。`runRequest` 向 origin 提供请求入口捕获的不可替换 lease 和三个阶段执行器。
 
 状态顺序固定为 `closed → preparing → registering → connecting → transport_ready → navigating → input → closing → closed`，失败可从任何执行状态进入 closing。`beginSegment` 开始时流量关闭；只有该 segment 的 browser identity、初始恢复页面关闭、service-worker block、route 与全部 driver 设置完成后，runner 紧邻 goto 调用该 segment handle 的 `beginNavigation` 才允许请求。此方法检查前置状态、原 W 与 signal，不做授权替代。重复 begin、跨 reportId、旧 lease 或上段未收尾直接失败。
 
@@ -164,6 +164,18 @@ origin新增窄`failCurrent(error,callerSignal?)`供其verify和runtime-host原g
 
 这项接线不改变 raw registration/completion 与外层 owner 的纸面图：caller abort 使底层在下一检查停止，raw promise 仍由原 observer 结算；不能为提前返回 stage race 解除 raw handle/登记责任，也不能在 guard 内调用包含自身的 drain。只读迟到结果已被 race/observer 观察，不能写入新的authority或绕开门禁。
 
+### Scope/identity 内层 race 的 raw 所有权
+
+`requireValidationScope` 内部对readScope/readBytes的race，以及`verifyValidationIdentity`对内部work的race，可以在原5秒或caller取消时先返回；这不表示reader/work已settled。仅可信native caller需要在这两处分别登记尚未race的完整raw promise，外层verifyScope/request/failCurrent结束不能移除它。其他读取框架与默认/generic/race/bounded不改。
+
+窄wait工厂保留host提供的`trackRaw<T>(start: (ownedSignal: AbortSignal) => Promise<T>): Promise<T>`回调，生产实现固定为`input.work.run(start)`；它接收尚未调用的thunk，不能接收已启动的Promise。scope/identity在创建raw前找到native owner，再把实际`readScope`/`readBytes`或完整identity work作为thunk交给回调。既有OwnedWork.run同步登记operation，再在其已跟踪的microtask内检查原owner/caller并启动thunk；若工作已取消，thunk零调用，按原reason失败。严禁先启动raw再用可能拒绝的work.run追认。原generic分支保留原调用形态。
+
+source-owned owner关联覆盖新native consumer/series读lifetime及segment phase/request signal；没有caller的newnative guard使用工厂同一owner的专属读signal，不给共享controller.signal全局加标记。`run.checkValidationIdentity`的active组合、`requireValidationScope`的controller/caller/private组合、`verifyValidationIdentity`的options/private组合，用窄`associateNativeReadSignal(parent,combined)`仅继承已存在native owner、原caller与generation到私有WeakMap；不能由新参数选择owner或授权。原caller仍按已审规则跨层转交，derived signal只携带raw跟踪关联，不获得“局部取消”分类资格，原5秒品牌及controller reason优先保持。
+
+scope/identity race改为等待这个已登记raw或原取消分支：5秒/首因仍及时返回，raw entry直到实际reader/work的全部catch/finally/listener清理完成才移除；迟到fulfilled/rejected均观察，迟到错误追加旧调用诊断，不替换原首因。raw集合只保留未结束operation，settled后删除，不累计Promise/Buffer/状态。`readBytes`只在前项成功且信号仍活跃时另行预登记启动；不能因readScope先timeout而开始它或下一批。
+
+wait对象为consumer/series与每个segment维护独立raw集合；内层entry归属调用开始时捕获的owner/generation。runner/下一段等待仅这些raw entry和原请求集合，不等待包含playPersistent/runner自身的OwnedWork全集合；内层thunk也不等待scope race、segment或public drain，避免父子自等。外部public drain的既有OwnedWork快照包含开始前已登记的reader operation；取消之后禁止新的thunk派发。因此raw pending时原有界drain不能报告成功；超时保留责任与pending证据，释放reader后才能settle并再观察收尾。原登记/completion图和已审generation/payload规则不变。
+
 ## 转发前的实际响应字节
 
 `withCleanDelivery` 已在原候选上取得并持有本次 action 的 `fixed: Map<string,Buffer>`，复制前后也已核对。该 Map 是本次候选的可信预期字节，不作为实时授权 cache；本任务不重读磁盘来替代实际 response，也不暴露 Map、预期 Buffer 或新的路径选择给模型。
@@ -225,7 +237,7 @@ HTTP读取期间source/HEAD/index/window/budget/receipt/mount漂移由post完整
 
 consumer 在入口记录开始，最后一次原 guard 完成后、返回前在 `BrowserCandidateConsumerResult.nativeWaits` 写其独立结束/elapsed 摘要，host 将摘要写入原 browser evidence envelope。aggregate raw 在 series publication 时只记录已发生的 series 终点和 consumer 起点，不能提前填写尚未发生的 consumer 结束，也不回写已认证 raw。consumer binding/mount/诊断与 host 后续派发/写入的全部墙钟继续由既有运行计时覆盖。
 
-每类 HTTP stage 只保留 count/total/max 和最早 failure 标量，单段最多 3 个 HTTP 聚合行；open 三段与 navigation 各一行。请求计数单调且安全整数，溢出直接失败。所有记录包括失败与未到阶段；未到为 skipped，race 已失败但 raw 仍在收敛时另记 pending，不能把 race 结束当成 raw 结束。成功阶段必须在冻结 end 以内完成边界检查；timer 调度迟到和失败 raw 的迟到 settle 如实记录，不能裁剪时间伪造边界。report publication 前关闭 gate 并检查 pending；pending 非零不能通过，新记录不是通过证明。
+每类 HTTP stage 只保留 count/total/max 和最早 failure 标量，单段最多 3 个 HTTP 聚合行；open 三段与 navigation 各一行。请求计数单调且安全整数，溢出直接失败。所有记录包括失败与未到阶段；未到为 skipped，race 已失败但 raw 仍在收敛时另记 pending，不能把 race 结束当成 raw 结束。pending另含上述scope/identity独立raw reader计数，不能只用外层HTTP/registration归零推导。成功阶段必须在冻结 end 以内完成边界检查；timer 调度迟到和失败 raw 的迟到 settle 如实记录，不能裁剪时间伪造边界。report publication 前关闭 gate 并检查 pending；pending 非零不能通过，新记录不是通过证明。
 
 `persistent-diagnostics.ts` 的 expected 增加仅可信 host 提供的可选契约版本。新路径必须有同版本、同 task/deadline、合法阶段顺序与成功边界、在各自 segment/series 起止内的 timing；consumerStartedAt 可早于 series，不能错误要求两者区间相同。缺失或不一致是 insufficient evidence。旧 expected 无版本时继续用原诊断规则，不要求旧 raw 具备新字段；不能给旧报告补字段来获得新结论。总 `startedAt/endedAt`、原 timeoutMs/deadlineAt 与全部已有 failure facts、证据和 identity 字段保持，授权等待全部包含在原运行及 consumer/series 总耗时中。
 
