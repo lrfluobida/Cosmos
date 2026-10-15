@@ -72,10 +72,13 @@ if (server) await bounded(() => server!.close(),
 - [ ] 独立 reviewer 读取实际 diff，先规格再质量；作者修复可执行 finding，提交精确 SHA 后复审受影响部分。作者只提交自己的分支，不合 main、不推 batch。
 - [ ] 将批准 SHAs、真实/TEMP 证据、检查结果和未确定 OS 根因的限制交唯一 merger。仅 source scoped complete；原 C14 与媒体补采失败事实不改。
 
-## 当前实现证据（真实正例待 slot）
+## 作者实现证据（待源码独审）
 
 - 测试提交 `3e7d0641df20e4fbee9110ffe4e0a1f279776a35`：新 10 项确定性 runner 回归先得 6 pass / 4 fail / 0 skip、exit1、829.8609 ms；四项目标 RED 为 1,200 ms 正常关闭、2 秒局部上限、短预算零余量及保存后视频误报。该提交受影响 strict 退出 0。
 - 生产补丁仅 `src/acceptance/runner.ts`：通常最多 2 秒且受原 gracefulDeadline 限制；成功 generic `saveAs` 后不再追加 unavailable。Persistent 分支、强制终止和退出判断代码保持。
 - `node --experimental-strip-types --test tests/acceptance/generic-cleanup.test.ts tests/acceptance/deadline.test.ts`：11 pass / 0 fail / 0 skip、exit0、994.8575 ms。覆盖强制失败、退出未证实、原 deadline、短预算及 persistent 取消。
 - `npm run typecheck`、`npm run build` 均退出 0。新增 integration wrapper 首次 strict 报隐式 any；补显式参数类型后，两份新增测试的指定 strict 命令退出 0，无放宽类型配置。
-- `tests/acceptance/generic-cleanup.integration.ts` 仅新增一个独立 TEMP 实例，尚未执行；等待 COS93 释放真实浏览器计时 slot，当前不声明完整实现验收通过。
+- 生产提交 `f8b3b2f5f0002ce08b2f7e1f0348cf7e0f5417d1` 上唯一真实正例已在协调者交接的独占 slot 执行：1/1 pass、0 skip、测试 1,387.2406 ms、TAP 总 2,023.4926 ms；外部 guard 2,178 ms，Node3196 exit0、guard 未触发。完成后立即释放 slot，无追加样本。
+- 实际 context/video/client/server 关闭分别 147.797 / 7.280 / 2.528 / 236.621 ms；Edge13548 exit/close=0、forced=false、processExited=true，报告在原 15 秒预算内完成。保存了视频文件，不宣称可播放；原 Windows 慢退出原因仍未确定。
+- 实际证据 `C:/Users/26557/AppData/Local/Temp/cos94-cleanup-real-FV5N3a/{events.jsonl,summary.json,postcheck.json}` 及相对 `cos94-synthetic/inline/v1/real/cleanup/report.json`；guard/TAP 在 `C:/Users/26557/AppData/Local/Temp/cos94-real-guard-b194da483a874474b11ff5b412073af9`。后核 Node3196、Edge13548、直接子进程及 HTTP64638/WS64639 listener 均未残留。
+- 所有编辑文件严格 UTF-8/noBOM/LF、中文回读及 diffcheck 通过。原 C14、paid/ledger/window、生成资产与共享 tracking 均未写入。作者验证完成，等待独立源码评审和唯一 merger。

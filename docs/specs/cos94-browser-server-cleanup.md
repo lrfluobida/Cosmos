@@ -1,6 +1,6 @@
 # COS-94 普通浏览器服务清理
 
-任务：[COS-94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，父 #1；依赖 COS40 / #41、COS64 / #65、COS92 / #93。起点 `61d13817ca871d2be04576b4d6fb51fa8a86b541`。计划 `e9e60894cea81fac3f99bfb4735635d8510f0e03` 已由独立 reviewer 批准；最小实现及静态/确定性检查已完成，真实正例与源码独审待完成。
+任务：[COS-94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，父 #1；依赖 COS40 / #41、COS64 / #65、COS92 / #93。起点 `61d13817ca871d2be04576b4d6fb51fa8a86b541`。计划 `e9e60894cea81fac3f99bfb4735635d8510f0e03` 已由独立 reviewer 批准；最小实现、静态/确定性检查及唯一真实正例已完成，待源码独审。
 
 ## 范围与历史
 
@@ -55,3 +55,9 @@ Generic 视频仅在 `saveAs` 完成后记为保存成功，后续关闭失败�
 同目录 `cleanup-red.test.mjs` 已直接针对未改 runner 执行，0 pass / 2 fail / 0 skip，退出 1，663.7119 ms。第一项明确因 1,200 ms 正常关闭被 1,000 ms cap 拒绝失败；第二项因保存后仍出现 `Video unavailable` 失败。测试录像为合成占位字节，不能充当视频播放证据。
 
 作者提交 plan/card 后停止，独立 reviewer 先审规格再审计划。批准后执行最小实现、受影响验证及独立源码评审；仅指定 merger 合入和推送。本卡 source 完成只覆盖上述行为。
+
+## 作者实现验证
+
+生产提交 `f8b3b2f5f0002ce08b2f7e1f0348cf7e0f5417d1`，测试先行提交 `3e7d0641df20e4fbee9110ffe4e0a1f279776a35`。新清理测试 10 项与既有 deadline 1 项共 11/11 通过、0 skip；typecheck/build 和受影响 strict 退出 0。具体 RED/GREEN 与边界见[计划记录](../plans/2026-10-15-cos94-browser-server-cleanup.md)。
+
+已在固定生产提交上执行唯一真实正例：1/1 通过、0 skip，测试 1,387.2406 ms；context 147.797 ms、video 7.280 ms、client 2.528 ms、server 236.621 ms。Edge PID13548 的 exit/close 均为 0，forced=false；原 15 秒预算内结束。外部 guard 的 Node3196 exit0、2,178 ms、未触发。OS 后核未见本次 Node/Edge、可追溯直接子进程或 HTTP64638/WS64639 listener。证据 `C:/Users/26557/AppData/Local/Temp/cos94-cleanup-real-FV5N3a`，guard `C:/Users/26557/AppData/Local/Temp/cos94-real-guard-b194da483a874474b11ff5b412073af9`。视频仅证明保存完成，未验证播放；该快速正例不证明原慢退出原因已消除。
