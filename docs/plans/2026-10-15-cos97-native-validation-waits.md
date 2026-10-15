@@ -237,4 +237,10 @@ ownedPersistentBrowserLifecycle仅可信native对象选择prepare60/register60/b
 
 0ed/46独审P2：首因仅标量metadata不能保存classifier收到的原Error。segment私有presence wrapper保留canonical原值（含undefined），stage catch保持原固定service signal reason优先，其次已记录原source error；后到timer/cleanup不得替换出口。原两个不正确cleanup出口断言改为source对象严格相等，新增deferred close跨60s timer、raw/drain仍pending直到释放，以及undefined presence代表：RED0/3→GREEN3/3、0skip、308.8056ms、strict0。`canonical-firstcause-{red,green}.tap`和`canonical-firstcause-strict.log`同TEMP；未重跑无delta17组，cleanup失败仍由独立hook留证。
 
+## 作者源码切片 15：native runner navigation 与独立收尾（局部）
+
+native runner复核source对象/task/deadline/segment，启动使用lifecycle三阶段，gate在route/page/viewport/video/exception driver ready之后、可信goto前beginNavigation；navigation source300秒及W夹紧，原generic15/15不变。normal input原预算与观察循环保持，run前后segment.check先原service/current/W，再拒已同步记录的canonical source cause；不提前abort caller冒充局部取消。cleanup先revoke gate，最后截图使用原物理cleanup界限，原browser exit后只settle segment raw子集，记录optional nativeWaits快照。native prepare25s+goto25s正常输入/cleanup与legacy nav15影响代表有效RED（1pass/1fail）→GREEN2/2、5357.5989ms；最初等待navEnter的red日志因旧启动先结束而cancelled，保留并以显式navigation/ended竞争的red-2为证据。known source/helper check单项RED→GREEN1/1、331.9067ms；实际runner HTTP source已record、close deferred时下一locator input0且inner rawOperations1，释放后才settle，补例GREEN1/1、5780.0647ms。最初补例错查已race结束的http.pending，原失败日志保留，修为真实inner raw集合。旧COS92 runner launch15/cancel owner代表1/1、4243.2422ms；最终strict0。
+
+`native-runner-{red,red-2,green}.tap`、`native-runner-legacy-launch.tap`、`native-runner-strict{,-2}.log`、`known-failure-input-{red,green}.tap`、`known-failure-runner-green{,-2}.tap`同TEMP。所有浏览器/CDP/OS终止均合成transport，taskkill只mock核精确PID参数；未调用实际browser/actual/provider。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

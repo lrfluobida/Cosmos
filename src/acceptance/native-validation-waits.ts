@@ -22,6 +22,7 @@ export interface NativeSegmentSnapshot {
 }
 export interface NativeSegmentWaits {
   readonly reportId: string; readonly generation: number;
+  check(): void;
   runStage<T>(stage: NativeWaitStage, operation: (life: NativeReadLifetime) => Promise<T>): Promise<T>;
   /** The original owned prepare owns the write; this subset retains an already-spawned PID's raw settlement. */
   trackRegistration<T>(start: () => Promise<T>): Promise<T>;
@@ -194,6 +195,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
           .map(stage => ({ stage, capMs: caps[stage], count: 0, totalMs: 0, maxMs: 0 })) } };
       current = owner.current = segment; segments.push(segment);
       return Object.freeze({ reportId, generation: segment.generation, snapshot: () => view(segment),
+        check() { check(segment); if (segment.firstCauseRaw) throw segment.firstCauseRaw.error; },
         trackRegistration<T>(start: () => Promise<T>): Promise<T> {
           if (current !== segment || segment.registrationTracked || !['registering', 'closing'].includes(segment.state)
             || !segment.records.some(row => row.stage === 'prepare_authority' && row.outcome === 'passed')) throw new Error('Native registration ownership is not ready');

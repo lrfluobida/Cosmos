@@ -289,3 +289,15 @@ test('COS97 pre-mount lookup recognizes only original source callers and leaves 
   assert.equal(api.nativeValidationWaitsForCaller(phase), f.waits);
   assert.equal(api.nativeCallerDisposition(phase, f.waits, phase.reason), 'stale');
 });
+
+test('COS97 a recorded HTTP failure stops the next input before its deferred close settles', async () => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'), source = new Error('known source failure'), entered = deferred(), gate = deferred(); let inputs = 0;
+  assert.equal(typeof segment.check, 'function'); await transportReady(segment); segment.beginNavigation();
+  const pending = segment.runStage('navigation', async () => f.waits.runRequest(async (request: any) => {
+    await request.runStage('http_pre_authority', async (life: any) => { api.recordNativeValidationFailure(life.signal, source);
+      assert.equal(life.signal.aborted, false); entered.resolve(); await gate.promise; throw source; });
+  }));
+  const rejected = assert.rejects(pending, error => error === source); await entered.promise;
+  try { assert.throws(() => { segment.check(); inputs++; }, error => error === source); assert.equal(inputs, 0); }
+  finally { gate.resolve(); await rejected; }
+});
