@@ -2,6 +2,13 @@
 
 更新时间：2026-10-15
 
+## C14独立媒体补测：字段全部匹配，整体失败
+
+- 在`61d13817ca871d2be04576b4d6fb51fa8a86b541`上单次执行原候选逐字节一致副本，诊断6.528秒、外层7.099秒。15/15步骤通过（1次只读就绪等待、14次正常点击），媒体62/62字段匹配、coverage valid/complete；整体仍failed、Node exit1，错误为`Cleanup: Server cleanup: timed out after 1000 ms`。
+- `c14_media_diagnostic_reviewer`已独审原始字段、绑定、时序及后核，相关进程/端口无残留；`forced=true`只证明进入强制清理分支，不证明实际OS kill或浏览器退出码。93,887字节的`browser.webm`存在，未验证播放。原文件、账本、候选及harness保持，新请求/费用0，revision3114、共享¥16.901000。原220步玩法证据复用；本次不含render/performance，原C14仍failed/consumed，coding未批准、accepted/human未提升。详见[研究记录](docs/research/2026-10-15-c14-independent-media.md)及Root精确读回的[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6181880730)。
+- [COS93 / #94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，依赖COS52/56/91/92；计划`40dd033a6d01335edac24e7b55edaa35ca8d9747`经`cos93_reviewer`独立PLAN_APPROVED并[公开批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)，`cos93_implementer`实现中。完整原生启动路径尚未实测、未SOURCE_READY。
+- [COS94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，依赖COS40/64/92；计划`e9e60894cea81fac3f99bfb4735635d8510f0e03`经`cos94_reviewer`独立PLAN_APPROVED、无finding并[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)，`cos94_implementer`实现中，源码尚未批准/就绪。两项均已原生挂父#1，当前94个子任务；旧92项身份、依赖、状态和COS91原始结果保持。
+
 ## 封存C14候选的独立玩法诊断通过
 
 - 在已审`e634119`上单次执行原候选的逐字节一致TEMP副本：2026-10-14 UTC 23:44:19.845–23:45:00.672，共40.827秒。原8段220步全部passed、0failed/0skipped，46次正常点击、174项断言；T16-01～06与原步骤/checkpoint保留。原游戏生成版本仍为`b20e9a43`，代码和构建输出未改、未重新编译。
@@ -15,7 +22,7 @@
 - COS90固定¥1.600314补充分配已在C14前一次实际应用，原parent仍¥10，组有效容量¥11.600314；shared¥150、phase¥30、正式¥200/12h保持。原锁首次归档调用因PID复用在写入前拒绝；独审精确代际守卫后实际归档一次，原字节/mtime与文件身份保持，失败及清理证据不足结论保留。closure20已一次执行并独立核对，revision3114、22stopped/14delegations/110closed/20audits，释放及组可分配¥1.707937；原费用、历史和补充分配保持。Root已解除main冻结。
 - [COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6180211123)与[C14结果](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6180211817)已由Root精确读回。详见[研究记录](docs/research/2026-10-15-transfer-c14-browser-launch.md)。
 - C14结果文档作者`c14_outcome_docs_implementer`（Git author LRF）的`4d86dd1be9d03e4a71fd502ea46a1bc799e9b1c1`经`c14_outcome_docs_reviewer`独立APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`a77141707419e599307e3e4daa81878287b96afa`。本批六个文档的UTF-8、中文回读、JSON 92个唯一任务和diff检查通过；未变更源码，复用既有通过证据。
-- [COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，当前92个子任务。依赖COS37/52/91，作者`cos92_implementer`最终`ffa0ce2918735f5b21b22c4373a390b156e63d33`经`cos92_reviewer`独立规格→质量APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger`合入`e74815f468b7158b5555ca2e5887ad3459b74dda`，标记`PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡source scoped complete/closed。计划`4472e7bdea4227b7fb671880c0862628703943c6`的[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181)保持；[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180910087)、closed(completed)及父勾选已由Root精确读回，main保持unfrozen。
+- [COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，登记时92个子任务。依赖COS37/52/91，作者`cos92_implementer`最终`ffa0ce2918735f5b21b22c4373a390b156e63d33`经`cos92_reviewer`独立规格→质量APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger`合入`e74815f468b7158b5555ca2e5887ad3459b74dda`，标记`PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡source scoped complete/closed。计划`4472e7bdea4227b7fb671880c0862628703943c6`的[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181)保持；[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180910087)、closed(completed)及父勾选已由Root精确读回，main保持unfrozen。
 - COS92主线typecheck/build退出0，短集成5/5、0skip，4151.1296ms；src/tests与批准提交完全一致。复用作者Task1 17/17、受影响59/59、generic15/15、consumer2/2、真实Edge1/1、P2修订27/27及补充回滚1/1，均0skip；generic fixture单独strict的4条既有诊断明确保留。迟到release原cause已通过公开drain传播，普通取消保持；详见[计划](docs/plans/2026-10-15-cos92-browser-launch.md)与[任务卡](docs/specs/cos92-browser-launch.md)。C14原冻结`b20e9a43`失败/已消费事实不变，完整链诊断尚未执行，没有新付费或C14重放；COS16/COS18、完整经典和human仍未完成。
 
 ## COS90固定组补充分配与COS91固定C14源码已公开关闭
