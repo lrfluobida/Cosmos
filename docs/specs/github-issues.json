@@ -7926,7 +7926,12 @@
         "paidAuthorized": false,
         "mainUnfrozenAfterIndependentPostcheck": true,
         "researchPath": "docs/research/2026-10-16-cos93-navigation-v1.md",
-        "resultComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862"
+        "resultComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862",
+        "documentationReviewStatus": "APPROVED",
+        "documentationReviewer": "cos93_navigation_reviewer",
+        "documentationMerger": "batch_c14_cos92_merger",
+        "documentationReviewedCommit": "ffb8fb6ffa859014ae1ef90a91f489874001fe25",
+        "documentationMergeCommit": "ebb5e5ba089b4844f5a81114cfa1ceb1931e7e35"
       },
       "navigationPreparation": {
         "state": "SOURCE_APPROVED; integrated; navigation-v1 diagnostic completed / navigation failed",
