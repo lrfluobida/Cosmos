@@ -2,7 +2,7 @@
 
 任务：[COS95 / #96](https://github.com/lrfluobida/Cosmos/issues/96)，id5858781735，父 #1，登记时 95 个原生子任务。依赖 COS52 / #53、COS91 / #92、COS92 / #93，以及 COS93 / #94 已审诊断实现与证据；不要求 COS93 的完整启动目标已经通过。
 
-状态：`VALIDATION_SCOPE_AUTHORITY_READ_SOURCE_READY`，本卡source scoped complete，GitHub暂open待Root公开关闭。计划 `bd4247cc5afd2d8c78e2e5b6c71d7265a8f400f4` 已由 `cos95_reviewer` 独立 `PLAN_APPROVED`、无 finding，并[公开批准](https://github.com/lrfluobida/Cosmos/issues/96#issuecomment-6182899219)。作者 `cos95_implementer`，唯一 merger 为 `batch_c14_cos92_merger`；[实施计划及证据](../plans/2026-10-15-cos95-scope-authority-read.md)。
+状态：`VALIDATION_SCOPE_AUTHORITY_READ_SOURCE_READY`，本卡source scoped complete/closed，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/96#issuecomment-6183200008)、closed(completed)及父勾选已由Root精确读回。计划 `bd4247cc5afd2d8c78e2e5b6c71d7265a8f400f4` 已由 `cos95_reviewer` 独立 `PLAN_APPROVED`、无 finding，并[公开批准](https://github.com/lrfluobida/Cosmos/issues/96#issuecomment-6182899219)。作者 `cos95_implementer`，唯一 merger 为 `batch_c14_cos92_merger`；[实施计划及证据](../plans/2026-10-15-cos95-scope-authority-read.md)。
 
 ## 问题与证据边界
 

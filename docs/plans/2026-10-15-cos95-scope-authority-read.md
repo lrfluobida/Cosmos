@@ -133,7 +133,7 @@ node --experimental-strip-types --test --test-name-pattern='^real transfer host 
 
 ## 已审集成
 
-作者 `cos95_implementer` 最终 `04fdb8bd0b44bd059f49dcf7b43029f7647beb13` 经 `cos95_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger `batch_c14_cos92_merger` 合入 `862514f269638d7489bb7438dc764777d8ed5c0e`，保留生产/测试提交 `b0d987cb5e3facd6ef8a432e2c4c4c11c2337aa3`。当前 `VALIDATION_SCOPE_AUTHORITY_READ_SOURCE_READY`，本卡source scoped complete，GitHub暂open待Root公开关闭。
+作者 `cos95_implementer` 最终 `04fdb8bd0b44bd059f49dcf7b43029f7647beb13` 经 `cos95_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger `batch_c14_cos92_merger` 合入 `862514f269638d7489bb7438dc764777d8ed5c0e`，保留生产/测试提交 `b0d987cb5e3facd6ef8a432e2c4c4c11c2337aa3`。当前 `VALIDATION_SCOPE_AUTHORITY_READ_SOURCE_READY`，本卡source scoped complete/closed，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/96#issuecomment-6183200008)、closed(completed)及父勾选已由Root精确读回。
 
 主线COS95的两个生产文件和两个测试文件等同批准提交，COS93入口/fixture与COS94 runner/测试保持。`npm run typecheck` / `npm run build` 均退出0，raw `C:/Users/26557/AppData/Local/Temp/cos95-merge-typecheck.log`、`cos95-merge-build.log`。确认actual与compiled环境选择变量均未设置后执行 `node --experimental-strip-types --test --test-name-pattern='^scope clones one full snapshot and one isolated authority view$|^timeout during the final controller read retains the private timeout identity$|^COS93 fixture preserves returned verification failure' tests/runtime/validation-scope-authority.test.ts tests/transfer/scope-timeout-origin.test.ts tests/transfer/native-startup-diagnostic.test.ts`：3/3、0skip，10254.1566ms，raw `C:/Users/26557/AppData/Local/Temp/cos95-merge-focused.tap`。实际观察一次完整snapshot和一次身份/window投影；最终read仍保留私有timeout身份，COS93未到达分类保持。
 
