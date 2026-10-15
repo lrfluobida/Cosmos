@@ -167,4 +167,12 @@
 
 日志同TEMP：`lease-http-red.tap`、`caller-generation-red.tap`、`lease-http-green.tap`、`lease-http-strict.log`。生产runner/nativeIO/origin/完整caller链尚未接入；本切片不证明真实导航/ready/cleanup、whole-open15通过或整卡完成。下一步继续按批准文件边界连接并验证实际生产方法，无browser/provider/actual/715 seed/付费。
 
+## 作者源码切片 4：controller caller 与 identity owner 贯穿（局部）
+
+controller read/readValidationScopeAuthority/validationAuthority/requireValidationHost接可信可选caller；排队前及原serial expire后检查，checkValidationIdentity组合signal继承native owner，原5秒identity race及时返回但raw不提前消失。budget source在每个receipt前后检查caller，scope前后authority读也转交它；无caller保持原入口与队列行为。
+
+预取消与controller→identity raw两项实际RED0/2→GREEN2/2、0skip、445.8454ms；追加真实串行前项阻塞/后项取消零新identity及controller原reason优先代表。受影响scope authority完整23/23、0skip、exit0、2123.4667ms，run/budget/scope/test定向strict0。`controller-caller-{red,green}.tap`、`controller-caller-regression.tap`、`controller-caller-strict.log`在同TEMP；只有合成小controller/免费来源，无实际账本或浏览器。
+
+host/preparation/origin/clean delivery/固定输入与历史的余下可选caller接线、payload发前核验及runner物理启动仍待后续切片；不把本次组件通过提升为整卡完成。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

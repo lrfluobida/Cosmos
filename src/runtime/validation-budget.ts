@@ -67,19 +67,25 @@ export function validateValidationBudgetGroups(state: RunSnapshot): void {
 }
 
 /** Re-read actual source bytes before every grouped provider/tool/child dispatch. */
-export async function verifyValidationBudgetSources(root: string, state: RunSnapshot): Promise<void> {
+export async function verifyValidationBudgetSources(root: string, state: RunSnapshot, callerSignal?: AbortSignal): Promise<void> {
+  callerSignal?.throwIfAborted();
   if (!['4.0.0', '5.0.0'].includes(state.ledger.contractVersion)) return;
   for (const delegation of state.ledger.allocationDelegations!) {
+    callerSignal?.throwIfAborted();
     const window = state.validation!.cases.find(item => item.caseId === delegation.caseId)!;
     const { sourceSha256, source, ...decision } = window.operatorDecision;
-    const bytes = await regularFile(root, source.location), value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    const bytes = await regularFile(root, source.location); callerSignal?.throwIfAborted();
+    const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     requireThat(hash(bytes) === sourceSha256 && sameValue(value, { formatVersion: 'operator-validation-decision-1', ...decision, quote: window.quote }), 'actual operator delegation source changed.');
   }
   for (const receipt of state.allocationSupplementDecisions ?? []) {
+    callerSignal?.throwIfAborted();
     const { sourceSha256, source, ...decision } = receipt.operatorDecision;
-    const bytes = await regularFile(root, source.location), value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    const bytes = await regularFile(root, source.location); callerSignal?.throwIfAborted();
+    const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     requireThat(hash(bytes) === sourceSha256 && sameValue(value, { formatVersion: 'operator-validation-group-supplement-decision-1', ...decision, quote: receipt.quote }), 'actual operator supplement source changed.');
   }
+  callerSignal?.throwIfAborted();
 }
 
 export function requireBudgetGroupQuote(quote: ValidationCaseQuote, state: RunSnapshot): void {

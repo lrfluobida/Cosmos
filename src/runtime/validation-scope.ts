@@ -30,7 +30,7 @@ export async function requireValidationScope(controller: RunController, requirem
   checkCaller();
   controller.requireValidationCase(caseId, windowId);
   if (!isValidationRequirement(requirement) || validateExecutionRequirement(requirement, 'operator_validation').length || typeof readScope !== 'function') throw new Error('Explicit validation requirement and trusted scope reader are required.');
-  const before = await controller.readValidationScopeAuthority(), window = before.window, data = requirement.validation;
+  const before = await controller.readValidationScopeAuthority(callerSignal), window = before.window, data = requirement.validation;
   checkCaller();
   const { sourceSha256, ...decision } = window.operatorDecision;
   if (data.runId !== before.runId || data.ledgerId !== before.ledgerId || data.caseId !== caseId || data.windowId !== windowId
@@ -62,7 +62,7 @@ export async function requireValidationScope(controller: RunController, requirem
     }
     controller.requireValidationCase(caseId, windowId);
     signal.throwIfAborted();
-    const snapshot = await controller.read();
+    const snapshot = await controller.read(callerSignal ? signal : undefined);
     if (!sameValue(currentValidationCase(snapshot), window) || Date.now() >= Date.parse(window.deadlineAt) - 5000) throw new Error('Validation authority changed while reading fixed scope.');
     signal.throwIfAborted(); return { snapshot, window };
   } catch (error) { controller.signal.throwIfAborted(); throw error; }
