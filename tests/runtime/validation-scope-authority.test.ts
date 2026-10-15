@@ -209,6 +209,18 @@ test('COS97 controller cancellation retains precedence over a separate caller ca
     join(f.context.repositoryRoot, '.cosmos/e2e', f.window.caseId), caller.signal), error => error === f.controller.signal.reason);
 });
 
+test('COS97 expiry in identity finally takes precedence over the earlier caller cancellation', async t => {
+  const f = await fixture(t), caller = new AbortController(), reason = new Error('caller before persisted expiry');
+  f.setIdentityReader(async () => {
+    f.advance(f.declaration.limits.durationMs); caller.abort(reason); return f.window.quote.identity;
+  });
+  await assert.rejects(f.controller.requireValidationHost(f.window.caseId, f.window.windowId,
+    join(f.context.repositoryRoot, '.cosmos/e2e', f.window.caseId), caller.signal),
+    error => error === f.controller.signal.reason && error !== reason);
+  assert.equal(f.controller.signal.aborted, true);
+  assert.equal(currentValidationCase(await f.controller.read()).stopReason?.code, 'deadline');
+});
+
 function codingTask(f: Fixture): TaskContract {
   const task = taskFixture() as TaskContract, grant = f.declaration.grants.coding;
   Object.assign(task, { taskId: grant.taskId, kind: 'evaluation', runId: f.original.run.runId, specVersion: f.original.run.specVersion,

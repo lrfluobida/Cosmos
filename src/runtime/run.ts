@@ -667,12 +667,13 @@ export class RunController {
     const window = this.validationWindow();
     const signal = callerSignal ? associateNativeReadSignal(callerSignal, AbortSignal.any([this.signal, callerSignal])) : this.signal;
     try {
-      await verifyValidationIdentity({ ...this.validationContext!, signal }, window.quote.declaration, window.quote.identity, window.deadlineAt);
-      this.checkCaller(callerSignal); await verifyValidationBudgetSources(this.store.root, this.snapshot, callerSignal ? signal : undefined);
+      try {
+        await verifyValidationIdentity({ ...this.validationContext!, signal }, window.quote.declaration, window.quote.identity, window.deadlineAt);
+        this.checkCaller(callerSignal); await verifyValidationBudgetSources(this.store.root, this.snapshot, callerSignal ? signal : undefined);
+      } finally { await this.expire(); }
+      this.checkCaller(callerSignal);
+      this.requireActive();
     } catch (error) { if (callerSignal) this.signal.throwIfAborted(); throw error; }
-    finally { await this.expire(); }
-    this.checkCaller(callerSignal);
-    this.requireActive();
   }
 
   private halt(next: RunSnapshot, code: StopReason['code'], reason: string): void {

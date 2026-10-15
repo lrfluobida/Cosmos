@@ -181,4 +181,6 @@ safePath/regularFile/snapshot添加可信可选signal，目录/文件前后检�
 
 `path-caller-{red,green}.tap`、`path-default-regression.tap`、`path-caller-strict.log`仍在同TEMP。测试的readFile gate实际观察生产读取，不以mock计数替代真实文件字节；无browser/provider/actual或真实账本。
 
+493切片独审补正expire后原reason优先：identity内advance到原deadline且先取消caller，单项RED仍抛caller；将优先检查置于整个try/finally expire之外后GREEN1/1、0skip、520.3169ms，strict0。保留原expire副作用与无caller路径；日志`expiry-reason-{red,green}.tap`、`expiry-reason-strict.log`同TEMP。其余无delta23/helper14/既有通过证据复用。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
