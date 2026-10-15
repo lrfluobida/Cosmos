@@ -56,7 +56,7 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
   async function optional(root: string, name: string, callerSignal?: AbortSignal): Promise<Buffer | null> {
     checkCaller(callerSignal);
     try { const bytes = await regularFile(root, name, readSignal(callerSignal)); checkCaller(callerSignal); return bytes; }
-    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
+    catch (error) { checkCaller(callerSignal); if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
   }
   async function binding(task: TaskContract, workspace?: string, callerSignal?: AbortSignal): Promise<Binding> {
     checkCaller(callerSignal); await guard(callerSignal); checkCaller(callerSignal);

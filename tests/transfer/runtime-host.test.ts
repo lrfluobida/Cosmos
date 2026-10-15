@@ -178,6 +178,20 @@ test('COS97 read-only design seal stops at caller boundaries on valid audit byte
   });
 });
 
+test('COS97 design seal preserves a caller ENOENT reason during its final valid MAP read', async t => {
+  const f = await pipeline(t), task = f.result[0], context = { root: f.root, signal: f.input.work.signal, requirement: f.requirement, designTaskId: task.taskId,
+    requirementCapture: f.registry.artifactRef(`${f.window.caseId}-requirement-bundle`, 'fixture-v1') } as BrowserPreparationContext;
+  const validation = createTransferDesignValidation({ context, controller: f.controller, guard: async () => {} });
+  assert.ok((await validation.seal(task)).bytes.length > 0);
+  const caller = new AbortController(), reason = Object.assign(new Error('Caller ENOENT is cancellation, not a missing MAP'), { code: 'ENOENT' });
+  const original = fs.promises.readFile, target = join(f.tasks[0].workspace, 'authors/design/transfer-design.json'); let reads = 0;
+  t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+    const bytes = await original(...args); if (String(args[0]) === target) { reads++; caller.abort(reason); } return bytes;
+  }); syncBuiltinESMExports();
+  try { await assert.rejects(validation.seal(task, undefined, caller.signal), error => error === reason); assert.equal(reads, 1); }
+  finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+});
+
 test('invalid semantic design preserves raw bytes and stops art/coding without claiming coding repair', async t => {
   const f = await pipeline(t, true); assert.equal(f.result[0].state, 'failed');
   assert.ok(!f.calls.some(item => ['art', 'coding'].includes(item.kind)));
