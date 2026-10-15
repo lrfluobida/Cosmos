@@ -2,10 +2,16 @@
 
 更新时间：2026-10-15
 
-## COS93诊断实现已审，完整启动测量仍未完成
+## COS93 v2 OOM，下一步修正诊断观测器
+
+- v2在`5e6847ba465b863367e476aa84f4fcaa276d3301`上运行1056412ms，parent exit1、worker exit134（heap OOM）。先落盘的首段报告为原15000ms launch超时、21步skipped，PID/CDP/session未证实；final trace/preservation/result缺失，正常drain未证实。[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6183943925)已由Root精确读回，详见[研究记录](docs/research/2026-10-15-cos93-observer-retention.md)。
+- 独立后核为`POSTCHECK_NO_LIVE_RESIDUE`，没有kill/delete/recover；原TEMP owner/profile保留。238文件/61目录只与v1基线比较，非v2完整before/after；崩溃选择副本337文件/201目录/38976394字节。共享仍revision3114/715请求/¥16.901000，无新增付费，Root已解除main冻结。
+- 8-read小复现证实method mock的calls持有Promise→完整snapshot；手工wrapper不按调用累积。不能量化实际OOM占比，也不能推断v1长尾为GC。作者`cos93_implementer`的[有界观测计划](docs/plans/2026-10-15-cos93-bounded-observer.md)与记录`fb0f341779ff8afd04a77cecb887e5381f02438a`经`cos93_reviewer`独立PLAN_APPROVED、无finding；唯一merger `batch_c14_cos92_merger`合入`120113df9032c0bd4ba8b84eea918a05fced5a33`。当前计划已审、fixture/test实施中，新源码尚未批准，无第三次actual授权；COS93保持open/partial/actual-incomplete，COS94/95 scoped closed及原C14/media/human结论保持。
+
+## 此前COS93 v1与源码集成记录
 
 - 作者`cos93_implementer`最终`0b475c1fe2918af5e6b61594f29d3060da766078`经`cos93_reviewer`独立APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`3d67a50a09a00d98b8fa6d54ee7745337d7e803d`。当前source-reviewed / actual-incomplete，issue #94保持open、integration partial，不标任务完成。
-- 唯一实际执行源码`59dd5d3a34fb65d5e6933f492aa91613a0fab19b`，历史宿主冻结`7df1e5b3b8662a4fa836c466f266f9b80d04d2e8`，原C14生成版本仍`b20e9a43`。外层765169ms、Node exit1，原5秒scope在5014.7298ms失败；nativeIO/open/CDP/browser均0，完整15秒链未测得。[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6182530375)已由Root精确读回，详见[研究记录](docs/research/2026-10-15-cos93-native-startup-diagnostic.md)。
+- v1实际执行源码`59dd5d3a34fb65d5e6933f492aa91613a0fab19b`，历史宿主冻结`7df1e5b3b8662a4fa836c466f266f9b80d04d2e8`，原C14生成版本仍`b20e9a43`。外层765169ms、Node exit1，原5秒scope在5014.7298ms失败；nativeIO/open/CDP/browser均0，完整15秒链未测得。[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6182530375)已由Root精确读回，详见[研究记录](docs/research/2026-10-15-cos93-native-startup-diagnostic.md)。
 - 原466文件/61目录、真实ledger和PID/端口/locks已独审后核CLEAN，Root已解冻。稳定副本`cos93-first-actual-preserved`为334文件/40225837字节的选择范围，非整个TEMP归档；原raw保持。主线typecheck/build0、短检查2/2、0skip，4786.382ms；COS93源码/测试等同批准版，COS94 runner与测试保留，复用6/6及P2 2/2/strict证据。没有第二次actual、浏览器或35行历史重建；共享仍revision3114/¥16.901000，无新增付费，原C14、COS16/COS18及human状态保持。
 - [COS95 / #96](https://github.com/lrfluobida/Cosmos/issues/96)，id5858781735，已原生挂父#1，当前95个子任务；依赖COS52/91/92/93（COS93仅诊断实现/证据）。计划`bd4247cc5afd2d8c78e2e5b6c71d7265a8f400f4`已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/96#issuecomment-6182899219)。作者`cos95_implementer`最终`04fdb8bd0b44bd059f49dcf7b43029f7647beb13`经`cos95_reviewer`独立规格→质量APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`862514f269638d7489bb7438dc764777d8ed5c0e`，标记`VALIDATION_SCOPE_AUTHORITY_READ_SOURCE_READY`，本卡source scoped complete/closed，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/96#issuecomment-6183200008)、closed(completed)及父勾选已由Root精确读回。
 - COS95主线typecheck/build退出0，scope投影、最终read与COS93证据helper短检查3/3、0skip，10254.1566ms；批准的COS93/COS94/COS95源码与测试组合保持。作者25项行为由23项原pass与2项修正证据组成，旧2/2、compiled1/1及strict复用。单次组件复制输入20507280→10285763字节、clone164.1931→82.0730ms，只证明减少复制输入；5秒scope、15秒open、最终完整read与授权不变，长尾/完整startup仍未知。详见[任务卡](docs/specs/cos95-scope-authority-read.md)及[计划](docs/plans/2026-10-15-cos95-scope-authority-read.md)。COS93仍open/partial/actual-incomplete，无新增actual、浏览器、付费或原账本操作，main保持unfrozen。
