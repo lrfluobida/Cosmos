@@ -10,7 +10,7 @@
 
 ---
 
-状态：`design-pending / NOT_REVIEWED`，只写文档，全部实施/测试复选框未执行。任务 [COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449；[完整规格](../specs/cos97-native-validation-waits.md)、[ADR0002 proposed](../adr/0002-native-validation-waits.md)。设计基线 `dd367c5dd007ecbd43e2daf5b4e29635afc87fbb`，作者 `cos97_implementer`、独审 `cos97_reviewer`，唯一 merger `batch_c14_cos92_merger`。作者在 `codex/cos97-native-validation-waits` 和 own managed worktree 工作，不改 main/shared tracking/GitHub，不 push。
+状态：`design-revision / REVIEW_PENDING`，只写文档，全部实施/测试复选框未执行。前版994dd1e独审CHANGES_REQUESTED，本版仅收敛两项P2所需的caller signal链与actual payload比较，待复审。任务 [COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449；[完整规格](../specs/cos97-native-validation-waits.md)、[ADR0002 proposed](../adr/0002-native-validation-waits.md)。设计基线 `dd367c5dd007ecbd43e2daf5b4e29635afc87fbb`，作者 `cos97_implementer`、独审 `cos97_reviewer`，唯一 merger `batch_c14_cos92_merger`。作者在 `codex/cos97-native-validation-waits` 和 own managed worktree 工作，不改 main/shared tracking/GitHub，不 push。
 
 用户已授权持续推进 harness 工程，现阶段仅准备可审设计。产品决定已确认；Root 与独立 reviewer 审 routine 工程选择。本计划须独审通过，且 Root 明确授权源码阶段后才能运行下列步骤。actual、浏览器、真实 controller/715 seed、provider 与付费始终另需授权。
 
@@ -21,11 +21,23 @@
 | `src/acceptance/native-validation-waits.ts`（新） | 固定 caps/版本、source factory provenance、阶段 race、HTTP segment lease、first cause、标量计时；不做通用框架 |
 | `src/acceptance/runner.ts` | 可选可信 lifecycle 接线；native open/navigation、可信导航 gate、finally revoke、raw 标量证据；普通输入/default 保持 |
 | `src/acceptance/persistent.ts` | native 三阶段 open、可选 register lifetime、raw registration settle 跟踪与 per-segment context；generic 分支保持 |
-| `src/runtime/entrypoint-host.ts` | 仅 validation transfer consumer 构造与校验 wait 对象；nativeIO 同对象校验和 ownedChild registration lifetime/completion |
-| `src/runtime/entrypoint-preparation.ts` | consumer context 增加只读可选可信字段，result 增加 consumer 终点摘要 |
+| `src/runtime/entrypoint-host.ts` | 仅validation transfer consumer构造与校验wait对象；nativeIO/ownedChild lifetime/completion，validationScope/preparationScope/requireDispatch真实caller signal接线 |
+| `src/runtime/entrypoint-preparation.ts` | consumer context只读可选wait字段、result终点摘要，requireCurrent/requireScope/bindCandidate可信可选callerSignal类型 |
 | `src/runtime/adapters/transfer/runtime-acceptance.ts` | 同一对象传 mount/playPersistent/diagnostic expected，consumer 总计时 |
 | `src/runtime/adapters/transfer/runtime-host.ts` | 将可选对象沿 mount closure 转交，保持全部 binding 调用顺序 |
-| `src/runtime/adapters/transfer/loopback-origin.ts` | 仅带新对象的 clean mount 执行 gate 与 HTTP 三阶段；旧 non-clean/generic 保持 |
+| `src/runtime/adapters/transfer/loopback-origin.ts` | 仅新native clean mount的gate、HTTP阶段、实际body核验；origin.verify/mounted.verifyScope可选caller signal；旧non-clean/generic保持 |
+| `src/runtime/entrypoint-delivery.ts` | CleanDelivery及input.requireCurrent可选callerSignal；私有fixed Map闭包verifyPayload，保留最终双snapshot与原helper规则 |
+| `src/runtime/entrypoint-validation.ts` | 两个requireValidation*Scope可选callerSignal转交controller/scope/fixed读取 |
+| `src/runtime/validation-scope.ts` | 可选callerSignal合入原controller/private timer；readScope/readBytes/前后authority；原5秒/品牌/原reason保持 |
+| `src/runtime/run.ts` | read/readValidationScopeAuthority/validationAuthority/requireValidationHost/checkValidationIdentity必要可选signal；原serial/expire与PID登记收尾保持 |
+| `src/runtime/validation-window.ts`、`src/runtime/validation-budget.ts` | identity原options.signal贯穿，budget source可选signal与循环checkpoint，原5秒/实际来源保持 |
+| `src/runtime/historical-passed-stages.ts` | verify已有signal传入完整只读历史循环，停止后续批次，保留原来源/读序/签名 |
+| `src/runtime/recovery/task-journal.ts` | 只读resume open/read/signature/requireSignature可信可选signal，取消reason不被catch转换；写入/恢复规则保持 |
+| `src/artifacts/paths.ts` | safePath/regularFile/snapshot可选signal及每轮前后检查；原路径/链接/nlink/默认与顺序保持 |
+| `src/runtime/adapters/transfer/binding.ts` | bind/verifyPrepared及内部只读链可选signal，实际plan/design/candidate核验保持 |
+| `probes/transfer/validation-case-six-driver.ts`、`probes/transfer/validation-case-six-entry.ts` | 实际运行期readScope/requireHistorical/scopeIdentity/verifyAdmission已有signal逐步转交与checkpoint；不改case/seed/预算 |
+| `probes/transfer/validation-case-seven-driver.ts`、`probes/transfer/validation-case-seven-entry.ts` | requireOwnSource/accounting已有signal在批次间和实际receipt读取前后检查，controller.read传signal |
+| `probes/e2e/validation-identity.ts`、`probes/transfer/validation-input.ts` | identity的readFixedInput回调与transfer固定目录/文件读取可选callerSignal，保留Git before→fixed→after |
 | `src/runtime/adapters/transfer/persistent-diagnostics.ts` | 可选 expected 版本与新 timing 校验；旧报告兼容 |
 | `tests/acceptance/native-validation-waits.test.ts`（新） | 有限预算、父夹紧、reason、stage/lease 与计数单元测试 |
 | `tests/acceptance/persistent-launch.test.ts` | 生产 native handoff/lifecycle 的长授权、后登记、取消与迟到回归；旧 COS92 断言保持 |
@@ -33,9 +45,12 @@
 | `tests/transfer/native-validation-origin.test.ts`（新） | 隔离 TEMP + loopback 合成服务的 gate、实际 bytes 与 pre/post drift；不启动浏览器/真实历史 controller |
 | `tests/transfer/runtime-acceptance.test.ts` | 当前 production consumer 与 clean 路径的同对象/选择范围代表 |
 | `tests/transfer/persistent-diagnostics.test.ts` | 新契约缺失/漂移/时序/未收敛拒绝与旧 expected 兼容 |
+| `tests/e2e/validation-scope.test.ts`、`tests/runtime/validation-scope-authority.test.ts` | 新caller取消真实scope链、原private5秒/原Error/controller优先与旧无参数代表 |
+| `tests/transfer/passed-stage-reuse.test.ts`、`tests/transfer/validation-input.test.ts`、`tests/e2e/validation-identity.test.ts` | 只读历史/固定输入/Git下一批不再启动，exact reason；已有小TEMP fixture复用 |
+| `tests/runtime/entrypoint-delivery.test.ts` | 新payload闭包fixed与actual比较、最终snapshot保留；新COS97用例不启动浏览器 |
 | 本 spec / ADR / plan | 独审、实施、命令与结果记录；ADR 接受状态由独审结果决定 |
 
-不改 validation-scope、RunController、OwnedWork 的默认 guard/drain、source/identity/history 算法、通用 bounded、游戏、参考安装、真实账本与旧报告。不新增 CONTEXT 词条：本次采用既有“当前执行绑定”“自动验收”“交付清理终点”，技术阶段名放 spec。
+只对上述必要只读链添加可信可选signal及checkpoint，不改validation-scope的原5秒/品牌、RunController原serial/expire/PID收尾、OwnedWork默认drain、source/identity/history验证算法、通用bounded、standalone-launcher、游戏、参考安装、真实账本与旧报告。无signal路径保持。新增payload比较仅用于new native转发，原最终双snapshot保持。不新增CONTEXT词条：采用既有“当前执行绑定”“自动验收”“交付清理终点”，技术阶段名放spec。
 
 ## Task 1：固定契约、阶段 race 与 segment lease
 
@@ -54,23 +69,39 @@
 - [ ] Run: `node --experimental-strip-types --test --test-name-pattern="COS97" tests/acceptance/persistent-launch.test.ts`。预期长授权/分段或对象接线断言失败，原测试不改成更宽容的旧默认。
 - [ ] `entrypoint-host.ts` 在 validation transfer consumer 分支构造源对象；验证 current coding case/window/task/deadline。consumer context 类型增加可选字段；nativeIO 拒绝错 identity/series/deadline 或无 provenance 对象，generic/human 不构造。
 - [ ] `runtime-acceptance.ts` 与 `runtime-host.ts` 只转交同对象，不重建、不复制 caps、不减少任何 current guard。native object 无 cleanDelivery 立即拒绝。
+- [ ] verifyBinding/consumer.guard/context.requireCurrent/preparation.requireCurrent及bindCandidate改为spec中的可信可选callerSignal；prepare传launch.signal、register传registrationLifetime.signal、HTTP pre/post传各阶段signal。不得以外围race代替下述Task2A的真实接线。
 - [ ] `persistent.ts` 的 native open 实现 prepare→spawn→register+fresh→transport 三段；所有边界检查使用 W。原 ordinary lifetime 和 runner15秒行为保持；保留 endpoint/profile/PID/default context/service-worker 检查。
 - [ ] `PreparedPersistentChild.register` 增加可选registration lifetime。先启动exact PID持久化，再检查lifetime并完整fresh；不因本地到期丢弃已spawn的PID。按spec纸面图只让raw registration observer结算新native completion；stage catch不得提前结算，prepare不等待browser close/series/public drain，runner finally不等待包含自身的OwnedWork集合。raw prepare迟到仍释放exact unspawned ticket。
 - [ ] 增加阶段间 source/HEAD/index/window/budget drift 断言：pre-ticket读取中漂移零ticket/spawn；pre检查通过后至postfresh期间漂移允许owned spawn/PID登记，但零CDP/零gate；postfresh后漂移由HTTP pre/post拒绝有效字节。用现有最小production守卫fixture/隔离TEMP，不把检查间隙写成零OS副作用事务保证。
 - [ ] 增加取消、late handle、late register fulfilled/rejected、exact release失败、release rollback、public drain pending/cleanup AggregateError、原abort reason。逐项断言retained ticket/PID、completion pending→raw settled唯一结算、无drain自等待/重复登记/悬空rejection；未收敛时不得controller.close成功。
 - [ ] Run: `node --experimental-strip-types --test tests/acceptance/persistent-launch.test.ts tests/acceptance/native-validation-waits.test.ts`。预期全 pass/0 skip。旧 COS92默认15秒断言是兼容验收；提交 `feat: separate native authorization and browser launch waits`。
 
+## Task 2A：取消贯穿真实授权、历史与固定输入
+
+- [ ] 先在既有小TEMP fixture写COS97 RED：真实consumer的pre/request取消到达readScope/identity/history信号；阻塞当前leaf后取消并释放，只观察已派发项settle，下一scope/history/file/Git批次次数不增加。无715历史、无browser/provider。
+- [ ] Run: `node --experimental-strip-types --test --test-name-pattern="COS97" tests/e2e/validation-scope.test.ts tests/runtime/validation-scope-authority.test.ts tests/transfer/passed-stage-reuse.test.ts tests/transfer/validation-input.test.ts tests/e2e/validation-identity.test.ts`。预期RED是信号未到达/下一轮仍启动/原reason被包装的行为断言。
+- [ ] 按spec“Caller signal的实际贯穿”表逐项实施：requireDispatch增加第四caller参数并保留原taskSignal，validationScope/preparation/origin/cleanDelivery跨层原样转交caller，本地active仅给读取；entrypoint-validation传requireValidationHost与requireValidationScope；controller排队前和serial原expire后检查，identity/options.signal与budget source贯穿；不改原guard/timeout/读序。
+- [ ] native模块私有WeakMap绑定原phase/request signal与wait/segment/generation；origin.failCurrent统一verify及runtime-host两个catch的失效规则。可信当前局部取消只撤销旧lease，旧generation迟到error不得close/clear新mount或invalidate新preparation；原controller/work取消仍关闭对应origin，当前真实source/window漂移保留原close，私有5秒例外保持。真正clear/close前再次比对origin/mount/wait/generation，关闭后不得回调清除新对象。
+- [ ] raw settled/计数/completion只在完整catch/failCurrent/必要close与自身listener清理后结算；下一段等该链和原browser exit。成功移除自身listener，保留原controller/work服务寿命listener；晚到callback固定入口mount/generation，不读取当前段操作新lease。以阻塞invalidation finally的fixture证明新段不会提前开始。
+- [ ] requireValidationScope增加可选callerSignal，组合原controller/private5秒timer并传readScope/readBytes；controller原reason在catch优先，其余原对象重抛。每个await后检查，取消后不启动后置snapshot或下一scope；timer/listener finally保持。
+- [ ] historical.verify已有signal真正用于每个capture/receipt/signature/目标副本循环，TaskJournal只读方法和paths safePath/regularFile/snapshot可选signal逐层转交。catch遇active abort重抛reason，不包RecoveryBlocked；没有signal的读写/恢复路径原样保留。
+- [ ] 固定six/seven运行期readScope/identity/history/source/admission/accounting调用间检查；identity readFixedInput转交已有combined给transfer固定目录/文件读取。source算法与COS96每组4路保持，已派发组全部观察，取消后下一组零派发。metadata getCapture/getCandidate单个原读取前后检查，不改registry API。
+- [ ] GREEN断言：原Error/reason对象严格相等；真实私有scope Error仍被isValidationScopeTimeout识别；controller同时abort时原controller reason优先且对应origin关闭；当前caller局部取消保留listener；取消后下一轮计数不变。旧lease callback迟到reject经过真实guard/requireCurrent catch时，新mount/listener/preparation/gate/首因全不变；当前真实source漂移仍关闭、旧无signal调用仍有效。late registration成功/失败、exact ticket/PID、completion pending与public drain一起复验，防接线提前解除所有权。
+- [ ] 重跑同一目标命令与Task2的launch目标，预期全pass/0skip；提交 `fix: propagate native validation cancellation through read guards`，记录仅必要可选参数/检查的actual diff。
+
 ## Task 3：真实 HTTP 等待、恢复门禁与 runner 导航
 
 - [ ] 在 `tests/transfer/native-validation-origin.test.ts` 创建新的隔离 TEMP clean服务，走生产 `reserveTransferOrigin.mountCandidate`；新对象到达时 gate关闭。RED：恢复请求在注册fresh/CDP/导航前404且不读取upstream；同一请求不能在后来open时转为合法；新段拒绝旧lease。
 - [ ] 在 `tests/acceptance/native-validation-runner.test.ts` 用最小合成 context/page/CDP transport 驱动 production runner，无真实 browser。RED：合法HTTP授权等待超过15秒仍等待，同样normal-input仍原2秒/plan值，navigation300秒与W任一先到立即失败。
 - [ ] Run: `node --experimental-strip-types --test tests/transfer/native-validation-origin.test.ts tests/acceptance/native-validation-runner.test.ts`。保留行为 RED。
-- [ ] `loopback-origin.ts` 仅 new native clean mount 捕获当前lease、跟踪raw request并运行原verifyScope→fetch/完整bytes→verifyScope；追加每段截止和lease/mount检查后才writeHead/end。closed/旧lease请求404且不排队等开门。原non-clean/generic处理原样保留。
+- [ ] `entrypoint-delivery.ts` 返回可选verifyPayload(name,{status,bytes},callerSignal)，闭包只读原fixed Map的dist/name exactkey；newnative mount要求它存在。origin沿现已计算name转交，不新增URL mapper/decode，不改launcher。listed200必须actual Buffer.equals(fixed)，listed非200或错body拒绝；unlisted404只发固定Not found，绝不转发错误body；unlisted200拒绝。
+- [ ] `loopback-origin.ts` 仅newnative clean mount捕获当前lease、跟踪raw request；严格pre完整verifyScope(activePre)→fetch/arrayBuffer(activeBody)→body边界→post完整verifyScope(activePost)→verifyPayload(activePost)→signal/deadline/lease/mount→同步writeHead/end。每stage真实转交caller，closed/旧lease直接404；旧non-clean/generic保持。比较并发送同一个actual Buffer，原最终双snapshot不删。
 - [ ] `runner.ts` native open不套旧15秒总race；使用同对象父界限和三阶段证据。原页面/route/视频/异常设置完成后紧邻goto调用beginNavigation，goto/load/response/origin成功后finishNavigation；navigation既有请求不重置自身截止。
 - [ ] runner finally先revoke再原清理，取消本段请求并在原剩余cleanup预算内检查settle；超时记录pending/cleanup failure，host-owned tracker继续保留责任。不能将网络连接关闭视为授权工作settled。
-- [ ] 补HTTP body期间实际source/HEAD/index/window/budget、origin receipt、mount及clean实际文件变化拒绝；pre/post检查计数与次序明确，零有效字节响应，origin原private-scope close例外保持。补取消中/迟到拒绝/failedpostfirstcause，不增drain默认值。
+- [ ] 补HTTP body期间实际source/HEAD/index/window/budget、origin receipt与mount漂移拒绝，pre/post检查次数与顺序明确。payload RED→GREEN至少包括：正常fixed body有效200；pre后改clean dist且上游读取错body、随后磁盘恢复仍零有效200；上游返回错误Buffer但disk始终正常仍拒绝；listed404/unlisted404/编码路径/Unicode/query与原映射一致；不靠最终snapshot替代actualbody断言。
+- [ ] 在新origin与entrypoint-delivery COS97用例覆盖取消/latebody/post取消：传入fetch/read的signal已abort，下一scope未启动，lease失效后零200、原payload/取消Error首因保留且goto错误为次生。副本末态未恢复时原最终snapshot仍失败；generic/no-wait调用不因新增方法改变行为。
 - [ ] 静态疑点 `runtime-acceptance.test.ts` 的旧 `completeBindings===1` 与现源码每HTTP调用verifyBinding不一致：先在新的独立TEMP用原fixture单一baseline核证，记录结果，再只按批准spec与实际必要性修正受影响断言；不得为全suite通过删除fresh断言或现在提前跑baseline。
-- [ ] Run: `node --experimental-strip-types --test tests/transfer/native-validation-origin.test.ts tests/acceptance/native-validation-runner.test.ts tests/transfer/runtime-acceptance.test.ts`。预期新行为通过；若旧baseline失败，保留失败和最小修正证据。提交 `feat: bound native guarded navigation and reject early restored traffic`。
+- [ ] Run: `node --experimental-strip-types --test tests/transfer/native-validation-origin.test.ts tests/acceptance/native-validation-runner.test.ts tests/transfer/runtime-acceptance.test.ts`；Run: `node --experimental-strip-types --test --test-name-pattern="COS97" tests/runtime/entrypoint-delivery.test.ts`（只选新Node/helper合成用例，不运行该文件旧browser用例）。预期新行为通过；若旧baseline失败，保留失败和最小修正证据。提交 `feat: verify native response bytes before guarded forwarding`。
 
 ## Task 4：版本化证据、诊断与兼容
 

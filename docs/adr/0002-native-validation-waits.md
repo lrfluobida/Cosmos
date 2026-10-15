@@ -12,4 +12,6 @@ COS93 v3 的完整实时 binding 已在无重叠条件下耗约 25 秒，六个 
 
 新路径需要共享的窄内部 segment lease，使恢复页面在登记后 fresh、CDP 身份与可信导航前零有效游戏内容；每个放行请求仍执行既有完整 pre/post 和实际字节读取。raw prepare/registration 的迟到结果继续受 owner/drain 追踪；新增版本化标量计时不会移除等待。generic、human 与无该可信对象的调用保持原 whole-open/导航 15 秒默认，non-clean dist 回退不在本次修改范围。
 
+独审前版提出两项P2，本提案据实补齐：caller signal须穿过consumer/preparation/origin/cleanDelivery与scope/identity/history的真实只读链，原私有5秒及controller reason优先保持；只有外围race不足以停止底层下一轮。局部caller取消只撤销对应lease，旧generation的迟到错误不能通过origin/preparation失效回调关闭新段；真实controller取消和当前来源漂移仍按原reason关闭对应origin。现有clean requireCurrent也不比较actual response，最终snapshot只能事后发现变化。因此仅新native转发路径增加基于withCleanDelivery既有私有fixed Map的verifyPayload：沿origin已解析name查dist/key，与实际已读Buffer比较后再发送；错payload即使磁盘恢复仍拒绝有效200，原最终双snapshot保持。新增可信可选参数默认不变，不修改standalone launcher或复制URL映射。
+
 这是对指定路径内部时限契约的显式修订，不降低用户的完整游戏要求，也不追认 COS92/COS93 原 15 秒通过。旧 v1/v2/v3 与 C14 failed/consumed、账本及证据保留；内容、数值容差、普通玩法、FPS、体验验收和 ¥150 验证 / ¥200、12h 正式硬上限保持。独立 spec/ADR/plan 审查通过后才可由 Root 授权源码实施；本 ADR 初始为 proposed。

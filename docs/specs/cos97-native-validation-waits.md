@@ -1,6 +1,6 @@
 # COS-97 · 原生验证的权限等待与浏览器时限
 
-状态：`design-pending / NOT_REVIEWED`。本提交只提出规格、ADR 与计划，不授权源码实施、测试、actual 或付费运行。任务 [COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449，父 #1；依赖 COS52/92、COS93 已审诊断及 v3 证据、COS96 已审源码。作者 `cos97_implementer`，独审 `cos97_reviewer`，唯一 merger `batch_c14_cos92_merger`。
+状态：`design-revision / REVIEW_PENDING`。前版 `994dd1e387c464597218e59d3b6db7e9f18f8ddc` 独审为 CHANGES_REQUESTED；本版仅修两项 P2 的信号贯穿与转发前实际 payload 核验，待重新独审。本提交只提出规格、ADR 与计划，不授权源码实施、测试、actual 或付费运行。任务 [COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449，父 #1；依赖 COS52/92、COS93 已审诊断及 v3 证据、COS96 已审源码。作者 `cos97_implementer`，独审 `cos97_reviewer`，唯一 merger `batch_c14_cos92_merger`。
 
 规划基线为已发布主线 `dd367c5dd007ecbd43e2daf5b4e29635afc87fbb`；分支 `codex/cos97-native-validation-waits`，独立 managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`。关联 [ADR0002](../adr/0002-native-validation-waits.md) 与[实施计划](../plans/2026-10-15-cos97-native-validation-waits.md)。工程选择交由 Root 和独立 reviewer 审查；已确认的产品范围、游戏验收要求与预算保持。
 
@@ -36,7 +36,7 @@ entrypoint-host acceptance → withCleanDelivery
 
 `runtime-acceptance.ts` 的完整 consumer guard 仍调用 `context.requireCurrent()` → `entrypoint-host.requireDispatch(task, signal, candidate)` → scope/authority 与 `preparation.bindCandidate`。`runtime-host.ts` 内的多轮 origin guard、controller identity、实际 scope/source、history、inheritance 和 candidate/plan/design 字节核验保持。`RunController.serial` 与 identity 的 `finally` 会 expire 并可能持久化 stop；origin 的失败可以 close listener 并清除 mount，不能把这些嵌套操作当成可删除的纯重复函数。
 
-生产 `entrypoint-host.ts` 的 candidateConsumer 总在 `withCleanDelivery` 内执行，`BrowserCandidateConsumerContext.cleanDelivery` 是必需项。其 mounted `verifyScope` 每次均依次执行 `origin.verify()`、完整 consumer binding、`cleanDelivery.requireCurrent()`；clean 分支读取前后各调用一次。当前 non-clean dist 回退只做读取前的 `verifyScope` 与读取后的 mount identity 检查；本任务不把它写成已有两次检查，也不修改该回退。
+生产 `entrypoint-host.ts` 的 candidateConsumer 总在 `withCleanDelivery` 内执行，`BrowserCandidateConsumerContext.cleanDelivery` 是必需项。其 mounted `verifyScope` 每次均依次执行 `origin.verify()`、完整 consumer binding、`cleanDelivery.requireCurrent()`；clean 分支读取前后各调用一次。现行 cleanDelivery.requireCurrent 只核验 signal、host scope 与 deadline，不比较已读取响应；干净目录与原候选的 fixed snapshot 相等比较发生在 action 返回后。因此现有代码不能证明“变化过又恢复的副本实际 body 未曾被转发”；本契约新增下述发送前实际 payload 比较。当前 non-clean dist 回退只做读取前的 `verifyScope` 与读取后的 mount identity 检查；本任务不把它写成已有两次检查，也不修改该回退。
 
 新契约仅由 `entrypoint-host.ts` 在 **validation 且存在 transfer candidateConsumer** 的生产分支构造。对象绑定当前 case/window/task/deadline，由 consumer 将同一对象交给 mount 和 native persistent transport。nativeIO 必须复核其身份、deadline、非 generic series、task 与原 authority 一致；错误对象直接拒绝，不回退到宽松路径。带新对象却没有 cleanDelivery 的 mount 拒绝执行。
 
@@ -68,7 +68,7 @@ entrypoint-host acceptance → withCleanDelivery
 | `navigation` | 300000ms | runner 的路由、页面、viewport、视频与异常采集设置完成后，可信 goto 紧邻调用前；到 load HTTP 成功且 origin 核验完成 |
 | `http_pre_authority` | 60000ms | 已放行请求进入处理；完整 mounted.verifyScope 返回并通过边界检查 |
 | `http_body` | 15000ms | pre-authority 完成；现有 clean upstream fetch 与完整 actual byte read 完成 |
-| `http_post_authority` | 60000ms | body 完成；原完整 mounted.verifyScope 与 mount/lease/signal/deadline 再检查完成，之后才发送 headers/body |
+| `http_post_authority` | 60000ms | body 完成；原完整 mounted.verifyScope、可信 fixed bytes 对实际 body 的比较、mount/lease/signal/deadline 再检查完成，之后才发送 headers/body |
 
 open 的有界等待完整包含前三阶段，最多 135000ms 且受 W 夹紧；没有重启总计时，迟到 raw 工作的实际收敛另行如实记录。prepare cap 明确也包含其原物理前置操作，不能把这部分时间归为已测纯授权成本。60 秒提供高于已测约 25 秒无重叠完整 binding 的有限工程余量；31.9 秒迟到且有重叠的样本只辅助说明长尾风险。这两个样本均不是 p99、最坏值或未来通过保证。15 秒 transport 沿用原物理连接的短界限，将授权从该限时责任中拆开；不是从统计减去授权时间。
 
@@ -87,6 +87,7 @@ open 的有界等待完整包含前三阶段，最多 135000ms 且受 W 夹紧�
 - `BrowserCandidateConsumerContext.nativeValidationWaits?`：只由上述 entrypoint-host 分支构造；consumer 沿同一对象传递。
 - `PersistentAcceptanceOptions.nativeValidationWaits?` 和 `OwnedAcceptanceLifecycle.nativeValidationWaits?`：可信 transport seam，nativeIO 复核后传给 lifecycle 与 runner；generic 无对象。
 - `PreparedPersistentChild.register(pid, registrationLifetime?)`：可选第二参数保持现有调用兼容。新路径将 register 阶段的 signal/deadline 传给 native source handoff；旧调用保持原含义。
+- `PersistentAcceptanceOptions.verifyBinding(callerSignal?: AbortSignal)` 与各层可信 guard 的同名可选参数贯穿真实闭包，不能只在外围 race 中使用。具体签名与文件见下一节。
 - 内部对象只公开 `beginSegment(reportId)`、`runRequest(operation)`、`snapshot()`。`beginSegment` 返回捕获唯一 generation 的只读 segment handle，只有该 handle 才有 `runStage(stage, operation)`、`beginNavigation()`、`finishNavigation()`、`revoke(reason?)` 与当前段 snapshot。`runStage` 给 operation 本阶段只读 `{signal,deadlineAt}`；允许的阶段是固定联合类型。`runRequest` 向 origin 提供请求入口捕获的不可替换 lease 和三个阶段执行器。
 
 状态顺序固定为 `closed → preparing → registering → connecting → transport_ready → navigating → input → closing → closed`，失败可从任何执行状态进入 closing。`beginSegment` 开始时流量关闭；只有该 segment 的 browser identity、初始恢复页面关闭、service-worker block、route 与全部 driver 设置完成后，runner 紧邻 goto 调用该 segment handle 的 `beginNavigation` 才允许请求。此方法检查前置状态、原 W 与 signal，不做授权替代。重复 begin、跨 reportId、旧 lease 或上段未收尾直接失败。
@@ -96,6 +97,86 @@ open 的有界等待完整包含前三阶段，最多 135000ms 且受 W 夹紧�
 origin 在请求到达时捕获 gate 状态，closed 阶段请求直接返回现有 no-store 404；它们不能等门禁打开后变成合法请求。进入允许状态的请求须继续完整 pre/body/post，不能用 lease 跳过任何 guard。恢复页面在 OS spawn 后但 post-register fresh 或 CDP 前请求游戏内容时零有效字节；新段使用新 lease，上一段的请求不能穿过关闭/重开边界。mount 仍是原 candidate 与 cleanDelivery，URL、profile 与存档行为保持。
 
 runner 在 finally 的首步撤销当前 lease，再进行原视频/关闭/force 清理。native source 跟踪每个 raw request 至真正 settled，响应连接关闭不等于授权工作退出；清理期只在原剩余清理预算内等待，超出则报告 cleanup/drain failure，保留 owner 追踪与诊断。没有在原截止之后继续发送游戏字节或把未收敛工作写成清理成功的路径。
+
+## Caller signal 的实际贯穿
+
+现有大量 guard 是无参闭包；新增 wait helper 传给 operation 的 signal 本身不能停止后续六轮 scope。必须作以下可信可选参数接线。`callerSignal` 只由源码 phase/request lifetime 传入，省略时走原默认路径；不进入 plan/series/receipt JSON，也不替代 controller/work 信号。
+
+```text
+prepare phase.signal / register phase.signal / HTTP pre或post phase.signal
+  → verifyBinding(caller) / mounted.verifyScope(caller)
+  → consumer.guard(caller) → context.requireCurrent(caller)
+  → requireDispatch(task, 原taskSignal, candidate, caller)
+  → validationScope(caller) + preparation.bindCandidate(candidate, caller)
+      → runtime-host requireCurrent/read/verify/guard(caller)
+      → origin.verify(caller) → ctx.requireScope(caller)
+      → preparationScope(caller) → validationScope(caller)
+      → requireValidationPreparationScope(input, caller)
+          → controller.requireValidationHost(..., caller)
+              → checkValidationIdentity(caller)
+              → verifyValidationIdentity({signal:combined}, ...)
+              → identityReader(combined) → source/history/Git/fixed input
+          → requireValidationScope(controller, requirement, binding, caller)
+              → 原controller + caller + 原私有5秒timer
+              → binding.readScope(combined) / historicalManifest.readBytes(combined)
+  → cleanDelivery.requireCurrent(caller) → 原withCleanDelivery input.requireCurrent(caller)
+```
+
+| 文件 | 必须落地的具体接口与检查 |
+| --- | --- |
+| `src/acceptance/persistent.ts`、`src/runtime/entrypoint-host.ts` | `verifyBinding(callerSignal?: AbortSignal)`；prepare 使用 launch.signal，register 使用 registrationLifetime.signal，executePersistentSeries 的新路径 guard 使用当前 native lifetime；raw PID 持久化仍是既有到期收尾例外 |
+| `src/runtime/entrypoint-preparation.ts` | `BrowserCandidateConsumerContext.requireCurrent(callerSignal?)`、`BrowserPreparationContext.requireScope(callerSignal?)`、`BrowserInputPreparation.requireCurrent(callerSignal?)`、`bindCandidate(candidate, callerSignal?)`；类型只改可信回调 |
+| `src/runtime/adapters/transfer/runtime-acceptance.ts` | `guard(callerSignal?)` 本地合并 context.signal，向context.requireCurrent继续传原caller；叶bindTransferAcceptance(input, active)/media regularFile(..., active)使用组合signal，每个await前后检查；传给ownedChild与mount的仍是同一个guard |
+| `src/runtime/adapters/transfer/runtime-host.ts`、`loopback-origin.ts` | validation consumer内部guard/read/verify(task?,callerSignal?)/requireCurrent及origin.verify均接可信可选caller；mounted.verifyScope按原顺序转交同一caller给verify、consumer binding、cleanDelivery。本地合并active用于读取，不能替换跨层caller身份；catch走下述generation约束的origin.failCurrent，不再无条件origin.close |
+| `src/runtime/entrypoint-host.ts` | `validationScope(callerSignal?)`、`preparationScope(callerSignal?)`、`requireDispatch(task, 原signal, candidate?, callerSignal?)` 显式第四参数，原taskSignal保持并本地组合active；转交原caller给scope/preparation，historical.verify用active。consumer与withCleanDelivery闭包不得丢caller |
+| `src/runtime/entrypoint-validation.ts` | `requireValidationPreparationScope(input, callerSignal?)`、`requireValidationBrowserScope(input, callerSignal?)`，传给 requireValidationHost 和 requireValidationScope；actual requirement/template 的各读取和下一循环前后检查 active |
+| `src/runtime/validation-scope.ts` | `requireValidationScope(controller, requirement, binding, callerSignal?)`；组合 controller.signal/callerSignal/原私有 timer，传给已有 readScope/readBytes，并在 before authority、各 await 后、后置snapshot前检查；catch 保持 controller.signal 原 reason 优先，其余直接 throw 原对象，finally 保持 timer/listener 收尾 |
+| `src/runtime/run.ts` | `read(callerSignal?)`、`readValidationScopeAuthority(callerSignal?)`、`validationAuthority(taskId,purpose,callerSignal?)`、`requireValidationHost(caseId,windowId,root,callerSignal?)` 与私有 `checkValidationIdentity(callerSignal?)`；排队前和 serial 内原 expire 之后检查 caller，禁止排队取消后开始新 identity；保持 serial/expire 顺序与持久化 stop，不取消已 spawn PID 的 register |
+| `src/runtime/validation-window.ts`、`validation-budget.ts` | 前者继续使用已有 `options.signal`，原5秒identity界限不变；补每个await/下一Git批次及fixed文件前检查。`verifyValidationBudgetSources(root,state,callerSignal?)` 对每个receipt前后检查，checkValidationIdentity转交 active，finally仍expire |
+| `src/runtime/historical-passed-stages.ts`、`recovery/task-journal.ts` | 已有 `historical.verify(signal)` 真正传到manifest/capture/receipt/signature/目标副本循环；`TaskJournal.open(options,origin,resume,callerSignal?)` 的只读resume、`read(stage,attemptId,callerSignal?)`、`signature(refs,callerSignal?)`、`requireSignature(value,refs,callerSignal?)` 转交。catch 不得把 active.reason 包成 RecoveryBlocked；原无signal分支保持 |
+| `src/artifacts/paths.ts`、`adapters/transfer/binding.ts` | `safePath(root,name?,callerSignal?)`、`regularFile(root,name,callerSignal?)`、`snapshot(root,callerSignal?)` 只增加可信可选参数，前后/每目录文件检查；保留原路径、链接、nlink、读取顺序与默认。`bindTransferAcceptance(input,callerSignal?)`、`verifyPreparedTransferAcceptance(input,callerSignal?)` 与其capturedFiles/readRequirement/validateFrozenDesign/requireCandidateInputs只读链转交，metadata getCapture/getCandidate 单个原读取前后检查，不改 registry API |
+| `probes/transfer/validation-case-six-driver.ts`、`validation-case-six-entry.ts` | 固定 coding-only readScope(signal)、requireHistorical、scopeIdentity 与 verifyAdmission 的既有 signal 在每次history/source/identity/fixed/operator读取间检查并转交，不能 history 返回后不检查就启动下一source。只改实际运行期只读链，不改准入、seed、case或budget |
+| `probes/transfer/validation-case-seven-driver.ts`、`validation-case-seven-entry.ts` | requireOwnSource、requireFixedTransferAccountingSources 的既有 signal 转交controller.read/regularFile，source/template/toolchain/history批次之间检查；保持COS96固定4路与原读序，不改source算法 |
+| `probes/e2e/validation-identity.ts`、`probes/transfer/validation-input.ts` | readFixedInput回调扩为 `(repository,callerSignal?)`，identity reader传其已有combined；`readTransferValidationInput(repository,callerSignal?)` 的目录/文件循环传给paths并检查。保持Git before→fixed→after、原5秒与原文件集，没有无signal fixed读取缺口 |
+| `src/runtime/entrypoint-delivery.ts` | `CleanDelivery.requireCurrent(callerSignal?)` 本地合并原owned/input与caller，向withCleanDelivery input.requireCurrent及host仍传原caller；新verifyPayload接口同样保留原signal与D-5000 |
+
+取消粒度明确为：已派发不可取消的只读系统调用可以迟到收敛，但它的结果不能启动下一文件/目录/历史批次、scope、Git批次或发送响应。既有并行组全部已派发项继续观察，没有新一组；不改变原并发数量。signal 可用的 Node readFile/fetch/runChild 使用组合 signal，取消后从 Node 抛来的包装 AbortError 在 caller 已 abort 时按原 reason 对象重抛；无取消时仍保留原读取错误。metadata 的单个原读取不拆成新框架，只在其前后检查，后面的fresh工作不得继续。
+
+每个组合边界先检查 controller 的原 reason；controller 活跃时使用 caller/private timer 最先已生效的 reason。私有 scope 计时器仍只在原模块产生同一 WeakSet 品牌 Error，外层不得重建或文本识别。原异常吞并 catch（journal/origin 等）须先对 active abort 原因放行，不能转换成来源漂移。phase race 的首因记录与后到 controller/cleanup 原因分别保留；不改既有 controller 在失败出口优先的规则。
+
+### 取消与共享 origin 的失效边界
+
+只有新增native helper产生的原phase/request signal，在该窄模块私有WeakMap中绑定`{wait对象,segment,generation}`。各层原样转交caller参数，本地组合active只用于读取，因此origin仍能确认真实caller归属；不从error.name/message或普通signal字段推断“局部取消”。这只是本契约的来源与generation记号，没有新增通用取消框架。无caller/无该可信记号时保持原close规则。
+
+origin新增窄`failCurrent(error,callerSignal?)`供其verify和runtime-host原guard/requireCurrent的catch复用，统一判定并按原对象重抛：
+
+| 失败来源 | 失效动作 |
+| --- | --- |
+| 原controller/work/input.signal已abort | 保持其原reason优先，关闭该origin实例及对应mount；该规则不因caller/lease过旧而豁免 |
+| 可信当前caller的局部phase/request取消或timer，且抛出的确为该caller.reason | 只撤销本段/请求lease并使当前操作失败；controller活跃时保留shared listener和mount，不将局部取消升级为来源永久失效 |
+| caller来自已撤销/旧generation或另一个wait/mount | 只拒绝旧操作并记其旧段原因；不得origin.close、清mount、修改preparation状态、撤销当前段gate或改新段首因，即使迟到结果另带source Error |
+| 当前generation的真实window/budget/source/receipt/listener漂移 | 原失效关闭规则保持；在真正clear/close前再次核对原origin实例、当前mounted对象、wait/generation均仍匹配；若已更换则只拒绝旧操作 |
+| 原私有ValidationScopeTimeoutError且controller活跃 | 保持原scope局部超时例外：当前操作失败，listener保留；不因新增caller接线重建该Error |
+
+`origin.verify` 在入口捕获原mounted identity，`failCurrent` 的clear/close在同一同步决策点再查身份；runtime-host两个现有直接origin.close的catch改调此路径，不允许迟到preparation错误再触发第二个无条件关闭。需要close时先锁定/清除相匹配mount，再等待原server关闭；不得异步等待后清除新的mount。正常显式host.close和原controller abort仍关闭该origin实例，不能被局部取消规则吞掉。close失败追加cleanup原因，原首因/原controller Error保持。旧callback无权关闭新对象的保证与此前“不能打开新段”同时成立。
+
+本契约的raw settled包括该调用全部catch/failCurrent、必要失效关闭及自身timer/abort listener清理；计数、raw registration observer与completion不能在这些步骤之前结算。原controller/work/input服务寿命signal保持独立，每调用signal只附加；成功调用移除自身listener，不移除原服务寿命listener。下一段仍等待上段这条完整raw链及原browser exit完成。晚到callback只持有入口捕获的mount/generation，不能在清理时读取“当前generation”并操作新lease。
+
+这项接线不改变 raw registration/completion 与外层 owner 的纸面图：caller abort 使底层在下一检查停止，raw promise 仍由原 observer 结算；不能为提前返回 stage race 解除 raw handle/登记责任，也不能在 guard 内调用包含自身的 drain。只读迟到结果已被 race/observer 观察，不能写入新的authority或绕开门禁。
+
+## 转发前的实际响应字节
+
+`withCleanDelivery` 已在原候选上取得并持有本次 action 的 `fixed: Map<string,Buffer>`，复制前后也已核对。该 Map 是本次候选的可信预期字节，不作为实时授权 cache；本任务不重读磁盘来替代实际 response，也不暴露 Map、预期 Buffer 或新的路径选择给模型。
+
+最小新增接口为 `CleanDelivery.verifyPayload?(name: string, response: {status: number; bytes: Uint8Array}, callerSignal?: AbortSignal): Promise<'content' | 'not_found'>`。生产withCleanDelivery返回该闭包，闭包只能读取原fixed；new native clean mount要求它存在，旧generic/human/non-clean不调用它。
+
+路径只用 origin 当前已计算的 `name = decodeURIComponent(new URL(request.url ?? '/', origin).pathname).slice(1) || 'index.html'`。这是原 origin 与 standalone launcher 都已有的请求到文件规则；upstream URL 使用同一已解析 pathname/search，checker直接收该name并精确查 `fixed.get('dist/' + name)`，不再解析URL、decode、normalize、大小写折叠或增加另一个mapper。固定Map的安全相对路径来自既有snapshot。URL query不影响文件key；编码斜杠、空根、Unicode及百分号只沿原一次decode结果查key；不在fixed中的路径或Windows大小写别名不能借磁盘存在获得有效内容。不改standalone-launcher或打包文件集。
+
+规则：fixed有该key且upstream.status===200时，actual bytes必须逐字节等于私有fixed Buffer，才返回content；listed key的404/其他status或任何body不等均抛原payload错误。fixed无key且upstream为404时返回not_found，只发送固定no-store 404 `Not found`，丢弃upstream body；未列路径却返回200/其他内容也拒绝。404不计为有效游戏body，不用upstream错误正文冒充已验证内容。
+
+顺序固定为 `pre完整verifyScope(activePre) → fetch/arrayBuffer(activeBody) → body边界检查 → post完整verifyScope(activePost) → verifyPayload(name,{status,bytes},activePost) → post signal/deadline/lease/mount检查 → 同步writeHead/end`。verifyPayload前后检查原delivery signal、caller与原D-5000，全部计入post60秒及共同request/navigation/W上界；writeHead前不发送任何有效headers/body。正常content发送的正是已比较的actual Buffer，不能比较一个磁盘副本再转发另一个Buffer。先body后文件恢复不能改变该比较结论。
+
+payload拒绝记录为request/post首因并保留原Error；goto/404派生错误只能追加。取消或late body使lease失效时不比较后继续发送，不开启下一scope；generic直接clean服务器不获得该新保证。action结束后的原候选与副本完整snapshot相等检查保持，用于检测最终交付变化；它与转发前actual payload比较分别承担各自的拒绝性质。
 
 ## 信号、迟到结果与失败
 
@@ -136,7 +217,7 @@ post-register drift/私有 scope failure/到期：零 CDP/identity/游戏放行�
 
 拒绝边界按真实检查位置解释，不添加另一轮完整 guard：pre-ticket binding 读取期间的漂移在 ticket/spawn 前拒绝；它通过后到 post-register fresh 期间的漂移，允许已有 owned spawn/PID 持久化，但必须在 CDP/游戏前拒绝；post-register fresh 之后到 HTTP 期间的漂移由每请求 pre/post 拒绝有效游戏内容。两个完成的 fresh 检查之间无法对任意瞬时外部写入作连续监控，不能把该检查模型写成零 OS 副作用的事务保证。HEAD、main/index flags、dirty/untracked、source/history、budget/window 均沿相同原检查边界验证。
 
-HTTP 读取中 source/HEAD/index/window/budget/receipt/mount/clean bytes 漂移：post 检查拒绝，零有效响应；原 origin 是否 close 的私有 scope timeout 分类保持。新 gate 只撤销本 segment 的流量，不把暂时 scope timeout 伪装成来源漂移，也不据此绕开原 close 行为。HTTP 原因传入 first cause 后，goto 的派生错误不能把它升级成游戏代码缺陷。全部新生命周期/授权/传输错误保持 `insufficient_evidence`，不能自动获得修复、accepted 或 human 结论。
+HTTP读取期间source/HEAD/index/window/budget/receipt/mount漂移由post完整核验拒绝；clean实际body变化由fixed与actual比较拒绝，即使磁盘随后恢复也零有效200。原origin是否close的私有scope timeout分类保持。新gate只撤销本segment的流量，不把暂时scope timeout伪装成来源漂移，也不据此绕开原close行为。HTTP原因传入first cause后，goto派生错误不能把它升级成游戏代码缺陷。全部新生命周期/授权/传输错误保持insufficient_evidence，不能自动获得修复、accepted或human结论。
 
 ## 证据与兼容校验
 
