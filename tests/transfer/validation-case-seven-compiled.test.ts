@@ -19,7 +19,7 @@ test('compiled C7 binds its actual JS closure, rejects unknown for free and sele
   await symlink(join(template, 'node_modules'), join(root, 'templates/2d/node_modules'), 'junction');
   await mkdir(join(root, 'node_modules/@earendil-works'), { recursive: true }); await mkdir(join(root, 'node_modules/@playwright'), { recursive: true });
   for (const name of ['@earendil-works/pi-coding-agent', '@earendil-works/pi-ai', 'typebox']) await symlink(join(platform, 'node_modules', name), join(root, 'node_modules', name), 'junction');
-  for (const name of ['@playwright/test', 'playwright', 'playwright-core']) await cp(join(platform, 'node_modules', name), join(root, 'node_modules', name), { recursive: true });
+  for (const name of ['@playwright/test', 'playwright', 'playwright-core', 'typescript']) await cp(join(platform, 'node_modules', name), join(root, 'node_modules', name), { recursive: true });
   const sourceOriginal = await import('../../probes/transfer/validation-case-seven-source.ts'), originalClosure = await sourceOriginal.captureTransferCaseSevenSource();
   for (const file of originalClosure.files) { const destination = join(root, relative(platform, file.path)); await mkdir(dirname(destination), { recursive: true }); await writeFile(destination, await readFile(file.path)); }
   await writeFile(join(root, 'SOURCE-fees.json'), JSON.stringify(caseSevenFeeData()), 'utf8');
