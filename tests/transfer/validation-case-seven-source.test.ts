@@ -19,6 +19,11 @@ test('C7 source binds the actual loaded Playwright descendants and compiler exec
 for (const [name, mode] of [
   ['COS96 known source reads overlap in groups of four', 'overlap'],
   ['COS96 known source failure drains its group in original index order', 'failure'],
+  ['COS96 known source pre-abort starts no reads and a later call is fresh', 'pre-abort'],
+  ['COS96 known source cancellation drains started reads without another group', 'cancel'],
+  ['COS96 known source late rejections after cancellation remain observed', 'late-reject'],
+  ['COS96 known source real byte drift and restoration are read afresh by the same leaf', 'fresh'],
+  ['COS96 known source overlapping calls each retain their own limit of four', 'concurrent'],
 ] as const) test(name, async t => {
   const fixture = fileURLToPath(new URL('./validation-case-seven-source.fixture.mjs', import.meta.url));
   const { stdout } = await promisify(execFile)(process.execPath, ['--experimental-strip-types', fixture, mode], { timeout: 10000 });
