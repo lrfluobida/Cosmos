@@ -7669,7 +7669,7 @@
       "parentCheckboxChecked": false,
       "state": "open",
       "integrationStatus": "partial",
-      "implementationPhase": "process-exit-observation-plan-approved-implementing",
+      "implementationPhase": "process-exit-observation-source-reviewed-startup-failed",
       "reviewStatus": "SOURCE_REVIEWED_DIAGNOSTIC_COMPLETED_STARTUP_FAILED",
       "sourceReviewStatus": "APPROVED",
       "reviewedCommit": "0b475c1fe2918af5e6b61594f29d3060da766078",
@@ -7853,7 +7853,7 @@
       },
       "fourthActualAuthorized": false,
       "processExitObservationChange": {
-        "implementationPhase": "plan-approved-implementing",
+        "implementationPhase": "source-approved-merged",
         "implementationBase": "194e23d789bdc3a3b43773fad7b1c14ecdd8fd2d",
         "planReviewStatus": "PLAN_APPROVED",
         "planReviewedCommit": "30f7c402052dbf85c27696284b59d63126b0d5c8",
@@ -7864,7 +7864,28 @@
         "implementer": "cos93_implementer",
         "reviewer": "cos93_reviewer",
         "merger": "batch_c14_cos92_merger",
-        "sourceReviewStatus": "NOT_READY",
+        "sourceReviewStatus": "APPROVED",
+        "sourceReviewedCommit": "ba990d0d401e9b3296482ed9e593b80e7449b439",
+        "sourceMergeCommit": "ba4b09328804e6c771519080ea8cb78cd6846b4b",
+        "sourceReviewComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6188763206",
+        "sourceReviewFindings": [],
+        "validationEvidence": {
+          "authorTargetedPassed": 2,
+          "authorTargetedStrictExit": 0,
+          "unchangedObserverAndProductionEvidenceReused": true,
+          "mainApprovedFiveFilesEqual": true,
+          "mainThreeFileStrictExit": 0,
+          "mainFocusedPassed": 2,
+          "mainSkipped": 0,
+          "mainTapMs": 260.3278,
+          "mainRaw": [
+            "C:/Users/26557/AppData/Local/Temp/cos93-exit-merge-strict.log",
+            "C:/Users/26557/AppData/Local/Temp/cos93-exit-merge-focused.tap"
+          ],
+          "confirmationScope": "original-tracked-childprocess-close-records-only",
+          "descendantOrBrowserIdentityProofGranted": false,
+          "actualOrBrowserRunExecuted": false
+        },
         "workScope": "test-diagnostic-original-child-close-observation-only",
         "fourthActualOrPaidAuthorized": false
       },
