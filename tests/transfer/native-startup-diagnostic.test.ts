@@ -427,3 +427,144 @@ test('COS93 observer preserves only written before and stage evidence after a sm
   assert.deepEqual(lines.map(line => line.phase), ['prepared']); assert.ok(lines.every(line => !Object.hasOwn(line, 'cleanupPassed')));
   await assert.rejects(readFile(join(root, 'result.json')), (error: NodeJS.ErrnoException) => error.code === 'ENOENT');
 });
+
+function navigationReadyPage(values: unknown[] = ['player', 'idle', true]) {
+  const reads: string[] = [];
+  const page: any = { locator(selector: string) { return {
+    async isVisible() { reads.push(selector); return true; }, async innerText() { reads.push(selector); return '开始'; },
+  }; }, async evaluate() { reads.push('debug'); return values; } };
+  return { page, reads };
+}
+
+test('COS93 navigation diagnostic ready reads existing engine and dynamic board without input', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.readNavigationDiagnosticReady, 'function');
+  const { page, reads } = navigationReadyPage();
+  await api.readNavigationDiagnosticReady(page, { player: [4, 4], playerIndex: 0, idleIndex: 0 },
+    { signal: new AbortController().signal, deadlineAt: Date.now() + 3000 });
+  assert.deepEqual(reads, ['[data-testid="start"]', '[data-testid="start"]', '[data-testid="board"]',
+    '[data-testid="cell-4-4"][data-player="true"]', 'debug']);
+  await assert.rejects(api.readNavigationDiagnosticReady(navigationReadyPage(['player', 'idle', false]).page,
+    { player: [4, 4], playerIndex: 0, idleIndex: 0 }, { signal: new AbortController().signal, deadlineAt: Date.now() + 3000 }), /engine is not ready/);
+});
+
+test('COS93 navigation diagnostic ready cancellation preserves cause and starts no next read', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.readNavigationDiagnosticReady, 'function');
+  const controller = new AbortController(), reason = new Error('read cancelled'), { page, reads } = navigationReadyPage();
+  let release!: (visible: boolean) => void, settled = false;
+  page.locator = (selector: string) => ({ isVisible() { reads.push(selector); return new Promise<boolean>(resolve => { release = resolve; }); } });
+  const pending = api.readNavigationDiagnosticReady(page, { player: [4, 4], playerIndex: 0, idleIndex: 0 },
+    { signal: controller.signal, deadlineAt: Date.now() + 3000 });
+  void pending.then(() => { settled = true; }, () => { settled = true; });
+  controller.abort(reason); await Promise.resolve(); assert.equal(settled, false, 'The raw read remains observed until its leaf settles');
+  release(true); await assert.rejects(pending, error => error === reason);
+  assert.deepEqual(reads, ['[data-testid="start"]']);
+});
+
+for (const [name, response, url, expected] of [
+  ['null', null, 'http://127.0.0.1:32123/', 'Startup HTTP no response'],
+  ['404', { ok: () => false, status: () => 404 }, 'http://127.0.0.1:32123/', 'Startup HTTP 404'],
+  ['foreign-origin', { ok: () => true, status: () => 200 }, 'http://127.0.0.1:32124/', 'Startup left the project origin'],
+] as const) test(`COS93 navigation diagnostic ready preserves legacy runner ${name} failure`, async t => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.createNavigationDiagnosticMode, 'function');
+  const { runAcceptanceInOwnedSession } = await import('../../src/acceptance/runner.ts');
+  const root = await temporary(t), trace = observer(), mode = api.createNavigationDiagnosticMode(trace);
+  let ready = 0, closes = 0;
+  const page: any = { goto: async () => response, url: () => url, video: () => null, setViewportSize: async () => {},
+    screencast: { start: async () => {}, stop: async () => {} }, setDefaultTimeout() {}, on() {}, isClosed: () => false,
+    screenshot: async () => Buffer.alloc(0), close: async () => {} };
+  const restore = mode.observeGoto(page, { origin: 'http://127.0.0.1:32123', ready: async () => { ready++; throw new Error('No debug'); } });
+  t.after(restore);
+  const context: any = { route: async () => {}, newPage: async () => page, newCDPSession: async () => ({ on() {}, send: async () => {} }) };
+  const lifecycle: OwnedAcceptanceLifecycle = { deadlineAt: Date.now() + 60_000, open: async () => ({ browser: { version: () => 'synthetic', close: async () => {} } as any, context }),
+    identity: () => undefined, process: () => undefined, close: async () => { closes++; } };
+  const plan: any = { formatVersion: '1.0.0', projectId: 'fixture', taskId: 'browser', runId: 'fixture', reportId: name, specVersion: 'v1',
+    artifact: { artifactId: 'game', version: 'v1', location: 'game' }, url: 'http://127.0.0.1:32123/', viewport: { width: 1280, height: 720 },
+    acceptanceIds: ['visible'], steps: [{ id: 'visible', kind: 'assert', acceptanceId: 'visible', observation: { kind: 'visible', selector: '#game' }, expected: true, timeoutMs: 100 }] };
+  const report = await mode.run(plan, () => runAcceptanceInOwnedSession(plan, { evidenceRoot: root, timeoutMs: 60_000 }, lifecycle), () => false);
+  assert.equal(report.outcome, 'failed'); assert.ok(report.errors.includes('Browser startup/execution: ' + expected));
+  assert.equal(ready, 0); assert.equal(mode.snapshot().stopCount, 0); assert.equal(closes, 1);
+  assert.ok(report.steps.every((step: any) => step.outcome === 'skipped'));
+});
+
+test('COS93 navigation diagnostic clone-stop targets the real clone once and restores descriptors', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.createNavigationDiagnosticMode, 'function');
+  const trace = observer(), mode = api.createNavigationDiagnosticMode(trace), order: string[] = [];
+  const value = { steps: [{ id: 'first' }, { id: 'second' }] }, before = structuredClone(value);
+  const cloneDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'structuredClone'), entriesDescriptor = Object.getOwnPropertyDescriptor(Array.prototype, 'entries');
+  const response = { ok: () => true, status: () => 200 }, page = { goto: async () => { order.push('load'); return response; }, url: () => 'http://127.0.0.1:32123/' };
+  const restore = mode.observeGoto(page, { origin: 'http://127.0.0.1:32123', ready: async () => { order.push('ready'); } });
+  let navigationFinished = false, inputs = 0;
+  try {
+    const failure = await mode.run(value, () => {
+      const clone = structuredClone(value);
+      assert.deepEqual([...value.steps.entries()], [...before.steps.entries()]);
+      assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, 'structuredClone'), cloneDescriptor);
+      return (async () => { try {
+        assert.equal(await page.goto(), response); navigationFinished = true; order.push('finishNavigation');
+        for (const _step of clone.steps.entries()) inputs++;
+        throw new Error('Expected stop');
+      } catch (error) { return error; } finally { assert.throws(() => Array.prototype.entries.call(undefined), TypeError); order.push('close'); } })();
+    }, () => navigationFinished);
+    assert.equal(mode.isIntentionalStop(failure), true); assert.equal(mode.isIntentionalStop(new Error((failure as Error).message)), false);
+    assert.equal(inputs, 0); assert.equal(mode.snapshot().stopCount, 1); assert.deepEqual(value, before);
+    assert.deepEqual(order, ['load', 'ready', 'finishNavigation', 'close']);
+    assert.deepEqual(Object.getOwnPropertyDescriptor(Array.prototype, 'entries'), entriesDescriptor);
+  } finally { restore(); }
+});
+
+test('COS93 navigation diagnostic descriptor rejects incomplete gate and preserves original ready error', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.createNavigationDiagnosticMode, 'function');
+  const mode = api.createNavigationDiagnosticMode(observer()), reason = new Error('scope rejected');
+  const page = { goto: async () => ({ ok: () => true }), url: () => 'http://127.0.0.1:32123/' };
+  const restore = mode.observeGoto(page, { origin: 'http://127.0.0.1:32123', ready: async () => { throw reason; } });
+  const descriptor = Object.getOwnPropertyDescriptor(Array.prototype, 'entries');
+  try {
+    await assert.rejects(page.goto(), error => error === reason);
+    const value = { steps: [1] };
+    await assert.rejects(mode.run(value, () => { const clone = structuredClone(value); return Promise.resolve().then(() => [...clone.steps.entries()]); }, () => true), error => error === reason);
+    assert.equal(mode.snapshot().stopCount, 0); assert.deepEqual(Object.getOwnPropertyDescriptor(Array.prototype, 'entries'), descriptor);
+  } finally { restore(); }
+});
+
+test('COS93 navigation diagnostic result requires verified native contract and separates old limits', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.summarizeNavigationDiagnostic, 'function');
+  const state = { loadPassed: true, readyPassed: true, navigationPassed: true, stopCount: 1, failed: false };
+  const input = { state, nativeContractVerified: false, normalCleanup: true, preservation: true, observationIncomplete: false, openMs: 25_000, navigationMs: 20_000 };
+  assert.equal(api.summarizeNavigationDiagnostic(input).navigation.outcome, 'failed');
+  const result = api.summarizeNavigationDiagnostic({ ...input, nativeContractVerified: true });
+  assert.equal(result.formatVersion, 'cos93-native-startup-diagnostic/2'); assert.equal(result.navigation.outcome, 'passed');
+  assert.deepEqual(result.oldLimits, { wholeOpen: { limitMs: 15_000, measuredMs: 25_000, withinLimit: false }, navigation: { limitMs: 15_000, measuredMs: 20_000, withinLimit: false } });
+  for (const changed of [{ normalCleanup: false }, { preservation: false }, { observationIncomplete: true }, { state: { ...state, failed: true } }]) {
+    assert.equal(api.summarizeNavigationDiagnostic({ ...input, nativeContractVerified: true, ...changed }).navigation.outcome, 'failed');
+  }
+});
+
+test('COS93 navigation diagnostic signal wrapper forwards original caller and exact Promise', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.observeDiagnosticBinding, 'function');
+  const caller = new AbortController().signal, trace = observer(), reason = new Error('original binding reason');
+  let received: AbortSignal | undefined;
+  const promise = Promise.reject(reason); void promise.catch(() => {});
+  const binding = api.observeDiagnosticBinding(trace, (signal?: AbortSignal) => { received = signal; return promise; });
+  assert.equal(binding(caller), promise); assert.equal(received, caller); await assert.rejects(promise, error => error === reason);
+});
+
+test('COS93 navigation diagnostic descriptor records synchronous failure and refuses an incomplete gate', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  const reason = new Error('runner synchronous failure'), mode = api.createNavigationDiagnosticMode(observer()), value = { steps: [1] };
+  const cloneDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'structuredClone'), entriesDescriptor = Object.getOwnPropertyDescriptor(Array.prototype, 'entries');
+  assert.throws(() => mode.run(value, () => { structuredClone(value); throw reason; }, () => false), error => error === reason);
+  assert.equal(mode.snapshot().failed, true);
+  assert.deepEqual(Object.getOwnPropertyDescriptor(globalThis, 'structuredClone'), cloneDescriptor);
+  assert.deepEqual(Object.getOwnPropertyDescriptor(Array.prototype, 'entries'), entriesDescriptor);
+  const incomplete = api.createNavigationDiagnosticMode(observer());
+  await assert.rejects(incomplete.run(value, () => { const clone = structuredClone(value); return Promise.resolve().then(() => [...clone.steps.entries()]); }, () => false), /stop gate incomplete/);
+  assert.equal(incomplete.snapshot().stopCount, 0);
+  assert.deepEqual(Object.getOwnPropertyDescriptor(Array.prototype, 'entries'), entriesDescriptor);
+});

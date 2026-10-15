@@ -131,6 +131,107 @@ async function closedLoopbackPort(url: string) {
   });
 }
 
+/** Navigation-mode preparation only; SOURCE97 production wiring remains separate. */
+export async function readNavigationDiagnosticReady(page: Pick<import('@playwright/test').Page, 'locator' | 'evaluate'>,
+  expected: { player: readonly [number, number]; playerIndex: number; idleIndex: number }, lifetime: { signal: AbortSignal; deadlineAt: number }) {
+  const checkpoint = () => {
+    lifetime.signal.throwIfAborted();
+    if (Date.now() >= lifetime.deadlineAt) throw new Error('Diagnostic ready deadline reached');
+  };
+  const read = async <T>(operation: () => Promise<T>) => {
+    checkpoint(); let value: T;
+    try { value = await operation(); } catch (error) { lifetime.signal.throwIfAborted(); throw error; }
+    checkpoint(); return value;
+  };
+  assert.ok([...expected.player, expected.playerIndex, expected.idleIndex].every(value => Number.isSafeInteger(value) && value >= 0));
+  if (!await read(() => page.locator('[data-testid="start"]').isVisible())
+    || await read(() => page.locator('[data-testid="start"]').innerText({ timeout: lifetime.deadlineAt - Date.now() })) !== '开始'
+    || !await read(() => page.locator('[data-testid="board"]').isVisible())
+    || !await read(() => page.locator('[data-testid="cell-' + expected.player.join('-') + '"][data-player="true"]').isVisible())) {
+    throw new Error('Diagnostic game board is not ready');
+  }
+  const { observeDebugScalars } = await import('../../src/acceptance/browser.ts'); checkpoint();
+  const player = ['media', 'characters', String(expected.playerIndex)], idle = [...player, 'states', String(expected.idleIndex)];
+  const [id, name, seen] = await read(() => observeDebugScalars(page, [[...player, 'id'], [...idle, 'name'], [...idle, 'seen']]));
+  if (id !== 'player' || name !== 'idle' || seen !== true) throw new Error('Diagnostic game engine is not ready');
+}
+
+export function observeDiagnosticBinding<T>(observer: DiagnosticObserver, verify: (callerSignal?: AbortSignal) => Promise<T>) {
+  return (callerSignal?: AbortSignal) => observer.span('consumer.verifyBinding', () => verify(callerSignal));
+}
+
+export interface NavigationDiagnosticState {
+  loadPassed: boolean; readyPassed: boolean; navigationPassed: boolean; stopCount: number; failed: boolean;
+}
+export function createNavigationDiagnosticMode(observer: DiagnosticObserver) {
+  const state: NavigationDiagnosticState = { loadPassed: false, readyPassed: false, navigationPassed: false, stopCount: 0, failed: false };
+  const completed = new Error('DiagnosticNavigationComplete: native navigation and existing engine ready; no gameplay input');
+  completed.name = 'DiagnosticNavigationComplete';
+  let firstCause: unknown;
+  const fail = (error: unknown) => { if (!state.failed) { state.failed = true; firstCause = error; observer.event('diagnostic.navigation.failure', failure(error)); } return error; };
+  return {
+    snapshot: (): NavigationDiagnosticState => ({ ...state }),
+    isIntentionalStop: (error: unknown) => error === completed && state.stopCount === 1,
+    observeGoto(page: { goto: (...args: any[]) => Promise<unknown>; url: () => string }, options: { origin: string; ready: () => Promise<void> }) {
+      const patches = createMethodPatches(observer);
+      patches.replace(page, 'goto', original => async function (this: unknown, ...args: unknown[]) {
+        try {
+          const response = await observer.span('page.goto', () => Reflect.apply(original, this, args)) as { ok(): boolean } | null;
+          if (!response || !response.ok() || new URL(page.url()).origin !== options.origin) return response;
+          state.loadPassed = true;
+          await observer.span('diagnostic.ready', options.ready); state.readyPassed = true;
+          return response;
+        } catch (error) { throw fail(error); }
+      });
+      return () => { if (!patches.restore()) fail(new Error('Navigation page descriptor restoration failed')); };
+    },
+    run<T>(value: unknown, operation: () => Promise<T>, navigationSucceeded: () => boolean): Promise<T> {
+      const clonePatches = createMethodPatches(observer), entriesPatches = createMethodPatches(observer);
+      let target: unknown[] | undefined, captured = false;
+      const restore = () => {
+        const cloneRestored = clonePatches.restore(), entriesRestored = entriesPatches.restore(); target = undefined;
+        if (!cloneRestored || !entriesRestored) fail(new Error('Navigation stop descriptor restoration failed'));
+      };
+      try {
+        entriesPatches.replace(Array.prototype, 'entries', original => function (this: unknown, ...args: unknown[]) {
+          if (!target || this !== target) return Reflect.apply(original, this, args);
+          target = undefined;
+          if (state.failed) throw firstCause;
+          if (!state.loadPassed || !state.readyPassed || !navigationSucceeded()) throw fail(new Error('Diagnostic navigation stop gate incomplete'));
+          state.navigationPassed = true; state.stopCount++;
+          observer.event('diagnostic.stop', { point: 'plan.steps.entries', mode: 'navigation' });
+          throw completed;
+        });
+        clonePatches.replace(globalThis, 'structuredClone', original => function (this: unknown, ...args: unknown[]) {
+          const result = Reflect.apply(original, this, args);
+          if (args[0] === value) {
+            if (!Array.isArray(result?.steps)) throw fail(new Error('Diagnostic runner clone has no steps array'));
+            target = result.steps; captured = true;
+            if (!clonePatches.restore()) throw fail(new Error('Navigation clone descriptor restoration failed'));
+          }
+          return result;
+        });
+        const result = operation();
+        void result.then(restore, error => { fail(error); restore(); });
+        if (!captured) { void result.catch(() => {}); throw fail(new Error('Diagnostic runner did not synchronously clone the exact plan')); }
+        return result;
+      } catch (error) { fail(error); restore(); throw error; }
+    },
+  };
+}
+
+export function summarizeNavigationDiagnostic(input: { state: NavigationDiagnosticState; nativeContractVerified: boolean; normalCleanup: boolean;
+  preservation: boolean; observationIncomplete: boolean; openMs: number | null; navigationMs: number | null }) {
+  const timing = (measuredMs: number | null) => ({ limitMs: 15_000, measuredMs,
+    withinLimit: measuredMs !== null && Number.isFinite(measuredMs) && measuredMs >= 0 ? measuredMs <= 15_000 : null });
+  const validTiming = [input.openMs, input.navigationMs].every(value => value !== null && Number.isFinite(value) && value >= 0);
+  const passed = input.nativeContractVerified && validTiming && input.state.loadPassed && input.state.readyPassed && input.state.navigationPassed
+    && input.state.stopCount === 1 && !input.state.failed && input.normalCleanup && input.preservation && !input.observationIncomplete;
+  return { formatVersion: 'cos93-native-startup-diagnostic/2', navigation: { contractVersion: 'native-validation-waits/1',
+    outcome: passed ? 'passed' : input.state.loadPassed ? 'failed' : 'not_reached' },
+    oldLimits: { wholeOpen: timing(input.openMs), navigation: timing(input.navigationMs) } };
+}
+
 /** Only a full, explicit private-material run calls this. Ordinary tests never create this history. */
 export async function diagnoseNativeStartup(options: { sourceRepository: string; historySnapshot: string; observer: DiagnosticObserver; patches?: DiagnosticPatches }, t: TestContext) {
   const { sourceRepository, historySnapshot } = await requireDiagnosticInputs(options.sourceRepository, options.historySnapshot);
