@@ -84,7 +84,9 @@ export async function snapshot(root: string, callerSignal?: AbortSignal): Promis
   const files = new Map<string, Buffer>();
   async function visit(folder: string) {
     callerSignal?.throwIfAborted();
-    const entries = await readdir(await safePath(root, folder, callerSignal), { withFileTypes: true });
+    const target = await safePath(root, folder, callerSignal);
+    callerSignal?.throwIfAborted();
+    const entries = await readdir(target, { withFileTypes: true });
     callerSignal?.throwIfAborted();
     for (const entry of entries) {
       callerSignal?.throwIfAborted();

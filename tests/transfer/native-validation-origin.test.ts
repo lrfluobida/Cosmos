@@ -39,3 +39,21 @@ test('COS97 snapshot stops before the next file after cancellation during an act
   finally { assert.ok(reads > 0, 'The test must observe the actual production reader'); }
   assert.equal(reads, 1, 'No subsequent snapshot leaf may start after cancellation');
 });
+
+test('COS97 cancellation between safePath completion and directory dispatch starts no readdir', async t => {
+  const root = await files(t), caller = new AbortController(), reason = new Error('cancelled after checked directory path');
+  const inspect = fs.promises.lstat, readDirectory = fs.promises.readdir; let directories = 0;
+  t.mock.method(fs.promises, 'lstat', async (...args: Parameters<typeof inspect>) => {
+    const stat = await inspect(...args), path = String(args[0]);
+    if (dirname(path) === path) {
+      let turns = 3;
+      const cancel = () => { if (--turns === 0) caller.abort(reason); else queueMicrotask(cancel); };
+      queueMicrotask(cancel);
+    }
+    return stat;
+  });
+  t.mock.method(fs.promises, 'readdir', async (...args: Parameters<typeof readDirectory>) => { directories++; return readDirectory(...args); });
+  syncBuiltinESMExports();
+  await assert.rejects(snapshot(root, caller.signal), error => error === reason);
+  assert.equal(directories, 0, 'The caller must be checked after the awaited path and before the next directory read');
+});
