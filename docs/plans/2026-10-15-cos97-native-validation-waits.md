@@ -137,4 +137,12 @@
 
 原C14 failed/consumed与v1/v2/v3不改；真实ledger revision3114、715请求、¥16.901000、reserved/unknown0，¥150验证（含prior¥0.721771）、正式¥200/12h、优化¥100/6h保持。参考游戏只读，不复制美术音频；APIkeys不得进入文件、日志、任务、Git或模型上下文。COS93仍open/partial/startup-failed，COS16/COS18、完整经典、coding批准、accepted与human仍未完成。
 
+## 作者源码切片 1：固定预算与原生 raw helper（局部，待源码独审）
+
+实施base为已发布`88f9444b25a9adc7806c016402a0f456d35c0bb6`，作者branch已ff合入。新增helper与6项受控测试，先验证prepare/register固定60秒、原D-5000夹紧、source factory身份、native reader在host取得所有权后才启动、取消pending drain、late rejection与普通reader即时默认。navigation/HTTP/generation完整接线及scope/identity生产race接线尚未完成，不能把本切片称为完整契约或source ready。
+
+同一命令`node --experimental-strip-types --test tests/acceptance/native-validation-waits.test.ts`实际RED 0/6、6fail、0skip、exit1，缺source factory断言；GREEN 6/6、0skip、exit0、190.3257ms。首次GREEN因Node strip-only不支持参数属性语法失败，改显式字段后通过，原失败保留。source/test定向strict exit0；类型注解修正不改变已过运行路径，未重复该组或未变220/62证据。
+
+原始日志根`C:/Users/26557/AppData/Local/Temp/cos97-native-waits-1b7732209ed34c1b95002b7640383398`：`helper-red.tap`、首次语法失败`helper-green.tap`、最终`helper-green-2.tap`与`helper-strict.log`。无真实browser、provider、715历史seed、actual或付费；下一步先写真实scope/identity deferred-reader RED，再接生产raw所有权。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
