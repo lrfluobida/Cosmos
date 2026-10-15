@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { associateNativeReadSignal, createNativeValidationWaits, type NativeSegmentWaits } from '../../src/acceptance/native-validation-waits.ts';
+import { associateNativeReadSignal, createNativeValidationWaits, runNativeValidationRead, type NativeSegmentWaits } from '../../src/acceptance/native-validation-waits.ts';
 import { reserveTransferOrigin } from '../../src/runtime/adapters/transfer/loopback-origin.ts';
 import { withCleanDelivery, type CleanDelivery } from '../../src/runtime/entrypoint-delivery.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
@@ -27,7 +27,7 @@ async function fixture(t: test.TestContext) {
   await mkdir(join(project, 'dist'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), html, 'utf8');
   const rawFailures: unknown[] = [];
   const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'host', deadlineAt: Date.now() + 600000,
-    signal: work.signal, trackRaw: start => { const raw = work.run(start); void raw.then(() => {}, error => rawFailures.push(error)); return raw; } });
+    signal: work.signal, controllerSignal: owner.signal, trackRaw: start => { const raw = work.run(start); void raw.then(() => {}, error => rawFailures.push(error)); return raw; } });
   const cleanupFailures: unknown[] = [], retainCleanupFailure = (error: unknown) => { cleanupFailures.push(error); work.retainCleanupFailure(error); };
   let scope: (signal?: AbortSignal) => Promise<void> = async () => {}, bindingGuard: (signal?: AbortSignal) => Promise<void> = async () => {};
   const origin = await reserveTransferOrigin({ root, binding, resume: false, signal: work.signal, controllerSignal: owner.signal, retainCleanupFailure, requireScope: signal => scope(signal) });
@@ -263,6 +263,35 @@ test('COS97 the original controller reason wins after work was already cancelled
   f.owner.abort(controllerReason); assert.notEqual(workReason, controllerReason);
   await assert.rejects(f.origin.verify(f.waits.readSignal), error => error === controllerReason);
   await assert.rejects(fetch(f.origin.url));
+});
+
+for (const controllerLater of [false, true]) test(`COS97 native source survives later owned work cancellation (controller later: ${controllerLater})`, async t => {
+  const f = await fixture(t); await f.mount(); const segment = f.waits.beginSegment('first');
+  const entered = deferred(), release = deferred(), source = new Error('observed source before work cancellation'), controllerReason = new Error('later raw controller reason'), close = Server.prototype.close;
+  let rawOriginError: unknown;
+  t.mock.method(Server.prototype, 'close', function (this: Server, callback?: (error?: Error) => void) {
+    if (this.address() && (this.address() as { port: number }).port === Number(new URL(f.origin.url).port)) {
+      entered.resolve(); void release.promise.then(() => close.call(this, callback)); return this;
+    }
+    return close.call(this, callback);
+  });
+  f.setScope(async () => { throw source; });
+  const phase = segment.runStage('prepare_authority', life => runNativeValidationRead(life.signal, async () => {
+    try { await f.origin.verify(life.signal); } catch (error) { rawOriginError = error; throw error; }
+  })).then(() => assert.fail('Expected source failure'), error => error);
+  await entered.promise;
+  try {
+    assert.equal(segment.snapshot().firstCause?.message, source.message);
+    await assert.rejects(f.work.cancelAndDrain('later owned work cancellation', 30), /quiesce/);
+    assert.equal(await phase, source, 'The stage must return its actual canonical source Error');
+    assert.ok(f.waits.snapshot().rawReads.pending > 0); await assert.rejects(segment.settle(Date.now() + 30), /settle|deadline/i);
+    assert.throws(() => f.waits.beginSegment('too-early'), error => error === f.work.signal.reason);
+    if (controllerLater) f.owner.abort(controllerReason);
+  } finally { release.resolve(); }
+  await segment.settle(Date.now() + 1000);
+  const expected = controllerLater ? controllerReason : source;
+  assert.equal(rawOriginError, expected); assert.ok(f.rawFailures.length > 0); assert.ok(f.rawFailures.every(error => error === expected));
+  assert.equal(f.waits.snapshot().rawReads.pending, 0); assert.equal(f.owner.signal.aborted, controllerLater);
 });
 
 test('COS97 clean delivery verifies actual fixed bytes with exact mapping and preserves optional caller reason', async t => {

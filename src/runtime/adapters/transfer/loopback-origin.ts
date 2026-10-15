@@ -75,7 +75,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
               caller = life.signal; phase = life;
               return runNativeValidationRead(life.signal, async () => {
                 try { check(); await current.verifyScope(caller); check(); }
-                catch (error) { await fail(error, caller, current); checkService(); throw error; }
+                catch (error) { await fail(error, caller, current); rethrowFailure(error, caller, current); }
               });
             });
             const path = new URL(request.url ?? '/', 'http://127.0.0.1'), name = decodeURIComponent(path.pathname).slice(1) || 'index.html';
@@ -90,7 +90,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
                   const bytes = Buffer.from(await upstream.arrayBuffer()); check(); return { upstream, bytes };
                 } catch (caught) {
                   const error = input.controllerSignal?.aborted ? input.controllerSignal.reason : input.signal.aborted ? input.signal.reason : life.signal.aborted ? life.signal.reason : caught;
-                  await fail(error, caller, current); checkService(); throw error;
+                  await fail(error, caller, current); return rethrowFailure(error, caller, current);
                 }
               });
             });
@@ -102,10 +102,10 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
                   const result = await current.cleanDelivery!.verifyPayload!(name, { status: upstream.status, bytes }, caller); check();
                   if (result === 'not_found') { notFound(response); return; }
                   response.writeHead(200, { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/octet-stream', 'Cache-Control': 'no-store' }); response.end(bytes);
-                } catch (error) { await fail(error, caller, current); checkService(); throw error; }
+                } catch (error) { await fail(error, caller, current); rethrowFailure(error, caller, current); }
               });
             });
-          } catch (error) { await fail(error, caller, current); notFound(response); checkService(); throw error; }
+          } catch (error) { await fail(error, caller, current); notFound(response); rethrowFailure(error, caller, current); }
         });
         return;
       }
@@ -145,12 +145,17 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
     if (waits && 'caseId' in binding && waits.caseId === binding.caseId && waits.windowId === binding.windowId)
       return { nativeValidationWaits: waits, retainCleanupFailure: input.retainCleanupFailure };
   };
+  const rethrowFailure = (error: unknown, callerSignal: AbortSignal | undefined, context?: FailureContext): never => {
+    input.controllerSignal?.throwIfAborted();
+    if (!(context?.nativeValidationWaits ?? callerContext(callerSignal)?.nativeValidationWaits)) input.signal.throwIfAborted();
+    throw error;
+  };
   const fail = async (error: unknown, callerSignal: AbortSignal | undefined, current: Mount | undefined, context: FailureContext | undefined = current): Promise<'retained' | 'closed'> => {
     context ??= callerContext(callerSignal);
     if (closing && sharedFailure && sharedFailure.error === error && sharedFailure.callerSignal === callerSignal) { await finishClose(sharedFailure.context); return 'closed'; }
     const stopped = input.signal.aborted || input.controllerSignal?.aborted, disposition = nativeCallerDisposition(callerSignal, context?.nativeValidationWaits, error);
     if (!stopped && (mounted !== current || disposition === 'stale')) return 'retained';
-    recordNativeValidationFailure(callerSignal, input.controllerSignal?.aborted ? input.controllerSignal.reason : input.signal.aborted ? input.signal.reason : error);
+    recordNativeValidationFailure(callerSignal, input.controllerSignal?.aborted ? input.controllerSignal.reason : context?.nativeValidationWaits ? error : input.signal.aborted ? input.signal.reason : error);
     if (!stopped && (disposition === 'local_abort' || isValidationScopeTimeout(error))) return 'retained';
     sharedFailure ??= { error, callerSignal, mount: current, context }; await finishClose(context); return 'closed';
   };
@@ -173,7 +178,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
         if (closing || !server.listening || !isDeepStrictEqual(await read(callerSignal), receipt)) throw new Error('Owned transfer origin listener or fixed receipt changed.');
         checkSignals(callerSignal);
         if (mounted !== current) throw new Error('Candidate mount changed during verification.');
-      } catch (error) { await fail(error, callerSignal, current, context); checkService(); throw error; }
+      } catch (error) { await fail(error, callerSignal, current, context); rethrowFailure(error, callerSignal, context); }
     };
     const verify = (callerSignal?: AbortSignal) => verifyCurrent(callerSignal);
     const mountCandidate = async (value: { candidate: ArtifactReference; project: string; cleanDelivery?: CleanDelivery; nativeValidationWaits?: NativeValidationWaits; retainCleanupFailure?(error: unknown): void; verifyBinding(callerSignal?: AbortSignal): Promise<void> }) => {
@@ -205,7 +210,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
             checkSignals(callerSignal); await verify(callerSignal); checkSignals(callerSignal);
             await value.verifyBinding(callerSignal); checkSignals(callerSignal);
             await value.cleanDelivery?.requireCurrent(callerSignal); checkSignals(callerSignal);
-          } catch (error) { if (current.nativeValidationWaits) await fail(error, callerSignal, current); checkService(); throw error; }
+          } catch (error) { if (current.nativeValidationWaits) await fail(error, callerSignal, current); rethrowFailure(error, callerSignal, current); }
         } }; mounted = current;
       return async () => { if (mounted === current) mounted = undefined; };
     };
