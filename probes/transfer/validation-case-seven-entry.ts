@@ -27,7 +27,8 @@ export async function requireTransferCaseSevenAccountingSources(root: string, st
 }
 export async function requireFixedTransferAccountingSources(root: string, state: RunSnapshot, signal: AbortSignal, audits: 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19) {
   for (const receipt of state.allocationClosureDecisions!.slice(0, audits)) {
-    signal.throwIfAborted(); const { sourceSha256, ...decision } = receipt.operatorDecision, bytes = await regularFile(root, decision.source.location);
+    signal.throwIfAborted(); const { sourceSha256, ...decision } = receipt.operatorDecision, bytes = await regularFile(root, decision.source.location, signal);
+    signal.throwIfAborted();
     if (validationHash(bytes) !== sourceSha256 || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)), {
       formatVersion: 'operator-validation-allocation-closure-decision-1', kind: decision.kind, decisionId: decision.decisionId, actorId: decision.actorId,
       decidedAt: decision.decidedAt, sourceRefs: decision.sourceRefs, quote: receipt.quote })) throw new Error('C7 actual historical closure source bytes changed.');
@@ -68,15 +69,22 @@ interface FixedSettledCodingConfiguration {
 export function createFixedSettledCodingEntry(sourcePins: HistoricalCaseSixSourcePins, configuration: FixedSettledCodingConfiguration) {
   async function entry(options: { repository: string; args: string[]; signal?: AbortSignal }) {
     configuration.parseEntry(options.args); options.signal?.throwIfAborted();
-    const bytes = await regularFile(join(resolve(options.repository), '.cosmos/validation-shared'), 'snapshot.json');
+    const bytes = await regularFile(join(resolve(options.repository), '.cosmos/validation-shared'), 'snapshot.json', options.signal);
+    options.signal?.throwIfAborted();
     const state = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     const declaration = configuration.deriveDeclaration(state), input = fixedTransferValidationInput(declaration), execution = await configuration.captureSource(options.signal);
+    options.signal?.throwIfAborted();
     return createFixedTransferCodingOnlyEntry(sourcePins, { declaration, declarations: configuration.history(state),
       manifestLocation: configuration.manifestLocation, parseEntry: configuration.parseEntry, closureAuditCount: configuration.closureAuditCount, sourceMarkers: configuration.sourceMarkers,
       partialGroupAllocation: configuration.partialGroupAllocation, ledgerVersion: configuration.ledgerVersion,
       deriveDeclaration: configuration.deriveDeclaration, createIdentityReader: identityOptions => {
         const read = input.createTransferValidationIdentityReader(identityOptions);
-        return async signal => { await configuration.requireSource(execution, signal); await requireTransferCaseSevenTemplate(execution, options.repository, signal); await configuration.requireAccounting(join(resolve(options.repository), '.cosmos/validation-shared'), state, signal); return read(signal); };
+        return async signal => {
+          signal.throwIfAborted(); await configuration.requireSource(execution, signal); signal.throwIfAborted();
+          await requireTransferCaseSevenTemplate(execution, options.repository, signal); signal.throwIfAborted();
+          await configuration.requireAccounting(join(resolve(options.repository), '.cosmos/validation-shared'), state, signal); signal.throwIfAborted();
+          const identity = await read(signal); signal.throwIfAborted(); return identity;
+        };
       },
       admissionQuote: (quote, manifest, approvals) => configuration.admissionQuote(quote, manifest, approvals, execution, configuration.accountingHash(state, quote)),
       generate: configuration.generate });

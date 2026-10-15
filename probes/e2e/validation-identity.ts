@@ -3,6 +3,7 @@ import { realpath } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { safePath } from '../../src/artifacts/paths.ts';
+import { associateNativeReadSignal } from '../../src/acceptance/native-validation-waits.ts';
 import { runChild } from './host.ts';
 import { readValidationInput } from './validation-input.ts';
 import type { ValidationDeclaration } from '../../src/runtime/validation-types.ts';
@@ -13,31 +14,35 @@ export function createValidationIdentityReader(options: { repository: string; re
 }
 /** Trusted source-code seam; each entry binds its fixed reader, never a CLI or model override. */
 export function createReviewedValidationIdentityReader(options: { repository: string; reviewedPlatformSha: string },
-  readFixedInput: (repository: string) => Promise<{ manifest: ValidationDeclaration['inputs'] }>) {
+  readFixedInput: (repository: string, callerSignal?: AbortSignal) => Promise<{ manifest: ValidationDeclaration['inputs'] }>) {
   const repository = resolve(options.repository), expectedHead = options.reviewedPlatformSha;
   if (!/^[a-f0-9]{40}$/.test(expectedHead)) throw new Error('Validation identity requires an exact reviewed SHA.');
   return async (signal: AbortSignal): Promise<{ reviewedPlatformSha: string; frozenCaseInputHash: string }> => {
-    const deadline = performance.now() + 5000, combined = AbortSignal.any([signal, AbortSignal.timeout(5000)]);
+    const deadline = performance.now() + 5000, combined = associateNativeReadSignal(signal, AbortSignal.any([signal, AbortSignal.timeout(5000)]));
     const remaining = () => {
       combined.throwIfAborted(); const left = Math.ceil(deadline - performance.now());
       if (left <= 0) throw new Error('Validation identity check timed out.'); return left;
     };
     remaining();
-    const root = await realpath(await safePath(repository));
+    const path = await safePath(repository, '.', combined); remaining();
+    const root = await realpath(path); remaining();
     const git = async (...args: string[]) => {
+      remaining();
       const result = await runChild('git', ['--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', ...args],
         { cwd: root, signal: combined, timeoutMs: remaining() });
       remaining();
       if (result.code !== 0) throw new Error('Validation identity Git check failed.');
       return result.stdout.trim();
     };
-    const top = await realpath(await git('rev-parse', '--show-toplevel'));
+    const topPath = await git('rev-parse', '--show-toplevel'); remaining();
+    const top = await realpath(topPath); remaining();
     if (top !== root) throw new Error('Validation identity requires the exact repository root.');
     const inspect = async () => {
       const results = await Promise.allSettled([
         git('symbolic-ref', '--quiet', '--short', 'HEAD'), git('rev-parse', 'HEAD'), git('ls-files', '-v', '-z'),
         git('status', '--porcelain=v1', '--untracked-files=all', '--ignore-submodules=none'),
       ]);
+      remaining();
       const value = (result: PromiseSettledResult<string>) => {
         if (result.status === 'rejected') throw result.reason; return result.value;
       };
@@ -47,9 +52,9 @@ export function createReviewedValidationIdentityReader(options: { repository: st
       if (branch !== 'main' || head !== expectedHead || status) throw new Error('Validation identity requires the reviewed HEAD on clean main, including untracked source.');
       return { branch, head, status };
     };
-    const before = await inspect();
-    const input = await readFixedInput(root); remaining();
-    const after = await inspect();
+    const before = await inspect(); remaining();
+    const input = await readFixedInput(root, combined); remaining();
+    const after = await inspect(); remaining();
     if (before.head !== after.head || before.branch !== after.branch || before.status !== after.status) throw new Error('Validation source identity changed during inspection.');
     remaining();
     return Object.freeze({ reviewedPlatformSha: after.head, frozenCaseInputHash: createHash('sha256').update(JSON.stringify(input.manifest)).digest('hex') });
