@@ -42,6 +42,7 @@ export interface NativeValidationWaits {
   readonly contractVersion: typeof NATIVE_VALIDATION_WAIT_CONTRACT;
   readonly caseId: string; readonly windowId: string; readonly taskId: string;
   readonly deadlineAt: number; readonly workDeadlineAt: number; readonly readSignal: AbortSignal;
+  checkRead(): void;
   startConsumer(): number;
   beginSegment(reportId: string): NativeSegmentWaits;
   runRequest<T>(operation: (request: NativeRequestWaits) => Promise<T>): Promise<T>;
@@ -203,6 +204,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
   const waits: NativeValidationWaits = {
     contractVersion: NATIVE_VALIDATION_WAIT_CONTRACT, caseId: fixed.caseId, windowId: fixed.windowId, taskId: fixed.taskId,
     deadlineAt: fixed.deadlineAt, workDeadlineAt, readSignal,
+    checkRead() { fixed.controllerSignal?.throwIfAborted(); fixed.signal.throwIfAborted(); },
     startConsumer() {
       fixed.controllerSignal?.throwIfAborted(); fixed.signal.throwIfAborted();
       if (consumerStartedAt !== null) throw new Error('Native consumer already started');

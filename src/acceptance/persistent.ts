@@ -249,7 +249,7 @@ export async function executePersistentSeries(value: unknown, options: Persisten
   const guard = async (launch = false, publication = false) => {
     const currentPhase = publication ? 'final_publication' : 'guard';
     at(currentPhase, 'cancelled');
-    if (native) native.readSignal.throwIfAborted();
+    native?.checkRead();
     if (options.signal?.aborted) { if (native) throw options.signal.reason; throw new AcceptanceCancelledError('acceptance cancelled'); }
     at(currentPhase, 'deadline');
     if (options.deadlineAt - Date.now() <= (launch ? cleanupReserveMs + 1000 : 0)) throw new DeadlineError('original deadline leaves no safe browser launch/cleanup time');
@@ -264,6 +264,7 @@ export async function executePersistentSeries(value: unknown, options: Persisten
       throw error;
     }
     at(currentPhase, 'cancelled');
+    native?.checkRead();
     if (options.signal?.aborted) throw new AcceptanceCancelledError('cancelled or original deadline reached');
     at(currentPhase, 'deadline');
     if (options.deadlineAt - Date.now() <= (launch ? cleanupReserveMs + 1000 : 0)) throw new DeadlineError('cancelled or original deadline reached');
@@ -306,6 +307,10 @@ export async function executePersistentSeries(value: unknown, options: Persisten
     recordError(error);
     if (report.checkpoint.outcome !== 'skipped') report.checkpoint.outcome = 'failed';
   }
+  if (native) try { await guard(false, true); }
+  catch (error) {
+    report.outcome = 'failed'; if (report.checkpoint.outcome !== 'skipped') report.checkpoint.outcome = 'failed'; recordError(error);
+  }
   report.endedAt = new Date().toISOString();
   const recordNative = () => {
     if (!native) return;
@@ -316,7 +321,7 @@ export async function executePersistentSeries(value: unknown, options: Persisten
   };
   try { recordNative(); } catch (error) { at('final_publication', 'publication'); recordError(error); report.outcome = 'failed'; }
   await writeFile(join(folder, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
-  try {
+  if (!native) try {
     await guard(false, true); // Drain publication races for failed segments as well as successful series.
   } catch (error) {
     report.outcome = 'failed'; if (report.checkpoint.outcome !== 'skipped') report.checkpoint.outcome = 'failed'; report.endedAt = new Date().toISOString();

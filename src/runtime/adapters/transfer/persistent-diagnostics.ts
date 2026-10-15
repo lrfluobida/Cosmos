@@ -27,6 +27,9 @@ const directory = (plan: AcceptancePlan) => [plan.projectId, plan.artifact.artif
 const count = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
 const time = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0;
 const elapsed = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+// Date timestamps have millisecond precision; performance.now records the same interval at finer precision.
+const nativeClockToleranceMs = 5;
+const consistentElapsed = (value: unknown, start: number, end: number) => elapsed(value) && Math.abs(value - (end - start)) <= nativeClockToleranceMs;
 function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number, end: number, deadlineAt: number) {
   check(object(value) && only(value, ['contractVersion', 'deadlineAt', 'workDeadlineAt', 'segment'])
     && value.contractVersion === NATIVE_VALIDATION_WAIT_CONTRACT && value.deadlineAt === deadlineAt && value.workDeadlineAt === deadlineAt - 5000);
@@ -41,7 +44,8 @@ function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number,
       && row.stage === stage && row.capMs === cap && row.outcome === 'passed' && row.rawPending === false
       && time(row.startedAt) && time(row.deadlineAt) && time(row.endedAt) && elapsed(row.elapsedMs)
       && previous <= row.startedAt && row.startedAt <= row.endedAt && row.endedAt < row.deadlineAt && row.endedAt <= end
-      && row.deadlineAt === Math.min(deadlineAt - 5000, row.startedAt + cap));
+      && row.deadlineAt === Math.min(deadlineAt - 5000, row.startedAt + cap)
+      && consistentElapsed(row.elapsedMs, row.startedAt, row.endedAt) && row.elapsedMs <= cap + nativeClockToleranceMs);
     previous = row.endedAt;
   }
   const http = segment.http;
@@ -50,7 +54,8 @@ function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number,
   for (const [index, stage] of ['http_pre_authority', 'http_body', 'http_post_authority'].entries()) {
     const row = http.stages[index]; check(object(row) && only(row, ['stage', 'capMs', 'count', 'totalMs', 'maxMs']) && row.stage === stage
       && row.capMs === [60000, 15000, 60000][index] && row.count === http.started && elapsed(row.totalMs) && elapsed(row.maxMs)
-      && row.maxMs <= row.totalMs && (row.count > 0 || row.totalMs === 0 && row.maxMs === 0));
+      && row.maxMs <= row.totalMs && row.maxMs <= Math.min(row.capMs, end - segment.stages[3].startedAt) + nativeClockToleranceMs
+      && (row.count > 0 ? row.totalMs / row.count <= row.maxMs + 1e-6 : row.totalMs === 0 && row.maxMs === 0));
   }
   return segment;
 }
@@ -60,7 +65,8 @@ function validNativeAggregate(report: PersistentAcceptanceReport, task: TaskCont
   check(object(value) && only(value, ['contractVersion', 'deadlineAt', 'workDeadlineAt', 'consumerStartedAt', 'rawReads', 'segments', 'caseId', 'windowId', 'taskId', 'seriesStartedAt', 'seriesEndedAt', 'seriesElapsedMs'])
     && value.contractVersion === expected.nativeWaitContract && value.deadlineAt === expected.deadlineAt && value.workDeadlineAt === expected.deadlineAt - 5000
     && value.taskId === task.taskId && [value.caseId, value.windowId].every(id => typeof id === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(id))
-    && time(value.consumerStartedAt) && value.consumerStartedAt <= start && value.seriesStartedAt === start && value.seriesEndedAt === end && elapsed(value.seriesElapsedMs)
+    && time(value.consumerStartedAt) && value.consumerStartedAt <= start && value.seriesStartedAt === start && value.seriesEndedAt === end
+    && consistentElapsed(value.seriesElapsedMs, start, end)
     && object(value.rawReads) && only(value.rawReads, ['started', 'settled', 'pending']) && count(value.rawReads.started)
     && value.rawReads.started === value.rawReads.settled && value.rawReads.pending === 0 && Array.isArray(value.segments) && value.segments.length === report.segments.length);
   for (const [index, row] of report.segments.entries()) {

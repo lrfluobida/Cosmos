@@ -78,7 +78,11 @@ async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0, native = f
     if (waits) {
       const segment = waits.beginSegment(p.reportId);
       await segment.runStage('prepare_authority', async () => {}); await segment.runStage('register_authority', async () => {});
-      await segment.runStage('browser_transport', async () => {}); segment.beginNavigation(); await segment.runStage('navigation', async () => {});
+      await segment.runStage('browser_transport', async () => {}); segment.beginNavigation(); await segment.runStage('navigation', async () => {
+        for (let request = 0; request < 2; request++) await waits.runRequest(async current => {
+          for (const stage of ['http_pre_authority', 'http_body', 'http_post_authority'] as const) await current.runStage(stage, async () => { await new Promise(done => setTimeout(done, 2)); });
+        });
+      });
       segment.finishNavigation(); segment.revoke(); await segment.settle(deadlineAt);
       result.endedAt = new Date().toISOString(); result.nativeWaits = { contractVersion: waits.contractVersion, deadlineAt, workDeadlineAt: waits.workDeadlineAt, segment: segment.snapshot() };
     }
@@ -137,6 +141,23 @@ test('COS97 actual helper timing permits a complete native report and refuses ch
     ]) {
       const changed = structuredClone(f.report); mutate(changed); await f.persist(changed); insufficient(await diagnostic(f, changed));
     }
+  } finally { await f.cleanup(); }
+});
+
+test('COS97 native timing rejects impossible elapsed and HTTP aggregates around actual helper measurements', async t => {
+  const f = await fixture('pass', 0, true);
+  try {
+    assert.equal((await diagnostic(f)).reportValid, true);
+    for (const [name, mutate] of [
+      ['stage elapsed', (r: any) => { r.segments[0].report.nativeWaits.segment.stages[0].elapsedMs = 1e12; }],
+      ['series elapsed', (r: any) => { r.nativeWaits.seriesElapsedMs = 1e12; }],
+      ['HTTP cap', (r: any) => { const row = r.segments[0].report.nativeWaits.segment.http.stages[0]; row.maxMs = 60010; row.totalMs = 120020; }],
+      ['HTTP segment duration', (r: any) => { const row = r.segments[0].report.nativeWaits.segment.http.stages[0]; row.maxMs = 1000; row.totalMs = 2000; }],
+      ['HTTP total greater than count times max', (r: any) => { const row = r.segments[0].report.nativeWaits.segment.http.stages[0]; row.totalMs = row.maxMs * row.count + 1; }],
+    ] as const) await t.test(name, async () => {
+      const changed = structuredClone(f.report); mutate(changed); changed.nativeWaits!.segments[0] = structuredClone(changed.segments[0].report.nativeWaits!.segment);
+      await f.persist(changed); insufficient(await diagnostic(f, changed));
+    });
   } finally { await f.cleanup(); }
 });
 
