@@ -235,4 +235,6 @@ ownedPersistentBrowserLifecycle仅可信native对象选择prepare60/register60/b
 
 1e53独审P2：design-validation.optional的ENOENT catch会吞掉合法caller取消reason同名code。有效审计正例后在seal最后MAP实际read取消（reason带ENOENT），RED首因被替换为sealed bytes changed；catch入口先checkCaller再保留原缺文件规则，GREEN1/1、0skip、18201.1964ms、strict0。`design-seal-enoent-{red,green}.tap`与`design-seal-enoent-strict.log`同TEMP；不重复旧设计tool/取消整组。
 
+0ed/46独审P2：首因仅标量metadata不能保存classifier收到的原Error。segment私有presence wrapper保留canonical原值（含undefined），stage catch保持原固定service signal reason优先，其次已记录原source error；后到timer/cleanup不得替换出口。原两个不正确cleanup出口断言改为source对象严格相等，新增deferred close跨60s timer、raw/drain仍pending直到释放，以及undefined presence代表：RED0/3→GREEN3/3、0skip、308.8056ms、strict0。`canonical-firstcause-{red,green}.tap`和`canonical-firstcause-strict.log`同TEMP；未重跑无delta17组，cleanup失败仍由独立hook留证。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

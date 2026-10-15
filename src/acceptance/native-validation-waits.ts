@@ -48,6 +48,7 @@ export interface NativeValidationWaits {
 interface SegmentData {
   reportId: string; generation: number; state: string; abort: AbortController; raw: Set<Promise<unknown>>;
   records: StageRecord[]; firstCause: NativeSegmentSnapshot['firstCause'];
+  firstCauseRaw?: { error: unknown };
   operations: Set<Promise<unknown>>; requests: Set<Promise<unknown>>;
   navigation?: { startedAt: number; deadlineAt: number; clock: number };
   http: { started: number; settled: number; stages: HttpStageRecord[] };
@@ -111,8 +112,12 @@ export function recordNativeValidationFailure(signal: AbortSignal | undefined, e
   const association = signal && callers.get(signal);
   if (!association?.segment || !association.stage || !association.active?.() || association.owner.current !== association.segment
     || ['closing', 'closed'].includes(association.segment.state)) return;
-  association.segment.firstCause ??= { stage: association.stage, name: error instanceof Error ? error.name : 'Error',
-    message: error instanceof Error ? error.message : String(error) };
+  rememberNativeFailure(association.segment, association.stage, error);
+}
+function rememberNativeFailure(segment: SegmentData, stage: NativeWaitStage, error: unknown): void {
+  if (segment.firstCauseRaw) return;
+  segment.firstCauseRaw = { error };
+  segment.firstCause = { stage, name: error instanceof Error ? error.name : 'Error', message: error instanceof Error ? error.message : String(error) };
 }
 function identifier(value: string) { return typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(value); }
 /** Only the native validation host constructs this object; budgets are fixed source constants. */
@@ -167,9 +172,9 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
       life.check();
       record.outcome = 'passed'; return result;
     } catch (caught) {
-      const error = fixed.signal.aborted ? fixed.signal.reason : caught;
+      const error = fixed.signal.aborted ? fixed.signal.reason : segment.firstCauseRaw ? segment.firstCauseRaw.error : caught;
       record.outcome = 'failed'; segment.state = 'closing';
-      segment.firstCause ??= { stage, name: error instanceof Error ? error.name : 'Error', message: error instanceof Error ? error.message : String(error) };
+      rememberNativeFailure(segment, stage, error);
       segment.abort.abort(error); throw error;
     } finally {
       clearTimeout(timer); signal.removeEventListener('abort', onAbort);
