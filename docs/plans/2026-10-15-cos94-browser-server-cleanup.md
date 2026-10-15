@@ -89,4 +89,4 @@ if (server) await bounded(() => server!.close(),
 
 主线 `npm run typecheck` / `npm run build` 均退出0，raw分别为 `C:/Users/26557/AppData/Local/Temp/cos94-merge-typecheck.log`、`cos94-merge-build.log`。命令 `node --experimental-strip-types --test --test-name-pattern='normal server close after 1200 ms|server failure retains successfully saved video|persistent cancellation' tests/acceptance/generic-cleanup.test.ts` 通过3/3、0skip，729.7282ms；raw `C:/Users/26557/AppData/Local/Temp/cos94-merge-focused.tap`。仅使用模拟外部边界，验证既有reserve内1200ms关闭、成功保存后失败文案及persistent取消保持。
 
-作者及reviewer各11/11、唯一真实正例1/1及affected strict通过证据复用。自然正常退出超过1秒的样本未见、原OS根因未知及视频播放未验证的限制保留；没有新增真实浏览器、旧220步/62字段重跑、付费或账本操作。COS93仍未实测/未SOURCE_READY，原媒体与C14失败及原预算保持，main保持unfrozen。
+作者及reviewer各11/11、唯一真实正例1/1及affected strict通过证据复用。自然正常退出超过1秒的样本未见、原OS根因未知及视频播放未验证的限制保留；没有新增真实浏览器、旧220步/62字段重跑、付费或账本操作。COS93完整原生启动链仍未测得，原媒体与C14失败及原预算保持，main保持unfrozen。

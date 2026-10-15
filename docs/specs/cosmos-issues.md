@@ -2,7 +2,7 @@
 
 2026-10-15最新实际状态：C14已在冻结版本 `b20e9a43` 实际运行并failed，身份已消费：41分13.754秒、35次请求全部settled，新增¥0.792063，共享累计¥16.901000，unknown/reserved为0。运行时作者生成10文件35,771字节，与末次成功自检、capture、candidate v1及正式构建输入逐字节一致；三次自检失败/通过/通过，正式TypeScript/Vite退出0，814ms仅为Vite时间。持久浏览器首段15秒启动超时，21步全部skipped，未记录session、PID/exit为null，不能证明历史OS spawn；coding review仍pending，无repair/accepted/human。原锁首次归档调用因PID复用在写入前拒绝；独审精确代际守卫后实际归档一次，原字节/mtime与文件身份保持，失败及清理证据不足结论保留。closure20已一次执行并独立核对，revision3114、22stopped/14delegations/110closed/20audits，释放及组可分配¥1.707937；原费用、历史和补充分配保持。Root已解除main冻结。详见[C14研究记录](../research/2026-10-15-transfer-c14-browser-launch.md)。COS90/COS91保持源码范围closed，COS16/COS18仍partial/open，完整经典与human未完成；旧snapshot与actual NONE保留为阶段历史。
 
-状态：2026-10-15 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 94 个原生子任务已由Root核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
+状态：2026-10-15 更新。[主 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 与 95 个原生子任务已由Root核实；[发布映射](github-issues.json) 保存实际编号、链接和依赖。任务尚待逐项实施与验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -1489,7 +1489,7 @@ COS91 / [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，�
 
 ### COS-92 · 修复持久浏览器启动的重复校验与迟到启动意图
 
-[COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，登记时92个子任务，依赖COS37/52/91。作者`cos92_implementer`最终`ffa0ce2918735f5b21b22c4373a390b156e63d33`经`cos92_reviewer`独立规格→质量APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger`合入`e74815f468b7158b5555ca2e5887ad3459b74dda`，标记`PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡source scoped complete/closed。主线typecheck/build退出0，短集成5/5、0skip；源码与测试等同批准版本，作者长回归及真实Edge证据复用，generic fixture的4条既有strict诊断保持，详见[任务卡](cos92-browser-launch.md)。[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180910087)、closed(completed)及父勾选已由Root精确读回；main保持unfrozen。C14原冻结`b20e9a43`失败/已消费事实不变，完整链诊断尚未执行，无新付费或C14重放；COS16/COS18、完整经典和human仍未完成。
+[COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，登记时92个子任务，依赖COS37/52/91。作者`cos92_implementer`最终`ffa0ce2918735f5b21b22c4373a390b156e63d33`经`cos92_reviewer`独立规格→质量APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger`合入`e74815f468b7158b5555ca2e5887ad3459b74dda`，标记`PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡source scoped complete/closed。主线typecheck/build退出0，短集成5/5、0skip；源码与测试等同批准版本，作者长回归及真实Edge证据复用，generic fixture的4条既有strict诊断保持，详见[任务卡](cos92-browser-launch.md)。[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180910087)、closed(completed)及父勾选已由Root精确读回；main保持unfrozen。C14原冻结`b20e9a43`失败/已消费事实不变，完整原生启动链仍未测得，无新付费或C14重放；COS16/COS18、完整经典和human仍未完成。
 
 后续[独立玩法诊断](../research/2026-10-15-c14-independent-gameplay.md)在已审主线通过原8段220步，浏览器正常退出与清理已独审。诊断省略ownedChild/controller，因此真实nativeIO完整启动链≤15秒仍未证明；本卡源码范围关闭保持。
 
@@ -1499,15 +1499,21 @@ COS91 / [#92](https://github.com/lrfluobida/Cosmos/issues/92)，id5855021876，�
 
 ### COS-93 · 测量真实历史负载下的完整原生浏览器启动路径
 
-[COS93 / #94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，已原生挂父#1，依赖COS52/56/91/92。计划`40dd033a6d01335edac24e7b55edaa35ca8d9747`经`cos93_reviewer`独立PLAN_APPROVED并[公开批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)；`cos93_implementer`实现中、open，尚未实测、未SOURCE_READY。既有独立玩法及媒体补测不替代完整原生启动路径的真实负载测量。
+[COS93 / #94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，已原生挂父#1，依赖COS52/56/91/92。计划`40dd033a6d01335edac24e7b55edaa35ca8d9747`已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)。作者`cos93_implementer`最终`0b475c1fe2918af5e6b61594f29d3060da766078`经`cos93_reviewer`独立APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`3d67a50a09a00d98b8fa6d54ee7745337d7e803d`。当前source-reviewed / actual-incomplete，issue保持open、integration partial；执行版`59dd5d3`在历史宿主`7df1e5b`上唯一实际诊断765169ms，原5秒scope耗时5014.7298ms后失败，nativeIO/open/CDP/browser均未到达，完整15秒链未测得。[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6182530375)已由Root精确读回。主线typecheck/build0、短检查2/2，已审6/6及P2 2/2和strict证据复用；原466文件/61目录、ledger及PID/端口/locks后核CLEAN，稳定334文件/40225837字节仅为选择范围副本。原C14与预算保持，详见[任务卡](cos93-native-startup-diagnostic.md)及[研究记录](../research/2026-10-15-cos93-native-startup-diagnostic.md)。
 
 稳定任务 ID：COS-93
 
 ### COS-94 · 诊断并修复普通浏览器验收的服务关闭超时
 
-[COS94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，已原生挂父#1，依赖COS40/64/92。计划`e9e60894cea81fac3f99bfb4735635d8510f0e03`已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)。作者`cos94_implementer`最终`c772c9c340a8118878190d62755d837a3bf1f511`经`cos94_reviewer`独立规格→质量APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`41de11f697eb79183515a0d71a5101f4bf91c10e`，标记`GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡source scoped complete/closed，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6182227279)、closed(completed)及父勾选已由Root精确读回。主线typecheck/build退出0，短集成3/3、0skip；已审11/11及唯一真实正例1/1复用，正常慢退出超过1秒尚未观察、原OS根因未知，详见[任务卡](cos94-browser-server-cleanup.md)。原[媒体补测](../research/2026-10-15-c14-independent-media.md)及C14的failed保持；父#1为94个原生子任务，COS93仍未实测/未SOURCE_READY，旧任务及预算保持，main保持unfrozen。
+[COS94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，已原生挂父#1，依赖COS40/64/92。计划`e9e60894cea81fac3f99bfb4735635d8510f0e03`已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)。作者`cos94_implementer`最终`c772c9c340a8118878190d62755d837a3bf1f511`经`cos94_reviewer`独立规格→质量APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`41de11f697eb79183515a0d71a5101f4bf91c10e`，标记`GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡source scoped complete/closed，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6182227279)、closed(completed)及父勾选已由Root精确读回。主线typecheck/build退出0，短集成3/3、0skip；已审11/11及唯一真实正例1/1复用，正常慢退出超过1秒尚未观察、原OS根因未知，详见[任务卡](cos94-browser-server-cleanup.md)。原[媒体补测](../research/2026-10-15-c14-independent-media.md)及C14的failed保持；父#1为95个原生子任务，COS93完整原生启动链仍未测得，旧任务及预算保持，main保持unfrozen。
 
 稳定任务 ID：COS-94
+
+### COS-95 · 缩小验证范围的首次身份读取
+
+[COS95 / #96](https://github.com/lrfluobida/Cosmos/issues/96)，id5858781735，已原生挂父#1，当前95个子任务；依赖COS52/91/92/93，COS93仅提供已审诊断实现与证据，不要求其完整启动目标通过。作者`cos95_implementer`准备计划，plan pending / `SOURCE_NOT_READY`、open，尚无计划审批、生产改动或实际运行。
+
+稳定任务 ID：COS-95
 
 ## 5. 任务与上下文包模板
 

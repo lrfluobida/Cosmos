@@ -66,4 +66,4 @@ Generic 视频仅在 `saveAs` 完成后记为保存成功，后续关闭失败�
 
 作者 `cos94_implementer` 最终 `c772c9c340a8118878190d62755d837a3bf1f511` 经 `cos94_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger `batch_c14_cos92_merger` 合入 `41de11f697eb79183515a0d71a5101f4bf91c10e`。主线src/tests与批准版本一致，typecheck/build退出0，短集成3/3、0skip，729.7282ms；命令与原始日志见计划。作者及reviewer各11/11、唯一真实正例1/1、affected strict证据复用，没有追加真实浏览器或旧玩法/媒体运行。
 
-通常最多2秒的等待只使用既有清理reserve，原绝对截止保持；自然正常关闭超过1秒尚未观察，原Windows/Edge延迟根因未知，视频播放未验证。main保持unfrozen；COS93尚未实测/未SOURCE_READY，原媒体和C14仍failed，COS16/COS18、完整经典与human未提升。
+通常最多2秒的等待只使用既有清理reserve，原绝对截止保持；自然正常关闭超过1秒尚未观察，原Windows/Edge延迟根因未知，视频播放未验证。main保持unfrozen；COS93完整原生启动链仍未测得，原媒体和C14仍failed，COS16/COS18、完整经典与human未提升。

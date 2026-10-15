@@ -1,8 +1,8 @@
 # COS-93 真实历史负载下的原生浏览器启动诊断
 
-状态：计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 经 `cos93_reviewer` 独审 `PLAN_APPROVED`，无finding；[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)。执行版 `59dd5d3a34fb65d5e6933f492aa91613a0fab19b` 已获 `PRE_RUN_SOURCE_APPROVED`，唯一实际运行因浏览器前5秒scope超时而 `diagnostic_incomplete`；后核CLEAN，完整15秒启动链未测得，本任务未完成。Issue [#94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，父 #1，原生子项计数93；依赖 COS52/COS56/COS91/COS92。任务来源为 Root 的私有 `cos93-issue-body.md` 与 `cos93-published.json`，位于 `E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/`。
+状态：source-reviewed / actual-incomplete；诊断实现已独审合入，issue #94保持open、integration partial。计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 经 `cos93_reviewer` 独审 `PLAN_APPROVED`，无finding；[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)。执行版 `59dd5d3a34fb65d5e6933f492aa91613a0fab19b` 已获 `PRE_RUN_SOURCE_APPROVED`，唯一实际运行因浏览器前5秒scope超时而 `diagnostic_incomplete`；后核CLEAN，完整15秒启动链未测得，本任务未完成。Issue [#94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，父 #1，登记时原生子项计数93；依赖 COS52/COS56/COS91/COS92。任务来源为 Root 的私有 `cos93-issue-body.md` 与 `cos93-published.json`，位于 `E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/`。
 
-专职作者 `cos93_implementer`，独立 reviewer `cos93_reviewer`，唯一 merger 由 Root 指派。分支 `codex/cos93-native-startup-diagnostic`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`；从指定主线 `61d13817ca871d2be04576b4d6fb51fa8a86b541` 建立，旧 COS92 工作树干净且 HEAD 是该主线祖先。首阶段只提交本卡和[实施计划](../plans/2026-10-15-cos93-native-startup-diagnostic.md)；现已完成一次未达浏览器阶段的实际诊断，正在修正fixture结果记录。作者不改 main、共享 tracking 或 GitHub。
+专职作者 `cos93_implementer`，独立 reviewer `cos93_reviewer`，唯一 merger `batch_c14_cos92_merger`。分支 `codex/cos93-native-startup-diagnostic`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`；从指定主线 `61d13817ca871d2be04576b4d6fb51fa8a86b541` 建立，旧 COS92 工作树干净且 HEAD 是该主线祖先。首阶段只提交本卡和[实施计划](../plans/2026-10-15-cos93-native-startup-diagnostic.md)；现已完成一次未达浏览器阶段的实际诊断，fixture结果记录修正已独审集成。作者不改 main、共享 tracking 或 GitHub。
 
 ## 事实与问题
 
@@ -58,3 +58,9 @@ Root已批准测试专有的Node `mock.module` 观测方式：在fixture/nativeI
 在上述已审执行版、历史宿主main `7df1e5b3b8662a4fa836c466f266f9b80d04d2e8` 上执行一次，外层765169ms、Node exit1，45分钟guard未触发、没有kill。TEMP经真实API完成715请求负载；nativeIO/open/CDP/browser均未到达。原host报告首因 `Validation scope check timed out.`，scope.read span2197为5014.7298ms；bytesMatched=false表示最终成功出口未到达，不能解释为文件不一致。`host.verify`返回的failed evidence原先被fixture丢弃，本轮仅补结果保留、not_reached和failingGate的小契约测试，不重跑实际历史。
 
 `cos93_reviewer`已独立核对原466文件/61目录、真实ledger、进程/端口/owner清理，Root解除冻结。[中文研究记录](../research/2026-10-15-cos93-native-startup-diagnostic.md)保存完整来源、原raw及334文件的选择范围副本；[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6182530375)已精确读回。原raw、已消费launcher/intent/log保持。本卡仍未完成，下一独立性能调查复用证据；当前不修改生产guard或启动界限，不授权原共享账本新窗口或第二次actual。
+
+## 诊断实现已审集成
+
+最终 `0b475c1fe2918af5e6b61594f29d3060da766078` 经 `cos93_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger合入 `3d67a50a09a00d98b8fa6d54ee7745337d7e803d`。COS93入口与两测试文件等同批准提交；主线已审COS94 runner及测试保持。typecheck/build退出0，native factory导出与failed evidence分类短检查2/2、0skip，4786.382ms；原6/6、P2 2/2及strict证据复用，命令和主线日志见计划。
+
+本次合入没有第二次actual、浏览器或35行历史重建；执行59dd、历史宿主7df及原游戏b20的区别保持。原C14失败与真实revision3114/共享¥16.901000不变；COS93完整目标、COS16/COS18及human均未完成，main已由Root解冻。

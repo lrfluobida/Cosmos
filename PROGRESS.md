@@ -2,13 +2,20 @@
 
 更新时间：2026-10-15
 
+## COS93诊断实现已审，完整启动测量仍未完成
+
+- 作者`cos93_implementer`最终`0b475c1fe2918af5e6b61594f29d3060da766078`经`cos93_reviewer`独立APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`3d67a50a09a00d98b8fa6d54ee7745337d7e803d`。当前source-reviewed / actual-incomplete，issue #94保持open、integration partial，不标任务完成。
+- 唯一实际执行源码`59dd5d3a34fb65d5e6933f492aa91613a0fab19b`，历史宿主冻结`7df1e5b3b8662a4fa836c466f266f9b80d04d2e8`，原C14生成版本仍`b20e9a43`。外层765169ms、Node exit1，原5秒scope在5014.7298ms失败；nativeIO/open/CDP/browser均0，完整15秒链未测得。[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6182530375)已由Root精确读回，详见[研究记录](docs/research/2026-10-15-cos93-native-startup-diagnostic.md)。
+- 原466文件/61目录、真实ledger和PID/端口/locks已独审后核CLEAN，Root已解冻。稳定副本`cos93-first-actual-preserved`为334文件/40225837字节的选择范围，非整个TEMP归档；原raw保持。主线typecheck/build0、短检查2/2、0skip，4786.382ms；COS93源码/测试等同批准版，COS94 runner与测试保留，复用6/6及P2 2/2/strict证据。没有第二次actual、浏览器或35行历史重建；共享仍revision3114/¥16.901000，无新增付费，原C14、COS16/COS18及human状态保持。
+- [COS95 / #96](https://github.com/lrfluobida/Cosmos/issues/96)，id5858781735，已原生挂父#1，当前95个子任务；依赖COS52/91/92/93（COS93仅诊断实现/证据依赖），作者`cos95_implementer`准备计划，plan pending / `SOURCE_NOT_READY`，未有生产改动或实际运行。main保持unfrozen。
+
 ## C14独立媒体补测：字段全部匹配，整体失败
 
 - 在`61d13817ca871d2be04576b4d6fb51fa8a86b541`上单次执行原候选逐字节一致副本，诊断6.528秒、外层7.099秒。15/15步骤通过（1次只读就绪等待、14次正常点击），媒体62/62字段匹配、coverage valid/complete；整体仍failed、Node exit1，错误为`Cleanup: Server cleanup: timed out after 1000 ms`。
 - `c14_media_diagnostic_reviewer`已独审原始字段、绑定、时序及后核，相关进程/端口无残留；`forced=true`只证明进入强制清理分支，不证明实际OS kill或浏览器退出码。93,887字节的`browser.webm`存在，未验证播放。原文件、账本、候选及harness保持，新请求/费用0，revision3114、共享¥16.901000。原220步玩法证据复用；本次不含render/performance，原C14仍failed/consumed，coding未批准、accepted/human未提升。详见[研究记录](docs/research/2026-10-15-c14-independent-media.md)及Root精确读回的[公开结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6181880730)。
 - 媒体结果文档作者`c14_media_docs_implementer`的`7fecf04152248bf57c6d4a6dc9e0e411c3a3e65d`经`c14_media_docs_reviewer`独立APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`e4c583ff10cc694d154fae2d475e372e4a6b0336`。原媒体及C14失败结论保持。
-- [COS93 / #94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，依赖COS52/56/91/92；计划`40dd033a6d01335edac24e7b55edaa35ca8d9747`经`cos93_reviewer`独立PLAN_APPROVED并[公开批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)，`cos93_implementer`实现中。完整原生启动路径尚未实测、未SOURCE_READY。
-- [COS94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，依赖COS40/64/92；计划`e9e60894cea81fac3f99bfb4735635d8510f0e03`已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)。作者`cos94_implementer`最终`c772c9c340a8118878190d62755d837a3bf1f511`经`cos94_reviewer`独立规格→质量APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`41de11f697eb79183515a0d71a5101f4bf91c10e`，标记`GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡source scoped complete/closed，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6182227279)、closed(completed)及父勾选已由Root精确读回。主线typecheck/build退出0，短集成3/3、0skip，729.7282ms；src/tests与批准版本一致，作者及reviewer各11/11和真实正例1/1证据复用。未观察到自然正常关闭超过1秒的样本，原Windows/Edge根因未知、视频播放未验证，详见[任务卡](docs/specs/cos94-browser-server-cleanup.md)。当前94个原生子任务，COS93仍未实测/未SOURCE_READY；旧任务和原失败结果保持，main保持unfrozen。
+- [COS93 / #94](https://github.com/lrfluobida/Cosmos/issues/94)诊断实现已独审集成、实际结果未完成；版本、证据与限制见本页顶部及[任务卡](docs/specs/cos93-native-startup-diagnostic.md)。
+- [COS94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，依赖COS40/64/92；计划`e9e60894cea81fac3f99bfb4735635d8510f0e03`已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)。作者`cos94_implementer`最终`c772c9c340a8118878190d62755d837a3bf1f511`经`cos94_reviewer`独立规格→质量APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`41de11f697eb79183515a0d71a5101f4bf91c10e`，标记`GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡source scoped complete/closed，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6182227279)、closed(completed)及父勾选已由Root精确读回。主线typecheck/build退出0，短集成3/3、0skip，729.7282ms；src/tests与批准版本一致，作者及reviewer各11/11和真实正例1/1证据复用。未观察到自然正常关闭超过1秒的样本，原Windows/Edge根因未知、视频播放未验证，详见[任务卡](docs/specs/cos94-browser-server-cleanup.md)。当前95个原生子任务，COS93完整原生启动链仍未测得；旧任务和原失败结果保持，main保持unfrozen。
 
 ## 封存C14候选的独立玩法诊断通过
 
@@ -24,7 +31,7 @@
 - [COS16实际结果](https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6180211123)与[C14结果](https://github.com/lrfluobida/Cosmos/issues/92#issuecomment-6180211817)已由Root精确读回。详见[研究记录](docs/research/2026-10-15-transfer-c14-browser-launch.md)。
 - C14结果文档作者`c14_outcome_docs_implementer`（Git author LRF）的`4d86dd1be9d03e4a71fd502ea46a1bc799e9b1c1`经`c14_outcome_docs_reviewer`独立APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`a77141707419e599307e3e4daa81878287b96afa`。本批六个文档的UTF-8、中文回读、JSON 92个唯一任务和diff检查通过；未变更源码，复用既有通过证据。
 - [COS92 / #93](https://github.com/lrfluobida/Cosmos/issues/93)，id5856929672，已原生挂父#1，登记时92个子任务。依赖COS37/52/91，作者`cos92_implementer`最终`ffa0ce2918735f5b21b22c4373a390b156e63d33`经`cos92_reviewer`独立规格→质量APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger`合入`e74815f468b7158b5555ca2e5887ad3459b74dda`，标记`PERSISTENT_BROWSER_LAUNCH_SOURCE_READY`，本卡source scoped complete/closed。计划`4472e7bdea4227b7fb671880c0862628703943c6`的[公开批准](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180438181)保持；[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180910087)、closed(completed)及父勾选已由Root精确读回，main保持unfrozen。
-- COS92主线typecheck/build退出0，短集成5/5、0skip，4151.1296ms；src/tests与批准提交完全一致。复用作者Task1 17/17、受影响59/59、generic15/15、consumer2/2、真实Edge1/1、P2修订27/27及补充回滚1/1，均0skip；generic fixture单独strict的4条既有诊断明确保留。迟到release原cause已通过公开drain传播，普通取消保持；详见[计划](docs/plans/2026-10-15-cos92-browser-launch.md)与[任务卡](docs/specs/cos92-browser-launch.md)。C14原冻结`b20e9a43`失败/已消费事实不变，完整链诊断尚未执行，没有新付费或C14重放；COS16/COS18、完整经典和human仍未完成。
+- COS92主线typecheck/build退出0，短集成5/5、0skip，4151.1296ms；src/tests与批准提交完全一致。复用作者Task1 17/17、受影响59/59、generic15/15、consumer2/2、真实Edge1/1、P2修订27/27及补充回滚1/1，均0skip；generic fixture单独strict的4条既有诊断明确保留。迟到release原cause已通过公开drain传播，普通取消保持；详见[计划](docs/plans/2026-10-15-cos92-browser-launch.md)与[任务卡](docs/specs/cos92-browser-launch.md)。C14原冻结`b20e9a43`失败/已消费事实不变，完整原生启动链仍未测得，没有新付费或C14重放；COS16/COS18、完整经典和human仍未完成。
 
 ## COS90固定组补充分配与COS91固定C14源码已公开关闭
 

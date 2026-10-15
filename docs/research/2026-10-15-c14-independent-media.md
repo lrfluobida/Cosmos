@@ -29,4 +29,4 @@
 - `case14-independent-media.ts` SHA-256：`52f2ded2a67d4186d2642e47e93116bd867a2345e11bae6dacde0a1a823d2c9b`。v1 launcher 在 Node 启动前因 `Get-Command` 返回数组而失败；v2 是唯一实际 Node 执行，未重跑原C14或玩法。
 - `case14-independent-media-launch-v2.ps1` SHA-256：`9bb350658fbf6976accf08843bbc398f7db4ea7f398a79cee405de03c998c80f`。两版 launcher、intent、stdout、stderr、result 均保留，不删除或重跑。
 
-[COS93 / #94](https://github.com/lrfluobida/Cosmos/issues/94)承接真实历史负载下的完整原生浏览器启动测量；[COS94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)承接普通浏览器验收服务关闭超时。本记录提交时两项计划均已独立 PLAN_APPROVED、实现中；后续COS94源码已独审集成，范围与限制见[任务卡](../specs/cos94-browser-server-cleanup.md)，COS93仍未实测/未SOURCE_READY。本记录的原媒体及C14失败结论保持。
+[COS93 / #94](https://github.com/lrfluobida/Cosmos/issues/94)承接真实历史负载下的完整原生浏览器启动测量；[COS94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)承接普通浏览器验收服务关闭超时。本记录提交时两项计划均已独立 PLAN_APPROVED、实现中；后续COS94源码已独审集成，范围与限制见[任务卡](../specs/cos94-browser-server-cleanup.md)，COS93完整原生启动链仍未测得。本记录的原媒体及C14失败结论保持。

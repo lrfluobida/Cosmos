@@ -96,4 +96,12 @@ scope.read span2197在5014.7298ms触发原5秒限制；nativeIO/open/CDP/browser
 - [x] 最小修正：保存真实host.verify返回的完整evidence；未进入nativeIO写not_reached及精确failingGate/summary/span，保留throw exception与预定停止点的区别。无生产代码更改、无放宽guard、无大历史重建。
 - [x] 定向GREEN：返回失败分类与无效小snapshot准备拒绝2/2、0skip、3913.1063ms，raw `C:/Users/26557/AppData/Local/Temp/cos93-returned-evidence-green.tap`；两测试文件strict退出0，raw `C:/Users/26557/AppData/Local/Temp/cos93-p2-strict.log`。
 - [x] 补充真实fixture输出字段断言后，受影响两项2/2、0skip、4685.9324ms，raw `C:/Users/26557/AppData/Local/Temp/cos93-returned-evidence-integration.tap`；最终两文件strict退出0，raw `C:/Users/26557/AppData/Local/Temp/cos93-p2-final-strict.log`。未改变生产源码，原typecheck/build及其余轻检查证据复用。
-- [ ] 当前P2实际diff及研究记录交 `cos93_reviewer` 复审，再由唯一merger整合。未执行第二次actual，原运行记录不被新分类函数重写；本任务完整15秒目标仍未完成，不标SOURCE全目标通过或关闭。
+- [x] 当前P2实际diff及研究记录已由 `cos93_reviewer` 独立APPROVED，无finding，唯一merger已整合。未执行第二次actual，原运行记录不被新分类函数重写；本任务完整15秒目标仍未完成，不标SOURCE全目标通过或关闭。
+
+## 诊断实现已审集成
+
+作者 `cos93_implementer` 最终 `0b475c1fe2918af5e6b61594f29d3060da766078` 经 `cos93_reviewer` 独立规格→质量 APPROVED，唯一merger `batch_c14_cos92_merger` 合入 `3d67a50a09a00d98b8fa6d54ee7745337d7e803d`。当前source-reviewed / actual-incomplete，issue #94保持open、integration partial；[公开实际结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6182530375)不表示15秒启动通过。
+
+合并后COS93入口与两个测试文件等同批准版，COS94已审runner与测试保持。主线 `npm run typecheck` / `npm run build` 均退出0，raw为 `C:/Users/26557/AppData/Local/Temp/cos93-merge-typecheck.log`、`cos93-merge-build.log`。确认两个actual环境选择变量均未设置后，只执行 `node --experimental-strip-types --test --test-name-pattern='^COS93 (native factory exposes|fixture preserves returned verification failure)' tests/transfer/native-startup-diagnostic.test.ts`：2/2、0skip，4786.382ms，raw `C:/Users/26557/AppData/Local/Temp/cos93-merge-focused.tap`。
+
+原6/6、P2 2/2和最终strict证据复用，未再构造35行模拟历史、执行actual或启动浏览器。唯一实际版仍为59dd，历史宿主7df、原游戏b20保持；稳定334文件/40225837字节是选择范围副本，原raw未重写。共享revision3114/¥16.901000和原C14失败保持，Root已解冻main。
