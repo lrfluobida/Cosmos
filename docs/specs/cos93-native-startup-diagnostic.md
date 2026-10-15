@@ -90,3 +90,9 @@ fixture正常finally/drain/controller关闭有证据；raw `processesExited=fals
 v3的2503条spawn记录均收到原ChildProcess的close/exit0，但裸PID存活查询把12个已复用号码误当成原进程仍活着，raw processesExited=false保留。[退出观测短计划](../plans/2026-10-15-cos93-process-exit-observation.md)从已发布 `194e23d789bdc3a3b43773fad7b1c14ecdd8fd2d` 建立 `codex/cos93-process-exit-observation`；计划30f7c402已独审PLAN_APPROVED、[公开批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6188476349)，现已完成helper/fixture/test最小修正，待源码独审。
 
 修正以每条已有close标志判断原进程退出，同号PID不去重、不查询当前其他代际来否定原close；原listener、独立OS/current-tree/ports/owner/profile后核及全部browser身份、登记、15秒与drain成功gate保持。受控RED为2fail，GREEN为2/2、0skip、222.4616ms，三文件strict退出0；只用process.pid数值和模拟PID状态，无真实spawn/OS查询/kill，raw路径见计划。原v1/v2/v3证据不改；该P3与binding校验性能方向独立，不证明startup通过，COS93仍open/partial/startup-failed，无第四次actual或付费授权。
+
+## 新阶段：native-validation-waits/1导航诊断准备（PLAN_APPROVED）
+
+COS93导航准备计划`b00dfb344beff37ac3032512289695c7d6fc6b34`经`cos93_navigation_reviewer`独立PLAN_APPROVED、无剩余finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6191465264)已由Root精确读回；唯一merger `batch_c14_cos92_merger`合入`39a6fd8b5cdc11eb39735dcb103c80dcc2c9c990`。作者`cos93_navigation_implementer`现获准独立准备只读ready、descriptor/clone-stop/result与signal包装的无浏览器unit；SOURCE97具体生产接线及整体验证必须等待其源码独审合入并核对exact SHA。源码仍待独审，actual/paid未授权、不创建launcher；COS93继续open/partial/startup-failed，旧whole-open15秒、v1/v2/v3、C14与原预算保持。
+
+[导航准备计划](../plans/2026-10-15-cos93-native-navigation-diagnostic.md)保留v1默认与原8段/220步；新mode拟在真实load、只读JS/engine ready及生产finishNavigation成功后，于精确内部clone的steps.entries入口停止，零玩法输入，随后正常close/drain。null/404/foreign-origin保持原runner失败；单一idle ready不代表媒体通过。本条仅记录计划批准和合入后生效的独立准备授权，没有源码、测试或actual执行结论。
