@@ -2,7 +2,7 @@
 
 任务：[COS95 / #96](https://github.com/lrfluobida/Cosmos/issues/96)，id5858781735，父 #1，登记时 95 个原生子任务。依赖 COS52 / #53、COS91 / #92、COS92 / #93，以及 COS93 / #94 已审诊断实现与证据；不要求 COS93 的完整启动目标已经通过。
 
-状态：`SOURCE_NOT_READY`。本提交只有任务卡和[实施计划](../plans/2026-10-15-cos95-scope-authority-read.md)，等待独立计划评审；批准前不改生产源码。作者 `cos95_implementer`，独立 reviewer 由 Root 分配，唯一 merger 为 `batch_c14_cos92_merger`。
+状态：实现完成待源码独审，`SOURCE_NOT_READY`。计划 `bd4247cc5afd2d8c78e2e5b6c71d7265a8f400f4` 已由 `cos95_reviewer` 独立 `PLAN_APPROVED`、无 finding，Root 授权实施。作者 `cos95_implementer`，唯一 merger 为 `batch_c14_cos92_merger`；[实施计划及证据](../plans/2026-10-15-cos95-scope-authority-read.md)。
 
 ## 问题与证据边界
 
@@ -51,3 +51,13 @@
 本卡只允许免费源码、合成 TEMP fixture 与上述单次离线组件测量。复用既有 715 请求快照，不重造请求、不重跑 COS93、浏览器、模型、旧玩法或媒体，不打开原账本 owner，不改原账本、窗口、候选或失败记录。原参考游戏安装只读。共享验证 ¥150（含既有保守预留 ¥0.721771）、正式 ¥200/12h 与 ¥100/6h 优化目标保持，无新增额度。
 
 任务关闭至多表示本窄范围源码验收通过。完整原生启动仍由 COS93 后续有界诊断验证；COS16/COS18、accepted、完整经典与 human 不因本卡改变。一次组件样本不能证明整体 startup 提速、消除原 5 秒超时或确定长尾根因。
+
+## 作者实施证据（待源码独审）
+
+- 目标 RED 提交 `8e81933c190c8b4e0eb65402da8ab2e76c615962`：一次真实 scope 调用实际传入两份完整 snapshot，`2 !== 1`，0/1 pass、exit1。实现提交 `b0d987cb5e3facd6ef8a432e2c4c4c11c2337aa3` 后，同一观察方式得到一份身份/完整 window 投影和一份完整 snapshot，1/1 pass。仅新增 `run.ts` 方法并改 scope 首次读取，其他完整读取、原 timeout 与全部授权检查保持。
+- 新增 13 项测试覆盖完整 window 值与深层隔离、串行 repair、到期持久化、closed/legacy/wrong-window、reader 期间 repair/stop/deadline、5 秒截止余量、最终完整 snapshot 新鲜度及下一独立操作的 source/receipt 重验。受影响组首次 23/25；一个新 legacy fixture 补齐合法 grant 后通过，另一个既有 guard 断言按下述基线证据修正并通过；其余 23 项复用。另两项旧 routing/manifest 代表和 compiled 最终 read 用例通过，均 0 skip；typecheck/build 和最终 affected strict 退出 0。
+- 既有 `real transfer host guard timeout preserves its origin before candidate binding` 原注释要求下一独立调用到达缺失 synthetic prepared input 的拒绝。clean main `ccd55bb8fe6ecae10b9ddd011bc2f2b83b7c74a7` 单项复现同样失败，相关 source/test/fixture 与固定基线相同；COS92 `f9f43eb7` 已将缺失输入提前报告为 `Transfer design: candidate inputs are not prepared`，旧测试仍期待 `ENOENT`。经 Root 核准，只更新该精确错误断言，保留重验次数、receipt、controller、provider 和 cleanup 断言；这不是 COS95 的生产修复。
+- 单次离线对照：同一既有 15,376,992 字节、715-request 快照副本，Node 22.22.2。完整快照序列化输入 10,253,640 字节，完整 window 投影 32,123 字节；旧两次完整复制共 20,507,280 字节 / 164.1931 ms，新投影加最终完整复制共 10,285,763 字节 / 82.0730 ms。值等价与独立副本检查通过。序列化输入量不是堆分配量，单次时间受顺序、内存和 GC 噪声影响，没有运行 controller/store/source/native startup。
+- 测试证据：`C:/Users/26557/AppData/Local/Temp/cos95-scope-authority-9b7e0d05544c4e7ebcfc951cb7f25598`；唯一组件对照：`C:/Users/26557/AppData/Local/Temp/cos95-scope-copy-a78343bd2aba48f99b93c3be024639c3/{measure.mjs,result.json,snapshot.json,measure.log}`。所有修改文件 UTF-8/noBOM/LF、中文回读与 diffcheck 通过；没有重造 715 请求、浏览器、付费或原账本操作。
+
+收益仅是每次 scope 少一次多余完整复制。原 1.54 秒长尾原因、原 5 秒失败能否消除和完整 native startup 仍未知；COS93 raw/preserved failed/incomplete 与原 C14 结果保持。

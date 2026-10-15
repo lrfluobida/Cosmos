@@ -14,6 +14,8 @@
 
 本阶段仅提交本计划和任务卡，随后交独立计划评审，批准前不修改生产源码。作者不合 main、不 push、不改共享 tracking。唯一 merger 为 `batch_c14_cos92_merger`，独立 reviewer 由 Root 分配，不与作者共享实现上下文。
 
+计划 `bd4247cc5afd2d8c78e2e5b6c71d7265a8f400f4` 已由 `cos95_reviewer` 独立 `PLAN_APPROVED`、无 finding，Root 已授权实施。下述计划正文保留批准时要求，作者执行结果见文末；当前等待源码独审。
+
 ## Task 1: 真实小 fixture 的目标 RED
 
 **Files:** 新增 `tests/runtime/validation-scope-authority.test.ts`；参考 `tests/runtime/validation-routing.fixture.ts` 的合法 claim/open/receipt/固定输入读取，以及 `tests/runtime/validation-window.test.ts` 的 `roleTask` 与失败任务 repair 前置。helper 留在新测试文件，避免重构公共 fixture。
@@ -79,3 +81,52 @@ async readValidationScopeAuthority(): Promise<{
 - [ ] Root 分配独立 reviewer 审实际 diff，先规格再质量；作者修 actionable finding 后提交新 SHA 并只复审受影响部分。将批准 SHA 与证据交唯一 `batch_c14_cos92_merger`，作者不合 main 或 push。
 
 本任务无付费、浏览器、模型或原账本操作。原 COS93 raw/preserved 与 C14 失败事实保持；只减少首次复制量，最终 read 的那次完整 clone 继续存在。闭卡不能提升 COS16/COS18、accepted、完整经典或 human 状态。
+
+## 作者执行证据（待源码独审）
+
+目标 RED 提交 `8e81933c190c8b4e0eb65402da8ab2e76c615962`，生产与边界测试提交 `b0d987cb5e3facd6ef8a432e2c4c4c11c2337aa3`。实现保持固定基线，不吸收并行 tracking；生产 diff 只有 `run.ts` 新方法和 scope 首次读取的三处接线。原 `read`、`serial`、`expire`、`validationWindow`、`requireOwnSource`、5 秒 scope、15 秒 open 和整体 deadline 无修改。
+
+以下 raw 均在 `C:/Users/26557/AppData/Local/Temp/cos95-scope-authority-9b7e0d05544c4e7ebcfc951cb7f25598`。不把失败记录覆盖为通过；已通过行为只复用，失败项修正后定向验证。
+
+| 执行 | 观察结果 | raw |
+| --- | --- | --- |
+| Task 1 新复制计数测试 | RED 0/1、exit1、364.1394 ms；实际完整 snapshot 入参 2 次，目标 `2 !== 1` | `red.tap` |
+| 最小补丁后的同一测试 | GREEN 1/1、exit0、348.2130 ms；实际入参为投影一次、完整 snapshot 一次 | `green-copy.tap` |
+| 13 项新边界初跑 | 12/13；旧格式 fixture 漏必需 allocations，未进入目标断言 | `boundaries.tap` |
+| Task 3 三文件受影响组 | 23/25、0skip、38478.8942 ms；legacy 空 allocations 仍违反最少一个 taskId，另有旧 guard 的 ENOENT 断言过时 | `focused.tap` |
+| 修正 legacy 合法 grant 的单项及 guard 中间定向检查 | 2/2、0skip、10935.0202 ms；guard 此时使用 not-prepared 正则，后续按 Root 要求恢复旧断言做主线基线复现，再改精确值 | `corrected-focused.tap` |
+| clean main ccd55bb 精确 guard selector | 0/1、exit1、9143.5644 ms；同一 not-prepared/ENOENT 不匹配 | `baseline-guard-main-ccd55bb.tap` |
+| Root 核准后精确错误断言的 guard 单项 | 1/1、0skip、exit0、10159.4986 ms；原 reads/receipt/controller/provider/cleanup 断言全保留 | `corrected-guard.tap` |
+| Task 3 routing 与 manifest 旧代表 | 2/2、0skip、15995.5550 ms | `representatives.tap` |
+| compiled 最终完整 read 私有 timeout | 1/1、0skip、8673.1860 ms；完整 read 1 次、投影 1 次，保留私有 timeout 身份 | `compiled-final-read.tap` |
+| typecheck / build | 均 exit0，后续只改测试 literal/断言和文档，生产结果复用 | `typecheck.log` / `build.log` |
+| Task 5 affected strict，最终测试版本 | exit0 | `strict-final.log` |
+
+最终 25 项受影响行为的证据由原 23 项通过、新 legacy 修正单项和最终精确 guard 单项组成；未为相同生产代码重跑完整组。新增 source/receipt 测试分别验证成功→真实字节变化拒绝→恢复后重新读取成功，reader 次数为 1→2→3；最终完整 snapshot 的 task/revision/event 与合法更新一致。
+
+### 既有 guard 断言的基线事实
+
+在 `E:/develop/Cosmos` 核 `HEAD=ccd55bb8fe6ecae10b9ddd011bc2f2b83b7c74a7` 且 clean；比较 `7df1e5b…` 到该 SHA 的 `run.ts`、`validation-scope.ts`、transfer `runtime-host.ts`、`scope-timeout-origin.test.ts` 和 `runtime-host.fixture.ts`，diff 为空。仅执行：
+
+```text
+node --experimental-strip-types --test --test-name-pattern='^real transfer host guard timeout preserves its origin before candidate binding$' tests/transfer/scope-timeout-origin.test.ts
+```
+
+该测试先验证实际 guard scope 超时但 origin 存活，再验证下一独立调用重验并到达缺失 prepared input，原注释为 `New call must progress to the absent synthetic prepared input`。COS92 `f9f43eb7` 的 `bindCandidate` 已在 `requireCurrent()` 后用 `requireThat(saved, 'candidate inputs are not prepared')` 明确拒绝；测试保留较旧 `ENOENT` 文字。Root 在基线失败与原意核对后批准改为精确完整错误字符串；未补伪造 prepared 数据，也未改变 guard、source、owner 或 cleanup。新 legacy fixture 的两次设置错误只修测试输入；这些均不计作新的生产修复。
+
+### 唯一离线组件对照
+
+目录：`C:/Users/26557/AppData/Local/Temp/cos95-scope-copy-a78343bd2aba48f99b93c3be024639c3`。按 Task 4 的既有 snapshot 来源复制一次，没有打开原 controller/store；`node --experimental-strip-types <该目录>/measure.mjs` 仅运行一次，exit0。原 raw 15,376,992 字节、revision3077、22 cases、715 requests、Node v22.22.2；原测试和编译进程已结束后再做组件测量。
+
+| clone 输入 | 输入序列化字节 | 单次 wall ms |
+| --- | ---: | ---: |
+| 旧首次完整 snapshot | 10,253,640 | 85.3874 |
+| 旧最终完整 snapshot | 10,253,640 | 78.8057 |
+| 新首次身份及完整 window | 32,123 | 0.2129 |
+| 新最终完整 snapshot | 10,253,640 | 81.8601 |
+
+前后输入总量分别 20,507,280 / 10,285,763 字节；clone 合计 wall 164.1931 / 82.0730 ms。三个完整副本与原快照、投影与完整窗口均深比较相等，投影无 window/operatorDecision 别名。CPU user/system、入参键与限制均保存在 `result.json`；可复核脚本与日志为 `measure.mjs`、`measure.log`。
+
+序列化字节不是堆分配量。单次进程按旧→新顺序测量，四份结果保留至等价检查，内存/GC/顺序噪声未控制；无预热、循环、择优重测、controller 队列、expire、可信 reader、source 校验或 native startup。此样本与生产复制计数共同支持减少复制输入量，不能证明整体 startup 加速、原超时已修复或 GC 根因。
+
+所有改动文件严格 UTF-8/noBOM/LF，中文回读与 `git diff --check` 通过。等待独立 reviewer 审实际最终 diff，再交唯一 merger；作者未改 main、共享 tracking、原账本、原始证据或生成内容，也未 push、重造历史请求、调用浏览器或付费模型。
