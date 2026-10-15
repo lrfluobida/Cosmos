@@ -11,6 +11,7 @@ import { chromium } from '@playwright/test';
 import type { TestContext } from 'node:test';
 import { regularFile, safePath, snapshot, within } from '../../src/artifacts/paths.ts';
 import { sameValue } from '../../src/contracts/validation.ts';
+import type { EvidenceContract } from '../../src/contracts/types.ts';
 import { createValidationRequirement } from '../../src/roles/execution-input.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { validateSnapshot } from '../../src/runtime/run-validation.ts';
@@ -44,7 +45,23 @@ const diagnosticStopMessage = 'Browser startup/execution: DiagnosticStartupCompl
 export interface DiagnosticObserver {
   span<T>(name: string, operation: () => Promise<T>): Promise<T>;
   event(name: string, data?: unknown): void;
-  snapshot(): { spans: { name: string; startMs: number; endMs: number | null; durationMs: number | null; outcome: string }[]; events: { name: string; atMs: number; data?: any }[]; [key: string]: unknown };
+  snapshot(): { spans: { id?: number; name: string; startMs: number; endMs: number | null; durationMs: number | null; outcome: string; error?: { name: string; message: string } }[]; events: { name: string; atMs: number; data?: any }[]; [key: string]: unknown };
+}
+
+/** A returned failed evidence contract is a failure even when host.verify did not throw. */
+export function classifyDiagnosticStartup(input: { nativeCalls: number; startupPassed: boolean; hostEvidence?: readonly EvidenceContract[];
+  trace: ReturnType<DiagnosticObserver['snapshot']>; phase: string; error?: ReturnType<typeof failure> }) {
+  if (input.nativeCalls === 1 && input.startupPassed) return { outcome: 'passed' as const,
+    reason: 'Single original-limit open, exact diagnostic stop, PID/CDP identity and normal cleanup proved', failingGate: null };
+  const first = input.hostEvidence?.find(evidence => evidence.outcome === 'failed');
+  const scope = first && input.trace.spans.find(span => span.name === 'scope.read' && span.outcome === 'threw'
+    && span.error?.name === 'ValidationScopeTimeoutError' && span.error.message === first.summary);
+  const failingGate = first ? { operation: scope ? 'scope.read' : 'host.verify', summary: first.summary, source: structuredClone(first.source),
+    traceSpanId: scope?.id ?? null, durationMs: scope?.durationMs ?? null }
+    : input.error ? { operation: input.phase, summary: input.error.message, source: null, traceSpanId: null, durationMs: null } : null;
+  return { outcome: input.nativeCalls === 0 ? 'not_reached' as const : 'failed' as const,
+    reason: first?.summary ?? input.error?.message ?? (input.nativeCalls === 0 ? 'Native IO was not reached; inspect host verification and preparation evidence'
+      : 'Startup or cleanup was not fully proved; inspect trace and failed report'), failingGate };
 }
 
 export async function assertDiagnosticWriteRoot(target: string, sourceRepository: string): Promise<void> {
@@ -121,6 +138,7 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
   };
   let controller: RunController | undefined, work: OwnedWork | undefined, host: Awaited<ReturnType<typeof createTransferReusedConsumerHost>> | undefined;
   let report: PersistentAcceptanceReport | undefined, error: ReturnType<typeof failure> | undefined, phase = 'preparation';
+  let hostEvidence: EvidenceContract[] | undefined;
   let before: ReturnType<typeof counts> | undefined, preparedCounts: ReturnType<typeof counts> | undefined, baselineBytes = 0, preparedBytes = 0;
   const cleanup = { preparationClosed: false, drained: false, controllerClosed: false, locksAbsent: false, processesExited: false,
     ports: [] as Awaited<ReturnType<typeof closedLoopbackPort>>[], profile: null as null | { path: string; retainedForDiagnosis: true; markerSha256: string; entries: string[] }, errors: [] as ReturnType<typeof failure>[] };
@@ -352,7 +370,7 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
         t.mock.method(cdp, 'send', ((method: string, params: any) => observer.span(`cdp.${method}`, () => (send as any)(method, params))) as any); return cdp; });
       return browser;
     }));
-    await observer.span('host.verify', () => host!.verify(task, currentWork.signal));
+    hostEvidence = await observer.span('host.verify', () => host!.verify(task, currentWork.signal));
     phase = 'cleanup';
   } catch (caught) { error = failure(caught); observer.event('diagnostic.error', { phase, ...error }); }
   finally {
@@ -389,9 +407,11 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
     && sameValue(segment.errors, [diagnosticStopMessage]) && registration && cdp && registration.atMs <= cdp.startMs
     && cleanup.preparationClosed && cleanup.drained && cleanup.controllerClosed && cleanup.locksAbsent && cleanup.processesExited
     && cleanup.ports.length >= 2 && cleanup.ports.every(port => port.closed) && preservation.unchanged && !cleanup.errors.length && !error;
+  const startup = classifyDiagnosticStartup({ nativeCalls, startupPassed: !!startupPassed, hostEvidence, trace, phase, error });
   const result = { formatVersion: 'cos93-native-startup-diagnostic/1', outcome: nativeCalls === 1 && opens.length === 1 && preservation.unchanged && cleanup.errors.length === 0 ? 'diagnostic_completed' : 'diagnostic_incomplete',
-    startup: { outcome: startupPassed ? 'passed' : 'failed', reason: startupPassed ? 'Single original-limit open, exact diagnostic stop, PID/CDP identity and normal cleanup proved' : 'Startup or cleanup was not fully proved; inspect trace and failed report',
-      open: opens[0] ?? null, stop: stops[0] ?? null }, phase, error: error ?? null, sourceSummary, counts: { before, prepared: preparedCounts, original: beforeOriginal },
+    startup: { ...startup, open: opens[0] ?? null, stop: stops[0] ?? null },
+    hostVerification: { returned: hostEvidence !== undefined, evidence: hostEvidence ?? null },
+    phase, error: error ?? null, sourceSummary, counts: { before, prepared: preparedCounts, original: beforeOriginal },
     nativeCalls, buildReused, report: report ?? null, series: literalSeries ?? null, cleanup, spawned, preservation, outputRoot,
     limitation: 'Synthetic fixture on existing candidate bytes; no model/provider, fixed CLI admission, gameplay, media, coding review, accepted or human pass.' };
   await output('trace.json', trace); await output('preservation.json', preservation); await output('result.json', result);

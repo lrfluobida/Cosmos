@@ -69,7 +69,7 @@ git diff --check
 
 初次计划提交时尚未执行上述命令；实现后的实际证据见下节。复用COS92作者/merger已通过的17、59、15、2、1、27项及补充1项，按原卡保留各自范围，不合并成新总数。旧generic fixture四条strict诊断保持；不因本轮文档更动重跑。仅对新源码/fixture差异运行必要检查、严格UTF-8及中文回读。诊断完成不等于15秒启动通过，更不等于COS16/COS18或完整目标游戏完成。
 
-## 实现准备与轻检查（尚无真实历史样本）
+## 执行前的实现准备与轻检查
 
 计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 已获 `cos93_reviewer` 的 `PLAN_APPROVED`，无finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)。Root随后授权代码准备及轻检查，专用测量时段已交COS93，真实历史样本仍须实现diff独审后单次执行。
 
@@ -84,4 +84,16 @@ Root批准用Node内建 `mock.module` 透明包装 `runAcceptanceInOwnedSession`
 | 整合轻检查 | 6/6、0skip，5952.0068ms，exit0；含原根/缺材料拒绝及无效snapshot在controller/browser前拒绝并保留来源 | `C:/Users/26557/AppData/Local/Temp/cos93-integrated-short.tap` |
 | 生产typecheck/build | 均exit0 | 本轮工具原始输出；没有虚构独立日志文件 |
 
-两个新测试文件strict检查exit0，命令为 `node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --strict --skipLibCheck tests/transfer/native-startup-diagnostic.fixture.ts tests/transfer/native-startup-diagnostic.test.ts`；原始工具输出为空且退出0，不声称有独立日志文件。原预算target/grants拒绝沿用未修改的production API及COS90/COS91已审证据，不为了本诊断重seed历史重复测财务守卫。新增fixture的实际重负载路径仍待独审后首次运行，当前不能宣称TEMP历史准备或15秒启动通过。运行时profile按原生产逻辑保留为新TEMP诊断证据，另核PID退出、精确端口不再监听、owner/drain和原保护集保持；不删除原历史或恢复时间戳。
+两个新测试文件strict检查exit0，命令为 `node node_modules/typescript/bin/tsc --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --strict --skipLibCheck tests/transfer/native-startup-diagnostic.fixture.ts tests/transfer/native-startup-diagnostic.test.ts`；原始工具输出为空且退出0，不声称有独立日志文件。原预算target/grants拒绝沿用未修改的production API及COS90/COS91已审证据，不为了本诊断重seed历史重复测财务守卫。此准备阶段尚未运行真实历史路径，不能以该阶段的短测试宣称TEMP历史准备或15秒启动通过。运行时profile按原生产逻辑保留为新TEMP诊断证据，另核PID退出、精确端口不再监听、owner/drain和原保护集保持；不删除原历史或恢复时间戳。
+
+## 首次实际未完成与P2结果保留
+
+上述实现提交为 `59dd5d3a34fb65d5e6933f492aa91613a0fab19b`，精确提交strict退出0，raw `C:/Users/26557/AppData/Local/Temp/cos93-final-strict.log`。经 `cos93_reviewer` 的 `PRE_RUN_SOURCE_APPROVED` 及私有45分钟launcher独审后，Root在历史main `7df1e5b3b8662a4fa836c466f266f9b80d04d2e8` 冻结时单次执行。外层765169ms、exit1、无guard/kill；真实TEMP API完成715请求负载，原共享账本没有新窗口或费用。
+
+scope.read span2197在5014.7298ms触发原5秒限制；nativeIO/open/CDP/browser全部0，15秒启动结果未测得。原host-report有精确failed summary，fixture却丢弃返回evidence并写phase=cleanup/error=null；这是当前P2修正范围。原466文件/61目录和ledger保持，独立POSTCHECK CLEAN后Root解冻。详见[研究记录](../research/2026-10-15-cos93-native-startup-diagnostic.md)与[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6182530375)。原raw及launcher不改；334文件的稳定材料仅为选择范围副本，不是整棵TEMP归档。
+
+- [x] 小契约RED：新增返回failed evidence分类要求，因缺API失败，1fail/0skip，raw `C:/Users/26557/AppData/Local/Temp/cos93-returned-evidence-red.tap`。
+- [x] 最小修正：保存真实host.verify返回的完整evidence；未进入nativeIO写not_reached及精确failingGate/summary/span，保留throw exception与预定停止点的区别。无生产代码更改、无放宽guard、无大历史重建。
+- [x] 定向GREEN：返回失败分类与无效小snapshot准备拒绝2/2、0skip、3913.1063ms，raw `C:/Users/26557/AppData/Local/Temp/cos93-returned-evidence-green.tap`；两测试文件strict退出0，raw `C:/Users/26557/AppData/Local/Temp/cos93-p2-strict.log`。
+- [x] 补充真实fixture输出字段断言后，受影响两项2/2、0skip、4685.9324ms，raw `C:/Users/26557/AppData/Local/Temp/cos93-returned-evidence-integration.tap`；最终两文件strict退出0，raw `C:/Users/26557/AppData/Local/Temp/cos93-p2-final-strict.log`。未改变生产源码，原typecheck/build及其余轻检查证据复用。
+- [ ] 当前P2实际diff及研究记录交 `cos93_reviewer` 复审，再由唯一merger整合。未执行第二次actual，原运行记录不被新分类函数重写；本任务完整15秒目标仍未完成，不标SOURCE全目标通过或关闭。

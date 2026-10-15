@@ -192,8 +192,30 @@ test('COS93 fixture invalid preclaim fails before controller or browser and pres
   const { diagnoseNativeStartup } = await import('./native-startup-diagnostic.fixture.ts');
   const result = await diagnoseNativeStartup({ sourceRepository, historySnapshot, observer: observer() }, t);
   assert.equal(result.outcome, 'diagnostic_incomplete'); assert.equal(result.phase, 'preparation'); assert.equal(result.nativeCalls, 0);
+  assert.equal(result.startup.outcome, 'not_reached'); assert.equal(result.startup.failingGate?.operation, 'preparation');
+  assert.deepEqual(result.hostVerification, { returned: false, evidence: null });
   assert.equal(result.cleanup.controllerClosed, false); assert.deepEqual(result.spawned, []); assert.equal(result.report, null);
   assert.equal(result.preservation.unchanged, true); assert.deepEqual(await readFile(historySnapshot), before);
+});
+
+test('COS93 fixture preserves returned verification failure and distinguishes an unreached startup', { skip: actualSelected }, async () => {
+  const fixture = await import('./native-startup-diagnostic.fixture.ts');
+  const classify = (fixture as Record<string, any>).classifyDiagnosticStartup;
+  assert.equal(typeof classify, 'function', 'Returned failed host evidence must become a visible diagnostic cause');
+  const failed: any = { outcome: 'failed', summary: 'Validation scope check timed out.',
+    source: { artifactId: 'fixture-host-report', version: 'v1', location: 'evidence/coding/host-report.json' } };
+  const trace: any = { spans: [{ id: 2197, name: 'scope.read', outcome: 'threw', durationMs: 5014.7298,
+    error: { name: 'ValidationScopeTimeoutError', message: failed.summary } }], events: [] };
+  const result = classify({ nativeCalls: 0, startupPassed: false, hostEvidence: [failed], trace, phase: 'cleanup' });
+  assert.equal(result.outcome, 'not_reached'); assert.equal(result.reason, failed.summary);
+  assert.deepEqual(result.failingGate, { operation: 'scope.read', summary: failed.summary, source: failed.source, traceSpanId: 2197, durationMs: 5014.7298 });
+  assert.equal(classify({ nativeCalls: 0, startupPassed: true, hostEvidence: [], trace: { spans: [], events: [] }, phase: 'cleanup' }).outcome, 'not_reached');
+  const expectedStop = classify({ nativeCalls: 1, startupPassed: true, hostEvidence: [{ ...failed, summary: stopMessage }], trace, phase: 'cleanup' });
+  assert.equal(expectedStop.outcome, 'passed'); assert.equal(expectedStop.failingGate, null);
+  const rejection = classify({ nativeCalls: 0, startupPassed: false, hostEvidence: undefined, trace: { spans: [], events: [] },
+    phase: 'preparation', error: { name: 'Error', message: 'Actual source bytes changed' } });
+  assert.equal(rejection.outcome, 'not_reached'); assert.equal(rejection.reason, 'Actual source bytes changed');
+  assert.equal(rejection.failingGate.operation, 'preparation');
 });
 
 test('COS93 actual history native startup', { skip: !actualSelected }, async t => {
