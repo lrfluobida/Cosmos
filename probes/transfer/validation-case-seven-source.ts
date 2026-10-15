@@ -104,12 +104,21 @@ export async function captureFixedTransferCodingSource(name: 'seven' | 'eight' |
 export async function requireTransferCaseSevenSource(source: Awaited<ReturnType<typeof captureTransferCaseSevenSource>>, signal = new AbortController().signal) {
   return requireFixedTransferCodingSource('seven', source, signal);
 }
+export async function requireKnownTransferCodingSourceFiles(files: readonly { path: string; sha256: string }[], signal: AbortSignal) {
+  for (let start = 0; start < files.length; start += 4) {
+    signal.throwIfAborted();
+    const settled = await Promise.allSettled(files.slice(start, start + 4).map(async file => {
+      signal.throwIfAborted();
+      if (validationHash(await readFile(file.path)) !== file.sha256) throw new Error('C7 actual executed source or dependency bytes changed.');
+    }));
+    for (const result of settled) if (result.status === 'rejected') throw result.reason;
+    signal.throwIfAborted();
+  }
+}
 export async function requireFixedTransferCodingSource(name: 'seven' | 'eight' | 'nine' | 'ten' | 'eleven' | 'twelve' | 'thirteen' | 'fourteen', source: Awaited<ReturnType<typeof captureTransferCaseSevenSource>>, signal = new AbortController().signal) {
   const { sha256, ...value } = source;
   if (sha256 !== validationHash(JSON.stringify(value))) throw new Error('C7 executed source receipt changed.');
-  for (const file of [...source.files, source.platformLock, ...source.dependencies.flatMap(d => [{ path: d.entry, sha256: d.entrySha256 }, { path: d.path, sha256: d.sha256 }, ...d.files])]) {
-    signal.throwIfAborted(); if (validationHash(await readFile(file.path)) !== file.sha256) throw new Error('C7 actual executed source or dependency bytes changed.');
-  }
+  await requireKnownTransferCodingSourceFiles([...source.files, source.platformLock, ...source.dependencies.flatMap(d => [{ path: d.entry, sha256: d.entrySha256 }, { path: d.path, sha256: d.sha256 }, ...d.files])], signal);
   if (!sameValue(source.dependencies.map(d => d.name), dependencyNames)) throw new Error('C7 fixed runtime dependency set changed.');
   for (const dependency of source.dependencies) if (await realpath(fileURLToPath(import.meta.resolve(dependency.name))) !== dependency.entry) throw new Error('C7 actual runtime dependency resolution changed.');
   if (!sameValue(await captureFixedTransferCodingSource(name, signal), source)) throw new Error('C7 actual execution import closure changed.');
