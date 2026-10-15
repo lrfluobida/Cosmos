@@ -22,20 +22,28 @@ interface TransferRequirements {
 const hash = (bytes: Buffer | string) => createHash('sha256').update(bytes).digest('hex');
 export function fixedTransferValidationInput(declaration: typeof TRANSFER_VALIDATION_CASE) {
 /** Only fixed tracked repository inputs. No snapshots, sessions or credentials. */
-async function readTransferValidationInput(repository: string) {
+async function readTransferValidationInput(repository: string, callerSignal?: AbortSignal) {
+  callerSignal?.throwIfAborted();
   const root = resolve(repository), expected = declaration.inputs, actual: string[] = [];
   async function visit(folder: string): Promise<void> {
-    for (const entry of await readdir(await safePath(root, folder), { withFileTypes: true })) {
+    callerSignal?.throwIfAborted();
+    const target = await safePath(root, folder, callerSignal); callerSignal?.throwIfAborted();
+    const entries = await readdir(target, { withFileTypes: true }); callerSignal?.throwIfAborted();
+    for (const entry of entries) {
+      callerSignal?.throwIfAborted();
       if (entry.name === 'node_modules' || entry.name === 'dist') continue;
-      const path = `${folder}/${entry.name}`; await safePath(root, path);
+      const path = `${folder}/${entry.name}`; await safePath(root, path, callerSignal); callerSignal?.throwIfAborted();
       if (entry.isDirectory()) await visit(path); else actual.push(path);
+      callerSignal?.throwIfAborted();
     }
   }
-  await visit('templates/2d');
+  await visit('templates/2d'); callerSignal?.throwIfAborted();
   if (!sameValue(actual.sort(), expected.template.files.map(file => file.path).sort())) throw new Error('Fixed transfer template file set changed.');
   let requirement: Buffer | undefined;
   for (const file of [expected.requirements, ...expected.template.files]) {
-    const bytes = await regularFile(root, file.path); new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    callerSignal?.throwIfAborted();
+    const bytes = await regularFile(root, file.path, callerSignal); callerSignal?.throwIfAborted();
+    new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     if (hash(bytes) !== file.sha256) throw new Error(`Fixed transfer input changed: ${file.path}`);
     if (file.path === expected.requirements.path) requirement = bytes;
   }

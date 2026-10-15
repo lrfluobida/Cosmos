@@ -11,6 +11,8 @@ import type { PersistentAcceptanceReport, PersistentAcceptanceSeries } from '../
 import { diagnosePersistentBrowser as diagnose } from '../../probes/transfer/persistent-diagnostics.ts';
 import type { PersistentDiagnosticExpected, PersistentDiagnosticOptions } from '../../probes/transfer/persistent-diagnostics.ts';
 import type { Diagnostics } from '../../probes/e2e/diagnostics.ts';
+import { createNativeValidationWaits, NATIVE_VALIDATION_WAIT_CONTRACT } from '../../src/acceptance/native-validation-waits.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 
 const candidate = { artifactId: 'game', version: 'v1', location: 'registry/game/v1/project' };
 const task = { taskId: 'coding', runId: 'fixture-run', specVersion: 'spec-v1', acceptanceIds: ['save'], artifacts: [candidate] } as TaskContract;
@@ -35,11 +37,15 @@ function series(): PersistentAcceptanceSeries {
       savedSnapshot: { kind: 'debug', path: ['transfer', 'saveSnapshot'] } } };
 }
 type FixtureKind = 'pass' | 'mismatch' | 'exception' | 'unknown' | 'input' | 'no-input';
-async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0) {
+async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0, native = false) {
   const root = await mkdtemp(join(tmpdir(), 'cos39-diagnostic-')), expectedSeries = series(), deadlineAt = Date.now() + 30_000; let calls = 0;
   if (kind === 'no-input') expectedSeries.segments[0].plan.steps[0] = { id: 'click', kind: 'assert', acceptanceId: 'save',
     observation: { kind: 'visible', selector: '#save' }, expected: true, timeoutMs: 100 };
-  const report = await executePersistentSeries(expectedSeries, { evidenceRoot: root, deadlineAt, verifyBinding: async () => {} }, async (p, lifecycle) => {
+  const work = new OwnedWork(), waits = native ? createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: task.taskId,
+    deadlineAt, signal: work.signal, trackRaw: start => work.run(start) }) : undefined;
+  waits?.startConsumer();
+  const report = await executePersistentSeries(expectedSeries, { evidenceRoot: root, deadlineAt, verifyBinding: async () => {},
+    ...(waits ? { nativeValidationWaits: waits } : {}) }, async (p, lifecycle) => {
     calls++; const folder = [p.projectId, p.artifact.artifactId, p.artifact.version, p.runId, p.reportId].join('/');
     await mkdir(join(root, folder), { recursive: true });
     const file = (name: string) => folder + '/' + name;
@@ -69,11 +75,23 @@ async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0) {
       }
       if (kind === 'input') Object.assign(result.steps[0], { outcome: 'failed', actual: null, error: 'input failed', failure: 'input' });
     }
+    if (waits) {
+      const segment = waits.beginSegment(p.reportId);
+      await segment.runStage('prepare_authority', async () => {}); await segment.runStage('register_authority', async () => {});
+      await segment.runStage('browser_transport', async () => {}); segment.beginNavigation(); await segment.runStage('navigation', async () => {
+        for (let request = 0; request < 2; request++) await waits.runRequest(async current => {
+          for (const stage of ['http_pre_authority', 'http_body', 'http_post_authority'] as const) await current.runStage(stage, async () => { await new Promise(done => setTimeout(done, 2)); });
+        });
+      });
+      segment.finishNavigation(); segment.revoke(); await segment.settle(deadlineAt);
+      result.endedAt = new Date().toISOString(); result.nativeWaits = { contractVersion: waits.contractVersion, deadlineAt, workDeadlineAt: waits.workDeadlineAt, segment: segment.snapshot() };
+    }
     for (const name of ['final.png', 'browser.webm', 'browser.log']) await writeFile(join(root, file(name)), 'synthetic evidence', 'utf8');
     await writeFile(join(root, result.reportPath), JSON.stringify(result) + '\n', 'utf8'); return result;
   });
   const profileRoot = report.profileRoot;
-  const expected = { series: expectedSeries, deadlineAt, sourceVersion: expectedSeries.sourceVersion, reportPath: report.reportPath };
+  const expected = { series: expectedSeries, deadlineAt, sourceVersion: expectedSeries.sourceVersion, reportPath: report.reportPath,
+    ...(waits ? { nativeWaitContract: waits.contractVersion } : {}) };
   const options = { evidenceRoot: root, verifyBinding: async () => {} };
   const persist = async (value: PersistentAcceptanceReport = report) => {
     for (const segment of value.segments) await writeFile(join(root, segment.report.reportPath), JSON.stringify(segment.report) + '\n', 'utf8');
@@ -83,6 +101,7 @@ async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0) {
     assert.equal(dirname(resolve(root)), resolve(tmpdir())); assert.ok(basename(root).startsWith('cos39-diagnostic-'));
     assert.equal(dirname(resolve(profileRoot)), resolve(tmpdir())); assert.ok(basename(profileRoot).startsWith('cosmos-browser-'));
     await rm(root, { recursive: true, force: true }); await rm(profileRoot, { recursive: true, force: true });
+    await work.cancelAndDrain('fixture complete');
   };
   return { root, report, expected, options, persist, cleanup, calls };
 }
@@ -95,6 +114,52 @@ function insufficient(result: Diagnostics) {
   assert.ok(result.issues.length); assert.ok(result.issues.every(issue => issue.classification === 'insufficient_evidence'));
   assert.deepEqual(result.passedChecks, []);
 }
+
+test('COS97 new native expected contract refuses a legacy report without changing legacy diagnosis', async () => {
+  const f = await fixture('pass');
+  try { assert.equal((await diagnostic(f)).reportValid, true);
+    insufficient(await diagnostic(f, f.report, { ...f.expected, nativeWaitContract: NATIVE_VALIDATION_WAIT_CONTRACT }));
+  } finally { await f.cleanup(); }
+});
+
+test('COS97 actual helper timing permits a complete native report and refuses changed source or pending evidence', async () => {
+  const f = await fixture('pass', 0, true);
+  try {
+    assert.equal(f.report.outcome, 'passed', f.report.errors.join('; ')); assert.equal((await diagnostic(f)).reportValid, true);
+    assert.ok(f.report.nativeWaits!.consumerStartedAt! <= Date.parse(f.report.startedAt));
+    assert.ok(f.report.nativeWaits!.seriesElapsedMs > 0); assert.ok(!Object.hasOwn(f.report.nativeWaits!, 'consumerEndedAt'));
+    for (const mutate of [
+      (r: any) => { delete r.nativeWaits; }, (r: any) => { r.nativeWaits.taskId = 'changed'; },
+      (r: any) => { r.nativeWaits.consumerEndedAt = Date.now(); }, (r: any) => { r.nativeWaits.rawReads.pending = 1; },
+      (r: any) => { r.nativeWaits.segments[0].rawOperationsPending = 1; r.segments[0].report.nativeWaits.segment.rawOperationsPending = 1; },
+      (r: any) => { r.nativeWaits.segments[0].stages[0].capMs = 15000; r.segments[0].report.nativeWaits.segment.stages[0].capMs = 15000; },
+      (r: any) => { r.nativeWaits.segments[0].firstCause = { stage: 'http_post_authority', name: 'Error', message: 'Actual source changed' };
+        r.segments[0].report.nativeWaits.segment.firstCause = r.nativeWaits.segments[0].firstCause; },
+      (r: any) => { r.nativeWaits.segments[0].stages[0].endedAt = r.nativeWaits.segments[0].stages[0].deadlineAt;
+        r.segments[0].report.nativeWaits.segment.stages[0].endedAt = r.nativeWaits.segments[0].stages[0].endedAt; },
+      (r: any) => { r.nativeWaits.segments[0].http.pending = 1; r.segments[0].report.nativeWaits.segment.http.pending = 1; },
+    ]) {
+      const changed = structuredClone(f.report); mutate(changed); await f.persist(changed); insufficient(await diagnostic(f, changed));
+    }
+  } finally { await f.cleanup(); }
+});
+
+test('COS97 native timing rejects impossible elapsed and HTTP aggregates around actual helper measurements', async t => {
+  const f = await fixture('pass', 0, true);
+  try {
+    assert.equal((await diagnostic(f)).reportValid, true);
+    for (const [name, mutate] of [
+      ['stage elapsed', (r: any) => { r.segments[0].report.nativeWaits.segment.stages[0].elapsedMs = 1e12; }],
+      ['series elapsed', (r: any) => { r.nativeWaits.seriesElapsedMs = 1e12; }],
+      ['HTTP cap', (r: any) => { const row = r.segments[0].report.nativeWaits.segment.http.stages[0]; row.maxMs = 60010; row.totalMs = 120020; }],
+      ['HTTP segment duration', (r: any) => { const row = r.segments[0].report.nativeWaits.segment.http.stages[0]; row.maxMs = 1000; row.totalMs = 2000; }],
+      ['HTTP total greater than count times max', (r: any) => { const row = r.segments[0].report.nativeWaits.segment.http.stages[0]; row.totalMs = row.maxMs * row.count + 1; }],
+    ] as const) await t.test(name, async () => {
+      const changed = structuredClone(f.report); mutate(changed); changed.nativeWaits!.segments[0] = structuredClone(changed.segments[0].report.nativeWaits!.segment);
+      await f.persist(changed); insufficient(await diagnostic(f, changed));
+    });
+  } finally { await f.cleanup(); }
+});
 
 test('COS39 diagnoses a reliable early mismatch and attributed project exception without passing an unreached checkpoint', async () => {
   for (const kind of ['mismatch', 'exception'] as const) {

@@ -65,12 +65,14 @@ import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
 import { MODULE_CONTRACTS, MODULE_SLOTS, moduleDirectory, moduleSlot, moduleSource, validateModuleContracts, validateModuleFiles } from './modular-code.ts';
 import type { ModularCompilerInputs, ModuleSlot } from './modular-code.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
+import { associateNativeReadSignal, createNativeValidationWaits, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
+import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
 const requestReservation = (request: { inputBytes: number; maxOutputTokens: number; hasImages: boolean }) => (request.hasImages ? 1_000_000 : request.inputBytes) * 2 + request.maxOutputTokens * 8;
 async function writeJson(root: string, name: string, value: unknown) { const path = await safePath(root, name); await mkdir(dirname(path), { recursive: true }); await publishReceipt(path, value); }
-async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
+async function json(root: string, name: string, callerSignal?: AbortSignal): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name, callerSignal))); }
 async function copyRefs(root: string, target: string, refs: ArtifactReference[]) {
   for (const location of new Set(refs.map(ref => ref.location))) {
     const source = await safePath(root, location), destination = await safePath(target, location);
@@ -98,31 +100,53 @@ export interface BrowserHostIO {
 }
 /** Source-owned launch handoff: returning a handle does not end tracked ticket ownership. */
 export function createPersistentOwnedChild(input: Pick<HostInput, 'controller' | 'work'>, authority: HostExecutionAuthority,
-  verifyBinding: () => Promise<void>): NonNullable<PersistentAcceptanceOptions['ownedChild']> {
+  verifyBinding: (callerSignal?: AbortSignal) => Promise<void>, nativeValidationWaits?: NativeValidationWaits): NonNullable<PersistentAcceptanceOptions['ownedChild']> {
   return { prepare(launch) {
     let ready!: (handle: PreparedPersistentChild) => void, rejectReady!: (error: unknown) => void;
     const result = new Promise<PreparedPersistentChild>((resolveReady, reject) => { ready = resolveReady; rejectReady = reject; });
     const operation = input.work.run(async workSignal => {
       const check = () => {
+        if (nativeValidationWaits) {
+          input.controller.signal.throwIfAborted(); launch.signal.throwIfAborted(); workSignal.throwIfAborted();
+          if (Date.now() >= launch.deadlineAt) throw new NativeWaitDeadlineError('prepare_authority');
+          return;
+        }
         if (launch.signal.aborted || workSignal.aborted) throw launch.signal.reason instanceof DeadlineError ? launch.signal.reason : new AcceptanceCancelledError('Persistent launch cancelled');
         if (Date.now() >= launch.deadlineAt) throw new DeadlineError('Persistent launch expired');
       };
       let ticket: string | undefined, delivered = false;
       try {
-        check(); await verifyBinding(); check();
+        check(); if (nativeValidationWaits) await verifyBinding(launch.signal); else await verifyBinding(); check();
         ticket = await input.controller.prepareOwnedChild(authority.windowId ? { taskId: authority.taskId, windowId: authority.windowId } : undefined, check);
         check(); const exactTicket = ticket;
         let state: 'unspawned' | 'registered' | 'releasing' | 'released' = 'unspawned';
+        let registration: Promise<void> | undefined, nativeRegistration = false;
         ready({ ticket: exactTicket,
-          register: async pid => {
-            if (state !== 'unspawned') throw new Error('Persistent launch ticket was already consumed.');
-            state = 'registered'; await input.controller.registerOwnedChild(pid, exactTicket); await verifyBinding();
+          register: (pid, registrationLifetime) => {
+            if (state !== 'unspawned') return Promise.reject(new Error('Persistent launch ticket was already consumed.'));
+            const lifetime = registrationLifetime && Promise.resolve(registrationLifetime);
+            nativeRegistration = !!lifetime;
+            void lifetime?.catch(() => {}); // It may reject before the original PID write settles.
+            state = 'registered';
+            registration = (async () => {
+              await input.controller.registerOwnedChild(pid, exactTicket);
+              const active = lifetime && await lifetime;
+              const checkRegistration = () => {
+                if (!active) return;
+                input.controller.signal.throwIfAborted(); active.signal.throwIfAborted(); workSignal.throwIfAborted();
+                if (Date.now() >= active.deadlineAt) throw new NativeWaitDeadlineError('register_authority');
+              };
+              checkRegistration(); if (active) await verifyBinding(active.signal); else await verifyBinding(); checkRegistration();
+            })();
+            void registration.catch(() => {}); return registration;
           },
           releaseUnspawned: async () => {
             if (state !== 'unspawned') throw new Error('Persistent launch ticket is no longer unspawned.');
             state = 'releasing'; await input.controller.releaseUnspawnedChild(exactTicket); state = 'released';
           } });
-        delivered = true; await launch.completion;
+        delivered = true;
+        try { await launch.completion; }
+        finally { if (nativeRegistration && registration) await registration; }
       } catch (error) {
         if (ticket && !delivered) {
           try { await input.controller.releaseUnspawnedChild(ticket); }
@@ -169,8 +193,12 @@ export function createNativeBrowserHostIO(input: Pick<HostInput, 'root' | 'contr
     async playPersistent(series, options, authority) {
       if (series.segments.some(segment => segment.plan.taskId !== authority.taskId)
         || options.deadlineAt !== Date.parse(authority.deadlineAt)) throw new Error('Persistent browser task or deadline differs from host authority.');
+      const native = options.nativeValidationWaits;
+      if (native !== undefined && (!isNativeValidationWaits(native) || series.formatVersion !== 'persistent-acceptance/1'
+        || native.caseId !== authority.caseId || native.windowId !== authority.windowId || native.taskId !== authority.taskId
+        || native.deadlineAt !== options.deadlineAt)) throw new Error('Native persistent wait source differs from its exact validation authority.');
       return input.work.run(async signal => runPersistentAcceptance(series, { ...options, signal: AbortSignal.any([signal, ...(options.signal ? [options.signal] : [])]),
-        ownedChild: createPersistentOwnedChild(input, authority, options.verifyBinding) }));
+        ownedChild: createPersistentOwnedChild(input, authority, options.verifyBinding, native) }));
     },
   };
 }
@@ -198,7 +226,7 @@ export interface ValidationBrowserHost extends GenerationHost {
 }
 export interface PreparedBrowserHost extends ValidationBrowserHost {
   closePreparation(): Promise<void>;
-  bindPreparedCandidate(candidate: ArtifactReference): Promise<unknown>;
+  bindPreparedCandidate(candidate: ArtifactReference, callerSignal?: AbortSignal): Promise<unknown>;
   withPreparation<T>(operation: () => Promise<T>): Promise<T>;
   bindPreparedTasks(tasks: PreparedTask[]): Promise<void>;
 }
@@ -268,18 +296,30 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   await requireCurrentModularRepairPolicy(modulePolicy);
   const modularTasks = new Map<string, PreparedTask>();
   let preparedRequirementRef: ArtifactReference | undefined;
-  const validationScope = async () => {
+  const checkCaller = (callerSignal?: AbortSignal) => {
+    if (callerSignal) { controller.signal.throwIfAborted(); work.signal.throwIfAborted(); callerSignal.throwIfAborted(); }
+  };
+  const readerSignal = (callerSignal?: AbortSignal) => callerSignal
+    ? associateNativeReadSignal(callerSignal, AbortSignal.any([work.signal, callerSignal])) : undefined;
+  const validationScope = async (callerSignal?: AbortSignal) => {
+    checkCaller(callerSignal);
     const scope = preparation ? await requireValidationPreparationScope({ root, controller, requirement: requirement as ValidationRequirement,
-    proposal: draft as ValidationPreparationProposal, adapterId: preparation.adapterId, validation: validation! })
-    : await requireValidationBrowserScope({ root, controller, requirement: requirement as ValidationRequirement, proposal: draft as ValidationBrowserProposal, validation: validation! });
-    if (preparedRequirementRef && !sameValue(await json(root, `${preparedRequirementRef.location}/_cosmos/${historical ? 'current-' : ''}execution-requirement.json`), requirement)) throw new Error('Complete captured preparation requirement binding changed.');
-    if (historical) await historical.verify(work.signal);
+    proposal: draft as ValidationPreparationProposal, adapterId: preparation.adapterId, validation: validation! }, callerSignal)
+    : await requireValidationBrowserScope({ root, controller, requirement: requirement as ValidationRequirement, proposal: draft as ValidationBrowserProposal, validation: validation! }, callerSignal);
+    checkCaller(callerSignal);
+    if (preparedRequirementRef && !sameValue(await json(root, `${preparedRequirementRef.location}/_cosmos/${historical ? 'current-' : ''}execution-requirement.json`, readerSignal(callerSignal)), requirement)) throw new Error('Complete captured preparation requirement binding changed.');
+    checkCaller(callerSignal);
+    if (historical) await historical.verify(readerSignal(callerSignal) ?? work.signal);
+    checkCaller(callerSignal);
     return scope;
   };
-  const preparationScope = async () => {
-    if (!human) { await validationScope(); return; }
+  const preparationScope = async (callerSignal?: AbortSignal) => {
+    checkCaller(callerSignal);
+    if (!human) { await validationScope(callerSignal); return; }
     await human.requireCurrent();
-    if (preparedRequirementRef && !sameValue(await json(root, `${preparedRequirementRef.location}/_cosmos/execution-requirement.json`), requirement)) throw new Error('Complete captured human preparation requirement binding changed.');
+    checkCaller(callerSignal);
+    if (preparedRequirementRef && !sameValue(await json(root, `${preparedRequirementRef.location}/_cosmos/execution-requirement.json`, readerSignal(callerSignal)), requirement)) throw new Error('Complete captured human preparation requirement binding changed.');
+    checkCaller(callerSignal);
   };
   const scope = validation ? await validationScope() : undefined;
   if (historical && (!validation?.historicalManifest || !preparation || resolve(historical.targetRoot) !== resolve(root)
@@ -358,7 +398,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         ? { v1: binding.preparation.candidate, v2: binding.preparation.candidate } : { v1: output, v2: registry.candidateRef(name('game'), 'v2') },
       primaryMedia: mediaOutput,
       name, signal: work.signal, resume: input.resume, ...(inherited && historical ? { inherited: { binding: historical, verified: inherited } } : {}),
-      requireScope: async () => { work.signal.throwIfAborted(); await preparationScope(); work.signal.throwIfAborted(); } } as import('./entrypoint-preparation.ts').BrowserPreparationContext;
+      ...(validation && preparation.candidateConsumer ? { controllerSignal: controller.signal } : {}),
+      retainCleanupFailure: (error: unknown) => input.work.retainCleanupFailure(error),
+      requireScope: async callerSignal => { checkCaller(callerSignal); work.signal.throwIfAborted(); await preparationScope(callerSignal); checkCaller(callerSignal); work.signal.throwIfAborted(); } } as import('./entrypoint-preparation.ts').BrowserPreparationContext;
     Object.defineProperties(context, Object.getOwnPropertyDescriptors(identities));
     await preparation.initialize(context);
     if (preparation.currentInputs) availableArtifacts.push(...preparation.currentInputs());
@@ -379,7 +421,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     : task.acceptanceIds.length === 1 && task.acceptanceIds[0] === MEDIA_ACCEPTANCE_ID ? 'art' : 'coding');
   const workspace = (task: TaskContract) => boundTask(task)?.workspace ?? root;
   const sourceRoot = (task: TaskContract, folder: string) => relative(root, join(workspace(task), folder)).split(sep).join('/');
-  async function requireDispatch(task: TaskContract, signal: AbortSignal, candidate?: ArtifactReference) {
+  async function requireDispatch(task: TaskContract, signal: AbortSignal, candidate?: ArtifactReference, callerSignal?: AbortSignal) {
+    checkCaller(callerSignal);
     signal.throwIfAborted();
     if (modular) {
       const policy = await readModularRepairPolicy(root, await controller.read());
@@ -387,13 +430,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       await requireCurrentModularRepairPolicy(policy);
     }
     if (validation) {
-      const { snapshot, window } = await validationScope(); boundTask(task); requireValidationTask(snapshot, task);
+      const { snapshot, window } = await validationScope(callerSignal); checkCaller(callerSignal); boundTask(task); requireValidationTask(snapshot, task);
       const recorded = snapshot.tasks.find(item => item.taskId === task.taskId);
       if (!recorded) throw new Error('Validation host task is not registered.');
       requireOriginalTask(recorded, task);
-      const authority = await controller.validationAuthority(task.taskId, 'reviewer');
+      const authority = await controller.validationAuthority(task.taskId, 'reviewer', callerSignal);
+      checkCaller(callerSignal);
       if (!authority.admissionAllowed) throw new Error('Validation task has no active host execution authority.');
-      if (preparation) { if (candidate) await preparation.bindCandidate(candidate); else await preparation.requireCurrent(); }
+      if (preparation) { if (candidate) await preparation.bindCandidate(candidate, callerSignal); else await preparation.requireCurrent(callerSignal); }
+      checkCaller(callerSignal);
       signal.throwIfAborted(); return { taskId: task.taskId, caseId: window.caseId, windowId: window.windowId, deadlineAt: authority.deadlineAt };
     }
     controller.requireExecutionWindow(binding?.windowId);
@@ -869,25 +914,33 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           acceptance: async (_candidate, project) => {
             let result: { passed: boolean; evidenceIds: string[] };
             try { result = await withCleanDelivery({ root, project, candidate: ref, controller, work: input.work, authority, signal,
-            requireCurrent: async () => { await requireDispatch(task, signal); } }, async server => {
+            requireCurrent: async (callerSignal?: AbortSignal) => { await requireDispatch(task, signal, undefined, callerSignal); } }, async server => {
             if (validation) await requireDispatch(task, signal);
             if (preparation?.candidateConsumer) {
-              await preparation.bindCandidate(ref);
+              const nativeValidationWaits = validation ? createNativeValidationWaits({ caseId: validation.caseId, windowId: validation.windowId,
+                taskId: task.taskId, deadlineAt: Date.parse(authority.deadlineAt), signal: AbortSignal.any([controller.signal, work.signal, signal]),
+                controllerSignal: controller.signal, trackRaw: start => input.work.run(start) }) : undefined;
+              await preparation.bindCandidate(ref, nativeValidationWaits?.readSignal);
               const mediaArtifact = selected(task, 'media'), capture = await registry.getCapture(mediaArtifact);
               const manifestBytes = await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`);
               if (!capture.metadata.media || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes)), capture.metadata.media)) throw new Error('Actual media manifest differs from its capture.');
               const result = await preparation.candidateConsumer({ root, task, candidate: ref, project, cleanDelivery: server, mediaArtifact, media: capture.metadata.media,
-                manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async () => { await requireDispatch(task, signal, ref); },
+                ...(nativeValidationWaits ? { nativeValidationWaits } : {}),
+                manifestSha256: validationHash(manifestBytes), signal, deadlineAt: Date.parse(authority.deadlineAt), requireCurrent: async callerSignal => { await requireDispatch(task, signal, ref, callerSignal); },
+                retainCleanupFailure: error => input.work.retainCleanupFailure(error),
                 playPersistent: async (series, options) => {
                   if (!io.playPersistent) throw new Error('Trusted persistent transport is unavailable.');
-                  return io.playPersistent(series, options, await requireDispatch(task, signal));
+                  if (options.nativeValidationWaits !== undefined && options.nativeValidationWaits !== nativeValidationWaits) throw new Error('Consumer changed its source-owned native wait context.');
+                  return io.playPersistent(series, { ...options, ...(nativeValidationWaits ? { nativeValidationWaits } : {}) },
+                    await requireDispatch(task, signal, undefined, nativeValidationWaits?.readSignal));
                 } });
               await requireDispatch(task, signal); consumerDiagnostics = result.diagnostics;
               const valid = result.passed && result.diagnostics.reportValid && !result.diagnostics.issues.length;
               actual = valid ? 'Current candidate passed persistent normal inputs and generated-media coverage.'
                 : result.diagnostics.issues.map(issue => issue.summary).join('\n').slice(0, 16000) || 'Persistent/media evidence is incomplete.';
               pictures.set(task.taskId, result.pictures); consumerRawEvidence = result.rawEvidence;
-              await writeJson(root, `evidence/${task.taskId}/browser.json`, { reportPath: result.reportPath, diagnostics: result.diagnostics });
+              await writeJson(root, `evidence/${task.taskId}/browser.json`, { reportPath: result.reportPath, diagnostics: result.diagnostics,
+                ...(result.nativeWaits ? { nativeWaits: result.nativeWaits } : {}) });
               await writeJson(root, `evidence/${task.taskId}/media-usage.json`, result.mediaUsage);
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
             }
@@ -1240,7 +1293,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       } else host.validateTasks!(tasks);
       await preparation.requireCurrent();
     };
-    prepared.closePreparation = () => preparation.close(); prepared.bindPreparedCandidate = candidate => preparation.bindCandidate(candidate);
+    prepared.closePreparation = () => preparation.close(); prepared.bindPreparedCandidate = (candidate, callerSignal) => preparation.bindCandidate(candidate, callerSignal);
     prepared.withPreparation = async operation => {
       try { return await work.run(async () => { try {
         await preparation.requireCurrent(); const result = await operation(); work.signal.throwIfAborted(); await preparationScope();

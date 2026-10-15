@@ -16,6 +16,8 @@ import { attributePageErrors, projectMismatchCanStop } from './failure-facts.ts'
 import type { PageError, RuntimeException } from './failure-facts.ts';
 import { collectRenderFrames, validateRenderFrameRequest } from './render-frames.ts';
 import type { RenderFrameRequest, RenderFrameSample } from './render-frames.ts';
+import { isNativeValidationWaits } from './native-validation-waits.ts';
+import type { NativeValidationWaits, NativeSegmentWaits, NativeSegmentSnapshot } from './native-validation-waits.ts';
 
 export interface StepResult {
   id: string; kind: Step['kind']; acceptanceId?: string; outcome: 'passed' | 'failed' | 'skipped';
@@ -41,6 +43,7 @@ export interface AcceptanceReport {
   session?: PersistentBrowserIdentity;
   mediaObservations?: MediaObservationSample;
   renderFrames?: RenderFrameSample;
+  nativeWaits?: { contractVersion: NativeValidationWaits['contractVersion']; deadlineAt: number; workDeadlineAt: number; segment: NativeSegmentSnapshot };
 }
 export interface PersistentBrowserIdentity {
   browserPid: number; profile: string; commandLineProfile: string; origin: string;
@@ -51,6 +54,7 @@ export interface PersistentBrowserIdentity {
 export interface BrowserLaunchLifetime { signal: AbortSignal; deadlineAt: number }
 export interface OwnedAcceptanceLifecycle {
   deadlineAt: number; signal?: AbortSignal;
+  nativeValidationWaits?: NativeValidationWaits; nativeSegmentWaits?: NativeSegmentWaits;
   open(directory: string, timeoutMs: number, launch?: BrowserLaunchLifetime): Promise<{ browser: Browser; context: BrowserContext }>;
   process(): ChildProcess | undefined;
   close(timeoutMs: number): Promise<void>;
@@ -81,6 +85,9 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   const timeoutMs = options.timeoutMs ?? 60_000;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 43_200_000) throw new Error('timeoutMs must be 1000..43200000');
   const plan = structuredClone(value) as AcceptancePlan;
+  const native = lifecycle?.nativeValidationWaits, nativeSegment = lifecycle?.nativeSegmentWaits;
+  if (native && (!isNativeValidationWaits(native) || native.taskId !== plan.taskId || native.deadlineAt !== lifecycle!.deadlineAt
+    || nativeSegment?.reportId !== plan.reportId) || !native && nativeSegment) throw new Error('Native runner differs from its trusted source task/deadline/segment');
   const relativeDirectory = [plan.projectId, plan.artifact.artifactId, plan.artifact.version, plan.runId, plan.reportId].join('/');
   const directory = resolve(options.evidenceRoot, relativeDirectory);
   await mkdir(dirname(directory), { recursive: true });
@@ -103,16 +110,20 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   const logs: { at: string; kind: string; message: string }[] = [];
   const log = (kind: string, text: string) => logs.push({ at: new Date().toISOString(), kind, message: text });
   let server: BrowserServer | undefined, browser: Browser | undefined, context: BrowserContext | undefined, page: Page | undefined, video: Video | null = null;
-  let forceClose = false, videoSaved = false;
+  let forceClose = false, videoSaved = false, executionError: { error: unknown } | undefined;
   const lifecycleDeadline = lifecycle?.deadlineAt ?? Date.now() + timeoutMs;
   const cleanupReserveMs = Math.min(3000, Math.floor(timeoutMs / 3));
-  const deadline = lifecycleDeadline - cleanupReserveMs;
+  const deadline = Math.min(lifecycleDeadline - cleanupReserveMs, native?.workDeadlineAt ?? Infinity);
   const remaining = (limit: number) => Math.min(limit, deadline - Date.now());
-  const run = <T>(operation: () => Promise<T>, limit: number, label: string) => bounded(operation, remaining(limit), label, lifecycle?.signal);
-  const screenshot = async (name: string) => {
+  const run = <T>(operation: () => Promise<T>, limit: number, label: string): Promise<T> => nativeSegment ? (async () => {
+    nativeSegment.check(); const result = await bounded(operation, remaining(limit), label, lifecycle?.signal); nativeSegment.check(); return result;
+  })() : bounded(operation, remaining(limit), label, lifecycle?.signal);
+  const screenshot = async (name: string, closing = false) => {
     if (!page || page.isClosed() || forceClose) return null;
     try {
-      await run(() => page!.screenshot({ path: join(directory, name), timeout: Math.max(1, remaining(5000)) }), 5000, 'Screenshot');
+      const capture = () => page!.screenshot({ path: join(directory, name), timeout: Math.max(1, remaining(5000)) });
+      if (closing && nativeSegment) await bounded(capture, remaining(5000), 'Screenshot', lifecycle?.signal);
+      else await run(capture, 5000, 'Screenshot');
       report.files.push(path(name)); return path(name);
     } catch (error) {
       recordError(`Screenshot: ${message(error)}`);
@@ -131,10 +142,14 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   }
   try {
     if (lifecycle) {
+      if (native) ({ browser, context } = await lifecycle.open(directory, Math.max(1, remaining(Infinity)),
+        { deadlineAt: deadline, signal: lifecycle.signal ?? native.readSignal }));
+      else {
       const launch = new AbortController(), launchTimeout = Math.max(1, remaining(15_000));
       const lifetime = { deadlineAt: Date.now() + launchTimeout, signal: AbortSignal.any([launch.signal, ...(lifecycle.signal ? [lifecycle.signal] : [])]) };
       try { ({ browser, context } = await run(() => lifecycle.open(directory, launchTimeout, lifetime), 15_000, 'Persistent browser launch')); }
       catch (error) { launch.abort(error); throw error; }
+      }
       report.cleanup.browserPid = lifecycle.process()?.pid ?? null;
       report.cleanup.processExited = false;
     } else {
@@ -172,9 +187,19 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     const sourceSession = await run(() => context!.newCDPSession(page!), 5000, 'Exception source connection');
     sourceSession.on('Runtime.exceptionThrown', event => exceptions.push(event.exceptionDetails));
     await run(() => sourceSession.send('Runtime.enable'), 2000, 'Exception source setup');
-    const response = await run(() => page!.goto(plan.url, { waitUntil: 'load', timeout: Math.max(1, remaining(15_000)) }), 15_000, 'Navigation');
-    if (!response || !response.ok()) throw new Error(`Startup HTTP ${response?.status() ?? 'no response'}`);
-    if (new URL(page.url()).origin !== origin) throw new Error('Startup left the project origin');
+    if (nativeSegment) {
+      nativeSegment.beginNavigation();
+      await nativeSegment.runStage('navigation', async life => {
+        life.check(); const response = await page!.goto(plan.url, { waitUntil: 'load', timeout: Math.max(1, Math.min(deadline, life.deadlineAt) - Date.now()) }); life.check();
+        if (!response || !response.ok()) throw new Error(`Startup HTTP ${response?.status() ?? 'no response'}`);
+        if (new URL(page!.url()).origin !== origin) throw new Error('Startup left the project origin');
+      });
+      nativeSegment.finishNavigation();
+    } else {
+      const response = await run(() => page!.goto(plan.url, { waitUntil: 'load', timeout: Math.max(1, remaining(15_000)) }), 15_000, 'Navigation');
+      if (!response || !response.ok()) throw new Error(`Startup HTTP ${response?.status() ?? 'no response'}`);
+      if (new URL(page.url()).origin !== origin) throw new Error('Startup left the project origin');
+    }
     for (const [index, step] of plan.steps.entries()) {
       const result = report.steps[index];
       try {
@@ -261,15 +286,18 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
       await writeFile(join(directory, 'render-frames.json'), JSON.stringify(report.renderFrames, null, 2) + '\n', 'utf8'); report.files.push(path('render-frames.json'));
     }
   } catch (error) {
+    executionError = { error };
     if (error instanceof DeadlineError || error instanceof AcceptanceCancelledError) { forceClose = true; failureFacts.termination ??= { kind: 'lifecycle' }; }
     if (Date.now() >= deadline) failureFacts.termination = { kind: 'lifecycle' };
     const local = failureFacts.termination?.kind === 'observation_budget' ? failureFacts.termination : null;
     recordError(`Browser startup/execution: ${message(error)}`, local ? 'observation_budget' : 'lifecycle', local?.stepId);
   }
   finally {
-    try { await screenshot('final.png'); } catch { /* Deadline is already recorded; proceed to forced cleanup. */ }
+    nativeSegment?.revoke(executionError?.error);
+    try { await screenshot('final.png', true); } catch { /* Deadline is already recorded; proceed to forced cleanup. */ }
+    const cleanupDeadline = nativeSegment ? Math.min(lifecycleDeadline, Date.now() + cleanupReserveMs) : lifecycleDeadline;
     const forceReserveMs = Math.min(1000, cleanupReserveMs);
-    const gracefulDeadline = lifecycleDeadline - forceReserveMs;
+    const gracefulDeadline = cleanupDeadline - forceReserveMs;
     const cleanup = <T>(operation: () => Promise<T>, label: string) => bounded(operation, Math.min(1000, gracefulDeadline - Date.now()), label);
     if (!forceClose) try {
       if (lifecycle) {
@@ -291,7 +319,7 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     const owned = lifecycle?.process() ?? server?.process();
     if (owned && (owned.exitCode === null && owned.signalCode === null)) {
       report.cleanup.forced = true;
-      try { await stopBrowserProcess(owned, Math.max(1, Math.min(2000, lifecycleDeadline - Date.now()))); }
+      try { await stopBrowserProcess(owned, Math.max(1, Math.min(2000, cleanupDeadline - Date.now()))); }
       catch (error) { recordError(`Forced cleanup: ${message(error)}`); }
     }
     if (owned) {
@@ -312,10 +340,14 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
       const local = failureFacts.termination?.kind === 'observation_budget' ? failureFacts.termination : null;
       recordError('Video unavailable after forced browser termination; earlier screenshots retained', local ? 'termination_evidence' : 'lifecycle', local?.stepId);
     }
+    if (nativeSegment) try { await nativeSegment.settle(cleanupDeadline); }
+    catch (error) { recordError(`Native raw settlement: ${message(error)}`, 'lifecycle'); }
   }
   attributePageErrors(failureFacts, pageErrors, exceptions);
   if (lifecycle?.signal?.aborted) recordError('Acceptance cancelled', 'lifecycle');
   report.endedAt = new Date().toISOString();
+  if (native && nativeSegment) report.nativeWaits = { contractVersion: native.contractVersion, deadlineAt: native.deadlineAt,
+    workDeadlineAt: native.workDeadlineAt, segment: nativeSegment.snapshot() };
   report.outcome = !report.errors.length && report.steps.every(step => step.outcome === 'passed') ? 'passed' : 'failed';
   log('errors', JSON.stringify(report.errors));
   await writeFile(join(directory, 'browser.log'), logs.map(entry => JSON.stringify(entry)).join('\n') + '\n', 'utf8');

@@ -5,6 +5,7 @@ import type { ExecutionRequirement, ValidationRequirement } from '../roles/execu
 import type { RunController } from './run.ts';
 import type { ArtifactReference } from '../contracts/types.ts';
 import { currentValidationCase } from './validation-validation.ts';
+import { associateNativeReadSignal, runNativeValidationRead } from '../acceptance/native-validation-waits.ts';
 
 export interface ValidationExecutionBinding {
   caseId: string; windowId: string;
@@ -23,24 +24,28 @@ export function isValidationScopeTimeout(error: unknown): boolean {
 }
 
 /** Read complete scope and real operator receipt before any session, task or journal write. */
-export async function requireValidationScope(controller: RunController, requirement: ExecutionRequirement, binding: ValidationExecutionBinding) {
+export async function requireValidationScope(controller: RunController, requirement: ExecutionRequirement, binding: ValidationExecutionBinding, callerSignal?: AbortSignal) {
   const { caseId, windowId, readScope } = binding;
+  const checkCaller = () => { if (callerSignal) { controller.signal.throwIfAborted(); callerSignal.throwIfAborted(); } };
+  checkCaller();
   controller.requireValidationCase(caseId, windowId);
   if (!isValidationRequirement(requirement) || validateExecutionRequirement(requirement, 'operator_validation').length || typeof readScope !== 'function') throw new Error('Explicit validation requirement and trusted scope reader are required.');
-  const before = await controller.readValidationScopeAuthority(), window = before.window, data = requirement.validation;
+  const before = await controller.readValidationScopeAuthority(callerSignal), window = before.window, data = requirement.validation;
+  checkCaller();
   const { sourceSha256, ...decision } = window.operatorDecision;
   if (data.runId !== before.runId || data.ledgerId !== before.ledgerId || data.caseId !== caseId || data.windowId !== windowId
     || requirement.specVersion !== before.specVersion || !sameValue(decision, data.decision)
     || data.reviewedPlatformSha !== window.quote.identity.reviewedPlatformSha || data.frozenCaseInputHash !== window.quote.identity.frozenCaseInputHash) throw new Error('Validation input differs from its current persistent case authority.');
   const timeout = Math.min(5000, Date.parse(window.deadlineAt) - Date.now() - 5000);
   if (timeout <= 0) throw new Error('Validation scope cannot finish inside the current case deadline.');
-  const abort = new AbortController(), signal = AbortSignal.any([controller.signal, abort.signal]);
+  const abort = new AbortController(), signal = associateNativeReadSignal(callerSignal,
+    AbortSignal.any([controller.signal, ...(callerSignal ? [callerSignal] : []), abort.signal]));
   let onAbort!: () => void;
   const cancelled = new Promise<never>((_, reject) => { onAbort = () => reject(signal.reason); signal.addEventListener('abort', onAbort, { once: true }); });
   const timer = setTimeout(() => { const error = new ValidationScopeTimeoutError('Validation scope check timed out.'); scopeTimeouts.add(error); abort.abort(error); }, timeout);
   try {
     signal.throwIfAborted();
-    const observed = await Promise.race([Promise.resolve().then(() => readScope(signal)), cancelled]);
+    const observed = await Promise.race([Promise.resolve().then(() => runNativeValidationRead(signal, readScope)), cancelled]);
     signal.throwIfAborted();
     if (!observed || !sameValue(observed.requirement, requirement) || !(observed.operatorReceipt instanceof Uint8Array)
       || createHash('sha256').update(observed.operatorReceipt).digest('hex') !== sourceSha256) throw new Error('Fixed validation scope or actual operator source bytes changed.');
@@ -51,11 +56,13 @@ export async function requireValidationScope(controller: RunController, requirem
       const fixed = binding.historicalManifest;
       if (!/^[a-f0-9]{64}$/.test(fixed.reference.version) || !decision.sourceRefs.some(ref => sameValue(ref, fixed.reference))
         || typeof fixed.readBytes !== 'function') throw new Error('Historical manifest must use its exact operator-covered digest reference.');
-      const bytes = await Promise.race([Promise.resolve().then(() => fixed.readBytes(signal)), cancelled]);
+      signal.throwIfAborted();
+      const bytes = await Promise.race([Promise.resolve().then(() => runNativeValidationRead(signal, active => fixed.readBytes(active))), cancelled]);
       if (!(bytes instanceof Uint8Array) || createHash('sha256').update(bytes).digest('hex') !== fixed.reference.version) throw new Error('Actual historical manifest bytes changed.');
     }
     controller.requireValidationCase(caseId, windowId);
-    const snapshot = await controller.read();
+    signal.throwIfAborted();
+    const snapshot = await controller.read(callerSignal ? signal : undefined);
     if (!sameValue(currentValidationCase(snapshot), window) || Date.now() >= Date.parse(window.deadlineAt) - 5000) throw new Error('Validation authority changed while reading fixed scope.');
     signal.throwIfAborted(); return { snapshot, window };
   } catch (error) { controller.signal.throwIfAborted(); throw error; }

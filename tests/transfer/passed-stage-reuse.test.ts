@@ -7,6 +7,11 @@ import { executeTaskDag, resumeTaskDag } from '../../src/runtime/orchestrator.ts
 import { requireValidationScope } from '../../src/runtime/validation-scope.ts';
 import { syntheticReports } from './passed-stage-reuse-reports.fixture.ts';
 import { createArtifactRegistry } from '../../src/artifacts/index.ts';
+import fs from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+import { TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+import { createNativeValidationWaits, associateNativeReadSignal, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
 
 async function api() {
   const value: any = await import('../../src/runtime/historical-passed-stages.ts').catch(error => {
@@ -31,6 +36,73 @@ test('closed genuine stages verify and import their unchanged complete closure w
   assert.equal(f.calls.filter(item => item.kind === 'reviewer').length, 2);
   assert.ok(!f.calls.some(item => ['coding', 'planning', 'build', 'play'].includes(item.kind)));
   await binding.import(new AbortController().signal); // Cold import only rechecks the same immutable receipt.
+});
+
+test('COS97 historical cancellation after the first source file starts no subsequent source read', async t => {
+  const a = await api(), f = await passedStageFixture(t), caller = new AbortController(), reason = new Error('cancelled during historical bytes');
+  const original = fs.promises.readFile; let reads = 0;
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+  t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+    const bytes = await original(...args);
+    if (String(args[0]).startsWith(f.root)) { reads++; if (reads === 1) caller.abort(reason); }
+    return bytes;
+  });
+  syncBuiltinESMExports();
+  await assert.rejects(a.createHistoricalPassedStages(f.input).verify(caller.signal), error => error === reason);
+  assert.equal(reads, 1, 'A completed historical read must check caller cancellation before further files or batches');
+});
+
+test('COS97 journal read-only methods preserve cancellation without wrapping it as RecoveryBlocked', async t => {
+  const f = await passedStageFixture(t), task = f.result[0];
+  const origin = JSON.parse(await readFile(join(f.root, `journal/task-${task.taskId}/origin.json`), 'utf8'));
+  const journal = await TaskJournal.open(f.recovery, origin, true), signature = await journal.signature(task.artifacts);
+  const caller = new AbortController(), reason = new Error('original read-only journal cancellation'); caller.abort(reason);
+  const calls = [() => TaskJournal.open(f.recovery, origin, true, caller.signal),
+    () => journal.read('author', task.attempts[0].attemptId, caller.signal),
+    () => journal.signature(task.artifacts, caller.signal),
+    () => journal.requireSignature(signature, task.artifacts, caller.signal)];
+  for (const call of calls) await assert.rejects(call(), error => error === reason);
+  for (const operation of ['open', 'read', 'requireSignature'] as const) {
+    const during = new AbortController(), original = fs.promises.readFile; let reads = 0;
+    t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+      const bytes = await original(...args);
+      if (String(args[0]).startsWith(f.root)) { reads++; during.abort(reason); }
+      return bytes;
+    });
+    syncBuiltinESMExports();
+    try {
+      const pending = operation === 'open' ? TaskJournal.open(f.recovery, origin, true, during.signal)
+        : operation === 'read' ? journal.read('author', task.attempts[0].attemptId, during.signal)
+          : journal.requireSignature(signature, task.artifacts, during.signal);
+      await assert.rejects(pending, error => error === reason); assert.equal(reads, 1);
+    } finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+  }
+});
+
+test('COS97 historical parallel receipts remain owned when one rejects before a deferred sibling settles', async t => {
+  const a = await api(), f = await passedStageFixture(t), caller = new AbortController(), work = new OwnedWork();
+  const waits = createNativeValidationWaits({ caseId: 'current-case', windowId: 'current-window', taskId: 'current-coding',
+    deadlineAt: Date.now() + 120_000, signal: work.signal, trackRaw: start => work.run(start) });
+  const signal = associateNativeReadSignal(waits.readSignal, AbortSignal.any([waits.readSignal, caller.signal]));
+  const gate = () => { let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve }; };
+  const entered = [gate(), gate()], release = [gate(), gate()], reason = new Error('one historical receipt cancelled');
+  const files = ['origin', 'author'].map(name => join(f.root, `journal/task-${f.result[0].taskId}/${name}.json`));
+  const read = fs.promises.readFile;
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+  t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof read>) => {
+    const bytes = await read(...args), index = files.indexOf(String(args[0]));
+    if (index >= 0) { entered[index].resolve(); await release[index].promise; }
+    return bytes;
+  });
+  syncBuiltinESMExports();
+  const pending = runNativeValidationRead(signal, active => a.createHistoricalPassedStages(f.input).verify(active));
+  const failed = assert.rejects(pending, error => error === reason);
+  try {
+    await Promise.all(entered.map(item => item.promise)); caller.abort(reason); release[0].resolve(); await failed;
+    assert.ok(waits.snapshot().rawReads.pending > 0, 'The deferred sibling must outlive the outer history verification');
+    await assert.rejects(work.cancelAndDrain('fixture historical batch stop', 100), /did not quiesce/);
+  } finally { release.forEach(item => item.resolve()); await work.cancelAndDrain('fixture historical batch released'); }
+  assert.equal(waits.snapshot().rawReads.pending, 0);
 });
 
 test('actual manifest bytes and a resigned foreign source identity fail before import writes', async t => {

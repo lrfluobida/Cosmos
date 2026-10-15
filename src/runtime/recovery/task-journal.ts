@@ -44,54 +44,69 @@ export class TaskJournal {
   private artifactRoot: string;
   private taskId: string;
   private constructor(root: string, artifactRoot: string, taskId: string) { this.root = root; this.artifactRoot = artifactRoot; this.taskId = taskId; }
-  static async open(options: RecoveryOptions, origin: RecoveryOrigin, resume: boolean): Promise<TaskJournal> {
+  static async open(options: RecoveryOptions, origin: RecoveryOrigin, resume: boolean, callerSignal?: AbortSignal): Promise<TaskJournal> {
+    const signal = resume ? callerSignal : undefined; signal?.throwIfAborted();
     if (origin.formatVersion === 3) {
       if (!origin.validationCase || origin.executionWindow || !isValidationRequirement(origin.requirement)
         || origin.validationCase.caseId !== origin.requirement.validation.caseId || origin.validationCase.windowId !== origin.requirement.validation.windowId) throw new RecoveryBlocked('Recovery origin must bind its explicit validation case.');
     } else if (origin.validationCase || isValidationRequirement(origin.requirement) || (origin.formatVersion === 1 ? origin.executionWindow !== undefined : origin.formatVersion !== 2 || !origin.executionWindow)) throw new RecoveryBlocked('Recovery origin must bind its explicit execution window or retain v1.');
     if (!isAbsolute(options.journalRoot) || !isAbsolute(options.artifactRoot)) throw new RecoveryBlocked('Recovery requires explicit absolute host roots.');
-    await safePath(options.artifactRoot);
+    await safePath(options.artifactRoot, '.', signal); signal?.throwIfAborted();
     const artifactRoot = await realpath(options.artifactRoot);
-    const root = await safePath(options.journalRoot, `task-${encodeURIComponent(origin.prepared.task.taskId)}`);
+    signal?.throwIfAborted();
+    const root = await safePath(options.journalRoot, `task-${encodeURIComponent(origin.prepared.task.taskId)}`, signal);
     const expected = { ...origin, artifactRoot };
     if (resume) {
       let previous: unknown;
-      try { previous = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, 'origin.json'))); }
-      catch { throw new RecoveryBlocked('Missing or incomplete recovery origin; prior execution cannot be inferred.'); }
+      try {
+        const bytes = await regularFile(root, 'origin.json', signal); signal?.throwIfAborted();
+        previous = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+      } catch { signal?.throwIfAborted(); throw new RecoveryBlocked('Missing or incomplete recovery origin; prior execution cannot be inferred.'); }
       if (!sameValue(previous, expected)) throw new RecoveryBlocked('Recovery origin, task, requirements or execution policy changed.');
     } else {
       await directory(root, '.'); await publishReceipt(join(root, 'origin.json'), expected);
     }
-    return new TaskJournal(root, artifactRoot, origin.prepared.task.taskId);
+    signal?.throwIfAborted(); return new TaskJournal(root, artifactRoot, origin.prepared.task.taskId);
   }
-  async read<T>(stage: Stage, attemptId: string): Promise<T | null> {
+  async read<T>(stage: Stage, attemptId: string, callerSignal?: AbortSignal): Promise<T | null> {
+    callerSignal?.throwIfAborted();
     let value: any;
-    try { value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(this.root, `${stage}.json`))); }
+    try {
+      const bytes = await regularFile(this.root, `${stage}.json`, callerSignal); callerSignal?.throwIfAborted();
+      value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    }
     catch (error) {
+      callerSignal?.throwIfAborted();
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
       throw new RecoveryBlocked(`Incomplete ${stage} receipt; completion is unknown.`);
     }
     if (value?.formatVersion !== 1 || value.taskId !== this.taskId || value.attemptId !== attemptId || !Object.hasOwn(value, 'value')) throw new RecoveryBlocked(`Conflicting ${stage} receipt identity.`);
-    return value.value as T;
+    callerSignal?.throwIfAborted(); return value.value as T;
   }
   async write(stage: Stage, attemptId: string, value: unknown): Promise<void> {
     await publishReceipt(join(this.root, `${stage}.json`), { formatVersion: 1, taskId: this.taskId, attemptId, value });
   }
-  async signature(references: ArtifactReference[]): Promise<ContentSignature> {
+  async signature(references: ArtifactReference[], callerSignal?: AbortSignal): Promise<ContentSignature> {
+    callerSignal?.throwIfAborted();
     const result: ContentSignature = [];
     for (const location of [...new Set(references.map(ref => ref.location))].sort()) {
+      callerSignal?.throwIfAborted();
       const absolute = resolve(this.artifactRoot, location);
       if (absolute === this.artifactRoot || !within(this.artifactRoot, absolute)) throw new RecoveryBlocked('Recovery references must name fixed files or snapshots inside the artifact root.');
       const name = relative(this.artifactRoot, absolute).split(sep).join('/');
-      const path = await safePath(this.artifactRoot, name), info = await lstat(path);
-      const files = info.isDirectory() ? await snapshot(path) : new Map([['', await regularFile(this.artifactRoot, name)]]);
+      const path = await safePath(this.artifactRoot, name, callerSignal); callerSignal?.throwIfAborted();
+      const info = await lstat(path); callerSignal?.throwIfAborted();
+      const files = info.isDirectory() ? await snapshot(path, callerSignal) : new Map([['', await regularFile(this.artifactRoot, name, callerSignal)]]);
+      callerSignal?.throwIfAborted();
       result.push({ location, files: [...files].sort(([a], [b]) => a.localeCompare(b)).map(([path, bytes]) => ({ path, sha256: createHash('sha256').update(bytes).digest('hex') })) });
     }
-    return result;
+    callerSignal?.throwIfAborted(); return result;
   }
-  async requireSignature(value: ContentSignature, references: ArtifactReference[]): Promise<void> {
-    try { if (sameValue(value, await this.signature(references))) return; }
-    catch { /* A missing file is also an unprovable fixed version. */ }
+  async requireSignature(value: ContentSignature, references: ArtifactReference[], callerSignal?: AbortSignal): Promise<void> {
+    callerSignal?.throwIfAborted();
+    try { if (sameValue(value, await this.signature(references, callerSignal))) { callerSignal?.throwIfAborted(); return; } }
+    catch { callerSignal?.throwIfAborted(); /* A missing file is also an unprovable fixed version. */ }
+    callerSignal?.throwIfAborted();
     throw new RecoveryBlocked('Fixed recovery input, artifact or evidence content changed or is missing.');
   }
   async workspaceSignature(workspace: string, writePaths: string[]): Promise<ContentSignature> {

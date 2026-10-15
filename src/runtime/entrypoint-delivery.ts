@@ -61,10 +61,13 @@ export async function packageStandalone(input: { root: string; project: string; 
   await writeFile(await safePath(project, 'README.zh-CN.md'), `# 游戏启动说明\n\n交付版本：${candidate.artifactId}@${candidate.version}；运行：${task.runId}。\n\n已有 Node 22 和桌面浏览器即可离线运行。完整复制此目录，在终端执行：\n\n\`\`\`powershell\nnode standalone-launcher.mjs\n\`\`\`\n\n在浏览器打开终端显示的本机 URL。指定端口可执行 \`node standalone-launcher.mjs --port 4173\`；端口占用会报错，请换端口。按 Ctrl+C 停止服务。\n\n源码位于 src/ 与 index.html，已构建游戏位于 dist/。运行不需要安装依赖。重建时使用 package-lock.json 锁定依赖，安装后运行 package.json 的 build 命令。素材与依赖来源见 _cosmos/sources.json，依赖许可文本见 _cosmos/licenses/。\n\n自动验收报告在原 Cosmos 运行目录的 delivery/current-report.json 中引用，接受后才发布。单独复制本游戏目录时，可另带该引用对应的报告 sidecar；该报告与最终试玩记录按交付版本绑定。\n`, { encoding: 'utf8', flag: 'wx' });
 }
 
-export interface CleanDelivery { url: string; project: string; requireCurrent(): Promise<void> }
+export interface CleanDelivery {
+  url: string; project: string; requireCurrent(callerSignal?: AbortSignal): Promise<void>;
+  verifyPayload?(name: string, response: { status: number; bytes: Uint8Array }, callerSignal?: AbortSignal): Promise<'content' | 'not_found'>;
+}
 /** The original task owns copying, serving, browser work and cleanup before final snapshot. */
 export async function withCleanDelivery<T>(input: { root: string; project: string; candidate: ArtifactReference; controller: RunController; work: OwnedWork;
-  authority: HostExecutionAuthority; signal: AbortSignal; requireCurrent(): Promise<void> }, action: (clean: CleanDelivery) => Promise<T>): Promise<T> {
+  authority: HostExecutionAuthority; signal: AbortSignal; requireCurrent(callerSignal?: AbortSignal): Promise<void> }, action: (clean: CleanDelivery) => Promise<T>): Promise<T> {
   return input.work.run(async ownedSignal => {
     const signal = AbortSignal.any([ownedSignal, input.signal]), abort = new AbortController();
     await input.requireCurrent(); signal.throwIfAborted();
@@ -100,8 +103,22 @@ export async function withCleanDelivery<T>(input: { root: string; project: strin
         if (Date.now() >= readyDeadline) throw new Error('Clean launcher readiness timed out.');
       }
       async function readReady() { try { return decode(await regularFile(control, 'ready.json')); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
-      const requireCurrent = async () => { signal.throwIfAborted(); await input.requireCurrent(); if (Date.now() >= deadlineAt) throw new Error('Clean delivery reached its cleanup deadline.'); };
-      await requireCurrent(); const value = await action({ project, url: url!, requireCurrent });
+      const checkSignals = (callerSignal?: AbortSignal) => { input.controller.signal.throwIfAborted(); signal.throwIfAborted(); callerSignal?.throwIfAborted(); };
+      const check = (callerSignal?: AbortSignal) => { checkSignals(callerSignal); if (Date.now() >= deadlineAt) throw new Error('Clean delivery reached its cleanup deadline.'); };
+      const requireCurrent = async (callerSignal?: AbortSignal) => {
+        if (!callerSignal) { signal.throwIfAborted(); await input.requireCurrent(); if (Date.now() >= deadlineAt) throw new Error('Clean delivery reached its cleanup deadline.'); return; }
+        check(callerSignal);
+        try { await input.requireCurrent(callerSignal); } catch (error) { checkSignals(callerSignal); throw error; }
+        check(callerSignal);
+      };
+      const verifyPayload: NonNullable<CleanDelivery['verifyPayload']> = async (name, response, callerSignal) => {
+        check(callerSignal);
+        const expected = fixed.get(`dist/${name}`);
+        if (!expected && response.status === 404) { check(callerSignal); return 'not_found'; }
+        if (!expected || response.status !== 200 || !expected.equals(response.bytes)) throw new Error('Clean delivery response payload differs from its fixed candidate bytes.');
+        check(callerSignal); return 'content';
+      };
+      await requireCurrent(); const value = await action({ project, url: url!, requireCurrent, verifyPayload });
       if (value && typeof value === 'object') {
         const passed = (value as { passed?: unknown }).passed;
         if (typeof passed === 'boolean') acceptancePassed = passed;

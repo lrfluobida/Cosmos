@@ -14,6 +14,7 @@ import { TaskJournal, requireOriginalTask } from '../../recovery/task-journal.ts
 import type { ContentSignature, RecoveryOrigin } from '../../recovery/task-journal.ts';
 import { requireThat } from './design.ts';
 import { validateTransferDesign } from './oracle.ts';
+import { associateNativeReadSignal } from '../../../acceptance/native-validation-waits.ts';
 
 const MAP = 'authors/design/transfer-design.json';
 const TOOL = 'validate-transfer-design';
@@ -42,29 +43,38 @@ interface Completed {
 interface Audit { started: Started; completed: Completed; result: Result; bytes: Buffer | null; resultPath: string; receipt: string }
 
 /** A bounded host oracle inside the existing author session, not another task or repair grant. */
-export function createTransferDesignValidation(input: { context: BrowserPreparationContext; controller: RunController; guard(): Promise<void> }) {
+export function createTransferDesignValidation(input: { context: BrowserPreparationContext; controller: RunController; guard(callerSignal?: AbortSignal): Promise<void> }) {
   const { context: ctx, controller, guard } = input;
+  const checkCaller = (callerSignal?: AbortSignal) => {
+    if (callerSignal) { controller.signal.throwIfAborted(); ctx.signal.throwIfAborted(); callerSignal.throwIfAborted(); }
+  };
+  const readSignal = (callerSignal?: AbortSignal) => callerSignal
+    ? associateNativeReadSignal(callerSignal, AbortSignal.any([ctx.signal, callerSignal])) : undefined;
   let pending: Promise<unknown> = Promise.resolve();
   const cached = new Map<string, { startedSha256: string; completedSha256: string }>();
   const path = (binding: Binding, check: 1 | 2, suffix: string) => `host-transfer-design-validation/${binding.taskId}/${binding.attemptId}/check-${check}-${suffix}`;
-  async function optional(root: string, name: string): Promise<Buffer | null> {
-    try { return await regularFile(root, name); }
-    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
+  async function optional(root: string, name: string, callerSignal?: AbortSignal): Promise<Buffer | null> {
+    checkCaller(callerSignal);
+    try { const bytes = await regularFile(root, name, readSignal(callerSignal)); checkCaller(callerSignal); return bytes; }
+    catch (error) { checkCaller(callerSignal); if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
   }
-  async function binding(task: TaskContract, workspace?: string): Promise<Binding> {
-    await guard();
+  async function binding(task: TaskContract, workspace?: string, callerSignal?: AbortSignal): Promise<Binding> {
+    checkCaller(callerSignal); await guard(callerSignal); checkCaller(callerSignal);
     requireThat((ctx.human || isValidationRequirement(ctx.requirement)) && task.taskId === ctx.designTaskId && task.attempts.length === 1, 'design validation requires its original author attempt');
     const attempt = task.attempts[0];
     const fixedWorkspace = await realpath(ctx.human ? ctx.taskWorkspace!(task.taskId) : join(ctx.root, `validation/${(ctx.requirement as import('../../../roles/execution-input.ts').ValidationRequirement).validation.caseId}/${ctx.designTaskId}/workspace`));
+    checkCaller(callerSignal);
     requireThat(!workspace || resolve(workspace) === fixedWorkspace, 'design validation workspace changed');
-    const origin = decode(await regularFile(ctx.root, `journal/task-${task.taskId}/origin.json`)) as RecoveryOrigin;
+    const origin = decode(await regularFile(ctx.root, `journal/task-${task.taskId}/origin.json`, readSignal(callerSignal))) as RecoveryOrigin;
+    checkCaller(callerSignal);
     requireThat(isDeepStrictEqual(origin.requirement, ctx.requirement), 'design validation source or complete requirement changed');
     requireOriginalTask(origin.prepared.task, task);
-    const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, origin, true);
+    const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, origin, true, readSignal(callerSignal));
+    checkCaller(callerSignal);
     const result = { taskId: task.taskId, attemptId: attempt.attemptId, attemptStartedAt: attempt.startedAt, authorId: task.authorId, contextId: task.context.contextId,
       sessionRef: attempt.sessionRef, workspace: fixedWorkspace, requirement: structuredClone(ctx.requirement), requirementCapture: structuredClone(ctx.requirementCapture),
-      inputs: structuredClone(task.inputs), inputSignature: await journal.signature([...task.inputs, ...task.context.interfaces]) };
-    await guard(); return result;
+      inputs: structuredClone(task.inputs), inputSignature: await journal.signature([...task.inputs, ...task.context.interfaces], readSignal(callerSignal)) };
+    checkCaller(callerSignal); await guard(callerSignal); checkCaller(callerSignal); return result;
   }
   function evaluate(bytes: Buffer | null, check: 1 | 2): Result {
     let message: string;
@@ -82,15 +92,18 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
     return { passed: false, rewritesRemaining: check === 1 ? 1 : 0, diagnosis: { kind: 'invalid_transfer_design', message } };
   }
   const canonicalTime = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
-  async function authority(): Promise<Started['authority']> {
+  async function authority(callerSignal?: AbortSignal): Promise<Started['authority']> {
+    checkCaller(callerSignal);
     if (ctx.human) {
       const state = await ctx.human.requireCurrent(), current = await controller.executionAuthority(ctx.designTaskId);
+      checkCaller(callerSignal);
       requireThat(current.admissionAllowed && current.windowId === null && current.deadlineAt === state.run.originalDeadlineAt, 'design validation original human authority changed');
       return { profile: 'human', sourceVersion: ctx.human.execution.sourceVersion, sourceSha256: ctx.human.execution.sha256,
         runId: ctx.human.runId, ledgerId: ctx.human.ledgerId, windowId: null, startedAt: state.run.originalStartedAt, deadlineAt: current.deadlineAt };
     }
     requireThat(isValidationRequirement(ctx.requirement), 'design validation requires its original authority');
-    const snapshot = await controller.read(), current = await controller.validationAuthority(ctx.designTaskId, 'author');
+    const snapshot = await controller.read(callerSignal); checkCaller(callerSignal);
+    const current = await controller.validationAuthority(ctx.designTaskId, 'author', callerSignal); checkCaller(callerSignal);
     const window = snapshot.validation!.cases.find(window => window.caseId === current.caseId && window.windowId === current.windowId);
     requireThat(window && current.caseId === ctx.requirement.validation.caseId && current.windowId === ctx.requirement.validation.windowId
       && window.quote.identity.reviewedPlatformSha === ctx.requirement.validation.reviewedPlatformSha && window.quote.identity.frozenCaseInputHash === ctx.requirement.validation.frozenCaseInputHash
@@ -104,15 +117,18 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
     requireThat(isDeepStrictEqual(result, expected) && (result.passed ? typeof result.mapVersion === 'string' && !!result.mapVersion
       : typeof result.diagnosis?.message === 'string' && !!result.diagnosis.message), 'design validation result changed');
   }
-  async function audit(fixed: Binding, check: 1 | 2): Promise<Audit | null> {
+  async function audit(fixed: Binding, check: 1 | 2, callerSignal?: AbortSignal): Promise<Audit | null> {
+    checkCaller(callerSignal);
     const startPath = path(fixed, check, 'started.json'), resultPath = path(fixed, check, 'result.json'), rawPath = path(fixed, check, 'raw.json');
-    const startBytes = await optional(ctx.root, startPath), resultBytes = await optional(ctx.root, resultPath), bytes = await optional(ctx.root, rawPath);
+    const startBytes = await optional(ctx.root, startPath, callerSignal), resultBytes = await optional(ctx.root, resultPath, callerSignal), bytes = await optional(ctx.root, rawPath, callerSignal);
+    checkCaller(callerSignal);
     if (!startBytes && !resultBytes && !bytes) return null;
     requireThat(startBytes && resultBytes, 'design validation started without a complete result; outcome is unknown');
     const started = decode(startBytes) as Started, saved = decode(resultBytes) as Completed;
-    const expected: Started = { formatVersion: 'transfer-design-check-started/1', binding: fixed, check, startedAt: started.startedAt, authority: await authority(),
+    const expected: Started = { formatVersion: 'transfer-design-check-started/1', binding: fixed, check, startedAt: started.startedAt, authority: await authority(callerSignal),
       ...(check === 2 ? { previousReceipt: started.previousReceipt } : {}),
       raw: { location: rawPath, present: !!bytes, sha256: bytes ? sha(bytes) : null } };
+    checkCaller(callerSignal);
     requireThat(isDeepStrictEqual(started, expected), 'design validation raw bytes, inputs or attempt binding changed');
     requireThat(canonicalTime(started.startedAt) && canonicalTime(saved.completedAt) && canonicalTime(fixed.attemptStartedAt)
       && Math.max(Date.parse(started.authority.startedAt), Date.parse(fixed.attemptStartedAt)) <= Date.parse(started.startedAt) && Date.parse(started.startedAt) <= Date.parse(saved.completedAt)
@@ -125,8 +141,9 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
     cached.set(resultPath, actual);
     return { started, completed: saved, result: saved.result, bytes, resultPath, receipt: resultPath + '#sha256=' + actual.completedSha256 };
   }
-  async function records(fixed: Binding) {
-    const first = await audit(fixed, 1), second = await audit(fixed, 2);
+  async function records(fixed: Binding, callerSignal?: AbortSignal) {
+    const first = await audit(fixed, 1, callerSignal), second = await audit(fixed, 2, callerSignal);
+    checkCaller(callerSignal);
     requireThat(!second || first && !first.result.passed && first.result.rewritesRemaining === 1, 'design validation rewrite was not authorized');
     requireThat(!second || first && second.started.previousReceipt === first.receipt, 'design validation previous receipt changed');
     requireThat(!second || first && Date.parse(first.completed.completedAt) <= Date.parse(second.started.startedAt), 'design validation rewrite timestamp precedes its original result');
@@ -176,11 +193,14 @@ export function createTransferDesignValidation(input: { context: BrowserPreparat
       },
     }) }];
   } };
-  return { hostTools, async seal(task: TaskContract, workspace?: string) {
-    const fixed = await binding(task, workspace), { second, last } = await records(fixed);
+  return { hostTools, async seal(task: TaskContract, workspace?: string, callerSignal?: AbortSignal) {
+    checkCaller(callerSignal);
+    const fixed = await binding(task, workspace, callerSignal), { second, last } = await records(fixed, callerSignal);
+    checkCaller(callerSignal);
     requireThat(last, 'required runtime transfer design validation tool was not called');
     requireThat(last.result.passed, (second ? 'Design semantic rewrite exhausted: ' : '') + last.result.diagnosis?.message);
-    requireThat(last.bytes && sameBytes(await optional(fixed.workspace, MAP), last.bytes), 'sealed transfer design bytes changed before capture or recovery');
-    await guard(); return { bytes: last.bytes, sha256: sha(last.bytes), source: last.started.raw.location, receipt: last.receipt };
+    requireThat(last.bytes && sameBytes(await optional(fixed.workspace, MAP, callerSignal), last.bytes), 'sealed transfer design bytes changed before capture or recovery');
+    checkCaller(callerSignal); await guard(callerSignal); checkCaller(callerSignal);
+    return { bytes: last.bytes, sha256: sha(last.bytes), source: last.started.raw.location, receipt: last.receipt };
   } };
 }
