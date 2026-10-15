@@ -137,7 +137,7 @@ export function createPersistentOwnedChild(input: Pick<HostInput, 'controller' |
     void operation.catch(rejectReady); return result;
   } };
 }
-function nativeIO(input: Pick<HostInput, 'root' | 'controller' | 'work'> & { renderFrames?: boolean }): BrowserHostIO {
+export function createNativeBrowserHostIO(input: Pick<HostInput, 'root' | 'controller' | 'work'> & { renderFrames?: boolean }): BrowserHostIO {
   return {
     async build(project, name, signal, authority) {
       if (name !== authority.taskId) throw new Error('Build task differs from its host execution authority.');
@@ -307,7 +307,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       } else if (resolve(item.workspace) !== resolve(root)) throw new Error('Historical passed tasks must retain their original host workspace.');
     }
   }
-  const registry = await createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', work, signal: work.signal }), io = modular ? { ...nativeIO(input), ...input.io } : input.io ?? nativeIO(input);
+  const registry = await createArtifactRegistry({ workspaceRoot: root, registryRoot: 'registry', work, signal: work.signal }), io = modular ? { ...createNativeBrowserHostIO(input), ...input.io } : input.io ?? createNativeBrowserHostIO(input);
   const name = (value: string) => validation ? `${validation.caseId}-${value}` : value;
   const template = inherited?.template ?? registry.artifactRef(name('generic-template'), 'v1'), requirements = registry.artifactRef(name('requirement-bundle'), requirement.sources[0].version);
   const captures = [...(inherited ? [template, inherited.requirementCapture] : [template]), requirements], provenance = { kind: 'original-procedural' as const, generator: 'Cosmos trusted host inputs', sourceRefs: requirement.sources.map(ref => `${ref.artifactId}@${ref.version}`) };
