@@ -221,4 +221,6 @@ PreparedPersistentChild.register可选registrationLifetime或其promise：原PID
 
 Root收敛新增NativeReadLifetime.check，复用冻结stage deadline并在到期先以该NativeWaitDeadlineError abort本phase；NativeRequestWaits.recordFailure只对当前未结束request/generation同步登记已观察HTTP首因，不abort caller、覆盖首因或影响后续段。consumer context新增可选retainCleanupFailure，生产固定闭包直通原OwnedWork；origin作者负责使用hook。两个API缺失RED0/2→helper完整GREEN16/16、0skip、378.9152ms，定向strict0；原预算、阶段顺序与普通路径保持。`origin-lifetime-{red,green}.tap`、`origin-lifetime-strict.log`同TEMP。
 
+origin作者真实RED补查显示verify内部等待close可先于request外层catch。Root收敛导出recordNativeValidationFailure(originalCaller,error)，复用私有caller WeakMap的stage/active marker，在任何phase的来源guard await close之前登记firstCause；derived、旧段、已settled均无权登记。request.recordFailure委托同一机制。单项API缺失有效RED0/1→helper完整GREEN17/17、0skip、305.7908ms，strict0；deferred invalidation前已保留来源首因，后续cleanup失败不覆盖。`origin-firstcause-red-2.tap`、`origin-firstcause-green.tap`、`origin-firstcause-strict.log`同TEMP；最初测试异步缺失API触发unhandled的red日志保留但以显式API断言的red-2为证据。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
