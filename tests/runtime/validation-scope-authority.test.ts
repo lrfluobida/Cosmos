@@ -150,6 +150,17 @@ test('COS97 scope caller cancellation preserves its exact reason and keeps the r
   assert.equal(n.waits.snapshot().rawReads.pending, 0); assert.equal(f.reads(), 0);
 });
 
+for (const native of [false, true]) test(`COS97 historical reader preserves its method receiver (native: ${native})`, async t => {
+  const bytes = Buffer.from('receiver-bound historical bytes'), f = await fixture(t, bytes);
+  const n = native ? nativeReads(f) : undefined;
+  const binding = { ...f.binding, historicalManifest: { reference: f.requirement.sources[1],
+    async readBytes(signal: AbortSignal) {
+      signal.throwIfAborted(); assert.equal(this.reference.version, hash(bytes)); return bytes;
+    } } };
+  const result = await requireValidationScope(f.controller, f.requirement, binding, n?.waits.readSignal);
+  assert.deepEqual(result.window, f.window); assert.equal(n?.waits.snapshot().rawReads.pending ?? 0, 0);
+});
+
 function codingTask(f: Fixture): TaskContract {
   const task = taskFixture() as TaskContract, grant = f.declaration.grants.coding;
   Object.assign(task, { taskId: grant.taskId, kind: 'evaluation', runId: f.original.run.runId, specVersion: f.original.run.specVersion,

@@ -57,7 +57,7 @@ export async function requireValidationScope(controller: RunController, requirem
       if (!/^[a-f0-9]{64}$/.test(fixed.reference.version) || !decision.sourceRefs.some(ref => sameValue(ref, fixed.reference))
         || typeof fixed.readBytes !== 'function') throw new Error('Historical manifest must use its exact operator-covered digest reference.');
       signal.throwIfAborted();
-      const bytes = await Promise.race([Promise.resolve().then(() => runNativeValidationRead(signal, fixed.readBytes)), cancelled]);
+      const bytes = await Promise.race([Promise.resolve().then(() => runNativeValidationRead(signal, active => fixed.readBytes(active))), cancelled]);
       if (!(bytes instanceof Uint8Array) || createHash('sha256').update(bytes).digest('hex') !== fixed.reference.version) throw new Error('Actual historical manifest bytes changed.');
     }
     controller.requireValidationCase(caseId, windowId);

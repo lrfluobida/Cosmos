@@ -159,4 +159,6 @@
 
 受影响helper完整GREEN8/8、0skip、exit0、243.1437ms，定向strict exit0；`helper-p2-red.tap`、`helper-p2-green.tap`、`helper-p2-strict.log`在同TEMP。未改scope/window生产或其17项行为，复用此前4/17通过证据；继续完整navigation/HTTP/lease与host信号链实施。
 
+第二切片独审另发现readBytes裸函数丢失原method receiver。两个native/no-native合法this.reference用例实际RED0/2 TypeError，最小改为`active => fixed.readBytes(active)`后GREEN2/2、0skip、exit0、470.8573ms，定向strict0；`reader-receiver-{red,green}.tap`及`reader-receiver-strict.log`同TEMP。原scope品牌/计数/reader所有权逻辑保持，其余4/17与helper8证据复用。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
