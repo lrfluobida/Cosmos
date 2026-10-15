@@ -243,4 +243,8 @@ native runner复核source对象/task/deadline/segment，启动使用lifecycle三
 
 `native-runner-{red,red-2,green}.tap`、`native-runner-legacy-launch.tap`、`native-runner-strict{,-2}.log`、`known-failure-input-{red,green}.tap`、`known-failure-runner-green{,-2}.tap`同TEMP。所有浏览器/CDP/OS终止均合成transport，taskkill只mock核精确PID参数；未调用实际browser/actual/provider。
 
+## 作者源码切片 16：nativeIO source identity 拒绝（局部）
+
+nativeIO在原task/deadline检查后、OwnedWork派发前复核native waits私有来源、transfer series、exact case/window/task/D；复制对象、错case/window、generic series和human authority均零派发。真实临时controller与dispatch sentinel证实旧代码五项都走入派发，有效RED组1pass/6fail（含父）→GREEN7/7、0skip、5161.1851ms、strict0；legacy无对象仍一次原派发。ownedChild接收同一trusted waits，不引入selector。`native-io-red-2.tap`、`native-io-green.tap`、`native-io-strict.log`同TEMP；最初red累计计数污染legacy断言日志保留，以每子项重置计数的red-2为证据。factory/consumer生产装配仍在后续切片。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

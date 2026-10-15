@@ -65,7 +65,7 @@ import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
 import { MODULE_CONTRACTS, MODULE_SLOTS, moduleDirectory, moduleSlot, moduleSource, validateModuleContracts, validateModuleFiles } from './modular-code.ts';
 import type { ModularCompilerInputs, ModuleSlot } from './modular-code.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
-import { associateNativeReadSignal, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
+import { associateNativeReadSignal, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
 import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
@@ -193,8 +193,12 @@ export function createNativeBrowserHostIO(input: Pick<HostInput, 'root' | 'contr
     async playPersistent(series, options, authority) {
       if (series.segments.some(segment => segment.plan.taskId !== authority.taskId)
         || options.deadlineAt !== Date.parse(authority.deadlineAt)) throw new Error('Persistent browser task or deadline differs from host authority.');
+      const native = options.nativeValidationWaits;
+      if (native !== undefined && (!isNativeValidationWaits(native) || series.formatVersion !== 'persistent-acceptance/1'
+        || native.caseId !== authority.caseId || native.windowId !== authority.windowId || native.taskId !== authority.taskId
+        || native.deadlineAt !== options.deadlineAt)) throw new Error('Native persistent wait source differs from its exact validation authority.');
       return input.work.run(async signal => runPersistentAcceptance(series, { ...options, signal: AbortSignal.any([signal, ...(options.signal ? [options.signal] : [])]),
-        ownedChild: createPersistentOwnedChild(input, authority, options.verifyBinding) }));
+        ownedChild: createPersistentOwnedChild(input, authority, options.verifyBinding, native) }));
     },
   };
 }

@@ -9,7 +9,7 @@ import { safePath, regularFile, snapshot } from '../../src/artifacts/paths.ts';
 import { requireValidationPreparationScope } from '../../src/runtime/entrypoint-validation.ts';
 import { transferFixture } from './runtime-host.fixture.ts';
 import { createNativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
-import { createValidationPreparedBrowserHost } from '../../src/runtime/entrypoint-host.ts';
+import { createValidationPreparedBrowserHost, createNativeBrowserHostIO } from '../../src/runtime/entrypoint-host.ts';
 import type { BrowserInputPreparation, BrowserPreparationContext } from '../../src/runtime/entrypoint-preparation.ts';
 
 async function files(t: test.TestContext) {
@@ -122,5 +122,29 @@ test('COS97 prepared host closures forward the original optional caller', async 
     t.mock.method(f.input.work, 'retainCleanupFailure', (error: unknown) => { failures.push(error); });
     try { assert.equal(typeof context.retainCleanupFailure, 'function'); context.retainCleanupFailure!(reason); assert.deepEqual(failures, [reason]); }
     finally { t.mock.restoreAll(); }
+  });
+});
+
+test('COS97 nativeIO rejects an untrusted or mismatched wait source before dispatch', async t => {
+  const f = await transferFixture(t), taskId = f.window.quote.declaration.grants.coding.taskId, deadlineAt = Date.parse(f.window.deadlineAt);
+  const io = createNativeBrowserHostIO(f.input), authority = { taskId, caseId: f.window.caseId, windowId: f.window.windowId, deadlineAt: f.window.deadlineAt };
+  const waits = (caseId = f.window.caseId, windowId = f.window.windowId) => createNativeValidationWaits({ caseId, windowId, taskId, deadlineAt,
+    signal: f.input.work.signal, trackRaw: start => f.input.work.run(start) });
+  const original = waits(), series: any = { formatVersion: 'persistent-acceptance/1', segments: [{ plan: { taskId } }] }, sentinel = new Error('Fixture dispatch sentinel'); let dispatches = 0;
+  t.mock.method(f.input.work, 'run', async () => { dispatches++; throw sentinel; });
+  const options = (nativeValidationWaits: unknown): any => ({ evidenceRoot: f.root, deadlineAt, verifyBinding: async () => {}, nativeValidationWaits });
+  for (const [name, source, value, hostAuthority] of [
+    ['copied object', { ...original }, series, authority], ['wrong case', waits('another-case'), series, authority],
+    ['wrong window', waits(f.window.caseId, 'another-window'), series, authority],
+    ['generic series', original, { ...series, formatVersion: 'persistent-acceptance/generic-1' }, authority],
+    ['human authority', original, series, { ...authority, caseId: undefined, windowId: null }],
+  ] as const) await t.test(name, async () => {
+    dispatches = 0;
+    await assert.rejects(io.playPersistent!(value, options(source), hostAuthority), /native persistent wait source/i); assert.equal(dispatches, 0);
+  });
+  await t.test('legacy absent wait retains its existing dispatch', async () => {
+    dispatches = 0;
+    const plain = options(undefined); delete plain.nativeValidationWaits;
+    await assert.rejects(io.playPersistent!(series, plain, authority), error => error === sentinel); assert.equal(dispatches, 1);
   });
 });
