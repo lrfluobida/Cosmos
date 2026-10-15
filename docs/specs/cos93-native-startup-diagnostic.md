@@ -1,10 +1,14 @@
 # COS-93 真实历史负载下的原生浏览器启动诊断
 
-状态：source-reviewed / actual-incomplete；诊断实现已独审合入，issue #94保持open、integration partial。v1在浏览器前5秒scope失败；v2在 `5e6847ba465b863367e476aa84f4fcaa276d3301` 上实际15秒launch失败，之后约4GB堆OOM，缺最终trace/preservation/result，正常drain未证实。现准备[有界观测短计划](../plans/2026-10-15-cos93-bounded-observer.md)，尚未实施或授权第三次actual。原计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 经 `cos93_reviewer` 独审 `PLAN_APPROVED`，无finding；[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)。Issue [#94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，父 #1，登记时原生子项计数93；依赖 COS52/COS56/COS91/COS92。任务来源为 Root 的私有 `cos93-issue-body.md` 与 `cos93-published.json`，位于 `E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/`。
+状态：source-reviewed / actual-incomplete；诊断实现已独审合入，issue #94保持open、integration partial。v1在浏览器前5秒scope失败；v2在 `5e6847ba465b863367e476aa84f4fcaa276d3301` 上实际15秒launch失败，之后约4GB堆OOM，缺最终trace/preservation/result，正常drain未证实。[有界观测计划](../plans/2026-10-15-cos93-bounded-observer.md) `fb0f341779ff8afd04a77cecb887e5381f02438a` 已独审PLAN_APPROVED，实现及短验证完成待源码独审；未授权或执行第三次actual。原计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 已独审PLAN_APPROVED、无finding，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)保持。Issue [#94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，父 #1，登记时原生子项计数93；依赖 COS52/COS56/COS91/COS92。任务来源为 Root 的私有 `cos93-issue-body.md` 与 `cos93-published.json`，位于 `E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/`。
 
 专职作者 `cos93_implementer`，独立 reviewer `cos93_reviewer`，唯一 merger `batch_c14_cos92_merger`。分支 `codex/cos93-native-startup-diagnostic`，managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`；从指定主线 `61d13817ca871d2be04576b4d6fb51fa8a86b541` 建立，旧 COS92 工作树干净且 HEAD 是该主线祖先。首阶段只提交本卡和[实施计划](../plans/2026-10-15-cos93-native-startup-diagnostic.md)；现已完成一次未达浏览器阶段的实际诊断，fixture结果记录修正已独审集成。作者不改 main、共享 tracking 或 GitHub。
 
 当前观测器修正分支为 `codex/cos93-bounded-observer`，沿用该managed worktree，从固定 `5e6847ba465b863367e476aa84f4fcaa276d3301` 新建；旧0b475已合入且旧分支/ignored证据保留。该轮先提交计划及记录，独审后再改fixture/test，生产src不在范围。
+
+本轮已实现无调用记录的方法包装、有界标量trace、quote/claim之前的before清单及单句柄阶段进度；原module入口和全部实际guard保持。短检查覆盖引用回收、原Promise/错误、descriptor恢复、PID事件调用方、上限/I/O失败、异常退出证据，具体结果见新计划。当前仅交源码独审，不提升真实启动或完整任务结论。
+
+`f0eb58f1009c3c9ce590919e082bcaecf590da78` 独审提出pending Promise额外保留operation闭包的P2，作者已将settlement handlers移到独立作用域、无row分支不再安装回调。3个1KiB pending对照RED→GREEN及受影响检查4/4通过，三文件strict退出0；旧12/12等无变化证据复用，详情见[计划P2记录](../plans/2026-10-15-cos93-bounded-observer.md)。修正待独立复审，无第三次actual，COS93仍open/partial。
 
 ## 事实与问题
 
