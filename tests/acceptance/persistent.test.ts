@@ -8,6 +8,8 @@ import type { Observation } from '../../src/acceptance/plan.ts';
 import type { AcceptanceReport } from '../../src/acceptance/runner.ts';
 import * as api from '../../src/acceptance/persistent.ts';
 import * as consumer from '../../probes/transfer/acceptance.ts';
+import { createNativeValidationWaits, recordNativeValidationFailure, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 
 const snapshot: Observation = { kind: 'debug', path: ['transfer', 'snapshot'] };
 const saved: Observation = { kind: 'debug', path: ['transfer', 'saveSnapshot'] };
@@ -229,4 +231,59 @@ test('COS39 publication drains binding and cancellation for failed and passed se
       assert.deepEqual(JSON.parse(await readFile(join(root, report.reportPath), 'utf8')), report);
     } finally { await rm(root, { recursive: true, force: true }); }
   }
+});
+
+test('COS97 native series freezes publication timing and raw counts after its final guard', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'cos97-publication-')), work = new OwnedWork(), deadlineAt = Date.now() + 30000;
+  const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'COS-37', deadlineAt, signal: work.signal, trackRaw: start => work.run(start) });
+  waits.startConsumer(); let checks = 0, calls = 0, ended = 0, pendingPublication = false;
+  const s = series(), aggregate = join(root, s.segments[0].plan.projectId, s.segments[0].plan.artifact.artifactId, s.segments[0].plan.artifact.version,
+    s.segments[0].plan.runId, s.reportId, 'report.json');
+  try {
+    const report = await api.executePersistentSeries(s, { evidenceRoot: root, deadlineAt, nativeValidationWaits: waits, verifyBinding: async caller => {
+      if (++checks === 7) {
+        pendingPublication = await readFile(aggregate).then(() => true, error => { if (error.code === 'ENOENT') return false; throw error; });
+        await runNativeValidationRead(caller!, async () => { await new Promise(done => setTimeout(done, 40)); }); ended = Date.now();
+      }
+    } }, async (p, lifecycle) => {
+      const result = await fakeReport(p, root, lifecycle.profile, 3000 + ++calls), segment = waits.beginSegment(p.reportId);
+      await segment.runStage('prepare_authority', async () => {}); await segment.runStage('register_authority', async () => {});
+      await segment.runStage('browser_transport', async () => {}); segment.beginNavigation(); await segment.runStage('navigation', async () => {});
+      segment.finishNavigation(); segment.revoke(); await segment.settle(deadlineAt); return result;
+    });
+    assert.equal(report.outcome, 'passed', report.errors.join('; ')); assert.equal(checks, 7);
+    assert.equal(pendingPublication, false, 'The native aggregate is published only after the final current binding guard');
+    assert.ok(Date.parse(report.endedAt) >= ended); assert.ok(report.nativeWaits!.seriesElapsedMs >= 40);
+    assert.deepEqual(report.nativeWaits!.rawReads, waits.snapshot().rawReads, 'The final guard belongs to aggregate raw tracking');
+    assert.deepEqual(JSON.parse(await readFile(aggregate, 'utf8')), report);
+  } finally { await work.cancelAndDrain('fixture complete'); await rm(root, { recursive: true, force: true }); }
+});
+
+test('COS97 actual series guard preserves the effective controller reason after an earlier work abort', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'cos97-series-reason-')), controller = new AbortController(), workAbort = new AbortController(), work = new OwnedWork(workAbort.signal);
+  const deadlineAt = Date.now() + 30000, reason = new Error('Original controller deadline has become effective'); let bindings = 0, dispatches = 0;
+  const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'COS-37', deadlineAt,
+    signal: work.signal, controllerSignal: controller.signal, trackRaw: start => work.run(start) }); waits.startConsumer();
+  workAbort.abort(new Error('Earlier work cancellation')); controller.abort(reason);
+  try {
+    const report = await api.executePersistentSeries(series(), { evidenceRoot: root, deadlineAt, signal: work.signal, nativeValidationWaits: waits,
+      verifyBinding: async () => { bindings++; } }, async () => { dispatches++; throw new Error('No browser is allowed'); });
+    assert.equal(report.outcome, 'failed'); assert.equal(report.errors[0], reason.message); assert.equal(bindings, 0); assert.equal(dispatches, 0);
+  } finally { await work.cancelAndDrain('fixture complete'); await rm(root, { recursive: true, force: true }); }
+});
+
+test('COS97 actual series root guard preserves recorded source before a later work cleanup', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'cos97-root-source-')), controller = new AbortController(), workAbort = new AbortController(), work = new OwnedWork();
+  const deadlineAt = Date.now() + 30000, source = new Error('Original recorded source before series root guard'), cleanup = new Error('Later work cleanup');
+  const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'COS-37', deadlineAt,
+    signal: workAbort.signal, controllerSignal: controller.signal, trackRaw: start => work.run(start) }); waits.startConsumer();
+  const segment = waits.beginSegment('failed-before-series'); let bindings = 0;
+  await assert.rejects(segment.runStage('prepare_authority', async life => {
+    recordNativeValidationFailure(life.signal, source); workAbort.abort(cleanup); throw cleanup;
+  }), error => error === source); await segment.settle(deadlineAt);
+  try {
+    const report = await api.executePersistentSeries(series(), { evidenceRoot: root, deadlineAt, signal: workAbort.signal,
+      nativeValidationWaits: waits, verifyBinding: async () => { bindings++; } }, async () => { throw new Error('No browser is allowed'); });
+    assert.equal(controller.signal.aborted, false); assert.equal(report.errors[0], source.message); assert.equal(bindings, 0);
+  } finally { await work.cancelAndDrain('fixture complete'); await rm(root, { recursive: true, force: true }); }
 });

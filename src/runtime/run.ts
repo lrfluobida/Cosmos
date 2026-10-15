@@ -24,6 +24,7 @@ import { idleAnchor, idleHash, publishWindowIdle, requireNoRegistryWriter, requi
 import type { ExecutionAuthority, ExecutionWindow, ImportedCharge, RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
 import type { CompletionBinding, ClosedCompletionProof } from './completion-timing.ts';
 import { bounded } from '../acceptance/deadline.ts';
+import { associateNativeReadSignal } from '../acceptance/native-validation-waits.ts';
 export type { ImportedCharge, RequestInput, RunSnapshot } from './run-types.ts';
 
 export interface OpenRunOptions { root: string; now?: () => number; windowId?: string }
@@ -209,14 +210,18 @@ export class RunController {
     } catch (error) { await store.close(); throw error; }
   }
 
-  async read(): Promise<RunSnapshot> { return this.serial(async () => structuredClone(this.snapshot)); }
+  async read(callerSignal?: AbortSignal): Promise<RunSnapshot> {
+    this.checkCaller(callerSignal);
+    return this.serial(async () => { this.checkCaller(callerSignal); return structuredClone(this.snapshot); });
+  }
 
   /** Detached scope identity and complete current window, with the same read queue and expiry. */
-  async readValidationScopeAuthority(): Promise<{ runId: string; specVersion: string; ledgerId: string; window: ValidationCaseWindow }> {
-    return this.serial(async () => structuredClone({
+  async readValidationScopeAuthority(callerSignal?: AbortSignal): Promise<{ runId: string; specVersion: string; ledgerId: string; window: ValidationCaseWindow }> {
+    this.checkCaller(callerSignal);
+    return this.serial(async () => { this.checkCaller(callerSignal); return structuredClone({
       runId: this.snapshot.run.runId, specVersion: this.snapshot.run.specVersion,
       ledgerId: this.snapshot.ledger.ledgerId, window: this.validationWindow(),
-    }));
+    }); });
   }
 
   /** One authority view for all window-aware host admission paths. */
@@ -225,18 +230,22 @@ export class RunController {
     return this.serial(async () => this.taskAuthority(taskId));
   }
 
-  validationAuthority(taskId: string, purpose: ValidationPurpose): Promise<ValidationAuthority> {
+  validationAuthority(taskId: string, purpose: ValidationPurpose, callerSignal?: AbortSignal): Promise<ValidationAuthority> {
+    if (callerSignal && (this.signal.aborted || callerSignal.aborted)) return Promise.reject(this.signal.aborted ? this.signal.reason : callerSignal.reason);
     this.validationWindow();
-    return this.serial(async () => this.validationTaskAuthority(taskId, purpose));
+    return this.serial(async () => { this.checkCaller(callerSignal); return this.validationTaskAuthority(taskId, purpose); });
   }
 
   /** Explicit generic host guard; identity checking may persist the existing deadline stop. */
-  requireValidationHost(caseId: string, windowId: string, artifactRoot: string): Promise<void> {
+  requireValidationHost(caseId: string, windowId: string, artifactRoot: string, callerSignal?: AbortSignal): Promise<void> {
+    if (callerSignal && (this.signal.aborted || callerSignal.aborted)) return Promise.reject(this.signal.aborted ? this.signal.reason : callerSignal.reason);
     return this.serial(async () => {
+      this.checkCaller(callerSignal);
       this.requireValidationCase(caseId, windowId);
       if (resolve(artifactRoot) !== resolve(this.validationContext!.repositoryRoot, '.cosmos/e2e', caseId)) throw new Error('Validation host root differs from its current case.');
       if (this.snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new Error('Validation host charges require reconciliation before dispatch.');
-      await this.checkValidationIdentity();
+      await this.checkValidationIdentity(callerSignal);
+      this.checkCaller(callerSignal);
       this.requireValidationCase(caseId, windowId);
     });
   }
@@ -555,6 +564,10 @@ export class RunController {
     return this.closePromise;
   }
 
+  private checkCaller(callerSignal?: AbortSignal): void {
+    if (callerSignal) { this.signal.throwIfAborted(); callerSignal.throwIfAborted(); }
+  }
+
   private serial<T>(operation: () => Promise<T>): Promise<T> {
     if (this.closing || this.failed) return Promise.reject(new Error('Run controller is closed or persistence failed.'));
     const result = this.pending.then(async () => {
@@ -649,11 +662,18 @@ export class RunController {
     if (!this.validationTaskAuthority(taskId, metadata.purpose).executionAllowed) throw new Error('Validation task has no active purpose authority.');
   }
 
-  private async checkValidationIdentity(): Promise<void> {
+  private async checkValidationIdentity(callerSignal?: AbortSignal): Promise<void> {
+    this.checkCaller(callerSignal);
     const window = this.validationWindow();
-    try { await verifyValidationIdentity({ ...this.validationContext!, signal: this.signal }, window.quote.declaration, window.quote.identity, window.deadlineAt); await verifyValidationBudgetSources(this.store.root, this.snapshot); }
-    finally { await this.expire(); }
-    this.requireActive();
+    const signal = callerSignal ? associateNativeReadSignal(callerSignal, AbortSignal.any([this.signal, callerSignal])) : this.signal;
+    try {
+      try {
+        await verifyValidationIdentity({ ...this.validationContext!, signal }, window.quote.declaration, window.quote.identity, window.deadlineAt);
+        this.checkCaller(callerSignal); await verifyValidationBudgetSources(this.store.root, this.snapshot, callerSignal ? signal : undefined);
+      } finally { await this.expire(); }
+      this.checkCaller(callerSignal);
+      this.requireActive();
+    } catch (error) { if (callerSignal) this.signal.throwIfAborted(); throw error; }
   }
 
   private halt(next: RunSnapshot, code: StopReason['code'], reason: string): void {

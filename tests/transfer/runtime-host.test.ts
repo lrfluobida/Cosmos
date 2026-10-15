@@ -2,11 +2,20 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { transferFixture } from './runtime-host.fixture.ts';
+import { transferFixture, hash } from './runtime-host.fixture.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { createArtifactRegistry } from '../../src/artifacts/index.ts';
 import type { TaskContract } from '../../src/contracts/index.ts';
 import type { RunSnapshot } from '../../src/runtime/run-types.ts';
+import fs from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+import { bindTransferAcceptance, verifyPreparedTransferAcceptance } from '../../src/runtime/adapters/transfer/binding.ts';
+import type { BindInput } from '../../src/runtime/adapters/transfer/binding.ts';
+import { createTransferDesignValidation } from '../../src/runtime/adapters/transfer/design-validation.ts';
+import type { BrowserPreparationContext } from '../../src/runtime/entrypoint-preparation.ts';
+import type { BrowserCandidateConsumerContext } from '../../src/runtime/entrypoint-preparation.ts';
+import { consumeTransferCandidate } from '../../src/runtime/adapters/transfer/runtime-acceptance.ts';
+import { createNativeValidationWaits, recordNativeValidationFailure } from '../../src/acceptance/native-validation-waits.ts';
 
 async function api() {
   const result: any = await import('../../probes/transfer/runtime-host.ts').catch(error => {
@@ -114,6 +123,162 @@ test('COS92 each candidate binding reuses only its own verified inputs and check
     assert.equal(scopes, 8, 'Do not verify the same prepared inputs twice in one binding');
   }
   f.changeIdentity(); await assert.rejects(f.host.bindPreparedCandidate(candidate), /identity|source|platform/i);
+});
+
+test('COS97 fixed transfer binding forwards caller cancellation through actual plan design and candidate reads', async t => {
+  const f = await pipeline(t), saved = JSON.parse(await readFile(join(f.root, 'host-transfer-prepared-inputs.json'), 'utf8'));
+  const prepared = saved.plans.v1, first = prepared.segments[0];
+  const input: BindInput = { root: f.root, registry: f.registry, frozen: saved.frozen,
+    currentRequirement: { artifact: saved.frozen.requirement, specVersion: saved.frozen.specVersion }, candidate: prepared.binding.candidate,
+    planArtifact: prepared.artifact, url: first.plan.url, runId: prepared.binding.runId,
+    reportId: first.plan.reportId.slice(0, -('-' + first.id).length), taskId: first.plan.taskId, prepared };
+  assert.deepEqual(await verifyPreparedTransferAcceptance(input), prepared);
+  assert.deepEqual(await bindTransferAcceptance(input), prepared);
+  await t.test('pre-cancelled caller', async () => {
+    const caller = new AbortController(), reason = new Error('cancelled before fixed binding'); caller.abort(reason);
+    await assert.rejects(verifyPreparedTransferAcceptance(input, caller.signal), error => error === reason);
+    await assert.rejects(bindTransferAcceptance(input, caller.signal), error => error === reason);
+  });
+  await t.test('cancellation during actual metadata bytes', async () => {
+    const caller = new AbortController(), reason = new Error('cancelled after binding bytes'), original = fs.promises.readFile; let reads = 0;
+    t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+      const bytes = await original(...args);
+      if (String(args[0]).startsWith(f.root)) { reads++; if (reads === 1) caller.abort(reason); }
+      return bytes;
+    });
+    syncBuiltinESMExports();
+    try {
+      await assert.rejects(bindTransferAcceptance(input, caller.signal), error => error === reason);
+      assert.equal(reads, 1, 'Cancellation after metadata must prevent the next actual binding file read');
+    } finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+  });
+});
+
+test('COS97 read-only design seal stops at caller boundaries on valid audit bytes', async t => {
+  const f = await pipeline(t), task = f.result[0]; let guards = 0, received: AbortSignal | undefined, cancel: AbortController | undefined;
+  const context = { root: f.root, signal: f.input.work.signal, requirement: f.requirement, designTaskId: task.taskId,
+    requirementCapture: f.registry.artifactRef(`${f.window.caseId}-requirement-bundle`, 'fixture-v1') } as BrowserPreparationContext;
+  const validation = createTransferDesignValidation({ context, controller: f.controller,
+    guard: async (caller?: AbortSignal) => { guards++; received = caller; cancel?.abort(reason); } });
+  const reason = new Error('cancelled read-only design seal');
+  assert.ok((await validation.seal(task)).bytes.length > 0, 'The original audit and source must be valid before cancellation'); guards = 0;
+  await t.test('pre-cancelled seal starts no guard', async () => {
+    const caller = new AbortController(); caller.abort(reason);
+    await assert.rejects(validation.seal(task, undefined, caller.signal), error => error === reason); assert.equal(guards, 0);
+  });
+  await t.test('cancellation inside guard preserves caller before binding reads', async () => {
+    cancel = new AbortController(); guards = 0;
+    try { await assert.rejects(validation.seal(task, undefined, cancel.signal), error => error === reason); assert.equal(received, cancel.signal); assert.equal(guards, 1); }
+    finally { cancel = undefined; }
+  });
+  await t.test('cancellation after first actual binding bytes stops subsequent reads', async () => {
+    const caller = new AbortController(), original = fs.promises.readFile; let reads = 0;
+    t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+      const bytes = await original(...args); if (String(args[0]).startsWith(f.root)) { reads++; if (reads === 1) caller.abort(reason); } return bytes;
+    }); syncBuiltinESMExports();
+    try { await assert.rejects(validation.seal(task, undefined, caller.signal), error => error === reason); assert.equal(reads, 1); }
+    finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+  });
+});
+
+test('COS97 design seal preserves a caller ENOENT reason during its final valid MAP read', async t => {
+  const f = await pipeline(t), task = f.result[0], context = { root: f.root, signal: f.input.work.signal, requirement: f.requirement, designTaskId: task.taskId,
+    requirementCapture: f.registry.artifactRef(`${f.window.caseId}-requirement-bundle`, 'fixture-v1') } as BrowserPreparationContext;
+  const validation = createTransferDesignValidation({ context, controller: f.controller, guard: async () => {} });
+  assert.ok((await validation.seal(task)).bytes.length > 0);
+  const caller = new AbortController(), reason = Object.assign(new Error('Caller ENOENT is cancellation, not a missing MAP'), { code: 'ENOENT' });
+  const original = fs.promises.readFile, target = join(f.tasks[0].workspace, 'authors/design/transfer-design.json'); let reads = 0;
+  t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+    const bytes = await original(...args); if (String(args[0]) === target) { reads++; caller.abort(reason); } return bytes;
+  }); syncBuiltinESMExports();
+  try { await assert.rejects(validation.seal(task, undefined, caller.signal), error => error === reason); assert.equal(reads, 1); }
+  finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+});
+
+test('COS97 consumer forwards the exact native phase caller and stops binding after one cancelled read', async t => {
+  const f = await pipeline(t), saved = JSON.parse(await readFile(join(f.root, 'host-transfer-prepared-inputs.json'), 'utf8'));
+  const prepared = saved.plans.v1, first = prepared.segments[0], candidate = prepared.binding.candidate, task = { ...f.result[2], taskId: first.plan.taskId };
+  const input: BindInput = { root: f.root, registry: f.registry, frozen: saved.frozen,
+    currentRequirement: { artifact: saved.frozen.requirement, specVersion: saved.frozen.specVersion }, candidate, planArtifact: prepared.artifact,
+    url: first.plan.url, runId: prepared.binding.runId, reportId: first.plan.reportId.slice(0, -('-' + first.id).length), taskId: task.taskId, prepared };
+  assert.deepEqual(await bindTransferAcceptance(input), prepared);
+  const mediaArtifact = f.result[1].artifacts[0], capture = await f.registry.getCapture(mediaArtifact), bytes = await readFile(join(f.root, mediaArtifact.location, 'public/assets/manifest.json'));
+  const waits = createNativeValidationWaits({ caseId: f.window.caseId, windowId: f.window.windowId, taskId: task.taskId,
+    deadlineAt: Date.parse(f.window.deadlineAt), signal: f.input.work.signal, controllerSignal: f.controller.signal, trackRaw: start => f.input.work.run(start) });
+  const reason = new Error('Consumer phase cancelled after actual metadata'), original = fs.promises.readFile; let reads = 0, received: AbortSignal | undefined, expected: AbortSignal | undefined, transported: unknown;
+  let segment: ReturnType<typeof waits.beginSegment> | undefined;
+  const context: BrowserCandidateConsumerContext = { root: f.root, task, candidate, project: join(f.root, candidate.location),
+    cleanDelivery: { project: join(f.root, candidate.location), url: new URL(first.plan.url).origin, requireCurrent: async () => {} },
+    mediaArtifact, media: capture.metadata.media!, manifestSha256: hash(bytes), signal: f.input.work.signal, deadlineAt: waits.deadlineAt, nativeValidationWaits: waits,
+    requireCurrent: async caller => { received = caller; }, playPersistent: async (_series, options) => {
+      transported = options.nativeValidationWaits; segment = waits.beginSegment('consumer-phase');
+      return segment.runStage('prepare_authority', async life => {
+        expected = life.signal;
+        t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+          const raw = await original(...args); if (String(args[0]).startsWith(f.root)) { reads++; if (reads === 1) segment!.revoke(reason); } return raw;
+        }); syncBuiltinESMExports(); await options.verifyBinding(life.signal); throw new Error('Cancelled guard must reject before transport');
+      });
+    } };
+  try {
+    await assert.rejects(consumeTransferCandidate(context, { input, sourceVersion: 'a'.repeat(40), mount: async () => async () => {} }), error => error === reason);
+    await segment!.settle(waits.deadlineAt); assert.equal(received, expected); assert.equal(reads, 1); assert.equal(transported, waits);
+  } finally { t.mock.restoreAll(); syncBuiltinESMExports(); segment?.revoke(); await segment?.settle(waits.deadlineAt); }
+});
+
+test('COS97 complete native host binding and consumer evidence keep the original wait owner', async t => {
+  const f = await pipeline(t), saved = JSON.parse(await readFile(join(f.root, 'host-transfer-prepared-inputs.json'), 'utf8'));
+  const prepared = saved.plans.v1, first = prepared.segments[0], candidate = prepared.binding.candidate, task = { ...f.result[2], taskId: first.plan.taskId };
+  const createWaits = () => createNativeValidationWaits({ caseId: f.window.caseId, windowId: f.window.windowId, taskId: task.taskId,
+    deadlineAt: Date.parse(f.window.deadlineAt), signal: f.input.work.signal, controllerSignal: f.controller.signal, trackRaw: start => f.input.work.run(start) });
+  await t.test('host binding pre-cancel starts no source scope', async () => {
+    const waits = createWaits(), segment = waits.beginSegment('host-caller'); let reads = 0;
+    const read = f.validation.readScope, reason = new Error('Native complete host cancellation');
+    t.mock.method(f.validation, 'readScope', async (signal: AbortSignal) => { reads++; return read(signal); });
+    try { await assert.rejects(segment.runStage('prepare_authority', async life => {
+      segment.revoke(reason); return f.host.bindPreparedCandidate(candidate, life.signal);
+    }), error => error === reason); await segment.settle(waits.deadlineAt); assert.equal(reads, 0); }
+    finally { t.mock.restoreAll(); }
+  });
+  await t.test('consumer independently finishes its honest envelope after the final guard', async () => {
+    const waits = createWaits(), mediaArtifact = f.result[1].artifacts[0], capture = await f.registry.getCapture(mediaArtifact);
+    const bytes = await readFile(join(f.root, mediaArtifact.location, 'public/assets/manifest.json')); let checks = 0, transport: unknown;
+    const input: BindInput = { root: f.root, registry: f.registry, frozen: saved.frozen,
+      currentRequirement: { artifact: saved.frozen.requirement, specVersion: saved.frozen.specVersion }, candidate, planArtifact: prepared.artifact,
+      url: first.plan.url, runId: prepared.binding.runId, reportId: first.plan.reportId.slice(0, -('-' + first.id).length), taskId: task.taskId, prepared };
+    const result = await consumeTransferCandidate({ root: f.root, task, candidate, project: join(f.root, candidate.location),
+      cleanDelivery: { project: join(f.root, candidate.location), url: new URL(first.plan.url).origin, requireCurrent: async () => {} },
+      mediaArtifact, media: capture.metadata.media!, manifestSha256: hash(bytes), signal: f.input.work.signal, deadlineAt: waits.deadlineAt, nativeValidationWaits: waits,
+      requireCurrent: async () => { checks++; }, playPersistent: async (_series, options) => { transport = options.nativeValidationWaits; return {} as any; } },
+    { input, sourceVersion: 'a'.repeat(40), mount: async () => async () => {} });
+    assert.equal(transport, waits); assert.equal(result.passed, false); assert.ok(checks >= 3); assert.equal(waits.snapshot().rawReads.pending, 0);
+    assert.equal(result.nativeWaits?.contractVersion, waits.contractVersion); assert.ok(result.nativeWaits!.consumerElapsedMs > 0);
+    assert.ok(result.nativeWaits!.consumerStartedAt <= result.nativeWaits!.consumerEndedAt);
+  });
+});
+
+test('COS97 actual consumer root guard preserves recorded source before a later work cleanup', async t => {
+  const f = await pipeline(t), saved = JSON.parse(await readFile(join(f.root, 'host-transfer-prepared-inputs.json'), 'utf8'));
+  const prepared = saved.plans.v1, first = prepared.segments[0], candidate = prepared.binding.candidate, task = { ...f.result[2], taskId: first.plan.taskId };
+  const input: BindInput = { root: f.root, registry: f.registry, frozen: saved.frozen,
+    currentRequirement: { artifact: saved.frozen.requirement, specVersion: saved.frozen.specVersion }, candidate, planArtifact: prepared.artifact,
+    url: first.plan.url, runId: prepared.binding.runId, reportId: first.plan.reportId.slice(0, -('-' + first.id).length), taskId: task.taskId, prepared };
+  const mediaArtifact = f.result[1].artifacts[0], capture = await f.registry.getCapture(mediaArtifact), bytes = await readFile(join(f.root, mediaArtifact.location, 'public/assets/manifest.json'));
+  const workAbort = new AbortController(), source = new Error('Original recorded source before consumer root guard'), cleanup = new Error('Later consumer work cleanup');
+  const waits = createNativeValidationWaits({ caseId: f.window.caseId, windowId: f.window.windowId, taskId: task.taskId,
+    deadlineAt: Date.parse(f.window.deadlineAt), signal: workAbort.signal, controllerSignal: f.controller.signal, trackRaw: start => f.input.work.run(start) });
+  let rootObserved: unknown;
+  await assert.rejects(consumeTransferCandidate({ root: f.root, task, candidate, project: join(f.root, candidate.location),
+    cleanDelivery: { project: join(f.root, candidate.location), url: new URL(first.plan.url).origin, requireCurrent: async () => {} },
+    mediaArtifact, media: capture.metadata.media!, manifestSha256: hash(bytes), signal: workAbort.signal, deadlineAt: waits.deadlineAt, nativeValidationWaits: waits,
+    requireCurrent: async () => {}, playPersistent: async (_series, options) => {
+      const segment = waits.beginSegment('consumer-root');
+      await assert.rejects(segment.runStage('prepare_authority', async life => {
+        recordNativeValidationFailure(life.signal, source); workAbort.abort(cleanup); throw cleanup;
+      }), error => error === source); await segment.settle(waits.deadlineAt);
+      try { await options.verifyBinding(); } catch (error) { rootObserved = error; throw error; }
+      throw new Error('Known source failure must stop the root guard');
+    } }, { input, sourceVersion: 'a'.repeat(40), mount: async () => async () => {} }), error => error === source);
+  assert.equal(rootObserved, source); assert.equal(f.controller.signal.aborted, false);
 });
 
 test('invalid semantic design preserves raw bytes and stops art/coding without claiming coding repair', async t => {

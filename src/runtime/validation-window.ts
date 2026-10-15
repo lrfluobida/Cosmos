@@ -10,6 +10,7 @@ import { currentValidationCase, VALIDATION_ROLES, validateValidationDeclaration,
 import { prepareValidationBudgetGroup, requireBudgetGroupQuote, verifyValidationBudgetSources } from './validation-budget.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ClaimValidationCaseOptions, OperatorValidationDecision, ValidationCaseQuote, ValidationCaseWindow, ValidationContextOptions, ValidationDeclaration, ValidationIdentity } from './validation-types.ts';
+import { associateNativeReadSignal, runNativeValidationRead } from '../acceptance/native-validation-waits.ts';
 export { validationInputHash } from './validation-validation.ts';
 
 const at = (value: number) => { if (!Number.isSafeInteger(value) || !Number.isFinite(new Date(value).getTime())) throw new Error('Invalid validation clock.'); return new Date(value).toISOString(); };
@@ -22,10 +23,11 @@ export async function verifyValidationIdentity(options: ValidationContextOptions
   const remaining = deadlineAt ? Date.parse(deadlineAt) - now() - 5000 : timeout;
   if (remaining <= 0) throw new Error('Validation deadline cannot cover identity checking and cleanup.');
   options.signal?.throwIfAborted();
-  const abort = new AbortController(), signal = options.signal ? AbortSignal.any([options.signal, abort.signal]) : abort.signal;
+  const abort = new AbortController(), signal = associateNativeReadSignal(options.signal,
+    options.signal ? AbortSignal.any([options.signal, abort.signal]) : abort.signal);
   let timer: ReturnType<typeof setTimeout> | undefined, onAbort!: () => void;
   const cancelled = new Promise<never>((_, reject) => { onAbort = () => reject(signal.reason ?? new Error('Validation identity check aborted.')); signal.addEventListener('abort', onAbort, { once: true }); });
-  const work = (async () => {
+  const work = runNativeValidationRead(signal, async signal => {
     await safePath(options.repositoryRoot);
     signal.throwIfAborted();
     const identity = await options.identityReader(signal);
@@ -48,7 +50,7 @@ export async function verifyValidationIdentity(options: ValidationContextOptions
       }
     }
     signal.throwIfAborted(); return { identity: structuredClone(identity), requirements: requirements! };
-  })();
+  });
   timer = setTimeout(() => abort.abort(new Error('Validation identity reader timed out.')), Math.min(timeout, remaining));
   try {
     const result = await Promise.race([work, cancelled]);

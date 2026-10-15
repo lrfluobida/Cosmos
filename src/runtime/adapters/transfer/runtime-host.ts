@@ -22,7 +22,7 @@ import { reserveTransferOrigin } from './loopback-origin.ts';
 import { consumeTransferCandidate, diagnoseTransferBuild } from './runtime-acceptance.ts';
 import type { HistoricalPassedStages } from '../../historical-passed-stages.ts';
 import type { HumanContinuationInput, HumanContinuationScope } from '../../entrypoint-human-continuation.ts';
-import { isValidationScopeTimeout } from '../../validation-scope.ts';
+import { associateNativeReadSignal } from '../../../acceptance/native-validation-waits.ts';
 
 type HostInput = Parameters<typeof createValidationPreparedBrowserHost>[0];
 export type HumanTransferHostInput = HumanPreparationInput & Pick<HostInput, 'io' | 'sessionFactory'> & { historicalStages?: never };
@@ -164,9 +164,23 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
   let captureLayout: string;
   let designValidation: ReturnType<typeof createTransferDesignValidation>;
   const receiptFile = 'host-transfer-prepared-inputs.json';
-  const guard = async () => { try { await origin.verify(); } catch (error) { if (ctx.signal.aborted || !isValidationScopeTimeout(error)) await origin.close(); throw error; } };
-  const read = async (): Promise<PreparedInputs> => {
-    await guard(); const saved = decode(await regularFile(ctx.root, receiptFile)) as PreparedInputs;
+  const checkCaller = (callerSignal?: AbortSignal) => {
+    if (callerSignal) { ctx.controllerSignal?.throwIfAborted(); ctx.signal.throwIfAborted(); callerSignal.throwIfAborted(); }
+  };
+  const activeSignal = (callerSignal?: AbortSignal) => callerSignal
+    ? associateNativeReadSignal(callerSignal, AbortSignal.any([ctx.signal, callerSignal])) : undefined;
+  const reading = async <T>(callerSignal: AbortSignal | undefined, action: (active?: AbortSignal) => Promise<T>): Promise<T> => {
+    checkCaller(callerSignal); const result = await action(activeSignal(callerSignal)); checkCaller(callerSignal); return result;
+  };
+  const readBytes = (callerSignal: AbortSignal | undefined, name: string) => reading(callerSignal, active => regularFile(ctx.root, name, active));
+  const capture = (callerSignal: AbortSignal | undefined, ref: ArtifactReference) => reading(callerSignal, () => ctx.registry.getCapture(ref));
+  const candidate = (callerSignal: AbortSignal | undefined, ref: ArtifactReference) => reading(callerSignal, () => ctx.registry.getCandidate(ref));
+  const openJournal = (callerSignal: AbortSignal | undefined, value: RecoveryOrigin) => reading(callerSignal,
+    active => TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, value, true, active));
+  const guard = async (callerSignal?: AbortSignal) => { try { checkCaller(callerSignal); await origin.verify(callerSignal); checkCaller(callerSignal); }
+    catch (error) { await origin.failCurrent(error, callerSignal); ctx.controllerSignal?.throwIfAborted(); throw error; } };
+  const read = async (callerSignal?: AbortSignal): Promise<PreparedInputs> => {
+    await guard(callerSignal); const saved = decode(await readBytes(callerSignal, receiptFile)) as PreparedInputs;
     requireThat(saved.formatVersion === 'transfer-prepared-inputs/1' && saved.taskId === ctx.designTaskId
       && typeof saved.attemptId === 'string' && !!saved.attemptId && typeof saved.sessionRef === 'string' && !!saved.sessionRef
       && isDeepStrictEqual(saved.frozen.artifact, transfer) && isDeepStrictEqual(saved.frozen.requirement, ctx.inherited?.verified.requirementCapture ?? ctx.requirementCapture)
@@ -181,143 +195,143 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
     url: origin.url, runId: ctx.human?.runId ?? (ctx.requirement as ValidationRequirement).validation.runId, reportId: ctx.name('transfer-' + version),
     ...(consumer ? { taskId: ctx.candidateTaskIds[version] } : {}) };
   };
-  const verify = async (task?: TaskContract) => {
-    const saved = await read();
+  const verify = async (task?: TaskContract, callerSignal?: AbortSignal) => {
+    const saved = await read(callerSignal);
     if (ctx.inherited) {
-      const fixed = await ctx.inherited.binding.verify(ctx.signal);
+      const fixed = await reading(callerSignal, active => ctx.inherited!.binding.verify(active ?? ctx.signal));
       requireThat(isDeepStrictEqual(saved.frozen, fixed.frozen) && saved.taskId === fixed.stages[0].task.taskId
         && saved.attemptId === fixed.stages[0].task.attempts[0].attemptId && saved.sessionRef === fixed.stages[0].task.attempts[0].sessionRef,
         'inherited prepared design lineage changed');
-      for (const version of ['v1', 'v2'] as const) await verifyPreparedTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] });
+      for (const version of ['v1', 'v2'] as const) await reading(callerSignal, active => verifyPreparedTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] }, active));
       requireThat(isDeepStrictEqual(saved.plans.v1.segments.map(item => item.plan.steps), saved.plans.v2.segments.map(item => item.plan.steps)), 'repair expectations changed');
-      await guard(); return saved;
+      await guard(callerSignal); return saved;
     }
     if (task) requireThat(saved.taskId === task.taskId && saved.attemptId === task.attempts.at(-1)?.attemptId && saved.sessionRef === task.attempts.at(-1)?.sessionRef,
       'design author attempt provenance changed');
-    const capture = await ctx.registry.getCapture(transfer);
-    requireThat(capture.taskId === saved.taskId && capture.metadata.provenance.sourceRefs.includes(saved.sessionRef), 'frozen design author provenance changed');
-    const design = task ?? (await input.controller.read()).tasks.find(task => task.taskId === ctx.designTaskId);
+    const designCapture = await capture(callerSignal, transfer);
+    requireThat(designCapture.taskId === saved.taskId && designCapture.metadata.provenance.sourceRefs.includes(saved.sessionRef), 'frozen design author provenance changed');
+    const design = task ?? (await input.controller.read(callerSignal)).tasks.find(task => task.taskId === ctx.designTaskId);
     requireThat(design, 'original design validation task is missing');
-    const sealed = await designValidation.seal(design);
-    requireThat(saved.frozen.designSha256 === sealed.sha256 && capture.metadata.provenance.sourceRefs.includes(sealed.receipt), 'frozen design differs from its successful host validation');
-    for (const version of ['v1', 'v2'] as const) await verifyPreparedTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] });
+    const sealed = await designValidation.seal(design, undefined, callerSignal);
+    requireThat(saved.frozen.designSha256 === sealed.sha256 && designCapture.metadata.provenance.sourceRefs.includes(sealed.receipt), 'frozen design differs from its successful host validation');
+    for (const version of ['v1', 'v2'] as const) await reading(callerSignal, active => verifyPreparedTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] }, active));
     requireThat(isDeepStrictEqual(saved.plans.v1.segments.map(item => item.plan.steps), saved.plans.v2.segments.map(item => item.plan.steps)), 'repair expectations changed');
-    await guard(); return saved;
+    await guard(callerSignal); return saved;
   };
-  const requireCurrent = async () => {
+  const requireCurrent = async (callerSignal?: AbortSignal) => {
     try {
-      await guard();
+      await guard(callerSignal);
       if (ctx.human && !ctx.human.bound()) return;
       if (ctx.inherited) {
-        const saved = await verify(), snapshot = await input.controller.read();
+        const saved = await verify(undefined, callerSignal), snapshot = await input.controller.read(callerSignal);
         for (const version of ['v1', 'v2'] as const) {
           const coding = snapshot.tasks.find(task => task.taskId === ctx.candidateTaskIds[version]);
           if (!coding?.artifacts.length) continue;
           const ref = ctx.candidates[version]; requireThat(isDeepStrictEqual(coding.artifacts, [ref]), 'current inherited coding candidate changed');
-          const origin = decode(await regularFile(ctx.root, `journal/task-${coding.taskId}/origin.json`)) as RecoveryOrigin;
+          const origin = decode(await readBytes(callerSignal, `journal/task-${coding.taskId}/origin.json`)) as RecoveryOrigin;
           requireThat(isDeepStrictEqual(origin.requirement, ctx.requirement) && isDeepStrictEqual(origin.prepared.expectedArtifacts, [ref]), 'current inherited coding origin changed');
           requireOriginalTask(origin.prepared.task, coding);
-          const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, origin, true);
-          const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', coding.attempts.at(-1)!.attemptId);
+          const journal = await openJournal(callerSignal, origin);
+          const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', coding.attempts.at(-1)!.attemptId, activeSignal(callerSignal));
           requireThat(captured && isDeepStrictEqual(captured.captured.artifacts, [ref]) && captured.signature.length === 1, 'current inherited capture receipt missing');
-          const candidate = await ctx.registry.getCandidate(ref), source = await ctx.registry.getCapture(ctx.registry.artifactRef(ctx.name('game-source'), version));
+          const currentCandidate = await candidate(callerSignal, ref), source = await capture(callerSignal, ctx.registry.artifactRef(ctx.name('game-source'), version));
           const inputs = [ctx.inherited.verified.template, ctx.inherited.verified.requirementCapture, ctx.requirementCapture, ctx.primaryDesign, ctx.primaryMedia, transfer, planRefs[version]];
-          requireThat(candidate.taskId === coding.taskId && candidate.authorId === coding.authorId && candidate.contextId === coding.context.contextId
+          requireThat(currentCandidate.taskId === coding.taskId && currentCandidate.authorId === coding.authorId && currentCandidate.contextId === coding.context.contextId
             && source.taskId === coding.taskId && source.metadata.kind === 'code'
             && isDeepStrictEqual(source.metadata.provenance, { kind: 'original-procedural', generator: 'Native coding role output',
               sourceRefs: [coding.attempts.at(-1)!.sessionRef, ...ctx.requirement.sources.map(ref => ref.location)] })
-            && isDeepStrictEqual(source.dependencies, inputs) && isDeepStrictEqual(candidate.inputs, [...inputs, source.artifactRef])
-            && isDeepStrictEqual(candidate.expectedDeps, candidate.inputs) && isDeepStrictEqual(candidate.mediaRequirements,
-              [{ artifactRef: ctx.primaryMedia, media: (await ctx.registry.getCapture(ctx.primaryMedia)).metadata.media }]), 'current inherited candidate dependency metadata changed');
-          const fixed = captured.signature[0]; requireThat(fixed.location === ref.location && isDeepStrictEqual(candidate.files.map(file => file.destination).sort(), fixed.files.map(file => file.path).sort()), 'current inherited candidate inventory changed');
+            && isDeepStrictEqual(source.dependencies, inputs) && isDeepStrictEqual(currentCandidate.inputs, [...inputs, source.artifactRef])
+            && isDeepStrictEqual(currentCandidate.expectedDeps, currentCandidate.inputs) && isDeepStrictEqual(currentCandidate.mediaRequirements,
+              [{ artifactRef: ctx.primaryMedia, media: (await capture(callerSignal, ctx.primaryMedia)).metadata.media }]), 'current inherited candidate dependency metadata changed');
+          const fixed = captured.signature[0]; requireThat(fixed.location === ref.location && isDeepStrictEqual(currentCandidate.files.map(file => file.destination).sort(), fixed.files.map(file => file.path).sort()), 'current inherited candidate inventory changed');
           for (const file of fixed.files) {
-            const item = candidate.files.find(item => item.destination === file.path)!;
+            const item = currentCandidate.files.find(item => item.destination === file.path)!;
             requireThat([...coding.inputs, source.artifactRef].some(ref => isDeepStrictEqual(ref, item.artifactRef))
-              && sha(await regularFile(ctx.root, ref.location + '/' + file.path)) === file.sha256
-              && sha(await regularFile(ctx.root, item.artifactRef.location + '/' + file.path)) === file.sha256, 'current inherited candidate source bytes changed');
+              && sha(await readBytes(callerSignal, ref.location + '/' + file.path)) === file.sha256
+              && sha(await readBytes(callerSignal, item.artifactRef.location + '/' + file.path)) === file.sha256, 'current inherited candidate source bytes changed');
           }
         }
-        requireThat(isDeepStrictEqual(saved.frozen, ctx.inherited.verified.frozen), 'inherited frozen map changed'); await guard(); return saved;
+        requireThat(isDeepStrictEqual(saved.frozen, ctx.inherited.verified.frozen), 'inherited frozen map changed'); await guard(callerSignal); return saved;
       }
-      const snapshot = await input.controller.read(), design = snapshot.tasks.find(task => task.taskId === ctx.designTaskId);
+      const snapshot = await input.controller.read(callerSignal), design = snapshot.tasks.find(task => task.taskId === ctx.designTaskId);
       const complete = !!design && (design.artifacts.length > 0 || design.state === 'passed');
       if (!preparedPublished && !complete) {
-        try { await regularFile(ctx.root, receiptFile); }
-        catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
+        try { await readBytes(callerSignal, receiptFile); }
+        catch (error) { checkCaller(callerSignal); if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
       }
       // verify/read use only the scope guard; they never recurse through this dispatch gate.
-      const saved = await verify(design?.artifacts.length ? design : undefined);
+      const saved = await verify(design?.artifacts.length ? design : undefined, callerSignal);
       if (complete) {
         requireThat(design, 'captured design task is missing');
         const refs = [ctx.primaryDesign, transfer, planRefs.v1, planRefs.v2];
-        const primary = await ctx.registry.getCapture(ctx.primaryDesign);
+        const primary = await capture(callerSignal, ctx.primaryDesign);
         requireThat(primary.taskId === saved.taskId && primary.metadata.kind === 'data'
           && primary.metadata.provenance.sourceRefs.includes(saved.sessionRef), 'generic design author provenance changed');
-        const recoveryOrigin = decode(await regularFile(ctx.root, `journal/task-${ctx.designTaskId}/origin.json`)) as RecoveryOrigin;
+        const recoveryOrigin = decode(await readBytes(callerSignal, `journal/task-${ctx.designTaskId}/origin.json`)) as RecoveryOrigin;
         requireThat(isDeepStrictEqual(recoveryOrigin.requirement, ctx.requirement) && isDeepStrictEqual(recoveryOrigin.prepared.expectedArtifacts, refs), 'original complete design binding changed');
         requireOriginalTask(recoveryOrigin.prepared.task, design);
-        const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, recoveryOrigin, true);
-        const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', saved.attemptId);
+        const journal = await openJournal(callerSignal, recoveryOrigin);
+        const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', saved.attemptId, activeSignal(callerSignal));
         requireThat(captured && isDeepStrictEqual(captured.captured.artifacts, refs), 'complete design capture receipt is missing');
-        await journal.requireSignature(captured.signature, refs);
+        await journal.requireSignature(captured.signature, refs, activeSignal(callerSignal));
       }
       if (consumer) {
         const art = snapshot.tasks.find(task => task.taskId === ctx.mediaTaskId);
         if (art && (art.artifacts.length || art.state === 'passed')) {
           requireThat(isDeepStrictEqual(art.artifacts, [ctx.primaryMedia]), 'complete media capture identity changed');
-          const capture = await ctx.registry.getCapture(ctx.primaryMedia), attempt = art.attempts.at(-1)!;
-          requireThat(capture.taskId === art.taskId && capture.metadata.kind === 'media' && capture.metadata.media
-            && isDeepStrictEqual(capture.metadata.provenance, { kind: 'original-procedural', generator: 'Native art role output',
+          const mediaCapture = await capture(callerSignal, ctx.primaryMedia), attempt = art.attempts.at(-1)!;
+          requireThat(mediaCapture.taskId === art.taskId && mediaCapture.metadata.kind === 'media' && mediaCapture.metadata.media
+            && isDeepStrictEqual(mediaCapture.metadata.provenance, { kind: 'original-procedural', generator: 'Native art role output',
               sourceRefs: [attempt.sessionRef, ...ctx.requirement.sources.map(ref => ref.location)] })
-            && isDeepStrictEqual(capture.dependencies, [ctx.registry.artifactRef(ctx.name('generic-template'), 'v1'), ctx.requirementCapture, ctx.primaryDesign, transfer])
-            && isDeepStrictEqual(capture.ownership, { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }), 'media author capture provenance changed');
-          requireThat(isDeepStrictEqual(decode(await regularFile(ctx.root, ctx.primaryMedia.location + '/public/assets/manifest.json')), capture.metadata.media), 'actual media manifest changed');
-          const mediaOrigin = decode(await regularFile(ctx.root, `journal/task-${art.taskId}/origin.json`)) as RecoveryOrigin;
+            && isDeepStrictEqual(mediaCapture.dependencies, [ctx.registry.artifactRef(ctx.name('generic-template'), 'v1'), ctx.requirementCapture, ctx.primaryDesign, transfer])
+            && isDeepStrictEqual(mediaCapture.ownership, { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }), 'media author capture provenance changed');
+          requireThat(isDeepStrictEqual(decode(await readBytes(callerSignal, ctx.primaryMedia.location + '/public/assets/manifest.json')), mediaCapture.metadata.media), 'actual media manifest changed');
+          const mediaOrigin = decode(await readBytes(callerSignal, `journal/task-${art.taskId}/origin.json`)) as RecoveryOrigin;
           requireThat(isDeepStrictEqual(mediaOrigin.requirement, ctx.requirement) && isDeepStrictEqual(mediaOrigin.prepared.expectedArtifacts, [ctx.primaryMedia]), 'original media binding changed');
           requireOriginalTask(mediaOrigin.prepared.task, art);
-          const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, mediaOrigin, true);
-          const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', attempt.attemptId);
+          const journal = await openJournal(callerSignal, mediaOrigin);
+          const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', attempt.attemptId, activeSignal(callerSignal));
           requireThat(captured && isDeepStrictEqual(captured.captured.artifacts, [ctx.primaryMedia]), 'media capture receipt is missing');
-          await journal.requireSignature(captured.signature, [ctx.primaryMedia]);
+          await journal.requireSignature(captured.signature, [ctx.primaryMedia], activeSignal(callerSignal));
           const files = captured.signature.find(item => item.location === ctx.primaryMedia.location)!.files.map(item => item.path).sort();
-          requireThat(isDeepStrictEqual(capture.files.map(item => item.destination).sort(), files)
-            && capture.files.every(item => item.source === item.destination), 'media capture file metadata changed');
+          requireThat(isDeepStrictEqual(mediaCapture.files.map(item => item.destination).sort(), files)
+            && mediaCapture.files.every(item => item.source === item.destination), 'media capture file metadata changed');
         }
         for (const version of ['v1', 'v2'] as const) {
           const coding = snapshot.tasks.find(task => task.taskId === ctx.candidateTaskIds[version]);
           if (!coding?.artifacts.length) continue;
           const ref = ctx.candidates[version]; requireThat(isDeepStrictEqual(coding.artifacts, [ref]), 'captured coding candidate changed');
-          const codingOrigin = decode(await regularFile(ctx.root, `journal/task-${coding.taskId}/origin.json`)) as RecoveryOrigin;
+          const codingOrigin = decode(await readBytes(callerSignal, `journal/task-${coding.taskId}/origin.json`)) as RecoveryOrigin;
           requireThat(isDeepStrictEqual(codingOrigin.requirement, ctx.requirement)
             && isDeepStrictEqual(codingOrigin.prepared.expectedArtifacts, [ref]), 'original coding binding changed');
           requireOriginalTask(codingOrigin.prepared.task, coding);
-          const journal = await TaskJournal.open({ artifactRoot: ctx.root, journalRoot: join(ctx.root, 'journal') }, codingOrigin, true);
-          const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', coding.attempts.at(-1)!.attemptId);
+          const journal = await openJournal(callerSignal, codingOrigin);
+          const captured = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', coding.attempts.at(-1)!.attemptId, activeSignal(callerSignal));
           requireThat(captured && isDeepStrictEqual(captured.captured.artifacts, [ref]), 'coding capture receipt is missing');
           const fixed = captured.signature.find(item => item.location === ref.location);
           requireThat(fixed && captured.signature.length === 1, 'original coding capture signature changed');
-          const candidate = await ctx.registry.getCandidate(ref), source = await ctx.registry.getCapture(ctx.registry.artifactRef(ctx.name('game-source'), version));
-          requireThat(candidate.taskId === coding.taskId && candidate.authorId === coding.authorId && candidate.contextId === coding.context.contextId
+          const currentCandidate = await candidate(callerSignal, ref), source = await capture(callerSignal, ctx.registry.artifactRef(ctx.name('game-source'), version));
+          requireThat(currentCandidate.taskId === coding.taskId && currentCandidate.authorId === coding.authorId && currentCandidate.contextId === coding.context.contextId
             && source.taskId === coding.taskId && source.metadata.kind === 'code'
             && isDeepStrictEqual(source.metadata.provenance, { kind: 'original-procedural', generator: 'Native coding role output',
               sourceRefs: [coding.attempts.at(-1)!.sessionRef, ...ctx.requirement.sources.map(ref => ref.location)] }), 'coding candidate/source provenance changed');
           const inputs = [ctx.registry.artifactRef(ctx.name('generic-template'), 'v1'), ctx.requirementCapture, ctx.primaryDesign, ctx.primaryMedia, transfer, planRefs[version]];
-          requireThat(isDeepStrictEqual(source.dependencies, inputs) && isDeepStrictEqual(candidate.inputs, [...inputs, source.artifactRef])
-            && isDeepStrictEqual(candidate.expectedDeps, candidate.inputs)
-            && isDeepStrictEqual(candidate.mediaRequirements, [{ artifactRef: ctx.primaryMedia, media: (await ctx.registry.getCapture(ctx.primaryMedia)).metadata.media }]),
+          requireThat(isDeepStrictEqual(source.dependencies, inputs) && isDeepStrictEqual(currentCandidate.inputs, [...inputs, source.artifactRef])
+            && isDeepStrictEqual(currentCandidate.expectedDeps, currentCandidate.inputs)
+            && isDeepStrictEqual(currentCandidate.mediaRequirements, [{ artifactRef: ctx.primaryMedia, media: (await capture(callerSignal, ctx.primaryMedia)).metadata.media }]),
           'complete candidate source/media dependency metadata changed');
-          requireThat(isDeepStrictEqual(candidate.files.map(item => item.destination).sort(), fixed.files.map(item => item.path).sort()), 'original candidate file binding changed');
+          requireThat(isDeepStrictEqual(currentCandidate.files.map(item => item.destination).sort(), fixed.files.map(item => item.path).sort()), 'original candidate file binding changed');
           // Only trusted build output is added under dist; every original captured byte remains fixed.
           for (const file of fixed.files) {
-            const item = candidate.files.find(item => item.destination === file.path)!;
+            const item = currentCandidate.files.find(item => item.destination === file.path)!;
             requireThat([...coding.inputs, source.artifactRef].some(ref => isDeepStrictEqual(ref, item.artifactRef))
-              && sha(await regularFile(ctx.root, ref.location + '/' + file.path)) === file.sha256
-              && sha(await regularFile(ctx.root, item.artifactRef.location + '/' + file.path)) === file.sha256, 'original captured candidate/source bytes changed');
+              && sha(await readBytes(callerSignal, ref.location + '/' + file.path)) === file.sha256
+              && sha(await readBytes(callerSignal, item.artifactRef.location + '/' + file.path)) === file.sha256, 'original captured candidate/source bytes changed');
           }
         }
       }
-      await guard(); return saved;
-    } catch (error) { if (ctx.signal.aborted || !isValidationScopeTimeout(error)) await origin.close(); throw error; }
+      await guard(callerSignal); return saved;
+    } catch (error) { await origin.failCurrent(error, callerSignal); ctx.controllerSignal?.throwIfAborted(); throw error; }
   };
   const preparation: BrowserInputPreparation = {
     adapterId: 'cos16-input/1', designOutputs: [], designWritePaths: ['authors/design/transfer-design.json'],
@@ -347,6 +361,8 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
       preparation.designOutputs = (ctx.inherited ? ctx.inherited.verified.designArtifacts.slice(1) : [transfer, planRefs.v1, planRefs.v2]).map(ref => ({ ...ref, destination: ref.location, type: 'data', schema: ref === transfer ? 'cos16-design/1' : 'cos16-plan/1' }));
       preparation.designRules.push(`Use requirement reference ${JSON.stringify(ctx.requirementCapture)}. Write exactly {formatVersion:"cos16-design/1",requirement:thatReference,mapVersion:string,map:{tiles:string[],player:[x,y],boxes:[[x,y],[x,y]],targets:[[x,y],[x,y]]},solution:Direction[],paths:{wall,push,boxWall,doubleBox,restart,restore}}.`);
       origin = await reserveTransferOrigin({ root: ctx.root, resume: ctx.resume, signal: ctx.signal, requireScope: ctx.requireScope,
+        ...(context.retainCleanupFailure ? { retainCleanupFailure: context.retainCleanupFailure.bind(context) } : {}),
+        ...(context.controllerSignal ? { controllerSignal: context.controllerSignal } : {}),
         binding: ctx.human ? { profile: 'human', runId: ctx.human.runId, ledgerId: ctx.human.ledgerId, windowId: null,
           sourceVersion: ctx.human.execution.sourceVersion, sourceSha256: ctx.human.execution.sha256, requirementSha256: sha(JSON.stringify(ctx.requirement)), specVersion: ctx.requirement.specVersion }
           : { caseId: (ctx.requirement as ValidationRequirement).validation.caseId, windowId: (ctx.requirement as ValidationRequirement).validation.windowId,
@@ -367,7 +383,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
       preparation.designHostTools = designValidation.hostTools;
       preparation.designRules.push('After completing transfer-design.json, call validate-transfer-design with no arguments. A first invalid result permits one semantic rewrite process and one different submission; a second invalid result exhausts it permanently. A pass seals the exact map bytes: keep them unchanged and accurately finish the generic design summary. Identical submissions reuse their complete result. All calls remain in this original author session, attempt, grant and deadline. This static design check is not gameplay acceptance.');
     },
-    requireCurrent: async () => { await requireCurrent(); },
+    requireCurrent: async callerSignal => { await requireCurrent(callerSignal); },
     currentInputs: () => ctx.inherited ? [planRefs.v1, planRefs.v2] : [],
     async captureDesignExtras(task, workspace) {
       await guard(); const attempt = task.attempts.at(-1)!;
@@ -407,22 +423,24 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
       requireThat((version === 'v1' || version === 'v2') && isDeepStrictEqual(candidate, ctx.candidates[version]), 'candidate is not a reserved transfer version');
       return [transfer, planRefs[version]];
     },
-    async bindCandidate(candidate) {
-      const saved = await requireCurrent();
+    async bindCandidate(candidate, callerSignal) {
+      const saved = await requireCurrent(callerSignal);
       requireThat(saved, 'candidate inputs are not prepared'); preparation.candidateExtraInputs(candidate);
       const version = candidate.version as 'v1' | 'v2';
-      const result = await bindTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] });
-      await guard(); return result;
+      const result = await reading(callerSignal, active => bindTransferAcceptance({ ...preparedInput(saved, version), prepared: saved.plans[version] }, active));
+      await guard(callerSignal); return result;
     },
     async close() { if (origin) await origin.close(); },
   };
   if (consumer) preparation.candidateConsumer = async context => {
-    await requireCurrent(); const saved = await verify(), version = context.candidate.version as 'v1' | 'v2';
+    const caller = context.nativeValidationWaits?.readSignal;
+    await requireCurrent(caller); const saved = await verify(undefined, caller), version = context.candidate.version as 'v1' | 'v2';
     preparation.candidateExtraInputs(context.candidate);
     requireThat(context.task.taskId === ctx.candidateTaskIds[version], 'consumer task differs from its pre-frozen candidate task');
     return consumeTransferCandidate(context, { input: { ...preparedInput(saved, version), prepared: saved.plans[version] },
       sourceVersion: ctx.human?.execution.sourceVersion ?? (ctx.requirement as ValidationRequirement).validation.reviewedPlatformSha,
-      mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, cleanDelivery: context.cleanDelivery, verifyBinding }) });
+      mount: verifyBinding => origin.mountCandidate({ candidate: context.candidate, project: context.project, cleanDelivery: context.cleanDelivery, verifyBinding,
+        ...(context.nativeValidationWaits ? { nativeValidationWaits: context.nativeValidationWaits, retainCleanupFailure: context.retainCleanupFailure } : {}) }) });
   };
   if (consumer) preparation.candidateBuildDiagnostic = diagnoseTransferBuild;
   try {

@@ -17,13 +17,25 @@ import { mediaObservationDefinitions } from '../../src/runtime/entrypoint-media.
 async function syntheticReports(series: PersistentAcceptanceSeries, options: PersistentAcceptanceOptions, fail = false, mediaMutation?: string): Promise<PersistentAcceptanceReport> {
   const first = series.segments[0].plan, profileRoot = await mkdtemp(join(tmpdir(), 'cosmos-media-report-'));
   const base = [first.projectId, first.artifact.artifactId, first.artifact.version, first.runId].join('/');
-  const at = new Date().toISOString(), segments: PersistentAcceptanceReport['segments'] = [];
+  const at = new Date().toISOString(), segments: PersistentAcceptanceReport['segments'] = [], clock = performance.now(), native = options.nativeValidationWaits;
   for (const [number, segment] of series.segments.entries()) {
     const plan = segment.plan, folder = base + '/' + plan.reportId, screenshot = folder + '/final.png';
     const profile = join(profileRoot, 'p' + (number === 7 ? 6 : number));
     const session = { browserPid: 20000 + number, profile, commandLineProfile: profile, origin: new URL(plan.url).origin,
       closeEvent: true, exitConfirmed: true, exitCode: 0, signalCode: null, cdp: { browserProcessIds: [20000 + number], profileArguments: ['--user-data-dir=' + profile] } };
-    const report: AcceptanceReport = { formatVersion: '1.0.0', kind: 'normal_browser_input', plan: structuredClone(plan), startedAt: at, endedAt: at, outcome: 'passed',
+    const startedAt = native ? new Date().toISOString() : at;
+    const wait = native?.beginSegment(plan.reportId);
+    if (wait) {
+      await wait.runStage('prepare_authority', life => options.verifyBinding(life.signal));
+      await wait.runStage('register_authority', life => options.verifyBinding(life.signal));
+      await wait.runStage('browser_transport', async () => {}); wait.beginNavigation();
+      await wait.runStage('navigation', async life => {
+        const response = await fetch(plan.url); life.check(); assert.equal(response.status, 200);
+        assert.equal(await response.text(), 'synthetic ' + plan.taskId); life.check();
+      }); wait.finishNavigation();
+    }
+    const recordedAt = native ? new Date().toISOString() : at;
+    const report: AcceptanceReport = { formatVersion: '1.0.0', kind: 'normal_browser_input', plan: structuredClone(plan), startedAt, endedAt: recordedAt, outcome: 'passed',
       browser: { name: 'chromium', channel: 'synthetic', version: 'synthetic', headless: true, viewport: plan.viewport }, timeoutMs: 1000,
       cleanup: { browserPid: session.browserPid, forced: false, processExited: true }, session,
       steps: plan.steps.map(step => ({ id: step.id, kind: step.kind, ...('acceptanceId' in step ? { acceptanceId: step.acceptanceId } : {}),
@@ -41,10 +53,12 @@ async function syntheticReports(series: PersistentAcceptanceSeries, options: Per
         exception: { exceptionId: 1, sourceURL: plan.url + '/src/fixture.js', line: 1, column: 1 } }];
     } else if (options.mediaObservations) {
       const raw = JSON.parse(await readFile(join(options.evidenceRoot, '..', options.mediaObservations.media.location, 'public/assets/manifest.json'), 'utf8'));
-      report.mediaObservations = { request: structuredClone(options.mediaObservations), recordedAt: at, values: mediaObservationDefinitions(raw).map(item => item.expected) };
+      report.mediaObservations = { request: structuredClone(options.mediaObservations), recordedAt, values: mediaObservationDefinitions(raw).map(item => item.expected) };
       if (mediaMutation === 'false-media') report.mediaObservations.values[1] = 0;
       if (mediaMutation === 'null-media') report.mediaObservations.values[1] = null;
     }
+    if (wait) { wait.revoke(); await wait.settle(options.deadlineAt); report.nativeWaits = { contractVersion: native!.contractVersion,
+      deadlineAt: native!.deadlineAt, workDeadlineAt: native!.workDeadlineAt, segment: wait.snapshot() }; }
     await mkdir(join(options.evidenceRoot, folder), { recursive: true });
     await writeFile(join(options.evidenceRoot, screenshot), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1]));
     await writeFile(join(options.evidenceRoot, folder + '/browser.webm'), 'synthetic video');
@@ -53,12 +67,14 @@ async function syntheticReports(series: PersistentAcceptanceSeries, options: Per
     if (fail) break;
   }
   const checkpoint = series.checkpoint, result: PersistentAcceptanceReport = { formatVersion: '1.0.0', kind: 'persistent_profile_process_reopen',
-    capability: 'persistent-profile-real-process-reopen-with-evidence', series: structuredClone(series), deadlineAt: options.deadlineAt, startedAt: at, endedAt: at,
+    capability: 'persistent-profile-real-process-reopen-with-evidence', series: structuredClone(series), deadlineAt: options.deadlineAt, startedAt: at, endedAt: native ? new Date().toISOString() : at,
     outcome: fail ? 'failed' : 'passed', profileRoot, segments,
     checkpoint: fail ? { outcome: 'skipped', expected: checkpoint.expected, actual: null, savedActual: null, before: null, after: null }
       : { outcome: 'passed', expected: checkpoint.expected, actual: checkpoint.expected, savedActual: checkpoint.expected, before: segments[6].report.session!, after: segments[7].report.session! },
     errors: fail ? ['segment failed'] : [], reportPath: base + '/' + series.reportId + '/report.json',
     failureFacts: { formatVersion: 1, errors: fail ? [{ errorIndex: 0, error: 'segment failed', phase: 'segment_report', kind: 'segment_failed', segmentId: segments[0].id }] : [] } };
+  if (native) result.nativeWaits = { ...native.snapshot(), caseId: native.caseId, windowId: native.windowId, taskId: native.taskId,
+    seriesStartedAt: Date.parse(at), seriesEndedAt: Date.parse(result.endedAt), seriesElapsedMs: performance.now() - clock };
   await mkdir(join(options.evidenceRoot, base, series.reportId), { recursive: true });
   await writeFile(join(options.evidenceRoot, result.reportPath), JSON.stringify(result), 'utf8');
   await rm(profileRoot, { recursive: true, force: true }); return result;
@@ -99,7 +115,8 @@ async function consumerPipeline(t: any, repair = false, mutateMedia = false, mut
         const before = scopeCalls, start = performance.now(); await options.verifyBinding();
         bindingSamples.push({ scopes: scopeCalls - before, elapsedMs: +(performance.now() - start).toFixed(3) });
       }
-      assert.equal(await (await fetch(series.segments[0].plan.url)).text(), 'synthetic ' + authority.taskId);
+      if (options.nativeValidationWaits) assert.equal((await fetch(series.segments[0].plan.url)).status, 404, 'Mounted native content is closed before source navigation');
+      else assert.equal(await (await fetch(series.segments[0].plan.url)).text(), 'synthetic ' + authority.taskId);
       return syntheticReports(series, options, repair && seriesCalls === 1, mode);
     } };
   host = await (runtime as any).createTransferConsumerHost({ ...f.input, io }); t.after(() => host.closePreparation());
@@ -137,6 +154,15 @@ async function consumerPipeline(t: any, repair = false, mutateMedia = false, mut
 
 test('COS40 explicit consumer factory is source-owned and separate from default preparation', () => {
   assert.equal(typeof (runtime as any).createTransferConsumerHost, 'function', 'COS40 explicit consumer factory is missing');
+});
+test('COS97 real mounted native consumer shares its wait owner through HTTP and published envelopes', async t => {
+  const f = await consumerPipeline(t);
+  assert.equal(f.seriesCalls, 1); assert.equal(f.result[2].state, 'passed', JSON.stringify(f.result[2].stateReason));
+  const envelope = JSON.parse(await readFile(join(f.root, `evidence/${f.result[2].taskId}/browser.json`), 'utf8'));
+  const raw = JSON.parse(await readFile(join(f.root, envelope.reportPath), 'utf8'));
+  assert.equal(envelope.nativeWaits.contractVersion, 'native-validation-waits/1'); assert.ok(envelope.nativeWaits.consumerElapsedMs > 0);
+  assert.ok(raw.nativeWaits.consumerStartedAt <= Date.parse(raw.startedAt)); assert.ok(!Object.hasOwn(raw.nativeWaits, 'consumerEndedAt'));
+  assert.ok(raw.nativeWaits.segments.every((segment: any) => segment.state === 'closed' && segment.http.started > 0 && segment.http.pending === 0 && segment.http.rejected === 0));
 });
 test('COS40 consumer envelope rejects late origin receipt drift before returning a callback result', async t => {
   const f = await transferFixture(t), host = await (runtime as any).createTransferConsumerHost(f.input); t.after(() => host.closePreparation());

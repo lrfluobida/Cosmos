@@ -6,10 +6,12 @@ import { basename, dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import type { TestContext } from 'node:test';
 import { RunController } from '../../src/runtime/run.ts';
-import { prepareValidationCase, validationInputHash } from '../../src/runtime/validation-window.ts';
+import { prepareValidationCase, validationInputHash, verifyValidationIdentity } from '../../src/runtime/validation-window.ts';
 import type { ValidationDeclaration } from '../../src/runtime/validation-types.ts';
 import { createValidationRequirement } from '../../src/roles/execution-input.ts';
-import { requireValidationScope } from '../../src/runtime/validation-scope.ts';
+import { requireValidationScope, isValidationScopeTimeout } from '../../src/runtime/validation-scope.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+import { createNativeValidationWaits, associateNativeReadSignal } from '../../src/acceptance/native-validation-waits.ts';
 import { currentValidationCase } from '../../src/runtime/validation-validation.ts';
 import type { TaskContract } from '../../src/contracts/index.ts';
 import { task as taskFixture } from '../contracts/fixtures.ts';
@@ -17,7 +19,7 @@ import { task as taskFixture } from '../contracts/fixtures.ts';
 const hash = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 
 /** Real small controller and file authority; no SDK, browser or historical request replay. */
-async function fixture(t: TestContext) {
+async function fixture(t: TestContext, historicalBytes?: Uint8Array) {
   const base = await mkdtemp(join(tmpdir(), 'cos95-scope-')), root = join(base, 'ledger'), repositoryRoot = join(base, 'platform');
   const controllers: RunController[] = [];
   t.after(async () => {
@@ -52,10 +54,12 @@ async function fixture(t: TestContext) {
     inputs: { requirements: { version: 'fixture-v1', path: 'requirements.json', sha256: hash(requirements) }, template: { sha256: hash(JSON.stringify(files)), files } },
   };
   const identity = { reviewedPlatformSha: 'a'.repeat(40), frozenCaseInputHash: validationInputHash(declaration) };
-  const context = { root, repositoryRoot, identityReader: async () => ({ ...identity }), now };
+  let readIdentity = async (_signal: AbortSignal) => ({ ...identity });
+  const context = { root, repositoryRoot, identityReader: async (signal: AbortSignal) => readIdentity(signal), now };
   const quote = await prepareValidationCase({ ...context, declaration });
   const decision = { kind: 'operator_validation' as const, decisionId: 'scope-decision', actorId: 'offline-operator', decidedAt: new Date(now()).toISOString(),
-    source: { artifactId: 'operator', version: 'v1', location: 'operator.json' }, sourceRefs: [{ artifactId: 'source', version: 'fixture-v1', location: 'requirements.json' }] };
+    source: { artifactId: 'operator', version: 'v1', location: 'operator.json' }, sourceRefs: [{ artifactId: 'source', version: 'fixture-v1', location: 'requirements.json' },
+      ...(historicalBytes ? [{ artifactId: 'historical', version: hash(historicalBytes), location: 'historical.json' }] : [])] };
   const operatorPath = join(root, decision.source.location);
   await writeFile(operatorPath, JSON.stringify({ formatVersion: 'operator-validation-decision-1', kind: decision.kind, decisionId: decision.decisionId,
     actorId: decision.actorId, decidedAt: decision.decidedAt, sourceRefs: decision.sourceRefs, quote }), 'utf8');
@@ -72,11 +76,150 @@ async function fixture(t: TestContext) {
     return { requirement, operatorReceipt };
   } };
   return { controller, binding, requirement, window, original, declaration, context, sourcePath, operatorPath,
-    now, advance: (ms: number) => { clock += ms; }, reads: () => reads };
+    now, advance: (ms: number) => { clock += ms; }, reads: () => reads,
+    setIdentityReader: (reader: typeof readIdentity) => { readIdentity = reader; } };
 }
 
 type Fixture = Awaited<ReturnType<typeof fixture>>;
 const actor = { role: 'system' as const, actorId: 'scope-fixture' };
+
+function deferred<T = void>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve };
+}
+function nativeReads(f: Fixture) {
+  const work = new OwnedWork(f.controller.signal);
+  const waits = createNativeValidationWaits({ caseId: f.window.caseId, windowId: f.window.windowId,
+    taskId: f.declaration.grants.coding.taskId, deadlineAt: Date.now() + 60_000, signal: work.signal,
+    trackRaw: start => work.run(start) });
+  return { work, waits };
+}
+
+for (const leaf of ['readScope', 'readBytes'] as const) test(`COS97 ${leaf} remains owned after the private scope race times out`, async t => {
+  const bytes = Buffer.from('fixed historical bytes'), f = await fixture(t, bytes), n = nativeReads(f);
+  const entered = deferred(), gate = deferred(); let laterReads = 0;
+  const original = f.binding.readScope;
+  const binding = { ...f.binding,
+    readScope: async (signal: AbortSignal) => {
+      if (leaf === 'readScope') { entered.resolve(); await gate.promise; signal.throwIfAborted(); laterReads++; }
+      return original(signal);
+    }, historicalManifest: { reference: f.requirement.sources[1], readBytes: async (signal: AbortSignal) => {
+      if (leaf === 'readBytes') { entered.resolve(); await gate.promise; signal.throwIfAborted(); laterReads++; }
+      return bytes;
+    } } };
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: Date.now() }); t.after(() => t.mock.timers.reset());
+  const pending = requireValidationScope(f.controller, f.requirement, binding, n.waits.readSignal);
+  const failed = assert.rejects(pending, (error: unknown) => isValidationScopeTimeout(error));
+  try {
+    await entered.promise; t.mock.timers.tick(5000); await failed;
+    assert.equal(n.waits.snapshot().rawReads.pending, 1, 'An inner reader outlives the scope race');
+    const draining = assert.rejects(n.work.cancelAndDrain('fixture stop', 100), /did not quiesce/);
+    t.mock.timers.tick(100); await draining;
+    assert.equal(n.waits.snapshot().rawReads.pending, 1);
+  } finally { gate.resolve(); await n.work.cancelAndDrain('fixture reader released'); }
+  assert.equal(n.waits.snapshot().rawReads.pending, 0); assert.equal(laterReads, 0);
+});
+
+test('COS97 identity raw work remains owned after its original five second race returns', async t => {
+  const f = await fixture(t), n = nativeReads(f), entered = deferred(), gate = deferred();
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: Date.now() }); t.after(() => t.mock.timers.reset());
+  const pending = verifyValidationIdentity({ ...f.context, signal: n.waits.readSignal,
+    identityReader: async () => { entered.resolve(); await gate.promise; return f.window.quote.identity; } }, f.declaration);
+  const failed = assert.rejects(pending, /identity reader timed out/);
+  try {
+    await entered.promise; t.mock.timers.tick(5000); await failed;
+    assert.equal(n.waits.snapshot().rawReads.pending, 1, 'Identity work remains independently owned');
+    const draining = assert.rejects(n.work.cancelAndDrain('fixture stop', 100), /did not quiesce/);
+    t.mock.timers.tick(100); await draining;
+  } finally { gate.resolve(); await n.work.cancelAndDrain('fixture identity released'); }
+  assert.equal(n.waits.snapshot().rawReads.pending, 0);
+});
+
+test('COS97 scope caller cancellation preserves its exact reason and keeps the raw reader owned', async t => {
+  const f = await fixture(t), n = nativeReads(f), caller = new AbortController(), entered = deferred(), gate = deferred();
+  const signal = associateNativeReadSignal(n.waits.readSignal, AbortSignal.any([n.waits.readSignal, caller.signal]));
+  const reason = new Error('exact caller cancellation');
+  const binding = { ...f.binding, readScope: async (active: AbortSignal) => {
+    entered.resolve(); await gate.promise; active.throwIfAborted(); return f.binding.readScope(active);
+  } };
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: Date.now() }); t.after(() => t.mock.timers.reset());
+  const pending = requireValidationScope(f.controller, f.requirement, binding, signal);
+  const failed = assert.rejects(pending, (error: unknown) => error === reason);
+  try {
+    await entered.promise; caller.abort(reason); t.mock.timers.tick(5000); await failed;
+    assert.equal(n.waits.snapshot().rawReads.pending, 1);
+  } finally { gate.resolve(); await n.work.cancelAndDrain('fixture cancelled reader released'); }
+  assert.equal(n.waits.snapshot().rawReads.pending, 0); assert.equal(f.reads(), 0);
+});
+
+for (const native of [false, true]) test(`COS97 historical reader preserves its method receiver (native: ${native})`, async t => {
+  const bytes = Buffer.from('receiver-bound historical bytes'), f = await fixture(t, bytes);
+  const n = native ? nativeReads(f) : undefined;
+  const binding = { ...f.binding, historicalManifest: { reference: f.requirement.sources[1],
+    async readBytes(signal: AbortSignal) {
+      signal.throwIfAborted(); assert.equal(this.reference.version, hash(bytes)); return bytes;
+    } } };
+  const result = await requireValidationScope(f.controller, f.requirement, binding, n?.waits.readSignal);
+  assert.deepEqual(result.window, f.window); assert.equal(n?.waits.snapshot().rawReads.pending ?? 0, 0);
+});
+
+test('COS97 pre-cancelled controller reads and host guard preserve the caller reason with zero identity reads', async t => {
+  const f = await fixture(t), caller = new AbortController(), reason = new Error('cancelled before controller queue'); let reads = 0;
+  f.setIdentityReader(async () => { reads++; return f.window.quote.identity; }); caller.abort(reason);
+  const calls = [() => f.controller.read(caller.signal), () => f.controller.readValidationScopeAuthority(caller.signal),
+    () => f.controller.validationAuthority(f.declaration.grants.coding.taskId, 'reviewer', caller.signal),
+    () => f.controller.requireValidationHost(f.window.caseId, f.window.windowId,
+      join(f.context.repositoryRoot, '.cosmos/e2e', f.window.caseId), caller.signal)];
+  for (const call of calls) await assert.rejects(call(), (error: unknown) => error === reason);
+  assert.equal(reads, 0);
+});
+
+test('COS97 controller identity guard preserves the native inner raw owner through its combined signal', async t => {
+  const f = await fixture(t), n = nativeReads(f), entered = deferred(), gate = deferred();
+  f.setIdentityReader(async () => { entered.resolve(); await gate.promise; return f.window.quote.identity; });
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: Date.now() }); t.after(() => t.mock.timers.reset());
+  const pending = f.controller.requireValidationHost(f.window.caseId, f.window.windowId,
+    join(f.context.repositoryRoot, '.cosmos/e2e', f.window.caseId), n.waits.readSignal);
+  const failed = assert.rejects(pending, /identity reader timed out/);
+  try {
+    await entered.promise; t.mock.timers.tick(5000); await failed;
+    assert.equal(n.waits.snapshot().rawReads.pending, 1);
+    const draining = assert.rejects(n.work.cancelAndDrain('fixture controller reader stop', 100), /did not quiesce/);
+    t.mock.timers.tick(100); await draining;
+  } finally { gate.resolve(); await n.work.cancelAndDrain('fixture controller reader released'); }
+  assert.equal(n.waits.snapshot().rawReads.pending, 0);
+});
+
+test('COS97 queued cancellation starts no subsequent identity reader after the preceding host guard', async t => {
+  const f = await fixture(t), caller = new AbortController(), entered = deferred(), gate = deferred(); let reads = 0;
+  f.setIdentityReader(async () => { reads++; if (reads === 1) { entered.resolve(); await gate.promise; } return f.window.quote.identity; });
+  const root = join(f.context.repositoryRoot, '.cosmos/e2e', f.window.caseId);
+  const first = f.controller.requireValidationHost(f.window.caseId, f.window.windowId, root);
+  await entered.promise;
+  const second = f.controller.requireValidationHost(f.window.caseId, f.window.windowId, root, caller.signal);
+  const reason = new Error('cancelled in controller queue'), failed = assert.rejects(second, error => error === reason);
+  caller.abort(reason); gate.resolve(); await first; await failed; assert.equal(reads, 1);
+});
+
+test('COS97 controller cancellation retains precedence over a separate caller cancellation', async t => {
+  const f = await fixture(t), caller = new AbortController();
+  await f.controller.stop('Original controller stop'); caller.abort(new Error('later caller stop'));
+  await assert.rejects(f.controller.read(caller.signal), error => error === f.controller.signal.reason);
+  await assert.rejects(f.controller.requireValidationHost(f.window.caseId, f.window.windowId,
+    join(f.context.repositoryRoot, '.cosmos/e2e', f.window.caseId), caller.signal), error => error === f.controller.signal.reason);
+});
+
+test('COS97 expiry in identity finally takes precedence over the earlier caller cancellation', async t => {
+  const f = await fixture(t), caller = new AbortController(), reason = new Error('caller before persisted expiry');
+  f.setIdentityReader(async () => {
+    f.advance(f.declaration.limits.durationMs); caller.abort(reason); return f.window.quote.identity;
+  });
+  await assert.rejects(f.controller.requireValidationHost(f.window.caseId, f.window.windowId,
+    join(f.context.repositoryRoot, '.cosmos/e2e', f.window.caseId), caller.signal),
+    error => error === f.controller.signal.reason && error !== reason);
+  assert.equal(f.controller.signal.aborted, true);
+  assert.equal(currentValidationCase(await f.controller.read()).stopReason?.code, 'deadline');
+});
 
 function codingTask(f: Fixture): TaskContract {
   const task = taskFixture() as TaskContract, grant = f.declaration.grants.coding;

@@ -24,15 +24,18 @@ export function within(root: string, target: string): boolean {
   return part === '' || (!isAbsolute(part) && part !== '..' && !part.startsWith(`..${sep}`));
 }
 /** Check all ancestors too: a confined lexical path may still traverse a junction. */
-export async function safePath(root: string, name = '.'): Promise<string> {
+export async function safePath(root: string, name = '.', callerSignal?: AbortSignal): Promise<string> {
+  callerSignal?.throwIfAborted();
   pathName(name, true);
   const target = resolve(root, name);
   if (!within(root, target)) fail('Path escapes declared root');
   for (let current = target; ; current = dirname(current)) {
+    callerSignal?.throwIfAborted();
     const stat = await lstat(current).catch((error: NodeJS.ErrnoException) => {
       if (error.code === 'ENOENT') return undefined;
       throw error;
     });
+    callerSignal?.throwIfAborted();
     if (stat?.isSymbolicLink()) fail(`Symbolic link or junction is forbidden: ${current}`);
     if (current !== target && stat && !stat.isDirectory()) fail(`Non-directory path ancestor: ${current}`);
     if (dirname(current) === current) break;
@@ -64,22 +67,34 @@ export function noConflicts(paths: string[]): void {
     seen.push(key);
   }
 }
-export async function regularFile(root: string, name: string): Promise<Buffer> {
-  const target = await safePath(root, name);
+export async function regularFile(root: string, name: string, callerSignal?: AbortSignal): Promise<Buffer> {
+  callerSignal?.throwIfAborted();
+  const target = await safePath(root, name, callerSignal);
+  callerSignal?.throwIfAborted();
   const stat = await lstat(target);
+  callerSignal?.throwIfAborted();
   if (!stat.isFile() || stat.nlink !== 1) fail(`Expected an independent regular file: ${name}`);
-  return readFile(target);
+  try {
+    const bytes = await (callerSignal ? readFile(target, { signal: callerSignal }) : readFile(target));
+    callerSignal?.throwIfAborted(); return bytes;
+  } catch (error) { callerSignal?.throwIfAborted(); throw error; }
 }
-export async function snapshot(root: string): Promise<Map<string, Buffer>> {
+export async function snapshot(root: string, callerSignal?: AbortSignal): Promise<Map<string, Buffer>> {
+  callerSignal?.throwIfAborted();
   const files = new Map<string, Buffer>();
   async function visit(folder: string) {
-    const entries = await readdir(await safePath(root, folder), { withFileTypes: true });
+    callerSignal?.throwIfAborted();
+    const target = await safePath(root, folder, callerSignal);
+    callerSignal?.throwIfAborted();
+    const entries = await readdir(target, { withFileTypes: true });
+    callerSignal?.throwIfAborted();
     for (const entry of entries) {
+      callerSignal?.throwIfAborted();
       const path = folder === '.' ? entry.name : `${folder}/${entry.name}`;
       pathName(path);
       if (entry.isDirectory()) await visit(path);
-      else files.set(path, await regularFile(root, path));
+      else files.set(path, await regularFile(root, path, callerSignal));
     }
   }
-  await visit('.'); return files;
+  await visit('.'); callerSignal?.throwIfAborted(); return files;
 }
