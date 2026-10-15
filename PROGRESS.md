@@ -2,7 +2,11 @@
 
 更新时间：2026-10-16
 
-## COS93 v3诊断完成，原15秒启动失败
+## COS93 navigation-v1诊断完成，导航失败
+
+- 在已审主线`e2358cd59a6313e049605cd652912d326745d414`上完成单次免费navigation-v1：951026ms、Node exit0/TAP1/1只表示diagnostic_completed；新navigation failed，首因`Diagnostic game engine is not ready`。prepare/register/transport为24575.6104/26057.0091/59.6950ms；open50719.3786ms、goto192051.1234ms已返回，ready单次175.8436ms即拒绝，navigation192228.9083ms failed，旧15秒保持超界。首段21步skipped、无planned stop；HTTP8/8 settled、6rejected、仅2body，后续27条404不能倒推原文件缺失。视频1000ms超时、browser forced/exit1，正常close未证明。独立POSTCHECK_NO_LIVE_RESIDUE、原467文件/61目录零变，ledger3114/715/16901000µ和费用0保持；658文件/297目录/69703280B仅为选择归档，Root已解冻。详见[研究记录](docs/research/2026-10-16-cos93-navigation-v1.md)及Root精确读回的[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862)。launcher已消费，无新actual/paid授权；COS93保持open/partial，旧C14/whole15/accepted/human保持。
+
+## 此前COS93 v3诊断完成，原15秒启动失败
 
 - v3在`84f9c8857908d9db7ecbc404c6d5afbdfdc32542`上983679ms、exit0结束，无OOM或guard触发；`diagnostic_completed`但`startup=failed`。open在14998.7753ms超时，其ticket前binding迟到31908.9892ms返回，未创建浏览器ticket、spawn、CDP或identity。完整trace/before/final与正常finally/drain/controller关闭有证据；不能记为浏览器正常退出或15秒目标通过。[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6187833755)已由Root精确读回。
 - raw `processesExited=false`保持；独审`POSTCHECK_NO_LIVE_RESIDUE`确认12个同号PID为后建复用、关联进程/端口/20个locks无残留。原466文件/61目录完整前后零变，真实ledger仍3114/715请求/¥16.901000；344文件/201目录/41769581字节仅为选择范围副本，原profile保留，无kill/delete/recover。详见[研究记录](docs/research/2026-10-15-cos93-v3-native-startup-diagnostic.md)。
