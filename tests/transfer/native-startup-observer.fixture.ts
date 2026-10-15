@@ -5,6 +5,10 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import { tmpdir } from 'node:os';
 
 type Scalar = string | number | boolean | null;
+/** Each record belongs to its original ChildProcess close event; current PID owners are unrelated. */
+export function recordedProcessesExited(records: readonly { pid: number; exit: boolean }[]): boolean {
+  return records.every(record => record.exit);
+}
 export interface DiagnosticSpan {
   id: number; parentId: number | null; name: string; startMs: number; endMs: number | null; durationMs: number | null;
   outcome: 'pending' | 'returned' | 'threw'; error?: { name: string; message: string };
