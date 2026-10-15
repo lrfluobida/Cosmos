@@ -14,6 +14,8 @@
 
 本阶段仅创建本计划和任务卡。**提交后停止，等待独立计划评审；批准前不修改生产代码。** 不改 main、共享 tracking、GitHub、原报告、候选、参考安装或真实账本。所有 fixture 和新运行结果只在 TEMP；无模型或 provider 调用。
 
+计划 `e9e60894cea81fac3f99bfb4735635d8510f0e03` 已由 `cos94_reviewer` 独立 PLAN_APPROVED，无 finding，协调者授权继续。下述计划正文保留批准时要求，当前执行证据见文末。
+
 ## 已执行的诊断与 RED
 
 证据目录：`C:/Users/26557/AppData/Local/Temp/cos94-cleanup-af7b3174b1d44d9ca7b14cab59875aa1`。
@@ -69,3 +71,11 @@ if (server) await bounded(() => server!.close(),
 - [ ] 运行 `git diff --check`，严格 UTF-8 解码并重新读取修改文件，核对中文、LF、无乱码；确认除上述文件及本 spec/plan 状态记录外无改动。
 - [ ] 独立 reviewer 读取实际 diff，先规格再质量；作者修复可执行 finding，提交精确 SHA 后复审受影响部分。作者只提交自己的分支，不合 main、不推 batch。
 - [ ] 将批准 SHAs、真实/TEMP 证据、检查结果和未确定 OS 根因的限制交唯一 merger。仅 source scoped complete；原 C14 与媒体补采失败事实不改。
+
+## 当前实现证据（真实正例待 slot）
+
+- 测试提交 `3e7d0641df20e4fbee9110ffe4e0a1f279776a35`：新 10 项确定性 runner 回归先得 6 pass / 4 fail / 0 skip、exit1、829.8609 ms；四项目标 RED 为 1,200 ms 正常关闭、2 秒局部上限、短预算零余量及保存后视频误报。该提交受影响 strict 退出 0。
+- 生产补丁仅 `src/acceptance/runner.ts`：通常最多 2 秒且受原 gracefulDeadline 限制；成功 generic `saveAs` 后不再追加 unavailable。Persistent 分支、强制终止和退出判断代码保持。
+- `node --experimental-strip-types --test tests/acceptance/generic-cleanup.test.ts tests/acceptance/deadline.test.ts`：11 pass / 0 fail / 0 skip、exit0、994.8575 ms。覆盖强制失败、退出未证实、原 deadline、短预算及 persistent 取消。
+- `npm run typecheck`、`npm run build` 均退出 0。新增 integration wrapper 首次 strict 报隐式 any；补显式参数类型后，两份新增测试的指定 strict 命令退出 0，无放宽类型配置。
+- `tests/acceptance/generic-cleanup.integration.ts` 仅新增一个独立 TEMP 实例，尚未执行；等待 COS93 释放真实浏览器计时 slot，当前不声明完整实现验收通过。

@@ -103,7 +103,7 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   const logs: { at: string; kind: string; message: string }[] = [];
   const log = (kind: string, text: string) => logs.push({ at: new Date().toISOString(), kind, message: text });
   let server: BrowserServer | undefined, browser: Browser | undefined, context: BrowserContext | undefined, page: Page | undefined, video: Video | null = null;
-  let forceClose = false;
+  let forceClose = false, videoSaved = false;
   const lifecycleDeadline = lifecycle?.deadlineAt ?? Date.now() + timeoutMs;
   const cleanupReserveMs = Math.min(3000, Math.floor(timeoutMs / 3));
   const deadline = lifecycleDeadline - cleanupReserveMs;
@@ -268,7 +268,8 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   }
   finally {
     try { await screenshot('final.png'); } catch { /* Deadline is already recorded; proceed to forced cleanup. */ }
-    const gracefulDeadline = lifecycleDeadline - Math.min(1000, cleanupReserveMs);
+    const forceReserveMs = Math.min(1000, cleanupReserveMs);
+    const gracefulDeadline = lifecycleDeadline - forceReserveMs;
     const cleanup = <T>(operation: () => Promise<T>, label: string) => bounded(operation, Math.min(1000, gracefulDeadline - Date.now()), label);
     if (!forceClose) try {
       if (lifecycle) {
@@ -280,10 +281,12 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
       } else if (context) await cleanup(() => context!.close(), 'Context cleanup');
       if (video) {
         await cleanup(() => video!.saveAs(join(directory, 'browser.webm')), 'Video collection');
+        if (!lifecycle) videoSaved = true;
         report.files.push(path('browser.webm'));
       }
       if (browser) await cleanup(() => browser!.close(), 'Client cleanup');
-      if (server) await cleanup(() => server!.close(), 'Server cleanup');
+      if (server) await bounded(() => server!.close(),
+        Math.min(cleanupReserveMs - forceReserveMs, gracefulDeadline - Date.now()), 'Server cleanup');
     } catch (error) { forceClose = true; failureFacts.termination = { kind: 'lifecycle' }; recordError(`Cleanup: ${message(error)}`); }
     const owned = lifecycle?.process() ?? server?.process();
     if (owned && (owned.exitCode === null && owned.signalCode === null)) {
@@ -305,7 +308,7 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
       }
       if (!report.cleanup.processExited) recordError('Owned browser process did not exit');
     }
-    if (forceClose && (video || lifecycle)) {
+    if (forceClose && (lifecycle || video && !videoSaved)) {
       const local = failureFacts.termination?.kind === 'observation_budget' ? failureFacts.termination : null;
       recordError('Video unavailable after forced browser termination; earlier screenshots retained', local ? 'termination_evidence' : 'lifecycle', local?.stepId);
     }

@@ -1,6 +1,6 @@
 # COS-94 普通浏览器服务清理
 
-任务：[COS-94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，父 #1；依赖 COS40 / #41、COS64 / #65、COS92 / #93。起点 `61d13817ca871d2be04576b4d6fb51fa8a86b541`。当前为诊断与计划待独审，未修改生产源码。
+任务：[COS-94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，父 #1；依赖 COS40 / #41、COS64 / #65、COS92 / #93。起点 `61d13817ca871d2be04576b4d6fb51fa8a86b541`。计划 `e9e60894cea81fac3f99bfb4735635d8510f0e03` 已由独立 reviewer 批准；最小实现及静态/确定性检查已完成，真实正例与源码独审待完成。
 
 ## 范围与历史
 
