@@ -1,6 +1,6 @@
 # COS-94 普通浏览器服务清理
 
-任务：[COS-94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，父 #1；依赖 COS40 / #41、COS64 / #65、COS92 / #93。起点 `61d13817ca871d2be04576b4d6fb51fa8a86b541`。计划 `e9e60894cea81fac3f99bfb4735635d8510f0e03` 已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)。当前 `GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡 source scoped complete；GitHub暂open，待Root公开源码审批与关闭。
+任务：[COS-94 / #95](https://github.com/lrfluobida/Cosmos/issues/95)，id5858068979，父 #1；依赖 COS40 / #41、COS64 / #65、COS92 / #93。起点 `61d13817ca871d2be04576b4d6fb51fa8a86b541`。计划 `e9e60894cea81fac3f99bfb4735635d8510f0e03` 已独审及[公开批准](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6181992162)。当前 `GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡 source scoped complete/closed；[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6182227279)、closed(completed)及父勾选已由Root精确读回。
 
 ## 范围与历史
 

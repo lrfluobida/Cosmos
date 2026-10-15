@@ -85,7 +85,7 @@ if (server) await bounded(() => server!.close(),
 
 ## 已审集成
 
-作者 `cos94_implementer` 最终 `c772c9c340a8118878190d62755d837a3bf1f511` 经 `cos94_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger `batch_c14_cos92_merger` 合入 `41de11f697eb79183515a0d71a5101f4bf91c10e`。生产提交 `f8b3b2f5f0002ce08b2f7e1f0348cf7e0f5417d1` 保留，主线src/tests与批准版本完全一致；标记 `GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡source scoped complete，GitHub暂open待Root公开关闭。
+作者 `cos94_implementer` 最终 `c772c9c340a8118878190d62755d837a3bf1f511` 经 `cos94_reviewer` 独立规格→质量 APPROVED，无finding；唯一merger `batch_c14_cos92_merger` 合入 `41de11f697eb79183515a0d71a5101f4bf91c10e`。生产提交 `f8b3b2f5f0002ce08b2f7e1f0348cf7e0f5417d1` 保留，主线src/tests与批准版本完全一致；标记 `GENERIC_BROWSER_SERVER_CLEANUP_SOURCE_READY`，本卡source scoped complete/closed，[公开源码批准与关闭](https://github.com/lrfluobida/Cosmos/issues/95#issuecomment-6182227279)、closed(completed)及父勾选已由Root精确读回。
 
 主线 `npm run typecheck` / `npm run build` 均退出0，raw分别为 `C:/Users/26557/AppData/Local/Temp/cos94-merge-typecheck.log`、`cos94-merge-build.log`。命令 `node --experimental-strip-types --test --test-name-pattern='normal server close after 1200 ms|server failure retains successfully saved video|persistent cancellation' tests/acceptance/generic-cleanup.test.ts` 通过3/3、0skip，729.7282ms；raw `C:/Users/26557/AppData/Local/Temp/cos94-merge-focused.tap`。仅使用模拟外部边界，验证既有reserve内1200ms关闭、成功保存后失败文案及persistent取消保持。
 
