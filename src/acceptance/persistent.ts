@@ -14,7 +14,8 @@ import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Observation } from './plan.ts';
 import { runAcceptanceInOwnedSession } from './runner.ts';
 import type { AcceptanceOptions, AcceptanceReport, OwnedAcceptanceLifecycle, PersistentBrowserIdentity, BrowserLaunchLifetime } from './runner.ts';
-import type { NativeValidationWaits } from './native-validation-waits.ts';
+import { isNativeValidationWaits } from './native-validation-waits.ts';
+import type { NativeReadLifetime, NativeValidationWaits } from './native-validation-waits.ts';
 
 export const PERSISTENT_PROFILE_CAPABILITY = 'persistent-profile-real-process-reopen-with-evidence';
 interface PersistentSeriesFields {
@@ -336,41 +337,53 @@ export function ownedPersistentBrowserLifecycle(plan: AcceptancePlan, options: P
   let child: ChildProcess | undefined, browser: Browser | undefined, cdp: CDPSession | undefined;
   let identity: PersistentBrowserIdentity | undefined, closed: Promise<void> = Promise.resolve(), closeEvent = false;
   const origin = new URL(plan.url).origin;
-  return { deadlineAt: session.deadlineAt, signal: session.signal, process: () => child,
+  const native = options.nativeValidationWaits;
+  if (native) requireThat(isNativeValidationWaits(native) && native.taskId === plan.taskId && native.deadlineAt === session.deadlineAt
+    && native.deadlineAt === options.deadlineAt && !!options.ownedChild, 'native lifecycle differs from its source-owned task/deadline/child');
+  const nativeSegmentWaits = native?.beginSegment(plan.reportId);
+  return { deadlineAt: session.deadlineAt, signal: session.signal, process: () => child, nativeValidationWaits: native, nativeSegmentWaits,
     identity: () => { if (identity) identity.closeEvent = closeEvent; return identity; },
     async open(directory, timeoutMs, outerLaunch) {
-      const started = Date.now(), end = Math.min(session.deadlineAt - 1000, started + timeoutMs, outerLaunch?.deadlineAt ?? Infinity);
+      const started = Date.now(), end = native ? Math.min(native.workDeadlineAt, outerLaunch?.deadlineAt ?? Infinity)
+        : Math.min(session.deadlineAt - 1000, started + timeoutMs, outerLaunch?.deadlineAt ?? Infinity);
       const abort = new AbortController(), signal = AbortSignal.any([abort.signal, ...(session.signal ? [session.signal] : []), ...(outerLaunch ? [outerLaunch.signal] : [])]);
       const check = () => {
+        if (native) { signal.throwIfAborted(); if (Date.now() >= end) throw new DeadlineError('Persistent launch expired'); return; }
         if (signal.aborted) throw signal.reason instanceof DeadlineError ? signal.reason : new AcceptanceCancelledError('Persistent launch cancelled');
         if (Date.now() >= end) throw new DeadlineError('Persistent launch expired');
       };
-      const timer = setTimeout(() => abort.abort(new DeadlineError('Persistent launch deadline reached')), Math.max(0, end - Date.now()));
+      const timer = native ? undefined : setTimeout(() => abort.abort(new DeadlineError('Persistent launch deadline reached')), Math.max(0, end - Date.now()));
       let complete!: () => void, fail!: (error: unknown) => void;
       const completion = new Promise<void>((resolveCompletion, rejectCompletion) => { complete = resolveCompletion; fail = rejectCompletion; });
       void completion.catch(() => {});
-      let prepared: PreparedPersistentChild | undefined, preparing = false, spawnStarted = false, releasing: Promise<void> | undefined;
+      let prepared: PreparedPersistentChild | undefined, preparing = false, spawnStarted = false, registrationOwned = false, releasing: Promise<void> | undefined;
       const release = () => releasing ??= Promise.resolve().then(() => prepared!.releaseUnspawned()).then(complete, error => { fail(error); throw error; });
       const run = <T>(op: () => Promise<T>, label: string) => bounded(op, end - Date.now(), label, signal);
       try {
-      const path = await executable(options.channel); await safePath(session.profile);
+      const prepare = async (life?: NativeReadLifetime) => {
+      const checkPrepare = () => { life?.check(); check(); };
+      checkPrepare(); const path = await executable(options.channel); checkPrepare(); await safePath(session.profile, undefined, life?.signal); checkPrepare();
       requireThat((await lstat(session.profile)).isDirectory(), 'private profile is not a directory');
+      checkPrepare();
       // Remove only our previous endpoint file; never accept a stale endpoint during the second launch.
       const portFile = join(session.profile, 'DevToolsActivePort');
       try { await removeOwned(session.profile, portFile); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-      check();
+      checkPrepare();
       if (options.ownedChild) {
         // Observe the raw result even after bounded rejects, retaining exact release responsibility.
-        const raw = options.ownedChild.prepare({ signal, deadlineAt: end, completion }); preparing = true;
+        const raw = options.ownedChild.prepare({ signal: life?.signal ?? signal, deadlineAt: life?.deadlineAt ?? end, completion }); preparing = true;
         const received = raw.then(async handle => {
           prepared = handle;
-          try { check(); }
+          try { checkPrepare(); }
           catch (error) { try { await release(); } catch (cleanup) { throw new AggregateError([error, cleanup], `Unspawned browser launch cleanup failed: ${String(error)}; ${String(cleanup)}`); } throw error; }
           return handle;
         }, error => { fail(error); throw error; });
         void received.catch(() => {});
-        await run(() => received, 'Owned browser launch ticket');
+        if (life) await received; else await run(() => received, 'Owned browser launch ticket');
       }
+      return path;
+      };
+      const path = nativeSegmentWaits ? await nativeSegmentWaits.runStage('prepare_authority', life => prepare(life)) : await prepare();
       check(); spawnStarted = true;
       child = spawn(path, ['--user-data-dir=' + session.profile, '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1',
         '--enable-automation', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-component-update',
@@ -379,46 +392,63 @@ export function ownedPersistentBrowserLifecycle(plan: AcceptancePlan, options: P
       let launchError: Error | undefined;
       child.on('error', error => { launchError = error; });
       closed = new Promise(resolveClose => child!.once('close', () => { closeEvent = true; resolveClose(); }));
-      complete(); // The existing process/registration/exit path now owns this spawned child.
+      if (!nativeSegmentWaits) complete(); // Legacy registration/exit retains its original handoff.
       if (prepared) {
         requireThat(child.pid && prepared.ticket, 'owned browser has no PID or prepared ticket');
         // Start registration even if the local deadline just expired; PID evidence must survive.
-        const registration = prepared.register(child.pid); void registration.catch(() => {});
-        await run(() => registration, 'Owned browser PID registration');
+        if (nativeSegmentWaits) {
+          let ready!: (life: BrowserLaunchLifetime) => void, rejectLife!: (error: unknown) => void;
+          const lifetime = new Promise<BrowserLaunchLifetime>((done, reject) => { ready = done; rejectLife = reject; });
+          void lifetime.catch(() => {});
+          const registration = nativeSegmentWaits.trackRegistration(() => prepared!.register(child!.pid!, lifetime));
+          registrationOwned = true;
+          void registration.then(complete, fail);
+          try { await nativeSegmentWaits.runStage('register_authority', life => { ready(life); return registration; }); }
+          catch (error) { rejectLife(error); throw error; }
+        } else {
+          const registration = prepared.register(child.pid); void registration.catch(() => {});
+          await run(() => registration, 'Owned browser PID registration');
+        }
       }
+      const transport = async (life?: NativeReadLifetime) => {
+      const transportRun = <T>(op: () => Promise<T>, label: string): Promise<T> => life ? (async () => {
+        life.check(); const result = await op(); life.check(); return result;
+      })() : run(op, label);
       let port = '';
       while (!port) {
         if (launchError) throw launchError;
         requireThat(!closeEvent, 'owned browser exited before CDP connection');
-        try { port = (await run(() => regularFile(session.profile, 'DevToolsActivePort'), 'Owned CDP endpoint')).toString('utf8'); }
+        try { port = (await transportRun(() => regularFile(session.profile, 'DevToolsActivePort', life?.signal), 'Owned CDP endpoint')).toString('utf8'); }
         catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-        if (!port) await run(() => new Promise(resolveWait => setTimeout(resolveWait, 25)), 'Owned CDP startup');
+        if (!port) await transportRun(() => new Promise(resolveWait => setTimeout(resolveWait, 25)), 'Owned CDP startup');
       }
       const [portNumber, endpoint] = port.trim().split(/\r?\n/);
       requireThat(/^\d{1,5}$/.test(portNumber) && +portNumber > 0 && +portNumber <= 65535 && /^\/devtools\/browser\/[a-zA-Z0-9-]+$/.test(endpoint), 'invalid owned loopback CDP endpoint');
-      browser = await run(() => chromium.connectOverCDP('ws://127.0.0.1:' + portNumber + endpoint,
-        { timeout: Math.max(1, end - Date.now()), artifactsDir: directory }), 'Owned CDP connection');
-      cdp = await run(() => browser!.newBrowserCDPSession(), 'Browser identity connection');
-      const processes = await run(() => cdp!.send('SystemInfo.getProcessInfo'), 'Browser process identity');
-      const command = await run(() => cdp!.send('Browser.getBrowserCommandLine'), 'Browser profile identity');
-      identity = { ...assertPersistentIdentity(processes.processInfo, command.arguments, child.pid!, session.profile), profile: session.profile,
+      browser = await transportRun(() => chromium.connectOverCDP('ws://127.0.0.1:' + portNumber + endpoint,
+        { timeout: Math.max(1, (life?.deadlineAt ?? end) - Date.now()), artifactsDir: directory }), 'Owned CDP connection');
+      cdp = await transportRun(() => browser!.newBrowserCDPSession(), 'Browser identity connection');
+      const processes = await transportRun(() => cdp!.send('SystemInfo.getProcessInfo'), 'Browser process identity');
+      const command = await transportRun(() => cdp!.send('Browser.getBrowserCommandLine'), 'Browser profile identity');
+      identity = { ...assertPersistentIdentity(processes.processInfo, command.arguments, child!.pid!, session.profile), profile: session.profile,
         origin, closeEvent, exitConfirmed: false, exitCode: null, signalCode: null,
         cdp: { browserProcessIds: processes.processInfo.filter(item => item.type === 'browser').map(item => item.id),
           profileArguments: command.arguments.filter(arg => arg.startsWith('--user-data-dir=')) },
         environmentKeys: Object.keys(filterBrowserEnvironment(options.env ?? process.env)).sort() };
       const contexts = browser.contexts(); requireThat(contexts.length === 1, 'expected the real persistent default context');
       const context: BrowserContext = contexts[0];
-      for (const page of context.pages()) await run(() => page.close(), 'Initial blank page cleanup');
-      await run(() => blockPersistentServiceWorkers(context), 'Persistent service worker block');
+      for (const page of context.pages()) await transportRun(() => page.close(), 'Initial blank page cleanup');
+      await transportRun(() => blockPersistentServiceWorkers(context), 'Persistent service worker block');
       // The default CDP context persists on disk; no newContext or storage seed is used.
       return { browser, context };
+      };
+      return nativeSegmentWaits ? await nativeSegmentWaits.runStage('browser_transport', life => transport(life)) : await transport();
       } catch (caught) {
         const error = signal.reason instanceof DeadlineError ? signal.reason : caught;
         abort.abort(error);
         if (prepared && !spawnStarted) {
           try { await release(); }
           catch (cleanup) { throw new AggregateError([error, cleanup], `Unspawned browser launch cleanup failed: ${String(error)}; ${String(cleanup)}`); }
-        } else if (!preparing || spawnStarted) fail(error);
+        } else if (!preparing || spawnStarted && (!nativeSegmentWaits || !registrationOwned)) fail(error);
         throw error;
       } finally { clearTimeout(timer); }
     },

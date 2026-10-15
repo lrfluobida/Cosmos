@@ -16,6 +16,7 @@ import { attributePageErrors, projectMismatchCanStop } from './failure-facts.ts'
 import type { PageError, RuntimeException } from './failure-facts.ts';
 import { collectRenderFrames, validateRenderFrameRequest } from './render-frames.ts';
 import type { RenderFrameRequest, RenderFrameSample } from './render-frames.ts';
+import type { NativeValidationWaits, NativeSegmentWaits } from './native-validation-waits.ts';
 
 export interface StepResult {
   id: string; kind: Step['kind']; acceptanceId?: string; outcome: 'passed' | 'failed' | 'skipped';
@@ -51,6 +52,7 @@ export interface PersistentBrowserIdentity {
 export interface BrowserLaunchLifetime { signal: AbortSignal; deadlineAt: number }
 export interface OwnedAcceptanceLifecycle {
   deadlineAt: number; signal?: AbortSignal;
+  nativeValidationWaits?: NativeValidationWaits; nativeSegmentWaits?: NativeSegmentWaits;
   open(directory: string, timeoutMs: number, launch?: BrowserLaunchLifetime): Promise<{ browser: Browser; context: BrowserContext }>;
   process(): ChildProcess | undefined;
   close(timeoutMs: number): Promise<void>;

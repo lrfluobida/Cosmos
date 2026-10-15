@@ -223,4 +223,10 @@ Root收敛新增NativeReadLifetime.check，复用冻结stage deadline并在到�
 
 origin作者真实RED补查显示verify内部等待close可先于request外层catch。Root收敛导出recordNativeValidationFailure(originalCaller,error)，复用私有caller WeakMap的stage/active marker，在任何phase的来源guard await close之前登记firstCause；derived、旧段、已settled均无权登记。request.recordFailure委托同一机制。单项API缺失有效RED0/1→helper完整GREEN17/17、0skip、305.7908ms，strict0；deferred invalidation前已保留来源首因，后续cleanup失败不覆盖。`origin-firstcause-red-2.tap`、`origin-firstcause-green.tap`、`origin-firstcause-strict.log`同TEMP；最初测试异步缺失API触发unhandled的red日志保留但以显式API断言的red-2为证据。
 
+## 作者源码切片 13：native lifecycle 三阶段（局部）
+
+ownedPersistentBrowserLifecycle仅可信native对象选择prepare60/register60/browser_transport15三阶段；preflight在prepare内，完整post-register fresh通过后才读CDP endpoint/连接/核身份/清恢复页/阻SW。native raw阶段不再内嵌先返回的bounded；generic旧wholeopen15与原handoff保持。segment.trackRegistration在已成功prepare后仅一次记录已spawn PID的raw thunk，原owned prepare仍为work所有者；即使下一phase已取消不能派发，segment仍保持pending。helper单项RED1→GREEN1；完整pre25s+post20s后连接与W=55s注册到期/latePID零CDP两项RED0/2→GREEN2/2、0skip、4807.3952ms。共享open有实际delta，合并原launch影响组+helper33/33、0skip、4406.4933ms。首次strict仅nested child窄化TS18048失败，修为既有child非空断言后strict0；随后补registration尚未建立的异常completion分支，保留已spawn未知intent失败责任。
+
+`registration-segment-{red,green}.tap`、`native-open-{red,green}.tap`、`native-open-compat.tap`、`native-open-strict.log`、`native-open-strict-2.log`同TEMP。此片只合成process/CDP transport；runner/nativeIO/consumer尚待接上，真实browser未授权。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

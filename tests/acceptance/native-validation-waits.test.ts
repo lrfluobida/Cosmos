@@ -250,3 +250,16 @@ test('COS97 original phase caller records source failure before deferred invalid
   await next.runStage('prepare_authority', async (life: any) => { settled = life.signal; });
   api.recordNativeValidationFailure(settled, new Error('settled phase')); assert.equal(next.snapshot().firstCause, null);
 });
+
+test('COS97 spawned registration remains pending when its next authority phase cannot dispatch', async t => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'), entered = deferred(), gate = deferred(); let calls = 0;
+  assert.equal(typeof segment.trackRegistration, 'function');
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());
+  await segment.runStage('prepare_authority', async () => {});
+  const raw = segment.trackRegistration(async () => { entered.resolve(); await gate.promise; });
+  await entered.promise; segment.revoke(new Error('cancelled immediately after spawn'));
+  await assert.rejects(segment.runStage('register_authority', async () => { calls++; }), /cancelled immediately/);
+  assert.equal(calls, 0); assert.equal(segment.snapshot().rawOperationsPending, 1);
+  const failed = assert.rejects(segment.settle(f.base + 100), /settle|pending/i); t.mock.timers.tick(100); await failed;
+  gate.resolve(); await raw; await segment.settle(f.base + 5000); assert.equal(segment.snapshot().rawOperationsPending, 0);
+});

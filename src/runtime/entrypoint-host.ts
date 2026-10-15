@@ -107,7 +107,7 @@ export function createPersistentOwnedChild(input: Pick<HostInput, 'controller' |
     const operation = input.work.run(async workSignal => {
       const check = () => {
         if (nativeValidationWaits) {
-          input.controller.signal.throwIfAborted(); workSignal.throwIfAborted(); launch.signal.throwIfAborted();
+          input.controller.signal.throwIfAborted(); launch.signal.throwIfAborted(); workSignal.throwIfAborted();
           if (Date.now() >= launch.deadlineAt) throw new NativeWaitDeadlineError('prepare_authority');
           return;
         }
@@ -133,7 +133,7 @@ export function createPersistentOwnedChild(input: Pick<HostInput, 'controller' |
               const active = lifetime && await lifetime;
               const checkRegistration = () => {
                 if (!active) return;
-                input.controller.signal.throwIfAborted(); workSignal.throwIfAborted(); active.signal.throwIfAborted();
+                input.controller.signal.throwIfAborted(); active.signal.throwIfAborted(); workSignal.throwIfAborted();
                 if (Date.now() >= active.deadlineAt) throw new NativeWaitDeadlineError('register_authority');
               };
               checkRegistration(); if (active) await verifyBinding(active.signal); else await verifyBinding(); checkRegistration();

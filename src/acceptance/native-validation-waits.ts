@@ -23,6 +23,8 @@ export interface NativeSegmentSnapshot {
 export interface NativeSegmentWaits {
   readonly reportId: string; readonly generation: number;
   runStage<T>(stage: NativeWaitStage, operation: (life: NativeReadLifetime) => Promise<T>): Promise<T>;
+  /** The original owned prepare owns the write; this subset retains an already-spawned PID's raw settlement. */
+  trackRegistration<T>(start: () => Promise<T>): Promise<T>;
   beginNavigation(): void;
   finishNavigation(): void;
   revoke(reason?: unknown): void;
@@ -49,6 +51,7 @@ interface SegmentData {
   operations: Set<Promise<unknown>>; requests: Set<Promise<unknown>>;
   navigation?: { startedAt: number; deadlineAt: number; clock: number };
   http: { started: number; settled: number; stages: HttpStageRecord[] };
+  registrationTracked?: boolean;
 }
 interface HttpStageRecord { stage: NativeHttpStage; capMs: number; count: number; totalMs: number; maxMs: number }
 interface ReadOwner {
@@ -182,6 +185,14 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
           .map(stage => ({ stage, capMs: caps[stage], count: 0, totalMs: 0, maxMs: 0 })) } };
       current = owner.current = segment; segments.push(segment);
       return Object.freeze({ reportId, generation: segment.generation, snapshot: () => view(segment),
+        trackRegistration<T>(start: () => Promise<T>): Promise<T> {
+          if (current !== segment || segment.registrationTracked || !['registering', 'closing'].includes(segment.state)
+            || !segment.records.some(row => row.stage === 'prepare_authority' && row.outcome === 'passed')) throw new Error('Native registration ownership is not ready');
+          segment.registrationTracked = true;
+          const raw = Promise.resolve().then(start); segment.operations.add(raw);
+          const settled = () => { segment.operations.delete(raw); };
+          void raw.then(settled, settled); return raw;
+        },
         async runStage<T>(stage: NativeWaitStage, operation: (life: NativeReadLifetime) => Promise<T>): Promise<T> {
           check(segment);
           const expected = { prepare_authority: 'preparing', register_authority: 'registering', browser_transport: 'connecting', navigation: 'navigating' };
