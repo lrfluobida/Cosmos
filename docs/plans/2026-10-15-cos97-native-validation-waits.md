@@ -209,4 +209,8 @@ verifyPreparedTransferAcceptance/bindTransferAcceptance及内部capturedFiles/re
 
 BrowserPreparationContext/BrowserInputPreparation/consumer类型与host真实validationScope/preparationScope/requireDispatch闭包透传原caller；实际固定requirement/history读取用保留native raw owner的组合signal，默认路径保持。createValidationPreparedBrowserHost真实闭包下，预取消、controller host返回后取消与候选绑定caller identity三子例RED0/4→GREEN4/4、0skip、4751.6895ms，定向strict0；不重复无delta的旧scope/history/binding组。`host-closures-{red,green}.tap`、`host-closures-strict.log`在同TEMP。origin+cleanDelivery两源码及专属新测试已由Root交另一独立作者，本作者不修改，待APPROVED SHA组合。
 
+## 作者源码切片 10：只读 design seal caller（局部）
+
+Root核实并授权design-validation.ts现有seal→binding/records/audit/authority/实际bytes读取链最小caller接线。共享helper默认caller为undefined，tool validate及写流程保持，seal叶读取保留native owner；此链无Promise.all。真实有效审计字节正例先通过，预取消零guard、guard内原caller取消、首个实际binding字节后取消零后续读取三子例RED0/4→GREEN4/4、0skip、20551.0707ms，定向strict0。`design-seal-red-2.tap`、`design-seal-green.tap`、`design-seal-strict.log`同TEMP；不重跑design tool整套。最初用不完整context测试的失败日志`design-seal-red.tap`保留，未当有效RED证据。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
