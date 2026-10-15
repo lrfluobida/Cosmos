@@ -8,7 +8,7 @@ COS93 v3 的完整实时 binding 已在无重叠条件下耗约 25 秒，六个 
 
 提议在可信源码选择的原生 validation transfer consumer 路径采用 `native-validation-waits/1`：保留完整 pre-ticket 授权、exact PID 登记与登记后完整 fresh 授权的顺序，再进行短界限的 CDP/身份工作。prepare 与 register 各最多 60 秒，browser transport 最多 15 秒，导航最多 300 秒，HTTP 的 pre/body/post 分别最多 60/15/60 秒；每段同时受原任务/窗口/运行截止与既有至少 5 秒工作预留夹紧。所有墙钟照实累计，原 5 秒 scope、正常输入/观测默认与清理规则保持。具体接口、信号、阶段起点与错误归属见 [COS97 spec](../specs/cos97-native-validation-waits.md)。
 
-选择此方案，是为了把有限的授权等待与物理传输停滞分开，并为导航的真实 HTTP guard 留下明确预算。只让授权等待消耗父 deadline 会失去局部停止边界；只扩大一个总 timeout 无法说明责任；减少嵌套检查则尚无保持 expire/close 副作用与实时来源拒绝的等价证明。阶段值是新的有限内部契约，不能据此宣称实际游戏已加载或性能已达标。
+选择此方案，是为了把有限的授权等待与物理传输停滞分开，并为导航的真实 HTTP guard 留下明确预算。60 秒是根据约 25 秒独立 binding 与 31.9 秒迟到重叠样本提出的规划余量，15 秒保持物理短界限，300 秒为两个可能串行的 135 秒 guarded 响应留有限空间；样本未给出 p99、最坏值或实际 HTTP 通过保证。只让授权等待消耗父 deadline 会失去局部停止边界；只扩大一个总 timeout 无法说明责任；减少嵌套检查则尚无保持 expire/close 副作用与实时来源拒绝的等价证明。阶段值是新的有限内部契约，不能据此宣称实际游戏已加载或性能已达标。
 
 新路径需要共享的窄内部 segment lease，使恢复页面在登记后 fresh、CDP 身份与可信导航前零有效游戏内容；每个放行请求仍执行既有完整 pre/post 和实际字节读取。raw prepare/registration 的迟到结果继续受 owner/drain 追踪；新增版本化标量计时不会移除等待。generic、human 与无该可信对象的调用保持原 whole-open/导航 15 秒默认，non-clean dist 回退不在本次修改范围。
 

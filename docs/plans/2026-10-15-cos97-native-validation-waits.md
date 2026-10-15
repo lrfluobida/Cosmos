@@ -44,7 +44,7 @@
 - [ ] 新建 `tests/acceptance/native-validation-waits.test.ts`，先写最小 RED：源码工厂存在且不能选择 cap；prepare 25 秒合法、60 秒精确到期；W 较短时父夹紧，剩余≤0 零派发。使用 Node fake Date/setTimeout 与真实 deferred Promise，不能用此模拟时长声称性能。
 - [ ] Run: `node --experimental-strip-types --test tests/acceptance/native-validation-waits.test.ts`。预期 RED 是缺工厂/未实现契约的具体断言；保留原始日志，不把导入配置错误当作行为 RED。
 - [ ] 创建窄模块，固定 `native-validation-waits/1`、prepare/register 60000、transport 15000、navigation 300000、HTTP 60000/15000/60000；只接收 authority/signal/工作跟踪，不接受 cap 或 clock override。内部 WeakSet 验证 source factory 对象。
-- [ ] 实现 spec 的固定状态机、一次 stage 冻结、原 reason 首因、timer/listener finally 收尾、入口捕获 lease 与标量 snapshot。操作 promise 必须观察迟到 rejection；成功不得取消后续 exact handoff 使用的 lifetime。
+- [ ] 实现 spec 的固定状态机、一次 stage 冻结、原 reason 首因、timer/listener finally 收尾、入口捕获 lease 与标量 snapshot。beginSegment返回捕获唯一generation的handle，close/abort撤销；旧callback不得获取新段generation或打开/撤销后续gate。操作promise必须观察迟到rejection；成功不得取消后续exact handoff使用的lifetime。
 - [ ] 扩展边界测试：预取消原 reason 同对象、parent 到期、私有 timer 独立品牌、首因后 cleanup 附加、closed/reopen/旧 lease拒绝、无源码对象/身份漂移拒绝、计数溢出失败、HTTP 聚合有界。原私有 scope classifier 另在 Task 4 真实生产路径验证，不靠同名 Error 替代。
 - [ ] 重跑同一目标命令，预期全 pass、0 skip、无 unhandled rejection；记录 SHA、断言和可复用证据，提交 `feat: add fixed native validation wait contract`。
 
@@ -55,9 +55,9 @@
 - [ ] `entrypoint-host.ts` 在 validation transfer consumer 分支构造源对象；验证 current coding case/window/task/deadline。consumer context 类型增加可选字段；nativeIO 拒绝错 identity/series/deadline 或无 provenance 对象，generic/human 不构造。
 - [ ] `runtime-acceptance.ts` 与 `runtime-host.ts` 只转交同对象，不重建、不复制 caps、不减少任何 current guard。native object 无 cleanDelivery 立即拒绝。
 - [ ] `persistent.ts` 的 native open 实现 prepare→spawn→register+fresh→transport 三段；所有边界检查使用 W。原 ordinary lifetime 和 runner15秒行为保持；保留 endpoint/profile/PID/default context/service-worker 检查。
-- [ ] `PreparedPersistentChild.register` 增加可选 registration lifetime。先启动 exact PID 持久化，再完整 fresh，不因本地到期丢弃已 spawn 的 PID。仅新native路径的 launch.completion 观察 raw registration/fresh 真正 settle，bounded 拒绝不得移除追踪；raw prepare迟到仍释放exact unspawned ticket。
+- [ ] `PreparedPersistentChild.register` 增加可选registration lifetime。先启动exact PID持久化，再检查lifetime并完整fresh；不因本地到期丢弃已spawn的PID。按spec纸面图只让raw registration observer结算新native completion；stage catch不得提前结算，prepare不等待browser close/series/public drain，runner finally不等待包含自身的OwnedWork集合。raw prepare迟到仍释放exact unspawned ticket。
 - [ ] 增加阶段间 source/HEAD/index/window/budget drift 断言：pre-ticket读取中漂移零ticket/spawn；pre检查通过后至postfresh期间漂移允许owned spawn/PID登记，但零CDP/零gate；postfresh后漂移由HTTP pre/post拒绝有效字节。用现有最小production守卫fixture/隔离TEMP，不把检查间隙写成零OS副作用事务保证。
-- [ ] 增加取消、late handle、late register、exact release 失败、release rollback、public drain pending/cleanup AggregateError、原 abort reason。逐项断言 retained ticket/PID、无 unhandled rejection、未收敛时不得 controller.close 成功。
+- [ ] 增加取消、late handle、late register fulfilled/rejected、exact release失败、release rollback、public drain pending/cleanup AggregateError、原abort reason。逐项断言retained ticket/PID、completion pending→raw settled唯一结算、无drain自等待/重复登记/悬空rejection；未收敛时不得controller.close成功。
 - [ ] Run: `node --experimental-strip-types --test tests/acceptance/persistent-launch.test.ts tests/acceptance/native-validation-waits.test.ts`。预期全 pass/0 skip。旧 COS92默认15秒断言是兼容验收；提交 `feat: separate native authorization and browser launch waits`。
 
 ## Task 3：真实 HTTP 等待、恢复门禁与 runner 导航

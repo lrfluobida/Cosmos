@@ -58,7 +58,7 @@ entrypoint-host acceptance → withCleanDelivery
 
 `W = min(D - 5000, runner 原 execution deadline)`。原 runner 保留 `cleanupReserveMs=min(3000,floor(timeoutMs/3))`；clean delivery 已用 `D-5000`，scope 已保留同样 5 秒。使用最早的既有安全工作终点，保留 runner 的原 graceful/force 清理分配、owned-work 5 秒默认 drain 与 controller 硬停止；5 秒不是保证全部清理一定成功的承诺。
 
-每一阶段进入时冻结 `stageEnd=min(W, stageStart+cap)`；抵达边界即到期。剩余量不为正时零派发，不能把负数强制改成 1ms 来获得新权限。阶段完成须再次核对原 signal、stageEnd、W 与当前门禁身份。所有原 fresh scope 仍各用原 5 秒内部 guard，父阶段不能改变它。
+每一阶段进入时冻结 `stageEnd=min(W, stageStart+cap)`；抵达边界即到期。剩余量不为正时不派发新执行工作，不能把负数强制改成 1ms 来获得新权限。唯一既有收尾例外是已 spawn 的 exact PID 登记：它必须先发起以保存副作用证据，过期后不能再获 CDP 或游戏执行权限。阶段完成须再次核对原 signal、stageEnd、W 与当前门禁身份。所有原 fresh scope 仍各用原 5 秒内部 guard，父阶段不能改变它。
 
 | 阶段 | 固定 cap | 起点与结束 |
 | --- | --- | --- |
@@ -70,9 +70,9 @@ entrypoint-host acceptance → withCleanDelivery
 | `http_body` | 15000ms | pre-authority 完成；现有 clean upstream fetch 与完整 actual byte read 完成 |
 | `http_post_authority` | 60000ms | body 完成；原完整 mounted.verifyScope 与 mount/lease/signal/deadline 再检查完成，之后才发送 headers/body |
 
-open 的总耗时完整包含前三阶段，最多 135000ms 且受 W 夹紧；没有重启总计时。prepare cap 明确也包含其原物理前置操作，不能把这部分时间归为已测纯授权成本。60 秒提供高于已测约 25 秒完整 binding 的有限工程余量；不是从统计减去授权时间。
+open 的有界等待完整包含前三阶段，最多 135000ms 且受 W 夹紧；没有重启总计时，迟到 raw 工作的实际收敛另行如实记录。prepare cap 明确也包含其原物理前置操作，不能把这部分时间归为已测纯授权成本。60 秒提供高于已测约 25 秒无重叠完整 binding 的有限工程余量；31.9 秒迟到且有重叠的样本只辅助说明长尾风险。这两个样本均不是 p99、最坏值或未来通过保证。15 秒 transport 沿用原物理连接的短界限，将授权从该限时责任中拆开；不是从统计减去授权时间。
 
-单次 HTTP 三阶段最多 135000ms，全部还受其请求的共同上界夹紧。导航期间该上界是 `min(W,navigationEnd)`；进入正常输入后新请求用 W。300 秒导航为两个可能串行的完整 guarded 文档/脚本响应留有限预算，不声明已量化实际 HTTP 总耗时或全部素材会在该值内加载。某次请求或整个导航仍可失败，不能因此自动再扩大预算。
+单次 HTTP 的有界等待三阶段最多 135000ms，全部还受其请求的共同上界夹紧，迟到收敛不裁剪。导航期间该上界是 `min(W,navigationEnd)`；进入正常输入后新请求用 W。HTTP 的 60 秒 pre/post 各覆盖一轮完整 mounted verifier，沿用相同有限授权余量；15 秒 body 保持实际本地传输的短界限。300 秒导航为两个可能串行的完整 guarded 文档/脚本响应（2×135 秒）及有限其余等待留预算。这是明确的源码规划值，未量化实际 HTTP 成本、并行资产竞争或全部素材加载分布，也无 p99 保证。某次请求或整个导航仍可失败，不能因此自动再扩大预算。
 
 导航完成不延长已经进入的请求寿命。正常输入默认 2000ms、locator-click 的原 plan timeout+100、assert/wait-for 的原逐步 timeout、截图/媒体/渲染采样、路由/页面/异常设置及普通非持久浏览器超时保持；导航授权等待不会转成免费的输入时间。延迟素材若导致原正常输入/观测失败，保留真实失败。
 
@@ -87,9 +87,11 @@ open 的总耗时完整包含前三阶段，最多 135000ms 且受 W 夹紧；�
 - `BrowserCandidateConsumerContext.nativeValidationWaits?`：只由上述 entrypoint-host 分支构造；consumer 沿同一对象传递。
 - `PersistentAcceptanceOptions.nativeValidationWaits?` 和 `OwnedAcceptanceLifecycle.nativeValidationWaits?`：可信 transport seam，nativeIO 复核后传给 lifecycle 与 runner；generic 无对象。
 - `PreparedPersistentChild.register(pid, registrationLifetime?)`：可选第二参数保持现有调用兼容。新路径将 register 阶段的 signal/deadline 传给 native source handoff；旧调用保持原含义。
-- 内部对象只公开 `beginSegment(reportId)`、`runStage(stage, operation)`、`beginNavigation()`、`finishNavigation()`、`revokeSegment(reason?)`、`runRequest(operation)`、`snapshot()` 所需的窄操作。`runStage` 给 operation 本阶段只读 `{signal,deadlineAt}`；允许的阶段是固定联合类型。`runRequest` 向 origin 提供入口捕获的不可替换 lease 和三个阶段执行器。
+- 内部对象只公开 `beginSegment(reportId)`、`runRequest(operation)`、`snapshot()`。`beginSegment` 返回捕获唯一 generation 的只读 segment handle，只有该 handle 才有 `runStage(stage, operation)`、`beginNavigation()`、`finishNavigation()`、`revoke(reason?)` 与当前段 snapshot。`runStage` 给 operation 本阶段只读 `{signal,deadlineAt}`；允许的阶段是固定联合类型。`runRequest` 向 origin 提供请求入口捕获的不可替换 lease 和三个阶段执行器。
 
-状态顺序固定为 `closed → preparing → registering → transport_ready → navigating → input → closing → closed`，失败可从任何执行状态进入 closing。`beginSegment` 开始时流量关闭；只有该 segment 的 browser identity、初始恢复页面关闭、service-worker block 及 runner 设置完成后，runner 紧邻 goto 调用 `beginNavigation` 才允许请求。此方法检查前置状态、原 W 与 signal，不做授权替代。重复 begin、跨 reportId、旧 lease 或上段未收尾直接失败。
+状态顺序固定为 `closed → preparing → registering → connecting → transport_ready → navigating → input → closing → closed`，失败可从任何执行状态进入 closing。`beginSegment` 开始时流量关闭；只有该 segment 的 browser identity、初始恢复页面关闭、service-worker block、route 与全部 driver 设置完成后，runner 紧邻 goto 调用该 segment handle 的 `beginNavigation` 才允许请求。此方法检查前置状态、原 W 与 signal，不做授权替代。重复 begin、跨 reportId、旧 lease 或上段未收尾直接失败。
+
+每次 begin 使用不可复用的 generation；segment handle 固定绑定该 generation。origin mount 闭包固定绑定本次可信 wait 对象与原 mounted 对象，每个请求在入口捕获该对象当时的 segment/generation lease，此后不能替换。close、segment abort、原 controller/work abort 都立即撤销它，方法在操作前后检查。旧异步 callback 持有旧 handle/请求 lease，不能通过读取“当前段”重新取得新 generation；其迟到 begin/finish/response 只拒绝旧操作，不能打开、撤销或改写后续 mount/segment 的 gate 或首因。重新开启只能由正常串行 series 的下一个 beginSegment 产生新 handle，且上段 raw 工作及原 owned browser exit 已按原 series gate 收尾。
 
 origin 在请求到达时捕获 gate 状态，closed 阶段请求直接返回现有 no-store 404；它们不能等门禁打开后变成合法请求。进入允许状态的请求须继续完整 pre/body/post，不能用 lease 跳过任何 guard。恢复页面在 OS spawn 后但 post-register fresh 或 CDP 前请求游戏内容时零有效字节；新段使用新 lease，上一段的请求不能穿过关闭/重开边界。mount 仍是原 candidate 与 cleanDelivery，URL、profile 与存档行为保持。
 
@@ -105,7 +107,30 @@ runner 在 finally 的首步撤销当前 lease，再进行原视频/关闭/force
 
 pre-ticket 授权失败或到期：零 ticket/spawn；ticket 已持久化但 raw handle 迟到：继续观察其真实结果，只释放该 exact unspawned ticket。release 失败保留原原因和 cleanup 原因，进入已有 `retainCleanupFailure` / public drain，不能清除不确定 intent。
 
-spawn 后即使本地时限已到，也必须先启动原 exact PID 登记，保留 OS 副作用证据；登记后的完整 fresh 核验按原顺序执行。新 native 路径把 launch.completion 的 settle 推迟至 **raw registration/fresh 工作真正 settled**；bounded 先拒绝不能提前解除 OwnedWork 对该工作的追踪。raw prepare 与 raw register 各保留观察者，无 unhandled rejection。普通兼容路径的原 completion 行为不随本任务泛改。
+spawn 后即使本地时限已到，也必须先启动原 exact PID 登记，保留 OS 副作用证据；登记之后检查 register lifetime，再按原顺序做完整 fresh 核验并复查 lifetime。取消/过期可在开始 fresh 前拒绝，但任何仍获执行资格的成功路径必须完成原整轮 fresh。新 native 路径把 launch.completion 的 settle 推迟至 **raw registration/fresh 工作真正 settled**；bounded 先拒绝不能提前解除 OwnedWork 对该工作的追踪。raw prepare 与 raw register 各保留观察者，无 unhandled rejection。普通兼容路径的原 completion 行为不随本任务泛改。
+
+raw handoff 的纸面状态与收尾顺序：
+
+```text
+preparing（OwnedWork 已跟踪 prepare operation）
+  → ticket persisted → raw handle delivered → spawned
+      → 立即启动 raw exact PID registration（不因到期跳过证据登记）
+      → PID persisted → lifetime check → full fresh → lifetime check
+      → raw register settled → completion resolve/reject → prepare operation settled
+
+取消/到期且未 spawn：
+  raw handle 未返回 → 等其真实返回/失败；返回后 release exact unspawned ticket
+  release settled成功 → completion resolve；失败 → completion reject并retain cleanup failure
+
+取消/到期且 raw register pending：
+  stage race失败 → runner finally revoke gate → 原 close/force/owner收尾
+  completion 继续pending；raw register迟到settled才resolve/reject它
+  外部 public cancelAndDrain 观察parent/prepare/raw-request工作；超时保留未决ownership
+```
+
+`completion` 是本次 ticket handoff 的结算 latch，不等待 browser close、series completion 或 public drain。raw register 的 fulfilled/rejected observer 是该 spawned 路径唯一 completion 结算方；stage catch 不得先 reject 它。若 spawn 已开始却没有可登记 PID/无法启动登记，则立即 reject completion，保留已有不确定 intent/进程事实并报告失败，不能假释放。
+
+无自等待证明：prepare operation 仅等待该 latch；raw register 从已交付 handle 直接启动，不加入一个“等待 prepare 结束”的串行任务，也不调用 public drain；它 settled 后释放 latch。runner finally 只等待本段 raw requests 的集合与原 browser cleanup，不等待包含自身的 OwnedWork 全集合。只有外层协调方调用 public cancelAndDrain，向既有 parent/prepare/request operations 发取消并等待快照。任何 raw 工作不收敛时原 5 秒 drain 失败保留责任，可后续再观察同一工作；不能重放登记、删 intent、把 drain 失败写成退出成功。release/registration 的 Error 与首因通过原 AggregateError/retainCleanupFailure 观察，迟到 rejection 不悬空。
 
 post-register drift/私有 scope failure/到期：零 CDP/identity/游戏放行，原已登记 PID 走现有 runner/controller 退出与 owner 规则。无需已验证 identity 才能保留 PID 或执行现有 force 清理；缺 identity 仍不能宣称浏览器身份/正常退出证明成立。原 closeEvent、精确 profile/PID、CDP identity、端口和 profile 留存要求不弱化。
 
