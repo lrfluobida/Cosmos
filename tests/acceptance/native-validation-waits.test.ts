@@ -106,3 +106,99 @@ test('COS97 cancellation after ownership registration counts one settled operati
   assert.equal(calls, 0);
   assert.deepEqual(f.waits.snapshot().rawReads, { started: 1, settled: 1, pending: 0 }, 'Counts describe owned operations, including cancellation before reader dispatch');
 });
+
+async function transportReady(segment: any) {
+  await segment.runStage('prepare_authority', async () => {});
+  await segment.runStage('register_authority', async () => {});
+  await segment.runStage('browser_transport', async () => {});
+}
+test('COS97 traffic stays closed through transport and navigation owns its full 300 second budget', async t => {
+  const f = fixture(); let calls = 0;
+  assert.equal(typeof f.waits.runRequest, 'function');
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());
+  await assert.rejects(f.waits.runRequest(async () => { calls++; }), /closed|not ready/i);
+  const segment = f.waits.beginSegment('segment'); await transportReady(segment);
+  await assert.rejects(f.waits.runRequest(async () => { calls++; }), /closed|not ready/i);
+  segment.beginNavigation();
+  const entered = deferred(), gate = deferred();
+  const navigation = segment.runStage('navigation', async (life: any) => { entered.resolve(); await gate.promise; return life.deadlineAt; });
+  await entered.promise; t.mock.timers.tick(25_000); gate.resolve();
+  assert.equal(await navigation, f.base + 300_000); segment.finishNavigation();
+  assert.equal(segment.snapshot().state, 'input'); assert.equal(calls, 0);
+});
+test('COS97 HTTP requests run fixed pre body post stages and retain raw request ownership', async () => {
+  const f = fixture(), segment = f.waits.beginSegment('segment');
+  assert.equal(typeof f.waits.runRequest, 'function');
+  await transportReady(segment); segment.beginNavigation();
+  const order: string[] = [];
+  const navigation = segment.runStage('navigation', async () => f.waits.runRequest(async (request: any) => {
+    for (const stage of ['http_pre_authority', 'http_body', 'http_post_authority']) await request.runStage(stage, async (life: any) => {
+      order.push(stage); assert.ok(life.deadlineAt <= f.base + 300_000 + 100); return stage;
+    });
+    request.check(); return 'actual body';
+  }));
+  assert.equal(await navigation, 'actual body'); segment.finishNavigation();
+  assert.deepEqual(order, ['http_pre_authority', 'http_body', 'http_post_authority']);
+  assert.equal(segment.snapshot().http.started, 1); assert.equal(segment.snapshot().http.settled, 1);
+  assert.deepEqual(segment.snapshot().http.stages.map((row: any) => row.capMs), [60_000, 15_000, 60_000]);
+  assert.equal(segment.snapshot().http.pending, 0);
+});
+test('COS97 old segment handles and request callbacks cannot operate a later generation', async () => {
+  const f = fixture(), segment = f.waits.beginSegment('first');
+  assert.equal(typeof segment.revoke, 'function'); assert.equal(typeof segment.settle, 'function');
+  await transportReady(segment); segment.beginNavigation(); let previous: any;
+  await segment.runStage('navigation', async () => f.waits.runRequest(async (request: any) => {
+    previous = request;
+    for (const stage of ['http_pre_authority', 'http_body', 'http_post_authority']) await request.runStage(stage, async () => {});
+  }));
+  segment.finishNavigation(); segment.revoke(); await segment.settle(f.base + 5000);
+  const next = f.waits.beginSegment('second'), before = next.snapshot();
+  assert.throws(() => segment.beginNavigation(), /stale|closed|cancel/i);
+  assert.throws(() => previous.check(), /stale|closed|cancel/i);
+  segment.revoke(new Error('late close callback'));
+  assert.deepEqual(next.snapshot(), before); assert.equal(next.generation, segment.generation + 1);
+});
+test('COS97 navigation completion does not extend an already admitted HTTP lifetime', async t => {
+  const f = fixture(), segment = f.waits.beginSegment('segment');
+  assert.equal(typeof f.waits.runRequest, 'function');
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());
+  await transportReady(segment); segment.beginNavigation();
+  const navEntered = deferred(), navGate = deferred();
+  const navigation = segment.runStage('navigation', async () => { navEntered.resolve(); await navGate.promise; });
+  await navEntered.promise; t.mock.timers.setTime(f.base + 299_000);
+  const bodyEntered = deferred(), bodyGate = deferred(); let posts = 0;
+  const request = f.waits.runRequest(async (current: any) => {
+    await current.runStage('http_pre_authority', async () => {});
+    await current.runStage('http_body', async (life: any) => { assert.equal(life.deadlineAt, f.base + 300_000); bodyEntered.resolve(); await bodyGate.promise; });
+    await current.runStage('http_post_authority', async () => { posts++; });
+  });
+  const failed = assert.rejects(request, /deadline|expired/i);
+  await bodyEntered.promise; navGate.resolve(); await navigation; segment.finishNavigation();
+  t.mock.timers.setTime(f.base + 300_000); bodyGate.resolve(); await failed;
+  assert.equal(posts, 0);
+});
+test('COS97 segment settlement includes deferred inner readers and prevents the next generation', async t => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'); let signal!: AbortSignal;
+  assert.equal(typeof segment.settle, 'function');
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());
+  await segment.runStage('prepare_authority', async (life: any) => { signal = life.signal; });
+  const entered = deferred(), gate = deferred();
+  const reading = api.runNativeValidationRead(signal, async () => { entered.resolve(); await gate.promise; });
+  await entered.promise; segment.revoke();
+  const failed = assert.rejects(segment.settle(f.base + 100), /drain|settle|pending/i);
+  t.mock.timers.tick(100); await failed; assert.throws(() => f.waits.beginSegment('next'), /ready|pending/i);
+  gate.resolve(); await reading; await segment.settle(f.base + 5000);
+  assert.equal(f.waits.beginSegment('next').generation, segment.generation + 1);
+});
+
+test('COS97 only original native caller signals carry generation invalidation identity', async () => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'); let signal!: AbortSignal;
+  assert.equal(typeof api.nativeCallerDisposition, 'function');
+  await segment.runStage('prepare_authority', async (life: any) => { signal = life.signal; });
+  assert.equal(api.nativeCallerDisposition(signal, f.waits, new Error('source changed')), 'active');
+  const derived = api.associateNativeReadSignal(signal, AbortSignal.any([signal]));
+  assert.equal(api.nativeCallerDisposition(derived, f.waits, new Error('source changed')), 'ordinary');
+  segment.revoke(); await segment.settle(f.base + 5000); f.waits.beginSegment('next');
+  assert.equal(api.nativeCallerDisposition(signal, f.waits, signal.reason), 'stale');
+  assert.equal(api.nativeCallerDisposition(f.waits.readSignal, fixture().waits, new Error('old mount')), 'stale');
+});

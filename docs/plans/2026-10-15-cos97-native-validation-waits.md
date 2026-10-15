@@ -161,4 +161,10 @@
 
 第二切片独审另发现readBytes裸函数丢失原method receiver。两个native/no-native合法this.reference用例实际RED0/2 TypeError，最小改为`active => fixed.readBytes(active)`后GREEN2/2、0skip、exit0、470.8573ms，定向strict0；`reader-receiver-{red,green}.tap`及`reader-receiver-strict.log`同TEMP。原scope品牌/计数/reader所有权逻辑保持，其余4/17与helper8证据复用。
 
+## 作者源码切片 3：helper 导航、HTTP 与 generation（局部，待接生产）
+
+新增5项状态/门禁/收尾RED0/5及原caller provenance RED0/1；helper完整GREEN14/14、0skip、exit0、241.8728ms，定向strict0。固定navigation300秒与HTTP60/15/60分别执行，HTTP仅3类聚合行；恢复早请求门禁关闭、旧handle/request/generation失效、中性旧revoke、navigation完成不延长已进入request上界、独立raw/request/stage集合settle等机制已在受控单元验证。原caller有generation失效身份，derived signal只有读取所有权关联。
+
+日志同TEMP：`lease-http-red.tap`、`caller-generation-red.tap`、`lease-http-green.tap`、`lease-http-strict.log`。生产runner/nativeIO/origin/完整caller链尚未接入；本切片不证明真实导航/ready/cleanup、whole-open15通过或整卡完成。下一步继续按批准文件边界连接并验证实际生产方法，无browser/provider/actual/715 seed/付费。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

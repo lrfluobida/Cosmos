@@ -1,9 +1,10 @@
-import { DeadlineError } from './deadline.ts';
+import { bounded, DeadlineError } from './deadline.ts';
 
 export const NATIVE_VALIDATION_WAIT_CONTRACT = 'native-validation-waits/1' as const;
 const caps = { prepare_authority: 60_000, register_authority: 60_000, browser_transport: 15_000,
   navigation: 300_000, http_pre_authority: 60_000, http_body: 15_000, http_post_authority: 60_000 } as const;
 export type NativeWaitStage = keyof typeof caps;
+type NativeHttpStage = Extract<NativeWaitStage, `http_${string}`>;
 export interface NativeReadLifetime { readonly signal: AbortSignal; readonly deadlineAt: number }
 export interface NativeWaitInput {
   caseId: string; windowId: string; taskId: string; deadlineAt: number; signal: AbortSignal;
@@ -15,30 +16,47 @@ interface StageRecord {
 }
 export interface NativeSegmentSnapshot {
   reportId: string; generation: number; state: string; stages: StageRecord[]; rawReadsPending: number;
+  rawOperationsPending: number;
+  http: { started: number; settled: number; pending: number; stages: HttpStageRecord[] };
   firstCause: { stage: NativeWaitStage; name: string; message: string } | null;
 }
 export interface NativeSegmentWaits {
   readonly reportId: string; readonly generation: number;
   runStage<T>(stage: NativeWaitStage, operation: (life: NativeReadLifetime) => Promise<T>): Promise<T>;
+  beginNavigation(): void;
+  finishNavigation(): void;
+  revoke(reason?: unknown): void;
+  settle(deadlineAt: number): Promise<void>;
   snapshot(): NativeSegmentSnapshot;
+}
+export interface NativeRequestWaits {
+  runStage<T>(stage: NativeHttpStage, operation: (life: NativeReadLifetime) => Promise<T>): Promise<T>;
+  check(): void;
 }
 export interface NativeValidationWaits {
   readonly contractVersion: typeof NATIVE_VALIDATION_WAIT_CONTRACT;
   readonly caseId: string; readonly windowId: string; readonly taskId: string;
   readonly deadlineAt: number; readonly workDeadlineAt: number; readonly readSignal: AbortSignal;
   beginSegment(reportId: string): NativeSegmentWaits;
+  runRequest<T>(operation: (request: NativeRequestWaits) => Promise<T>): Promise<T>;
   snapshot(): { contractVersion: typeof NATIVE_VALIDATION_WAIT_CONTRACT; deadlineAt: number; workDeadlineAt: number;
     rawReads: { started: number; settled: number; pending: number }; segments: NativeSegmentSnapshot[] };
 }
 interface SegmentData {
   reportId: string; generation: number; state: string; abort: AbortController; raw: Set<Promise<unknown>>;
   records: StageRecord[]; firstCause: NativeSegmentSnapshot['firstCause'];
+  operations: Set<Promise<unknown>>; requests: Set<Promise<unknown>>;
+  navigation?: { startedAt: number; deadlineAt: number; clock: number };
+  http: { started: number; settled: number; stages: HttpStageRecord[] };
 }
+interface HttpStageRecord { stage: NativeHttpStage; capMs: number; count: number; totalMs: number; maxMs: number }
 interface ReadOwner {
   input: NativeWaitInput; raw: Set<Promise<unknown>>; started: number; settled: number;
+  current?: SegmentData; waits?: NativeValidationWaits;
 }
 interface ReadAssociation { owner: ReadOwner; segment?: SegmentData }
 const sources = new WeakSet<object>(), readers = new WeakMap<AbortSignal, ReadAssociation>();
+const callers = new WeakMap<AbortSignal, ReadAssociation>();
 
 export class NativeWaitDeadlineError extends DeadlineError {
   readonly stage: NativeWaitStage;
@@ -71,6 +89,14 @@ export function runNativeValidationRead<T>(signal: AbortSignal, start: (signal: 
 export function isNativeValidationWaits(value: unknown): value is NativeValidationWaits {
   return !!value && typeof value === 'object' && sources.has(value);
 }
+/** Only original source lifetimes qualify; derived read signals carry ownership alone. */
+export function nativeCallerDisposition(signal: AbortSignal | undefined, waits: NativeValidationWaits | undefined, error: unknown): 'ordinary' | 'active' | 'stale' | 'local_abort' {
+  const association = signal && callers.get(signal);
+  if (!association) return 'ordinary';
+  if (association.owner.waits !== waits || association.segment && (association.owner.current !== association.segment
+    || ['closing', 'closed'].includes(association.segment.state))) return 'stale';
+  return association.segment && signal!.aborted && signal!.reason === error ? 'local_abort' : 'active';
+}
 function identifier(value: string) { return typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(value); }
 /** Only the native validation host constructs this object; budgets are fixed source constants. */
 export function createNativeValidationWaits(input: NativeWaitInput): NativeValidationWaits {
@@ -81,10 +107,56 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
   const fixed = Object.freeze({ ...input }), owner: ReadOwner = { input: fixed, raw: new Set(), started: 0, settled: 0 };
   const readSignal = AbortSignal.any([fixed.signal]), workDeadlineAt = fixed.deadlineAt - 5000;
   readers.set(readSignal, { owner });
+  callers.set(readSignal, { owner });
   const segments: SegmentData[] = [];
   let current: SegmentData | undefined;
   const view = (segment: SegmentData): NativeSegmentSnapshot => structuredClone({ reportId: segment.reportId,
-    generation: segment.generation, state: segment.state, stages: segment.records, rawReadsPending: segment.raw.size, firstCause: segment.firstCause });
+    generation: segment.generation, state: segment.state, stages: segment.records, rawReadsPending: segment.raw.size,
+    rawOperationsPending: segment.operations.size, http: { ...segment.http, pending: segment.requests.size }, firstCause: segment.firstCause });
+  const check = (segment: SegmentData, deadlineAt = workDeadlineAt) => {
+    fixed.signal.throwIfAborted();
+    if (current !== segment) throw new Error('Native stale segment');
+    segment.abort.signal.throwIfAborted();
+    if (Date.now() >= deadlineAt) throw new DeadlineError('Native validation deadline reached');
+  };
+  const executeStage = async <T>(segment: SegmentData, stage: NativeWaitStage,
+    operation: (life: NativeReadLifetime) => Promise<T>, limit = workDeadlineAt): Promise<T> => {
+    check(segment, limit);
+    const navigation = stage === 'navigation' ? segment.navigation : undefined;
+    const startedAt = navigation?.startedAt ?? Date.now(), clock = navigation?.clock ?? performance.now();
+    const deadlineAt = Math.min(workDeadlineAt, limit, navigation?.deadlineAt ?? startedAt + caps[stage]);
+    const abort = new AbortController(), signal = AbortSignal.any([fixed.signal, segment.abort.signal, abort.signal]);
+    readers.set(signal, { owner, segment }); callers.set(signal, { owner, segment });
+    const record: StageRecord = { stage, capMs: caps[stage], startedAt, deadlineAt, endedAt: null, elapsedMs: null, outcome: 'pending', rawPending: true };
+    const http = segment.http.stages.find(row => row.stage === stage);
+    if (!http) segment.records.push(record);
+    let onAbort!: () => void;
+    const cancelled = new Promise<never>((_, reject) => { onAbort = () => reject(signal.reason); signal.addEventListener('abort', onAbort, { once: true }); });
+    const timer = setTimeout(() => abort.abort(new NativeWaitDeadlineError(stage)), Math.max(0, deadlineAt - Date.now()));
+    const raw = Promise.resolve().then(() => {
+      check(segment); signal.throwIfAborted();
+      if (Date.now() >= deadlineAt) throw new NativeWaitDeadlineError(stage);
+      return operation({ signal, deadlineAt });
+    });
+    segment.operations.add(raw);
+    const rawSettled = () => { record.rawPending = false; segment.operations.delete(raw); };
+    void raw.then(rawSettled, rawSettled);
+    try {
+      const result = await Promise.race([raw, cancelled]);
+      check(segment); signal.throwIfAborted();
+      if (Date.now() >= deadlineAt) throw new NativeWaitDeadlineError(stage);
+      record.outcome = 'passed'; return result;
+    } catch (caught) {
+      const error = fixed.signal.aborted ? fixed.signal.reason : caught;
+      record.outcome = 'failed'; segment.state = 'closing';
+      segment.firstCause ??= { stage, name: error instanceof Error ? error.name : 'Error', message: error instanceof Error ? error.message : String(error) };
+      segment.abort.abort(error); throw error;
+    } finally {
+      clearTimeout(timer); signal.removeEventListener('abort', onAbort);
+      record.endedAt = Date.now(); record.elapsedMs = performance.now() - clock;
+      if (http) { http.count++; http.totalMs += record.elapsedMs; http.maxMs = Math.max(http.maxMs, record.elapsedMs); }
+    }
+  };
   const waits: NativeValidationWaits = {
     contractVersion: NATIVE_VALIDATION_WAIT_CONTRACT, caseId: fixed.caseId, windowId: fixed.windowId, taskId: fixed.taskId,
     deadlineAt: fixed.deadlineAt, workDeadlineAt, readSignal,
@@ -92,52 +164,65 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
       fixed.signal.throwIfAborted();
       if (!identifier(reportId) || current && current.state !== 'closed' || owner.raw.size) throw new Error('Native segment is not ready');
       const segment: SegmentData = { reportId, generation: segments.length + 1, state: 'preparing', abort: new AbortController(),
-        raw: new Set(), records: [], firstCause: null };
-      current = segment; segments.push(segment);
-      const check = () => {
-        fixed.signal.throwIfAborted(); segment.abort.signal.throwIfAborted();
-        if (current !== segment || Date.now() >= workDeadlineAt) throw new DeadlineError('Native validation original work deadline reached');
-      };
+        raw: new Set(), operations: new Set(), requests: new Set(), records: [], firstCause: null,
+        http: { started: 0, settled: 0, stages: (['http_pre_authority', 'http_body', 'http_post_authority'] as const)
+          .map(stage => ({ stage, capMs: caps[stage], count: 0, totalMs: 0, maxMs: 0 })) } };
+      current = owner.current = segment; segments.push(segment);
       return Object.freeze({ reportId, generation: segment.generation, snapshot: () => view(segment),
         async runStage<T>(stage: NativeWaitStage, operation: (life: NativeReadLifetime) => Promise<T>): Promise<T> {
-          check();
-          const expected = { prepare_authority: 'preparing', register_authority: 'registering', browser_transport: 'connecting' };
+          check(segment);
+          const expected = { prepare_authority: 'preparing', register_authority: 'registering', browser_transport: 'connecting', navigation: 'navigating' };
           if (!(stage in expected) || segment.state !== expected[stage as keyof typeof expected]) throw new Error('Native stage order changed');
-          const startedAt = Date.now(), deadlineAt = Math.min(workDeadlineAt, startedAt + caps[stage]), clock = performance.now();
-          const abort = new AbortController();
-          const signal = associateNativeReadSignal(readSignal, AbortSignal.any([fixed.signal, segment.abort.signal, abort.signal]));
-          readers.set(signal, { owner, segment });
-          const record: StageRecord = { stage, capMs: caps[stage], startedAt, deadlineAt, endedAt: null, elapsedMs: null, outcome: 'pending', rawPending: true };
-          segment.records.push(record);
-          let onAbort!: () => void;
-          const cancelled = new Promise<never>((_, reject) => { onAbort = () => reject(signal.reason); signal.addEventListener('abort', onAbort, { once: true }); });
-          const timer = setTimeout(() => abort.abort(new NativeWaitDeadlineError(stage)), Math.max(0, deadlineAt - Date.now()));
-          const raw = Promise.resolve().then(() => {
-            check(); signal.throwIfAborted();
-            if (Date.now() >= deadlineAt) throw new NativeWaitDeadlineError(stage);
-            return operation({ signal, deadlineAt });
-          });
-          void raw.then(() => { record.rawPending = false; }, () => { record.rawPending = false; });
-          try {
-            const result = await Promise.race([raw, cancelled]);
-            check(); signal.throwIfAborted();
-            if (Date.now() >= deadlineAt) throw new NativeWaitDeadlineError(stage);
-            record.outcome = 'passed';
-            segment.state = stage === 'prepare_authority' ? 'registering' : stage === 'register_authority' ? 'connecting' : 'transport_ready';
-            return result;
-          } catch (caught) {
-            const error = fixed.signal.aborted ? fixed.signal.reason : caught;
-            record.outcome = 'failed'; segment.state = 'closing';
-            segment.firstCause ??= { stage, name: error instanceof Error ? error.name : 'Error', message: error instanceof Error ? error.message : String(error) };
-            segment.abort.abort(error); throw error;
-          } finally {
-            clearTimeout(timer); signal.removeEventListener('abort', onAbort);
-            record.endedAt = Date.now(); record.elapsedMs = performance.now() - clock;
-          }
+          if (segment.records.some(row => row.stage === stage)) throw new Error('Native stage was already started');
+          const result = await executeStage(segment, stage, operation);
+          segment.state = stage === 'prepare_authority' ? 'registering' : stage === 'register_authority' ? 'connecting'
+            : stage === 'browser_transport' ? 'transport_ready' : 'navigating';
+          return result;
+        },
+        beginNavigation() {
+          check(segment);
+          if (segment.state !== 'transport_ready' || segment.navigation) throw new Error('Native navigation is not ready');
+          const startedAt = Date.now();
+          segment.navigation = { startedAt, deadlineAt: Math.min(workDeadlineAt, startedAt + caps.navigation), clock: performance.now() };
+          segment.state = 'navigating';
+        },
+        finishNavigation() {
+          check(segment, segment.navigation?.deadlineAt);
+          if (segment.state !== 'navigating' || !segment.records.some(row => row.stage === 'navigation' && row.outcome === 'passed')) throw new Error('Native navigation did not complete');
+          segment.state = 'input';
+        },
+        revoke(reason: unknown = new Error('Native segment closed')) {
+          if (current !== segment || segment.state === 'closed') return;
+          segment.state = 'closing'; segment.abort.abort(reason);
+        },
+        async settle(deadlineAt: number) {
+          if (segment.state !== 'closing' && segment.state !== 'closed') throw new Error('Native segment must close before settlement');
+          await bounded(() => Promise.allSettled([...segment.operations, ...segment.requests, ...segment.raw]),
+            Math.min(fixed.deadlineAt, deadlineAt) - Date.now(), 'Native segment settle');
+          if (current === segment) segment.state = 'closed';
         } });
+    },
+    runRequest<T>(operation: (request: NativeRequestWaits) => Promise<T>): Promise<T> {
+      if (fixed.signal.aborted) return Promise.reject(fixed.signal.reason);
+      const segment = current;
+      if (!segment || !['navigating', 'input'].includes(segment.state)) return Promise.reject(new Error('Native traffic is closed'));
+      const deadlineAt = segment.state === 'navigating' ? segment.navigation!.deadlineAt : workDeadlineAt;
+      let closed = false, step = 0;
+      const request: NativeRequestWaits = Object.freeze({
+        check() { if (closed) throw new Error('Native request closed'); check(segment, deadlineAt); },
+        async runStage<T>(stage: NativeHttpStage, action: (life: NativeReadLifetime) => Promise<T>): Promise<T> {
+          request.check();
+          if (stage !== segment.http.stages[step]?.stage) throw new Error('Native HTTP stage order changed');
+          const result = await executeStage(segment, stage, action, deadlineAt); step++; return result;
+        },
+      });
+      const raw = fixed.trackRaw(async () => { try { request.check(); return await operation(request); } finally { closed = true; } });
+      segment.http.started++; segment.requests.add(raw);
+      const settled = () => { segment.requests.delete(raw); segment.http.settled++; };
+      void raw.then(settled, settled); return raw;
     },
     snapshot: () => ({ contractVersion: NATIVE_VALIDATION_WAIT_CONTRACT, deadlineAt: fixed.deadlineAt, workDeadlineAt,
       rawReads: { started: owner.started, settled: owner.settled, pending: owner.raw.size }, segments: segments.map(view) }),
   };
-  sources.add(waits); return Object.freeze(waits);
+  owner.waits = waits; sources.add(waits); return Object.freeze(waits);
 }
