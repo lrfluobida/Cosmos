@@ -8,6 +8,7 @@ type NativeHttpStage = Extract<NativeWaitStage, `http_${string}`>;
 export interface NativeReadLifetime { readonly signal: AbortSignal; readonly deadlineAt: number; check(): void }
 export interface NativeWaitInput {
   caseId: string; windowId: string; taskId: string; deadlineAt: number; signal: AbortSignal;
+  controllerSignal?: AbortSignal;
   trackRaw<T>(start: (ownedSignal: AbortSignal) => Promise<T>): Promise<T>;
 }
 interface StageRecord {
@@ -22,6 +23,7 @@ export interface NativeSegmentSnapshot {
 }
 export interface NativeSegmentWaits {
   readonly reportId: string; readonly generation: number;
+  check(): void;
   runStage<T>(stage: NativeWaitStage, operation: (life: NativeReadLifetime) => Promise<T>): Promise<T>;
   /** The original owned prepare owns the write; this subset retains an already-spawned PID's raw settlement. */
   trackRegistration<T>(start: () => Promise<T>): Promise<T>;
@@ -79,13 +81,16 @@ export function runNativeValidationRead<T>(signal: AbortSignal, start: (signal: 
   const association = readers.get(signal);
   if (!association) return start(signal);
   const { owner, segment } = association;
+  if (owner.input.controllerSignal?.aborted) return Promise.reject(owner.input.controllerSignal.reason);
   if (owner.input.signal.aborted) return Promise.reject(owner.input.signal.reason);
   if (signal.aborted) return Promise.reject(signal.reason);
-  const operation = owner.input.trackRaw(async ownedSignal => {
+  const started = owner.input.trackRaw(async ownedSignal => {
+    owner.input.controllerSignal?.throwIfAborted();
     owner.input.signal.throwIfAborted(); signal.throwIfAborted(); ownedSignal.throwIfAborted();
     const active = associateNativeReadSignal(signal, AbortSignal.any([ownedSignal, signal]));
     return start(active);
   });
+  const operation = owner.input.controllerSignal ? started.catch(error => { owner.input.controllerSignal!.throwIfAborted(); throw error; }) : started;
   owner.started++; // Count owned operations, including cancellation before the reader thunk starts.
   owner.raw.add(operation); segment?.raw.add(operation);
   const settled = () => { owner.raw.delete(operation); segment?.raw.delete(operation); owner.settled++; };
@@ -122,12 +127,13 @@ function rememberNativeFailure(segment: SegmentData, stage: NativeWaitStage, err
 function identifier(value: string) { return typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(value); }
 /** Only the native validation host constructs this object; budgets are fixed source constants. */
 export function createNativeValidationWaits(input: NativeWaitInput): NativeValidationWaits {
-  if (Object.keys(input).some(key => !['caseId', 'windowId', 'taskId', 'deadlineAt', 'signal', 'trackRaw'].includes(key))
+  if (Object.keys(input).some(key => !['caseId', 'windowId', 'taskId', 'deadlineAt', 'signal', 'controllerSignal', 'trackRaw'].includes(key))
     || ![input.caseId, input.windowId, input.taskId].every(identifier) || !Number.isSafeInteger(input.deadlineAt)
     || input.deadlineAt <= Date.now() || input.deadlineAt - Date.now() > 43_200_000 || !(input.signal instanceof AbortSignal)
+    || input.controllerSignal !== undefined && !(input.controllerSignal instanceof AbortSignal)
     || typeof input.trackRaw !== 'function') throw new Error('Invalid native wait source fields');
   const fixed = Object.freeze({ ...input }), owner: ReadOwner = { input: fixed, raw: new Set(), started: 0, settled: 0 };
-  const readSignal = AbortSignal.any([fixed.signal]), workDeadlineAt = fixed.deadlineAt - 5000;
+  const readSignal = AbortSignal.any([...(fixed.controllerSignal ? [fixed.controllerSignal] : []), fixed.signal]), workDeadlineAt = fixed.deadlineAt - 5000;
   readers.set(readSignal, { owner });
   callers.set(readSignal, { owner });
   const segments: SegmentData[] = [];
@@ -136,6 +142,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
     generation: segment.generation, state: segment.state, stages: segment.records, rawReadsPending: segment.raw.size,
     rawOperationsPending: segment.operations.size, http: { ...segment.http, pending: segment.requests.size }, firstCause: segment.firstCause });
   const check = (segment: SegmentData, deadlineAt = workDeadlineAt) => {
+    fixed.controllerSignal?.throwIfAborted();
     fixed.signal.throwIfAborted();
     if (current !== segment) throw new Error('Native stale segment');
     segment.abort.signal.throwIfAborted();
@@ -147,7 +154,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
     const navigation = stage === 'navigation' ? segment.navigation : undefined;
     const startedAt = navigation?.startedAt ?? Date.now(), clock = navigation?.clock ?? performance.now();
     const deadlineAt = Math.min(workDeadlineAt, limit, navigation?.deadlineAt ?? startedAt + caps[stage]);
-    const abort = new AbortController(), signal = AbortSignal.any([fixed.signal, segment.abort.signal, abort.signal]);
+    const abort = new AbortController(), signal = AbortSignal.any([...(fixed.controllerSignal ? [fixed.controllerSignal] : []), fixed.signal, segment.abort.signal, abort.signal]);
     readers.set(signal, { owner, segment });
     const record: StageRecord = { stage, capMs: caps[stage], startedAt, deadlineAt, endedAt: null, elapsedMs: null, outcome: 'pending', rawPending: true };
     callers.set(signal, { owner, segment, stage, active: () => record.endedAt === null && record.rawPending });
@@ -157,6 +164,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
     const cancelled = new Promise<never>((_, reject) => { onAbort = () => reject(signal.reason); signal.addEventListener('abort', onAbort, { once: true }); });
     const timer = setTimeout(() => abort.abort(new NativeWaitDeadlineError(stage)), Math.max(0, deadlineAt - Date.now()));
     const life: NativeReadLifetime = Object.freeze({ signal, deadlineAt, check() {
+      fixed.controllerSignal?.throwIfAborted();
       fixed.signal.throwIfAborted(); signal.throwIfAborted();
       if (Date.now() >= deadlineAt) { abort.abort(new NativeWaitDeadlineError(stage)); signal.throwIfAborted(); }
       check(segment); signal.throwIfAborted();
@@ -172,7 +180,9 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
       life.check();
       record.outcome = 'passed'; return result;
     } catch (caught) {
-      const error = fixed.signal.aborted ? fixed.signal.reason : segment.firstCauseRaw ? segment.firstCauseRaw.error : caught;
+      const observed = segment.firstCauseRaw ? segment.firstCauseRaw.error : caught;
+      const error = fixed.controllerSignal?.aborted ? fixed.controllerSignal.reason : fixed.controllerSignal && segment.firstCauseRaw
+        ? observed : fixed.signal.aborted ? fixed.signal.reason : observed;
       record.outcome = 'failed'; segment.state = 'closing';
       rememberNativeFailure(segment, stage, error);
       segment.abort.abort(error); throw error;
@@ -186,6 +196,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
     contractVersion: NATIVE_VALIDATION_WAIT_CONTRACT, caseId: fixed.caseId, windowId: fixed.windowId, taskId: fixed.taskId,
     deadlineAt: fixed.deadlineAt, workDeadlineAt, readSignal,
     beginSegment(reportId) {
+      fixed.controllerSignal?.throwIfAborted();
       fixed.signal.throwIfAborted();
       if (!identifier(reportId) || current && current.state !== 'closed' || owner.raw.size) throw new Error('Native segment is not ready');
       const segment: SegmentData = { reportId, generation: segments.length + 1, state: 'preparing', abort: new AbortController(),
@@ -194,6 +205,11 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
           .map(stage => ({ stage, capMs: caps[stage], count: 0, totalMs: 0, maxMs: 0 })) } };
       current = owner.current = segment; segments.push(segment);
       return Object.freeze({ reportId, generation: segment.generation, snapshot: () => view(segment),
+        check() {
+          fixed.controllerSignal?.throwIfAborted();
+          if (fixed.controllerSignal && current === segment && segment.firstCauseRaw) throw segment.firstCauseRaw.error;
+          check(segment); if (segment.firstCauseRaw) throw segment.firstCauseRaw.error;
+        },
         trackRegistration<T>(start: () => Promise<T>): Promise<T> {
           if (current !== segment || segment.registrationTracked || !['registering', 'closing'].includes(segment.state)
             || !segment.records.some(row => row.stage === 'prepare_authority' && row.outcome === 'passed')) throw new Error('Native registration ownership is not ready');
@@ -236,6 +252,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
         } });
     },
     runRequest<T>(operation: (request: NativeRequestWaits) => Promise<T>): Promise<T> {
+      if (fixed.controllerSignal?.aborted) return Promise.reject(fixed.controllerSignal.reason);
       if (fixed.signal.aborted) return Promise.reject(fixed.signal.reason);
       const segment = current;
       if (!segment || !['navigating', 'input'].includes(segment.state)) return Promise.reject(new Error('Native traffic is closed'));

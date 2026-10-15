@@ -348,6 +348,7 @@ async function createTransferHost(input: Omit<HostInput, 'preparation'> | HumanT
       preparation.designRules.push(`Use requirement reference ${JSON.stringify(ctx.requirementCapture)}. Write exactly {formatVersion:"cos16-design/1",requirement:thatReference,mapVersion:string,map:{tiles:string[],player:[x,y],boxes:[[x,y],[x,y]],targets:[[x,y],[x,y]]},solution:Direction[],paths:{wall,push,boxWall,doubleBox,restart,restore}}.`);
       origin = await reserveTransferOrigin({ root: ctx.root, resume: ctx.resume, signal: ctx.signal, requireScope: ctx.requireScope,
         ...(context.retainCleanupFailure ? { retainCleanupFailure: context.retainCleanupFailure.bind(context) } : {}),
+        ...(context.controllerSignal ? { controllerSignal: context.controllerSignal } : {}),
         binding: ctx.human ? { profile: 'human', runId: ctx.human.runId, ledgerId: ctx.human.ledgerId, windowId: null,
           sourceVersion: ctx.human.execution.sourceVersion, sourceSha256: ctx.human.execution.sha256, requirementSha256: sha(JSON.stringify(ctx.requirement)), specVersion: ctx.requirement.specVersion }
           : { caseId: (ctx.requirement as ValidationRequirement).validation.caseId, windowId: (ctx.requirement as ValidationRequirement).validation.windowId,

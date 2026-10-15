@@ -15,10 +15,10 @@ function deferred<T = void>() {
   const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
   return { promise, resolve, reject };
 }
-function fixture() {
+function fixture(controllerSignal?: AbortSignal) {
   const owner = new AbortController(), work = new OwnedWork(owner.signal), base = Date.now();
   const waits = factory()({ caseId: 'case', windowId: 'window', taskId: 'task', deadlineAt: base + 600_000,
-    signal: work.signal, trackRaw: <T>(start: (signal: AbortSignal) => Promise<T>) => work.run(start) });
+    signal: work.signal, ...(controllerSignal ? { controllerSignal } : {}), trackRaw: <T>(start: (signal: AbortSignal) => Promise<T>) => work.run(start) });
   return { owner, work, base, waits };
 }
 
@@ -288,4 +288,45 @@ test('COS97 pre-mount lookup recognizes only original source callers and leaves 
   segment.revoke(); await segment.settle(f.base + 5000); f.waits.beginSegment('next');
   assert.equal(api.nativeValidationWaitsForCaller(phase), f.waits);
   assert.equal(api.nativeCallerDisposition(phase, f.waits, phase.reason), 'stale');
+});
+
+test('COS97 a recorded HTTP failure stops the next input before its deferred close settles', async () => {
+  const f = fixture(), segment = f.waits.beginSegment('segment'), source = new Error('known source failure'), entered = deferred(), gate = deferred(); let inputs = 0;
+  assert.equal(typeof segment.check, 'function'); await transportReady(segment); segment.beginNavigation();
+  const pending = segment.runStage('navigation', async () => f.waits.runRequest(async (request: any) => {
+    await request.runStage('http_pre_authority', async (life: any) => { api.recordNativeValidationFailure(life.signal, source);
+      assert.equal(life.signal.aborted, false); entered.resolve(); await gate.promise; throw source; });
+  }));
+  const rejected = assert.rejects(pending, error => error === source); await entered.promise;
+  try { assert.throws(() => { segment.check(); inputs++; }, error => error === source); assert.equal(inputs, 0); }
+  finally { gate.resolve(); await rejected; }
+});
+
+test('COS97 original controller reason wins once it is effective after an earlier work abort', async t => {
+  await t.test('phase boundary and exit', async () => {
+    const controller = new AbortController(), f = fixture(controller.signal), segment = f.waits.beginSegment('segment');
+    const source = new Error('earlier source failure'), work = new Error('work cancelled first'), reason = new Error('controller deadline became effective'); let checked: unknown;
+    const pending = segment.runStage('prepare_authority', async (life: any) => {
+      api.recordNativeValidationFailure(life.signal, source); f.owner.abort(work); controller.abort(reason);
+      try { life.check(); } catch (error) { checked = error; throw error; }
+    });
+    await assert.rejects(pending, error => error === reason); assert.equal(checked, reason);
+  });
+  await t.test('raw reader precheck starts no thunk', async () => {
+    const controller = new AbortController(), f = fixture(controller.signal), reason = new Error('controller original stop'); let calls = 0;
+    f.owner.abort(new Error('earlier work cancellation')); controller.abort(reason);
+    await assert.rejects(api.runNativeValidationRead(f.waits.readSignal, async () => { calls++; }), error => error === reason); assert.equal(calls, 0);
+  });
+  await t.test('next input check', async () => {
+    const controller = new AbortController(), f = fixture(controller.signal), segment = f.waits.beginSegment('segment'), reason = new Error('controller original deadline');
+    f.owner.abort(new Error('earlier work cancellation')); controller.abort(reason); assert.throws(() => segment.check(), error => error === reason);
+  });
+  await t.test('later cleanup work abort cannot replace a recorded source while controller is active', async () => {
+    const controller = new AbortController(), f = fixture(controller.signal), segment = f.waits.beginSegment('segment'), source = new Error('original known source');
+    const pending = segment.runStage('prepare_authority', async (life: any) => {
+      api.recordNativeValidationFailure(life.signal, source); f.owner.abort(new Error('later work cleanup'));
+      assert.throws(() => segment.check(), error => error === source); throw new Error('secondary cleanup');
+    });
+    await assert.rejects(pending, error => error === source);
+  });
 });

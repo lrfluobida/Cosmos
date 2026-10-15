@@ -17,11 +17,11 @@ import * as host from '../../src/runtime/entrypoint-host.ts';
 import { createNativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
 
 function deferred<T = void>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
-async function fixture(t: TestContext, verifyBinding: (callerSignal?: AbortSignal) => Promise<void> = async () => {}) {
+async function fixture(t: TestContext, verifyBinding: (callerSignal?: AbortSignal) => Promise<void> = async () => {}, durationMs = 60000) {
   const root = await mkdtemp(join(tmpdir(), 'cos92-launch-')), profile = join(root, 'profile'); await mkdir(profile);
   const controller = await RunController.create({ root, runId: 'fixture', ledgerId: 'fixture', kind: 'evaluation', scope: 'validation', specVersion: 'v1',
-    allocations: [{ taskId: 'browser', amountMicroCny: 1 }], durationMs: 60000, now: () => Date.now() });
-  const work = new OwnedWork(controller.signal), base = Date.now(), deadlineAt = base + 60000;
+    allocations: [{ taskId: 'browser', amountMicroCny: 1 }], durationMs, now: () => Date.now() });
+  const work = new OwnedWork(controller.signal), base = Date.now(), deadlineAt = base + durationMs;
   t.after(async () => { t.mock.timers.reset(); t.mock.restoreAll(); syncBuiltinESMExports(); await controller.close().catch(() => {}); assert.ok(root.startsWith(join(tmpdir(), 'cos92-launch-'))); await rm(root, { recursive: true, force: true }); });
   const factory = (host as any).createPersistentOwnedChild;
   assert.equal(typeof factory, 'function', 'Native persistent ownership must expose its production prepare/settlement seam');
@@ -39,11 +39,12 @@ async function fixture(t: TestContext, verifyBinding: (callerSignal?: AbortSigna
     if (method === 'Browser.close') { child.exitCode = 0; child.emit('close'); return {}; }
     throw new Error('Unexpected CDP ' + method);
   } };
-  t.mock.method(chromium, 'connectOverCDP', async () => { connections++; return { newBrowserCDPSession: async () => cdp,
-    contexts: () => [{ pages: () => [], addInitScript: async () => {} }] } as any; });
+  const context: any = { pages: () => [], addInitScript: async () => {} };
+  const browser: any = { newBrowserCDPSession: async () => cdp, contexts: () => [context], version: () => 'fixture', close: async () => {} };
+  t.mock.method(chromium, 'connectOverCDP', async () => { connections++; return browser; });
   const options: any = { evidenceRoot: root, deadlineAt, verifyBinding, ownedChild };
   const lifecycle = () => ownedPersistentBrowserLifecycle({ taskId: 'browser', reportId: 'fixture-report', url: 'http://127.0.0.1:32123/' } as any, options, { profile, deadlineAt, signal: work.signal });
-  return { root, controller, work, base, options, lifecycle, child, counts: () => ({ spawns, registrations, connections }),
+  return { root, controller, work, base, options, lifecycle, child, context, counts: () => ({ spawns, registrations, connections }),
     children: async () => JSON.parse(await readFile(join(root, '.controller.lock'), 'utf8')).children };
 }
 
@@ -239,4 +240,78 @@ test('COS97 native registration expiry keeps raw PID ownership and never dispatc
   assert.equal(f.counts().connections, 0); assert.equal((await f.children())[0].pid, f.child.pid);
   assert.equal(waits.snapshot().segments[0].rawOperationsPending, 0);
   await assert.rejects(f.work.cancelAndDrain('fixture settled'), error => error instanceof AggregateError);
+});
+
+function mockRunner(t: TestContext, f: Awaited<ReturnType<typeof fixture>>, goto: (options: { timeout: number }) => Promise<unknown>) {
+  const events: string[] = []; let video = '';
+  const page: any = { video: () => null, setViewportSize: async () => {}, setDefaultTimeout: (timeout: number) => { assert.equal(timeout, 2000); }, on: () => {},
+    isClosed: () => false, url: () => 'http://127.0.0.1:32123/', locator: () => ({ isVisible: async () => true }),
+    screenshot: async ({ path }: { path: string }) => { writeFileSync(path, Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])); },
+    screencast: { start: async ({ path }: { path: string }) => { video = path; }, stop: async () => { writeFileSync(video, 'fixture webm'); } },
+    goto: async (_url: string, options: { timeout: number }) => { events.push('goto'); return goto(options); } };
+  Object.assign(f.context, { route: async () => { events.push('route'); }, newPage: async () => {
+    if (f.options.nativeValidationWaits) await assert.rejects(f.options.nativeValidationWaits.runRequest(async () => {}), /closed/);
+    events.push('page'); return page;
+  }, newCDPSession: async () => ({ on: () => {}, send: async () => { events.push('driver-ready'); } }) });
+  const kill = process.kill;
+  t.mock.method(process, 'kill', (pid: number, signal?: number | NodeJS.Signals) => {
+    if (pid === f.child.pid && signal === 0) throw Object.assign(new Error('Synthetic child absent'), { code: 'ESRCH' }); return kill(pid, signal);
+  });
+  t.mock.method(childProcess, 'execFile', ((file: string, args: string[], _options: unknown, done: (error: null) => void) => {
+    assert.equal(file, 'taskkill.exe'); assert.deepEqual(args, ['/pid', String(f.child.pid), '/T', '/F']); f.child.exitCode = 0; f.child.emit('close'); done(null);
+    return new EventEmitter();
+  }) as any); syncBuiltinESMExports();
+  const plan: any = { formatVersion: '1.0.0', projectId: 'fixture', taskId: 'browser', runId: 'fixture', reportId: 'fixture-report', specVersion: 'v1',
+    artifact: { artifactId: 'game', version: 'v1', location: 'game' }, url: 'http://127.0.0.1:32123/', viewport: { width: 1280, height: 720 },
+    acceptanceIds: ['visible'], steps: [{ id: 'visible', kind: 'assert', acceptanceId: 'visible', observation: { kind: 'visible', selector: '#game' }, expected: true, timeoutMs: 100 }] };
+  return { plan, events, page };
+}
+
+test('COS97 native runner waits through authority and navigation before normal input and cleanup', async t => {
+  const prepareEntered = deferred(), prepareGate = deferred(), navEntered = deferred(), navGate = deferred(); let checks = 0;
+  const f = await fixture(t, async () => { if (++checks === 1) { prepareEntered.resolve(); await prepareGate.promise; } }, 900000), waits = native(f), lifecycle = f.lifecycle();
+  const driver = mockRunner(t, f, async options => {
+    assert.equal(options.timeout, 300000); assert.equal(waits.snapshot().segments[0].state, 'navigating');
+    navEntered.resolve(); await navGate.promise; return { ok: () => true, status: () => 200 };
+  });
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); let settled = false;
+  const running = runAcceptanceInOwnedSession(driver.plan, { evidenceRoot: f.root, timeoutMs: 900000 }, lifecycle); void running.then(() => { settled = true; });
+  try {
+    await prepareEntered.promise; t.mock.timers.tick(25000); await new Promise(setImmediate); assert.equal(settled, false); prepareGate.resolve();
+    assert.equal(await Promise.race([navEntered.promise.then(() => 'navigation'), running.then(() => 'ended')]), 'navigation');
+    t.mock.timers.tick(25000); await new Promise(setImmediate); assert.equal(settled, false); navGate.resolve();
+    const report = await running; assert.equal(report.outcome, 'passed', report.errors.join('; ')); assert.equal(report.cleanup.processExited, true);
+    assert.deepEqual(driver.events, ['route', 'page', 'driver-ready', 'goto']); assert.equal(waits.snapshot().segments[0].state, 'closed');
+    assert.equal(waits.snapshot().segments[0].rawOperationsPending, 0); assert.equal(report.steps[0].outcome, 'passed');
+  } finally { prepareGate.resolve(); navGate.resolve(); await running; f.child.exitCode = 0; f.child.emit('close');
+    lifecycle.nativeSegmentWaits?.revoke(); await lifecycle.nativeSegmentWaits?.settle(f.options.deadlineAt); await f.work.cancelAndDrain('fixture complete'); }
+});
+
+test('COS97 legacy runner retains its original 15 second navigation limit', async t => {
+  const f = await fixture(t), navEntered = deferred(), gate = deferred(), lifecycle = f.lifecycle();
+  const driver = mockRunner(t, f, async options => { assert.equal(options.timeout, 15000); navEntered.resolve(); await gate.promise; return { ok: () => true }; });
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base });
+  const running = runAcceptanceInOwnedSession(driver.plan, { evidenceRoot: f.root, timeoutMs: 60000 }, lifecycle);
+  try { await navEntered.promise; t.mock.timers.tick(15001); const report = await running; assert.equal(report.outcome, 'failed'); assert.ok(report.errors.some(error => /timed out/i.test(error))); }
+  finally { gate.resolve(); await running; await f.work.cancelAndDrain('fixture complete'); }
+});
+
+test('COS97 native runner dispatches no next input after an HTTP source failure awaiting close', async t => {
+  const f = await fixture(t, async () => {}, 900000), waits = native(f), lifecycle = f.lifecycle(), source = new Error('Observed source drift before close');
+  const entered = deferred(), gate = deferred(), checked = deferred<{ inputs: number; pending: number }>(); let inputs = 0, failed: Promise<void> | undefined;
+  const driver = mockRunner(t, f, async () => ({ ok: () => true, status: () => 200 }));
+  driver.plan.steps.push({ id: 'next-input', kind: 'locator-click', selector: '#next', timeoutMs: 100 });
+  driver.page.locator = () => ({ click: async () => { inputs++; }, isVisible: async () => {
+    const request = waits.runRequest(async current => current.runStage('http_pre_authority', async life => {
+      const { recordNativeValidationFailure } = await import('../../src/acceptance/native-validation-waits.ts');
+      recordNativeValidationFailure(life.signal, source); entered.resolve(); await gate.promise; throw source;
+    }));
+    failed = assert.rejects(request, error => error === source); await entered.promise;
+    setImmediate(() => { checked.resolve({ inputs, pending: waits.snapshot().segments[0].rawOperationsPending }); gate.resolve(); }); return true;
+  } });
+  try {
+    const report = await runAcceptanceInOwnedSession(driver.plan, { evidenceRoot: f.root, timeoutMs: 900000 }, lifecycle);
+    assert.deepEqual(await checked.promise, { inputs: 0, pending: 1 }); assert.equal(inputs, 0); assert.equal(report.outcome, 'failed');
+    assert.ok(report.errors.some(error => error.includes(source.message))); assert.equal(report.nativeWaits?.segment.firstCause?.message, source.message);
+  } finally { gate.resolve(); await failed; await f.work.cancelAndDrain('fixture complete'); }
 });
