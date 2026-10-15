@@ -84,3 +84,9 @@ Root已批准测试专有的Node `mock.module` 观测方式：在fixture/nativeI
 fixture正常finally/drain/controller关闭有证据；raw `processesExited=false`保留。独审UTC08:18:06 `POSTCHECK_NO_LIVE_RESIDUE`核到delivery10532/helper17812 exit0、端口64624/65221与20个owner/recovery锁无，12个同号PID为后建复用；原466文件／61目录与真实ledger3114／715／16901000µ保持。profile只有36字节.owner和空子目录，无DevToolsActivePort，未删除或恢复；浏览器正常exit不成立。
 
 [v3研究记录](../research/2026-10-15-cos93-v3-native-startup-diagnostic.md)保存exact SHA、launcher hash、raw及344文件／201目录／41769581字节的选择范围副本路径、超时后重叠与证据限制；[公开结果及后核](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6187833755)已由Root精确读回。首段21步均skipped，下一步仅评估完整来源校验内部的有界并发，未实施或证明15秒通过，无第四次actual授权。COS93继续open/partial/startup-failed；本次只更新文档，全部已有测试和实际后核证据复用。
+
+## Planned：按原ChildProcess的close记录判定退出
+
+v3的2503条spawn记录均收到原ChildProcess的close/exit0，但裸PID存活查询把12个已复用号码误当成原进程仍活着，raw processesExited=false保留。[退出观测短计划](../plans/2026-10-15-cos93-process-exit-observation.md)从已发布 `194e23d789bdc3a3b43773fad7b1c14ecdd8fd2d` 建立 `codex/cos93-process-exit-observation`；当前仅提交plan/card待独审，helper/fixture/test未改。
+
+后续最小修正以每条已有close标志判断原进程退出，同号PID不去重、不查询当前其他代际来否定原close；独立OS/current-tree/ports/owner/profile后核及全部browser身份、登记、15秒与drain成功gate保持。受控RED/GREEN只用process.pid数值和模拟PID状态，无真实spawn/OS查询/kill。原v1/v2/v3证据不改；该P3与binding校验性能方向独立，不证明startup通过，COS93仍open/partial/startup-failed，无第四次actual或付费授权。
