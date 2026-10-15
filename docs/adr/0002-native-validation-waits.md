@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # 原生验证按阶段约束权限等待、浏览器传输与导航

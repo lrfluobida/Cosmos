@@ -1529,7 +1529,7 @@ COS93退出观测计划`30f7c402052dbf85c27696284b59d63126b0d5c8`经`cos93_revie
 
 ### COS-97 · 明确原生验收的权限等待与浏览器时限
 
-[COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449，已原生挂父#1且未勾选，当前97个子任务；依赖COS52/92、COS93已审诊断/v3证据及COS96源码，不等待旧15秒startup通过。作者`cos97_implementer`、独审`cos97_reviewer`、唯一merger `batch_c14_cos92_merger`。当前design-pending / NOT_REVIEWED，仅准备独立spec、ADR0002和plan；implementation/actual/paid均未授权。设计须区分权限等待、浏览器传输与导航时限，保留原总deadline、5秒scope、全部来源/HEAD/index/window/budget/HTTP前后字节校验和取消/迟到handle/exact ticket/清理。旧COS93整段15秒仍failed，不追认通过；产品核心内容、FPS及预算/12h保持。主线只登记issue与未来路径，不创建或链接尚不存在的own文档。
+[COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449，已原生挂父#1且未勾选，当前97个子任务；依赖COS52/92、COS93已审诊断/v3证据及COS96源码，不等待旧15秒startup通过。作者`cos97_implementer`设计`db0366bdd64398067c58272110beb460da585c12`经`cos97_reviewer`独立SPEC/ADR/PLAN APPROVED、无剩余finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回；唯一merger `batch_c14_cos92_merger`合入`eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。[ADR0002](../adr/0002-native-validation-waits.md)已accepted，[spec](cos97-native-validation-waits.md)与[plan](../plans/2026-10-15-cos97-native-validation-waits.md)仅追加获准批准记录，其余契约字节保持。当前PLAN_APPROVED / implementation-in-progress，设计合入后的源码实施与必要免费隔离验证已授权，源码仍未批准；issue保持open，actual/paid均未授权。新`native-validation-waits/1`仅指定native consumer：prepare/register各60秒、CDP/identity15秒、navigation300秒、HTTP pre/body/post60/15/60秒，均受原deadline及清理预留夹紧。全部等待计入总墙钟，原5秒scope和完整fresh/字节/取消/latehandle/raw settlement/owner清理要求保持；generic/human默认、产品核心内容/FPS/预算12h不变。旧COS93/v3和C14失败不追认通过，COS16/COS18与human保持。
 
 稳定任务 ID：COS-97
 

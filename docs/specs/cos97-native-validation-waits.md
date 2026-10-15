@@ -252,3 +252,5 @@ consumer 在入口记录开始，最后一次原 guard 完成后、返回前在 
 若需要一次新的完整免费实际诊断，必须在源码独审集成后另审一次性 launcher，冻结新源码，用新 TEMP/新 intent 与只读旧来源，至少覆盖真实导航/ready 和正常清理。原仅到 newPage 前的 sentinel 不足；不复用已消费 C14 身份，不重建其通过结论。本阶段没有第四次 actual、browser、controller/715 seed、provider 或付费授权。
 
 原 v1/v2/v3、raw processesExited=false 与独立 PID 复用后核保持；COS93 仍 open/partial/startup-failed，原 C14 failed/consumed，coding review/accepted/human/完整经典/COS16/COS18 未提升。真实账本 revision3114、715 请求、16901000µ，reserved/unknown 0；共享验证 ¥150 含 prior probes 保守预留 ¥0.721771，正式 ¥200/12h，优化 ¥100/6h 保持。参考安装只读，不复制美术或音频，API keys 不进入文件、描述、日志或 Git。
+
+Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

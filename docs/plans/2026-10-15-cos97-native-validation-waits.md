@@ -136,3 +136,5 @@
 本次只新增spec、ADR proposed、plan三份UTF-8无BOM/LF文档；不改CONTEXT或源码/测试。作者提交前只做文本严格解码、中文回读、链接/实际源文件路径静态核对与git diff --check，不运行测试/构建/诊断。已有COS92/93/96的通过与失败均按原版本复用。
 
 原C14 failed/consumed与v1/v2/v3不改；真实ledger revision3114、715请求、¥16.901000、reserved/unknown0，¥150验证（含prior¥0.721771）、正式¥200/12h、优化¥100/6h保持。参考游戏只读，不复制美术音频；APIkeys不得进入文件、日志、任务、Git或模型上下文。COS93仍open/partial/startup-failed，COS16/COS18、完整经典、coding批准、accepted与human仍未完成。
+
+Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
