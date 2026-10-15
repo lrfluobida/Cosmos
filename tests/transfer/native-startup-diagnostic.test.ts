@@ -50,14 +50,23 @@ function observedLifecycle(t: TestContext, lifecycle: OwnedAcceptanceLifecycle, 
   };
 }
 
-async function installActualLifecycleObserver(t: TestContext, trace: Observer, patches: DiagnosticPatches) {
+async function installActualLifecycleObserver(t: TestContext, trace: Observer, patches: DiagnosticPatches,
+  navigation?: () => ReturnType<typeof import('./native-startup-diagnostic.fixture.ts')['createNavigationDiagnosticMode']> | undefined) {
   assert.ok(process.execArgv.includes('--experimental-test-module-mocks'), 'Actual diagnosis requires --experimental-test-module-mocks to observe the literal lifecycle.open call');
   const runnerUrl = new URL('../../src/acceptance/runner.ts', import.meta.url);
   const runner = await import(runnerUrl.href);
   t.mock.module(runnerUrl, { namedExports: {
     ...runner,
-    runAcceptanceInOwnedSession: (plan: unknown, options: unknown, lifecycle: OwnedAcceptanceLifecycle) =>
-      runner.runAcceptanceInOwnedSession(plan, options, observedLifecycle(t, lifecycle, trace, patches)),
+    runAcceptanceInOwnedSession: (plan: unknown, options: unknown, lifecycle: OwnedAcceptanceLifecycle) => {
+      const mode = navigation?.();
+      if (!mode) return runner.runAcceptanceInOwnedSession(plan, options, observedLifecycle(t, lifecycle, trace, patches));
+      return (async () => {
+        const { observeNavigationDiagnosticLifecycle } = await import('./native-startup-diagnostic.fixture.ts');
+        const observed = observeNavigationDiagnosticLifecycle(lifecycle, mode, trace, mode.readyExpectation());
+        try { return await mode.run(plan, () => runner.runAcceptanceInOwnedSession(plan, options, observed.lifecycle), observed.navigationSucceeded); }
+        finally { observed.restore(); }
+      })();
+    },
   } });
 }
 
@@ -213,12 +222,28 @@ test('COS93 actual history native startup', { skip: !actualSelected }, async t =
   assert.ok(sourceRepository && sourceRepository.trim(), 'COS93_DIAGNOSTIC_SOURCE is required when actual history diagnosis is selected');
   assert.ok(historySnapshot && historySnapshot.trim(), 'COS93_DIAGNOSTIC_HISTORY is required when actual history diagnosis is selected');
   const trace = observer(), patches = createMethodPatches(trace);
-  await installActualLifecycleObserver(t, trace, patches);
-  const { diagnoseNativeStartup } = await import('./native-startup-diagnostic.fixture.ts');
-  const result = await diagnoseNativeStartup({ sourceRepository, historySnapshot, observer: trace, patches }, t);
+  let navigation: ReturnType<typeof import('./native-startup-diagnostic.fixture.ts')['createNavigationDiagnosticMode']> | undefined;
+  const selectedMode = process.env.COS93_DIAGNOSTIC_MODE;
+  assert.ok(selectedMode === undefined || selectedMode === 'navigation', 'Only the explicit navigation diagnostic mode is supported');
+  await installActualLifecycleObserver(t, trace, patches, () => navigation);
+  const { diagnoseNativeStartup, createNavigationDiagnosticMode } = await import('./native-startup-diagnostic.fixture.ts');
+  if (selectedMode) navigation = createNavigationDiagnosticMode(trace);
+  const result = await diagnoseNativeStartup({ sourceRepository, historySnapshot, observer: trace, patches,
+    ...(navigation ? { mode: 'navigation', navigation } : {}) }, t);
   assert.equal(result.outcome, 'diagnostic_completed', JSON.stringify(result.startup));
   assert.equal(result.preservation.unchanged, true, 'Original input bytes, metadata and directory lists must remain unchanged');
   if (result.report) { assert.equal(result.report.outcome, 'failed'); assert.equal(result.report.series.segments.length, 8); }
+  if (navigation) {
+    assert.equal(result.formatVersion, 'cos93-native-startup-diagnostic/2');
+    assert.ok('navigation' in result);
+    if (result.navigation.outcome === 'passed') {
+      assert.equal(result.report?.segments.length, 1); assert.equal(navigation.snapshot().stopCount, 1);
+      assert.ok(result.report?.segments[0].report.steps.every(step => step.outcome === 'skipped'));
+      assert.equal(result.report?.segments[0].report.cleanup.forced, false);
+      assert.equal(result.startup.outcome, 'failed', 'The old whole-open contract is not retrospectively passed');
+    }
+    return;
+  }
   if (result.startup.outcome === 'passed') {
     assert.ok(result.report); assert.equal(result.report.segments.length, 1);
     const report = result.report.segments[0].report, snapshot = trace.snapshot();
@@ -567,4 +592,148 @@ test('COS93 navigation diagnostic descriptor records synchronous failure and ref
   await assert.rejects(incomplete.run(value, () => { const clone = structuredClone(value); return Promise.resolve().then(() => [...clone.steps.entries()]); }, () => false), /stop gate incomplete/);
   assert.equal(incomplete.snapshot().stopCount, 0);
   assert.deepEqual(Object.getOwnPropertyDescriptor(Array.prototype, 'entries'), entriesDescriptor);
+});
+
+function navigationDeferred<T = void>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve };
+}
+async function navigationNativeFixture(deadlineMs = 60_000) {
+  const { createNativeValidationWaits } = await import('../../src/acceptance/native-validation-waits.ts');
+  const { OwnedWork } = await import('../../src/runtime/recovery/owned-work.ts');
+  const controller = new AbortController(), work = new OwnedWork(controller.signal), deadlineAt = Date.now() + deadlineMs;
+  const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'browser', deadlineAt,
+    signal: work.signal, controllerSignal: controller.signal, trackRaw: start => work.run(start) });
+  waits.startConsumer(); return { waits, work, controller, deadlineAt };
+}
+
+test('COS93 navigation diagnostic production lifecycle reaches ready then finish before ordinary stop', async t => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.observeNavigationDiagnosticLifecycle, 'function');
+  const { runAcceptanceInOwnedSession } = await import('../../src/acceptance/runner.ts'), f = await navigationNativeFixture();
+  const root = await temporary(t), trace = observer(), mode = api.createNavigationDiagnosticMode(trace), segment = f.waits.beginSegment('navigation');
+  mode.bindNativeWaits(f.waits);
+  const order: string[] = [], readyPage = navigationReadyPage(), page: any = { ...readyPage.page,
+    goto: async () => { order.push('load'); return { ok: () => true, status: () => 200 }; }, url: () => 'http://127.0.0.1:32123/',
+    video: () => null, setViewportSize: async () => {}, screencast: { start: async () => {}, stop: async () => {} },
+    setDefaultTimeout() {}, on() {}, isClosed: () => false, screenshot: async () => Buffer.alloc(0), close: async () => {} };
+  const context: any = { route: async () => {}, newPage: async () => page, newCDPSession: async () => ({ on() {}, send: async () => {} }) };
+  const lifecycle: OwnedAcceptanceLifecycle = { deadlineAt: f.deadlineAt, signal: f.work.signal, nativeValidationWaits: f.waits, nativeSegmentWaits: segment,
+    open: async () => { for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async life => { life.check(); });
+      return { browser: { version: () => 'synthetic', close: async () => {} } as any, context }; },
+    identity: () => undefined, process: () => undefined, close: async () => { order.push('close'); } };
+  const observed = api.observeNavigationDiagnosticLifecycle(lifecycle, mode, trace, { player: [4, 4], playerIndex: 0, idleIndex: 0 }, false);
+  assert.equal(observed.lifecycle.nativeValidationWaits, f.waits);
+  const plan: any = { formatVersion: '1.0.0', projectId: 'fixture', taskId: 'browser', runId: 'fixture', reportId: 'navigation', specVersion: 'v1',
+    artifact: { artifactId: 'game', version: 'v1', location: 'game' }, url: 'http://127.0.0.1:32123/', viewport: { width: 1280, height: 720 },
+    acceptanceIds: ['visible'], steps: [{ id: 'first', kind: 'locator-click', selector: '#start', timeoutMs: 100 },
+      { id: 'visible', kind: 'assert', acceptanceId: 'visible', observation: { kind: 'visible', selector: '#game' }, expected: true, timeoutMs: 100 }] };
+  const original = structuredClone(plan);
+  const report = await mode.run(plan, () => runAcceptanceInOwnedSession(plan, { evidenceRoot: root, timeoutMs: 60_000 }, observed.lifecycle), observed.navigationSucceeded);
+  observed.restore();
+  assert.deepEqual(plan, original); assert.ok(report.steps.every((step: { outcome: string }) => step.outcome === 'skipped'));
+  assert.deepEqual(order, ['load', 'close']); assert.equal(report.cleanup.forced, false);
+  assert.ok(report.errors.some((error: string) => error.includes('DiagnosticNavigationComplete')));
+  assert.deepEqual(mode.snapshot(), { loadPassed: true, readyPassed: true, navigationPassed: true, stopCount: 1, failed: false });
+  assert.equal(report.nativeWaits?.segment.stages[3].outcome, 'passed'); assert.equal(report.nativeWaits?.segment.state, 'closed');
+  assert.deepEqual(f.waits.snapshot().rawReads, { started: 1, settled: 1, pending: 0 });
+  await f.work.cancelAndDrain('unit complete');
+});
+
+for (const cause of ['timeout', 'controller'] as const) test(`COS93 navigation diagnostic production ready ${cause} owns late raw and preserves cause`, async t => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.runNavigationDiagnosticReady, 'function');
+  const f = await navigationNativeFixture(), segment = f.waits.beginSegment('late'), entered = navigationDeferred(), release = navigationDeferred();
+  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
+  segment.beginNavigation();
+  const base = Date.now(), reason = new Error('original controller reason');
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: base }); t.after(() => t.mock.timers.reset());
+  let nextRead = 0, originalCaller: AbortSignal | undefined;
+  const pending = segment.runStage('navigation', life => api.runNavigationDiagnosticReady(life, f.waits, async (active: any) => {
+    originalCaller = life.signal; assert.ok(active.deadlineAt <= base + 3000); assert.notEqual(active.signal, life.signal);
+    entered.resolve(); await release.promise; active.check(); nextRead++;
+  }));
+  const rejected = assert.rejects(pending, error => cause === 'controller' ? error === reason : /ready deadline/.test((error as Error).message));
+  await entered.promise;
+  if (cause === 'controller') f.controller.abort(reason); else t.mock.timers.tick(3000);
+  await rejected; assert.ok(originalCaller); assert.equal(f.waits.snapshot().rawReads.pending, 1);
+  assert.equal(segment.snapshot().rawReadsPending, 1); release.resolve();
+  await Promise.resolve(); await Promise.resolve(); segment.revoke(); await segment.settle(f.deadlineAt);
+  assert.equal(f.waits.snapshot().rawReads.pending, 0); assert.equal(nextRead, 0);
+  await f.work.cancelAndDrain('unit complete');
+});
+
+test('COS93 navigation diagnostic production reads stop between awaited leaves and retain same caller', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.diagnosticReadCheckpoint, 'function');
+  const controller = new AbortController(), reason = new Error('leaf cancelled'), gate = navigationDeferred(); let next = 0;
+  const read = api.diagnosticReadCheckpoint('navigation', controller.signal);
+  const pending = (async () => { await read(() => gate.promise); await read(async () => { next++; }); })();
+  const rejected = assert.rejects(pending, error => error === reason); controller.abort(reason); gate.resolve(); await rejected; assert.equal(next, 0);
+});
+
+test('COS93 navigation diagnostic production ready expectation binds sealed world design and media', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.deriveNavigationReadyExpectation, 'function');
+  const world = 'export const INITIAL_PLAYER: Pos = [4, 4];', design = { map: { player: [4, 4] } }, media = { characters: [{ directory: 'public/assets/player', manifest: { id: 'player', states: [{ name: 'idle' }] } }] };
+  assert.deepEqual(api.deriveNavigationReadyExpectation(world, design, media), { player: [4, 4], playerIndex: 0, idleIndex: 0 });
+  assert.throws(() => api.deriveNavigationReadyExpectation(world, { map: { player: [1, 1] } }, media));
+  assert.throws(() => api.deriveNavigationReadyExpectation(world + world, design, media));
+  assert.throws(() => api.deriveNavigationReadyExpectation(world, design, { characters: [] }));
+});
+
+test('COS93 navigation diagnostic production result refuses invented native proof and keeps v1 default', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  assert.equal(typeof api.navigationReportVerified, 'function');
+  assert.equal(api.navigationReportVerified(undefined, undefined, undefined), false);
+  const f = await navigationNativeFixture();
+  assert.equal(api.navigationReportVerified({ nativeWaits: { ...f.waits.snapshot(), taskId: 'browser' } }, f.waits,
+    { diagnostics: { reportValid: true } }), false);
+  const state = { loadPassed: true, readyPassed: true, navigationPassed: true, stopCount: 1, failed: false };
+  for (const timing of [null, -1, Number.NaN]) assert.equal(api.summarizeNavigationDiagnostic({ state, nativeContractVerified: true,
+    normalCleanup: true, preservation: true, observationIncomplete: false, openMs: timing, navigationMs: 1 }).navigation.outcome, 'failed');
+  const legacy = api.classifyDiagnosticStartup({ nativeCalls: 1, startupPassed: true, trace: { spans: [], events: [] }, phase: 'cleanup' });
+  assert.equal(legacy.outcome, 'passed'); await f.work.cancelAndDrain('unit complete');
+});
+
+test('COS93 navigation diagnostic production lifetime keeps original phase and clamps readiness to work deadline', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts');
+  const { nativeCallerDisposition } = await import('../../src/acceptance/native-validation-waits.ts');
+  const f = await navigationNativeFixture(7000), segment = f.waits.beginSegment('clamped');
+  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
+  segment.beginNavigation();
+  await segment.runStage('navigation', life => api.runNavigationDiagnosticReady(life, f.waits, async (active: any) => {
+    assert.equal(active.deadlineAt, f.waits.workDeadlineAt); assert.equal(life.deadlineAt, f.waits.workDeadlineAt);
+    assert.equal(nativeCallerDisposition(life.signal, f.waits, new Error()), 'active');
+    assert.equal(nativeCallerDisposition(active.signal, f.waits, new Error()), 'ordinary'); active.check();
+  }));
+  segment.finishNavigation(); segment.revoke(); await segment.settle(f.deadlineAt); await f.work.cancelAndDrain('unit complete');
+});
+
+test('COS93 navigation diagnostic production result accepts real settled stages and rejects native pending or failed evidence', async () => {
+  const api: any = await import('./native-startup-diagnostic.fixture.ts'), f = await navigationNativeFixture(), segment = f.waits.beginSegment('verified');
+  const startedAt = Date.now();
+  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
+  segment.beginNavigation();
+  await segment.runStage('navigation', async () => { await f.waits.runRequest(async request => {
+    for (const stage of ['http_pre_authority', 'http_body', 'http_post_authority'] as const) await request.runStage(stage, async life => { life.check(); });
+  }); });
+  segment.finishNavigation(); segment.revoke(); await segment.settle(f.deadlineAt);
+  const endedAt = Date.now(), snapshot = f.waits.snapshot();
+  const report: any = { startedAt: new Date(startedAt).toISOString(), endedAt: new Date(endedAt).toISOString(),
+    nativeWaits: { ...snapshot, caseId: f.waits.caseId, windowId: f.waits.windowId, taskId: f.waits.taskId,
+      seriesStartedAt: startedAt, seriesEndedAt: endedAt, seriesElapsedMs: endedAt - startedAt },
+    segments: [{ report: { nativeWaits: { contractVersion: f.waits.contractVersion, deadlineAt: f.deadlineAt,
+      workDeadlineAt: f.waits.workDeadlineAt, segment: snapshot.segments[0] } } }] };
+  const envelope = { diagnostics: { reportValid: true }, nativeWaits: { contractVersion: f.waits.contractVersion,
+    consumerStartedAt: snapshot.consumerStartedAt, consumerEndedAt: endedAt, consumerElapsedMs: endedAt - snapshot.consumerStartedAt! } };
+  assert.equal(api.navigationReportVerified(report, f.waits, envelope), true);
+  for (const mutate of [
+    (copy: any) => { copy.nativeWaits.rawReads.pending = 1; },
+    (copy: any) => { copy.nativeWaits.segments[0].firstCause = { stage: 'navigation', name: 'Error', message: 'HTTP rejected' }; },
+    (copy: any) => { copy.nativeWaits.seriesElapsedMs += 6; },
+    (copy: any) => { copy.nativeWaits.taskId = 'different'; },
+  ]) { const copy = structuredClone(report); mutate(copy); assert.equal(api.navigationReportVerified(copy, f.waits, envelope), false); }
+  assert.equal(api.navigationReportVerified(report, f.waits, { ...envelope, diagnostics: { reportValid: false } }), false);
+  await f.work.cancelAndDrain('unit complete');
 });
