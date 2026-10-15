@@ -7,6 +7,10 @@ import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { createArtifactRegistry } from '../../src/artifacts/index.ts';
 import type { TaskContract } from '../../src/contracts/index.ts';
 import type { RunSnapshot } from '../../src/runtime/run-types.ts';
+import fs from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+import { bindTransferAcceptance, verifyPreparedTransferAcceptance } from '../../src/runtime/adapters/transfer/binding.ts';
+import type { BindInput } from '../../src/runtime/adapters/transfer/binding.ts';
 
 async function api() {
   const result: any = await import('../../probes/transfer/runtime-host.ts').catch(error => {
@@ -114,6 +118,35 @@ test('COS92 each candidate binding reuses only its own verified inputs and check
     assert.equal(scopes, 8, 'Do not verify the same prepared inputs twice in one binding');
   }
   f.changeIdentity(); await assert.rejects(f.host.bindPreparedCandidate(candidate), /identity|source|platform/i);
+});
+
+test('COS97 fixed transfer binding forwards caller cancellation through actual plan design and candidate reads', async t => {
+  const f = await pipeline(t), saved = JSON.parse(await readFile(join(f.root, 'host-transfer-prepared-inputs.json'), 'utf8'));
+  const prepared = saved.plans.v1, first = prepared.segments[0];
+  const input: BindInput = { root: f.root, registry: f.registry, frozen: saved.frozen,
+    currentRequirement: { artifact: saved.frozen.requirement, specVersion: saved.frozen.specVersion }, candidate: prepared.binding.candidate,
+    planArtifact: prepared.artifact, url: first.plan.url, runId: prepared.binding.runId,
+    reportId: first.plan.reportId.slice(0, -('-' + first.id).length), taskId: first.plan.taskId, prepared };
+  assert.deepEqual(await verifyPreparedTransferAcceptance(input), prepared);
+  assert.deepEqual(await bindTransferAcceptance(input), prepared);
+  await t.test('pre-cancelled caller', async () => {
+    const caller = new AbortController(), reason = new Error('cancelled before fixed binding'); caller.abort(reason);
+    await assert.rejects(verifyPreparedTransferAcceptance(input, caller.signal), error => error === reason);
+    await assert.rejects(bindTransferAcceptance(input, caller.signal), error => error === reason);
+  });
+  await t.test('cancellation during actual metadata bytes', async () => {
+    const caller = new AbortController(), reason = new Error('cancelled after binding bytes'), original = fs.promises.readFile; let reads = 0;
+    t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+      const bytes = await original(...args);
+      if (String(args[0]).startsWith(f.root)) { reads++; if (reads === 1) caller.abort(reason); }
+      return bytes;
+    });
+    syncBuiltinESMExports();
+    try {
+      await assert.rejects(bindTransferAcceptance(input, caller.signal), error => error === reason);
+      assert.equal(reads, 1, 'Cancellation after metadata must prevent the next actual binding file read');
+    } finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+  });
 });
 
 test('invalid semantic design preserves raw bytes and stops art/coding without claiming coding repair', async t => {

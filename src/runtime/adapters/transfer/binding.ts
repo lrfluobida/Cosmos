@@ -26,14 +26,16 @@ function json(bytes: Buffer): unknown {
 function digest(files: Map<string, Buffer>): string {
   return hash(JSON.stringify([...files].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([name, bytes]) => [name, hash(bytes)])));
 }
-async function capturedFiles(root: string, registry: ArtifactRegistry, ref: ArtifactReference) {
+async function capturedFiles(root: string, registry: ArtifactRegistry, ref: ArtifactReference, callerSignal?: AbortSignal) {
+  callerSignal?.throwIfAborted();
   fixedReference(ref);
-  const capture = await registry.getCapture(ref), files = await snapshot(join(root, ref.location));
+  const capture = await registry.getCapture(ref); callerSignal?.throwIfAborted();
+  const files = await snapshot(join(root, ref.location), callerSignal); callerSignal?.throwIfAborted();
   requireThat(isDeepStrictEqual([...files.keys()].sort(), capture.files.map(file => file.destination).sort()), 'capture file inventory changed');
   return { capture, files };
 }
-async function readRequirement(root: string, registry: ArtifactRegistry, ref: ArtifactReference, file: string, profile?: ExecutionInputProfile, preserveHostStages?: true) {
-  const { capture, files } = await capturedFiles(root, registry, ref);
+async function readRequirement(root: string, registry: ArtifactRegistry, ref: ArtifactReference, file: string, profile?: ExecutionInputProfile, preserveHostStages?: true, callerSignal?: AbortSignal) {
+  const { capture, files } = await capturedFiles(root, registry, ref, callerSignal);
   requireThat(capture.metadata.kind === 'data' && files.has(file), 'captured requirement data is missing');
   const value = json(files.get(file)!);
   requireThat(!(profile ? validateExecutionRequirement(value, profile) : validateRequirement(value)).length, 'invalid explicit requirement profile or confirmed contract');
@@ -86,35 +88,39 @@ export interface PrepareInput extends HostInput {
   candidate: ArtifactReference; planArtifact: ArtifactReference; url: string; runId: string; reportId: string; taskId?: string;
 }
 export interface BindInput extends PrepareInput { prepared: FrozenTransferAcceptanceDraft }
-async function validateFrozenDesign(input: PrepareInput): Promise<ValidatedTransferDesign> {
+async function validateFrozenDesign(input: PrepareInput, callerSignal?: AbortSignal): Promise<ValidatedTransferDesign> {
+  callerSignal?.throwIfAborted();
   const frozen = input.frozen;
   fixedReference(frozen.artifact); fixedReference(input.candidate); fixedReference(input.currentRequirement.artifact);
   requireThat(sameReference(input.candidate, input.registry.candidateRef(input.candidate.artifactId, input.candidate.version)),
     'planned candidate reference must use the fixed registry location');
   requireThat(sameReference(input.currentRequirement.artifact, frozen.requirement)
     && input.currentRequirement.specVersion === frozen.specVersion, 'current requirement binding mismatch');
-  const { capture, files } = await capturedFiles(input.root, input.registry, frozen.artifact);
+  const { capture, files } = await capturedFiles(input.root, input.registry, frozen.artifact, callerSignal);
   requireThat(capture.metadata.kind === 'data' && isDeepStrictEqual(capture.dependencies, [frozen.requirement])
     && isDeepStrictEqual([...files.keys()].sort(), [DESIGN_FILE, BINDING_FILE].sort()), 'design capture binding changed');
   requireThat(isDeepStrictEqual(json(files.get(BINDING_FILE)!), frozen), 'host frozen binding changed');
   requireThat(hash(files.get(DESIGN_FILE)!) === frozen.designSha256, 'design hash changed');
-  const requirement = await readRequirement(input.root, input.registry, frozen.requirement, frozen.requirementFile, frozen.requirementProfile, frozen.preserveHostStages);
+  const requirement = await readRequirement(input.root, input.registry, frozen.requirement, frozen.requirementFile, frozen.requirementProfile, frozen.preserveHostStages, callerSignal);
   requireThat(requirement.sha256 === frozen.requirementSha256 && requirement.requirement.specVersion === frozen.specVersion,
     'requirement hash or spec version changed');
   const validated = validateTransferDesign(json(files.get(DESIGN_FILE)!), frozen.requirement);
   requireThat(validated.design.mapVersion === frozen.mapVersion
     && isDeepStrictEqual(frozen.acceptanceIds, [...TRANSFER_ACCEPTANCE_IDS]), 'map or acceptance binding changed');
-  return validated;
+  callerSignal?.throwIfAborted(); return validated;
 }
-async function requireCandidateInputs(input: BindInput): Promise<void> {
+async function requireCandidateInputs(input: BindInput, callerSignal?: AbortSignal): Promise<void> {
+  callerSignal?.throwIfAborted();
   const candidate = await input.registry.getCandidate(input.candidate);
+  callerSignal?.throwIfAborted();
   for (const ref of [input.frozen.requirement, input.frozen.artifact, input.prepared.artifact]) {
+    callerSignal?.throwIfAborted();
     requireThat(candidate.inputs.some(item => sameReference(item, ref)) && candidate.expectedDeps.some(item => sameReference(item, ref)),
       'candidate missing exact frozen input binding');
-    const source = await capturedFiles(input.root, input.registry, ref);
+    const source = await capturedFiles(input.root, input.registry, ref, callerSignal);
     for (const [name, bytes] of source.files) {
       requireThat(candidate.files.some(file => file.destination === name && sameReference(file.artifactRef, ref)), 'candidate input file binding changed');
-      requireThat((await regularFile(input.root, candidate.targetRoot + '/' + name)).equals(bytes), 'candidate input bytes changed');
+      requireThat((await regularFile(input.root, candidate.targetRoot + '/' + name, callerSignal)).equals(bytes), 'candidate input bytes changed');
     }
   }
 }
@@ -212,24 +218,25 @@ export async function prepareTransferAcceptance(input: PrepareInput): Promise<Fr
   } finally { await removeOwned(input.root, folder); }
 }
 /** Validate immutable prepared inputs without requiring a not-yet-produced candidate. */
-export async function verifyPreparedTransferAcceptance(input: BindInput): Promise<FrozenTransferAcceptanceDraft> {
+export async function verifyPreparedTransferAcceptance(input: BindInput, callerSignal?: AbortSignal): Promise<FrozenTransferAcceptanceDraft> {
+  callerSignal?.throwIfAborted();
   requireThat(isLocalUrl(input.url), 'plan URL must be a loopback origin');
   fixedReference(input.planArtifact);
   requireThat(sameReference(input.prepared.artifact, input.planArtifact), 'prepared plan reference mismatch');
-  const { capture, files } = await capturedFiles(input.root, input.registry, input.planArtifact);
+  const { capture, files } = await capturedFiles(input.root, input.registry, input.planArtifact, callerSignal);
   requireThat(capture.metadata.kind === 'data' && isDeepStrictEqual(capture.dependencies, [input.frozen.requirement, input.frozen.artifact])
     && isDeepStrictEqual([...files.keys()], ['_cosmos/transfer-plan.json']), 'plan capture binding changed');
   const bytes = files.get('_cosmos/transfer-plan.json')!;
   requireThat(hash(bytes) === input.prepared.planSha256, 'plan hash changed');
   const { planSha256: _hash, ...prepared } = input.prepared;
   requireThat(isDeepStrictEqual(json(bytes), prepared), 'prepared plan data changed');
-  const validated = await validateFrozenDesign(input);
+  const validated = await validateFrozenDesign(input, callerSignal);
   requireThat(isDeepStrictEqual(draft(input, validated), prepared), 'candidate, run or frozen design plan binding changed');
-  return structuredClone(input.prepared);
+  callerSignal?.throwIfAborted(); return structuredClone(input.prepared);
 }
 /** Reuse exact pre-coding expectations after the actual candidate has been staged. No new plan writes. */
-export async function bindTransferAcceptance(input: BindInput): Promise<FrozenTransferAcceptanceDraft> {
-  const prepared = await verifyPreparedTransferAcceptance(input);
-  await requireCandidateInputs(input);
-  return prepared;
+export async function bindTransferAcceptance(input: BindInput, callerSignal?: AbortSignal): Promise<FrozenTransferAcceptanceDraft> {
+  const prepared = await verifyPreparedTransferAcceptance(input, callerSignal);
+  await requireCandidateInputs(input, callerSignal);
+  callerSignal?.throwIfAborted(); return prepared;
 }

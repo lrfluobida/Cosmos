@@ -199,4 +199,10 @@ requireValidationPreparationScope/BrowserScope可选caller转交controller host�
 
 Root已把6个probes固定输入/identity/readScope signal转交独立作者与reviewer，基于7a731f9；本作者保留这些文件不修改，待APPROVED exactSHA后在ownbranch集成。剩余binding/host/origin/payload/runner由本作者继续，真实browser/provider/715/actual仍未授权。
 
+## 作者源码切片 8：固定 transfer binding caller（局部）
+
+verifyPreparedTransferAcceptance/bindTransferAcceptance及内部capturedFiles/readRequirement/validateFrozenDesign/requireCandidateInputs可选caller贯穿metadata前后、snapshot与候选实际文件；不改完整校验、同次复用或中文按钮/断言。使用原真实SOURCE/TEMP pipeline有效输入先核正例，预取消与实际metadata读取期间取消两子例实际RED（父+子统计0/3）→GREEN3/3、0skip、16563.144ms；取消后仅首个metadata文件读取，下一actual文件零派发。定向strict0，19个原中文字符逐段核对保持。
+
+`binding-caller-{red,green}.tap`、`binding-caller-strict.log`同TEMP。Root另为probe子任务授权validation-case-seven-source.ts必要signal透传，本作者一并预留不修改；其他primary接线继续。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
