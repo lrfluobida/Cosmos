@@ -1,6 +1,8 @@
 # COS-97 · 原生验证的权限等待与浏览器时限
 
-状态：`design-revision / REVIEW_PENDING`。前版 `2d61d0aaaf8ead576d4e3ac8107c1d3bc25d1127` 的caller signal、generation失效与payload两项P2已独审解决；本版只补剩余P2：scope/identity内部race后的raw reader所有权，待affected复审。本提交只提出规格、ADR 与计划，不授权源码实施、测试、actual 或付费运行。任务 [COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449，父 #1；依赖 COS52/92、COS93 已审诊断及 v3 证据、COS96 已审源码。作者 `cos97_implementer`，独审 `cos97_reviewer`，唯一 merger `batch_c14_cos92_merger`。
+当前状态：`NATIVE_VALIDATION_WAITS_SOURCE_READY`，本卡source scoped complete。最终`1f9ae8f7aaccad8c0df0b19dd7a2f8deca508913`经`cos97_reviewer`整卡规格→质量APPROVED、无剩余finding；唯一merger `batch_c14_cos92_merger`合入`e8df0ffcbdcd584e4d67069e7e25c359dcedb196`，[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6196625698)已由Root精确读回。Issue仍open、父勾选未变，等待Root核证主线后按源码范围关闭；实际导航、actual和paid未授权。
+
+设计提交时历史状态：`design-revision / REVIEW_PENDING`。前版 `2d61d0aaaf8ead576d4e3ac8107c1d3bc25d1127` 的caller signal、generation失效与payload两项P2已独审解决；本版只补剩余P2：scope/identity内部race后的raw reader所有权，待affected复审。本提交只提出规格、ADR 与计划，不授权源码实施、测试、actual 或付费运行。任务 [COS97 / #98](https://github.com/lrfluobida/Cosmos/issues/98)，id5864160449，父 #1；依赖 COS52/92、COS93 已审诊断及 v3 证据、COS96 已审源码。作者 `cos97_implementer`，独审 `cos97_reviewer`，唯一 merger `batch_c14_cos92_merger`。
 
 规划基线为已发布主线 `dd367c5dd007ecbd43e2daf5b4e29635afc87fbb`；分支 `codex/cos97-native-validation-waits`，独立 managed worktree `E:/CodexData/.codex/worktrees/cos76-transfer-case8/Cosmos`。关联 [ADR0002](../adr/0002-native-validation-waits.md) 与[实施计划](../plans/2026-10-15-cos97-native-validation-waits.md)。工程选择交由 Root 和独立 reviewer 审查；已确认的产品范围、游戏验收要求与预算保持。
 
@@ -254,3 +256,11 @@ consumer 在入口记录开始，最后一次原 guard 完成后、返回前在 
 原 v1/v2/v3、raw processesExited=false 与独立 PID 复用后核保持；COS93 仍 open/partial/startup-failed，原 C14 failed/consumed，coding review/accepted/human/完整经典/COS16/COS18 未提升。真实账本 revision3114、715 请求、16901000µ，reserved/unknown 0；共享验证 ¥150 含 prior probes 保守预留 ¥0.721771，正式 ¥200/12h，优化 ¥100/6h 保持。参考安装只读，不复制美术或音频，API keys 不进入文件、描述、日志或 Git。
 
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
+
+## SOURCE97已审集成（2026-10-16）
+
+主线 `npm run typecheck` 与 `npm run build` 均退出0；三个必要组合代表3/3、0skip，4610.9721ms：最后完整guard之后才冻结发布时间/raw计数；实际series根入口保留已记录source首因；实际helper生成的新版report通过并拒绝source/timing篡改或pending证据。命令为 `node --experimental-strip-types --test --test-name-pattern='^COS97 actual series root guard preserves recorded source before a later work cleanup$|^COS97 native series freezes publication timing and raw counts after its final guard$|^COS97 actual helper timing permits a complete native report and refuses changed source or pending evidence$' tests/acceptance/persistent.test.ts tests/transfer/persistent-diagnostics.test.ts`。
+
+原始输出为 `C:/Users/26557/AppData/Local/Temp/cos97-merge-typecheck.log`、`C:/Users/26557/AppData/Local/Temp/cos97-merge-build.log`、`C:/Users/26557/AppData/Local/Temp/cos97-merge-focused.tap`。主线src/probes/tests与批准提交完全一致，probe `a440d044fb3a60bf3a26c005e99b3e2a16836995`和origin `e16e7fa04ba869347a4f9fc25f8797ae4b048f64`的独审字节保持。真实SOURCE/TEMP host→clean delivery→origin→consumer 1/1（57738.0415ms，浏览器packet为合成输入）、helper/lifecycle45/45、diagnostic/host37/37、origin counter1/1与最终根首因/报告修订证据按整卡独审范围复用，不相加为一次suite，不重跑耗时矩阵；完整作者日志索引见计划。
+
+本卡仅完成源码与免费隔离夹具验证。COS93导航准备的SOURCE97源码前提现已具备，后续接线仍由Root交接exact发布版本并经独审；没有实际导航/浏览器、原715负载、provider或付费运行。COS93仍open/partial/startup-failed，旧whole-open15、v1/v2/v3、原C14 failed/consumed和真实ledger3114/715请求/16901000µ保持；accepted/human、COS16/COS18及完整经典未提升。main保持unfrozen。
