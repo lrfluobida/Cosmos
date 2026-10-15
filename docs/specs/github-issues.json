@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 96
+    "childCount": 97
   },
   "tasks": [
     {
@@ -8106,8 +8106,9 @@
       ],
       "sourcePrerequisiteStage": "independently-reviewed-source-and-v3-diagnostic-evidence",
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "stateReason": "completed",
       "integrationStatus": "complete",
       "implementationPhase": "scoped-complete",
       "reviewStatus": "KNOWN_SOURCE_FILE_CONCURRENCY_SOURCE_READY",
@@ -8117,6 +8118,7 @@
       "productionCommit": "f5acb07d982bc15ac07ca69b421b0746cf46fea2",
       "mergeCommit": "e3372651177006ba66eee6f9b0d73ff50d84a08a",
       "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/97#issuecomment-6189136844",
+      "sourcePublicationMain": "743e4701e9839469211266762300232aa108fb28",
       "sourceReviewFindings": [],
       "implementationBase": "194e23d789bdc3a3b43773fad7b1c14ecdd8fd2d",
       "planReviewStatus": "PLAN_APPROVED",
@@ -8172,10 +8174,45 @@
       },
       "actualOrPaidAuthorized": false,
       "verifiedNativeSubIssues": 96,
-      "parentCheckboxLine": "- [ ] [COS-96 · 对已知执行来源文件进行有界并发核验](https://github.com/lrfluobida/Cosmos/issues/97)",
+      "parentCheckboxLine": "- [x] [COS-96 · 对已知执行来源文件进行有界并发核验](https://github.com/lrfluobida/Cosmos/issues/97)",
       "publishedAt": "2026-10-15T16:43:49.619694+08:00"
+    },
+    {
+      "taskId": "COS-97",
+      "title": "明确原生验收的权限等待与浏览器时限",
+      "number": 98,
+      "id": 5864160449,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/98",
+      "dependsOn": [
+        "COS-52",
+        "COS-92",
+        "COS-93",
+        "COS-96"
+      ],
+      "sourcePrerequisiteStage": "independently-reviewed-source-and-v3-diagnostic-evidence",
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "not-started",
+      "implementationPhase": "design-pending",
+      "reviewStatus": "NOT_REVIEWED",
+      "implementer": "cos97_implementer",
+      "reviewer": "cos97_reviewer",
+      "merger": "batch_c14_cos92_merger",
+      "taskCardPath": "docs/specs/cos97-native-validation-waits.md",
+      "planPath": "docs/plans/2026-10-15-cos97-native-validation-waits.md",
+      "adrPath": "docs/adr/0002-native-validation-waits.md",
+      "problemSource": "84f9c8857908d9db7ecbc404c6d5afbdfdc32542",
+      "currentPublishedMain": "743e4701e9839469211266762300232aa108fb28",
+      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6187833755",
+      "implementationAuthorized": false,
+      "actualAuthorized": false,
+      "paidAuthorized": false,
+      "verifiedNativeSubIssues": 97,
+      "parentCheckboxLine": "- [ ] [COS-97 · 明确原生验收的权限等待与浏览器时限](https://github.com/lrfluobida/Cosmos/issues/98)",
+      "publishedAt": "2026-10-15T10:08:43.317583+00:00"
     }
   ],
-  "verifiedNativeSubIssues": 96,
+  "verifiedNativeSubIssues": 97,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
