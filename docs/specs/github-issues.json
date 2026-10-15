@@ -519,10 +519,11 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial",
-      "liveValidationStatus": "native-transfer-coding-deadline-failed",
+      "liveValidationStatus": "native-transfer-browser-launch-failed",
       "actualTransferValidated": false,
-      "actualTransferCaseId": "cos20-transfer-validation-12",
-      "actualTransferResultRef": "COS-86.actualTransferResult",
+      "actualTransferCaseId": "cos20-transfer-validation-14",
+      "actualTransferResultRef": "COS-91.actualResult",
+      "independentGameplayDiagnosticRef": "COS-91.independentGameplayDiagnostic",
       "historicalTransferCaseSixComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-5988185221",
       "liveValidationHistory": [
         {
@@ -559,6 +560,16 @@
           "caseId": "cos20-transfer-validation-12",
           "status": "native-transfer-coding-deadline-failed",
           "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6174293178"
+        },
+        {
+          "caseId": "cos20-transfer-validation-13",
+          "status": "native-transfer-request-admission-failed",
+          "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6176958554"
+        },
+        {
+          "caseId": "cos20-transfer-validation-14",
+          "status": "native-transfer-browser-launch-failed",
+          "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6180211123"
         }
       ],
       "historicalTransferCaseSixResult": {
@@ -7454,7 +7465,52 @@
       "actualResultReviewer": "c14_outcome_docs_reviewer",
       "actualResultMerger": "batch_c14_cos92_merger",
       "actualResultReviewedCommit": "4d86dd1be9d03e4a71fd502ea46a1bc799e9b1c1",
-      "actualResultMergeCommit": "a77141707419e599307e3e4daa81878287b96afa"
+      "actualResultMergeCommit": "a77141707419e599307e3e4daa81878287b96afa",
+      "independentGameplayDiagnostic": {
+        "id": "c14-diagnostic-838d5054-3ed6-4fc7-baef-656767d215f7",
+        "outcome": "passed",
+        "evidenceScope": "gameplay-only-on-byte-identical-sealed-candidate-copy",
+        "sourceCommit": "e634119fd92f67aff3d665d40f08f3154041206c",
+        "historicalGenerationSourceCommit": "b20e9a43f26712a1f5a13468057df46b6c012b69",
+        "startedAt": "2026-10-14T23:44:19.845Z",
+        "endedAt": "2026-10-14T23:45:00.672Z",
+        "durationMs": 40827,
+        "segments": 8,
+        "passedSteps": 220,
+        "failedSteps": 0,
+        "skippedSteps": 0,
+        "normalClicks": 46,
+        "assertions": 174,
+        "originalStepsAndCheckpointRetained": true,
+        "profiles": 7,
+        "browserProcesses": 8,
+        "allBrowserExitsZeroAndUnforced": true,
+        "sameProfileAndOriginReopenedWithDifferentPid": true,
+        "nodeAndServerCleanupConfirmed": true,
+        "originalFilesHashSizeMtimeUnchanged": 197,
+        "candidateFilesByteIdentical": 105,
+        "candidateBytes": 1865138,
+        "harnessFilesUnchanged": 26,
+        "newModelRequests": 0,
+        "incrementalMicroCny": 0,
+        "unchangedLedgerRevision": 3114,
+        "unchangedSharedMicroCny": 16901000,
+        "ownedChildControllerPathExecuted": false,
+        "actualNativeIoFullChainTimingMeasured": false,
+        "media62FieldsExecuted": false,
+        "renderPerformanceExecuted": false,
+        "codingApprovalExecuted": false,
+        "acceptedPromotionExecuted": false,
+        "humanConfirmationExecuted": false,
+        "originalCaseRemainsFailedAndConsumed": true,
+        "independentReviewer": "c14_diagnostic_reviewer",
+        "postcheck": "VERIFIED",
+        "mainUnfrozenByRootAfterPostcheck": true,
+        "researchPath": "docs/research/2026-10-15-c14-independent-gameplay.md",
+        "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6181057183",
+        "preservedRoot": ".cosmos/reconciliation/2026-10-13-c6-provider-usage/case14-independent-gameplay-preserved",
+        "preservationManifest": ".cosmos/reconciliation/2026-10-13-c6-provider-usage/case14-independent-gameplay-preservation.json"
+      }
     },
     {
       "taskId": "COS-92",
@@ -7475,6 +7531,7 @@
       "implementationPhase": "scoped-complete",
       "reviewStatus": "PERSISTENT_BROWSER_LAUNCH_SOURCE_READY",
       "targetReviewStatus": "PERSISTENT_BROWSER_LAUNCH_SOURCE_READY",
+      "independentGameplayDiagnosticRef": "COS-91.independentGameplayDiagnostic",
       "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/93#issuecomment-6180910087",
       "sourcePublicationMain": "3c6b2c98655ce485bb3dc3fcb4d2a8b9cdc6762b",
       "sourceReviewStatus": "APPROVED",
