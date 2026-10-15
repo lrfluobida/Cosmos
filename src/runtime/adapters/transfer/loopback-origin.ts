@@ -6,7 +6,7 @@ import type { ArtifactReference } from '../../../contracts/types.ts';
 import { publishReceipt } from '../../recovery/receipt-file.ts';
 import type { CleanDelivery } from '../../entrypoint-delivery.ts';
 import { isValidationScopeTimeout } from '../../validation-scope.ts';
-import { associateNativeReadSignal, isNativeValidationWaits, nativeCallerDisposition, NativeWaitDeadlineError, runNativeValidationRead, type NativeValidationWaits, type NativeWaitStage } from '../../../acceptance/native-validation-waits.ts';
+import { associateNativeReadSignal, isNativeValidationWaits, nativeCallerDisposition, nativeValidationWaitsForCaller, recordNativeValidationFailure, runNativeValidationRead, type NativeReadLifetime, type NativeValidationWaits } from '../../../acceptance/native-validation-waits.ts';
 
 interface ValidationTransferOriginBinding {
   caseId: string; windowId: string; sourceVersion: string; requirementSha256: string; runId: string; specVersion: string;
@@ -17,6 +17,7 @@ export type TransferOriginBinding = ValidationTransferOriginBinding | {
 };
 export interface TransferOriginInput {
   root: string; binding: TransferOriginBinding; resume: boolean; signal: AbortSignal; requireScope(callerSignal?: AbortSignal): Promise<void>;
+  controllerSignal?: AbortSignal;
   retainCleanupFailure?(error: unknown): void;
   /** Selected only by the trusted first-window factory. */
   receiptPath?: string;
@@ -27,16 +28,17 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
   if ('profile' in binding && (typeof binding.windowId === 'string') !== !!input.receiptPath) throw new Error('Human transfer origin window requires its explicit current receipt path.');
   if (input.receiptPath && (!('profile' in binding) || typeof binding.windowId !== 'string' || !binding.decisionId || !binding.taskId
     || file !== `continuations/${binding.decisionId}/transfer-origin.json`)) throw new Error('Current transfer origin must retain its exact human window path.');
-  const checkSignals = (callerSignal?: AbortSignal) => { input.signal.throwIfAborted(); callerSignal?.throwIfAborted(); };
+  const checkService = () => { input.controllerSignal?.throwIfAborted(); input.signal.throwIfAborted(); };
+  const checkSignals = (callerSignal?: AbortSignal) => { checkService(); callerSignal?.throwIfAborted(); };
   const read = async (callerSignal?: AbortSignal) => {
     checkSignals(callerSignal);
-    const active = callerSignal && associateNativeReadSignal(callerSignal, AbortSignal.any([input.signal, callerSignal]));
+    const active = callerSignal && associateNativeReadSignal(callerSignal, AbortSignal.any([...(input.controllerSignal ? [input.controllerSignal] : []), input.signal, callerSignal]));
     try {
       const bytes = active ? await regularFile(input.root, file, active) : await regularFile(input.root, file);
       checkSignals(callerSignal); return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     } catch (error) { checkSignals(callerSignal); throw error; }
   };
-  input.signal.throwIfAborted(); await input.requireScope(); input.signal.throwIfAborted();
+  checkService(); await input.requireScope(); checkService();
   if (!/^[a-f0-9]{40}$/.test(binding.sourceVersion) || !/^[a-f0-9]{64}$/.test(binding.requirementSha256)
     || Object.entries(binding).some(([key, value]) => ('profile' in binding && key === 'windowId' && binding.windowId === null) ? value !== null : typeof value !== 'string' || !value)
     || 'profile' in binding && (binding.profile !== 'human' || !/^[a-f0-9]{64}$/.test(binding.sourceSha256))) throw new Error('Invalid fixed transfer origin binding.');
@@ -63,45 +65,47 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
     try {
       if (current.nativeValidationWaits) {
         await current.nativeValidationWaits.runRequest(async lease => {
-          let caller: AbortSignal | undefined, deadlineAt = 0, stage: NativeWaitStage = 'http_pre_authority', boundaryError: NativeWaitDeadlineError | undefined;
+          let caller: AbortSignal | undefined, phase: NativeReadLifetime;
           const check = () => {
-            checkSignals(caller); lease.check();
-            if (Date.now() >= deadlineAt) throw boundaryError ??= new NativeWaitDeadlineError(stage);
+            checkSignals(caller); phase.check(); lease.check();
             if (mounted !== current) throw new Error('Candidate mount changed during native request.');
           };
           try {
             await lease.runStage('http_pre_authority', async life => {
-              caller = life.signal; deadlineAt = life.deadlineAt;
+              caller = life.signal; phase = life;
               return runNativeValidationRead(life.signal, async () => {
                 try { check(); await current.verifyScope(caller); check(); }
-                catch (error) { if (error !== boundaryError) await fail(error, caller, current); checkSignals(caller); throw error; }
+                catch (error) { await fail(error, caller, current); checkService(); throw error; }
               });
             });
             const path = new URL(request.url ?? '/', 'http://127.0.0.1'), name = decodeURIComponent(path.pathname).slice(1) || 'index.html';
             const target = new URL(current.cleanDelivery!.url); target.pathname = path.pathname; target.search = path.search;
             const { upstream, bytes } = await lease.runStage('http_body', async life => {
-              caller = life.signal; deadlineAt = life.deadlineAt; stage = 'http_body';
+              caller = life.signal; phase = life;
               return runNativeValidationRead(life.signal, async active => {
                 try {
                   check();
-                  const signal = associateNativeReadSignal(life.signal, AbortSignal.any([input.signal, active]));
+                  const signal = associateNativeReadSignal(life.signal, AbortSignal.any([...(input.controllerSignal ? [input.controllerSignal] : []), input.signal, active]));
                   const upstream = await fetch(target, { signal, redirect: 'error' }); check();
                   const bytes = Buffer.from(await upstream.arrayBuffer()); check(); return { upstream, bytes };
-                } catch (error) { if (error !== boundaryError) await fail(error, caller, current); checkSignals(caller); throw error; }
+                } catch (caught) {
+                  const error = input.controllerSignal?.aborted ? input.controllerSignal.reason : input.signal.aborted ? input.signal.reason : life.signal.aborted ? life.signal.reason : caught;
+                  await fail(error, caller, current); checkService(); throw error;
+                }
               });
             });
             await lease.runStage('http_post_authority', async life => {
-              caller = life.signal; deadlineAt = life.deadlineAt; stage = 'http_post_authority';
+              caller = life.signal; phase = life;
               return runNativeValidationRead(life.signal, async () => {
                 try {
                   check(); await current.verifyScope(caller); check();
                   const result = await current.cleanDelivery!.verifyPayload!(name, { status: upstream.status, bytes }, caller); check();
                   if (result === 'not_found') { notFound(response); return; }
                   response.writeHead(200, { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/octet-stream', 'Cache-Control': 'no-store' }); response.end(bytes);
-                } catch (error) { if (error !== boundaryError) await fail(error, caller, current); checkSignals(caller); throw error; }
+                } catch (error) { await fail(error, caller, current); checkService(); throw error; }
               });
             });
-          } catch (error) { await fail(error, caller, current); notFound(response); checkSignals(caller); throw error; }
+          } catch (error) { await fail(error, caller, current); notFound(response); checkService(); throw error; }
         });
         return;
       }
@@ -126,7 +130,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
   let closing: Promise<void> | undefined, cleanupRetained = false;
   let sharedFailure: { error: unknown; callerSignal: AbortSignal | undefined; mount: Mount | undefined; context: FailureContext | undefined } | undefined;
   const close = () => closing ??= new Promise<void>((done, reject) => {
-    mounted = undefined; input.signal.removeEventListener('abort', aborted); server.closeAllConnections();
+    mounted = undefined; input.signal.removeEventListener('abort', aborted); input.controllerSignal?.removeEventListener('abort', aborted); server.closeAllConnections();
     server.close(error => error && (error as NodeJS.ErrnoException).code !== 'ERR_SERVER_NOT_RUNNING' ? reject(error) : done());
   });
   const aborted = () => { void close().catch(() => {}); };
@@ -136,21 +140,28 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
       if (!cleanupRetained) { context.retainCleanupFailure(cleanup); cleanupRetained = true; }
     }
   };
+  const callerContext = (callerSignal: AbortSignal | undefined): FailureContext | undefined => {
+    const waits = nativeValidationWaitsForCaller(callerSignal);
+    if (waits && 'caseId' in binding && waits.caseId === binding.caseId && waits.windowId === binding.windowId)
+      return { nativeValidationWaits: waits, retainCleanupFailure: input.retainCleanupFailure };
+  };
   const fail = async (error: unknown, callerSignal: AbortSignal | undefined, current: Mount | undefined, context: FailureContext | undefined = current): Promise<'retained' | 'closed'> => {
+    context ??= callerContext(callerSignal);
     if (closing && sharedFailure && sharedFailure.error === error && sharedFailure.callerSignal === callerSignal) { await finishClose(sharedFailure.context); return 'closed'; }
-    if (!input.signal.aborted) {
-      const disposition = nativeCallerDisposition(callerSignal, context?.nativeValidationWaits, error);
-      if (mounted !== current || disposition === 'stale' || disposition === 'local_abort' || isValidationScopeTimeout(error)) return 'retained';
-    }
+    const stopped = input.signal.aborted || input.controllerSignal?.aborted, disposition = nativeCallerDisposition(callerSignal, context?.nativeValidationWaits, error);
+    if (!stopped && (mounted !== current || disposition === 'stale')) return 'retained';
+    recordNativeValidationFailure(callerSignal, input.controllerSignal?.aborted ? input.controllerSignal.reason : input.signal.aborted ? input.signal.reason : error);
+    if (!stopped && (disposition === 'local_abort' || isValidationScopeTimeout(error))) return 'retained';
     sharedFailure ??= { error, callerSignal, mount: current, context }; await finishClose(context); return 'closed';
   };
   const failCurrent = (error: unknown, callerSignal?: AbortSignal) => fail(error, callerSignal, mounted);
   try {
     await new Promise<void>((done, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', () => { server.off('error', reject); done(); }); });
     input.signal.addEventListener('abort', aborted, { once: true });
+    input.controllerSignal?.addEventListener('abort', aborted, { once: true });
     const address = server.address(); if (!address || typeof address === 'string') throw new Error('Owned transfer origin has no loopback port.');
     const receipt = { formatVersion: 'transfer-origin/1', binding, url: `http://127.0.0.1:${address.port}` };
-    input.signal.throwIfAborted(); await input.requireScope(); input.signal.throwIfAborted();
+    checkService(); await input.requireScope(); checkService();
     if (input.resume) { if (!isDeepStrictEqual(await read(), receipt)) throw new Error('Original transfer origin changed during resume.'); }
     else await publishReceipt(join(input.root, file), receipt, input.signal);
     const verifyCurrent = async (callerSignal?: AbortSignal, context: FailureContext | undefined = mounted) => {
@@ -162,10 +173,11 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
         if (closing || !server.listening || !isDeepStrictEqual(await read(callerSignal), receipt)) throw new Error('Owned transfer origin listener or fixed receipt changed.');
         checkSignals(callerSignal);
         if (mounted !== current) throw new Error('Candidate mount changed during verification.');
-      } catch (error) { await fail(error, callerSignal, current, context); checkSignals(callerSignal); throw error; }
+      } catch (error) { await fail(error, callerSignal, current, context); checkService(); throw error; }
     };
     const verify = (callerSignal?: AbortSignal) => verifyCurrent(callerSignal);
     const mountCandidate = async (value: { candidate: ArtifactReference; project: string; cleanDelivery?: CleanDelivery; nativeValidationWaits?: NativeValidationWaits; retainCleanupFailure?(error: unknown): void; verifyBinding(callerSignal?: AbortSignal): Promise<void> }) => {
+      const initialMount = mounted;
       if (value.nativeValidationWaits !== undefined && (!isNativeValidationWaits(value.nativeValidationWaits) || !value.cleanDelivery?.verifyPayload)) throw new Error('Native mount requires trusted native waits and clean payload verification.');
       if (value.nativeValidationWaits && typeof value.retainCleanupFailure !== 'function') throw new Error('Native mount requires its trusted cleanup failure owner.');
       const caller = value.nativeValidationWaits?.readSignal;
@@ -185,6 +197,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
         if (caller) await value.cleanDelivery.requireCurrent(caller); else await value.cleanDelivery.requireCurrent();
       }
       checkSignals(caller);
+      if (value.nativeValidationWaits && (closing || !server.listening || mounted !== initialMount)) throw new Error('Origin closed or candidate mount changed before native mount publication.');
       const current: Mount = { project, cleanDelivery: value.cleanDelivery, nativeValidationWaits: value.nativeValidationWaits, retainCleanupFailure: value.retainCleanupFailure,
         verifyScope: async callerSignal => {
           if (!callerSignal) { await verify(); await value.verifyBinding(); await value.cleanDelivery?.requireCurrent(); return; }
@@ -192,7 +205,7 @@ export async function reserveTransferOrigin(input: TransferOriginInput) {
             checkSignals(callerSignal); await verify(callerSignal); checkSignals(callerSignal);
             await value.verifyBinding(callerSignal); checkSignals(callerSignal);
             await value.cleanDelivery?.requireCurrent(callerSignal); checkSignals(callerSignal);
-          } catch (error) { if (current.nativeValidationWaits) await fail(error, callerSignal, current); checkSignals(callerSignal); throw error; }
+          } catch (error) { if (current.nativeValidationWaits) await fail(error, callerSignal, current); checkService(); throw error; }
         } }; mounted = current;
       return async () => { if (mounted === current) mounted = undefined; };
     };

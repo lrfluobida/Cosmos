@@ -25,11 +25,12 @@ async function navigation(segment: NativeSegmentWaits) {
 async function fixture(t: test.TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'cos97-clean-origin-')), project = join(root, candidate.location), owner = new AbortController(), work = new OwnedWork(owner.signal);
   await mkdir(join(project, 'dist'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), html, 'utf8');
+  const rawFailures: unknown[] = [];
   const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'host', deadlineAt: Date.now() + 600000,
-    signal: work.signal, trackRaw: start => work.run(start) });
+    signal: work.signal, trackRaw: start => { const raw = work.run(start); void raw.then(() => {}, error => rawFailures.push(error)); return raw; } });
   const cleanupFailures: unknown[] = [], retainCleanupFailure = (error: unknown) => { cleanupFailures.push(error); work.retainCleanupFailure(error); };
   let scope: (signal?: AbortSignal) => Promise<void> = async () => {}, bindingGuard: (signal?: AbortSignal) => Promise<void> = async () => {};
-  const origin = await reserveTransferOrigin({ root, binding, resume: false, signal: work.signal, retainCleanupFailure, requireScope: signal => scope(signal) });
+  const origin = await reserveTransferOrigin({ root, binding, resume: false, signal: work.signal, controllerSignal: owner.signal, retainCleanupFailure, requireScope: signal => scope(signal) });
   const upstream = createServer((_request, response) => { response.writeHead(200); response.end(html); });
   await new Promise<void>(done => upstream.listen(0, '127.0.0.1', done));
   const address = upstream.address(); assert.ok(address && typeof address === 'object');
@@ -45,7 +46,7 @@ async function fixture(t: test.TestContext) {
     assert.ok(root.startsWith(join(tmpdir(), 'cos97-clean-origin-'))); await rm(root, { recursive: true, force: true });
     if (closeError) assert.ok(cleanupFailures.includes(closeError));
   });
-  return { root, project, owner, work, waits, origin, upstream, clean, payloads, cleanupFailures, retainCleanupFailure, mount,
+  return { root, project, owner, work, waits, origin, upstream, clean, payloads, rawFailures, cleanupFailures, retainCleanupFailure, mount,
     setScope(value: typeof scope) { scope = value; }, setBinding(value: typeof bindingGuard) { bindingGuard = value; } };
 }
 
@@ -222,6 +223,46 @@ for (const failsClose of [false, true]) test(`COS97 public pre-mount native call
   await assert.rejects(f.origin.verify(f.waits.readSignal), error => error === source);
   assert.equal(await f.origin.failCurrent(source, f.waits.readSignal), 'closed');
   await assert.rejects(fetch(f.origin.url)); assert.deepEqual(f.cleanupFailures, failsClose ? [cleanup] : []);
+});
+
+test('COS97 a mount delayed in its final clean guard cannot publish after origin invalidation', async t => {
+  const f = await fixture(t), entered = deferred(), release = deferred(), changed = new Error('source invalidated during final mount guard');
+  f.clean.requireCurrent = async () => { entered.resolve(); await release.promise; };
+  const mounting = f.mount(); await entered.promise;
+  try {
+    f.setScope(async () => { throw changed; });
+    await assert.rejects(f.origin.verify(), error => error === changed);
+    assert.equal(f.owner.signal.aborted, false); await assert.rejects(fetch(f.origin.url));
+  } finally { release.resolve(); }
+  await assert.rejects(mounting, /mount|closed|listener/i);
+});
+
+test('COS97 source Error identity survives a later segment cancellation while invalidation is pending', async t => {
+  const f = await fixture(t); await f.mount(); const segment = f.waits.beginSegment('first'); await navigation(segment);
+  const entered = deferred(), release = deferred(), source = new Error('original source object'), later = new Error('later local cancellation'), close = Server.prototype.close;
+  t.mock.method(Server.prototype, 'close', function (this: Server, callback?: (error?: Error) => void) {
+    if (this.address() && (this.address() as { port: number }).port === Number(new URL(f.origin.url).port)) {
+      entered.resolve(); void release.promise.then(() => close.call(this, callback)); return this;
+    }
+    return close.call(this, callback);
+  });
+  f.setBinding(async () => { throw source; });
+  const pending = fetch(f.origin.url).catch(error => error); await entered.promise;
+  try {
+    assert.equal(segment.snapshot().firstCause?.message, source.message); segment.revoke(later);
+    await assert.rejects(segment.settle(Date.now() + 30), /settle|deadline/i);
+  } finally { release.resolve(); }
+  await pending; await segment.settle(Date.now() + 1000);
+  assert.ok(f.rawFailures.length > 0); assert.ok(f.rawFailures.every(error => error === source), 'Every actual owned rejection must preserve the original source object');
+  assert.equal(segment.snapshot().firstCause?.message, source.message); assert.equal(f.owner.signal.aborted, false);
+});
+
+test('COS97 the original controller reason wins after work was already cancelled', async t => {
+  const f = await fixture(t), controllerReason = new Error('later original controller reason');
+  await f.work.cancelAndDrain('earlier owned work cancellation'); const workReason = f.work.signal.reason;
+  f.owner.abort(controllerReason); assert.notEqual(workReason, controllerReason);
+  await assert.rejects(f.origin.verify(f.waits.readSignal), error => error === controllerReason);
+  await assert.rejects(fetch(f.origin.url));
 });
 
 test('COS97 clean delivery verifies actual fixed bytes with exact mapping and preserves optional caller reason', async t => {
