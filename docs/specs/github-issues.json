@@ -7509,7 +7509,13 @@
         "researchPath": "docs/research/2026-10-15-c14-independent-gameplay.md",
         "resultComment": "https://github.com/lrfluobida/Cosmos/issues/17#issuecomment-6181057183",
         "preservedRoot": ".cosmos/reconciliation/2026-10-13-c6-provider-usage/case14-independent-gameplay-preserved",
-        "preservationManifest": ".cosmos/reconciliation/2026-10-13-c6-provider-usage/case14-independent-gameplay-preservation.json"
+        "preservationManifest": ".cosmos/reconciliation/2026-10-13-c6-provider-usage/case14-independent-gameplay-preservation.json",
+        "documentationReviewStatus": "APPROVED",
+        "documentationImplementer": "c14_gameplay_docs_implementer",
+        "documentationReviewer": "c14_gameplay_docs_reviewer",
+        "documentationMerger": "batch_c14_cos92_merger",
+        "documentationReviewedCommit": "fd5008c59dac80049662c62ee20bc5ef7ce9500b",
+        "documentationMergeCommit": "0679c70895403a2a236e61681c0869a7bd78485b"
       }
     },
     {
