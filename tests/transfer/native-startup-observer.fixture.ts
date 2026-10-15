@@ -54,6 +54,16 @@ export function createDiagnosticObserver(options: Partial<typeof maximum> & { no
       if (reserve(Buffer.byteLength(JSON.stringify(row)))) events.push(row);
     } catch (error) { fail('observation', error); }
   }
+  // Keep Promise handlers outside span's scope so a pending operation closure can be collected.
+  function settlementHandlers(row: DiagnosticSpan, initialBytes: number) {
+    const finish = (outcome: 'returned' | 'threw', error?: unknown) => {
+      try {
+        const endMs = now(), completed = { ...row, endMs, durationMs: endMs - row.startMs, outcome, ...(outcome === 'threw' ? { error: brief(error) } : {}) };
+        if (reserve(Buffer.byteLength(JSON.stringify(completed)) - initialBytes)) Object.assign(row, completed);
+      } catch (error) { fail('observation', error); }
+    };
+    return { returned: () => finish('returned'), threw: (error: unknown) => finish('threw', error) };
+  }
   function span<T>(name: string, operation: () => T): T {
     let row: DiagnosticSpan | undefined, initialBytes = 0;
     try {
@@ -63,18 +73,13 @@ export function createDiagnosticObserver(options: Partial<typeof maximum> & { no
         initialBytes = Buffer.byteLength(JSON.stringify(candidate)); if (reserve(initialBytes)) { row = candidate; spans.push(row); }
       }
     } catch (error) { fail('observation', error); }
-    const finish = (outcome: 'returned' | 'threw', error?: unknown) => {
-      if (!row) return;
-      try {
-        const endMs = now(), completed = { ...row, endMs, durationMs: endMs - row.startMs, outcome, ...(outcome === 'threw' ? { error: brief(error) } : {}) };
-        if (reserve(Buffer.byteLength(JSON.stringify(completed)) - initialBytes)) Object.assign(row, completed);
-      } catch (error) { fail('observation', error); }
-    };
-    return parents.run(row?.id ?? parents.getStore() ?? 0, () => {
+    if (!row) return operation();
+    const handlers = settlementHandlers(row, initialBytes);
+    return parents.run(row.id, () => {
       let result: T;
-      try { result = operation(); } catch (error) { finish('threw', error); throw error; }
-      if (result instanceof Promise) void result.then(() => finish('returned'), error => finish('threw', error));
-      else finish('returned');
+      try { result = operation(); } catch (error) { handlers.threw(error); throw error; }
+      if (result instanceof Promise) void result.then(handlers.returned, handlers.threw);
+      else handlers.returned();
       return result;
     });
   }

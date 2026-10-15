@@ -60,3 +60,7 @@ Node v22.22.2内置 `internal/test_runner/mock/mock` 的 `#setupMock` 在每次�
 计划fb0f341已独审批准。作者已把actual method mock替换为手工descriptor包装，scope/queue观测只存标量；before清单在quote/claim前写一次，阶段进度有64行/128KiB上限，细粒度trace有数量和8MiB序列化预算。observer安装/恢复、上限或I/O错误会阻止完整诊断分类；PID登记事件及其调用方已一起改用标量pid。
 
 短集12/12及后续受影响进度、queue引用、字符串检查通过；真实controller8次读取在正常pending中最多留最后1份，stop后归零。小子进程显式exit23后仅留下已写before/阶段行，没有final或cleanup成功声明。三文件strict退出0，原始命令与独立raw路径见计划。未重造715历史、未运行真实浏览器或第三次actual；v1/v2原始记录及其证据局限保持。
+
+源码独审另在 `f0eb58f1009c3c9ce590919e082bcaecf590da78` 发现pending Promise的P2：span内部settlement回调共享operation的词法作用域；没有row的超限分支仍安装回调。3个始终pending且保持引用的原Promise、各1KiB payload的小回归证明：直接调用后payload/operation均回收，原正常与超限span均额外保留两者。这是此前已settle的8-read检查没有覆盖的情形。
+
+修正仅将handlers移到不含operation/args的独立作用域，并在无row时直接执行原调用。GREEN中三组payload/operation均回收，超限分支没有then调用，Promise身份保持。受影响4项检查全过、strict退出0；RED/GREEN原始路径和命令见计划的P2节，其余证据复用。本次仍未测真实历史，不能把这条保留链换算为v2的OOM占比或推断v1长尾属于GC。

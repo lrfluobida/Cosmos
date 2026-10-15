@@ -84,3 +84,15 @@ before清单在quote/claim/open之前发布；进度仅在当前新TEMP打开一
 | 最终三文件strict | exit0；命令同上 | `cos93-bounded-observer-final-strict.log` |
 
 上述检查分属不同提交前差异，数量不相加成一次完整suite。原无变化生产typecheck/build和COS93/COS95证据复用。新fixture未在真实715历史或浏览器上执行；原v1/v2数据、launcher、intent、owner/profile均未修改，第三次actual未获本轮授权。作者提交具体diff后交独审；COS93继续open/partial。
+
+### 独审P2：pending Promise的闭包保留
+
+`f0eb58f1009c3c9ce590919e082bcaecf590da78` 的源码独审发现：settlement回调与operation共享词法作用域，pending Promise因此额外持有operation/payload；span超限、没有row时也挂了回调。最小修正将handlers放入独立作用域，只接收row和初始字节数；无row直接调用原operation，保持恰一次调用及原返回/throw/Promise身份。
+
+固化reviewer的3个pending Promise对照，每个payload仅1KiB，三个原Promise始终留有引用。RED得到direct `[false,false]`、正常及超限span `[true,true]`；GREEN三组均为 `[false,false]`，超限Promise的then调用次数为0。只复验该回归及原身份/错误、嵌套/open边界、标量上限，共4/4、0skip、258.228ms；三文件strict退出0。其余上述证据复用，未重复完整短集或actual。
+
+- RED：`C:/Users/26557/AppData/Local/Temp/cos93-pending-observer-red.tap`，1fail/0skip、279.7756ms。
+- GREEN：`C:/Users/26557/AppData/Local/Temp/cos93-pending-observer-green.tap`。
+- strict：`C:/Users/26557/AppData/Local/Temp/cos93-pending-observer-strict.log`。
+
+GREEN命令为上面同一Node flags与test文件，选择 `--test-name-pattern='COS93 observer pending and over-limit|COS93 observer preserves this|COS93 observer bounds scalar|COS93 timing preserves'`；RED仅选择第一个名字前缀。本次修正待独立复审，不提升任何真实启动结论。

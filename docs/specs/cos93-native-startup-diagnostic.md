@@ -8,6 +8,8 @@
 
 本轮已实现无调用记录的方法包装、有界标量trace、quote/claim之前的before清单及单句柄阶段进度；原module入口和全部实际guard保持。短检查覆盖引用回收、原Promise/错误、descriptor恢复、PID事件调用方、上限/I/O失败、异常退出证据，具体结果见新计划。当前仅交源码独审，不提升真实启动或完整任务结论。
 
+`f0eb58f1009c3c9ce590919e082bcaecf590da78` 独审提出pending Promise额外保留operation闭包的P2，作者已将settlement handlers移到独立作用域、无row分支不再安装回调。3个1KiB pending对照RED→GREEN及受影响检查4/4通过，三文件strict退出0；旧12/12等无变化证据复用，详情见[计划P2记录](../plans/2026-10-15-cos93-bounded-observer.md)。修正待独立复审，无第三次actual，COS93仍open/partial。
+
 ## 事实与问题
 
 COS92 作者批准提交 `ffa0ce2918735f5b21b22c4373a390b156e63d33`，合入 `e74815f468b7158b5555ca2e5887ad3459b74dda`。已通过的启动取消、来源变化、exact ticket、drain 及 Edge 回归按[原卡](cos92-browser-launch.md)复用。小夹具的继承 consumer 每次6个 scope 不能证明实际历史负载下15秒内启动。

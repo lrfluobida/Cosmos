@@ -278,6 +278,31 @@ test('COS93 observer retains no per-call real controller snapshots', { skip: act
   assert.equal(trace.snapshot().spans.filter((span: any) => span.name === 'controller.queue').length, 9);
 });
 
+test('COS93 observer pending and over-limit promises do not retain operation closures', { skip: actualSelected }, async () => {
+  assert.equal(typeof global.gc, 'function', 'Use --expose-gc for the small pending Promise contrast');
+  const trace = createDiagnosticObserver({ maxSpans: 1 });
+  const directPromise = new Promise(() => {}), observedPromise = new Promise(() => {}), droppedPromise = new Promise(() => {});
+  let droppedThenCalls = 0; const originalThen = droppedPromise.then;
+  Object.defineProperty(droppedPromise, 'then', { value: function (this: Promise<unknown>, ...args: Parameters<typeof originalThen>) {
+    droppedThenCalls++; return Reflect.apply(originalThen, this, args);
+  } });
+  function attach(promise: Promise<unknown>, mode: string) {
+    const payload = { tag: mode, bytes: 'x'.repeat(1024) };
+    const operation = () => { assert.equal(payload.tag, mode); return promise; };
+    const refs = [new WeakRef(payload), new WeakRef(operation)];
+    assert.equal(mode === 'direct' ? operation() : trace.span(mode, operation), promise);
+    return refs;
+  }
+  const direct = attach(directPromise, 'direct'), observed = attach(observedPromise, 'observed'), dropped = attach(droppedPromise, 'dropped');
+  for (let index = 0; index < 6; index++) { await new Promise<void>(resolve => setImmediate(resolve)); global.gc!(); }
+  await new Promise<void>(resolve => setImmediate(resolve));
+  assert.ok([directPromise, observedPromise, droppedPromise].every(promise => promise instanceof Promise));
+  const retained = { direct: direct.map(ref => !!ref.deref()), observed: observed.map(ref => !!ref.deref()), overLimit: dropped.map(ref => !!ref.deref()) };
+  assert.deepEqual(retained, { direct: [false, false], observed: [false, false], overLimit: [false, false] });
+  assert.equal(droppedThenCalls, 0, 'An unrecorded row must not install Promise settlement handlers');
+  assert.equal(trace.status().spanCount, 1); assert.equal(trace.status().dropped, 1);
+});
+
 test('COS93 observer bounds scalar records and does not retain object arguments', { skip: actualSelected }, async () => {
   const api: any = await import('./native-startup-observer.fixture.ts');
   assert.equal(typeof api.createDiagnosticObserver, 'function');
