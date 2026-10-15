@@ -14,7 +14,7 @@ import { runAcceptanceInOwnedSession } from '../../src/acceptance/runner.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { OwnedWork, cancelAndDrain } from '../../src/runtime/recovery/owned-work.ts';
 import * as host from '../../src/runtime/entrypoint-host.ts';
-import { createNativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
+import { createNativeValidationWaits, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
 
 function deferred<T = void>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 async function fixture(t: TestContext, verifyBinding: (callerSignal?: AbortSignal) => Promise<void> = async () => {}, durationMs = 60000) {
@@ -314,4 +314,26 @@ test('COS97 native runner dispatches no next input after an HTTP source failure 
     assert.deepEqual(await checked.promise, { inputs: 0, pending: 1 }); assert.equal(inputs, 0); assert.equal(report.outcome, 'failed');
     assert.ok(report.errors.some(error => error.includes(source.message))); assert.equal(report.nativeWaits?.segment.firstCause?.message, source.message);
   } finally { gate.resolve(); await failed; await f.work.cancelAndDrain('fixture complete'); }
+});
+
+test('COS97 early runner failure returns at the original cleanup budget while deferred raw stays owned', async t => {
+  const entered = deferred(), gate = deferred(), settling = deferred<number>(), source = new Error('Early fixed source rejection'); let raw!: Promise<void>;
+  const f = await fixture(t, async caller => {
+    raw = runNativeValidationRead(caller!, async () => { entered.resolve(); await gate.promise; });
+    await entered.promise; throw source;
+  }, 900000), waits = native(f), lifecycle = f.lifecycle(), original = lifecycle.nativeSegmentWaits!;
+  lifecycle.nativeSegmentWaits = { ...original, settle: deadlineAt => { settling.resolve(deadlineAt); return original.settle(deadlineAt); } };
+  const plan: any = { formatVersion: '1.0.0', projectId: 'fixture', taskId: 'browser', runId: 'fixture', reportId: 'fixture-report', specVersion: 'v1',
+    artifact: { artifactId: 'game', version: 'v1', location: 'game' }, url: 'http://127.0.0.1:32123/', viewport: { width: 1280, height: 720 },
+    acceptanceIds: ['visible'], steps: [{ id: 'visible', kind: 'assert', acceptanceId: 'visible', observation: { kind: 'visible', selector: '#game' }, expected: true, timeoutMs: 100 }] };
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base });
+  const running = runAcceptanceInOwnedSession(plan, { evidenceRoot: f.root, timeoutMs: 900000 }, lifecycle);
+  try {
+    assert.equal(await settling.promise, f.base + 3000, 'Raw settlement must use the existing physical cleanup budget');
+    t.mock.timers.tick(3001); const report = await running;
+    assert.equal(report.outcome, 'failed'); assert.ok(report.errors.some(error => error.includes('Native raw settlement')));
+    assert.equal(report.nativeWaits?.segment.rawReadsPending, 1); assert.deepEqual(f.counts(), { spawns: 0, registrations: 0, connections: 0 });
+    const drain = assert.rejects(f.work.cancelAndDrain('fixture stop', 100), /did not quiesce/); t.mock.timers.tick(100); await drain;
+  } finally { gate.resolve(); await raw; await running; await f.work.cancelAndDrain('fixture raw settled'); }
+  assert.equal(waits.snapshot().rawReads.pending, 0);
 });

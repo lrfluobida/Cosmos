@@ -295,8 +295,9 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   finally {
     nativeSegment?.revoke(executionError?.error);
     try { await screenshot('final.png', true); } catch { /* Deadline is already recorded; proceed to forced cleanup. */ }
+    const cleanupDeadline = nativeSegment ? Math.min(lifecycleDeadline, Date.now() + cleanupReserveMs) : lifecycleDeadline;
     const forceReserveMs = Math.min(1000, cleanupReserveMs);
-    const gracefulDeadline = lifecycleDeadline - forceReserveMs;
+    const gracefulDeadline = cleanupDeadline - forceReserveMs;
     const cleanup = <T>(operation: () => Promise<T>, label: string) => bounded(operation, Math.min(1000, gracefulDeadline - Date.now()), label);
     if (!forceClose) try {
       if (lifecycle) {
@@ -318,7 +319,7 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     const owned = lifecycle?.process() ?? server?.process();
     if (owned && (owned.exitCode === null && owned.signalCode === null)) {
       report.cleanup.forced = true;
-      try { await stopBrowserProcess(owned, Math.max(1, Math.min(2000, lifecycleDeadline - Date.now()))); }
+      try { await stopBrowserProcess(owned, Math.max(1, Math.min(2000, cleanupDeadline - Date.now()))); }
       catch (error) { recordError(`Forced cleanup: ${message(error)}`); }
     }
     if (owned) {
@@ -339,7 +340,7 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
       const local = failureFacts.termination?.kind === 'observation_budget' ? failureFacts.termination : null;
       recordError('Video unavailable after forced browser termination; earlier screenshots retained', local ? 'termination_evidence' : 'lifecycle', local?.stepId);
     }
-    if (nativeSegment) try { await nativeSegment.settle(lifecycleDeadline); }
+    if (nativeSegment) try { await nativeSegment.settle(cleanupDeadline); }
     catch (error) { recordError(`Native raw settlement: ${message(error)}`, 'lifecycle'); }
   }
   attributePageErrors(failureFacts, pageErrors, exceptions);

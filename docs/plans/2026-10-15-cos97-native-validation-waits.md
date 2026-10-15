@@ -259,4 +259,6 @@ consumer复核native source task/D，初始binding与完整guard在已有runNati
 
 `consumer-caller-green.tap`、`consumer-caller-strict.log`同TEMP；fake mount/transport只验证闭包及源读取，不启动browser。runtime-host/origin真实mount接线、consumer/series结束时序及诊断校验仍待完成。
 
+f704独审P2：native raw settle不能用整D剩余等待。最终截图后冻结min(D,当前时间+原cleanupReserveMs)，原graceful/force/raw settle共享剩余额度，不延长父deadline；超界report failed并保留pending与raw owner。早source失败/未spawn/独立deferred reader真实RED传D而非原3000ms→GREEN1/1、0skip、5901.8067ms、strict0：cleanup边界返回failed、rawReadsPending1、外部100ms drain仍失败，释放后才归零。`runner-cleanup-{red,green}.tap`与`runner-cleanup-strict.log`同TEMP；不重跑无delta33/legacy15组。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。
