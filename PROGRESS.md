@@ -2,11 +2,11 @@
 
 更新时间：2026-10-15
 
-## COS93 v2 OOM，下一步修正诊断观测器
+## COS93 v2 OOM记录与已审有界观测修正
 
 - v2在`5e6847ba465b863367e476aa84f4fcaa276d3301`上运行1056412ms，parent exit1、worker exit134（heap OOM）。先落盘的首段报告为原15000ms launch超时、21步skipped，PID/CDP/session未证实；final trace/preservation/result缺失，正常drain未证实。[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6183943925)已由Root精确读回，详见[研究记录](docs/research/2026-10-15-cos93-observer-retention.md)。
 - 独立后核为`POSTCHECK_NO_LIVE_RESIDUE`，没有kill/delete/recover；原TEMP owner/profile保留。238文件/61目录只与v1基线比较，非v2完整before/after；崩溃选择副本337文件/201目录/38976394字节。共享仍revision3114/715请求/¥16.901000，无新增付费，Root已解除main冻结。
-- 8-read小复现证实method mock的calls持有Promise→完整snapshot；手工wrapper不按调用累积。不能量化实际OOM占比，也不能推断v1长尾为GC。作者`cos93_implementer`的[有界观测计划](docs/plans/2026-10-15-cos93-bounded-observer.md)与记录`fb0f341779ff8afd04a77cecb887e5381f02438a`经`cos93_reviewer`独立PLAN_APPROVED、无finding；唯一merger `batch_c14_cos92_merger`合入`120113df9032c0bd4ba8b84eea918a05fced5a33`。当前计划已审、fixture/test实施中，新源码尚未批准，无第三次actual授权；COS93保持open/partial/actual-incomplete，COS94/95 scoped closed及原C14/media/human结论保持。
+- 8-read小复现证实method mock的calls持有Promise→完整snapshot；手工wrapper不按调用累积。不能量化实际OOM占比，也不能推断v1长尾为GC。作者`cos93_implementer`的[有界观测计划](docs/plans/2026-10-15-cos93-bounded-observer.md)与记录`fb0f341779ff8afd04a77cecb887e5381f02438a`经`cos93_reviewer`独立PLAN_APPROVED、无finding；唯一merger `batch_c14_cos92_merger`合入`120113df9032c0bd4ba8b84eea918a05fced5a33`。有界观测实现`40b9a310cc15deab962b92d805e0ed1edc1bacd3`经`cos93_reviewer`独立复审APPROVED，无剩余finding；唯一merger `batch_c14_cos92_merger`合入`c39819036464495353bedd72ba7d46891013527f`，[公开源码批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6187110787)已由Root精确读回。主线三文件strict退出0，8-read保留、正常stop/drain、restore/I/O失败及pending Promise代表4/4、0skip，5521.65ms；原12/12、delta4/4及无变化生产typecheck/build证据复用。仅修改test diagnostics；无第三次actual授权；COS93保持open/partial/actual-incomplete，COS94/95 scoped closed及原C14/media/human结论保持。
 
 ## 此前COS93 v1与源码集成记录
 
