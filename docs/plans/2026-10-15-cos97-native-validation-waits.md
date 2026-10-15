@@ -253,4 +253,10 @@ Root确认合并signal无法保留后生效controller优先，授权trusted opti
 
 entrypoint native validation+candidateConsumer装配同一waits，固定case/window/task/当前authority D、原controller/work/task signals和原work.run raw callback；完整prebind传root readSignal，consumer context与nativeIO传同一对象，拒绝替换对象，generic/human不构造。consumer/mount/diagnostics剩余接线仍在后续，尚无整卡完成结论。`controller-priority-{api-red,red,green}.tap`、`controller-priority-strict.log`、`controller-producer-{red,green}.tap`、`controller-producer-strict.log`同TEMP。
 
+## 作者源码切片 18：consumer 原caller 与实际binding（局部）
+
+consumer复核native source task/D，初始binding与完整guard在已有runNativeValidationRead预登记owner后开始；跨context继续原caller，组合active只给实际binding/manifest读取，逐await检查并把同一native waits传transport。generic无caller保留context.requireCurrent无参调用与原guard读取顺序，不添加完整scope。使用有效SOURCE/TEMP冻结plan/candidate/media正例，fake transport phase内首metadata真实读取后取消，RED原caller为undefined→GREEN1/1、0skip、19762.8347ms，context收到同一phase signal、下一读取零派发（总1）、transport同一waits，strict0。最初preparation fixture使用coding task替代冻结plan任务导致binding不一致的red保留但不算有效；以原冻结plan任务、先验证完整binding的`consumer-caller-red-2.tap`为有效RED。
+
+`consumer-caller-green.tap`、`consumer-caller-strict.log`同TEMP；fake mount/transport只验证闭包及源读取，不启动browser。runtime-host/origin真实mount接线、consumer/series结束时序及诊断校验仍待完成。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

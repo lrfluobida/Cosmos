@@ -13,6 +13,7 @@ import { requireThat } from './design.ts';
 import { diagnoseBuild } from '../../repair/browser-diagnostics.ts';
 import type { TaskContract } from '../../../contracts/types.ts';
 import type { BrowserBuildReport } from '../../entrypoint-host.ts';
+import { isNativeValidationWaits, runNativeValidationRead } from '../../../acceptance/native-validation-waits.ts';
 
 export function diagnoseTransferBuild(task: TaskContract, report: BrowserBuildReport, path: string): BrowserCandidateConsumerResult['diagnostics'] {
   if (typeof report.work === 'string' && Array.isArray(report.results) && report.results.length > 0 && report.results.length <= 2
@@ -26,18 +27,30 @@ export function diagnoseTransferBuild(task: TaskContract, report: BrowserBuildRe
 
 /** Executes trusted immutable plans; all mutable authority remains in the original host/controller. */
 export async function consumeTransferCandidate(context: BrowserCandidateConsumerContext, options: {
-  input: BindInput; sourceVersion: string; mount(verifyBinding: () => Promise<void>): Promise<() => Promise<void>>;
+  input: BindInput; sourceVersion: string; mount(verifyBinding: (callerSignal?: AbortSignal) => Promise<void>): Promise<() => Promise<void>>;
 }): Promise<BrowserCandidateConsumerResult> {
-  const bound = await bindTransferAcceptance(options.input), series = transferPersistentSeries(bound, options.sourceVersion, `${context.task.taskId}-persistent`);
+  const native = context.nativeValidationWaits;
+  requireThat(native === undefined || isNativeValidationWaits(native) && native.taskId === context.task.taskId && native.deadlineAt === context.deadlineAt,
+    'consumer native wait source differs from its exact task/deadline');
+  const bound = native ? await runNativeValidationRead(native.readSignal, active => bindTransferAcceptance(options.input, active)) : await bindTransferAcceptance(options.input);
+  const series = transferPersistentSeries(bound, options.sourceVersion, `${context.task.taskId}-persistent`);
   requireThat(series.segments.every(segment => segment.plan.taskId === context.task.taskId), 'actual task differs from the frozen plans');
   const evidenceRoot = join(context.root, 'browser-evidence'), first = series.segments[0].plan;
   const reportPath = [first.projectId, first.artifact.artifactId, first.artifact.version, first.runId, series.reportId, 'report.json'].join('/');
-  const guard = async () => {
-    context.signal.throwIfAborted(); await context.requireCurrent(); context.signal.throwIfAborted();
-    requireThat(Date.now() < context.deadlineAt && isDeepStrictEqual(await bindTransferAcceptance(options.input), bound), 'consumer deadline or frozen input binding changed');
-    const bytes = await regularFile(context.root, context.mediaArtifact.location + '/public/assets/manifest.json');
+  const guard = async (callerSignal?: AbortSignal) => {
+    const caller = callerSignal ?? native?.readSignal;
+    const verify = async (active?: AbortSignal) => {
+    context.signal.throwIfAborted(); caller?.throwIfAborted();
+    if (caller) await context.requireCurrent(caller); else await context.requireCurrent();
+    context.signal.throwIfAborted(); caller?.throwIfAborted();
+    requireThat(Date.now() < context.deadlineAt && isDeepStrictEqual(await bindTransferAcceptance(options.input, active), bound), 'consumer deadline or frozen input binding changed');
+    context.signal.throwIfAborted(); caller?.throwIfAborted();
+    const bytes = await regularFile(context.root, context.mediaArtifact.location + '/public/assets/manifest.json', active);
+    context.signal.throwIfAborted(); caller?.throwIfAborted();
     requireThat(createHash('sha256').update(bytes).digest('hex') === context.manifestSha256
       && isDeepStrictEqual(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)), context.media), 'actual current media manifest changed');
+    };
+    if (caller) await runNativeValidationRead(caller, active => verify(active)); else await verify();
   };
   await guard();
   const folder = await safePath(evidenceRoot, dirname(reportPath));
@@ -49,6 +62,7 @@ export async function consumeTransferCandidate(context: BrowserCandidateConsumer
   let report;
   try {
     report = await context.playPersistent(series, { evidenceRoot, deadlineAt: context.deadlineAt, signal: context.signal, verifyBinding: guard,
+      ...(native ? { nativeValidationWaits: native } : {}),
       channel: 'msedge', headless: true, mediaObservations: request });
   } finally { await unmount(); }
   await guard();

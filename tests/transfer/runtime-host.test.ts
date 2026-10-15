@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFile, writeFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { transferFixture } from './runtime-host.fixture.ts';
+import { transferFixture, hash } from './runtime-host.fixture.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import { createArtifactRegistry } from '../../src/artifacts/index.ts';
 import type { TaskContract } from '../../src/contracts/index.ts';
@@ -13,6 +13,9 @@ import { bindTransferAcceptance, verifyPreparedTransferAcceptance } from '../../
 import type { BindInput } from '../../src/runtime/adapters/transfer/binding.ts';
 import { createTransferDesignValidation } from '../../src/runtime/adapters/transfer/design-validation.ts';
 import type { BrowserPreparationContext } from '../../src/runtime/entrypoint-preparation.ts';
+import type { BrowserCandidateConsumerContext } from '../../src/runtime/entrypoint-preparation.ts';
+import { consumeTransferCandidate } from '../../src/runtime/adapters/transfer/runtime-acceptance.ts';
+import { createNativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
 
 async function api() {
   const result: any = await import('../../probes/transfer/runtime-host.ts').catch(error => {
@@ -190,6 +193,36 @@ test('COS97 design seal preserves a caller ENOENT reason during its final valid 
   }); syncBuiltinESMExports();
   try { await assert.rejects(validation.seal(task, undefined, caller.signal), error => error === reason); assert.equal(reads, 1); }
   finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+});
+
+test('COS97 consumer forwards the exact native phase caller and stops binding after one cancelled read', async t => {
+  const f = await pipeline(t), saved = JSON.parse(await readFile(join(f.root, 'host-transfer-prepared-inputs.json'), 'utf8'));
+  const prepared = saved.plans.v1, first = prepared.segments[0], candidate = prepared.binding.candidate, task = { ...f.result[2], taskId: first.plan.taskId };
+  const input: BindInput = { root: f.root, registry: f.registry, frozen: saved.frozen,
+    currentRequirement: { artifact: saved.frozen.requirement, specVersion: saved.frozen.specVersion }, candidate, planArtifact: prepared.artifact,
+    url: first.plan.url, runId: prepared.binding.runId, reportId: first.plan.reportId.slice(0, -('-' + first.id).length), taskId: task.taskId, prepared };
+  assert.deepEqual(await bindTransferAcceptance(input), prepared);
+  const mediaArtifact = f.result[1].artifacts[0], capture = await f.registry.getCapture(mediaArtifact), bytes = await readFile(join(f.root, mediaArtifact.location, 'public/assets/manifest.json'));
+  const waits = createNativeValidationWaits({ caseId: f.window.caseId, windowId: f.window.windowId, taskId: task.taskId,
+    deadlineAt: Date.parse(f.window.deadlineAt), signal: f.input.work.signal, controllerSignal: f.controller.signal, trackRaw: start => f.input.work.run(start) });
+  const reason = new Error('Consumer phase cancelled after actual metadata'), original = fs.promises.readFile; let reads = 0, received: AbortSignal | undefined, expected: AbortSignal | undefined, transported: unknown;
+  let segment: ReturnType<typeof waits.beginSegment> | undefined;
+  const context: BrowserCandidateConsumerContext = { root: f.root, task, candidate, project: join(f.root, candidate.location),
+    cleanDelivery: { project: join(f.root, candidate.location), url: new URL(first.plan.url).origin, requireCurrent: async () => {} },
+    mediaArtifact, media: capture.metadata.media!, manifestSha256: hash(bytes), signal: f.input.work.signal, deadlineAt: waits.deadlineAt, nativeValidationWaits: waits,
+    requireCurrent: async caller => { received = caller; }, playPersistent: async (_series, options) => {
+      transported = options.nativeValidationWaits; segment = waits.beginSegment('consumer-phase');
+      return segment.runStage('prepare_authority', async life => {
+        expected = life.signal;
+        t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof original>) => {
+          const raw = await original(...args); if (String(args[0]).startsWith(f.root)) { reads++; if (reads === 1) segment!.revoke(reason); } return raw;
+        }); syncBuiltinESMExports(); await options.verifyBinding(life.signal); throw new Error('Cancelled guard must reject before transport');
+      });
+    } };
+  try {
+    await assert.rejects(consumeTransferCandidate(context, { input, sourceVersion: 'a'.repeat(40), mount: async () => async () => {} }), error => error === reason);
+    await segment!.settle(waits.deadlineAt); assert.equal(received, expected); assert.equal(reads, 1); assert.equal(transported, waits);
+  } finally { t.mock.restoreAll(); syncBuiltinESMExports(); segment?.revoke(); await segment?.settle(waits.deadlineAt); }
 });
 
 test('invalid semantic design preserves raw bytes and stops art/coding without claiming coding repair', async t => {
