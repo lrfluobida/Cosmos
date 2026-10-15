@@ -13,6 +13,7 @@ import type { ContentSignature, RecoveryOrigin } from './recovery/task-journal.t
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { validateTransferDesign } from './adapters/transfer/oracle.ts';
 import type { FrozenTransferDesign } from './adapters/transfer/binding.ts';
+import { runNativeValidationRead } from '../acceptance/native-validation-waits.ts';
 
 const sha = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
 const decode = (bytes: Uint8Array) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -96,10 +97,10 @@ export function createHistoricalPassedStages(input: {
     const signatures = new Map<string, ContentSignature[number]>(), captureFiles = new Map<string, Map<string, Buffer>>();
     const signature = async (refs: ArtifactReference[], journal: TaskJournal): Promise<ContentSignature> => {
       const locations = [...new Set(refs.map(ref => ref.location))].sort();
-      await Promise.all(locations.map(async location => {
-        signal.throwIfAborted();
-        if (!signatures.has(location)) signatures.set(location, (await journal.signature([refs.find(ref => ref.location === location)!], signal))[0]);
-      }));
+      await Promise.all(locations.map(location => runNativeValidationRead(signal, async active => {
+        active.throwIfAborted();
+        if (!signatures.has(location)) signatures.set(location, (await journal.signature([refs.find(ref => ref.location === location)!], active))[0]);
+      })));
       return locations.map(location => signatures.get(location)!);
     };
     const requireSignature = async (fixed: ContentSignature, refs: ArtifactReference[], journal: TaskJournal) => {
@@ -134,10 +135,10 @@ export function createHistoricalPassedStages(input: {
         && (index ? sameValue(task.dependsOn.map(dep => ({ taskId: dep.taskId, state: dep.state, requiredState: dep.requiredState })), [{ taskId: expected.designTaskId, state: 'passed', requiredState: 'passed' }]) : !task.dependsOn.length), 'stage task or PASS contract changed');
       const start = time(attempt.startedAt), end = time(attempt.endedAt); requireThat(start <= end && end <= Date.now(), 'attempt time changed');
       const raw: Record<string, any> = {};
-      await Promise.all(receiptNames.map(async name => {
-        signal.throwIfAborted(); digest(stage.receipts[name]); const receipt = await regularFile(originalRoot, `journal/task-${encodeURIComponent(taskId)}/${name}.json`, signal);
+      await Promise.all(receiptNames.map(name => runNativeValidationRead(signal, async active => {
+        active.throwIfAborted(); digest(stage.receipts[name]); const receipt = await regularFile(originalRoot, `journal/task-${encodeURIComponent(taskId)}/${name}.json`, active);
         requireThat(sha(receipt) === stage.receipts[name], `${name} receipt bytes changed`); raw[name] = decode(receipt);
-      }));
+      })));
       const origin = raw.origin as RecoveryOrigin;
       requireThat(origin.formatVersion === 3 && origin.artifactRoot === originalRoot && origin.sessionRoot === join(originalRoot, 'sessions')
         && origin.prepared.workspace === join(originalRoot, `validation/${expected.caseId}/${taskId}/workspace`)

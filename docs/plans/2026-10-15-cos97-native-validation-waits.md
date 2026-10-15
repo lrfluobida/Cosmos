@@ -191,4 +191,6 @@ history.verify的capture/receipt/signature/实际字节与目标副本读取贯�
 
 日志`history-journal-red.tap`、`history-journal-green.tap`、`history-journal-compat.tap`、`history-journal-strict.log`在同TEMP。仅真实SOURCE/TEMP固定回执与合成已通过stage，没有实际账本/715或浏览器。consumer/host/origin等余下闭包接线仍待完成。
 
+2801历史切片独审补正两组Promise.all的内层raw：仅native关联下，每个signature/receipt分支真实开始前经既有runNativeValidationRead取得host所有权，先拒仍及时传播原Error，其他已派发项保持pending；普通路径/同调用复用/读序保持。两个已开始receipt一项先取消、另一deferred未释放的单项RED缺pending→GREEN1/1、0skip、13003.2098ms，释放前drain失败、释放后才settled，strict0。日志`history-batch-{red,green}.tap`与`history-batch-strict.log`同TEMP；原20秒2+2等无delta组按指示复用。
+
 Root批准记录（2026-10-15）：设计 `db0366bdd64398067c58272110beb460da585c12` 经 `cos97_reviewer` 独立 SPEC/ADR/PLAN APPROVED、无剩余finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/98#issuecomment-6190820982)已由Root精确读回，唯一merger合入 `eaeabf8d60cf2897e0bf538f3f703566bb3c8762`。ADR0002为accepted；设计合入后实施授权生效，作者按已审计划独立实施及必要免费验证，源码仍待独审，actual/paid未授权。

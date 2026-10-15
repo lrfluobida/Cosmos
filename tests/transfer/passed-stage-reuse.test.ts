@@ -10,6 +10,8 @@ import { createArtifactRegistry } from '../../src/artifacts/index.ts';
 import fs from 'node:fs';
 import { syncBuiltinESMExports } from 'node:module';
 import { TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+import { createNativeValidationWaits, associateNativeReadSignal, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
 
 async function api() {
   const value: any = await import('../../src/runtime/historical-passed-stages.ts').catch(error => {
@@ -75,6 +77,32 @@ test('COS97 journal read-only methods preserve cancellation without wrapping it 
       await assert.rejects(pending, error => error === reason); assert.equal(reads, 1);
     } finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
   }
+});
+
+test('COS97 historical parallel receipts remain owned when one rejects before a deferred sibling settles', async t => {
+  const a = await api(), f = await passedStageFixture(t), caller = new AbortController(), work = new OwnedWork();
+  const waits = createNativeValidationWaits({ caseId: 'current-case', windowId: 'current-window', taskId: 'current-coding',
+    deadlineAt: Date.now() + 120_000, signal: work.signal, trackRaw: start => work.run(start) });
+  const signal = associateNativeReadSignal(waits.readSignal, AbortSignal.any([waits.readSignal, caller.signal]));
+  const gate = () => { let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve }; };
+  const entered = [gate(), gate()], release = [gate(), gate()], reason = new Error('one historical receipt cancelled');
+  const files = ['origin', 'author'].map(name => join(f.root, `journal/task-${f.result[0].taskId}/${name}.json`));
+  const read = fs.promises.readFile;
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+  t.mock.method(fs.promises, 'readFile', async (...args: Parameters<typeof read>) => {
+    const bytes = await read(...args), index = files.indexOf(String(args[0]));
+    if (index >= 0) { entered[index].resolve(); await release[index].promise; }
+    return bytes;
+  });
+  syncBuiltinESMExports();
+  const pending = runNativeValidationRead(signal, active => a.createHistoricalPassedStages(f.input).verify(active));
+  const failed = assert.rejects(pending, error => error === reason);
+  try {
+    await Promise.all(entered.map(item => item.promise)); caller.abort(reason); release[0].resolve(); await failed;
+    assert.ok(waits.snapshot().rawReads.pending > 0, 'The deferred sibling must outlive the outer history verification');
+    await assert.rejects(work.cancelAndDrain('fixture historical batch stop', 100), /did not quiesce/);
+  } finally { release.forEach(item => item.resolve()); await work.cancelAndDrain('fixture historical batch released'); }
+  assert.equal(waits.snapshot().rawReads.pending, 0);
 });
 
 test('actual manifest bytes and a resigned foreign source identity fail before import writes', async t => {
