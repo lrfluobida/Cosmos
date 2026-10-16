@@ -61,7 +61,7 @@ function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number,
   }
   return segment;
 }
-function validNativeCleanup(report: AcceptanceReport, deadlineAt: number) {
+export function validNativeCleanup(report: AcceptanceReport, deadlineAt: number) {
   const cleanup = report.nativeWaits?.cleanup;
   check(object(cleanup) && only(cleanup, ['startedAt', 'endedAt', 'deadlineAt', 'gracefulDeadlineAt', 'rawPending', 'steps'])
     && time(cleanup.startedAt) && time(cleanup.endedAt) && cleanup.startedAt >= report.nativeWaits!.segment.stages[3].endedAt!

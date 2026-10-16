@@ -28,6 +28,7 @@ import { publishReceipt } from '../../src/runtime/recovery/receipt-file.ts';
 import { createNativeBrowserHostIO } from '../../src/runtime/entrypoint-host.ts';
 import type { BrowserHostIO } from '../../src/runtime/entrypoint-host.ts';
 import { createTransferReusedConsumerHost } from '../../src/runtime/adapters/transfer/runtime-host.ts';
+import { validNativeCleanup } from '../../src/runtime/adapters/transfer/persistent-diagnostics.ts';
 import { deriveTransferValidationCaseFourteenDeclaration } from '../../probes/transfer/validation-case-fourteen-declaration.ts';
 import { createTransferCaseFourteenAdmissionQuote, transferCaseFourteenHistoricalAccountingHash, requireTransferCaseFourteenAccountingSources } from '../../probes/transfer/validation-case-fourteen-entry.ts';
 import { captureTransferCaseFourteenSource, requireTransferCaseFourteenSource, requireTransferCaseFourteenTemplate, requireTransferCaseFourteenToolchain } from '../../probes/transfer/validation-case-fourteen-source.ts';
@@ -38,7 +39,7 @@ import type { PersistentAcceptanceReport } from '../../src/acceptance/persistent
 import { PERSISTENT_PROFILE_CAPABILITY, validatePersistentSeries } from '../../src/acceptance/persistent.ts';
 import type { PersistentAcceptanceSeries } from '../../src/acceptance/persistent.ts';
 import type { OwnedAcceptanceLifecycle } from '../../src/acceptance/runner.ts';
-import { associateNativeReadSignal, isNativeValidationWaits, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
+import { associateNativeReadSignal, isNativeValidationWaits, NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT, runNativeValidationRead } from '../../src/acceptance/native-validation-waits.ts';
 import type { NativeReadLifetime, NativeValidationWaits } from '../../src/acceptance/native-validation-waits.ts';
 import { createMethodPatches, openDiagnosticProgress, recordedProcessesExited, writeProtectedBefore } from './native-startup-observer.fixture.ts';
 import type { DiagnosticObserver, DiagnosticPatches } from './native-startup-observer.fixture.ts';
@@ -350,6 +351,9 @@ export async function navigationReportVerified(report: PersistentAcceptanceRepor
       && report.capability === PERSISTENT_PROFILE_CAPABILITY && report.deadlineAt === native.deadlineAt && report.outcome === 'failed');
     const first = proof.series.segments[0], row = report.segments[0].report, stop = proof.mode.expectedReportError();
     assert.ok(proof.mode.stoppedReport(row) && report.segments[0].id === first.id && sameValue(row.plan, first.plan));
+    if (native.contractVersion === NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT) {
+      try { validNativeCleanup(row, native.deadlineAt); } catch { check(); return false; }
+    }
     assert.ok(report.errors.length === 1 && sameValue(report.failureFacts, { formatVersion: 1, errors: [
       { errorIndex: 0, error: report.errors[0], phase: 'segment_report', kind: 'segment_failed', segmentId: first.id }] }));
     assert.ok(sameValue(row.errors, [stop]) && sameValue(row.failureFacts, { formatVersion: 1, termination: null,

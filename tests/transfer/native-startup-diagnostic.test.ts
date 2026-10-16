@@ -915,7 +915,7 @@ async function stoppedNavigationSeries(t: TestContext, snapshot = false) {
   const consumerEndedAt = Date.now(), consumerStartedAt = f.waits.snapshot().consumerStartedAt!;
   const envelope = { diagnostics, nativeWaits: { contractVersion: f.waits.contractVersion, consumerStartedAt, consumerEndedAt,
     consumerElapsedMs: consumerEndedAt - consumerStartedAt } };
-  return { ...f, api, mode, root, report, envelope, proof: { mode, evidenceRoot: root, series } };
+  return { ...f, api, mode, root, report, task, envelope, proof: { mode, evidenceRoot: root, series } };
 }
 
 test('COS93 navigation diagnostic planned stop accepts real production false diagnosis without promoting game outcome', async t => {
@@ -972,4 +972,25 @@ test('native readiness snapshot result binds real source version and keeps the p
   f.report.nativeWaits!.contractVersion = 'native-validation-waits/2';
   assert.equal(await f.api.navigationReportVerified(f.report, { ...f.waits }, f.envelope, f.proof), false);
   assert.deepEqual(f.report, original); assert.equal(f.envelope.diagnostics.reportValid, false);
+});
+
+for (const changed of ['missing', 'deadline', 'rawPending', 'videoFailure'] as const) test(`native readiness snapshot rejects ${changed} cleanup in a branded planned stop with matching durable raw`, async t => {
+  const f = await stoppedNavigationSeries(t, true), row = f.report.segments[0].report;
+  const sourceSegments = f.waits.snapshot().segments, cleanup = row.nativeWaits!.cleanup;
+  assert.ok(cleanup); assert.equal(f.mode.stoppedReport(row), true);
+  if (changed === 'missing') delete row.nativeWaits!.cleanup;
+  else if (changed === 'deadline') cleanup.deadlineAt++;
+  else if (changed === 'rawPending') cleanup.rawPending = 1;
+  else cleanup.steps.find(step => step.step === 'video_stop')!.outcome = 'failed';
+  await writeFile(join(f.root, row.reportPath), JSON.stringify(row) + '\n', 'utf8');
+  await writeFile(join(f.root, f.report.reportPath), JSON.stringify(f.report) + '\n', 'utf8');
+  const { diagnosePersistentBrowser } = await import('../../src/runtime/adapters/transfer/persistent-diagnostics.ts');
+  const diagnostics = await diagnosePersistentBrowser(f.task, f.report, { series: f.proof.series, deadlineAt: f.deadlineAt,
+    sourceVersion: f.proof.series.sourceVersion, reportPath: f.report.reportPath, nativeWaitContract: f.waits.contractVersion },
+  { evidenceRoot: f.root, verifyBinding: async () => {}, signal: f.work.signal });
+  assert.equal(diagnostics.reportValid, false); assert.deepEqual(diagnostics.passedChecks, []);
+  assert.deepEqual(diagnostics.issues.map(issue => ({ checkId: issue.checkId, classification: issue.classification })),
+    [{ checkId: 'persistent/report', classification: 'insufficient_evidence' }]);
+  assert.equal(f.mode.stoppedReport(row), true); assert.deepEqual(f.waits.snapshot().segments, sourceSegments);
+  assert.equal(await f.api.navigationReportVerified(f.report, f.waits, { ...f.envelope, diagnostics }, f.proof), false);
 });
