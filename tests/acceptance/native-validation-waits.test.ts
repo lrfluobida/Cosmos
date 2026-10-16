@@ -50,6 +50,29 @@ test('COS98 snapshot factory fixes version and HTTP caps and binds the execution
   await work.cancelAndDrain('fixture cleanup');
 });
 
+for (const expiresAt of ['http_pre_authority', 'http_post_authority'] as const) test(`COS98 ${expiresAt} expires at five seconds and retains its late raw check`, async t => {
+  const work = new OwnedWork(), base = Date.now(), entered = deferred(), release = deferred(); let checks = 0, bodies = 0;
+  const waits = api.createNativeSnapshotValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'task', deadlineAt: base + 600000,
+    signal: work.signal, trackRaw: work.run.bind(work), requireExecution: async () => {
+      checks++; if (checks === (expiresAt === 'http_pre_authority' ? 1 : 2)) { entered.resolve(); await release.promise; throw new Error('Late authority rejection'); }
+    } });
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: base }); t.after(() => t.mock.timers.reset());
+  const segment = waits.beginSegment('first');
+  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport']) await segment.runStage(stage, async () => {});
+  segment.beginNavigation();
+  const pending = waits.runRequest(async (request: any) => {
+    await request.runStage('http_pre_authority', (life: any) => api.runNativeValidationRead(life.signal, () => waits.requireExecution(life.signal)));
+    await request.runStage('http_body', async () => { bodies++; });
+    await request.runStage('http_post_authority', (life: any) => api.runNativeValidationRead(life.signal, () => waits.requireExecution(life.signal)));
+  });
+  const failed = assert.rejects(pending, (error: any) => error.stage === expiresAt);
+  await entered.promise; t.mock.timers.tick(5000); await failed;
+  assert.equal(bodies, expiresAt === 'http_pre_authority' ? 0 : 1); assert.ok(waits.snapshot().rawReads.pending > 0);
+  assert.equal(segment.snapshot().firstCause.stage, expiresAt); release.resolve();
+  await segment.settle(base + 6000); assert.equal(waits.snapshot().rawReads.pending, 0);
+  await work.cancelAndDrain('fixture cleanup');
+});
+
 test('COS97 fixed preparation accepts 25 seconds and expires at 60 seconds without configurable caps', async t => {
   const f = fixture();
   t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());

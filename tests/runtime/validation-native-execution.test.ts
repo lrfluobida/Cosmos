@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 import { groupFixture } from './validation-group.fixture.ts';
+import { RunController } from '../../src/runtime/run.ts';
 
 async function fixture(t: test.TestContext) {
   const f = await groupFixture(t), value = await f.claim(await f.declaration('cos20-native-execution'));
@@ -30,9 +31,13 @@ test('COS98 live execution rejects mismatched binding and unknown tasks', async 
     await assert.rejects(f.check({ ...f.binding, ...change }), /case|window|task|deadline|grant/i);
 });
 
-for (const mode of ['reserved', 'unknown', 'requests', 'stop', 'finished', 'closed'] as const) test(`COS98 live execution rejects ${mode} using controller state`, async t => {
+for (const mode of ['reserved', 'case-budget', 'unknown', 'requests', 'stop', 'finished', 'closed'] as const) test(`COS98 live execution rejects ${mode} using controller state`, async t => {
   const f = await fixture(t);
   if (mode === 'reserved') await f.controller.reserve(f.request(f, 'coding', 'full-task', f.declaration.grants.coding.amountMicroCny));
+  if (mode === 'case-budget') {
+    await f.register(f, 'art'); await f.controller.reserve(f.request(f, 'art', 'full-case-art', 2500000));
+    await f.controller.reserve(f.request(f, 'coding', 'full-case-coding', 2500000));
+  }
   if (mode === 'unknown') {
     await f.controller.reserve(f.request(f, 'planning', 'uncertain', 100)); await f.controller.admit('uncertain'); await f.controller.markUnknown('uncertain', f.evidence);
   }
@@ -46,7 +51,22 @@ for (const mode of ['reserved', 'unknown', 'requests', 'stop', 'finished', 'clos
     f.task.state = 'cancelled'; f.task.stateReason = 'Synthetic completed execution';
     await f.controller.saveTask(f.task, { role: 'system', actorId: 'fixture' });
   }
-  await assert.rejects(f.check(), /authority|admission|closed|stop|cancel|active/i);
+  if (mode === 'stop') await assert.rejects(f.check(), error => error === f.controller.signal.reason);
+  else await assert.rejects(f.check(), /authority|admission|closed|stop|cancel|active/i);
+});
+
+test('COS98 live execution expires through the original durable controller queue', async t => {
+  const f = await fixture(t); t.mock.method(f.controller as any, 'now', () => f.binding.deadlineAt);
+  await assert.rejects(f.check(), error => error === f.controller.signal.reason);
+  const state = await f.controller.read(); assert.equal(state.validation!.cases.at(-1)!.stopReason!.code, 'deadline');
+  assert.equal(state.run.state, 'waiting_user');
+});
+
+test('COS98 accounting-only validation owners cannot execute fixed candidates', async t => {
+  const f = await fixture(t); await f.controller.close();
+  const accounting = await RunController.openValidationCase({ ...f, caseId: f.window.caseId, windowId: f.window.windowId, accountingOnly: true });
+  try { await assert.rejects(accounting.requireNativeValidationExecution(f.binding, new AbortController().signal), /Accounting-only/i); }
+  finally { await accounting.close(); }
 });
 
 test('COS98 live execution preserves exact caller cancellation before and inside the serial queue', async t => {

@@ -155,14 +155,15 @@ async function consumerPipeline(t: any, repair = false, mutateMedia = false, mut
 test('COS40 explicit consumer factory is source-owned and separate from default preparation', () => {
   assert.equal(typeof (runtime as any).createTransferConsumerHost, 'function', 'COS40 explicit consumer factory is missing');
 });
-test('COS97 real mounted native consumer shares its wait owner through HTTP and published envelopes', async t => {
+test('COS98 real mounted native consumer shares its snapshot wait owner through HTTP and published envelopes', async t => {
   const f = await consumerPipeline(t);
   assert.equal(f.seriesCalls, 1); assert.equal(f.result[2].state, 'passed', JSON.stringify(f.result[2].stateReason));
   const envelope = JSON.parse(await readFile(join(f.root, `evidence/${f.result[2].taskId}/browser.json`), 'utf8'));
   const raw = JSON.parse(await readFile(join(f.root, envelope.reportPath), 'utf8'));
-  assert.equal(envelope.nativeWaits.contractVersion, 'native-validation-waits/1'); assert.ok(envelope.nativeWaits.consumerElapsedMs > 0);
+  assert.equal(envelope.nativeWaits.contractVersion, 'native-validation-waits/2'); assert.ok(envelope.nativeWaits.consumerElapsedMs > 0);
   assert.ok(raw.nativeWaits.consumerStartedAt <= Date.parse(raw.startedAt)); assert.ok(!Object.hasOwn(raw.nativeWaits, 'consumerEndedAt'));
   assert.ok(raw.nativeWaits.segments.every((segment: any) => segment.state === 'closed' && segment.http.started > 0 && segment.http.pending === 0 && segment.http.rejected === 0));
+  assert.ok(raw.nativeWaits.segments.every((segment: any) => JSON.stringify(segment.http.stages.map((stage: any) => stage.capMs)) === '[5000,15000,5000]'));
 });
 test('COS40 consumer envelope rejects late origin receipt drift before returning a callback result', async t => {
   const f = await transferFixture(t), host = await (runtime as any).createTransferConsumerHost(f.input); t.after(() => host.closePreparation());

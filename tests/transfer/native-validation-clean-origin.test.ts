@@ -10,6 +10,7 @@ import { withCleanDelivery, type CleanDelivery } from '../../src/runtime/entrypo
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import * as nativeApi from '../../src/acceptance/native-validation-waits.ts';
+import { groupFixture } from '../runtime/validation-group.fixture.ts';
 
 const html = '<p>独立干净交付</p>', binding = { caseId: 'case', windowId: 'window', sourceVersion: 'a'.repeat(40),
   requirementSha256: 'b'.repeat(64), runId: 'run', specVersion: '1' };
@@ -23,20 +24,21 @@ async function navigation(segment: NativeSegmentWaits) {
   for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
   segment.beginNavigation();
 }
-async function fixture(t: test.TestContext, snapshotExecution = false) {
+async function fixture(t: test.TestContext, snapshotExecution = false, executionBinding?: { caseId: string; windowId: string; taskId: string; deadlineAt: number; controllerSignal: AbortSignal }) {
   const root = await mkdtemp(join(tmpdir(), 'cos97-clean-origin-')), project = join(root, candidate.location), owner = new AbortController(), work = new OwnedWork(owner.signal);
   await mkdir(join(project, 'dist'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), html, 'utf8');
   const rawFailures: unknown[] = [];
   let execution: (signal: AbortSignal) => Promise<void> = async () => {};
-  const waitInput = { caseId: 'case', windowId: 'window', taskId: 'host', deadlineAt: Date.now() + 600000,
-    signal: work.signal, controllerSignal: owner.signal, trackRaw: <T>(start: (signal: AbortSignal) => Promise<T>) => { const raw = work.run(start); void raw.then(() => {}, error => rawFailures.push(error)); return raw; } };
+  const waitInput = { caseId: 'case', windowId: 'window', taskId: 'host', deadlineAt: Date.now() + 600000, controllerSignal: owner.signal, ...executionBinding,
+    signal: work.signal, trackRaw: <T>(start: (signal: AbortSignal) => Promise<T>) => { const raw = work.run(start); void raw.then(() => {}, error => rawFailures.push(error)); return raw; } };
   if (snapshotExecution) assert.equal(typeof (nativeApi as any).createNativeSnapshotValidationWaits, 'function', 'The fixed-candidate factory is required');
   const waits: ReturnType<typeof createNativeValidationWaits> = snapshotExecution
     ? (nativeApi as any).createNativeSnapshotValidationWaits({ ...waitInput, requireExecution: (signal: AbortSignal) => execution(signal) }) : createNativeValidationWaits(waitInput);
   const cleanupFailures: unknown[] = [], retainCleanupFailure = (error: unknown) => { cleanupFailures.push(error); work.retainCleanupFailure(error); };
   let scope: (signal?: AbortSignal) => Promise<void> = async () => {}, bindingGuard: (signal?: AbortSignal) => Promise<void> = async () => {};
-  const origin = await reserveTransferOrigin({ root, binding, resume: false, signal: work.signal, controllerSignal: owner.signal, retainCleanupFailure, requireScope: signal => scope(signal) });
-  const upstream = createServer((_request, response) => { response.writeHead(200); response.end(html); });
+  const origin = await reserveTransferOrigin({ root, binding: { ...binding, caseId: waitInput.caseId, windowId: waitInput.windowId }, resume: false, signal: work.signal, controllerSignal: waitInput.controllerSignal, retainCleanupFailure, requireScope: signal => scope(signal) });
+  let upstreamBody = html;
+  const upstream = createServer((_request, response) => { response.writeHead(200); response.end(upstreamBody); });
   await new Promise<void>(done => upstream.listen(0, '127.0.0.1', done));
   const address = upstream.address(); assert.ok(address && typeof address === 'object');
   const payloads: Buffer[] = [];
@@ -52,7 +54,8 @@ async function fixture(t: test.TestContext, snapshotExecution = false) {
     if (closeError) assert.ok(cleanupFailures.includes(closeError));
   });
   return { root, project, owner, work, waits, origin, upstream, clean, payloads, rawFailures, cleanupFailures, retainCleanupFailure, mount,
-    setScope(value: typeof scope) { scope = value; }, setBinding(value: typeof bindingGuard) { bindingGuard = value; }, setExecution(value: typeof execution) { execution = value; } };
+    setScope(value: typeof scope) { scope = value; }, setBinding(value: typeof bindingGuard) { bindingGuard = value; }, setExecution(value: typeof execution) { execution = value; },
+    setBody(value: string) { upstreamBody = value; } };
 }
 
 test('COS98 fixed candidate HTTP checks live execution twice without repeating source guards', async t => {
@@ -76,6 +79,59 @@ test('COS98 fixed candidate still responds during source drift and the next full
 test('COS98 snapshot mount refuses missing local clean checks', async t => {
   const f = await fixture(t, true); delete f.clean.checkActive;
   await assert.rejects(f.mount(), /active|local|clean/i);
+});
+
+for (const change of ['receipt', 'mount', 'active', 'authority', 'payload'] as const) test(`COS98 ${change} change during actual response body cannot send valid content`, async t => {
+  const f = await fixture(t, true), unmount = await f.mount(), segment = f.waits.beginSegment('first'); await navigation(segment);
+  const entered = deferred(), release = deferred(), originalFetch = globalThis.fetch, changed = new Error(`Current ${change} changed`);
+  if (change === 'payload') f.setBody('wrong actual upstream bytes');
+  t.mock.method(globalThis, 'fetch', async (input: Parameters<typeof fetch>[0], options?: Parameters<typeof fetch>[1]) => {
+    const actual = await originalFetch(input, options);
+    if (String(input).startsWith(f.clean.url)) {
+      const bytes = await actual.arrayBuffer();
+      return { ...actual, status: actual.status, headers: actual.headers, async arrayBuffer() { entered.resolve(); await release.promise; return bytes; } } as Response;
+    }
+    return actual;
+  });
+  const pending = fetch(f.origin.url).catch(error => error); await entered.promise;
+  try {
+    if (change === 'receipt') await writeFile(join(f.root, 'host-transfer-origin.json'), '{}', 'utf8');
+    if (change === 'mount') await unmount();
+    if (change === 'active') f.clean.checkActive = () => { throw changed; };
+    if (change === 'authority') f.setExecution(async () => { throw changed; });
+    if (change === 'payload') f.setBody(html);
+    assert.equal(f.owner.signal.aborted, false);
+  } finally { release.resolve(); }
+  const response = await pending; assert.ok(response instanceof Error || response.status === 404);
+  segment.revoke(); await segment.settle(Date.now() + 1000);
+  assert.equal(f.waits.snapshot().rawReads.pending, 0); assert.equal(segment.snapshot().http.rejected, 1);
+  if (change === 'authority' || change === 'active') assert.equal(segment.snapshot().firstCause?.message, changed.message);
+});
+
+test('COS98 live controller reserved exhaustion during HTTP body rejects although its signal remains active', async t => {
+  const group = await groupFixture(t), value = await group.claim(await group.declaration('cos20-native-http'));
+  const task = await group.register(value, 'coding'); t.mock.method(Date, 'now', group.now);
+  const execution = { caseId: value.window.caseId, windowId: value.window.windowId, taskId: task.taskId, deadlineAt: Date.parse(value.window.deadlineAt) };
+  const f = await fixture(t, true, { ...execution, controllerSignal: value.controller.signal });
+  f.setExecution(caller => value.controller.requireNativeValidationExecution(execution, caller));
+  await f.mount(); const segment = f.waits.beginSegment('first'); await navigation(segment);
+  const entered = deferred(), release = deferred(), originalFetch = globalThis.fetch;
+  t.mock.method(globalThis, 'fetch', async (input: Parameters<typeof fetch>[0], options?: Parameters<typeof fetch>[1]) => {
+    const actual = await originalFetch(input, options);
+    if (String(input).startsWith(f.clean.url)) {
+      const bytes = await actual.arrayBuffer();
+      return { ...actual, status: actual.status, headers: actual.headers, async arrayBuffer() { entered.resolve(); await release.promise; return bytes; } } as Response;
+    }
+    return actual;
+  });
+  const pending = fetch(f.origin.url).catch(error => error); await entered.promise;
+  try {
+    await value.controller.reserve(group.request(value, 'coding', 'exhausted-during-body', value.declaration.grants.coding.amountMicroCny));
+    assert.equal(value.controller.signal.aborted, false);
+  } finally { release.resolve(); }
+  const response = await pending; assert.ok(response instanceof Error || response.status === 404);
+  assert.match(segment.snapshot().firstCause?.message ?? '', /execution authority/); assert.equal(f.payloads.length, 0);
+  segment.revoke(); await segment.settle(Date.now() + 1000);
 });
 
 test('COS97 native clean traffic is 404 before navigation and uses complete pre body post stages', async t => {
@@ -174,11 +230,11 @@ for (const phase of ['pre', 'post'] as const) test(`COS97 ${phase} cancellation 
   assert.equal((await fetch(f.origin.url)).status, 200); second.revoke(); await second.settle(Date.now() + 1000);
 });
 
-test('COS97 cancelled late body stays owned, cannot start post verification, and cannot affect the next generation', async t => {
-  const f = await fixture(t); await f.mount(); const first = f.waits.beginSegment('first'); await navigation(first);
+for (const snapshotExecution of [false, true]) test(`COS97/98 cancelled late body stays owned and cannot affect the next generation (snapshot: ${snapshotExecution})`, async t => {
+  const f = await fixture(t, snapshotExecution); await f.mount(); const first = f.waits.beginSegment('first'); await navigation(first);
   const entered = deferred(), release = deferred(), originalFetch = globalThis.fetch;
   let bodySignal!: AbortSignal, guards = 0;
-  f.setBinding(async () => { guards++; });
+  if (snapshotExecution) f.setExecution(async () => { guards++; }); else f.setBinding(async () => { guards++; });
   t.mock.method(globalThis, 'fetch', async (input: Parameters<typeof fetch>[0], options?: Parameters<typeof fetch>[1]) => {
     const actual = await originalFetch(input, options);
     if (String(input).startsWith(f.clean.url)) {
@@ -322,7 +378,7 @@ for (const controllerLater of [false, true]) test(`COS97 native source survives 
   assert.equal(f.waits.snapshot().rawReads.pending, 0); assert.equal(f.owner.signal.aborted, controllerLater);
 });
 
-test('COS97 clean delivery verifies actual fixed bytes with exact mapping and preserves optional caller reason', async t => {
+for (const snapshotExecution of [false, true]) test(`COS97/98 clean delivery verifies actual fixed bytes with exact mapping (snapshot: ${snapshotExecution})`, async t => {
   const root = await mkdtemp(join(tmpdir(), 'cos97-delivery-payload-')), project = join(root, candidate.location);
   const controller = await RunController.create({ root, runId: 'run', ledgerId: 'synthetic', kind: 'evaluation', scope: 'validation', specVersion: '1',
     durationMs: 60000, allocations: [{ taskId: 'host', amountMicroCny: 1 }] }), work = new OwnedWork(controller.signal);
@@ -336,7 +392,7 @@ test('COS97 clean delivery verifies actual fixed bytes with exact mapping and pr
   const authority = { taskId: 'host', windowId: null, deadlineAt: (await controller.read()).run.originalDeadlineAt }, callers: (AbortSignal | undefined)[] = [];
   await withCleanDelivery({ root, project, candidate, controller, work, authority, signal: controller.signal,
     async requireCurrent(caller?: AbortSignal) { callers.push(caller); caller?.throwIfAborted(); } }, async clean => {
-    assert.equal(typeof clean.verifyPayload, 'function');
+    assert.equal(typeof clean.verifyPayload, 'function'); assert.equal(typeof clean.checkActive, 'function');
     const payload = clean.verifyPayload!.bind(clean), actual = Buffer.from(await (await fetch(clean.url)).arrayBuffer());
     assert.equal(await payload('index.html', { status: 200, bytes: actual }), 'content');
     assert.equal(await payload('中文.txt', { status: 200, bytes: Buffer.from('中文资源') }), 'content');
@@ -349,18 +405,21 @@ test('COS97 clean delivery verifies actual fixed bytes with exact mapping and pr
     await assert.rejects(payload('index.html', { status: 200, bytes: changedBody }), /payload|bytes|response/i);
     const abort = new AbortController(), reason = new Error('exact payload caller reason'); abort.abort(reason);
     await assert.rejects(clean.requireCurrent(abort.signal), error => error === reason);
+    assert.throws(() => clean.checkActive!(abort.signal), error => error === reason);
     await assert.rejects(payload('index.html', { status: 200, bytes: actual }, abort.signal), error => error === reason);
     const active = new AbortController(); await clean.requireCurrent(active.signal); assert.equal(callers.at(-1), active.signal);
     await payload('index.html', { status: 200, bytes: actual });
-    const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'host', deadlineAt: Date.parse(authority.deadlineAt),
-      signal: work.signal, trackRaw: start => work.run(start) });
     let guards = 0, transient = false;
+    const guard = async (caller?: AbortSignal) => {
+      caller?.throwIfAborted();
+      if (transient) await writeFile(join(clean.project, 'dist/index.html'), ++guards === 1 ? 'transient upstream bytes' : html, 'utf8');
+    };
+    const waitInput = { caseId: 'case', windowId: 'window', taskId: 'host', deadlineAt: Date.parse(authority.deadlineAt),
+      signal: work.signal, trackRaw: <T>(start: (signal: AbortSignal) => Promise<T>) => work.run(start) };
+    const waits = snapshotExecution ? nativeApi.createNativeSnapshotValidationWaits({ ...waitInput, requireExecution: guard }) : createNativeValidationWaits(waitInput);
     const origin = await reserveTransferOrigin({ root, binding, resume: false, signal: work.signal, requireScope: async caller => { caller?.throwIfAborted(); } });
     try {
-      await origin.mountCandidate({ candidate, project, cleanDelivery: clean, nativeValidationWaits: waits, retainCleanupFailure: error => work.retainCleanupFailure(error), async verifyBinding(caller) {
-        caller?.throwIfAborted();
-        if (transient) await writeFile(join(clean.project, 'dist/index.html'), ++guards === 1 ? 'transient upstream bytes' : html, 'utf8');
-      } });
+      await origin.mountCandidate({ candidate, project, cleanDelivery: clean, nativeValidationWaits: waits, retainCleanupFailure: error => work.retainCleanupFailure(error), verifyBinding: guard });
       const segment = waits.beginSegment('payload'); await navigation(segment);
       assert.equal(await (await fetch(origin.url + '/?query=1')).text(), html);
       assert.equal(await (await fetch(origin.url + '/%E4%B8%AD%E6%96%87.txt?query=1')).text(), '中文资源');
