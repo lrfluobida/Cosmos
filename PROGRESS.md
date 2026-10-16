@@ -4,6 +4,7 @@
 
 ## COS93 navigation-v2实测通过，诊断范围可完成
 
+- 结果文档`8abaa81c1701a4a2aa939f015b22da5e34f46524`经`cos93_navigation_reviewer`独立规格→质量APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`7f0f64886ec2cfc4345d676eb139338402f2aceb`。批准的PNG原字节保持，本批仅文档及JSON验证，原actual/独立后核/视频解码证据复用。结果文档已审合入，#94仍open，待Root按source+diagnostic scope关闭；下述旧whole15与游戏验收边界保持。
 - COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`上877848ms、exit0完成，`native-validation-waits/2`独立navigation passed：goto840.4206ms、ready203.6588ms、navigation1044.6055ms，29HTTP全settled/0reject、17260 raw全settled。browser32140 exit0/forced=false，正常cleanup493ms；75497B视频已独立完整解码70帧exit0。原467文件/61目录零变及POSTCHECK_NO_LIVE_RESIDUE齐备，ledger3114/715/16901000µ、费用0保持，Root已解冻。whole open47912.8648ms仍超过旧15秒；唯一零输入planned stop使production游戏报告仍failed/reportValid:false，旧nav-v1/C14/accepted/human保持。建议source+diagnostic scoped complete，待结果文档独审合入及Root关闭#94；launcher已消费，不重跑。见[研究记录与截图](docs/research/2026-10-16-cos93-navigation-v2.md)及[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6208523921)。
 
 ## COS98–100源码已审组合：固定候选响应、真实就绪与共享清理
