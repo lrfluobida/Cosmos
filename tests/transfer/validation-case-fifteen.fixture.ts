@@ -27,7 +27,7 @@ import type { ValidationHostInput } from '../../probes/e2e/validation-run.ts';
 export async function withTransferCaseFifteenFixture(t: TestContext, operation: (f: {
   repository: string; ledgerRoot: string; root: string; head: string; archive: string; baseline: any; pins: any;
   input: ValidationHostInput; historical: ReturnType<typeof createHistoricalPassedStages>; context: any;
-}) => Promise<void>) {
+}) => Promise<void>, options: { captureSource?: typeof captureTransferCaseFifteenSource } = {}) {
   const priorReuse = process.env.COS91_SOURCE_REUSE;
   process.env.COS91_SOURCE_REUSE = join(tmpdir(), 'cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C14-proof-6a66b182-230b-475c-b1df-3dc17f393aa6');
   try { await withTransferCaseFourteenFixture(t, async f => {
@@ -69,7 +69,7 @@ export async function withTransferCaseFifteenFixture(t: TestContext, operation: 
       const context = { root: f.ledgerRoot, repositoryRoot: f.repository, identityReader: async (signal: AbortSignal) => {
         await requireTransferCaseFifteenAccountingSources(f.ledgerRoot, baseline, signal); return identityReader(signal);
       } };
-      const quote = await prepareValidationCase({ ...context, declaration: D }), execution = await captureTransferCaseFifteenSource();
+      const quote = await prepareValidationCase({ ...context, declaration: D }), execution = await (options.captureSource ?? captureTransferCaseFifteenSource)();
       const envelope = createTransferCaseFifteenAdmissionQuote(quote, manifestRef, [], execution, transferCaseFifteenHistoricalAccountingHash(baseline, quote));
       const bytes = JSON.stringify(envelope, null, 2) + '\n', admissionRef = { artifactId: `${D.caseId}-admission`, version: validationHash(bytes), location: `${D.caseId}-admission-${envelope.admissionId}.json` };
       await writeFile(join(f.ledgerRoot, admissionRef.location), bytes, 'utf8');
