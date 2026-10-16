@@ -2,6 +2,17 @@
 
 更新时间：2026-10-16
 
+## COS101固定C15源码实施中
+
+- [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)，id5879037048，已原生挂父COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；任务总数101，根#1直接原生子项仍100，#17直接子项1。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。
+- 当前仅源码实施授权，源码实施中、actual/paid仍NONE且未授权。固定C15在同一ledger5采用非分组declaration-2，¥21仅为grants分配，实际case硬上限¥5/90分钟；其他案例原45分钟等规则、旧group/supplement、原C14和ledger3114/715/16901000µ保持。仅固定C15/C5可按已审完整兼容证明处理各自input hash，原acceptance和真实host正反SOURCE要求保持。新candidate仍须自身完整8段/媒体/截图review/promotion/交付，不复用C14未批准coding或原220/62通过数。 见[任务卡](docs/specs/cos101-transfer-case15.md)和[计划](docs/plans/2026-10-16-cos101-transfer-case15.md)。本次仅设计文档与登记，未测试、构建、调用模型或新开实际窗口。
+- 源码已在两个独立worktree实施；预算接口`036e259ab169546dd10d97728c9f0b03a3c23341`经独立`cos101_budget_reviewer`获`APPROVED_INTERFACE`，仅接口批准，Task A尚未最终批准，主作者继续Task B/C。尚无完整源码合入或新actual，actual/paid保持false。 SOURCE证据范围见[计划](docs/plans/2026-10-16-cos101-transfer-case15.md)，生产entry精确基线未放宽。
+
+## COS93 navigation-v2实测通过，源码与诊断范围已关闭
+
+- 结果文档`8abaa81c1701a4a2aa939f015b22da5e34f46524`经`cos93_navigation_reviewer`独立规格→质量APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`7f0f64886ec2cfc4345d676eb139338402f2aceb`。批准的PNG原字节保持，本批仅文档及JSON验证，原actual/独立后核/视频解码证据复用。结果文档已审合入，#94已按source+diagnostic scope关闭，closed(completed)及父勾选[x]已由Root精确GET核证，结果文档发布主线`f1608bed0a779f76124c27595921418703db0832`；下述旧whole15与游戏验收边界保持。
+- COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`上877848ms、exit0完成，`native-validation-waits/2`独立navigation passed：goto840.4206ms、ready203.6588ms、navigation1044.6055ms，29HTTP全settled/0reject、17260 raw全settled。browser32140 exit0/forced=false，正常cleanup493ms；75497B视频已独立完整解码70帧exit0。原467文件/61目录零变及POSTCHECK_NO_LIVE_RESIDUE齐备，ledger3114/715/16901000µ、费用0保持，Root已解冻。whole open47912.8648ms仍超过旧15秒；唯一零输入planned stop使production游戏报告仍failed/reportValid:false，旧nav-v1/C14/accepted/human保持。已按source+diagnostic范围scoped complete/closed，#94 closed(completed)与父勾选[x]由Root精确GET核证；launcher已消费，不重跑。见[研究记录与截图](docs/research/2026-10-16-cos93-navigation-v2.md)及[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6208523921)。
+
 ## COS98–100源码已审组合：固定候选响应、真实就绪与共享清理
 
 - 组合复审补正：B原`39400c6bec4bee4532a1ee5888aaab15e0d5214f`及初合并`ea478f12b260f9ed810b660e03fdddb80aefe42b`保留历史。C新增cleanup证明位于segment之外，B预定stop例外原未校验该字段；真实同row品牌、同source及同步durable raw的missing/deadline+1/rawPending1/video_stop failed四负例RED均错误接受。作者最终`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`仅export并复用C原`validNativeCleanup`，`cos99_reviewer`affected APPROVED、无finding；C生产校验行为不改。主线最终typecheck/build0，四负例和真实/2正例5/5、0skip，4791.9604ms；作者GREEN5/5和strict0、此前无变化HTTP/C1500ms及其余通过证据复用，不相加重复计数。 最终源码组合为`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，三项统一发布、GitHub三项closed(completed)及父勾选已由Root核证，源码发布主线`81b0022dc70353d235d2d02e8aeb1d860a5933a7`，actual未执行。

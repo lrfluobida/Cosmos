@@ -1,6 +1,8 @@
 # COS101：同一共享账本上的第十五迁移案例
 
-状态：设计提案，2026-10-16；源码与一次实际付费运行分别等待 Root 审批。设计基线 `cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`。拟作为 COS16 / [#17](https://github.com/lrfluobida/Cosmos/issues/17) 的子任务登记；GitHub 编号由 Root 发布后补入，不占父 #1 已有的 100 个直接子项。
+状态：设计已审APPROVED，Root已授权源码实施；源码实施中，actual/paid仍未授权。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 设计基线 `cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`。任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)，id5879037048，已原生挂父 COS16 / [#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；#17直接子项1，任务总数101，根#1直接子项仍100。
+
+源码已在两个独立worktree实施；预算接口`036e259ab169546dd10d97728c9f0b03a3c23341`经独立`cos101_budget_reviewer`获`APPROVED_INTERFACE`，仅接口批准，Task A尚未最终批准，主作者继续Task B/C。尚无完整源码合入或新actual，actual/paid保持false。
 
 ## 目标与成功条件
 
@@ -116,4 +118,4 @@ entry 的首次 preflight 要求实际 22 stopped cases、14 旧 delegations、1
 
 设计/spec/plan → 独立 reviewer → Root 批准源码实施 → 作者分支提交 exact SHA → reviewer 规格及质量审查 → 唯一 merger 集成、必要组合验证并推送 → Root 检查免费 preflight 与精确 quote → 单独批准一次有界付费启动。实现作者不访问凭据或真实账本写入口；实际 launcher、provider、closure 由后续审批控制。
 
-本卡不包含新的 provider 授权。当前设计完成后只提交文档；执行步骤见 [计划](../plans/2026-10-16-cos101-transfer-case15.md)。
+本卡不包含新的 provider 授权。设计已独审并批准源码实施；本次仅设计文档集成，执行步骤见 [计划](../plans/2026-10-16-cos101-transfer-case15.md)，一次实际付费启动仍由Root另行批准。
