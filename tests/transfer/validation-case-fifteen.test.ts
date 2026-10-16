@@ -9,6 +9,7 @@ import { completeTransferValidationCaseFifteen, requireTransferCaseFifteenSource
 import { TRANSFER_VALIDATION_CASE_FIFTEEN as D } from '../../probes/transfer/validation-case-fifteen-declaration.ts';
 import { supplementFixture } from '../runtime/validation-group-supplement.fixture.ts';
 import { RunController } from '../../src/runtime/run.ts';
+import { transferSourceSandbox, exerciseTransferSourceClosure } from './validation-case-sixteen.fixture.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 
 test('C15 has an independent fixed entry and quote1 admission envelope', async () => {
@@ -76,9 +77,13 @@ test('C15 source closure includes its own wrappers, real host, factory, Pi and d
   const api: any = await import('../../probes/transfer/validation-case-fifteen-source.ts').catch(() => null);
   assert.equal(typeof api?.captureTransferCaseFifteenSource, 'function', 'C15 fixed executable closure is missing.');
   const closure = await api.captureTransferCaseFifteenSource();
-  for (const suffix of ['validation-case-fifteen-run.ts', 'validation-case-fifteen-driver.ts', 'validation-case-fifteen-task.ts', 'src/runtime/entrypoint-host.ts', 'src/providers/pi.ts', 'src/roles/factory.ts', 'validation-worker.ts', 'coding-check-worker.ts'])
+  for (const suffix of ['validation-shared-coding-entry.ts', 'validation-case-fourteen-declaration.ts', 'validation-case-fifteen-entry.ts', 'validation-case-fifteen-source.ts', 'src/acceptance/process.ts', 'validation-case-fifteen-run.ts', 'validation-case-fifteen-driver.ts', 'validation-case-fifteen-task.ts', 'src/runtime/entrypoint-host.ts', 'src/providers/pi.ts', 'src/roles/factory.ts', 'validation-worker.ts', 'coding-check-worker.ts'])
     assert.ok(closure.files.some((file: any) => file.path.replaceAll('\\', '/').endsWith(suffix)), suffix);
   await api.requireTransferCaseFifteenSource(closure);
   const wrong = structuredClone(closure); wrong.files[0].sha256 = '0'.repeat(64);
   await assert.rejects(api.requireTransferCaseFifteenSource(wrong), /source|bytes|receipt/);
+});
+
+test('C15 source closure rejects shared and transitive drift before owned dispatch', async t => {
+  await exerciseTransferSourceClosure(t, 'fifteen', await transferSourceSandbox(t));
 });

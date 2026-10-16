@@ -7,7 +7,7 @@ import { basename, join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { filteredChildEnvironment } from '../../probes/e2e/admission.ts';
-import { withTransferCaseFifteenFixture } from './validation-case-fifteen.fixture.ts';
+import { transferSourceSandbox, exerciseTransferSourceClosure } from './validation-case-sixteen.fixture.ts';
 
 const platform = fileURLToPath(new URL('../../', import.meta.url)), execute = promisify(execFile);
 let compiledRoot: string | undefined, compiled: ReturnType<typeof compile> | undefined;
@@ -54,36 +54,5 @@ test('compiled C15 executes the actual JS build worker and preserves a real comp
 });
 
 test('compiled C15 binds authentic SOURCE admission, selects its JS worker and rejects drift before dispatch', async t => {
-  const { root, source, driver, worker } = await (compiled ??= compile()), closure = await source.captureTransferCaseFifteenSource();
-  assert.equal(closure.variant, 'compiled'); assert.ok(closure.files.length > 0 && closure.files.every(file => file.path.endsWith('.js')));
-  for (const part of ['run', 'entry', 'source', 'declaration', 'driver', 'task'])
-    assert.ok(closure.files.some(file => file.path.endsWith(`validation-case-fifteen-${part}.js`)), `C15 ${part} belongs to the compiled closure`);
-  assert.ok(closure.files.some(file => resolve(file.path) === resolve(worker)));
-  await source.requireTransferCaseFifteenSource(closure);
-  await withTransferCaseFifteenFixture(t, async f => {
-    t.diagnostic('SOURCE364 authentic claim/open; compiled bootstrap dispatch is controlled, not production 715-entry success');
-    assert.equal(f.baseline.requests.length, 364); assert.equal(f.input.window.quote.formatVersion, 'validation-case-quote-1');
-    const snapshot = join(f.ledgerRoot, 'snapshot.json'), before = await readFile(snapshot);
-    let jobs = 0;
-    const run: NonNullable<Parameters<typeof driver.bootstrapTransferValidationCaseFifteenToolchain>[1]> = async job => {
-      jobs++; assert.equal(job.args[1], worker); assert.equal(job.cwd, f.root);
-      assert.equal(job.authority.caseId, f.input.window.caseId); assert.equal(job.authority.windowId, f.input.window.windowId);
-      assert.equal(job.authority.taskId, f.input.window.quote.declaration.grants.planning.taskId);
-      const request = JSON.parse(await readFile(job.args.at(-1)!, 'utf8'));
-      assert.equal(request.formatVersion, 'validation-worker-1'); assert.equal(request.operation, 'bootstrap');
-      assert.equal(request.root, f.root); assert.equal(request.repository, f.repository);
-      await writeFile(request.response, JSON.stringify({ formatVersion: 'validation-worker-result-1', operation: 'bootstrap', outcome: 'completed', result: join(f.root, 'toolchain') }), 'utf8');
-      return { passed: true, diagnostics: '', code: 0, stdout: '', stderr: '' };
-    };
-    assert.equal(await driver.bootstrapTransferValidationCaseFifteenToolchain(f.input, run), join(f.root, 'toolchain'));
-    assert.equal(jobs, 1); assert.deepEqual(await readFile(snapshot), before);
-    const leaf = join(root, 'probes/transfer/validation-case-fifteen-task.js'), original = await readFile(leaf);
-    await writeFile(leaf, Buffer.concat([original, Buffer.from('\n/* SOURCE mutated compiled task */\n')]));
-    try {
-      await assert.rejects(source.requireTransferCaseFifteenSource(closure), /source|bytes/);
-      await assert.rejects(driver.bootstrapTransferValidationCaseFifteenToolchain(f.input, run), /source|bytes/);
-      assert.equal(jobs, 1); assert.deepEqual(await readFile(snapshot), before);
-    } finally { await writeFile(leaf, original); }
-    await source.requireTransferCaseFifteenSource(closure);
-  }, { captureSource: async () => closure });
+  await exerciseTransferSourceClosure(t, 'fifteen', await transferSourceSandbox(t, true));
 });
