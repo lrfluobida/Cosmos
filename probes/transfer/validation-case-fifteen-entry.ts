@@ -131,9 +131,10 @@ export function requireTransferCaseFifteenSourceApprovals(mapping: { tasks?: any
 export async function completeTransferValidationCaseFifteen(input: ValidationHostInput, historical: HistoricalPassedStages,
   sourceApprovals: { taskId: string; reviewedCommit: string; mergeCommit: string }[], result: ValidationHostResult) {
   const { controller, work, window } = input;
-  controller.requireValidationCase(D.caseId, window.windowId);
-  if (!sameValue(window.quote.declaration, D)) throw new Error('C15 completion requires its fixed current declaration.');
-    const gaps = [...result.gaps], before = await controller.read();
+  const before = await controller.read(), current = before.validation?.cases.find(item => item.caseId === D.caseId);
+  if (before.validation?.currentCaseId !== D.caseId || window.caseId !== D.caseId || current?.windowId !== window.windowId
+    || !sameValue(current.quote, window.quote) || !sameValue(window.quote.declaration, D)) throw new Error('C15 completion requires its fixed current declaration and window.');
+    const gaps = [...result.gaps];
     if (before.validation!.cases.find(item => item.caseId === D.caseId)!.stopReason || Date.now() >= Date.parse(window.deadlineAt) - 5000) gaps.push('C15 stopped or cannot cover completion and cleanup.');
     if (before.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) gaps.push('Unresolved or reserved fees prevent completion.');
     const currentRequests = before.requests.filter(request => request.validation?.caseId === D.caseId);
@@ -154,6 +155,7 @@ export async function completeTransferValidationCaseFifteen(input: ValidationHos
     let cleanupEndedAt: string | undefined;
     try { await controller.close(); if (drained) cleanupEndedAt = new Date().toISOString(); }
     catch { gaps.push('Current controller ownership was not released.'); }
+    if (Date.now() >= Date.parse(window.deadlineAt)) gaps.push('Controller release exceeded the fixed C15 deadline.');
     if (!cleanupEndedAt) gaps.push('The complete cleanup endpoint is unconfirmed.');
     const report = { outcome: result.outcome === 'passed' && !gaps.length ? 'passed' : 'failed', ...view.validationCase, platformHead: window.quote.identity.reviewedPlatformSha,
       endedAt: new Date().toISOString(), elapsedMs: Date.now() - Date.parse(window.startedAt), original: view.original, sourceApprovals: sourceApprovals,

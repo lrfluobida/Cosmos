@@ -36,7 +36,8 @@ test('C15 source approvals require this task own independently reviewed integrat
 });
 
 test('C15 completion releases its real controller owner before publishing a cleanup endpoint', async t => {
-  for (const failClose of [false, true]) {
+  for (const mode of ['normal', 'failed-close', 'stopped', 'late-close']) await t.test(mode, async t => {
+  const failClose = mode === 'failed-close';
   const f = await supplementFixture(t, true), quote = await RunController.prepareValidationGroupSupplement(f);
   await RunController.applyValidationGroupSupplement({ ...f, quote, decision: await f.decision(quote) });
   const c14 = await f.claim(f.target); await f.charge(c14, 'coding', 792_063); await f.close(c14);
@@ -46,7 +47,11 @@ test('C15 completion releases its real controller owner before publishing a clea
   f.setCurrent(D); const value = await f.claim(D), root = join(f.repositoryRoot, '.cosmos/e2e', D.caseId); await mkdir(root, { recursive: true });
   const input: any = { repository: f.repositoryRoot, ledgerRoot: f.root, root, controller: value.controller, window: value.window, work: new OwnedWork(value.controller.signal), signal: value.controller.signal };
   const historical: any = { manifestRef: { artifactId: `${D.caseId}-historical-stages`, version: 'a'.repeat(64), location: `${D.caseId}-reuse.json` }, verify: async () => ({}) };
-  const close = failClose ? t.mock.method(value.controller, 'close', async () => { throw new Error('SOURCE owner release failed'); }) : undefined;
+  if (mode === 'stopped') await value.controller.stop('SOURCE boundary stopped before host completion.');
+  const originalClose = value.controller.close.bind(value.controller);
+  let clock: ReturnType<typeof t.mock.method> | undefined;
+  const close = failClose ? t.mock.method(value.controller, 'close', async () => { throw new Error('SOURCE owner release failed'); })
+    : mode === 'late-close' ? t.mock.method(value.controller, 'close', async () => { await originalClose(); clock = t.mock.method(Date, 'now', () => Date.parse(value.window.deadlineAt) + 1); }) : undefined;
   try {
     const report = await completeTransferValidationCaseFifteen(input, historical, [], { outcome: 'failed', gaps: ['SOURCE no generation: owner lifecycle representative.'] });
     assert.equal(report.outcome, 'failed');
@@ -54,9 +59,11 @@ test('C15 completion releases its real controller owner before publishing a clea
       assert.equal(report.cleanupEndedAt, undefined); assert.ok(report.gaps.includes('Current controller ownership was not released.'));
       assert.ok(await lstat(join(f.root, '.controller.lock')));
     } else { await assert.rejects(lstat(join(f.root, '.controller.lock')), (error: any) => error.code === 'ENOENT'); assert.ok(report.cleanupEndedAt); }
+    if (mode === 'late-close') assert.ok(report.gaps.includes('Controller release exceeded the fixed C15 deadline.'));
+    if (mode === 'stopped') assert.ok(report.gaps.includes('A separate stop preceded normal completion.'));
     const saved = JSON.parse(await readFile(join(root, 'result.json'), 'utf8')); assert.deepEqual(saved, report);
-  } finally { close?.mock.restore(); await value.controller.close(); }
-  }
+  } finally { clock?.mock.restore(); close?.mock.restore(); await originalClose(); }
+  });
 });
 
 test('C15 input preserves the complete Chinese requirements and preparation except the old group', async () => {
