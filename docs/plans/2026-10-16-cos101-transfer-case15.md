@@ -20,13 +20,14 @@
 | `src/runtime/validation-window.ts` | ledger5 只开放该 C15，要求前窗 C14 stopped/closed |
 | `probes/transfer/requirements-case-fifteen.json` | 原固定需求移除 budgetGroup 的新副本 |
 | `probes/transfer/validation-input.ts` | `budgetGroup` 类型 optional，运行时原检查保留 |
+| `src/runtime/entrypoint-host.ts` | 仅将历史复用的同 hash 守卫增加固定 C15/C5 来源与完整输入兼容证明；原 acceptance 比较保持 |
 | `probes/transfer/validation-case-fifteen-{declaration,entry,run,source,driver,task}.ts` | 固定声明、账本历史准入、CLI、实际源码身份与现有 coding 接线 |
 | `probes/transfer/validation-case-seven-source.ts` | 已有源码闭包函数的字面量类型加入 `fifteen` |
 | `tests/runtime/validation-case-fifteen-budget.test.ts` | authentic ledger5 下 claim、请求、restore、停止和 closure |
 | `tests/transfer/validation-case-fifteen.test.ts`、`validation-case-fifteen.fixture.ts`、`validation-case-fifteen-runtime.test.ts`、`validation-case-fifteen-compiled.test.ts` | entry/driver SOURCE 与 compiled 代表 |
 | 本 spec/plan；`docs/specs/cosmos-issues.md`、`github-issues.json` | 结果与 exact SHA；公共映射由 Root/merger 发布后登记 |
 
-预计无需修改 `validation-budget.ts`、`validation-allocations.ts`、ledger schema、`RunController`、native host 或生产验收策略。若必要测试揭示真实阻碍，先记录具体失败和最小差异交 reviewer/Root 决定；不为了让 C15 通过而放宽旧组、时限或证据规则。
+除上述 `entrypoint-host.ts` 的单一兼容守卫外，预计无需修改 native host；`validation-budget.ts`、`validation-allocations.ts`、ledger schema、`RunController` 与生产验收策略保持。若必要测试揭示其他阻碍，先记录具体失败和最小差异交 reviewer/Root 决定；不为了让 C15 通过而放宽旧组、时限或证据规则。
 
 ## Task A：固定输入、声明与 ledger5 准入
 
@@ -43,11 +44,13 @@
 
 ## Task B：独立固定入口与复用接线
 
-**Files:** 六个 C15 probes、新测试 fixture；修改 `validation-case-seven-source.ts` 字面量类型。
+**Files:** 六个 C15 probes、新测试 fixture；修改 `validation-case-seven-source.ts` 字面量类型和 `src/runtime/entrypoint-host.ts` 的历史输入兼容守卫。
 
 - [ ] 写 entry 负例：直接复用 C6/C7 会因 group/delegation/input hash/quote 格式硬耦合拒绝；新 entry 应认证 22cases/14delegations/110closures/20audits/一次 supplement 的实际源文件前缀。
 - [ ] 新 C15 entry 逐项保留 C6 生命周期中的源码 ancestor、pushed main、独审 mapping、历史 roots/owner、精确 operator/admission、host.prepare 前后基线不变、原子 claim/Consumed identity、OwnedWork/stop/drain 与 final result 检查。只替换本 spec 明确的历史与非分组假设；不提取新的通用多组入口。
 - [ ] 固定 C5 manifest 路径并认证原 pins、两 passed/approved 阶段和七 captures；用 C5 自己的 input hash 验证历史，用 C15 hash 验证当前。比较新旧需求除 group 外完全一致。注入 C14 source/candidate 作为 author input 必须失败。
+- [ ] 补有效 RED：通过真实 `createFixedTransferCodingOnlyDriver → createTransferReusedConsumerHost → createBrowserHostCore` 构造当前 C15，确认原 `entrypoint-host.ts:328-329` 的同 hash 守卫拒绝，尚无历史 import/当前 capture/session/作者。不能只用 entry stub 或孤立谓词测试。
+- [ ] 最小修改该守卫：保留完整 acceptance 比较；只为完整固定 C15 与同账本唯一 C5 接受 spec 第2节的兼容证明。host 从已有 scope/window/snapshot/inherited 绑定两个来源及各自身份，读取 C5 已签名 requirement capture 与当前 `requirements/fixed.json`，复用原摘要检查并比较完整 JSON（只移除旧 group），核 template/version/path、draft/preparation 全等；其他案例仍须同 hash。无新布尔开关/callback、兼容证书或通用框架，旧 source/budget/逐次 scope 检查保持。
 - [ ] 实现 C15 admission envelope，覆盖 quote/grants/C5 manifest/source approvals/execution closure/历史 accounting 摘要；沿现有 envelope 格式存储，固定 `transfer-case-fifteen-admission/1`。旧 supplement/delegation/20 closure 源每次在身份检查与派发前重读。
 - [ ] C15 source 函数复用 `captureFixedTransferCodingSource`/`requireFixedTransferCodingSource`，只增加 `fifteen` 字面量；覆盖 run/driver/task 与动态 worker，source/compiled 对应 .ts/.js。复用现有四项文件并发核验，不另造缓存或新身份体系。
 - [ ] C15 task 调用 `createFixedTransferCodingOnlyTasks(D15, manifest)`；driver 调用 `createFixedTransferCodingOnlyDriver`，提供当前固定来源核验和 .ts/.js worker URL。生成仍经真实 host/factory/Pi/orchestrator/promotion；作者环境先为空。
@@ -64,7 +67,8 @@
 - [ ] 通过真实 `RunController` register/reserve/admit/settle 带图 reviewer，断言 reservation2131072µ、case/task/shared 正确、旧组不增。作者参考792063µ时首次review可准入；case余额比2131072少1µ时拒绝。另覆盖 role/case/phase/shared/request80/deadline 真实拒绝，不使用绕过 provider admission 的直接数组修改伪造成功。
 - [ ] 当前 controller 的 provider、tool、owned child 三类入口各取代表：篡改旧 delegation source 或 supplement source、当前 admission/源码、C5 capture/新需求后，无新 transport/child/write。身份检查不得因当前声明非 grouped 而跳过旧财务来源。
 - [ ] 释放 owner 后同一未停止活动窗口的冷恢复正例验证 deadline 不重置。stop 负例保留 admitted unknown 预留且拒绝再发；先按原对账 API 结算，再由原 closure API 仅关闭 C15 五 grants。验证 quote3、release21000000-minus-spent、shared capacity 变化、group不变、reload通过、原closure20不变、新decision幂等与另一decision重复拒绝。
-- [ ] 一次 SOURCE 正向链使用真实 host/factory/Pi 与 fake transport：复用 C5、空 coding workspace、当前 capture/正式build/完整消费 fixture、独立 reviewer image request、approved promotion、host/result 和正常停止。主机 synthetic 运行证据写明 fixture；不据此声称真实 C15 已通过。
+- [ ] 一次 SOURCE 正向链必须通过真实 coding-only driver、`createTransferReusedConsumerHost` 和 `createBrowserHostCore`，保留确实不同的 C5/C15 input hash；继续使用真实 host/factory/Pi 与 fake transport，覆盖 C5复用、空 coding workspace、当前 capture/正式build/完整消费 fixture、独立 reviewer image request、approved promotion、host/result 和正常停止。主机 synthetic 运行证据写明 fixture；不据此声称真实 C15 已通过。
+- [ ] 对同一真实 host 构造链补兼容负例：错 C5 window/source/capture、改完整 acceptance、非 C15 的不同 hash、需求其他字段/brief/preparation 变化、保留或伪造 group、错误 input 路径；均在 import/session/作者前拒绝。旧 C6 同 hash 正例及其不同 hash 拒绝各取短代表，证明例外没有扩散；cold restore 也重新执行固定证明。
 - [ ] 加一个必要失败链：正式 build/consumer/review 失败时无 accepted，停止和工程差距仍保存。复用旧无变化 repair 规则证据，仅补 C15 identity/grant 绑定代表。
 - [ ] compiled 代表验证实际 JS 闭包、JS worker、源码漂移拒绝；财务成功证据来自上述 authentic SOURCE。所有 TEMP 清理验证 resolved 路径位于专用目录，读回中文与源文件，保留 raw TAP/退出码。
 - [ ] 顺序运行以下命令，各退出0且零 skip；失败时修具体原因，不扩为全库重复矩阵：

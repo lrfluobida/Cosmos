@@ -74,6 +74,13 @@ allocation 是角色准入容量，不是允许支出 ¥21。每次请求仍同�
 
 C5 历史 manifest 继续固定原 case/window/reviewedPlatformSha/frozenCaseInputHash、两个 passed/approved 阶段和七个 captures；由 `historical-passed-stages.ts` 读取原文件验证。C15 使用自己的 input hash 和当前 requirement capture，不能要求其 hash 等于 C5；须额外比较新输入除 `budgetGroup` 外与旧输入语义及 preparation 全等，证明验收未改变。`fixedTransferValidationInput` 只需将 TypeScript 的 `budgetGroup` 字段改为 optional，现有运行时等值检查保留。
 
+`src/runtime/entrypoint-host.ts:328-329` 的现有守卫还要求 current/inherited input hash 相同；仅在 entry 分开身份仍会在 claim 后、coding 前失败。因此把这一个 host 守卫纳入源码范围：完整 `requirement.acceptance` 等值要求保持；hash 不同时只接受下述固定 C15/C5 兼容证明。证明由 host 自己执行，不接受 `allowChangedInput`、调用方布尔或无条件 callback，也不增加通用兼容框架。
+
+- 使用 host 已取得的 `scope.window`、`scope.snapshot` 和 `historical.verify` 返回的 `inherited`：当前必须是完整固定 C15 declaration-2/quote1、无 group、当前 case/window/requirement identity 与 controller scope 全等。历史必须是该同账本中的唯一 C5 window；manifest 与 sourceRequirement 的 case/window/reviewedPlatformSha/input hash 匹配这个已认证旧 window，旧 requirement 的 validation.runId/validation.ledgerId/specVersion 匹配同一 snapshot，旧 requirement.validation.decision 与旧 operatorDecision 移除持久化 `sourceSha256` 后全等，design/art task IDs 为原 C5。`historical.originalRoot` 为当前固定案例根同级的 C5 根，targetRoot 与当前 root 相同，manifest 仍为当前 operator 所覆盖的精确引用。原 C15 entry 的固定 C5 pins 核验继续执行。
+- 从 `inherited.requirementCapture` 的已签名文件清单中取原 C5 单一 requirement source 对应的 `_cosmos/<source.artifactId>.json`，在 C5 originalRoot 只读实际字节；从当前 `requirement.sources[0]` 指向的固定 `requirements/fixed.json` 读取 C15 字节。引用须确实属于已验证 capture/当前 scope，分别用旧/新 quote 的 requirements 摘要核验；完整 source refs、版本和原 captured execution-requirement 仍受现有 `historical.verify`/scope 检查。沿用现有 `regularFile`、`validationHash` 与 `sameValue`，不新增证书或摘要层。
+- 两份 declaration 的 template manifest 全等、requirements version 相同，requirements 路径分别为原固定 `probes/transfer/requirements.json` 与新固定 `probes/transfer/requirements-case-fifteen.json`，各自摘要及 input hash 匹配各自实际输入。旧 JSON 的 `budgetGroup` 必须精确为原 COS16 ¥10 绑定，新 JSON 必须没有该属性；只从旧对象移除这一属性后，与新 JSON **完整对象全等**。`specVersion`、全部验收字段、内容、scope、brief、preparation、unsupported 及其他字段均不能变化；draft 还须等于新 JSON 的完整 preparation。文件路径/摘要变化只发生在已批准 declaration/source 元数据中。
+- 证明须在 `historical.import`、当前 capture/session/作者创建之前成功；cold restore 重新走同一守卫。其他案例或其他历史来源继续原同 hash 规则。随后每次现有 `validationScope`、`historical.verify`、当前源码/输入及旧 budget source 检查照常执行，使这次完整内容比较绑定的两份实际字节持续受原身份约束；不能把一次比较当成跳过后续来源检查的许可。
+
 ### 3. 固定 C15 entry 与现有 driver
 
 C6/C7 entry 不直接套用：它们要求 delegation 随案例增加、所有历史 quote2、新旧 input hash 相同、当前 quote 有 group，最终报告也强制当前 group。C14 的固定 entry 还只认证 closure19 前缀。
@@ -84,7 +91,7 @@ entry 的首次 preflight 要求实际 22 stopped cases、14 旧 delegations、1
 
 当前 admission envelope 使用 `transfer-case-fifteen-admission/1`，覆盖 quote1、新五 grants、C5 manifest、完整历史 accounting 摘要、源码/dependency/template/worker 闭包和独审来源。当前 source approval 须包括 COS90/91、COS94～100 的已审源码，以及 COS101 自己；COS93 的实际诊断结果用于工程决定，不要求其生产游戏报告变成 passed。免费 preflight 不写文件、占 owner、claim、prepare host、创建 provider/session 或请求；失败前后 snapshot/输出根保持。
 
-启动按已有固定入口生命周期执行：免费 host.prepare → 重验相同 quote → 保存精确 operator/admission 来源 → 原子 claim 一次 → 当前 controller/OwnedWork → 原生 host。当前新 case 不增加 delegation。`createFixedTransferCodingOnlyDriver`、`createFixedTransferCodingOnlyTasks`、`createTransferReusedConsumerHost`、原 orchestrator 和 promotion 直接复用；只通过 C15 固定 source/accounting 回调绑定。必要时复用 C7 已有 source closure / template / worker 校验并只加入字面量 `fifteen`，不把 C6/C7 entry 扩成通用多组框架。
+启动按已有固定入口生命周期执行：免费 host.prepare → 重验相同 quote → 保存精确 operator/admission 来源 → 原子 claim 一次 → 当前 controller/OwnedWork → 原生 host。当前新 case 不增加 delegation。`createFixedTransferCodingOnlyDriver`、`createFixedTransferCodingOnlyTasks`、`createTransferReusedConsumerHost`、原 orchestrator 和 promotion 复用；C15 source/accounting 回调负责当前绑定，host 内的不同 hash 准入按上一节严格证明。必要时复用 C7 已有 source closure / template / worker 校验并只加入字面量 `fifteen`，不把 C6/C7 entry 扩成通用多组框架。
 
 只有新 coding/独立 coding reviewer，以及现有条件满足时的一次 coding repair 可发 SDK 请求；planning grant 仅用于可信 bootstrap，design/art grants 不产生新会话。repair 自动派发沿用 driver 当前 `code_defect` 条件；单纯 reviewer `changes_requested` 不承诺自动返工，须如实报告未批准。repair 不重置作者、请求计数、¥5 或 deadline。
 
@@ -102,7 +109,7 @@ entry 的首次 preflight 要求实际 22 stopped cases、14 旧 delegations、1
 2. 通过真实 `RunController` reserve/admit/settle 一次带图 reviewer：精确预留 2131072µ，C15 计费且旧组零变；余额差 1µ、request80 后再调、deadline 边界拒绝且 transport 调用数不增。
 3. cold restore 后相同来源仍可继续；改旧 delegation source、supplement source、当前 source/输入/admission/C5 capture 在 provider/tool/child 派发前拒绝。证明没有“非分组跳过旧预算来源”的旁路。
 4. stop 后无新派发，unknown 保留待对账；已停止 C15 不恢复；确定费用与 owner 释放后用原 API 成功 closure，reload 验证全部历史、supplement、group 和时钟，重放幂等。
-5. SOURCE 免费集成以真实 host/factory/Pi、fake transport 证明新作者初始空目录、只复用 C5、当前 binding/独立 review 与精确 candidate promotion/报告；fake 证据清楚标为 fixture。compiled 检查捕获实际 JS 与 JS worker，不能用它代替 authentic 财务检查。
+5. SOURCE 正例必须实际经过 `createFixedTransferCodingOnlyDriver → createTransferReusedConsumerHost → createBrowserHostCore`，以不同的真实 C5/C15 input hash 通过固定兼容守卫，继续到空工作副本的新作者、当前 capture、独立 review 和精确 promotion/报告；不能 stub 掉 host 构造或只测 entry。错 C5 window/source/capture、改 acceptance、非 C15 请求 hash 例外、改其他内容/preparation、伪造 group/path 的负例须在 import/session/作者前拒绝。真实 host/factory/Pi 配 fake transport 的证据清楚标为 fixture；compiled 检查实际 JS 与 JS worker，不能代替 authentic 财务检查。
 6. 新实际 C15 自己执行完整必要验收。C14 的历史 220/62 及 COS93 planned-stop 诊断都不计入新 candidate 的通过数。
 
 ## 审批与交付顺序
