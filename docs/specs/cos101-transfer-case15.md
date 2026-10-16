@@ -1,8 +1,14 @@
 # COS101：同一共享账本上的第十五迁移案例
 
-状态：源码已独审并合入，`TRANSFER_CASE_FIFTEEN_SOURCE_READY` / `source-integrated`；生产715正向只读preflight待Root执行，actual/paid仍未授权，issue保持open。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 设计基线 `cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`。任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)，id5879037048，已原生挂父 COS16 / [#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；#17直接子项1，任务总数101，根#1直接子项仍100。
+状态：源码已独审并合入，`TRANSFER_CASE_FIFTEEN_SOURCE_READY` / `source-integrated`；生产715正向只读preflight已通过并独审，随后获准的单次实际C15因私有监督脚本误读UTC提前失败，身份已消费、不重开。新增请求与费用均0；manual stop、closure21及独立无残留后核已完成，issue保持open。详见[实际失败与账务闭环](../research/2026-10-16-cos101-c15-watchdog.md)。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 设计基线 `cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`。任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)，id5879037048，已原生挂父 COS16 / [#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；#17直接子项1，任务总数101，根#1直接子项仍100。
 
-最终源码`b3c5187cf7c3ee1cb182b8e3470cff608afec627`于2026-10-16经`cos101_host_reviewer`整卡`APPROVED_SOURCE_SCOPED`、无finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210122062)已由Root核证；唯一merger合入`0af4be69bea76ff48092d3909a9a855eae7c3f57`。主线typecheck/build0，authentic预算与entry代表2/2、0skip；全部组合源码与批准版字节一致。完整免费SOURCE1/1复用：真实Pi接fake transport、新capture/正式构建、八段176 checks和4媒体字段、八张合法PNG独立review approved、C15 v1 promotion与正常stop/owner close；两次fake请求各10µ、unknown/reserved0，旧group/14delegations保持。SOURCE364不替代生产715只读preflight、220步/62字段或实际游戏验收，actual/paid保持false；失败记录与一次SOURCE snapshot mtime缺口见[计划](../plans/2026-10-16-cos101-transfer-case15.md)。
+最终源码`b3c5187cf7c3ee1cb182b8e3470cff608afec627`于2026-10-16经`cos101_host_reviewer`整卡`APPROVED_SOURCE_SCOPED`、无finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210122062)已由Root核证；唯一merger合入`0af4be69bea76ff48092d3909a9a855eae7c3f57`，发布主线`ea4876a62df70fcfaa95d795aa2b68c970f6ff67`。主线typecheck/build0，authentic预算与entry代表2/2、0skip；全部组合源码与批准版字节一致。完整免费SOURCE1/1复用：真实Pi接fake transport、新capture/正式构建、八段176 checks和4媒体字段、八张合法PNG独立review approved、C15 v1 promotion与正常stop/owner close；两次fake请求各10µ、unknown/reserved0，旧group/14delegations保持。SOURCE364不替代生产715只读preflight、220步/62字段或实际游戏验收；失败记录与一次SOURCE snapshot mtime缺口见[计划](../plans/2026-10-16-cos101-transfer-case15.md)。
+
+## 2026-10-16 实际结果
+
+生产715 preflight退出0，87个shared文件的SHA/size/mtime零变，175个源码文件一致，C5两个approved阶段的7 captures/47 contents通过。Root在独审后启动固定单次launcher：claim为`07:41:52.644Z`、正确deadline为`09:11:52.644Z`；监督器却将deadline读为`09:11:52+08:00`，于`07:41:54.458Z`触发`fixed_case_deadline`并误杀本次进程树。外层55656ms、worker exit -1，claim后约1.814秒；无新任务、代码、candidate、游戏或harness证据。[公开失败及07:43状态更正](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210935255)保留。
+
+原v1脚本和失败snapshot保全。私有三行UTC补丁获`APPROVED_TIMEZONE_FIX_SCOPED`，真实读取/转换片段的局部回归为RED 0/7、exit1，GREEN 7/7、exit0；没有重跑C15。经独立确认进程/端口均退出，Root通过既有`SnapshotStore.recover`和原D15的accountingOnly controller于`08:04:51.699Z`写manual stop。closure API首次因C15根未创建而报ENOENT；经独审仅补建空账务恢复目录后，原API一次关闭五grants：revision3117、115 closures/21 audits，释放21000000µ，共享未分配57911425µ，旧组剩余1707937µ。715请求（714 settled/1 cancelled）、共享settled16901000µ（含prior721771µ）、reserved/unknown0保持；旧历史/group/supplement/clock与旧86个shared文件保持。独审`POSTCHECK_C15_CLOSED_NO_LIVE_RESIDUE`于`08:19:48.549Z`确认无关联进程、监听端口、owner或registry writer，恢复根仍为空。Root已解冻main并精确读回[公开闭账结果](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6211338359)。没有实际220步/62字段、视频、独立游戏评审或human通过；COS16/COS18与完整经典仍未完成。
 
 ## 目标与成功条件
 
@@ -23,7 +29,7 @@ C15 成功必须同时满足：
 - [C14 实际记录](../research/2026-10-15-transfer-c14-browser-launch.md)：41 分 13.754 秒、35 个 settled 请求、¥0.792063；正式构建通过，浏览器首段启动失败，coding review pending、没有 accepted。C14 已消费，closure20 已执行，不能重开或再次 closure。
 - 原 C14 一致副本的 220 步玩法和 62 字段媒体证据只适用于原 candidate，不能替代 C15 新产物验收。C14 coding 未批准，不是历史复用输入。
 - Root 已核对的 [COS93 navigation-v2 结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6208523921)：`native-validation-waits/2` 导航 1044.6055ms（goto 840.4206 + ready 203.6588），29 HTTP、0 reject；normal cleanup 493ms，视频完整解码 70 帧、exit0。第一 native 段实际 137.277s，whole open 47.913s；actual 总 877848ms，其中 TEMP 构造准备约 319s、host.verify 约 557s。原 467 文件/61 目录、ledger 保持，独立后核无残留、Root 已解除冻结。该结果只证实这次有计划停止的导航诊断；生产报告仍 failed / reportValid:false。
-- 已核对账本基线为 snapshot revision3114、ledger5、715 请求、settled 16901000µ、reserved/unknown 0；22 个 stopped 案例、14 delegations、110 closed grants、20 closure audits。共享未分配 57911425µ；原组剩余 1707937µ。启动时须重新只读核对精确基线，漂移则停止并更新报价，不能把这里的数字当长期授权。
+- 启动前已核对的账本基线为 snapshot revision3114、ledger5、715 请求、settled 16901000µ、reserved/unknown 0；22 个 stopped 案例、14 delegations、110 closed grants、20 closure audits。共享未分配 57911425µ；原组剩余 1707937µ。此为C15启动前历史，当前closure21结果见上；不能把这组基线当长期授权。
 
 ## 方案取舍
 
@@ -118,4 +124,4 @@ entry 的首次 preflight 要求实际 22 stopped cases、14 旧 delegations、1
 
 设计/spec/plan → 独立 reviewer → Root 批准源码实施 → 作者分支提交 exact SHA → reviewer 规格及质量审查 → 唯一 merger 集成、必要组合验证并推送 → Root 检查免费 preflight 与精确 quote → 单独批准一次有界付费启动。实现作者不访问凭据或真实账本写入口；实际 launcher、provider、closure 由后续审批控制。
 
-本卡不包含新的 provider 授权。设计已独审并批准源码实施；本次仅设计文档集成，执行步骤见 [计划](../plans/2026-10-16-cos101-transfer-case15.md)，一次实际付费启动仍由Root另行批准。
+以上保留原审批顺序。Root后续已批准并消费一次实际launcher，失败及closure21见本卡实际记录；不产生重开C15或再次provider调用授权，执行历史见[计划](../plans/2026-10-16-cos101-transfer-case15.md)。

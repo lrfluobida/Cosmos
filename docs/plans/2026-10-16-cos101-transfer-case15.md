@@ -10,11 +10,11 @@
 
 ---
 
-设计见 [spec](../specs/cos101-transfer-case15.md)。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)已挂父COS16/#17，#17直接子项1、根#1直接子项仍100、任务总数101。源码已独审集成，`TRANSFER_CASE_FIFTEEN_SOURCE_READY` / `source-integrated`；issue保持open，actual/paid未授权、无新实际结果。采用专属 implementer、独立 reviewer、唯一 merger；常规工程选择不再重复询问用户。全部文本先 strict UTF-8 检查，最小 patch，保留旧中文、换行与已审历史。
+设计见 [spec](../specs/cos101-transfer-case15.md)。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)已挂父COS16/#17，#17直接子项1、根#1直接子项仍100、任务总数101。源码已独审集成，`TRANSFER_CASE_FIFTEEN_SOURCE_READY` / `source-integrated`；生产715只读preflight已通过并独审，获准的单次actual C15因监督脚本UTC误读提前failed/consumed，manual stop、closure21及无残留后核已完成，Root已解冻main；issue仍open。新增请求/费用0，没有新游戏产物或后续paid授权，详见末节与[研究记录](../research/2026-10-16-cos101-c15-watchdog.md)。采用专属 implementer、独立 reviewer、唯一 merger；常规工程选择不再重复询问用户。全部文本先 strict UTF-8 检查，最小 patch，保留旧中文、换行与已审历史。
 
-最终源码`b3c5187cf7c3ee1cb182b8e3470cff608afec627`于2026-10-16经`cos101_host_reviewer`整卡`APPROVED_SOURCE_SCOPED`、无finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210122062)已由Root核证；唯一merger合入`0af4be69bea76ff48092d3909a9a855eae7c3f57`。Task A与host/entry/compiled/C6分段批准及完整SOURCE证据见下文，actual/paid保持false。
+最终源码`b3c5187cf7c3ee1cb182b8e3470cff608afec627`于2026-10-16经`cos101_host_reviewer`整卡`APPROVED_SOURCE_SCOPED`、无finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210122062)已由Root核证；唯一merger合入`0af4be69bea76ff48092d3909a9a855eae7c3f57`，发布主线`ea4876a62df70fcfaa95d795aa2b68c970f6ff67`。Task A与host/entry/compiled/C6分段批准及完整SOURCE证据见下文；这些源码与夹具结论保持，actual结果单列。
 
-免费SOURCE证据采用T81真实API历史，在隔离副本沿原API追加C14的35请求/792063µ与closure20形成SOURCE364，覆盖真实claim/open→driver→reused host→core链路。生产entry仍精确要求715请求/16901000µ、22 stopped/14 delegations/110 closed grants/20 audits；SOURCE364不替代该真实入口正例，合main后由Root补真实只读preflight。复用已有历史，不为凑715重复构造请求；不写原共享账本、不新增provider调用。
+免费SOURCE证据采用T81真实API历史，在隔离副本沿原API追加C14的35请求/792063µ与closure20形成SOURCE364，覆盖真实claim/open→driver→reused host→core链路。生产entry仍精确要求715请求/16901000µ、22 stopped/14 delegations/110 closed grants/20 audits；SOURCE364不替代该真实入口正例，后续Root生产只读preflight单独记录在末节。SOURCE复用已有历史，不为凑715重复构造请求；不写原共享账本、不新增provider调用。
 
 ## 文件与任务边界
 
@@ -92,6 +92,8 @@ node --experimental-strip-types --test tests/transfer/validation-case-fifteen-co
 
 本节是源码集成后的操作清单；不随本计划提交、源码审批或免费测试自动获得付费许可。
 
+执行结果：Root后续已批准并启动一次固定launcher；在claim后、任务创建前被错误时区守卫终止，C15已消费。下列完整游戏验收步骤未到达，停止、closure21与独立后核按失败路径完成；没有第二次实际运行授权。原清单保留作为计划历史，实际时间及差距见末节。
+
 - [ ] Root 完成 GitHub COS16 子任务登记、源码独审信息、C15 C5复用 manifest 和精确已推送 main SHA。只读 preflight 使用新固定 entry：
 
 ```powershell
@@ -112,11 +114,13 @@ node --experimental-strip-types probes/transfer/validation-case-fifteen-run.ts -
 
 ## 本轮设计交付记录
 
-本轮仅新增本计划与 spec，没有生产源码、测试执行、真实账本写入、provider 或付费运行。设计独立审查已通过：90min 的窄授权、¥21分配/¥5支出的区别、ledger5历史来源仍逐次核验、非分组closure对group零影响，以及真实独立截图review与完整验收不会被历史证据替代；固定C15/C5兼容证明与真实host正反SOURCE覆盖已纳入计划。当前仅源码实施获准，实际付费运行另行审批。
+本节为设计交付时历史：当时仅新增本计划与 spec，没有生产源码、测试执行、真实账本写入、provider 或付费运行。设计独立审查已通过：90min 的窄授权、¥21分配/¥5支出的区别、ledger5历史来源仍逐次核验、非分组closure对group零影响，以及真实独立截图review与完整验收不会被历史证据替代；固定C15/C5兼容证明与真实host正反SOURCE覆盖已纳入计划。当时仅源码实施获准，实际付费运行另行审批。
 
 ## 2026-10-16 源码实施证据
 
 本节追加实施记录，不改写上面的设计历史。作者分支 `codex/cos101-transfer-case15`，managed worktree `E:/CodexData/.codex/worktrees/cos-04-media/Cosmos`；原始 TAP、退出码和严格检查在该工作树 `.cosmos/cos101-evidence/`。
+
+本节与主线集成记录中的preflight pending/actual未授权均为源码交付当时状态；后续生产preflight和单次实际失败见末节。原失败夹具、恢复操作和mtime缺口保持。
 
 | 范围 | 已审提交与证据 |
 | --- | --- |
@@ -161,3 +165,14 @@ Root批准复用 `cosmos-transfer-entry-T81i3U` 的原API SOURCE C5～C13记录�
 - `npm run typecheck`、`npm run build`均退出0；日志`C:/Users/26557/AppData/Local/Temp/cos101-merge-typecheck.log`、`cos101-merge-build.log`，各含明确EXIT。
 - `node --experimental-strip-types --test --test-name-pattern='^authentic ledger5 admits nongrouped C15 after C14 closure without changing the old group$|^C15 has an independent fixed entry and quote1 admission envelope$' tests/runtime/validation-case-fifteen-budget.test.ts tests/transfer/validation-case-fifteen.test.ts`：2/2、0skip、退出0、1328.8606ms；日志`C:/Users/26557/AppData/Local/Temp/cos101-merge-focused.tap`。
 - 其余已审完整SOURCE1/1、host/entry/compiled/C6/预算与`strict-all-final.log`/`.exit`按无delta复用；未重跑T81、长链、实际native或provider。SOURCE364/176 checks/4媒体字段与生产715/220步/62字段分开，真实只读preflight仍pending，实际账本与C14原结论保持。
+
+## 2026-10-16 实际C15提前失败与账务闭环
+
+- **生产preflight已通过。** 发布源码为`ea4876a62df70fcfaa95d795aa2b68c970f6ff67`；Root只读preflight退出0并获独审，87个shared文件SHA/size/mtime零变、175源码文件一致、C5两个approved阶段的7 captures/47 contents通过，没有owner、C15根或新请求。
+- **单次启动已消费。** Root私有Python worker与PowerShell supervisor在独审后启动，固定source/worker/script，preclaim准备外guard为15分钟；claim后的硬帽为90分钟/¥5。[启动记录](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210661349)对应claim `07:41:52.644Z`、正确deadline `09:11:52.644Z`。监督器在`07:41:54.458Z`误判`fixed_case_deadline`并kill本次进程树，外层55656ms、worker exit -1、claim后约1.814秒。07:43“仍在准备”的表述已在[失败记录](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210935255)更正为当时进程已经结束。
+- **UTC修正仅局部验证。** PowerShell 7.6.5默认`ConvertFrom-Json`把UTC ISO转成DateTime；再次`DateTimeOffset.Parse`的隐式字符串丢失UTC和毫秒，China Standard Time下被读成`09:11:52+08:00`。开始/截止同偏移使90分钟差值检查仍通过。独立作者只提供私有三行补丁：`-DateKind String`与`InvariantCulture`/`.ToUniversalTime()`；独审`APPROVED_TIMEZONE_FIX_SCOPED`。真实AST读取/转换片段的RED 0/7、exit1，GREEN 7/7、exit0，覆盖绝对UTC、毫秒、前1ms/到达/后1ms、等价offset、90min+1ms拒绝；原v1保留，C15未重跑。
+- **实际无产物或新增费用。** 失败时revision3115仅有claim增量；C15没有任务、代码、运行目录、registry/candidate、游戏或harness证据。715请求保持714 settled/1 cancelled，共享settled16901000µ含prior721771µ，reserved/unknown0。没有实际8段/220步/62字段、视频或human证据，原C14及SOURCE成功数不迁移。
+- **按原API停止与闭账。** 保全失败snapshot和157字节owner；独审确认26492/28408/3264及children/ports全无后，Root通过`SnapshotStore.recover`和原D15的accountingOnly controller于`08:04:51.699Z`manual stop，revision3116、owner释放。全局历史deadline不算C15 stop。首次closure prepare因C15根尚未创建而ENOENT；独审批准仅补建空账务恢复目录，没有game/result/candidate，再prepare。原API一次apply已审quote，revision3117、115 closures/21 audits，释放21000000µ，共享未分配57911425µ、旧组余额1707937µ。旧run/tasks/22cases、closure20、group/supplement/14delegations和clock保持。
+- **独立闭环核对已通过。** `POSTCHECK_C15_CLOSED_NO_LIVE_RESIDUE`于`08:19:48.549Z`确认无关联进程、监听端口、owner或registry writer，旧86个shared文件SHA/size/mtimeNs保持，空账务根仍为空。最终snapshot SHA256 `8eb06b98e6b1ed989d2cf7580a4a01bd138fc90ae0f2b0d261beb964f8eb6ca2`；Root已解冻main并精确读回[公开闭账结果](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6211338359)。
+
+完整quote/decision、失败快照摘要与私有证据索引见[研究记录](../research/2026-10-16-cos101-c15-watchdog.md)。#102保持open/父#17未勾选；源码READY与actual failed/consumed/closed分开。C15不能重开，以后验证须另行设计与审查；COS16/COS18、完整经典与human仍未完成。本次只记录已发生结果，没有新paid授权。
