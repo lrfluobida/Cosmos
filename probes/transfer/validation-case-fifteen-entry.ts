@@ -78,6 +78,7 @@ const SOURCE_MARKERS: Record<string, string> = {
   'COS-98': 'NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY',
   'COS-99': 'NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY',
   'COS-100': 'NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY',
+  'COS-101': 'TRANSFER_CASE_FIFTEEN_SOURCE_READY',
 };
 const SOURCE_READY = ['READY', 'SOURCE_READY', 'COMBINED_SOURCE_READY', 'PHASE_B_READY', 'READY_FOR_ROLE_IO_INTEGRATION'];
 const PREREQUISITES = ['COS-02', 'COS-03', 'COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-11', 'COS-12', 'COS-13', 'COS-18', 'COS-19', ...Object.keys(SOURCE_MARKERS)];
@@ -111,10 +112,60 @@ export function createTransferCaseFifteenAdmissionQuote(quote: ValidationCaseQuo
     manifestRef, sourceApprovals, ...(execution ? { execution } : {}), ...(accountingSha256 ? { accountingSha256 } : {}) };
   return freeze({ ...structuredClone(value), admissionId: validationHash(JSON.stringify(value)) });
 }
+export function requireTransferCaseFifteenSourceApprovals(mapping: { tasks?: any[] }) {
+  const approvals: { taskId: string; reviewedCommit: string; mergeCommit: string }[] = [];
+  for (const taskId of PREREQUISITES) {
+    const matches = (mapping.tasks ?? []).filter((item: any) => item.taskId === taskId), item = matches[0];
+    if (matches.length !== 1 || !/^[a-f0-9]{40}$/.test(item.reviewedCommit ?? '') || !/^[a-f0-9]{40}$/.test(item.mergeCommit ?? '')
+      || !(Object.hasOwn(SOURCE_MARKERS, taskId) ? item.reviewStatus === SOURCE_MARKERS[taskId]
+        && (['integrated', 'offline-verified-awaiting-live', 'source-integrated', 'complete'].includes(item.integrationStatus)
+          || taskId === 'COS-22' && item.integrationStatus === 'actual-validation-failed-author-handoff')
+        : item.state === 'closed' || SOURCE_READY.includes(item.reviewStatus) && ['integrated', 'partial-offline-verified', 'offline-verified-awaiting-live', 'complete'].includes(item.integrationStatus))) {
+      throw new Error(`${taskId} requires unique independently reviewed and integrated source.`);
+    }
+    approvals.push({ taskId, reviewedCommit: item.reviewedCommit, mergeCommit: item.mergeCommit });
+  }
+  return approvals;
+}
+/** Fixed current-case completion; kept separate so its real owner-release boundary can be verified. */
+export async function completeTransferValidationCaseFifteen(input: ValidationHostInput, historical: HistoricalPassedStages,
+  sourceApprovals: { taskId: string; reviewedCommit: string; mergeCommit: string }[], result: ValidationHostResult) {
+  const { controller, work, window } = input;
+  controller.requireValidationCase(D.caseId, window.windowId);
+  if (!sameValue(window.quote.declaration, D)) throw new Error('C15 completion requires its fixed current declaration.');
+    const gaps = [...result.gaps], before = await controller.read();
+    if (before.validation!.cases.find(item => item.caseId === D.caseId)!.stopReason || Date.now() >= Date.parse(window.deadlineAt) - 5000) gaps.push('C15 stopped or cannot cover completion and cleanup.');
+    if (before.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) gaps.push('Unresolved or reserved fees prevent completion.');
+    const currentRequests = before.requests.filter(request => request.validation?.caseId === D.caseId);
+    if (currentRequests.some(request => ![D.grants.coding.taskId, D.grants.repair.taskId].includes(before.ledger.entries.find(entry => entry.requestId === request.requestId)!.taskId))) gaps.push('A non-coding SDK request violated the current C15 scope.');
+    try { await historical.verify(input.signal); } catch { gaps.push('Historical source changed before completion.'); }
+    const accepted = result.outcome === 'passed' ? await new ArtifactRegistry(input.root, 'registry').current().catch(() => null) : null;
+    if (result.outcome === 'passed' && (!accepted || !result.accepted || !sameValue(accepted.candidateRef, result.accepted))) gaps.push('Exact current accepted promotion is unavailable.');
+    const ownsStop = !controller.signal.aborted && !before.validation!.cases.find(item => item.caseId === D.caseId)!.stopReason;
+    let drained = false;
+    try { await cancelAndDrain(controller, work, 'This one-shot coding-only validation finished; its identity remains consumed.'); drained = true; }
+    catch { gaps.push('Current owned work or durable stop did not finish cleanly.'); }
+    const after = await controller.read(), view = validationCaseView(after), group = validationBudgetGroup(after.ledger);
+    if (!ownsStop || after.events.slice(before.events.length).filter(event => event.type === 'validation_case_stopped').length !== 1 || view.validationCase.stopReason?.code !== 'manual') gaps.push('A separate stop preceded normal completion.');
+    if (Date.now() >= Date.parse(window.deadlineAt) || after.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) gaps.push('Cleanup exceeded the deadline or left unresolved fees.');
+    if (!group || group.committedMicroCny > group.limitMicroCny || view.validationCase.caseCommittedMicroCny > D.limits.incrementalMicroCny
+      || view.validationCase.committedMicroCny > D.limits.cumulativeMicroCny || view.validationCase.committedMicroCny > D.limits.lifetimeMicroCny) gaps.push('Applicable fee limits were exceeded.');
+    if (result.outcome === 'passed' && !sameValue((await new ArtifactRegistry(input.root, 'registry').current().catch(() => null))?.candidateRef, result.accepted)) gaps.push('Accepted promotion changed during cleanup.');
+    let cleanupEndedAt: string | undefined;
+    try { await controller.close(); if (drained) cleanupEndedAt = new Date().toISOString(); }
+    catch { gaps.push('Current controller ownership was not released.'); }
+    if (!cleanupEndedAt) gaps.push('The complete cleanup endpoint is unconfirmed.');
+    const report = { outcome: result.outcome === 'passed' && !gaps.length ? 'passed' : 'failed', ...view.validationCase, platformHead: window.quote.identity.reviewedPlatformSha,
+      endedAt: new Date().toISOString(), elapsedMs: Date.now() - Date.parse(window.startedAt), original: view.original, sourceApprovals: sourceApprovals,
+      inheritedSource: historical.manifestRef, inheritedTaskIds: [D5.grants.design.taskId, D5.grants.art.taskId], currentSdkRoles: ['coding'],
+      allocationSource: 'shared-unallocated', budgetGroup: { historical: group }, ...(cleanupEndedAt ? { cleanupEndedAt } : {}), gaps: [...new Set(gaps)],
+      taskHistory: after.tasks.filter(task => [D.grants.coding.taskId, D.grants.repair.taskId].includes(task.taskId)), repair: after.validation!.cases.find(item => item.caseId === D.caseId)!.repair,
+      ...(result.tasks ? { tasks: result.tasks } : {}), ...(result.plan ? { plan: result.plan } : {}), ...(result.accepted ? { accepted: result.accepted } : {}), userExperience: 'not_confirmed' };
+    await publishReceipt(join(input.root, 'result.json'), report); return report;
+}
 /** Independent fixed nongrouped lifecycle; no declaration, budget or historical selector is public. */
 export function createFixedTransferValidationCaseFifteenEntry(sourcePins: HistoricalCaseSixSourcePins) {
 const pins = freeze(structuredClone(sourcePins)), historyCount = 22, manifestLocation = 'cos20-transfer-validation-15-reuse.json';
-const markers = SOURCE_MARKERS, prerequisites = PREREQUISITES;
 
 async function absent(repository: string, path: string, label: string) {
   try { await lstat(await safePath(repository, path)); }
@@ -216,17 +267,7 @@ async function prepare(options: { repository: string; args: string[]; signal?: A
   const pushed = await runChild('git', ['--no-optional-locks', 'rev-parse', 'refs/remotes/origin/main'], { cwd: repository, signal, timeoutMs: 5000 });
   if (pushed.code !== 0 || pushed.stdout.trim() !== intent.reviewedPlatformSha) throw new Error('Case15 requires the exact pushed main SHA.');
   const mapping = decode(await regularFile(repository, 'docs/specs/github-issues.json')), approvals: { taskId: string; reviewedCommit: string; mergeCommit: string }[] = [];
-  for (const taskId of prerequisites) {
-    const matches = (mapping.tasks ?? []).filter((item: any) => item.taskId === taskId), item = matches[0];
-    if (matches.length !== 1 || !/^[a-f0-9]{40}$/.test(item.reviewedCommit ?? '') || !/^[a-f0-9]{40}$/.test(item.mergeCommit ?? '')
-      || !(Object.hasOwn(markers, taskId) ? item.reviewStatus === markers[taskId]
-        && (['integrated', 'offline-verified-awaiting-live', 'source-integrated', 'complete'].includes(item.integrationStatus)
-          || taskId === 'COS-22' && item.integrationStatus === 'actual-validation-failed-author-handoff')
-        : item.state === 'closed' || SOURCE_READY.includes(item.reviewStatus) && ['integrated', 'partial-offline-verified', 'offline-verified-awaiting-live', 'complete'].includes(item.integrationStatus))) {
-      throw new Error(`${taskId} requires unique independently reviewed and integrated source.`);
-    }
-    approvals.push({ taskId, reviewedCommit: item.reviewedCommit, mergeCommit: item.mergeCommit });
-  }
+  approvals.push(...requireTransferCaseFifteenSourceApprovals(mapping));
   for (const sha of new Set([...historicalSources, ...approvals.flatMap(item => [item.reviewedCommit, item.mergeCommit])])) {
     const result = await runChild('git', ['--no-optional-locks', 'merge-base', '--is-ancestor', sha, intent.reviewedPlatformSha], { cwd: repository, signal, timeoutMs: 5000 });
     if (result.code !== 0) throw new Error('Required historical or reviewed source is not an ancestor of this exact main SHA.');
@@ -327,29 +368,7 @@ async function runTransferValidationCaseFifteenWithHost(options: { repository: s
     let result: ValidationHostResult;
     try { result = await work.run(signal => options.host.execute({ ...input, signal }, historical, resume)); }
     catch { result = { outcome: 'failed', gaps: ['C15 execution did not complete; preserve evidence and reconcile charges.'] }; }
-    const gaps = [...result.gaps], before = await controller.read();
-    if (before.validation!.cases[historyCount].stopReason || Date.now() >= Date.parse(window.deadlineAt) - 5000) gaps.push('C15 stopped or cannot cover completion and cleanup.');
-    if (before.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) gaps.push('Unresolved or reserved fees prevent completion.');
-    const currentRequests = before.requests.filter(request => request.validation?.caseId === D.caseId);
-    if (currentRequests.some(request => ![D.grants.coding.taskId, D.grants.repair.taskId].includes(before.ledger.entries.find(entry => entry.requestId === request.requestId)!.taskId))) gaps.push('A non-coding SDK request violated the current C15 scope.');
-    try { await historical.verify(input.signal); } catch { gaps.push('Historical source changed before completion.'); }
-    const accepted = result.outcome === 'passed' ? await new ArtifactRegistry(input.root, 'registry').current().catch(() => null) : null;
-    if (result.outcome === 'passed' && (!accepted || !result.accepted || !sameValue(accepted.candidateRef, result.accepted))) gaps.push('Exact current accepted promotion is unavailable.');
-    const ownsStop = !controller.signal.aborted && !before.validation!.cases[historyCount].stopReason;
-    await cancelAndDrain(controller, work, 'This one-shot coding-only validation finished; its identity remains consumed.');
-    const after = await controller.read(), view = validationCaseView(after), group = validationBudgetGroup(after.ledger);
-    if (!ownsStop || after.events.slice(before.events.length).filter(event => event.type === 'validation_case_stopped').length !== 1 || view.validationCase.stopReason?.code !== 'manual') gaps.push('A separate stop preceded normal completion.');
-    if (Date.now() >= Date.parse(window.deadlineAt) || after.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) gaps.push('Cleanup exceeded the deadline or left unresolved fees.');
-    if (!group || group.committedMicroCny > group.limitMicroCny || view.validationCase.caseCommittedMicroCny > D.limits.incrementalMicroCny
-      || view.validationCase.committedMicroCny > D.limits.cumulativeMicroCny || view.validationCase.committedMicroCny > D.limits.lifetimeMicroCny) gaps.push('Applicable fee limits were exceeded.');
-    if (result.outcome === 'passed' && !sameValue((await new ArtifactRegistry(input.root, 'registry').current().catch(() => null))?.candidateRef, result.accepted)) gaps.push('Accepted promotion changed during cleanup.');
-    const report = { outcome: result.outcome === 'passed' && !gaps.length ? 'passed' : 'failed', ...view.validationCase, platformHead: intent.reviewedPlatformSha,
-      endedAt: new Date().toISOString(), elapsedMs: Date.now() - Date.parse(window.startedAt), original: view.original, sourceApprovals: value.approvals,
-      inheritedSource: historical.manifestRef, inheritedTaskIds: [D5.grants.design.taskId, D5.grants.art.taskId], currentSdkRoles: ['coding'],
-      allocationSource: 'shared-unallocated', budgetGroup: { historical: group }, cleanupEndedAt: new Date().toISOString(), gaps: [...new Set(gaps)],
-      taskHistory: after.tasks.filter(task => [D.grants.coding.taskId, D.grants.repair.taskId].includes(task.taskId)), repair: after.validation!.cases[historyCount].repair,
-      ...(result.tasks ? { tasks: result.tasks } : {}), ...(result.plan ? { plan: result.plan } : {}), ...(result.accepted ? { accepted: result.accepted } : {}), userExperience: 'not_confirmed' };
-    await publishReceipt(join(input.root, 'result.json'), report); return report;
+    return await completeTransferValidationCaseFifteen(input, historical, value.approvals, result);
   } finally { clearTimeout(cutoff); process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt); await work.cancelAndDrain('C15 host closing.'); await controller.close(); }
 }
 function createNativeTransferValidationCaseFifteenHost(): TransferCaseSixRunHost {
