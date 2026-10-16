@@ -16,7 +16,7 @@ import { TRANSFER_VALIDATION_CASE_SIX } from './validation-case-six-declaration.
 
 interface TransferRequirements {
   requirementVersion: string; specVersion: string; scope: string;
-  budgetGroup: { parentTaskId: 'COS-16'; allocationMicroCny: 10_000_000 };
+  budgetGroup?: { parentTaskId: 'COS-16'; allocationMicroCny: 10_000_000 };
   acceptanceIds: string[]; stageAcceptanceIds: string[]; preparation: ValidationPreparationProposal;
 }
 const hash = (bytes: Buffer | string) => createHash('sha256').update(bytes).digest('hex');
