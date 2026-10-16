@@ -4,7 +4,7 @@
 
 2026-10-15实际状态（历史）：C14已在冻结版本 `b20e9a43` 实际运行并failed，身份已消费：41分13.754秒、35次请求全部settled，新增¥0.792063，共享累计¥16.901000，unknown/reserved为0。运行时作者生成10文件35,771字节，与末次成功自检、capture、candidate v1及正式构建输入逐字节一致；三次自检失败/通过/通过，正式TypeScript/Vite退出0，814ms仅为Vite时间。持久浏览器首段15秒启动超时，21步全部skipped，未记录session、PID/exit为null，不能证明历史OS spawn；coding review仍pending，无repair/accepted/human。原锁首次归档调用因PID复用在写入前拒绝；独审精确代际守卫后实际归档一次，原字节/mtime与文件身份保持，失败及清理证据不足结论保留。closure20已一次执行并独立核对，revision3114、22stopped/14delegations/110closed/20audits，释放及组可分配¥1.707937；原费用、历史和补充分配保持。Root已解除main冻结。详见[C14研究记录](../research/2026-10-15-transfer-c14-browser-launch.md)。COS90/COS91保持源码范围closed，COS16/COS18仍partial/open，完整经典与human未完成；旧snapshot与actual NONE保留为阶段历史。
 
-状态：2026-10-16 更新。[根 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 保持100个直接原生子任务；COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)另有1个直接子任务COS101，任务总数101，均已由Root核实。[发布映射](github-issues.json)分别记录根直接子项计数和总任务数；各任务按自身范围验收。
+状态：2026-10-16 更新。[根 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 保持100个直接原生子任务；COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)另有2个直接子任务COS101/COS102，任务总数102，均已由Root核实。[发布映射](github-issues.json)分别记录根直接子项计数和总任务数；各任务按自身范围验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -1568,6 +1568,14 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 生产715只读preflight已通过并独审：87个shared文件SHA/size/mtime零变、175源码文件一致、C5两个approved阶段7 captures/47 contents通过。实际claim `07:41:52.644Z`、正确deadline `09:11:52.644Z`，监督器UTC误读导致`07:41:54.458Z`提前kill，外层55656ms/worker exit -1；无新请求/费用、任务或生成产物。[公开失败](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210935255)已更正07:43“仍准备”的表述。三行UTC补丁仅局部RED 0/7→GREEN 7/7，获`APPROVED_TIMEZONE_FIX_SCOPED`，未重跑C15。保全失败后经原API recover/manual stop与一次closure21完成账务闭环，revision3117/115 closures/21 audits、释放21000000µ、shared未分配57911425µ；715请求/16901000µ/unknown reserved0及旧历史/group/clock保持，独立无残留后核通过，Root已解冻。空根仅作账务恢复，没有实际220/62、视频或human通过；详见[研究记录](../research/2026-10-16-cos101-c15-watchdog.md)与[公开闭账](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6211338359)。#102仍open，没有新paid或重开授权。
 
 稳定任务 ID：COS-101
+
+### COS-102 · 复用固定生命周期接通C16编码验证
+
+[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；Root已精确GET核证，#17直接子项2、根#1直接子项仍100、任务总数102。依赖COS101已审源码与C15失败闭账证据，原source READY和failed/consumed/closed状态保持。
+
+设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2，Root批准设计；唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。[Spec](cos102-transfer-case16.md)与[plan](../plans/2026-10-16-cos102-transfer-case16.md)限定C15/C16两份固定policy共享内部生命周期，保留原ledger5、¥21分配/¥5实际硬帽及90分钟，完整source closure和C15历史认证不放宽。当前仅设计集成，源码实施、实际preflight、actual/paid均待Root另行授权；不标SOURCE_READY、不重开C15，COS16/COS18、fullclassic/human未完成。
+
+稳定任务 ID：COS-102
 
 ## 5. 任务与上下文包模板
 
