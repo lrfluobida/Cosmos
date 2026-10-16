@@ -22,6 +22,75 @@ function fixture(controllerSignal?: AbortSignal) {
   return { owner, work, base, waits };
 }
 
+test('COS100 snapshot work deadline reaches root readers consumer guards phases and requests', async t => {
+  const base = Date.now(), work = new OwnedWork(), deadlineAt = base + 40_000;
+  const waits = api.createNativeSnapshotValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'task', deadlineAt,
+    signal: work.signal, trackRaw: work.run.bind(work), requireExecution: async () => {} });
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: base }); t.after(() => t.mock.timers.reset());
+  assert.equal(waits.workDeadlineAt, base + 5000); waits.startConsumer();
+  const segment = waits.beginSegment('work');
+  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport']) await segment.runStage(stage, async (life: any) => {
+    assert.equal(life.deadlineAt, waits.workDeadlineAt);
+  });
+  segment.beginNavigation();
+  await segment.runStage('navigation', async (life: any) => { assert.equal(life.deadlineAt, waits.workDeadlineAt);
+    await waits.runRequest(async (request: any) => { for (const stage of ['http_pre_authority', 'http_body', 'http_post_authority'])
+      await request.runStage(stage, async (requestLife: any) => assert.equal(requestLife.deadlineAt, waits.workDeadlineAt)); });
+  }); segment.finishNavigation();
+  const entered = deferred(), gate = deferred();
+  const pending = api.runNativeValidationRead(waits.readSignal, async () => { entered.resolve(); await gate.promise; return 'late'; });
+  let waitEnded = false; const rejected = assert.rejects(pending, /deadline/i).then(() => { waitEnded = true; }); await entered.promise;
+  t.mock.timers.tick(5000); assert.throws(() => waits.checkRead(), /deadline/i);
+  let calls = 0; await assert.rejects(api.runNativeValidationRead(waits.readSignal, async () => { calls++; }), /deadline/i);
+  await assert.rejects(waits.runRequest(async () => { calls++; }), /deadline/i); assert.equal(calls, 0);
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+  assert.equal(waitEnded, true, 'the root reader wait must end at W before its raw read settles');
+  await rejected; assert.equal(waits.snapshot().rawReads.pending, 1, 'work deadline stops waiting without detaching its raw reader');
+  gate.resolve(); for (let i = 0; i < 10; i++) await Promise.resolve();
+  assert.equal(waits.snapshot().workDeadlineAt, base + 5000); assert.equal(waits.snapshot().rawReads.pending, 0);
+  segment.revoke(); await segment.settle(base + 10000); await work.cancelAndDrain('fixture complete');
+});
+
+test('COS100 root reader cancellation preserves the canonical source error and observes its late raw rejection', async () => {
+  const controller = new AbortController(), work = new OwnedWork(controller.signal), owner = new AbortController();
+  const waits = api.createNativeSnapshotValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'task', deadlineAt: Date.now() + 60000,
+    signal: owner.signal, controllerSignal: controller.signal, trackRaw: work.run.bind(work), requireExecution: async () => {} });
+  const segment = waits.beginSegment('read'), entered = deferred(), gate = deferred(), original = new Error('canonical source failure');
+  const raw = api.runNativeValidationRead(waits.readSignal, async () => { entered.resolve(); await gate.promise; });
+  const rejected = assert.rejects(raw, error => error === original); await entered.promise;
+  await assert.rejects(segment.runStage('prepare_authority', async () => { throw original; }), error => error === original);
+  owner.abort(new Error('later owner cancellation')); await rejected; assert.equal(waits.snapshot().rawReads.pending, 1);
+  gate.reject(new Error('late raw filesystem rejection')); for (let i = 0; i < 10; i++) await Promise.resolve();
+  assert.equal(waits.snapshot().rawReads.pending, 0); assert.equal(segment.snapshot().firstCause.message, original.message);
+  await segment.settle(Date.now() + 1000); await work.cancelAndDrain('fixture complete');
+});
+
+test('COS100 cleanup is registered with its original owner before start and retains late raw rejection', async t => {
+  const base = Date.now(), owned = new Set<Promise<unknown>>(), owner = new AbortController(); let registered = false;
+  const waits = api.createNativeSnapshotValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'task', deadlineAt: base + 60000,
+    signal: owner.signal, requireExecution: async () => {}, trackRaw<T>(start: (signal: AbortSignal) => Promise<T>) {
+      const raw = Promise.resolve().then(() => { assert.equal(registered, true); return start(owner.signal); });
+      owned.add(raw); registered = true; void raw.then(() => owned.delete(raw), () => owned.delete(raw)); return raw;
+    } });
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: base }); t.after(() => t.mock.timers.reset());
+  const segment = waits.beginSegment('cleanup'), original = new Error('original engine cause');
+  assert.equal(typeof segment.trackCleanup, 'function', 'closing operations require the native owner entry point');
+  assert.throws(() => segment.trackCleanup(async () => {}), /closing/i);
+  await assert.rejects(segment.runStage('prepare_authority', async () => { throw original; }), error => error === original);
+  const gate = deferred(), entered = deferred();
+  const raw = segment.trackCleanup(async () => { assert.equal(owned.size, 1); assert.equal(segment.snapshot().rawOperationsPending, 1); entered.resolve(); await gate.promise; });
+  const late = new Error('late encoder rejection'), rejected = assert.rejects(raw, error => error === late);
+  await entered.promise; const unsettled = assert.rejects(segment.settle(base + 1000), /timed out/);
+  t.mock.timers.tick(1000); await unsettled;
+  assert.equal(segment.snapshot().rawOperationsPending, 1); assert.equal(owned.size, 1);
+  assert.equal(segment.snapshot().firstCause.message, original.message);
+  gate.reject(late); await rejected; await segment.settle(base + 2000);
+  assert.equal(segment.snapshot().rawOperationsPending, 0); assert.equal(owned.size, 0);
+  const next = waits.beginSegment('next'); assert.throws(() => segment.trackCleanup(async () => {}), /closing|stale/i);
+  next.revoke(); owner.abort(new Error('owner cancelled')); let calls = 0;
+  assert.throws(() => next.trackCleanup(async () => { calls++; }), /cancelled/); assert.equal(calls, 0);
+});
+
 test('COS98 snapshot factory fixes version and HTTP caps and binds the execution callback to the current caller', async () => {
   assert.equal(typeof api.createNativeSnapshotValidationWaits, 'function', 'The fixed-candidate factory is required');
   const owner = new AbortController(), work = new OwnedWork(owner.signal), calls: AbortSignal[] = [], base = Date.now();
