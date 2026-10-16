@@ -7666,8 +7666,9 @@
         "COS-92"
       ],
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "stateReason": "completed",
       "integrationStatus": "scoped-complete",
       "implementationPhase": "scoped-complete",
       "reviewStatus": "SOURCE_REVIEWED_DIAGNOSTIC_COMPLETED_STARTUP_FAILED",
@@ -7935,7 +7936,17 @@
         "documentationReviewedCommit": "ffb8fb6ffa859014ae1ef90a91f489874001fe25",
         "documentationMergeCommit": "ebb5e5ba089b4844f5a81114cfa1ceb1931e7e35"
       },
-      "closureRecommendation": "Source and diagnostic scope complete; documentation approved and merged; awaiting Root GitHub closure. Original whole-open 15-second failure and game acceptance states remain unchanged.",
+      "closureRecommendation": "Closed(completed) in source and diagnostic scope; Root verified issue state and parent checkbox. Original whole-open 15-second failure and game acceptance states remain unchanged.",
+      "githubClosure": {
+        "verifiedBy": "Root",
+        "verifiedAt": "2026-10-16T13:31:04.502856+08:00",
+        "state": "closed",
+        "stateReason": "completed",
+        "parentChecked": true,
+        "scope": "source+diagnostic only; oldwhole15 and rawgame/C14 preserved",
+        "resultComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6208523921",
+        "docsPublishedMain": "f1608bed0a779f76124c27595921418703db0832"
+      },
       "navigationActualResultV2": {
         "outcome": "diagnostic_completed",
         "navigationOutcome": "passed",
@@ -8023,7 +8034,7 @@
         "resultComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6208523921"
       },
       "navigationPreparation": {
-        "state": "SOURCE_APPROVED; navigation-v2 diagnostic passed; documentation approved and merged; awaiting Root closure",
+        "state": "SOURCE_APPROVED; navigation-v2 diagnostic passed; source and diagnostic scope closed(completed), Root verified",
         "sha": "b00dfb344beff37ac3032512289695c7d6fc6b34",
         "base": "88f9444b25a9adc7806c016402a0f456d35c0bb6",
         "commentUrl": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6191465264",

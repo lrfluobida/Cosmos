@@ -1,6 +1,6 @@
 # COS-93 真实历史负载下的原生浏览器启动诊断
 
-最新状态：navigation-v2 diagnostic-completed / native-validation-waits/2 navigation-passed；source+diagnostic scoped complete，待结果文档独审合入及Root关闭GitHub #94。旧whole-open15 startup-failed保持，当前issue仍open、父项未勾；实际结果与关闭建议见本卡末节。
+最新状态：navigation-v2 diagnostic-completed / native-validation-waits/2 navigation-passed；source+diagnostic scoped complete/closed，GitHub #94 closed(completed)及父勾选[x]已由Root精确GET核证，结果文档发布主线`f1608bed0a779f76124c27595921418703db0832`。旧whole-open15 startup-failed保持；关闭仅覆盖源码与新契约诊断，实际结果与限制见本卡末节。
 
 此前v3状态：source-reviewed / diagnostic-completed / startup-failed；issue #94保持open、integration partial。v3在 `84f9c8857908d9db7ecbc404c6d5afbdfdc32542` 上983679ms、exit0，无OOM，完整trace/before/final已保存；原15秒open在浏览器ticket前的binding校验中失败。独立后核无关联活进程、原466文件/61目录零变，Root已解冻；不等于浏览器启动通过，无第四次actual授权。v1的5秒scope失败与v2的15秒launch失败、后续OOM及证据缺口保留。原计划 `40dd033a6d01335edac24e7b55edaa35ca8d9747` 已独审PLAN_APPROVED、无finding，[公开计划批准](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6181879964)保持。Issue [#94](https://github.com/lrfluobida/Cosmos/issues/94)，id5857873638，父 #1，登记时原生子项计数93；依赖 COS52/COS56/COS91/COS92。任务来源为 Root 的私有 `cos93-issue-body.md` 与 `cos93-published.json`，位于 `E:/develop/Cosmos/.cosmos/reconciliation/2026-10-13-c6-provider-usage/`。
 
@@ -107,6 +107,6 @@ COS93导航计划`b00dfb344beff37ac3032512289695c7d6fc6b34`的[公开批准](htt
 
 ## navigation-v2实际通过与诊断范围完成
 
-COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`上877848ms、exit0完成，`native-validation-waits/2`独立navigation passed：goto840.4206ms、ready203.6588ms、navigation1044.6055ms，29HTTP全settled/0reject、17260 raw全settled。browser32140 exit0/forced=false，正常cleanup493ms；75497B视频已独立完整解码70帧exit0。原467文件/61目录零变及POSTCHECK_NO_LIVE_RESIDUE齐备，ledger3114/715/16901000µ、费用0保持，Root已解冻。whole open47912.8648ms仍超过旧15秒；唯一零输入planned stop使production游戏报告仍failed/reportValid:false，旧nav-v1/C14/accepted/human保持。建议source+diagnostic scoped complete，待结果文档独审合入及Root关闭#94；launcher已消费，不重跑。见[研究记录与截图](../research/2026-10-16-cos93-navigation-v2.md)及[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6208523921)。
+COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`上877848ms、exit0完成，`native-validation-waits/2`独立navigation passed：goto840.4206ms、ready203.6588ms、navigation1044.6055ms，29HTTP全settled/0reject、17260 raw全settled。browser32140 exit0/forced=false，正常cleanup493ms；75497B视频已独立完整解码70帧exit0。原467文件/61目录零变及POSTCHECK_NO_LIVE_RESIDUE齐备，ledger3114/715/16901000µ、费用0保持，Root已解冻。whole open47912.8648ms仍超过旧15秒；唯一零输入planned stop使production游戏报告仍failed/reportValid:false，旧nav-v1/C14/accepted/human保持。已按source+diagnostic范围scoped complete/closed，#94 closed(completed)与父勾选[x]由Root精确GET核证；launcher已消费，不重跑。见[研究记录与截图](../research/2026-10-16-cos93-navigation-v2.md)及[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6208523921)。
 
 本卡验收与产物以结论查明、原始产物、原文件保全及实际退出/清理证据为诊断完成条件；本次均已取得，并保留旧15秒失败。诊断范围可完成，不代表性能旧目标通过或游戏验收通过；由Root在本结果独审与合入后关闭适当scope。
