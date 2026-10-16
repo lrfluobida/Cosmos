@@ -10,7 +10,11 @@
 
 ---
 
-设计见 [spec](../specs/cos101-transfer-case15.md)。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)已挂父COS16/#17，#17直接子项1、根#1直接子项仍100、任务总数101。源码实施已授权，actual/paid未授权，尚无源码或新实际结果。采用专属 implementer、独立 reviewer、唯一 merger；常规工程选择不再重复询问用户。全部文本先 strict UTF-8 检查，最小 patch，保留旧中文、换行与已审历史。
+设计见 [spec](../specs/cos101-transfer-case15.md)。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)已挂父COS16/#17，#17直接子项1、根#1直接子项仍100、任务总数101。源码实施已授权，actual/paid未授权，源码实施中、尚无完整批准源码或新实际结果。采用专属 implementer、独立 reviewer、唯一 merger；常规工程选择不再重复询问用户。全部文本先 strict UTF-8 检查，最小 patch，保留旧中文、换行与已审历史。
+
+源码已在两个独立worktree实施；预算接口`036e259ab169546dd10d97728c9f0b03a3c23341`经独立`cos101_budget_reviewer`获`APPROVED_INTERFACE`，仅接口批准，Task A尚未最终批准，主作者继续Task B/C。尚无完整源码合入或新actual，actual/paid保持false。
+
+免费SOURCE证据采用T81真实API历史，在隔离副本沿原API追加C14的35请求/792063µ与closure20形成SOURCE364，覆盖真实claim/open→driver→reused host→core链路。生产entry仍精确要求715请求/16901000µ、22 stopped/14 delegations/110 closed grants/20 audits；SOURCE364不替代该真实入口正例，合main后由Root补真实只读preflight。复用已有历史，不为凑715重复构造请求；不写原共享账本、不新增provider调用。
 
 ## 文件与任务边界
 
