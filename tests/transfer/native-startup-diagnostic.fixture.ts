@@ -156,35 +156,70 @@ export function diagnosticReadCheckpoint(mode: DiagnosticMode, caller?: AbortSig
 }
 
 export async function readNavigationDiagnosticReady(page: Pick<import('@playwright/test').Page, 'locator' | 'evaluate'>,
-  expected: ReadyExpectation, lifetime: { signal: AbortSignal; deadlineAt: number; check?(): void }) {
+  expected: ReadyExpectation, lifetime: { signal: AbortSignal; deadlineAt: number; check?(): void }, pendingEvidence?: { lastPending: string | null }) {
+  let pending = 'initial observation';
   const checkpoint = () => {
     lifetime.check?.();
     lifetime.signal.throwIfAborted();
-    if (Date.now() >= lifetime.deadlineAt) throw new Error('Diagnostic ready deadline reached');
+    if (Date.now() >= lifetime.deadlineAt) throw new Error('Diagnostic ready deadline reached; pending: ' + pending);
   };
   const read = async <T>(operation: () => Promise<T>) => {
     checkpoint(); let value: T;
-    try { value = await operation(); } catch (error) { lifetime.signal.throwIfAborted(); throw error; }
+    try { value = await operation(); } catch (error) { checkpoint(); throw error; }
     checkpoint(); return value;
   };
   assert.ok([...expected.player, expected.playerIndex, expected.idleIndex].every(value => Number.isSafeInteger(value) && value >= 0));
-  if (!await read(() => page.locator('[data-testid="start"]').isVisible())
-    || await read(() => page.locator('[data-testid="start"]').innerText({ timeout: lifetime.deadlineAt - Date.now() })) !== '开始'
-    || !await read(() => page.locator('[data-testid="board"]').isVisible())
-    || !await read(() => page.locator('[data-testid="cell-' + expected.player.join('-') + '"][data-player="true"]').isVisible())) {
-    throw new Error('Diagnostic game board is not ready');
-  }
-  const { observeDebugScalars } = await import('../../src/acceptance/browser.ts'); checkpoint();
   const player = ['media', 'characters', String(expected.playerIndex)], idle = [...player, 'states', String(expected.idleIndex)];
-  const [id, name, seen] = await read(() => observeDebugScalars(page, [[...player, 'id'], [...idle, 'name'], [...idle, 'seen']]));
-  if (id !== 'player' || name !== 'idle' || seen !== true) throw new Error('Diagnostic game engine is not ready');
+  for (;;) {
+    checkpoint(); const missing: string[] = [];
+    if (!await read(() => page.locator('[data-testid="start"]').isVisible())) missing.push('start button');
+    else if (await read(() => page.locator('[data-testid="start"]').innerText({ timeout: lifetime.deadlineAt - Date.now() })) !== '开始') {
+      throw new Error('Diagnostic start button text differs from the sealed game');
+    }
+    if (!await read(() => page.locator('[data-testid="board"]').isVisible())) missing.push('board');
+    if (!await read(() => page.locator('[data-testid="cell-' + expected.player.join('-') + '"][data-player="true"]').isVisible())) missing.push('initial player cell');
+    const values = await read(() => page.evaluate((paths: string[][]) => {
+      const descriptor = Object.getOwnPropertyDescriptor(window, 'cosmosDebug');
+      if (!descriptor) return paths.map(() => null);
+      if (descriptor.set || descriptor.writable === true || descriptor.configurable) throw new Error('Malformed diagnostic cosmosDebug descriptor');
+      const snapshot: unknown = descriptor.get ? descriptor.get.call(window) : descriptor.value;
+      return paths.map(path => {
+        let value: unknown = snapshot;
+        for (const key of path) {
+          if (value === null || typeof value !== 'object') throw new Error('Malformed diagnostic debug structure: ' + key);
+          const field = Object.getOwnPropertyDescriptor(value, key);
+          if (!field) return null;
+          if (field.get || field.set) throw new Error('Malformed diagnostic debug data property: ' + key);
+          value = field.value;
+        }
+        if (typeof value !== 'string' && typeof value !== 'boolean') throw new Error('Malformed diagnostic debug scalar');
+        return value;
+      });
+    }, [[...player, 'id'], [...idle, 'name'], [...idle, 'seen']]));
+    assert.ok(Array.isArray(values) && values.length === 3, 'Malformed diagnostic debug observation');
+    const [id, name, seen] = values;
+    if (id !== null && id !== 'player') throw new Error('Diagnostic player id differs from the sealed media');
+    if (name !== null && name !== 'idle') throw new Error('Diagnostic idle name differs from the sealed media');
+    if (seen !== null && typeof seen !== 'boolean') throw new Error('Malformed diagnostic idle seen');
+    if (id === null) missing.push('player id'); if (name === null) missing.push('idle name');
+    if (seen !== true) missing.push(seen === null ? 'idle seen missing' : 'idle seen=false');
+    if (!missing.length) return;
+    pending = missing.join(', ');
+    if (pendingEvidence) pendingEvidence.lastPending = pending;
+    await read(() => new Promise<void>((resolve, reject) => {
+      const onAbort = () => { clearTimeout(timer); reject(lifetime.signal.reason); };
+      const timer = setTimeout(() => { lifetime.signal.removeEventListener('abort', onAbort); resolve(); },
+        Math.min(100, lifetime.deadlineAt - Date.now()));
+      lifetime.signal.addEventListener('abort', onAbort, { once: true });
+    }));
+  }
 }
 
 /** The original phase caller registers the raw read; only reading receives the derived timeout signal. */
 export async function runNavigationDiagnosticReady(life: NativeReadLifetime, native: NativeValidationWaits,
   ready: (active: NativeReadLifetime) => Promise<void>): Promise<void> {
   life.check(); native.checkRead();
-  const deadlineAt = Math.min(Date.now() + 3000, life.deadlineAt, native.workDeadlineAt), stop = new AbortController();
+  const deadlineAt = Math.min(life.deadlineAt, native.workDeadlineAt), stop = new AbortController();
   const check = () => { life.check(); native.checkRead(); stop.signal.throwIfAborted();
     if (Date.now() >= deadlineAt) { stop.abort(new Error('Diagnostic ready deadline reached')); stop.signal.throwIfAborted(); } };
   let onAbort!: () => void;
@@ -375,8 +410,12 @@ export function observeNavigationDiagnosticLifecycle(lifecycle: OwnedAcceptanceL
       patches.replace(result.context, 'newPage', original => async function (this: unknown, ...pageArgs: unknown[]) {
         const page = await Reflect.apply(original, this, pageArgs);
         pageRestores.push(mode.observeGoto(page, { origin: identity?.origin ?? new URL(page.url()).origin,
-          ready: () => { assert.ok(navigationLife); return runNavigationDiagnosticReady(navigationLife, native,
-            active => readNavigationDiagnosticReady(page, expected, active)); } }));
+          ready: async () => {
+            assert.ok(navigationLife); const pendingEvidence: { lastPending: string | null } = { lastPending: null };
+            try { await runNavigationDiagnosticReady(navigationLife, native,
+              active => readNavigationDiagnosticReady(page, expected, active, pendingEvidence)); }
+            catch (error) { observer.event('diagnostic.ready.pending', pendingEvidence); throw error; }
+          } }));
         return page;
       });
       return result;
@@ -388,14 +427,15 @@ export function observeNavigationDiagnosticLifecycle(lifecycle: OwnedAcceptanceL
   }, restore() { for (const restore of pageRestores) restore(); patches.restore(); } };
 }
 
-export function summarizeNavigationDiagnostic(input: { state: NavigationDiagnosticState; nativeContractVerified: boolean; normalCleanup: boolean;
+export function summarizeNavigationDiagnostic(input: { state: NavigationDiagnosticState; nativeContractVerified: boolean; native?: NativeValidationWaits; normalCleanup: boolean;
   preservation: boolean; observationIncomplete: boolean; openMs: number | null; navigationMs: number | null }) {
   const timing = (measuredMs: number | null) => ({ limitMs: 15_000, measuredMs,
     withinLimit: measuredMs !== null && Number.isFinite(measuredMs) && measuredMs >= 0 ? measuredMs <= 15_000 : null });
   const validTiming = [input.openMs, input.navigationMs].every(value => value !== null && Number.isFinite(value) && value >= 0);
-  const passed = input.nativeContractVerified && validTiming && input.state.loadPassed && input.state.readyPassed && input.state.navigationPassed
+  const contractVersion = isNativeValidationWaits(input.native) ? input.native.contractVersion : null;
+  const passed = contractVersion !== null && input.nativeContractVerified && validTiming && input.state.loadPassed && input.state.readyPassed && input.state.navigationPassed
     && input.state.stopCount === 1 && !input.state.failed && input.normalCleanup && input.preservation && !input.observationIncomplete;
-  return { formatVersion: 'cos93-native-startup-diagnostic/2', navigation: { contractVersion: 'native-validation-waits/1',
+  return { formatVersion: 'cos93-native-startup-diagnostic/2', navigation: { contractVersion,
     outcome: passed ? 'passed' : input.state.loadPassed ? 'failed' : 'not_reached' },
     oldLimits: { wholeOpen: timing(input.openMs), navigation: timing(input.navigationMs) } };
 }
@@ -746,7 +786,7 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
       && sameValue(segment.errors, [navigation.expectedReportError()]) && registeredBrowserBeforeCdp(trace, identity?.browserPid)
       && cleanup.preparationClosed && cleanup.drained && cleanup.controllerClosed && cleanup.locksAbsent && cleanup.processesExited
       && cleanup.ports.length >= 2 && cleanup.ports.every(port => port.closed) && !cleanup.errors.length && !error;
-    const summary = summarizeNavigationDiagnostic({ state: navigation.snapshot(), nativeContractVerified: navigationProof,
+    const summary = summarizeNavigationDiagnostic({ state: navigation.snapshot(), nativeContractVerified: navigationProof, native: navigation.source(),
       normalCleanup: !!normalCleanup, preservation: preservation.unchanged, observationIncomplete: trace.observation.incomplete,
       openMs: opens[0]?.durationMs ?? null, navigationMs: report?.segments[0]?.report.nativeWaits?.segment.stages[3]?.elapsedMs ?? null });
     const navigationResult = { ...result, ...summary,
