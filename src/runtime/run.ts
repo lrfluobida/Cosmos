@@ -236,6 +236,19 @@ export class RunController {
     return this.serial(async () => { this.checkCaller(callerSignal); return this.validationTaskAuthority(taskId, purpose); });
   }
 
+  /** Current fixed-candidate execution only; full source guards remain at the host boundaries. */
+  requireNativeValidationExecution(binding: { caseId: string; windowId: string; taskId: string; deadlineAt: number }, callerSignal: AbortSignal): Promise<void> {
+    if (this.signal.aborted || callerSignal.aborted) return Promise.reject(this.signal.aborted ? this.signal.reason : callerSignal.reason);
+    const fixed = { ...binding };
+    return this.serial(async () => {
+      this.checkCaller(callerSignal);
+      this.requireValidationCase(fixed.caseId, fixed.windowId);
+      if (fixed.deadlineAt !== Date.parse(this.validationWindow().deadlineAt)) throw new Error('Native execution deadline differs from its current validation window.');
+      if (!this.validationTaskAuthority(fixed.taskId, 'reviewer').admissionAllowed) throw new Error('Task has no current native validation execution authority.');
+      this.checkCaller(callerSignal);
+    });
+  }
+
   /** Explicit generic host guard; identity checking may persist the existing deadline stop. */
   requireValidationHost(caseId: string, windowId: string, artifactRoot: string, callerSignal?: AbortSignal): Promise<void> {
     if (callerSignal && (this.signal.aborted || callerSignal.aborted)) return Promise.reject(this.signal.aborted ? this.signal.reason : callerSignal.reason);

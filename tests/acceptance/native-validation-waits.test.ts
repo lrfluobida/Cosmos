@@ -22,6 +22,57 @@ function fixture(controllerSignal?: AbortSignal) {
   return { owner, work, base, waits };
 }
 
+test('COS98 snapshot factory fixes version and HTTP caps and binds the execution callback to the current caller', async () => {
+  assert.equal(typeof api.createNativeSnapshotValidationWaits, 'function', 'The fixed-candidate factory is required');
+  const owner = new AbortController(), work = new OwnedWork(owner.signal), calls: AbortSignal[] = [], base = Date.now();
+  const input = { caseId: 'case', windowId: 'window', taskId: 'task', deadlineAt: base + 600000, signal: work.signal,
+    trackRaw: work.run.bind(work), requireExecution: async (signal: AbortSignal) => { calls.push(signal); } };
+  assert.throws(() => api.createNativeSnapshotValidationWaits({ ...input, requireExecution: undefined }), /invalid|execution/i);
+  assert.throws(() => api.createNativeSnapshotValidationWaits({ ...input, caps: {} }), /invalid|fields/i);
+  const waits = api.createNativeSnapshotValidationWaits(input);
+  assert.equal(waits.contractVersion, 'native-validation-waits/2'); assert.equal(api.isNativeValidationWaits(waits), true);
+  assert.throws(() => factory()(input), /invalid|fields/i);
+  await assert.rejects(waits.requireExecution(new AbortController().signal), /caller|authority/i);
+  const segment = waits.beginSegment('first');
+  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport']) await segment.runStage(stage, async () => {});
+  segment.beginNavigation(); let oldCaller!: AbortSignal;
+  await waits.runRequest(async (request: any) => {
+    for (const [stage, cap] of [['http_pre_authority', 5000], ['http_body', 15000], ['http_post_authority', 5000]] as const)
+      await request.runStage(stage, async (life: any) => {
+        assert.ok(life.deadlineAt <= Date.now() + cap);
+        if (stage !== 'http_body') { oldCaller = life.signal; await waits.requireExecution(life.signal); }
+      });
+  });
+  assert.equal(calls.length, 2); assert.notEqual(calls[0], calls[1]);
+  assert.deepEqual(segment.snapshot().http.stages.map((row: any) => row.capMs), [5000, 15000, 5000]);
+  segment.revoke(); await segment.settle(Date.now() + 1000); waits.beginSegment('next');
+  await assert.rejects(waits.requireExecution(oldCaller), /caller|stale|authority/i); assert.equal(calls.length, 2);
+  await work.cancelAndDrain('fixture cleanup');
+});
+
+for (const expiresAt of ['http_pre_authority', 'http_post_authority'] as const) test(`COS98 ${expiresAt} expires at five seconds and retains its late raw check`, async t => {
+  const work = new OwnedWork(), base = Date.now(), entered = deferred(), release = deferred(); let checks = 0, bodies = 0;
+  const waits = api.createNativeSnapshotValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'task', deadlineAt: base + 600000,
+    signal: work.signal, trackRaw: work.run.bind(work), requireExecution: async () => {
+      checks++; if (checks === (expiresAt === 'http_pre_authority' ? 1 : 2)) { entered.resolve(); await release.promise; throw new Error('Late authority rejection'); }
+    } });
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: base }); t.after(() => t.mock.timers.reset());
+  const segment = waits.beginSegment('first');
+  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport']) await segment.runStage(stage, async () => {});
+  segment.beginNavigation();
+  const pending = waits.runRequest(async (request: any) => {
+    await request.runStage('http_pre_authority', (life: any) => api.runNativeValidationRead(life.signal, () => waits.requireExecution(life.signal)));
+    await request.runStage('http_body', async () => { bodies++; });
+    await request.runStage('http_post_authority', (life: any) => api.runNativeValidationRead(life.signal, () => waits.requireExecution(life.signal)));
+  });
+  const failed = assert.rejects(pending, (error: any) => error.stage === expiresAt);
+  await entered.promise; t.mock.timers.tick(5000); await failed;
+  assert.equal(bodies, expiresAt === 'http_pre_authority' ? 0 : 1); assert.ok(waits.snapshot().rawReads.pending > 0);
+  assert.equal(segment.snapshot().firstCause.stage, expiresAt); release.resolve();
+  await segment.settle(base + 6000); assert.equal(waits.snapshot().rawReads.pending, 0);
+  await work.cancelAndDrain('fixture cleanup');
+});
+
 test('COS97 fixed preparation accepts 25 seconds and expires at 60 seconds without configurable caps', async t => {
   const f = fixture();
   t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: f.base }); t.after(() => t.mock.timers.reset());

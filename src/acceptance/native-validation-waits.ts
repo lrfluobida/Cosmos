@@ -1,9 +1,11 @@
 import { bounded, DeadlineError } from './deadline.ts';
 
 export const NATIVE_VALIDATION_WAIT_CONTRACT = 'native-validation-waits/1' as const;
-const caps = { prepare_authority: 60_000, register_authority: 60_000, browser_transport: 15_000,
+export const NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT = 'native-validation-waits/2' as const;
+export type NativeValidationWaitContract = typeof NATIVE_VALIDATION_WAIT_CONTRACT | typeof NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT;
+const legacyCaps = { prepare_authority: 60_000, register_authority: 60_000, browser_transport: 15_000,
   navigation: 300_000, http_pre_authority: 60_000, http_body: 15_000, http_post_authority: 60_000 } as const;
-export type NativeWaitStage = keyof typeof caps;
+export type NativeWaitStage = keyof typeof legacyCaps;
 type NativeHttpStage = Extract<NativeWaitStage, `http_${string}`>;
 export interface NativeReadLifetime { readonly signal: AbortSignal; readonly deadlineAt: number; check(): void }
 export interface NativeWaitInput {
@@ -39,14 +41,15 @@ export interface NativeRequestWaits {
   recordFailure(error: unknown): void;
 }
 export interface NativeValidationWaits {
-  readonly contractVersion: typeof NATIVE_VALIDATION_WAIT_CONTRACT;
+  readonly contractVersion: NativeValidationWaitContract;
   readonly caseId: string; readonly windowId: string; readonly taskId: string;
   readonly deadlineAt: number; readonly workDeadlineAt: number; readonly readSignal: AbortSignal;
   checkRead(): void;
+  requireExecution?(callerSignal: AbortSignal): Promise<void>;
   startConsumer(): number;
   beginSegment(reportId: string): NativeSegmentWaits;
   runRequest<T>(operation: (request: NativeRequestWaits) => Promise<T>): Promise<T>;
-  snapshot(): { contractVersion: typeof NATIVE_VALIDATION_WAIT_CONTRACT; deadlineAt: number; workDeadlineAt: number;
+  snapshot(): { contractVersion: NativeValidationWaitContract; deadlineAt: number; workDeadlineAt: number;
     consumerStartedAt: number | null; rawReads: { started: number; settled: number; pending: number }; segments: NativeSegmentSnapshot[] };
 }
 interface SegmentData {
@@ -143,7 +146,17 @@ function rememberNativeFailure(segment: SegmentData, stage: NativeWaitStage, err
 function identifier(value: string) { return typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(value); }
 /** Only the native validation host constructs this object; budgets are fixed source constants. */
 export function createNativeValidationWaits(input: NativeWaitInput): NativeValidationWaits {
-  if (Object.keys(input).some(key => !['caseId', 'windowId', 'taskId', 'deadlineAt', 'signal', 'controllerSignal', 'trackRaw'].includes(key))
+  return createWaits(input);
+}
+/** Trusted host only: execute the already fixed candidate, with current controller authority per HTTP request. */
+export function createNativeSnapshotValidationWaits(input: NativeWaitInput & { requireExecution(callerSignal: AbortSignal): Promise<void> }): NativeValidationWaits {
+  if (typeof input.requireExecution !== 'function') throw new Error('Invalid native execution callback');
+  return createWaits(input, input.requireExecution);
+}
+function createWaits(input: NativeWaitInput, requireExecution?: (callerSignal: AbortSignal) => Promise<void>): NativeValidationWaits {
+  const contractVersion = requireExecution ? NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT : NATIVE_VALIDATION_WAIT_CONTRACT;
+  const caps = requireExecution ? { ...legacyCaps, http_pre_authority: 5000, http_post_authority: 5000 } : legacyCaps;
+  if (Object.keys(input).some(key => !['caseId', 'windowId', 'taskId', 'deadlineAt', 'signal', 'controllerSignal', 'trackRaw', ...(requireExecution ? ['requireExecution'] : [])].includes(key))
     || ![input.caseId, input.windowId, input.taskId].every(identifier) || !Number.isSafeInteger(input.deadlineAt)
     || input.deadlineAt <= Date.now() || input.deadlineAt - Date.now() > 43_200_000 || !(input.signal instanceof AbortSignal)
     || input.controllerSignal !== undefined && !(input.controllerSignal instanceof AbortSignal)
@@ -209,8 +222,16 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
     }
   };
   const waits: NativeValidationWaits = {
-    contractVersion: NATIVE_VALIDATION_WAIT_CONTRACT, caseId: fixed.caseId, windowId: fixed.windowId, taskId: fixed.taskId,
+    contractVersion, caseId: fixed.caseId, windowId: fixed.windowId, taskId: fixed.taskId,
     deadlineAt: fixed.deadlineAt, workDeadlineAt, readSignal,
+    ...(requireExecution ? { async requireExecution(callerSignal: AbortSignal) {
+      const association = callers.get(callerSignal);
+      if (association?.owner !== owner || !association.segment || association.segment !== current || !association.active?.()
+        || !['http_pre_authority', 'http_post_authority'].includes(association.stage ?? '')) throw new Error('Native execution caller has no current HTTP authority.');
+      checkNativeRead(owner, association.segment, callerSignal); check(association.segment);
+      await requireExecution(callerSignal);
+      checkNativeRead(owner, association.segment, callerSignal); check(association.segment);
+    } } : {}),
     checkRead() { checkNativeRead(owner, current); },
     startConsumer() {
       fixed.controllerSignal?.throwIfAborted(); fixed.signal.throwIfAborted();
@@ -296,7 +317,7 @@ export function createNativeValidationWaits(input: NativeWaitInput): NativeValid
       const settled = () => { segment.requests.delete(raw); segment.http.settled = nextCount(segment.http.settled); };
       void raw.then(settled, () => { segment.http.rejected = nextCount(segment.http.rejected); settled(); }); return raw;
     },
-    snapshot: () => ({ contractVersion: NATIVE_VALIDATION_WAIT_CONTRACT, deadlineAt: fixed.deadlineAt, workDeadlineAt, consumerStartedAt,
+    snapshot: () => ({ contractVersion, deadlineAt: fixed.deadlineAt, workDeadlineAt, consumerStartedAt,
       rawReads: { started: owner.started, settled: owner.settled, pending: owner.raw.size }, segments: segments.map(view) }),
   };
   owner.waits = waits; sources.add(waits); return Object.freeze(waits);
