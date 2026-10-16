@@ -1,6 +1,6 @@
 # Native Game Readiness Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. 每项由独立 implementer/reviewer 负责；唯一 merger 为 `batch_c14_cos92_merger`。本设计已审，Root已授权后续源码实施；actual仍须另行下达。
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. 每项由独立 implementer/reviewer 负责；唯一 merger 为 `batch_c14_cos92_merger`。A/B/C源码已独审并组合验证，原清单保留规划要求，实际结果见文末；actual仍须另行下达。
 
 **Goal:** 让既有固定候选在真实异步素材加载后完成一次原生导航，并在原截止内保留视频、正常退出。
 
@@ -47,6 +47,7 @@ A、B、C 是独立审查单元，可分别用免费小夹具证明。A/C 会碰
 
 - Modify: `tests/transfer/native-startup-diagnostic.fixture.ts` — `readNavigationDiagnosticReady`、`runNavigationDiagnosticReady`、新版结果固定版本检查。
 - Modify: `tests/transfer/native-startup-diagnostic.test.ts` — ready pending、边界与生产 clone-stop 组合。
+- Modify: `src/runtime/adapters/transfer/persistent-diagnostics.ts` — 组合复审批准的最小export：让B预定stop例外复用C既有纯`validNativeCleanup`；不改变C生产校验行为。
 
 - [ ] 写 RED：合成真实读接口先返回 idle.seen=false，虚拟时间4000ms后true，应成功且零输入；单次读取旧代码会失败。添加永不ready到navigationEnd、signal取消、board晚出现、错误id/name与malformed值明确拒绝。
 - [ ] Run: `node --experimental-strip-types --experimental-test-module-mocks --test --test-name-pattern='^native readiness' tests/transfer/native-startup-diagnostic.test.ts`，期望新行为 RED。用受控时钟/可释放 Promise，避免真实等300秒。
@@ -83,3 +84,32 @@ A、B、C 是独立审查单元，可分别用免费小夹具证明。A/C 会碰
 ## 文档交付检查
 
 本设计只新增spec、plan、ADR三个UTF-8文件。严格UTF-8解码、回读中文、`git diff --check`，提交exactSHA供独立review；不在本轮执行上述源码测试、browser、715负载或付费操作。预算及产品边界见spec末节。
+
+## A/B/C组合集成（2026-10-16）
+
+| 任务 | 批准源码 | 独立reviewer | merge | 公开批准 |
+| --- | --- | --- | --- | --- |
+| COS-98 / #99 | `ebb815712a9c4105f0269e604aea59506da28b57` | `cos98_reviewer` | `546051d59e37278e750c4035a4cebccfdde580c1` | [批准](https://github.com/lrfluobida/Cosmos/issues/99#issuecomment-6207749747) |
+| COS-99 / #100 | `5bc4bb6087ff33fc90f3e91e7184eaeb8e603507` | `cos99_reviewer` | `5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`（快进） | [批准](https://github.com/lrfluobida/Cosmos/issues/100#issuecomment-6207810569) |
+| COS-100 / #101 | `93a479f248a6700364e609cb535b835be8eed716` | `cos100_reviewer` | `51ab8eaa541adbf545c95c3c387284bbeb027d93` | [批准](https://github.com/lrfluobida/Cosmos/issues/101#issuecomment-6207846907) |
+
+唯一merger按A→C→B一次组合，源码终点`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，15个实现路径逐一等于其最后批准来源；C覆盖其批准路径，B覆盖两个诊断文件并对现有persistent-diagnostics校验器增加最小export复用；该校验器最终来源为5bc，其生产行为保持C原实现，其余路径保持A/C批准字节。没有手工改写批准源码或单独发布半契约。统一marker为`NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY`，本三卡source scoped complete，GitHub仍open/未勾选，待Root收到发布证据后关闭。
+
+初组合检查命令和raw（均无实际浏览器/provider；先保留通过证据，最后cleanup proof补正另列）：
+
+- `npm run typecheck`、`npm run build`：退出0，`C:/Users/26557/AppData/Local/Temp/native-readiness-abc-merge-typecheck.log`、`native-readiness-abc-merge-build.log`。
+- `node node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --skipLibCheck tests/transfer/native-startup-diagnostic.test.ts tests/transfer/native-startup-diagnostic.fixture.ts tests/transfer/native-startup-observer.fixture.ts tests/acceptance/native-cleanup.test.ts tests/acceptance/native-validation-waits.test.ts tests/transfer/persistent-diagnostics.test.ts`：STRICT_EXIT=0，`C:/Users/26557/AppData/Local/Temp/native-readiness-abc-merge-strict.log`。
+- 确认COS93实际诊断环境选择变量未设置后，`node --experimental-strip-types --experimental-test-module-mocks --test --test-name-pattern='^native readiness snapshot result binds real source version and keeps the production planned stop failed$|^native readiness production timeout retains last pending in final trace and the original error$|^native readiness snapshot waits four seconds for actual idle without input or a new three second cap$' tests/transfer/native-startup-diagnostic.test.ts`：3/3、0skip、4177.9503ms，`C:/Users/26557/AppData/Local/Temp/native-readiness-abc-merge-navigation.tap`。
+- `node --experimental-strip-types --experimental-test-module-mocks --test --test-name-pattern='^COS98 live controller reserved exhaustion during HTTP body rejects although its signal remains active$|^COS98 payload change during actual response body cannot send valid content$|^COS100 cleanup uses one frozen budget including screenshot and a 1500ms video stop$' tests/transfer/native-validation-clean-origin.test.ts tests/acceptance/native-cleanup.test.ts`：3/3、0skip、3323.5582ms，`C:/Users/26557/AppData/Local/Temp/native-readiness-abc-merge-http-cleanup.tap`。
+
+snapshot正例实际调用production series/runner，产生C cleanup proof并交给B版本分类，预定stop不提升production failed/reportValid:false。4秒ready、原deadline pending与1500ms video分别覆盖；慢ready和慢video不在同一用例组合，不能据此宣称完整真实异步时序或FFmpeg性能通过。A负例使用真实HTTP实际payload和合法小controller动态reserved耗尽，未创建715请求历史。
+
+证据复用：A私有`cos98-source-evidence.json`记录99/99及真实mounted consumer1/1（合成browser packets）；B `C:/Users/26557/AppData/Local/Temp/cos99-readiness-evidence`保存33/6/affected5，重叠不合计；C私有`cos100-source-evidence.json`及`cos100-source-tool-evidence.jsonl`保留原67组与末次仅test delta3，不冒称完整重定向TAP。未重跑这些组、220步/62字段、A/B、实际browser/715/provider/paid。下一次actual仍由Root另审launcher并冻结新exact源码；原ledger3114/715/16901000µ、C14 failed/consumed、旧15秒、COS93 open/partial和human未完成保持。
+
+### 组合cleanup proof缺口的RED、修复与最终验证
+
+组合复审补正：B原`39400c6bec4bee4532a1ee5888aaab15e0d5214f`及初合并`ea478f12b260f9ed810b660e03fdddb80aefe42b`保留历史。C新增cleanup证明位于segment之外，B预定stop例外原未校验该字段；真实同row品牌、同source及同步durable raw的missing/deadline+1/rawPending1/video_stop failed四负例RED均错误接受。作者最终`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`仅export并复用C原`validNativeCleanup`，`cos99_reviewer`affected APPROVED、无finding；C生产校验行为不改。主线最终typecheck/build0，四负例和真实/2正例5/5、0skip，4791.9604ms；作者GREEN5/5和strict0、此前无变化HTTP/C1500ms及其余通过证据复用，不相加重复计数。
+
+原作者证据：`C:/Users/26557/AppData/Local/Temp/cos99-readiness-evidence/cleanup-proof-red.log`、`cleanup-proof-green.log`、`cleanup-proof-strict.log`（strict退出0由Root和reviewer核证）。最终B与组合源码均为`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，在初组合上快进；A/C批准不变。未发布初组合或已知缺口版本，也没有merger手改批准实现。
+
+最终主线因新增export/import真实delta执行`npm run typecheck`和`npm run build`，均退出0，日志`C:/Users/26557/AppData/Local/Temp/native-readiness-abc-final-typecheck.log`、`native-readiness-abc-final-build.log`。确认实际诊断选择变量未设置后运行`node --experimental-strip-types --experimental-test-module-mocks --test --test-name-pattern='^native readiness snapshot rejects .* cleanup in a branded planned stop with matching durable raw$|^native readiness snapshot result binds real source version and keeps the production planned stop failed$' tests/transfer/native-startup-diagnostic.test.ts`，5/5、0skip、4791.9604ms，raw为`C:/Users/26557/AppData/Local/Temp/native-readiness-abc-final-cleanup-proof.tap`。既有六文件strict0与本次作者affected strict0组合使用；未重跑无变化矩阵。

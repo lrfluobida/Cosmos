@@ -2,10 +2,11 @@
 
 更新时间：2026-10-16
 
-## COS98–100设计已审：固定候选响应、真实就绪与共享清理
+## COS98–100源码已审组合：固定候选响应、真实就绪与共享清理
 
-- 设计`1c8610e9fd4b20880fb1cafa016ca9f901e71d81`经`native_readiness_design_reviewer`独立规格/可实施性→质量APPROVED，无finding；Root批准工程设计与后续源码实施，唯一merger `batch_c14_cos92_merger`合入`9940c130ce8de32136b579d79c1dded99db17dda`。ADR0003 accepted；源码尚未开始，actual/paid未授权。 [设计](docs/specs/native-game-readiness.md)、[ADR0003](docs/adr/0003-native-fixed-candidate-execution.md)及[计划](docs/plans/2026-10-16-native-game-readiness.md)现已关联[COS98 / #99](https://github.com/lrfluobida/Cosmos/issues/99)、[COS99 / #100](https://github.com/lrfluobida/Cosmos/issues/100)、[COS100 / #101](https://github.com/lrfluobida/Cosmos/issues/101)，均open/未勾选，父#1当前100个原生子任务。
-- A/B/C均独立实现与独审，完整`native-validation-waits/2`只有三项组合验证通过后发布；B/C依赖A已审接口，不提前发布半契约。原navigation-v1导航失败、视频1000ms/forced、旧whole15/C14 failed、COS16/COS18/完整经典/human与ledger3114/715/16901000µ及原预算保持。
+- 组合复审补正：B原`39400c6bec4bee4532a1ee5888aaab15e0d5214f`及初合并`ea478f12b260f9ed810b660e03fdddb80aefe42b`保留历史。C新增cleanup证明位于segment之外，B预定stop例外原未校验该字段；真实同row品牌、同source及同步durable raw的missing/deadline+1/rawPending1/video_stop failed四负例RED均错误接受。作者最终`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`仅export并复用C原`validNativeCleanup`，`cos99_reviewer`affected APPROVED、无finding；C生产校验行为不改。主线最终typecheck/build0，四负例和真实/2正例5/5、0skip，4791.9604ms；作者GREEN5/5和strict0、此前无变化HTTP/C1500ms及其余通过证据复用，不相加重复计数。 最终源码组合为`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，三项统一发布、GitHub关闭待Root核证，actual未执行。
+- 设计`1c8610e9fd4b20880fb1cafa016ca9f901e71d81`经`native_readiness_design_reviewer`独立规格/可实施性→质量APPROVED，无finding；Root批准工程设计与后续源码实施，唯一merger `batch_c14_cos92_merger`合入`9940c130ce8de32136b579d79c1dded99db17dda`。ADR0003 accepted；A/B/C源码已审组合通过，actual/paid未授权。 [设计](docs/specs/native-game-readiness.md)、[ADR0003](docs/adr/0003-native-fixed-candidate-execution.md)及[计划](docs/plans/2026-10-16-native-game-readiness.md)现已关联[COS98 / #99](https://github.com/lrfluobida/Cosmos/issues/99)、[COS99 / #100](https://github.com/lrfluobida/Cosmos/issues/100)、[COS100 / #101](https://github.com/lrfluobida/Cosmos/issues/101)，均open/未勾选，父#1当前100个原生子任务。
+- COS98/COS99/COS100源码均经各自reviewer独立APPROVED、无finding，唯一merger按A→C→B合入，组合源码`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`；15个实现文件等于各批准来源。统一`NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY`，三卡source scoped complete，issue保持open/未勾选待Root关闭。主线最终typecheck/build退出0，初组合六文件strict0与最终B affected strict0按批准版本复用，导航/就绪与HTTP/清理两组各3/3、0skip（4177.9503ms、3323.5582ms）；旧99/67及B分组证据复用、不相加。实际browser/导航、715历史、provider、付费未执行；actual仍另行授权。 详细SHAs/命令/raw见[任务卡](docs/specs/native-game-readiness.md)及[组合记录](docs/plans/2026-10-16-native-game-readiness.md)。A/B/C均独立实现与独审，完整`native-validation-waits/2`只有三项组合验证通过后发布；B/C依赖A已审接口，不提前发布半契约。原navigation-v1导航失败、视频1000ms/forced、旧whole15/C14 failed、COS16/COS18/完整经典/human与ledger3114/715/16901000µ及原预算保持。
 
 ## COS93 navigation-v1诊断完成，导航失败
 

@@ -1,10 +1,24 @@
 # 原生游戏异步就绪、固定候选响应与有界清理
 
-状态：设计已审APPROVED、ADR0003 accepted；源码未开始，actual/paid未授权。基线 `e2358cd59a6313e049605cd652912d326745d414`。设计 `1c8610e9fd4b20880fb1cafa016ca9f901e71d81` 经 `native_readiness_design_reviewer` 独立规格/可实施性→质量 APPROVED，无finding；Root批准工程设计及后续源码实施。唯一merger `batch_c14_cos92_merger` 合入 `9940c130ce8de32136b579d79c1dded99db17dda`。 关联 [实施计划](../plans/2026-10-16-native-game-readiness.md)、[ADR0003](../adr/0003-native-fixed-candidate-execution.md)；原 [COS97](cos97-native-validation-waits.md) 与 [ADR0002](../adr/0002-native-validation-waits.md) 的历史结论保留。
+状态：A/B/C源码均独审APPROVED并组合通过，标记`NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY`，三卡source scoped complete，GitHub仍open待Root关闭；actual/paid未授权。设计基线 `e2358cd59a6313e049605cd652912d326745d414`；设计 `1c8610e9fd4b20880fb1cafa016ca9f901e71d81` 已独审APPROVED并合入 `9940c130ce8de32136b579d79c1dded99db17dda`，ADR0003 accepted。源码从发布基线`5a2bcf3280db4d186335fc4d979727265fd271d2`按A→C→B组合，最终源码组合`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，唯一merger为`batch_c14_cos92_merger`。关联 [实施计划](../plans/2026-10-16-native-game-readiness.md)、[ADR0003](../adr/0003-native-fixed-candidate-execution.md)；原 [COS97](cos97-native-validation-waits.md) 与 [ADR0002](../adr/0002-native-validation-waits.md) 的历史结论保留。
 
 任务 A 为 [COS98 / #99](https://github.com/lrfluobida/Cosmos/issues/99)，依赖COS93/97；任务 B 为 [COS99 / #100](https://github.com/lrfluobida/Cosmos/issues/100)，依赖COS93及COS98已审接口；任务 C 为 [COS100 / #101](https://github.com/lrfluobida/Cosmos/issues/101)，依赖COS97及COS98已审接口。完整 `native-validation-waits/2` 仅在A/B/C均独审并组合验证后发布，不提前发布半契约；当前actual/paid均未授权。
 
-## 建议与尚未证实的部分
+## 已审源码与组合验证
+
+| 任务 | 批准源码 | 独立reviewer | merge | 公开批准 |
+| --- | --- | --- | --- | --- |
+| COS-98 / #99 | `ebb815712a9c4105f0269e604aea59506da28b57` | `cos98_reviewer` | `546051d59e37278e750c4035a4cebccfdde580c1` | [批准](https://github.com/lrfluobida/Cosmos/issues/99#issuecomment-6207749747) |
+| COS-99 / #100 | `5bc4bb6087ff33fc90f3e91e7184eaeb8e603507` | `cos99_reviewer` | `5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`（快进） | [批准](https://github.com/lrfluobida/Cosmos/issues/100#issuecomment-6207810569) |
+| COS-100 / #101 | `93a479f248a6700364e609cb535b835be8eed716` | `cos100_reviewer` | `51ab8eaa541adbf545c95c3c387284bbeb027d93` | [批准](https://github.com/lrfluobida/Cosmos/issues/101#issuecomment-6207846907) |
+
+三项最终实现文件均与其批准来源逐字节一致，无源码冲突或merger改写。最终typecheck/build退出0；初组合六文件strict0与最终B affected strict0按批准版本复用；导航/就绪代表3/3、0skip（4177.9503ms），HTTP/清理代表3/3、0skip（3323.5582ms）。真实生产series/runner产出`/2` cleanup proof后进入B的来源版本分类；生产game report仍为预定stop的failed/reportValid:false。另以受控时钟分别验证4秒ready、原deadline保留pending、1500ms video共享预算，并用真实loopback及小controller验证body期间额度耗尽和actual payload变化拒绝。
+
+延迟ready与慢video分别验证，未在同一用例组合；本批没有执行真实浏览器、715历史、provider、A/B测量或actual。原作者99/67组、B33/6/affected5及C test-only delta3按独审版本复用，重叠数不相加。完整命令、raw与限制见计划的组合集成记录；原C14、旧15秒、COS16/COS18、完整经典/human和真实ledger3114/715/16901000µ保持。
+
+组合复审补正：B原`39400c6bec4bee4532a1ee5888aaab15e0d5214f`及初合并`ea478f12b260f9ed810b660e03fdddb80aefe42b`保留历史。C新增cleanup证明位于segment之外，B预定stop例外原未校验该字段；真实同row品牌、同source及同步durable raw的missing/deadline+1/rawPending1/video_stop failed四负例RED均错误接受。作者最终`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`仅export并复用C原`validNativeCleanup`，`cos99_reviewer`affected APPROVED、无finding；C生产校验行为不改。主线最终typecheck/build0，四负例和真实/2正例5/5、0skip，4791.9604ms；作者GREEN5/5和strict0、此前无变化HTTP/C1500ms及其余通过证据复用，不相加重复计数。
+
+## 设计选择与尚未证实的部分
 
 采用三个可分别实施、验证和评审的小任务：A 将指定 native 路径改为固定候选执行，移除 HTTP 热路径重复的完整来源/历史核验；B 在原导航预算内等待实际游戏 ready；C 修正 native 视频清理的共享预算。A/C 在同一新契约中集成，互不以对方的性能结果为前提；B 不依赖 A 的内部实现。三项完成并独审集成后才安排一次完整导航。
 
@@ -73,7 +87,7 @@ controller 是原独占状态所有者，正常应用写入经同一 serial/comm
 
 保留原 load/HTTP/origin 检查，只有成功才进入 ready。移除 fixture 的独立 3000ms 子限时，使用已捕获 `min(navigationLife.deadlineAt, native.workDeadlineAt)`；不重开导航计时。只读地每 100ms 检查原按钮、board/player 初始格与 player idle seen；不存在/不可见/seen=false 为 pending，已存在却错误的角色/状态标识、错误按钮文字或 malformed debug 观测为失败。每轮及 await 前后做原 lifetime/取消检查，停止后不启动下一轮；原 reader 必须继续被跟踪到真实 settled。
 
-仅所有既定条件真实成立才返回；保留最后 pending 状态用于超时原因。不得设置 seen、发送正常输入、跳过素材或降低 ready 条件。仍由真实 runner 通过 finishNavigation，随后原 clone-stop 终止诊断，220 步全 skipped。单一 idle 不构成全部媒体通过，原 62 字段证据按无变化范围复用。B 只修测试诊断入口，不改生成游戏或生产输入 plan 的原超时。
+仅所有既定条件真实成立才返回；保留最后 pending 状态用于超时原因。不得设置 seen、发送正常输入、跳过素材或降低 ready 条件。仍由真实 runner 通过 finishNavigation，随后原 clone-stop 终止诊断，220 步全 skipped。单一 idle 不构成全部媒体通过，原 62 字段证据按无变化范围复用。B 修改两份诊断文件，并最小导出复用C现有纯 `validNativeCleanup`，不改该生产校验行为、生成游戏或生产输入 plan 的原超时。
 
 ## C：native 清理使用共享余量
 

@@ -8425,11 +8425,11 @@
       "nativeParentLinked": true,
       "parentCheckboxChecked": false,
       "state": "open",
-      "integrationStatus": "not-started",
-      "implementationPhase": "design-approved-source-not-started",
-      "reviewStatus": "PLAN_APPROVED",
-      "sourceReviewStatus": "NOT_READY",
-      "sourceStatus": "not_started",
+      "integrationStatus": "complete",
+      "implementationPhase": "scoped-complete",
+      "reviewStatus": "NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY",
+      "sourceReviewStatus": "APPROVED",
+      "sourceStatus": "approved-merged",
       "designReviewedCommit": "1c8610e9fd4b20880fb1cafa016ca9f901e71d81",
       "designReviewer": "native_readiness_design_reviewer",
       "designReviewStatus": "APPROVED",
@@ -8451,9 +8451,71 @@
           "COS-99",
           "COS-100"
         ],
-        "publishOnlyAfterAllReviewedAndCombinedValidation": true
+        "publishOnlyAfterAllReviewedAndCombinedValidation": true,
+        "combinationCommit": "5bc4bb6087ff33fc90f3e91e7184eaeb8e603507",
+        "combinedValidationPassed": true,
+        "partialContractPublished": false,
+        "approvedComponents": [
+          {
+            "taskId": "COS-98",
+            "sha": "ebb815712a9c4105f0269e604aea59506da28b57"
+          },
+          {
+            "taskId": "COS-99",
+            "sha": "5bc4bb6087ff33fc90f3e91e7184eaeb8e603507"
+          },
+          {
+            "taskId": "COS-100",
+            "sha": "93a479f248a6700364e609cb535b835be8eed716"
+          }
+        ]
       },
-      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862"
+      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862",
+      "targetReviewStatus": "NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY",
+      "reviewedCommit": "ebb815712a9c4105f0269e604aea59506da28b57",
+      "mergeCommit": "546051d59e37278e750c4035a4cebccfdde580c1",
+      "reviewer": "cos98_reviewer",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/99#issuecomment-6207749747",
+      "sourceReviewFindings": [],
+      "implementationBase": "5a2bcf3280db4d186335fc4d979727265fd271d2",
+      "validationEvidence": {
+        "mainFinalTypecheckExit": 0,
+        "mainFinalBuildExit": 0,
+        "mainInitialSixFileStrictExit": 0,
+        "authorFinalCleanupProofStrictExit": 0,
+        "mainNavigationPassed": 3,
+        "mainNavigationSkipped": 0,
+        "mainNavigationTapMs": 4177.9503,
+        "mainHttpCleanupPassed": 3,
+        "mainHttpCleanupSkipped": 0,
+        "mainHttpCleanupTapMs": 3323.5582,
+        "mainFinalCleanupProofPassed": 5,
+        "mainFinalCleanupProofSkipped": 0,
+        "mainFinalCleanupProofTapMs": 4791.9604,
+        "overlappingCountsNotAdded": true,
+        "allFinalFilesEqualApprovedSource": true,
+        "authorEvidenceReused": {
+          "A99Passed": 99,
+          "ARealMountedConsumerPassed": 1,
+          "BGroups": [
+            33,
+            6,
+            5
+          ],
+          "CInitialPassed": 67,
+          "CFinalTestOnlyDeltaPassed": 3
+        },
+        "raw": [
+          "C:/Users/26557/AppData/Local/Temp/native-readiness-abc-final-typecheck.log",
+          "C:/Users/26557/AppData/Local/Temp/native-readiness-abc-final-build.log",
+          "C:/Users/26557/AppData/Local/Temp/native-readiness-abc-merge-strict.log",
+          "C:/Users/26557/AppData/Local/Temp/native-readiness-abc-merge-navigation.tap",
+          "C:/Users/26557/AppData/Local/Temp/native-readiness-abc-merge-http-cleanup.tap",
+          "C:/Users/26557/AppData/Local/Temp/native-readiness-abc-final-cleanup-proof.tap"
+        ],
+        "scope": "source-and-free-isolated-fixtures-only; slow-ready-and-slow-video-verified-separately",
+        "actualBrowserOr715OrPaidExecuted": false
+      }
     },
     {
       "taskId": "COS-99",
@@ -8469,11 +8531,11 @@
       "nativeParentLinked": true,
       "parentCheckboxChecked": false,
       "state": "open",
-      "integrationStatus": "not-started",
-      "implementationPhase": "design-approved-source-not-started",
-      "reviewStatus": "PLAN_APPROVED",
-      "sourceReviewStatus": "NOT_READY",
-      "sourceStatus": "not_started",
+      "integrationStatus": "complete",
+      "implementationPhase": "scoped-complete",
+      "reviewStatus": "NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY",
+      "sourceReviewStatus": "APPROVED",
+      "sourceStatus": "approved-merged",
       "designReviewedCommit": "1c8610e9fd4b20880fb1cafa016ca9f901e71d81",
       "designReviewer": "native_readiness_design_reviewer",
       "designReviewStatus": "APPROVED",
@@ -8495,9 +8557,50 @@
           "COS-99",
           "COS-100"
         ],
-        "publishOnlyAfterAllReviewedAndCombinedValidation": true
+        "publishOnlyAfterAllReviewedAndCombinedValidation": true,
+        "combinationCommit": "5bc4bb6087ff33fc90f3e91e7184eaeb8e603507",
+        "combinedValidationPassed": true,
+        "partialContractPublished": false,
+        "approvedComponents": [
+          {
+            "taskId": "COS-98",
+            "sha": "ebb815712a9c4105f0269e604aea59506da28b57"
+          },
+          {
+            "taskId": "COS-99",
+            "sha": "5bc4bb6087ff33fc90f3e91e7184eaeb8e603507"
+          },
+          {
+            "taskId": "COS-100",
+            "sha": "93a479f248a6700364e609cb535b835be8eed716"
+          }
+        ]
       },
-      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862"
+      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862",
+      "targetReviewStatus": "NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY",
+      "reviewedCommit": "5bc4bb6087ff33fc90f3e91e7184eaeb8e603507",
+      "mergeCommit": "5bc4bb6087ff33fc90f3e91e7184eaeb8e603507",
+      "reviewer": "cos99_reviewer",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/100#issuecomment-6207810569",
+      "sourceReviewFindings": [],
+      "implementationBase": "ea478f12b260f9ed810b660e03fdddb80aefe42b",
+      "validationEvidenceRef": "COS-98.validationEvidence",
+      "cleanupProofCorrection": {
+        "priorReviewedCommit": "39400c6bec4bee4532a1ee5888aaab15e0d5214f",
+        "priorMergeCommit": "ea478f12b260f9ed810b660e03fdddb80aefe42b",
+        "finalReviewedCommit": "5bc4bb6087ff33fc90f3e91e7184eaeb8e603507",
+        "finalReviewStatus": "APPROVED",
+        "sourceExtension": "export-existing-pure-validNativeCleanup-and-reuse-before-v2-planned-stop-exception",
+        "CProductionValidatorBehaviorUnchanged": true,
+        "authorRedIncorrectlyAccepted": 4,
+        "authorGreenPassed": 5,
+        "authorAffectedStrictExit": 0,
+        "mainFinalPassed": 5,
+        "mainFinalSkipped": 0,
+        "mainFinalTapMs": 4791.9604,
+        "originalFailureRetained": true,
+        "rawRoot": "C:/Users/26557/AppData/Local/Temp/cos99-readiness-evidence"
+      }
     },
     {
       "taskId": "COS-100",
@@ -8513,11 +8616,11 @@
       "nativeParentLinked": true,
       "parentCheckboxChecked": false,
       "state": "open",
-      "integrationStatus": "not-started",
-      "implementationPhase": "design-approved-source-not-started",
-      "reviewStatus": "PLAN_APPROVED",
-      "sourceReviewStatus": "NOT_READY",
-      "sourceStatus": "not_started",
+      "integrationStatus": "complete",
+      "implementationPhase": "scoped-complete",
+      "reviewStatus": "NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY",
+      "sourceReviewStatus": "APPROVED",
+      "sourceStatus": "approved-merged",
       "designReviewedCommit": "1c8610e9fd4b20880fb1cafa016ca9f901e71d81",
       "designReviewer": "native_readiness_design_reviewer",
       "designReviewStatus": "APPROVED",
@@ -8539,9 +8642,34 @@
           "COS-99",
           "COS-100"
         ],
-        "publishOnlyAfterAllReviewedAndCombinedValidation": true
+        "publishOnlyAfterAllReviewedAndCombinedValidation": true,
+        "combinationCommit": "5bc4bb6087ff33fc90f3e91e7184eaeb8e603507",
+        "combinedValidationPassed": true,
+        "partialContractPublished": false,
+        "approvedComponents": [
+          {
+            "taskId": "COS-98",
+            "sha": "ebb815712a9c4105f0269e604aea59506da28b57"
+          },
+          {
+            "taskId": "COS-99",
+            "sha": "5bc4bb6087ff33fc90f3e91e7184eaeb8e603507"
+          },
+          {
+            "taskId": "COS-100",
+            "sha": "93a479f248a6700364e609cb535b835be8eed716"
+          }
+        ]
       },
-      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862"
+      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862",
+      "targetReviewStatus": "NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY",
+      "reviewedCommit": "93a479f248a6700364e609cb535b835be8eed716",
+      "mergeCommit": "51ab8eaa541adbf545c95c3c387284bbeb027d93",
+      "reviewer": "cos100_reviewer",
+      "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/101#issuecomment-6207846907",
+      "sourceReviewFindings": [],
+      "implementationBase": "ebb815712a9c4105f0269e604aea59506da28b57",
+      "validationEvidenceRef": "COS-98.validationEvidence"
     }
   ],
   "verifiedNativeSubIssues": 100,
