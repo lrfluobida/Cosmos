@@ -156,7 +156,7 @@ export function diagnosticReadCheckpoint(mode: DiagnosticMode, caller?: AbortSig
 }
 
 export async function readNavigationDiagnosticReady(page: Pick<import('@playwright/test').Page, 'locator' | 'evaluate'>,
-  expected: ReadyExpectation, lifetime: { signal: AbortSignal; deadlineAt: number; check?(): void }) {
+  expected: ReadyExpectation, lifetime: { signal: AbortSignal; deadlineAt: number; check?(): void }, pendingEvidence?: { lastPending: string | null }) {
   let pending = 'initial observation';
   const checkpoint = () => {
     lifetime.check?.();
@@ -205,6 +205,7 @@ export async function readNavigationDiagnosticReady(page: Pick<import('@playwrig
     if (seen !== true) missing.push(seen === null ? 'idle seen missing' : 'idle seen=false');
     if (!missing.length) return;
     pending = missing.join(', ');
+    if (pendingEvidence) pendingEvidence.lastPending = pending;
     await read(() => new Promise<void>((resolve, reject) => {
       const onAbort = () => { clearTimeout(timer); reject(lifetime.signal.reason); };
       const timer = setTimeout(() => { lifetime.signal.removeEventListener('abort', onAbort); resolve(); },
@@ -409,8 +410,12 @@ export function observeNavigationDiagnosticLifecycle(lifecycle: OwnedAcceptanceL
       patches.replace(result.context, 'newPage', original => async function (this: unknown, ...pageArgs: unknown[]) {
         const page = await Reflect.apply(original, this, pageArgs);
         pageRestores.push(mode.observeGoto(page, { origin: identity?.origin ?? new URL(page.url()).origin,
-          ready: () => { assert.ok(navigationLife); return runNavigationDiagnosticReady(navigationLife, native,
-            active => readNavigationDiagnosticReady(page, expected, active)); } }));
+          ready: async () => {
+            assert.ok(navigationLife); const pendingEvidence: { lastPending: string | null } = { lastPending: null };
+            try { await runNavigationDiagnosticReady(navigationLife, native,
+              active => readNavigationDiagnosticReady(page, expected, active, pendingEvidence)); }
+            catch (error) { observer.event('diagnostic.ready.pending', pendingEvidence); throw error; }
+          } }));
         return page;
       });
       return result;

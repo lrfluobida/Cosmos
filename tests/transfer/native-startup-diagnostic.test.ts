@@ -554,6 +554,42 @@ test('native readiness uses captured navigation end after load has consumed its 
   segment.revoke(); await segment.settle(f.deadlineAt); await f.work.cancelAndDrain('unit complete');
 });
 
+test('native readiness production timeout retains last pending in final trace and the original error', async t => {
+  const { api, tick, flush } = await readinessClock(t), f = await navigationNativeFixture(5500), segment = f.waits.beginSegment('pending-proof');
+  const trace = observer(), mode = api.createNavigationDiagnosticMode(trace); mode.bindNativeWaits(f.waits);
+  const { page, reads } = navigationReadyPage(['player', 'idle', false]);
+  page.goto = async () => ({ ok: () => true, status: () => 200 }); page.url = () => 'http://127.0.0.1:32123/';
+  const lifecycle: OwnedAcceptanceLifecycle = { deadlineAt: f.deadlineAt, signal: f.work.signal,
+    nativeValidationWaits: f.waits, nativeSegmentWaits: segment,
+    open: async () => {
+      for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
+      return { browser: {} as any, context: { newPage: async () => page } as any };
+    }, identity: () => undefined, process: () => undefined, close: async () => {} };
+  const observed = api.observeNavigationDiagnosticLifecycle(lifecycle, mode, trace, readyExpectation, false); t.after(observed.restore);
+  const opened = await observed.lifecycle.open('synthetic', 1000), activePage = await opened.context.newPage();
+  let navigationSignal: AbortSignal | undefined, caught: Error | undefined;
+  segment.beginNavigation();
+  const pending = observed.lifecycle.nativeSegmentWaits!.runStage('navigation', async life => {
+    navigationSignal = life.signal; await activePage.goto(page.url());
+  });
+  const rejected = assert.rejects(pending, error => {
+    caught = error as Error; return error === navigationSignal?.reason && caught.name === 'NativeWaitDeadlineError';
+  });
+  void rejected.catch(() => {}); await flush();
+  for (let count = 0; count < 4; count++) await tick(100);
+  assert.equal(reads.filter(value => value === 'debug').length, 5);
+  assert.equal(trace.snapshot().events.filter(event => event.name === 'diagnostic.ready.pending').length, 0);
+  await tick(100); await rejected; await flush();
+  assert.ok(caught); assert.equal(caught, navigationSignal!.reason);
+  assert.equal(caught.message, 'Native validation navigation: deadline reached');
+  assert.deepEqual(segment.snapshot().firstCause, { stage: 'navigation', name: caught.name, message: caught.message });
+  const finalTrace = JSON.parse(JSON.stringify(trace.snapshot()));
+  const evidence = finalTrace.events.filter((event: { name: string }) => event.name === 'diagnostic.ready.pending');
+  assert.equal(evidence.length, 1); assert.deepEqual(evidence[0].data, { lastPending: 'idle seen=false' });
+  assert.deepEqual(f.waits.snapshot().rawReads, { started: 1, settled: 1, pending: 0 });
+  segment.revoke(); await segment.settle(f.deadlineAt); await f.work.cancelAndDrain('unit complete');
+});
+
 test('native readiness allows missing nested fields and the existing readonly root getter', async t => {
   const { api, tick, flush } = await readinessClock(t), { page } = navigationReadyPage();
   const state: { id: string; states?: { name: string; seen: boolean }[] } = { id: 'player' };
