@@ -9,6 +9,7 @@ import { reserveTransferOrigin } from '../../src/runtime/adapters/transfer/loopb
 import { withCleanDelivery, type CleanDelivery } from '../../src/runtime/entrypoint-delivery.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { RunController } from '../../src/runtime/run.ts';
+import * as nativeApi from '../../src/acceptance/native-validation-waits.ts';
 
 const html = '<p>独立干净交付</p>', binding = { caseId: 'case', windowId: 'window', sourceVersion: 'a'.repeat(40),
   requirementSha256: 'b'.repeat(64), runId: 'run', specVersion: '1' };
@@ -22,12 +23,16 @@ async function navigation(segment: NativeSegmentWaits) {
   for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
   segment.beginNavigation();
 }
-async function fixture(t: test.TestContext) {
+async function fixture(t: test.TestContext, snapshotExecution = false) {
   const root = await mkdtemp(join(tmpdir(), 'cos97-clean-origin-')), project = join(root, candidate.location), owner = new AbortController(), work = new OwnedWork(owner.signal);
   await mkdir(join(project, 'dist'), { recursive: true }); await writeFile(join(project, 'dist/index.html'), html, 'utf8');
   const rawFailures: unknown[] = [];
-  const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'host', deadlineAt: Date.now() + 600000,
-    signal: work.signal, controllerSignal: owner.signal, trackRaw: start => { const raw = work.run(start); void raw.then(() => {}, error => rawFailures.push(error)); return raw; } });
+  let execution: (signal: AbortSignal) => Promise<void> = async () => {};
+  const waitInput = { caseId: 'case', windowId: 'window', taskId: 'host', deadlineAt: Date.now() + 600000,
+    signal: work.signal, controllerSignal: owner.signal, trackRaw: <T>(start: (signal: AbortSignal) => Promise<T>) => { const raw = work.run(start); void raw.then(() => {}, error => rawFailures.push(error)); return raw; } };
+  if (snapshotExecution) assert.equal(typeof (nativeApi as any).createNativeSnapshotValidationWaits, 'function', 'The fixed-candidate factory is required');
+  const waits: ReturnType<typeof createNativeValidationWaits> = snapshotExecution
+    ? (nativeApi as any).createNativeSnapshotValidationWaits({ ...waitInput, requireExecution: (signal: AbortSignal) => execution(signal) }) : createNativeValidationWaits(waitInput);
   const cleanupFailures: unknown[] = [], retainCleanupFailure = (error: unknown) => { cleanupFailures.push(error); work.retainCleanupFailure(error); };
   let scope: (signal?: AbortSignal) => Promise<void> = async () => {}, bindingGuard: (signal?: AbortSignal) => Promise<void> = async () => {};
   const origin = await reserveTransferOrigin({ root, binding, resume: false, signal: work.signal, controllerSignal: owner.signal, retainCleanupFailure, requireScope: signal => scope(signal) });
@@ -35,7 +40,7 @@ async function fixture(t: test.TestContext) {
   await new Promise<void>(done => upstream.listen(0, '127.0.0.1', done));
   const address = upstream.address(); assert.ok(address && typeof address === 'object');
   const payloads: Buffer[] = [];
-  const clean: CleanDelivery = { project, url: `http://127.0.0.1:${address.port}`, async requireCurrent() {},
+  const clean: CleanDelivery = { project, url: `http://127.0.0.1:${address.port}`, async requireCurrent() {}, checkActive(signal) { owner.signal.throwIfAborted(); work.signal.throwIfAborted(); signal?.throwIfAborted(); },
     async verifyPayload(_name, value) { payloads.push(Buffer.from(value.bytes)); assert.equal(Buffer.from(value.bytes).toString(), html); return 'content'; } };
   const mount = (native = true) => origin.mountCandidate({ candidate, project, cleanDelivery: clean,
     ...(native ? { nativeValidationWaits: waits, retainCleanupFailure } : {}), verifyBinding: signal => bindingGuard(signal) });
@@ -47,8 +52,31 @@ async function fixture(t: test.TestContext) {
     if (closeError) assert.ok(cleanupFailures.includes(closeError));
   });
   return { root, project, owner, work, waits, origin, upstream, clean, payloads, rawFailures, cleanupFailures, retainCleanupFailure, mount,
-    setScope(value: typeof scope) { scope = value; }, setBinding(value: typeof bindingGuard) { bindingGuard = value; } };
+    setScope(value: typeof scope) { scope = value; }, setBinding(value: typeof bindingGuard) { bindingGuard = value; }, setExecution(value: typeof execution) { execution = value; } };
 }
+
+test('COS98 fixed candidate HTTP checks live execution twice without repeating source guards', async t => {
+  const f = await fixture(t, true); let scopes = 0, bindings = 0, cleanGuards = 0, executions = 0, local = 0;
+  f.setScope(async () => { scopes++; }); f.setBinding(async () => { bindings++; }); f.clean.requireCurrent = async () => { cleanGuards++; };
+  await f.mount(); const boundary = [scopes, bindings, cleanGuards]; const segment = f.waits.beginSegment('first'); await navigation(segment);
+  f.setExecution(async caller => { caller.throwIfAborted(); executions++; }); f.clean.checkActive = caller => { caller?.throwIfAborted(); local++; };
+  const response = await fetch(f.origin.url); assert.equal(response.status, 200); assert.equal(await response.text(), html);
+  assert.equal(executions, 2); assert.ok(local >= 2); assert.equal(f.payloads.length, 1); assert.deepEqual([scopes, bindings, cleanGuards], boundary);
+  segment.revoke(); await segment.settle(Date.now() + 1000);
+});
+
+test('COS98 fixed candidate still responds during source drift and the next full guard rejects it', async t => {
+  const f = await fixture(t, true); await f.mount(); const segment = f.waits.beginSegment('first'); await navigation(segment);
+  const source = new Error('Persistent source drift'); f.setScope(async () => { throw source; });
+  assert.equal((await fetch(f.origin.url)).status, 200);
+  await assert.rejects(f.origin.verify(f.waits.readSignal), error => error === source);
+  await assert.rejects(fetch(f.origin.url)); segment.revoke(); await segment.settle(Date.now() + 1000);
+});
+
+test('COS98 snapshot mount refuses missing local clean checks', async t => {
+  const f = await fixture(t, true); delete f.clean.checkActive;
+  await assert.rejects(f.mount(), /active|local|clean/i);
+});
 
 test('COS97 native clean traffic is 404 before navigation and uses complete pre body post stages', async t => {
   const f = await fixture(t); await f.mount();

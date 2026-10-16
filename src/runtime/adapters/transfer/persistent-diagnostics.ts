@@ -10,11 +10,11 @@ import { PERSISTENT_PROFILE_CAPABILITY, validatePersistentSeries } from '../../.
 import type { PersistentAcceptanceReport, PersistentAcceptanceSeries } from '../../../acceptance/persistent.ts';
 import { diagnoseBrowser } from '../../repair/browser-diagnostics.ts';
 import type { Diagnostics } from '../../repair/browser-diagnostics.ts';
-import { NATIVE_VALIDATION_WAIT_CONTRACT } from '../../../acceptance/native-validation-waits.ts';
+import { NATIVE_VALIDATION_WAIT_CONTRACT, NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT, type NativeValidationWaitContract } from '../../../acceptance/native-validation-waits.ts';
 
 export interface PersistentDiagnosticExpected {
   series: PersistentAcceptanceSeries; deadlineAt: number; sourceVersion?: string; reportPath: string;
-  nativeWaitContract?: typeof NATIVE_VALIDATION_WAIT_CONTRACT;
+  nativeWaitContract?: NativeValidationWaitContract;
 }
 export interface PersistentDiagnosticOptions {
   evidenceRoot: string; verifyBinding: () => Promise<void>; signal?: AbortSignal;
@@ -30,9 +30,9 @@ const elapsed = (value: unknown): value is number => typeof value === 'number' &
 // Date timestamps have millisecond precision; performance.now records the same interval at finer precision.
 const nativeClockToleranceMs = 5;
 const consistentElapsed = (value: unknown, start: number, end: number) => elapsed(value) && Math.abs(value - (end - start)) <= nativeClockToleranceMs;
-function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number, end: number, deadlineAt: number) {
+function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number, end: number, deadlineAt: number, contractVersion: NativeValidationWaitContract) {
   check(object(value) && only(value, ['contractVersion', 'deadlineAt', 'workDeadlineAt', 'segment'])
-    && value.contractVersion === NATIVE_VALIDATION_WAIT_CONTRACT && value.deadlineAt === deadlineAt && value.workDeadlineAt === deadlineAt - 5000);
+    && value.contractVersion === contractVersion && value.deadlineAt === deadlineAt && value.workDeadlineAt === deadlineAt - 5000);
   const segment = value.segment;
   check(object(segment) && only(segment, ['reportId', 'generation', 'state', 'stages', 'rawReadsPending', 'rawOperationsPending', 'http', 'firstCause'])
     && segment.reportId === plan.reportId && count(segment.generation) && segment.generation > 0 && segment.state === 'closed'
@@ -53,14 +53,16 @@ function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number,
     && http.started === http.settled && http.rejected === 0 && http.pending === 0 && Array.isArray(http.stages) && http.stages.length === 3);
   for (const [index, stage] of ['http_pre_authority', 'http_body', 'http_post_authority'].entries()) {
     const row = http.stages[index]; check(object(row) && only(row, ['stage', 'capMs', 'count', 'totalMs', 'maxMs']) && row.stage === stage
-      && row.capMs === [60000, 15000, 60000][index] && row.count === http.started && elapsed(row.totalMs) && elapsed(row.maxMs)
+      && row.capMs === (contractVersion === NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT ? [5000, 15000, 5000] : [60000, 15000, 60000])[index]
+      && row.count === http.started && elapsed(row.totalMs) && elapsed(row.maxMs)
       && row.maxMs <= row.totalMs && row.maxMs <= Math.min(row.capMs, end - segment.stages[3].startedAt) + nativeClockToleranceMs
       && (row.count > 0 ? row.totalMs / row.count <= row.maxMs + 1e-6 : row.totalMs === 0 && row.maxMs === 0));
   }
   return segment;
 }
 function validNativeAggregate(report: PersistentAcceptanceReport, task: TaskContract, expected: PersistentDiagnosticExpected, start: number, end: number) {
-  check(expected.nativeWaitContract === NATIVE_VALIDATION_WAIT_CONTRACT && report.series.formatVersion === 'persistent-acceptance/1');
+  check((expected.nativeWaitContract === NATIVE_VALIDATION_WAIT_CONTRACT || expected.nativeWaitContract === NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT)
+    && report.series.formatVersion === 'persistent-acceptance/1');
   const value = report.nativeWaits;
   check(object(value) && only(value, ['contractVersion', 'deadlineAt', 'workDeadlineAt', 'consumerStartedAt', 'rawReads', 'segments', 'caseId', 'windowId', 'taskId', 'seriesStartedAt', 'seriesEndedAt', 'seriesElapsedMs'])
     && value.contractVersion === expected.nativeWaitContract && value.deadlineAt === expected.deadlineAt && value.workDeadlineAt === expected.deadlineAt - 5000
@@ -70,7 +72,7 @@ function validNativeAggregate(report: PersistentAcceptanceReport, task: TaskCont
     && object(value.rawReads) && only(value.rawReads, ['started', 'settled', 'pending']) && count(value.rawReads.started)
     && value.rawReads.started === value.rawReads.settled && value.rawReads.pending === 0 && Array.isArray(value.segments) && value.segments.length === report.segments.length);
   for (const [index, row] of report.segments.entries()) {
-    const segment = validNativeSegment(row.report.nativeWaits, row.report.plan, Date.parse(row.report.startedAt), Date.parse(row.report.endedAt), expected.deadlineAt);
+    const segment = validNativeSegment(row.report.nativeWaits, row.report.plan, Date.parse(row.report.startedAt), Date.parse(row.report.endedAt), expected.deadlineAt, expected.nativeWaitContract);
     check(segment.generation === index + 1 && isDeepStrictEqual(segment, value.segments[index]));
   }
 }

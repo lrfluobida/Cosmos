@@ -63,6 +63,7 @@ export async function packageStandalone(input: { root: string; project: string; 
 
 export interface CleanDelivery {
   url: string; project: string; requireCurrent(callerSignal?: AbortSignal): Promise<void>;
+  checkActive?(callerSignal?: AbortSignal): void;
   verifyPayload?(name: string, response: { status: number; bytes: Uint8Array }, callerSignal?: AbortSignal): Promise<'content' | 'not_found'>;
 }
 /** The original task owns copying, serving, browser work and cleanup before final snapshot. */
@@ -118,7 +119,7 @@ export async function withCleanDelivery<T>(input: { root: string; project: strin
         if (!expected || response.status !== 200 || !expected.equals(response.bytes)) throw new Error('Clean delivery response payload differs from its fixed candidate bytes.');
         check(callerSignal); return 'content';
       };
-      await requireCurrent(); const value = await action({ project, url: url!, requireCurrent, verifyPayload });
+      await requireCurrent(); const value = await action({ project, url: url!, requireCurrent, checkActive: check, verifyPayload });
       if (value && typeof value === 'object') {
         const passed = (value as { passed?: unknown }).passed;
         if (typeof passed === 'boolean') acceptancePassed = passed;

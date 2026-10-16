@@ -65,7 +65,7 @@ import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
 import { MODULE_CONTRACTS, MODULE_SLOTS, moduleDirectory, moduleSlot, moduleSource, validateModuleContracts, validateModuleFiles } from './modular-code.ts';
 import type { ModularCompilerInputs, ModuleSlot } from './modular-code.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
-import { associateNativeReadSignal, createNativeValidationWaits, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
+import { associateNativeReadSignal, createNativeSnapshotValidationWaits, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
 import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
@@ -917,9 +917,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             requireCurrent: async (callerSignal?: AbortSignal) => { await requireDispatch(task, signal, undefined, callerSignal); } }, async server => {
             if (validation) await requireDispatch(task, signal);
             if (preparation?.candidateConsumer) {
-              const nativeValidationWaits = validation ? createNativeValidationWaits({ caseId: validation.caseId, windowId: validation.windowId,
+              const nativeValidationWaits = validation ? createNativeSnapshotValidationWaits({ caseId: validation.caseId, windowId: validation.windowId,
                 taskId: task.taskId, deadlineAt: Date.parse(authority.deadlineAt), signal: AbortSignal.any([controller.signal, work.signal, signal]),
-                controllerSignal: controller.signal, trackRaw: start => input.work.run(start) }) : undefined;
+                controllerSignal: controller.signal, trackRaw: start => input.work.run(start),
+                requireExecution: callerSignal => controller.requireNativeValidationExecution({ caseId: validation.caseId, windowId: validation.windowId,
+                  taskId: task.taskId, deadlineAt: Date.parse(authority.deadlineAt) }, callerSignal) }) : undefined;
               await preparation.bindCandidate(ref, nativeValidationWaits?.readSignal);
               const mediaArtifact = selected(task, 'media'), capture = await registry.getCapture(mediaArtifact);
               const manifestBytes = await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`);
