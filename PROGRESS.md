@@ -2,6 +2,11 @@
 
 更新时间：2026-10-16
 
+## COS101设计已审，固定C15源码实施获准
+
+- [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)，id5879037048，已原生挂父COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；任务总数101，根#1直接原生子项仍100，#17直接子项1。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。
+- 当前仅源码实施授权，源码未开始、actual/paid仍NONE且未授权。固定C15在同一ledger5采用非分组declaration-2，¥21仅为grants分配，实际case硬上限¥5/90分钟；其他案例原45分钟等规则、旧group/supplement、原C14和ledger3114/715/16901000µ保持。仅固定C15/C5可按已审完整兼容证明处理各自input hash，原acceptance和真实host正反SOURCE要求保持。新candidate仍须自身完整8段/媒体/截图review/promotion/交付，不复用C14未批准coding或原220/62通过数。 见[任务卡](docs/specs/cos101-transfer-case15.md)和[计划](docs/plans/2026-10-16-cos101-transfer-case15.md)。本次仅设计文档与登记，未测试、构建、调用模型或新开实际窗口。
+
 ## COS93 navigation-v2实测通过，源码与诊断范围已关闭
 
 - 结果文档`8abaa81c1701a4a2aa939f015b22da5e34f46524`经`cos93_navigation_reviewer`独立规格→质量APPROVED，无finding；唯一merger `batch_c14_cos92_merger`合入`7f0f64886ec2cfc4345d676eb139338402f2aceb`。批准的PNG原字节保持，本批仅文档及JSON验证，原actual/独立后核/视频解码证据复用。结果文档已审合入，#94已按source+diagnostic scope关闭，closed(completed)及父勾选[x]已由Root精确GET核证，结果文档发布主线`f1608bed0a779f76124c27595921418703db0832`；下述旧whole15与游戏验收边界保持。

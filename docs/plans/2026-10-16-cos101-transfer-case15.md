@@ -10,7 +10,7 @@
 
 ---
 
-设计见 [spec](../specs/cos101-transfer-case15.md)。本计划只供设计独审；源码实施和单次付费运行分别等待 Root 批准。采用专属 implementer、独立 reviewer、唯一 merger；常规工程选择不再重复询问用户。全部文本先 strict UTF-8 检查，最小 patch，保留旧中文、换行与已审历史。
+设计见 [spec](../specs/cos101-transfer-case15.md)。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)已挂父COS16/#17，#17直接子项1、根#1直接子项仍100、任务总数101。源码实施已授权，actual/paid未授权，尚无源码或新实际结果。采用专属 implementer、独立 reviewer、唯一 merger；常规工程选择不再重复询问用户。全部文本先 strict UTF-8 检查，最小 patch，保留旧中文、换行与已审历史。
 
 ## 文件与任务边界
 
@@ -108,4 +108,4 @@ node --experimental-strip-types probes/transfer/validation-case-fifteen-run.ts -
 
 ## 本轮设计交付记录
 
-本轮仅新增本计划与 spec，没有生产源码、测试执行、真实账本写入、provider 或付费运行。设计的独立审查尤其需要确认：90min 的窄授权、¥21分配/¥5支出的区别、ledger5历史来源仍逐次核验、非分组closure对group零影响，以及真实独立截图review与完整验收不会被历史证据替代。
+本轮仅新增本计划与 spec，没有生产源码、测试执行、真实账本写入、provider 或付费运行。设计独立审查已通过：90min 的窄授权、¥21分配/¥5支出的区别、ledger5历史来源仍逐次核验、非分组closure对group零影响，以及真实独立截图review与完整验收不会被历史证据替代；固定C15/C5兼容证明与真实host正反SOURCE覆盖已纳入计划。当前仅源码实施获准，实际付费运行另行审批。
