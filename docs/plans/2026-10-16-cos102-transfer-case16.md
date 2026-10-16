@@ -10,7 +10,7 @@
 
 ---
 
-状态：设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2，Root已批准设计；唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。任务[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/#17、未勾选；#17直接子项2、根#1直接子项仍100、任务总数102，Root已精确GET核证。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施，Task A进行中、B待A独审接口、C待A+B；源码尚未独审批准，实际preflight与paid启动仍待Root另行授权。设计见[spec](../specs/cos102-transfer-case16.md)；基线`2d9b0b5c6d088615010b41d6b6a9b5f5ade970a7`，src/probes/tests等同`ea4876a62df70fcfaa95d795aa2b68c970f6ff67`。常规工程选择不重复询问产品或预算；缺少实际启动授权时完成所有已授权SOURCE工作后交Root审批。
+状态：设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2，Root已批准设计；唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。任务[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/#17、未勾选；#17直接子项2、根#1直接子项仍100、任务总数102，Root已精确GET核证。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施；Task A已[独审批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213202409)，Task B实施中、C待B；整卡源码尚未独审批准，实际preflight与paid启动仍待Root另行授权。设计见[spec](../specs/cos102-transfer-case16.md)；基线`2d9b0b5c6d088615010b41d6b6a9b5f5ade970a7`，src/probes/tests等同`ea4876a62df70fcfaa95d795aa2b68c970f6ff67`。常规工程选择不重复询问产品或预算；缺少实际启动授权时完成所有已授权SOURCE工作后交Root审批。
 
 ## 文件归属与依赖
 
@@ -81,6 +81,7 @@ node --experimental-strip-types --test tests/runtime/validation-case-sixteen-bud
 - [ ] 新run使用原固定C5 source pins；new task调用`createFixedTransferCodingOnlyTasks(D16, 'cos20-transfer-validation-16-reuse.json')`。driver调用原`createFixedTransferCodingOnlyDriver`，绑定C16自己的source/admission/plan和`.ts/.js` worker URL，不复用C15的当前身份。
 - [ ] `captureFixedTransferCodingSource/requireFixedTransferCodingSource`类型联合加入sixteen。检查真实imports：两run→各entry→共享模块，各driver→自己的source/task/shared认证；共享模块实际动态driver用字面量import。现有遍历器不识别的关键依赖必须改为可识别导入或固定seed，不可只靠类型联合宣称闭包完整。
 - [ ] 短测覆盖715历史门槛保持、C15尾项假quote2/伪group/缺closure/添加task/request/改旧源拒绝、C16自身approval缺失拒绝、admission错case/manifest/source拒绝；保持免费preflight零write/owner/provider。
+- Root澄清测试分层：固定HistoricalTail helper核唯一末项D15零行为及真实quote/operator/五grant closure/admission/source链，可用短真实API prefix验证且不称完整preflight；完整23/115/21与715门槛仍由prepare/accounting固定policy组合执行，Task C覆盖完整SOURCE23/115/21。
 - [ ] 运行以下命令，预期新增测试PASS、0skip，typecheck退出0；SOURCE完整链尚留给C，不借stub宣称完整成功：
 
 ```powershell
