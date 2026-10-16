@@ -1,6 +1,8 @@
 # 原生游戏异步就绪、固定候选响应与有界清理
 
-状态：设计提案，待独立评审。基线 `e2358cd59a6313e049605cd652912d326745d414`；本次仅文档，不占 COS 编号。Root 已同意推荐方向，源码实施与实际运行分别交由 Root 下达。关联 [实施计划](../plans/2026-10-16-native-game-readiness.md)、[ADR0003](../adr/0003-native-fixed-candidate-execution.md)；原 [COS97](cos97-native-validation-waits.md) 与 [ADR0002](../adr/0002-native-validation-waits.md) 的历史结论保留。
+状态：设计已审APPROVED、ADR0003 accepted；源码未开始，actual/paid未授权。基线 `e2358cd59a6313e049605cd652912d326745d414`。设计 `1c8610e9fd4b20880fb1cafa016ca9f901e71d81` 经 `native_readiness_design_reviewer` 独立规格/可实施性→质量 APPROVED，无finding；Root批准工程设计及后续源码实施。唯一merger `batch_c14_cos92_merger` 合入 `9940c130ce8de32136b579d79c1dded99db17dda`。 关联 [实施计划](../plans/2026-10-16-native-game-readiness.md)、[ADR0003](../adr/0003-native-fixed-candidate-execution.md)；原 [COS97](cos97-native-validation-waits.md) 与 [ADR0002](../adr/0002-native-validation-waits.md) 的历史结论保留。
+
+任务 A 为 [COS98 / #99](https://github.com/lrfluobida/Cosmos/issues/99)，依赖COS93/97；任务 B 为 [COS99 / #100](https://github.com/lrfluobida/Cosmos/issues/100)，依赖COS93及COS98已审接口；任务 C 为 [COS100 / #101](https://github.com/lrfluobida/Cosmos/issues/101)，依赖COS97及COS98已审接口。完整 `native-validation-waits/2` 仅在A/B/C均独审并组合验证后发布，不提前发布半契约；当前actual/paid均未授权。
 
 ## 建议与尚未证实的部分
 

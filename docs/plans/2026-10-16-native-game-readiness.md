@@ -1,6 +1,6 @@
 # Native Game Readiness Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. 每项由独立 implementer/reviewer 负责；唯一 merger 为 `batch_c14_cos92_merger`。本提交仅设计，源码及 actual 须 Root 另行下达。
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. 每项由独立 implementer/reviewer 负责；唯一 merger 为 `batch_c14_cos92_merger`。本设计已审，Root已授权后续源码实施；actual仍须另行下达。
 
 **Goal:** 让既有固定候选在真实异步素材加载后完成一次原生导航，并在原截止内保留视频、正常退出。
 
@@ -12,9 +12,11 @@
 
 ## 执行约束与顺序
 
+批准记录：设计 `1c8610e9fd4b20880fb1cafa016ca9f901e71d81` 经 `native_readiness_design_reviewer` 独立规格/可实施性→质量 APPROVED，无finding；Root批准工程设计及后续源码实施。唯一merger `batch_c14_cos92_merger` 合入 `9940c130ce8de32136b579d79c1dded99db17dda`。 任务 A 为 [COS98 / #99](https://github.com/lrfluobida/Cosmos/issues/99)，依赖COS93/97；任务 B 为 [COS99 / #100](https://github.com/lrfluobida/Cosmos/issues/100)，依赖COS93及COS98已审接口；任务 C 为 [COS100 / #101](https://github.com/lrfluobida/Cosmos/issues/101)，依赖COS97及COS98已审接口。完整 `native-validation-waits/2` 仅在A/B/C均独审并组合验证后发布，不提前发布半契约；当前actual/paid均未授权。
+
 基线 `e2358cd59a6313e049605cd652912d326745d414`；先读 [spec](../specs/native-game-readiness.md) 与 [ADR0003](../adr/0003-native-fixed-candidate-execution.md)。保留现有 `/1` 工厂与验证器，新的源码私有工厂固定选择 `/2`；不提供 CLI/JSON/环境变量的版本或预算开关。
 
-A、B、C 是独立审查单元，可分别用免费小夹具证明。A/C 会碰同一 native helper/diagnostics；实施者各自 branch/worktree，唯一 merger 根据批准 SHA 合并。可以先后实施减少冲突，不要求 C 等 A 的实测结果。`/2` 完整生产选择仅在 A+B+C 合并并通过组合检查后发布。当前文档不创建 issue，不更改 shared tracking，不运行 browser/715/provider。
+A、B、C 是独立审查单元，可分别用免费小夹具证明。A/C 会碰同一 native helper/diagnostics；实施者各自 branch/worktree，唯一 merger 根据批准 SHA 合并。可以先后实施减少冲突，不要求 C 等 A 的实测结果。`/2` 完整生产选择仅在 A+B+C 合并并通过组合检查后发布。Root已登记COS98/99/100；本次仅设计文档集成，不运行 browser/715/provider。
 
 ## Task A：固定候选 HTTP 与当前执行权
 

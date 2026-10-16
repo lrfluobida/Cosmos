@@ -8,7 +8,7 @@
     "number": 1,
     "id": 5650981546,
     "url": "https://github.com/lrfluobida/Cosmos/issues/1",
-    "childCount": 97
+    "childCount": 100
   },
   "tasks": [
     {
@@ -8410,8 +8410,140 @@
       "verifiedNativeSubIssues": 97,
       "parentCheckboxLine": "- [x] [COS-97 · 明确原生验收的权限等待与浏览器时限](https://github.com/lrfluobida/Cosmos/issues/98)",
       "publishedAt": "2026-10-15T10:08:43.317583+00:00"
+    },
+    {
+      "taskId": "COS-98",
+      "title": "固定候选 HTTP 交付与当前执行权检查",
+      "number": 99,
+      "id": 5871289365,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/99",
+      "dependsOn": [
+        "COS-93",
+        "COS-97"
+      ],
+      "sourcePrerequisiteStage": "COS-93-sealed-actual-evidence-and-COS-97-reviewed-source",
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "not-started",
+      "implementationPhase": "design-approved-source-not-started",
+      "reviewStatus": "PLAN_APPROVED",
+      "sourceReviewStatus": "NOT_READY",
+      "sourceStatus": "not_started",
+      "designReviewedCommit": "1c8610e9fd4b20880fb1cafa016ca9f901e71d81",
+      "designReviewer": "native_readiness_design_reviewer",
+      "designReviewStatus": "APPROVED",
+      "designMergeCommit": "9940c130ce8de32136b579d79c1dded99db17dda",
+      "designApprovalUrl": "https://github.com/lrfluobida/Cosmos/issues/99",
+      "taskCardPath": "docs/specs/native-game-readiness.md",
+      "planPath": "docs/plans/2026-10-16-native-game-readiness.md",
+      "adrPath": "docs/adr/0003-native-fixed-candidate-execution.md",
+      "adrStatus": "accepted",
+      "planTask": "A",
+      "merger": "batch_c14_cos92_merger",
+      "implementationAuthorized": true,
+      "actualAuthorized": false,
+      "paidAuthorized": false,
+      "combinedRelease": {
+        "contract": "native-validation-waits/2",
+        "requiredTasks": [
+          "COS-98",
+          "COS-99",
+          "COS-100"
+        ],
+        "publishOnlyAfterAllReviewedAndCombinedValidation": true
+      },
+      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862"
+    },
+    {
+      "taskId": "COS-99",
+      "title": "在原导航预算内等待真实游戏就绪",
+      "number": 100,
+      "id": 5871290320,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/100",
+      "dependsOn": [
+        "COS-93",
+        "COS-98"
+      ],
+      "sourcePrerequisiteStage": "approved-COS-98-interface-without-early-partial-contract-publication",
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "not-started",
+      "implementationPhase": "design-approved-source-not-started",
+      "reviewStatus": "PLAN_APPROVED",
+      "sourceReviewStatus": "NOT_READY",
+      "sourceStatus": "not_started",
+      "designReviewedCommit": "1c8610e9fd4b20880fb1cafa016ca9f901e71d81",
+      "designReviewer": "native_readiness_design_reviewer",
+      "designReviewStatus": "APPROVED",
+      "designMergeCommit": "9940c130ce8de32136b579d79c1dded99db17dda",
+      "designApprovalUrl": "https://github.com/lrfluobida/Cosmos/issues/100",
+      "taskCardPath": "docs/specs/native-game-readiness.md",
+      "planPath": "docs/plans/2026-10-16-native-game-readiness.md",
+      "adrPath": "docs/adr/0003-native-fixed-candidate-execution.md",
+      "adrStatus": "accepted",
+      "planTask": "B",
+      "merger": "batch_c14_cos92_merger",
+      "implementationAuthorized": true,
+      "actualAuthorized": false,
+      "paidAuthorized": false,
+      "combinedRelease": {
+        "contract": "native-validation-waits/2",
+        "requiredTasks": [
+          "COS-98",
+          "COS-99",
+          "COS-100"
+        ],
+        "publishOnlyAfterAllReviewedAndCombinedValidation": true
+      },
+      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862"
+    },
+    {
+      "taskId": "COS-100",
+      "title": "为原生视频和浏览器清理分配共享余量",
+      "number": 101,
+      "id": 5871291140,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/101",
+      "dependsOn": [
+        "COS-97",
+        "COS-98"
+      ],
+      "sourcePrerequisiteStage": "approved-COS-98-interface-without-early-partial-contract-publication",
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "integrationStatus": "not-started",
+      "implementationPhase": "design-approved-source-not-started",
+      "reviewStatus": "PLAN_APPROVED",
+      "sourceReviewStatus": "NOT_READY",
+      "sourceStatus": "not_started",
+      "designReviewedCommit": "1c8610e9fd4b20880fb1cafa016ca9f901e71d81",
+      "designReviewer": "native_readiness_design_reviewer",
+      "designReviewStatus": "APPROVED",
+      "designMergeCommit": "9940c130ce8de32136b579d79c1dded99db17dda",
+      "designApprovalUrl": "https://github.com/lrfluobida/Cosmos/issues/101",
+      "taskCardPath": "docs/specs/native-game-readiness.md",
+      "planPath": "docs/plans/2026-10-16-native-game-readiness.md",
+      "adrPath": "docs/adr/0003-native-fixed-candidate-execution.md",
+      "adrStatus": "accepted",
+      "planTask": "C",
+      "merger": "batch_c14_cos92_merger",
+      "implementationAuthorized": true,
+      "actualAuthorized": false,
+      "paidAuthorized": false,
+      "combinedRelease": {
+        "contract": "native-validation-waits/2",
+        "requiredTasks": [
+          "COS-98",
+          "COS-99",
+          "COS-100"
+        ],
+        "publishOnlyAfterAllReviewedAndCombinedValidation": true
+      },
+      "sourceEvidenceComment": "https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6198276862"
     }
   ],
-  "verifiedNativeSubIssues": 97,
+  "verifiedNativeSubIssues": 100,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
