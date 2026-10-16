@@ -4,7 +4,7 @@ status: accepted
 
 # 原生验证执行固定候选，并为异步加载和清理保留有界时间
 
-源码实现状态（2026-10-16）：COS98/99/100均获各自独立源码APPROVED，唯一merger按A→C→B合入组合`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，typecheck/build/strict和两组定向代表均通过，标记`NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY`。各任务批准/merge SHA与免费验证见[任务卡](../specs/native-game-readiness.md)及[计划记录](../plans/2026-10-16-native-game-readiness.md)。仅源码范围完成，issue关闭待Root核证；实际导航、正常视频实测及付费仍未授权，旧失败与本ADR的行为差异保持。
+源码实现状态（2026-10-16）：COS98/99/100均获各自独立源码APPROVED，唯一merger按A→C→B合入组合`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，typecheck/build/strict和两组定向代表均通过，标记`NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY`。各任务批准/merge SHA与免费验证见[任务卡](../specs/native-game-readiness.md)及[计划记录](../plans/2026-10-16-native-game-readiness.md)。仅源码范围完成，三项issue已closed(completed)、父勾选已由Root核证；实际导航、正常视频实测及付费仍未授权，旧失败与本ADR的行为差异保持。
 
 批准记录：设计 `1c8610e9fd4b20880fb1cafa016ca9f901e71d81` 经 `native_readiness_design_reviewer` 独立规格/可实施性→质量 APPROVED，无finding；Root批准工程设计及后续源码实施。唯一merger `batch_c14_cos92_merger` 合入 `9940c130ce8de32136b579d79c1dded99db17dda`。 任务 A 为 [COS98 / #99](https://github.com/lrfluobida/Cosmos/issues/99)，依赖COS93/97；任务 B 为 [COS99 / #100](https://github.com/lrfluobida/Cosmos/issues/100)，依赖COS93及COS98已审接口；任务 C 为 [COS100 / #101](https://github.com/lrfluobida/Cosmos/issues/101)，依赖COS97及COS98已审接口。完整 `native-validation-waits/2` 仅在A/B/C均独审并组合验证后发布，不提前发布半契约；当前actual/paid均未授权。
 

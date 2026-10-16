@@ -8423,8 +8423,8 @@
       ],
       "sourcePrerequisiteStage": "COS-93-sealed-actual-evidence-and-COS-97-reviewed-source",
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
+      "parentCheckboxChecked": true,
+      "state": "closed",
       "integrationStatus": "complete",
       "implementationPhase": "scoped-complete",
       "reviewStatus": "NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY",
@@ -8515,7 +8515,9 @@
         ],
         "scope": "source-and-free-isolated-fixtures-only; slow-ready-and-slow-video-verified-separately",
         "actualBrowserOr715OrPaidExecuted": false
-      }
+      },
+      "stateReason": "completed",
+      "sourcePublicationMain": "81b0022dc70353d235d2d02e8aeb1d860a5933a7"
     },
     {
       "taskId": "COS-99",
@@ -8529,8 +8531,8 @@
       ],
       "sourcePrerequisiteStage": "approved-COS-98-interface-without-early-partial-contract-publication",
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
+      "parentCheckboxChecked": true,
+      "state": "closed",
       "integrationStatus": "complete",
       "implementationPhase": "scoped-complete",
       "reviewStatus": "NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY",
@@ -8600,7 +8602,9 @@
         "mainFinalTapMs": 4791.9604,
         "originalFailureRetained": true,
         "rawRoot": "C:/Users/26557/AppData/Local/Temp/cos99-readiness-evidence"
-      }
+      },
+      "stateReason": "completed",
+      "sourcePublicationMain": "81b0022dc70353d235d2d02e8aeb1d860a5933a7"
     },
     {
       "taskId": "COS-100",
@@ -8614,8 +8618,8 @@
       ],
       "sourcePrerequisiteStage": "approved-COS-98-interface-without-early-partial-contract-publication",
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
+      "parentCheckboxChecked": true,
+      "state": "closed",
       "integrationStatus": "complete",
       "implementationPhase": "scoped-complete",
       "reviewStatus": "NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY",
@@ -8669,7 +8673,9 @@
       "reviewComment": "https://github.com/lrfluobida/Cosmos/issues/101#issuecomment-6207846907",
       "sourceReviewFindings": [],
       "implementationBase": "ebb815712a9c4105f0269e604aea59506da28b57",
-      "validationEvidenceRef": "COS-98.validationEvidence"
+      "validationEvidenceRef": "COS-98.validationEvidence",
+      "stateReason": "completed",
+      "sourcePublicationMain": "81b0022dc70353d235d2d02e8aeb1d860a5933a7"
     }
   ],
   "verifiedNativeSubIssues": 100,

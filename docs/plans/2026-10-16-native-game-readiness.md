@@ -93,7 +93,7 @@ A、B、C 是独立审查单元，可分别用免费小夹具证明。A/C 会碰
 | COS-99 / #100 | `5bc4bb6087ff33fc90f3e91e7184eaeb8e603507` | `cos99_reviewer` | `5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`（快进） | [批准](https://github.com/lrfluobida/Cosmos/issues/100#issuecomment-6207810569) |
 | COS-100 / #101 | `93a479f248a6700364e609cb535b835be8eed716` | `cos100_reviewer` | `51ab8eaa541adbf545c95c3c387284bbeb027d93` | [批准](https://github.com/lrfluobida/Cosmos/issues/101#issuecomment-6207846907) |
 
-唯一merger按A→C→B一次组合，源码终点`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，15个实现路径逐一等于其最后批准来源；C覆盖其批准路径，B覆盖两个诊断文件并对现有persistent-diagnostics校验器增加最小export复用；该校验器最终来源为5bc，其生产行为保持C原实现，其余路径保持A/C批准字节。没有手工改写批准源码或单独发布半契约。统一marker为`NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY`，本三卡source scoped complete，GitHub仍open/未勾选，待Root收到发布证据后关闭。
+唯一merger按A→C→B一次组合，源码终点`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，15个实现路径逐一等于其最后批准来源；C覆盖其批准路径，B覆盖两个诊断文件并对现有persistent-diagnostics校验器增加最小export复用；该校验器最终来源为5bc，其生产行为保持C原实现，其余路径保持A/C批准字节。没有手工改写批准源码或单独发布半契约。统一marker为`NATIVE_FIXED_CANDIDATE_READINESS_SOURCE_READY`，本三卡source scoped complete/closed，GitHub三项closed(completed)及父勾选已由Root精确GET核证，源码发布主线`81b0022dc70353d235d2d02e8aeb1d860a5933a7`。
 
 初组合检查命令和raw（均无实际浏览器/provider；先保留通过证据，最后cleanup proof补正另列）：
 
