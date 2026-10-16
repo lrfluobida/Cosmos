@@ -10,9 +10,9 @@
 
 ---
 
-设计见 [spec](../specs/cos101-transfer-case15.md)。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)已挂父COS16/#17，#17直接子项1、根#1直接子项仍100、任务总数101。源码实施已授权，actual/paid未授权，源码实施中、尚无完整批准源码或新实际结果。采用专属 implementer、独立 reviewer、唯一 merger；常规工程选择不再重复询问用户。全部文本先 strict UTF-8 检查，最小 patch，保留旧中文、换行与已审历史。
+设计见 [spec](../specs/cos101-transfer-case15.md)。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)已挂父COS16/#17，#17直接子项1、根#1直接子项仍100、任务总数101。源码已独审集成，`TRANSFER_CASE_FIFTEEN_SOURCE_READY` / `source-integrated`；issue保持open，actual/paid未授权、无新实际结果。采用专属 implementer、独立 reviewer、唯一 merger；常规工程选择不再重复询问用户。全部文本先 strict UTF-8 检查，最小 patch，保留旧中文、换行与已审历史。
 
-源码已在两个独立worktree实施；预算接口`036e259ab169546dd10d97728c9f0b03a3c23341`经独立`cos101_budget_reviewer`获`APPROVED_INTERFACE`，仅接口批准，Task A尚未最终批准，主作者继续Task B/C。尚无完整源码合入或新actual，actual/paid保持false。
+最终源码`b3c5187cf7c3ee1cb182b8e3470cff608afec627`于2026-10-16经`cos101_host_reviewer`整卡`APPROVED_SOURCE_SCOPED`、无finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210122062)已由Root核证；唯一merger合入`0af4be69bea76ff48092d3909a9a855eae7c3f57`。Task A与host/entry/compiled/C6分段批准及完整SOURCE证据见下文，actual/paid保持false。
 
 免费SOURCE证据采用T81真实API历史，在隔离副本沿原API追加C14的35请求/792063µ与closure20形成SOURCE364，覆盖真实claim/open→driver→reused host→core链路。生产entry仍精确要求715请求/16901000µ、22 stopped/14 delegations/110 closed grants/20 audits；SOURCE364不替代该真实入口正例，合main后由Root补真实只读preflight。复用已有历史，不为凑715重复构造请求；不写原共享账本、不新增provider调用。
 
@@ -152,4 +152,12 @@ Root批准复用 `cosmos-transfer-entry-T81i3U` 的原API SOURCE C5～C13记录�
 
 最终 `typecheck-final.log`、`build-final.log`、`strict-all-final.log` 均退出0；strict覆盖五个新probe入口及所有新增transfer测试导入闭包。19个改动文本文件strict UTF-8和非英文读回通过，`git diff --check`通过。已批准且无相关delta的预算、host矩阵、entry边界、compiled、旧C6代表按上表复用，不叠加计数。纯docs主线 `482be957` 与 `de22727a` 已合入作者分支，不触发重复执行。
 
-作者交付等待整卡独审及唯一merger集成；生产715正向preflight与新真实C15付费/8段220步62字段/视频/最终体验仍待Root独立后续。本节不构成实际付费启动授权。
+作者交付已通过整卡独审并由唯一merger集成；生产715正向preflight与新真实C15付费/8段220步62字段/视频/最终体验仍待Root独立后续。本节不构成实际付费启动授权。
+
+### 主线集成记录
+
+批准提交`b3c5187cf7c3ee1cb182b8e3470cff608afec627`，reviewer `cos101_host_reviewer`，2026-10-16 `APPROVED_SOURCE_SCOPED`、无finding；[公开批准](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210122062)。唯一merger `batch_c14_cos92_merger`在`de22727ab01f47fdc5d57e3ae1117d0d537118cd`无冲突合入`0af4be69bea76ff48092d3909a9a855eae7c3f57`，源码、测试、probe与批准版逐字节一致，依赖未变。mapping登记`TRANSFER_CASE_FIFTEEN_SOURCE_READY` / `source-integrated`和本卡自身reviewed/merge SHA，issue #102保持open、父#17未勾选。
+
+- `npm run typecheck`、`npm run build`均退出0；日志`C:/Users/26557/AppData/Local/Temp/cos101-merge-typecheck.log`、`cos101-merge-build.log`，各含明确EXIT。
+- `node --experimental-strip-types --test --test-name-pattern='^authentic ledger5 admits nongrouped C15 after C14 closure without changing the old group$|^C15 has an independent fixed entry and quote1 admission envelope$' tests/runtime/validation-case-fifteen-budget.test.ts tests/transfer/validation-case-fifteen.test.ts`：2/2、0skip、退出0、1328.8606ms；日志`C:/Users/26557/AppData/Local/Temp/cos101-merge-focused.tap`。
+- 其余已审完整SOURCE1/1、host/entry/compiled/C6/预算与`strict-all-final.log`/`.exit`按无delta复用；未重跑T81、长链、实际native或provider。SOURCE364/176 checks/4媒体字段与生产715/220步/62字段分开，真实只读preflight仍pending，实际账本与C14原结论保持。

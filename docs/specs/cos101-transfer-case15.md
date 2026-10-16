@@ -1,8 +1,8 @@
 # COS101：同一共享账本上的第十五迁移案例
 
-状态：设计已审APPROVED，Root已授权源码实施；源码实施中，actual/paid仍未授权。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 设计基线 `cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`。任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)，id5879037048，已原生挂父 COS16 / [#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；#17直接子项1，任务总数101，根#1直接子项仍100。
+状态：源码已独审并合入，`TRANSFER_CASE_FIFTEEN_SOURCE_READY` / `source-integrated`；生产715正向只读preflight待Root执行，actual/paid仍未授权，issue保持open。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。 设计基线 `cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`。任务 [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)，id5879037048，已原生挂父 COS16 / [#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；#17直接子项1，任务总数101，根#1直接子项仍100。
 
-源码已在两个独立worktree实施；预算接口`036e259ab169546dd10d97728c9f0b03a3c23341`经独立`cos101_budget_reviewer`获`APPROVED_INTERFACE`，仅接口批准，Task A尚未最终批准，主作者继续Task B/C。尚无完整源码合入或新actual，actual/paid保持false。
+最终源码`b3c5187cf7c3ee1cb182b8e3470cff608afec627`于2026-10-16经`cos101_host_reviewer`整卡`APPROVED_SOURCE_SCOPED`、无finding，[公开批准](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6210122062)已由Root核证；唯一merger合入`0af4be69bea76ff48092d3909a9a855eae7c3f57`。主线typecheck/build0，authentic预算与entry代表2/2、0skip；全部组合源码与批准版字节一致。完整免费SOURCE1/1复用：真实Pi接fake transport、新capture/正式构建、八段176 checks和4媒体字段、八张合法PNG独立review approved、C15 v1 promotion与正常stop/owner close；两次fake请求各10µ、unknown/reserved0，旧group/14delegations保持。SOURCE364不替代生产715只读preflight、220步/62字段或实际游戏验收，actual/paid保持false；失败记录与一次SOURCE snapshot mtime缺口见[计划](../plans/2026-10-16-cos101-transfer-case15.md)。
 
 ## 目标与成功条件
 
