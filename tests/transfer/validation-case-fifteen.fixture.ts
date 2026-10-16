@@ -27,14 +27,14 @@ import type { ValidationHostInput } from '../../probes/e2e/validation-run.ts';
 export async function withTransferCaseFifteenFixture(t: TestContext, operation: (f: {
   repository: string; ledgerRoot: string; root: string; head: string; archive: string; baseline: any; pins: any;
   input: ValidationHostInput; historical: ReturnType<typeof createHistoricalPassedStages>; context: any;
-}) => Promise<void>, options: { captureSource?: typeof captureTransferCaseFifteenSource } = {}) {
+}) => Promise<void>, options: { captureSource?: typeof captureTransferCaseFifteenSource; materializeToolchain?: boolean } = {}) {
   const priorReuse = process.env.COS91_SOURCE_REUSE;
   process.env.COS91_SOURCE_REUSE = join(tmpdir(), 'cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C14-proof-6a66b182-230b-475c-b1df-3dc17f393aa6');
   try { await withTransferCaseFourteenFixture(t, async f => {
     const root = join(f.repository, '.cosmos/e2e', D.caseId), sourceFile = join(f.repository, D.inputs.requirements.path), key = `SOURCE-C15-${randomUUID()}`;
     await assert.rejects(lstat(root), (error: any) => error.code === 'ENOENT');
     await assert.rejects(lstat(sourceFile), (error: any) => error.code === 'ENOENT');
-    let controller: RunController | undefined, work: OwnedWork | undefined;
+    let controller: RunController | undefined, work: OwnedWork | undefined, input: ValidationHostInput | undefined;
     try {
       await cp(fileURLToPath(new URL('../../probes/transfer/requirements-case-fifteen.json', import.meta.url)), sourceFile);
       await f.git('add', D.inputs.requirements.path); await f.git('commit', '-m', 'SOURCE C15 fixed nongrouped input');
@@ -78,10 +78,13 @@ export async function withTransferCaseFifteenFixture(t: TestContext, operation: 
       const window = await RunController.claimValidationCase({ ...context, quote, decision: decision as any });
       controller = await RunController.openValidationCase({ ...context, caseId: D.caseId, windowId: window.windowId }); work = new OwnedWork(controller.signal);
       await mkdir(root); await cp(join(f.repository, 'templates/2d'), join(root, 'toolchain'), { recursive: true });
-      await symlink(fileURLToPath(new URL('../../templates/2d/node_modules', import.meta.url)), join(root, 'toolchain/node_modules'), 'junction');
-      const input = { repository: f.repository, ledgerRoot: f.ledgerRoot, root, controller, window, work, signal: work.signal };
+      const dependencies = fileURLToPath(new URL('../../templates/2d/node_modules', import.meta.url));
+      if (options.materializeToolchain) await cp(dependencies, join(root, 'toolchain/node_modules'), { recursive: true, dereference: true });
+      else await symlink(dependencies, join(root, 'toolchain/node_modules'), 'junction');
+      input = { repository: f.repository, ledgerRoot: f.ledgerRoot, root, controller, window, work, signal: work.signal };
       await operation({ repository: f.repository, ledgerRoot: f.ledgerRoot, root, head, archive: f.archive, baseline, pins: f.pins, input, historical, context });
     } finally {
+      if (input) { controller = input.controller; work = input.work; }
       await work?.cancelAndDrain('SOURCE C15 fixture cleanup');
       if (controller) { if (!controller.signal.aborted) await controller.stop('SOURCE fixture finished'); await controller.close(); }
       if (await lstat(root).then(() => true, () => false)) await rename(root, join(f.archive, 'case15'));
