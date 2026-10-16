@@ -11,7 +11,7 @@ import type { PersistentAcceptanceReport, PersistentAcceptanceSeries } from '../
 import { diagnosePersistentBrowser as diagnose } from '../../probes/transfer/persistent-diagnostics.ts';
 import type { PersistentDiagnosticExpected, PersistentDiagnosticOptions } from '../../probes/transfer/persistent-diagnostics.ts';
 import type { Diagnostics } from '../../probes/e2e/diagnostics.ts';
-import { createNativeValidationWaits, NATIVE_VALIDATION_WAIT_CONTRACT } from '../../src/acceptance/native-validation-waits.ts';
+import { createNativeValidationWaits, createNativeSnapshotValidationWaits, NATIVE_VALIDATION_WAIT_CONTRACT, NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT } from '../../src/acceptance/native-validation-waits.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 
 const candidate = { artifactId: 'game', version: 'v1', location: 'registry/game/v1/project' };
@@ -37,12 +37,13 @@ function series(): PersistentAcceptanceSeries {
       savedSnapshot: { kind: 'debug', path: ['transfer', 'saveSnapshot'] } } };
 }
 type FixtureKind = 'pass' | 'mismatch' | 'exception' | 'unknown' | 'input' | 'no-input';
-async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0, native = false) {
+async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0, native: boolean | 'snapshot' = false) {
   const root = await mkdtemp(join(tmpdir(), 'cos39-diagnostic-')), expectedSeries = series(), deadlineAt = Date.now() + 30_000; let calls = 0;
   if (kind === 'no-input') expectedSeries.segments[0].plan.steps[0] = { id: 'click', kind: 'assert', acceptanceId: 'save',
     observation: { kind: 'visible', selector: '#save' }, expected: true, timeoutMs: 100 };
-  const work = new OwnedWork(), waits = native ? createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: task.taskId,
-    deadlineAt, signal: work.signal, trackRaw: start => work.run(start) }) : undefined;
+  const work = new OwnedWork(), input = { caseId: 'case', windowId: 'window', taskId: task.taskId,
+    deadlineAt, signal: work.signal, trackRaw: <T>(start: (signal: AbortSignal) => Promise<T>) => work.run(start) };
+  const waits = native === 'snapshot' ? createNativeSnapshotValidationWaits({ ...input, requireExecution: async () => {} }) : native ? createNativeValidationWaits(input) : undefined;
   waits?.startConsumer();
   const report = await executePersistentSeries(expectedSeries, { evidenceRoot: root, deadlineAt, verifyBinding: async () => {},
     ...(waits ? { nativeValidationWaits: waits } : {}) }, async (p, lifecycle) => {
@@ -120,6 +121,22 @@ test('COS97 new native expected contract refuses a legacy report without changin
   try { assert.equal((await diagnostic(f)).reportValid, true);
     insufficient(await diagnostic(f, f.report, { ...f.expected, nativeWaitContract: NATIVE_VALIDATION_WAIT_CONTRACT }));
   } finally { await f.cleanup(); }
+});
+
+test('COS98 trusted snapshot expected version validates fixed HTTP caps and rejects old version substitution', async () => {
+  const f = await fixture('pass', 0, 'snapshot');
+  try {
+    assert.equal(f.expected.nativeWaitContract, NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT);
+    assert.equal((await diagnostic(f)).reportValid, true);
+    insufficient(await diagnostic(f, f.report, { ...f.expected, nativeWaitContract: NATIVE_VALIDATION_WAIT_CONTRACT }));
+    const changed = structuredClone(f.report);
+    changed.segments[0].report.nativeWaits!.segment.http.stages[0].capMs = 60000;
+    changed.nativeWaits!.segments[0] = structuredClone(changed.segments[0].report.nativeWaits!.segment);
+    await f.persist(changed); insufficient(await diagnostic(f, changed));
+  } finally { await f.cleanup(); }
+  const old = await fixture('pass', 0, true);
+  try { insufficient(await diagnostic(old, old.report, { ...old.expected, nativeWaitContract: NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT })); }
+  finally { await old.cleanup(); }
 });
 
 test('COS97 actual helper timing permits a complete native report and refuses changed source or pending evidence', async () => {
