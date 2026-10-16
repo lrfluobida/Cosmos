@@ -2,6 +2,10 @@
 
 更新时间：2026-10-16
 
+## COS93 navigation-v2实测通过，诊断范围可完成
+
+- COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d58ee70aad`上877848ms、exit0完成，`native-validation-waits/2`独立navigation passed：goto840.4206ms、ready203.6588ms、navigation1044.6055ms，29HTTP全settled/0reject、17260 raw全settled。browser32140 exit0/forced=false，正常cleanup493ms；75497B视频已独立完整解码70帧exit0。原467文件/61目录零变及POSTCHECK_NO_LIVE_RESIDUE齐备，ledger3114/715/16901000µ、费用0保持，Root已解冻。whole open47912.8648ms仍超过旧15秒；唯一零输入planned stop使production游戏报告仍failed/reportValid:false，旧nav-v1/C14/accepted/human保持。建议source+diagnostic scoped complete，待结果文档独审合入及Root关闭#94；launcher已消费，不重跑。见[研究记录与截图](docs/research/2026-10-16-cos93-navigation-v2.md)及[公开结果](https://github.com/lrfluobida/Cosmos/issues/94#issuecomment-6208523921)。
+
 ## COS98–100源码已审组合：固定候选响应、真实就绪与共享清理
 
 - 组合复审补正：B原`39400c6bec4bee4532a1ee5888aaab15e0d5214f`及初合并`ea478f12b260f9ed810b660e03fdddb80aefe42b`保留历史。C新增cleanup证明位于segment之外，B预定stop例外原未校验该字段；真实同row品牌、同source及同步durable raw的missing/deadline+1/rawPending1/video_stop failed四负例RED均错误接受。作者最终`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`仅export并复用C原`validNativeCleanup`，`cos99_reviewer`affected APPROVED、无finding；C生产校验行为不改。主线最终typecheck/build0，四负例和真实/2正例5/5、0skip，4791.9604ms；作者GREEN5/5和strict0、此前无变化HTTP/C1500ms及其余通过证据复用，不相加重复计数。 最终源码组合为`5bc4bb6087ff33fc90f3e91e7184eaeb8e603507`，三项统一发布、GitHub三项closed(completed)及父勾选已由Root核证，源码发布主线`81b0022dc70353d235d2d02e8aeb1d860a5933a7`，actual未执行。
