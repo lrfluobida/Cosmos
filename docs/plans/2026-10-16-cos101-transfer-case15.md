@@ -113,3 +113,43 @@ node --experimental-strip-types probes/transfer/validation-case-fifteen-run.ts -
 ## 本轮设计交付记录
 
 本轮仅新增本计划与 spec，没有生产源码、测试执行、真实账本写入、provider 或付费运行。设计独立审查已通过：90min 的窄授权、¥21分配/¥5支出的区别、ledger5历史来源仍逐次核验、非分组closure对group零影响，以及真实独立截图review与完整验收不会被历史证据替代；固定C15/C5兼容证明与真实host正反SOURCE覆盖已纳入计划。当前仅源码实施获准，实际付费运行另行审批。
+
+## 2026-10-16 源码实施证据
+
+本节追加实施记录，不改写上面的设计历史。作者分支 `codex/cos101-transfer-case15`，managed worktree `E:/CodexData/.codex/worktrees/cos-04-media/Cosmos`；原始 TAP、退出码和严格检查在该工作树 `.cosmos/cos101-evidence/`。
+
+| 范围 | 已审提交与证据 |
+| --- | --- |
+| Task A | 接口 `036e259ab169546dd10d97728c9f0b03a3c23341`、测试 `ce1ab3d8fa289258b33a7d7f1b9ea9057ca78cc6` 均独立 APPROVED，组合为 `88a04b4`、`a2d4345`。复用预算10/10、affected4/4、旧代表3/3、strict/build0，不重跑80请求矩阵。 |
+| 固定 host 兼容 | `031cfb575774df648f1d1fabb66397fed04b87ba` 获 `APPROVED_HOST_STAGE`。有效 `host-red-3.tap` 经真实 coding-only stage→reused consumer→core 在原同hash守卫失败；前两份RED日志为setup错误，不计功能RED。`host-green-matrix.tap` 集中验证7项历史authority/capture/acceptance变异、当前路径/身份、3项实际输入字节变异、零import/session及构造/host重建；退出0。wrongCase在前置scope拒绝，不能算旧C6 hash守卫。 |
+| entry 审查修复 | `80e67c27f4fddb66390c7ab26117fc831b7c9ef9`、`52b03551eea3f29bc0ac3d03aec449088ef0f83f` 获 `APPROVED_ENTRY_FIX`。`entry-review-red.tap` 暴露漏核COS101自身批准、owner未释放即写cleanup；`entry-boundary-red.tap` 暴露stopped无报告、close跨deadline未记gap。GREEN与strict0见 `entry-review-green-final.tap`、`entry-boundary-green.tap`、`strict-boundary.log`。四个owner/stop/deadline子例通过。 |
+| compiled | 独立作者 `fa6106946656b3cbb3c05b34ddf7312f61dc2b38` 获 `APPROVED_COMPILED_SCOPE`，组合为 `7ffbdee`。复用strict0、2/2、0skip、25382.1896ms：真实JS worker运行pinned TypeScript失败并写completed receipt；真实SOURCE controller的compiled闭包、bootstrap受控回调、源码漂移拒绝。bootstrap回调不是实际安装，没有browser/provider。 |
+| 旧 C6 host 短代表 | 独立作者 `52b042a35a01c9b7cc045d82d5bbcf8efe587898` 获 `APPROVED_LEGACY_HOST_SCOPE`，组合为 `29e3364`。独立TEMP真实API短seed/group/C6 claim；samehash真实host成功，differenthash通过scope后在固定兼容守卫拒绝、零import/session。复用2/2、9086.7109ms、strict0及guard-bypass RED。T81只读；不是完整C6 entry，不重放长历史。 |
+
+### SOURCE364 与生产715分开
+
+Root批准复用 `cosmos-transfer-entry-T81i3U` 的原API SOURCE C5～C13记录，只追加35条C14合成settled请求、¥0.792063、stop及closure20。C15链使用 **364条合成历史**、ledger5、22案例/14delegations/110closures/20audits，经原prepare/claim/open进入真实driver/host。C5地图、媒体和浏览器观察仍是夹具；不能冒称生产715入口通过，也不能代替真实候选8段/220步/62字段、视频解码或human体验。
+
+生产entry保持715请求、¥16.901000结算、原组¥9.892377占用、22/14/110/20，未为测试放宽。`production-readonly.log`退出0：只读复制真实revision3114 snapshot（SHA256 `e8a921e618da619eacdd439c3260d2edcc10f48edcb823fd716274531cd85632`）及所需财务来源，核固定历史、组余额与副本closure漂移拒绝。原snapshot和来源前后SHA256/mtime保持；不计entry正例。**真实715正向只读preflight仍由Root在合入和发布独审元数据后执行。**
+
+### 失败、夹具修正与保全限制
+
+- `pipeline-first.tap` 的新Pi作者/capture后，正式build复制夹具node_modules junction遇Windows EPERM。生产build未改，成功夹具改为物化相同依赖字节。`pipeline-failure-proof.tap` 读回同一 `SOURCE-C14-proof-ce4c214a-c5fc-49ab-b794-cb81c6b31f04`，确认产物保留、failed/gap、manual stop、零unknown/reserved、无accepted/promotion，1/1通过；没有重造失败链。
+- `pipeline-materialized.tap` 已通过实际构建，但旧synthetic report缺`/2` nativeWaits段及cleanup，被原消费守卫拒绝，review pending。冷恢复后夹具仍关闭旧controller，使外层finally owner断言失败，掩盖原消费错误；当前夹具改为跟踪恢复后的controller。
+- 失败snapshot、owner和case15工程保存在 `SOURCE-C14-proof-747adcdd-8112-48ca-9684-9f70f91b41d2`。既有 `SnapshotStore.recover` 确认owner10624、child28416/23356/29052均退出后释放锁，未kill。SOURCE baseline bytes恢复为SHA256 `d8d4bf6faae3ccdf8f869fd07aa385cbc33c2a7235b28df69462a69def683d87`、revision390，git clean；**原SOURCE snapshot mtime未恢复，不宣称全文件零变**。旧C9～C13支持来源逐字节归位；记录 `source-recovery.log`、`source-support-restore.log`。Root独立后核确认无owner/PID残留，真实账本未变。
+- `/2` 修正仅在C15测试内使用调用方真实waits recorder，补各段时钟/cleanup、aggregate及对应raw。独立诊断在TEMP验证缺packet拒绝、完整packet有效176checks/0issues、再删cleanup拒绝；不改生产验收，亦不算实际游戏通过。
+- `pipeline-native-packets-2.tap` 已通过完整host消费/媒体/交付，但9字节伪PNG被SDK丢弃，fake reviewer的image断言失败，原计费规则保留一次SOURCE unknown并阻断后续派发；该失败与全部来源保存在 `SOURCE-C14-proof-733b4ea1-be2c-4525-ac28-a65906d9a9ce`，finally正常恢复。测试改为CRC正确的合成PNG，`pi-image-valid-png.tap` 真实Pi短验证1/1：hasImages true、reserve2131072µ。`review-local.log` 用同一已保存真实review packet与当前生产parser验证完整schema（含空concernResolutions）、12个input/output版本、20个证据ID和独立review身份/candidate v1绑定，stale引用及缺schema拒绝；退出0，不创建promotion。
+
+### 集中成功链与最终交付
+
+`pipeline-final.tap` / `.exit` 为本轮成功：1/1、0skip、exit0，测试427669.6042ms（进程431328.933ms）。完整proof在 `C:/Users/26557/AppData/Local/Temp/cosmos-transfer-entry-T81i3U/.cosmos/SOURCE-C14-proof-7a90c986-5cc1-4fbf-b2aa-d6d409dc279c`。
+
+- 真实coding-only driver→reused host→core→factory/Pi；当前作者工作区最初空，inputs无C14代码。真实controller关闭后冷恢复同一window/deadline，再验证原执行绑定。
+- bad admission在owned-child前拒绝、bad历史manifest在roleFactory/provider前拒绝、bad admission在read tool前拒绝；transport/child均零新增。源码闭包漂移的compiled代表与预算旧delegation/supplement/source检查证据复用。
+- 正式TypeScript/Vite build、固定SOURCE八段消费、完整SOURCE媒体coverage、交付检查和八张有效PNG进入独立review；2次fake provider请求经真实Pi准入/结算，coding预留568032µ、image reviewer预留2131072µ，均各结算10µ。模型与浏览器仍是合成响应，真实网络调用0。
+- review `approved`，task `passed`，registry/current与报告精确指向 `cos20-transfer-validation-15-game@v1`。原14delegations与旧group全等；当前2请求/20µ，shared SOURCE settled10614168µ，unknown/reserved0。
+- 原子stop后controller owner实际释放，报告cleanupEndedAt为 `2026-10-16T07:00:16.746Z`，最终accepted保持。fixture正常finally归档并恢复原snapshot与prior proof bytes；没有复用前次失败的candidate作成功输入。
+
+最终 `typecheck-final.log`、`build-final.log`、`strict-all-final.log` 均退出0；strict覆盖五个新probe入口及所有新增transfer测试导入闭包。19个改动文本文件strict UTF-8和非英文读回通过，`git diff --check`通过。已批准且无相关delta的预算、host矩阵、entry边界、compiled、旧C6代表按上表复用，不叠加计数。纯docs主线 `482be957` 与 `de22727a` 已合入作者分支，不触发重复执行。
+
+作者交付等待整卡独审及唯一merger集成；生产715正向preflight与新真实C15付费/8段220步62字段/视频/最终体验仍待Root独立后续。本节不构成实际付费启动授权。

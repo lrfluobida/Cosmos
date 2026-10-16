@@ -18,16 +18,43 @@ function fields(value: unknown, keys: string[]): void {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== keys.length || keys.some(key => !Object.hasOwn(value, key))) fail('Unexpected or missing declaration fields.');
 }
 
+/** Source-fixed C15 only; core never imports probe declarations or caller-selected policy. */
+export function isFixedTransferCaseFifteenDeclaration(value: unknown): value is ValidationDeclaration {
+  const d = value as ValidationDeclaration | null, caseId = 'cos20-transfer-validation-15';
+  const files = d?.inputs?.template?.files;
+  if (!Array.isArray(files) || files.length !== 8 || !files.every(file => file && typeof file.path === 'string' && typeof file.sha256 === 'string'
+    && Object.keys(file).length === 2)) return false;
+  return sameValue(d, {
+    formatVersion: 'validation-declaration-2', profile: 'operator_validation', caseId, sourceModel: 'deepseek-flash',
+    limits: { lifetimeMicroCny: 150_000_000, cumulativeMicroCny: 30_000_000, incrementalMicroCny: 5_000_000,
+      durationMs: 5_400_000, maxRequests: 80, maxRepairTasks: 1, maxTaskAttempts: 2, reviewProtocolCorrections: 1 },
+    grants: {
+      planning: { taskId: `${caseId}-planning`, amountMicroCny: 2_000_000 },
+      design: { taskId: `${caseId}-design`, amountMicroCny: 1_900_000 },
+      art: { taskId: `${caseId}-art`, amountMicroCny: 5_700_000 },
+      coding: { taskId: `${caseId}-coding`, amountMicroCny: 7_600_000 },
+      repair: { taskId: `${caseId}-repair`, amountMicroCny: 3_800_000 },
+    },
+    outputTokens: { planning: 4096, design: 16384, art: 65536, coding: 65536, reviewer: 16384 },
+    inputs: {
+      requirements: { version: 'cos16-transfer-v1', path: 'probes/transfer/requirements-case-fifteen.json', sha256: 'fa55cc277747ece5e76cdcffb7112ad6ed0c3f79ecdcb0f95afa407a6dcee6ed' },
+      template: { sha256: 'd6dfe213c0b57c41e0be90bc017705b7de9316dd54c58e611affc9fb376c7025', files },
+    },
+  }) && validationInputHash(d!) === '5864b22e0d1e682d5aa137cc95aab277bf71a3750b40afdd9a68ebd9ab34a72c';
+}
+
 export function validateValidationDeclaration(value: unknown): asserts value is ValidationDeclaration {
   const d = value as ValidationDeclaration;
   const grouped = d?.formatVersion === 'validation-declaration-3';
   fields(d, ['formatVersion', 'profile', 'caseId', 'sourceModel', 'limits', 'grants', 'outputTokens', 'inputs', ...(grouped ? ['budgetGroup'] : [])]);
+  const fixedFifteen = isFixedTransferCaseFifteenDeclaration(d);
+  if (d.caseId === 'cos20-transfer-validation-15' && !fixedFifteen) fail('Fixed C15 declaration changed.');
   if (!['validation-declaration-1', 'validation-declaration-2', 'validation-declaration-3'].includes(d.formatVersion) || d.profile !== 'operator_validation' || !/^cos20-[a-z0-9][a-z0-9-]{0,40}$/.test(d.caseId) || d.sourceModel !== 'deepseek-flash') fail('Unsupported profile, consumed legacy case identity or model.');
   if (grouped) { fields(d.budgetGroup, ['parentTaskId', 'allocationMicroCny']); if (d.budgetGroup!.parentTaskId !== 'COS-16' || d.budgetGroup!.allocationMicroCny !== 10_000_000) fail('Only the original COS-16 ten yuan group is supported.'); }
   fields(d.limits, ['lifetimeMicroCny', 'cumulativeMicroCny', 'incrementalMicroCny', 'durationMs', 'maxRequests', 'maxRepairTasks', 'maxTaskAttempts', 'reviewProtocolCorrections']);
   const l = d.limits;
   if (l.lifetimeMicroCny !== 150_000_000 || l.cumulativeMicroCny !== 30_000_000 || !integer(l.incrementalMicroCny, 1) || l.incrementalMicroCny > 5_000_000
-    || !integer(l.durationMs, 1) || l.durationMs > 2_700_000 || !integer(l.maxRequests, 1) || l.maxRequests > (d.formatVersion === 'validation-declaration-1' ? 40 : 80)
+    || !integer(l.durationMs, 1) || l.durationMs > (fixedFifteen ? 5_400_000 : 2_700_000) || !integer(l.maxRequests, 1) || l.maxRequests > (d.formatVersion === 'validation-declaration-1' ? 40 : 80)
     || !integer(l.maxRepairTasks) || l.maxRepairTasks > 1 || l.maxTaskAttempts !== 2 || !integer(l.reviewProtocolCorrections) || l.reviewProtocolCorrections > 1) fail('Limits exceed the fixed validation authorization.');
   fields(d.grants, [...VALIDATION_ROLES]);
   const amounts = { planning: 2_000_000, design: 1_900_000, art: 5_700_000, coding: 7_600_000, repair: 3_800_000 };
