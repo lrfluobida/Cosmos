@@ -38,7 +38,7 @@ function series(): PersistentAcceptanceSeries {
 }
 type FixtureKind = 'pass' | 'mismatch' | 'exception' | 'unknown' | 'input' | 'no-input';
 async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0, native: boolean | 'snapshot' = false) {
-  const root = await mkdtemp(join(tmpdir(), 'cos39-diagnostic-')), expectedSeries = series(), deadlineAt = Date.now() + 30_000; let calls = 0;
+  const root = await mkdtemp(join(tmpdir(), 'cos39-diagnostic-')), expectedSeries = series(), deadlineAt = Date.now() + (native === 'snapshot' ? 60_000 : 30_000); let calls = 0;
   if (kind === 'no-input') expectedSeries.segments[0].plan.steps[0] = { id: 'click', kind: 'assert', acceptanceId: 'save',
     observation: { kind: 'visible', selector: '#save' }, expected: true, timeoutMs: 100 };
   const work = new OwnedWork(), input = { caseId: 'case', windowId: 'window', taskId: task.taskId,
@@ -86,6 +86,15 @@ async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0, native: bo
       });
       segment.finishNavigation(); segment.revoke(); await segment.settle(deadlineAt);
       result.endedAt = new Date().toISOString(); result.nativeWaits = { contractVersion: waits.contractVersion, deadlineAt, workDeadlineAt: waits.workDeadlineAt, segment: segment.snapshot() };
+      if (native === 'snapshot') {
+        const startedAt = Date.now(), cleanupEnd = Math.min(deadlineAt - 5000, startedAt + 30000);
+        result.nativeWaits.cleanup = { startedAt, endedAt: startedAt, deadlineAt: cleanupEnd, gracefulDeadlineAt: cleanupEnd - 5000, rawPending: 0,
+          steps: (['final_screenshot', 'video_stop', 'lifecycle_close', 'video_save', 'client_close', 'force', 'raw_settle'] as const).map(step => {
+            const skipped = step === 'video_save' || step === 'force';
+            return { step, startedAt: skipped ? null : startedAt, endedAt: skipped ? null : startedAt, outcome: skipped ? 'skipped' : 'passed', rawPending: false };
+          }) };
+        result.endedAt = new Date(startedAt).toISOString();
+      }
     }
     for (const name of ['final.png', 'browser.webm', 'browser.log']) await writeFile(join(root, file(name)), 'synthetic evidence', 'utf8');
     await writeFile(join(root, result.reportPath), JSON.stringify(result) + '\n', 'utf8'); return result;
@@ -137,6 +146,28 @@ test('COS98 trusted snapshot expected version validates fixed HTTP caps and reje
   const old = await fixture('pass', 0, true);
   try { insufficient(await diagnostic(old, old.report, { ...old.expected, nativeWaitContract: NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT })); }
   finally { await old.cleanup(); }
+});
+
+test('COS100 snapshot diagnostics require fixed work and cleanup deadlines plus completed normal video close', async () => {
+  const f = await fixture('pass', 0, 'snapshot');
+  try {
+    assert.equal((await diagnostic(f)).reportValid, true, 'the /2 work and shared cleanup proof must be recognized');
+    for (const mutate of [
+      (r: any) => { delete r.segments[0].report.nativeWaits.cleanup; },
+      (r: any) => { r.nativeWaits.workDeadlineAt = r.deadlineAt - 5000; r.segments[0].report.nativeWaits.workDeadlineAt = r.deadlineAt - 5000; },
+      (r: any) => { r.segments[0].report.nativeWaits.cleanup.deadlineAt++; },
+      (r: any) => { r.segments[0].report.nativeWaits.cleanup.gracefulDeadlineAt++; },
+      (r: any) => { r.segments[0].report.nativeWaits.cleanup.rawPending = 1; },
+      (r: any) => { r.segments[0].report.nativeWaits.cleanup.steps[1].outcome = 'pending'; },
+      (r: any) => { r.segments[0].report.nativeWaits.cleanup.steps[1].rawPending = true; },
+      (r: any) => { r.segments[0].report.nativeWaits.cleanup.steps[2].outcome = 'skipped'; },
+      (r: any) => { r.segments[0].report.nativeWaits.cleanup.steps[0].endedAt += 5001; },
+      (r: any) => { r.segments[0].report.cleanup.forced = true; },
+      (r: any) => { r.segments[0].report.session.closeEvent = false; },
+      (r: any) => { r.segments[0].report.nativeWaits.cleanup.steps[5].outcome = 'passed'; },
+      (r: any) => { r.segments[0].report.nativeWaits.cleanup.steps.reverse(); },
+    ]) { const changed = structuredClone(f.report); mutate(changed); await f.persist(changed); insufficient(await diagnostic(f, changed)); }
+  } finally { await f.cleanup(); }
 });
 
 test('COS97 actual helper timing permits a complete native report and refuses changed source or pending evidence', async () => {

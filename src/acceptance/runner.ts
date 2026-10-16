@@ -16,7 +16,7 @@ import { attributePageErrors, projectMismatchCanStop } from './failure-facts.ts'
 import type { PageError, RuntimeException } from './failure-facts.ts';
 import { collectRenderFrames, validateRenderFrameRequest } from './render-frames.ts';
 import type { RenderFrameRequest, RenderFrameSample } from './render-frames.ts';
-import { isNativeValidationWaits } from './native-validation-waits.ts';
+import { isNativeValidationWaits, NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT } from './native-validation-waits.ts';
 import type { NativeValidationWaits, NativeSegmentWaits, NativeSegmentSnapshot } from './native-validation-waits.ts';
 
 export interface StepResult {
@@ -43,7 +43,13 @@ export interface AcceptanceReport {
   session?: PersistentBrowserIdentity;
   mediaObservations?: MediaObservationSample;
   renderFrames?: RenderFrameSample;
-  nativeWaits?: { contractVersion: NativeValidationWaits['contractVersion']; deadlineAt: number; workDeadlineAt: number; segment: NativeSegmentSnapshot };
+  nativeWaits?: { contractVersion: NativeValidationWaits['contractVersion']; deadlineAt: number; workDeadlineAt: number; segment: NativeSegmentSnapshot;
+    cleanup?: NativeCleanupReport };
+}
+export interface NativeCleanupReport {
+  startedAt: number; endedAt: number; deadlineAt: number; gracefulDeadlineAt: number; rawPending: number;
+  steps: { step: 'final_screenshot' | 'video_stop' | 'lifecycle_close' | 'video_save' | 'client_close' | 'force' | 'raw_settle';
+    startedAt: number | null; endedAt: number | null; outcome: 'skipped' | 'pending' | 'passed' | 'failed'; rawPending: boolean }[];
 }
 export interface PersistentBrowserIdentity {
   browserPid: number; profile: string; commandLineProfile: string; origin: string;
@@ -86,6 +92,7 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 43_200_000) throw new Error('timeoutMs must be 1000..43200000');
   const plan = structuredClone(value) as AcceptancePlan;
   const native = lifecycle?.nativeValidationWaits, nativeSegment = lifecycle?.nativeSegmentWaits;
+  const nativeSnapshot = native?.contractVersion === NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT;
   if (native && (!isNativeValidationWaits(native) || native.taskId !== plan.taskId || native.deadlineAt !== lifecycle!.deadlineAt
     || nativeSegment?.reportId !== plan.reportId) || !native && nativeSegment) throw new Error('Native runner differs from its trusted source task/deadline/segment');
   const relativeDirectory = [plan.projectId, plan.artifact.artifactId, plan.artifact.version, plan.runId, plan.reportId].join('/');
@@ -110,7 +117,7 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   const logs: { at: string; kind: string; message: string }[] = [];
   const log = (kind: string, text: string) => logs.push({ at: new Date().toISOString(), kind, message: text });
   let server: BrowserServer | undefined, browser: Browser | undefined, context: BrowserContext | undefined, page: Page | undefined, video: Video | null = null;
-  let forceClose = false, videoSaved = false, executionError: { error: unknown } | undefined;
+  let forceClose = false, videoSaved = false, executionError: { error: unknown } | undefined, nativeCleanup: NativeCleanupReport | undefined;
   const lifecycleDeadline = lifecycle?.deadlineAt ?? Date.now() + timeoutMs;
   const cleanupReserveMs = Math.min(3000, Math.floor(timeoutMs / 3));
   const deadline = Math.min(lifecycleDeadline - cleanupReserveMs, native?.workDeadlineAt ?? Infinity);
@@ -293,33 +300,69 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     recordError(`Browser startup/execution: ${message(error)}`, local ? 'observation_budget' : 'lifecycle', local?.stepId);
   }
   finally {
+    if (nativeSnapshot) {
+      const startedAt = Date.now(), deadlineAt = Math.min(lifecycleDeadline - 5000, startedAt + 30000);
+      nativeCleanup = { startedAt, endedAt: startedAt, deadlineAt, gracefulDeadlineAt: deadlineAt - 5000, rawPending: 0,
+        steps: (['final_screenshot', 'video_stop', 'lifecycle_close', 'video_save', 'client_close', 'force', 'raw_settle'] as const)
+          .map(step => ({ step, startedAt: null, endedAt: null, outcome: 'skipped', rawPending: false })) };
+      if (native!.readSignal.aborted || lifecycle?.signal?.aborted || Date.now() >= deadline) forceClose = true;
+    }
     nativeSegment?.revoke(executionError?.error);
-    try { await screenshot('final.png', true); } catch { /* Deadline is already recorded; proceed to forced cleanup. */ }
-    const cleanupDeadline = nativeSegment ? Math.min(lifecycleDeadline, Date.now() + cleanupReserveMs) : lifecycleDeadline;
-    const forceReserveMs = Math.min(1000, cleanupReserveMs);
-    const gracefulDeadline = cleanupDeadline - forceReserveMs;
-    const cleanup = <T>(operation: () => Promise<T>, label: string) => bounded(operation, Math.min(1000, gracefulDeadline - Date.now()), label);
+    const nativeStep = async <T>(step: NativeCleanupReport['steps'][number]['step'], operation: () => Promise<T>, label: string,
+      end = nativeCleanup!.gracefulDeadlineAt, cap = Infinity, tracked = true): Promise<T> => {
+      const row = nativeCleanup!.steps.find(row => row.step === step)!;
+      row.startedAt = Date.now(); row.outcome = 'pending';
+      try {
+        const result = await bounded(() => {
+          const start = () => { if (Date.now() >= end) throw new DeadlineError(`${label}: run deadline reached`); return operation(); };
+          const raw = tracked ? nativeSegment!.trackCleanup(start) : start(); row.rawPending = true;
+          const settled = () => { row.rawPending = false; }; void raw.then(settled, settled); return raw;
+        }, Math.min(cap, end - Date.now()), label, tracked ? native!.readSignal : undefined);
+        row.outcome = 'passed'; return result;
+      } catch (error) { row.outcome = 'failed'; throw error; }
+      finally { row.endedAt = Date.now(); }
+    };
+    if (nativeCleanup) {
+      if (page && !page.isClosed() && !forceClose) try {
+        await nativeStep('final_screenshot', () => page!.screenshot({ path: join(directory, 'final.png'),
+          timeout: Math.min(5000, nativeCleanup!.gracefulDeadlineAt - Date.now()) }), 'Screenshot', nativeCleanup.gracefulDeadlineAt, 5000);
+        report.files.push(path('final.png'));
+      } catch (error) {
+        recordError(`Screenshot: ${message(error)}`);
+        if (error instanceof DeadlineError || error instanceof AcceptanceCancelledError) { forceClose = true; failureFacts.termination = { kind: 'lifecycle' }; }
+      }
+    } else try { await screenshot('final.png', true); } catch { /* Deadline is already recorded; proceed to forced cleanup. */ }
+    const cleanupDeadline = nativeCleanup?.deadlineAt ?? (nativeSegment ? Math.min(lifecycleDeadline, Date.now() + cleanupReserveMs) : lifecycleDeadline);
+    const forceReserveMs = nativeCleanup ? 5000 : Math.min(1000, cleanupReserveMs);
+    const gracefulDeadline = nativeCleanup?.gracefulDeadlineAt ?? cleanupDeadline - forceReserveMs;
+    const cleanup = <T>(operation: () => Promise<T>, label: string, step: NativeCleanupReport['steps'][number]['step']) =>
+      nativeCleanup ? nativeStep(step, operation, label) : bounded(operation, Math.min(1000, gracefulDeadline - Date.now()), label);
     if (!forceClose) try {
       if (lifecycle) {
         if (page && !page.isClosed()) {
-          await cleanup(() => page!.screencast.stop(), 'Persistent video collection');
+          await cleanup(() => page!.screencast.stop(), 'Persistent video collection', 'video_stop');
+          if (nativeCleanup) videoSaved = true;
           report.files.push(path('browser.webm'));
         }
-        await cleanup(() => lifecycle.close(Math.max(1, gracefulDeadline - Date.now())), 'Persistent browser close');
-      } else if (context) await cleanup(() => context!.close(), 'Context cleanup');
+        await cleanup(() => lifecycle.close(nativeCleanup ? gracefulDeadline - Date.now() : Math.max(1, gracefulDeadline - Date.now())), 'Persistent browser close', 'lifecycle_close');
+      } else if (context) await cleanup(() => context!.close(), 'Context cleanup', 'lifecycle_close');
       if (video) {
-        await cleanup(() => video!.saveAs(join(directory, 'browser.webm')), 'Video collection');
+        await cleanup(() => video!.saveAs(join(directory, 'browser.webm')), 'Video collection', 'video_save');
         if (!lifecycle) videoSaved = true;
         report.files.push(path('browser.webm'));
       }
-      if (browser) await cleanup(() => browser!.close(), 'Client cleanup');
+      if (browser) await cleanup(() => browser!.close(), 'Client cleanup', 'client_close');
       if (server) await bounded(() => server!.close(),
         Math.min(cleanupReserveMs - forceReserveMs, gracefulDeadline - Date.now()), 'Server cleanup');
     } catch (error) { forceClose = true; failureFacts.termination = { kind: 'lifecycle' }; recordError(`Cleanup: ${message(error)}`); }
     const owned = lifecycle?.process() ?? server?.process();
     if (owned && (owned.exitCode === null && owned.signalCode === null)) {
       report.cleanup.forced = true;
-      try { await stopBrowserProcess(owned, Math.max(1, Math.min(2000, cleanupDeadline - Date.now()))); }
+      try {
+        if (nativeCleanup) await nativeStep('force', () => stopBrowserProcess(owned, cleanupDeadline - Date.now()),
+          'Forced cleanup', cleanupDeadline, Infinity, false);
+        else await stopBrowserProcess(owned, Math.max(1, Math.min(2000, cleanupDeadline - Date.now())));
+      }
       catch (error) { recordError(`Forced cleanup: ${message(error)}`); }
     }
     if (owned) {
@@ -340,14 +383,20 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
       const local = failureFacts.termination?.kind === 'observation_budget' ? failureFacts.termination : null;
       recordError('Video unavailable after forced browser termination; earlier screenshots retained', local ? 'termination_evidence' : 'lifecycle', local?.stepId);
     }
-    if (nativeSegment) try { await nativeSegment.settle(cleanupDeadline); }
+    if (nativeCleanup && !forceClose && (!videoSaved || report.cleanup.forced || !report.cleanup.processExited))
+      recordError('Native cleanup lacks completed video or confirmed normal browser exit');
+    if (nativeSegment) try {
+      if (nativeCleanup) await nativeStep('raw_settle', () => nativeSegment.settle(cleanupDeadline), 'Native raw settlement', cleanupDeadline, Infinity, false);
+      else await nativeSegment.settle(cleanupDeadline);
+    }
     catch (error) { recordError(`Native raw settlement: ${message(error)}`, 'lifecycle'); }
+    if (nativeCleanup) { nativeCleanup.endedAt = Date.now(); nativeCleanup.rawPending = nativeSegment!.snapshot().rawOperationsPending; }
   }
   attributePageErrors(failureFacts, pageErrors, exceptions);
   if (lifecycle?.signal?.aborted) recordError('Acceptance cancelled', 'lifecycle');
   report.endedAt = new Date().toISOString();
   if (native && nativeSegment) report.nativeWaits = { contractVersion: native.contractVersion, deadlineAt: native.deadlineAt,
-    workDeadlineAt: native.workDeadlineAt, segment: nativeSegment.snapshot() };
+    workDeadlineAt: native.workDeadlineAt, segment: nativeSegment.snapshot(), ...(nativeCleanup ? { cleanup: structuredClone(nativeCleanup) } : {}) };
   report.outcome = !report.errors.length && report.steps.every(step => step.outcome === 'passed') ? 'passed' : 'failed';
   log('errors', JSON.stringify(report.errors));
   await writeFile(join(directory, 'browser.log'), logs.map(entry => JSON.stringify(entry)).join('\n') + '\n', 'utf8');

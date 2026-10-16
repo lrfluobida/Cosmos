@@ -31,8 +31,9 @@ const elapsed = (value: unknown): value is number => typeof value === 'number' &
 const nativeClockToleranceMs = 5;
 const consistentElapsed = (value: unknown, start: number, end: number) => elapsed(value) && Math.abs(value - (end - start)) <= nativeClockToleranceMs;
 function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number, end: number, deadlineAt: number, contractVersion: NativeValidationWaitContract) {
-  check(object(value) && only(value, ['contractVersion', 'deadlineAt', 'workDeadlineAt', 'segment'])
-    && value.contractVersion === contractVersion && value.deadlineAt === deadlineAt && value.workDeadlineAt === deadlineAt - 5000);
+  const snapshot = contractVersion === NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT, workDeadlineAt = deadlineAt - (snapshot ? 35000 : 5000);
+  check(object(value) && only(value, ['contractVersion', 'deadlineAt', 'workDeadlineAt', 'segment', ...(snapshot ? ['cleanup'] : [])])
+    && value.contractVersion === contractVersion && value.deadlineAt === deadlineAt && value.workDeadlineAt === workDeadlineAt);
   const segment = value.segment;
   check(object(segment) && only(segment, ['reportId', 'generation', 'state', 'stages', 'rawReadsPending', 'rawOperationsPending', 'http', 'firstCause'])
     && segment.reportId === plan.reportId && count(segment.generation) && segment.generation > 0 && segment.state === 'closed'
@@ -44,7 +45,7 @@ function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number,
       && row.stage === stage && row.capMs === cap && row.outcome === 'passed' && row.rawPending === false
       && time(row.startedAt) && time(row.deadlineAt) && time(row.endedAt) && elapsed(row.elapsedMs)
       && previous <= row.startedAt && row.startedAt <= row.endedAt && row.endedAt < row.deadlineAt && row.endedAt <= end
-      && row.deadlineAt === Math.min(deadlineAt - 5000, row.startedAt + cap)
+      && row.deadlineAt === Math.min(workDeadlineAt, row.startedAt + cap)
       && consistentElapsed(row.elapsedMs, row.startedAt, row.endedAt) && row.elapsedMs <= cap + nativeClockToleranceMs);
     previous = row.endedAt;
   }
@@ -60,12 +61,35 @@ function validNativeSegment(value: unknown, plan: AcceptancePlan, start: number,
   }
   return segment;
 }
+function validNativeCleanup(report: AcceptanceReport, deadlineAt: number) {
+  const cleanup = report.nativeWaits?.cleanup;
+  check(object(cleanup) && only(cleanup, ['startedAt', 'endedAt', 'deadlineAt', 'gracefulDeadlineAt', 'rawPending', 'steps'])
+    && time(cleanup.startedAt) && time(cleanup.endedAt) && cleanup.startedAt >= report.nativeWaits!.segment.stages[3].endedAt!
+    && cleanup.startedAt <= cleanup.endedAt && cleanup.endedAt <= Date.parse(report.endedAt)
+    && cleanup.deadlineAt === Math.min(deadlineAt - 5000, cleanup.startedAt + 30000)
+    && cleanup.gracefulDeadlineAt === cleanup.deadlineAt - 5000 && cleanup.endedAt <= cleanup.deadlineAt
+    && cleanup.rawPending === 0 && report.cleanup.forced === false && report.cleanup.processExited === true
+    && Array.isArray(cleanup.steps) && cleanup.steps.length === 7);
+  let previous = cleanup.startedAt;
+  for (const [index, step] of ['final_screenshot', 'video_stop', 'lifecycle_close', 'video_save', 'client_close', 'force', 'raw_settle'].entries()) {
+    const row = cleanup.steps[index];
+    check(object(row) && only(row, ['step', 'startedAt', 'endedAt', 'outcome', 'rawPending']) && row.step === step && row.rawPending === false);
+    if (step === 'force' || step === 'video_save' && row.outcome === 'skipped') {
+      check(row.outcome === 'skipped' && row.startedAt === null && row.endedAt === null); continue;
+    }
+    check(row.outcome === 'passed' && time(row.startedAt) && time(row.endedAt) && previous <= row.startedAt && row.startedAt <= row.endedAt
+      && row.endedAt <= cleanup.endedAt && row.endedAt <= (step === 'raw_settle' ? cleanup.deadlineAt : cleanup.gracefulDeadlineAt)
+      && (step !== 'final_screenshot' || row.endedAt - row.startedAt <= 5000));
+    previous = row.endedAt;
+  }
+}
 function validNativeAggregate(report: PersistentAcceptanceReport, task: TaskContract, expected: PersistentDiagnosticExpected, start: number, end: number) {
   check((expected.nativeWaitContract === NATIVE_VALIDATION_WAIT_CONTRACT || expected.nativeWaitContract === NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT)
     && report.series.formatVersion === 'persistent-acceptance/1');
   const value = report.nativeWaits;
   check(object(value) && only(value, ['contractVersion', 'deadlineAt', 'workDeadlineAt', 'consumerStartedAt', 'rawReads', 'segments', 'caseId', 'windowId', 'taskId', 'seriesStartedAt', 'seriesEndedAt', 'seriesElapsedMs'])
-    && value.contractVersion === expected.nativeWaitContract && value.deadlineAt === expected.deadlineAt && value.workDeadlineAt === expected.deadlineAt - 5000
+    && value.contractVersion === expected.nativeWaitContract && value.deadlineAt === expected.deadlineAt
+    && value.workDeadlineAt === expected.deadlineAt - (expected.nativeWaitContract === NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT ? 35000 : 5000)
     && value.taskId === task.taskId && [value.caseId, value.windowId].every(id => typeof id === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(id))
     && time(value.consumerStartedAt) && value.consumerStartedAt <= start && value.seriesStartedAt === start && value.seriesEndedAt === end
     && consistentElapsed(value.seriesElapsedMs, start, end)
@@ -74,6 +98,7 @@ function validNativeAggregate(report: PersistentAcceptanceReport, task: TaskCont
   for (const [index, row] of report.segments.entries()) {
     const segment = validNativeSegment(row.report.nativeWaits, row.report.plan, Date.parse(row.report.startedAt), Date.parse(row.report.endedAt), expected.deadlineAt, expected.nativeWaitContract);
     check(segment.generation === index + 1 && isDeepStrictEqual(segment, value.segments[index]));
+    if (expected.nativeWaitContract === NATIVE_SNAPSHOT_VALIDATION_WAIT_CONTRACT) validNativeCleanup(row.report, expected.deadlineAt);
   }
 }
 
