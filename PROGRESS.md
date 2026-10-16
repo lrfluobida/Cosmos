@@ -6,7 +6,9 @@
 
 - [COS101 / #102](https://github.com/lrfluobida/Cosmos/issues/102)，id5879037048，已原生挂父COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；任务总数101，根#1直接原生子项仍100，#17直接子项1。设计`fb56cfe72aa4f2643b4f09cddcbac63b74af8468`经`cos101_design_reviewer`独立APPROVED，无剩余finding；Root已批准设计及源码实施，唯一merger `batch_c14_cos92_merger`合入`e11a6d4ac1f296cc083f770be5c8be9ee484c218`。
 - 当前仅源码实施授权，源码实施中、actual/paid仍NONE且未授权。固定C15在同一ledger5采用非分组declaration-2，¥21仅为grants分配，实际case硬上限¥5/90分钟；其他案例原45分钟等规则、旧group/supplement、原C14和ledger3114/715/16901000µ保持。仅固定C15/C5可按已审完整兼容证明处理各自input hash，原acceptance和真实host正反SOURCE要求保持。新candidate仍须自身完整8段/媒体/截图review/promotion/交付，不复用C14未批准coding或原220/62通过数。 见[任务卡](docs/specs/cos101-transfer-case15.md)和[计划](docs/plans/2026-10-16-cos101-transfer-case15.md)。本次仅设计文档与登记，未测试、构建、调用模型或新开实际窗口。
-- 源码已在两个独立worktree实施；预算接口`036e259ab169546dd10d97728c9f0b03a3c23341`经独立`cos101_budget_reviewer`获`APPROVED_INTERFACE`，仅接口批准，Task A尚未最终批准，主作者继续Task B/C。尚无完整源码合入或新actual，actual/paid保持false。 SOURCE证据范围见[计划](docs/plans/2026-10-16-cos101-transfer-case15.md)，生产entry精确基线未放宽。
+- 源码在两个独立worktree实施；Task A `ce1ab3d`已独立[APPROVED](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6209302750)。host `031cfb`获`APPROVED_HOST_STAGE`，entry `52b03551eea3f29bc0ac3d03aec449088ef0f83f`获`APPROVED_ENTRY_FIX`，compiled `fa6106946656b3cbb3c05b34ddf7312f61dc2b38`获`APPROVED_COMPILED_SCOPE`，旧C6短host `52b042a35a01c9b7cc045d82d5bbcf8efe587898`获`APPROVED_LEGACY_HOST_SCOPE`；各自范围无剩余finding，整卡尚未批准、源码未合入main。
+- 免费SOURCE整链最新构建、consumer、media和delivery-check已通过，独立review及最终promotion/stop收尾仍待结果。SOURCE证据范围见[计划](docs/plans/2026-10-16-cos101-transfer-case15.md)，生产entry精确基线未放宽；actual/paid保持false，COS16/18、fullclassic和human未完成。
+- SOURCE恢复时遗漏关闭新controller的cleanup失败证据已保全，并通过既有API recover处理、未kill；Root已核T81 snapshot字节恢复、原PID和`.controller.lock`均不存在。SOURCE snapshot mtime未保持，真实ledger3114/715/16901000µ的hash保持。
 
 ## COS93 navigation-v2实测通过，源码与诊断范围已关闭
 
