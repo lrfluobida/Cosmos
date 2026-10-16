@@ -35,7 +35,7 @@ import type { GameDraft, BrowserGameDraft } from '../roles/requirements.ts';
 import type { ExecutionRequirement, ValidationRequirement } from '../roles/execution-input.ts';
 import { isValidationRequirement, validateExecutionInput } from '../roles/execution-input.ts';
 import type { ValidationExecutionBinding } from './validation-scope.ts';
-import { currentValidationCase, requireValidationTask, validationRole } from './validation-validation.ts';
+import { currentValidationCase, requireValidationTask, validationRole, isFixedTransferCaseFifteenDeclaration, validationInputHash } from './validation-validation.ts';
 import { requireValidationBrowserScope, requireValidationPreparationScope } from './entrypoint-validation.ts';
 import type { ValidationBrowserProposal, ValidationPreparationProposal } from './entrypoint-validation.ts';
 import type { BrowserInputPreparation } from './entrypoint-preparation.ts';
@@ -282,6 +282,67 @@ interface BrowserHostCoreInput extends Omit<HostInput, 'requirement' | 'draft'> 
   humanPreparation?: HumanPreparationScope | HumanContinuationScope;
   renderFrames?: boolean;
 }
+/** C15 changes only the allocation binding of the original C5 input. Read both
+ * fixed sources from their authenticated scopes before importing old captures. */
+async function requireFixedTransferCaseFifteenInput(root: string, requirement: ValidationRequirement,
+  draft: BrowserHostCoreInput['draft'], scope: Awaited<ReturnType<typeof requireValidationPreparationScope>> | undefined,
+  historical: NonNullable<BrowserHostCoreInput['historicalStages']>, inherited: Awaited<ReturnType<typeof historical.verify>>, signal: AbortSignal) {
+  const currentId = 'cos20-transfer-validation-15', oldId = 'cos20-transfer-validation-5';
+  const window = scope?.window, state = scope?.snapshot, source = inherited.sourceRequirement, manifest = inherited.manifest;
+  const oldWindows = state?.validation?.cases.filter(item => item.caseId === oldId), old = oldWindows?.[0];
+  const oldDeclaration = old?.quote.declaration, declaration = window?.quote.declaration;
+  const sourceDecision = old && (({ sourceSha256: _digest, ...decision }) => decision)(old.operatorDecision);
+  const currentDecision = window && (({ sourceSha256: _digest, ...decision }) => decision)(window.operatorDecision);
+  if (!window || !state || !declaration || !isFixedTransferCaseFifteenDeclaration(declaration)
+    || state.ledger.contractVersion !== '5.0.0' || state.validation?.currentCaseId !== currentId
+    || state.validation.cases.filter(item => item.caseId === currentId).length !== 1
+    || !sameValue(state.validation.cases.find(item => item.caseId === currentId), window)
+    || window.caseId !== currentId || window.quote.formatVersion !== 'validation-case-quote-1' || window.quote.budgetGroup !== undefined
+    || requirement.validation.caseId !== currentId || requirement.validation.windowId !== window.windowId
+    || requirement.validation.runId !== state.run.runId || requirement.validation.ledgerId !== state.ledger.ledgerId
+    || requirement.specVersion !== state.run.specVersion || !sameValue(requirement.validation.decision, currentDecision)
+    || !sameValue(window.quote.identity, { reviewedPlatformSha: requirement.validation.reviewedPlatformSha, frozenCaseInputHash: requirement.validation.frozenCaseInputHash })
+    || requirement.validation.frozenCaseInputHash !== validationInputHash(declaration)
+    || oldWindows?.length !== 1 || !old || !old.stopReason || !oldDeclaration || oldDeclaration.caseId !== oldId
+    || old.quote.formatVersion !== 'validation-case-quote-2' || !oldDeclaration.budgetGroup
+    || source.validation.caseId !== oldId || source.validation.windowId !== old.windowId
+    || source.validation.runId !== state.run.runId || source.validation.ledgerId !== state.ledger.ledgerId
+    || source.specVersion !== state.run.specVersion || !sameValue(source.validation.decision, sourceDecision)
+    || !sameValue(old.quote.identity, { reviewedPlatformSha: source.validation.reviewedPlatformSha, frozenCaseInputHash: source.validation.frozenCaseInputHash })
+    || source.validation.frozenCaseInputHash !== validationInputHash(oldDeclaration)
+    || manifest.caseId !== oldId || manifest.windowId !== old.windowId || manifest.reviewedPlatformSha !== old.quote.identity.reviewedPlatformSha
+    || manifest.frozenCaseInputHash !== old.quote.identity.frozenCaseInputHash || !sameValue(manifest.requirement, source)
+    || inherited.stages[0]?.task.taskId !== `${oldId}-design` || inherited.stages[1]?.task.taskId !== `${oldId}-art`
+    || oldDeclaration.grants.design.taskId !== `${oldId}-design` || oldDeclaration.grants.art.taskId !== `${oldId}-art`
+    || resolve(root) !== join(dirname(resolve(historical.originalRoot)), currentId)
+    || resolve(historical.originalRoot) !== join(dirname(resolve(root)), oldId) || resolve(historical.targetRoot) !== resolve(root)
+    || resolve(manifest.originalRoot) !== resolve(historical.originalRoot)
+    || historical.manifestRef.artifactId !== `${currentId}-historical-stages` || historical.manifestRef.location !== `${currentId}-reuse.json`
+    || window.operatorDecision.sourceRefs.filter(ref => ref.artifactId === historical.manifestRef.artifactId).length !== 1
+    || !window.operatorDecision.sourceRefs.some(ref => sameValue(ref, historical.manifestRef))
+    || oldDeclaration.inputs.requirements.path !== 'probes/transfer/requirements.json'
+    || declaration.inputs.requirements.path !== 'probes/transfer/requirements-case-fifteen.json'
+    || oldDeclaration.inputs.requirements.version !== declaration.inputs.requirements.version
+    || !sameValue(oldDeclaration.inputs.template, declaration.inputs.template)) throw new Error('Fixed C15/C5 historical input authority changed.');
+  const expectedOldSource = { artifactId: `${oldId}-input`, version: oldDeclaration.inputs.requirements.version, location: 'requirements/fixed.json' };
+  const expectedCurrentSource = { artifactId: `${currentId}-input`, version: declaration.inputs.requirements.version, location: 'requirements/fixed.json' };
+  const captures = inherited.captures.filter(capture => sameValue(capture.artifactRef, inherited.requirementCapture));
+  const oldFile = `_cosmos/${expectedOldSource.artifactId}.json`;
+  if (!sameValue(source.sources, [expectedOldSource]) || !sameValue(requirement.sources, [expectedCurrentSource])
+    || captures.length !== 1 || captures[0].taskId !== 'host-requirements'
+    || captures[0].files.filter(file => file.destination === oldFile && file.source === `${expectedOldSource.artifactId}.json`).length !== 1)
+    throw new Error('Fixed C15/C5 requirement capture or source path changed.');
+  const oldBytes = await regularFile(historical.originalRoot, `${inherited.requirementCapture.location}/${oldFile}`, signal);
+  const currentBytes = await regularFile(root, expectedCurrentSource.location, signal); signal.throwIfAborted();
+  if (validationHash(oldBytes) !== oldDeclaration.inputs.requirements.sha256 || validationHash(currentBytes) !== declaration.inputs.requirements.sha256)
+    throw new Error('Fixed C15/C5 requirement source bytes changed.');
+  const oldInput = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(oldBytes)), currentInput = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(currentBytes));
+  const { budgetGroup, ...ungrouped } = oldInput;
+  if (!sameValue(budgetGroup, oldDeclaration.budgetGroup) || Object.hasOwn(currentInput, 'budgetGroup') || !sameValue(ungrouped, currentInput)
+    || !sameValue(oldInput.preparation, draft) || !sameValue(currentInput.preparation, draft)
+    || !sameValue(currentInput.preparation.acceptance, requirement.acceptance) || !sameValue(source.acceptance, requirement.acceptance))
+    throw new Error('Fixed C15 changes historical input beyond the old budget group.');
+}
 async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<GenerationHost> {
   const binding = input.binding ? structuredClone(input.binding) : undefined;
   const validation = input.validation && { ...input.validation }, { root, controller, work } = input;
@@ -325,8 +386,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   if (historical && (!validation?.historicalManifest || !preparation || resolve(historical.targetRoot) !== resolve(root)
     || !sameValue(historical.manifestRef, validation.historicalManifest.reference))) throw new Error('Historical host requires its source-owned preparation and exact current scope manifest.');
   const inherited = historical ? await historical.verify(work.signal) : undefined;
-  if (inherited && (!isValidationRequirement(requirement) || !sameValue(requirement.acceptance, inherited.sourceRequirement.acceptance)
-    || requirement.validation.frozenCaseInputHash !== inherited.sourceRequirement.validation.frozenCaseInputHash)) throw new Error('Current execution changed the accepted historical input or requirements.');
+  if (inherited) {
+    if (!isValidationRequirement(requirement) || !sameValue(requirement.acceptance, inherited.sourceRequirement.acceptance)) throw new Error('Current execution changed the accepted historical input or requirements.');
+    if (requirement.validation.frozenCaseInputHash !== inherited.sourceRequirement.validation.frozenCaseInputHash)
+      await requireFixedTransferCaseFifteenInput(root, requirement, draft, scope, historical!, inherited, work.signal);
+  }
   if (historical) await historical.import(work.signal);
   const inheritedTask = (taskId: string) => inherited?.stages.find(stage => stage.task.taskId === taskId);
   if (draft.unsupported.length || requirement.acceptance.some(item => !item.evidenceKinds.includes('test_report'))
