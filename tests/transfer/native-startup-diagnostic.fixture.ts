@@ -157,34 +157,68 @@ export function diagnosticReadCheckpoint(mode: DiagnosticMode, caller?: AbortSig
 
 export async function readNavigationDiagnosticReady(page: Pick<import('@playwright/test').Page, 'locator' | 'evaluate'>,
   expected: ReadyExpectation, lifetime: { signal: AbortSignal; deadlineAt: number; check?(): void }) {
+  let pending = 'initial observation';
   const checkpoint = () => {
     lifetime.check?.();
     lifetime.signal.throwIfAborted();
-    if (Date.now() >= lifetime.deadlineAt) throw new Error('Diagnostic ready deadline reached');
+    if (Date.now() >= lifetime.deadlineAt) throw new Error('Diagnostic ready deadline reached; pending: ' + pending);
   };
   const read = async <T>(operation: () => Promise<T>) => {
     checkpoint(); let value: T;
-    try { value = await operation(); } catch (error) { lifetime.signal.throwIfAborted(); throw error; }
+    try { value = await operation(); } catch (error) { checkpoint(); throw error; }
     checkpoint(); return value;
   };
   assert.ok([...expected.player, expected.playerIndex, expected.idleIndex].every(value => Number.isSafeInteger(value) && value >= 0));
-  if (!await read(() => page.locator('[data-testid="start"]').isVisible())
-    || await read(() => page.locator('[data-testid="start"]').innerText({ timeout: lifetime.deadlineAt - Date.now() })) !== '开始'
-    || !await read(() => page.locator('[data-testid="board"]').isVisible())
-    || !await read(() => page.locator('[data-testid="cell-' + expected.player.join('-') + '"][data-player="true"]').isVisible())) {
-    throw new Error('Diagnostic game board is not ready');
-  }
-  const { observeDebugScalars } = await import('../../src/acceptance/browser.ts'); checkpoint();
   const player = ['media', 'characters', String(expected.playerIndex)], idle = [...player, 'states', String(expected.idleIndex)];
-  const [id, name, seen] = await read(() => observeDebugScalars(page, [[...player, 'id'], [...idle, 'name'], [...idle, 'seen']]));
-  if (id !== 'player' || name !== 'idle' || seen !== true) throw new Error('Diagnostic game engine is not ready');
+  for (;;) {
+    checkpoint(); const missing: string[] = [];
+    if (!await read(() => page.locator('[data-testid="start"]').isVisible())) missing.push('start button');
+    else if (await read(() => page.locator('[data-testid="start"]').innerText({ timeout: lifetime.deadlineAt - Date.now() })) !== '开始') {
+      throw new Error('Diagnostic start button text differs from the sealed game');
+    }
+    if (!await read(() => page.locator('[data-testid="board"]').isVisible())) missing.push('board');
+    if (!await read(() => page.locator('[data-testid="cell-' + expected.player.join('-') + '"][data-player="true"]').isVisible())) missing.push('initial player cell');
+    const values = await read(() => page.evaluate((paths: string[][]) => {
+      const descriptor = Object.getOwnPropertyDescriptor(window, 'cosmosDebug');
+      if (!descriptor) return paths.map(() => null);
+      if (descriptor.set || descriptor.writable === true || descriptor.configurable) throw new Error('Malformed diagnostic cosmosDebug descriptor');
+      const snapshot: unknown = descriptor.get ? descriptor.get.call(window) : descriptor.value;
+      return paths.map(path => {
+        let value: unknown = snapshot;
+        for (const key of path) {
+          if (value === null || typeof value !== 'object') throw new Error('Malformed diagnostic debug structure: ' + key);
+          const field = Object.getOwnPropertyDescriptor(value, key);
+          if (!field) return null;
+          if (field.get || field.set) throw new Error('Malformed diagnostic debug data property: ' + key);
+          value = field.value;
+        }
+        if (typeof value !== 'string' && typeof value !== 'boolean') throw new Error('Malformed diagnostic debug scalar');
+        return value;
+      });
+    }, [[...player, 'id'], [...idle, 'name'], [...idle, 'seen']]));
+    assert.ok(Array.isArray(values) && values.length === 3, 'Malformed diagnostic debug observation');
+    const [id, name, seen] = values;
+    if (id !== null && id !== 'player') throw new Error('Diagnostic player id differs from the sealed media');
+    if (name !== null && name !== 'idle') throw new Error('Diagnostic idle name differs from the sealed media');
+    if (seen !== null && typeof seen !== 'boolean') throw new Error('Malformed diagnostic idle seen');
+    if (id === null) missing.push('player id'); if (name === null) missing.push('idle name');
+    if (seen !== true) missing.push(seen === null ? 'idle seen missing' : 'idle seen=false');
+    if (!missing.length) return;
+    pending = missing.join(', ');
+    await read(() => new Promise<void>((resolve, reject) => {
+      const onAbort = () => { clearTimeout(timer); reject(lifetime.signal.reason); };
+      const timer = setTimeout(() => { lifetime.signal.removeEventListener('abort', onAbort); resolve(); },
+        Math.min(100, lifetime.deadlineAt - Date.now()));
+      lifetime.signal.addEventListener('abort', onAbort, { once: true });
+    }));
+  }
 }
 
 /** The original phase caller registers the raw read; only reading receives the derived timeout signal. */
 export async function runNavigationDiagnosticReady(life: NativeReadLifetime, native: NativeValidationWaits,
   ready: (active: NativeReadLifetime) => Promise<void>): Promise<void> {
   life.check(); native.checkRead();
-  const deadlineAt = Math.min(Date.now() + 3000, life.deadlineAt, native.workDeadlineAt), stop = new AbortController();
+  const deadlineAt = Math.min(life.deadlineAt, native.workDeadlineAt), stop = new AbortController();
   const check = () => { life.check(); native.checkRead(); stop.signal.throwIfAborted();
     if (Date.now() >= deadlineAt) { stop.abort(new Error('Diagnostic ready deadline reached')); stop.signal.throwIfAborted(); } };
   let onAbort!: () => void;

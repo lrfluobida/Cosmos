@@ -9,6 +9,7 @@ import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { runInNewContext } from 'node:vm';
 import type { OwnedAcceptanceLifecycle } from '../../src/acceptance/runner.ts';
 import { createDiagnosticObserver, createMethodPatches, recordedProcessesExited } from './native-startup-observer.fixture.ts';
 import type { DiagnosticObserver, DiagnosticPatches } from './native-startup-observer.fixture.ts';
@@ -457,9 +458,123 @@ function navigationReadyPage(values: unknown[] = ['player', 'idle', true]) {
   const reads: string[] = [];
   const page: any = { locator(selector: string) { return {
     async isVisible() { reads.push(selector); return true; }, async innerText() { reads.push(selector); return '开始'; },
-  }; }, async evaluate() { reads.push('debug'); return values; } };
+  }; }, async evaluate(fn: Function, paths: string[][]) { reads.push('debug');
+    const window = Object.defineProperty({}, 'cosmosDebug', { value: { media: { characters: [
+      { id: values[0], states: [{ name: values[1], seen: values[2] }] },
+    ] } } });
+    return runInNewContext('(' + fn.toString() + ')(paths)', { window, paths });
+  } };
   return { page, reads };
 }
+
+async function readinessClock(t: TestContext) {
+  const api = await import('./native-startup-diagnostic.fixture.ts');
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: Date.now() }); t.after(() => t.mock.timers.reset());
+  const flush = () => new Promise<void>(resolve => setImmediate(resolve));
+  return { api, flush, async tick(ms: number) { t.mock.timers.tick(ms); await flush(); } };
+}
+const readyExpectation = { player: [4, 4] as const, playerIndex: 0, idleIndex: 0 };
+
+test('native readiness waits four seconds for actual idle without input or a new three second cap', async t => {
+  const { api, tick, flush } = await readinessClock(t), f = await navigationNativeFixture(), segment = f.waits.beginSegment('delayed');
+  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
+  segment.beginNavigation(); const start = Date.now(), values: unknown[] = ['player', 'idle', false], { page, reads } = navigationReadyPage(values);
+  let settled = false;
+  const pending = segment.runStage('navigation', life => api.runNavigationDiagnosticReady(life, f.waits,
+    active => api.readNavigationDiagnosticReady(page, readyExpectation, active)));
+  void pending.then(() => { settled = true; }, () => { settled = true; }); await flush();
+  for (let elapsed = 100; elapsed <= 3900; elapsed += 100) await tick(100);
+  assert.equal(settled, false); values[2] = true; await tick(100); await pending;
+  assert.equal(Date.now() - start, 4000); assert.equal(reads.filter(value => value === 'debug').length, 41);
+  segment.finishNavigation(); segment.revoke(); await segment.settle(f.deadlineAt); await f.work.cancelAndDrain('unit complete');
+});
+
+test('native readiness waits for late board and missing debug properties', async t => {
+  const { api, tick, flush } = await readinessClock(t), controller = new AbortController(), base = Date.now();
+  const { page, reads } = navigationReadyPage(); let board = false, debug = false;
+  const locator = page.locator; page.locator = (selector: string) => selector.includes('board')
+    ? { isVisible: async () => { reads.push(selector); return board; } } : locator(selector);
+  const evaluate = page.evaluate; page.evaluate = (fn: Function, paths: string[][]) => debug ? evaluate(fn, paths)
+    : Promise.resolve(runInNewContext('(' + fn.toString() + ')(paths)', { window: {}, paths }));
+  let settled = false;
+  const pending = api.readNavigationDiagnosticReady(page, readyExpectation, { signal: controller.signal, deadlineAt: base + 1000 });
+  void pending.then(() => { settled = true; }, () => { settled = true; }); await flush();
+  assert.equal(settled, false); board = true; await tick(100); assert.equal(settled, false);
+  debug = true; await tick(100); await pending; assert.equal(Date.now(), base + 200);
+});
+
+test('native readiness retains last pending state and clamps its final poll to remaining time', async t => {
+  const { api, tick, flush } = await readinessClock(t), { page, reads } = navigationReadyPage(['player', 'idle', false]);
+  const base = Date.now(), pending = api.readNavigationDiagnosticReady(page, readyExpectation,
+    { signal: new AbortController().signal, deadlineAt: base + 250 });
+  const rejected = assert.rejects(pending, /ready deadline.*idle.*seen/); void rejected.catch(() => {}); await flush();
+  await tick(100); await tick(100); await tick(49); assert.equal(reads.filter(value => value === 'debug').length, 3);
+  await tick(1); await rejected; assert.equal(Date.now(), base + 250);
+  await tick(100); assert.equal(reads.filter(value => value === 'debug').length, 3);
+});
+
+test('native readiness cancellation interrupts pending delay without another read', async t => {
+  const { api, tick, flush } = await readinessClock(t), controller = new AbortController(), reason = new Error('original stop');
+  const { page, reads } = navigationReadyPage(['player', 'idle', false]);
+  const pending = api.readNavigationDiagnosticReady(page, readyExpectation, { signal: controller.signal, deadlineAt: Date.now() + 5000 });
+  const rejected = assert.rejects(pending, error => error === reason); void rejected.catch(() => {}); await flush(); controller.abort(reason); await rejected;
+  const count = reads.length; await tick(100); assert.equal(reads.length, count);
+});
+
+for (const [label, values, error] of [
+  ['wrong player', ['enemy', 'idle', true], /player/], ['wrong state', ['player', 'walk', true], /idle/],
+  ['malformed seen', ['player', 'idle', 'true'], /malformed/i], ['existing null', ['player', 'idle', null], /malformed/i],
+  ['existing undefined', ['player', 'idle', undefined], /malformed/i],
+] as const) test(`native readiness rejects ${label} immediately`, async () => {
+  const api = await import('./native-startup-diagnostic.fixture.ts'), { page, reads } = navigationReadyPage([...values]);
+  await assert.rejects(api.readNavigationDiagnosticReady(page, readyExpectation,
+    { signal: new AbortController().signal, deadlineAt: Date.now() + 5000 }), error);
+  assert.equal(reads.filter(value => value === 'debug').length, 1);
+});
+
+test('native readiness rejects wrong button text without reading debug', async () => {
+  const api = await import('./native-startup-diagnostic.fixture.ts'), { page, reads } = navigationReadyPage(), locator = page.locator;
+  page.locator = (selector: string) => ({ ...locator(selector), innerText: async () => '错误' });
+  await assert.rejects(api.readNavigationDiagnosticReady(page, readyExpectation,
+    { signal: new AbortController().signal, deadlineAt: Date.now() + 5000 }), /button text/);
+  assert.equal(reads.includes('debug'), false);
+});
+
+test('native readiness uses captured navigation end after load has consumed its allowance', async t => {
+  const { api, tick, flush } = await readinessClock(t), f = await navigationNativeFixture(365_000), segment = f.waits.beginSegment('remaining');
+  for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
+  const base = Date.now(); segment.beginNavigation(); await tick(299_750);
+  const { page, reads } = navigationReadyPage(['player', 'idle', false]);
+  const pending = segment.runStage('navigation', life => api.runNavigationDiagnosticReady(life, f.waits, active => {
+    assert.equal(active.deadlineAt, base + 300_000); return api.readNavigationDiagnosticReady(page, readyExpectation, active);
+  }));
+  const rejected = assert.rejects(pending, /navigation.*deadline/); void rejected.catch(() => {}); await flush();
+  await tick(100); await tick(100); await tick(50); await rejected; await flush();
+  assert.equal(reads.filter(value => value === 'debug').length, 3); assert.equal(f.waits.snapshot().rawReads.pending, 0);
+  segment.revoke(); await segment.settle(f.deadlineAt); await f.work.cancelAndDrain('unit complete');
+});
+
+test('native readiness allows missing nested fields and the existing readonly root getter', async t => {
+  const { api, tick, flush } = await readinessClock(t), { page } = navigationReadyPage();
+  const state: { id: string; states?: { name: string; seen: boolean }[] } = { id: 'player' };
+  let getters = 0, settled = false;
+  const window = Object.defineProperty({}, 'cosmosDebug', { get() { getters++; return { media: { characters: [state] } }; } });
+  page.evaluate = (fn: Function, paths: string[][]) => Promise.resolve(runInNewContext('(' + fn.toString() + ')(paths)', { window, paths }));
+  const pending = api.readNavigationDiagnosticReady(page, readyExpectation,
+    { signal: new AbortController().signal, deadlineAt: Date.now() + 1000 });
+  void pending.then(() => { settled = true; }, () => { settled = true; }); await flush(); assert.equal(settled, false);
+  state.states = [{ name: 'idle', seen: true }]; await tick(100); await pending; assert.equal(getters, 2);
+});
+
+test('native readiness rejects nested accessors without invoking them or retrying', async () => {
+  const api = await import('./native-startup-diagnostic.fixture.ts'), { page } = navigationReadyPage(); let getters = 0, reads = 0;
+  const state = Object.defineProperty({ name: 'idle' }, 'seen', { get() { getters++; return true; } });
+  const window = Object.defineProperty({}, 'cosmosDebug', { value: { media: { characters: [{ id: 'player', states: [state] }] } } });
+  page.evaluate = (fn: Function, paths: string[][]) => { reads++; return Promise.resolve(runInNewContext('(' + fn.toString() + ')(paths)', { window, paths })); };
+  await assert.rejects(api.readNavigationDiagnosticReady(page, readyExpectation,
+    { signal: new AbortController().signal, deadlineAt: Date.now() + 1000 }), /Malformed.*data property/);
+  assert.equal(getters, 0); assert.equal(reads, 1);
+});
 
 test('COS93 navigation diagnostic ready reads existing engine and dynamic board without input', async () => {
   const api: any = await import('./native-startup-diagnostic.fixture.ts');
@@ -469,8 +584,6 @@ test('COS93 navigation diagnostic ready reads existing engine and dynamic board 
     { signal: new AbortController().signal, deadlineAt: Date.now() + 3000 });
   assert.deepEqual(reads, ['[data-testid="start"]', '[data-testid="start"]', '[data-testid="board"]',
     '[data-testid="cell-4-4"][data-player="true"]', 'debug']);
-  await assert.rejects(api.readNavigationDiagnosticReady(navigationReadyPage(['player', 'idle', false]).page,
-    { player: [4, 4], playerIndex: 0, idleIndex: 0 }, { signal: new AbortController().signal, deadlineAt: Date.now() + 3000 }), /engine is not ready/);
 });
 
 test('COS93 navigation diagnostic ready cancellation preserves cause and starts no next read', async () => {
@@ -640,7 +753,7 @@ test('COS93 navigation diagnostic production lifecycle reaches ready then finish
   await f.work.cancelAndDrain('unit complete');
 });
 
-for (const cause of ['timeout', 'controller'] as const) test(`COS93 navigation diagnostic production ready ${cause} owns late raw and preserves cause`, async t => {
+for (const cause of ['timeout', 'controller', 'source'] as const) test(`COS93 navigation diagnostic production ready ${cause} owns late raw and preserves cause`, async t => {
   const api: any = await import('./native-startup-diagnostic.fixture.ts');
   assert.equal(typeof api.runNavigationDiagnosticReady, 'function');
   const f = await navigationNativeFixture(), segment = f.waits.beginSegment('late'), entered = navigationDeferred(), release = navigationDeferred();
@@ -650,12 +763,15 @@ for (const cause of ['timeout', 'controller'] as const) test(`COS93 navigation d
   t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: base }); t.after(() => t.mock.timers.reset());
   let nextRead = 0, originalCaller: AbortSignal | undefined;
   const pending = segment.runStage('navigation', life => api.runNavigationDiagnosticReady(life, f.waits, async (active: any) => {
-    originalCaller = life.signal; assert.ok(active.deadlineAt <= base + 3000); assert.notEqual(active.signal, life.signal);
+    originalCaller = life.signal; assert.equal(active.deadlineAt, life.deadlineAt); assert.notEqual(active.signal, life.signal);
     entered.resolve(); await release.promise; active.check(); nextRead++;
   }));
-  const rejected = assert.rejects(pending, error => cause === 'controller' ? error === reason : /ready deadline/.test((error as Error).message));
+  const rejected = assert.rejects(pending, error => cause !== 'timeout' ? error === reason : /navigation.*deadline/.test((error as Error).message));
   await entered.promise;
-  if (cause === 'controller') f.controller.abort(reason); else t.mock.timers.tick(3000);
+  assert.equal(f.waits.snapshot().rawReads.pending, 1);
+  if (cause === 'controller') f.controller.abort(reason);
+  else if (cause === 'source') await assert.rejects(f.waits.runRequest(request => request.runStage('http_pre_authority', async () => { throw reason; })), error => error === reason);
+  else t.mock.timers.tick(f.waits.workDeadlineAt - base);
   await rejected; assert.ok(originalCaller); assert.equal(f.waits.snapshot().rawReads.pending, 1);
   assert.equal(segment.snapshot().rawReadsPending, 1); release.resolve();
   await Promise.resolve(); await Promise.resolve(); segment.revoke(); await segment.settle(f.deadlineAt);
