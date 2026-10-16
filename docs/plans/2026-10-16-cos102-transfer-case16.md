@@ -10,7 +10,7 @@
 
 ---
 
-状态：设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2，Root已批准设计；唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。任务[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/#17、未勾选；#17直接子项2、根#1直接子项仍100、任务总数102，Root已精确GET核证。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施；Task A已[独审批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213202409)，Task B已[独审批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213578097)，Task C免费SOURCE实施中；整卡源码尚未独审批准，实际preflight与paid启动仍待Root另行授权。设计见[spec](../specs/cos102-transfer-case16.md)；基线`2d9b0b5c6d088615010b41d6b6a9b5f5ade970a7`，src/probes/tests等同`ea4876a62df70fcfaa95d795aa2b68c970f6ff67`。常规工程选择不重复询问产品或预算；缺少实际启动授权时完成所有已授权SOURCE工作后交Root审批。
+状态：设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2，Root已批准设计；唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。任务[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/#17、未勾选；#17直接子项2、根#1直接子项仍100、任务总数102，Root已精确GET核证。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施；Task A已[独审批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213202409)，Task B已[独审批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213578097)，Task C已独审，组合源码`d5a7a2cd94d928f9bccc78086508c5862f1954c5`经`cos102_pipeline_reviewer`审查、Root[批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6214075389)`APPROVED_SOURCE_SCOPED`，无finding；唯一merger合入`cfc7feffb176981f057b6bc7f2b66962039229e8`，`TRANSFER_CASE_SIXTEEN_SOURCE_READY` / `source-integrated`。实际preflight与paid启动仍待Root另行授权，issue保持open。设计见[spec](../specs/cos102-transfer-case16.md)；基线`2d9b0b5c6d088615010b41d6b6a9b5f5ade970a7`，src/probes/tests等同`ea4876a62df70fcfaa95d795aa2b68c970f6ff67`。常规工程选择不重复询问产品或预算；缺少实际启动授权时完成所有已授权SOURCE工作后交Root审批。
 
 ## 文件归属与依赖
 
@@ -165,3 +165,24 @@ node --experimental-strip-types probes/transfer/validation-case-sixteen-run.ts -
 ## 本次文档交付边界
 
 本次只新增本计划和spec；独立design reviewer通过后由本批唯一merger合设计，Root随后明确授权源码。没有修改production源码、测试、mapping、实际账本、私有launcher，没有新模型或付费请求，也未启动新case。本文件中的复选框是后续实施检查项，不代表已经执行。
+
+## 源码交付与主线集成记录
+
+上述设计交付边界保留为历史。A `f12fde1e668a420149b2a60bfe0cf8de0108e948`获`cos102_budget_reviewer`的`APPROVED_TASK_A`；B `e17a4d4a95a16d1b9ca6d3a810f6ea70f92ea3a3`获`cos102_entry_reviewer`的`APPROVED_TASK_B`；C及最终组合`d5a7a2cd94d928f9bccc78086508c5862f1954c5`获`cos102_pipeline_reviewer`的`APPROVED_TASK_C`、无finding。Root于2026-10-16[批准组合源码](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6214075389)`APPROVED_SOURCE_SCOPED`；唯一merger `batch_c14_cos92_merger`在main `07abc42b883a9e3d5393d7ee96bfccdcd1df1011`合入`cfc7feffb176981f057b6bc7f2b66962039229e8`。A/B精确祖先和20个实现/测试文件的批准字节保持，登记本卡自身`TRANSFER_CASE_SIXTEEN_SOURCE_READY` / `source-integrated`与reviewed/merge SHA，#103仍open、父#17未勾选。
+
+### 已审SOURCE与证据复用
+
+- 完整索引`C:/Users/26557/AppData/Local/Temp/cos102-c-evidence-index.json`；C raw日志位于同TEMP的`cos102-c-{host-first,ts-closure,compiled,c15-affected,full-source}.log`。A budget8/8、legacy host1/1和B17/17、affected9/9、C15 completion5/5分别保留、不相加；C host1/1、TS closure1/1、compiled2/2、C15 affected3/3及最终strict/typecheck/build0按无delta复用。
+- 唯一完整SOURCE1/1、0skip、exit0，test688395.4278ms/runner692664.1714ms。真实C16 driver→reused host→factory/Pi→正式构建→独立review/promotion使用fake provider和browser观察：8段176 wait-for checks+47 locator-click records=223合成步骤记录、4媒体字段、8张1x1合法PNG，独立review approved、精确`cos20-transfer-validation-16-game@v1`。2次fake请求共20µ、图片预留2131072µ、unknown/reserved0；不等于实际715入口、220步/62字段、真实视频或游戏体验通过。
+- 正常cleanup endpoint `2026-10-16T10:57:12.871Z`，pipeline观察`10:57:12.926Z`，原deadline `12:15:54.928Z`。独立`11:00:26–28Z`后核无关联进程/ports/locks；T81 snapshot恢复SHA256 `d8d4bf6faae3ccdf8f869fd07aa385cbc33c2a7235b28df69462a69def683d87`、revision390/105请求/C8，6保护文件字节和本次mtime差0ns、refs/input均恢复。
+- 保全限制：实现对一般rewritten文件仅断言mtime误差<1ms；原host日志“bytes/mtime恢复”的过强说法已纠正，不能据本次0ns推及所有重写。COS101既有SOURCE mtime缺口仍保留。一次只读PowerShell elapsed诊断因自动UTC转换算错，已用`-DateKind String`及Invariant UTC更正；错误值未用于guard/action，原Node deadline未变。
+
+### 主线最小组合检查
+
+`npm run typecheck`与`npm run build`均退出0，日志`C:/Users/26557/AppData/Local/Temp/cos102-merge-typecheck.log`、`cos102-merge-build.log`各含明确EXIT。
+
+```powershell
+node --experimental-strip-types --test --test-name-pattern='^authentic ledger5 admits exact ninety-minute C16 after zero-task C15 closure without changing the old group$|^C16 admission binds its real API quote to its own fixed format and manifest$|^C15 source closure includes its own wrappers, real host, factory, Pi and dynamic workers$' tests/runtime/validation-case-sixteen-budget.test.ts tests/transfer/validation-case-sixteen.test.ts tests/transfer/validation-case-fifteen.test.ts
+```
+
+结果3/3、0skip、exit0、6540.7856ms，raw日志`C:/Users/26557/AppData/Local/Temp/cos102-merge-focused.tap`。前两项仅使用新TEMP短API账本，第三项只读共享抽取后的C15源码闭包；C16 TS/JS漂移证据复用已审C记录，没有重跑T81或完整SOURCE。源码READY只说明本卡源码范围，实际preflight/actual/paid均未执行和未授权，C15原failed/consumed/closed、真实ledger3117/715/16901000µ与COS16/COS18/fullclassic/human状态保持。

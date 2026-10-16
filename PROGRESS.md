@@ -2,15 +2,18 @@
 
 更新时间：2026-10-16
 
-## COS102固定C16设计已审集成，免费SOURCE实施中
+## COS102固定C16组合源码已审集成，实际验证待授权
 
 - [COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；Root已精确GET核证，#17直接子项2，根#1直接子项仍100，任务总数102。
 - 设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2；Root批准设计，唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。除审批/登记元数据与Root批准的Task A短fixture closure计数、Task B短历史helper测试分层澄清外，[spec](docs/specs/cos102-transfer-case16.md)和[plan](docs/plans/2026-10-16-cos102-transfer-case16.md)契约正文保持批准字节；完整closure21仍由Task C覆盖。
-- 固定C15/C16共享受限内部生命周期，C16仍用原ledger5、¥21分配/¥5实际硬帽及90分钟；C15原源码READY与failed/consumed/closed事实保持。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施；Task A/B已独审批准、尚未合入main；Task C `cos102_pipeline_implementer`基于main与批准B实施免费SOURCE，已获独占T81授权；sourceReviewStatus仍NOT_READY，实际preflight、actual/paid未授权；本批未运行测试、构建或新case，COS16/COS18、fullclassic/human未完成。
+- 固定C15/C16共享受限内部生命周期，C16仍用原ledger5、¥21分配/¥5实际硬帽及90分钟；C15原源码READY与failed/consumed/closed事实保持。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施；A/B/C组合已独审并合入，标记`TRANSFER_CASE_SIXTEEN_SOURCE_READY` / `source-integrated`；实际preflight、actual/paid仍未授权，本批仅源码组合验证，COS16/COS18、fullclassic/human未完成。
 
-- Task A候选`f12fde1e668a420149b2a60bfe0cf8de0108e948`经`cos102_budget_reviewer`独审`APPROVED_TASK_A`、无P1/P2；Root已核[公开批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213202409)和issue内A checklist勾选。复用budget8/8（15830.3475ms）、legacy host1/1（10300.7357ms）、typecheck/strict0，证据`$TEMP/cos102-task-a-evidence/summary.json`；短fixture计数5/25/5，完整host与SOURCE23/115/21仍待C，整卡未批准、未合源码。
+- Task A候选`f12fde1e668a420149b2a60bfe0cf8de0108e948`经`cos102_budget_reviewer`独审`APPROVED_TASK_A`、无P1/P2；Root已核[公开批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213202409)和issue内A checklist勾选。复用budget8/8（15830.3475ms）、legacy host1/1（10300.7357ms）、typecheck/strict0，证据`$TEMP/cos102-task-a-evidence/summary.json`；短fixture计数5/25/5；完整host与SOURCE23/115/21由后续Task C证据覆盖，A已随批准组合合入。
 
-- Task B候选`e17a4d4a95a16d1b9ca6d3a810f6ea70f92ea3a3`经`cos102_entry_reviewer`独审`APPROVED_TASK_B`、无P1/P2，A `f12fde1`祖先保持；Root已核[公开批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213578097)和issue内B checklist勾选。复用B17/17、affected9/9、C15 completion5/5（不相加）、strict/typecheck0；reviewer核TS capture两case各181files，实际JS及完整SOURCE仍待C。证据目录`E:/CodexData/.codex/worktrees/cos-04-media/Cosmos/.cosmos/cos102-b-evidence`，整卡仍NOT_READY，A/B等待C组合及独审后统一合入。
+- Task B候选`e17a4d4a95a16d1b9ca6d3a810f6ea70f92ea3a3`经`cos102_entry_reviewer`独审`APPROVED_TASK_B`、无P1/P2，A `f12fde1`祖先保持；Root已核[公开批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213578097)和issue内B checklist勾选。复用B17/17、affected9/9、C15 completion5/5（不相加）、strict/typecheck0；reviewer核TS capture两case各181files，实际JS及完整SOURCE由后续Task C证据覆盖。证据目录`E:/CodexData/.codex/worktrees/cos-04-media/Cosmos/.cosmos/cos102-b-evidence`，A/B已随Task C最终独审组合统一合入。
+
+- 最终候选`d5a7a2cd94d928f9bccc78086508c5862f1954c5`包含A `f12fde1`/B `e17a4d4`精确祖先，C由`cos102_pipeline_reviewer`独审`APPROVED_TASK_C`、无finding，Root已[公开批准组合源码](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6214075389)。唯一merger合入`cfc7feffb176981f057b6bc7f2b66962039229e8`，20个实现/测试文件与批准候选逐字节一致；主线typecheck/build0、core/entry/只读C15共享源码闭包短代表3/3、0skip、6540.7856ms，日志`$TEMP/cos102-merge-{typecheck,build}.log`及`$TEMP/cos102-merge-focused.tap`。
+- 复用C唯一完整SOURCE1/1、0skip、test688395.4278ms/runner692664.1714ms：真实factory/Pi/build/promotion接fake provider/browser，8段176 checks、4媒体字段、223合成步骤记录、8张合法PNG独立review approved、精确C16 game v1 promotion，2次fake请求20µ、unknown/reserved0。cleanup endpoint `10:57:12.871Z`、观察`.926Z`早于原deadline `12:15:54.928Z`；独立`11:00:26–28Z`后核无进程/ports/locks，T81 snapshot原字节/rev390/105请求/C8和6保护文件、refs/input恢复，本次mtime差0ns。一般rewrite断言仅<1ms，原host日志过强mtime说法、旧mtime缺口与只读日期诊断更正均保留；证据索引`$TEMP/cos102-c-evidence-index.json`。这不是实际715/220/62或fullclassic/human通过；#103仍open，未执行新preflight/actual/paid。
 
 ## COS101源码已审；实际C15被UTC守卫误杀，已停止并闭账
 
