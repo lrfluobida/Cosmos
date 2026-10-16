@@ -43,18 +43,28 @@ export function isFixedTransferCaseFifteenDeclaration(value: unknown): value is 
   }) && validationInputHash(d!) === '5864b22e0d1e682d5aa137cc95aab277bf71a3750b40afdd9a68ebd9ab34a72c';
 }
 
+/** Normalize only the six exact C16 identities; preserve every other field for the full fixed comparison. */
+export function isFixedTransferCaseSixteenDeclaration(value: unknown): value is ValidationDeclaration {
+  const d = value as ValidationDeclaration | null, caseId = 'cos20-transfer-validation-16', previousId = 'cos20-transfer-validation-15';
+  if (!d || typeof d !== 'object' || Array.isArray(d) || d.caseId !== caseId || !d.grants || typeof d.grants !== 'object' || Array.isArray(d.grants)
+    || !VALIDATION_ROLES.every(role => d.grants[role] && typeof d.grants[role] === 'object' && !Array.isArray(d.grants[role]) && d.grants[role].taskId === `${caseId}-${role}`)) return false;
+  return isFixedTransferCaseFifteenDeclaration({ ...d, caseId: previousId,
+    grants: { ...d.grants, ...Object.fromEntries(VALIDATION_ROLES.map(role => [role, { ...d.grants[role], taskId: `${previousId}-${role}` }])) } });
+}
+
 export function validateValidationDeclaration(value: unknown): asserts value is ValidationDeclaration {
   const d = value as ValidationDeclaration;
   const grouped = d?.formatVersion === 'validation-declaration-3';
   fields(d, ['formatVersion', 'profile', 'caseId', 'sourceModel', 'limits', 'grants', 'outputTokens', 'inputs', ...(grouped ? ['budgetGroup'] : [])]);
-  const fixedFifteen = isFixedTransferCaseFifteenDeclaration(d);
+  const fixedFifteen = isFixedTransferCaseFifteenDeclaration(d), fixedSixteen = isFixedTransferCaseSixteenDeclaration(d);
   if (d.caseId === 'cos20-transfer-validation-15' && !fixedFifteen) fail('Fixed C15 declaration changed.');
+  if (d.caseId === 'cos20-transfer-validation-16' && !fixedSixteen) fail('Fixed C16 declaration changed.');
   if (!['validation-declaration-1', 'validation-declaration-2', 'validation-declaration-3'].includes(d.formatVersion) || d.profile !== 'operator_validation' || !/^cos20-[a-z0-9][a-z0-9-]{0,40}$/.test(d.caseId) || d.sourceModel !== 'deepseek-flash') fail('Unsupported profile, consumed legacy case identity or model.');
   if (grouped) { fields(d.budgetGroup, ['parentTaskId', 'allocationMicroCny']); if (d.budgetGroup!.parentTaskId !== 'COS-16' || d.budgetGroup!.allocationMicroCny !== 10_000_000) fail('Only the original COS-16 ten yuan group is supported.'); }
   fields(d.limits, ['lifetimeMicroCny', 'cumulativeMicroCny', 'incrementalMicroCny', 'durationMs', 'maxRequests', 'maxRepairTasks', 'maxTaskAttempts', 'reviewProtocolCorrections']);
   const l = d.limits;
   if (l.lifetimeMicroCny !== 150_000_000 || l.cumulativeMicroCny !== 30_000_000 || !integer(l.incrementalMicroCny, 1) || l.incrementalMicroCny > 5_000_000
-    || !integer(l.durationMs, 1) || l.durationMs > (fixedFifteen ? 5_400_000 : 2_700_000) || !integer(l.maxRequests, 1) || l.maxRequests > (d.formatVersion === 'validation-declaration-1' ? 40 : 80)
+    || !integer(l.durationMs, 1) || l.durationMs > (fixedFifteen || fixedSixteen ? 5_400_000 : 2_700_000) || !integer(l.maxRequests, 1) || l.maxRequests > (d.formatVersion === 'validation-declaration-1' ? 40 : 80)
     || !integer(l.maxRepairTasks) || l.maxRepairTasks > 1 || l.maxTaskAttempts !== 2 || !integer(l.reviewProtocolCorrections) || l.reviewProtocolCorrections > 1) fail('Limits exceed the fixed validation authorization.');
   fields(d.grants, [...VALIDATION_ROLES]);
   const amounts = { planning: 2_000_000, design: 1_900_000, art: 5_700_000, coding: 7_600_000, repair: 3_800_000 };

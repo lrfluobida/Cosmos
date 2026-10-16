@@ -6,7 +6,7 @@ import { sameValue } from '../contracts/validation.ts';
 import { SnapshotStore } from './store.ts';
 import { validateSnapshot } from './run-validation.ts';
 import { requireNoRegistryWriter } from './window-idle.ts';
-import { currentValidationCase, isFixedTransferCaseFifteenDeclaration, VALIDATION_ROLES, validateValidationDeclaration, validationHash, validationInputHash } from './validation-validation.ts';
+import { currentValidationCase, isFixedTransferCaseFifteenDeclaration, isFixedTransferCaseSixteenDeclaration, VALIDATION_ROLES, validateValidationDeclaration, validationHash, validationInputHash } from './validation-validation.ts';
 import { prepareValidationBudgetGroup, requireBudgetGroupQuote, verifyValidationBudgetSources } from './validation-budget.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ClaimValidationCaseOptions, OperatorValidationDecision, ValidationCaseQuote, ValidationCaseWindow, ValidationContextOptions, ValidationDeclaration, ValidationIdentity } from './validation-types.ts';
@@ -62,13 +62,14 @@ export async function verifyValidationIdentity(options: ValidationContextOptions
 
 function eligible(state: RunSnapshot, declaration: ValidationDeclaration, now: number): void {
   if (![1, 3].includes(state.formatVersion) || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== declaration.limits.lifetimeMicroCny) throw new Error('Use the original shared validation ledger; formal generation is not this profile.');
-  const fixedFifteen = isFixedTransferCaseFifteenDeclaration(declaration);
-  if (state.ledger.contractVersion === '5.0.0' && declaration.formatVersion !== 'validation-declaration-3' && !fixedFifteen) throw new Error('Supplement requires its fixed grouped target declaration.');
-  if (fixedFifteen) {
+  const fixedFifteen = isFixedTransferCaseFifteenDeclaration(declaration), fixedSixteen = isFixedTransferCaseSixteenDeclaration(declaration);
+  if (state.ledger.contractVersion === '5.0.0' && declaration.formatVersion !== 'validation-declaration-3' && !fixedFifteen && !fixedSixteen) throw new Error('Supplement requires its fixed grouped target declaration.');
+  if (fixedFifteen || fixedSixteen) {
     const previous = state.formatVersion === 3 ? currentValidationCase(state) : undefined;
-    if (state.ledger.contractVersion !== '5.0.0' || previous?.caseId !== 'cos20-transfer-validation-14' || !previous.stopReason
+    const previousId = fixedSixteen ? 'cos20-transfer-validation-15' : 'cos20-transfer-validation-14';
+    if (state.ledger.contractVersion !== '5.0.0' || previous?.caseId !== previousId || !previous.stopReason
       || !VALIDATION_ROLES.every(role => state.ledger.allocationClosures?.some(closure => closure.taskId === previous.quote.declaration.grants[role].taskId))) {
-      throw new Error('Fixed C15 requires ledger5 with stopped C14 and all five grants closed.');
+      throw new Error(`Fixed ${fixedSixteen ? 'C16' : 'C15'} requires ledger5 with stopped ${fixedSixteen ? 'C15' : 'C14'} and all five grants closed.`);
     }
   }
   if (state.stopReason?.code === 'charge_overrun' || state.validation?.cases.some(item => item.stopReason?.code === 'charge_overrun')) throw new Error('Historical validation overrun requires separate resolution.');
