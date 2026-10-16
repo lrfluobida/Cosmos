@@ -2,11 +2,11 @@
 
 更新时间：2026-10-16
 
-## COS102固定C16设计已审集成，源码待Root授权
+## COS102固定C16设计已审集成，免费SOURCE实施中
 
 - [COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；Root已精确GET核证，#17直接子项2，根#1直接子项仍100，任务总数102。
 - 设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2；Root批准设计，唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。除审批/登记元数据与Root批准的Task A短fixture closure计数澄清外，[spec](docs/specs/cos102-transfer-case16.md)和[plan](docs/plans/2026-10-16-cos102-transfer-case16.md)契约正文保持批准字节；完整closure21仍由Task C覆盖。
-- 固定C15/C16共享受限内部生命周期，C16仍用原ledger5、¥21分配/¥5实际硬帽及90分钟；C15原源码READY与failed/consumed/closed事实保持。源码实施、实际preflight、actual/paid均待Root另行授权；本批未运行测试、构建或新case，COS16/COS18、fullclassic/human未完成。
+- 固定C15/C16共享受限内部生命周期，C16仍用原ledger5、¥21分配/¥5实际硬帽及90分钟；C15原源码READY与failed/consumed/closed事实保持。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施；Task A `cos102_budget_implementer`实施core/host，B待A独审接口、C待A+B；sourceReviewStatus仍NOT_READY，实际preflight、actual/paid未授权；本批未运行测试、构建或新case，COS16/COS18、fullclassic/human未完成。
 
 ## COS101源码已审；实际C15被UTC守卫误杀，已停止并闭账
 

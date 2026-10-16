@@ -10,7 +10,7 @@
 
 ---
 
-状态：设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2，Root已批准设计；唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。任务[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/#17、未勾选；#17直接子项2、根#1直接子项仍100、任务总数102，Root已精确GET核证。源码实施、实际preflight与paid启动仍待Root另行授权。设计见[spec](../specs/cos102-transfer-case16.md)；基线`2d9b0b5c6d088615010b41d6b6a9b5f5ade970a7`，src/probes/tests等同`ea4876a62df70fcfaa95d795aa2b68c970f6ff67`。常规工程选择不重复询问产品或预算；缺少实际启动授权时完成所有已授权SOURCE工作后交Root审批。
+状态：设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2，Root已批准设计；唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。任务[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/#17、未勾选；#17直接子项2、根#1直接子项仍100、任务总数102，Root已精确GET核证。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施，Task A进行中、B待A独审接口、C待A+B；源码尚未独审批准，实际preflight与paid启动仍待Root另行授权。设计见[spec](../specs/cos102-transfer-case16.md)；基线`2d9b0b5c6d088615010b41d6b6a9b5f5ade970a7`，src/probes/tests等同`ea4876a62df70fcfaa95d795aa2b68c970f6ff67`。常规工程选择不重复询问产品或预算；缺少实际启动授权时完成所有已授权SOURCE工作后交Root审批。
 
 ## 文件归属与依赖
 

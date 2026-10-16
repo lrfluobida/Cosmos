@@ -1573,7 +1573,7 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 [COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；Root已精确GET核证，#17直接子项2、根#1直接子项仍100、任务总数102。依赖COS101已审源码与C15失败闭账证据，原source READY和failed/consumed/closed状态保持。
 
-设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2，Root批准设计；唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。[Spec](cos102-transfer-case16.md)与[plan](../plans/2026-10-16-cos102-transfer-case16.md)限定C15/C16两份固定policy共享内部生命周期，保留原ledger5、¥21分配/¥5实际硬帽及90分钟，完整source closure和C15历史认证不放宽。当前仅设计集成，源码实施、实际preflight、actual/paid均待Root另行授权；不标SOURCE_READY、不重开C15，COS16/COS18、fullclassic/human未完成。
+设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2，Root批准设计；唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。[Spec](cos102-transfer-case16.md)与[plan](../plans/2026-10-16-cos102-transfer-case16.md)限定C15/C16两份固定policy共享内部生命周期，保留原ledger5、¥21分配/¥5实际硬帽及90分钟，完整source closure和C15历史认证不放宽。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施，Task A进行中、B待A独审接口、C待A+B；sourceReviewStatus仍NOT_READY，实际preflight、actual/paid未授权；不标SOURCE_READY、不重开C15，COS16/COS18、fullclassic/human未完成。
 
 稳定任务 ID：COS-102
 
