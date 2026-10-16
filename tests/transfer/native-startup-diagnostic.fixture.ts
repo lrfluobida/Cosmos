@@ -422,14 +422,15 @@ export function observeNavigationDiagnosticLifecycle(lifecycle: OwnedAcceptanceL
   }, restore() { for (const restore of pageRestores) restore(); patches.restore(); } };
 }
 
-export function summarizeNavigationDiagnostic(input: { state: NavigationDiagnosticState; nativeContractVerified: boolean; normalCleanup: boolean;
+export function summarizeNavigationDiagnostic(input: { state: NavigationDiagnosticState; nativeContractVerified: boolean; native?: NativeValidationWaits; normalCleanup: boolean;
   preservation: boolean; observationIncomplete: boolean; openMs: number | null; navigationMs: number | null }) {
   const timing = (measuredMs: number | null) => ({ limitMs: 15_000, measuredMs,
     withinLimit: measuredMs !== null && Number.isFinite(measuredMs) && measuredMs >= 0 ? measuredMs <= 15_000 : null });
   const validTiming = [input.openMs, input.navigationMs].every(value => value !== null && Number.isFinite(value) && value >= 0);
-  const passed = input.nativeContractVerified && validTiming && input.state.loadPassed && input.state.readyPassed && input.state.navigationPassed
+  const contractVersion = isNativeValidationWaits(input.native) ? input.native.contractVersion : null;
+  const passed = contractVersion !== null && input.nativeContractVerified && validTiming && input.state.loadPassed && input.state.readyPassed && input.state.navigationPassed
     && input.state.stopCount === 1 && !input.state.failed && input.normalCleanup && input.preservation && !input.observationIncomplete;
-  return { formatVersion: 'cos93-native-startup-diagnostic/2', navigation: { contractVersion: 'native-validation-waits/1',
+  return { formatVersion: 'cos93-native-startup-diagnostic/2', navigation: { contractVersion,
     outcome: passed ? 'passed' : input.state.loadPassed ? 'failed' : 'not_reached' },
     oldLimits: { wholeOpen: timing(input.openMs), navigation: timing(input.navigationMs) } };
 }
@@ -780,7 +781,7 @@ export async function diagnoseNativeStartup(options: { sourceRepository: string;
       && sameValue(segment.errors, [navigation.expectedReportError()]) && registeredBrowserBeforeCdp(trace, identity?.browserPid)
       && cleanup.preparationClosed && cleanup.drained && cleanup.controllerClosed && cleanup.locksAbsent && cleanup.processesExited
       && cleanup.ports.length >= 2 && cleanup.ports.every(port => port.closed) && !cleanup.errors.length && !error;
-    const summary = summarizeNavigationDiagnostic({ state: navigation.snapshot(), nativeContractVerified: navigationProof,
+    const summary = summarizeNavigationDiagnostic({ state: navigation.snapshot(), nativeContractVerified: navigationProof, native: navigation.source(),
       normalCleanup: !!normalCleanup, preservation: preservation.unchanged, observationIncomplete: trace.observation.incomplete,
       openMs: opens[0]?.durationMs ?? null, navigationMs: report?.segments[0]?.report.nativeWaits?.segment.stages[3]?.elapsedMs ?? null });
     const navigationResult = { ...result, ...summary,

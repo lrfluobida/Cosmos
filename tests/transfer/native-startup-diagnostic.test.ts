@@ -475,8 +475,8 @@ async function readinessClock(t: TestContext) {
 }
 const readyExpectation = { player: [4, 4] as const, playerIndex: 0, idleIndex: 0 };
 
-test('native readiness waits four seconds for actual idle without input or a new three second cap', async t => {
-  const { api, tick, flush } = await readinessClock(t), f = await navigationNativeFixture(), segment = f.waits.beginSegment('delayed');
+for (const snapshot of [false, true]) test(`native readiness ${snapshot ? 'snapshot' : 'legacy'} waits four seconds for actual idle without input or a new three second cap`, async t => {
+  const { api, tick, flush } = await readinessClock(t), f = await navigationNativeFixture(60_000, snapshot), segment = f.waits.beginSegment('delayed');
   for (const stage of ['prepare_authority', 'register_authority', 'browser_transport'] as const) await segment.runStage(stage, async () => {});
   segment.beginNavigation(); const start = Date.now(), values: unknown[] = ['player', 'idle', false], { page, reads } = navigationReadyPage(values);
   let settled = false;
@@ -672,15 +672,18 @@ test('COS93 navigation diagnostic descriptor rejects incomplete gate and preserv
 test('COS93 navigation diagnostic result requires verified native contract and separates old limits', async () => {
   const api: any = await import('./native-startup-diagnostic.fixture.ts');
   assert.equal(typeof api.summarizeNavigationDiagnostic, 'function');
+  const f = await navigationNativeFixture();
   const state = { loadPassed: true, readyPassed: true, navigationPassed: true, stopCount: 1, failed: false };
-  const input = { state, nativeContractVerified: false, normalCleanup: true, preservation: true, observationIncomplete: false, openMs: 25_000, navigationMs: 20_000 };
+  const input = { state, native: f.waits, nativeContractVerified: false, normalCleanup: true, preservation: true, observationIncomplete: false, openMs: 25_000, navigationMs: 20_000 };
   assert.equal(api.summarizeNavigationDiagnostic(input).navigation.outcome, 'failed');
   const result = api.summarizeNavigationDiagnostic({ ...input, nativeContractVerified: true });
   assert.equal(result.formatVersion, 'cos93-native-startup-diagnostic/2'); assert.equal(result.navigation.outcome, 'passed');
+  assert.equal(result.navigation.contractVersion, 'native-validation-waits/1');
   assert.deepEqual(result.oldLimits, { wholeOpen: { limitMs: 15_000, measuredMs: 25_000, withinLimit: false }, navigation: { limitMs: 15_000, measuredMs: 20_000, withinLimit: false } });
   for (const changed of [{ normalCleanup: false }, { preservation: false }, { observationIncomplete: true }, { state: { ...state, failed: true } }]) {
     assert.equal(api.summarizeNavigationDiagnostic({ ...input, nativeContractVerified: true, ...changed }).navigation.outcome, 'failed');
   }
+  await f.work.cancelAndDrain('unit complete');
 });
 
 test('COS93 navigation diagnostic signal wrapper forwards original caller and exact Promise', async () => {
@@ -711,12 +714,14 @@ function navigationDeferred<T = void>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve };
 }
-async function navigationNativeFixture(deadlineMs = 60_000) {
-  const { createNativeValidationWaits } = await import('../../src/acceptance/native-validation-waits.ts');
+async function navigationNativeFixture(deadlineMs = 60_000, snapshot = false) {
+  const { createNativeValidationWaits, createNativeSnapshotValidationWaits } = await import('../../src/acceptance/native-validation-waits.ts');
   const { OwnedWork } = await import('../../src/runtime/recovery/owned-work.ts');
   const controller = new AbortController(), work = new OwnedWork(controller.signal), deadlineAt = Date.now() + deadlineMs;
-  const waits = createNativeValidationWaits({ caseId: 'case', windowId: 'window', taskId: 'browser', deadlineAt,
-    signal: work.signal, controllerSignal: controller.signal, trackRaw: start => work.run(start) });
+  const input = { caseId: 'case', windowId: 'window', taskId: 'browser', deadlineAt,
+    signal: work.signal, controllerSignal: controller.signal, trackRaw<T>(start: (signal: AbortSignal) => Promise<T>) { return work.run(start); } };
+  const waits = snapshot ? createNativeSnapshotValidationWaits({ ...input,
+    requireExecution: async caller => { controller.signal.throwIfAborted(); caller.throwIfAborted(); } }) : createNativeValidationWaits(input);
   waits.startConsumer(); return { waits, work, controller, deadlineAt };
 }
 
@@ -826,11 +831,11 @@ test('COS93 navigation diagnostic production lifetime keeps original phase and c
   segment.finishNavigation(); segment.revoke(); await segment.settle(f.deadlineAt); await f.work.cancelAndDrain('unit complete');
 });
 
-async function stoppedNavigationSeries(t: TestContext) {
+async function stoppedNavigationSeries(t: TestContext, snapshot = false) {
   const api = await import('./native-startup-diagnostic.fixture.ts'), { executePersistentSeries } = await import('../../src/acceptance/persistent.ts');
   const { runAcceptanceInOwnedSession } = await import('../../src/acceptance/runner.ts');
   const { diagnosePersistentBrowser } = await import('../../src/runtime/adapters/transfer/persistent-diagnostics.ts');
-  const f = await navigationNativeFixture(), root = await temporary(t), mode = api.createNavigationDiagnosticMode(observer()); mode.bindNativeWaits(f.waits);
+  const f = await navigationNativeFixture(60_000, snapshot), root = await temporary(t), mode = api.createNavigationDiagnosticMode(observer()); mode.bindNativeWaits(f.waits);
   // Deterministic absence seam; no OS query, browser process or server starts.
   t.mock.method(process, 'kill', () => { throw Object.assign(new Error('Synthetic absent PID'), { code: 'ESRCH' }); });
   const artifact = { artifactId: 'game', version: 'v1', location: 'registry/game/v1/project' };
@@ -887,7 +892,7 @@ test('COS93 navigation diagnostic planned stop accepts real production false dia
   assert.equal(verified, true);
   assert.deepEqual({ report: f.report, envelope: f.envelope }, original);
   await f.work.cancelAndDrain('proof is fixed before cleanup');
-  assert.equal(f.api.summarizeNavigationDiagnostic({ state: f.mode.snapshot(), nativeContractVerified: verified, normalCleanup: true,
+  assert.equal(f.api.summarizeNavigationDiagnostic({ state: f.mode.snapshot(), nativeContractVerified: verified, native: f.waits, normalCleanup: true,
     preservation: true, observationIncomplete: false, openMs: 1, navigationMs: 1 }).navigation.outcome, 'passed');
   assert.equal(f.envelope.diagnostics.reportValid, false, 'Final diagnosis never promotes the production game classification');
 });
@@ -909,4 +914,26 @@ test('COS93 navigation diagnostic planned stop rejects added source HTTP cleanup
   const extra = { ...f.envelope, diagnostics: { ...f.envelope.diagnostics, issues: [...f.envelope.diagnostics.issues, { ...f.envelope.diagnostics.issues[0], checkId: 'HTTP/source' }] } };
   assert.equal(await (f.api.navigationReportVerified as any)(f.report, f.waits, extra, f.proof), false);
   assert.deepEqual(f.report, original);
+});
+
+test('native readiness snapshot result binds real source version and keeps the production planned stop failed', async t => {
+  const f = await stoppedNavigationSeries(t, true);
+  assert.equal(f.waits.contractVersion, 'native-validation-waits/2');
+  assert.equal(f.report.outcome, 'failed'); assert.equal(f.envelope.diagnostics.reportValid, false);
+  const verified = await f.api.navigationReportVerified(f.report, f.waits, f.envelope, f.proof); assert.equal(verified, true);
+  const input = { state: f.mode.snapshot(), nativeContractVerified: verified, native: f.waits, normalCleanup: true,
+    preservation: true, observationIncomplete: false, openMs: 1, navigationMs: 1 };
+  const summarize = f.api.summarizeNavigationDiagnostic as (input: any) => any;
+  const summary = summarize(input);
+  assert.equal(summary.navigation.contractVersion, 'native-validation-waits/2'); assert.equal(summary.navigation.outcome, 'passed');
+  for (const native of [undefined, { ...f.waits }]) {
+    assert.equal(summarize({ ...input, native }).navigation.outcome, 'failed');
+    assert.equal(summarize({ ...input, native }).navigation.contractVersion, null);
+  }
+  const original = structuredClone(f.report);
+  f.report.nativeWaits!.contractVersion = 'native-validation-waits/1';
+  assert.equal(await f.api.navigationReportVerified(f.report, f.waits, f.envelope, f.proof), false);
+  f.report.nativeWaits!.contractVersion = 'native-validation-waits/2';
+  assert.equal(await f.api.navigationReportVerified(f.report, { ...f.waits }, f.envelope, f.proof), false);
+  assert.deepEqual(f.report, original); assert.equal(f.envelope.diagnostics.reportValid, false);
 });
