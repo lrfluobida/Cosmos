@@ -17,7 +17,7 @@ import { publishReceipt } from './recovery/receipt-file.ts';
 
 const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
 const policies = [{ entryId: 'STARTUP', consumer: 'clean-delivery-finally' }, { entryId: 'OFFLINE', consumer: 'normal-save-process-reopen' }];
-const referenceRoot = fileURLToPath(new URL('../../benchmarks/classic-pc/reference/', import.meta.url));
+export const classicReferenceRoot = fileURLToPath(new URL('../../benchmarks/classic-pc/reference/', import.meta.url));
 const validateReference = async (reference: any, catalog: any): Promise<string[]> =>
   (await import(new URL('../../benchmarks/classic-pc/reference/validate.mjs', import.meta.url).href)).validate(reference, catalog);
 
@@ -42,10 +42,10 @@ interface Execution { series: GenericPersistentAcceptanceSeries; ready: { pid: n
 
 /** Only the host reads the source catalog and binds the original confirmed inputs. */
 export async function createClassicPolicyScope(input: { root: string; registry: ArtifactRegistry; requirement: RequirementContract;
-  draft: BrowserGameDraft; requirementCapture: ArtifactReference; resume: boolean }) {
+  draft: BrowserGameDraft; requirementCapture: ArtifactReference; resume: boolean; sourceRoot?: string }) {
   const { root, registry, requirement, requirementCapture } = input, draft = structuredClone(input.draft);
   if (draft.benchmark !== 'classic-pc-runtime-policy/1' || !draft.scenario.reopen) throw new Error('Classic policy selection or normal reopen is missing.');
-  const bytes = await Promise.all(['reference', 'catalog'].map(name => regularFile(referenceRoot, `${name}.json`)));
+  const bytes = await Promise.all(['reference', 'catalog'].map(name => regularFile(input.sourceRoot ?? classicReferenceRoot, `${name}.json`)));
   const [reference, catalog] = bytes.map(decode), source = 'host-classic-policy';
   const refs = ['reference', 'catalog'].map(name => registry.artifactRef(`classic-policy-${name}`, 'provisional-v1'));
   const captures: Capture[] = [];

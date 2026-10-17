@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, unlink, writeFile } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
@@ -13,14 +13,34 @@ import type { BrowserHostIO } from '../../src/runtime/entrypoint-host.ts';
 import { withHostStages, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../../src/roles/requirements.ts';
 import { executePersistentSeries, runPersistentAcceptance } from '../../src/acceptance/persistent.ts';
 import { genericArt, genericDesign, genericPersistentDraft, genericPersistentHtml } from '../acceptance/generic-persistent.fixture.ts';
+import { selectClassicEntry } from '../../src/runtime/classic-entry-input.ts';
 
-export async function genericHostFixture(t: test.TestContext, fault = '', classic = false, renderFrames = false) {
+export const classicEntrySidecar = { formatVersion: 'classic-entry-plan/1', measurementId: 'synthetic-cost', acceptanceId: 'save',
+  inputs: [{ id: 'show-cost', kind: 'locator-click', selector: '#show-cost', timeoutMs: 1000 }], observation: { kind: 'text', selector: '#cost' }, timeoutMs: 1000 };
+export async function syntheticClassicSource(t: test.TestContext) {
+  const sourceRoot = await mkdtemp(join(tmpdir(), 'cos104-reference-')); t.after(() => removeOwned(tmpdir(), sourceRoot));
+  await cp(new URL('../../benchmarks/classic-pc/reference/', import.meta.url), sourceRoot, { recursive: true });
+  const path = join(sourceRoot, 'catalog.json'), catalog = JSON.parse(await readFile(path, 'utf8'));
+  const entityId = catalog.entries.find((row: any) => row.category === 'plants').id;
+  catalog.measurements = [{ id: 'synthetic-cost', entryId: 'VALUE-PLANTS', entityId, status: 'verified_for_reference', value: 7,
+    unit: 'fixture coins', metric: 'synthetic cost', method: 'Synthetic SOURCE fixture only', tolerance: 'exact', evidenceRefs: ['fixture-input', 'fixture-rule'] }];
+  catalog.evidence = ['normal_input', 'deterministic_rule'].map((kind, index) => ({ id: index ? 'fixture-rule' : 'fixture-input', kind, referenceId: catalog.referenceId,
+    status: 'pass', entryIds: ['VALUE-PLANTS', entityId], path: `evidence/synthetic-${index}.txt`, observedAt: '2026-10-17T00:00:00Z',
+    preconditions: 'Synthetic SOURCE fixture', steps: 'Normal fixture input', expected: '7', observed: '7' }));
+  await mkdir(join(sourceRoot, 'evidence'));
+  for (const record of catalog.evidence) await writeFile(join(sourceRoot, record.path), 'Synthetic reference evidence. No reference game observation.\n', 'utf8');
+  await writeFile(path, JSON.stringify(catalog), 'utf8'); return { sourceRoot, catalog };
+}
+
+export async function genericHostFixture(t: test.TestContext, fault = '', classic = false, renderFrames = false, entry: boolean | 'empty' = false) {
   const native = fault === 'native-real' || fault === 'frame-native-real';
   const root = await mkdtemp(join(tmpdir(), 'cos66-host-')), intake = await IntakeController.create({ root, runId: 'game', ledgerId: 'budget', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 2,
     allocations: [{ taskId: 'intake', amountMicroCny: 100 }, { taskId: 'planning', amountMicroCny: 100 }], durationMs: native ? 120_000 : fault === 'real' ? 45_000 : undefined });
-  const draft = withHostStages({ ...genericPersistentDraft(), ...(classic ? { benchmark: 'classic-pc-runtime-policy/1' as const } : {}) }), saved = await intake.saveDraft(draft), requirement = await intake.confirm({ revision: saved.revision, confirmed: true, actorId: 'user', at: new Date().toISOString() });
+  const classicSourceRoot = entry === true ? (await syntheticClassicSource(t)).sourceRoot : undefined;
+  const draft = withHostStages({ ...genericPersistentDraft(), ...(classic ? { benchmark: 'classic-pc-runtime-policy/1' as const } : {}),
+    ...(entry ? { classicEntry: await selectClassicEntry(classicSourceRoot) } : {}) }), saved = await intake.saveDraft(draft), requirement = await intake.confirm({ revision: saved.revision, confirmed: true, actorId: 'user', at: new Date().toISOString() });
   await intake.activateGeneration({ environmentReady: true, executionReady: true }); await intake.close();
-  const controller = await RunController.open({ root }), work = new OwnedWork(controller.signal), calls: any[] = [];
+  const controller = await RunController.open({ root }), work = new OwnedWork(controller.signal), calls: any[] = [], entryCalls: any[] = [];
   t.after(async () => { await controller.close(); if (fault === 'real' || native) t.diagnostic(`Free source/fixture only; SDK calls=0; evidence=${root}`); else await removeOwned(tmpdir(), root); });
   await mkdir(join(root, 'toolchain'), { recursive: true });
   if (native) {
@@ -33,7 +53,38 @@ export async function genericHostFixture(t: test.TestContext, fault = '', classi
       await mkdir(join(project, 'dist')); await cp(join(project, 'public/assets'), join(project, 'dist/assets'), { recursive: true });
       await writeFile(join(project, 'dist/index.html'), genericPersistentHtml(JSON.parse(await readFile(join(project, 'public/assets/manifest.json'), 'utf8'))), 'utf8');
       return { passed: true, diagnostics: 'Injected build and authored fixture data; no compiler/model evidence.', results: [{ code: 0, stdout: 'Synthetic compiler transport', stderr: '' }, { code: 0, stdout: 'Synthetic bundler transport', stderr: '' }] }; },
-    async play() { throw new Error('A reopen draft must use the persistent transport.'); },
+    async play(plan, _signal, authority) {
+      if (!entry) throw new Error('A reopen draft must use the persistent transport.');
+      entryCalls.push({ plan: structuredClone(plan), authority: structuredClone(authority) });
+      const folder = [plan.projectId, plan.artifact.artifactId, plan.artifact.version, plan.runId, plan.reportId].join('/'), evidenceRoot = join(root, 'browser-evidence');
+      await mkdir(join(evidenceRoot, folder), { recursive: true });
+      for (const name of ['final.png', 'browser.webm', 'browser.log']) await writeFile(join(evidenceRoot, folder, name), name.endsWith('.png')
+        ? Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=', 'base64') : 'Synthetic classic entry transport evidence');
+      const raw: any = { formatVersion: '1.0.0', kind: 'normal_browser_input', plan: structuredClone(plan), startedAt: new Date().toISOString(), endedAt: new Date().toISOString(), outcome: 'passed',
+        browser: { name: 'chromium', channel: 'msedge', version: 'synthetic-browser', headless: true, viewport: plan.viewport }, timeoutMs: 10000,
+        cleanup: { browserPid: 3999, forced: false, processExited: true }, errors: [], failureFacts: { formatVersion: 1, termination: null, errors: [] },
+        steps: plan.steps.map(step => ({ id: step.id, kind: step.kind, ...('acceptanceId' in step ? { acceptanceId: step.acceptanceId } : {}), outcome: 'passed',
+          expected: 'expected' in step ? step.expected : 'input delivered', actual: 'expected' in step ? step.expected : 'input delivered', error: null,
+          screenshot: folder + '/final.png', ...('expected' in step ? { observation: { completed: 1 } } : {}) })),
+        reportPath: folder + '/report.json', files: ['plan.json', 'final.png', 'browser.webm', 'browser.log', 'report.json'].map(name => folder + '/' + name), evidence: [] };
+      if (fault === 'entry-mismatch') { raw.outcome = 'failed'; Object.assign(raw.steps.at(-1), { outcome: 'failed', actual: '0', failure: 'mismatch', error: 'Expected 7; observed 0' }); }
+      if (fault === 'entry-input') raw.steps[0].actual = null;
+      if (fault === 'entry-observation') delete raw.steps.at(-1).observation;
+      if (fault === 'entry-candidate') raw.plan.artifact.version = 'v99';
+      if (fault === 'entry-expected') raw.plan.steps.at(-1).expected = '99';
+      if (fault === 'entry-exit') raw.cleanup.processExited = false;
+      if (fault === 'entry-viewport') raw.browser.viewport = { width: 100, height: 100 };
+      if (fault === 'entry-deadline') raw.endedAt = new Date(Date.parse(authority.deadlineAt) + 1).toISOString();
+      await writeFile(join(evidenceRoot, folder, 'plan.json'), JSON.stringify(plan), 'utf8');
+      await writeFile(join(evidenceRoot, raw.reportPath), JSON.stringify(fault === 'entry-raw' ? {} : raw), 'utf8');
+      if (fault === 'entry-png') await writeFile(join(evidenceRoot, folder, 'final.png'), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+      if (fault === 'entry-video') await writeFile(join(evidenceRoot, folder, 'browser.webm'), '');
+      if (fault === 'entry-missing-raw') await unlink(join(evidenceRoot, raw.reportPath));
+      if (fault === 'entry-log') await unlink(join(evidenceRoot, folder, 'browser.log'));
+      if (fault === 'entry-screenshot') await unlink(join(evidenceRoot, folder, 'final.png'));
+      if (fault === 'entry-source') await writeFile(join(classicSourceRoot!, 'evidence/synthetic-0.txt'), 'changed', 'utf8');
+      return raw;
+    },
     async playPersistent(series, options, authority) {
       calls.push({ series: structuredClone(series), authority: structuredClone(authority), deadlineAt: options.deadlineAt });
       assert.equal(options.deadlineAt, Date.parse(authority.deadlineAt));
@@ -97,13 +148,14 @@ export async function genericHostFixture(t: test.TestContext, fault = '', classi
       return report;
     },
   };
-  const host = await createBrowserHost({ root, controller, requirement, draft, work, resume: false, io: native ? undefined : io, renderFrames });
+  const host = await createBrowserHost({ root, controller, requirement, draft, work, resume: false, io: native ? undefined : io, renderFrames, classicSourceRoot } as any);
   const make = (role: string, acceptanceIds: string[]) => { const output = host.taskPolicies.find(policy => policy.role === role)!.outputs[0];
     return { taskId: role, runId: 'game', specVersion: '1.0', authorId: `author-${role}`, context: { contextId: `context-${role}`, interfaces: [] }, inputs: [...host.availableArtifacts],
       outputs: [{ type: output.type, schema: output.schema, destination: output.destination }], artifacts: [], acceptanceIds, acceptance: requirement.acceptance.filter(item => acceptanceIds.includes(item.acceptanceId)),
       attempts: [{ attemptId: `attempt-${role}`, sessionRef: join(root, `sessions/attempt-${role}`) }], state: 'running', evidence: [],
       review: { reviewerId: 'independent-reviewer', contextId: 'independent-context', verdict: 'approved', evidenceIds: [] } } as any; };
   await writeFile(join(root, 'authors/design/design.json'), JSON.stringify(genericDesign), 'utf8'); await writeFile(join(root, 'authors/art/media.json'), JSON.stringify(genericArt), 'utf8');
+  if (entry === true) await writeFile(join(root, 'authors/design/classic-entry-plan.json'), JSON.stringify(classicEntrySidecar), 'utf8');
   const design = make('design', [DESIGN_ACCEPTANCE_ID]), art = make('art', [MEDIA_ACCEPTANCE_ID]);
   design.artifacts = (await host.capture(design, {}, controller.signal)).artifacts; design.evidence = await host.verify(design, controller.signal); assert.equal(design.evidence[0].outcome, 'passed'); design.state = 'passed';
   art.inputs.push(...design.artifacts); art.artifacts = (await host.capture(art, {}, controller.signal)).artifacts; art.evidence = await host.verify(art, controller.signal); assert.equal(art.evidence[0].outcome, 'passed'); art.state = 'passed';
@@ -116,5 +168,5 @@ createObservedGame({type:Phaser.CANVAS,width:800,height:500,parent:'frame-scene'
   const html = native ? genericPersistentHtml(JSON.parse(await readFile(join(root, art.artifacts[0].location, 'public/assets/manifest.json'), 'utf8'))) : '<div id="app"></div>';
   await writeFile(join(root, 'authors/coding/index.html'), fault === 'frame-native-real' ? html + '<div id="frame-scene" style="width:800px;height:500px"></div><script type="module" src="/src/main.ts"></script>' : html, 'utf8');
   const task = make('coding', ['save', 'resume']); task.inputs.push(...design.artifacts, ...art.artifacts); task.artifacts = (await host.capture(task, {}, controller.signal)).artifacts;
-  return { root, host, task, controller, work, calls, draft, requirement, design, art };
+  return { root, host, task, controller, work, calls, entryCalls, draft, requirement, design, art, classicSourceRoot };
 }

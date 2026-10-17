@@ -135,3 +135,33 @@ npm run build
 - [ ] sole merger核对最终批准SHA、工作区/冻结状态及必要集成检查，再按Root授权合入；不因局部通过修改COS01/COS14/COS15/COS18整体状态。
 
 外部参考观察、全经典运行及最终human仍按spec第8—9节执行。本计划不将这些未来证据改写成SOURCE验收条件已满足，也不删原G4或COS15依赖。
+
+## 2026-10-17 SOURCE实施候选与验证记录
+
+前述登记时的“尚未运行测试”现由本节更新：实施已完成，等待 `classic_entry_reviewer` 审查固定候选；尚未标记 SOURCE READY，也未由作者合入main或推送。源码以已发布登记 `e371046a625a3581d37317ff2e6138792534e88d` 为父基线。证据索引为工作树 `E:/CodexData/.codex/worktrees/cos-05-cli/Cosmos/.cosmos/evidence/cos104/verification-index.json`，准确候选SHA由该索引与Git提交记录关联。
+
+- 固定输入、确认前显示、受限sidecar、同clean delivery内独立正常输入、完整目录partial报告、review图片与原journal/promotion均已接通。旧profile/mapping、普通runner及其上限、采样器、scheduler、ledger和生产reference事实未改。原有未启用字段的确认与恢复保持。
+- 行为RED保留：`checkpoint1-red.log` 中真实产品draft缺少selection、CLI缺少未执行显示；新输入模块当时尚不存在。`checkpoint3-red.log` 中实际host执行原persistent后新增调用为0、缺逐项报告。`raw-retention-red.log` 另复现新raw内容无效时未进入任务证据，随后仅在失败路径保留实际已产生且路径安全的raw目录。首次原生准备失败另记，不作为行为RED。
+
+| 验证 | 实际结果与原始记录 |
+| --- | --- |
+| 输入/确认初始GREEN | 16/16、0skip，4373.987ms；`checkpoint1-green.log`。 |
+| 新host首轮完整定向 | 15/15、0skip，85393.9567ms；`checkpoint3-green.log`，synthetic browser/build transport与真实clean Node。 |
+| sidecar只读自检、删catalog仍保留原分母 | 2/2、0skip，8720.8581ms；`checkpoint2-4-focused.log`。 |
+| 失败raw保留修正 | RED 1/1失败后GREEN 2/2、0skip，14767.5307ms；`raw-retention-{red,green}.log`。 |
+| 最终受影响回归 | 本计划7文件命令加 `tests/runtime/entrypoint-design-check.test.ts`，61/61、0skip，117086.5578ms；`final-focused.log`，exit0。含旧STARTUP/OFFLINE、未选classic、旧确认、完整新缺失raw/截图/log和空视频负例。 |
+| 首条坏文件而第二条独立证据有效 | 收紧测试输入后1/1、0skip，3507.6678ms；`first-match-valid-second.log`。不与前述重复计数相加。 |
+| 已完成旧入口只读恢复 | `--test-name-pattern='completed original public resume' tests/cli/completed-generation-resume.test.ts`，1/1、0skip，6977.8848ms；`completed-readonly-regression.log`。 |
+| 最终类型、构建、文本 | `npm run typecheck` / `npm run build` exit0；`final-{typecheck,build}.log/.exit`。严格UTF-8/LF、中文复读和 `git diff --check` 记录在 `final-text-check.log`。 |
+
+### 唯一原生SOURCE代表
+
+`node --experimental-strip-types --test tests/runtime/classic-entry-host.integration.ts` 通过1/1、0skip，test35797.437ms、runner39390.7781ms。原始记录 `native-source.log/.exit`，证据根 `C:/Users/26557/AppData/Local/Temp/Cosmos COS104 中文 SOURCE JxLPy2`。该测试实际导入本工作树 `dist` 编译host；当时使用的七个新增/受影响JS模块原字节及SHA已保存于 `native-compiled/` 和 `native-compiled.json`。之后唯一生产改动是上述失败raw目录保留，成功原生路径未变，因此复用本次通过结果。
+
+- 首次准备仅47.144ms即因当前工作树 `templates/2d/node_modules` 不存在失败，未进入编译/浏览器，见 `native-source-environment-failure.log/.exit`。随后使用已存在的 `COSMOS_TEMPLATE_ROOT=E:/develop/Cosmos/templates/2d`，其锁文件与工作树逐字节相同；未安装依赖。不是新的付费案例或正式生成重跑。
+- 真实锁定tsc/Vite、原素材renderer、clean Node launcher及Edge `155.0.4283.45` 执行。实际caller顺序为原persistent一次，再独立normal一次；同authority/原deadline `2026-10-17T09:29:49.265Z`。正常输入raw为 `browser-evidence/game/game/v1/classic-source/coding-classic-entry/report.json`；独立plan/raw，末步真实可见值 `7`，无伪persistent session。
+- 独立fixture reviewer读取字节相同的参考/mapping/raw/逐项报告，收到保留的新断言图片；原verified/review journal签入这些证据。对review后sidecar、raw report和逐项report三种字节变更分别拒绝promotion，恢复原字节后准许原范围候选晋升。随后通过原 `executeGeneration` 恢复，原角色/浏览器调用数不增，已封存raw字节不变。
+- 另用独立candidate/report和已编译副本禁用点击处理，只执行原normal runner：`negative-evidence/game/fixture-disabled/v1/disabled-source/disabled-classic-entry/report.json` 实际可见值 `0`，结果failed/code_defect。健康候选及原raw逐字节保持。未重跑整套编译/持久浏览器矩阵。
+- `native-postcheck.json` 保存原normal、persistent和clean回执；helper PID29136、normal PID8440、persistent PID11940/33316后核均不存在。共享运行和正式C16资料未访问或改写。
+
+所有参考事实、作者和reviewer输入均为明确标注的SOURCE fixture；真实编译、浏览器输入、文件和journal事实另列。模型请求0、费用0、human NONE。两次generation结果均为 `incomplete`，报告顶层永久 `partial`；完整230行/原顺序、221条参考未知及机制/数值使用未执行保持。生产measurements仍为空，正常生产结果仍是 `no_reference_measurements/not_executed`。本片不完成COS01/COS14/COS15/COS18、参考冻结、完整classic PvZ目标或最终用户体验；全部原预算与依赖保持。

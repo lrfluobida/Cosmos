@@ -5,6 +5,8 @@ import type { AcceptancePlan } from '../acceptance/plan.ts';
 import { sameValue } from '../contracts/validation.ts';
 import { modeFromSelection, preparationContract, resolveDraftMode } from './preparation-mode.ts';
 import type { DraftMode, PreparationSelection } from './preparation-mode.ts';
+import { validateClassicEntrySelection } from '../runtime/classic-entry-input.ts';
+import type { ClassicEntrySelection } from '../runtime/classic-entry-input.ts';
 
 export const DESIGN_ACCEPTANCE_ID = 'COSMOS-DESIGN';
 export const MEDIA_ACCEPTANCE_ID = 'COSMOS-MEDIA';
@@ -46,7 +48,7 @@ export interface BrowserScenario extends Pick<AcceptancePlan, 'viewport' | 'step
   reopen?: { steps: AcceptancePlan['steps']; checkpoint: { expected: string;
     snapshot: { kind: 'text'; selector: string }; savedSnapshot: { kind: 'text'; selector: string } } };
 }
-export interface BrowserGameDraft extends DraftFields { scenario: BrowserScenario; benchmark?: 'classic-pc-runtime-policy/1'; codeProfile?: 'modular-code/1'; preparation?: never }
+export interface BrowserGameDraft extends DraftFields { scenario: BrowserScenario; benchmark?: 'classic-pc-runtime-policy/1'; classicEntry?: ClassicEntrySelection; codeProfile?: 'modular-code/1'; preparation?: never }
 export interface PreparationGameDraft extends DraftFields { preparation: PreparationSelection; scenario?: never; codeProfile?: never }
 export type GameDraft = BrowserGameDraft | PreparationGameDraft;
 
@@ -62,7 +64,7 @@ export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'bro
   const selection = resolveDraftMode(expectedMode);
   const draft = value as GameDraft;
   const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
-  const fields = ['brief', 'questions', 'answers', 'acceptance', 'unsupported', ...(selection ? ['preparation'] : ['scenario', 'benchmark', 'codeProfile'])];
+  const fields = ['brief', 'questions', 'answers', 'acceptance', 'unsupported', ...(selection ? ['preparation'] : ['scenario', 'benchmark', 'classicEntry', 'codeProfile'])];
   if (!draft || typeof draft !== 'object' || Object.keys(draft).some(key => !fields.includes(key))
     || !text(draft.brief) || !Array.isArray(draft.questions) || !draft.answers || typeof draft.answers !== 'object' || Array.isArray(draft.answers)
     || Object.values(draft.answers).some(answer => typeof answer !== 'string') || !Array.isArray(draft.unsupported) || draft.unsupported.some(item => !text(item))) throw new Error('Invalid game draft fields.');
@@ -79,6 +81,10 @@ export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'bro
   if (draft.codeProfile !== undefined && draft.codeProfile !== 'modular-code/1') throw new Error('Unknown coding profile.');
   if (draft.codeProfile && MODULE_STAGE_ACCEPTANCE.some(stage => !draft.acceptance.some(item => sameValue(item, stage)))) throw new Error('Modular coding requires both complete fixed local standards.');
   if (draft.benchmark !== undefined && (draft.benchmark !== 'classic-pc-runtime-policy/1' || !draft.scenario?.reopen)) throw new Error('Classic runtime policies require the exact selection and normal save/reopen scenario.');
+  if (draft.classicEntry !== undefined) {
+    if (!draft.benchmark) throw new Error('Classic entry selection requires the confirmed classic benchmark.');
+    validateClassicEntrySelection(draft.classicEntry);
+  }
   validateBrowserScenario(draft);
 }
 

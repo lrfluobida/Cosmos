@@ -68,6 +68,12 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
   if (draft.preparation) lines.push('准备模式：先确认需求；地图、解法与自动操作将在同一次生成运行的运行时设计后形成。');
   else {
     if (draft.benchmark) lines.push('经典 PC 政策：仅执行启动与离线存档重开；完整目录 230 项保留，其中 221 项参考依据待核对、另 7 项政策未执行，完整经典验收仍未通过。');
+    if (draft.classicEntry) {
+      const { measurement, entityLabel } = draft.classicEntry;
+      lines.push(measurement ? `经典条目正常输入检查：${entityLabel}（${measurement.entityId}），${measurement.metric} = ${measurement.value} ${measurement.unit}。`
+        : '经典条目正常输入检查：没有已核实的精确参考测量，本项未执行。');
+      lines.push('本项仅比较正常输入后的可见数字；机制、数值实际使用及其他目录条目仍未执行，完整经典验收仍未通过。');
+    }
     lines.push('自动操作与检查：');
     const stages = [{ steps: draft.scenario.steps }, ...(draft.scenario.reopen ? [draft.scenario.reopen] : [])];
     for (const [index, stage] of stages.entries()) {

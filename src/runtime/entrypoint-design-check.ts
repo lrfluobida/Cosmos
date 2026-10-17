@@ -4,6 +4,9 @@ import { regularFile } from '../artifacts/paths.ts';
 import { identifier } from '../media/validation.ts';
 import { validateDesign } from './entrypoint-media.ts';
 import { validateModuleContracts } from './modular-code.ts';
+import { validateClassicEntryPlan } from './classic-entry-input.ts';
+import type { ClassicEntrySelection } from './classic-entry-input.ts';
+import type { AcceptancePlan } from '../acceptance/plan.ts';
 
 export const GAME_DESIGN_CHECK = 'validate-game-design';
 export const MEDIA_IDENTIFIER_RULE = 'Media IDs, state names and layer IDs must match ^[a-z][a-z0-9-]{0,47}$; con/prn/aux/nul/com1..9/lpt1..9 are reserved. These restrictions do not apply to Chinese or other display text.';
@@ -11,7 +14,8 @@ const FILE = 'authors/design/design.json';
 interface Feedback { passed: boolean; errors: { path: string; message: string }[] }
 
 /** Advisory author feedback only. Capture and independent review still validate actual output. */
-export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean; guard(signal: AbortSignal): Promise<void> }) {
+export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean;
+  classicEntry?: { selection: ClassicEntrySelection; viewport: AcceptancePlan['viewport'] }; guard(signal: AbortSignal): Promise<void> }) {
   const gameplayIds = [...input.gameplayIds];
   function evaluate(bytes: Buffer | null): Feedback {
     const failed = (message: string): Feedback => ({ passed: false, errors: [{ path: FILE, message }] });
@@ -52,6 +56,10 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
       let result = evaluate(bytes);
       if (result.passed && input.modular) try { validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, 'authors/design/module-contracts.d.ts'))); }
       catch (error) { result = { passed: false, errors: [{ path: 'authors/design/module-contracts.d.ts', message: error instanceof Error ? error.message : 'Protected interfaces are missing.' }] }; }
+      if (result.passed && input.classicEntry) try {
+        const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, 'authors/design/classic-entry-plan.json')));
+        validateClassicEntryPlan(value, input.classicEntry.selection, gameplayIds, input.classicEntry.viewport);
+      } catch (error) { result = { passed: false, errors: [{ path: 'authors/design/classic-entry-plan.json', message: error instanceof Error ? error.message : 'Fixed classic entry plan is missing.' }] }; }
       await input.guard(active); active.throwIfAborted();
       return { content: [{ type: 'text' as const, text: JSON.stringify(result) }], details: {} };
     },

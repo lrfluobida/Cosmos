@@ -59,6 +59,8 @@ import type { HumanContinuationInput, HumanContinuationScope } from './entrypoin
 import { modeFromSelection, preparationContract } from '../roles/preparation-mode.ts';
 import { packageStandalone, withCleanDelivery } from './entrypoint-delivery.ts';
 import { createClassicPolicyScope } from './entrypoint-classic.ts';
+import { selectClassicEntry } from './classic-entry-input.ts';
+import { createClassicEntryScope } from './entrypoint-classic-entries.ts';
 import { diagnoseBrowser, diagnoseBuild } from './repair/browser-diagnostics.ts';
 import { createRenderFrameScope, OBSERVER_SOURCE, renderFrameBuildArguments } from './entrypoint-frames.ts';
 import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
@@ -214,7 +216,7 @@ function validBrowserReport(report: AcceptanceReport, plan: AcceptancePlan): boo
 
 /** Four roles retain separate authority; stage checks never substitute for gameplay. */
 export interface BrowserHostBinding { windowId: string; tasks: PreparedTask[] }
-export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO; binding?: BrowserHostBinding; renderFrames?: boolean }): Promise<GenerationHost> {
+export async function createBrowserHost(input: HostInput & { io?: BrowserHostIO; binding?: BrowserHostBinding; renderFrames?: boolean; classicSourceRoot?: string }): Promise<GenerationHost> {
   if ('preparation' in input) throw new Error('Only the explicit preparation factory accepts a trusted preparation adapter.');
   requireBrowserDraft(input.draft);
   input.controller.requireExecutionWindow(input.binding?.windowId);
@@ -281,6 +283,7 @@ interface BrowserHostCoreInput extends Omit<HostInput, 'requirement' | 'draft'> 
   historicalStages?: import('./historical-passed-stages.ts').HistoricalPassedStages;
   humanPreparation?: HumanPreparationScope | HumanContinuationScope;
   renderFrames?: boolean;
+  classicSourceRoot?: string;
 }
 /** C15/C16 change only the allocation binding of the original C5 input. Read both
  * fixed sources from their authenticated scopes before importing old captures. */
@@ -438,8 +441,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     if ((originalDraft.benchmark || (draft as BrowserGameDraft).benchmark || originalDraft.codeProfile || modular) && !sameValue(originalDraft, draft)) throw new Error('Original confirmed selection/draft differs from its requirement capture.');
   }
   const classic = !preparation && !validation && (draft as BrowserGameDraft).benchmark
-    ? await createClassicPolicyScope({ root, registry, requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft, requirementCapture: requirements, resume: input.resume }) : undefined;
+    ? await createClassicPolicyScope({ root, registry, requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft, requirementCapture: requirements, resume: input.resume, sourceRoot: input.classicSourceRoot }) : undefined;
   if (classic) captures.push(...classic.refs);
+  const classicEntries = classic && (draft as BrowserGameDraft).classicEntry ? await createClassicEntryScope({ root, registry,
+    requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft, requirementCapture: requirements, referenceRefs: classic.refs,
+    sourceRoot: input.classicSourceRoot, resume: input.resume }) : undefined;
+  if (classicEntries) captures.push(...classicEntries.refs);
   const frames = input.renderFrames ? await createRenderFrameScope({ root, registry, template, resume: input.resume }) : undefined;
   if (frames) captures.push(frames.ref);
   const availableArtifacts = [...requirement.sources, ...captures];
@@ -675,7 +682,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (await realpath(workspace(original)) !== fixedWorkspace) throw new Error('Game design check original workspace changed.');
       signal.throwIfAborted(); work.signal.throwIfAborted(); controller.signal.throwIfAborted();
     };
-    return [createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard }), ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
+    return [createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard,
+      ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, viewport: (draft as BrowserGameDraft).scenario.viewport } } : {}) }), ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
   const codingHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
     if (supplied.role !== 'coding') return [];
@@ -715,17 +723,18 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       ...(modular ? { modular: await modularInputs(original) } : {}), guard })];
   };
   const captureLayout = (...entries: { artifactId: string; paths: string[] }[]) => `Capture file layout: ${JSON.stringify(entries)}. Select the exact current artifactId/version reference in this packet's inputs, including the reviewed task's output artifacts, and read reference.location + '/' + the relative path. Author writes use only the declared authors/... source paths before capture; reviewer and downstream reads use immutable captures. Never append authors/... to a capture root or infer a version/location from an author path. Layout guidance grants no additional read or write permission.`;
-  const designLayout = { artifactId: designOutput.artifactId, paths: ['_cosmos/design.json'] };
+  const designLayout = { artifactId: designOutput.artifactId, paths: ['_cosmos/design.json', ...(classicEntries?.selection.measurement ? ['_cosmos/classic-entry-plan.json'] : [])] };
   const mediaLayout = { artifactId: mediaOutput.artifactId, paths: ['_cosmos/mediaSpec.json', 'public/assets/manifest.json'] };
   const gameLayout = { artifactId: output.artifactId, paths: ['index.html', 'src/main.ts'] };
   const host: GenerationHost = {
     capability: preparation ? 'browser-design-input-preparation-v1' : 'browser-input-media2d-v1', availableArtifacts,
     taskPolicies: [
-      { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * 0.15), writePaths: ['authors/design/design.json'],
+      { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * 0.15), writePaths: ['authors/design/design.json', ...(classicEntries?.selection.measurement ? ['authors/design/classic-entry-plan.json'] : [])],
         readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit', GAME_DESIGN_CHECK], outputs: [{ ...designOutput, destination: designOutput.location, type: 'design', schema: 'game-design/1' }],
         rules: [`Cover only ${DESIGN_ACCEPTANCE_ID}; no dependencies. This is a design deliverable, not proof the game passes.`, captureLayout(designLayout),
           `Read ${requirement.sources[0].location}. Write authors/design/design.json with exactly {summary:string,implementationNotes:string[],acceptanceMapping:{gameplayId:string},characters:[{id,purpose,states:string[]}],audio:[{id,trigger,loop:boolean}]}. Map every gameplay ID ${JSON.stringify(gameplayIds)}. Declare 1-128 original characters and 0-64 audio clips required by the confirmed brief; preserve every requested actor, action and audio trigger.`,
           MEDIA_IDENTIFIER_RULE,
+          ...(classicEntries?.selection.measurement ? [`Also write authors/design/classic-entry-plan.json with exactly {formatVersion:"classic-entry-plan/1",measurementId:${JSON.stringify(classicEntries.selection.measurement.id)},acceptanceId:one original gameplay ID,inputs:1..199 original mouse-click/mouse-move/locator-click steps,observation:{kind:"text",selector:string},timeoutMs:1..60000}. Include at least one click and no assert/debug/script/expected/URL/candidate fields. Reserve step ID classic-entry-observe for the host. The host appends String(reference value); no model field may replace it. Describe the selected object ${JSON.stringify(classicEntries.selection.entityLabel)}, metric ${JSON.stringify(classicEntries.selection.measurement.metric)} and the actual corresponding visible control in design implementationNotes. This tests visible numeric output only; mechanism and full classic scope remain unproven.`] : []),
           `Before finishing, call ${GAME_DESIGN_CHECK} with no arguments and correct any errors yourself. It checks current generic design bytes only; the host independently captures and validates outputs. It does not change the map, grant a new attempt or authorize semantic rewrites.`,
           'Use only the supported bounded SVG layer animation and procedural PCM audio formats. Do not shrink the confirmed gameplay or fabricate execution evidence.'] },
       { policyId: 'game-art', role: 'art', workspace: root, allocationMicroCny: Math.floor(pool * 0.25), writePaths: ['authors/art/media.json'],
@@ -738,6 +747,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       readOnlyPaths: ['requirements', 'registry', 'repair-feedback'], tools: ['read', 'write', 'edit', GAME_BUILD_CHECK],
       outputs: [{ ...output, destination: output.location, type: 'game-project', schema: 'browser-game/1' }],
       rules: [`Cover exactly the gameplay IDs ${JSON.stringify(gameplayIds)}; depend on both design and art tasks. Implement the actual confirmed brief: ${draft.brief}`, captureLayout(designLayout, mediaLayout, gameLayout),
+        ...(classicEntries?.selection.measurement ? ['Read the fixed classic entry sidecar and reference evidence. Independent review must inspect actual source and the reserved assertion screenshot to establish that the visible control represents the selected object and metric; selector names or constant labels alone are insufficient. This observation never proves mechanism or numeric implementation correctness.'] : []),
         preparation ? `Read ${requirement.sources[0].location} for the fixed operator preparation proposal, then the complete captured execution requirement and prepared design plans.`
           : `Read ${requirement.sources[0].location} for the exact user answers and browser scenario.`,
         'Write only authors/coding/index.html and authors/coding/src/main.ts plus necessary files below src. Use the pinned Phaser template and the independent art capture: public/assets/manifest.json gives actual SVG frames and WAV files, served as /assets/... . Read the exact design and media input snapshots. Do not replace art output with coding-only art, modify dependencies or change acceptance.',
@@ -846,10 +856,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const origin = { kind: 'original-procedural' as const, generator: `Native ${kind} role output`, sourceRefs: [task.attempts.at(-1)!.sessionRef, ...requirement.sources.map(ref => ref.location)] };
       if (kind === 'design') {
         await readDeclaredOutput(task, 'authors/design/design.json', value => validateDesign(value, gameplayIds, modular));
+        if (classicEntries?.selection.measurement) { await classicEntries.requireCurrent(); await readDeclaredOutput(task, 'authors/design/classic-entry-plan.json', value => classicEntries.validatePlan(value)); }
         if (modular) validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(workspace(task), 'authors/design/module-contracts.d.ts')));
         if (preparation) { await preparation.captureDesignExtras(task, workspace(task)); await requireDispatch(task, signal); }
         if (validation) await requireDispatch(task, signal);
-        await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: sourceRoot(task, 'authors/design'), files: [{ source: 'design.json', destination: '_cosmos/design.json' }, ...(modular ? [{ source: 'module-contracts.d.ts', destination: MODULE_CONTRACTS }] : [])],
+        await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: sourceRoot(task, 'authors/design'), files: [{ source: 'design.json', destination: '_cosmos/design.json' }, ...(classicEntries?.selection.measurement ? [{ source: 'classic-entry-plan.json', destination: '_cosmos/classic-entry-plan.json' }] : []), ...(modular ? [{ source: 'module-contracts.d.ts', destination: MODULE_CONTRACTS }] : [])],
           ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: captures, metadata: { kind: 'data', provenance: origin } });
       } else if (kind === 'art') {
         const design = await designFor(task), value = await readDeclaredOutput(task, 'authors/art/media.json', value => { validateDeclaredMedia(value, design); });
@@ -881,7 +892,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: [...captures, selected(task, 'design'), selected(task, 'media'), ...moduleInputs.modules!.map(module => module.ref)], metadata: { kind: 'data', provenance: origin } });
         }
         const inputs = [...captures, selected(task, 'design'), selected(task, 'media'), ...(moduleInputs ? [...moduleInputs.modules!.map(module => module.ref), assembly!] : []), ...(preparation?.candidateExtraInputs(ref) ?? []),
-          ...(classic ? [await classic.captureMapping(task, ref, selected(task, 'design'))] : [])], media = await registry.getCapture(selected(task, 'media'));
+          ...(classic ? [await classic.captureMapping(task, ref, selected(task, 'design'))] : []),
+          ...(classicEntries ? await classicEntries.captureMapping(task, ref, selected(task, 'design')) : [])], media = await registry.getCapture(selected(task, 'media'));
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: source, sourceRoot: sourceRoot(task, 'authors/coding'), files: files.map(name => ({ source: name, destination: name })),
           ownership: { writePaths: ['src', 'index.html'], readOnlyPaths: ['_cosmos'] }, dependencies: inputs, metadata: { kind: 'code', provenance: origin } });
@@ -907,6 +919,21 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       };
       let classicBuild: BrowserBuildReport | undefined, classicExecution: Awaited<ReturnType<NonNullable<typeof classic>['bindExecution']>> | undefined;
       let classicReport: PersistentAcceptanceReport | undefined, classicEvaluated = false, classicPassed = false;
+      let entryExecution: Awaited<ReturnType<NonNullable<typeof classicEntries>['bindExecution']>> | undefined, entryReport: AcceptanceReport | undefined;
+      let entryEvaluated = false, entryPassed = false, entryBlockedReason = 'prerequisite_failed';
+      const evaluateEntries = async () => {
+        if (!classicEntries || entryEvaluated) return;
+        entryEvaluated = true;
+        const checked = await classicEntries.evaluate({ task, candidate: ref, design: selected(task, 'design'), deadlineAt: authority.deadlineAt,
+          execution: entryExecution, report: entryReport, blockedReason: entryBlockedReason, requireCurrent: async () => { await requireDispatch(task, signal); } });
+        consumerRawEvidence.push(...checked.evidence); entryPassed = checked.passed;
+        if (checked.picture) pictures.set(task.taskId, [...(pictures.get(task.taskId) ?? []).slice(0, 7), checked.picture]);
+        if (!entryPassed && checked.diagnostics) {
+          consumerDiagnostics = { reportValid: (consumerDiagnostics?.reportValid ?? true) && checked.diagnostics.reportValid,
+            passedChecks: [...(consumerDiagnostics?.passedChecks ?? []), ...checked.diagnostics.passedChecks], issues: [...(consumerDiagnostics?.issues ?? []), ...checked.diagnostics.issues] };
+          actual = consumerDiagnostics.issues.map(issue => issue.summary).join('\n').slice(0, 16000);
+        }
+      };
       const evaluateClassic = async () => {
         if (!classic || classicEvaluated) return;
         classicEvaluated = true;
@@ -924,6 +951,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       try {
         if (kind === 'design') {
           const design = await json(root, `${ref.location}/_cosmos/design.json`); validateDesign(design, gameplayIds, modular);
+          if (classicEntries?.selection.measurement) { await classicEntries.requireCurrent(); classicEntries.validatePlan(await json(root, `${ref.location}/_cosmos/classic-entry-plan.json`)); }
           if (modular) validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, `${ref.location}/${MODULE_CONTRACTS}`)));
           if (preparation) { await preparation.verifyDesignExtras(task); await requireDispatch(task, signal); } passed = true;
         } else if (kind === 'art') {
@@ -1094,6 +1122,16 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                   for (const path of chosen) if (!(await regularFile(root, path)).subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) throw new Error('Host screenshot is not a PNG.');
                   pictures.set(task.taskId, chosen.map((location, index) => ({ artifactId: `${task.taskId}-screenshot-${index}`, version: ref.version, location })));
                 } else actual = diagnostics.issues.map(issue => issue.summary).join('\n').slice(0, 16000) || 'The two exact normal-input documents did not establish complete current media coverage.';
+                if (valid && classicEntries?.selection.measurement) {
+                  try {
+                    if (Date.parse(authority.deadlineAt) - Date.now() < 6000) throw new Error('deadline_insufficient');
+                    await requireCurrent();
+                    entryExecution = await classicEntries.bindExecution(task, ref, designArtifact, project, server.url);
+                    await entryExecution.current();
+                    entryReport = await io.play(entryExecution.plan, signal, authority);
+                    await entryExecution.current(); await requireCurrent();
+                  } catch (error) { entryBlockedReason = error instanceof Error ? error.message : 'entry_execution_unavailable'; }
+                }
                 return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
               }
               const gameplay: AcceptancePlan = { ...structuredClone(scenario), formatVersion: '1.0.0', projectId: 'game', runId: task.runId, taskId: task.taskId,
@@ -1135,14 +1173,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 actual = 'Normal input report failed or did not match the fixed plan and candidate.';
               }
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
-          }); } finally { await evaluateClassic(); }
-            return { ...result, passed: result.passed && (!classic || classicPassed) };
+          }); } finally { await evaluateClassic(); await evaluateEntries(); }
+            return { ...result, passed: result.passed && (!classic || classicPassed) && (!classicEntries || entryPassed) };
           },
         });
         proofs.set(task.taskId, proof); passed = true;
         }
       } catch (error) {
-        if (classic && kind === 'coding') await evaluateClassic();
+        if (classic && kind === 'coding') { await evaluateClassic(); await evaluateEntries(); }
         // A trusted consumer boundary failure is evidence insufficiency unless exact diagnostics already established a defect.
         if (!consumerDiagnostics) actual = error instanceof Error ? error.message : 'Host consumer did not establish current evidence.';
       }
@@ -1248,20 +1286,24 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       }
       const ref = taskOutput(task), proof = proofs.get(task.taskId);
       if (modular) try { await modularInputs(task); } catch { return { gaps: ['Original approved module inputs or review signatures changed before promotion.'] }; }
-      if (preparation?.candidateConsumer) {
+      if (preparation?.candidateConsumer || classicEntries) {
         try {
-          await preparation.requireCurrent();
+          await preparation?.requireCurrent(); await classicEntries?.requireCurrent();
           for (const item of tasks) {
             const origin = await json(root, `journal/task-${item.taskId}/origin.json`) as import('./recovery/task-journal.ts').RecoveryOrigin;
             requireOriginalTask(origin.prepared.task, item);
             const journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin, true);
-            const verified = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature }>('verified', item.attempts.at(-1)!.attemptId);
-            const review = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; reviewerId: string; contextId: string }>('review', item.attempts.at(-1)!.attemptId);
+            const verified = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; evidence: EvidenceContract[] }>('verified', item.attempts.at(-1)!.attemptId);
+            const review = await journal.read<{ signature: import('./recovery/task-journal.ts').ContentSignature; reviewerId: string; contextId: string; verdict: Parameters<typeof requireReviewDecision>[1]['verdict'] }>('review', item.attempts.at(-1)!.attemptId);
             if (!verified || !review || review.reviewerId !== item.review.reviewerId || review.contextId !== item.review.contextId) throw new Error('Current independent review receipt is unavailable.');
+            if (classicEntries) {
+              if (!sameValue(verified.evidence, item.evidence) || review.reviewerId === item.authorId || review.contextId === item.context.contextId) throw new Error('Classic entry independent review evidence changed.');
+              requireReviewDecision(item, review);
+            }
             const refs = [...item.inputs, ...item.artifacts, ...item.evidence.map(entry => entry.source)];
             await journal.requireSignature(verified.signature, refs); await journal.requireSignature(review.signature, refs);
           }
-          await preparation.requireCurrent();
+          await preparation?.requireCurrent(); await classicEntries?.requireCurrent();
         } catch { return { gaps: ['Current persistent inputs, raw evidence or independent review signatures changed before promotion.'] }; }
       }
       if (proof) await registry.promoteCandidate(ref, { evidence: proof, review: { candidateRef: ref, attemptId: proof.attemptId, reviewerId: task.review.reviewerId!, contextId: task.review.contextId!, verdict: 'approved', evidenceIds: task.review.evidenceIds } });
@@ -1444,7 +1486,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
 }
 
 /** Uses installed locked generic tools; preparation creates no game-specific output. */
-export function createProductHost(repository: string, hostOptions: Pick<BrowserHostCoreInput, 'io' | 'sessionFactory' | 'renderFrames'> = {}): ProductHost {
+export function createProductHost(repository: string, hostOptions: Pick<BrowserHostCoreInput, 'io' | 'sessionFactory' | 'renderFrames' | 'classicSourceRoot'> = {}): ProductHost {
   const interviewCapabilities = async (options: Parameters<ProductHost['questions']>[0]) => {
     const { draftMode } = await options.controller.read(); modeFromSelection(draftMode);
     return draftMode ? `${preparationContract(draftMode).scope} Use the complete supplied acceptance and preserve unsupported requested scope. Original media uses the existing bounded SVG/PCM formats.` : CAPABILITIES;
@@ -1472,7 +1514,10 @@ export function createProductHost(repository: string, hostOptions: Pick<BrowserH
     },
     draft: async options => {
       const draft = await requestDesignDraft({ ...options, capabilities: await interviewCapabilities(options), sessionFactory: hostOptions.sessionFactory, maxOutputTokens: 8192, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation });
-      return draft.preparation ? draft : withHostStages(draft);
+      if (draft.preparation) return draft;
+      const selected = withHostStages(draft);
+      if (selected.benchmark) selected.classicEntry = await selectClassicEntry(hostOptions.classicSourceRoot);
+      return selected;
     },
     execute: async options => {
       if (hostOptions.renderFrames !== undefined && options.renderFrames !== undefined && hostOptions.renderFrames !== options.renderFrames) throw new Error('Product host render-frame selection conflicts with the original call.');
