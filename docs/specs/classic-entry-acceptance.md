@@ -1,6 +1,6 @@
 # 经典条目正常输入检查：设计草案
 
-状态：待独立设计审查，尚未授权源码实施。归属现有 [COS-14 / #15](https://github.com/lrfluobida/Cosmos/issues/15)，不预定新的 GitHub 任务 ID。设计基线为 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`。本草案不表示 COS-14、完整经典验收或参考冻结已就绪。
+状态：已由 `classic_entry_design_reviewer` 独立审查 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 并批准 `APPROVED_DESIGN`；Root 已授权免费 SOURCE 实施。稳定任务 [COS-104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，原生归属 [COS-14 / #15](https://github.com/lrfluobida/Cosmos/issues/15)，父项未勾选。设计基线为 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`，实施基线为 `7d02729370c6379f0377f7cd42a68672613894b3`。本片尚未完成源码验收，不表示 COS-14、完整经典验收或参考冻结已就绪。
 
 ## 1. 目标与已核实缺口
 

@@ -12,9 +12,9 @@
 
 ## 状态、基线与实施前置
 
-待独立设计审查；没有源码实施授权，也没有运行本计划的测试。基线 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`，归已有COS14/#15的待审子设计，稳定新任务ID由Root另定。
+设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 已由 `classic_entry_design_reviewer` 独审 `APPROVED_DESIGN`，Root 已授权免费 SOURCE；尚未运行本计划的测试。稳定任务为 [COS-104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，原生挂父 COS14/#15，父项未勾选。原设计基线 `2f84eb328e59f20d73ceccdc69ff708f7be200a5` 保持，实施基线 `7d02729370c6379f0377f7cd42a68672613894b3`；专职 implementer `classic_entry_implementer`、独立 reviewer `classic_entry_reviewer`、唯一 merger `batch_classic_entry_merger`。主线冻结已解除，actual/paid 未授权。
 
-- 本次仅写本计划及配套spec。不得修改actual C16、主线、private资料、运行账本或依赖安装。
+- 原设计阶段仅写本计划及配套spec；现按下列批准范围实施 SOURCE。不得修改actual C16、主线、private资料、运行账本或依赖安装。
 - Root批准设计并明确源码工作区后，implementer才从指定准确基线建立独立managed worktree/branch；独立reviewer先读spec和actual diff，先规格、后质量。
 - 主线仍冻结时不做集成或原生验证。sole merger确认允许集成后才合入批准SHA并推送；作者不合main、不push。
 - 复用[COS67](2026-10-06-cos67-classic-runtime-policy.md)、[COS69](2026-10-06-cos69-render-frame-sampling.md)、[COS70](2026-10-06-cos70-cli-frame-selection.md)的通过证据，仅因本片真实delta新增检查。

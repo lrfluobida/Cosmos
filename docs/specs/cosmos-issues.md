@@ -285,6 +285,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-14 · P1 · 建立完整基准的运行时验收工具
 
+- 已登记原生子任务 [COS-104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，父项未勾选；其单条正常输入consumer设计已审、免费SOURCE实施中，完整COS14范围与原依赖保持。
 - 依赖/状态：COS-01 冻结、COS-08、COS-11；前期可按已核实条目编制工具草稿。
 - 输出/范围：`benchmarks/classic-pc/`；完整条目与测试映射、模式流程、存档/解锁/经济/交互检查，以及容差断言。
 - 工作：分组覆盖冒险、迷你游戏、解谜、生存、花园及外围系统；为无尽制定有限观测窗口、循环和增长规则检查。
@@ -1586,6 +1587,16 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 复用最终guard修正前49/49、最终affected9/9（重叠不相加）、默认恢复24/24及typecheck/build0；B3为TEMP原2f runtime、真实identity/now的独立Node组合。实际registry/controller已精确恢复并归档原157/1085字节，原main2f API完成deadline stop/close及closure22，独审`PASS_C16_INTERRUPTED_RECOVERY_AND_ACCOUNTING_CLOSED`后Root解冻。默认recover不变、无kill；这只完成维护与账务范围，C16 v1失败/v2未完成、COS16/COS18/fullclassic/human保持。
 
 稳定任务 ID：COS-103
+
+### COS-104 · 接通经典参考数值的正常输入验收
+
+[COS104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，id5896760064，已原生挂父COS14/#15、未勾选；#15直接1、根#1直接100、总任务104。依赖COS67/COS69/COS70已审源码与既有COS14契约，不要求完整参考冻结才能开展本片SOURCE。
+
+设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 经 `classic_entry_design_reviewer` 独审 `APPROVED_DESIGN`，Root已授权免费SOURCE，实施基线 `7d02729370c6379f0377f7cd42a68672613894b3`。专职作者 `classic_entry_implementer`、独审 `classic_entry_reviewer`、唯一merger `batch_classic_entry_merger`；[spec](classic-entry-acceptance.md)与[plan](../plans/2026-10-16-classic-entry-acceptance.md)正文契约保持批准设计。
+
+主机固定第一条合格exact事实，设计只提供正常输入与可见文本定位，原clean delivery内独立调用一次原runner；新raw、完整目录partial报告和参考证据进入原review/journal，旧两政策保持。当前生产measurements为空，明确未执行，不填假事实。SOURCE仅TEMP synthetic参考/小UI及0模型0费用；不实施完整手工游戏、不改实际C16、不新增paid窗口。COS01/COS14/COS15/COS18、完整classic、参考冻结与human均未完成，原预算与最终目标保持。
+
+稳定任务 ID：COS-104
 
 ## 5. 任务与上下文包模板
 

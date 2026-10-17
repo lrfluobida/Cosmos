@@ -425,6 +425,8 @@
       "number": 15,
       "id": 5650987451,
       "url": "https://github.com/lrfluobida/Cosmos/issues/15",
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-104"],
       "dependsOn": [
         {
           "id": "COS-01",
@@ -9261,9 +9263,46 @@
       },
       "actualGameCompleted": false,
       "actualHumanConfirmation": "NONE"
+    },
+    {
+      "taskId": "COS-104",
+      "title": "接通经典参考数值的正常输入验收",
+      "number": 105,
+      "id": 5896760064,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/105",
+      "parentIssueNumber": 15,
+      "parentIssueId": 5650987451,
+      "parentTaskId": "COS-14",
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-104 · 接通经典参考数值的正常输入验收](https://github.com/lrfluobida/Cosmos/issues/105)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 1,
+      "dependsOn": [
+        "COS-67",
+        "COS-69",
+        "COS-70"
+      ],
+      "state": "open",
+      "integrationStatus": "pending",
+      "implementationPhase": "source-in-progress",
+      "reviewStatus": "PENDING_SOURCE",
+      "designReviewStatus": "APPROVED_DESIGN",
+      "designReviewedCommit": "772ce6180a73ef436b2efba411c4b5d25e9519ee",
+      "designReviewer": "classic_entry_design_reviewer",
+      "implementationBaseline": "7d02729370c6379f0377f7cd42a68672613894b3",
+      "implementer": "classic_entry_implementer",
+      "reviewer": "classic_entry_reviewer",
+      "merger": "batch_classic_entry_merger",
+      "taskCardPath": "docs/specs/classic-entry-acceptance.md",
+      "planPath": "docs/plans/2026-10-16-classic-entry-acceptance.md",
+      "sourceAuthorized": true,
+      "actualAuthorized": false,
+      "paidAuthorized": false,
+      "actualHumanConfirmation": "NONE"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 103,
+  "totalTaskCount": 104,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

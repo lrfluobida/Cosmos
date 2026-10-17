@@ -2,6 +2,13 @@
 
 更新时间：2026-10-17
 
+## COS104经典条目正常输入设计已审，免费SOURCE实施中
+
+- [COS104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，id5896760064，已原生挂父[COS14 / #15](https://github.com/lrfluobida/Cosmos/issues/15)，父项未勾选；根#1直接子项100、#15直接1、总任务104。既有COS103完成状态和C16失败闭账事实保持。
+- 设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 经 `classic_entry_design_reviewer` 独审 `APPROVED_DESIGN`。Root从准确基线 `7d02729370c6379f0377f7cd42a68672613894b3` 授权免费SOURCE；作者 `classic_entry_implementer`、独审 `classic_entry_reviewer`、唯一merger `batch_classic_entry_merger`。见[spec](docs/specs/classic-entry-acceptance.md)和[plan](docs/plans/2026-10-16-classic-entry-acceptance.md)。
+- 本片将可信参考数值、设计sidecar、一次独立正常输入runner与完整目录partial报告接入原review/journal。当前生产measurements为空，必须保留 `no_reference_measurements/not_executed`；SOURCE使用明确标注的TEMP synthetic事实与小UI，模型调用0、费用0，不代表参考观察或完整生成成功。
+- Cosmos仍是Pi基座的可扩展2D开发agent，完整classic PvZ是最终能力目标。COS01/COS14/COS15/COS18、G4、完整参考冻结与最终human均未完成；共享¥150含既有¥0.721771，正式¥200/12h、目标¥100/6h保持，无actual/paid授权。
+
 ## COS103恢复源码与结果已发布并关闭，C16两锁恢复与账务闭环完成
 
 - [COS103 / #104](https://github.com/lrfluobida/Cosmos/issues/104)，id5896315224，已原生挂父[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，恢复子项已勾选；根#1直接子项100、#17直接2、#103直接1且完成1、总任务103。#104已closed(completed)，[完成记录](https://github.com/lrfluobida/Cosmos/issues/104#issuecomment-6232024845)与父勾选已由Root精确读回；COS102仍open。
