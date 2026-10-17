@@ -17,14 +17,16 @@ import { selectClassicEntry } from '../../src/runtime/classic-entry-input.ts';
 
 export const classicEntrySidecar = { formatVersion: 'classic-entry-plan/1', measurementId: 'synthetic-cost', acceptanceId: 'save',
   inputs: [{ id: 'show-cost', kind: 'locator-click', selector: '#show-cost', timeoutMs: 1000 }], observation: { kind: 'text', selector: '#cost' }, timeoutMs: 1000 };
-export async function syntheticClassicSource(t: test.TestContext) {
+export async function syntheticClassicSource(t: test.TestContext, empty = false) {
   const sourceRoot = await mkdtemp(join(tmpdir(), 'cos104-reference-')); t.after(() => removeOwned(tmpdir(), sourceRoot));
-  await cp(new URL('../../benchmarks/classic-pc/reference/', import.meta.url), sourceRoot, { recursive: true });
+  for (const file of ['reference.json', 'catalog.json']) await cp(new URL(`../../benchmarks/classic-pc/reference/${file}`, import.meta.url), join(sourceRoot, file));
   const path = join(sourceRoot, 'catalog.json'), catalog = JSON.parse(await readFile(path, 'utf8'));
-  const entityId = catalog.entries.find((row: any) => row.category === 'plants').id;
-  catalog.measurements = [{ id: 'synthetic-cost', entryId: 'VALUE-PLANTS', entityId, status: 'verified_for_reference', value: 7,
+  for (const row of catalog.entries) row.evidenceRefs = [];
+  const entity = catalog.entries.find((row: any) => row.category === 'plants'), entityId = entity.id;
+  entity.label = 'Synthetic plant fixture'; entity.referenceName = null; delete entity.referenceBinding;
+  catalog.measurements = empty ? [] : [{ id: 'synthetic-cost', entryId: 'VALUE-PLANTS', entityId, status: 'verified_for_reference', value: 7,
     unit: 'fixture coins', metric: 'synthetic cost', method: 'Synthetic SOURCE fixture only', tolerance: 'exact', evidenceRefs: ['fixture-input', 'fixture-rule'] }];
-  catalog.evidence = ['normal_input', 'deterministic_rule'].map((kind, index) => ({ id: index ? 'fixture-rule' : 'fixture-input', kind, referenceId: catalog.referenceId,
+  catalog.evidence = empty ? [] : ['normal_input', 'deterministic_rule'].map((kind, index) => ({ id: index ? 'fixture-rule' : 'fixture-input', kind, referenceId: catalog.referenceId,
     status: 'pass', entryIds: ['VALUE-PLANTS', entityId], path: `evidence/synthetic-${index}.txt`, observedAt: '2026-10-17T00:00:00Z',
     preconditions: 'Synthetic SOURCE fixture', steps: 'Normal fixture input', expected: '7', observed: '7' }));
   await mkdir(join(sourceRoot, 'evidence'));
@@ -36,7 +38,7 @@ export async function genericHostFixture(t: test.TestContext, fault = '', classi
   const native = fault === 'native-real' || fault === 'frame-native-real';
   const root = await mkdtemp(join(tmpdir(), 'cos66-host-')), intake = await IntakeController.create({ root, runId: 'game', ledgerId: 'budget', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 2,
     allocations: [{ taskId: 'intake', amountMicroCny: 100 }, { taskId: 'planning', amountMicroCny: 100 }], durationMs: native ? 120_000 : fault === 'real' ? 45_000 : undefined });
-  const classicSourceRoot = entry === true ? (await syntheticClassicSource(t)).sourceRoot : undefined;
+  const classicSourceRoot = entry ? (await syntheticClassicSource(t, entry === 'empty')).sourceRoot : undefined;
   const draft = withHostStages({ ...genericPersistentDraft(), ...(classic ? { benchmark: 'classic-pc-runtime-policy/1' as const } : {}),
     ...(entry ? { classicEntry: await selectClassicEntry(classicSourceRoot) } : {}) }), saved = await intake.saveDraft(draft), requirement = await intake.confirm({ revision: saved.revision, confirmed: true, actorId: 'user', at: new Date().toISOString() });
   await intake.activateGeneration({ environmentReady: true, executionReady: true }); await intake.close();

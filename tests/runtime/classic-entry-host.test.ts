@@ -30,7 +30,7 @@ test('production host executes one independent normal plan and preserves the ful
   assert.equal((await f.host.finish([f.design, f.art, { ...f.task, state: 'passed' }])).acceptedCandidate, undefined, 'Direct fixture finish has no verified/review journal');
 });
 
-test('empty production source grants no sidecar path and executes no added plan', async t => {
+test('empty fixture source grants no sidecar path and executes no added plan', async t => {
   const f = await genericHostFixture(t, '', true, false, 'empty');
   assert.deepEqual(f.host.taskPolicies.find(row => row.role === 'design')!.writePaths, ['authors/design/design.json']);
   f.task.evidence = await f.host.verify(f.task, f.controller.signal); assert.equal(f.task.evidence[0].outcome, 'passed');

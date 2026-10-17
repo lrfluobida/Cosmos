@@ -106,8 +106,52 @@
       ]
     }
   ],
-  "evidence": [],
-  "measurements": [],
+  "evidence": [
+    {
+      "id": "peashooter-almanac-user-card",
+      "referenceId": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+      "entryIds": ["VALUE-PLANTS", "PLANT-01"],
+      "kind": "normal_input",
+      "status": "pass",
+      "path": "evidence/local/peashooter-card-802061930a0f.png",
+      "observedAt": "2026-10-17T11:06:41Z",
+      "observedAtMeaning": "作者实际打开保全原PNG并阅图的时间，不是截图拍摄时间。",
+      "captureTime": null,
+      "preconditions": "用户直接响应已指定本机参考游戏→图鉴→豌豆射手的截图请求。窗口化与全部模式解锁为此前用户报告；卡片不独立证明版本、完整窗口、档案状态、图鉴格位或解锁前提。",
+      "steps": "请求指定参考游戏的豌豆射手图鉴截图；用户上传301×456卡片PNG；保全原bytes后作者实际打开并人工读取名称与花费。未取得逐步点击轨迹，不补造鼠标事件或计时起点。",
+      "expected": "名称豌豆射手与花费100可读，并与固定本机type0/PEASHOOTER及静态费用100交叉核对；仅检查图鉴显示费用。",
+      "observed": "卡片显示豌豆射手、花费100、伤害中等、恢复时间短。后两项仅保留分类原文；未观察种植扣费、冷却秒数、数值伤害、位置或解锁。原PNG SHA256为802061930a0fa895b52028b197c372ca31581106383e4b84df201f63df9d81f0。"
+    },
+    {
+      "id": "peashooter-almanac-displayed-cost-rule",
+      "referenceId": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+      "entryIds": ["VALUE-PLANTS", "PLANT-01"],
+      "kind": "deterministic_rule",
+      "status": "pass",
+      "path": "evidence/peashooter-almanac-displayed-cost-assertions.json",
+      "observedAt": "2026-10-17T11:08:08.300Z",
+      "observedAtMeaning": "本次只读断言执行与报告形成时间，不是截图拍摄时间。",
+      "captureTime": null,
+      "preconditions": "原PNG实际可读且与私有保全件逐字节一致；复用f6659a98已审费用消费者研究与已有UTF-8植物表/名称映射。安装目录只读，不重读UTF-16 LawnStrings。",
+      "steps": "校验PNG、intake与视觉审查记录hash和PNG尺寸；只读校验当前EXE完整hash及type0/费用字段；读取既有静态表与名称映射，将人工读出的豌豆射手/100与type0/PEASHOOTER/100比较，保存实际值、预期值和比较结果。",
+      "expected": "固定原图112374 bytes、301×456且hash一致；EXE为3838152 bytes及固定c04c524c6a37指纹，0x36b000为0、0x36b010为64000000即100；已有名称为豌豆射手。",
+      "observed": "20项机器比较通过；人工读数与已有type0/PEASHOOTER/豌豆射手及静态值100一致。sun语义来自已审静态链，图中只直接显示花费；报告不证明点击序列、实际扣费或完整参考冻结。"
+    }
+  ],
+  "measurements": [
+    {
+      "id": "peashooter-almanac-displayed-cost",
+      "entryId": "VALUE-PLANTS",
+      "entityId": "PLANT-01",
+      "metric": "almanac_displayed_cost",
+      "status": "verified_for_reference",
+      "value": 100,
+      "unit": "sun",
+      "method": "人工读取固定原PNG的豌豆射手图鉴花费100；sun语义复用已审本机type0静态费用链。observedAt为阅图/断言记录时间，截图拍摄时间与逐步点击未知，不证明实际扣费。",
+      "tolerance": "exact",
+      "evidenceRefs": ["peashooter-almanac-user-card", "peashooter-almanac-displayed-cost-rule"]
+    }
+  ],
   "correspondence": [],
   "interactions": [],
   "entries": [
@@ -217,7 +261,7 @@
     {"id":"SURV-09","category":"survival","label":"survival 待核对槽位 9","kind":"candidate_slot","status":"needs_reference","sourceRefs":[{"sourceId":"EA-MAC","anchor":"survival"}],"evidenceRefs":[],"referenceName":null,"requirements":["entry-and-unlock","full-submode-census","rules-and-rewards","normal-input-win-loss-retry","save-and-resume"]},
     {"id":"SURV-10","category":"survival","label":"survival 待核对槽位 10","kind":"candidate_slot","status":"needs_reference","sourceRefs":[{"sourceId":"EA-MAC","anchor":"survival"}],"evidenceRefs":[],"referenceName":null,"requirements":["entry-and-unlock","full-submode-census","rules-and-rewards","normal-input-win-loss-retry","save-and-resume"]},
     {"id":"SURV-11","category":"survival","label":"survival 待核对槽位 11","kind":"candidate_slot","status":"needs_reference","sourceRefs":[{"sourceId":"EA-MAC","anchor":"survival"}],"evidenceRefs":[],"referenceName":null,"requirements":["entry-and-unlock","full-submode-census","rules-and-rewards","normal-input-win-loss-retry","save-and-resume"]},
-    {"id":"PLANT-01","category":"plants","label":"plants 待核对槽位 1","kind":"candidate_slot","status":"needs_reference","sourceRefs":[{"sourceId":"STEAM","anchor":"counts"}],"evidenceRefs":[],"referenceName":null,"requirements":["name-and-visible-correspondence","availability-and-unlock","actions-states-and-targeting","numeric-values","pairwise-interactions"]},
+    {"id":"PLANT-01","category":"plants","label":"豌豆射手","kind":"candidate_slot","status":"needs_reference","sourceRefs":[{"sourceId":"STEAM","anchor":"counts"}],"evidenceRefs":["peashooter-almanac-user-card","peashooter-almanac-displayed-cost-rule"],"referenceName":"豌豆射手","referenceBinding":{"method":"人工将此前未绑定的稳定ID分配给已见图鉴名称及既有静态type0/PEASHOOTER；ID不是图鉴顺序。","seedType":0,"staticKey":"PEASHOOTER","idImpliesRosterOrder":false,"rosterPosition":null,"unlockPrerequisites":null},"requirements":["name-and-visible-correspondence","availability-and-unlock","actions-states-and-targeting","numeric-values","pairwise-interactions"]},
     {"id":"PLANT-02","category":"plants","label":"plants 待核对槽位 2","kind":"candidate_slot","status":"needs_reference","sourceRefs":[{"sourceId":"STEAM","anchor":"counts"}],"evidenceRefs":[],"referenceName":null,"requirements":["name-and-visible-correspondence","availability-and-unlock","actions-states-and-targeting","numeric-values","pairwise-interactions"]},
     {"id":"PLANT-03","category":"plants","label":"plants 待核对槽位 3","kind":"candidate_slot","status":"needs_reference","sourceRefs":[{"sourceId":"STEAM","anchor":"counts"}],"evidenceRefs":[],"referenceName":null,"requirements":["name-and-visible-correspondence","availability-and-unlock","actions-states-and-targeting","numeric-values","pairwise-interactions"]},
     {"id":"PLANT-04","category":"plants","label":"plants 待核对槽位 4","kind":"candidate_slot","status":"needs_reference","sourceRefs":[{"sourceId":"STEAM","anchor":"counts"}],"evidenceRefs":[],"referenceName":null,"requirements":["name-and-visible-correspondence","availability-and-unlock","actions-states-and-targeting","numeric-values","pairwise-interactions"]},

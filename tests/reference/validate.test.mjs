@@ -118,7 +118,7 @@ test('each evidence kind must cover a measurement, even if the other kind covers
   for (const kind of ['normal_input', 'deterministic_rule']) {
     const state = fixture();
     const refs = addEvidence(state, ['VALUE-PLANTS', 'PLANT-01']);
-    state.catalog.evidence.find(x => x.kind === kind).entryIds = ['AUDIO'];
+    state.catalog.evidence.find(x => refs.includes(x.id) && x.kind === kind).entryIds = ['AUDIO'];
     state.catalog.measurements.push(measurement('PLANT-01', refs));
     assert(validate(state.reference, state.catalog).some(x => x.includes(`measurement evidence coverage ${kind}`)));
   }
@@ -137,7 +137,7 @@ test('each evidence kind must cover an interaction', () => {
   for (const kind of ['normal_input', 'deterministic_rule']) {
     const state = fixture();
     const refs = addEvidence(state, ['INTERACTIONS', 'PLANT-01', 'ZOMBIE-01']);
-    state.catalog.evidence.find(x => x.kind === kind).entryIds = ['AUDIO'];
+    state.catalog.evidence.find(x => refs.includes(x.id) && x.kind === kind).entryIds = ['AUDIO'];
     state.catalog.interactions.push({ plantId: 'PLANT-01', zombieId: 'ZOMBIE-01', rule: 'fixture-only', evidenceRefs: refs });
     assert(validate(state.reference, state.catalog).some(x => x.includes(`interaction evidence coverage ${kind}`)));
   }

@@ -1,6 +1,6 @@
 # 参考观察与验收契约
 
-本契约定义补齐目录的证据格式。当前没有参考玩法测量结果；所有示例均是字段说明。机器目录见 [catalog.json](../../benchmarks/classic-pc/reference/catalog.json)。
+本契约定义补齐目录的证据格式。当前目录登记一条豌豆射手图鉴显示费用 `almanac_displayed_cost = 100 / sun / exact`；原PNG须在本地ignored证据路径实际可读，来源与未知边界见[准入记录](../research/2026-10-17-peashooter-display-fact-admission.md)。这不证明实际扣费，PLANT-01与VALUE-PLANTS整项仍待核实，目录未冻结；以下字段示例仍为格式说明。机器目录见 [catalog.json](../../benchmarks/classic-pc/reference/catalog.json)。
 
 ## 状态语义
 

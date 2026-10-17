@@ -6,3 +6,4 @@ runs/
 .cosmos/
 *.log
 dist/
+/benchmarks/classic-pc/reference/evidence/local/

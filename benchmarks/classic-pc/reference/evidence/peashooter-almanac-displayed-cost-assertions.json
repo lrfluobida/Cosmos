@@ -1,0 +1,236 @@
+{
+  "formatVersion": "cosmos-peashooter-displayed-cost-assertions/1",
+  "referenceId": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+  "recordedAt": "2026-10-17T11:08:08.300Z",
+  "recordedAtMeaning": "Time of this read-only assertion execution and report creation, not screenshot capture time.",
+  "captureTime": null,
+  "scope": "One almanac displayed cost only; independent review of the fixed catalog diff is required before publication.",
+  "image": {
+    "path": "evidence/local/peashooter-card-802061930a0f.png",
+    "sha256": "802061930a0fa895b52028b197c372ca31581106383e4b84df201f63df9d81f0",
+    "bytes": 112374,
+    "width": 301,
+    "height": 456,
+    "transformations": []
+  },
+  "sourceAssociation": "User supplied the card in direct response to the request for Almanac -> Peashooter in the already specified local reference installation. The card itself does not show the executable version or full window.",
+  "normalInputRecord": {
+    "process": "Requested the named reference almanac card; user uploaded this card; reader opened the preserved PNG and recorded visible fields.",
+    "clickSequence": null,
+    "fullWindow": false,
+    "rosterPosition": null,
+    "unlockPrerequisites": null,
+    "preconditions": "The user previously reported windowed mode and unlocked modes; these reports and the exact archive/profile state were not independently established by this card."
+  },
+  "manualObservation": {
+    "reader": "reference_display_fact_implementer",
+    "observedAt": "2026-10-17T11:06:41Z",
+    "method": "Actual view_image of the preserved original PNG; manual visual reading, not OCR or a programmatic image interpretation.",
+    "referenceName": "豌豆射手",
+    "costLabel": "花费",
+    "costText": "100",
+    "displayedCost": 100,
+    "damageText": "中等",
+    "rechargeText": "短"
+  },
+  "visualReview": {
+    "reviewer": "reference_cost_evidence_reviewer",
+    "status": "APPROVED_VISUAL_DISPLAY_FACT",
+    "recordSha256": "087179b684e49cd9d34474f98117dfc438849c3c27b4e9d5582d3e93666da5d0",
+    "scope": "Pre-registration visual review only; not final production admission."
+  },
+  "intakeRecordSha256": "46c9bcbd1dc619853e4bd779ac0703a71b4bd5dc91ed97759ff9e4fa61faefab",
+  "entityBinding": {
+    "entityId": "PLANT-01",
+    "assignedBy": "reference_display_fact_implementer",
+    "method": "Manual assignment of previously unbound stable catalog ID to the visible name and existing static identity.",
+    "referenceName": "豌豆射手",
+    "seedType": 0,
+    "staticKey": "PEASHOOTER",
+    "idImpliesRosterOrder": false,
+    "rosterPosition": null,
+    "unlockPrerequisites": null,
+    "entryStatus": "needs_reference"
+  },
+  "measurement": {
+    "id": "peashooter-almanac-displayed-cost",
+    "entryId": "VALUE-PLANTS",
+    "entityId": "PLANT-01",
+    "metric": "almanac_displayed_cost",
+    "value": 100,
+    "unit": "sun",
+    "tolerance": "exact",
+    "unitBasis": "The card directly labels 花费. Sun semantics reuse the independently reviewed type0 local static cost consumer chain; no runtime debit was observed."
+  },
+  "reusedStaticEvidence": {
+    "publishedCommit": "f6659a98ca19f6639e73b5a03ea0b42ea6ef7086",
+    "report": {
+      "path": "docs/research/2026-10-17-reference-plant-cost-consumers.md",
+      "sha256": "4bff414549f9680e153433c6e930806dac921cb7d7565b47f738e7007ae6b4b9"
+    },
+    "plantTable": {
+      "path": "benchmarks/classic-pc/reference/static-plants.json",
+      "sha256": "99b5ff05ddbc05ad144ba333119d74c510f871a1995db620ec2bc394961f4a07",
+      "type": 0,
+      "costWordIndex": 4,
+      "cost": 100
+    },
+    "nameMapping": {
+      "path": "benchmarks/classic-pc/reference/name-mappings.json",
+      "sha256": "52240eb9b06636903e53913fda14f4968a31e17935f0c3695d7f44d7129cc9c7",
+      "type": 0,
+      "key": "PEASHOOTER",
+      "name": "豌豆射手"
+    },
+    "scope": "Existing table, name mapping and local consumer research reused. Only current executable identity and type0/cost fields were reread; no table re-extraction, UTF-16 resource read or control-flow reanalysis."
+  },
+  "currentStaticRead": {
+    "executable": "C:/Program Files (x86)/PlantsVsZombies/PlantsVsZombies.exe",
+    "bytes": 3838152,
+    "sha256": "c04c524c6a3720bce00b7f2900c61d5810534dabf9926641c12921f53ac29f8d",
+    "typeFileOffset": "0x36b000",
+    "typeValue": 0,
+    "costFileOffset": "0x36b010",
+    "costBytesHex": "64000000",
+    "costValue": 100,
+    "readOnly": true
+  },
+  "assertions": [
+    {
+      "id": "original-and-deployed-image-bytes-equal",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "id": "image-sha256",
+      "actual": "802061930a0fa895b52028b197c372ca31581106383e4b84df201f63df9d81f0",
+      "expected": "802061930a0fa895b52028b197c372ca31581106383e4b84df201f63df9d81f0",
+      "passed": true
+    },
+    {
+      "id": "image-byte-length",
+      "actual": 112374,
+      "expected": 112374,
+      "passed": true
+    },
+    {
+      "id": "png-signature",
+      "actual": "89504e470d0a1a0a",
+      "expected": "89504e470d0a1a0a",
+      "passed": true
+    },
+    {
+      "id": "png-first-chunk",
+      "actual": "IHDR",
+      "expected": "IHDR",
+      "passed": true
+    },
+    {
+      "id": "png-ihdr-dimensions",
+      "actual": [
+        301,
+        456
+      ],
+      "expected": [
+        301,
+        456
+      ],
+      "passed": true
+    },
+    {
+      "id": "intake-record-sha256",
+      "actual": "46c9bcbd1dc619853e4bd779ac0703a71b4bd5dc91ed97759ff9e4fa61faefab",
+      "expected": "46c9bcbd1dc619853e4bd779ac0703a71b4bd5dc91ed97759ff9e4fa61faefab",
+      "passed": true
+    },
+    {
+      "id": "visual-review-record-sha256",
+      "actual": "087179b684e49cd9d34474f98117dfc438849c3c27b4e9d5582d3e93666da5d0",
+      "expected": "087179b684e49cd9d34474f98117dfc438849c3c27b4e9d5582d3e93666da5d0",
+      "passed": true
+    },
+    {
+      "id": "fixed-reference-id",
+      "actual": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+      "expected": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+      "passed": true
+    },
+    {
+      "id": "exe-byte-length",
+      "actual": 3838152,
+      "expected": 3838152,
+      "passed": true
+    },
+    {
+      "id": "exe-sha256",
+      "actual": "c04c524c6a3720bce00b7f2900c61d5810534dabf9926641c12921f53ac29f8d",
+      "expected": "c04c524c6a3720bce00b7f2900c61d5810534dabf9926641c12921f53ac29f8d",
+      "passed": true
+    },
+    {
+      "id": "exe-matches-fixed-reference",
+      "actual": "c04c524c6a3720bce00b7f2900c61d5810534dabf9926641c12921f53ac29f8d",
+      "expected": "c04c524c6a3720bce00b7f2900c61d5810534dabf9926641c12921f53ac29f8d",
+      "passed": true
+    },
+    {
+      "id": "exe-type-at-0x36b000",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "id": "exe-cost-bytes-at-0x36b010",
+      "actual": "64000000",
+      "expected": "64000000",
+      "passed": true
+    },
+    {
+      "id": "exe-cost-dword-at-0x36b010",
+      "actual": 100,
+      "expected": 100,
+      "passed": true
+    },
+    {
+      "id": "existing-type0-static-cost",
+      "actual": 100,
+      "expected": 100,
+      "passed": true
+    },
+    {
+      "id": "existing-type0-key",
+      "actual": "PEASHOOTER",
+      "expected": "PEASHOOTER",
+      "passed": true
+    },
+    {
+      "id": "existing-key-name",
+      "actual": "豌豆射手",
+      "expected": "豌豆射手",
+      "passed": true
+    },
+    {
+      "id": "manually-transcribed-name-matches-existing-name",
+      "actual": "豌豆射手",
+      "expected": "豌豆射手",
+      "passed": true
+    },
+    {
+      "id": "manually-transcribed-display-matches-static-value",
+      "actual": 100,
+      "expected": 100,
+      "passed": true
+    }
+  ],
+  "machineAssertionsPassed": true,
+  "limits": [
+    "No actual planting debit or balance change observed.",
+    "No recorded click trace, screenshot capture time, roster position or unlock prerequisite.",
+    "中等 and 短 remain visible categories; no numeric damage, cooldown seconds or firing interval is derived.",
+    "The image does not independently prove executable identity; association uses the request and direct user reply context.",
+    "No full-mode or cross-edition equivalence, complete reference freeze, generated game or human acceptance is established."
+  ],
+  "modelCalls": 0,
+  "paidMicroCny": 0
+}

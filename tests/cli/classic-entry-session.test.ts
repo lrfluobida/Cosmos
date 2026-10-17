@@ -12,6 +12,7 @@ import { createProductHost } from '../../src/runtime/entrypoint-host.ts';
 import { syntheticClassicSource } from '../runtime/generic-persistent-host.fixture.ts';
 
 async function productDraft(t: test.TestContext, inject = false, classicSourceRoot?: string) {
+  classicSourceRoot ??= (await syntheticClassicSource(t, true)).sourceRoot;
   const root = await mkdtemp(join(tmpdir(), 'cos104-draft-')), controller = await IntakeController.create({ root, runId: 'fixture', ledgerId: 'fixture', specVersion: '1.0',
     interviewTaskId: 'intake', maxRequests: 1, allocations: [{ taskId: 'intake', amountMicroCny: 100 }] });
   t.after(async () => { await controller.close(); await removeOwned(tmpdir(), root); });

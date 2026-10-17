@@ -2,11 +2,12 @@
 
 更新时间：2026-10-17
 
-## COS105首条图鉴显示费用事实已登记，计划待独审
+## COS105首条图鉴显示费用事实数据候选完成，待最终独审
 
 - [COS105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，原生父[COS01 / #2](https://github.com/lrfluobida/Cosmos/issues/2)，父子项未勾选；#2直接1、根#1直接100、总任务105。专职作者 `reference_display_fact_implementer`、独立reviewer `reference_cost_evidence_reviewer`、唯一merger `batch_reference_display_merger`，见[准入计划](docs/plans/2026-10-17-peashooter-display-fact-admission.md)。
-- 用户原PNG及独立视觉结论 `APPROVED_VISUAL_DISPLAY_FACT` 支持豌豆射手图鉴显示“花费100”；sun语义复用已审静态链。本片仅计划/登记，计划独审后才部署ignored原图并形成 `almanac_displayed_cost = 100 / sun / exact` 候选，最终事实独审后才合入发布。
-- 生产measurements此时仍为0；PLANT-01稳定ID尚未实施有限绑定，位置/解锁与实际扣费未知。230/221/9、provisional/未冻结、COS01/fullclassic/G4/human未完成保持；0模型0费用，无UI/native/actual/paid及C16操作，原预算保持。
+- 计划 `986f5c7db6a9562621fc0c644c3b363200267a97` 已独审 `APPROVED_ADMISSION_PLAN`，Root批准数据实施。用户原PNG同bytes部署为ignored本地输入；PLANT-01人工有限绑定，一条 `almanac_displayed_cost = 100 / sun / exact` 及双类直接证据已形成候选，待固定SHA事实独审后由唯一merger合入发布。见[准入研究](docs/research/2026-10-17-peashooter-display-fact-admission.md)。
+- 原consumer实际读取100及两文件hash、独立缺PNG副本ENOENT拒绝；validator0、require-frozen1。资料增长夹具先40项RED，隔离后39/40及affected3/3重叠复用；原一次无raw失败未复现，未宣称根因修复。Root另准validator测试两行定位自身fixture，15/16→16/16；npm typecheck0，额外strict五诊断由父986相同命令确认为既有。raw索引为作者worktree `.cosmos/cos105-admission/verification-index.json`。
+- 本候选measurements为1，主线发布仍待最终独审；PLANT-01与VALUE-PLANTS整项needs_reference，位置/解锁与实际扣费未知。230/221/9、provisional/未冻结、COS01/fullclassic/G4/human未完成保持；0模型0费用，无UI/native/actual/paid及C16操作，原预算保持。
 
 ## COS01费用消费者静态研究进行中
 

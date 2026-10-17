@@ -8,15 +8,17 @@ import { selectClassicEntry, requireClassicEntrySelection, createClassicEntryPla
 import { createGameDesignCheck } from '../../src/runtime/entrypoint-design-check.ts';
 import { genericDesign } from '../acceptance/generic-persistent.fixture.ts';
 
-async function source(t: test.TestContext) {
+async function source(t: test.TestContext, empty = false) {
   const root = await mkdtemp(join(tmpdir(), 'cos104-input-')); t.after(() => removeOwned(tmpdir(), root));
-  await cp(new URL('../../benchmarks/classic-pc/reference/', import.meta.url), root, { recursive: true });
+  for (const file of ['reference.json', 'catalog.json']) await cp(new URL(`../../benchmarks/classic-pc/reference/${file}`, import.meta.url), join(root, file));
   const catalog = JSON.parse(await readFile(join(root, 'catalog.json'), 'utf8'));
+  for (const row of catalog.entries) row.evidenceRefs = [];
   const entity = catalog.entries.find((row: any) => row.category === 'plants');
+  entity.label = 'Synthetic plant fixture'; entity.referenceName = null; delete entity.referenceBinding;
   const measurement = { id: 'synthetic-cost', entryId: 'VALUE-PLANTS', entityId: entity.id, status: 'verified_for_reference', value: 7,
     unit: 'synthetic coins', metric: 'synthetic cost', method: 'SOURCE fixture only', tolerance: 'exact', evidenceRefs: ['synthetic-input', 'synthetic-rule'] };
-  catalog.measurements = [measurement];
-  catalog.evidence = ['normal_input', 'deterministic_rule'].map((kind, index) => ({ id: measurement.evidenceRefs[index], kind, referenceId: catalog.referenceId,
+  catalog.measurements = empty ? [] : [measurement];
+  catalog.evidence = empty ? [] : ['normal_input', 'deterministic_rule'].map((kind, index) => ({ id: measurement.evidenceRefs[index], kind, referenceId: catalog.referenceId,
     status: 'pass', entryIds: [measurement.entryId, measurement.entityId], path: `evidence/synthetic-${index}.txt`, observedAt: '2026-10-17T00:00:00Z',
     preconditions: 'Synthetic SOURCE fixture', steps: 'Click fixture control', expected: '7', observed: '7' }));
   await mkdir(join(root, 'evidence'));
@@ -25,8 +27,8 @@ async function source(t: test.TestContext) {
   await save(); return { root, catalog, measurement, save };
 }
 
-test('empty production measurements bind an explicit non-executable selection', async () => {
-  const selected = await selectClassicEntry();
+test('empty fixture measurements bind an explicit non-executable selection', async t => {
+  const { root } = await source(t, true), selected = await selectClassicEntry(root);
   assert.equal(selected.measurement, null); assert.equal(selected.reason, 'no_reference_measurements');
   assert.deepEqual(selected.evidence, []); assert.match(selected.catalogSha256, /^[a-f0-9]{64}$/);
 });
