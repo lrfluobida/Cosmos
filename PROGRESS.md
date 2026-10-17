@@ -2,6 +2,10 @@
 
 更新时间：2026-10-17
 
+## COS01费用消费者静态研究进行中
+
+- [研究记录](docs/research/2026-10-17-reference-plant-cost-consumers.md) 复用既有植物表和名称证据，补充本机 type 0 的基础费用、当前费用与扣减消费者关系。候选为100 sun / exact，状态 `candidate / deterministic-only`；正常输入观察及catalog对象绑定仍待补，研究文档待独立审查。生产measurements仍为空，COS01与完整经典验收未完成。
+
 ## COS104经典条目正常输入源码已审发布，本片SOURCE范围已关闭
 
 - [COS104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，id5896760064，已closed(completed)，父[COS14 / #15](https://github.com/lrfluobida/Cosmos/issues/15)仍open、对应子项已勾选；根#1直接100、#15直接1且完成1、总任务104。Root已精确读回[完成记录](https://github.com/lrfluobida/Cosmos/issues/105#issuecomment-6232469977)与关闭/父勾选；既有COS103完成状态和C16失败闭账事实保持。
