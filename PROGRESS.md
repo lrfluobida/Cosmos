@@ -1,19 +1,27 @@
 # Cosmos 进度
 
-更新时间：2026-10-16
+更新时间：2026-10-17
 
-## COS102固定C16组合源码已审集成，实际验证待授权
+## COS103恢复源码已审集成，C16两锁恢复与账务闭环完成
 
-- [COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；Root已精确GET核证，#17直接子项2，根#1直接子项仍100，任务总数102。
+- [COS103 / #104](https://github.com/lrfluobida/Cosmos/issues/104)，id5896315224，已原生挂父[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，父项未勾选；根#1直接子项100、#17直接2、#103直接1、总任务103。#104先保持open，最终发布后由Root关闭。
+- 设计`1d400d75919eca0100b05488534c33e4ef6a4d81`经`cos102_recovery_reviewer`批准；源码`15488a9c41677a23566c8a4d24f7addd0f5224ff`经`previous_boot_recovery_reviewer`独审`APPROVED_SOURCE_SCOPED`、无P1/P2。唯一merger `batch_previous_boot_merger`已合入本地main `402cfb56b44e211147014691b56b49ac53dc2393`，tree与批准源码一致；尚待文档组合发布。见[spec](docs/specs/previous-boot-owner-recovery.md)和[plan](docs/plans/2026-10-17-previous-boot-owner-recovery.md)。
+- 复用最终guard修正前49/49、最终affected9/9（含重叠，不相加）、默认恢复24/24及typecheck/build0。B3仅为TEMP原2f runtime、真实identity/now与独立Node的维护/accounting组合证据。默认recover保持，不kill复用PID，不是游戏通过证据。
+- Root先恢复registry/controller两锁，原157/1085字节精确归档；随后原main2f accountingOnly API于`2026-10-17T08:38:18.674Z`记录`deadline` stop并close，原deadline保持`2026-10-16T12:53:14.977Z`。一次closure22后revision3334、120 closures/22 audits，释放未用分配19734278µ（非费用退款），shared allocated93354297µ/unallocated56645703µ；C16 51请求/1265722µ、shared766请求/18166722µ、reserved/unknown0保持。
+- 独审`PASS_C16_INTERRUPTED_RECOVERY_AND_ACCOUNTING_CLOSED`确认`08:42:49Z`无writer/ports/owner/guard，case剩余9187文件metadata不变，shared仅预期账务/锁/closure来源变化，Root已解冻main。最终snapshot SHA256 `34a6ba11f4e96ad1c87a6a0cfb54ae6890e07036500af1a19660e9b45aeb4fef`。C16仍consumed/incomplete，无新paid或重跑授权；详见[实际中断、恢复与闭账记录](docs/research/2026-10-17-cos102-interrupted-actual.md)。
+
+## COS102源码已审集成，C16实际中断且账务已收口
+
+- [COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，id5881517542，已原生挂父COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)、未勾选；其恢复子项COS103/#104已原生挂接。Root已精确GET核证，#17直接子项2，#103直接1，根#1直接子项仍100，任务总数103。
 - 设计`73aceb8918d49462f6339be599f7952ae74cfbfe`经`cos102_design_reviewer`最终`APPROVED_DESIGN`，无P1/P2；Root批准设计，唯一merger `batch_c14_cos92_merger`合入`9c959575159ed0b8c2d3c052dc6db23f0caf2feb`。除审批/登记元数据与Root批准的Task A短fixture closure计数、Task B短历史helper测试分层澄清外，[spec](docs/specs/cos102-transfer-case16.md)和[plan](docs/plans/2026-10-16-cos102-transfer-case16.md)契约正文保持批准字节；完整closure21仍由Task C覆盖。
-- 固定C15/C16共享受限内部生命周期，C16仍用原ledger5、¥21分配/¥5实际硬帽及90分钟；C15原源码READY与failed/consumed/closed事实保持。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施；A/B/C组合已独审并合入，标记`TRANSFER_CASE_SIXTEEN_SOURCE_READY` / `source-integrated`；实际preflight、actual/paid仍未授权，本批仅源码组合验证，COS16/COS18、fullclassic/human未完成。
+- 固定C15/C16共享受限内部生命周期，C16仍用原ledger5、¥21分配/¥5实际硬帽及90分钟；C15原源码READY与failed/consumed/closed事实保持。Root已[公开授权](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6212342953)免费SOURCE实施；A/B/C组合已独审并合入，标记`TRANSFER_CASE_SIXTEEN_SOURCE_READY` / `source-integrated`。随后生产715 preflight在保留源码mtime缺口下获批，单次actual已消费：v1正式build通过，start21步20通过/1失败；原repair的v2正式build通过但start仅plan、无report。v1缺少board testid、v2已补属性仅为静态事实，未证明v2浏览器通过。220/62、独立DeepSeek review、promotion、原deadline内clean final及COS16/COS18、fullclassic/human未完成。
 
 - Task A候选`f12fde1e668a420149b2a60bfe0cf8de0108e948`经`cos102_budget_reviewer`独审`APPROVED_TASK_A`、无P1/P2；Root已核[公开批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213202409)和issue内A checklist勾选。复用budget8/8（15830.3475ms）、legacy host1/1（10300.7357ms）、typecheck/strict0，证据`$TEMP/cos102-task-a-evidence/summary.json`；短fixture计数5/25/5；完整host与SOURCE23/115/21由后续Task C证据覆盖，A已随批准组合合入。
 
 - Task B候选`e17a4d4a95a16d1b9ca6d3a810f6ea70f92ea3a3`经`cos102_entry_reviewer`独审`APPROVED_TASK_B`、无P1/P2，A `f12fde1`祖先保持；Root已核[公开批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6213578097)和issue内B checklist勾选。复用B17/17、affected9/9、C15 completion5/5（不相加）、strict/typecheck0；reviewer核TS capture两case各181files，实际JS及完整SOURCE由后续Task C证据覆盖。证据目录`E:/CodexData/.codex/worktrees/cos-04-media/Cosmos/.cosmos/cos102-b-evidence`，A/B已随Task C最终独审组合统一合入。
 
 - 最终候选`d5a7a2cd94d928f9bccc78086508c5862f1954c5`包含A `f12fde1`/B `e17a4d4`精确祖先，C由`cos102_pipeline_reviewer`独审`APPROVED_TASK_C`、无finding，Root已[公开批准组合源码](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6214075389)。唯一merger合入`cfc7feffb176981f057b6bc7f2b66962039229e8`，20个实现/测试文件与批准候选逐字节一致；主线typecheck/build0、core/entry/只读C15共享源码闭包短代表3/3、0skip、6540.7856ms，日志`$TEMP/cos102-merge-{typecheck,build}.log`及`$TEMP/cos102-merge-focused.tap`。
-- 复用C唯一完整SOURCE1/1、0skip、test688395.4278ms/runner692664.1714ms：真实factory/Pi/build/promotion接fake provider/browser，8段176 checks、4媒体字段、223合成步骤记录、8张合法PNG独立review approved、精确C16 game v1 promotion，2次fake请求20µ、unknown/reserved0。cleanup endpoint `10:57:12.871Z`、观察`.926Z`早于原deadline `12:15:54.928Z`；独立`11:00:26–28Z`后核无进程/ports/locks，T81 snapshot原字节/rev390/105请求/C8和6保护文件、refs/input恢复，本次mtime差0ns。一般rewrite断言仅<1ms，原host日志过强mtime说法、旧mtime缺口与只读日期诊断更正均保留；证据索引`$TEMP/cos102-c-evidence-index.json`。这不是实际715/220/62或fullclassic/human通过；#103仍open，未执行新preflight/actual/paid。
+- 复用C唯一完整SOURCE1/1、0skip、test688395.4278ms/runner692664.1714ms：真实factory/Pi/build/promotion接fake provider/browser，8段176 checks、4媒体字段、223合成步骤记录、8张合法PNG独立review approved、精确C16 game v1 promotion，2次fake请求20µ、unknown/reserved0。cleanup endpoint `10:57:12.871Z`、观察`.926Z`早于原deadline `12:15:54.928Z`；独立`11:00:26–28Z`后核无进程/ports/locks，T81 snapshot原字节/rev390/105请求/C8和6保护文件、refs/input恢复，本次mtime差0ns。一般rewrite断言仅<1ms，原host日志过强mtime说法、旧mtime缺口与只读日期诊断更正均保留；证据索引`$TEMP/cos102-c-evidence-index.json`。这些仍是SOURCE历史证据；实际结果独立记录于上述研究文档，#103保持open/incomplete，没有自动重试或新paid授权。
 
 ## COS101源码已审；实际C15被UTC守卫误杀，已停止并闭账
 

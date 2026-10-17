@@ -10,7 +10,7 @@
 
 ---
 
-状态：2026-10-17，仅设计/计划草案；SOURCE、实际恢复与账务写入尚未由本计划授权。规格：[上次系统启动遗留 owner 的受控恢复](../specs/previous-boot-owner-recovery.md)。拟挂 COS102/#103 的恢复子任务，稳定 ID 待 Root 登记；本次不改 mapping、PROGRESS、CONTEXT 或 main。
+状态：2026-10-17，[COS103 / #104](https://github.com/lrfluobida/Cosmos/issues/104)已原生挂父COS102/#103。设计`1d400d75919eca0100b05488534c33e4ef6a4d81`经`cos102_recovery_reviewer`批准；源码`15488a9c41677a23566c8a4d24f7addd0f5224ff`经`previous_boot_recovery_reviewer`独审`APPROVED_SOURCE_SCOPED`、无P1/P2。实际两锁恢复、原API stop/close与closure22已完成，最终后核PASS，Root已解冻main；唯一merger `batch_previous_boot_merger`合入本地main `402cfb56b44e211147014691b56b49ac53dc2393`，尚待文档组合发布，#104先保持open。规格：[上次系统启动遗留 owner 的受控恢复](../specs/previous-boot-owner-recovery.md)；[公开结果](https://github.com/lrfluobida/Cosmos/issues/104#issuecomment-6231925739)。下列清单保留设计时步骤，执行事实见末尾记录。
 
 ## 角色、工作树与范围
 
@@ -126,3 +126,11 @@ apply:   acquireExistingRecoveryGuard → rereadExactOwnerAndSource
 ## 本次设计提交的验证
 
 本次只核对两份文档 UTF-8/中文、相对链接、文件范围及 `git diff --check`，不运行代码测试、不访问凭据、不恢复锁、不写 ledger、不修改 main/push。独立设计 reviewer 由 Root 在收到 exact SHA 后安排。
+
+## 2026-10-17已审实施与实际结果
+
+上述提交边界是设计阶段历史。SOURCE证据索引为`E:/CodexData/.codex/worktrees/cos-04-media/Cosmos/.cosmos/evidence/cos103/verification-index.json`：最终guard修正前49/49、最终affected9/9（含重叠，不相加）、默认恢复24/24，最终typecheck/build0。B3使用TEMP原2f runtime代码、真实identity/now与独立Node，证明维护/accounting契约，不代表实际游戏。默认recover语义保持，无kill。
+
+Root使用已审源码维护registry/controller两锁，原157/1085字节精确归档；随后原`main@2f84eb3`在独立accountingOnly进程中不传now，于`2026-10-17T08:38:18.674Z`记录`deadline` stop并close，原deadline保持。一次closure22将revision3333推进到3334、120 closures/22 audits，释放未用分配19734278µ；C16 51请求/1265722µ、shared766请求/18166722µ和reserved/unknown0保持。
+
+最终`PASS_C16_INTERRUPTED_RECOVERY_AND_ACCOUNTING_CLOSED`确认case剩余9187文件metadata不变、shared仅预期变化、`08:42:49Z`无writer/ports/owner/guard；Root已解冻。源码本地合入的tree等于已审154，发布SHA待唯一merger记录。C16仍consumed/incomplete、v1失败/v2缺report，repair running仅保留原历史；不授权新paid或重跑，COS16/COS18、完整经典和human保持。精确operation/quote/decision/receipt/snapshot与时区见[C16研究记录](../research/2026-10-17-cos102-interrupted-actual.md)。

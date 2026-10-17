@@ -1,12 +1,14 @@
 # 上次系统启动遗留 owner 的受控恢复
 
-状态：2026-10-17 设计草案，待独立设计审查。当前授权仅写设计与计划；SOURCE 实施、实际 owner 恢复及账务写入须由 Root 分别登记批准。本项拟作为 [COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103) 的恢复子任务，承接 [COS-12](cosmos-issues.md)；尚无独立稳定任务 ID，不预设新 issue 编号。
+状态：2026-10-17，[COS103 / #104](https://github.com/lrfluobida/Cosmos/issues/104)，id5896315224，已原生挂父[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)、父项未勾选。设计`1d400d75919eca0100b05488534c33e4ef6a4d81`经`cos102_recovery_reviewer`批准；源码`15488a9c41677a23566c8a4d24f7addd0f5224ff`经`previous_boot_recovery_reviewer`审查为`APPROVED_SOURCE_SCOPED`、无P1/P2。两锁实际恢复、原API deadline stop/close、closure22及独立`PASS_C16_INTERRUPTED_RECOVERY_AND_ACCOUNTING_CLOSED`完成，Root已解冻main。唯一merger `batch_previous_boot_merger`合入本地main `402cfb56b44e211147014691b56b49ac53dc2393`，source-integrated；尚待文档组合发布，#104保持open，发布后由Root关闭。见[公开结果](https://github.com/lrfluobida/Cosmos/issues/104#issuecomment-6231925739)与[C16研究记录](../research/2026-10-17-cos102-interrupted-actual.md)。
+
+本规格正文保留已审设计契约与设计时事实；当前结果以上述状态及研究记录为准。最终guard修正前全套49/49、最终affected9/9（重叠不相加）、默认恢复24/24与typecheck/build0按原证据复用。B3是TEMP原2f runtime、真实identity/now及独立Node组合，不是实际游戏。默认recover不变、未kill复用PID；C16仍v1失败/v2未完成，COS16/COS18、完整经典和human未提升，无新付费授权。
 
 ## 1. 目标与已定位的缺口
 
 为已证明属于本机上次完整启动的两种 v1 owner 锁提供一个可信 operator 维护入口。只解除该精确 owner，保留原始 bytes 与审计，随后由原 API 收口原 C16 的账务。默认 `recover` 继续按原规则拒绝活 PID、未解决 spawn intent 和 `untrackedWriters`。
 
-固定执行来源为 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`，原仓库 `E:/develop/Cosmos` 的 `main` 保持该 SHA 且 clean。C16 已消耗一次 actual，原 claim 为 `2026-10-16T11:23:14.977Z`，deadline 为 `2026-10-16T12:53:14.977Z`。Root 已保全 revision 3332：C16 window 的 `stopReason` 为 null，repair 尚未有完整结果；snapshot 顶层另有更早的历史 stop，不能把两者混为一项。51 个 C16 请求已结算 1265722 micro-CNY，reserved/unknown 为 0。v1 build 通过、start 第 015 步 board-visible 失败；唯一 repair 的 v2 build 通过，最后 start plan 无 report，watch-result/host-result 缺失。没有证据宣称 C16 完整成功。
+设计时固定执行来源为 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`，原仓库 `E:/develop/Cosmos` 的 `main` 保持该 SHA 且 clean。C16 已消耗一次 actual，原 claim 为 `2026-10-16T11:23:14.977Z`，deadline 为 `2026-10-16T12:53:14.977Z`。Root 已保全 revision 3332：C16 window 的 `stopReason` 为 null，repair 尚未有完整结果；snapshot 顶层另有更早的历史 stop，不能把两者混为一项。51 个 C16 请求已结算 1265722 micro-CNY，reserved/unknown 为 0。v1 build 通过、start 第 015 步 board-visible 失败；唯一 repair 的 v2 build 通过，最后 start plan 无 report，watch-result/host-result 缺失。没有证据宣称 C16 完整成功。
 
 | 原路径（相对原仓库） | 保全锁事实 | 默认恢复为何拒绝 |
 | --- | --- | --- |
