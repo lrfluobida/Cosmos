@@ -150,6 +150,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-01 · P0 · 固定参考来源与完整验收清单
 
+- 原生子任务 [COS-105 / #106](https://github.com/lrfluobida/Cosmos/issues/106) 已登记，父子项未勾选、#2直接1；按[准入计划](../plans/2026-10-17-peashooter-display-fact-admission.md)先独审计划，再登记用户豌豆射手图鉴显示费用的有限事实。当前生产measurements仍为空，COS01完整冻结条件保持。
 - 名称静态证据：`b850459` 经 `reference_mapping_docs_reviewer` 独立APPROVED并合入 `b94d0d4`；[名称对应报告](../research/2026-10-15-reference-name-mapping.md)及数据保存87条定义名称记录、167个选定资源标签。用户报告窗口化及全部模式已解锁，仍缺可读画面与正常输入证据；catalog230/221、provisional/未冻结及#2 open保持。
 - 本次进展：静态基础值证据 `fdd64c8` 已独立审查并合入 `80d4d75`；记录 53 行 × 9 DWORD，字段语义与源码推导分开。53 行不代表可选植物分母，launchRate 不按秒解释；catalog 仍为 230 项、221 项待核实，未冻结，#2 保持 open。
 - 后续静态证据：Zombie 定义表 `e292b49` 已获独立批准并合入 `73cf4fe`，34 行 × 7 DWORD 原始值与源码语义推导分列；34 含特殊项/Zombatar，不是经典分母。mZombieValue 不是 HP，基础关卡/波次/权重不证明实际出怪；原 catalog、未知项及未冻结状态保持不变。
@@ -1599,6 +1600,18 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 主机固定第一条合格exact事实，设计只提供正常输入与可见文本定位，原clean delivery内独立调用一次原runner；新raw、完整目录partial报告和参考证据进入原review/journal，旧两政策保持。当前生产measurements为空，明确未执行，不填假事实。SOURCE仅TEMP synthetic参考/小UI及0模型0费用；不实施完整手工游戏、不改实际C16、不新增paid窗口。COS01/COS14/COS15/COS18、完整classic、参考冻结与human均未完成，原预算与最终目标保持。
 
 稳定任务 ID：COS-104
+
+### COS-105 · 准入首条真实图鉴显示费用事实
+
+[COS105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，原生父COS01/#2 id5650981929，父子项未勾选；#2直接1、根#1直接100、总任务105。实施基线 `f6659a98ca19f6639e73b5a03ea0b42ea6ef7086`；当前计划待独审，数据尚未实施。完整执行边界见issue与[准入计划](../plans/2026-10-17-peashooter-display-fact-admission.md)。
+
+用户直接响应指定本机游戏→图鉴→豌豆射手的截图请求，原PNG为301×456、112374 bytes，SHA256 `802061930a0fa895b52028b197c372ca31581106383e4b84df201f63df9d81f0`。独立视觉 `APPROVED_VISUAL_DISPLAY_FACT` 仅支持可见名称/花费100；伤害中等、恢复时间短只保留原文。sun语义复用已审本机静态链，版本关联来自请求/回复上下文，拍摄时间、点击轨迹、完整窗口和格位未知。
+
+专职作者 `reference_display_fact_implementer`、独立reviewer `reference_cost_evidence_reviewer`、唯一merger `batch_reference_display_merger`。先计划/登记固定提交独审；批准后人工有限绑定PLANT-01（不是图鉴序号），增加双类同reference证据和一条 `almanac_displayed_cost = 100 / sun / exact`。原图只在同sourceRoot的ignored evidence/local/，不进Git/GitHub或游戏assets；缺图时原consumer必须拒绝准入。最终事实候选还须固定SHA独审、merger部署同hash原图后合入发布。
+
+验收复用原validator和COS104只读consumer：结构通过、require-frozen继续拒绝、实际选出100与两文件hash、独立缺图副本拒绝。资料增长如影响空/合成fixture，先留失败再在已列四测试文件内最小隔离，不改runtime或降断言。PLANT-01和VALUE-PLANTS整项needs_reference、230/221/9、provisional/未冻结保持；实际扣费/数值damage/cooldown/解锁及完整classic/human不获证明。0模型0费用，无UI/native/actual/C16操作，原共享¥150/正式¥20012h/目标¥1006h保持。
+
+稳定任务 ID：COS-105
 
 ## 5. 任务与上下文包模板
 

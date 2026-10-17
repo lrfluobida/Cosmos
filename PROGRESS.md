@@ -2,6 +2,12 @@
 
 更新时间：2026-10-17
 
+## COS105首条图鉴显示费用事实已登记，计划待独审
+
+- [COS105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，原生父[COS01 / #2](https://github.com/lrfluobida/Cosmos/issues/2)，父子项未勾选；#2直接1、根#1直接100、总任务105。专职作者 `reference_display_fact_implementer`、独立reviewer `reference_cost_evidence_reviewer`、唯一merger `batch_reference_display_merger`，见[准入计划](docs/plans/2026-10-17-peashooter-display-fact-admission.md)。
+- 用户原PNG及独立视觉结论 `APPROVED_VISUAL_DISPLAY_FACT` 支持豌豆射手图鉴显示“花费100”；sun语义复用已审静态链。本片仅计划/登记，计划独审后才部署ignored原图并形成 `almanac_displayed_cost = 100 / sun / exact` 候选，最终事实独审后才合入发布。
+- 生产measurements此时仍为0；PLANT-01稳定ID尚未实施有限绑定，位置/解锁与实际扣费未知。230/221/9、provisional/未冻结、COS01/fullclassic/G4/human未完成保持；0模型0费用，无UI/native/actual/paid及C16操作，原预算保持。
+
 ## COS01费用消费者静态研究进行中
 
 - [研究记录](docs/research/2026-10-17-reference-plant-cost-consumers.md) 复用既有植物表和名称证据，补充本机 type 0 的基础费用、当前费用与扣减消费者关系。候选为100 sun / exact，状态 `candidate / deterministic-only`；正常输入观察及catalog对象绑定仍待补，研究文档待独立审查。生产measurements仍为空，COS01与完整经典验收未完成。
