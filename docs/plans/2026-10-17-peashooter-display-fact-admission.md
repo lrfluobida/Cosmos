@@ -12,7 +12,7 @@
 
 ## 固定输入、角色与边界
 
-- 任务：[COS-105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，原生父 [COS-01 / #2](https://github.com/lrfluobida/Cosmos/issues/2) id5650981929。父子项未勾选；根#1直接100、#2直接1、总任务105。
+- 任务：[COS-105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，原生父 [COS-01 / #2](https://github.com/lrfluobida/Cosmos/issues/2) id5650981929。发布收尾后本卡closed(completed)、父目标子项[x]，父#2仍open；根#1直接100、#2直接1/完成1、总任务105。
 - 实施基线：`f6659a98ca19f6639e73b5a03ea0b42ea6ef7086`。implementer `reference_display_fact_implementer` 使用 managed worktree `E:/CodexData/.codex/worktrees/cos-05-cli/Cosmos`、分支 `codex/peashooter-display-fact`；reviewer `reference_cost_evidence_reviewer`；唯一 merger `batch_reference_display_merger`。作者提交、不写main、不push；merger只整合已审SHA。
 - 复用 [观察契约](../benchmark/observation-contract.md)、[COS104契约](../specs/classic-entry-acceptance.md)、[已审费用消费者研究](../research/2026-10-17-reference-plant-cost-consumers.md)、[名称映射](../research/2026-10-15-reference-name-mapping.md) 和 [主spec第4B节](../specs/cosmos-spec.md#4b-验收默认值与边界)。Root发布的issue正文为本次完整规格，不新增需求访谈。
 - 原图私有保全：`E:/develop/Cosmos/.cosmos/reference-observations/peashooter-card-802061930a0f/user-card.original.png`，112374 bytes，301×456，SHA256 `802061930a0fa895b52028b197c372ca31581106383e4b84df201f63df9d81f0`。同目录 `intake-v1.json` 的SHA256为 `46c9bcbd1dc619853e4bd779ac0703a71b4bd5dc91ed97759ff9e4fa61faefab`。
@@ -155,17 +155,25 @@ node --experimental-strip-types --test tests/runtime/classic-entry-input.test.ts
 **Files:** 本计划、研究文档、`PROGRESS.md`、任务卡与GitHub映射，按真实进展同步。
 
 - [x] 更新结果：读数、实体关联依据、当前hash及验证输出、失败后修复（如有）、模型0/费用0；明确数据候选待独审。复读中文、`git diff --check`、JSON解析、目录230/221/9、只一measurement及两条证据，并检查原图未跟踪。
-- [ ] 作者提交数据候选并报告精确SHA、文件清单、命令/退出码/私有raw位置和已知缺口，向Root交接。独立reviewer实际打开原PNG、JSON、diff和consumer文件字节，先核事实/契约后质量；不能以作者摘要或validator0替代审查。若有finding在作者分支修复，再审受影响提交。
-- [ ] 最终独审批准后，唯一merger整合批准SHA，在main同一sourceRoot部署同hash ignored PNG，复用Task 3只读consumer/缺图拒绝及Git未跟踪检查；只有merger push。私有raw是部署前置，不从公开仓库虚构获取。
-- [ ] Root发布后更新issue与父checkbox；COS105只按本条显示事实范围完成，COS01/fullclassic/G4/human保持未完成。原实际C16、账本和预算不变。
+- [x] 作者提交数据候选并报告精确SHA、文件清单、命令/退出码/私有raw位置和已知缺口，向Root交接。独立reviewer实际打开原PNG、JSON、diff和consumer文件字节，先核事实/契约后质量；不能以作者摘要或validator0替代审查。若有finding在作者分支修复，再审受影响提交。
+- [x] 最终独审批准后，唯一merger整合批准SHA，在main同一sourceRoot部署同hash ignored PNG，复用Task 3只读consumer/缺图拒绝及Git未跟踪检查；只有merger push。私有raw是部署前置，不从公开仓库虚构获取。
+- [x] Root发布后更新issue与父checkbox；COS105只按本条显示事实范围完成，COS01/fullclassic/G4/human保持未完成。原实际C16、账本和预算不变。
 
 ## 2026-10-17 实施候选与证据
 
-计划 `986f5c7db6a9562621fc0c644c3b363200267a97` 已由 `reference_cost_evidence_reviewer` 独审 `APPROVED_ADMISSION_PLAN`；Root随后批准数据实施。数据候选待最终固定SHA独审，作者没有写main或push。事实与命令详情见[研究记录](../research/2026-10-17-peashooter-display-fact-admission.md)，私有证据索引为作者worktree `.cosmos/cos105-admission/verification-index.json`。
+计划 `986f5c7db6a9562621fc0c644c3b363200267a97` 已由 `reference_cost_evidence_reviewer` 独审 `APPROVED_ADMISSION_PLAN`；Root随后批准数据实施。以下保存作者候选阶段的验证记录，作者没有写main或push；最终批准与发布见下一节。事实与命令详情见[研究记录](../research/2026-10-17-peashooter-display-fact-admission.md)，私有证据索引为作者worktree `.cosmos/cos105-admission/verification-index.json`。
 
 - 原PNG与部署件逐字节相等、Git明确ignored/未跟踪；20项本次读取/人工抄录比较通过。报告hash `8887568ba15916573a5849fd7466ffc216fe49ff1c522aa15b6c6d8674ac23e2`，原图hash保持；图鉴显示费用与实体有限绑定之外的未知不变。
 - 原validator exit0，require-frozen exit1；原consumer实际选出100/sun/exact并捕获两个直接文件，独立缺PNG副本ENOENT拒绝。catalog230/221/9、PLANT-01与VALUE-PLANTS needs_reference保持。
 - 三测试文件首次0/40（7120.9101ms）保留；空/合成来源隔离后39/40（163135.9055ms）。唯一entry-input无raw断言失败未复现，原失败的前置报告未保留，不声称确定根因。独立诊断1/1及原entry-input与共享fixture两健康代表3/3（12279.4975ms）通过，重叠不累加；没有再改其源码或断言。raw为 `fixture-red.tap`、`fixture-green.tap`、`entry-input-diagnostic.tap/.json`、`fixture-affected.tap`。
 - 参考validator测试首次15/16（222.4266ms）：交互负例误选真实生产证据；同构测量负例因此产生错误对象假通过。Root授权两行精确限定fixture refs，最终16/16（266.3338ms），无skip，原断言不变；raw为 `reference-validator-tests.tap`、`reference-validator-green.tap`。
 - `npm run typecheck` exit0。额外严格测试tsc exit2的五诊断在父986隔离git archive以相同编译器/选项全部复现，去行列后输出一致；没有新诊断，也未修无关类型写法。raw为 `typecheck.log`、`test-typecheck.log`、`test-typecheck-baseline.log/.json`。
-- 未改runtime/runner，无native/browser/模型/paid或C16操作，原预算及未完成状态保持。最终独审与sole merger在main私有PNG部署/验证/发布仍是后续步骤。
+- 未改runtime/runner，无native/browser/模型/paid或C16操作，原预算及未完成状态保持。该候选阶段尚未执行最终独审与sole merger在main的部署/验证/发布。
+
+## 2026-10-17 最终批准与主线发布
+
+固定数据 `726fc291fce83701c0eb49011d138444fd4d7f6f` 经 `reference_cost_evidence_reviewer` 独立 `APPROVED_DISPLAY_FACT_ADMISSION`、无actionable finding；Root批准后，唯一merger从已发布计划986f5c7快进合入该固定SHA。main同sourceRoot部署的ignored原PNG与保全件逐字节一致，Git未跟踪；14个集成文件与批准blob逐字节一致。
+
+main于 `2026-10-17T11:25:37.857Z` 执行原 `readClassicEntrySource` / `selectClassicEntry`：100/sun/exact、两个批准hash、230/221/9及两个needs_reference保持；独立缺PNG副本ENOENT拒绝。原validator exit0、require-frozen预期exit1。批准的源码、测试和依赖无delta，作者回归按原范围复用，未重复native或付费验证。主线私有索引 `.cosmos/cos105-admission/merge-verification-index.json` 保存本次部署和读取证据。
+
+数据SHA已push并经远端读回。本卡scoped complete/closed；Root已精确读回[完成评论](https://github.com/lrfluobida/Cosmos/issues/106#issuecomment-6233357668)、#106 closed(completed)、父目标checkbox[x]及#2直接1/完成1，父#2仍open。单条显示事实不完成PLANT-01、VALUE-PLANTS、COS01、fullclassic、G4或human；中间失败与strict既有诊断保持记录。

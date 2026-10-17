@@ -150,7 +150,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-01 · P0 · 固定参考来源与完整验收清单
 
-- 原生子任务 [COS-105 / #106](https://github.com/lrfluobida/Cosmos/issues/106) 已登记，父子项未勾选、#2直接1；[准入计划](../plans/2026-10-17-peashooter-display-fact-admission.md)已独审，用户豌豆射手图鉴显示费用的单条数据候选待最终独审。COS01完整冻结条件保持。
+- 原生子任务 [COS-105 / #106](https://github.com/lrfluobida/Cosmos/issues/106) 的单条豌豆射手图鉴显示费用已独审并集成，本卡scoped complete/closed；Root已精确读回#106 closed(completed)、目标子项[x]及#2直接1/完成1，父#2仍open。main已部署同hash ignored原图并通过原consumer读取与缺图拒绝检查，见[准入计划](../plans/2026-10-17-peashooter-display-fact-admission.md)。COS01完整冻结条件保持。
 - 名称静态证据：`b850459` 经 `reference_mapping_docs_reviewer` 独立APPROVED并合入 `b94d0d4`；[名称对应报告](../research/2026-10-15-reference-name-mapping.md)及数据保存87条定义名称记录、167个选定资源标签。用户报告窗口化及全部模式已解锁，仍缺可读画面与正常输入证据；catalog230/221、provisional/未冻结及#2 open保持。
 - 本次进展：静态基础值证据 `fdd64c8` 已独立审查并合入 `80d4d75`；记录 53 行 × 9 DWORD，字段语义与源码推导分开。53 行不代表可选植物分母，launchRate 不按秒解释；catalog 仍为 230 项、221 项待核实，未冻结，#2 保持 open。
 - 后续静态证据：Zombie 定义表 `e292b49` 已获独立批准并合入 `73cf4fe`，34 行 × 7 DWORD 原始值与源码语义推导分列；34 含特殊项/Zombatar，不是经典分母。mZombieValue 不是 HP，基础关卡/波次/权重不证明实际出怪；原 catalog、未知项及未冻结状态保持不变。
@@ -1603,15 +1603,15 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-105 · 准入首条真实图鉴显示费用事实
 
-[COS105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，原生父COS01/#2 id5650981929，父子项未勾选；#2直接1、根#1直接100、总任务105。实施基线 `f6659a98ca19f6639e73b5a03ea0b42ea6ef7086`；计划 `986f5c7db6a9562621fc0c644c3b363200267a97` 已独审 `APPROVED_ADMISSION_PLAN`，Root批准实施，当前数据候选待最终独审。完整执行边界见issue与[准入计划](../plans/2026-10-17-peashooter-display-fact-admission.md)。
+[COS105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，原生父COS01/#2 id5650981929；#2直接1/完成1、根#1直接100、总任务105。实施基线 `f6659a98ca19f6639e73b5a03ea0b42ea6ef7086`；计划 `986f5c7db6a9562621fc0c644c3b363200267a97` 已独审 `APPROVED_ADMISSION_PLAN`。数据 `726fc291fce83701c0eb49011d138444fd4d7f6f` 经独立 `APPROVED_DISPLAY_FACT_ADMISSION`、无finding，Root批准后由唯一merger快进合入并发布。本卡scoped complete/closed；Root已精确读回[完成评论](https://github.com/lrfluobida/Cosmos/issues/106#issuecomment-6233357668)、closed(completed)及父checkbox[x]，COS01仍open。完整执行边界见issue与[准入计划](../plans/2026-10-17-peashooter-display-fact-admission.md)。
 
 用户直接响应指定本机游戏→图鉴→豌豆射手的截图请求，原PNG为301×456、112374 bytes，SHA256 `802061930a0fa895b52028b197c372ca31581106383e4b84df201f63df9d81f0`。独立视觉 `APPROVED_VISUAL_DISPLAY_FACT` 仅支持可见名称/花费100；伤害中等、恢复时间短只保留原文。sun语义复用已审本机静态链，版本关联来自请求/回复上下文，拍摄时间、点击轨迹、完整窗口和格位未知。
 
-专职作者 `reference_display_fact_implementer`、独立reviewer `reference_cost_evidence_reviewer`、唯一merger `batch_reference_display_merger`。先计划/登记固定提交独审；批准后人工有限绑定PLANT-01（不是图鉴序号），增加双类同reference证据和一条 `almanac_displayed_cost = 100 / sun / exact`。原图只在同sourceRoot的ignored evidence/local/，不进Git/GitHub或游戏assets；缺图时原consumer必须拒绝准入。最终事实候选还须固定SHA独审、merger部署同hash原图后合入发布。
+专职作者 `reference_display_fact_implementer`、独立reviewer `reference_cost_evidence_reviewer`、唯一merger `batch_reference_display_merger`。计划及数据均完成固定SHA独审；人工有限绑定PLANT-01（不是图鉴序号），增加双类同reference证据和一条 `almanac_displayed_cost = 100 / sun / exact`。原图只在同sourceRoot的ignored evidence/local/，不进Git/GitHub或游戏assets。main部署同hash原图后，于 `2026-10-17T11:25:37.857Z` 用原consumer选出100与两个批准hash，独立缺图副本ENOENT拒绝；原图Git未跟踪，回执索引为 `.cosmos/cos105-admission/merge-verification-index.json`。
 
 原validator结构exit0、require-frozen继续exit1；原COS104 consumer实际选出100与两文件hash，独立缺PNG副本ENOENT拒绝。四个允许fixture/test先留40项RED再最小隔离，39/40加affected3/3为重叠证据；中间一次缺raw失败未复现，不声称已确定根因。Root另按实际15/16失败批准 `tests/reference/validate.test.mjs` 两行定位自身fixture，最终16/16；npm typecheck0，额外strict五诊断在父986相同命令复现。详见[准入研究与raw索引](../research/2026-10-17-peashooter-display-fact-admission.md)。runtime/validator和原断言未改。
 
-本候选只有一条measurement，原图ignored/未跟踪；最终事实独审与main部署后才发布。PLANT-01和VALUE-PLANTS整项needs_reference、230/221/9、provisional/未冻结保持；实际扣费/数值damage/cooldown/解锁及完整classic/human不获证明。0模型0费用，无UI/native/actual/C16操作，原共享¥150/正式¥20012h/目标¥1006h保持。
+生产只有一条measurement，原图ignored/未跟踪；main结构校验exit0、require-frozen预期exit1，批准源码/测试/依赖字节保持，作者回归按原范围复用。PLANT-01和VALUE-PLANTS整项needs_reference、230/221/9、provisional/未冻结保持；实际扣费/数值damage/cooldown/解锁及完整classic/human不获证明。0模型0费用，无UI/native/actual/C16操作，原共享¥150/正式¥20012h/目标¥1006h保持。
 
 稳定任务 ID：COS-105
 

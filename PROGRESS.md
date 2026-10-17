@@ -2,16 +2,17 @@
 
 更新时间：2026-10-17
 
-## COS105首条图鉴显示费用事实数据候选完成，待最终独审
+## COS105首条图鉴显示费用事实已审集成，本卡范围完成
 
-- [COS105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，原生父[COS01 / #2](https://github.com/lrfluobida/Cosmos/issues/2)，父子项未勾选；#2直接1、根#1直接100、总任务105。专职作者 `reference_display_fact_implementer`、独立reviewer `reference_cost_evidence_reviewer`、唯一merger `batch_reference_display_merger`，见[准入计划](docs/plans/2026-10-17-peashooter-display-fact-admission.md)。
-- 计划 `986f5c7db6a9562621fc0c644c3b363200267a97` 已独审 `APPROVED_ADMISSION_PLAN`，Root批准数据实施。用户原PNG同bytes部署为ignored本地输入；PLANT-01人工有限绑定，一条 `almanac_displayed_cost = 100 / sun / exact` 及双类直接证据已形成候选，待固定SHA事实独审后由唯一merger合入发布。见[准入研究](docs/research/2026-10-17-peashooter-display-fact-admission.md)。
+- [COS105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，已closed(completed)；原生父[COS01 / #2](https://github.com/lrfluobida/Cosmos/issues/2)仍open、目标子项已勾选，#2直接1/完成1、根#1直接100、总任务105。Root已精确读回[完成记录](https://github.com/lrfluobida/Cosmos/issues/106#issuecomment-6233357668)及关闭/父勾选。专职作者 `reference_display_fact_implementer`、独立reviewer `reference_cost_evidence_reviewer`、唯一merger `batch_reference_display_merger`，见[准入计划](docs/plans/2026-10-17-peashooter-display-fact-admission.md)。
+- 计划 `986f5c7db6a9562621fc0c644c3b363200267a97` 已独审 `APPROVED_ADMISSION_PLAN`；数据 `726fc291fce83701c0eb49011d138444fd4d7f6f` 经原reviewer独立 `APPROVED_DISPLAY_FACT_ADMISSION`、无finding，Root批准后由唯一merger按该SHA快进合入并发布。main已部署同bytes的ignored原PNG，PLANT-01人工有限绑定及一条 `almanac_displayed_cost = 100 / sun / exact` 已准入。见[准入研究](docs/research/2026-10-17-peashooter-display-fact-admission.md)。
 - 原consumer实际读取100及两文件hash、独立缺PNG副本ENOENT拒绝；validator0、require-frozen1。资料增长夹具先40项RED，隔离后39/40及affected3/3重叠复用；原一次无raw失败未复现，未宣称根因修复。Root另准validator测试两行定位自身fixture，15/16→16/16；npm typecheck0，额外strict五诊断由父986相同命令确认为既有。raw索引为作者worktree `.cosmos/cos105-admission/verification-index.json`。
-- 本候选measurements为1，主线发布仍待最终独审；PLANT-01与VALUE-PLANTS整项needs_reference，位置/解锁与实际扣费未知。230/221/9、provisional/未冻结、COS01/fullclassic/G4/human未完成保持；0模型0费用，无UI/native/actual/paid及C16操作，原预算保持。
+- main于 `2026-10-17T11:25:37.857Z` 实际用原consumer选出100及两个批准hash，独立缺PNG副本ENOENT拒绝；validator0、require-frozen1，Git确认原图ignored且未跟踪。主线私有回执索引为 `.cosmos/cos105-admission/merge-verification-index.json`；批准版本的源码、测试及依赖无delta，作者通过证据按原范围复用。
+- 生产measurements为1，本卡scoped complete/closed；PLANT-01与VALUE-PLANTS整项needs_reference，位置/解锁与实际扣费未知。230/221/9、provisional/未冻结、COS01/fullclassic/G4/human未完成保持；0模型0费用，无UI/native/actual/paid及C16操作，原预算保持。
 
-## COS01费用消费者静态研究进行中
+## COS01费用消费者静态研究阶段记录
 
-- [研究记录](docs/research/2026-10-17-reference-plant-cost-consumers.md) 复用既有植物表和名称证据，补充本机 type 0 的基础费用、当前费用与扣减消费者关系。候选为100 sun / exact，状态 `candidate / deterministic-only`；正常输入观察及catalog对象绑定仍待补，研究文档待独立审查。生产measurements仍为空，COS01与完整经典验收未完成。
+- [研究记录](docs/research/2026-10-17-reference-plant-cost-consumers.md) 复用既有植物表和名称证据，补充本机 type 0 的基础费用、当前费用与扣减消费者关系。该阶段候选为100 sun / exact，状态 `candidate / deterministic-only`；当时正常输入观察及catalog对象绑定仍待补、生产measurements为空。后续单条显示事实准入见上，COS01与完整经典验收仍未完成。
 
 ## COS104经典条目正常输入源码已审发布，本片SOURCE范围已关闭
 

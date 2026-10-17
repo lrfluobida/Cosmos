@@ -1,6 +1,6 @@
 # COS-105：豌豆射手图鉴显示费用准入
 
-2026-10-17。状态：**数据候选待固定提交独审**。计划 `986f5c7db6a9562621fc0c644c3b363200267a97` 经 `reference_cost_evidence_reviewer` 批准 `APPROVED_ADMISSION_PLAN`，Root已授权免费实施。任务为 [COS-105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，父 [COS-01 / #2](https://github.com/lrfluobida/Cosmos/issues/2) 仍未完成；执行与合并顺序见[计划](../plans/2026-10-17-peashooter-display-fact-admission.md)。
+2026-10-17。状态：**单条显示事实已审集成，本卡scoped complete/closed**。计划 `986f5c7db6a9562621fc0c644c3b363200267a97` 经 `reference_cost_evidence_reviewer` 批准 `APPROVED_ADMISSION_PLAN`；数据 `726fc291fce83701c0eb49011d138444fd4d7f6f` 经同一独立reviewer批准 `APPROVED_DISPLAY_FACT_ADMISSION`、无finding，Root批准后由唯一merger合入并发布。任务为 [COS-105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，父 [COS-01 / #2](https://github.com/lrfluobida/Cosmos/issues/2) 仍未完成；执行与合并顺序见[计划](../plans/2026-10-17-peashooter-display-fact-admission.md)。
 
 ## 1. 本次可核实的事实
 
@@ -67,6 +67,14 @@
 
 必要范围补充：`tests/reference/validate.test.mjs` 的两个负例原先按kind取第一条证据，现会误改生产证据。交互负例因此真实失败；测量负例仍通过却损坏了错误对象。Root按该证据授权只在两处查找增加 `refs.includes(x.id)`，明确修改addEvidence返回的fixture记录；原断言与validator未改。测试文件均严格UTF-8/LF，中文与其他行保持。
 
-私有证据总索引：作者worktree `.cosmos/cos105-admission/verification-index.json`。这些程序测试的参考来源明确为empty/synthetic fixture，不能代替用户原图的事实证据。最终独审须实际打开原PNG、固定JSON及登记diff；唯一merger还需在main本地部署同hash原图，核原consumer与Git未跟踪后发布。
+私有证据总索引：作者worktree `.cosmos/cos105-admission/verification-index.json`。这些程序测试的参考来源明确为empty/synthetic fixture，不能代替用户原图的事实证据。最终独审实际检查原PNG、固定JSON及登记diff，并运行原consumer核实100与两个hash；唯一merger在main部署及发布的结果见下一节。
 
 本次只覆盖参考资料准入和原consumer读取，没有新的runtime/runner行为、native/browser/付费运行或C16操作。既有COS104原生SOURCE证据复用；旧文档中的“measurements为空”是其源码发布时状态。共享¥150含既有¥0.721771、正式¥200/12h、目标¥100/6h保持。
+
+## 5. 主线部署与发布结果
+
+唯一merger从已发布计划986f5c7快进整合批准数据 `726fc291fce83701c0eb49011d138444fd4d7f6f`，核14个集成文件与批准blob逐字节一致。原PNG复制到main的既定ignored相对路径，112374 bytes、301×456和原hash保持；`git check-ignore`命中新增规则，`git ls-files`确认原图未入Git。
+
+`2026-10-17T11:25:37.857Z` 在main实际执行原consumer：选择100/sun/exact，捕获PNG与固定断言JSON两个直接文件且hash分别为802061930a0f…、8887568ba159…；reference/catalog hash与作者结果相同。独立TEMP副本缺PNG时ENOENT拒绝；原validator exit0，require-frozen预期exit1。主线私有 `.cosmos/cos105-admission/merge-verification-index.json` 索引保存 `main-deployment.json`、`consumer-read.json`、`main-consumer.log` 和原validator日志。
+
+批准源码、测试及依赖无delta，作者通过证据按原范围复用；没有重复native长矩阵。数据SHA已push并经远端读回，本卡仅显示事实范围完成；Root已精确读回[完成评论](https://github.com/lrfluobida/Cosmos/issues/106#issuecomment-6233357668)、#106 closed(completed)、父目标checkbox[x]与#2直接1/完成1，父#2仍open。原39/40中间失败未复现、五条strict既有诊断及所有未知边界保持；230/221/9、PLANT-01/VALUE-PLANTS待核实、COS01/fullclassic/G4/human未完成。
