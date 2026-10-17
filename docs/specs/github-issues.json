@@ -427,6 +427,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/15",
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-104"],
+      "verifiedCompletedSubIssues": 1,
       "dependsOn": [
         {
           "id": "COS-01",
@@ -9274,8 +9275,8 @@
       "parentIssueId": 5650987451,
       "parentTaskId": "COS-14",
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "parentChecklistLine": "- [ ] [COS-104 · 接通经典参考数值的正常输入验收](https://github.com/lrfluobida/Cosmos/issues/105)",
+      "parentCheckboxChecked": true,
+      "parentChecklistLine": "- [x] [COS-104 · 接通经典参考数值的正常输入验收](https://github.com/lrfluobida/Cosmos/issues/105)",
       "verifiedRootDirectSubIssues": 100,
       "verifiedParentNativeSubIssues": 1,
       "dependsOn": [
@@ -9283,10 +9284,10 @@
         "COS-69",
         "COS-70"
       ],
-      "state": "open",
-      "integrationStatus": "pending",
-      "implementationPhase": "source-in-progress",
-      "reviewStatus": "PENDING_SOURCE",
+      "state": "closed",
+      "integrationStatus": "complete",
+      "implementationPhase": "source-scoped-complete-published",
+      "reviewStatus": "CLASSIC_ENTRY_NORMAL_INPUT_SOURCE_READY",
       "designReviewStatus": "APPROVED_DESIGN",
       "designReviewedCommit": "772ce6180a73ef436b2efba411c4b5d25e9519ee",
       "designReviewer": "classic_entry_design_reviewer",
@@ -9299,7 +9300,64 @@
       "sourceAuthorized": true,
       "actualAuthorized": false,
       "paidAuthorized": false,
-      "actualHumanConfirmation": "NONE"
+      "actualHumanConfirmation": "NONE",
+      "verifiedParentCompletedSubIssues": 1,
+      "stateReason": "completed",
+      "sourceMarker": "CLASSIC_ENTRY_NORMAL_INPUT_SOURCE_READY",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "initialSourceCommit": "806bec6ce454f8164860db323bb110b02ab5befc",
+      "reviewedCommit": "d0773acbdcbac24f5865d41ba7f32246836a58cd",
+      "sourcePublishedCommit": "d0773acbdcbac24f5865d41ba7f32246836a58cd",
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/105#issuecomment-6232469977",
+      "approvedAt": "2026-10-17",
+      "sourceReviewFindings": [],
+      "resolvedSourceReviewFindings": [
+        {
+          "priority": "P2",
+          "summary": "Require explicit process exit and current failureFacts in the new classic entry consumer.",
+          "fixCommit": "d0773acbdcbac24f5865d41ba7f32246836a58cd"
+        }
+      ],
+      "validationEvidence": {
+        "index": "E:/CodexData/.codex/worktrees/cos-05-cli/Cosmos/.cosmos/evidence/cos104/verification-index.json",
+        "finalFocusedPassed": 61,
+        "finalAffectedPassed": 6,
+        "overlappingCountsNotAdded": true,
+        "nativeSourcePassed": 1,
+        "nativeSourceSkipped": 0,
+        "nativeEvidenceRoot": "C:/Users/26557/AppData/Local/Temp/Cosmos COS104 中文 SOURCE JxLPy2",
+        "nativeDisabledInput": {
+          "outcome": "failed",
+          "classification": "code_defect",
+          "actual": "0",
+          "expected": "7"
+        },
+        "nativePreparationFailure": {
+          "reason": "Worktree template dependencies absent before compiler/browser",
+          "behaviorRed": false,
+          "reusedTemplate": "E:/develop/Cosmos/templates/2d",
+          "lockBytesMatched": true
+        },
+        "sourceOnly": true,
+        "reference": "TEMP synthetic",
+        "author": "fixture",
+        "reviewer": "fixture",
+        "modelRequests": 0,
+        "paidMicroCny": 0,
+        "typecheckExit": 0,
+        "buildExit": 0,
+        "mainTypecheckExit": 0,
+        "mainBuildExit": 0,
+        "nativeEvidenceReusedAfter": [
+          "invalid raw retention",
+          "explicit process exit and failureFacts guard"
+        ]
+      },
+      "productionMeasurementCount": 0,
+      "productionEntryOutcome": "no_reference_measurements/not_executed",
+      "fullClassicAcceptance": "partial",
+      "referenceFrozen": false,
+      "actualGameCompleted": false
     }
   ],
   "verifiedNativeSubIssues": 100,

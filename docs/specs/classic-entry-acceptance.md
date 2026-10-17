@@ -1,6 +1,6 @@
 # 经典条目正常输入检查：设计草案
 
-状态：已由 `classic_entry_design_reviewer` 独立审查 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 并批准 `APPROVED_DESIGN`；Root 已授权免费 SOURCE 实施。稳定任务 [COS-104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，原生归属 [COS-14 / #15](https://github.com/lrfluobida/Cosmos/issues/15)，父项未勾选。设计基线为 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`，实施基线为 `7d02729370c6379f0377f7cd42a68672613894b3`。本片尚未完成源码验收，不表示 COS-14、完整经典验收或参考冻结已就绪。
+状态：本片SOURCE已独审发布，标记 `CLASSIC_ENTRY_NORMAL_INPUT_SOURCE_READY`。[COS-104 / #105](https://github.com/lrfluobida/Cosmos/issues/105) 已closed(completed)，原生父 [COS-14 / #15](https://github.com/lrfluobida/Cosmos/issues/15) 仍open、对应子项已勾选。初始源码 `806bec6ce454f8164860db323bb110b02ab5befc` 的唯一P2已闭合，最终 `d0773acbdcbac24f5865d41ba7f32246836a58cd` 经 `classic_entry_reviewer` 批准 `APPROVED_SOURCE_SCOPED`，由唯一merger `batch_classic_entry_merger` 发布；[完成记录](https://github.com/lrfluobida/Cosmos/issues/105#issuecomment-6232469977) 已由Root核证。原设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` / `APPROVED_DESIGN`、设计基线 `2f84eb328e59f20d73ceccdc69ff708f7be200a5` 与实施基线 `7d02729370c6379f0377f7cd42a68672613894b3` 保持。61/61与最终affected6/6不累加、native1/1及证据边界见[计划记录](../plans/2026-10-16-classic-entry-acceptance.md)；生产measurements仍为0，完整经典验收、参考冻结和human未完成，COS01/COS14/COS15/COS18与G4不提升。
 
 ## 1. 目标与已核实缺口
 

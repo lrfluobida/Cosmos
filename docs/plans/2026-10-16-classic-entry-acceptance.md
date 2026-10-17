@@ -12,9 +12,9 @@
 
 ## 状态、基线与实施前置
 
-设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 已由 `classic_entry_design_reviewer` 独审 `APPROVED_DESIGN`，Root 已授权免费 SOURCE；尚未运行本计划的测试。稳定任务为 [COS-104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，原生挂父 COS14/#15，父项未勾选。原设计基线 `2f84eb328e59f20d73ceccdc69ff708f7be200a5` 保持，实施基线 `7d02729370c6379f0377f7cd42a68672613894b3`；专职 implementer `classic_entry_implementer`、独立 reviewer `classic_entry_reviewer`、唯一 merger `batch_classic_entry_merger`。主线冻结已解除，actual/paid 未授权。
+设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 已由 `classic_entry_design_reviewer` 独审 `APPROVED_DESIGN`；本计划SOURCE已完成、独审并发布，标记 `CLASSIC_ENTRY_NORMAL_INPUT_SOURCE_READY`。[COS-104 / #105](https://github.com/lrfluobida/Cosmos/issues/105) 已closed(completed)，原生父 COS14/#15 仍open、对应子项已勾选。初始源码 `806bec6ce454f8164860db323bb110b02ab5befc` 的唯一P2已闭合，最终发布SHA为 `d0773acbdcbac24f5865d41ba7f32246836a58cd`，`classic_entry_reviewer` 最终批准 `APPROVED_SOURCE_SCOPED`；专职 implementer `classic_entry_implementer`、唯一 merger `batch_classic_entry_merger`。原设计基线 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`、实施基线 `7d02729370c6379f0377f7cd42a68672613894b3` 保持，actual/paid 未授权。
 
-- 原设计阶段仅写本计划及配套spec；现按下列批准范围实施 SOURCE。不得修改actual C16、主线、private资料、运行账本或依赖安装。
+- 原设计阶段仅写本计划及配套spec；SOURCE已按下列批准范围完成。不得修改actual C16、主线、private资料、运行账本或依赖安装。
 - Root批准设计并明确源码工作区后，implementer才从指定准确基线建立独立managed worktree/branch；独立reviewer先读spec和actual diff，先规格、后质量。
 - 主线仍冻结时不做集成或原生验证。sole merger确认允许集成后才合入批准SHA并推送；作者不合main、不push。
 - 复用[COS67](2026-10-06-cos67-classic-runtime-policy.md)、[COS69](2026-10-06-cos69-render-frame-sampling.md)、[COS70](2026-10-06-cos70-cli-frame-selection.md)的通过证据，仅因本片真实delta新增检查。
@@ -138,7 +138,7 @@ npm run build
 
 ## 2026-10-17 SOURCE实施候选与验证记录
 
-前述登记时的“尚未运行测试”现由本节更新：实施已完成，等待 `classic_entry_reviewer` 审查固定候选；尚未标记 SOURCE READY，也未由作者合入main或推送。源码以已发布登记 `e371046a625a3581d37317ff2e6138792534e88d` 为父基线。证据索引为工作树 `E:/CodexData/.codex/worktrees/cos-05-cli/Cosmos/.cosmos/evidence/cos104/verification-index.json`，准确候选SHA由该索引与Git提交记录关联。
+当前结果：源码以已发布登记 `e371046a625a3581d37317ff2e6138792534e88d` 为父基线，初始候选 `806bec6ce454f8164860db323bb110b02ab5befc` 经唯一P2修订为 `d0773acbdcbac24f5865d41ba7f32246836a58cd`，已独审 `APPROVED_SOURCE_SCOPED` 并由唯一merger发布；作者未合main或推送。标记 `CLASSIC_ENTRY_NORMAL_INPUT_SOURCE_READY`，[完成记录](https://github.com/lrfluobida/Cosmos/issues/105#issuecomment-6232469977)、#105 closed(completed)与父#15子项勾选已由Root核证；父#15仍open。证据索引为 `E:/CodexData/.codex/worktrees/cos-05-cli/Cosmos/.cosmos/evidence/cos104/verification-index.json`。下列61/61与最终affected6/6包含重叠、不累加；唯一merger核13文件批准字节一致、生产measurements0，并补main typecheck/build0。
 
 - 固定输入、确认前显示、受限sidecar、同clean delivery内独立正常输入、完整目录partial报告、review图片与原journal/promotion均已接通。旧profile/mapping、普通runner及其上限、采样器、scheduler、ledger和生产reference事实未改。原有未启用字段的确认与恢复保持。
 - 行为RED保留：`checkpoint1-red.log` 中真实产品draft缺少selection、CLI缺少未执行显示；新输入模块当时尚不存在。`checkpoint3-red.log` 中实际host执行原persistent后新增调用为0、缺逐项报告。`raw-retention-red.log` 另复现新raw内容无效时未进入任务证据，随后仅在失败路径保留实际已产生且路径安全的raw目录。首次原生准备失败另记，不作为行为RED。
@@ -156,7 +156,7 @@ npm run build
 
 ### 唯一原生SOURCE代表
 
-`node --experimental-strip-types --test tests/runtime/classic-entry-host.integration.ts` 通过1/1、0skip，test35797.437ms、runner39390.7781ms。原始记录 `native-source.log/.exit`，证据根 `C:/Users/26557/AppData/Local/Temp/Cosmos COS104 中文 SOURCE JxLPy2`。该测试实际导入本工作树 `dist` 编译host；当时使用的七个新增/受影响JS模块原字节及SHA已保存于 `native-compiled/` 和 `native-compiled.json`。之后唯一生产改动是上述失败raw目录保留，成功原生路径未变，因此复用本次通过结果。
+`node --experimental-strip-types --test tests/runtime/classic-entry-host.integration.ts` 通过1/1、0skip，test35797.437ms、runner39390.7781ms。原始记录 `native-source.log/.exit`，证据根 `C:/Users/26557/AppData/Local/Temp/Cosmos COS104 中文 SOURCE JxLPy2`。该测试实际导入本工作树 `dist` 编译host；当时使用的七个新增/受影响JS模块原字节及SHA已保存于 `native-compiled/` 和 `native-compiled.json`。之后生产改动仅为失败raw目录保留和下述P2明确事实守卫；健康原raw已有完整退出与failureFacts，因此经独审核证后复用本次通过结果。
 
 - 首次准备仅47.144ms即因当前工作树 `templates/2d/node_modules` 不存在失败，未进入编译/浏览器，见 `native-source-environment-failure.log/.exit`。随后使用已存在的 `COSMOS_TEMPLATE_ROOT=E:/develop/Cosmos/templates/2d`，其锁文件与工作树逐字节相同；未安装依赖。不是新的付费案例或正式生成重跑。
 - 真实锁定tsc/Vite、原素材renderer、clean Node launcher及Edge `155.0.4283.45` 执行。实际caller顺序为原persistent一次，再独立normal一次；同authority/原deadline `2026-10-17T09:29:49.265Z`。正常输入raw为 `browser-evidence/game/game/v1/classic-source/coding-classic-entry/report.json`；独立plan/raw，末步真实可见值 `7`，无伪persistent session。
@@ -172,4 +172,4 @@ npm run build
 
 - `review-p2-lifecycle-red.log` 首轮保留failureFacts的退出缺失/null原已拒绝（2通过），仅缺failureFacts误通过（1失败）。将退出两例同时去掉failureFacts以命中legacy分支后，`review-p2-lifecycle-legacy-red.log` 三例均错误通过、测试3/3失败，23017.7568ms。三个负例的raw/返回report保持一致，失败并非来源不匹配。
 - 最小修复后 `review-p2-lifecycle-green.log` 6/6、0skip、40265.2488ms：健康、真实值不符、明确退出失败与三个新负例；新负例均为insufficient_evidence、不promotion，原clean acceptancePassed及STARTUP/OFFLINE仍通过。`review-p2-typecheck.log`、`review-p2-build.log`均exit0，文本检查见 `review-p2-text.log`。
-- 既有健康native原始报告本来就含明确退出和完整failureFacts，独审已核其原raw与截图；本次复用而未重跑。相较原native编译版本，最终consumer差异现包含此前失败raw保留和本次明确事实守卫；其余范围、预算与最终缺口保持。修订准确SHA和affected证据由同一verification-index绑定，等待原reviewer定向复审。
+- 既有健康native原始报告本来就含明确退出和完整failureFacts，独审已核其原raw与截图；本次复用而未重跑。相较原native编译版本，最终consumer差异现包含此前失败raw保留和本次明确事实守卫；其余范围、预算与最终缺口保持。修订 `d0773acbdcbac24f5865d41ba7f32246836a58cd` 已获原reviewer定向复审 `APPROVED_SOURCE_SCOPED`，P2闭合且无剩余finding；准确SHA和affected证据由同一verification-index绑定。

@@ -285,7 +285,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-14 · P1 · 建立完整基准的运行时验收工具
 
-- 已登记原生子任务 [COS-104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，父项未勾选；其单条正常输入consumer设计已审、免费SOURCE实施中，完整COS14范围与原依赖保持。
+- 原生子任务 [COS-104 / #105](https://github.com/lrfluobida/Cosmos/issues/105) 已按单条正常输入consumer的SOURCE范围closed(completed)，对应子项已勾选；父COS14仍open，完整范围与原依赖保持。
 - 依赖/状态：COS-01 冻结、COS-08、COS-11；前期可按已核实条目编制工具草稿。
 - 输出/范围：`benchmarks/classic-pc/`；完整条目与测试映射、模式流程、存档/解锁/经济/交互检查，以及容差断言。
 - 工作：分组覆盖冒险、迷你游戏、解谜、生存、花园及外围系统；为无尽制定有限观测窗口、循环和增长规则检查。
@@ -1590,9 +1590,11 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-104 · 接通经典参考数值的正常输入验收
 
-[COS104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，id5896760064，已原生挂父COS14/#15、未勾选；#15直接1、根#1直接100、总任务104。依赖COS67/COS69/COS70已审源码与既有COS14契约，不要求完整参考冻结才能开展本片SOURCE。
+[COS104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，id5896760064，已closed(completed)，原生父COS14/#15仍open、对应子项已勾选；#15直接1且完成1、根#1直接100、总任务104。[完成记录](https://github.com/lrfluobida/Cosmos/issues/105#issuecomment-6232469977)及关闭/父勾选由Root精确读回。依赖COS67/COS69/COS70已审源码与既有COS14契约，本片完成不改变完整COS14前置。
 
-设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 经 `classic_entry_design_reviewer` 独审 `APPROVED_DESIGN`，Root已授权免费SOURCE，实施基线 `7d02729370c6379f0377f7cd42a68672613894b3`。专职作者 `classic_entry_implementer`、独审 `classic_entry_reviewer`、唯一merger `batch_classic_entry_merger`；[spec](classic-entry-acceptance.md)与[plan](../plans/2026-10-16-classic-entry-acceptance.md)正文契约保持批准设计。
+设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 经 `classic_entry_design_reviewer` 独审 `APPROVED_DESIGN`；初始源码 `806bec6ce454f8164860db323bb110b02ab5befc` 的唯一P2已闭合，最终 `d0773acbdcbac24f5865d41ba7f32246836a58cd` 经 `classic_entry_reviewer` 批准 `APPROVED_SOURCE_SCOPED`。唯一merger `batch_classic_entry_merger` 已发布同一SHA，13文件批准字节一致、main typecheck/build0；标记 `CLASSIC_ENTRY_NORMAL_INPUT_SOURCE_READY`。专职作者 `classic_entry_implementer`；[spec](classic-entry-acceptance.md)与[plan](../plans/2026-10-16-classic-entry-acceptance.md)正文契约保持批准设计。
+
+复用61/61、最终affected6/6（重叠不累加）、唯一compiled native SOURCE1/1和disabled-input真实runner负例（实际0、期望7、code_defect）。证据索引、native原始根及最初模板依赖准备失败（非行为RED）见plan；失败raw保留及明确processExited/failureFacts守卫已定向验证，健康native未重复运行。只证明SOURCE和明确标注的synthetic参考/作者/reviewer链，真实编译/浏览器输入事实另列，模型0/费用0。
 
 主机固定第一条合格exact事实，设计只提供正常输入与可见文本定位，原clean delivery内独立调用一次原runner；新raw、完整目录partial报告和参考证据进入原review/journal，旧两政策保持。当前生产measurements为空，明确未执行，不填假事实。SOURCE仅TEMP synthetic参考/小UI及0模型0费用；不实施完整手工游戏、不改实际C16、不新增paid窗口。COS01/COS14/COS15/COS18、完整classic、参考冻结与human均未完成，原预算与最终目标保持。
 

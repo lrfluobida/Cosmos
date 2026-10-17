@@ -2,11 +2,12 @@
 
 更新时间：2026-10-17
 
-## COS104经典条目正常输入设计已审，免费SOURCE实施中
+## COS104经典条目正常输入源码已审发布，本片SOURCE范围已关闭
 
-- [COS104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，id5896760064，已原生挂父[COS14 / #15](https://github.com/lrfluobida/Cosmos/issues/15)，父项未勾选；根#1直接子项100、#15直接1、总任务104。既有COS103完成状态和C16失败闭账事实保持。
-- 设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 经 `classic_entry_design_reviewer` 独审 `APPROVED_DESIGN`。Root从准确基线 `7d02729370c6379f0377f7cd42a68672613894b3` 授权免费SOURCE；作者 `classic_entry_implementer`、独审 `classic_entry_reviewer`、唯一merger `batch_classic_entry_merger`。见[spec](docs/specs/classic-entry-acceptance.md)和[plan](docs/plans/2026-10-16-classic-entry-acceptance.md)。
-- 本片将可信参考数值、设计sidecar、一次独立正常输入runner与完整目录partial报告接入原review/journal。当前生产measurements为空，必须保留 `no_reference_measurements/not_executed`；SOURCE使用明确标注的TEMP synthetic事实与小UI，模型调用0、费用0，不代表参考观察或完整生成成功。
+- [COS104 / #105](https://github.com/lrfluobida/Cosmos/issues/105)，id5896760064，已closed(completed)，父[COS14 / #15](https://github.com/lrfluobida/Cosmos/issues/15)仍open、对应子项已勾选；根#1直接100、#15直接1且完成1、总任务104。Root已精确读回[完成记录](https://github.com/lrfluobida/Cosmos/issues/105#issuecomment-6232469977)与关闭/父勾选；既有COS103完成状态和C16失败闭账事实保持。
+- 设计 `772ce6180a73ef436b2efba411c4b5d25e9519ee` 已独审。初始源码 `806bec6ce454f8164860db323bb110b02ab5befc` 的唯一P2已修复；最终 `d0773acbdcbac24f5865d41ba7f32246836a58cd` 经 `classic_entry_reviewer` 批准 `APPROVED_SOURCE_SCOPED`，无剩余finding。唯一merger `batch_classic_entry_merger` 已按13文件批准字节发布同一SHA，main typecheck/build0；标记 `CLASSIC_ENTRY_NORMAL_INPUT_SOURCE_READY`。见[spec](docs/specs/classic-entry-acceptance.md)和[plan及证据索引](docs/plans/2026-10-16-classic-entry-acceptance.md#2026-10-17-source实施候选与验证记录)。
+- 复用61/61与最终affected6/6（重叠不累加），唯一compiled native SOURCE1/1及独立disabled-input原runner负例（实际0、期望7、code_defect）。新raw进入review/journal，旧两政策保持；原模板缺依赖准备失败不是行为RED，后续失败raw保留/明确退出与failureFacts守卫的定向证据及健康native复用边界均保留。SOURCE参考/作者/reviewer为fixture，真实编译/浏览器/证据链另列，模型调用0、费用0。
+- 可信参考数值、设计sidecar、一次独立正常输入runner与完整目录partial报告已接入原review/journal。生产measurements仍为0，保留 `no_reference_measurements/not_executed`；全部目录和参考未知不提升，不代表参考观察或完整生成成功。
 - Cosmos仍是Pi基座的可扩展2D开发agent，完整classic PvZ是最终能力目标。COS01/COS14/COS15/COS18、G4、完整参考冻结与最终human均未完成；共享¥150含既有¥0.721771，正式¥200/12h、目标¥100/6h保持，无actual/paid授权。
 
 ## COS103恢复源码与结果已发布并关闭，C16两锁恢复与账务闭环完成
