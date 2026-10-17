@@ -45,6 +45,45 @@ node --experimental-strip-types --test tests/runtime/recovery/*.test.ts tests/ru
 
 These APIs assume trusted host-owned paths and callbacks, as the existing controller/registry do. They do not defend against a malicious process running as the same OS user, promise power-loss transactions, or restore in-memory artifact proof capabilities.
 
+## Explicit previous-boot owner maintenance
+
+`OwnerLock.preparePreviousBootRecovery` and `OwnerLock.recoverPreviousBoot` are trusted operator APIs for `.controller.lock` and `.commit.lock` only. Default recovery still refuses live PIDs, unresolved child intents and untracked callbacks. The maintenance entry never signals a PID, opens a controller or changes a snapshot/ledger.
+
+This path requires Windows, canonical local fixed NTFS paths without reparse ancestors, and complete current boot events: Kernel-Boot 27/version 1/BootType 0 plus Kernel-General 12/version 0/BootMode 0 whose StartTime equals CIM LastBootUpTime. A fixed hidden PowerShell query reads these facts with a timeout. Missing/unknown events, resume, Fast Startup, nonlocal volumes and contradictory clocks remain blocked. Device identifiers are hashed in the returned observations.
+
+Keep the operator evidence directory outside the target runtime root and outside every model write scope. Prepare reads existing files only. Its arguments are `{root, name, evidenceRoot, provenanceSource, maintenanceSource}`; `provenanceSource` is `{path, sha256}` and `maintenanceSource` is `{repository, commitSha}`. Extra boot, clock, verifier or test parameters are rejected.
+
+The independent UTF-8 provenance JSON has this exact schema (`PreviousBootProvenance` in `ownership.ts`):
+
+```ts
+{
+  formatVersion: 'previous-boot-provenance-1',
+  caseId, windowId, originalRoot,
+  generationSource: { repository, commitSha },
+  ownerSha256, machineHash,
+  writerScope: 'local-processes-ended-by-full-boot',
+  explanation, actorId, reviewerId, reviewedAt,
+  references: [
+    { role: 'launch', path, sha256 },
+    { role: 'claim', path, sha256 },
+    { role: 'root-intent', path, sha256 },
+    { role: 'independent-review', path, sha256 },
+  ],
+}
+```
+
+Each reference is a distinct original evidence file inside the operator directory. The independent reviewer must assess the actual historical launch/claim/source chain and establish that all writers were local processes ended by full boot, with no remote, persistent or automatically restarted work. The explanation records that judgment. A v1 lock has no historical host/boot ID: these JSON fields bind the operator's evidence and judgment; they do not independently authenticate its historical origin. Files copied or recreated before quoting need explicit original-source investigation, not an age-based inference.
+
+The quote binds the whole v1 record, original bytes hash/size, filesystem volume/file ID and precise creation/modification/change times; current machine/volume/full boot; all provenance files; and the executing maintenance module's static import closure. Each actual module is compared byte-for-byte with its exact clean Git commit. Generation source separately requires its original exact commit on clean `main`; an ancestor is insufficient. The original and maintenance repositories must be separate. The quote selects unique non-overwriting archive, intent and outcome paths.
+
+After independent review, write a new immutable UTF-8 decision file using exclusive creation. Its exact fields are `{formatVersion:'previous-boot-decision-1', kind:'operator_previous_boot_recovery', decisionId, actorId, decidedAt, provenanceSource, quote}`. Preserve the entire exact quote and pass `{path, sha256}` for this decision to `recoverPreviousBoot({root, name, evidenceRoot, quote, decisionSource})`. Decision time is actual UTC at or after prepare. A changed source, identity, timestamp, approval or full boot invalidates the quote.
+
+Apply uses the existing `.recovery` exclusive guard. It syncs and reads back exact original bytes and intent before deleting anything, then rechecks authority, source, boot and the original file identity. It unlinks only the quoted old lock once and publishes the outcome. An existing guard is always busy/unresolved. Archive failure retains the lock. Any uncertain unlink or failed post-delete audit retains intent and guard; stop for investigation, with no automatic retry, owner reconstruction or accounting continuation. A new owner or replacement file cannot be removed with the old quote. Existing acquire semantics still require an operator maintenance freeze.
+
+For the C16 procedure, keep original `main` frozen, import the reviewed maintenance module by its absolute candidate path, and recover registry then controller with separate quotes/decisions. Only after both outcomes and independent postchecks, exit maintenance and run the original APIs in a separate process: `openValidationCase({accountingOnly:true,...})` without a `now` override, let the original deadline expire naturally, close, then prepare and approve the exact allocation closure. This neither renews the run nor changes its original execution receipt, budget, attempt count or incomplete game result.
+
+SOURCE tests use real TEMP files and controlled raw OS output; they do not prove an actual reboot recovery. They include a live reused child PID witnessed by its independent parent, a nonzero-signal rejection spy, untracked callback recovery, immutable archive/approval failure cases, and separate candidate/original repositories with original accounting in another process. Actual recovery remains separately authorized. See [the reviewed specification](../specs/previous-boot-owner-recovery.md) for the execution boundary.
+
 ## Phase B: task phase recovery
 
 `executeTaskDag` accepts an optional `recovery` configuration. Without it, existing callers do not create any recovery receipts. A new host that needs recovery supplies:
