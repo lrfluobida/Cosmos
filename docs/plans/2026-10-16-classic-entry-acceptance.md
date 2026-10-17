@@ -165,3 +165,11 @@ npm run build
 - `native-postcheck.json` 保存原normal、persistent和clean回执；helper PID29136、normal PID8440、persistent PID11940/33316后核均不存在。共享运行和正式C16资料未访问或改写。
 
 所有参考事实、作者和reviewer输入均为明确标注的SOURCE fixture；真实编译、浏览器输入、文件和journal事实另列。模型请求0、费用0、human NONE。两次generation结果均为 `incomplete`，报告顶层永久 `partial`；完整230行/原顺序、221条参考未知及机制/数值使用未执行保持。生产measurements仍为空，正常生产结果仍是 `no_reference_measurements/not_executed`。本片不完成COS01/COS14/COS15/COS18、参考冻结、完整classic PvZ目标或最终用户体验；全部原预算与依赖保持。
+
+### 独审P2修订：要求明确退出与当前failureFacts
+
+`classic_entry_reviewer` 对 `806bec6ce454f8164860db323bb110b02ab5befc` 的完整独审仅提出此P2：新consumer复用的诊断器保留legacy兼容分支，raw与返回报告同时缺少failureFacts时，缺失或null退出事实可能被接受。修订只在新consumer增加 `cleanup.processExited === true` 和存在 `failureFacts` 的准入，内容仍交原诊断器核查；原runner及诊断器兼容行为不变。
+
+- `review-p2-lifecycle-red.log` 首轮保留failureFacts的退出缺失/null原已拒绝（2通过），仅缺failureFacts误通过（1失败）。将退出两例同时去掉failureFacts以命中legacy分支后，`review-p2-lifecycle-legacy-red.log` 三例均错误通过、测试3/3失败，23017.7568ms。三个负例的raw/返回report保持一致，失败并非来源不匹配。
+- 最小修复后 `review-p2-lifecycle-green.log` 6/6、0skip、40265.2488ms：健康、真实值不符、明确退出失败与三个新负例；新负例均为insufficient_evidence、不promotion，原clean acceptancePassed及STARTUP/OFFLINE仍通过。`review-p2-typecheck.log`、`review-p2-build.log`均exit0，文本检查见 `review-p2-text.log`。
+- 既有健康native原始报告本来就含明确退出和完整failureFacts，独审已核其原raw与截图；本次复用而未重跑。相较原native编译版本，最终consumer差异现包含此前失败raw保留和本次明确事实守卫；其余范围、预算与最终缺口保持。修订准确SHA和affected证据由同一verification-index绑定，等待原reviewer定向复审。

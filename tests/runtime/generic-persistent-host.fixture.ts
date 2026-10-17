@@ -73,6 +73,9 @@ export async function genericHostFixture(t: test.TestContext, fault = '', classi
       if (fault === 'entry-candidate') raw.plan.artifact.version = 'v99';
       if (fault === 'entry-expected') raw.plan.steps.at(-1).expected = '99';
       if (fault === 'entry-exit') raw.cleanup.processExited = false;
+      if (fault === 'entry-exit-missing') { delete raw.cleanup.processExited; delete raw.failureFacts; }
+      if (fault === 'entry-exit-null') { raw.cleanup.processExited = null; delete raw.failureFacts; }
+      if (fault === 'entry-facts-missing') delete raw.failureFacts;
       if (fault === 'entry-viewport') raw.browser.viewport = { width: 100, height: 100 };
       if (fault === 'entry-deadline') raw.endedAt = new Date(Date.parse(authority.deadlineAt) + 1).toISOString();
       await writeFile(join(evidenceRoot, folder, 'plan.json'), JSON.stringify(plan), 'utf8');

@@ -40,7 +40,7 @@ test('empty production source grants no sidecar path and executes no added plan'
   assert.ok(report.entries.every((row: any) => row.normalInput.outcome === 'not_executed' && row.normalInput.reason === 'no_reference_measurements'));
 });
 
-for (const fault of ['entry-mismatch', 'entry-input', 'entry-observation', 'entry-candidate', 'entry-expected', 'entry-exit', 'entry-viewport', 'entry-deadline', 'entry-raw', 'entry-png', 'entry-video', 'entry-missing-raw', 'entry-log', 'entry-screenshot', 'entry-source']) {
+for (const fault of ['entry-mismatch', 'entry-input', 'entry-observation', 'entry-candidate', 'entry-expected', 'entry-exit', 'entry-exit-missing', 'entry-exit-null', 'entry-facts-missing', 'entry-viewport', 'entry-deadline', 'entry-raw', 'entry-png', 'entry-video', 'entry-missing-raw', 'entry-log', 'entry-screenshot', 'entry-source']) {
   test(`independent ${fault} cannot promote or rewrite successful original policies`, async t => {
     const f = await genericHostFixture(t, fault, true, false, true);
     f.task.evidence = await f.host.verify(f.task, f.controller.signal); assert.equal(f.task.evidence[0].outcome, 'failed');
@@ -50,6 +50,7 @@ for (const fault of ['entry-mismatch', 'entry-input', 'entry-observation', 'entr
     assert.ok(f.host.diagnoseFailure!(f.task, 'host_verification')!.issues.every(issue => issue.classification === (fault === 'entry-mismatch' ? 'code_defect' : 'insufficient_evidence')));
     assert.equal((await read(f.root, 'evidence/coding/delivery-check.json')).acceptancePassed, true);
     assert.deepEqual((await read(f.root, 'evidence/coding/classic-policy.json')).entries.filter((row: any) => row.outcome === 'passed').map((row: any) => row.entryId), ['STARTUP', 'OFFLINE']);
+    if (['entry-exit-missing', 'entry-exit-null', 'entry-facts-missing'].includes(fault)) assert.equal((await f.host.finish([f.design, f.art, { ...f.task, state: 'failed' }])).acceptedCandidate, undefined);
   });
 }
 

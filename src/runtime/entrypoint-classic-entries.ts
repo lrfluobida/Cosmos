@@ -125,6 +125,7 @@ export async function createClassicEntryScope(input: { root: string; registry: A
             if (report.formatVersion !== '1.0.0' || report.kind !== 'normal_browser_input' || report.reportPath !== `${folder}/report.json`
               || !sameValue(report.plan, plan) || !sameValue(report.browser?.viewport, plan.viewport) || report.browser?.name !== 'chromium'
               || !report.browser.version || report.session !== undefined || !Number.isSafeInteger(report.cleanup?.browserPid) || report.cleanup.browserPid! <= 0
+              || report.cleanup.processExited !== true || !report.failureFacts
               || !Number.isFinite(start) || !Number.isFinite(end) || start > end || end > Date.now() || end >= deadline
               || !Number.isSafeInteger(report.timeoutMs) || report.timeoutMs <= 0 || !Array.isArray(report.files) || !Array.isArray(report.steps) || !Array.isArray(report.errors)
               || !sameValue(decode(await regularFile(evidenceRoot, `${folder}/plan.json`)), plan)
