@@ -1,6 +1,6 @@
 # COS-106：植物卡片网格显示费用
 
-2026-10-17。状态：**数据候选待固定提交独审**。[COS-106 / #107](https://github.com/lrfluobida/Cosmos/issues/107) 直属 [COS-01 / #2](https://github.com/lrfluobida/Cosmos/issues/2)，依赖已完成的 COS105。本批复用其准入和原 consumer；基线为 `9ae22833d4ae39c9a13378a28d60cf4f2f4165cf`。专职作者 `plant_grid_implementer`、独立审阅者 `plant_grid_reviewer`、唯一合并者 `batch_reference_display_merger`。
+2026-10-17。状态：**48条显示事实已审集成，本卡scoped complete/closed**。[COS-106 / #107](https://github.com/lrfluobida/Cosmos/issues/107) 直属 [COS-01 / #2](https://github.com/lrfluobida/Cosmos/issues/2)，依赖已完成的 COS105。本批复用其准入和原 consumer；基线为 `9ae22833d4ae39c9a13378a28d60cf4f2f4165cf`。专职作者 `plant_grid_implementer`、独立审阅者 `plant_grid_reviewer`、唯一合并者 `batch_reference_display_merger`。固定数据 `a62021b525bbaf4f15a6b3726822bccb562c6c52` 已获 `APPROVED_PLANT_CARD_DISPLAY_FACT_ADMISSION`、无finding，Root批准后合入发布。
 
 ## 来源与边界
 
@@ -73,7 +73,7 @@
 | `plant-card-grid-user-image` | normal_input | `evidence/local/plant-card-grid-b1fae4526a9d.png` | VALUE-PLANTS及PLANT-01..48 |
 | `plant-card-grid-displayed-cost-rule` | deterministic_rule | `evidence/plant-card-grid-cost-assertions.json` | 同上，明确列出49个ID |
 
-原图保全来源为 `E:/develop/Cosmos/.cosmos/reference-observations/plant-card-grid-b1fae4526a9d/user-grid.original.png`。作者在同一reference sourceRoot的既有ignored目录部署同字节副本；公开克隆需可信维护者部署该原件，缺图不能造占位或静默略过。本批不改ignore规则，不将图片提交Git、上传GitHub或放入生成游戏assets。唯一merger应在main部署同bytes原图后发布。
+原图保全来源为 `E:/develop/Cosmos/.cosmos/reference-observations/plant-card-grid-b1fae4526a9d/user-grid.original.png`。作者在同一reference sourceRoot的既有ignored目录部署同字节副本；公开克隆需可信维护者部署该原件，缺图不能造占位或静默略过。本批不改ignore规则，不将图片提交Git、上传GitHub或放入生成游戏assets。唯一merger已在main部署同bytes原图并验证后发布。
 
 [固定断言JSON](../../benchmarks/classic-pc/reference/evidence/plant-card-grid-cost-assertions.json) 保存48条坐标、图形依据、key/type/名称来源、双方读数、静态值和各比较的actual/expected/passed。于 `2026-10-17T12:18:56.516Z` 执行105项确定性比较（48×2条费用比较，加9条原图/已有资料检查），全部通过；程序没有OCR或图像语义识别。报告SHA256为 `2f8c55efdbee4d84a8262ad2e7b5e91be381b19ed4f5a1a55d1af8dd74c41d89`。
 
@@ -94,4 +94,14 @@
 
 raw总索引为 `C:/Users/26557/AppData/Local/Temp/cos106-plant-card-grid-implementer/verification-index.json`；原转录、断言执行记录、consumer脚本与TEMP来源位置均在其中。部署辅助脚本初次遗漏reference路径前缀导致复制ENOENT，随后修正目标路径；未改原图或旧证据。runtime、validator、测试和依赖均无改动，复用COS105/COS104既有host/native与类型证据；未重复长链路或旧C16。
 
-本卡固定提交仍须独立审阅实际diff，再由唯一merger集成部署；此处不提前记录审查批准或GitHub关闭。仅新增显示事实，不证明实际扣费、冷却、伤害、可用性、解锁、全部模式、完整classic、G4或human。COS01与完整参考冻结仍未完成；0新增模型调用、0新增费用、无新的实际生成。共享¥150（保留此前¥0.721771）、正式¥200/12h与目标¥100/6h不变。
+仅新增显示事实，不证明实际扣费、冷却、伤害、可用性、解锁、全部模式、完整classic、G4或human。COS01与完整参考冻结仍未完成；0新增模型调用、0新增费用、无新的实际生成。共享¥150（保留此前¥0.721771）、正式¥200/12h与目标¥100/6h不变。
+
+## 主线部署与发布
+
+唯一merger按批准数据 `a62021b525bbaf4f15a6b3726822bccb562c6c52` 快进合入，核七个文件与批准blob逐字节一致；main原PNG与保全件逐字节一致，200657 bytes、417×463及原hash保持，Git ignored/未跟踪。
+
+main于 `2026-10-17T12:27:39.493Z` 使用原consumer保持旧首条almanac100及两旧hash；独立TEMP向日葵50捕获新PNG `b1fae4526a9d6f94b5dbd42e20df3545a94d609ae71d49562f38a64b727da888` 与JSON `2f8c55efdbee4d84a8262ad2e7b5e91be381b19ed4f5a1a55d1af8dd74c41d89`，另缺新图副本ENOENT拒绝，生产catalog字节保持。这仍只是一条新事实的读取样例；原validator0、require-frozen预期1，49条measurement与230/221/9保持。
+
+主线私有索引 `.cosmos/cos106-admission/merge-verification-index.json` 保存部署、consumer、validator及 `consumer-script-path.diff`。执行脚本只将import、source root和raw输出目录三处路径转到main/新的私有目录，反向还原与作者脚本逐字相同；逻辑、断言与runtime未改。原29/29及COS105/COS104既有证据按无delta范围复用，未重跑测试、native或C16。
+
+数据SHA已push并经远端读回。Root已精确读回[完成评论](https://github.com/lrfluobida/Cosmos/issues/107#issuecomment-6233888145)、#107 closed(completed)、父目标checkbox[x]与#2直接2/完成2，父COS01仍open。本卡仅显示费用范围完成；全部植物及VALUE-PLANTS整项needs_reference、参考未冻结、fullclassic/G4/human未完成保持。

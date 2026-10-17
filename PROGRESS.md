@@ -2,12 +2,13 @@
 
 更新时间：2026-10-17
 
-## COS106植物卡片显示费用数据候选待独审
+## COS106植物卡片显示费用已审集成，本卡范围完成
 
-- [COS106 / #107](https://github.com/lrfluobida/Cosmos/issues/107)，id5898189978，直属COS01/#2；登记时#2直接2/完成1、根#1直接100、总任务106，父目标子项未勾选。基线 `9ae22833d4ae39c9a13378a28d60cf4f2f4165cf`，依赖已完成COS105；作者 `plant_grid_implementer`、独审 `plant_grid_reviewer`、唯一merger `batch_reference_display_merger`。
+- [COS106 / #107](https://github.com/lrfluobida/Cosmos/issues/107)，id5898189978，已closed(completed)，直属COS01/#2仍open；#2直接2/完成2、根#1直接100、总任务106，父目标子项已勾选。Root已精确读回[完成记录](https://github.com/lrfluobida/Cosmos/issues/107#issuecomment-6233888145)及关闭/父勾选。基线 `9ae22833d4ae39c9a13378a28d60cf4f2f4165cf`，依赖已完成COS105；作者 `plant_grid_implementer`、独审 `plant_grid_reviewer`、唯一merger `batch_reference_display_merger`。
 - 用户确认本机参考游戏原截图417×463、200657 bytes，hash b1fae4526a9d…；双人独立48读数一致且与既有UTF-8静态表相符。追加48条 `seed_packet_displayed_cost / sun / exact`，生产共49条；旧almanac100及PLANT-01绑定不改，PLANT-02..48人工关联既有本机名称，PLANT-49未绑定。详见[研究与逐卡表](docs/research/2026-10-17-plant-card-grid-reference.md)。
 - 两条共用证据准确覆盖VALUE-PLANTS与48实体，原图仅同sourceRoot ignored本地保存；固定JSON105项比较通过。原consumer生产仍选旧100；独立TEMP新向日葵50实际读取新PNG/JSON，另缺图副本ENOENT拒绝，仅代表一条新事实读取。validator0、require-frozen1，reference/entry-input29/29、0skip；raw索引 `C:/Users/26557/AppData/Local/Temp/cos106-plant-card-grid-implementer/verification-index.json`。
-- 数据固定提交与最终审查、main原图部署/发布尚待完成。全植物及VALUE-PLANTS整项needs_reference，230/221/9、provisional/未冻结保持；名称非图片文字、菜单/拍摄时间/点击/图鉴位置/解锁未知，不证明实际扣费、冷却、伤害或完整classic。0模型0新增费用，无runtime修改、native/actual/C16操作，原预算及COS01/fullclassic/human未完成保持。
+- 固定数据 `a62021b525bbaf4f15a6b3726822bccb562c6c52` 经独立 `APPROVED_PLANT_CARD_DISPLAY_FACT_ADMISSION`、无finding；Root批准后由唯一merger快进合入并发布。main已部署同bytes ignored原PNG，`2026-10-17T12:27:39.493Z` 原consumer保持旧100，新TEMP向日葵50捕获新PNG/JSON批准hash，缺新图ENOENT拒绝；validator0/frozen1，原图Git未跟踪。主线私有索引 `.cosmos/cos106-admission/merge-verification-index.json`；原29/29及既有host/native/类型证据按无delta范围复用。
+- 本卡scoped complete/closed。全植物及VALUE-PLANTS整项needs_reference，230/221/9、provisional/未冻结保持；名称非图片文字、菜单/拍摄时间/点击/图鉴位置/解锁未知，不证明实际扣费、冷却、伤害或完整classic。0模型0新增费用，无runtime修改、native/actual/C16操作，原预算及COS01/fullclassic/human未完成保持。
 
 ## C16 v2 独立补测通过，原C16仍未完成
 

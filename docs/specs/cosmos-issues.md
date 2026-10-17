@@ -150,7 +150,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-01 · P0 · 固定参考来源与完整验收清单
 
-- 新增原生子任务 [COS-106 / #107](https://github.com/lrfluobida/Cosmos/issues/107)，id5898189978，依赖COS105；#2直接2/完成1、根#1直接100、总任务106，父目标项未勾选。48卡片显示费用数据候选待独审，完整冻结条件不变；见下方本卡。
+- 原生子任务 [COS-106 / #107](https://github.com/lrfluobida/Cosmos/issues/107)，id5898189978，依赖COS105；48卡片显示费用已独审集成，本卡scoped complete/closed。Root已精确读回closed(completed)、父目标项[x]、#2直接2/完成2；父#2仍open，根#1直接100、总任务106。完整冻结条件不变；见下方本卡。
 - 原生子任务 [COS-105 / #106](https://github.com/lrfluobida/Cosmos/issues/106) 的单条豌豆射手图鉴显示费用已独审并集成，本卡scoped complete/closed；Root已精确读回#106 closed(completed)、目标子项[x]及#2直接1/完成1，父#2仍open。main已部署同hash ignored原图并通过原consumer读取与缺图拒绝检查，见[准入计划](../plans/2026-10-17-peashooter-display-fact-admission.md)。COS01完整冻结条件保持。
 - 名称静态证据：`b850459` 经 `reference_mapping_docs_reviewer` 独立APPROVED并合入 `b94d0d4`；[名称对应报告](../research/2026-10-15-reference-name-mapping.md)及数据保存87条定义名称记录、167个选定资源标签。用户报告窗口化及全部模式已解锁，仍缺可读画面与正常输入证据；catalog230/221、provisional/未冻结及#2 open保持。
 - 本次进展：静态基础值证据 `fdd64c8` 已独立审查并合入 `80d4d75`；记录 53 行 × 9 DWORD，字段语义与源码推导分开。53 行不代表可选植物分母，launchRate 不按秒解释；catalog 仍为 230 项、221 项待核实，未冻结，#2 保持 open。
@@ -1618,13 +1618,15 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-106 · 批量核对48张植物卡片的显示费用
 
-[COS106 / #107](https://github.com/lrfluobida/Cosmos/issues/107)，id5898189978，原生父COS01/#2 id5650981929；登记时#2直接2/完成1、根#1直接100、总任务106，目标子项未勾选。基线 `9ae22833d4ae39c9a13378a28d60cf4f2f4165cf`，依赖已完成COS105；本卡数据候选待固定提交独审，尚未发布或关闭。
+[COS106 / #107](https://github.com/lrfluobida/Cosmos/issues/107)，id5898189978，原生父COS01/#2 id5650981929；#2直接2/完成2、根#1直接100、总任务106，目标子项[x]。基线 `9ae22833d4ae39c9a13378a28d60cf4f2f4165cf`，依赖已完成COS105；数据 `a62021b525bbaf4f15a6b3726822bccb562c6c52` 经独立 `APPROVED_PLANT_CARD_DISPLAY_FACT_ADMISSION`、无finding，Root批准后快进合入并发布。本卡scoped complete/closed；Root已精确读回[完成评论](https://github.com/lrfluobida/Cosmos/issues/107#issuecomment-6233888145)、closed(completed)及父勾选，COS01仍open。
 
 用户明确确认原PNG为本机参考游戏直接截图，417×463、200657 bytes，SHA256 `b1fae4526a9d6f94b5dbd42e20df3545a94d609ae71d49562f38a64b727da888`。作者 `plant_grid_implementer` 与独立 `plant_grid_reviewer` 分别阅图后48读数一致，既有UTF-8静态表48费用一致；逐卡图形、坐标、名称来源与对照见[研究记录](../research/2026-10-17-plant-card-grid-reference.md)。名称不是图片文字，行列不是图鉴位置，拍摄时间、具体菜单与点击过程未知。
 
 追加48条 `seed_packet_displayed_cost / sun / exact`，总49条；旧almanac100、顺序和PLANT-01整行不变，PLANT-02..48手工绑定静态key，PLANT-49未绑定。共用normal_input原PNG与deterministic_rule固定JSON各覆盖VALUE-PLANTS及48实体；原图按既有ignore仅本地部署，不进Git/GitHub或游戏assets。固定JSON105项比较通过；原validator0、require-frozen1，reference/entry-input29/29。原consumer生产仍取旧100，新TEMP向日葵50真实读取新PNG/JSON，缺新图ENOENT拒绝；不称consumer全48验收。
 
-唯一merger `batch_reference_display_merger` 待独审固定SHA后部署同bytes原图、整合发布。全植物及VALUE-PLANTS整项needs_reference、230/221/9与provisional/未冻结保持；显示费用不证明实际扣费、冷却、伤害、解锁、名册闭合或完整classic。0模型0新增费用，无runtime/validator/测试/依赖改动，复用旧host/native/类型证据，无新实际生成或C16操作；原共享¥150/正式¥20012h/目标¥1006h与COS01/fullclassic/human未完成不变。
+唯一merger `batch_reference_display_merger` 已在main部署同bytes ignored原图。`2026-10-17T12:27:39.493Z` 原consumer保持旧首条100，新TEMP向日葵50捕获新PNG/JSON批准hash，缺新图ENOENT拒绝；原validator0/frozen预期1，Git确认原图未跟踪。主线私有索引 `.cosmos/cos106-admission/merge-verification-index.json` 保存三处执行路径调整及实际回执；脚本逻辑和断言保持。原29/29与既有host/native/类型证据按无delta范围复用。
+
+全植物及VALUE-PLANTS整项needs_reference、230/221/9与provisional/未冻结保持；显示费用不证明实际扣费、冷却、伤害、解锁、名册闭合或完整classic。0模型0新增费用，无runtime/validator/测试/依赖改动，无新实际生成或C16操作；原共享¥150/正式¥20012h/目标¥1006h与COS01/fullclassic/human未完成不变。
 
 稳定任务 ID：COS-106
 
