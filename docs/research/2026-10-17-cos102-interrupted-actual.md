@@ -1,6 +1,6 @@
 # COS102：C16推箱子迁移实际中断、恢复与闭账
 
-日期：2026-10-17。单次C16实际执行中断后，两把旧owner锁已通过受审维护入口恢复，原`main@2f84eb328e59f20d73ceccdc69ff708f7be200a5`的accountingOnly API以真实当前时间记录deadline stop并close，closure22与最终独立后核完成。Root已解冻main，唯一merger `batch_previous_boot_merger`已本地集成恢复源码；文档组合尚待发布。恢复与闭账不构成游戏验收通过。
+日期：2026-10-17。单次C16实际执行中断后，两把旧owner锁已通过受审维护入口恢复，原`main@2f84eb328e59f20d73ceccdc69ff708f7be200a5`的accountingOnly API以真实当前时间记录deadline stop并close，closure22与最终独立后核完成。Root解冻main后，唯一merger `batch_previous_boot_merger`已将恢复源码与结果发布至`376d893b7ae109595cf21f85d5b6f7504e887440`。恢复与闭账不构成游戏验收通过。
 
 C16已消费：v1正式构建通过，首段21步中20通过、1失败；原一次repair产出v2并通过正式构建，但仅见v2首段plan，没有对应report。原coding failed、repair running/attempt1历史未改写；repair记录不代表当前仍有活进程。[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)保持open/incomplete、父项未勾选，`TRANSFER_CASE_SIXTEEN_SOURCE_READY`与源码批准保持。这里的实际产物是复用C5设计、美术的推箱子迁移案例；完整经典目标游戏、COS16/COS18及human验收均未提升。
 
@@ -94,7 +94,7 @@ intent/outcome与完整quote/decision相符，原字节已保全。两锁后核�
 
 独立`cos102_recovery_reviewer`给出`PASS_C16_INTERRUPTED_RECOVERY_AND_ACCOUNTING_CLOSED`，Root接受并解冻main。`08:42:49Z`（北京时间`16:42:49`）确认无关联writer、后代进程、原端口监听、owner或guard；case剩余9187文件metadata不变，仅移除registry锁，shared仅预期snapshot更新、controller锁移除和新增精确closure来源。后核复用未变文件的既有hash证据，没有重新hash全部文件。报告SHA256为`9cd247d338b05b74a4b9fad2ae6557c5af6e6a50f0caa6f6da2d436fdaaf76f1`。
 
-账务处理已闭环；C16实际仍interrupted/consumed/incomplete。220步、62媒体字段、DeepSeek review、promotion及原deadline内clean final未完成，C15、COS16/COS18、full classic和human状态保持。本结果不授予新run、新预算或新的repair机会。唯一merger已将已审恢复源码合入本地main `402cfb56b44e211147014691b56b49ac53dc2393`，tree与已审`15488a9`完全一致；当前尚未push，最终发布SHA另行记录。COS103为source-integrated/实际恢复完成；#104先保持open，最终发布后由Root另行关闭。
+账务处理已闭环；C16实际仍interrupted/consumed/incomplete。220步、62媒体字段、DeepSeek review、promotion及原deadline内clean final未完成，C15、COS16/COS18、full classic和human状态保持。本结果不授予新run、新预算或新的repair机会。唯一merger先将已审恢复源码合入main `402cfb56b44e211147014691b56b49ac53dc2393`，该次tree与已审`15488a9`完全一致；随后源码与结果以`376d893b7ae109595cf21f85d5b6f7504e887440`发布并精确读回。Root已确认COS103/#104 closed(completed)、父COS102/#103中的恢复子项已勾选，见[完成记录](https://github.com/lrfluobida/Cosmos/issues/104#issuecomment-6232024845)；COS102仍open/incomplete。
 
 Root已发布并逐字GET核对[COS102实际闭账结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6231925268)与[COS103恢复结果](https://github.com/lrfluobida/Cosmos/issues/104#issuecomment-6231925739)。公开记录保留C16 incomplete及本地合入、待组合发布的边界。
 

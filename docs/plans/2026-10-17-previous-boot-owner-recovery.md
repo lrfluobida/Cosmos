@@ -10,7 +10,7 @@
 
 ---
 
-状态：2026-10-17，[COS103 / #104](https://github.com/lrfluobida/Cosmos/issues/104)已原生挂父COS102/#103。设计`1d400d75919eca0100b05488534c33e4ef6a4d81`经`cos102_recovery_reviewer`批准；源码`15488a9c41677a23566c8a4d24f7addd0f5224ff`经`previous_boot_recovery_reviewer`独审`APPROVED_SOURCE_SCOPED`、无P1/P2。实际两锁恢复、原API stop/close与closure22已完成，最终后核PASS，Root已解冻main；唯一merger `batch_previous_boot_merger`合入本地main `402cfb56b44e211147014691b56b49ac53dc2393`，尚待文档组合发布，#104先保持open。规格：[上次系统启动遗留 owner 的受控恢复](../specs/previous-boot-owner-recovery.md)；[公开结果](https://github.com/lrfluobida/Cosmos/issues/104#issuecomment-6231925739)。下列清单保留设计时步骤，执行事实见末尾记录。
+状态：2026-10-17，[COS103 / #104](https://github.com/lrfluobida/Cosmos/issues/104)已原生挂父COS102/#103。设计`1d400d75919eca0100b05488534c33e4ef6a4d81`经`cos102_recovery_reviewer`批准；源码`15488a9c41677a23566c8a4d24f7addd0f5224ff`经`previous_boot_recovery_reviewer`独审`APPROVED_SOURCE_SCOPED`、无P1/P2。实际两锁恢复、原API stop/close与closure22已完成，最终后核PASS，Root已解冻main；唯一merger `batch_previous_boot_merger`合入main `402cfb56b44e211147014691b56b49ac53dc2393`，源码与结果以`376d893b7ae109595cf21f85d5b6f7504e887440`发布。Root已精确核证#104 closed(completed)、父恢复子项已勾选，COS102仍open，见[完成记录](https://github.com/lrfluobida/Cosmos/issues/104#issuecomment-6232024845)。规格：[上次系统启动遗留 owner 的受控恢复](../specs/previous-boot-owner-recovery.md)；[公开结果](https://github.com/lrfluobida/Cosmos/issues/104#issuecomment-6231925739)。下列清单保留设计时步骤，执行事实见末尾记录。
 
 ## 角色、工作树与范围
 
@@ -133,4 +133,4 @@ apply:   acquireExistingRecoveryGuard → rereadExactOwnerAndSource
 
 Root使用已审源码维护registry/controller两锁，原157/1085字节精确归档；随后原`main@2f84eb3`在独立accountingOnly进程中不传now，于`2026-10-17T08:38:18.674Z`记录`deadline` stop并close，原deadline保持。一次closure22将revision3333推进到3334、120 closures/22 audits，释放未用分配19734278µ；C16 51请求/1265722µ、shared766请求/18166722µ和reserved/unknown0保持。
 
-最终`PASS_C16_INTERRUPTED_RECOVERY_AND_ACCOUNTING_CLOSED`确认case剩余9187文件metadata不变、shared仅预期变化、`08:42:49Z`无writer/ports/owner/guard；Root已解冻。源码本地合入的tree等于已审154，发布SHA待唯一merger记录。C16仍consumed/incomplete、v1失败/v2缺report，repair running仅保留原历史；不授权新paid或重跑，COS16/COS18、完整经典和human保持。精确operation/quote/decision/receipt/snapshot与时区见[C16研究记录](../research/2026-10-17-cos102-interrupted-actual.md)。
+最终`PASS_C16_INTERRUPTED_RECOVERY_AND_ACCOUNTING_CLOSED`确认case剩余9187文件metadata不变、shared仅预期变化、`08:42:49Z`无writer/ports/owner/guard；Root已解冻。源码合入时的tree等于已审154，后续源码与结果已发布至`376d893b7ae109595cf21f85d5b6f7504e887440`；COS103/#104已closed(completed)，父恢复子项已勾选。C16仍consumed/incomplete、v1失败/v2缺report，repair running仅保留原历史；不授权新paid或重跑，COS16/COS18、完整经典和human保持。精确operation/quote/decision/receipt/snapshot与时区见[C16研究记录](../research/2026-10-17-cos102-interrupted-actual.md)。

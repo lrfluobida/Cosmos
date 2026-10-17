@@ -2,10 +2,10 @@
 
 更新时间：2026-10-17
 
-## COS103恢复源码已审集成，C16两锁恢复与账务闭环完成
+## COS103恢复源码与结果已发布并关闭，C16两锁恢复与账务闭环完成
 
-- [COS103 / #104](https://github.com/lrfluobida/Cosmos/issues/104)，id5896315224，已原生挂父[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，父项未勾选；根#1直接子项100、#17直接2、#103直接1、总任务103。#104先保持open，最终发布后由Root关闭。
-- 设计`1d400d75919eca0100b05488534c33e4ef6a4d81`经`cos102_recovery_reviewer`批准；源码`15488a9c41677a23566c8a4d24f7addd0f5224ff`经`previous_boot_recovery_reviewer`独审`APPROVED_SOURCE_SCOPED`、无P1/P2。唯一merger `batch_previous_boot_merger`已合入本地main `402cfb56b44e211147014691b56b49ac53dc2393`，tree与批准源码一致；尚待文档组合发布。见[spec](docs/specs/previous-boot-owner-recovery.md)和[plan](docs/plans/2026-10-17-previous-boot-owner-recovery.md)。
+- [COS103 / #104](https://github.com/lrfluobida/Cosmos/issues/104)，id5896315224，已原生挂父[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，恢复子项已勾选；根#1直接子项100、#17直接2、#103直接1且完成1、总任务103。#104已closed(completed)，[完成记录](https://github.com/lrfluobida/Cosmos/issues/104#issuecomment-6232024845)与父勾选已由Root精确读回；COS102仍open。
+- 设计`1d400d75919eca0100b05488534c33e4ef6a4d81`经`cos102_recovery_reviewer`批准；源码`15488a9c41677a23566c8a4d24f7addd0f5224ff`经`previous_boot_recovery_reviewer`独审`APPROVED_SOURCE_SCOPED`、无P1/P2。唯一merger `batch_previous_boot_merger`已合入main `402cfb56b44e211147014691b56b49ac53dc2393`，该次tree与批准源码一致；源码与结果已发布至main `376d893b7ae109595cf21f85d5b6f7504e887440`。见[spec](docs/specs/previous-boot-owner-recovery.md)和[plan](docs/plans/2026-10-17-previous-boot-owner-recovery.md)。
 - 复用最终guard修正前49/49、最终affected9/9（含重叠，不相加）、默认恢复24/24及typecheck/build0。B3仅为TEMP原2f runtime、真实identity/now与独立Node的维护/accounting组合证据。默认recover保持，不kill复用PID，不是游戏通过证据。
 - Root先恢复registry/controller两锁，原157/1085字节精确归档；随后原main2f accountingOnly API于`2026-10-17T08:38:18.674Z`记录`deadline` stop并close，原deadline保持`2026-10-16T12:53:14.977Z`。一次closure22后revision3334、120 closures/22 audits，释放未用分配19734278µ（非费用退款），shared allocated93354297µ/unallocated56645703µ；C16 51请求/1265722µ、shared766请求/18166722µ、reserved/unknown0保持。
 - 独审`PASS_C16_INTERRUPTED_RECOVERY_AND_ACCOUNTING_CLOSED`确认`08:42:49Z`无writer/ports/owner/guard，case剩余9187文件metadata不变，shared仅预期账务/锁/closure来源变化，Root已解冻main。最终snapshot SHA256 `34a6ba11f4e96ad1c87a6a0cfb54ae6890e07036500af1a19660e9b45aeb4fef`。C16仍consumed/incomplete，无新paid或重跑授权；详见[实际中断、恢复与闭账记录](docs/research/2026-10-17-cos102-interrupted-actual.md)。
