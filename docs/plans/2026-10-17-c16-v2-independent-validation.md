@@ -12,7 +12,7 @@
 
 ## 范围与状态
 
-隶属 [COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，不新增 issue、验证案例、预算或修复机会。准备基线 `0113f6e73cad0cee3c3ddb7a871b8d17cd4206a9`；实际生成来源仍为 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`。计划 `cc5a3e13649c27632156190d11240dad51422ade` 与下述精确脚本已独审；Root[单次批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233519607)后执行完成，结果已独审并[公开发布](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233582959)，本次结果文档待发布。
+隶属 [COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，不新增 issue、验证案例、预算或修复机会。准备基线 `0113f6e73cad0cee3c3ddb7a871b8d17cd4206a9`；实际生成来源仍为 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`。计划 `cc5a3e13649c27632156190d11240dad51422ade` 与下述精确脚本已独审；Root[单次批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233519607)后执行完成，结果已独审并[公开发布](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233582959)，本次结果文档已审集成发布。
 
 作者分支 `codex/c16-v2-independent-validation`。准备阶段的 tracked 改动仅为本计划、`PROGRESS.md` 与 `docs/specs/cos102-transfer-case16.md`；结果阶段另增加 `docs/research/2026-10-17-c16-v2-independent-validation.md`；脚本保存在作者 worktree 的 ignored `.cosmos/c16-v2-independent/diagnostic-v1.ts`，不提交原游戏、媒体或私有证据。独立 reviewer 为 `c16_v2_validation_reviewer`；作者不写 main、不 push。
 
@@ -32,7 +32,7 @@
 - [x] 在本次固定 source 上用原 runner 执行八段及62媒体观察。原 per-step、navigation、launch、cleanup 默认值保持；没有 `ownedChild`、native validation window、controller、provider、旧 launcher 或原 game 写入。原 game 自带静态服务仅在 TEMP 中以 `port:0` 绑定 loopback。
 - [x] 整体预算10分钟，自脚本开始计时；9分钟中止工作，预留最后1分钟清理与保存。保留原 runner 的阶段超时，不因补测延长；deadline/SIGINT/SIGTERM 传同一 AbortSignal。10分钟内仍未清理时，先写失败记录，再仅对仍存活的本诊断 Node PID 及其子树请求 `taskkill`；该请求不冒充退出证明，Root 后核进程/端口。
 - [x] 保存每段原报告、截图、视频、checkpoint、媒体 request/coverage 与本次真实起止时间；检查 raw 报告一致、样本时间、退出身份、服务关闭及必要原文件/ledger 未变。失败保留实际已执行/未执行数量，不自动重试或修游戏。完整 video 解码/性能不在本次范围。
-- [ ] reviewer 核实际结果后，Root 决定公开有限结论，唯一 merger 更新记录；COS102仍 open/incomplete，原220/62未完成与本次补测结果分别描述。
+- [x] reviewer 核实际结果后，Root 决定公开有限结论，唯一 merger 更新记录；COS102仍 open/incomplete，原220/62未完成与本次补测结果分别描述。
 
 ## 准备证据
 

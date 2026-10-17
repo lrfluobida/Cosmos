@@ -1,6 +1,6 @@
 # 封存 C16 v2 候选：独立玩法与媒体补测通过
 
-2026-10-17，在已审 `cc5a3e13649c27632156190d11240dad51422ade` 上，对原 C16 v2 候选的逐字节一致 TEMP 副本执行一次免费补测：**八段220步全部通过，62个媒体字段全部匹配，清理完成，用时47.602秒**。独立 reviewer 给出 `APPROVED_C16_V2_INDEPENDENT_VALIDATION_RESULT_SCOPED`、无finding；Root 接受后核并解冻，[公开结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233582959)已逐字读回。本文档待发布。
+2026-10-17，在已审 `cc5a3e13649c27632156190d11240dad51422ade` 上，对原 C16 v2 候选的逐字节一致 TEMP 副本执行一次免费补测：**八段220步全部通过，62个媒体字段全部匹配，清理完成，用时47.602秒**。独立 reviewer 给出 `APPROVED_C16_V2_INDEPENDENT_VALIDATION_RESULT_SCOPED`、无finding；Root 接受后核并解冻，[公开结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233582959)已逐字读回。结果文档组合 `06c714bfd5eb8f4ef30c1887ce95b2dcd2c2828b` 经独审 `APPROVED_C16_V2_INDEPENDENT_VALIDATION_RESULT_DOCS`、无finding；Root批准后由唯一merger按固定SHA快进合入并发布，远端已读回。
 
 这是封存的实际生成推箱子候选，其生成来源仍为 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`。原 C16 保持 interrupted / consumed / incomplete，[COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)保持 open；原运行的中断、费用和闭账见[历史记录](2026-10-17-cos102-interrupted-actual.md)。本次没有重开原运行、修游戏、重新构建、模型调用或新增费用。
 

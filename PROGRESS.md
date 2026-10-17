@@ -4,7 +4,7 @@
 
 ## C16 v2 独立补测通过，原C16仍未完成
 
-已审计划/脚本在`cc5a3e13649c27632156190d11240dad51422ade`经Root[单次批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233519607)后执行：封存v2候选逐字节TEMP副本八段220/220、62/62媒体字段匹配，用时47.602秒、exit0，存档同profile/origin真实重开通过。8browser非forced/exit0、服务关闭；Root和reviewer独立后核无进程/端口残留，390保护文件+33harness/script与输入manifest相同、ledger闭账hash不变。独审`APPROVED_C16_V2_INDEPENDENT_VALIDATION_RESULT_SCOPED`无finding，Root已解冻，[公开结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233582959)已精确读回，本次结果文档待发布。见[研究记录](docs/research/2026-10-17-c16-v2-independent-validation.md)。原C16 consumed/interrupted/incomplete、COS102 open；原deadline/controller/modelreview/promotion、COS16/COS18/fullclassic/human未完成保持，无新模型/费用或原运行重开。
+已审计划/脚本在`cc5a3e13649c27632156190d11240dad51422ade`经Root[单次批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233519607)后执行：封存v2候选逐字节TEMP副本八段220/220、62/62媒体字段匹配，用时47.602秒、exit0，存档同profile/origin真实重开通过。8browser非forced/exit0、服务关闭；Root和reviewer独立后核无进程/端口残留，390保护文件+33harness/script与输入manifest相同、ledger闭账hash不变。独审`APPROVED_C16_V2_INDEPENDENT_VALIDATION_RESULT_SCOPED`无finding，Root已解冻，[公开结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233582959)已精确读回，本次结果文档已审集成发布。见[研究记录](docs/research/2026-10-17-c16-v2-independent-validation.md)。原C16 consumed/interrupted/incomplete、COS102 open；原deadline/controller/modelreview/promotion、COS16/COS18/fullclassic/human未完成保持，无新模型/费用或原运行重开。
 
 ## COS105首条图鉴显示费用事实已审集成，本卡范围完成
 
