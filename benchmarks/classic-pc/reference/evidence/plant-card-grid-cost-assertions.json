@@ -1,0 +1,1548 @@
+{
+  "formatVersion": "cosmos-plant-card-grid-cost-assertions/1",
+  "referenceId": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+  "recordedAt": "2026-10-17T12:18:56.516Z",
+  "recordedAtMeaning": "Read-only comparison/report execution time, not screenshot capture time.",
+  "scope": "48 seed packet displayed cost facts; final fixed-diff admission review remains separate.",
+  "image": {
+    "path": "evidence/local/plant-card-grid-b1fae4526a9d.png",
+    "sha256": "b1fae4526a9d6f94b5dbd42e20df3545a94d609ae71d49562f38a64b727da888",
+    "bytes": 200657,
+    "width": 417,
+    "height": 463,
+    "transformations": []
+  },
+  "sourceAssociation": {
+    "userConfirmation": "本机参考游戏直接截图",
+    "recordedAt": "2026-10-17T12:11:11.865013+00:00",
+    "captureTime": null,
+    "menuIdentity": null,
+    "versionTextVisible": false,
+    "individualNamesVisible": false,
+    "confirmationRecordSha256": "ccf6b6ac664843e0f400f59bc137d5b5dbfcbfe7b09e452e4a59f39b44d61fc2"
+  },
+  "normalInputRecord": {
+    "process": "User uploaded the grid and explicitly confirmed local reference-game origin; both readers opened the unedited original, independently transcribed costs and identified graphics, then compared existing UTF-8 static records.",
+    "clickSequence": null,
+    "fullWindow": false,
+    "rosterPosition": null,
+    "unlockPrerequisites": null
+  },
+  "manualObservation": {
+    "reader": "plant_grid_implementer",
+    "independentTranscriptionSavedAt": "2026-10-17T12:14:45Z",
+    "observedAt": "2026-10-17T12:15:52Z",
+    "method": "Actual view_image of preserved original PNG; independent manual reading before reviewer matrix/static comparison; no crop, edit or OCR.",
+    "independentTranscriptSha256": "ee451d33a2da90df5341c81510dd8d9a8c684fd42344d3813ecf369d0b4dfb1a"
+  },
+  "visualCrossCheck": {
+    "reviewer": "plant_grid_reviewer",
+    "source": "Reviewer independently read all 48 before receiving author matrix; root relayed the already fixed matrix after author transcription was saved.",
+    "status": "48_independent_reads_agree",
+    "finalDiffReview": "pending"
+  },
+  "entityBinding": {
+    "assignedBy": "plant_grid_implementer",
+    "method": "Explicit manual entityId/staticKey/image-position map after independent visual identification. Preserve existing PLANT-01 binding; assign previously unbound PLANT-02..48 only.",
+    "idImpliesRosterOrder": false,
+    "unboundEntryIds": [
+      "PLANT-49"
+    ],
+    "notObservedStaticKey": "IMITATER",
+    "completeRosterEstablished": false
+  },
+  "measurement": {
+    "entryId": "VALUE-PLANTS",
+    "metric": "seed_packet_displayed_cost",
+    "unit": "sun",
+    "tolerance": "exact",
+    "unitBasis": "Sun icon beside each displayed number, cross-checked with the already reviewed local static cost semantics; actual debit was not observed."
+  },
+  "reusedStaticEvidence": {
+    "publishedBase": "9ae22833d4ae39c9a13378a28d60cf4f2f4165cf",
+    "sources": [
+      {
+        "kind": "nameMapping",
+        "path": "benchmarks/classic-pc/reference/name-mappings.json",
+        "sha256": "52240eb9b06636903e53913fda14f4968a31e17935f0c3695d7f44d7129cc9c7"
+      },
+      {
+        "kind": "plantTable",
+        "path": "benchmarks/classic-pc/reference/static-plants.json",
+        "sha256": "99b5ff05ddbc05ad144ba333119d74c510f871a1995db620ec2bc394961f4a07"
+      },
+      {
+        "kind": "costSemantics",
+        "path": "docs/research/2026-10-17-reference-plant-cost-consumers.md",
+        "sha256": "4bff414549f9680e153433c6e930806dac921cb7d7565b47f738e7007ae6b4b9"
+      }
+    ],
+    "costWordIndex": 4,
+    "scope": "Reuse existing UTF-8 records only; no EXE scan/table extraction, UTF-16 resource read, original-game control or new runtime observation."
+  },
+  "rows": [
+    {
+      "entityId": "PLANT-01",
+      "position": "r1c1",
+      "staticKey": "PEASHOOTER",
+      "seedType": 0,
+      "referenceName": "豌豆射手",
+      "visualCue": "绿色单豌豆嘴",
+      "implementerRead": 100,
+      "reviewerRead": 100,
+      "staticCost": 100,
+      "staticFileOffset": "0x36b000",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-02",
+      "position": "r1c2",
+      "staticKey": "SUNFLOWER",
+      "seedType": 1,
+      "referenceName": "向日葵",
+      "visualCue": "单个向日葵花盘",
+      "implementerRead": 50,
+      "reviewerRead": 50,
+      "staticCost": 50,
+      "staticFileOffset": "0x36b024",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-03",
+      "position": "r1c3",
+      "staticKey": "CHERRY_BOMB",
+      "seedType": 2,
+      "referenceName": "樱桃炸弹",
+      "visualCue": "连枝红色双樱桃",
+      "implementerRead": 150,
+      "reviewerRead": 150,
+      "staticCost": 150,
+      "staticFileOffset": "0x36b048",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 150,
+          "expected": 150,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 150,
+          "expected": 150,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-04",
+      "position": "r1c4",
+      "staticKey": "WALL_NUT",
+      "seedType": 3,
+      "referenceName": "坚果",
+      "visualCue": "棕色矮圆坚果",
+      "implementerRead": 50,
+      "reviewerRead": 50,
+      "staticCost": 50,
+      "staticFileOffset": "0x36b06c",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-05",
+      "position": "r1c5",
+      "staticKey": "POTATO_MINE",
+      "seedType": 4,
+      "referenceName": "土豆地雷",
+      "visualCue": "地面土豆与红色触头",
+      "implementerRead": 25,
+      "reviewerRead": 25,
+      "staticCost": 25,
+      "staticFileOffset": "0x36b090",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-06",
+      "position": "r1c6",
+      "staticKey": "SNOW_PEA",
+      "seedType": 5,
+      "referenceName": "寒冰射手",
+      "visualCue": "蓝色豌豆嘴",
+      "implementerRead": 175,
+      "reviewerRead": 175,
+      "staticCost": 175,
+      "staticFileOffset": "0x36b0b4",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 175,
+          "expected": 175,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 175,
+          "expected": 175,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-07",
+      "position": "r1c7",
+      "staticKey": "CHOMPER",
+      "seedType": 6,
+      "referenceName": "大嘴花",
+      "visualCue": "紫色张嘴锯齿花",
+      "implementerRead": 150,
+      "reviewerRead": 150,
+      "staticCost": 150,
+      "staticFileOffset": "0x36b0d8",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 150,
+          "expected": 150,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 150,
+          "expected": 150,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-08",
+      "position": "r1c8",
+      "staticKey": "REPEATER",
+      "seedType": 7,
+      "referenceName": "双重射手",
+      "visualCue": "绿色豌豆嘴与后侧叶冠",
+      "implementerRead": 200,
+      "reviewerRead": 200,
+      "staticCost": 200,
+      "staticFileOffset": "0x36b0fc",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 200,
+          "expected": 200,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 200,
+          "expected": 200,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-09",
+      "position": "r2c1",
+      "staticKey": "PUFF_SHROOM",
+      "seedType": 8,
+      "referenceName": "小喷菇",
+      "visualCue": "小型紫色蘑菇",
+      "implementerRead": 0,
+      "reviewerRead": 0,
+      "staticCost": 0,
+      "staticFileOffset": "0x36b120",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 0,
+          "expected": 0,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 0,
+          "expected": 0,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-10",
+      "position": "r2c2",
+      "staticKey": "SUN_SHROOM",
+      "seedType": 9,
+      "referenceName": "阳光菇",
+      "visualCue": "黄色小蘑菇",
+      "implementerRead": 25,
+      "reviewerRead": 25,
+      "staticCost": 25,
+      "staticFileOffset": "0x36b144",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-11",
+      "position": "r2c3",
+      "staticKey": "FUME_SHROOM",
+      "seedType": 10,
+      "referenceName": "大喷菇",
+      "visualCue": "粗大紫色喷口蘑菇",
+      "implementerRead": 75,
+      "reviewerRead": 75,
+      "staticCost": 75,
+      "staticFileOffset": "0x36b168",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-12",
+      "position": "r2c4",
+      "staticKey": "GRAVE_BUSTER",
+      "seedType": 11,
+      "referenceName": "咬咬碑",
+      "visualCue": "灰色碑体与上缘齿状枝叶",
+      "implementerRead": 75,
+      "reviewerRead": 75,
+      "staticCost": 75,
+      "staticFileOffset": "0x36b18c",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-13",
+      "position": "r2c5",
+      "staticKey": "HYPNO_SHROOM",
+      "seedType": 12,
+      "referenceName": "迷糊菇",
+      "visualCue": "彩色螺旋蘑菇帽",
+      "implementerRead": 75,
+      "reviewerRead": 75,
+      "staticCost": 75,
+      "staticFileOffset": "0x36b1b0",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-14",
+      "position": "r2c6",
+      "staticKey": "SCAREDY_SHROOM",
+      "seedType": 13,
+      "referenceName": "胆小菇",
+      "visualCue": "长柄紫色小蘑菇帽",
+      "implementerRead": 25,
+      "reviewerRead": 25,
+      "staticCost": 25,
+      "staticFileOffset": "0x36b1d4",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-15",
+      "position": "r2c7",
+      "staticKey": "ICE_SHROOM",
+      "seedType": 14,
+      "referenceName": "冰川菇",
+      "visualCue": "蓝色冰晶蘑菇帽",
+      "implementerRead": 75,
+      "reviewerRead": 75,
+      "staticCost": 75,
+      "staticFileOffset": "0x36b1f8",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-16",
+      "position": "r2c8",
+      "staticKey": "DOOM_SHROOM",
+      "seedType": 15,
+      "referenceName": "末日菇",
+      "visualCue": "黑灰色大蘑菇帽",
+      "implementerRead": 125,
+      "reviewerRead": 125,
+      "staticCost": 125,
+      "staticFileOffset": "0x36b21c",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-17",
+      "position": "r3c1",
+      "staticKey": "LILY_PAD",
+      "seedType": 16,
+      "referenceName": "莲叶",
+      "visualCue": "有缺口的圆形绿叶",
+      "implementerRead": 25,
+      "reviewerRead": 25,
+      "staticCost": 25,
+      "staticFileOffset": "0x36b240",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-18",
+      "position": "r3c2",
+      "staticKey": "SQUASH",
+      "seedType": 17,
+      "referenceName": "窝瓜",
+      "visualCue": "浅绿色粗壮窝瓜",
+      "implementerRead": 50,
+      "reviewerRead": 50,
+      "staticCost": 50,
+      "staticFileOffset": "0x36b264",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-19",
+      "position": "r3c3",
+      "staticKey": "THREEPEATER",
+      "seedType": 18,
+      "referenceName": "三重射手",
+      "visualCue": "三头绿色豌豆嘴",
+      "implementerRead": 325,
+      "reviewerRead": 325,
+      "staticCost": 325,
+      "staticFileOffset": "0x36b288",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 325,
+          "expected": 325,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 325,
+          "expected": 325,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-20",
+      "position": "r3c4",
+      "staticKey": "TANGLE_KELP",
+      "seedType": 19,
+      "referenceName": "缠绕水草",
+      "visualCue": "深色缠绕水草",
+      "implementerRead": 25,
+      "reviewerRead": 25,
+      "staticCost": 25,
+      "staticFileOffset": "0x36b2ac",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-21",
+      "position": "r3c5",
+      "staticKey": "JALAPENO",
+      "seedType": 20,
+      "referenceName": "火爆辣椒",
+      "visualCue": "红色长辣椒",
+      "implementerRead": 125,
+      "reviewerRead": 125,
+      "staticCost": 125,
+      "staticFileOffset": "0x36b2d0",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-22",
+      "position": "r3c6",
+      "staticKey": "SPIKEWEED",
+      "seedType": 21,
+      "referenceName": "地刺",
+      "visualCue": "贴地褐色尖刺",
+      "implementerRead": 100,
+      "reviewerRead": 100,
+      "staticCost": 100,
+      "staticFileOffset": "0x36b2f4",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-23",
+      "position": "r3c7",
+      "staticKey": "TORCHWOOD",
+      "seedType": 22,
+      "referenceName": "火炬树桩",
+      "visualCue": "顶部燃烧的树桩",
+      "implementerRead": 175,
+      "reviewerRead": 175,
+      "staticCost": 175,
+      "staticFileOffset": "0x36b318",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 175,
+          "expected": 175,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 175,
+          "expected": 175,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-24",
+      "position": "r3c8",
+      "staticKey": "TALL_NUT",
+      "seedType": 23,
+      "referenceName": "高坚果",
+      "visualCue": "高直棕色坚果",
+      "implementerRead": 125,
+      "reviewerRead": 125,
+      "staticCost": 125,
+      "staticFileOffset": "0x36b33c",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-25",
+      "position": "r4c1",
+      "staticKey": "SEA_SHROOM",
+      "seedType": 24,
+      "referenceName": "水兵菇",
+      "visualCue": "蓝绿色小蘑菇",
+      "implementerRead": 0,
+      "reviewerRead": 0,
+      "staticCost": 0,
+      "staticFileOffset": "0x36b360",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 0,
+          "expected": 0,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 0,
+          "expected": 0,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-26",
+      "position": "r4c2",
+      "staticKey": "PLANTERN",
+      "seedType": 25,
+      "referenceName": "路灯花",
+      "visualCue": "植物枝架包围黄色灯体",
+      "implementerRead": 25,
+      "reviewerRead": 25,
+      "staticCost": 25,
+      "staticFileOffset": "0x36b384",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-27",
+      "position": "r4c3",
+      "staticKey": "CACTUS",
+      "seedType": 26,
+      "referenceName": "仙人掌",
+      "visualCue": "带刺绿色仙人掌",
+      "implementerRead": 125,
+      "reviewerRead": 125,
+      "staticCost": 125,
+      "staticFileOffset": "0x36b3a8",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-28",
+      "position": "r4c4",
+      "staticKey": "BLOVER",
+      "seedType": 27,
+      "referenceName": "三叶草",
+      "visualCue": "四瓣风扇状绿叶",
+      "implementerRead": 100,
+      "reviewerRead": 100,
+      "staticCost": 100,
+      "staticFileOffset": "0x36b3cc",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-29",
+      "position": "r4c5",
+      "staticKey": "SPLIT_PEA",
+      "seedType": 28,
+      "referenceName": "双向射手",
+      "visualCue": "向两侧的豌豆嘴",
+      "implementerRead": 125,
+      "reviewerRead": 125,
+      "staticCost": 125,
+      "staticFileOffset": "0x36b3f0",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-30",
+      "position": "r4c6",
+      "staticKey": "STARFRUIT",
+      "seedType": 29,
+      "referenceName": "星星果",
+      "visualCue": "黄色五角星",
+      "implementerRead": 125,
+      "reviewerRead": 125,
+      "staticCost": 125,
+      "staticFileOffset": "0x36b414",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-31",
+      "position": "r4c7",
+      "staticKey": "PUMPKIN",
+      "seedType": 30,
+      "referenceName": "南瓜头",
+      "visualCue": "橙色空心南瓜壳",
+      "implementerRead": 125,
+      "reviewerRead": 125,
+      "staticCost": 125,
+      "staticFileOffset": "0x36b438",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-32",
+      "position": "r4c8",
+      "staticKey": "MAGNET_SHROOM",
+      "seedType": 31,
+      "referenceName": "磁力菇",
+      "visualCue": "红色马蹄磁铁与菇柄",
+      "implementerRead": 100,
+      "reviewerRead": 100,
+      "staticCost": 100,
+      "staticFileOffset": "0x36b45c",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-33",
+      "position": "r5c1",
+      "staticKey": "CABBAGE_PULT",
+      "seedType": 32,
+      "referenceName": "卷心菜投手",
+      "visualCue": "卷心菜与投掷臂",
+      "implementerRead": 100,
+      "reviewerRead": 100,
+      "staticCost": 100,
+      "staticFileOffset": "0x36b480",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-34",
+      "position": "r5c2",
+      "staticKey": "FLOWER_POT",
+      "seedType": 33,
+      "referenceName": "花盆",
+      "visualCue": "棕色花盆",
+      "implementerRead": 25,
+      "reviewerRead": 25,
+      "staticCost": 25,
+      "staticFileOffset": "0x36b4a4",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 25,
+          "expected": 25,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-35",
+      "position": "r5c3",
+      "staticKey": "KERNEL_PULT",
+      "seedType": 34,
+      "referenceName": "玉米投手",
+      "visualCue": "黄色玉米与投掷臂",
+      "implementerRead": 100,
+      "reviewerRead": 100,
+      "staticCost": 100,
+      "staticFileOffset": "0x36b4c8",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-36",
+      "position": "r5c4",
+      "staticKey": "COFFEE_BEAN",
+      "seedType": 35,
+      "referenceName": "咖啡豆",
+      "visualCue": "棕色咖啡豆",
+      "implementerRead": 75,
+      "reviewerRead": 75,
+      "staticCost": 75,
+      "staticFileOffset": "0x36b4ec",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 75,
+          "expected": 75,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-37",
+      "position": "r5c5",
+      "staticKey": "GARLIC",
+      "seedType": 36,
+      "referenceName": "大蒜",
+      "visualCue": "白色蒜头",
+      "implementerRead": 50,
+      "reviewerRead": 50,
+      "staticCost": 50,
+      "staticFileOffset": "0x36b510",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-38",
+      "position": "r5c6",
+      "staticKey": "UMBRELLA_LEAF",
+      "seedType": 37,
+      "referenceName": "萝卜伞",
+      "visualCue": "伞状绿色叶冠",
+      "implementerRead": 100,
+      "reviewerRead": 100,
+      "staticCost": 100,
+      "staticFileOffset": "0x36b534",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 100,
+          "expected": 100,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-39",
+      "position": "r5c7",
+      "staticKey": "MARIGOLD",
+      "seedType": 38,
+      "referenceName": "金盏花",
+      "visualCue": "白色花瓣与黄色花心",
+      "implementerRead": 50,
+      "reviewerRead": 50,
+      "staticCost": 50,
+      "staticFileOffset": "0x36b558",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-40",
+      "position": "r5c8",
+      "staticKey": "MELON_PULT",
+      "seedType": 39,
+      "referenceName": "西瓜投手",
+      "visualCue": "绿色条纹西瓜与投掷臂",
+      "implementerRead": 300,
+      "reviewerRead": 300,
+      "staticCost": 300,
+      "staticFileOffset": "0x36b57c",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 300,
+          "expected": 300,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 300,
+          "expected": 300,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-41",
+      "position": "r6c1",
+      "staticKey": "GATLING_PEA",
+      "seedType": 40,
+      "referenceName": "机枪射手",
+      "visualCue": "多管豌豆嘴与头盔",
+      "implementerRead": 250,
+      "reviewerRead": 250,
+      "staticCost": 250,
+      "staticFileOffset": "0x36b5a0",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 250,
+          "expected": 250,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 250,
+          "expected": 250,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-42",
+      "position": "r6c2",
+      "staticKey": "TWIN_SUNFLOWER",
+      "seedType": 41,
+      "referenceName": "双胞向日葵",
+      "visualCue": "同株双向日葵花盘",
+      "implementerRead": 150,
+      "reviewerRead": 150,
+      "staticCost": 150,
+      "staticFileOffset": "0x36b5c4",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 150,
+          "expected": 150,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 150,
+          "expected": 150,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-43",
+      "position": "r6c3",
+      "staticKey": "GLOOM_SHROOM",
+      "seedType": 42,
+      "referenceName": "多嘴小蘑菇",
+      "visualCue": "环绕多个喷口的紫色蘑菇",
+      "implementerRead": 150,
+      "reviewerRead": 150,
+      "staticCost": 150,
+      "staticFileOffset": "0x36b5e8",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 150,
+          "expected": 150,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 150,
+          "expected": 150,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-44",
+      "position": "r6c4",
+      "staticKey": "CATTAIL",
+      "seedType": 43,
+      "referenceName": "猫尾草",
+      "visualCue": "粉色猫脸与卷尾",
+      "implementerRead": 225,
+      "reviewerRead": 225,
+      "staticCost": 225,
+      "staticFileOffset": "0x36b60c",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 225,
+          "expected": 225,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 225,
+          "expected": 225,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-45",
+      "position": "r6c5",
+      "staticKey": "WINTER_MELON",
+      "seedType": 44,
+      "referenceName": "冰西瓜",
+      "visualCue": "蓝色西瓜与投掷臂",
+      "implementerRead": 200,
+      "reviewerRead": 200,
+      "staticCost": 200,
+      "staticFileOffset": "0x36b630",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 200,
+          "expected": 200,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 200,
+          "expected": 200,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-46",
+      "position": "r6c6",
+      "staticKey": "GOLD_MAGNET",
+      "seedType": 45,
+      "referenceName": "吸金菇",
+      "visualCue": "黄色马蹄磁铁",
+      "implementerRead": 50,
+      "reviewerRead": 50,
+      "staticCost": 50,
+      "staticFileOffset": "0x36b654",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 50,
+          "expected": 50,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-47",
+      "position": "r6c7",
+      "staticKey": "SPIKEROCK",
+      "seedType": 46,
+      "referenceName": "钢地刺",
+      "visualCue": "灰色岩体与银色尖刺",
+      "implementerRead": 125,
+      "reviewerRead": 125,
+      "staticCost": 125,
+      "staticFileOffset": "0x36b678",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 125,
+          "expected": 125,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "entityId": "PLANT-48",
+      "position": "r6c8",
+      "staticKey": "COB_CANNON",
+      "seedType": 47,
+      "referenceName": "玉米加农炮",
+      "visualCue": "横向大玉米炮管与轮座",
+      "implementerRead": 500,
+      "reviewerRead": 500,
+      "staticCost": 500,
+      "staticFileOffset": "0x36b69c",
+      "status": "verified_for_reference",
+      "nameSource": "Existing name-mappings.json label for staticKey; no name text is visible in the image.",
+      "identityBasis": "Independent manual visual association using visualCue, cross-checked with the existing static key; not inferred from grid or table order.",
+      "assertions": [
+        {
+          "id": "independent-read-agreement",
+          "actual": 500,
+          "expected": 500,
+          "passed": true
+        },
+        {
+          "id": "visible-static-cost-agreement",
+          "actual": 500,
+          "expected": 500,
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "assertions": [
+    {
+      "id": "original-deployed-bytes-equal",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "id": "original-sha256",
+      "actual": "b1fae4526a9d6f94b5dbd42e20df3545a94d609ae71d49562f38a64b727da888",
+      "expected": "b1fae4526a9d6f94b5dbd42e20df3545a94d609ae71d49562f38a64b727da888",
+      "passed": true
+    },
+    {
+      "id": "original-bytes",
+      "actual": 200657,
+      "expected": 200657,
+      "passed": true
+    },
+    {
+      "id": "png-signature",
+      "actual": "89504e470d0a1a0a",
+      "expected": "89504e470d0a1a0a",
+      "passed": true
+    },
+    {
+      "id": "png-first-chunk",
+      "actual": "IHDR",
+      "expected": "IHDR",
+      "passed": true
+    },
+    {
+      "id": "png-dimensions",
+      "actual": [
+        417,
+        463
+      ],
+      "expected": [
+        417,
+        463
+      ],
+      "passed": true
+    },
+    {
+      "id": "nameMapping-approved-bytes",
+      "actual": "52240eb9b06636903e53913fda14f4968a31e17935f0c3695d7f44d7129cc9c7",
+      "expected": "52240eb9b06636903e53913fda14f4968a31e17935f0c3695d7f44d7129cc9c7",
+      "passed": true
+    },
+    {
+      "id": "plantTable-approved-bytes",
+      "actual": "99b5ff05ddbc05ad144ba333119d74c510f871a1995db620ec2bc394961f4a07",
+      "expected": "99b5ff05ddbc05ad144ba333119d74c510f871a1995db620ec2bc394961f4a07",
+      "passed": true
+    },
+    {
+      "id": "costSemantics-approved-bytes",
+      "actual": "4bff414549f9680e153433c6e930806dac921cb7d7565b47f738e7007ae6b4b9",
+      "expected": "4bff414549f9680e153433c6e930806dac921cb7d7565b47f738e7007ae6b4b9",
+      "passed": true
+    }
+  ],
+  "machineAssertionsPassed": true,
+  "limits": [
+    "Only displayed cost is verified; no actual planting debit, cooldown, damage, unlock, availability or upgrade rules are established.",
+    "Image positions do not identify Almanac positions or close the roster. PLANT-49 remains unbound; all plant and VALUE-PLANTS entries remain needs_reference.",
+    "Reference remains provisional and unfrozen: 230 entries, 221 needs_reference and 9 policy entries.",
+    "The existing production consumer still selects the original Peashooter Almanac 100; one separate TEMP selection can exercise the new evidence but does not verify all 48 through the consumer."
+  ],
+  "modelCalls": 0,
+  "paidMicroCny": 0
+}

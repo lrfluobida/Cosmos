@@ -2,6 +2,13 @@
 
 更新时间：2026-10-17
 
+## COS106植物卡片显示费用数据候选待独审
+
+- [COS106 / #107](https://github.com/lrfluobida/Cosmos/issues/107)，id5898189978，直属COS01/#2；登记时#2直接2/完成1、根#1直接100、总任务106，父目标子项未勾选。基线 `9ae22833d4ae39c9a13378a28d60cf4f2f4165cf`，依赖已完成COS105；作者 `plant_grid_implementer`、独审 `plant_grid_reviewer`、唯一merger `batch_reference_display_merger`。
+- 用户确认本机参考游戏原截图417×463、200657 bytes，hash b1fae4526a9d…；双人独立48读数一致且与既有UTF-8静态表相符。追加48条 `seed_packet_displayed_cost / sun / exact`，生产共49条；旧almanac100及PLANT-01绑定不改，PLANT-02..48人工关联既有本机名称，PLANT-49未绑定。详见[研究与逐卡表](docs/research/2026-10-17-plant-card-grid-reference.md)。
+- 两条共用证据准确覆盖VALUE-PLANTS与48实体，原图仅同sourceRoot ignored本地保存；固定JSON105项比较通过。原consumer生产仍选旧100；独立TEMP新向日葵50实际读取新PNG/JSON，另缺图副本ENOENT拒绝，仅代表一条新事实读取。validator0、require-frozen1，reference/entry-input29/29、0skip；raw索引 `C:/Users/26557/AppData/Local/Temp/cos106-plant-card-grid-implementer/verification-index.json`。
+- 数据固定提交与最终审查、main原图部署/发布尚待完成。全植物及VALUE-PLANTS整项needs_reference，230/221/9、provisional/未冻结保持；名称非图片文字、菜单/拍摄时间/点击/图鉴位置/解锁未知，不证明实际扣费、冷却、伤害或完整classic。0模型0新增费用，无runtime修改、native/actual/C16操作，原预算及COS01/fullclassic/human未完成保持。
+
 ## C16 v2 独立补测通过，原C16仍未完成
 
 已审计划/脚本在`cc5a3e13649c27632156190d11240dad51422ade`经Root[单次批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233519607)后执行：封存v2候选逐字节TEMP副本八段220/220、62/62媒体字段匹配，用时47.602秒、exit0，存档同profile/origin真实重开通过。8browser非forced/exit0、服务关闭；Root和reviewer独立后核无进程/端口残留，390保护文件+33harness/script与输入manifest相同、ledger闭账hash不变。独审`APPROVED_C16_V2_INDEPENDENT_VALIDATION_RESULT_SCOPED`无finding，Root已解冻，[公开结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233582959)已精确读回，本次结果文档已审集成发布。见[研究记录](docs/research/2026-10-17-c16-v2-independent-validation.md)。原C16 consumed/interrupted/incomplete、COS102 open；原deadline/controller/modelreview/promotion、COS16/COS18/fullclassic/human未完成保持，无新模型/费用或原运行重开。

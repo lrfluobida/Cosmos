@@ -1,6 +1,6 @@
 # 参考观察与验收契约
 
-本契约定义补齐目录的证据格式。当前目录登记一条豌豆射手图鉴显示费用 `almanac_displayed_cost = 100 / sun / exact`；原PNG须在本地ignored证据路径实际可读，来源与未知边界见[准入记录](../research/2026-10-17-peashooter-display-fact-admission.md)。这不证明实际扣费，PLANT-01与VALUE-PLANTS整项仍待核实，目录未冻结；以下字段示例仍为格式说明。机器目录见 [catalog.json](../../benchmarks/classic-pc/reference/catalog.json)。
+本契约定义补齐目录的证据格式。当前目录保留首条豌豆射手图鉴显示费用 `almanac_displayed_cost = 100 / sun / exact`，并追加48条卡片显示费用 `seed_packet_displayed_cost / sun / exact`，共49条measurement；两批原PNG均须在本地ignored证据路径实际可读。来源与未知边界见[首条准入记录](../research/2026-10-17-peashooter-display-fact-admission.md)和[网格核对记录](../research/2026-10-17-plant-card-grid-reference.md)。网格名称来自既有静态映射与人工图形关联，图片行列不表示图鉴位置；PLANT-49仍未绑定。显示费用不证明实际扣费，所有植物与VALUE-PLANTS整项仍待核实，目录未冻结；以下字段示例仍为格式说明。机器目录见 [catalog.json](../../benchmarks/classic-pc/reference/catalog.json)。
 
 ## 状态语义
 
