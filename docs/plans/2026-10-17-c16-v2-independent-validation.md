@@ -14,7 +14,7 @@
 
 隶属 [COS102 / #103](https://github.com/lrfluobida/Cosmos/issues/103)，不新增 issue、验证案例、预算或修复机会。准备基线 `0113f6e73cad0cee3c3ddb7a871b8d17cd4206a9`；实际生成来源仍为 `2f84eb328e59f20d73ceccdc69ff708f7be200a5`。计划 `cc5a3e13649c27632156190d11240dad51422ade` 与下述精确脚本已独审；Root[单次批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233519607)后执行完成，结果已独审并[公开发布](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233582959)，本次结果文档待发布。
 
-作者分支 `codex/c16-v2-independent-validation`。本计划、`PROGRESS.md` 与 `docs/specs/cos102-transfer-case16.md` 是唯一 tracked 改动；脚本保存在作者 worktree 的 ignored `.cosmos/c16-v2-independent/diagnostic-v1.ts`，不提交原游戏、媒体或私有证据。独立 reviewer 为 `c16_v2_validation_reviewer`；作者不写 main、不 push。
+作者分支 `codex/c16-v2-independent-validation`。准备阶段的 tracked 改动仅为本计划、`PROGRESS.md` 与 `docs/specs/cos102-transfer-case16.md`；结果阶段另增加 `docs/research/2026-10-17-c16-v2-independent-validation.md`；脚本保存在作者 worktree 的 ignored `.cosmos/c16-v2-independent/diagnostic-v1.ts`，不提交原游戏、媒体或私有证据。独立 reviewer 为 `c16_v2_validation_reviewer`；作者不写 main、不 push。
 
 ## 固定输入
 
