@@ -2,9 +2,9 @@
 
 更新时间：2026-10-17
 
-## C16 v2 独立免费补测准备中
+## C16 v2 独立补测通过，原C16仍未完成
 
-Root已批准在COS102/#103下准备一次封存v2候选补测；计划见[独立补测计划](docs/plans/2026-10-17-c16-v2-independent-validation.md)。只复制原100文件候选到TEMP，保留原八段220步并用现有harness同次收集62媒体字段；10分钟总限/9分钟中止工作，失败不自动重试。脚本待独审、actual未授权；无新增case/模型/费用，不重开C16或改变原revision3334/766请求/18166722µ及consumed/incomplete、COS16/COS18/fullclassic/human状态。
+已审计划/脚本在`cc5a3e13649c27632156190d11240dad51422ade`经Root[单次批准](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233519607)后执行：封存v2候选逐字节TEMP副本八段220/220、62/62媒体字段匹配，用时47.602秒、exit0，存档同profile/origin真实重开通过。8browser非forced/exit0、服务关闭；Root和reviewer独立后核无进程/端口残留，390保护文件+33harness/script与输入manifest相同、ledger闭账hash不变。独审`APPROVED_C16_V2_INDEPENDENT_VALIDATION_RESULT_SCOPED`无finding，Root已解冻，[公开结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6233582959)已精确读回，本次结果文档待发布。见[研究记录](docs/research/2026-10-17-c16-v2-independent-validation.md)。原C16 consumed/interrupted/incomplete、COS102 open；原deadline/controller/modelreview/promotion、COS16/COS18/fullclassic/human未完成保持，无新模型/费用或原运行重开。
 
 ## COS105首条图鉴显示费用事实已审集成，本卡范围完成
 
