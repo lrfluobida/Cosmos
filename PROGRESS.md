@@ -2,6 +2,10 @@
 
 更新时间：2026-10-17
 
+## C16 v2 独立免费补测准备中
+
+Root已批准在COS102/#103下准备一次封存v2候选补测；计划见[独立补测计划](docs/plans/2026-10-17-c16-v2-independent-validation.md)。只复制原100文件候选到TEMP，保留原八段220步并用现有harness同次收集62媒体字段；10分钟总限/9分钟中止工作，失败不自动重试。脚本待独审、actual未授权；无新增case/模型/费用，不重开C16或改变原revision3334/766请求/18166722µ及consumed/incomplete、COS16/COS18/fullclassic/human状态。
+
 ## COS105首条图鉴显示费用事实已审集成，本卡范围完成
 
 - [COS105 / #106](https://github.com/lrfluobida/Cosmos/issues/106)，id5897622933，已closed(completed)；原生父[COS01 / #2](https://github.com/lrfluobida/Cosmos/issues/2)仍open、目标子项已勾选，#2直接1/完成1、根#1直接100、总任务105。Root已精确读回[完成记录](https://github.com/lrfluobida/Cosmos/issues/106#issuecomment-6233357668)及关闭/父勾选。专职作者 `reference_display_fact_implementer`、独立reviewer `reference_cost_evidence_reviewer`、唯一merger `batch_reference_display_merger`，见[准入计划](docs/plans/2026-10-17-peashooter-display-fact-admission.md)。

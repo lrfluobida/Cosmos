@@ -6,6 +6,8 @@
 
 2026-10-17实际结果：生产715 preflight获批但保留源码mtime前值缺口；单次C16在冻结`2f84eb3`上v1正式build通过、start21步20通过/1失败，原repair的v2正式build通过但仅有plan、无report。v1缺board testid、v2补属性仅为静态证据。经[COS103](previous-boot-owner-recovery.md)两锁维护，原main API真实now记录`2026-10-17T08:38:18.674Z` deadline stop，原deadline保持；closure22后revision3334、120 closures/22 audits，C16 51请求/1265722µ、shared766请求/18166722µ、reserved/unknown0，释放未用分配19734278µ。最终独立后核PASS、Root解冻；C16仍consumed/incomplete，无220/62、DeepSeek review、promotion或原deadline内clean final通过，无新paid/重跑授权。见[研究记录](../research/2026-10-17-cos102-interrupted-actual.md)与[公开闭账结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6231925268)。下述成功条件和预算契约保持，COS16/COS18、fullclassic/human未提升。
 
+2026-10-17独立补测准备：Root已批准[封存C16 v2免费补测计划](../plans/2026-10-17-c16-v2-independent-validation.md)，脚本待独审、actual未授权；只读原输入并复制候选，沿原220步收集62媒体字段，新证据与真实时间单列。10分钟总限/9分钟工作中止，不新开case、不自动修复或重试、不补写原C16成功；本卡仍open/incomplete，预算、账务与历史保持。
+
 ## 目标与已有事实
 
 固定新案例`cos20-transfer-validation-16`（C16）使用原共享验证账本，复用C5已批准design/art，由新的运行时coding作者生成代码，完成正式构建、真实八段输入、完整媒体检查、独立截图review、精确promotion和正常清理。C16是一次新的有界验证，C15原身份、时钟和失败结论永久保留。
