@@ -150,6 +150,7 @@ G0 沿用已确认实施基线，不重复请求整套方案批准。执行中�
 
 ### COS-01 · P0 · 固定参考来源与完整验收清单
 
+- 2026-10-18当前补证：沿用本卡[#2范围记录](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-6246535240)，PLANT-49以用户同一本机补图回复的可见标题“变身茄子”对应既有type48/IMITATER，首段蓝字仅登记显示文字；两条新证据只覆盖PLANT-49，无新增numeric measurement。候选待固定提交独审，见[简短记录](../research/2026-10-18-imitater-almanac-reference.md)。旧49条数值、旧证据及其他229条目保持；现有49候选植物槽位均有名称绑定，230/221/9、植物与VALUE-PLANTS整项needs_reference、provisional/未冻结及本卡open保持。无新子issue，总任务106不变。
 - 原生子任务 [COS-106 / #107](https://github.com/lrfluobida/Cosmos/issues/107)，id5898189978，依赖COS105；48卡片显示费用已独审集成，本卡scoped complete/closed。Root已精确读回closed(completed)、父目标项[x]、#2直接2/完成2；父#2仍open，根#1直接100、总任务106。完整冻结条件不变；见下方本卡。
 - 原生子任务 [COS-105 / #106](https://github.com/lrfluobida/Cosmos/issues/106) 的单条豌豆射手图鉴显示费用已独审并集成，本卡scoped complete/closed；Root已精确读回#106 closed(completed)、目标子项[x]及#2直接1/完成1，父#2仍open。main已部署同hash ignored原图并通过原consumer读取与缺图拒绝检查，见[准入计划](../plans/2026-10-17-peashooter-display-fact-admission.md)。COS01完整冻结条件保持。
 - 名称静态证据：`b850459` 经 `reference_mapping_docs_reviewer` 独立APPROVED并合入 `b94d0d4`；[名称对应报告](../research/2026-10-15-reference-name-mapping.md)及数据保存87条定义名称记录、167个选定资源标签。用户报告窗口化及全部模式已解锁，仍缺可读画面与正常输入证据；catalog230/221、provisional/未冻结及#2 open保持。

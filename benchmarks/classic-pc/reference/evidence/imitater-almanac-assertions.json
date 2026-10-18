@@ -1,0 +1,140 @@
+{
+  "formatVersion": "cosmos-imitater-almanac-assertions/1",
+  "referenceId": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+  "recordedAt": "2026-10-18T06:30:09.389Z",
+  "recordedAtMeaning": "Actual assertion execution and report creation time; screenshot capture time is unknown.",
+  "captureTime": null,
+  "scope": "PLANT-49 visible name and description only; fixed-diff independent review is required before integration.",
+  "image": {
+    "path": "evidence/local/imitater-card-85b835860efb.png",
+    "sha256": "85b835860efb54014617651b07cd9ab66a8cb08d1fd7f7673565512a61645ef8",
+    "bytes": 109746,
+    "width": 307,
+    "height": 462,
+    "transformations": []
+  },
+  "sourceAssociation": "User supplied this card in direct response to the same local-reference almanac follow-up request. The card does not independently show the executable version or full window.",
+  "normalInputRecord": {
+    "process": "User replied with the requested card; the preserved original was opened and its title and first blue paragraph manually read.",
+    "clickSequence": null,
+    "rosterPosition": null,
+    "unlockPrerequisites": null,
+    "preconditions": "Windowed mode and unlocked modes were previously user-reported; profile state and unlock conditions are not established by this card."
+  },
+  "manualObservation": {
+    "reader": "imitater_reference_implementer",
+    "observedAt": "2026-10-18T06:27:29Z",
+    "method": "Actual view_image of the preserved original PNG before reading the UTF-8 name mapping; manual transcription, not OCR.",
+    "title": "变身茄子",
+    "titleLocation": "gold title below the portrait",
+    "description": "变身茄子允许你在同一个关卡使用两份相同的植物！",
+    "descriptionLocation": "first blue paragraph below the title",
+    "transcription": "Verbatim text; the visual line wrap is joined without adding or removing words.",
+    "costText": null,
+    "rechargeText": null
+  },
+  "visualReview": {
+    "reviewer": "imitater_reference_reviewer",
+    "result": "Root relayed that the reviewer independently opened the original and transcribed the same title and first blue paragraph before checking the mapping.",
+    "scope": "Independent visual agreement; not final approval of this fixed diff."
+  },
+  "entityBinding": {
+    "entityId": "PLANT-49",
+    "referenceName": "变身茄子",
+    "seedType": 48,
+    "staticKey": "IMITATER",
+    "idImpliesRosterOrder": false,
+    "rosterPosition": null,
+    "unlockPrerequisites": null,
+    "entryStatus": "needs_reference"
+  },
+  "reusedNameMapping": {
+    "path": "name-mappings.json",
+    "sha256": "52240eb9b06636903e53913fda14f4968a31e17935f0c3695d7f44d7129cc9c7",
+    "source": "Existing reviewed UTF-8 mapping; no UTF-16 resource or EXE reread.",
+    "typeId": 48,
+    "key": "IMITATER",
+    "name": "变身茄子"
+  },
+  "assertions": [
+    {
+      "id": "original-and-deployed-image-bytes-equal",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "id": "image-sha256",
+      "actual": "85b835860efb54014617651b07cd9ab66a8cb08d1fd7f7673565512a61645ef8",
+      "expected": "85b835860efb54014617651b07cd9ab66a8cb08d1fd7f7673565512a61645ef8",
+      "passed": true
+    },
+    {
+      "id": "image-byte-length",
+      "actual": 109746,
+      "expected": 109746,
+      "passed": true
+    },
+    {
+      "id": "png-signature",
+      "actual": "89504e470d0a1a0a",
+      "expected": "89504e470d0a1a0a",
+      "passed": true
+    },
+    {
+      "id": "image-dimensions",
+      "actual": [
+        307,
+        462
+      ],
+      "expected": [
+        307,
+        462
+      ],
+      "passed": true
+    },
+    {
+      "id": "name-mapping-sha256",
+      "actual": "52240eb9b06636903e53913fda14f4968a31e17935f0c3695d7f44d7129cc9c7",
+      "expected": "52240eb9b06636903e53913fda14f4968a31e17935f0c3695d7f44d7129cc9c7",
+      "passed": true
+    },
+    {
+      "id": "same-reference-id",
+      "actual": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+      "expected": "pvz-pc-goty-1.2.0.1073-c04c524c6a37",
+      "passed": true
+    },
+    {
+      "id": "mapping-type-and-key",
+      "actual": [
+        48,
+        "IMITATER",
+        "exact_resource_key_match"
+      ],
+      "expected": [
+        48,
+        "IMITATER",
+        "exact_resource_key_match"
+      ],
+      "passed": true
+    },
+    {
+      "id": "visible-title-matches-mapped-name",
+      "actual": "变身茄子",
+      "expected": "变身茄子",
+      "passed": true
+    }
+  ],
+  "result": {
+    "passed": 9,
+    "failed": 0
+  },
+  "limits": [
+    "Assertions compare file identity and manually supplied text with the existing name mapping; they do not perform OCR or verify gameplay.",
+    "The first blue paragraph is displayed wording, not an observed mechanism. Two copies does not establish a maximum of two planted units.",
+    "Actual card selection, allowed imitation targets, transformation duration, costs, recharge, unlocks and roster position remain unverified.",
+    "No cost or recharge is visible; no numeric measurement is added and no static zero is used as a displayed price.",
+    "The lower flavor story is not registered as a current gameplay rule. All entry statuses and the provisional, unfrozen catalog are retained."
+  ]
+}
