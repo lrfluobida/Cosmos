@@ -2,11 +2,12 @@
 
 更新时间：2026-10-18
 
-## COS01变身茄子图鉴文字补证，候选待固定提交独审
+## COS01变身茄子图鉴文字补证已审集成
 
 - 沿用[COS01 / #2](https://github.com/lrfluobida/Cosmos/issues/2#issuecomment-6246535240)，不新增任务；#2仍open，总任务106。用户直接响应同一本机补图请求，原PNG307×462、109746 bytes、SHA256 `85b835860efb54014617651b07cd9ab66a8cb08d1fd7f7673565512a61645ef8`。
 - 作者与reviewer先分别阅图、后核既有UTF-8映射，标题和首段蓝字一致；PLANT-49绑定“变身茄子”/type48/IMITATER，说明保存在固定JSON。仅新增两条覆盖PLANT-49的文字证据，旧49条measurement、旧证据与其他229条目保持；现有49候选植物槽位均有名称绑定，完整名册仍未冻结。详见[简短记录](docs/research/2026-10-18-imitater-almanac-reference.md)。
 - 9项文件/名称一致性比较通过；原validator0、require-frozen预期1、reference/entry-input29/29且0skip；原consumer仍选旧almanac100及两旧hash，新PNG/JSON可直接读取。作者raw索引为worktree `.cosmos/imitater-admission/verification-index.json`；无代码或依赖变化，旧host/native/类型证据按无delta复用。
+- 固定数据 `5944074b0b2a6575ddbd6532b7e441e1e8023358` 经 `imitater_reference_reviewer` 独立APPROVED（本批data/docs范围）、无finding，Root批准后由唯一merger快进合入main。同字节ignored原PNG已部署；`2026-10-18T06:39:42.511Z` 主线实际读取新增PNG/JSON、核对批准hash与PLANT-49引用，原consumer保持100及两旧hash，validator0/frozen1。六文件UTF-8与中文核对通过，原图未跟踪；私有索引 `.cosmos/imitater-admission/merge-verification-index.json`。作者29/29按无delta复用。
 - 230/221/9、provisional/未冻结及所有植物整项needs_reference保持；无可见价格/冷却，不把静态0当价格或把“两份”推成最多种两株，图鉴说明及趣味故事不充当实际机制验收。专职作者 `imitater_reference_implementer`、独审 `imitater_reference_reviewer`、唯一merger `imitater_reference_merger`；0模型、0新增费用，无运行或C16操作。
 
 ## COS106植物卡片显示费用已审集成，本卡范围完成
