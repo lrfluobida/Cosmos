@@ -6,6 +6,7 @@ import { VALIDATION_ROLES, validationHash, validationInputHash } from './validat
 import { budgetCapacity } from '../contracts/budget.ts';
 import { historicalDelegations } from './validation-budget.ts';
 import { historicalSupplements } from './validation-group-supplement-validation.ts';
+import { publicFundingClosures } from './public-validation-funding-validation.ts';
 
 const integer = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -88,6 +89,9 @@ export function validateValidationAllocationClosures(state: RunSnapshot): void {
       || !state.events.some(event => event.type === 'validation_allocation_closed' && event.at === receipt.appliedAt && event.requestId === null && event.reason === JSON.stringify({ decisionId: decision.decisionId, quoteId: receipt.quote.quoteId, releasedMicroCny: receipt.quote.releasedMicroCny }))) fail();
     closures.push(...receipt.quote.closures.map(item => ({ taskId: item.taskId, decisionId: decision.decisionId, releasedMicroCny: item.releasedMicroCny })));
   }
-  if (!sameValue(state.ledger.allocationClosures, closures) || new Set(closures.map(item => item.taskId)).size !== closures.length
+  const publicClosures = publicFundingClosures(state);
+  const all = [...closures, ...publicClosures], actual = state.ledger.allocationClosures ?? [];
+  if (!sameValue(actual.filter(item => !publicClosures.some(row => row.taskId === item.taskId)), closures)
+    || actual.length !== all.length || all.some(item => !actual.some(row => sameValue(row, item))) || new Set(all.map(item => item.taskId)).size !== all.length
     || state.events.filter(event => event.type === 'validation_allocation_closed').length !== decisions.length) fail();
 }

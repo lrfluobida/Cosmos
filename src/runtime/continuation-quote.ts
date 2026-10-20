@@ -8,6 +8,7 @@ import { requireOriginalTask } from './recovery/task-journal.ts';
 import { validateSnapshot } from './run-validation.ts';
 import type { RunSnapshot, StopReason } from './run-types.ts';
 import { readHumanContinuationLineage } from './continuation-preparation.ts';
+import { rejectFundedContinuation } from './public-validation-funding.ts';
 
 export interface ContinuationQuote {
   formatVersion: 'continuation-quote-1'; kind: 'proposal'; activationAllowed: false; quoteId: string;
@@ -92,6 +93,7 @@ export async function buildContinuationQuote(options: { root: string; additional
   const root = resolve(options.root), bytes = await regularFile(root, 'snapshot.json'), state = decode(bytes);
   if (state?.formatVersion !== 1) throw new Error('续跑提案只支持正式 generation v1 快照；intake、validation 或未知格式不能通过本入口续跑。');
   validateSnapshot(state);
+  await rejectFundedContinuation(root, state);
   if (state.ledger.scope !== 'generation' || state.run.kind !== 'runtime_generation') throw new Error('续跑提案仅支持正式 generation；validation 不获得新窗口或额度。');
   const decision = state.run.humanDecisions.find(row => row.decisionId.startsWith('requirements-v'));
   if (decision && decode(await regularFile(root, decision.evidence[0].location)).codeProfile) throw new Error('双模块编码暂不支持单 coding 追加窗口；保留原模块、账本与差距。');

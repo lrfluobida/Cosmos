@@ -16,6 +16,9 @@ import { frameConfirmationVersion, frameIntakeReason, readFrameSelection, requir
 import type { RenderFrameSelection } from './render-frame-selection.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy, validateModularRepairPolicy } from './modular-repair-policy.ts';
 import type { ModularRepairPolicy } from './modular-repair-policy.ts';
+import type { PublicValidationFundingBinding } from './public-validation-funding-types.ts';
+import { validateFundingBinding } from './public-validation-funding-validation.ts';
+import { acquirePublicFundingGate, verifyPublicValidationFunding } from './public-validation-funding.ts';
 
 export type StoredDraft = GameDraft & { revision: number; source: ArtifactReference };
 export interface IntakeSnapshot {
@@ -28,6 +31,7 @@ export interface IntakeSnapshot {
   renderFrames?: RenderFrameSelection;
   modularRepairPolicy?: ModularRepairPolicy;
   confirmation: { revision: number; requirement: RequirementContract; source: ArtifactReference } | null;
+  validationFunding?: PublicValidationFundingBinding;
 }
 export interface CreateIntakeOptions {
   root: string; runId: string; ledgerId: string; specVersion: string; allocations: BudgetLedger['allocations'];
@@ -35,6 +39,7 @@ export interface CreateIntakeOptions {
   draftMode?: DraftMode;
   renderFrames?: RenderFrameSelection;
   modularRepairPolicy?: ModularRepairPolicy;
+  validationFunding?: PublicValidationFundingBinding;
 }
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 const draftRef = (revision: number): ArtifactReference => ({ artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` });
@@ -61,6 +66,12 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
     || !Number.isSafeInteger(state.durationMs) || state.durationMs <= 0 || state.durationMs > DEFAULT_BUDGETS.hardDurationMs
     || !Number.isSafeInteger(state.maxRequests) || state.maxRequests < 1 || state.maxRequests > 24) throw new Error('Invalid intake identity or limits.');
   nonEmpty(state.run.runId, 'runId'); nonEmpty(state.run.specVersion, 'specVersion'); nonEmpty(state.interviewTaskId, 'interviewTaskId');
+  if (state.validationFunding) {
+    validateFundingBinding(state.validationFunding);
+    if (state.validationFunding.runId !== state.run.runId || state.validationFunding.ledgerId !== state.ledger.ledgerId
+      || state.validationFunding.limits.limitMicroCny !== state.ledger.limitMicroCny || state.validationFunding.limits.durationMs !== state.durationMs
+      || state.draftMode) throw new Error('Public funding intake identity changed.');
+  }
   const stop = state.stopReason;
   if (stop !== null && (!stop || !['manual', 'charge_overrun'].includes(stop.code) || !timestamp(stop.at) || typeof stop.reason !== 'string' || !stop.reason.trim())) throw new Error('Invalid intake stop reason.');
   const errors = validateLedger(state.ledger).filter(issue => !(stop?.code === 'charge_overrun' && ['budget_exceeded', 'allocation_exceeded'].includes(issue.code)));
@@ -124,11 +135,13 @@ export class IntakeController {
       ...(draftMode ? { draftMode } : {}),
       ...(options.renderFrames ? { renderFrames: structuredClone(options.renderFrames) } : {}),
       ...(options.modularRepairPolicy ? { modularRepairPolicy: structuredClone(options.modularRepairPolicy) } : {}),
+      ...(options.validationFunding ? { validationFunding: structuredClone(options.validationFunding) } : {}),
     };
     validateIntakeSnapshot(state);
     const store = await SnapshotStore.acquire(options.root);
     try {
       if (await store.exists()) throw new Error('Snapshot already exists; intake cannot replace a run.');
+      await verifyPublicValidationFunding({ root: store.root, snapshot: state, dispatch: true });
       if (draftMode) await publishReceipt(join(store.root, 'intake-mode.json'), { runId: state.run.runId, createdAt, draftMode });
       await store.write(state); return new IntakeController(store, state, now);
     } catch (error) { await store.close(); throw error; }
@@ -137,6 +150,7 @@ export class IntakeController {
     const store = await SnapshotStore.acquire(options.root);
     try {
       const state = await store.read(); validateIntakeSnapshot(state);
+      await verifyPublicValidationFunding({ root: store.root, snapshot: state, dispatch: false });
       await requireModeOrigin(store.root, state);
       if (state.renderFrames) await requireCurrentFrameSource(await readFrameSelection(store.root, state));
       if (state.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(store.root, state));
@@ -162,20 +176,26 @@ export class IntakeController {
     const request = structuredClone(input);
     return this.serial(async () => {
       this.requireActive();
+      const gate = await acquirePublicFundingGate(this.store.root, this.snapshot, true);
+      try {
       if (request.taskId !== this.snapshot.interviewTaskId || this.snapshot.requests.length >= this.snapshot.maxRequests) throw new Error('Intake request limit or task identity refused.');
       const next = structuredClone(this.snapshot), entry = reserveEntry(next.ledger, request);
       next.requests.push({ requestId: request.requestId, admittedAt: null });
       this.event(next, 'reserved', request.requestId, 'Maximum intake cost reserved before dispatch.'); await this.commit(next); return structuredClone(entry);
+      } finally { await gate.close(); }
     });
   }
   admit(requestId: string): Promise<void> {
     return this.serial(async () => {
       this.requireActive();
+      const gate = await acquirePublicFundingGate(this.store.root, this.snapshot, true);
+      try {
       if (budgetSummary(this.snapshot.ledger).reconciliationRequired) throw new Error('Reconciliation required before admission.');
       const next = structuredClone(this.snapshot); requireOpen(findRequest(next.ledger, requestId));
       const record = next.requests.find(item => item.requestId === requestId)!;
       if (record.admittedAt) throw new Error('Request was already admitted.');
       record.admittedAt = this.at(); this.event(next, 'admitted', requestId, 'Intake dispatch intent durably recorded.'); await this.commit(next);
+      } finally { await gate.close(); }
     });
   }
   markUnknown(requestId: string, evidence: ArtifactReference[]): Promise<void> {
@@ -261,6 +281,7 @@ export class IntakeController {
       const startedAt = this.at();
       const active: RunSnapshot = {
         formatVersion: 1, revision: prior.revision + 1, ledger: structuredClone(prior.ledger), requests: structuredClone(prior.requests), events: structuredClone(prior.events), stopReason: null, tasks: [],
+        ...(prior.validationFunding ? { validationFunding: structuredClone(prior.validationFunding) } : {}),
         run: { contractVersion: '1.0.0', ...prior.run, ledgerId: prior.ledger.ledgerId, originalStartedAt: startedAt,
           originalDeadlineAt: new Date(Date.parse(startedAt) + prior.durationMs).toISOString(), state: 'running', taskIds: prior.ledger.allocations.map(item => item.taskId),
           fees: { settledMicroCny: prior.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny, 0), reservedMicroCny: 0, unknownRequestIds: [] }, artifacts: [],

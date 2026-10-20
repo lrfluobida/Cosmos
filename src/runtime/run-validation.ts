@@ -6,6 +6,7 @@ import { validateValidationProfile } from './validation-validation.ts';
 import { validateValidationAllocationClosures } from './validation-allocation-validation.ts';
 import { validateValidationBudgetGroups } from './validation-budget.ts';
 import { validateValidationGroupSupplements } from './validation-group-supplement-validation.ts';
+import { validatePublicValidationFundings } from './public-validation-funding-validation.ts';
 
 function timestamp(value: unknown): boolean {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -46,11 +47,12 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
   const eventTypes = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'imported', 'budget_warning', 'stopped', 'task_saved', 'generation_activated',
     ...(state.formatVersion !== 3 ? ['run_owner_drained'] : []),
     ...(state.formatVersion === 2 ? ['continuation_activated', 'window_stopped', 'window_owner_drained', 'window_owner_resumed'] : []),
-    ...(state.formatVersion === 3 ? ['validation_case_claimed', 'validation_case_stopped', 'validation_repair_claimed', 'validation_allocation_closed', 'validation_group_supplemented'] : [])];
+    ...(state.formatVersion === 3 ? ['validation_case_claimed', 'validation_case_stopped', 'validation_repair_claimed', 'validation_allocation_closed', 'validation_group_supplemented', 'public_funding_reserved', 'public_funding_settled'] : [])];
   if (!state.events.length || state.events[0].type !== 'created') throw new Error('Missing snapshot creation history.');
   state.events.forEach((event, i) => {
     if (!event || event.sequence !== i + 1 || !timestamp(event.at) || !eventTypes.includes(event.type) || typeof event.reason !== 'string' || (event.requestId !== null && !ledger.entries.some(entry => entry.requestId === event.requestId))) throw new Error('Invalid snapshot event history.');
   });
+  validatePublicValidationFundings(state);
   validateValidationProfile(state);
   validateValidationBudgetGroups(state);
   validateValidationAllocationClosures(state);

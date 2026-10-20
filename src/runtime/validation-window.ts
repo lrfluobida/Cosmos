@@ -11,6 +11,7 @@ import { prepareValidationBudgetGroup, requireBudgetGroupQuote, verifyValidation
 import type { RunSnapshot } from './run-types.ts';
 import type { ClaimValidationCaseOptions, OperatorValidationDecision, ValidationCaseQuote, ValidationCaseWindow, ValidationContextOptions, ValidationDeclaration, ValidationIdentity } from './validation-types.ts';
 import { associateNativeReadSignal, runNativeValidationRead } from '../acceptance/native-validation-waits.ts';
+import { requireLegacyFundingAvailable } from './public-validation-funding-validation.ts';
 export { validationInputHash } from './validation-validation.ts';
 
 const at = (value: number) => { if (!Number.isSafeInteger(value) || !Number.isFinite(new Date(value).getTime())) throw new Error('Invalid validation clock.'); return new Date(value).toISOString(); };
@@ -61,6 +62,7 @@ export async function verifyValidationIdentity(options: ValidationContextOptions
 }
 
 function eligible(state: RunSnapshot, declaration: ValidationDeclaration, now: number): void {
+  requireLegacyFundingAvailable(state);
   if (![1, 3].includes(state.formatVersion) || state.run.kind !== 'evaluation' || state.ledger.scope !== 'validation' || !['1.0.0', '3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion) || state.ledger.limitMicroCny !== declaration.limits.lifetimeMicroCny) throw new Error('Use the original shared validation ledger; formal generation is not this profile.');
   const fixedFifteen = isFixedTransferCaseFifteenDeclaration(declaration), fixedSixteen = isFixedTransferCaseSixteenDeclaration(declaration);
   if (state.ledger.contractVersion === '5.0.0' && declaration.formatVersion !== 'validation-declaration-3' && !fixedFifteen && !fixedSixteen) throw new Error('Supplement requires its fixed grouped target declaration.');
