@@ -13,6 +13,7 @@
 ## 设计与分工
 
 - [x] 将双卡范围、明确接口和发布边界写入共用文档。
+- [x] 修订初审 `2c51223` 两项 P2：复用原 settled-length 后继，保留可修复 design 输出的原失败分类；等待独立复审。
 - [ ] 独立 spec reviewer 检查需求完整性、A/B 接口、旧确认兼容和发布门禁；作者修复 finding，再固定批准 SHA。
 - [ ] COS111 由 `ordinary_intake_design` 实施；COS112 由 Root 另配 implementer/reviewer。仅 `public_agent_batch_merger` 合入 main 并 push。
 
@@ -21,7 +22,7 @@
 主要文件：
 
 - 新增 `src/roles/ordinary-profile.ts`：profile/体验类型、版本选择与窄校验；`src/roles/requirements.ts` 增加新 draft 分支并复用原 AC/host standards。
-- 修改 `src/roles/interview.ts`、必要的 `interview-recovery.ts`：新 prompt、固定 off 配置与 intent 绑定；新版不增加截断后继。
+- 修改 `src/roles/interview.ts`、必要的 `interview-recovery.ts`：新 prompt、固定 off 配置与 intent 绑定；新版直接复用 COS110 原唯一 settled-length 后继，不另建机制或增加机会。
 - 修改 `src/runtime/intake.ts`、`src/cli/session.ts`：来源保存/校验、完整展示和确认；生产默认不切换。
 - 修改 `src/runtime/experience.ts`、`src/cli/experience-session.ts`：报告与真实体验决定绑定原清单；旧报告不重写。
 - `src/runtime/entrypoint-host.ts` / `entrypoint.ts` 仅补新 profile 未接通时拒绝及类型适配，禁止提前执行。
@@ -31,7 +32,7 @@
 
 - [ ] 写新草稿/来源测试：无 scenario 合法；中文问答及两类条目保持；未知字段/ID 冲突/unsupported/错误 revision 拒绝；先记录 RED。
 - [ ] 实现 profile 与 draft union、host stage 组合、原 origin/回答/intent/confirmation 的完整核对；不改全局 TaskContract 或 planner 覆盖规则。
-- [ ] 写受控实际 transport 测试：新版 draft disabled 且无 reasoning_effort；questions/legacy/preparation 仍原配置；原 low intent 不可当新请求缓存；失败不产生新版后继。
+- [ ] 写受控实际 transport 测试：新版 draft disabled 且无 reasoning_effort；questions/legacy/preparation 仍原配置；同 profile/off 输入允许原唯一 settled-length 后继并缓存复用，profile/配置漂移及后继再次失败拒绝新增请求。复用 COS110 未变矩阵。
 - [ ] 实现新访谈 prompt、off 和缓存分支；运行上述测试，检查错误类别而非仅“抛错”。
 - [ ] 写 CLI 确认与恢复测试，覆盖 profile 缺失/篡改、真实 stdin、旧 origin、生产 host 未声明新默认/未接通拒绝；实现最小接线。
 - [ ] 写体验报告/清单/candidate 漂移负例及真实 approve/reject 正例；实现固定来源读取、显示与绑定，保持旧已完成只读恢复。
@@ -64,6 +65,7 @@ npm run build
 - [ ] 写 plan envelope 和覆盖 RED：完整 AC/正常输入/可见断言/reopen 正例；未知字段、debug-only、错误 requirement、漏 AC、缺 checkpoint 负例。
 - [ ] 实现小计划模块；作者内容不含 runtime/candidate/URL 身份，主机从捕获版本绑定实际执行参数。
 - [ ] 写 design check/capture/review 门禁 RED，再接同一 design capture 下两文件及体验映射；证明 review 前 art/模块/coding 不执行。
+- [ ] 补小型受控分类/返工测试：missing_output、合法 UTF-8 invalid_json、确定性 schema/漏 AC 产生原 code_defect 诊断，满足原前置时沿原 design successor；能力缺口或无法确认可信来源为 insufficient_evidence，不进入自动修复或下游。原 grant/deadline/修复上限保持。
 - [ ] 接普通/persistent 实际 consumer，fake IO 记录收到的 plan，验证与批准 capture 一致；保留媒体/采样/classic 组合。
 - [ ] 写 v2/冷恢复/篡改/缺批准负例；恢复拒绝现场重建，原费用、deadline、模块修复机会保持。
 - [ ] 运行不同 AC/selector 的三任务和五任务免费纵向链，补 save/reopen、采样及旧来源恢复必要代表；不要新增固定游戏 benchmark。

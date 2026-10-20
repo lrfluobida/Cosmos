@@ -2,6 +2,8 @@
 
 2026-10-21 [COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112) 与 [COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113) 已注册，原生父 COS18/#19，open / design-review-pending；总任务112、根直接100、父6子4完成。共用[设计](ordinary-design-intake.md)与[计划](../plans/2026-10-21-ordinary-design-intake.md)待独审。A 先提供普通语义草稿/体验来源，B 接设计后计划，组合就绪才切默认。原普通 memory 验证已停止结算，不恢复；下列暂停/待恢复描述保留为历史。
 
+共用设计 `2c51223` 初审 REQUEST_CHANGES 的两项 P2 已修订，待 `ordinary_intake_spec_reviewer` 复审：新 profile 复用 COS110 原唯一 settled-length 后继；确定性 design 输出错误沿原 code_defect/返工，能力或可信来源不足不混入该分类。两卡仍为设计阶段，未声明源码通过。
+
 2026-10-21 [COS110 / #111](https://github.com/lrfluobida/Cosmos/issues/111) 恢复已结算的截断普通需求草稿已独审合入 `2320fd35de9c7a0ff995a6df1aa6dc3326d23bfd`，源码范围的 `closed(completed)` 与父勾选[x]已由Root核证。父COS18/#19的4个源码子项均完成，根直接100，总任务110；实际失败run仍暂停，子项4/4不代表COS18整体完成，COS18仍open/partial。
 
 2026-10-21 当前工作：继续开发可扩展的通用游戏开发 agent，PvZ 仅为首个完整验收目标，停止逐张参考截图推进。[COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108) 与 [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 已独审集成至 `0c187117be32cf9f0058f51426020c1ba3b3b073`，两项源码范围的 `closed(completed)` 与父勾选[x]已由Root精确读回。[COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110) 已独审集成至 `3ddae7158c8a02b09c445dcce221982bb16f874c`，源码范围的 `closed(completed)` 与父勾选[x]也已核证；父COS18/#19的3个源码子项均完成，根直接子项100，总任务109，COS18整体仍open/partial。下列较早状态按记录当时范围保留。

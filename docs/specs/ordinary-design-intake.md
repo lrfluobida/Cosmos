@@ -1,6 +1,6 @@
 # 普通需求意图与设计后验收计划
 
-状态：待独立设计审查。基线 `1a99b265e9e10e96ae473d6156553de98e1ae771`；[COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112) 与 [COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113)，父 COS18。Root 已批准双卡方向，源码实施须先通过本设计审查。见 [ADR0004](../adr/0004-ordinary-design-acceptance.md) 与 [实施计划](../plans/2026-10-21-ordinary-design-intake.md)。
+状态：初审 `2c51223` 的两项 P2 已修订，待独立复审。基线 `1a99b265e9e10e96ae473d6156553de98e1ae771`；[COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112) 与 [COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113)，父 COS18。Root 已批准双卡方向，源码实施须先通过本设计审查。见 [ADR0004](../adr/0004-ordinary-design-acceptance.md) 与 [实施计划](../plans/2026-10-21-ordinary-design-intake.md)。
 
 ## 目标与边界
 
@@ -34,7 +34,7 @@ interface ExperienceCriterion {
 
 展示客观条目、体验条目、未支持项、原预算/时限/模块与采样选择；说明执行步骤由运行时设计确定。真实 stdin 仍只能确认当前完整 revision，unsupported 非空仍阻止确认与生成。不得用占位 scenario 通过旧校验。
 
-仅新 profile 的 draft 使用 `thinkingLevel: 'off'`，模型仍为 deepseek-flash，普通 draft 16K、questions 4K、原请求次数/费用/超时守卫保持；questions、旧普通及 preparation 不改配置。新 intent 固定 profile 与该 draft 请求配置；缓存与恢复不得混用旧 low 请求。既有截断后继不因新 profile 获得额外机会；本卡不给新 profile 开通截断后继，失败保留原记录，不再次派发。受控 transport 检查真实请求包含 `thinking.type=disabled` 且不含 reasoning_effort；这不证明模型输出质量。
+仅新 profile 的 draft 使用 `thinkingLevel: 'off'`，模型仍为 deepseek-flash，普通 draft 16K、questions 4K、原请求次数/费用/超时守卫保持；questions、旧普通及 preparation 不改配置。新 intent 固定 profile 与该 draft 请求配置；缓存与恢复不得混用旧 low 请求。新 profile 直接复用 COS110 原唯一已结算 length 后继：同输入、同配置、原账单/来源核验和原准入守卫均成立时允许一次后继，成功缓存复用；后继再次失败、unknown 或来源/配置漂移不再派发。不另建恢复机制，不增加机会或额度。受控 transport 检查真实请求包含 `thinking.type=disabled` 且不含 reasoning_effort；这不证明模型输出质量。
 
 `publishGenerationReport` 从已核对的完整确认来源获得 experienceCriteria，加入新版 acceptanceScope；CLI experience 显示清单并说明 approve/reject 覆盖当前完整清单。报告及已有 ExperienceBinding 同时固定确认来源、清单、报告版本和当前 candidate；`loadExperienceBinding` 核对实际原 draft/confirmation 文件，不能只信报告自报。清单更改、缺失、错源或 candidate 改变时拒绝沿用决定。自动通过后体验项仍等待真实 stdin；旧报告/决定不补造清单。完成运行的只读恢复同样核对该绑定。
 
@@ -60,7 +60,7 @@ interface OrdinaryAcceptancePlan {
 
 1. 原真实确认及 readiness 通过后，按原规则激活唯一生成时钟；设计专属内容在时钟内产生。
 2. design 作者可在原会话用现有 design check 获得本地 schema/覆盖反馈；不增加重试、语义重写授权或游戏通过结论。
-3. host capture 前检查计划形状、requirement 引用、全部自动 AC、正常输入后可见断言、reopen checkpoint 及 benchmark 必需条件；冻结实际文件字节。失败记录 `insufficient_evidence`，保留原诊断，阻止下游。
+3. host capture 前检查计划形状、requirement 引用、全部自动 AC、正常输入后可见断言、reopen checkpoint 及 benchmark 必需条件；冻结实际文件字节。缺输出、合法 UTF-8 的无效 JSON、确定性 schema/覆盖错误，复用原 `readDeclaredOutput` 的 missing_output/invalid_json/invalid_schema → `code_defect` 诊断及原限额、返工政策；满足原前置时保留原 design successor，不能改成 collect_evidence 丢失修复机会。实际能力缺口、无法确认的语义或可信来源、未知编码/IO 才保留为 `insufficient_evidence`。两类均保留原诊断并阻止未通过产物进入下游。
 4. 原独立 design reviewer 读取完整已确认 draft、设计和计划 capture，检查规则/体验映射、断言充分性和可实现性。capture 固定字节；独审通过才允许 art、模块作者和最终 coding 使用该版本。
 5. 下游 role packet、capture layout 和 source/dependency closure 包含同一 design capture。coding 不得修改计划；所有观测必须来自实际游戏状态，不能填入 expected 常量。
 6. 原可信 browser host 从批准 capture 取得 scenario，绑定实际 candidate/URL/报告身份，交既有普通或 persistent consumer；不构造冒充用户确认的新 draft。媒体观察、渲染采样和 classic entry 继续在原可信路径组合。
