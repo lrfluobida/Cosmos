@@ -30,6 +30,15 @@
 新增 `src/runtime/public-validation-funding-types.ts`，使用下列固定职责；实现时补齐严格字段校验，不接受任意扩展字段：
 
 ```ts
+interface PublicValidationAuthorization {
+  formatVersion: 'public-validation-authorization/1';
+  fundingId: string;
+  sharedRoot: string; sharedRunId: string; sharedLedgerId: string;
+  runRoot: string; runId: string; ledgerId: string;
+  limits: RunLimits; brief: string; renderFrames: boolean;
+  decisionId: string; actorId: string; decidedAt: string;
+  sourceRefs: ArtifactReference[];
+}
 interface PublicValidationFundingBinding {
   formatVersion: 'public-validation-binding/1';
   fundingId: string;
@@ -55,7 +64,8 @@ interface PublicValidationFundingRecord {
 - shared 的 `RunSnapshot` 可选保存 `publicValidationFundings`，以及两类明确的拨款/结算事件。ledger allocation 的 taskId 由 fundingId 唯一派生，不是游戏角色 task。
 - `PublicValidationSettledRequest` 保存原 requestId、taskId、admittedAt、provider、pricingVersion、最终 ledger entry 和实际回执引用。shared entry 使用该拨款 taskId，保留真实 requestId；已有 requestId 冲突时拒绝。
 - shared request 增加可选的拨款来源元数据，禁止同时包含旧 `validation`/`windowId`。纯 validator 必须把它与唯一 settlement 内的完整原记录逐项对应。
-- 来源文件是可信 operator 的真实预算决定，含本绑定和来源引用；不是 `local-user` 草稿确认。读取完整 UTF-8 原字节并核对 hash，用既有 write-once receipt 工具发布。
+- 唯一授权来源是上述 `PublicValidationAuthorization` payload，不含自身 hash、授权文件引用或派生的完整 binding；它记录真实 operator 决定，不是 `local-user` 草稿确认。
+- 构造顺序固定为：按该字段集合构造 payload → 用既有 write-once receipt 发布 → 读取并校验完整 UTF-8 原字节 → 对原字节计算 hash → 取 payload 的身份/根/限额字段，加外部传入的授权文件引用及该 hash，构造 binding。校验时从同一原字节重新推导并逐项比较，不要求哈希固定点。
 
 新增 `src/runtime/public-validation-funding.ts` 的窄接口：
 
@@ -65,7 +75,7 @@ verifyPublicValidationFunding({ root, snapshot, dispatch: boolean })
 settlePublicValidationFunding({ sharedRoot, runRoot, fundingId, now? })
 ```
 
-`authorization` 指向已有决定文件，含固定 binding、普通 `new` 的原 brief/限额/采样选项及来源引用；不从参数推断预算授权。`dispatch: false` 仅验证来源和身份，允许已结清运行的只读展示；`dispatch: true` 要求整笔拨款仍占用。
+`authorization` 指向上述唯一 payload 文件；原命令参数从该文件读取，不从其它参数推断预算授权。`dispatch: false` 仅验证来源和身份，允许已结清运行的只读展示；`dispatch: true` 要求本拨款仍占用且 shared 无任何公共 overrun。
 
 ## 预算与来源不变量
 
@@ -77,10 +87,14 @@ settlePublicValidationFunding({ sharedRoot, runRoot, fundingId, now? })
 6. 新费用只由已核验的完整来源结算导入。旧案例、旧费用前缀、旧 stopReason、原 quote 和五角色 closure 均不可修改。
 7. 超预留保留真实 child 账本与回执，在新拨款记录 `overrun` 及实际金额、保持完整占额，阻止后续拨款和该运行派发；不向旧 shared entries 强行导入超帽费用，不改旧 stopReason。
 8. 正常无超额路径才导入 shared entries 并结清；overrun 的实际金额单独明确报告为待处理费用，不截断、不说已结清，也不为本卡放宽原阶段或 allocation validator。
+9. 采用最窄互斥规则：`H > 0` 或存在公共 overrun 时，旧 case 不得新的 claim/dispatch；不尝试让旧请求共享剩余阶段金额。会计结算、取消未发送预留、stop/read 保持可用。
+10. 已打开的绑定 `IntakeController`/`RunController` 在每次新 `reserve` 和 `admit` 都读取最新 shared 公共状态，不缓存打开时的许可。任意拨款 A 的 overrun 已写入 shared 后，B 下一次新请求即使 controller 已打开也须拒绝；已 reserve 未 admit 的请求同样拒绝。
+
+实际链与门禁放置：`validation-window.ts:eligible` 同时覆盖 prepare/claim；`run.ts:validationTaskAuthority` 使旧 case 的 execution/admission authority 在 `H/overrun` 下为 false，现有 `requireValidationRequest` 由 reserve/admit 共用。绑定公共运行则在 `intake.ts` 与 `run.ts` 的 reserve/admit 取得运行根→shared 锁，校验当前公共状态，并在原本地准入写入结束后释放 shared 锁；共享侧只读，不逐请求双写账本。`createRoleBudget.beforeRequest` 原来就等待 reserve/admit，拒绝必须发生在 transport 前。会计、stop/read 不调用 dispatch 门禁。
 
 ## 初始化、中断点与锁顺序
 
-operator 在普通 `new` 前固定 runId/ledgerId/fundingId，创建写一次 `public-validation-origin.json` intent。该文件绑定原命令输入和授权，不含密钥。根必须为空或仅有同一 intent 的允许恢复文件；无关文件仍拒绝。
+operator 先完成唯一授权 payload，再创建写一次 `public-validation-origin.json` intent。intent 严格只有格式版本、授权文件引用和其原字节 hash，作为恢复索引；不复制 binding、ID、brief、限额或另立决定。所有输入均重读并推导自唯一授权。根必须为空或仅有同一 intent 的允许恢复文件；无关文件仍拒绝。
 
 | 中断点 | 可恢复行为 |
 | --- | --- |
@@ -101,9 +115,9 @@ operator 在普通 `new` 前固定 runId/ledgerId/fundingId，创建写一次 `p
 
 - 新增 `probes/public-cli/validation.ts`，仅提供 `new/resume/settle` 的 operator 包装。生产调用原 `runCli(args, { funding })`，不替换 host、不提供确认输入；stdin/stdout 继续直通。
 - `runCli` 的可信 IO 参数新增可选 funding，仅向 session 传递，不新增普通产品的预算来源 flag。普通未绑定命令保持原逻辑。
-- 绑定新建使用 intent 内的固定 runId；只在此分支允许恢复上述两个初始化来源文件，并在 `IntakeController.create` 前写原 origin。未绑定 `new` 的空目录规则不变。
+- 绑定新建通过 intent 索引读取唯一授权内的固定 runId；只在此分支允许恢复上述两个初始化来源文件，并在 `IntakeController.create` 前写原 origin。未绑定 `new` 的空目录规则不变。
 - `runProductSession` 在任何 host 调用前核验绑定；真实草稿仍通过现有提问、展示、`confirm N` 分支确认。Root/operator/模型无自动确认分支。
-- `IntakeController` 创建/打开及正式 `RunController.open` 共用 funding 核验，覆盖普通 `resume`、直接正式 host 与激活后的 owner 切换。
+- `IntakeController` 创建/打开及正式 `RunController.open` 共用 funding 核验，覆盖普通 `resume`、直接正式 host 与激活后的 owner 切换；每次 reserve/admit 再核验 shared，覆盖其它拨款后来产生的 overrun。
 - `runContinuationSession` 在 `quiescent/host.prepare` 前拒绝绑定运行；`buildContinuationQuote` 同样拒绝，包括仅加时。`continuation-authority.ts` 的 `activateContinuation` 已在持锁后重建 quote，沿该调用再次拒绝，防止直接 API 绕过。
 - 绑定运行已完成时普通 `resume` 可复用原只读报告；要派发则必须重新经过 owner 和开放拨款检查。`status/experience` 不需要新付费资格。
 
@@ -127,8 +141,9 @@ operator 在普通 `new` 前固定 runId/ledgerId/fundingId，创建写一次 `p
 | `src/runtime/public-validation-funding.ts`（新） | 单次预占、双侧核验、结算、固定锁顺序 |
 | `src/runtime/run-types.ts`、`run-validation.ts` | 可选记录/事件与 validator 接线 |
 | `src/runtime/validation-validation.ts`、`validation-allocation-validation.ts` | 仅承认已认证的拨款请求/closure 来源；保留旧检查 |
+| `src/runtime/validation-window.ts` | `eligible` 在开放公共拨款或公共 overrun 时拒绝旧 case prepare/claim |
 | `src/cli/index.ts`、`session.ts` | 可信 funding 参数、稳定新建身份、初始化中断恢复、首 host 门禁 |
-| `src/runtime/intake.ts`、`run.ts` | 持锁核验、intake→generation 原样传递、正式打开门禁 |
+| `src/runtime/intake.ts`、`run.ts` | 持锁核验/原样传递；公共 reserve/admit 重读 shared；旧 case authority 拒绝 H/overrun |
 | `src/runtime/render-frame-selection.ts` | origin 白名单仅增加 funding 字段，原采样确认保持 |
 | `src/cli/continuation-session.ts`、`src/runtime/continuation-quote.ts` | owner恢复/host准备前拒绝；原`continuation-authority.ts`重建quote自然复用 |
 | `probes/public-cli/validation.ts`、`README.md`（新） | 窄 operator 包装与使用边界 |
@@ -142,7 +157,9 @@ operator 在普通 `new` 前固定 runId/ledgerId/fundingId，创建写一次 `p
 ### 1. 来源、容量与原子预占
 
 - [ ] 先写 RED：由既有 TEMP validation fixture 建立合法 shared 历史；追加拨款而非 case，保留所有历史记录。
+- [ ] 从无自身 hash/binding 的真实 payload 发布授权文件，读回原字节推导 binding 并成功核验；覆盖授权内容被改、来源引用冲突及 intent 试图携带不同 ID/brief/限额的负例。
 - [ ] 覆盖两个并发申请、已有开放拨款、接近 ¥30、allocation 不足、source/ID 冲突；无资格时 provider trap 计数为零。
+- [ ] 固定 `C=¥18、H=¥10`，验证旧 case 的新 prepare/claim 与 request reserve/admit 被公共占额门禁拒绝，transport 为0；会计/stop/read 仍可用，不改旧历史。
 - [ ] 实现类型、纯 validator 和预占接口；对现有 ledger5 保留一个真实 fixture 代表，避免只验证简化 ledger。
 - [ ] 执行 `node --experimental-strip-types --test tests/runtime/public-validation-funding.test.ts`，保留 RED/GREEN 原输出。
 
@@ -159,7 +176,7 @@ operator 在普通 `new` 前固定 runId/ledgerId/fundingId，创建写一次 `p
 - [ ] 写 RED：真实格式回执已结清、缺回执、回执金额冲突、admitted unknown、未退出 owner、未解析 spawn intent 均按对应边界处理。
 - [ ] 使用原受控 provider 回执和清理证据，核对精确释放与重复结算；整笔预占不是一笔 provider 请求。
 - [ ] 构造恢复与闭账竞争，断言仅一方取得运行根锁；闭账后新派发被拒，原只读完成报告仍可读取。
-- [ ] 注入超预留费用：保留真实金额与新 overrun 状态，不改旧 shared stopReason/case；新拨款拒绝。
+- [ ] 注入超预留费用：保留真实金额与新 overrun 状态，不改旧 shared stopReason/case；新拨款和旧 case 新派发拒绝。先打开拨款 B，再由 A 结算将 overrun 写入 shared，B 下一 reserve→admit 的 transport 为0；另覆盖 B 已 reserve、A 再写 overrun、B admit 拒绝。
 - [ ] 执行两个新增测试文件；仅重跑改变或失败的必要代表，不重复整套 transfer/browser 矩阵。
 
 ### 4. 收口与独审
@@ -172,3 +189,5 @@ operator 在普通 `new` 前固定 runId/ledgerId/fundingId，创建写一次 `p
 ## 当前计划提交的验证
 
 仅验证计划/规格链接、JSON 登记、任务计数、UTF-8/中文及 diff 范围。未运行源码测试或创建真实预算记录；上述实现步骤均待计划批准。
+
+计划独审修订：首版 `1c84a30392a89244c13a14ec5e6819fd77367334` 的两项 P2 已按实际链修正：授权原字节与派生 binding 分离；旧 case 与已打开公共控制器补最新共享状态准入。当前仍只修改文档，待独审复核。
