@@ -1,6 +1,6 @@
 # 普通需求意图与设计后验收计划
 
-状态：初审 `2c51223` 的两项 P2 已修订，待独立复审。基线 `1a99b265e9e10e96ae473d6156553de98e1ae771`；[COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112) 与 [COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113)，父 COS18。Root 已批准双卡方向，源码实施须先通过本设计审查。见 [ADR0004](../adr/0004-ordinary-design-acceptance.md) 与 [实施计划](../plans/2026-10-21-ordinary-design-intake.md)。
+状态：设计 `c4dcb56fc625322232733f44e4a63e0a34b3b406` 经 `ordinary_intake_spec_reviewer` 独审 `APPROVED_DESIGN`、无剩余P1/P2，Root已批准 [COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6298548379) 与 [COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6298549546)。文档合入 `b58ae7c44328a0aae8392f982e2ea164b9b6d3af`；基线 `1a99b265e9e10e96ae473d6156553de98e1ae771`，父 COS18。本次仅集成设计，源码由Root分阶段派发；两卡仍open。见 [ADR0004](../adr/0004-ordinary-design-acceptance.md) 与 [实施计划](../plans/2026-10-21-ordinary-design-intake.md)。
 
 ## 目标与边界
 

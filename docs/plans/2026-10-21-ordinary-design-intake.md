@@ -10,12 +10,14 @@
 
 依据：[共用 spec](../specs/ordinary-design-intake.md)、[ADR0004](../adr/0004-ordinary-design-acceptance.md)。基线 `1a99b265e9e10e96ae473d6156553de98e1ae771`。原 memory 验证已关闭，不恢复，不改真实账本。
 
+设计 `c4dcb56fc625322232733f44e4a63e0a34b3b406` 已获 `ordinary_intake_spec_reviewer` 的 `APPROVED_DESIGN`，Root公开批准 [COS111](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6298548379) / [COS112](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6298549546)，唯一merger合入 `b58ae7c44328a0aae8392f982e2ea164b9b6d3af`。当前只完成设计文档集成，以下源码步骤仍待分阶段实施和独审。
+
 ## 设计与分工
 
 - [x] 将双卡范围、明确接口和发布边界写入共用文档。
-- [x] 修订初审 `2c51223` 两项 P2：复用原 settled-length 后继，保留可修复 design 输出的原失败分类；等待独立复审。
-- [ ] 独立 spec reviewer 检查需求完整性、A/B 接口、旧确认兼容和发布门禁；作者修复 finding，再固定批准 SHA。
-- [ ] COS111 由 `ordinary_intake_design` 实施；COS112 由 Root 另配 implementer/reviewer。仅 `public_agent_batch_merger` 合入 main 并 push。
+- [x] 修订初审 `2c51223` 两项 P2：复用原 settled-length 后继，保留可修复 design 输出的原失败分类；最终设计已独审通过。
+- [x] 独立 spec reviewer 已检查需求完整性、A/B 接口、旧确认兼容和发布门禁；批准设计SHA为 `c4dcb56fc625322232733f44e4a63e0a34b3b406`，无剩余P1/P2。
+- [ ] COS111 由 `ordinary_intake_design` 实施，COS112 由 `ordinary_plan_implementer` 实施；源码reviewer由Root分别分配。仅 `public_agent_batch_merger` 合入 main 并 push。
 
 ## COS111：内部草稿与体验来源契约
 

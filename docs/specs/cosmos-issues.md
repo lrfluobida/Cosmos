@@ -1,8 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-21 [COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112) 与 [COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113) 已注册，原生父 COS18/#19，open / design-review-pending；总任务112、根直接100、父6子4完成。共用[设计](ordinary-design-intake.md)与[计划](../plans/2026-10-21-ordinary-design-intake.md)待独审。A 先提供普通语义草稿/体验来源，B 接设计后计划，组合就绪才切默认。原普通 memory 验证已停止结算，不恢复；下列暂停/待恢复描述保留为历史。
+2026-10-21 [COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112) 与 [COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113) 共用[设计](ordinary-design-intake.md) `c4dcb56fc625322232733f44e4a63e0a34b3b406` 已独审 `APPROVED_DESIGN` 并获Root批准，文档合入 `b58ae7c44328a0aae8392f982e2ea164b9b6d3af`。两卡open，`design-integrated / source-pending`；总任务112、根直接100、父COS18六子完成四、整体partial。A先提供内部语义草稿/体验来源，B接设计后计划，组合就绪才切默认，见[计划](../plans/2026-10-21-ordinary-design-intake.md)。原普通memory验证已停止结算，不恢复；下列暂停/待恢复描述保留为历史。
 
-共用设计 `2c51223` 初审 REQUEST_CHANGES 的两项 P2 已修订，待 `ordinary_intake_spec_reviewer` 复审：新 profile 复用 COS110 原唯一 settled-length 后继；确定性 design 输出错误沿原 code_defect/返工，能力或可信来源不足不混入该分类。两卡仍为设计阶段，未声明源码通过。
+共用设计 `2c51223` 初审的两项P2已由 `ordinary_intake_spec_reviewer` 在最终 `c4dcb56` 复审闭合：新profile复用COS110原唯一settled-length后继；确定性design输出错误沿原code_defect/返工，能力或可信来源不足另行分类。Root公开批准 [COS111](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6298548379) / [COS112](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6298549546)，ADR0004 accepted。七个获批文档合并时一致；文档检查原输出 `.cosmos/planning/2026-10-21-ordinary-intake/design-integration/`。本阶段未改源码、切默认或运行源码测试。
 
 2026-10-21 [COS110 / #111](https://github.com/lrfluobida/Cosmos/issues/111) 恢复已结算的截断普通需求草稿已独审合入 `2320fd35de9c7a0ff995a6df1aa6dc3326d23bfd`，源码范围的 `closed(completed)` 与父勾选[x]已由Root核证。父COS18/#19的4个源码子项均完成，根直接100，总任务110；实际失败run仍暂停，子项4/4不代表COS18整体完成，COS18仍open/partial。
 
@@ -1687,7 +1687,7 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-111 · 普通需求意图草稿与体验要求
 
-[COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112)，id5947315778，原生父 COS18/#19，open / design-review-pending；前置 COS110 已审源码。基线 `1a99b265e9e10e96ae473d6156553de98e1ae771`，作者 `ordinary_intake_design`，独立 reviewer 由 Root 分配，唯一 merger `public_agent_batch_merger`。
+[COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112)，id5947315778，原生父 COS18/#19，open / design-integrated / source-pending；前置 COS110 已审源码。基线 `1a99b265e9e10e96ae473d6156553de98e1ae771`，作者 `ordinary_intake_design`，设计独审 `ordinary_intake_spec_reviewer`，源码reviewer由Root分配，唯一merger `public_agent_batch_merger`。设计 `c4dcb56fc625322232733f44e4a63e0a34b3b406` 已获 `APPROVED_DESIGN` 和Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6298548379)，文档合入 `b58ae7c44328a0aae8392f982e2ea164b9b6d3af`。
 
 范围：主机选择并持久化 ordinary-design/1，完整问答、客观 acceptance、experienceCriteria 与 unsupported 同版展示和真实确认，不含 scenario。体验条目绑定原确认来源、报告与最终候选；旧 origin 不迁移，新 draft off 以受控实际 payload 验证。A 只提供内部契约，B 接通前不切生产默认，不改全局 TaskContract 语义或原预算/时钟/修复机会。
 
@@ -1695,7 +1695,7 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-112 · 普通设计后的验收计划与公开入口接线
 
-[COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113)，id5947317368，原生父 COS18/#19，open / design-review-pending；依赖 COS111 批准接口。implementer/reviewer 由 Root 另行分配，唯一 merger `public_agent_batch_merger`。
+[COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113)，id5947317368，原生父 COS18/#19，open / design-integrated / source-pending；依赖COS111批准接口。作者 `ordinary_plan_implementer`，设计独审 `ordinary_intake_spec_reviewer`，源码reviewer由Root分配，唯一merger `public_agent_batch_merger`。设计 `c4dcb56fc625322232733f44e4a63e0a34b3b406` 已获 `APPROVED_DESIGN` 和Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6298549546)，文档合入 `b58ae7c44328a0aae8392f982e2ea164b9b6d3af`。
 
 范围：原 design 任务在生成时钟内输出计划，host 检查并 capture，独立 design review 通过后下游与实际 consumer 使用同一固定版本。保留三/五任务、modular、采样、save/reopen 及原恢复/返工边界。计划 helper 复用 preparation 的职责分法，不采用固定 cos16 模式。组合就绪后才切新默认，旧 origin 保持原解释。
 
