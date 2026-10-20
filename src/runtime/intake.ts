@@ -13,7 +13,7 @@ import { modeFromSelection, resolveDraftMode } from '../roles/preparation-mode.t
 import type { DraftMode, PreparationSelection } from '../roles/preparation-mode.ts';
 import { validateOrdinaryProfile } from '../roles/ordinary-profile.ts';
 import type { OrdinaryProfile } from '../roles/ordinary-profile.ts';
-import { ORDINARY_PROFILE_SOURCE, ordinaryDraftSha256, readOrdinaryProfile } from './ordinary-profile-source.ts';
+import { ORDINARY_PROFILE_SOURCE, ordinaryDraftSha256, readOrdinaryProfile, requireOrdinaryDraftSource } from './ordinary-profile-source.ts';
 import { SnapshotStore } from './store.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { validateSnapshot } from './run-validation.ts';
@@ -288,6 +288,7 @@ export class IntakeController {
       if (!draft || draft.revision !== confirmation.revision) throw new Error('Confirmation must name the current draft revision.');
       if (draft.unsupported.length) throw new Error('Unsupported requirements need a decision before confirmation.');
       await readOrdinaryProfile(this.store.root, { runId: next.run.runId, createdAt: next.createdAt }, next);
+      if (next.ordinaryProfile) await requireOrdinaryDraftSource(this.store.root, draft, draft.revision);
       if (next.renderFrames) await requireCurrentFrameSource(await readFrameSelection(this.store.root, next));
       if (next.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(this.store.root, next));
       const source = confirmationRef(draft.revision, next.renderFrames, next.modularRepairPolicy);
@@ -319,6 +320,7 @@ export class IntakeController {
       if (budgetSummary(prior.ledger).exhausted) throw new Error('Budget exhausted before activation.');
       const draftBytes = await this.requireDraftFile(prior.draft);
       await readOrdinaryProfile(this.store.root, { runId: prior.run.runId, createdAt: prior.createdAt }, prior);
+      if (prior.ordinaryProfile) await requireOrdinaryDraftSource(this.store.root, prior.draft, prior.draft.revision);
       if (prior.renderFrames) await requireCurrentFrameSource(await readFrameSelection(this.store.root, prior));
       if (prior.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(this.store.root, prior));
       const receipt = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await readFile(join(this.store.root, confirmed.source.location))));

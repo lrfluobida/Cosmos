@@ -55,6 +55,56 @@ test('ordinary resume uses the original profile even when the host now advertise
   const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
   assert.deepEqual(state.ledger, original.ledger);
 });
+test('ordinary source gate rejects drift before resumed confirmation without creating a decision or clock', async t => {
+  for (const changed of ['answers', 'questions', 'origin-brief', 'missing-answers', 'answer-profile']) {
+    const f = await ordinarySession(t, '点亮三个目标。\ncancel\n');
+    const path = join(f.root, changed === 'origin-brief' ? 'intake-origin.json' : 'intake-answers/v1.json');
+    if (changed === 'missing-answers') await unlink(path);
+    else {
+      const value = JSON.parse(await readFile(path, 'utf8'));
+      if (changed === 'answers') value.answers.goal = '缩小范围';
+      if (changed === 'questions') value.questions[0].prompt = '不同问题';
+      if (changed === 'origin-brief') value.brief = '不同需求';
+      if (changed === 'answer-profile') delete value.ordinaryProfile;
+      await writeFile(path, JSON.stringify(value), 'utf8');
+    }
+    const before = await readFile(join(f.root, 'snapshot.json'));
+    let executions = 0; const output = new PassThrough(); output.resume();
+    await assert.rejects(runProductSession({ command: 'resume', root: f.root, input: Readable.from(['confirm 1\n']), output,
+      host: { ...f.host, async execute() { executions++; return { outcome: 'must-not-execute' }; } } }), /ordinary.*(answer|source|origin)|ENOENT/i);
+    assert.equal(executions, 0);
+    assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before);
+    const state = JSON.parse(before.toString('utf8'));
+    assert.equal(state.formatVersion, 'intake-1'); assert.equal(state.confirmation, null); assert.equal(state.run.originalStartedAt, undefined);
+    await assert.rejects(readFile(join(f.root, 'requirements/v1/confirmation.json')), { code: 'ENOENT' });
+  }
+});
+test('ordinary source gate rejects drift after confirmation while retaining the original decision', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'cos111-activation-source-')); t.after(() => removeOwned(tmpdir(), root));
+  let prepares = 0, executions = 0, confirmedState: Buffer | undefined, confirmationBytes: Buffer | undefined;
+  const output = new PassThrough(); output.resume();
+  const host = { ordinaryProfile: profile,
+    async prepare() {
+      if (++prepares === 2) {
+        confirmedState = await readFile(join(root, 'snapshot.json'));
+        confirmationBytes = await readFile(join(root, 'requirements/v1/confirmation.json'));
+        const path = join(root, 'intake-answers/v1.json'), value = JSON.parse(await readFile(path, 'utf8'));
+        value.answers.goal = '确认后被替换的回答'; await writeFile(path, JSON.stringify(value), 'utf8');
+      }
+      return { environmentReady: true, executionReady: true };
+    },
+    async questions() { return questions; },
+    async draft(value: any) { return { ...ordinaryDraft(), answers: value.answers }; },
+    async execute() { executions++; return { outcome: 'must-not-execute' }; },
+  };
+  await assert.rejects(runProductSession({ command: 'new', root, brief, host, output,
+    input: Readable.from(['点亮三个目标后显示完成。\nconfirm 1\n']) }), /ordinary.*(answer|source)/i);
+  assert.equal(executions, 0); assert.equal(prepares, 2); assert.ok(confirmedState); assert.ok(confirmationBytes);
+  assert.deepEqual(await readFile(join(root, 'snapshot.json')), confirmedState);
+  assert.deepEqual(await readFile(join(root, 'requirements/v1/confirmation.json')), confirmationBytes);
+  const state = JSON.parse(confirmedState.toString('utf8'));
+  assert.equal(state.formatVersion, 'intake-1'); assert.ok(state.confirmation); assert.equal(state.run.originalStartedAt, undefined);
+});
 test('ordinary confirmation retains modular and render-frame selections', async t => {
   const draft = withHostStages({ ...ordinaryDraft(), codeProfile: 'modular-code/1' });
   const f = await ordinarySession(t, undefined, draft, true);

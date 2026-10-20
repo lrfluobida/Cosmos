@@ -12,7 +12,7 @@ import { confirmRequirements, gameplayAcceptance, HOST_STAGE_ACCEPTANCE, MODULE_
 import type { GameDraft } from '../roles/requirements.ts';
 import { validateOrdinaryProfile } from '../roles/ordinary-profile.ts';
 import type { OrdinaryProfile } from '../roles/ordinary-profile.ts';
-import { ordinaryDraftSha256, readOrdinaryProfile } from '../runtime/ordinary-profile-source.ts';
+import { ordinaryDraftSha256, readOrdinaryProfile, requireOrdinaryDraftSource } from '../runtime/ordinary-profile-source.ts';
 import { modeFromSelection, resolveDraftMode } from '../roles/preparation-mode.ts';
 import type { DraftMode } from '../roles/preparation-mode.ts';
 import { sameValue } from '../contracts/validation.ts';
@@ -74,10 +74,7 @@ export async function readConfirmedGeneration(root: string, snapshot: RunSnapsho
         ordinaryProfile, ordinaryDraftSha256: ordinaryDraftSha256(draftBytes), ...(frames ? { renderFrames: frames } : {}), ...(policy ? { modularRepairPolicy: policy } : {}) })) {
       throw new Error('Original ordinary confirmation or complete draft source changed.');
     }
-    const answers = await json(root, `intake-answers/v${revision}.json`);
-    if (draft.brief !== intakeOrigin.brief || !sameValue(answers, { brief: draft.brief, questions: draft.questions, answers: draft.answers, ordinaryProfile })) {
-      throw new Error('Original ordinary answers or draft source changed.');
-    }
+    await requireOrdinaryDraftSource(root, draft, revision);
   }
   return { draft, requirement: confirmRequirements({ ...draft, specVersion: snapshot.run.specVersion, sources: source.evidence }, confirmed), ...(frames ? { renderFrames: true } : {}) };
 }

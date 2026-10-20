@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestContext } from 'node:test';
@@ -22,6 +22,8 @@ export async function ordinaryIntake(t: TestContext) {
     ordinaryProfile: profile, interviewTaskId: 'intake', maxRequests: 8,
     allocations: [{ taskId: 'intake', amountMicroCny: 1_000_000 }, { taskId: 'planning', amountMicroCny: 1_000_000 }] });
   await writeFile(join(root, 'intake-origin.json'), JSON.stringify({ runId: 'ordinary-run', brief, ordinaryProfile: profile }) + '\n', 'utf8');
+  await mkdir(join(root, 'intake-answers'));
+  await writeFile(join(root, 'intake-answers/v1.json'), JSON.stringify({ brief, questions, answers, ordinaryProfile: profile }) + '\n', 'utf8');
   t.after(async () => { await controller.close(); await removeOwned(tmpdir(), root); });
   return { root, controller };
 }

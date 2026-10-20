@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS111 源码初审 3856608 仅一项 P2：问答漂移原先到生成后才拒绝。现统一来源检查已前移至确认和激活前，两个负例RED0/2→受影响7/7，typecheck/build/tests strict0；原35/35与legacy8/8复用。待独立受影响复审，原决定、账本与时钟不改写，生产新版执行仍关闭。
+
 Cosmos 是可扩展的游戏开发 agent，PvZ 是首个完整验收目标。当前停止逐张参考截图推进，补公开普通游戏流程中的可执行缺口；已有参考事实和通过证据保留并复用。
 
 COS111 作者在基线 `1180d5a5e0530c872067409c6f2b15093fa6a8c3` 完成内部普通意图契约，状态 `source-review-pending`：来源版本、完整问答/体验清单确认、off 实际受控 payload、原唯一 length 后继、报告/体验来源绑定已接通；生产默认和新版 execute 保持关闭，COS112 未开始。最终新增35/35、legacy短代表8/8，typecheck/build0；测试strict夹具类型修正后strict0/affected1/1。详见[计划证据](docs/plans/2026-10-21-ordinary-design-intake.md)，原输出 `.cosmos/cos111/verification-index.json`。未改真实run/共享账本，无真实模型或浏览器调用，尚未获得源码独审批准。

@@ -21,6 +21,8 @@
 
 ## COS111：内部草稿与体验来源契约
 
+源码初审 3856608 的唯一 P2 已修复、待受影响复审：完整 origin brief 和本 revision 问答改由 requireOrdinaryDraftSource 在确认、激活与生成后读取时共用核验。两个生命周期负例先 RED 0/2，最终受影响7/7、0skip、14543.7471ms；确认前漂移不产生决定/时钟，确认后漂移保留原 snapshot/confirmation，均 execute0。typecheck/build/tests strict 均0；原35/35与legacy8/8按未变范围复用，不重复矩阵。输出仍在 .cosmos/cos111/verification-index.json。
+
 主要文件：
 
 - 新增 `src/roles/ordinary-profile.ts`：profile/体验类型、版本选择与窄校验；`src/roles/requirements.ts` 增加新 draft 分支并复用原 AC/host standards。

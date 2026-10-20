@@ -1687,6 +1687,8 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-111 · 普通需求意图草稿与体验要求
 
+初审 3856608 REQUEST_CHANGES 的唯一 P2 已修复待复审：新profile确认/激活前与生成后统一核对原brief、本revision问题/答案。RED0/2→affected7/7，typecheck/build/strict0；失败保留原记录且不启动clock/execute，旧矩阵按无变化范围复用。
+
 作者源码已完成、待独审，实施基线 `1180d5a5e0530c872067409c6f2b15093fa6a8c3`。内部新profile及完整来源/体验绑定已接通，生产默认和未接通新版执行仍拒绝。四文件新增35/35、旧路径短代表8/8、typecheck/build0；strict夹具收窄后strict0/affected1/1。原RED和输出保存在 `.cosmos/cos111/verification-index.json`；[计划](../plans/2026-10-21-ordinary-design-intake.md)列范围与证据，本卡仍open、未声明独审/集成或实际生成通过。
 
 [COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112)，id5947315778，原生父 COS18/#19，open / design-integrated / source-pending；前置 COS110 已审源码。基线 `1a99b265e9e10e96ae473d6156553de98e1ae771`，作者 `ordinary_intake_design`，设计独审 `ordinary_intake_spec_reviewer`，源码reviewer由Root分配，唯一merger `public_agent_batch_merger`。设计 `c4dcb56fc625322232733f44e4a63e0a34b3b406` 已获 `APPROVED_DESIGN` 和Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6298548379)，文档合入 `b58ae7c44328a0aae8392f982e2ea164b9b6d3af`。
