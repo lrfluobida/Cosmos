@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-21 [COS110 / #111](https://github.com/lrfluobida/Cosmos/issues/111) 恢复已结算的截断普通需求草稿已独审合入 `2320fd35de9c7a0ff995a6df1aa6dc3326d23bfd`，为 `source-integrated / open-awaiting-public-close`。父COS18/#19共4子项、完成3，根直接100，总任务110；实际失败run仍暂停，COS18整体open/partial。
+2026-10-21 [COS110 / #111](https://github.com/lrfluobida/Cosmos/issues/111) 恢复已结算的截断普通需求草稿已独审合入 `2320fd35de9c7a0ff995a6df1aa6dc3326d23bfd`，源码范围的 `closed(completed)` 与父勾选[x]已由Root核证。父COS18/#19的4个源码子项均完成，根直接100，总任务110；实际失败run仍暂停，子项4/4不代表COS18整体完成，COS18仍open/partial。
 
 2026-10-21 当前工作：继续开发可扩展的通用游戏开发 agent，PvZ 仅为首个完整验收目标，停止逐张参考截图推进。[COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108) 与 [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 已独审集成至 `0c187117be32cf9f0058f51426020c1ba3b3b073`，两项源码范围的 `closed(completed)` 与父勾选[x]已由Root精确读回。[COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110) 已独审集成至 `3ddae7158c8a02b09c445dcce221982bb16f874c`，源码范围的 `closed(completed)` 与父勾选[x]也已核证；父COS18/#19的3个源码子项均完成，根直接子项100，总任务109，COS18整体仍open/partial。下列较早状态按记录当时范围保留。
 
@@ -1669,7 +1669,7 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-110 · 恢复已结算的截断需求草稿
 
-[COS110 / #111](https://github.com/lrfluobida/Cosmos/issues/111)，id5946325761，原生父COS18/#19，`source-integrated / open-awaiting-public-close`、父未勾选。基线 `5ae8e01d773f42b681db7ab4c997c48187d7fcfd`，前置COS107/COS109已审源码；作者 `agent_product_flow_assessment`、独审 `public_run_limits_reviewer`、唯一merger `public_agent_batch_merger`。最终 `52cf7b08238ef068cac7e01bac3e5ec74af67566` 获整卡 `APPROVED_SOURCE_SCOPED`、无剩余P1/P2，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/111#issuecomment-6297653126)后合入 `2320fd35de9c7a0ff995a6df1aa6dc3326d23bfd`，见[短计划与契约](../plans/2026-10-21-intake-truncation-recovery.md)。
+[COS110 / #111](https://github.com/lrfluobida/Cosmos/issues/111)，id5946325761，原生父COS18/#19，`source-integrated / source-scoped-complete`；[公开关闭](https://github.com/lrfluobida/Cosmos/issues/111#issuecomment-6297769369)的 `closed(completed)` 和父勾选[x]已由Root精确读回。基线 `5ae8e01d773f42b681db7ab4c997c48187d7fcfd`，前置COS107/COS109已审源码；作者 `agent_product_flow_assessment`、独审 `public_run_limits_reviewer`、唯一merger `public_agent_batch_merger`。最终 `52cf7b08238ef068cac7e01bac3e5ec74af67566` 获整卡 `APPROVED_SOURCE_SCOPED`、无剩余P1/P2，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/111#issuecomment-6297653126)后合入 `2320fd35de9c7a0ff995a6df1aa6dc3326d23bfd`，见[短计划与契约](../plans/2026-10-21-intake-truncation-recovery.md)。
 
 实际普通draft回执为已settled的length，output=reasoning=8192；两笔合计82,311µ，原intake剩167,689µ。原输入13,508 bytes下16K预留158,088µ，原¥5/30分钟身份与拨款保持，无草稿确认或正式时钟。普通draft改16K，questions4K/preparation draft8K保持；只允许同输入、唯一已核已settled length原请求的一次独立后继，成功缓存复用，后继失败或unknown不再新增请求。原费用、intent/native/账单/答案与human确认不改。
 
