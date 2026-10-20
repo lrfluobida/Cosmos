@@ -1661,6 +1661,8 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 作者 `public_validation_route_assessment`、独审 `public_run_limits_reviewer`、唯一merger `public_agent_batch_merger`。阶段 `ad24b2b` 的清理证明和完整旧预算来源两P2已按Root接受范围修复，待原reviewer复核。新增24/24、清理caller76/76（均0skip）、typecheck/build0；原111项按无变化范围复用，重叠计数不相加，私有索引 `.cosmos/cos109/verification-index.json`。受控SDK与真实stdin完成访谈/草稿/原planning三笔30µ，规划边界主动结束；无新固定case/生成pipeline/ledger6，无真实provider/browser、真实账本或付费运行。COS107/COS108保持closed，COS18仍open/partial。稳定任务 ID：COS-109。
 
+最终复审 `ebdfb242` 已闭合上述两P2；新增恢复持久化P2按Root批准范围修正：原guard完整核验后先写真实OwnerRecord，再复核锁原文并unlink，写失败留锁、重复记录保留首次时间。RED2后affected7/7、0skip，待同一reviewer差异复审；其余已审源码与原证据复用。
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

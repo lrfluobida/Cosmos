@@ -9,6 +9,7 @@ import { SnapshotStore } from './store.ts';
 import { validateSnapshot } from './run-validation.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { OwnerLock } from './recovery/ownership.ts';
+import type { OwnerRecord } from './recovery/ownership.ts';
 import { requireNoRegistryWriter } from './window-idle.ts';
 import { verifyValidationBudgetSources } from './validation-budget.ts';
 import { verifyOperatorDecision } from './validation-window.ts';
@@ -181,13 +182,18 @@ export async function verifyFundedNew(root: string, binding: PublicValidationFun
 }
 export async function publishFundedOrigin(root: string, value: unknown) { await writeOnce(root, 'intake-origin.json', value); }
 
-/** Persist only the result returned by the existing exited-owner recovery; no new recovery permission. */
-export async function recordFundingRecovery(root: string, owner: { token: string; untrackedWriters: boolean; children: { ticket: string; pid: number | null }[] }) {
+/** Persist the record verified inside the existing recovery guard; no new recovery permission. */
+export async function recordFundingRecovery(root: string, owner: OwnerRecord) {
   const state = await optional(root, 'snapshot.json');
   if (!state?.validationFunding) return;
   if (owner.untrackedWriters || owner.children.some(child => child.pid === null)) throw new Error('Unproven public funding owner recovery.');
-  await writeOnce(root, `public-funding-recovery/${owner.token}.json`, { formatVersion: 'public-funding-owner-recovery/1',
-    runId: state.run.runId, ledgerId: state.ledger.ledgerId, fundingId: state.validationFunding.fundingId, owner, recoveredAt: new Date().toISOString() });
+  const path = `public-funding-recovery/${owner.token}.json`, previous = await optional(root, path);
+  const recoveredAt = previous === undefined ? new Date().toISOString() : previous.recoveredAt;
+  if (typeof recoveredAt !== 'string' || !Number.isFinite(Date.parse(recoveredAt)) || new Date(recoveredAt).toISOString() !== recoveredAt) throw new Error('Public funding recovery timestamp changed.');
+  const receipt = { formatVersion: 'public-funding-owner-recovery/1', runId: state.run.runId, ledgerId: state.ledger.ledgerId,
+    fundingId: state.validationFunding.fundingId, owner, recoveredAt };
+  await writeOnce(root, path, receipt);
+  if (!sameValue(await optional(root, path), receipt)) throw new Error('Public funding recovery record was not preserved.');
 }
 export async function readFundingRecovery(root: string, state: IntakeSnapshot, ownerToken: string) {
   const location = `public-funding-recovery/${ownerToken}.json`, value = await optional(root, location);

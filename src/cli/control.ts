@@ -43,8 +43,9 @@ export async function startBudgetWarnings(root: string, notify: (message: string
 export async function recoverRunOwner(root: string): Promise<boolean> {
   const lock = await lstat(join(root, '.controller.lock')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
   if (!lock) return false;
-  const recovered = await SnapshotStore.recover(root);
-  await (await import('../runtime/public-validation-funding.ts')).recordFundingRecovery(root, recovered);
+  await SnapshotStore.recover(root, async recovered => {
+    await (await import('../runtime/public-validation-funding.ts')).recordFundingRecovery(root, recovered);
+  });
   return true;
 }
 

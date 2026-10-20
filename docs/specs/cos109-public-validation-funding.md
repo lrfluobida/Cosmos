@@ -66,7 +66,8 @@
 ## 作者验证（待最终独审）
 
 - 初始公共非法绑定 RED 为“缺少预期拒绝”，随后 GREEN；原共享事件拒绝的三项 RED、授权决定重复消费 RED、direct host 门禁 RED、清理证明与旧来源缺失 RED 均保留。
-- 阶段源码 `ad24b2b32e82fbefe6d7c4a04c0e3bd661bc7dab` 的两个 P2 已按 Root 接受的范围修复，待原 reviewer 核证：真实清理证明及完整既有预算来源。
+- 阶段源码 `ad24b2b32e82fbefe6d7c4a04c0e3bd661bc7dab` 的真实清理证明与完整既有预算来源两项 P2 已在 `ebdfb24205bf89b34041c08ee66591515360f65d` 最终复审中闭合；该次新增的恢复记录持久化 P2 是当前唯一待差异复审项。
 - 新增定向 24/24、清理相关原调用方 76/76，均 exit0/0skip；typecheck/build exit0。此前受影响回归 111/111 的无变化范围复用，重叠计数不相加。
 - 真实公共 session、生产 factory 和原生成入口配受控 SDK：草稿展示后先拒绝错误版本再接收相应 stdin 确认，访谈/草稿/规划三笔共30µ；夹具在规划边界主动停止，不运行浏览器或生成实际游戏。
 - 私有原输出索引 `.cosmos/cos109/verification-index.json`；首次两个 assertion 类型注解诊断及一处 fixture 路径错误已修正，原失败输出保留。
+- 恢复差异：在原 `.recovery` guard 内完成既有 PID/children/untracked/spawn 与锁原文核验后，先可靠记录真实 OwnerRecord，再复核锁原文并 unlink。记录失败保留原锁；已发布记录复用首次时间和字节，响应丢失可重试，不凭无锁补证。RED2/2 后 affected7/7、0skip；覆盖真实文件系统写入失败、记录前后中断、unlink响应丢失及写后锁替换。其余已审源码与24/76/111证据按无变化范围复用，不相加。

@@ -3,6 +3,7 @@ import { lstat, mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/
 import type { FileHandle } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
 import { OwnerLock } from './recovery/ownership.ts';
+import type { OwnerRecord } from './recovery/ownership.ts';
 
 /** One exclusive controller per explicit run root. Stale ownership fails closed. */
 export class SnapshotStore {
@@ -21,9 +22,9 @@ export class SnapshotStore {
     return new SnapshotStore(canonical, await OwnerLock.acquire(canonical, '.controller.lock'));
   }
 
-  static async recover(root: string) {
+  static async recover(root: string, persistVerifiedOwner?: (owner: OwnerRecord) => Promise<void>) {
     if (!isAbsolute(root) || (await lstat(root)).isSymbolicLink()) throw new Error('Recovery requires an explicit regular run root.');
-    return OwnerLock.recover(await realpath(root), '.controller.lock');
+    return OwnerLock.recover(await realpath(root), '.controller.lock', persistVerifiedOwner);
   }
 
   prepareOwnedChild(checkLaunch?: () => void): Promise<string> { this.assertWritable(); return this.lock.prepareOwnedChild(checkLaunch); }

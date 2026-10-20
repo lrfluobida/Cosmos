@@ -353,6 +353,55 @@ await owner.beginFundingWork('interview'); process.exit(0);`;
   assert.equal((await settlePublicValidationFunding({ ...value, fundingId: value.binding.fundingId })).outcome, 'closed');
 });
 
+test('funded recovery preserves verified evidence across record failures and a lost unlink response', async t => {
+  for (const phase of ['before-record', 'write-failure', 'after-record', 'after-unlink'] as const) {
+    const f = await fundingFixture(t), value = await fundedIntake(f, `recover-${phase}`); await value.controller.close();
+    const source = `import { IntakeController } from ${JSON.stringify(new URL('../../src/runtime/intake.ts', import.meta.url).href)};
+const owner = await IntakeController.open({root:${JSON.stringify(value.runRoot)}});
+await owner.beginFundingWork('interview'); process.exit(0);`;
+    const child = spawn(process.execPath, ['--experimental-strip-types', '--input-type=module', '-e', source], {
+      windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'], env: { SYSTEMROOT: process.env.SYSTEMROOT },
+    });
+    let diagnostics = ''; child.stderr.on('data', bytes => { diagnostics += bytes; });
+    const code = await new Promise<number | null>((accept, reject) => { child.once('error', reject); child.once('close', accept); });
+    assert.equal(code, 0, diagnostics);
+    const lockPath = join(value.runRoot, '.controller.lock'), originalBytes = await readFile(lockPath), originalOwner = JSON.parse(originalBytes.toString('utf8'));
+    const receiptPath = join(value.runRoot, `public-funding-recovery/${originalOwner.token}.json`);
+    const blockedDirectory = join(value.runRoot, 'public-funding-recovery');
+    if (phase === 'write-failure') await writeFile(blockedDirectory, 'Injected non-directory blocks durable receipt creation', 'utf8');
+    const recover = SnapshotStore.recover;
+    SnapshotStore.recover = async (root, persist) => {
+      if (phase === 'write-failure') return recover(root, persist);
+      let recorded = false;
+      const result = await recover(root, async owner => {
+        recorded = true;
+        if (phase === 'before-record') throw new Error('Injected recovery record failure');
+        await persist?.(owner);
+        if (phase === 'after-record') throw new Error('Injected response loss after record publication');
+      });
+      if (phase === 'after-unlink' || !recorded) throw new Error('Injected response loss after unlink');
+      return result;
+    };
+    try { await assert.rejects(recoverRunOwner(value.runRoot), /Injected|EEXIST|ENOTDIR|Non-directory/); }
+    finally { SnapshotStore.recover = recover; }
+    let receiptBefore: Buffer | undefined;
+    if (phase === 'after-unlink') await assert.rejects(readFile(lockPath), { code: 'ENOENT' });
+    else assert.deepEqual(await readFile(lockPath), originalBytes, 'A failed persistence step must retain the original lock bytes.');
+    if (phase === 'write-failure') await unlink(blockedDirectory);
+    if (phase === 'before-record' || phase === 'write-failure') await assert.rejects(readFile(receiptPath), { code: 'ENOENT' });
+    else receiptBefore = await readFile(receiptPath);
+    if (receiptBefore) await new Promise(done => setTimeout(done, 5));
+    assert.equal(await recoverRunOwner(value.runRoot), phase !== 'after-unlink');
+    const receipt = await readFile(receiptPath);
+    if (receiptBefore) assert.deepEqual(receipt, receiptBefore, 'Retry must retain the original recovery timestamp and bytes.');
+    assert.deepEqual(JSON.parse(receipt.toString('utf8')).owner, originalOwner);
+    const accounting = await IntakeController.open({ root: value.runRoot });
+    assert.equal((await accounting.read()).events.filter(row => row.type === 'public_intake_work_recovered').length, 1);
+    await accounting.stop('Verified recovery survives interruptions'); await accounting.close();
+    assert.equal((await settlePublicValidationFunding({ ...value, fundingId: value.binding.fundingId })).outcome, 'closed');
+  }
+});
+
 test('formal failed cleanup keeps its grant after stop and owner release', async t => {
   const f = await fundingFixture(t), value = await fundedIntake(f);
   const draft: any = { brief: value.payload.brief, questions: [{ id: 'scope', prompt: '范围？' }], answers: { scope: '免费夹具' }, unsupported: [],

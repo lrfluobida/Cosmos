@@ -9596,7 +9596,9 @@
       "planAuthorized": true,
       "implementationAfterPlanReview": true,
       "stageSourceCommit": "ad24b2b32e82fbefe6d7c4a04c0e3bd661bc7dab",
-      "sourceReviewStatus": "pending-final-review",
+      "sourceReviewStatus": "pending-recovery-delta-review",
+      "priorReviewCommit": "ebdfb24205bf89b34041c08ee66591515360f65d",
+      "recoveryDeltaStatus": "implemented-awaiting-review",
       "verificationIndex": ".cosmos/cos109/verification-index.json",
       "actualAuthorized": false,
       "paidAuthorized": false

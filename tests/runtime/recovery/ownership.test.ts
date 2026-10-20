@@ -81,6 +81,27 @@ test('an unresolved durable spawn intent blocks recovery even when its owner exi
   await assert.rejects(SnapshotStore.recover(root), /pending|unresolved|child/i);
 });
 
+test('verified recovery persistence runs after safety checks and must retain unchanged ownership before unlink', async t => {
+  const root = await fixture(t), owner = await child(t, root), path = join(root, '.controller.lock');
+  let records = 0;
+  await assert.rejects(SnapshotStore.recover(root, async () => { records++; }), /alive|owner/i);
+  assert.equal(records, 0);
+  await owner.stop();
+  const originalBytes = await readFile(path), original = JSON.parse(originalBytes.toString('utf8'));
+  for (const changes of [{ untrackedWriters: true }, { children: [{ ticket: 'pending', pid: null }] }, { children: [{ ticket: 'live', pid: process.pid }] }]) {
+    await writeFile(path, JSON.stringify({ ...original, ...changes }), 'utf8');
+    await assert.rejects(SnapshotStore.recover(root, async () => { records++; }));
+    assert.equal(records, 0);
+  }
+  await writeFile(path, originalBytes);
+  await assert.rejects(SnapshotStore.recover(root, async record => {
+    assert.deepEqual(record, original); records++;
+    await writeFile(path, JSON.stringify({ ...original, token: 'replacement-after-record' }), 'utf8');
+  }), /ownership changed/i);
+  assert.equal(records, 1);
+  assert.equal(JSON.parse(await readFile(path, 'utf8')).token, 'replacement-after-record');
+});
+
 for (const layer of ['owner', 'store', 'controller'] as const) {
   test(`COS92 ${layer} releases only an exact unspawned ticket and preserves another intent`, async t => {
     const root = await fixture(t);

@@ -206,3 +206,9 @@ operator 先完成唯一授权 payload，再创建写一次 `public-validation-o
 - 最终新增组24/24、0skip；清理相关原调用方76/76、0skip；typecheck/build均exit0。此前111项仅按无变化范围复用，与76项不相加。首次类型注解两诊断及fixture错误路径均修正并保留原输出。
 - 原公共CLI、真实分阶段stdin、生产factory与原executeGeneration使用受控SDK完成访谈/草稿/规划三笔30µ；规划处主动结束，无provider网络、browser或真实共享账本操作。
 - 私有证据索引 `.cosmos/cos109/verification-index.json`。作者完成候选不等于独审批准、源码集成、实际游戏生成或human验收完成。
+
+### 最终复审的恢复持久化差异
+
+`ebdfb24205bf89b34041c08ee66591515360f65d` 的原F1/F2已独审闭合；新增P2指出旧锁删除后才写恢复记录会丢失唯一来源。Root批准最小触达 `store.ts` 和 `recovery/ownership.ts`：原恢复guard全部核验之后、unlink之前执行受控持久化，再复核原锁字节；默认无步骤路径保持。`control.ts`将既有funding恢复记录放入该边界，记录重试保留首次时间并读回，不扩大previous-boot权限。
+
+精确RED2项保留；本次affected7/7、0skip，含真实Node退出、记录前失败、实际非目录写入失败、记录后中断、unlink响应丢失及记录后锁替换。只复核必要差异，原24/76/111的无变化范围复用；修正候选待同一reviewer差异复审。
