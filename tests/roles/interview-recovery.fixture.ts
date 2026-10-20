@@ -17,7 +17,7 @@ export const proposal = { acceptance: [{ acceptanceId: 'win', description: 'ç‚¹å
 export type Reply = 'length' | 'unknown' | 'draft' | 'questions' | 'invalid';
 
 /** Actual Pi adapter and budget hooks; all transport is an in-memory synthetic stream. */
-export function fakeInterviewSdk(t: TestContext, replies: Reply[], legacyFirstDraft = false) {
+export function fakeInterviewSdk(t: TestContext, replies: Reply[], legacyFirstDraft = false, draftProposal: unknown = proposal) {
   const bodies: any[] = [], configs: { context?: string; systemPrompt: string; maxOutputTokens: number }[] = [];
   const estimates: { inputBytes: number; maxOutputTokens: number; estimate: number }[] = [];
   let drafts = 0;
@@ -31,7 +31,7 @@ export function fakeInterviewSdk(t: TestContext, replies: Reply[], legacyFirstDr
       : { prompt_tokens: 10, completion_tokens: 10 };
     const chunk = { id: 'offline-response', model: 'deepseek-flash',
       choices: [{ index: 0, delta: reply === 'length' ? { reasoning_content: 'Synthetic reasoning placeholder.' }
-        : { content: JSON.stringify(reply === 'questions' ? { questions } : reply === 'invalid' ? { invalid: true } : proposal) },
+        : { content: JSON.stringify(reply === 'questions' ? { questions } : reply === 'invalid' ? { invalid: true } : draftProposal) },
         finish_reason: reply === 'length' ? 'length' : 'stop' }],
       ...(reply === 'unknown' ? {} : { usage }) };
     return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });

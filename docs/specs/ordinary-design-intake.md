@@ -16,6 +16,8 @@
 
 将同一 `ordinaryProfile` 保存于 intake snapshot、`intake-origin.json`、回答记录、interview intent、草稿和 confirmation receipt。`IntakeController.create` 提供对应可信选项。每次请求、确认、激活和恢复核对原来源；恢复只读原选择，不采用当前 host 的新默认。缺失或不一致的新版来源拒绝，不能退回旧版。旧文件无此字段时沿原解释，不重写或补造字段。
 
+COS111 存储实现：`intake-ordinary-profile.json` 是只含 runId/createdAt/ordinaryProfile 的 write-once 来源，防止同时删除可选字段后降级；`readOrdinaryProfile` 位于 `src/runtime/ordinary-profile-source.ts`。新 confirmation 的 `ordinaryDraftSha256` 绑定实际验证过的完整草稿字节，覆盖不进入自动 acceptance 的体验内容；不增加预算事件或签名。最终报告的 ordinaryConfirmation 固定该来源和摘要，experienceCriteria 单列，完整确认仍由下述统一 reader 核验。
+
 跨卡读取接口沿用并扩展 `readConfirmedGeneration(root, snapshot)`：实际读取原 origin/draft/confirmation，核对原 human decision、profile 和完整草稿后返回 `{ draft, requirement, renderFrames? }`。B 的 host 和 A 的体验绑定消费此已验证结果，不能只取得 acceptance 数组或信任调用方自报清单。
 
 新增 `OrdinaryGameDraft`，保留原 brief/questions/answers/acceptance/unsupported、可选 codeProfile/benchmark 及主机选择的 classicEntry；包含主机注入的 ordinaryProfile 和必填 experienceCriteria，禁止 scenario/preparation。旧 BrowserGameDraft、PreparationGameDraft wire 保持。新模型 draft 的允许字段为 acceptance、experienceCriteria、unsupported、benchmark、codeProfile；禁止模型提供 profile、paths、确认或运行身份。

@@ -4,7 +4,11 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS111 源码初审 3856608 仅一项 P2：问答漂移原先到生成后才拒绝。现统一来源检查已前移至确认和激活前，两个负例RED0/2→受影响7/7，typecheck/build/tests strict0；原35/35与legacy8/8复用。待独立受影响复审，原决定、账本与时钟不改写，生产新版执行仍关闭。
+
 Cosmos 是可扩展的游戏开发 agent，PvZ 是首个完整验收目标。当前停止逐张参考截图推进，补公开普通游戏流程中的可执行缺口；已有参考事实和通过证据保留并复用。
+
+COS111 作者在基线 `1180d5a5e0530c872067409c6f2b15093fa6a8c3` 完成内部普通意图契约，状态 `source-review-pending`：来源版本、完整问答/体验清单确认、off 实际受控 payload、原唯一 length 后继、报告/体验来源绑定已接通；生产默认和新版 execute 保持关闭，COS112 未开始。最终新增35/35、legacy短代表8/8，typecheck/build0；测试strict夹具类型修正后strict0/affected1/1。详见[计划证据](docs/plans/2026-10-21-ordinary-design-intake.md)，原输出 `.cosmos/cos111/verification-index.json`。未改真实run/共享账本，无真实模型或浏览器调用，尚未获得源码独审批准。
 
 2026-10-21 [COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112) 与 [COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113) 的共用[设计](docs/specs/ordinary-design-intake.md) `c4dcb56fc625322232733f44e4a63e0a34b3b406` 经 `ordinary_intake_spec_reviewer` 独审 `APPROVED_DESIGN`，Root公开批准 [A](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6298548379) / [B](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6298549546)。唯一merger `public_agent_batch_merger` 合入 `b58ae7c44328a0aae8392f982e2ea164b9b6d3af`，七个文档与批准来源一致，[ADR0004](docs/adr/0004-ordinary-design-acceptance.md)设为accepted，[计划](docs/plans/2026-10-21-ordinary-design-intake.md)记录设计批准。两卡仍open，状态 `design-integrated / source-pending`；总任务112、根直接100，父COS18的6子项完成4项，整体仍partial。A `ordinary_intake_design` 先提供内部意图草稿与体验来源，B `ordinary_plan_implementer` 接设计capture/review到原consumer；A/B完整就绪后才切新默认。本次仅设计文档，未运行源码测试、真实模型或付费验证。
 

@@ -21,6 +21,8 @@
 
 ## COS111：内部草稿与体验来源契约
 
+源码初审 3856608 的唯一 P2 已修复、待受影响复审：完整 origin brief 和本 revision 问答改由 requireOrdinaryDraftSource 在确认、激活与生成后读取时共用核验。两个生命周期负例先 RED 0/2，最终受影响7/7、0skip、14543.7471ms；确认前漂移不产生决定/时钟，确认后漂移保留原 snapshot/confirmation，均 execute0。typecheck/build/tests strict 均0；原35/35与legacy8/8按未变范围复用，不重复矩阵。输出仍在 .cosmos/cos111/verification-index.json。
+
 主要文件：
 
 - 新增 `src/roles/ordinary-profile.ts`：profile/体验类型、版本选择与窄校验；`src/roles/requirements.ts` 增加新 draft 分支并复用原 AC/host standards。
@@ -32,13 +34,16 @@
 
 实施步骤：
 
-- [ ] 写新草稿/来源测试：无 scenario 合法；中文问答及两类条目保持；未知字段/ID 冲突/unsupported/错误 revision 拒绝；先记录 RED。
-- [ ] 实现 profile 与 draft union、host stage 组合、原 origin/回答/intent/confirmation 的完整核对；不改全局 TaskContract 或 planner 覆盖规则。
-- [ ] 写受控实际 transport 测试：新版 draft disabled 且无 reasoning_effort；questions/legacy/preparation 仍原配置；同 profile/off 输入允许原唯一 settled-length 后继并缓存复用，profile/配置漂移及后继再次失败拒绝新增请求。复用 COS110 未变矩阵。
-- [ ] 实现新访谈 prompt、off 和缓存分支；运行上述测试，检查错误类别而非仅“抛错”。
-- [ ] 写 CLI 确认与恢复测试，覆盖 profile 缺失/篡改、真实 stdin、旧 origin、生产 host 未声明新默认/未接通拒绝；实现最小接线。
-- [ ] 写体验报告/清单/candidate 漂移负例及真实 approve/reject 正例；实现固定来源读取、显示与绑定，保持旧已完成只读恢复。
-- [ ] 运行定向测试、typecheck/build；重开编辑文件核对 UTF-8/中文，提交源码并报告 SHA、原始输出、known gaps 给独审。
+- [x] 写新草稿/来源测试：无 scenario 合法；中文问答及两类条目保持；未知字段/ID 冲突/unsupported/错误 revision 拒绝；先记录 RED。
+- [x] 实现 profile 与 draft union、host stage 组合、原 origin/回答/intent/confirmation 的完整核对；不改全局 TaskContract 或 planner 覆盖规则。
+- [x] 写受控实际 transport 测试：新版 draft disabled 且无 reasoning_effort；questions/legacy/preparation 仍原配置；同 profile/off 输入允许原唯一 settled-length 后继并缓存复用，profile/配置漂移及后继再次失败拒绝新增请求。复用 COS110 未变矩阵。
+- [x] 实现新访谈 prompt、off 和缓存分支；运行上述测试，检查错误类别而非仅“抛错”。
+- [x] 写 CLI 确认与恢复测试，覆盖 profile 缺失/篡改、真实 stdin、旧 origin、生产 host 未声明新默认/未接通拒绝；实现最小接线。
+- [x] 写体验报告/清单/candidate 漂移负例及真实 approve/reject 正例；实现固定来源读取、显示与绑定，保持旧已完成只读恢复。
+- [x] 运行定向测试、typecheck/build；重开编辑文件核对 UTF-8/中文。
+- [ ] 提交固定源码 SHA 交独立 reviewer；修复 finding 后再由唯一 merger 集成。
+
+COS111 作者证据：四组初始 RED 分别为 1/4、6/9、0/9、1/6，新增两个范围门禁 RED 0/2，经典提示 RED 0/1；修复后最终四文件组合 35/35、0skip、25366.4121ms。旧访谈/后继/preparation/时钟/体验/续跑短代表 8/8、0skip、26986.4987ms，不与新增或早期重叠结果相加。typecheck/build 均 exit0；新测试 strict 首次仅复用 legacy fixture 字面量类型推宽，实际 validateGameDraft 收窄后 strict0、受影响代表1/1。原始输出索引 `.cosmos/cos111/verification-index.json`。当前为作者完成待独审；生产默认与新版 execute 保持关闭，B 尚未实施，实际模型/浏览器/真实账本未调用。
 
 命令（工作树内，Node 22.22.2）：
 

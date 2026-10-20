@@ -7,6 +7,8 @@ import { modeFromSelection, preparationContract, resolveDraftMode } from './prep
 import type { DraftMode, PreparationSelection } from './preparation-mode.ts';
 import { validateClassicEntrySelection } from '../runtime/classic-entry-input.ts';
 import type { ClassicEntrySelection } from '../runtime/classic-entry-input.ts';
+import { validateExperienceCriteria, validateOrdinaryProfile } from './ordinary-profile.ts';
+import type { ExperienceCriterion, OrdinaryProfile } from './ordinary-profile.ts';
 
 export const DESIGN_ACCEPTANCE_ID = 'COSMOS-DESIGN';
 export const MEDIA_ACCEPTANCE_ID = 'COSMOS-MEDIA';
@@ -26,15 +28,18 @@ export function gameplayAcceptance(draft: Pick<GameDraft, 'acceptance'> & { code
   return draft.acceptance.filter(item => ![...HOST_STAGE_ACCEPTANCE, ...(draft.codeProfile ? MODULE_STAGE_ACCEPTANCE : [])].some(stage => stage.acceptanceId === item.acceptanceId));
 }
 /** Host criteria are displayed and frozen in the same user-confirmed revision. */
-export function withHostStages(draft: GameDraft): BrowserGameDraft {
-  requireBrowserDraft(draft);
+export function withHostStages(draft: BrowserGameDraft): BrowserGameDraft;
+export function withHostStages(draft: OrdinaryGameDraft): OrdinaryGameDraft;
+export function withHostStages(draft: GameDraft): BrowserGameDraft | OrdinaryGameDraft;
+export function withHostStages(draft: GameDraft): BrowserGameDraft | OrdinaryGameDraft {
+  if (draft.preparation) throw new Error('Host stages require an ordinary browser draft.');
   for (const item of draft.acceptance) {
     const stage = [...HOST_STAGE_ACCEPTANCE, ...(draft.codeProfile ? MODULE_STAGE_ACCEPTANCE : [])].find(stage => stage.acceptanceId === item.acceptanceId);
     if (stage && !sameValue(stage, item)) throw new Error('Host stage acceptance cannot be redefined.');
   }
   const result = { ...structuredClone(draft), acceptance: [...structuredClone(gameplayAcceptance(draft)), ...structuredClone(HOST_STAGE_ACCEPTANCE),
     ...(draft.codeProfile ? structuredClone(MODULE_STAGE_ACCEPTANCE) : [])] };
-  validateGameDraft(result); return result;
+  validateGameDraft(result, 'browser', draft.ordinaryProfile); return result;
 }
 
 interface DraftFields {
@@ -48,27 +53,30 @@ export interface BrowserScenario extends Pick<AcceptancePlan, 'viewport' | 'step
   reopen?: { steps: AcceptancePlan['steps']; checkpoint: { expected: string;
     snapshot: { kind: 'text'; selector: string }; savedSnapshot: { kind: 'text'; selector: string } } };
 }
-export interface BrowserGameDraft extends DraftFields { scenario: BrowserScenario; benchmark?: 'classic-pc-runtime-policy/1'; classicEntry?: ClassicEntrySelection; codeProfile?: 'modular-code/1'; preparation?: never }
-export interface PreparationGameDraft extends DraftFields { preparation: PreparationSelection; scenario?: never; codeProfile?: never }
-export type GameDraft = BrowserGameDraft | PreparationGameDraft;
+export interface BrowserGameDraft extends DraftFields { scenario: BrowserScenario; benchmark?: 'classic-pc-runtime-policy/1'; classicEntry?: ClassicEntrySelection; codeProfile?: 'modular-code/1'; preparation?: never; ordinaryProfile?: never; experienceCriteria?: never }
+export interface OrdinaryGameDraft extends DraftFields { ordinaryProfile: OrdinaryProfile; experienceCriteria: ExperienceCriterion[]; scenario?: never; preparation?: never; benchmark?: 'classic-pc-runtime-policy/1'; classicEntry?: ClassicEntrySelection; codeProfile?: 'modular-code/1' }
+export interface PreparationGameDraft extends DraftFields { preparation: PreparationSelection; scenario?: never; codeProfile?: never; ordinaryProfile?: never; experienceCriteria?: never }
+export type GameDraft = BrowserGameDraft | OrdinaryGameDraft | PreparationGameDraft;
 
 export function requireBrowserDraft(draft: GameDraft): asserts draft is BrowserGameDraft {
-  if (!draft || 'preparation' in draft) throw new Error('The browser host cannot dispatch an unconnected preparation draft.');
+  if (!draft || 'preparation' in draft || draft.ordinaryProfile) throw new Error('The browser host cannot dispatch an unconnected preparation or ordinary profile draft.');
 }
 export function preparationAcceptance(selection: PreparationSelection): RequirementContract['acceptance'] {
   return [...preparationContract(selection).acceptance, ...structuredClone(HOST_STAGE_ACCEPTANCE)];
 }
 
 /** A proposal is data only; host identities and confirmation are never model fields. */
-export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'browser'): asserts value is GameDraft {
+export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'browser', ordinaryProfile?: OrdinaryProfile): asserts value is GameDraft {
   const selection = resolveDraftMode(expectedMode);
+  validateOrdinaryProfile(ordinaryProfile);
+  if (selection && ordinaryProfile) throw new Error('Ordinary profile cannot select preparation mode.');
   const draft = value as GameDraft;
   const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
-  const fields = ['brief', 'questions', 'answers', 'acceptance', 'unsupported', ...(selection ? ['preparation'] : ['scenario', 'benchmark', 'classicEntry', 'codeProfile'])];
+  const fields = ['brief', 'questions', 'answers', 'acceptance', 'unsupported', ...(selection ? ['preparation'] : [...(ordinaryProfile ? ['ordinaryProfile', 'experienceCriteria'] : ['scenario']), 'benchmark', 'classicEntry', 'codeProfile'])];
   if (!draft || typeof draft !== 'object' || Object.keys(draft).some(key => !fields.includes(key))
     || !text(draft.brief) || !Array.isArray(draft.questions) || !draft.answers || typeof draft.answers !== 'object' || Array.isArray(draft.answers)
     || Object.values(draft.answers).some(answer => typeof answer !== 'string') || !Array.isArray(draft.unsupported) || draft.unsupported.some(item => !text(item))) throw new Error('Invalid game draft fields.');
-  if (selection && draft.questions.some(question => !question || typeof question !== 'object' || Array.isArray(question)
+  if ((selection || ordinaryProfile) && draft.questions.some(question => !question || typeof question !== 'object' || Array.isArray(question)
     || Object.keys(question).some(key => !['id', 'prompt'].includes(key)) || typeof question.id !== 'string' || typeof question.prompt !== 'string')) throw new Error('Invalid preparation question fields.');
   prepareClarification({ ...draft, specVersion: 'draft', sources: [] });
   if (selection) {
@@ -77,30 +85,41 @@ export function validateGameDraft(value: unknown, expectedMode: DraftMode = 'bro
     if (!sameValue(draft.acceptance, preparationAcceptance(selection))) throw new Error('Preparation requires the complete source acceptance contract.');
     return;
   }
-  requireBrowserDraft(draft);
+  if (draft.preparation) throw new Error('Unexpected preparation draft.');
+  if (draft.ordinaryProfile !== ordinaryProfile) throw new Error('Ordinary draft profile changed.');
   if (draft.codeProfile !== undefined && draft.codeProfile !== 'modular-code/1') throw new Error('Unknown coding profile.');
   if (draft.codeProfile && MODULE_STAGE_ACCEPTANCE.some(stage => !draft.acceptance.some(item => sameValue(item, stage)))) throw new Error('Modular coding requires both complete fixed local standards.');
-  if (draft.benchmark !== undefined && (draft.benchmark !== 'classic-pc-runtime-policy/1' || !draft.scenario?.reopen)) throw new Error('Classic runtime policies require the exact selection and normal save/reopen scenario.');
+  if (draft.benchmark !== undefined && (draft.benchmark !== 'classic-pc-runtime-policy/1' || !ordinaryProfile && !draft.scenario?.reopen)) throw new Error('Classic runtime policies require the exact selection and normal save/reopen scenario.');
   if (draft.classicEntry !== undefined) {
     if (!draft.benchmark) throw new Error('Classic entry selection requires the confirmed classic benchmark.');
     validateClassicEntrySelection(draft.classicEntry);
   }
-  validateBrowserScenario(draft);
+  if (ordinaryProfile) {
+    validateAcceptanceDraft(draft);
+    if (draft.acceptance.some(item => item.evidenceKinds.includes('user_decision'))) throw new Error('Ordinary automatic acceptance cannot use user-decision evidence.');
+    if (!gameplayAcceptance(draft).length) throw new Error('At least one gameplay acceptance is required.');
+    validateExperienceCriteria(draft.experienceCriteria, draft.acceptance.map(item => item.acceptanceId));
+  } else { requireBrowserDraft(draft); validateBrowserScenario(draft); }
 }
 
-/** Declarative browser checks shared by human drafts and explicit operator inputs. */
-export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptance' | 'scenario' | 'codeProfile'>): void {
+function validateAcceptanceDraft(draft: Pick<GameDraft, 'acceptance' | 'codeProfile'>): void {
   const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
   if (!Array.isArray(draft.acceptance) || !draft.acceptance.length || draft.acceptance.length > 100
     || new Set(draft.acceptance.map(item => item?.acceptanceId)).size !== draft.acceptance.length
     || draft.acceptance.some(item => !item || Object.keys(item).some(key => !['acceptanceId', 'description', 'steps', 'expected', 'evidenceKinds'].includes(key))
       || !text(item.acceptanceId) || !text(item.description) || !Array.isArray(item.steps) || !item.steps.length || item.steps.some(step => !text(step))
       || !text(item.expected) || !Array.isArray(item.evidenceKinds) || !item.evidenceKinds.length || item.evidenceKinds.some(kind => !['test_report', 'screenshot', 'video', 'log', 'user_decision'].includes(kind)))) throw new Error('Invalid acceptance draft.');
-  if (!draft.scenario || Object.keys(draft.scenario).some(key => !['viewport', 'steps', 'reopen'].includes(key))) throw new Error('Invalid scenario fields.');
   for (const item of draft.acceptance) {
     const stage = [...HOST_STAGE_ACCEPTANCE, ...(draft.codeProfile ? MODULE_STAGE_ACCEPTANCE : [])].find(stage => stage.acceptanceId === item.acceptanceId);
     if (stage && !sameValue(stage, item)) throw new Error('Host stage acceptance cannot be redefined.');
   }
+}
+
+/** Declarative browser checks shared by human drafts and explicit operator inputs. */
+export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptance' | 'scenario' | 'codeProfile'>): void {
+  const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 16000;
+  validateAcceptanceDraft(draft);
+  if (!draft.scenario || Object.keys(draft.scenario).some(key => !['viewport', 'steps', 'reopen'].includes(key))) throw new Error('Invalid scenario fields.');
   const gameplay = gameplayAcceptance(draft);
   if (!gameplay.length) throw new Error('At least one gameplay acceptance is required.');
   // Placeholder bindings validate declarative input only; they are never evidence or execution authority.
