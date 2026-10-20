@@ -354,7 +354,7 @@ export class OwnerLock {
     return new OwnerLock(path, record);
   }
 
-  static async recover(root: string, name: string): Promise<OwnerRecord> {
+  static async recover(root: string, name: string, persistVerifiedOwner?: (owner: OwnerRecord) => Promise<void>): Promise<OwnerRecord> {
     const path = join(root, name), guard = `${path}.recovery`;
     const handle = await open(guard, 'wx').catch(() => { throw new Error('Ownership recovery is busy or unresolved.'); });
     try {
@@ -367,6 +367,11 @@ export class OwnerLock {
       }
       const current = await readOwner(path);
       if (!original.bytes.equals(current.bytes)) throw new Error('Ownership changed during recovery.');
+      if (persistVerifiedOwner) {
+        // Preserve the verified recovery fact before removing its only original source.
+        await persistVerifiedOwner(structuredClone(original.record));
+        if (!original.bytes.equals((await readOwner(path)).bytes)) throw new Error('Ownership changed during recovery persistence.');
+      }
       await unlink(path);
       return original.record;
     } finally { await handle.close(); await unlink(guard); }

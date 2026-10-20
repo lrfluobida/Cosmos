@@ -25,6 +25,8 @@ import type { ExecutionAuthority, ExecutionWindow, ImportedCharge, RequestInput,
 import type { CompletionBinding, ClosedCompletionProof } from './completion-timing.ts';
 import { bounded } from '../acceptance/deadline.ts';
 import { associateNativeReadSignal } from '../acceptance/native-validation-waits.ts';
+import { acquirePublicFundingGate, verifyPublicValidationFunding } from './public-validation-funding.ts';
+import { publicFundingExposure } from './public-validation-funding-validation.ts';
 export type { ImportedCharge, RequestInput, RunSnapshot } from './run-types.ts';
 
 export interface OpenRunOptions { root: string; now?: () => number; windowId?: string }
@@ -104,6 +106,9 @@ export class RunController {
   prepareOwnedChild(authority?: { taskId: string; windowId: string }, checkLaunch?: () => void): Promise<string> {
     return this.serial(async () => {
       this.requireActive(); checkLaunch?.();
+      if (this.snapshot.validationFunding) {
+        const next = structuredClone(this.snapshot); this.event(next, 'public_execution_started', null, 'child-launch'); await this.commit(next);
+      }
       if (this.windowId) {
         if (!authority || authority.windowId !== this.windowId) throw new Error('Owned child requires its explicit task and window authority.');
         this.requireTaskAuthority(authority.taskId);
@@ -164,6 +169,7 @@ export class RunController {
     try {
       const snapshot = await store.read();
       validateSnapshot(snapshot);
+      await verifyPublicValidationFunding({ root: store.root, snapshot, dispatch: false });
       if (snapshot.formatVersion === 3) throw new Error('Validation profile requires explicit openValidationCase; legacy and formal entrypoints are unsupported.');
       if (snapshot.formatVersion === 2 ? options.windowId !== snapshot.continuation!.currentWindowId : options.windowId !== undefined) throw new Error('Continuation snapshot requires its explicit current execution window; ordinary execution entrypoints are unsupported.');
       const controller = new RunController(store, snapshot, options.now ?? Date.now, options.windowId);
@@ -294,6 +300,8 @@ export class RunController {
     const request = structuredClone(input);
     return this.serial(async () => {
       this.requireActive();
+      const funding = await acquirePublicFundingGate(this.store.root, this.snapshot, true);
+      try {
       if (this.snapshot.formatVersion === 3) {
         this.requireValidationRequest(request.taskId, request.validation);
         if (request.provider !== 'deepseek' || request.pricingVersion !== 'deepseek-flash-peak-cny-2026-10-01') throw new Error('Validation provider or pricing changed.');
@@ -312,6 +320,7 @@ export class RunController {
       this.event(next, 'reserved', request.requestId, 'Maximum known cost reserved before dispatch.');
       await this.commit(next);
       return structuredClone(entry);
+      } finally { await funding.close(); }
     });
   }
 
@@ -319,6 +328,8 @@ export class RunController {
   async admit(requestId: string): Promise<void> {
     return this.serial(async () => {
       this.requireActive();
+      const funding = await acquirePublicFundingGate(this.store.root, this.snapshot, true);
+      try {
       const entry = findRequest(this.snapshot.ledger, requestId);
       if (this.snapshot.formatVersion === 3) {
         this.requireValidationRequest(entry.taskId, this.snapshot.requests.find(record => record.requestId === requestId)?.validation);
@@ -337,6 +348,7 @@ export class RunController {
       await this.commit(next);
       await this.expire();
       this.requireActive();
+      } finally { await funding.close(); }
     });
   }
 
@@ -505,6 +517,15 @@ export class RunController {
     });
   }
 
+  /** Distinguish new funded host work from later accounting-only owner activity. */
+  async markFundingExecution(): Promise<void> {
+    if (!this.snapshot.validationFunding) return;
+    return this.serial(async () => {
+      this.requireActive();
+      const next = structuredClone(this.snapshot); this.event(next, 'public_execution_started', null, 'generation-host'); await this.commit(next);
+    });
+  }
+
   /** An idle receipt proves lifecycle convergence only, never new execution authority. */
   static async stopIdleWindow(options: { root: string; windowId: string; reason?: string; now?: () => number }): Promise<{ runId: string; windowId: string; stopped: true }> {
     const store = await SnapshotStore.acquire(options.root);
@@ -657,6 +678,7 @@ export class RunController {
     const remainingMicroCny = Math.max(0, Math.min(d.limits.lifetimeMicroCny - usage.committedMicroCny, d.limits.cumulativeMicroCny - usage.committedMicroCny,
       d.limits.incrementalMicroCny - usage.caseCommittedMicroCny, d.grants[role].amountMicroCny - taskCommitted, group?.remainingMicroCny ?? Number.MAX_SAFE_INTEGER));
     const executionAllowed = !this.validationContext!.accountingOnly && !this.signal.aborted && !window.stopReason && this.now() < Date.parse(window.deadlineAt)
+      && !publicFundingExposure(this.snapshot).heldMicroCny && !publicFundingExposure(this.snapshot).overrun
       && (!group || group.committedMicroCny <= group.limitMicroCny) && (role === 'planning' || !!task && ['not_started', 'ready', 'running', 'awaiting_review'].includes(task.state));
     const purposeAllowed = purpose !== 'author' || !task?.attempts.some(attempt => attempt.outcome !== 'running');
     return { profile: 'operator_validation', caseId: window.caseId, windowId: window.windowId, deadlineAt: window.deadlineAt, purpose, taskId,

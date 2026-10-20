@@ -13,6 +13,7 @@ import { readConfirmedGeneration, rejectPreparationContinuation } from './sessio
 import type { ProductHost } from './session.ts';
 import { readCompletedGeneration } from '../runtime/experience.ts';
 import { readFrameSelection, requireCurrentFrameSource } from '../runtime/render-frame-selection.ts';
+import { rejectFundedContinuation } from '../runtime/public-validation-funding.ts';
 
 interface IO { root: string; host: ProductHost; input: Readable; output: Writable; renderFrames?: boolean }
 async function ready(io: IO) {
@@ -31,6 +32,7 @@ export async function runContinuationSession(options: IO & { additionalMicroCny:
   const root = resolve(options.root), io = { ...options, root }; await safePath(root);
   await rejectPreparationContinuation(root);
   const original = await readRunSnapshot(root);
+  await rejectFundedContinuation(root, original);
   if (original.formatVersion !== 1 || original.ledger.scope !== 'generation' || original.run.kind !== 'runtime_generation') throw new Error('交互续跑只支持正式运行的首个追加窗口；已有窗口请使用 resume --window。');
   await requireCurrentFrameSource(await readFrameSelection(root, original, options.renderFrames));
   const originalInputs = await readConfirmedGeneration(root, original);

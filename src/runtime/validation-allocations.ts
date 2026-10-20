@@ -95,7 +95,7 @@ export async function prepareValidationAllocationClosure(options: PrepareValidat
   return quoteFor(options, state, bytes, structuredClone(options.caseIds), false);
 }
 
-async function verifyClosureDecision(root: string, quote: ValidationAllocationClosureQuote, decision: OperatorValidationAllocationClosureDecision, now: number) {
+export async function verifyClosureDecision(root: string, quote: ValidationAllocationClosureQuote, decision: OperatorValidationAllocationClosureDecision, now: number) {
   if (decision.kind !== 'operator_validation_allocation_closure' || Object.keys(decision).length !== 6
     || Object.keys(decision).some(key => !['kind', 'decisionId', 'actorId', 'decidedAt', 'source', 'sourceRefs'].includes(key))) throw new Error('Only an independent operator allocation closure decision is accepted.');
   for (const key of ['decisionId', 'actorId', 'decidedAt'] as const) nonEmpty(decision[key], key);

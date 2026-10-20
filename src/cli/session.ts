@@ -20,6 +20,8 @@ import { readFrameSelection, requireCurrentFrameSource, selectRenderFrames } fro
 import type { RenderFrameSelection } from '../runtime/render-frame-selection.ts';
 import { currentModularRepairPolicy, readModularRepairPolicy, requireCurrentModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
 import type { ModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
+import type { PublicValidationFundingBinding } from '../runtime/public-validation-funding-types.ts';
+import { publishFundedOrigin, verifyFundedNew, verifyPublicValidationFunding } from '../runtime/public-validation-funding.ts';
 import { DEFAULT_RUN_LIMITS, displayRunLimits, requirePreparationRunLimits, requirePublicRunLimits, validateRunLimits } from './run-limits.ts';
 import type { RunLimits } from './run-limits.ts';
 
@@ -93,13 +95,14 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
 }
 
 /** The only confirmation author is actual stdin; model output never reaches this branch. */
-export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; host: ProductHost; input: Readable; output: Writable }) {
+export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
   if (options.limits !== undefined) {
     if (options.command !== 'new') throw new Error('Run limits can only be selected for new.');
     validateRunLimits(options.limits);
   }
   const limits = structuredClone(options.limits ?? DEFAULT_RUN_LIMITS);
   const selectedMode = resolveDraftMode(options.draftMode);
+  if (options.funding && (options.command !== 'new' || selectedMode)) throw new Error('Public funding supports only ordinary new.');
   if (selectedMode) requirePreparationRunLimits(options.limits);
   if (selectedMode && options.renderFrames) throw new Error('准备模式暂不支持渲染帧采样。');
   if (options.renderFrames !== undefined && typeof options.renderFrames !== 'boolean') throw new Error('Render-frame selection must be boolean.');
@@ -111,8 +114,10 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   let intake: IntakeController | undefined, control: Awaited<ReturnType<typeof startControl>> | undefined, warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined, active: Promise<unknown> | undefined;
   let frames: RenderFrameSelection | undefined;
   let policy: ModularRepairPolicy | undefined;
+  let fundingLifecycle: string | undefined;
   const run = async <T>(action: () => Promise<T>): Promise<T> => {
     if (intake) { const state = await intake.read(); requirePublicRunLimits(state, await optionalJson(root, 'intake-origin.json'), true); await requireCurrentFrameSource(await readFrameSelection(root, state)); await requireCurrentModularRepairPolicy(await readModularRepairPolicy(root, state)); }
+    if (intake) await verifyPublicValidationFunding({ root, snapshot: await intake.read(), dispatch: true });
     const work = action(); active = work; try { return await work; } finally { if (active === work) active = undefined; }
   };
   let stopping: Promise<void> | undefined;
@@ -130,17 +135,21 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     if (options.command === 'new') {
       if (!options.brief?.trim()) throw new Error('A one-sentence --brief is required.');
       const entries = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
-      if (entries.length) throw new Error('Choose an empty run directory; existing runs require resume.');
-      const runId = `game-${randomUUID()}`;
+      if (options.funding) await verifyFundedNew(root, options.funding, options.brief, limits, options.renderFrames === true);
+      else if (entries.length) throw new Error('Choose an empty run directory; existing runs require resume.');
+      const runId = options.funding?.runId ?? `game-${randomUUID()}`;
       frames = options.renderFrames ? await selectRenderFrames() : undefined;
       policy = currentModularRepairPolicy();
-      intake = await IntakeController.create({ root, runId, ledgerId: `${runId}-budget`, specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 8,
+      const origin = { runId, brief: options.brief, ...(options.limits && !selectedMode ? { limits } : {}), ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), modularRepairPolicy: policy,
+        ...(options.funding ? { validationFunding: options.funding } : {}) };
+      if (options.funding) await publishFundedOrigin(root, origin);
+      intake = await IntakeController.create({ root, runId, ledgerId: options.funding?.ledgerId ?? `${runId}-budget`, specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 8,
         ...limits,
         ...(selectedMode ? { draftMode: options.draftMode } : {}),
         ...(frames ? { renderFrames: frames } : {}),
-        modularRepairPolicy: policy,
+        modularRepairPolicy: policy, ...(options.funding ? { validationFunding: options.funding } : {}),
         allocations: [{ taskId: 'intake', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }, { taskId: 'planning', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }] });
-      await publishReceipt(join(root, 'intake-origin.json'), { runId, brief: options.brief, ...(options.limits && !selectedMode ? { limits } : {}), ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), modularRepairPolicy: policy });
+      if (!options.funding) await publishReceipt(join(root, 'intake-origin.json'), origin);
     } else {
       const snapshot = await readRunSnapshot(root);
       requirePublicRunLimits(snapshot, await optionalJson(root, 'intake-origin.json'), snapshot.formatVersion === 'intake-1');
@@ -152,6 +161,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         if (options.draftMode !== undefined && !sameValue(draft.preparation, selectedMode)) throw new Error('Resume cannot replace the original draft mode.');
         const completed = await readCompletedGeneration(root, requirement);
         if (completed) { lines.close(); say(JSON.stringify(completed, null, 2)); return completed; }
+        await verifyPublicValidationFunding({ root, snapshot, dispatch: true });
         await requireCurrentFrameSource(frames);
         await requireCurrentModularRepairPolicy(policy);
         if (snapshot.stopReason) throw new Error(`Run is durably stopped (${snapshot.stopReason.code}); resume cannot clear a hard stop.`);
@@ -173,6 +183,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     const original = await json(root, 'intake-origin.json'), state = await intake.read();
     requirePublicRunLimits(state, original, true);
     if (original.runId !== state.run.runId || typeof original.brief !== 'string' || !sameValue(original.draftMode, state.draftMode)) throw new Error('Intake origin does not match the original run mode.');
+    fundingLifecycle = await intake.beginFundingWork('session');
     say(`运行 ${state.run.runId}。${displayRunLimits({ limitMicroCny: state.ledger.limitMicroCny, durationMs: state.durationMs })}`);
     say('stop 为持久硬停止；resume 只恢复原窗口内未被硬停止的可核实中断。');
     control = await startControl(root, state.run.runId, stop);
@@ -219,13 +230,18 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     }
     const actual = await run(() => host.prepare(root, intake!.signal));
     if (!actual.environmentReady || !actual.executionReady) { say('确认已保存；执行前置未就绪，未启动原生成时钟。'); return { outcome: 'waiting_prerequisites' }; }
+    if (fundingLifecycle) {
+      await warnings.close(); warnings = undefined; await control.close(); control = undefined;
+      await intake.finishFundingWork(fundingLifecycle); fundingLifecycle = undefined;
+    }
     await intake.activateGeneration(actual);
-    await warnings.close(); warnings = undefined; await control.close(); control = undefined; await intake.close(); intake = undefined; lines.close();
+    await warnings?.close(); warnings = undefined; await control?.close(); control = undefined; await intake.close(); intake = undefined; lines.close();
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
     const result = await host.execute({ root, requirement, draft: draftPayload(current!), resume: false, notify: say, ...(frames ? { renderFrames: true } : {}) });
     say(JSON.stringify(result, null, 2)); return result;
   } finally {
     lines.close(); process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
-    await warnings?.close(); await control?.close(); await intake?.close();
+    await warnings?.close(); await control?.close();
+    if (intake) { await intake.finishFundingWork(fundingLifecycle); await intake.close(); }
   }
 }

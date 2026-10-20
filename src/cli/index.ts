@@ -5,6 +5,8 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { Readable, Writable } from 'node:stream';
 import type { ProductHost } from './session.ts';
+import type { PublicValidationFundingBinding } from '../runtime/public-validation-funding-types.ts';
+import { validateFundingBinding } from '../runtime/public-validation-funding-validation.ts';
 import { parseRunLimits, requirePreparationRunLimits } from './run-limits.ts';
 
 const usage = `Usage:
@@ -91,7 +93,8 @@ async function localTool(project: string, relativePath: string, args: string[]):
   });
 }
 
-export async function runCli(args: string[], io: { host?: ProductHost; input?: Readable; output?: Writable } = {}): Promise<unknown> {
+export async function runCli(args: string[], io: { host?: ProductHost; input?: Readable; output?: Writable; funding?: PublicValidationFundingBinding } = {}): Promise<unknown> {
+  if (io.funding !== undefined) { validateFundingBinding(io.funding); if (args[0] !== 'new') throw new Error('Public funding is selected only for new.'); }
   if (args.length === 1 && ['--help', '-h'].includes(args[0])) {
     console.log(usage);
     return;
@@ -157,7 +160,7 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)), selectedFrames ? { renderFrames: true } : {});
     if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, renderFrames, host, input: io.input ?? process.stdin, output });
     const { runProductSession } = await import('./session.ts');
-    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, draftMode, renderFrames, limits, host, input: io.input ?? process.stdin, output });
+    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, draftMode, renderFrames, limits, funding: io.funding, host, input: io.input ?? process.stdin, output });
   }
   if (!path?.trim() || !['init', 'run-dir', 'build', 'preview'].includes(command)
     || (command !== 'preview' && options.length)) throw new Error(usage);

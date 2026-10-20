@@ -12,6 +12,8 @@ import { publishReceipt } from './recovery/receipt-file.ts';
 import { bounded } from '../acceptance/deadline.ts';
 import { codingInputSignature } from './coding-check-worker.ts';
 import { createPublicKey, generateKeyPairSync, sign, verify } from 'node:crypto';
+import { validateSnapshot } from './run-validation.ts';
+import { validateLedgerUpdate } from '../contracts/updates.ts';
 
 const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
 export interface CompletionBinding {
@@ -119,6 +121,7 @@ export async function finishCompletion(input: { root: string; controller: RunCon
   if (proof && confirmed) try { await stable(input.root, binding, proof.snapshotBytes); } catch (error) { confirmed = false; results.push({ name: 'closed-binding', outcome: 'failed', error: error instanceof Error ? error.message : String(error) }); }
   const state = proof?.state ?? await readRunSnapshot(input.root), anchor = proof?.state.events.at(-1), file = binding.report ? `delivery/completion-${binding.report.ref.version}.json` : `delivery/completion-unreported-${state.revision}.json`;
   const value = { formatVersion: 'completion-timing/1', binding, snapshotSha256: idleHash(proof?.snapshotBytes ?? await regularFile(input.root, 'snapshot.json')),
+    ...(proof?.state.validationFunding ? { fundingSnapshot: proof.snapshotBytes.toString('utf8') } : {}),
     anchorSequence: anchor?.sequence ?? null, nonce: proof?.nonce ?? null, cleanup: results, cleanupStarted, observedAt,
     current: grade(binding.startedAt, binding.deadlineAt, confirmed ? observedAt : null), original: await originalGrade(input.root, state as RunSnapshot, binding, confirmed ? observedAt : null),
     charges: state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny) ? 'unreconciled' : 'settled', stopReason: stopReason(state as RunSnapshot), eligible: false };
@@ -130,6 +133,55 @@ export async function finishCompletion(input: { root: string; controller: RunCon
     if (proof) await stable(input.root, binding, proof.snapshotBytes);
   } catch (error) { return { required: true, current: { status: 'unconfirmed', endedAt: null, elapsedMs: null }, reason: error instanceof Error ? error.message : String(error), cleanup: results }; }
   return { required: true, ...value };
+}
+
+/** Funding reads the existing signed cleanup facts, including unreported failures.
+ * The caller holds the current controller/registry locks; this never supplies a game timing grade. */
+export async function readFundingCleanup(root: string) {
+  const bytes = await regularFile(root, 'snapshot.json'), current = decode(bytes) as RunSnapshot;
+  validateSnapshot(current);
+  if (!current.validationFunding) throw new Error('Funding cleanup requires its bound original run.');
+  const anchor = [...current.events].reverse().find(event => event.type === 'run_owner_drained');
+  if (!anchor) throw new Error('Original funding cleanup owner-drain proof is missing.');
+  const names = await readdir(await safePath(root, 'delivery'));
+  const matching: { name: string; bytes: Buffer; value: any }[] = [];
+  for (const name of names.filter(name => /^completion-(?:[a-f0-9-]{36}|unreported-\d+)\.json$/.test(name))) {
+    const raw = await regularFile(root, `delivery/${name}`), value = decode(raw);
+    if (value.anchorSequence === anchor.sequence) matching.push({ name, bytes: raw, value });
+  }
+  if (matching.length !== 1) throw new Error('Funding cleanup requires one original completion receipt.');
+  const selected = matching[0], value = selected.value, digest = decode(await regularFile(root, `delivery/${selected.name}.sha256.json`));
+  if (value.formatVersion !== 'completion-timing/1' || !receiptAuthentic(selected.bytes, value, digest)) throw new Error('Funding cleanup signature changed.');
+  const originalBytes = value.snapshotSha256 === idleHash(bytes) ? bytes
+    : typeof value.fundingSnapshot === 'string' ? Buffer.from(value.fundingSnapshot, 'utf8') : undefined;
+  if (!originalBytes || idleHash(originalBytes) !== value.snapshotSha256) throw new Error('Funding cleanup snapshot source is unavailable.');
+  const original = decode(originalBytes) as RunSnapshot; validateSnapshot(original);
+  if (!sameValue(original.validationFunding, current.validationFunding)) throw new Error('Funding cleanup belongs to another bound run.');
+  if (!originalBytes.equals(bytes)) {
+    // Only durable stop/accounting after the proven close may extend this source.
+    const allowed = ['stopped', 'settled', 'unknown', 'cancelled', 'budget_warning'];
+    const extension = current.events.slice(original.events.length);
+    const ledgerIssues = validateLedgerUpdate(original.ledger, current.ledger, { role: 'system', actorId: 'funding-cleanup' }, { allowOverrunFacts: true });
+    const before = { ...original, revision: 0, stopReason: null, events: [], ledger: { ...original.ledger, entries: [] },
+      run: { ...original.run, state: 'waiting_user', fees: {} } };
+    const after = { ...current, revision: 0, stopReason: null, events: [], ledger: { ...current.ledger, entries: [] },
+      run: { ...current.run, state: 'waiting_user', fees: {} } };
+    if (ledgerIssues.length || !sameValue(before, after) || !sameValue(current.events.slice(0, original.events.length), original.events)
+      || extension.some(event => !allowed.includes(event.type)) || current.revision < original.revision
+      || current.ledger.entries.length !== original.ledger.entries.length) throw new Error('Funding cleanup cannot cover new execution or changed history.');
+  }
+  const expected = await capture(root, original, value.binding?.report?.ref?.location, value.binding?.resources, value.binding?.verificationKey);
+  const reason = JSON.parse(anchor.reason);
+  if (!sameValue(value.binding, expected) || reason.windowId !== expected.windowId || reason.nonceSha256 !== idleHash(value.nonce ?? '')
+    || reason.completionSha256 !== idleHash(JSON.stringify(expected))) throw new Error('Funding cleanup owner anchor changed.');
+  if (!Array.isArray(value.cleanup) || !Array.isArray(expected.resources)
+    || [...expected.resources, 'owner-drain'].some(name => value.cleanup.filter((row: CleanupResult) => row.name === name).length !== 1)
+    || value.cleanup.some((row: CleanupResult) => row.outcome !== 'closed') || !Number.isFinite(value.cleanupStarted)
+    || !Number.isFinite(Date.parse(value.observedAt)) || Date.parse(value.observedAt) < Math.max(value.cleanupStarted, Date.parse(anchor.at))) {
+    throw new Error('Funding cleanup remains failed or unconfirmed.');
+  }
+  if (!bytes.equals(await regularFile(root, 'snapshot.json'))) throw new Error('Funding cleanup snapshot changed during verification.');
+  return { source: `delivery/${selected.name}`, sha256: idleHash(selected.bytes), cleanup: value.cleanup };
 }
 
 /** Fixed evidence only: reading cannot invent an endpoint or reopen execution. */

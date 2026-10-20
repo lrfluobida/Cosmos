@@ -181,6 +181,10 @@ export function validateValidationProfile(state: RunSnapshot): void {
   if (!sameValue(first.quote.basis.requestIds, state.ledger.entries.slice(0, first.quote.basis.requestIds.length).map(entry => entry.requestId))) fail('Historical request prefix changed.');
   for (const record of state.requests) {
     const entry = state.ledger.entries.find(item => item.requestId === record.requestId)!, window = owned.get(entry.taskId), meta = record.validation;
+    if (record.publicFunding) {
+      if (window || meta !== undefined || record.windowId !== undefined) fail('Public funding cannot borrow a validation case.');
+      continue; // validateSnapshot first proves the exact public settlement/request mapping.
+    }
     if (!window) { if (meta !== undefined || record.windowId !== undefined || !first.quote.basis.requestIds.includes(record.requestId)) fail('Legacy request cannot acquire a validation window.'); continue; }
     if (!meta || record.windowId !== window.windowId || meta.windowId !== window.windowId || meta.caseId !== window.caseId || meta.modelId !== 'deepseek-flash'
       || entry.provider !== 'deepseek' || entry.pricingVersion !== 'deepseek-flash-peak-cny-2026-10-01' || meta.maxOutputTokens > validationOutputCap(window, entry.taskId, meta.purpose)) fail('Request lacks its exact validation case, purpose or model bounds.');

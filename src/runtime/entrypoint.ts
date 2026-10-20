@@ -33,6 +33,7 @@ import type { AcceptedCandidate } from '../artifacts/index.ts';
 import { deliveryTaskProofs, publishGenerationReport, readCompletedGeneration } from './experience.ts';
 import { finishCompletion } from './completion-timing.ts';
 import { readFrameSelection, requireCurrentFrameSource } from './render-frame-selection.ts';
+import { verifyPublicValidationFunding } from './public-validation-funding.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
@@ -93,6 +94,8 @@ export async function executeGeneration(options: GenerationOptions) {
   let closePreparation: (() => Promise<void>) | undefined;
   let published: any, completionTiming: any;
   try {
+    await verifyPublicValidationFunding({ root, snapshot: await controller.read(), dispatch: true });
+    await controller.markFundingExecution();
     control = await startControl(root, original.run.runId, stop); process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
     if (options.notify) warnings = await startBudgetWarnings(root, options.notify);
     await reconcileEntryReceipts(root, controller);
