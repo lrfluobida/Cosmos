@@ -1,4 +1,4 @@
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createPiSession } from '../providers/pi.ts';
 import type { PiSessionOptions } from '../providers/pi.ts';
@@ -11,6 +11,7 @@ import { modeFromSelection, preparationContract } from './preparation-mode.ts';
 import type { GameDraft } from './requirements.ts';
 import type { RoleSession } from './factory.ts';
 import { decodeModelJson } from './protocol.ts';
+import { truncatedDraftSuccessor } from './interview-recovery.ts';
 
 export interface InterviewOptions {
   controller: IntakeController; roundId: string; brief: string;
@@ -45,14 +46,29 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
   modeFromSelection(state.draftMode);
   if (state.stopReason) throw new Error('Intake is stopped.');
   const modeContext = state.draftMode ? { draftMode: state.draftMode, preparation: { ...preparationContract(state.draftMode), acceptance: preparationAcceptance(state.draftMode) } } : {};
-  const root = join(controller.root, 'intake-sessions', options.roundId), intent = { formatVersion: 1, runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...(options.capabilities ? { capabilities: options.capabilities } : {}), ...modeContext };
+  let root = join(controller.root, 'intake-sessions', options.roundId);
+  let intent: Record<string, unknown> = { formatVersion: 1, runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...(options.capabilities ? { capabilities: options.capabilities } : {}), ...modeContext };
   await mkdir(root, { recursive: true });
   const recorded = await optionalJson(join(root, 'intent.json'));
   if (recorded !== null) {
     if (!sameValue(recorded, intent)) throw new Error('Interview input identity changed; reuse requires the exact original input.');
     const reply = await optionalJson(join(root, 'reply.json')) as { intent: unknown; proposal: unknown } | null;
-    if (!reply || !sameValue(reply.intent, intent)) throw new Error('Incomplete interview reply; retain accounting and inspect the original run.');
-    return reply.proposal;
+    if (reply !== null) {
+      if (!sameValue(reply.intent, intent)) throw new Error('Incomplete interview reply; retain accounting and inspect the original run.');
+      return reply.proposal;
+    }
+    if (input.phase !== 'draft' || state.draftMode) throw new Error('Incomplete interview reply; retain accounting and inspect the original run.');
+    const successor = await truncatedDraftSuccessor(controller, options.roundId, intent);
+    root = successor.root; intent = successor.intent;
+    const started = await optionalJson(join(root, 'intent.json'));
+    if (started !== null) {
+      const completed = await optionalJson(join(root, 'reply.json')) as { intent: unknown; proposal: unknown } | null;
+      if (!sameValue(started, intent) || !completed || !sameValue(completed.intent, intent)) throw new Error('Draft successor is incomplete or its source changed; no further request is allowed.');
+      return completed.proposal;
+    }
+    const existing = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
+    if (existing.length) throw new Error('Draft successor source is missing; existing files cannot authorize another request.');
+    await mkdir(root, { recursive: true });
   }
   await publishReceipt(join(root, 'intent.json'), intent);
   const fundingWork = await controller.beginFundingWork('interview');

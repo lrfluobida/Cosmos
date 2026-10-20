@@ -1513,7 +1513,8 @@ export function createProductHost(repository: string, hostOptions: Pick<BrowserH
       return requestDesignQuestions({ ...options, capabilities: await interviewCapabilities(options), sessionFactory: hostOptions.sessionFactory, maxOutputTokens: 4096, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation });
     },
     draft: async options => {
-      const draft = await requestDesignDraft({ ...options, capabilities: await interviewCapabilities(options), sessionFactory: hostOptions.sessionFactory, maxOutputTokens: 8192, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation });
+      const { draftMode } = await options.controller.read();
+      const draft = await requestDesignDraft({ ...options, capabilities: await interviewCapabilities(options), sessionFactory: hostOptions.sessionFactory, maxOutputTokens: draftMode ? 8192 : 16384, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: requestReservation });
       if (draft.preparation) return draft;
       const selected = withHostStages(draft);
       if (selected.benchmark) selected.classicEntry = await selectClassicEntry(hostOptions.classicSourceRoot);
