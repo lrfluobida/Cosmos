@@ -55,6 +55,7 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
     return reply.proposal;
   }
   await publishReceipt(join(root, 'intent.json'), intent);
+  const fundingWork = await controller.beginFundingWork('interview');
   const session = await (options.sessionFactory ?? createPiSession)({
     workspace: controller.root, stateDirectory: join(root, 'native'), systemPrompt: `${state.draftMode ? preparationPrompt : systemPrompt}\nHost capabilities: ${options.capabilities ?? 'Only the declared normal-input acceptance vocabulary.'}`,
     context: JSON.stringify({ role: 'design-intake', runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...modeContext }), tools: [], modelId: 'deepseek-flash', thinkingLevel: 'low',
@@ -69,7 +70,7 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
     const proposal = decodeModelJson(result.text);
     await publishReceipt(join(root, 'reply.json'), { intent, proposal });
     return proposal;
-  } finally { await session.close(); }
+  } finally { await session.close(); await controller.finishFundingWork(fundingWork); }
 }
 
 export async function requestDesignQuestions(options: InterviewOptions): Promise<Questions> {

@@ -13,6 +13,9 @@ import { createProductHost } from '../../src/runtime/entrypoint-host.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
 import { settlePublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
+import { SnapshotStore } from '../../src/runtime/store.ts';
+import { runPublicValidationCli } from '../../probes/public-cli/validation.ts';
+import { IntakeController } from '../../src/runtime/intake.ts';
 
 test('public new rejects an unverified funding binding before touching the host', async t => {
   const parent = await mkdtemp(join(tmpdir(), 'cos109-cli-')), root = join(parent, '运行');
@@ -28,6 +31,36 @@ test('public new rejects an unverified funding binding before touching the host'
     },
   } as Parameters<typeof runCli>[1]), /funding|authorization/i);
   assert.equal(hostCalls, 0);
+});
+
+test('operator retries initialization writes using the original identity and ordinary resume', async t => {
+  for (const afterWrite of [false, true]) {
+    const f = await fundingFixture(t), args = await f.authorization(`init-${afterWrite}`), write = SnapshotStore.prototype.write;
+    let interrupted = false, calls = 0;
+    const output = new PassThrough(); output.resume();
+    const io = { input: Readable.from([]), output, host: {
+      async prepare() { calls++; return { environmentReady: false, executionReady: false }; },
+      async questions() { throw new Error('No question'); }, async draft() { throw new Error('No draft'); }, async execute() { throw new Error('No execution'); },
+    } };
+    const command = ['new', args.runRoot, '--shared-root', args.sharedRoot, '--authorization', join(args.sharedRoot, args.authorization.location)];
+    SnapshotStore.prototype.write = async function(value) {
+      if (!interrupted && this.root === args.runRoot && (value as any).formatVersion === 'intake-1') {
+        interrupted = true; if (afterWrite) await write.call(this, value); throw new Error('Injected intake write interruption');
+      }
+      return write.call(this, value);
+    };
+    try { await assert.rejects(runPublicValidationCli(command, io), /Injected/); }
+    finally { SnapshotStore.prototype.write = write; }
+    assert.equal(calls, 0);
+    await runPublicValidationCli(command, { ...io, input: Readable.from([]) });
+    assert.equal(calls, 1);
+    assert.equal((await f.child(args.runRoot)).run.runId, args.payload.runId);
+    assert.equal((await f.snapshot()).publicValidationFundings.length, 1);
+    const state = await f.child(args.runRoot), controller = await IntakeController.open({ root: args.runRoot });
+    await controller.stop('No calls made'); await controller.close();
+    const settled = await settlePublicValidationFunding({ ...args, fundingId: state.validationFunding.fundingId });
+    assert.equal(settled.settledMicroCny, 0);
+  }
 });
 
 test('real public stdin confirms the displayed draft before the original generation factory admits planning', { timeout: 120_000 }, async t => {

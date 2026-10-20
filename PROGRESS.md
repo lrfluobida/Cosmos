@@ -1,6 +1,6 @@
 # Cosmos 进度
 
-更新时间：2026-10-20
+更新时间：2026-10-21
 
 ## 当前继续通用游戏开发 agent 能力
 
@@ -13,7 +13,7 @@ Cosmos 是可扩展的游戏开发 agent，PvZ 是首个完整验收目标。当
 - 组合源码 `0c187117be32cf9f0058f51426020c1ba3b3b073` 的21个变更文件与各自获批来源一致。主线typecheck/build均exit0；CLI短代表3/3、0skip、20469.8809ms，清理短代表4/4、0skip、1483.0408ms。其余无delta矩阵与实际浏览器证据复用，原输出在 `.cosmos/planning/2026-10-20-public-agent-improvements/integration/`。
 - 两项源码范围已完成并公开关闭：[COS107关闭](https://github.com/lrfluobida/Cosmos/issues/108#issuecomment-6293375947)、[COS108关闭](https://github.com/lrfluobida/Cosmos/issues/109#issuecomment-6293378935)的 `closed(completed)` 和父勾选[x]已由Root精确读回。登记COS109后，父COS18直接子项3/2完成，根直接子项100，总任务109；COS18整体仍open/partial。
 - 本批无真实模型调用、付费生成或C16重跑；免费浏览器夹具的作者/评审为注入，不证明实际通用游戏生成或human通过。共享 ¥150、正式 ¥200/12h 硬帽及 ¥100/6h 优化目标保持。
-- [COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110)，id5943672677，已由Root登记并原生挂父COS18/#19，open/未勾选。[规格](docs/specs/cos109-public-validation-funding.md)与[计划](docs/plans/2026-10-20-public-validation-funding.md)准备以原公共单账本逐请求记账、shared整次拨款接通验证额度；同时保留¥150与¥30阶段门槛、真实stdin确认和未知费用占额。本次仅计划与登记，待独审及Root批准后实施；作者 `public_validation_route_assessment`、独审 `public_run_limits_reviewer`、唯一merger `public_agent_batch_merger`，基线 `415e7a061d1e6ba71bce744fe9b3d51ea68b822e`。没有provider/browser、真实账本或付费运行。
+- [COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110)，id5943672677，原生父COS18/#19，open/未勾选。[计划](docs/plans/2026-10-20-public-validation-funding.md) `4acc3d104a0b5d0cc3d5f1dfefae1e184fa659f8` 已独审 `APPROVED_PLAN` 并获Root批准；[源码规格](docs/specs/cos109-public-validation-funding.md)候选待最终独审，未集成。原公共单账本逐请求记账、shared整次拨款，保留¥150/¥30、真实stdin和unknown占额。阶段 `ad24b2b` 的清理证明/旧来源两P2已由作者修复待复核；新增24/24、清理caller76/76、typecheck/build0，原111项按无变化范围复用、计数不相加。作者 `public_validation_route_assessment`、独审 `public_run_limits_reviewer`、唯一merger `public_agent_batch_merger`；私有索引 `.cosmos/cos109/verification-index.json`。受控SDK三笔30µ只属免费夹具，无provider网络、browser、真实账本或付费运行。
 
 ## COS01变身茄子图鉴文字补证已审集成
 

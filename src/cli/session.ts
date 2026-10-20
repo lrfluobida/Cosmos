@@ -114,6 +114,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   let intake: IntakeController | undefined, control: Awaited<ReturnType<typeof startControl>> | undefined, warnings: Awaited<ReturnType<typeof startBudgetWarnings>> | undefined, active: Promise<unknown> | undefined;
   let frames: RenderFrameSelection | undefined;
   let policy: ModularRepairPolicy | undefined;
+  let fundingLifecycle: string | undefined;
   const run = async <T>(action: () => Promise<T>): Promise<T> => {
     if (intake) { const state = await intake.read(); requirePublicRunLimits(state, await optionalJson(root, 'intake-origin.json'), true); await requireCurrentFrameSource(await readFrameSelection(root, state)); await requireCurrentModularRepairPolicy(await readModularRepairPolicy(root, state)); }
     if (intake) await verifyPublicValidationFunding({ root, snapshot: await intake.read(), dispatch: true });
@@ -182,6 +183,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     const original = await json(root, 'intake-origin.json'), state = await intake.read();
     requirePublicRunLimits(state, original, true);
     if (original.runId !== state.run.runId || typeof original.brief !== 'string' || !sameValue(original.draftMode, state.draftMode)) throw new Error('Intake origin does not match the original run mode.');
+    fundingLifecycle = await intake.beginFundingWork('session');
     say(`运行 ${state.run.runId}。${displayRunLimits({ limitMicroCny: state.ledger.limitMicroCny, durationMs: state.durationMs })}`);
     say('stop 为持久硬停止；resume 只恢复原窗口内未被硬停止的可核实中断。');
     control = await startControl(root, state.run.runId, stop);
@@ -228,13 +230,18 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     }
     const actual = await run(() => host.prepare(root, intake!.signal));
     if (!actual.environmentReady || !actual.executionReady) { say('确认已保存；执行前置未就绪，未启动原生成时钟。'); return { outcome: 'waiting_prerequisites' }; }
+    if (fundingLifecycle) {
+      await warnings.close(); warnings = undefined; await control.close(); control = undefined;
+      await intake.finishFundingWork(fundingLifecycle); fundingLifecycle = undefined;
+    }
     await intake.activateGeneration(actual);
-    await warnings.close(); warnings = undefined; await control.close(); control = undefined; await intake.close(); intake = undefined; lines.close();
+    await warnings?.close(); warnings = undefined; await control?.close(); control = undefined; await intake.close(); intake = undefined; lines.close();
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
     const result = await host.execute({ root, requirement, draft: draftPayload(current!), resume: false, notify: say, ...(frames ? { renderFrames: true } : {}) });
     say(JSON.stringify(result, null, 2)); return result;
   } finally {
     lines.close(); process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
-    await warnings?.close(); await control?.close(); await intake?.close();
+    await warnings?.close(); await control?.close();
+    if (intake) { await intake.finishFundingWork(fundingLifecycle); await intake.close(); }
   }
 }

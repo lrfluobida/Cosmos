@@ -12,7 +12,7 @@
 
 - [任务 COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110)，原生父 COS18/#19；[规格](../specs/cos109-public-validation-funding.md)。基线 `415e7a061d1e6ba71bce744fe9b3d51ea68b822e`，COS107/COS108 均已源码范围完成。
 - 作者 `public_validation_route_assessment`；独审 `public_run_limits_reviewer`；唯一 merger `public_agent_batch_merger`。
-- 本提交只含计划、规格与登记；计划待独审及 Root 批准，尚无实现、真实账本或付费运行授权。
+- 计划 `4acc3d104a0b5d0cc3d5f1dfefae1e184fa659f8` 已独审 `APPROVED_PLAN` 并获 Root 批准免费源码实施；当前候选待最终独审。真实账本或付费运行仍不在本卡执行范围。
 - 工作树 `cos-05-cli` 的新分支 `codex/public-validation-funding` 保留原私有证据；作者不操作 main、不 push。
 
 ## 已核实的复用点
@@ -123,7 +123,7 @@ operator 先完成唯一授权 payload，再创建写一次 `public-validation-o
 
 ## 结算规则
 
-- 只接受持久停止的 intake/generation，或原已通过自动验收并有真实清理终点的 generation；仅生成过报告、未确认退出或缺锁不算完成。
+- intake 须持久停止且有原生命周期关闭证明；generation 须认证原 reported/unreported 清理收据，允许游戏失败。仅 stop、报告或缺锁不能证明清理，不以游戏计时 eligible/current 作为资金条件。
 - 持有锁后核对规范化根、完整绑定、原运行限额、ledger ID、原时间与所有 requests/entries；reserved/unknown 立即阻止释放。
 - 对每笔已 admitted 的关闭记录，按其 billing evidence 的实际路径调用 `reconcileRoleReceipt` 的只读 adapter，必须返回 `already_closed`。adapter 的变更方法全部拒绝，不重算或修改原账本。
 - 未 admitted 的零费用 cancellation 核对原 snapshot 的请求及停止证据；不能把无回执的已发送请求解释为零费用。
@@ -144,6 +144,10 @@ operator 先完成唯一授权 payload，再创建写一次 `public-validation-o
 | `src/runtime/validation-window.ts` | `eligible` 在开放公共拨款或公共 overrun 时拒绝旧 case prepare/claim |
 | `src/cli/index.ts`、`session.ts` | 可信 funding 参数、稳定新建身份、初始化中断恢复、首 host 门禁 |
 | `src/runtime/intake.ts`、`run.ts` | 持锁核验/原样传递；公共 reserve/admit 重读 shared；旧 case authority 拒绝 H/overrun |
+| `src/runtime/entrypoint.ts` | Root接受的实际caller：原try内在startControl/createHost前核验dispatch并记录funded执行开始 |
+| `src/runtime/completion-timing.ts` | Root接受F1范围：认证原reported/unreported签名清理；仅会计/stop可承接签名原snapshot，不更改原计时结论 |
+| `src/roles/interview.ts`、`src/cli/control.ts` | funded会话在真实session.close成功后结束；保留既有recover返回的具体OwnerRecord事实 |
+| `src/runtime/validation-allocations.ts` | Root接受F2范围：导出原closure决定核验，复用完整原文/sha检查，不新增授权 |
 | `src/runtime/render-frame-selection.ts` | origin 白名单仅增加 funding 字段，原采样确认保持 |
 | `src/cli/continuation-session.ts`、`src/runtime/continuation-quote.ts` | owner恢复/host准备前拒绝；原`continuation-authority.ts`重建quote自然复用 |
 | `probes/public-cli/validation.ts`、`README.md`（新） | 窄 operator 包装与使用边界 |
@@ -186,8 +190,19 @@ operator 先完成唯一授权 payload，再创建写一次 `public-validation-o
 - [ ] 作者提交准确 SHA、失败及通过原输出、已知缺口；独审先查规格再查实际 diff，作者修复有效 finding 后复审。
 - [ ] Root 批准后由唯一 merger 集成和推送。真实 provider/browser、实际账本拨款和新游戏生成均不在本卡免费实施内。
 
-## 当前计划提交的验证
+## 初始计划提交的验证
 
 仅验证计划/规格链接、JSON 登记、任务计数、UTF-8/中文及 diff 范围。未运行源码测试或创建真实预算记录；上述实现步骤均待计划批准。
 
-计划独审修订：首版 `1c84a30392a89244c13a14ec5e6819fd77367334` 的两项 P2 已按实际链修正：授权原字节与派生 binding 分离；旧 case 与已打开公共控制器补最新共享状态准入。当前仍只修改文档，待独审复核。
+计划独审修订：首版 `1c84a30392a89244c13a14ec5e6819fd77367334` 的两项 P2 修正了授权原字节与派生 binding 分离、旧 case 与已打开公共控制器的最新共享状态准入；该次仅改文档，随后 `4acc3d1` 已获独审批准。
+
+## 作者源码结果（2026-10-21，待最终独审）
+
+- 阶段源码 `ad24b2b32e82fbefe6d7c4a04c0e3bd661bc7dab` 已完成预占/绑定/逐次准入/结算及公开链11项；后续故障组15项与受影响原回归111项通过，均为阶段证据。
+- 阶段独审提出清理证明和原预算来源两个P2；Root接受必要caller范围。原RED证明stop+无锁会错误释放、缺非分组operator原文仍预占；原输出保留。
+- F1：funded intake记录session/interview生命周期，实际session.close成功才结束interview；操作失败与清理失败分开。冷恢复只记录原API证明的OwnerRecord，并保留recovered历史。会计、warnings/control及owner真正关闭后发布nonce证明；未知旧工作不抹除。
+- F1：formal复用原签名reported/unreported cleanup，资金核验与游戏计时分开。funded收据的签名覆盖原snapshot字节；后续仅会计/stop可核证承接，任何新host/child执行均阻止复用。settle不补清理证据。
+- F2：共享来源核验统一覆盖全部原operator、allocation closure、group/supplement原字节及既有hash，在预占/每次准入/结算复用；不重放历史SDK调用。
+- 最终新增组24/24、0skip；清理相关原调用方76/76、0skip；typecheck/build均exit0。此前111项仅按无变化范围复用，与76项不相加。首次类型注解两诊断及fixture错误路径均修正并保留原输出。
+- 原公共CLI、真实分阶段stdin、生产factory与原executeGeneration使用受控SDK完成访谈/草稿/规划三笔30µ；规划处主动结束，无provider网络、browser或真实共享账本操作。
+- 私有证据索引 `.cosmos/cos109/verification-index.json`。作者完成候选不等于独审批准、源码集成、实际游戏生成或human验收完成。

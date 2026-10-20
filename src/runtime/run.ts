@@ -106,6 +106,9 @@ export class RunController {
   prepareOwnedChild(authority?: { taskId: string; windowId: string }, checkLaunch?: () => void): Promise<string> {
     return this.serial(async () => {
       this.requireActive(); checkLaunch?.();
+      if (this.snapshot.validationFunding) {
+        const next = structuredClone(this.snapshot); this.event(next, 'public_execution_started', null, 'child-launch'); await this.commit(next);
+      }
       if (this.windowId) {
         if (!authority || authority.windowId !== this.windowId) throw new Error('Owned child requires its explicit task and window authority.');
         this.requireTaskAuthority(authority.taskId);
@@ -511,6 +514,15 @@ export class RunController {
       const next = structuredClone(this.snapshot);
       this.halt(next, 'manual', reason);
       await this.commit(next);
+    });
+  }
+
+  /** Distinguish new funded host work from later accounting-only owner activity. */
+  async markFundingExecution(): Promise<void> {
+    if (!this.snapshot.validationFunding) return;
+    return this.serial(async () => {
+      this.requireActive();
+      const next = structuredClone(this.snapshot); this.event(next, 'public_execution_started', null, 'generation-host'); await this.commit(next);
     });
   }
 

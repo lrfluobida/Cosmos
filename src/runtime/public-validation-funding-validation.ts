@@ -58,8 +58,35 @@ export function publicFundingClosures(state: Pick<RunSnapshot, 'publicValidation
   return (state.publicValidationFundings ?? []).filter(record => record.settlement?.outcome === 'closed')
     .map(record => ({ taskId: record.taskId, decisionId: fundingClosureId(record.binding.fundingId), releasedMicroCny: record.settlement!.releasedMicroCny }));
 }
+export function fundedIntakeWork(state: Pick<RunSnapshot, 'events' | 'validationFunding'>) {
+  const pending = new Map<string, { workId: string; ownerToken: string; kind: string }>();
+  const seen = new Set<string>(), recoveries: { work: { workId: string; ownerToken: string; kind: string }; source: import('../contracts/types.ts').ArtifactReference; sourceSha256: string }[] = [];
+  for (const event of state.events.filter(event => event.type.startsWith('public_intake_'))) {
+    if (!state.validationFunding || event.requestId !== null) throw new Error('Unbound public intake cleanup history.');
+    if (event.type === 'public_intake_work_started') {
+      const work = JSON.parse(event.reason); fundingFields(work, ['workId', 'ownerToken', 'kind']);
+      id(work.workId); id(work.ownerToken);
+      if (!['session', 'interview'].includes(work.kind) || seen.has(work.workId)) throw new Error('Invalid public intake work identity.');
+      seen.add(work.workId); pending.set(work.workId, { workId: work.workId, ownerToken: work.ownerToken, kind: work.kind });
+    } else if (event.type === 'public_intake_work_finished') {
+      if (!pending.delete(event.reason)) throw new Error('Public intake work finish has no original start.');
+    } else if (event.type === 'public_intake_work_recovered') {
+      const recovered = JSON.parse(event.reason); fundingFields(recovered, ['workId', 'source', 'sourceSha256']);
+      const work = pending.get(recovered.workId);
+      if (!work) throw new Error('Public intake recovery has no original work.');
+      evidenceReferences([recovered.source]); digest(recovered.sourceSha256);
+      recoveries.push({ work, source: recovered.source, sourceSha256: recovered.sourceSha256 }); pending.delete(work.workId);
+    } else if (event.type === 'public_intake_drained') {
+      const proof = JSON.parse(event.reason); fundingFields(proof, ['nonceSha256']);
+      digest(proof.nonceSha256);
+      if (pending.size) throw new Error('Public intake cleanup is not drained.');
+    }
+  }
+  return { pending: [...pending.values()], recoveries };
+}
 /** Pure validation: every extra request and closure must belong to a fixed public settlement. */
 export function validatePublicValidationFundings(state: RunSnapshot): void {
+  fundedIntakeWork(state);
   if (state.validationFunding !== undefined) {
     validateFundingBinding(state.validationFunding);
     if (state.formatVersion !== 1 || state.run.kind !== 'runtime_generation' || state.ledger.scope !== 'generation'

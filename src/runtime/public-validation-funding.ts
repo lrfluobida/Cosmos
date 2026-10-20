@@ -11,12 +11,14 @@ import { publishReceipt } from './recovery/receipt-file.ts';
 import { OwnerLock } from './recovery/ownership.ts';
 import { requireNoRegistryWriter } from './window-idle.ts';
 import { verifyValidationBudgetSources } from './validation-budget.ts';
+import { verifyOperatorDecision } from './validation-window.ts';
+import { verifyClosureDecision } from './validation-allocations.ts';
 import { reconcileRoleReceipt } from '../roles/provider-budget.ts';
 import type { AccountingController } from '../roles/provider-budget.ts';
 import type { IntakeSnapshot } from './intake.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { PublicValidationAuthorization, PublicValidationFundingBinding, PublicValidationFundingRecord } from './public-validation-funding-types.ts';
-import { fundingBinding, fundingClosureId, fundingFields, fundingHash, fundingTaskId, publicFundingExposure, validateFundingAuthorization, validateFundingBinding } from './public-validation-funding-validation.ts';
+import { fundedIntakeWork, fundingBinding, fundingClosureId, fundingFields, fundingHash, fundingTaskId, publicFundingExposure, validateFundingAuthorization, validateFundingBinding } from './public-validation-funding-validation.ts';
 
 const intentName = 'public-validation-origin.json';
 const decode = (bytes: Uint8Array): any => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -57,15 +59,28 @@ async function source(binding: PublicValidationFundingBinding) {
   if (!sameValue(observed.binding, binding)) throw new Error('Public funding authorization source changed.');
   return observed.payload;
 }
-async function sharedSources(state: RunSnapshot) {
+async function sharedSources(root: string, state: RunSnapshot) {
+  await verifyValidationBudgetSources(root, state);
+  for (const window of state.validation?.cases ?? []) {
+    const { sourceSha256, ...decision } = window.operatorDecision;
+    if ((await verifyOperatorDecision(root, window.quote, decision, Date.now())).sourceSha256 !== sourceSha256) throw new Error('Original validation operator source changed.');
+  }
+  for (const record of state.allocationClosureDecisions ?? []) {
+    const { sourceSha256, ...decision } = record.operatorDecision;
+    if ((await verifyClosureDecision(root, record.quote, decision, Date.now())).sourceSha256 !== sourceSha256) throw new Error('Original validation allocation closure source changed.');
+  }
+  const decisions = new Set<string>();
   for (const record of state.publicValidationFundings ?? []) {
-    await source(record.binding);
+    const authorization = await source(record.binding);
+    if (decisions.has(authorization.decisionId)) throw new Error('Public funding operator decision was already consumed.');
+    decisions.add(authorization.decisionId);
     if (record.settlement) {
       const bytes = await referenceBytes(record.binding.sharedRoot, record.settlement.source), saved = decode(bytes);
       if (fundingHash(bytes) !== record.settlement.sourceSha256 || !sameValue(saved.binding, record.binding)
         || !sameValue(saved.requests, record.settlement.requests)) throw new Error('Public funding settlement source changed.');
     }
   }
+  return decisions;
 }
 async function commitShared(store: SnapshotStore, previous: RunSnapshot, next: RunSnapshot) {
   next.revision = previous.revision + 1;
@@ -98,7 +113,7 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
     await readPublicFundingIntent(binding.runRoot);
     shared = await SnapshotStore.acquire(binding.sharedRoot);
     const state = await shared.read(); validateSnapshot(state); await requireNoRegistryWriter(binding.sharedRoot);
-    await sharedSources(state); await verifyValidationBudgetSources(binding.sharedRoot, state);
+    const decisions = await sharedSources(binding.sharedRoot, state);
     if (state.run.runId !== binding.sharedRunId || state.ledger.ledgerId !== binding.sharedLedgerId || state.formatVersion !== 3
       || state.ledger.limitMicroCny !== 150_000_000 || !['3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion)) throw new Error('Public funding requires the original audited shared ledger.');
     const existing = state.publicValidationFundings?.find(row => row.binding.fundingId === binding.fundingId);
@@ -106,6 +121,7 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
       if (!sameValue(existing.binding, binding)) throw new Error('Public funding identity conflicts with its source.');
       return structuredClone(existing.binding);
     }
+    if (decisions.has(payload.decisionId)) throw new Error('Public funding operator decision cannot authorize another run.');
     const exposure = publicFundingExposure(state);
     if (exposure.overrun || state.stopReason?.code === 'charge_overrun' || state.validation!.cases.some(row => !row.stopReason || row.stopReason.code === 'charge_overrun')
       || state.ledger.entries.some(row => row.unknown || row.reservedMicroCny || !['settled', 'cancelled'].includes(row.status))) throw new Error('Public funding requires stopped and reconciled validation history.');
@@ -137,10 +153,15 @@ export async function acquirePublicFundingGate(root: string, snapshot: IntakeSna
   const store = await SnapshotStore.acquire(binding.sharedRoot);
   try {
     const state = await store.read(); validateSnapshot(state);
+    await sharedSources(binding.sharedRoot, state);
     const record = state.publicValidationFundings?.find(row => row.binding.fundingId === binding.fundingId);
     if (!record || !sameValue(record.binding, binding)) throw new Error('Public funding has not been reserved in the shared ledger.');
     await source(binding);
     if (dispatch && (record.settlement || publicFundingExposure(state).overrun)) throw new Error('Public funding is closed or has an unresolved overrun.');
+    if (dispatch && snapshot.formatVersion === 'intake-1') {
+      const owner = decode(await regularFile(root, '.controller.lock'));
+      if (fundedIntakeWork(snapshot).pending.some(work => work.ownerToken !== owner.token)) throw new Error('Public intake previous owner cleanup is unconfirmed.');
+    }
     return { close: () => store.close() };
   } catch (error) { await store.close(); throw error; }
 }
@@ -160,6 +181,40 @@ export async function verifyFundedNew(root: string, binding: PublicValidationFun
 }
 export async function publishFundedOrigin(root: string, value: unknown) { await writeOnce(root, 'intake-origin.json', value); }
 
+/** Persist only the result returned by the existing exited-owner recovery; no new recovery permission. */
+export async function recordFundingRecovery(root: string, owner: { token: string; untrackedWriters: boolean; children: { ticket: string; pid: number | null }[] }) {
+  const state = await optional(root, 'snapshot.json');
+  if (!state?.validationFunding) return;
+  if (owner.untrackedWriters || owner.children.some(child => child.pid === null)) throw new Error('Unproven public funding owner recovery.');
+  await writeOnce(root, `public-funding-recovery/${owner.token}.json`, { formatVersion: 'public-funding-owner-recovery/1',
+    runId: state.run.runId, ledgerId: state.ledger.ledgerId, fundingId: state.validationFunding.fundingId, owner, recoveredAt: new Date().toISOString() });
+}
+export async function readFundingRecovery(root: string, state: IntakeSnapshot, ownerToken: string) {
+  const location = `public-funding-recovery/${ownerToken}.json`, value = await optional(root, location);
+  if (!value) return undefined;
+  if (value.formatVersion !== 'public-funding-owner-recovery/1' || value.runId !== state.run.runId || value.ledgerId !== state.ledger.ledgerId
+    || value.fundingId !== state.validationFunding?.fundingId || value.owner?.token !== ownerToken || value.owner.untrackedWriters
+    || !Array.isArray(value.owner.children) || value.owner.children.some((child: { pid: number | null }) => child.pid === null)
+    || !Number.isFinite(Date.parse(value.recoveredAt))) throw new Error('Public funding recovery source changed.');
+  return { source: { artifactId: 'public-funding-owner-recovery', version: ownerToken, location },
+    sourceSha256: fundingHash(await regularFile(root, location)) };
+}
+export async function verifyFundingIntakeRecovery(root: string, state: IntakeSnapshot) {
+  for (const recovered of fundedIntakeWork(state).recoveries) {
+    const actual = await readFundingRecovery(root, state, recovered.work.ownerToken);
+    if (!actual || !sameValue(actual, { source: recovered.source, sourceSha256: recovered.sourceSha256 })) throw new Error('Public intake recovered owner source is missing or changed.');
+  }
+}
+export async function verifyFundingIntakeClose(root: string, state: IntakeSnapshot, bytes: Buffer) {
+  await verifyFundingIntakeRecovery(root, state);
+  const anchor = [...state.events].reverse().find(event => event.type === 'public_intake_drained');
+  if (!anchor || fundedIntakeWork(state).pending.length) throw new Error('Public intake cleanup drain is unconfirmed.');
+  const proof = await optional(root, `public-funding-intake-close/revision-${state.revision}.json`);
+  if (!proof || proof.formatVersion !== 'public-funding-intake-close/1' || proof.runId !== state.run.runId || proof.ledgerId !== state.ledger.ledgerId
+    || proof.fundingId !== state.validationFunding?.fundingId || proof.snapshotSha256 !== fundingHash(bytes) || proof.anchorSequence !== anchor.sequence
+    || typeof proof.nonce !== 'string' || JSON.parse(anchor.reason).nonceSha256 !== fundingHash(proof.nonce)) throw new Error('Public intake original owner-close proof is missing or changed.');
+}
+
 /** Accounting closure reads the child's real evidence; it never reopens execution or guesses charges. */
 export async function settlePublicValidationFunding(options: { sharedRoot: string; runRoot: string; fundingId: string; now?: () => number }) {
   const root = resolve(options.runRoot), child = await SnapshotStore.acquire(root);
@@ -176,13 +231,10 @@ export async function settlePublicValidationFunding(options: { sharedRoot: strin
     const binding = snapshot.validationFunding!;
     if (binding.sharedRoot !== resolve(options.sharedRoot) || binding.fundingId !== options.fundingId) throw new Error('Public funding settlement selects a different run.');
     if (snapshot.ledger.entries.some(row => row.unknown || row.reservedMicroCny || !['settled', 'cancelled'].includes(row.status))) throw new Error('Public funding retains its whole allocation until unknown or reserved charges are reconciled.');
-    if (!snapshot.stopReason) {
-      if (snapshot.formatVersion === 'intake-1') throw new Error('Public funding intake must be durably stopped before settlement.');
-      const { readAutomaticReport } = await import('./experience.ts'), { readCompletionTiming } = await import('./completion-timing.ts');
-      const { report } = await readAutomaticReport(root), timing = await readCompletionTiming(root, true);
-      if (report.automaticAcceptance !== 'passed' || !report.acceptedCandidate || !timing.required || !['in_time', 'late'].includes(timing.current?.status)
-        || timing.cleanup?.some((row: { outcome: string }) => row.outcome !== 'closed')) throw new Error('Public funding requires a completed and drained original run.');
-    }
+    if (snapshot.formatVersion === 'intake-1') {
+      if (!snapshot.stopReason) throw new Error('Public funding intake must be durably stopped before settlement.');
+      await verifyFundingIntakeClose(root, snapshot, bytes);
+    } else await (await import('./completion-timing.ts')).readFundingCleanup(root);
     const readonly: AccountingController = { read: async () => structuredClone(snapshot), coordinateAccounting: action => action(),
       reserve: async () => { throw new Error('Read-only funding evidence'); }, admit: async () => { throw new Error('Read-only funding evidence'); },
       markUnknown: async () => { throw new Error('Read-only funding evidence'); }, settle: async () => { throw new Error('Read-only funding evidence'); },
@@ -202,7 +254,7 @@ export async function settlePublicValidationFunding(options: { sharedRoot: strin
       receipts.push({ reference: refs[0], sha256: fundingHash(raw), contents: new TextDecoder('utf-8', { fatal: true }).decode(raw) });
     }
     shared = await SnapshotStore.acquire(binding.sharedRoot);
-    const previous = await shared.read(); validateSnapshot(previous); await sharedSources(previous);
+    const previous = await shared.read(); validateSnapshot(previous); await sharedSources(binding.sharedRoot, previous);
     const current = previous.publicValidationFundings!.find(record => record.binding.fundingId === binding.fundingId)!;
     const requests = snapshot.ledger.entries.map(entry => ({ entry: structuredClone(entry), admittedAt: snapshot.requests.find(row => row.requestId === entry.requestId)!.admittedAt }));
     const evidence = { formatVersion: 'public-validation-settlement/1', binding, snapshotSha256: fundingHash(bytes), snapshot, requests, receipts };

@@ -1,5 +1,8 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { regularFile } from '../artifacts/paths.ts';
+import { bounded } from '../acceptance/deadline.ts';
 import { DEFAULT_BUDGETS, budgetSummary, validateLedger, validateRequirement } from '../contracts/index.ts';
 import type { ArtifactReference, BudgetLedger, RequirementContract } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
@@ -17,8 +20,8 @@ import type { RenderFrameSelection } from './render-frame-selection.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy, validateModularRepairPolicy } from './modular-repair-policy.ts';
 import type { ModularRepairPolicy } from './modular-repair-policy.ts';
 import type { PublicValidationFundingBinding } from './public-validation-funding-types.ts';
-import { validateFundingBinding } from './public-validation-funding-validation.ts';
-import { acquirePublicFundingGate, verifyPublicValidationFunding } from './public-validation-funding.ts';
+import { fundedIntakeWork, fundingHash, validateFundingBinding } from './public-validation-funding-validation.ts';
+import { acquirePublicFundingGate, readFundingRecovery, verifyFundingIntakeClose, verifyFundingIntakeRecovery, verifyPublicValidationFunding } from './public-validation-funding.ts';
 
 export type StoredDraft = GameDraft & { revision: number; source: ArtifactReference };
 export interface IntakeSnapshot {
@@ -82,7 +85,8 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
     const entry = state.ledger.entries.find(item => item.requestId === record.requestId);
     if (!entry || entry.taskId !== state.interviewTaskId || (record.admittedAt !== null && !timestamp(record.admittedAt)) || (entry.status === 'unknown' && record.admittedAt === null)) throw new Error('Invalid intake admission identity.');
   }
-  const events = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'budget_warning', 'stopped'];
+  const events = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'budget_warning', 'stopped',
+    ...(state.validationFunding ? ['public_intake_work_started', 'public_intake_work_finished', 'public_intake_work_recovered', 'public_intake_drained'] : [])];
   if (!Array.isArray(state.events) || state.events[0]?.type !== 'created') throw new Error('Missing intake history.');
   if ((state.renderFrames || state.modularRepairPolicy || / Render-frame observer: | Modular-repair policy: /.test(state.events[0].reason))
     && state.events[0].reason !== frameIntakeReason(state.renderFrames, state.modularRepairPolicy)) throw new Error('Original intake selection/policy changed.');
@@ -90,6 +94,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
     if (event.sequence !== i + 1 || !timestamp(event.at) || !events.includes(event.type) || typeof event.reason !== 'string'
       || (event.requestId !== null && !state.requests.some(item => item.requestId === event.requestId))) throw new Error('Invalid intake event.');
   });
+  fundedIntakeWork(state);
   if (state.draft !== null) {
     if (!state.draft || !Number.isSafeInteger(state.draft.revision) || state.draft.revision < 1 || !sameValue(state.draft.source, draftRef(state.draft.revision))) throw new Error('Invalid draft revision.');
     validateGameDraft(payload(state.draft), mode);
@@ -155,6 +160,10 @@ export class IntakeController {
       if (state.renderFrames) await requireCurrentFrameSource(await readFrameSelection(store.root, state));
       if (state.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(store.root, state));
       const controller = new IntakeController(store, state, options.now ?? Date.now), next = structuredClone(state);
+      for (const work of fundedIntakeWork(state).pending) {
+        const recovery = await readFundingRecovery(store.root, state, work.ownerToken);
+        if (recovery) controller.event(next, 'public_intake_work_recovered', null, JSON.stringify({ workId: work.workId, ...recovery }));
+      }
       if (state.draftMode && state.draft) await controller.requireDraftFile(state.draft);
       for (const record of next.requests) {
         const entry = findRequest(next.ledger, record.requestId);
@@ -164,6 +173,7 @@ export class IntakeController {
         }
       }
       if (next.events.length !== state.events.length) await controller.commit(next);
+      await verifyFundingIntakeRecovery(store.root, controller.snapshot);
       return controller;
     } catch (error) { await store.close(); throw error; }
   }
@@ -172,6 +182,24 @@ export class IntakeController {
     if (this.snapshot.draftMode) await requireModeOrigin(this.store.root, this.snapshot);
     return structuredClone(this.snapshot);
   }); }
+  /** Only the funded intake lifecycle uses these records; an operation result is not a cleanup result. */
+  beginFundingWork(kind: 'session' | 'interview'): Promise<string | undefined> {
+    if (!this.snapshot.validationFunding) return Promise.resolve(undefined);
+    return this.serial(async () => {
+      this.requireIntake();
+      const owner = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(this.store.root, '.controller.lock')));
+      const workId = randomUUID(), next = structuredClone(this.snapshot);
+      this.event(next, 'public_intake_work_started', null, JSON.stringify({ workId, ownerToken: owner.token, kind }));
+      await this.commit(next); return workId;
+    });
+  }
+  finishFundingWork(workId: string | undefined): Promise<void> {
+    if (workId === undefined) return Promise.resolve();
+    return this.serial(async () => {
+      if (!fundedIntakeWork(this.snapshot).pending.some(work => work.workId === workId)) throw new Error('Public intake work has no matching original start.');
+      const next = structuredClone(this.snapshot); this.event(next, 'public_intake_work_finished', null, workId); await this.commit(next);
+    });
+  }
   reserve(input: RequestInput) {
     const request = structuredClone(input);
     return this.serial(async () => {
@@ -267,6 +295,7 @@ export class IntakeController {
     return this.serial(async () => {
       if (this.activated) return structuredClone(this.activated);
       this.requireActive(); const prior = this.snapshot, confirmed = prior.confirmation;
+      if (fundedIntakeWork(prior).pending.length) throw new Error('Public intake cleanup must finish before generation activation.');
       if (!confirmed || !prior.draft || prior.draft.revision !== confirmed.revision) throw new Error('Current explicit confirmation is required.');
       if (ready.environmentReady !== true) throw new Error('Environment is not ready for formal generation.');
       if (ready.executionReady !== true) throw new Error('Execution prerequisites are not ready.');
@@ -303,7 +332,31 @@ export class IntakeController {
   close(): Promise<void> {
     if (this.closed) return this.closed;
     this.closing = true; this.abort.abort(new Error('Intake controller closed.'));
-    this.closed = this.pending.then(() => this.store.close()).catch(error => { this.closed = undefined; throw error; }); return this.closed;
+    this.closed = this.pending.then(async () => {
+      let proof: { nonce: string; bytes: Buffer; anchorSequence: number } | undefined;
+      if (this.snapshot.validationFunding && !this.activated) {
+        await bounded(() => this.accounting, 5000, 'Public intake accounting close');
+        await verifyFundingIntakeRecovery(this.store.root, this.snapshot);
+        if (this.snapshot.stopReason && !fundedIntakeWork(this.snapshot).pending.length
+          && !this.snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) {
+          const bytes = await regularFile(this.store.root, 'snapshot.json');
+          const alreadyClosed = await verifyFundingIntakeClose(this.store.root, this.snapshot, bytes).then(() => true, () => false);
+          if (!alreadyClosed) {
+            const nonce = randomBytes(32).toString('hex'), next = structuredClone(this.snapshot);
+            this.event(next, 'public_intake_drained', null, JSON.stringify({ nonceSha256: fundingHash(nonce) }));
+            await this.commit(next); proof = { nonce, bytes: await regularFile(this.store.root, 'snapshot.json'), anchorSequence: next.events.at(-1)!.sequence };
+          }
+        }
+      }
+      await this.store.close();
+      if (proof) {
+        await mkdir(join(this.store.root, 'public-funding-intake-close'), { recursive: true });
+        await publishReceipt(join(this.store.root, `public-funding-intake-close/revision-${this.snapshot.revision}.json`), {
+          formatVersion: 'public-funding-intake-close/1', runId: this.snapshot.run.runId, ledgerId: this.snapshot.ledger.ledgerId,
+          fundingId: this.snapshot.validationFunding!.fundingId, snapshotSha256: fundingHash(proof.bytes), anchorSequence: proof.anchorSequence, nonce: proof.nonce,
+        });
+      }
+    }).catch(error => { this.closed = undefined; throw error; }); return this.closed;
   }
   private serial<T>(operation: () => T | Promise<T>): Promise<T> {
     if (this.closing || this.failed) return Promise.reject(new Error('Intake controller closed or persistence failed.'));

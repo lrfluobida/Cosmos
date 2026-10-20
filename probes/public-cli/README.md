@@ -20,6 +20,6 @@ node --experimental-strip-types probes/public-cli/validation.ts settle <run-dir>
 
 重复 `new` 复用原 intent；已存在 snapshot 时调用原 `resume`，不增加额度或时间。`status`、`stop`、最终 `experience` 仍用普通 CLI；绑定运行不接受 `continue`。开放公共拨款或公共 overrun 会阻止旧 validation case 的新派发。
 
-`settle` 只接受已持久停止或有原完成清理证据的运行。unknown、缺回执或未核清 owner 均保留整笔拨款；用既有会计恢复核清后重试。正常结算一次纳入真实费用并归还余额。超额保留真实子账/回执和 shared overrun，不强行导入超帽费用，也不允许新拨款或其它绑定运行的新请求。
+`settle` 要求原清理证据：intake 须持久停止且原会话、控制资源、会计与owner已关闭；formal须认证已有reported/unreported签名cleanup，失败游戏也须全部资源closed。stop或无锁本身不够，settle不补证。仅后续会计/stop可承接原formal清理证明；未知旧owner、unknown、缺回执或未核清清理均保留整笔拨款。正常结算一次纳入真实费用并归还余额。超额保留真实子账/回执和shared overrun，不强行导入超帽费用，也不允许新拨款或其它绑定运行的新请求。
 
 源码夹具通过不授权实际付费运行。此入口不自动配置凭据，也不读取 User/Machine 环境变量；后续 operator 应按已授权安排把凭据安全配置到启动进程。
