@@ -1677,6 +1677,8 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 作者核心RED2/2→GREEN2/2，另有后继来源丢失及原对账器发现范围RED。首轮边界12/14的两项夹具问题保留；最终五文件组合40/40、0skip、43.041秒，typecheck/build0；包含15新增边界与原访谈/准备/公开session，重叠证据不相加。原输出索引 `.cosmos/cos110/verification-index.json`。源码独审集成后，实际恢复仍由Root另行执行，尚无新实际模型请求或生成结果。稳定任务ID：COS-110。
 
+初审 `41e4a8f7f782158e3c5ba3f5d429e64c2edd57f5` 仅一项P2：原round缺intent但已有记录/失败后继时能误建新请求。作者已先RED覆盖删除intent及原round目录两条路径，再在任何新建前拒绝；affected9/9、0skip及typecheck/build0，待原reviewer复审，其余原40项证据按无变化范围复用。
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

@@ -11,6 +11,7 @@
 3. 先要求原请求属于同run/ledger/intake task、无unknown/reserved，并用 `reconcileRoleReceipt` 的 `already_closed` 结果核原身份、价格、费用和账单引用。其它终态、缺账单、多账单或漂移均拒绝，不新增未知费用处理路径。
 4. 后继固定为同级 `intake-sessions/<round>-successor-1/`，含自己的intent/native/billing/reply。其intent保留同一原始输入，并附原round、requestId、账单引用与原账单内容；关联数据不进入系统提示、模型context或用户消息。同级位置复用既有 `reconcileEntryReceipts` 的访谈目录发现范围；初稿嵌套位置在“账单已落盘、结算中断”用例中RED，因此按实证改为同级，不改原对账框架。
 5. 后继成功缓存重复读取不发请求；已有后继intent但无reply时拒绝，不创建第二后继。原intent、native、账单及答案不覆盖。输入或原账单漂移也不能复用后继。
+   原round缺intent时，若该round已有文件或同级后继存在，也必须在mkdir及发布intent之前拒绝；来源丢失不能被当作新访谈。
 6. 后继仍为原intake的一次正常请求：原grant、8请求总限额、真实序列化预留、COS109拨款门禁及清理记录保持。费用不足或funding不可派发时transport为0，不挪用planning额度。
 7. 当前CLI的`resume`读取原questions和answers后进入上述选择；完整草稿仍须真实stdin确认才能激活原时钟。实际原运行恢复由Root在源码独审集成后另行执行。
 
@@ -41,3 +42,5 @@
 核心两项先RED，最小实现后2/2通过。后继intent丢失但已有失败文件的独立RED促成拒绝；“账单已落盘、settle中断”RED促成同级目录，复用既有对账器而不扩展它。首轮边界12/14保留：准备夹具误传选择对象而非模式字串，funding拒绝发生在预算准入并由provider适配器包装，已仅校正两项夹具。
 
 最终五文件定向组合40/40、0skip、exit0、43.041秒，涵盖15项新增用例与原访谈/准备/公开session；`npm run typecheck`及`npm run build`均exit0。原问题、答案、native、账单和先前费用保持，后继关联未进入模型消息；实际SDK传输由fetch mock截获，成功确认后执行host为stub，未启动真实provider或浏览器。原输出索引：作者工作树 `.cosmos/cos110/verification-index.json`。
+
+初审 `41e4a8f` 的唯一P2已由作者修复、待affected复审：原intent丢失绕过后继门禁。新增两个用例先RED，分别删除原intent及原round目录、保留失败后继，随后验证拒绝且transport仍为2、snapshot和保留文件不变；新建与缓存代表合计affected9/9、0skip，typecheck/build0。原40/40未重复运行，不与9项重叠证据相加。

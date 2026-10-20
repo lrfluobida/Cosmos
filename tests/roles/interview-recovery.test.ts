@@ -10,7 +10,7 @@ import { proposal, recoveryFixture } from './interview-recovery.fixture.ts';
 import { IntakeController } from '../../src/runtime/intake.ts';
 import { preparationAcceptance } from '../../src/roles/requirements.ts';
 import { resolveDraftMode } from '../../src/roles/preparation-mode.ts';
-import { removeOwned } from '../../src/artifacts/paths.ts';
+import { removeOwned, snapshot } from '../../src/artifacts/paths.ts';
 import { reconcileEntryReceipts } from '../../src/runtime/entrypoint.ts';
 
 test('settled reasoning-only truncation gets one same-input successor and reuses its completed reply', async t => {
@@ -104,6 +104,22 @@ test('lost successor intent cannot discard an existing failed successor and star
   await unlink(join(f.root, 'intake-sessions/draft-1-successor-1/intent.json'));
   await assert.rejects(requestDesignDraft({ ...f.options, maxOutputTokens: 16384 }), /successor/i);
   assert.equal(f.bodies.length, 2);
+});
+
+for (const missing of ['intent', 'round']) test(`missing original ${missing} cannot restart past a failed successor`, async t => {
+  const f = await recoveryFixture(t, ['length', 'length', 'draft'], 500_000);
+  await assert.rejects(requestDesignDraft(f.options), /truncated/);
+  await assert.rejects(requestDesignDraft({ ...f.options, maxOutputTokens: 16384 }), /truncated/);
+  const original = join(f.root, 'intake-sessions/draft-1'), successor = `${original}-successor-1`;
+  if (missing === 'intent') await unlink(join(original, 'intent.json'));
+  else await removeOwned(tmpdir(), original);
+  const state = await readFile(join(f.root, 'snapshot.json')), successorFiles = await snapshot(successor);
+  const originalFiles = missing === 'intent' ? await snapshot(original) : undefined;
+  await assert.rejects(requestDesignDraft({ ...f.options, maxOutputTokens: 16384 }), /original.*source.*missing/i);
+  assert.equal(f.bodies.length, 2); assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(state));
+  assert.deepEqual(await snapshot(successor), successorFiles);
+  if (originalFiles) assert.deepEqual(await snapshot(original), originalFiles);
+  else await assert.rejects(readdir(original), { code: 'ENOENT' });
 });
 
 for (const gate of ['allocation', 'request-count']) test(`successor retains the original ${gate} admission gate`, async t => {

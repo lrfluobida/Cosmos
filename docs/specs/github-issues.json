@@ -9638,6 +9638,7 @@
       "planPath": "docs/plans/2026-10-21-intake-truncation-recovery.md",
       "planAuthorized": true,
       "sourceDispatchComment": "https://github.com/lrfluobida/Cosmos/issues/111#issuecomment-6297155205",
+      "priorReviewCommit": "41e4a8f7f782158e3c5ba3f5d429e64c2edd57f5",
       "sourceReviewStatus": "pending",
       "verificationIndex": ".cosmos/cos110/verification-index.json",
       "actualAuthorized": false,

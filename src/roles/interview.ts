@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createPiSession } from '../providers/pi.ts';
 import type { PiSessionOptions } from '../providers/pi.ts';
@@ -48,7 +48,6 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
   const modeContext = state.draftMode ? { draftMode: state.draftMode, preparation: { ...preparationContract(state.draftMode), acceptance: preparationAcceptance(state.draftMode) } } : {};
   let root = join(controller.root, 'intake-sessions', options.roundId);
   let intent: Record<string, unknown> = { formatVersion: 1, runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...(options.capabilities ? { capabilities: options.capabilities } : {}), ...modeContext };
-  await mkdir(root, { recursive: true });
   const recorded = await optionalJson(join(root, 'intent.json'));
   if (recorded !== null) {
     if (!sameValue(recorded, intent)) throw new Error('Interview input identity changed; reuse requires the exact original input.');
@@ -68,6 +67,11 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
     }
     const existing = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
     if (existing.length) throw new Error('Draft successor source is missing; existing files cannot authorize another request.');
+    await mkdir(root, { recursive: true });
+  } else {
+    const existing = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
+    const successor = await lstat(`${root}-successor-1`).then(() => true, (error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return false; throw error; });
+    if (existing.length || successor) throw new Error('Original interview source is missing; existing records cannot authorize a new request.');
     await mkdir(root, { recursive: true });
   }
   await publishReceipt(join(root, 'intent.json'), intent);
