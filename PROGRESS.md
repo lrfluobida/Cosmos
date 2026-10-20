@@ -4,7 +4,7 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-COS112 最终源码 `64c3b86d33291f1468bb5f1b5477c03e58f5aacc` 经 `ordinary_plan_reviewer` 整卡 `APPROVED_SOURCE_SCOPED`、无P1/P2，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6300871891)后，唯一merger `public_agent_batch_merger` 合入 `4c3129693881b80a62b17de7ff40513718094a6b`。B为 `source-integrated / open-awaiting-public-close`、父未勾选，A源码范围closed保持；总任务112、根直接100、COS18六子完成五、整体open/partial。新建普通运行默认已接通 `ordinary-design/1`，旧origin保持原解释，不迁移已确认运行。下列A及设计阶段记录保留当时状态。
+COS112 最终源码 `64c3b86d33291f1468bb5f1b5477c03e58f5aacc` 经 `ordinary_plan_reviewer` 整卡 `APPROVED_SOURCE_SCOPED`、无P1/P2，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6300871891)后，唯一merger `public_agent_batch_merger` 合入 `4c3129693881b80a62b17de7ff40513718094a6b`。B为 `source-integrated / source-scoped-complete`；[公开关闭](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6301088072)的 `closed(completed)` 与父勾选[x]已由Root精确读回，A源码范围closed保持。总任务112、根直接100、COS18六个源码子项均完成，整体仍open/partial。新建普通运行默认已接通 `ordinary-design/1`，旧origin保持原解释，不迁移已确认运行。下列A及设计阶段记录保留当时状态。
 
 COS112 在原design任务/时钟内捕获主设计与执行验收计划；art、模块、coding、恢复和晋级核验原确认、固定capture及设计独审回执，普通/persistent/媒体/采样/classic consumer使用同一计划。初审 `9163191` 的唯一P2已闭合：完成读取和体验批准的门禁由已核验ordinary确认决定，报告自报旧capability或删除plan binding仍拒绝。作者affected8/8、0skip、61396.3671ms，旧体验stdin1/1、5156.8454ms；迁移原保存/重开提示后persistent1/1、16258.172ms。原23/23、legacy7/7与类型修正continuation1/1只按无变化范围复用，不累计。原始索引 `.cosmos/cos112-evidence/verification-index.json`。
 
