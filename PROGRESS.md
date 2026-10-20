@@ -1,6 +1,15 @@
 # Cosmos 进度
 
-更新时间：2026-10-18
+更新时间：2026-10-20
+
+## 当前继续通用游戏开发 agent 能力
+
+Cosmos 是可扩展的游戏开发 agent，PvZ 是首个完整验收目标。当前停止逐张参考截图推进，补公开普通游戏流程中的可执行缺口；已有参考事实和通过证据保留并复用。
+
+- [COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108) 公开新建运行的预算与时限选择：普通 `new` 可选择原硬帽内的小额预算与较短时长，沿原 intake 单账本和时钟；[短计划](docs/plans/2026-10-20-public-run-limits.md)待独立审查，源码尚未实施。专职作者 `agent_product_flow_assessment`。
+- [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 公共通用验收的共享清理时间：由专职作者 `agent_runtime_gap_assessment` 单独计划和实现，处理普通路径清理每项固定 1 秒的已见缺口；本登记不宣称其源码或测试结果。
+- 两项已由 Root 原生挂父 [COS18 / #19](https://github.com/lrfluobida/Cosmos/issues/19)，父直接子项 2、完成 0，根直接子项仍 100，总任务 108；均 open、父勾选为空。基线 `fbacdf5a91c79ebeb299435341c55a2f43ce95ac`，各自作者与独立 reviewer 分离，只有本批单一 merger 集成推送。
+- 本批当前仅计划与登记，未启动模型、浏览器、付费生成或 C16；共享 ¥150、正式 ¥200/12h 硬帽及 ¥100/6h 优化目标保持。
 
 ## COS01变身茄子图鉴文字补证已审集成
 

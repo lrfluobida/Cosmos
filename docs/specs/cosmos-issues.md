@@ -1,12 +1,14 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-20 当前工作：继续开发可扩展的通用游戏开发 agent，PvZ 仅为首个完整验收目标，停止逐张参考截图推进。[COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108) 与 [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 已由 Root 原生挂父 [COS18 / #19](https://github.com/lrfluobida/Cosmos/issues/19)，父直接子项 2、完成 0；根直接子项仍 100，总任务 108。两项计划先独审、源码后实施，均 open；下列较早状态按记录当时范围保留。
+
 2026-10-17最新实际状态：C16单次actual中断，v1 build通过/start21步20通过1失败，原repair v2 build通过但仅plan、无report。COS103受审维护恢复两把旧锁后，原main2f API于`08:38:18.674Z`记录真实now的deadline stop并close；原2026-10-16 deadline保持。closure22后revision3334、120 closures/22 audits，C16 51请求/1265722µ、shared766请求/18166722µ、reserved/unknown0，释放未用分配19734278µ。最终独立后核PASS，Root解冻；COS103源码已合入main `402cfb56`，源码与结果已发布至`376d893b7ae109595cf21f85d5b6f7504e887440`，#104 closed(completed)及父恢复子项勾选已由Root核证。C16仍consumed/incomplete、#103 open/父未勾选，220/62、review/promotion、原deadline内clean final、COS16/COS18、完整经典和human未通过，无新paid/重跑授权。见[C16研究记录](../research/2026-10-17-cos102-interrupted-actual.md)及[公开结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6231925268)。
 
 2026-10-16实际状态（历史）：C15生产715只读preflight通过并独审；固定源码`ea4876a`的单次launcher在claim后约1.814秒被私有UTC守卫误杀，failed/consumed，新增请求与费用0、无生成产物。原API已manual stop并单次closure21，revision3117、115 closures/21 audits，释放¥21、共享未分配¥57.911425；715请求、共享settled¥16.901000含prior¥0.721771、reserved/unknown0与旧组余额¥1.707937保持。独审`POSTCHECK_C15_CLOSED_NO_LIVE_RESIDUE`通过，Root已解冻main并精确读回[公开闭账结果](https://github.com/lrfluobida/Cosmos/issues/102#issuecomment-6211338359)。空账务恢复目录没有游戏、result或candidate；C15不重开，#102仍open，COS16/COS18、完整经典与human未完成。见[C15研究记录](../research/2026-10-16-cos101-c15-watchdog.md)。
 
 2026-10-15实际状态（历史）：C14已在冻结版本 `b20e9a43` 实际运行并failed，身份已消费：41分13.754秒、35次请求全部settled，新增¥0.792063，共享累计¥16.901000，unknown/reserved为0。运行时作者生成10文件35,771字节，与末次成功自检、capture、candidate v1及正式构建输入逐字节一致；三次自检失败/通过/通过，正式TypeScript/Vite退出0，814ms仅为Vite时间。持久浏览器首段15秒启动超时，21步全部skipped，未记录session、PID/exit为null，不能证明历史OS spawn；coding review仍pending，无repair/accepted/human。原锁首次归档调用因PID复用在写入前拒绝；独审精确代际守卫后实际归档一次，原字节/mtime与文件身份保持，失败及清理证据不足结论保留。closure20已一次执行并独立核对，revision3114、22stopped/14delegations/110closed/20audits，释放及组可分配¥1.707937；原费用、历史和补充分配保持。Root已解除main冻结。详见[C14研究记录](../research/2026-10-15-transfer-c14-browser-launch.md)。COS90/COS91保持源码范围closed，COS16/COS18仍partial/open，完整经典与human未完成；旧snapshot与actual NONE保留为阶段历史。
 
-状态：2026-10-17 更新。[根 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 保持100个直接原生子任务；COS16/[#17](https://github.com/lrfluobida/Cosmos/issues/17)另有2个直接子任务COS101/COS102，COS102/[#103](https://github.com/lrfluobida/Cosmos/issues/103)另有1个直接子任务COS103，任务总数103，均已由Root核实。[发布映射](github-issues.json)分别记录根直接子项计数和总任务数；各任务按自身范围验收。
+状态：2026-10-20 更新。[根 issue #1](https://github.com/lrfluobida/Cosmos/issues/1) 保持100个直接原生子任务；COS16另有COS101/COS102，COS102另有COS103，COS14另有COS104，COS01另有COS105/COS106，COS18另有COS107/COS108，任务总数108，均已由Root核实。[发布映射](github-issues.json)分别记录根直接子项计数和总任务数；各任务按自身范围验收。
 
 补充任务：[COS-18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 承接原 R4/R11 已确认的需求访谈与 Windows CLI 入口要求，A/B 已部分集成，整体验收与缺口仍保持 open。[COS-19 / #20](https://github.com/lrfluobida/Cosmos/issues/20) 承接原 R4/R5/R12，修复真实失败暴露的角色交接格式、截断诊断与输出配置；当前离线实施，不改变范围或预算。
 
@@ -1630,6 +1632,22 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 全植物及VALUE-PLANTS整项needs_reference、230/221/9与provisional/未冻结保持；显示费用不证明实际扣费、冷却、伤害、解锁、名册闭合或完整classic。0模型0新增费用，无runtime/validator/测试/依赖改动，无新实际生成或C16操作；原共享¥150/正式¥20012h/目标¥1006h与COS01/fullclassic/human未完成不变。
 
 稳定任务 ID：COS-106
+
+### COS-107 · 公开新建运行的预算与时限选择
+
+[COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108)，id5942413576，原生父COS18/#19，open、父未勾选。基线 `fbacdf5a91c79ebeb299435341c55a2f43ce95ac`；专职作者 `agent_product_flow_assessment`，独立 reviewer 与单一 merger 由 Root 安排。[短计划](../plans/2026-10-20-public-run-limits.md)待独立审查，源码尚未实施。
+
+公开 `new` 增加可选 `--max-cny`（正数、最多6位小数、≤200）及 `--max-minutes`（整数1..720），默认200/720。非法、重复和超帽参数在副作用前拒绝；原 intake 保存限额与来源，访谈和规划各按总额5%向下取整，极小额度不提额。确认、恢复和追加沿原限额与唯一时钟；显示实际选择，旧默认公共记录兼容。复用现有控制器和预算机制，必要测试覆盖参数、比例、来源与恢复，无新框架或固定case。
+
+本卡只做源码及免费验证，不启动真实模型、浏览器或付费生成；共享验证预算与正式硬帽保持。稳定任务 ID：COS-107。
+
+### COS-108 · 公共通用验收的共享清理时间
+
+[COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109)，id5942414795，原生父COS18/#19，open、父未勾选。基线同上；专职作者 `agent_runtime_gap_assessment` 独立计划与实现，独立 reviewer 与单一 merger 由 Root 安排。本登记仅记录已注册范围，不宣称实现或验证结果。
+
+普通验收当前每项清理固定1000ms，已有1500ms录像停止的确定性失败用例。目标是在原执行deadline内共享一次清理余额，覆盖正常关闭、证据保存及退出确认并保留强制清理余量；足额时正常1500ms停止可完成，挂起、取消、到限和未确认退出仍明确失败或未完成。保留原native validation范围，不搬入固定case权限，不延长运行、自动重试或绕过独审/晋级。
+
+计划先独审、后实施；只运行必要免费源码和公共caller代表，复用无delta证据，不重跑C16或付费生成。稳定任务 ID：COS-108。
 
 ## 5. 任务与上下文包模板
 
