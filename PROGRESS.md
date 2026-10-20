@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS112 作者源码候选已完成免费定向检查，分支 `codex/ordinary-design-execution` 已吸收 A 发布主线 `be01bf8ee35c5603e999826c79815c6d9961cf85`，待 `ordinary_plan_reviewer` 独立源码审查。新普通设计在原任务/时钟内生成同 capture 的主设计与验收计划；art、模块、coding、恢复与晋级核验完整原确认和设计独审回执，实际普通/persistent/媒体/采样/classic consumer 使用捕获计划。候选已接通 `ordinary-design/1` 新建默认，尚未发布；旧来源解释保持。新增组23/23、0skip、136705.6438ms，旧路径短代表7/7、0skip、44691.0197ms；测试stop参数类型修正后continuation affected1/1、12540.3605ms，重叠结果不相加。typecheck/build及新增测试strict均exit0；原始索引 `.cosmos/cos112-evidence/verification-index.json`。仅TEMP受控角色/browser输出，真实模型、浏览器、共享账本和旧关闭run均未执行；随机观察决策与时间区间仍未支持，完整经典与human未完成。
+
 COS111 最终源码 `285144d242b74afec815b874512d3195cba5d65e` 经 `ordinary_intake_spec_reviewer` 整卡 `APPROVED_SOURCE_SCOPED`、无P1/P2，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6299663061)后，唯一merger `public_agent_batch_merger` 合入 `85e97a75270c7405ad34106914738dfcdc41e2ae`。A为 `source-integrated / source-scoped-complete`；[公开关闭](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6299850732)的 `closed(completed)` 与父勾选[x]已由Root精确读回。B仍在源码实施，设计后执行接线与生产默认切换尚未完成。总任务112、根直接100、COS18六子完成五，整体仍open/partial。下列设计阶段记录按当时状态保留。
 
 Cosmos 是可扩展的游戏开发 agent，PvZ 是首个完整验收目标。当前停止逐张参考截图推进，补公开普通游戏流程中的可执行缺口；已有参考事实和通过证据保留并复用。

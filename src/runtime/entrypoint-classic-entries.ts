@@ -6,7 +6,7 @@ import type { ArtifactReference, RequirementContract, TaskContract } from '../co
 import type { ArtifactRegistry } from '../artifacts/index.ts';
 import { directory, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
 import { sameValue } from '../contracts/validation.ts';
-import type { BrowserGameDraft } from '../roles/requirements.ts';
+import type { BrowserGameDraft, OrdinaryGameDraft, BrowserScenario } from '../roles/requirements.ts';
 import { gameplayAcceptance } from '../roles/requirements.ts';
 import type { AcceptancePlan } from '../acceptance/plan.ts';
 import type { AcceptanceReport } from '../acceptance/runner.ts';
@@ -48,10 +48,12 @@ function requirePng(bytes: Buffer) {
 }
 
 export async function createClassicEntryScope(input: { root: string; registry: ArtifactRegistry; requirement: RequirementContract;
-  draft: BrowserGameDraft; requirementCapture: ArtifactReference; referenceRefs: ArtifactReference[]; sourceRoot?: string; resume: boolean }) {
+  draft: BrowserGameDraft | OrdinaryGameDraft; requirementCapture: ArtifactReference; referenceRefs: ArtifactReference[]; sourceRoot?: string; resume: boolean;
+  scenario?(design: ArtifactReference): Promise<BrowserScenario> }) {
   const { root, registry, requirement, requirementCapture, referenceRefs } = input, draft = structuredClone(input.draft), selection = draft.classicEntry!;
   const source = await requireClassicEntrySelection(selection, input.sourceRoot), refs: ArtifactReference[] = [];
   const gameplayIds = gameplayAcceptance(draft).map(row => row.acceptanceId);
+  const viewportFor = async (design: ArtifactReference) => draft.ordinaryProfile ? (await input.scenario!(design)).viewport : draft.scenario.viewport;
   if (selection.measurement) {
     const ref = registry.artifactRef('classic-entry-reference-evidence', 'v1'), folder = 'host-classic-entry-reference';
     if (!input.resume) {
@@ -77,7 +79,7 @@ export async function createClassicEntryScope(input: { root: string; registry: A
   const designPlan = async (design: ArtifactReference) => {
     await requireCurrent(); await registry.getCapture(design);
     const mapping = decode(await regularFile(root, `${design.location}/${SIDECAR}`));
-    validateClassicEntryPlan(mapping, selection, gameplayIds, draft.scenario.viewport); return mapping;
+    validateClassicEntryPlan(mapping, selection, gameplayIds, await viewportFor(design)); return mapping;
   };
   const expectedMapping = async (task: TaskContract, candidate: ArtifactReference, design: ArtifactReference) => ({ formatVersion: 'classic-entry-mapping/1',
     selection, reference: referenceRefs[0], catalog: referenceRefs[1], evidence: refs, requirement: requirementCapture, design, candidate,
@@ -92,7 +94,10 @@ export async function createClassicEntryScope(input: { root: string; registry: A
   await requireCurrent();
   return {
     refs, selection, requireCurrent,
-    validatePlan(value: unknown) { validateClassicEntryPlan(value, selection, gameplayIds, draft.scenario.viewport); },
+    validatePlan(value: unknown, viewport = draft.ordinaryProfile ? undefined : draft.scenario.viewport) {
+      if (!viewport) throw new Error('Captured ordinary plan viewport is required.');
+      validateClassicEntryPlan(value, selection, gameplayIds, viewport);
+    },
     async captureMapping(task: TaskContract, candidate: ArtifactReference, design: ArtifactReference) {
       if (!selection.measurement) { await requireCurrent(); return []; }
       const mapping = await expectedMapping(task, candidate, design), ref = mappingRef(candidate), folder = `host-classic-entry/${candidate.artifactId}-${candidate.version}`;
@@ -105,7 +110,7 @@ export async function createClassicEntryScope(input: { root: string; registry: A
     async bindExecution(task: TaskContract, candidate: ArtifactReference, design: ArtifactReference, project: string, url: string): Promise<Execution> {
       const mapping = await requireMapping(task, candidate, design), fixedCandidate = await registry.getCandidate(candidate), files = await snapshot(project);
       const plan = createClassicEntryPlan(mapping.sidecar, selection, gameplayIds, { projectId: 'game', taskId: task.taskId, runId: task.runId,
-        specVersion: task.specVersion, artifact: candidate, reportId: `${task.taskId}-classic-entry`, viewport: draft.scenario.viewport, url });
+        specVersion: task.specVersion, artifact: candidate, reportId: `${task.taskId}-classic-entry`, viewport: await viewportFor(design), url });
       return { plan, current: async () => { await requireMapping(task, candidate, design);
         if (!sameValue(await registry.getCandidate(candidate), fixedCandidate) || !isDeepStrictEqual(await snapshot(project), files)) throw new Error('Classic entry current candidate bytes changed.'); } };
     },

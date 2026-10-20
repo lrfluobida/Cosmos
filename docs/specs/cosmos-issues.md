@@ -1699,6 +1699,8 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-112 · 普通设计后的验收计划与公开入口接线
 
+作者源码候选已接通，尚待 `ordinary_plan_reviewer` 独审和唯一merger发布，issue保持open。基于A发布主线 `be01bf8ee35c5603e999826c79815c6d9961cf85`；主设计采用game-design/2与完整体验映射，同capture固定ordinary-acceptance-plan/1，原独审来源与journal回执保护3/5任务、v2、冷恢复和显式续跑。普通coding reviewer获得实际browser.json，最终报告绑定固定计划与candidate；已完成读回复用静态来源/签名，不借活跃执行权，原deadline后仍可只读返回。候选中的新建默认已切到ordinary-design/1，主线尚未发布。新增23/23、旧代表7/7、类型修正affected continuation1/1均0skip，typecheck/build/tests strict0；重叠结果不相加，原始索引 `.cosmos/cos112-evidence/verification-index.json`。原缺文件/无效JSON/漏AC的code_defect与唯一设计successor保持；能力/可信源不足仍阻止下游。真实模型/browser/paid为0，完整经典、性能与human结论不提升。
+
 [COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113)，id5947317368，原生父 COS18/#19，open / design-integrated / source-implementation；依赖COS111批准接口，生产默认未切。作者 `ordinary_plan_implementer`，设计独审 `ordinary_intake_spec_reviewer`，源码reviewer由Root分配，唯一merger `public_agent_batch_merger`。设计 `c4dcb56fc625322232733f44e4a63e0a34b3b406` 已获 `APPROVED_DESIGN` 和Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6298549546)，文档合入 `b58ae7c44328a0aae8392f982e2ea164b9b6d3af`。
 
 范围：原 design 任务在生成时钟内输出计划，host 检查并 capture，独立 design review 通过后下游与实际 consumer 使用同一固定版本。保留三/五任务、modular、采样、save/reopen 及原恢复/返工边界。计划 helper 复用 preparation 的职责分法，不采用固定 cos16 模式。组合就绪后才切新默认，旧 origin 保持原解释。

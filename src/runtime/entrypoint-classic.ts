@@ -6,7 +6,7 @@ import type { ArtifactReference, RequirementContract, TaskContract } from '../co
 import type { ArtifactRegistry, Capture } from '../artifacts/index.ts';
 import { directory, regularFile, snapshot } from '../artifacts/paths.ts';
 import { sameValue } from '../contracts/validation.ts';
-import type { BrowserGameDraft } from '../roles/requirements.ts';
+import type { BrowserGameDraft, OrdinaryGameDraft, BrowserScenario } from '../roles/requirements.ts';
 import type { GenericPersistentAcceptanceSeries, PersistentAcceptanceReport } from '../acceptance/persistent.ts';
 import { verifyPersistentSegmentEvidence } from '../acceptance/persistent.ts';
 import { createGenericPersistentSeries, verifyGenericPersistentEvidence } from './entrypoint-persistent.ts';
@@ -42,9 +42,13 @@ interface Execution { series: GenericPersistentAcceptanceSeries; ready: { pid: n
 
 /** Only the host reads the source catalog and binds the original confirmed inputs. */
 export async function createClassicPolicyScope(input: { root: string; registry: ArtifactRegistry; requirement: RequirementContract;
-  draft: BrowserGameDraft; requirementCapture: ArtifactReference; resume: boolean; sourceRoot?: string }) {
+  draft: BrowserGameDraft | OrdinaryGameDraft; requirementCapture: ArtifactReference; resume: boolean; sourceRoot?: string; scenario?(design: ArtifactReference): Promise<BrowserScenario> }) {
   const { root, registry, requirement, requirementCapture } = input, draft = structuredClone(input.draft);
-  if (draft.benchmark !== 'classic-pc-runtime-policy/1' || !draft.scenario.reopen) throw new Error('Classic policy selection or normal reopen is missing.');
+  if (draft.benchmark !== 'classic-pc-runtime-policy/1' || (draft.ordinaryProfile ? !input.scenario : !draft.scenario.reopen)) throw new Error('Classic policy selection or normal reopen is missing.');
+  const scenario = async (design: ArtifactReference) => {
+    const value = draft.ordinaryProfile ? await input.scenario!(design) : draft.scenario;
+    if (!value.reopen) throw new Error('Classic policy requires the fixed normal reopen plan.'); return value;
+  };
   const bytes = await Promise.all(['reference', 'catalog'].map(name => regularFile(input.sourceRoot ?? classicReferenceRoot, `${name}.json`)));
   const [reference, catalog] = bytes.map(decode), source = 'host-classic-policy';
   const refs = ['reference', 'catalog'].map(name => registry.artifactRef(`classic-policy-${name}`, 'provisional-v1'));
@@ -66,12 +70,12 @@ export async function createClassicPolicyScope(input: { root: string; registry: 
     if (!sameValue(decode(await regularFile(root, requirement.sources[0].location)), draft)) throw new Error('Confirmed classic draft selection changed.');
   };
   const mappingRef = (candidate: ArtifactReference) => registry.artifactRef(`classic-policy-mapping-${candidate.artifactId}`, candidate.version);
-  const expectedMapping = (task: TaskContract, candidate: ArtifactReference, design: ArtifactReference): Mapping => ({ formatVersion: 'classic-policy-mapping/1',
+  const expectedMapping = async (task: TaskContract, candidate: ArtifactReference, design: ArtifactReference): Promise<Mapping> => ({ formatVersion: 'classic-policy-mapping/1',
     selection: draft.benchmark, referenceId: reference.referenceId, reference: refs[0], catalog: refs[1], requirement: requirementCapture, design, candidate,
-    taskId: task.taskId, runId: task.runId, specVersion: task.specVersion, scenario: structuredClone(draft.scenario), mappings: structuredClone(policies) });
+    taskId: task.taskId, runId: task.runId, specVersion: task.specVersion, scenario: structuredClone(await scenario(design)), mappings: structuredClone(policies) });
   const requireMapping = async (task: TaskContract, candidate: ArtifactReference, design: ArtifactReference) => {
     await requireReference();
-    const ref = mappingRef(candidate), capture = await registry.getCapture(ref), expected = expectedMapping(task, candidate, design);
+    const ref = mappingRef(candidate), capture = await registry.getCapture(ref), expected = await expectedMapping(task, candidate, design);
     if (capture.taskId !== task.taskId || !sameValue(capture.dependencies, [...refs, requirementCapture, design])) throw new Error('Classic mapping capture dependencies changed.');
     const mapping = decode(await regularFile(root, `${ref.location}/_cosmos/classic/mapping.json`));
     const errors = await inspectClassicMapping(reference, catalog, mapping, expected); if (errors.length) throw new Error(errors.join('; '));
@@ -81,7 +85,7 @@ export async function createClassicPolicyScope(input: { root: string; registry: 
   return {
     refs,
     async captureMapping(task: TaskContract, candidate: ArtifactReference, design: ArtifactReference) {
-      await requireReference(); const mapping = expectedMapping(task, candidate, design), errors = await inspectClassicMapping(reference, catalog, mapping, mapping);
+      await requireReference(); const mapping = await expectedMapping(task, candidate, design), errors = await inspectClassicMapping(reference, catalog, mapping, mapping);
       if (errors.length) throw new Error(errors.join('; '));
       const ref = mappingRef(candidate), folder = await directory(root, `${source}/${candidate.artifactId}-${candidate.version}`);
       await publishReceipt(join(folder, 'mapping.json'), mapping);
@@ -107,7 +111,7 @@ export async function createClassicPolicyScope(input: { root: string; registry: 
       execution?: Execution; report?: PersistentAcceptanceReport; signal: AbortSignal; requireCurrent(): Promise<void> }) {
       const { task, candidate, execution, report } = value, path = `evidence/${task.taskId}/classic-policy.json`, issues: string[] = [];
       let startup: PolicyOutcome = 'insufficient_evidence', offline: PolicyOutcome = 'insufficient_evidence';
-      let binding: Mapping = expectedMapping(task, candidate, value.design), clean: any = null;
+      let binding: Mapping = await expectedMapping(task, candidate, value.design), clean: any = null;
       try {
         await value.requireCurrent(); binding = await requireMapping(task, candidate, value.design); await execution?.current();
         const built = decode(await regularFile(root, `evidence/${task.taskId}/build.json`));

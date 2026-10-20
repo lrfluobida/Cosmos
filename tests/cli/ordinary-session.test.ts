@@ -3,14 +3,11 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { mkdtemp, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { PassThrough, Readable } from 'node:stream';
 import test from 'node:test';
 import { removeOwned } from '../../src/artifacts/paths.ts';
 import { runProductSession, readConfirmedGeneration } from '../../src/cli/session.ts';
-import { createProductHost } from '../../src/runtime/entrypoint-host.ts';
-import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { ordinaryDraft, profile, brief, questions } from '../roles/ordinary.fixture.ts';
 import { validateGameDraft, withHostStages } from '../../src/roles/requirements.ts';
 import { proposal as legacyProposal } from '../roles/interview-recovery.fixture.ts';
@@ -138,14 +135,6 @@ for (const changed of ['origin', 'answer', 'draft', 'confirmation', 'profile-sou
     await writeFile(path, JSON.stringify(value), 'utf8');
   }
   await assert.rejects(readConfirmedGeneration(f.root, state), /profile|source|draft|answer|confirmation/i);
-});
-test('production host does not advertise or execute the unconnected ordinary profile', async t => {
-  const f = await ordinarySession(t, '点亮三个目标。\ncancel\n');
-  const repository = dirname(dirname(dirname(fileURLToPath(import.meta.url)))), host = createProductHost(repository);
-  assert.equal(host.ordinaryProfile, undefined);
-  assert.equal((await host.prepare(f.root)).executionReady, false);
-  await assert.rejects(executeGeneration({ root: f.root, draft: ordinaryDraft(), requirement: {} as any, resume: false,
-    async createHost() { throw new Error('Must not construct a host'); } }), /ordinary.*(connected|ready)|unconnected/i);
 });
 test('actual process stdin confirms the displayed ordinary revision without authorizing production execution', async t => {
   const root = await mkdtemp(join(tmpdir(), 'cos111-stdin-')); t.after(() => removeOwned(tmpdir(), root));

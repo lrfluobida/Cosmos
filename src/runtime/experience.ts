@@ -27,6 +27,7 @@ interface Report {
   formatVersion: 'generation-report-1'; reportedAt: string; automaticAcceptance: 'passed' | 'not_passed';
   outcome: string; runId: string; ledgerId: string; windowId: string | null; delivery?: string; gaps: string[];
   acceptedCandidate?: AcceptedCandidate; acceptanceScope: Scope; effectiveTasks: ReturnType<typeof deliveryTaskProofs>;
+  ordinaryExecution?: unknown;
   requiresCompletionTiming?: true;
 }
 export interface ExperienceBinding {
@@ -120,6 +121,10 @@ export async function loadExperienceBinding(root: string): Promise<ExperienceBin
   if (!authorTask || authorTask.authorId !== candidate.authorId || authorTask.context.contextId !== candidate.contextId
     || !authorTask.artifacts.some(ref => sameValue(ref, accepted.candidateRef)) || authorTask.review.reviewerId !== review.reviewerId
     || authorTask.review.contextId !== review.contextId || !sameValue(authorTask.review.evidenceIds, review.evidenceIds)) throw new Error('Candidate author and independent task review do not match the automatic report.');
+  if (report.acceptanceScope.capability === 'ordinary-design-execution/1') {
+    const { verifyOrdinaryDelivery } = await import('./entrypoint-acceptance-plan.ts');
+    await verifyOrdinaryDelivery(root, state as RunSnapshot, authorTask, accepted.candidateRef, report.ordinaryExecution);
+  }
   const scopeIds = report.acceptanceScope.acceptance.map(item => item.acceptanceId), taskIds = (tasks as TaskContract[]).flatMap(task => task.acceptanceIds);
   if (new Set(scopeIds).size !== scopeIds.length || scopeIds.some(id => !taskIds.includes(id)) || taskIds.some(id => !scopeIds.includes(id))) throw new Error('Automatic report acceptance scope does not match the approved tasks.');
   for (const file of candidate.files) {
