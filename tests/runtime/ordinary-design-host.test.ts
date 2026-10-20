@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFile, rename } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 import { readConfirmedGeneration } from '../../src/cli/session.ts';
 import { readRunSnapshot } from '../../src/cli/control.ts';
-import { readCompletedGeneration } from '../../src/runtime/experience.ts';
+import { loadExperienceBinding, readCompletedGeneration } from '../../src/runtime/experience.ts';
 
 for (const modular of [false, true]) test(`ordinary ${modular ? 'five' : 'three'} task generation consumes the independently reviewed captured plan`, async t => {
   const f = await ordinaryHostFixture(t, { modular }), result: any = await f.execute();
@@ -46,15 +47,25 @@ for (const fault of ['missing', 'json', 'coverage']) test(`ordinary ${fault} pla
   assert.equal(result.ordinaryExecution.design.version, 'v2'); assert.equal(f.plays.length, 1);
   assert.equal(state.ledger.limitMicroCny, 200000000); assert.deepEqual(state.ledger.entries, []);
 });
-test('completed ordinary recovery refuses a missing original design approval receipt', async t => {
+test('completed ordinary recovery refuses a missing original design approval receipt and report downgrade', async t => {
   const f = await ordinaryHostFixture(t), result: any = await f.execute(); assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
   const state: any = await readRunSnapshot(f.root), { requirement } = await readConfirmedGeneration(f.root, state);
   const before = await readFile(join(f.root, 'snapshot.json')), path = join(f.root, 'journal/task-design-task/review-started.json');
   const now = Date.now; Date.now = () => Date.parse(state.run.originalDeadlineAt) + 60000;
   try { assert.equal((await readCompletedGeneration(f.root, requirement))!.reportedAt, result.reportedAt); }
   finally { Date.now = now; }
+  const markerPath = join(f.root, 'delivery/current-report.json'), markerBytes = await readFile(markerPath), marker = JSON.parse(markerBytes.toString('utf8'));
+  const reportPath = join(f.root, marker.report.location), reportBytes = await readFile(reportPath);
   await rename(path, `${path}.preserved`);
-  await assert.rejects(readCompletedGeneration(f.root, requirement), /ordinary|approval|review|receipt/i);
+  try {
+    await assert.rejects(loadExperienceBinding(f.root), /ordinary|approval|review|receipt/i);
+    await assert.rejects(readCompletedGeneration(f.root, requirement), /ordinary|approval|review|receipt/i);
+    const downgraded = JSON.parse(reportBytes.toString('utf8')); downgraded.acceptanceScope.capability = 'browser-input-media2d-v1'; delete downgraded.ordinaryExecution;
+    const bytes = Buffer.from(JSON.stringify(downgraded)); await writeFile(reportPath, bytes);
+    await writeFile(markerPath, JSON.stringify({ ...marker, sha256: createHash('sha256').update(bytes).digest('hex') }), 'utf8');
+    await assert.rejects(loadExperienceBinding(f.root), /ordinary|capability|profile|approval/i);
+    await assert.rejects(readCompletedGeneration(f.root, requirement), /ordinary|capability|profile|approval/i);
+  } finally { await writeFile(reportPath, reportBytes); await writeFile(markerPath, markerBytes); await rename(`${path}.preserved`, path); }
   assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(before));
 });
 test('ordinary cold recovery reuses approved design and refuses missing plan or approval without redrafting', async t => {

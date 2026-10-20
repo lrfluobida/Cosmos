@@ -121,7 +121,8 @@ export async function loadExperienceBinding(root: string): Promise<ExperienceBin
   if (!authorTask || authorTask.authorId !== candidate.authorId || authorTask.context.contextId !== candidate.contextId
     || !authorTask.artifacts.some(ref => sameValue(ref, accepted.candidateRef)) || authorTask.review.reviewerId !== review.reviewerId
     || authorTask.review.contextId !== review.contextId || !sameValue(authorTask.review.evidenceIds, review.evidenceIds)) throw new Error('Candidate author and independent task review do not match the automatic report.');
-  if (report.acceptanceScope.capability === 'ordinary-design-execution/1') {
+  if (experience.ordinaryConfirmation || report.acceptanceScope.capability === 'ordinary-design-execution/1') {
+    if (!experience.ordinaryConfirmation || report.acceptanceScope.capability !== 'ordinary-design-execution/1') throw new Error('Ordinary delivery capability differs from its original confirmed profile.');
     const { verifyOrdinaryDelivery } = await import('./entrypoint-acceptance-plan.ts');
     await verifyOrdinaryDelivery(root, state as RunSnapshot, authorTask, accepted.candidateRef, report.ordinaryExecution);
   }

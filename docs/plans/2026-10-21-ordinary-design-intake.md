@@ -82,6 +82,10 @@ npm run build
 
 COS112 作者验证：计划/体验映射RED0/3后GREEN3/3；纵向RED命中A未接通阻断；新增只读完成恢复RED确认缺review-started未拒、coding reviewer trace RED确认未获实际normal报告，两项均已GREEN。最终新增三文件23/23、0skip、136705.6438ms，覆盖完整公开默认、3/5任务、媒体/采样、persistent/classic、v2及冷恢复/显式continuation。旧来源/体验/准备模式/普通host/persistent/classic/design-check短代表7/7、0skip、44691.0197ms。测试stop参数类型修正后affected continuation1/1、0skip、12540.3605ms；typecheck/build/tests strict均exit0。以上重叠证据不相加；原始命令、失败与最终输出见 `.cosmos/cos112-evidence/verification-index.json`。测试fixture中的完整媒体扩展、原采样性能独立报告语义保持；仅受控source证据，没有真实模型/browser、共享账本、旧run恢复或实际游戏通过声明。
 
+COS112 独审补丁：`9163191` 的唯一P2是报告自报capability可关闭设计批准门禁。现在由已核验ordinaryConfirmation决定，报告capability必须匹配，新版binding继续核原capture/批准；legacy语义保持。reviewer原TEMP脚本无需生成即可RED→GREEN且snapshot零变；持久降级回归RED0/1，修复后恢复及体验8/8、61396.3671ms，旧体验stdin1/1、5156.8454ms，均0skip；typecheck/build/affected tests strict0。原A体验测试保留清单/来源/candidate/决定断言，夹具复用现有普通生产链，不为测试豁免设计门禁。等待affected独审，未变矩阵不重跑，结果不相加。
+
+同一补丁按Root确认迁移既有reopen提示：每阶段正常点击后核对两处不同可见文本与同一checkpoint expected、两阶段合计覆盖AC、host同profile/origin关进程重开；证据取断言步骤时点，第二阶段其后可继续胜利/重置。没有新增schema或最终状态限制。现有persistent代表1/1、0skip、16258.172ms，最终typecheck/build0；不增加镜像提示字符串测试。
+
 ```powershell
 node --experimental-strip-types --test --test-concurrency=1 tests/runtime/ordinary-acceptance-plan.test.ts tests/runtime/ordinary-design-host.test.ts tests/cli/ordinary-generation.test.ts
 npm run typecheck
