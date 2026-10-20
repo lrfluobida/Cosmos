@@ -20,6 +20,8 @@ import { readFrameSelection, requireCurrentFrameSource, selectRenderFrames } fro
 import type { RenderFrameSelection } from '../runtime/render-frame-selection.ts';
 import { currentModularRepairPolicy, readModularRepairPolicy, requireCurrentModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
 import type { ModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
+import { DEFAULT_RUN_LIMITS, displayRunLimits, requirePreparationRunLimits, requirePublicRunLimits, validateRunLimits } from './run-limits.ts';
+import type { RunLimits } from './run-limits.ts';
 
 export interface ProductHost {
   prepare(root: string, signal?: AbortSignal): Promise<{ environmentReady: boolean; executionReady: boolean; reason?: string }>;
@@ -43,6 +45,7 @@ export async function rejectPreparationContinuation(root: string): Promise<void>
   }
 }
 export async function readConfirmedGeneration(root: string, snapshot: RunSnapshot) {
+  requirePublicRunLimits(snapshot, await optionalJson(root, 'intake-origin.json'));
   const source = snapshot.run.humanDecisions.find(decision => decision.decisionId.startsWith('requirements-v'));
   if (!source || source.evidence.length !== 2 || source.evidence[0].artifactId !== 'requirement-draft' || source.evidence[1].artifactId !== 'user-confirmation') throw new Error('No original CLI requirement confirmation to resume.');
   const draft = await json(root, source.evidence[0].location), confirmed = await json(root, source.evidence[1].location);
@@ -90,8 +93,14 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
 }
 
 /** The only confirmation author is actual stdin; model output never reaches this branch. */
-export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; draftMode?: DraftMode; renderFrames?: boolean; host: ProductHost; input: Readable; output: Writable }) {
+export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; host: ProductHost; input: Readable; output: Writable }) {
+  if (options.limits !== undefined) {
+    if (options.command !== 'new') throw new Error('Run limits can only be selected for new.');
+    validateRunLimits(options.limits);
+  }
+  const limits = structuredClone(options.limits ?? DEFAULT_RUN_LIMITS);
   const selectedMode = resolveDraftMode(options.draftMode);
+  if (selectedMode) requirePreparationRunLimits(options.limits);
   if (selectedMode && options.renderFrames) throw new Error('准备模式暂不支持渲染帧采样。');
   if (options.renderFrames !== undefined && typeof options.renderFrames !== 'boolean') throw new Error('Render-frame selection must be boolean.');
   const root = resolve(options.root), { host, output } = options;
@@ -103,7 +112,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   let frames: RenderFrameSelection | undefined;
   let policy: ModularRepairPolicy | undefined;
   const run = async <T>(action: () => Promise<T>): Promise<T> => {
-    if (intake) { const state = await intake.read(); await requireCurrentFrameSource(await readFrameSelection(root, state)); await requireCurrentModularRepairPolicy(await readModularRepairPolicy(root, state)); }
+    if (intake) { const state = await intake.read(); requirePublicRunLimits(state, await optionalJson(root, 'intake-origin.json'), true); await requireCurrentFrameSource(await readFrameSelection(root, state)); await requireCurrentModularRepairPolicy(await readModularRepairPolicy(root, state)); }
     const work = action(); active = work; try { return await work; } finally { if (active === work) active = undefined; }
   };
   let stopping: Promise<void> | undefined;
@@ -126,13 +135,15 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       frames = options.renderFrames ? await selectRenderFrames() : undefined;
       policy = currentModularRepairPolicy();
       intake = await IntakeController.create({ root, runId, ledgerId: `${runId}-budget`, specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 8,
+        ...limits,
         ...(selectedMode ? { draftMode: options.draftMode } : {}),
         ...(frames ? { renderFrames: frames } : {}),
         modularRepairPolicy: policy,
-        allocations: [{ taskId: 'intake', amountMicroCny: 10_000_000 }, { taskId: 'planning', amountMicroCny: 10_000_000 }] });
-      await publishReceipt(join(root, 'intake-origin.json'), { runId, brief: options.brief, ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), modularRepairPolicy: policy });
+        allocations: [{ taskId: 'intake', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }, { taskId: 'planning', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }] });
+      await publishReceipt(join(root, 'intake-origin.json'), { runId, brief: options.brief, ...(options.limits && !selectedMode ? { limits } : {}), ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), modularRepairPolicy: policy });
     } else {
       const snapshot = await readRunSnapshot(root);
+      requirePublicRunLimits(snapshot, await optionalJson(root, 'intake-origin.json'), snapshot.formatVersion === 'intake-1');
       frames = await readFrameSelection(root, snapshot, options.renderFrames);
       policy = await readModularRepairPolicy(root, snapshot);
       if (snapshot.formatVersion === 2) throw new Error('This run has an authorized continuation window; select it explicitly with resume --window <id>.');
@@ -160,8 +171,9 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     }
     process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
     const original = await json(root, 'intake-origin.json'), state = await intake.read();
+    requirePublicRunLimits(state, original, true);
     if (original.runId !== state.run.runId || typeof original.brief !== 'string' || !sameValue(original.draftMode, state.draftMode)) throw new Error('Intake origin does not match the original run mode.');
-    say(`运行 ${state.run.runId}。访谈和生成共享 ¥200 总额；生成确认就绪后开始原 12h 计时。`);
+    say(`运行 ${state.run.runId}。${displayRunLimits({ limitMicroCny: state.ledger.limitMicroCny, durationMs: state.durationMs })}`);
     say('stop 为持久硬停止；resume 只恢复原窗口内未被硬停止的可核实中断。');
     control = await startControl(root, state.run.runId, stop);
     warnings = await startBudgetWarnings(root, say);

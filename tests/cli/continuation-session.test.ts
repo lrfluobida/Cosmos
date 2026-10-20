@@ -39,7 +39,16 @@ test('public continue collects exact stdin confirmation, delivers a first window
   assert.deepEqual(stopped, { runId: state.run.runId, windowId: window.windowId, stopped: true });
   const final = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
   assert.deepEqual(final.run.fees, fees); assert.deepEqual(final.stopReason, f.original.stopReason);
-  await assert.rejects(runCli(['resume', f.root, '--window', window.windowId], { ...streams(), host: f.host }), /持久停止/);
+  // COS63 returns an already verified report without clearing a later durable stop.
+  assert.equal(final.continuation.windows[0].stopReason.code, 'manual');
+  const stoppedSnapshot = await readFile(join(f.root, 'snapshot.json')); let dispatched = 0;
+  const noExecution = async () => { dispatched++; throw new Error('Completed report must not prepare or execute'); };
+  const afterStop: any = await runCli(['resume', f.root, '--window', window.windowId], { ...streams(), host: { ...f.host, prepare: noExecution, execute: noExecution } });
+  assert.equal(afterStop.report, result.report); assert.deepEqual(afterStop.acceptedCandidate, result.acceptedCandidate);
+  assert.equal(afterStop.outcome, 'incomplete'); assert.equal(afterStop.completionTiming.required, true);
+  assert.equal(afterStop.completionTiming.current.status, 'unconfirmed');
+  assert.equal(dispatched, 0); assert.deepEqual(f.calls, calls);
+  assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(stoppedSnapshot), 'Original and window fees, clock and stop records remain byte-identical.');
 });
 
 test('preparation failure never reports an unregistered continuation replacement as superseding the original task', async t => {
@@ -153,4 +162,22 @@ test('a new window task failure retains its one attempt and cannot start automat
   const final = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
   assert.deepEqual(final.tasks, state.tasks); assert.deepEqual(final.ledger, state.ledger); assert.deepEqual(final.continuation, state.continuation);
   await assert.rejects(readFile(join(f.root, 'repair-plan.json')), { code: 'ENOENT' });
+});
+
+test('selected original limits stay distinct from the additional window through completed resume', async t => {
+  const limits = { limitMicroCny: 50_000_000, durationMs: 1_800_000 }, f = await continuationSessionFixture(t, { limits });
+  const result: any = await runCli(args(f.root), { ...streams(id => `confirm ${id}\n`), host: f.host });
+  assert.equal(result.outcome, 'awaiting_user_experience');
+  const snapshot = await readFile(join(f.root, 'snapshot.json')), state = JSON.parse(snapshot.toString('utf8')), window = state.continuation.windows[0];
+  assert.equal(state.ledger.limitMicroCny, limits.limitMicroCny);
+  assert.equal(Date.parse(state.run.originalDeadlineAt) - Date.parse(state.run.originalStartedAt), limits.durationMs);
+  assert.equal(Date.parse(window.deadlineAt) - Date.parse(window.startedAt), 600_000);
+  const calls = [...f.calls];
+  const resumed: any = await runCli(['resume', f.root, '--window', window.windowId], { ...streams(), host: f.host });
+  assert.equal(resumed.outcome, result.outcome); assert.deepEqual(f.calls, calls);
+  assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(snapshot));
+  const path = join(f.root, 'intake-origin.json'), origin = JSON.parse(await readFile(path, 'utf8'));
+  origin.limits.durationMs = 600_000; await writeFile(path, JSON.stringify(origin), 'utf8');
+  await assert.rejects(runCli(['resume', f.root, '--window', window.windowId], { ...streams(), host: f.host }), /Original public run limits/);
+  assert.deepEqual(f.calls, calls); assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(snapshot));
 });

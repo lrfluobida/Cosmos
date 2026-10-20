@@ -103,7 +103,8 @@ for (const mode of ['running', 'validation', 'intake', 'future-format', 'reserve
     f.snapshot.run.fees = { settledMicroCny: 0, reservedMicroCny: 10, unknownRequestIds: mode === 'unknown' ? ['request-1'] : [] };
   }
   await f.save(); const before = await readFile(join(f.root, 'snapshot.json'));
-  await assert.rejects(command(args(f.root)), mode === 'running' ? /尚未硬停止或到期/ : mode === 'reserved' || mode === 'unknown' ? /未知或预留费用/ : /generation|validation|intake|格式/);
+  await assert.rejects(command(args(f.root)), mode === 'future-format' ? { message: 'Invalid formal continuation snapshot.' }
+    : mode === 'running' ? /尚未硬停止或到期/ : mode === 'reserved' || mode === 'unknown' ? /未知或预留费用/ : /generation|validation|intake|格式/);
   assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), before);
 });
 

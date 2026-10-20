@@ -5,6 +5,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { Readable, Writable } from 'node:stream';
 import type { ProductHost } from './session.ts';
+import { parseRunLimits, requirePreparationRunLimits } from './run-limits.ts';
 
 const usage = `Usage:
   cosmos init <path>                 Copy the generic 2D project into an empty directory
@@ -12,6 +13,7 @@ const usage = `Usage:
   cosmos build <path>                Typecheck and build an installed project
   cosmos preview <path> [--port N]   Preview its build at http://127.0.0.1:4173
   cosmos new <run-dir> [--adapter sokoban] --brief <text>  Interview, confirm exact requirements, then generate
+  new [--max-cny N] [--max-minutes N]  Original limits: >0..200 CNY (up to 6 decimals), 1..720 whole minutes
   new/resume/continue [--render-frames true|false]  Select samples; recovery preserves the original choice
   cosmos status <run-dir>           Read the original run identity, cost, deadline and gaps
   cosmos experience <run-dir>       Review the current delivery and record a final stdin playtest decision
@@ -28,8 +30,8 @@ const usage = `Usage:
 Requires Node.js 22.22.2+. After init, run npm ci in the new project.
 init/run-dir/build/preview/status/experience/continue --quote are local and do not call model APIs.
 new/resume/confirmed continue may call native deepseek-flash after host prerequisites pass.
-Intake and original generation share CNY 200; a separately confirmed first window keeps that ledger and records its additions.
-The formal 12-hour clock activates once after exact user confirmation and environment preparation.
+Intake and original generation share the selected limit (default CNY 200); a separately confirmed first window records its additions.
+The formal clock (default 720 minutes) activates once after exact user confirmation and environment preparation.
 Manual stop, budget stop and deadline stop are durable: resume cannot clear them or add time/budget.`;
 
 async function emptyDirectory(path: string): Promise<string> {
@@ -95,9 +97,15 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     return;
   }
   const [command, path, ...supplied] = args;
-  let renderFrames: boolean | undefined;
+  let renderFrames: boolean | undefined, maxCny: string | undefined, maxMinutes: string | undefined;
   const options: string[] = [];
   for (let index = 0; index < supplied.length; index++) {
+    if (supplied[index] === '--max-cny' || supplied[index] === '--max-minutes') {
+      const key = supplied[index], value = supplied[++index];
+      if (command !== 'new' || value === undefined || (key === '--max-cny' ? maxCny !== undefined : maxMinutes !== undefined)) throw new Error(usage);
+      if (key === '--max-cny') maxCny = value; else maxMinutes = value;
+      continue;
+    }
     if (supplied[index] !== '--render-frames') {
       options.push(supplied[index]);
       if (supplied[index] !== '--quote' && supplied[index].startsWith('--') && index + 1 < supplied.length) options.push(supplied[++index]);
@@ -106,6 +114,7 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     if (!['new', 'resume', 'continue'].includes(command) || renderFrames !== undefined || !['true', 'false'].includes(supplied[index + 1])) throw new Error(usage);
     renderFrames = supplied[++index] === 'true';
   }
+  const limits = parseRunLimits(maxCny, maxMinutes);
   const originalFrames = async (root: string) => {
     const { readFrameSelection } = await import('../runtime/render-frame-selection.ts');
     return !!await readFrameSelection(root, await (await import('./control.ts')).readRunSnapshot(root), renderFrames);
@@ -142,12 +151,13 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
       if (key === '--brief') brief = value; else draftMode = 'cos16-input/1';
     }
     if (command === 'new' && (windowId || !brief)) throw new Error(usage);
+    if (draftMode) requirePreparationRunLimits(limits);
     if (draftMode && renderFrames) throw new Error('准备模式暂不支持渲染帧采样；未确认或调用模型。');
     const selectedFrames = command === 'new' ? renderFrames === true : await originalFrames(root);
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)), selectedFrames ? { renderFrames: true } : {});
     if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, renderFrames, host, input: io.input ?? process.stdin, output });
     const { runProductSession } = await import('./session.ts');
-    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, draftMode, renderFrames, host, input: io.input ?? process.stdin, output });
+    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, draftMode, renderFrames, limits, host, input: io.input ?? process.stdin, output });
   }
   if (!path?.trim() || !['init', 'run-dir', 'build', 'preview'].includes(command)
     || (command !== 'preview' && options.length)) throw new Error(usage);

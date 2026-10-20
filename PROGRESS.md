@@ -1,6 +1,16 @@
 # Cosmos 进度
 
-更新时间：2026-10-18
+更新时间：2026-10-20
+
+## 当前继续通用游戏开发 agent 能力
+
+Cosmos 是可扩展的游戏开发 agent，PvZ 是首个完整验收目标。当前停止逐张参考截图推进，补公开普通游戏流程中的可执行缺口；已有参考事实和通过证据保留并复用。
+
+- [COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108) 公开新建运行的预算与时限选择：计划 `d31404c` 经 `public_run_limits_reviewer` 独审 `APPROVED_PLAN_SCOPED`、Root 批准后已实施，源码待独审。普通 `new` 可选择较小限额，原始来源、比例分配、精确显示与恢复核对已接通；准备模式保持原默认限额并在副作用前拒绝非默认值。专职作者 `agent_product_flow_assessment`，见[计划与证据](docs/plans/2026-10-20-public-run-limits.md)。
+- COS107 作者证据：公开参数/真实 stdin 两项先 RED 后通过；公共/session/frame 27/27、最终参数/准备边界6/6（重叠不相加）、原intake15/15、较低原限额追加窗口1/1，typecheck/build均0。caller原66/68的两项旧期望已在基线同样重现，Root批准按既有契约最小校正测试；最终同组串行68/69，剩余停止后只读断言修正后affected1/1，其余68复用，未改相关runtime。中间一次owner夹具失败在隔离及串行中未复现，未宣称根因；全部原输出保留于作者工作树 `.cosmos/cos107/verification-index.json`。
+- [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 公共通用验收的共享清理时间：Root 已批准计划，专职作者 `agent_runtime_gap_assessment` 正在独立实施；本登记不预先声明其源码审批或测试结果。
+- 两项已由 Root 原生挂父 [COS18 / #19](https://github.com/lrfluobida/Cosmos/issues/19)，父直接子项 2、完成 0，根直接子项仍 100，总任务 108；均 open、父勾选为空。基线 `fbacdf5a91c79ebeb299435341c55a2f43ce95ac`，各自作者与独立 reviewer 分离，只有本批单一 merger 集成推送。
+- 本批当前为源码实施与独审，未启动模型、浏览器、付费生成或 C16；共享 ¥150、正式 ¥200/12h 硬帽及 ¥100/6h 优化目标保持。
 
 ## COS01变身茄子图鉴文字补证已审集成
 
