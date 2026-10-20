@@ -6,11 +6,13 @@
 
 Cosmos 是可扩展的游戏开发 agent，PvZ 是首个完整验收目标。当前停止逐张参考截图推进，补公开普通游戏流程中的可执行缺口；已有参考事实和通过证据保留并复用。
 
-- [COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108) 公开新建运行的预算与时限选择：计划 `d31404c` 经 `public_run_limits_reviewer` 独审 `APPROVED_PLAN_SCOPED`、Root 批准后已实施，源码待独审。普通 `new` 可选择较小限额，原始来源、比例分配、精确显示与恢复核对已接通；准备模式保持原默认限额并在副作用前拒绝非默认值。专职作者 `agent_product_flow_assessment`，见[计划与证据](docs/plans/2026-10-20-public-run-limits.md)。
+- [COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108) 公开新建运行的预算与时限选择：作者 `agent_product_flow_assessment` 的 `37db1477b853394aa56d67ec3a17601a91a697d1` 经 `public_run_limits_reviewer` 独审 `APPROVED_SOURCE_SCOPED`，Root [公开批准](https://github.com/lrfluobida/Cosmos/issues/108#issuecomment-6292891803)后由唯一 merger `public_agent_batch_merger` 合入 `083d7d1e3456d93a3763e236c2276d855a5e0e52`。普通 `new` 可选择较小限额，原始来源、比例分配、精确显示与恢复核对已接通；准备模式保持原默认限额并在副作用前拒绝非默认值。见[计划与证据](docs/plans/2026-10-20-public-run-limits.md)。
 - COS107 作者证据：公开参数/真实 stdin 两项先 RED 后通过；公共/session/frame 27/27、最终参数/准备边界6/6（重叠不相加）、原intake15/15、较低原限额追加窗口1/1，typecheck/build均0。caller原66/68的两项旧期望已在基线同样重现，Root批准按既有契约最小校正测试；最终同组串行68/69，剩余停止后只读断言修正后affected1/1，其余68复用，未改相关runtime。中间一次owner夹具失败在隔离及串行中未复现，未宣称根因；全部原输出保留于作者工作树 `.cosmos/cos107/verification-index.json`。
-- [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 公共通用验收的共享清理时间：Root 已批准计划，专职作者 `agent_runtime_gap_assessment` 正在独立实施；本登记不预先声明其源码审批或测试结果。
-- 两项已由 Root 原生挂父 [COS18 / #19](https://github.com/lrfluobida/Cosmos/issues/19)，父直接子项 2、完成 0，根直接子项仍 100，总任务 108；均 open、父勾选为空。基线 `fbacdf5a91c79ebeb299435341c55a2f43ce95ac`，各自作者与独立 reviewer 分离，只有本批单一 merger 集成推送。
-- 本批当前为源码实施与独审，未启动模型、浏览器、付费生成或 C16；共享 ¥150、正式 ¥200/12h 硬帽及 ¥100/6h 优化目标保持。
+- [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 公共通用验收的共享清理时间：作者 `agent_runtime_gap_assessment` 的 `9dde9848310401082d43c00a80f5d0ae3a18ba8a` 经 `generic_cleanup_reviewer` 独审 `APPROVED_COS108_SOURCE_AND_FREE_FIXTURE`，Root [公开批准](https://github.com/lrfluobida/Cosmos/issues/109#issuecomment-6293088097)后合入 `0c187117be32cf9f0058f51426020c1ba3b3b073`。普通 runner 在原截止内共享清理余额；发布超时后继续等待原写入结算，保留超时失败及 owner 跟踪。
+- COS108 复用作者原定向32/32与P2发布修正后6/6（重叠不相加）。首次公共DAG整体0/1、owner关闭失败原因仍unknown；私有ESM加载失败也保留。最终固定 `9dde9848` 的免费观测夹具1/1、exit0、0skip，test23937.393ms/whole29757.5175ms；真实锁定构建、Edge155.0.4283.62的9步输入、干净Node包、注入独审及晋级通过，四launcher exit/close0和原owner四次ESRCH、七PID/匹配进程/端口58940无残留，owner已释放。原输出在作者工作树 `.cosmos/cos108-observer-v1/`；新通过不证明旧失败根因已修复。
+- 组合源码 `0c187117be32cf9f0058f51426020c1ba3b3b073` 的21个变更文件与各自获批来源一致。主线typecheck/build均exit0；CLI短代表3/3、0skip、20469.8809ms，清理短代表4/4、0skip、1483.0408ms。其余无delta矩阵与实际浏览器证据复用，原输出在 `.cosmos/planning/2026-10-20-public-agent-improvements/integration/`。
+- 两项为 `source-integrated / open-awaiting-public-close`，等待Root同步公开关闭与父勾选；父COS18直接子项2、完成0，根直接子项100，总任务108。COS18整体仍open/partial。
+- 本批无真实模型调用、付费生成或C16重跑；免费浏览器夹具的作者/评审为注入，不证明实际通用游戏生成或human通过。共享 ¥150、正式 ¥200/12h 硬帽及 ¥100/6h 优化目标保持。
 
 ## COS01变身茄子图鉴文字补证已审集成
 
