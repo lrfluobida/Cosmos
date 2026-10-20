@@ -15,6 +15,7 @@ import type { OwnedAcceptanceLifecycle } from '../../src/acceptance/runner.ts';
 import type { AcceptancePlan } from '../../src/acceptance/plan.ts';
 
 function deferred() { let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve }; }
+async function flush() { for (let i = 0; i < 30; i++) await Promise.resolve(); }
 interface FixtureOptions {
   server?: 'normal' | 'slow' | 'hung' | 'error'; videoError?: boolean; forcedExit?: boolean;
   timeoutMs?: number; beforeServer?: (base: number) => void;
@@ -32,6 +33,11 @@ async function fixture(t: TestContext, options: FixtureOptions = {}) {
     else { exit(1); callback(null); }
   }) as typeof childProcess.execFile);
   t.mock.method(process, 'kill', ((pid: number, signal: string | number) => {
+    if (signal === 0) {
+      assert.equal(pid, child.pid);
+      if (child.exitCode !== null) throw Object.assign(new Error('Synthetic exited process'), { code: 'ESRCH' });
+      return true;
+    }
     assert.equal(pid, -child.pid); assert.equal(signal, 'SIGKILL'); forced.push({ pid: child.pid, at: Date.now() });
     if (options.forcedExit === false) throw new Error('Synthetic termination not confirmed');
     exit(1); return true;
@@ -84,31 +90,38 @@ test('COS94 normal server close after 1200 ms uses the existing cleanup reserve'
   assert.equal(report.cleanup.processExited, true); assert.equal(Date.now(), f.base + 1200);
 });
 
-test('COS94 hung server close has a 2000 ms local cap even with a long run remainder', async t => {
+test('COS94 hung server close consumes the shared local budget even with a long run remainder', async t => {
   const f = await fixture(t, { server: 'hung', timeoutMs: 60000 }); f.clock();
-  const running = f.run(); await f.enteringServer.promise; t.mock.timers.tick(2000); const report = await running;
-  assert.equal(report.outcome, 'failed'); assert.match(report.errors[0], /Server cleanup: timed out after 2000 ms/);
+  const running = f.run(); await f.enteringServer.promise; t.mock.timers.tick(3500); await flush();
+  t.mock.timers.tick(1000); const report = await running;
+  assert.equal(report.outcome, 'failed'); assert.match(report.errors[0], /Server cleanup: timed out after 3500 ms/);
   assert.equal(report.failureFacts?.termination?.kind, 'lifecycle'); assert.equal(f.forced.length, 1);
-  assert.equal(f.forced[0].at, f.base + 2000); assert.equal(report.cleanup.processExited, true);
-  if (process.platform === 'win32') assert.equal(f.forced[0].timeoutMs, 2000);
+  assert.equal(f.forced[0].at, f.base + 3500); assert.equal(report.cleanup.processExited, true);
+  if (process.platform === 'win32') assert.equal(f.forced[0].timeoutMs, 1000);
   assert.ok(report.files.some(file => file.endsWith('browser.webm'))); assert.ok(report.errors.every(error => !error.includes('Video unavailable')));
 });
 
-test('COS94 original graceful deadline shortens server close and preserves the force reserve', async t => {
-  const f = await fixture(t, { server: 'hung', beforeServer: base => t.mock.timers.setTime(base + 13800) }); f.clock();
-  const running = f.run(); await f.enteringServer.promise; t.mock.timers.tick(200); const report = await running;
+test('COS94 elapsed cleanup shortens server close and preserves the force reserve', async t => {
+  const f = await fixture(t, { server: 'hung', beforeServer: base => t.mock.timers.setTime(base + 3300) }); f.clock();
+  const running = f.run(); await f.enteringServer.promise; t.mock.timers.tick(200); await flush();
+  t.mock.timers.tick(1000); const report = await running;
   assert.equal(report.outcome, 'failed'); assert.match(report.errors[0], /Server cleanup: timed out after 200 ms/);
-  assert.equal(f.forced.length, 1); assert.equal(f.forced[0].at, f.base + 14000);
+  assert.equal(f.forced.length, 1); assert.equal(f.forced[0].at, f.base + 3500);
   if (process.platform === 'win32') assert.equal(f.forced[0].timeoutMs, 1000);
 });
 
-for (const options of [{ timeoutMs: 3000 }, { beforeServer: (base: number, t: TestContext) => t.mock.timers.setTime(base + 15000) }]) {
-  test(`COS94 ${'timeoutMs' in options ? 'empty local reserve' : 'expired original deadline'} does not start a server close wait`, async t => {
-    const f = await fixture(t, { timeoutMs: options.timeoutMs, beforeServer: base => options.beforeServer?.(base, t) }); f.clock();
-    const report = await f.run();
-    assert.equal(report.outcome, 'failed'); assert.match(report.errors[0], /Server cleanup: run deadline reached/);
-    assert.equal(f.order.includes('server'), false); assert.equal(f.forced.length, 1);
-    if (!('timeoutMs' in options) && process.platform === 'win32') assert.equal(f.forced[0].timeoutMs, 1);
+for (const elapsed of [501, 15000]) {
+  test(`COS94 ${elapsed === 501 ? 'empty local reserve' : 'expired original deadline'} does not start a server close wait`, async t => {
+    const f = await fixture(t, { ...(elapsed === 501 ? { timeoutMs: 3000 } : {}), beforeServer: base => t.mock.timers.setTime(base + elapsed) }); f.clock();
+    if (elapsed === 15000) {
+      await assert.rejects(f.run(), /Publish browser.log: run deadline reached/);
+      assert.equal(f.forced.length, 0);
+    } else {
+      const report = await f.run();
+      assert.equal(report.outcome, 'failed'); assert.match(report.errors[0], /Client cleanup: run deadline reached/);
+      assert.equal(f.forced.length, 1);
+    }
+    assert.equal(f.order.includes('server'), false);
   });
 }
 
@@ -134,15 +147,15 @@ test('COS94 unsuccessful forced termination cannot turn an unproven exit into su
   assert.ok(report.errors.some(error => error.includes('Synthetic termination not confirmed')));
 });
 
-test('COS94 persistent cancellation and its 1000 ms cleanup limit remain unchanged', async t => {
+test('COS94 persistent cancellation keeps failure and skips later graceful work', async t => {
   const f = await fixture(t), controller = new AbortController(), closing = deferred(), finish = deferred(); f.clock();
   const lifecycle: OwnedAcceptanceLifecycle = { deadlineAt: f.base + 15000, signal: controller.signal,
     open: async () => ({ browser: f.browser, context: f.context }), process: () => f.child as unknown as ChildProcess,
     close: async () => { closing.resolve(); await finish.promise; }, identity: () => undefined };
   t.after(() => finish.resolve());
   const running = runAcceptanceInOwnedSession(f.plan, f.acceptanceOptions, lifecycle);
-  await closing.promise; controller.abort(); t.mock.timers.tick(1000); const report = await running;
-  assert.equal(report.outcome, 'failed'); assert.match(report.errors[0], /Persistent browser close: timed out after 1000 ms/);
+  await closing.promise; controller.abort(); await flush(); t.mock.timers.tick(4500); const report = await running;
+  assert.equal(report.outcome, 'failed'); assert.match(report.errors[0], /Persistent browser close: acceptance cancelled/);
   assert.ok(report.errors.includes('Acceptance cancelled')); assert.ok(report.errors.some(error => error.includes('Video unavailable')));
   assert.equal(f.order.includes('server'), false); assert.equal(report.cleanup.processExited, false);
 });
