@@ -10,12 +10,19 @@ import { readRunSnapshot } from '../cli/control.ts';
 import { OwnerLock } from './recovery/ownership.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { readCompletionTiming } from './completion-timing.ts';
+import { ordinaryDraftSha256, readOrdinaryProfile } from './ordinary-profile-source.ts';
+import type { ExperienceCriterion, OrdinaryProfile } from '../roles/ordinary-profile.ts';
+import type { RunSnapshot } from './run-types.ts';
 
 const sha256 = (bytes: Buffer | string) => createHash('sha256').update(bytes).digest('hex');
 const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 export const deliveryTaskProofs = (tasks: TaskContract[]) => tasks.map(task => ({ taskId: task.taskId, attemptId: task.attempts.at(-1)?.attemptId ?? null, artifacts: task.artifacts, review: task.review }));
-interface Scope { capability: string; acceptance: RequirementContract['acceptance']; notCovered: string[] }
+interface Scope {
+  capability: string; acceptance: RequirementContract['acceptance']; notCovered: string[];
+  experienceCriteria?: ExperienceCriterion[];
+  ordinaryConfirmation?: { ordinaryProfile: OrdinaryProfile; sources: ArtifactReference[]; draftSha256: string };
+}
 interface Report {
   formatVersion: 'generation-report-1'; reportedAt: string; automaticAcceptance: 'passed' | 'not_passed';
   outcome: string; runId: string; ledgerId: string; windowId: string | null; delivery?: string; gaps: string[];
@@ -31,13 +38,32 @@ interface ExperienceReceipt {
   decision: 'approved' | 'rejected'; source: { kind: 'cli-stdin'; command: 'experience'; rawInput: string };
 }
 
+/** The complete original confirmation is the authority for experience scope, never report/model fields. */
+async function ordinaryExperienceScope(root: string, state: Awaited<ReturnType<typeof readRunSnapshot>>, requirement?: RequirementContract): Promise<Partial<Pick<Scope, 'acceptance' | 'experienceCriteria' | 'ordinaryConfirmation'>>> {
+  const profile = await readOrdinaryProfile(root, { runId: state.run.runId, createdAt: state.events[0].at }, state.formatVersion === 'intake-1' ? state : undefined);
+  if (state.formatVersion === 'intake-1') {
+    if (profile) throw new Error('Ordinary experience requires the original confirmed generation.');
+    return {};
+  }
+  if (!profile && !state.run.humanDecisions.some(row => row.decisionId.startsWith('requirements-v'))) return {};
+  const { readConfirmedGeneration } = await import('../cli/session.ts');
+  const confirmed = await readConfirmedGeneration(root, state as RunSnapshot), draft = confirmed.draft;
+  if (!draft.ordinaryProfile) return {};
+  if (requirement && !sameValue(confirmed.requirement, requirement)) throw new Error('Ordinary report requirement differs from its confirmed source.');
+  return { acceptance: structuredClone(confirmed.requirement.acceptance), experienceCriteria: structuredClone(draft.experienceCriteria), ordinaryConfirmation: {
+    ordinaryProfile: draft.ordinaryProfile, sources: structuredClone(confirmed.requirement.sources),
+    draftSha256: ordinaryDraftSha256(await regularFile(root, confirmed.requirement.sources[0].location)),
+  } };
+}
+
 /** The host already owns the run writer here; publication must not reacquire it. */
 export async function publishGenerationReport<T extends { outcome: string; runId: string; ledgerId: string; windowId?: string }>(root: string, outcome: T, scope: { capability: string; requirement: RequirementContract; unsupported: string[] }) {
+  const experience = await ordinaryExperienceScope(root, await readRunSnapshot(root), scope.requirement);
   await directory(root, 'delivery');
   const version = randomUUID(), report: ArtifactReference = { artifactId: 'automated-delivery-report', version, location: `delivery/report-${version}.json` };
   const value = { ...outcome, formatVersion: 'generation-report-1', reportedAt: new Date().toISOString(), windowId: outcome.windowId ?? null,
     automaticAcceptance: outcome.outcome === 'awaiting_user_experience' ? 'passed' : 'not_passed', finalCompletion: 'pending',
-    acceptanceScope: { capability: scope.capability, acceptance: scope.requirement.acceptance, notCovered: [...scope.unsupported,
+    acceptanceScope: { capability: scope.capability, acceptance: scope.requirement.acceptance, ...experience, notCovered: [...scope.unsupported,
       '仅覆盖上述确认需求及固定正常输入路径；本报告不证明完整经典 PC 基准通过。', '手感、美术辨识度、听感和整体体验由用户最终试玩。'] } };
   await publishReceipt(await safePath(root, report.location), value);
   const marker = { formatVersion: 1, report, sha256: sha256(await regularFile(root, report.location)) }, temporary = `delivery/.current-${randomUUID()}.tmp`;
@@ -68,6 +94,10 @@ export async function loadExperienceBinding(root: string): Promise<ExperienceBin
   const state = await readRunSnapshot(root);
   if (![1, 2].includes(state.formatVersion as number) || state.run.kind !== 'runtime_generation' || state.ledger.scope !== 'generation') throw new Error('User experience requires an ordinary formal generation report; validation and intake are separate.');
   const { marker, report } = await currentReport(root), windowId = state.formatVersion === 2 ? state.continuation!.currentWindowId : null;
+  const experience = await ordinaryExperienceScope(root, state);
+  if (!sameValue(report.acceptanceScope.experienceCriteria, experience.experienceCriteria)
+    || !sameValue(report.acceptanceScope.ordinaryConfirmation, experience.ordinaryConfirmation)
+    || experience.acceptance && !sameValue(report.acceptanceScope.acceptance, experience.acceptance)) throw new Error('Ordinary experience scope differs from its original confirmation source.');
   if (report.runId !== state.run.runId || report.ledgerId !== state.ledger.ledgerId || report.windowId !== windowId) throw new Error('Automatic report belongs to another run or execution window.');
   if (report.automaticAcceptance !== 'passed' || report.outcome !== 'awaiting_user_experience' || report.gaps.length) throw new Error('Automatic acceptance has not passed.');
   const registry = new ArtifactRegistry(root, 'registry'), accepted = await registry.current();

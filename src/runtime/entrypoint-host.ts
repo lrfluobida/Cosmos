@@ -32,6 +32,7 @@ import { diagnosePersistentBrowser } from './adapters/transfer/persistent-diagno
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft } from '../roles/requirements.ts';
+import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 import type { ExecutionRequirement, ValidationRequirement } from '../roles/execution-input.ts';
 import { isValidationRequirement, validateExecutionInput } from '../roles/execution-input.ts';
 import type { ValidationExecutionBinding } from './validation-scope.ts';
@@ -1494,6 +1495,10 @@ export function createProductHost(repository: string, hostOptions: Pick<BrowserH
   return {
     async prepare(root, signal) {
       signal?.throwIfAborted();
+      const state = await json(root, 'snapshot.json').catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return undefined; throw error; });
+      if (state && await readOrdinaryProfile(root, { runId: state.run.runId, createdAt: state.events[0].at }, state.formatVersion === 'intake-1' ? state : undefined)) {
+        return { environmentReady: false, executionReady: false, reason: '普通需求版本的设计后验收 consumer 尚未接通。' };
+      }
       const mapping = await json(repository, 'docs/specs/github-issues.json');
       const required = ['COS-03', 'COS-04', 'COS-05', 'COS-06', 'COS-07', 'COS-08', 'COS-09', 'COS-10', 'COS-11', 'COS-12', 'COS-13'];
       const missing = required.filter(id => !mapping.tasks.some((task: { taskId: string; state: string }) => task.taskId === id && task.state === 'closed'));

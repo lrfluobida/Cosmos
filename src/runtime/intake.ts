@@ -11,6 +11,9 @@ import { confirmRequirements, validateGameDraft } from '../roles/requirements.ts
 import type { GameDraft } from '../roles/requirements.ts';
 import { modeFromSelection, resolveDraftMode } from '../roles/preparation-mode.ts';
 import type { DraftMode, PreparationSelection } from '../roles/preparation-mode.ts';
+import { validateOrdinaryProfile } from '../roles/ordinary-profile.ts';
+import type { OrdinaryProfile } from '../roles/ordinary-profile.ts';
+import { ORDINARY_PROFILE_SOURCE, ordinaryDraftSha256, readOrdinaryProfile } from './ordinary-profile-source.ts';
 import { SnapshotStore } from './store.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { validateSnapshot } from './run-validation.ts';
@@ -31,6 +34,7 @@ export interface IntakeSnapshot {
   createdAt: string; durationMs: number; interviewTaskId: string; maxRequests: number;
   draft: StoredDraft | null;
   draftMode?: PreparationSelection;
+  ordinaryProfile?: OrdinaryProfile;
   renderFrames?: RenderFrameSelection;
   modularRepairPolicy?: ModularRepairPolicy;
   confirmation: { revision: number; requirement: RequirementContract; source: ArtifactReference } | null;
@@ -40,6 +44,7 @@ export interface CreateIntakeOptions {
   root: string; runId: string; ledgerId: string; specVersion: string; allocations: BudgetLedger['allocations'];
   interviewTaskId: string; maxRequests: number; limitMicroCny?: number; durationMs?: number; now?: () => number;
   draftMode?: DraftMode;
+  ordinaryProfile?: OrdinaryProfile;
   renderFrames?: RenderFrameSelection;
   modularRepairPolicy?: ModularRepairPolicy;
   validationFunding?: PublicValidationFundingBinding;
@@ -61,6 +66,8 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   const state = value as IntakeSnapshot;
   if (!state || state.formatVersion !== 'intake-1') throw new Error('Expected intake snapshot; this run may already be activated.');
   const mode = modeFromSelection(state.draftMode);
+  validateOrdinaryProfile(state.ordinaryProfile);
+  if (state.ordinaryProfile && state.draftMode) throw new Error('Ordinary profile cannot select preparation mode.');
   validateFrameSelection(state.renderFrames);
   validateModularRepairPolicy(state.modularRepairPolicy);
   if (state.renderFrames && state.draftMode) throw new Error('Render-frame sampling is unsupported in preparation mode.');
@@ -97,7 +104,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   fundedIntakeWork(state);
   if (state.draft !== null) {
     if (!state.draft || !Number.isSafeInteger(state.draft.revision) || state.draft.revision < 1 || !sameValue(state.draft.source, draftRef(state.draft.revision))) throw new Error('Invalid draft revision.');
-    validateGameDraft(payload(state.draft), mode);
+    validateGameDraft(payload(state.draft), mode, state.ordinaryProfile);
   }
   if (state.confirmation !== null) {
     const confirmed = state.confirmation;
@@ -129,6 +136,7 @@ export class IntakeController {
     const result = this.accounting.then(operation); this.accounting = result.catch(() => {}); return result;
   }
   static async create(options: CreateIntakeOptions): Promise<IntakeController> {
+    validateOrdinaryProfile(options.ordinaryProfile);
     const draftMode = resolveDraftMode(options.draftMode);
     const now = options.now ?? Date.now, createdAt = new Date(now()).toISOString();
     const state: IntakeSnapshot = {
@@ -138,6 +146,7 @@ export class IntakeController {
       events: [{ sequence: 1, at: createdAt, type: 'created', requestId: null, reason: frameIntakeReason(options.renderFrames, options.modularRepairPolicy) }], stopReason: null,
       createdAt, durationMs: options.durationMs ?? DEFAULT_BUDGETS.hardDurationMs, interviewTaskId: options.interviewTaskId, maxRequests: options.maxRequests, draft: null, confirmation: null,
       ...(draftMode ? { draftMode } : {}),
+      ...(options.ordinaryProfile ? { ordinaryProfile: options.ordinaryProfile } : {}),
       ...(options.renderFrames ? { renderFrames: structuredClone(options.renderFrames) } : {}),
       ...(options.modularRepairPolicy ? { modularRepairPolicy: structuredClone(options.modularRepairPolicy) } : {}),
       ...(options.validationFunding ? { validationFunding: structuredClone(options.validationFunding) } : {}),
@@ -148,6 +157,7 @@ export class IntakeController {
       if (await store.exists()) throw new Error('Snapshot already exists; intake cannot replace a run.');
       await verifyPublicValidationFunding({ root: store.root, snapshot: state, dispatch: true });
       if (draftMode) await publishReceipt(join(store.root, 'intake-mode.json'), { runId: state.run.runId, createdAt, draftMode });
+      if (state.ordinaryProfile) await publishReceipt(join(store.root, ORDINARY_PROFILE_SOURCE), { runId: state.run.runId, createdAt, ordinaryProfile: state.ordinaryProfile });
       await store.write(state); return new IntakeController(store, state, now);
     } catch (error) { await store.close(); throw error; }
   }
@@ -157,6 +167,7 @@ export class IntakeController {
       const state = await store.read(); validateIntakeSnapshot(state);
       await verifyPublicValidationFunding({ root: store.root, snapshot: state, dispatch: false });
       await requireModeOrigin(store.root, state);
+      await readOrdinaryProfile(store.root, { runId: state.run.runId, createdAt: state.createdAt }, state);
       if (state.renderFrames) await requireCurrentFrameSource(await readFrameSelection(store.root, state));
       if (state.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(store.root, state));
       const controller = new IntakeController(store, state, options.now ?? Date.now), next = structuredClone(state);
@@ -164,7 +175,7 @@ export class IntakeController {
         const recovery = await readFundingRecovery(store.root, state, work.ownerToken);
         if (recovery) controller.event(next, 'public_intake_work_recovered', null, JSON.stringify({ workId: work.workId, ...recovery }));
       }
-      if (state.draftMode && state.draft) await controller.requireDraftFile(state.draft);
+      if ((state.draftMode || state.ordinaryProfile) && state.draft) await controller.requireDraftFile(state.draft);
       for (const record of next.requests) {
         const entry = findRequest(next.ledger, record.requestId);
         if (record.admittedAt && entry.status === 'reserved') {
@@ -180,6 +191,7 @@ export class IntakeController {
   read(): Promise<IntakeSnapshot> { return this.serial(async () => {
     this.requireIntake();
     if (this.snapshot.draftMode) await requireModeOrigin(this.store.root, this.snapshot);
+    await readOrdinaryProfile(this.store.root, { runId: this.snapshot.run.runId, createdAt: this.snapshot.createdAt }, this.snapshot);
     return structuredClone(this.snapshot);
   }); }
   /** Only the funded intake lifecycle uses these records; an operation result is not a cleanup result. */
@@ -259,7 +271,8 @@ export class IntakeController {
   saveDraft(input: GameDraft): Promise<StoredDraft> {
     const draft = structuredClone(input);
     return this.serial(async () => {
-      validateGameDraft(draft, modeFromSelection(this.snapshot.draftMode));
+      validateGameDraft(draft, modeFromSelection(this.snapshot.draftMode), this.snapshot.ordinaryProfile);
+      await readOrdinaryProfile(this.store.root, { runId: this.snapshot.run.runId, createdAt: this.snapshot.createdAt }, this.snapshot);
       if (this.snapshot.draftMode) await requireModeOrigin(this.store.root, this.snapshot);
       this.requireActive(); const next = structuredClone(this.snapshot), revision = (next.draft?.revision ?? 0) + 1;
       next.draft = { ...draft, revision, source: draftRef(revision) }; next.confirmation = null;
@@ -274,17 +287,20 @@ export class IntakeController {
       this.requireActive(); const next = structuredClone(this.snapshot), draft = next.draft;
       if (!draft || draft.revision !== confirmation.revision) throw new Error('Confirmation must name the current draft revision.');
       if (draft.unsupported.length) throw new Error('Unsupported requirements need a decision before confirmation.');
+      await readOrdinaryProfile(this.store.root, { runId: next.run.runId, createdAt: next.createdAt }, next);
       if (next.renderFrames) await requireCurrentFrameSource(await readFrameSelection(this.store.root, next));
       if (next.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(this.store.root, next));
       const source = confirmationRef(draft.revision, next.renderFrames, next.modularRepairPolicy);
       const requirement = confirmRequirements({ ...payload(draft), specVersion: next.run.specVersion, sources: [draft.source, source] }, confirmation);
+      const ordinaryBytes = next.ordinaryProfile ? await this.requireDraftFile(draft) : undefined;
       if (next.draftMode) await this.requireDraftFile(draft);
       if (next.confirmation) {
         if (sameValue(next.confirmation.requirement, requirement)) return structuredClone(requirement);
         throw new Error('Confirmation already recorded for this revision.');
       }
-      if (!next.draftMode) await this.requireDraftFile(draft);
+      if (!next.draftMode && !ordinaryBytes) await this.requireDraftFile(draft);
       await publishReceipt(join(this.store.root, source.location), { ...confirmation, runId: next.run.runId, draft: draft.source,
+        ...(next.ordinaryProfile ? { ordinaryProfile: next.ordinaryProfile, ordinaryDraftSha256: ordinaryDraftSha256(ordinaryBytes!) } : {}),
         ...(next.renderFrames ? { renderFrames: next.renderFrames } : {}), ...(next.modularRepairPolicy ? { modularRepairPolicy: next.modularRepairPolicy } : {}) });
       next.confirmation = { revision: draft.revision, requirement, source };
       await this.commit(next); return structuredClone(requirement);
@@ -301,11 +317,13 @@ export class IntakeController {
       if (ready.executionReady !== true) throw new Error('Execution prerequisites are not ready.');
       if (prior.ledger.entries.some(entry => entry.reservedMicroCny || entry.unknown)) throw new Error('Outstanding or unknown intake charges block activation.');
       if (budgetSummary(prior.ledger).exhausted) throw new Error('Budget exhausted before activation.');
-      await this.requireDraftFile(prior.draft);
+      const draftBytes = await this.requireDraftFile(prior.draft);
+      await readOrdinaryProfile(this.store.root, { runId: prior.run.runId, createdAt: prior.createdAt }, prior);
       if (prior.renderFrames) await requireCurrentFrameSource(await readFrameSelection(this.store.root, prior));
       if (prior.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(this.store.root, prior));
       const receipt = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await readFile(join(this.store.root, confirmed.source.location))));
       if (!sameValue(receipt, { revision: confirmed.revision, confirmed: true, actorId: confirmed.requirement.confirmedBy, at: confirmed.requirement.confirmedAt, runId: prior.run.runId, draft: prior.draft.source,
+        ...(prior.ordinaryProfile ? { ordinaryProfile: prior.ordinaryProfile, ordinaryDraftSha256: ordinaryDraftSha256(draftBytes) } : {}),
         ...(prior.renderFrames ? { renderFrames: prior.renderFrames } : {}), ...(prior.modularRepairPolicy ? { modularRepairPolicy: prior.modularRepairPolicy } : {}) })) throw new Error('Confirmation source changed.');
       const startedAt = this.at();
       const active: RunSnapshot = {
@@ -379,10 +397,12 @@ export class IntakeController {
     }
     this.event(next, 'stopped', null, reason);
   }
-  private async requireDraftFile(draft: StoredDraft): Promise<void> {
+  private async requireDraftFile(draft: StoredDraft): Promise<Buffer> {
     await requireModeOrigin(this.store.root, this.snapshot);
-    const saved = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await readFile(join(this.store.root, draft.source.location))));
+    const bytes = await readFile(join(this.store.root, draft.source.location));
+    const saved = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
     if (!sameValue(saved, payload(draft))) throw new Error('Fixed requirement draft source changed.');
+    return bytes;
   }
   private async write(value: unknown): Promise<void> {
     try { await this.store.write(value); } catch (error) { this.failed = true; this.abort.abort(error); throw error; }

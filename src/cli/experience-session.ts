@@ -10,6 +10,11 @@ export async function runExperienceSession(options: { root: string; input: Reada
   const canApprove = !status.completionTiming.required || status.completionTiming.eligible === true;
   output.write(`当前游戏：${binding.acceptedCandidate.candidateRef.artifactId} / ${binding.acceptedCandidate.candidateRef.version}\n试玩工程：${resolve(root, binding.acceptedCandidate.targetRoot)}\n自动验收报告：${resolve(root, binding.report.location)}\n自动验收：通过；最终体验：${experience}。\n已验收范围：\n`);
   for (const item of binding.acceptanceScope.acceptance) output.write(`- ${item.description}\n`);
+  if (binding.acceptanceScope.experienceCriteria) {
+    output.write('当前确认版本的体验要求（整体 approve/reject 覆盖以下完整清单）：\n');
+    for (const item of binding.acceptanceScope.experienceCriteria) output.write(`- ${item.description}\n  试玩：${item.steps.join('；')}\n  期望：${item.expected}\n`);
+    if (!binding.acceptanceScope.experienceCriteria.length) output.write('- 没有额外体验条目；请确认整体试玩体验。\n');
+  }
   output.write('未覆盖范围：\n'); for (const item of binding.acceptanceScope.notCovered) output.write(`- ${item}\n`);
   output.write(`交付完成计时：${status.completionTiming.current.status}；结束时间：${status.completionTiming.current.endedAt ?? '未核实'}。\n`);
   const lines = createInterface({ input: options.input, crlfDelay: Infinity, terminal: false }), iterator = lines[Symbol.asyncIterator]();

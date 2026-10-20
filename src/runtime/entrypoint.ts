@@ -70,6 +70,7 @@ export async function reconcileEntryReceipts(root: string, controller: Accountin
 
 /** Thin assembly of the existing planner, scheduler, recovery and bounded repair policy. */
 export async function executeGeneration(options: GenerationOptions) {
+  if (options.draft.ordinaryProfile) throw new Error('Ordinary profile execution is not connected.');
   if (options.windowId) return executeContinuation(options);
   const root = resolve(options.root), requirement = structuredClone(options.requirement), draft = structuredClone(options.draft);
   validateGameDraft(draft, modeFromSelection(draft.preparation));

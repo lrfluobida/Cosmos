@@ -10,13 +10,16 @@ import type { StoredDraft } from '../runtime/intake.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
 import { confirmRequirements, gameplayAcceptance, HOST_STAGE_ACCEPTANCE, MODULE_STAGE_ACCEPTANCE, validateGameDraft } from '../roles/requirements.ts';
 import type { GameDraft } from '../roles/requirements.ts';
+import { validateOrdinaryProfile } from '../roles/ordinary-profile.ts';
+import type { OrdinaryProfile } from '../roles/ordinary-profile.ts';
+import { ordinaryDraftSha256, readOrdinaryProfile } from '../runtime/ordinary-profile-source.ts';
 import { modeFromSelection, resolveDraftMode } from '../roles/preparation-mode.ts';
 import type { DraftMode } from '../roles/preparation-mode.ts';
 import { sameValue } from '../contracts/validation.ts';
 import { readRunSnapshot, recoverRunOwner, startBudgetWarnings, startControl } from './control.ts';
 import type { RunSnapshot } from '../runtime/run-types.ts';
 import { readCompletedGeneration } from '../runtime/experience.ts';
-import { readFrameSelection, requireCurrentFrameSource, selectRenderFrames } from '../runtime/render-frame-selection.ts';
+import { frameConfirmationVersion, readFrameSelection, requireCurrentFrameSource, selectRenderFrames } from '../runtime/render-frame-selection.ts';
 import type { RenderFrameSelection } from '../runtime/render-frame-selection.ts';
 import { currentModularRepairPolicy, readModularRepairPolicy, requireCurrentModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
 import type { ModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
@@ -26,6 +29,8 @@ import { DEFAULT_RUN_LIMITS, displayRunLimits, requirePreparationRunLimits, requ
 import type { RunLimits } from './run-limits.ts';
 
 export interface ProductHost {
+  /** Source-owned new-run selection; resume always reads the original source. */
+  ordinaryProfile?: OrdinaryProfile;
   prepare(root: string, signal?: AbortSignal): Promise<{ environmentReady: boolean; executionReady: boolean; reason?: string }>;
   questions(input: { controller: IntakeController; roundId: string; brief: string }): Promise<GameDraft['questions']>;
   draft(input: { controller: IntakeController; roundId: string; brief: string; questions: GameDraft['questions']; answers: GameDraft['answers'] }): Promise<GameDraft>;
@@ -47,16 +52,33 @@ export async function rejectPreparationContinuation(root: string): Promise<void>
   }
 }
 export async function readConfirmedGeneration(root: string, snapshot: RunSnapshot) {
-  requirePublicRunLimits(snapshot, await optionalJson(root, 'intake-origin.json'));
+  const intakeOrigin = await optionalJson(root, 'intake-origin.json');
+  requirePublicRunLimits(snapshot, intakeOrigin);
+  const ordinaryProfile = await readOrdinaryProfile(root, { runId: snapshot.run.runId, createdAt: snapshot.events[0].at });
   const source = snapshot.run.humanDecisions.find(decision => decision.decisionId.startsWith('requirements-v'));
   if (!source || source.evidence.length !== 2 || source.evidence[0].artifactId !== 'requirement-draft' || source.evidence[1].artifactId !== 'user-confirmation') throw new Error('No original CLI requirement confirmation to resume.');
-  const draft = await json(root, source.evidence[0].location), confirmed = await json(root, source.evidence[1].location);
+  const draftBytes = await regularFile(root, source.evidence[0].location);
+  const draft = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(draftBytes)), confirmed = await json(root, source.evidence[1].location);
   const origin = await optionalJson(root, 'intake-mode.json');
   if (origin && (origin.runId !== snapshot.run.runId || origin.createdAt !== snapshot.events[0].at
     || !sameValue(origin, { runId: origin.runId, createdAt: origin.createdAt, draftMode: origin.draftMode }))) throw new Error('Original intake mode origin changed.');
-  validateGameDraft(draft, modeFromSelection(origin?.draftMode));
+  validateGameDraft(draft, modeFromSelection(origin?.draftMode), ordinaryProfile);
   if (confirmed.runId !== snapshot.run.runId || confirmed.actorId !== source.actorId || confirmed.at !== source.decidedAt) throw new Error('Original confirmation identity changed.');
   const frames = await readFrameSelection(root, snapshot);
+  if (ordinaryProfile) {
+    const revision = confirmed.revision, policy = await readModularRepairPolicy(root, snapshot);
+    const draftRef = { artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` };
+    const confirmationRef = { artifactId: 'user-confirmation', version: frameConfirmationVersion(revision, frames, policy), location: `requirements/v${revision}/confirmation.json` };
+    if (!Number.isSafeInteger(revision) || revision < 1 || source.decisionId !== `requirements-v${revision}` || !sameValue(source.evidence, [draftRef, confirmationRef])
+      || !sameValue(confirmed, { revision, confirmed: true, actorId: source.actorId, at: source.decidedAt, runId: snapshot.run.runId, draft: draftRef,
+        ordinaryProfile, ordinaryDraftSha256: ordinaryDraftSha256(draftBytes), ...(frames ? { renderFrames: frames } : {}), ...(policy ? { modularRepairPolicy: policy } : {}) })) {
+      throw new Error('Original ordinary confirmation or complete draft source changed.');
+    }
+    const answers = await json(root, `intake-answers/v${revision}.json`);
+    if (draft.brief !== intakeOrigin.brief || !sameValue(answers, { brief: draft.brief, questions: draft.questions, answers: draft.answers, ordinaryProfile })) {
+      throw new Error('Original ordinary answers or draft source changed.');
+    }
+  }
   return { draft, requirement: confirmRequirements({ ...draft, specVersion: snapshot.run.specVersion, sources: source.evidence }, confirmed), ...(frames ? { renderFrames: true } : {}) };
 }
 function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?: ModularRepairPolicy): string {
@@ -70,8 +92,7 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
   }
   if (draft.acceptance.some(item => item.acceptanceId === 'COSMOS-MEDIA')) lines.push('最终游戏还会检查素材实际载入、动作和音频触发；未覆盖的项目会保留为差距。美术辨识度与听感留待最终试玩。');
   if (frames) lines.push('渲染帧采样：记录本次正常游玩窗口的实际帧与画布尺寸；设备与工作量未冻结，完整性能政策仍未执行。');
-  if (draft.preparation) lines.push('准备模式：先确认需求；地图、解法与自动操作将在同一次生成运行的运行时设计后形成。');
-  else {
+  if (!draft.preparation) {
     if (draft.benchmark) lines.push('经典 PC 政策：仅执行启动与离线存档重开；完整目录 230 项保留，其中 221 项参考依据待核对、另 7 项政策未执行，完整经典验收仍未通过。');
     if (draft.classicEntry) {
       const { measurement, entityLabel } = draft.classicEntry;
@@ -79,6 +100,15 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
         : '经典条目正常输入检查：没有已核实的精确参考测量，本项未执行。');
       lines.push('本项仅比较正常输入后的可见数字；机制、数值实际使用及其他目录条目仍未执行，完整经典验收仍未通过。');
     }
+  }
+  if (draft.preparation) lines.push('准备模式：先确认需求；地图、解法与自动操作将在同一次生成运行的运行时设计后形成。');
+  else if (draft.ordinaryProfile) {
+    lines.push('体验要求：');
+    for (const item of draft.experienceCriteria) lines.push(`- ${item.description}`, `  试玩：${item.steps.join('；')}`, `  期望：${item.expected}`);
+    if (!draft.experienceCriteria.length) lines.push('- 没有额外体验条目；最终整体试玩确认仍保留。');
+    lines.push('确认完整需求后，由运行时设计形成具体操作与自动验收计划；体验要求留待当前交付版本的真实试玩确认。');
+  }
+  else {
     lines.push('自动操作与检查：');
     const stages = [{ steps: draft.scenario.steps }, ...(draft.scenario.reopen ? [draft.scenario.reopen] : [])];
     for (const [index, stage] of stages.entries()) {
@@ -133,6 +163,8 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   const interrupt = () => { void stop().catch(() => say('停止收敛未确认，请查看原运行状态。')); };
   try {
     if (options.command === 'new') {
+      validateOrdinaryProfile(host.ordinaryProfile);
+      const ordinaryProfile = selectedMode ? undefined : host.ordinaryProfile;
       if (!options.brief?.trim()) throw new Error('A one-sentence --brief is required.');
       const entries = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
       if (options.funding) await verifyFundedNew(root, options.funding, options.brief, limits, options.renderFrames === true);
@@ -141,11 +173,13 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       frames = options.renderFrames ? await selectRenderFrames() : undefined;
       policy = currentModularRepairPolicy();
       const origin = { runId, brief: options.brief, ...(options.limits && !selectedMode ? { limits } : {}), ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), modularRepairPolicy: policy,
+        ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(options.funding ? { validationFunding: options.funding } : {}) };
       if (options.funding) await publishFundedOrigin(root, origin);
       intake = await IntakeController.create({ root, runId, ledgerId: options.funding?.ledgerId ?? `${runId}-budget`, specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 8,
         ...limits,
         ...(selectedMode ? { draftMode: options.draftMode } : {}),
+        ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(frames ? { renderFrames: frames } : {}),
         modularRepairPolicy: policy, ...(options.funding ? { validationFunding: options.funding } : {}),
         allocations: [{ taskId: 'intake', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }, { taskId: 'planning', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }] });
@@ -182,7 +216,8 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
     const original = await json(root, 'intake-origin.json'), state = await intake.read();
     requirePublicRunLimits(state, original, true);
-    if (original.runId !== state.run.runId || typeof original.brief !== 'string' || !sameValue(original.draftMode, state.draftMode)) throw new Error('Intake origin does not match the original run mode.');
+    if (original.runId !== state.run.runId || typeof original.brief !== 'string' || !sameValue(original.draftMode, state.draftMode)
+      || original.ordinaryProfile !== state.ordinaryProfile) throw new Error('Intake origin does not match the original run mode/profile.');
     fundingLifecycle = await intake.beginFundingWork('session');
     say(`运行 ${state.run.runId}。${displayRunLimits({ limitMicroCny: state.ledger.limitMicroCny, durationMs: state.durationMs })}`);
     say('stop 为持久硬停止；resume 只恢复原窗口内未被硬停止的可核实中断。');
@@ -205,7 +240,8 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         const saved = await optionalJson(root, answerPath);
         let answers: GameDraft['answers'];
         if (saved) {
-          if (saved.brief !== original.brief || JSON.stringify(saved.questions) !== JSON.stringify(questions) || !sameValue(saved.draftMode, state.draftMode)) throw new Error('Recorded answers no longer match the original interview mode.');
+          if (saved.brief !== original.brief || JSON.stringify(saved.questions) !== JSON.stringify(questions) || !sameValue(saved.draftMode, state.draftMode)
+            || saved.ordinaryProfile !== state.ordinaryProfile) throw new Error('Recorded answers no longer match the original interview mode/profile.');
           answers = saved.answers;
         } else {
           answers = {};
@@ -215,7 +251,8 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
             answers[question.id] = answer;
           }
           await mkdir(join(root, 'intake-answers'), { recursive: true });
-          await publishReceipt(join(root, answerPath), { brief: original.brief, questions, answers, ...(state.draftMode ? { draftMode: state.draftMode } : {}) });
+          await publishReceipt(join(root, answerPath), { brief: original.brief, questions, answers, ...(state.draftMode ? { draftMode: state.draftMode } : {}),
+            ...(state.ordinaryProfile ? { ordinaryProfile: state.ordinaryProfile } : {}) });
         }
         const proposal = await run(() => host.draft({ controller: intake!, roundId: `draft-${version}`, brief: original.brief, questions, answers }));
         current = await intake.saveDraft(proposal);
