@@ -4,7 +4,7 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-COS111 最终源码 `285144d242b74afec815b874512d3195cba5d65e` 经 `ordinary_intake_spec_reviewer` 整卡 `APPROVED_SOURCE_SCOPED`、无P1/P2，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6299663061)后，唯一merger `public_agent_batch_merger` 合入 `85e97a75270c7405ad34106914738dfcdc41e2ae`。A为 `source-integrated / open-awaiting-public-close`、父未勾选；B仍为source-pending，设计后执行接线与生产默认切换尚未完成。总任务112、根直接100、COS18六子完成四，整体仍open/partial。下列设计阶段记录按当时状态保留。
+COS111 最终源码 `285144d242b74afec815b874512d3195cba5d65e` 经 `ordinary_intake_spec_reviewer` 整卡 `APPROVED_SOURCE_SCOPED`、无P1/P2，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6299663061)后，唯一merger `public_agent_batch_merger` 合入 `85e97a75270c7405ad34106914738dfcdc41e2ae`。A为 `source-integrated / source-scoped-complete`；[公开关闭](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6299850732)的 `closed(completed)` 与父勾选[x]已由Root精确读回。B仍在源码实施，设计后执行接线与生产默认切换尚未完成。总任务112、根直接100、COS18六子完成五，整体仍open/partial。下列设计阶段记录按当时状态保留。
 
 Cosmos 是可扩展的游戏开发 agent，PvZ 是首个完整验收目标。当前停止逐张参考截图推进，补公开普通游戏流程中的可执行缺口；已有参考事实和通过证据保留并复用。
 
