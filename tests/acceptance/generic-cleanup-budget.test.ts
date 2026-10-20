@@ -5,6 +5,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { mock, test, type TestContext } from 'node:test';
 import type { ChildProcess } from 'node:child_process';
 import type { AcceptancePlan } from '../../src/acceptance/plan.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 
 // Browser transport and selected disk delays fail beneath the actual ordinary public runner.
 let browser: any, server: any;
@@ -27,7 +28,7 @@ function deferred() {
 }
 async function flush() { for (let i = 0; i < 30; i++) await Promise.resolve(); }
 async function fixture(t: TestContext, options: { videoMs?: number; missingVideo?: boolean; closeExits?: boolean;
-  writeFault?: 'log' | 'report'; writeGate?: ReturnType<typeof deferred>; writeDelayMs?: number; writeFails?: boolean } = {}) {
+  writeFault?: 'log' | 'report'; writeGate?: ReturnType<typeof deferred>; writeDelayMs?: number; writeFails?: boolean; work?: OwnedWork } = {}) {
   const root = await fs.mkdtemp(join(tmpdir(), 'cos108-generic-')), base = Date.now();
   const entered = { video: deferred(), publication: deferred() }, order: string[] = [];
   const child = { pid: 54321, exitCode: null as number | null, signalCode: null,
@@ -62,7 +63,8 @@ async function fixture(t: TestContext, options: { videoMs?: number; missingVideo
     assert.equal(dirname(resolve(root)), resolve(tmpdir())); assert.ok(basename(root).startsWith('cos108-generic-'));
     await fs.rm(root, { recursive: true, force: true });
   });
-  const running = runAcceptance(plan, { evidenceRoot: root, timeoutMs: 60_000 });
+  const execute = () => runAcceptance(plan, { evidenceRoot: root, timeoutMs: 60_000 });
+  const running = options.work ? options.work.run(execute) : execute();
   // Retain a rejection handler immediately; a simulated publication timeout can reject before a test awaits it.
   const result = running.then(report => ({ report, error: undefined }), error => ({ report: undefined, error }));
   return { root, base, order, entered, running, result };
@@ -107,11 +109,15 @@ test('COS108 ordinary runner awaits the actual report write before returning pro
   assert.deepEqual(JSON.parse(await fs.readFile(join(f.root, report.reportPath), 'utf8')), report);
 });
 
-test('COS108 ordinary runner rejects an unsettled report at the fixed publication deadline', async t => {
-  const writeGate = deferred(), f = await fixture(t, { writeFault: 'report', writeGate });
-  await f.entered.publication.promise; t.mock.timers.tick(5000);
+test('COS108 owner drain retains a timed out report write until raw settlement', async t => {
+  const writeGate = deferred(), work = new OwnedWork(), f = await fixture(t, { writeFault: 'report', writeGate, work });
+  await f.entered.publication.promise; t.mock.timers.tick(5000); await flush();
+  const draining = work.cancelAndDrain('publication timed out', 1000);
+  const rejected = assert.rejects(draining, /Owned work did not quiesce before the drain deadline/);
+  await flush(); t.mock.timers.tick(1000); await rejected;
+  writeGate.reject(new Error('late disk rejection'));
   const result = await f.result;
   assert.equal(result.report, undefined); assert.match(String(result.error), /Publish report.json: timed out/);
-  writeGate.reject(new Error('late disk rejection')); await flush();
-  assert.equal(result.report, undefined);
+  assert.doesNotMatch(String(result.error), /late disk rejection/);
+  await work.cancelAndDrain('raw write settled', 1000);
 });

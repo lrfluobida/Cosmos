@@ -118,7 +118,7 @@
 
 - 真实 RED：原 generic 1500ms 用例 0/1，首因 `Persistent video collection: timed out after 1000 ms`。无 lifecycle 新边界首次 3/8 通过、5/8 行为失败，包含同一视频限制、无视频文件、强制退出后错误通过及两类迟到写入。
 - 最终定向 GREEN：20 个 COS108、原 COS94 全部 10 个回归、两个 `/1` 与 `/2` 代表，共 **32/32、0 skip、1708.7793ms**。固定共享余额、取消、挂起、真实退出缺口、写入失败/迟到/未结算均覆盖。
-- `npm run typecheck`、`npm run build` 与最终三测试文件 strict 均退出 0。生产源码此后未变，构建/类型检查证据复用。
+- 候选 `46bbd2c` 的 `npm run typecheck`、`npm run build` 与三测试文件 strict 均退出 0。后续 P2 修正的检查另列于下节，不把此构建结果当作修正后编译证据。
 - 文件名纠正：最初误把原 COS94 测试路径当新文件。原文件先完整恢复至 HEAD，新测试移至 `generic-cleanup-budget.test.ts`，随后按 Root 授权仅调整原 COS94 受影响断言；没有删除旧测试覆盖。原 RED/尝试日志保留，不覆盖或改写。
 
 ### 公共交付代表：整体失败，需独立分类
@@ -138,5 +138,21 @@ Root 已要求准备一次私有观测方法，先独审具体 instrumentation �
 - `red-1500ms.tap`、`red-generic-boundaries.tap`：上述行为 RED。
 - `green-attempt-1.tap`：17/19；两项已到限测试原期待 failed report，实际按计划拒绝发布并 throw，后改为明确拒绝断言。
 - `green-focused.tap`：早期 22/22；最终采用 `green-affected.tap` 的 32/32，不相加。
-- `typecheck.log`、`build.log`：生产检查退出 0；`strict-affected.log`：最终三测试文件 strict 退出 0。
+- `typecheck.log`、`build.log`：候选 `46bbd2c` 的生产检查退出 0。此前三文件 strict 命令在工具会话中退出 0、无输出，`Tee-Object` 没有生成 `strict-affected.log`；原索引误列该文件，现予纠正。
 - `public-dag.tap`：首次整体失败的完整输出及 TEMP 位置。
+
+## P2 复审修正：发布写入结算前保留 owner
+
+独立源码审查指出，原 `publish` 超时后仅 abort，外层操作可能在真实 `writeFile` 仍在途时结束。`OwnedWork` 只跟踪外层 Promise，因此不能据其提前结算宣布 drain 完成。Root 接受该 P2。
+
+最小修正只在 `runner.ts` 保存原写入 Promise；`finally` 先 abort，再 await 该 Promise 结算。原超时错误保持，迟到写入错误不覆盖首因，原截止/预算不刷新；等待期间外层 Promise 留在原 `OwnedWork` 内。
+
+新的定向断言使用真实 `OwnedWork.run` 和 `cancelAndDrain`：发布已到限且写入 gate 未结算时，drain 必须按其原 1000ms 截止拒绝；放行写入后，原验收仍报发布超时，随后 drain 才能完成。RED 0/1 的原因为旧实现缺少预期 drain 拒绝。修正后相关发布检查 **6/6、0 skip、983.1771ms**，typecheck 与受影响测试 strict 退出 0。其余无 delta 范围复用先前证据；未运行 build、浏览器或 observer。
+
+新证据仍在本工作树 `.cosmos/cos108-verification/`：
+
+- `red-publication-owner.tap`、`green-publication-owner.tap`：真实 owner 层面的 RED 与相关 GREEN。
+- `typecheck-publication-owner.log`、`typecheck-publication-owner-result.json`：实际命令、起止和 exit0。
+- `strict-publication-owner-result.json`：受影响测试 strict 的实际命令、起止、无输出及 exit0；不再引用不存在的空日志。
+
+首次公共 DAG 整体 0/1、exit1 及 owner 身份 unknown 保持；私有 observer 尚未执行，后续须绑定修正后的准确源码版本并单独批准。

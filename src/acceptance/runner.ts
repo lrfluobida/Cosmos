@@ -451,8 +451,13 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
   const publish = async (name: string, text: string) => {
     if (genericFinishAt === undefined) { await writeFile(join(directory, name), text, 'utf8'); return; }
     const abort = new AbortController();
-    try { await genericStep(() => writeFile(join(directory, name), text, { encoding: 'utf8', signal: abort.signal }), genericFinishAt, `Publish ${name}`); }
-    finally { abort.abort(); }
+    let writing: Promise<void> | undefined;
+    try { await genericStep(() => writing = writeFile(join(directory, name), text, { encoding: 'utf8', signal: abort.signal }), genericFinishAt, `Publish ${name}`); }
+    finally {
+      abort.abort();
+      // The original timeout still fails; its owner cannot drain while the aborted write is in flight.
+      await writing?.catch(() => {});
+    }
   };
   log('errors', JSON.stringify(report.errors));
   await publish('browser.log', logs.map(entry => JSON.stringify(entry)).join('\n') + '\n');
