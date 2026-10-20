@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-21 当前工作：继续开发可扩展的通用游戏开发 agent，PvZ 仅为首个完整验收目标，停止逐张参考截图推进。[COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108) 与 [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 已独审集成至 `0c187117be32cf9f0058f51426020c1ba3b3b073`，两项源码范围的 `closed(completed)` 与父勾选[x]已由Root精确读回。[COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110) 已独审集成至 `3ddae7158c8a02b09c445dcce221982bb16f874c`，为 `source-integrated / open-awaiting-public-close`；父COS18/#19有3个直接子项、完成2个，根直接子项100，总任务109，COS18整体仍open/partial。下列较早状态按记录当时范围保留。
+2026-10-21 当前工作：继续开发可扩展的通用游戏开发 agent，PvZ 仅为首个完整验收目标，停止逐张参考截图推进。[COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108) 与 [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 已独审集成至 `0c187117be32cf9f0058f51426020c1ba3b3b073`，两项源码范围的 `closed(completed)` 与父勾选[x]已由Root精确读回。[COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110) 已独审集成至 `3ddae7158c8a02b09c445dcce221982bb16f874c`，源码范围的 `closed(completed)` 与父勾选[x]也已核证；父COS18/#19的3个源码子项均完成，根直接子项100，总任务109，COS18整体仍open/partial。下列较早状态按记录当时范围保留。
 
 2026-10-17最新实际状态：C16单次actual中断，v1 build通过/start21步20通过1失败，原repair v2 build通过但仅plan、无report。COS103受审维护恢复两把旧锁后，原main2f API于`08:38:18.674Z`记录真实now的deadline stop并close；原2026-10-16 deadline保持。closure22后revision3334、120 closures/22 audits，C16 51请求/1265722µ、shared766请求/18166722µ、reserved/unknown0，释放未用分配19734278µ。最终独立后核PASS，Root解冻；COS103源码已合入main `402cfb56`，源码与结果已发布至`376d893b7ae109595cf21f85d5b6f7504e887440`，#104 closed(completed)及父恢复子项勾选已由Root核证。C16仍consumed/incomplete、#103 open/父未勾选，220/62、review/promotion、原deadline内clean final、COS16/COS18、完整经典和human未通过，无新paid/重跑授权。见[C16研究记录](../research/2026-10-17-cos102-interrupted-actual.md)及[公开结果](https://github.com/lrfluobida/Cosmos/issues/103#issuecomment-6231925268)。
 
@@ -1655,7 +1655,7 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-109 · 公开生成的共享验证额度绑定
 
-[COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110)，id5943672677，原生父COS18/#19，`source-integrated / open-awaiting-public-close`、父未勾选；父直接3项、完成2项，根直接100项、总任务109。依赖已完成COS107/COS108，基线 `415e7a061d1e6ba71bce744fe9b3d51ea68b822e`。[计划](../plans/2026-10-20-public-validation-funding.md) `4acc3d104a0b5d0cc3d5f1dfefae1e184fa659f8` 已独审 `APPROVED_PLAN` 并获Root[批准](https://github.com/lrfluobida/Cosmos/issues/110#issuecomment-6293911551)。最终源码 `51dd4e25db13b36548950e80a005a329a9078d1d` 经 `public_run_limits_reviewer` 整体 `APPROVED_SOURCE_SCOPED`、无P1/P2，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/110#issuecomment-6295920137)后，唯一merger合入 `3ddae7158c8a02b09c445dcce221982bb16f874c`，见[规格](cos109-public-validation-funding.md)。
+[COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110)，id5943672677，原生父COS18/#19，`source-integrated / source-scoped-complete`；[公开关闭](https://github.com/lrfluobida/Cosmos/issues/110#issuecomment-6296054727)的 `closed(completed)` 和父勾选[x]已由Root精确读回。父3个源码子项均完成，根直接100项、总任务109，COS18整体仍open/partial。依赖已完成COS107/COS108，基线 `415e7a061d1e6ba71bce744fe9b3d51ea68b822e`。[计划](../plans/2026-10-20-public-validation-funding.md) `4acc3d104a0b5d0cc3d5f1dfefae1e184fa659f8` 已独审 `APPROVED_PLAN` 并获Root[批准](https://github.com/lrfluobida/Cosmos/issues/110#issuecomment-6293911551)。最终源码 `51dd4e25db13b36548950e80a005a329a9078d1d` 经 `public_run_limits_reviewer` 整体 `APPROVED_SOURCE_SCOPED`、无P1/P2，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/110#issuecomment-6295920137)后，唯一merger合入 `3ddae7158c8a02b09c445dcce221982bb16f874c`，见[规格](cos109-public-validation-funding.md)。
 
 原公共intake/generation账本逐请求记账，shared在首访谈前占用整次选定上限，结束并核清费用/owner后原子结算、归还余额。新拨款来源独立于旧case；保留¥150总额、包含全部未结清拨款的¥30阶段门槛及真实草稿stdin确认。中断复用原身份，unknown/缺回执/未清owner不释放；超预留保存真实子账与overrun来源、保持占额，不改旧停止历史或强行导入超帽费用。
 
@@ -1663,7 +1663,7 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 恢复持久化按Root批准范围修正：原guard完整核验后先写真实OwnerRecord，再复核锁原文并unlink，写失败留锁、重复记录保留首次时间；unknown/previous-boot权限保持。原RED2与affected7/7、0skip的证据保留，和24/76/111按无变化范围复用、不相加。
 
-主线合并时33个变更文件与批准来源一致；typecheck/build均exit0，六个代表6/6、0skip、39041.8603ms，覆盖预算绑定、原费用结算、旧授权原文、清理失败拒绝释放、恢复持久化故障重试及未绑定CLI。原输出 `.cosmos/cos109-integration/`；等待Root同步#110公开关闭与父勾选。本次源码通过不代表实际通用游戏生成或human验收。
+主线合并时33个变更文件与批准来源一致；typecheck/build均exit0，六个代表6/6、0skip、39041.8603ms，覆盖预算绑定、原费用结算、旧授权原文、清理失败拒绝释放、恢复持久化故障重试及未绑定CLI。原输出 `.cosmos/cos109-integration/`；实际公共验证尚未拨款。本次源码通过不代表实际通用游戏生成或human验收。
 
 ## 5. 任务与上下文包模板
 
