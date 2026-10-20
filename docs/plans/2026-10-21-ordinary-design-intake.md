@@ -69,15 +69,22 @@ npm run build
 
 实施步骤：
 
-- [ ] 写 plan envelope 和覆盖 RED：完整 AC/正常输入/可见断言/reopen 正例；未知字段、debug-only、错误 requirement、漏 AC、缺 checkpoint 负例。
-- [ ] 实现小计划模块；作者内容不含 runtime/candidate/URL 身份，主机从捕获版本绑定实际执行参数。
-- [ ] 写 design check/capture/review 门禁 RED，再接同一 design capture 下两文件及体验映射；证明 review 前 art/模块/coding 不执行。
-- [ ] 补小型受控分类/返工测试：missing_output、合法 UTF-8 invalid_json、确定性 schema/漏 AC 产生原 code_defect 诊断，满足原前置时沿原 design successor；能力缺口或无法确认可信来源为 insufficient_evidence，不进入自动修复或下游。原 grant/deadline/修复上限保持。
-- [ ] 接普通/persistent 实际 consumer，fake IO 记录收到的 plan，验证与批准 capture 一致；保留媒体/采样/classic 组合。
-- [ ] 写 v2/冷恢复/篡改/缺批准负例；恢复拒绝现场重建，原费用、deadline、模块修复机会保持。
-- [ ] 运行不同 AC/selector 的三任务和五任务免费纵向链，补 save/reopen、采样及旧来源恢复必要代表；不要新增固定游戏 benchmark。
-- [ ] 确认全部纵向能力就绪后，切生产新建普通运行默认；问题前 readiness 仍同时要求 environmentReady/executionReady。旧 resume 不采纳新默认。
-- [ ] typecheck/build、UTF-8/中文复核；提交并将精确 SHA 与证据交独立 reviewer，修复 finding 后重审受影响变更。
+- [x] 写 plan envelope 和覆盖 RED：完整 AC/正常输入/可见断言/reopen 正例；未知字段、debug-only、错误 requirement、漏 AC、缺 checkpoint 负例。
+- [x] 实现小计划模块；作者内容不含 runtime/candidate/URL 身份，主机从捕获版本绑定实际执行参数。
+- [x] 写 design check/capture/review 门禁 RED，再接同一 design capture 下两文件及体验映射；证明 review 前 art/模块/coding 不执行。
+- [x] 补小型受控分类/返工测试：missing_output、合法 UTF-8 invalid_json、确定性 schema/漏 AC 产生原 code_defect 诊断，满足原前置时沿原 design successor；能力缺口或无法确认可信来源为 insufficient_evidence，不进入自动修复或下游。原 grant/deadline/修复上限保持。
+- [x] 接普通/persistent 实际 consumer，fake IO 记录收到的 plan，验证与批准 capture 一致；保留媒体/采样/classic 组合。
+- [x] 写 v2/冷恢复/篡改/缺批准负例；恢复拒绝现场重建，原费用、deadline、模块修复机会保持。
+- [x] 运行不同 AC/selector 的三任务和五任务免费纵向链，补 save/reopen、采样及旧来源恢复必要代表；不要新增固定游戏 benchmark。
+- [x] 确认纵向受控接线后，候选中切生产新建普通运行默认；问题前 readiness 仍同时要求 environmentReady/executionReady。旧 resume 不采纳新默认，发布待独审及唯一merger。
+- [x] typecheck/build、UTF-8/中文复核；源码与测试作者验证完成。
+- [ ] 将精确提交 SHA 与证据交 `ordinary_plan_reviewer` 独审，修复 finding 后重审受影响变更。
+
+COS112 作者验证：计划/体验映射RED0/3后GREEN3/3；纵向RED命中A未接通阻断；新增只读完成恢复RED确认缺review-started未拒、coding reviewer trace RED确认未获实际normal报告，两项均已GREEN。最终新增三文件23/23、0skip、136705.6438ms，覆盖完整公开默认、3/5任务、媒体/采样、persistent/classic、v2及冷恢复/显式continuation。旧来源/体验/准备模式/普通host/persistent/classic/design-check短代表7/7、0skip、44691.0197ms。测试stop参数类型修正后affected continuation1/1、0skip、12540.3605ms；typecheck/build/tests strict均exit0。以上重叠证据不相加；原始命令、失败与最终输出见 `.cosmos/cos112-evidence/verification-index.json`。测试fixture中的完整媒体扩展、原采样性能独立报告语义保持；仅受控source证据，没有真实模型/browser、共享账本、旧run恢复或实际游戏通过声明。
+
+COS112 独审补丁：`9163191` 的唯一P2是报告自报capability可关闭设计批准门禁。现在由已核验ordinaryConfirmation决定，报告capability必须匹配，新版binding继续核原capture/批准；legacy语义保持。reviewer原TEMP脚本无需生成即可RED→GREEN且snapshot零变；持久降级回归RED0/1，修复后恢复及体验8/8、61396.3671ms，旧体验stdin1/1、5156.8454ms，均0skip；typecheck/build/affected tests strict0。原A体验测试保留清单/来源/candidate/决定断言，夹具复用现有普通生产链，不为测试豁免设计门禁。等待affected独审，未变矩阵不重跑，结果不相加。
+
+同一补丁按Root确认迁移既有reopen提示：每阶段正常点击后核对两处不同可见文本与同一checkpoint expected、两阶段合计覆盖AC、host同profile/origin关进程重开；证据取断言步骤时点，第二阶段其后可继续胜利/重置。没有新增schema或最终状态限制。现有persistent代表1/1、0skip、16258.172ms，最终typecheck/build0；不增加镜像提示字符串测试。
 
 ```powershell
 node --experimental-strip-types --test --test-concurrency=1 tests/runtime/ordinary-acceptance-plan.test.ts tests/runtime/ordinary-design-host.test.ts tests/cli/ordinary-generation.test.ts

@@ -138,18 +138,21 @@ export interface DesignDocument {
   characters: { id: string; purpose: string; states: string[] }[];
   audio: { id: string; trigger: string; loop: boolean }[];
   modulePurposes?: { a: string; b: string };
+  experienceMapping?: Record<string, string>;
 }
 const text = (value: unknown): value is string => typeof value === 'string' && !!value.trim() && value.length <= 16000;
 const sameIds = (left: string[], right: string[]) => left.length === right.length && new Set(left).size === left.length && left.every(id => right.includes(id));
 
 /** Checks design coverage only. Gameplay still needs the separate normal-input host. */
-export function validateDesign(value: unknown, gameplayIds: string[], modular = false): asserts value is DesignDocument {
+export function validateDesign(value: unknown, gameplayIds: string[], modular = false, experience?: import('../roles/ordinary-profile.ts').ExperienceCriterion[]): asserts value is DesignDocument {
   const design = value as DesignDocument;
-  if (!design || Object.keys(design).some(key => !['summary', 'implementationNotes', 'acceptanceMapping', 'characters', 'audio', ...(modular ? ['modulePurposes'] : [])].includes(key))
+  if (!design || Object.keys(design).some(key => !['summary', 'implementationNotes', 'acceptanceMapping', 'characters', 'audio', ...(modular ? ['modulePurposes'] : []), ...(experience ? ['experienceMapping'] : [])].includes(key))
     || !text(design.summary) || !Array.isArray(design.implementationNotes) || !design.implementationNotes.length || design.implementationNotes.some(note => !text(note))
     || !design.acceptanceMapping || !sameIds(Object.keys(design.acceptanceMapping), gameplayIds) || Object.values(design.acceptanceMapping).some(value => !text(value))
     || !Array.isArray(design.characters) || !design.characters.length || design.characters.length > 128 || !Array.isArray(design.audio) || design.audio.length > 64) throw new Error('Design must cover the exact gameplay requirements and bounded media roster.');
   if (modular && (!design.modulePurposes || !sameIds(Object.keys(design.modulePurposes), ['a', 'b']) || Object.values(design.modulePurposes).some(value => !text(value)))) throw new Error('Both fixed module purposes are required.');
+  if (experience && (!design.experienceMapping || typeof design.experienceMapping !== 'object' || Array.isArray(design.experienceMapping) || !sameIds(Object.keys(design.experienceMapping), experience.map(item => item.criterionId))
+    || Object.values(design.experienceMapping).some(value => !text(value)))) throw new Error('Design must map the complete confirmed experience criteria.');
   for (const character of design.characters) {
     identifier(character.id);
     if (Object.keys(character).some(key => !['id', 'purpose', 'states'].includes(key)) || !text(character.purpose) || !Array.isArray(character.states) || !character.states.length || character.states.length > 16 || new Set(character.states).size !== character.states.length) throw new Error('Invalid design character/state declaration.');

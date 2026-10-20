@@ -34,6 +34,7 @@ import { deliveryTaskProofs, publishGenerationReport, readCompletedGeneration } 
 import { finishCompletion } from './completion-timing.ts';
 import { readFrameSelection, requireCurrentFrameSource } from './render-frame-selection.ts';
 import { verifyPublicValidationFunding } from './public-validation-funding.ts';
+import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
@@ -70,12 +71,11 @@ export async function reconcileEntryReceipts(root: string, controller: Accountin
 
 /** Thin assembly of the existing planner, scheduler, recovery and bounded repair policy. */
 export async function executeGeneration(options: GenerationOptions) {
-  if (options.draft.ordinaryProfile) throw new Error('Ordinary profile execution is not connected.');
   if (options.windowId) return executeContinuation(options);
   const root = resolve(options.root), requirement = structuredClone(options.requirement), draft = structuredClone(options.draft);
-  validateGameDraft(draft, modeFromSelection(draft.preparation));
-  if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Generation requires the exact confirmed acceptance.');
   const original = await readRunSnapshot(root);
+  validateGameDraft(draft, modeFromSelection(draft.preparation), await readOrdinaryProfile(root, { runId: original.run.runId, createdAt: original.events[0].at }));
+  if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Generation requires the exact confirmed acceptance.');
   if (original.formatVersion !== 1) throw new Error('Generation has not been activated.');
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))) throw new Error('Requirement confirmation does not match this original run.');
   if (!sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Confirmed draft source changed.');
@@ -223,9 +223,9 @@ export async function executeGeneration(options: GenerationOptions) {
 /** One existing explicit window, using the same executor and the host's fixed complete binding. */
 async function executeContinuation(options: GenerationOptions) {
   const root = resolve(options.root), windowId = options.windowId!, requirement = structuredClone(options.requirement), draft = structuredClone(options.draft);
-  validateGameDraft(draft, modeFromSelection(draft.preparation));
-  if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Continuation requires the original confirmed acceptance.');
   const original = await readRunSnapshot(root);
+  validateGameDraft(draft, modeFromSelection(draft.preparation), await readOrdinaryProfile(root, { runId: original.run.runId, createdAt: original.events[0].at }));
+  if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Continuation requires the original confirmed acceptance.');
   if (original.formatVersion !== 2 || original.continuation?.currentWindowId !== windowId) throw new Error('Wrong continuation execution window.');
   const window = original.continuation.windows.find(item => item.windowId === windowId)!;
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))
