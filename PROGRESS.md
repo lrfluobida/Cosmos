@@ -11,7 +11,7 @@ Cosmos 是可扩展的游戏开发 agent，PvZ 是首个完整验收目标。当
 - [COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109) 公共通用验收的共享清理时间：作者 `agent_runtime_gap_assessment` 的 `9dde9848310401082d43c00a80f5d0ae3a18ba8a` 经 `generic_cleanup_reviewer` 独审 `APPROVED_COS108_SOURCE_AND_FREE_FIXTURE`，Root [公开批准](https://github.com/lrfluobida/Cosmos/issues/109#issuecomment-6293088097)后合入 `0c187117be32cf9f0058f51426020c1ba3b3b073`。普通 runner 在原截止内共享清理余额；发布超时后继续等待原写入结算，保留超时失败及 owner 跟踪。
 - COS108 复用作者原定向32/32与P2发布修正后6/6（重叠不相加）。首次公共DAG整体0/1、owner关闭失败原因仍unknown；私有ESM加载失败也保留。最终固定 `9dde9848` 的免费观测夹具1/1、exit0、0skip，test23937.393ms/whole29757.5175ms；真实锁定构建、Edge155.0.4283.62的9步输入、干净Node包、注入独审及晋级通过，四launcher exit/close0和原owner四次ESRCH、七PID/匹配进程/端口58940无残留，owner已释放。原输出在作者工作树 `.cosmos/cos108-observer-v1/`；新通过不证明旧失败根因已修复。
 - 组合源码 `0c187117be32cf9f0058f51426020c1ba3b3b073` 的21个变更文件与各自获批来源一致。主线typecheck/build均exit0；CLI短代表3/3、0skip、20469.8809ms，清理短代表4/4、0skip、1483.0408ms。其余无delta矩阵与实际浏览器证据复用，原输出在 `.cosmos/planning/2026-10-20-public-agent-improvements/integration/`。
-- 两项为 `source-integrated / open-awaiting-public-close`，等待Root同步公开关闭与父勾选；父COS18直接子项2、完成0，根直接子项100，总任务108。COS18整体仍open/partial。
+- 两项源码范围已完成并公开关闭：[COS107关闭](https://github.com/lrfluobida/Cosmos/issues/108#issuecomment-6293375947)、[COS108关闭](https://github.com/lrfluobida/Cosmos/issues/109#issuecomment-6293378935)的 `closed(completed)` 和父勾选[x]已由Root精确读回。父COS18直接子项2/2完成，根直接子项100，总任务108；2/2仅指这两个子项，COS18整体仍open/partial。
 - 本批无真实模型调用、付费生成或C16重跑；免费浏览器夹具的作者/评审为注入，不证明实际通用游戏生成或human通过。共享 ¥150、正式 ¥200/12h 硬帽及 ¥100/6h 优化目标保持。
 
 ## COS01变身茄子图鉴文字补证已审集成
