@@ -1635,15 +1635,17 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-107 · 公开新建运行的预算与时限选择
 
-[COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108)，id5942413576，原生父COS18/#19，open、父未勾选。基线 `fbacdf5a91c79ebeb299435341c55a2f43ce95ac`；专职作者 `agent_product_flow_assessment`，独立 reviewer 与单一 merger 由 Root 安排。[短计划](../plans/2026-10-20-public-run-limits.md)待独立审查，源码尚未实施。
+[COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108)，id5942413576，原生父COS18/#19，open、父未勾选。基线 `fbacdf5a91c79ebeb299435341c55a2f43ce95ac`；专职作者 `agent_product_flow_assessment`。[短计划](../plans/2026-10-20-public-run-limits.md) `d31404c0164cc93178deb12bd130e66566146de6` 经 `public_run_limits_reviewer` 独审 `APPROVED_PLAN_SCOPED`、无P1/P2，Root批准后源码已实施、待独审；本批唯一merger为 `public_agent_batch_merger`。
 
 公开 `new` 增加可选 `--max-cny`（正数、最多6位小数、≤200）及 `--max-minutes`（整数1..720），默认200/720。非法、重复和超帽参数在副作用前拒绝；原 intake 保存限额与来源，访谈和规划各按总额5%向下取整，极小额度不提额。确认、恢复和追加沿原限额与唯一时钟；显示实际选择，旧默认公共记录兼容。复用现有控制器和预算机制，必要测试覆盖参数、比例、来源与恢复，无新框架或固定case。
 
 本卡只做源码及免费验证，不启动真实模型、浏览器或付费生成；共享验证预算与正式硬帽保持。稳定任务 ID：COS-107。
 
+实施时发现准备模式原host固定¥200，Root批准本卡仅对普通生成开放较低限额；准备模式非默认金额/时长在CLI及session副作用前拒绝，显式默认归一化为旧来源格式。作者验证：公共/session/frame27/27、最终参数/准备边界6/6（重叠）、原intake15/15、较低原限额追加与只读恢复1/1，typecheck/build0。caller两项旧断言在基线同失败后，经Root批准按原COS63/68契约校正测试；同组串行68/69，最后一个停止后只读断言修正后affected1/1，其余68复用，不称单次69/69。中间owner夹具失败隔离及后续串行未复现，未改其runtime或宣称根因。原输出索引 `.cosmos/cos107/verification-index.json`；不代表真实通用游戏生成或用户体验完成。
+
 ### COS-108 · 公共通用验收的共享清理时间
 
-[COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109)，id5942414795，原生父COS18/#19，open、父未勾选。基线同上；专职作者 `agent_runtime_gap_assessment` 独立计划与实现，独立 reviewer 与单一 merger 由 Root 安排。本登记仅记录已注册范围，不宣称实现或验证结果。
+[COS108 / #109](https://github.com/lrfluobida/Cosmos/issues/109)，id5942414795，原生父COS18/#19，open、父未勾选。基线同上；Root已批准计划，专职作者 `agent_runtime_gap_assessment` 正在独立实施，本批唯一merger为 `public_agent_batch_merger`。本登记不预先声明源码审批或验证结果。
 
 普通验收当前每项清理固定1000ms，已有1500ms录像停止的确定性失败用例。目标是在原执行deadline内共享一次清理余额，覆盖正常关闭、证据保存及退出确认并保留强制清理余量；足额时正常1500ms停止可完成，挂起、取消、到限和未确认退出仍明确失败或未完成。保留原native validation范围，不搬入固定case权限，不延长运行、自动重试或绕过独审/晋级。
 

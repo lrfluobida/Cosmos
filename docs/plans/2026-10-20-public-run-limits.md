@@ -10,10 +10,11 @@
 
 ## 范围与契约
 
-- 基线 `fbacdf5a91c79ebeb299435341c55a2f43ce95ac`；任务 [COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108)，原生父 [COS18 / #19](https://github.com/lrfluobida/Cosmos/issues/19)。本计划等待独立审查，尚未实施源码。
+- 基线 `fbacdf5a91c79ebeb299435341c55a2f43ce95ac`；任务 [COS107 / #108](https://github.com/lrfluobida/Cosmos/issues/108)，原生父 [COS18 / #19](https://github.com/lrfluobida/Cosmos/issues/19)。计划 `d31404c0164cc93178deb12bd130e66566146de6` 经 `public_run_limits_reviewer` 独审 `APPROVED_PLAN_SCOPED`、无 P1/P2，Root 批准源码实施。
 - `new --max-cny <金额>` 接受十进制正数，最多 6 位小数、不超过 200；拒绝科学计数、符号、空白、前导零及非有限值。按整数元与补齐至六位的小数转换 micro-CNY，沿用追加入口的金额语义，不用浮点乘法取整。
 - `new --max-minutes <分钟>` 接受 1..720 的十进制整数。两项各自可省略，默认分别为 200 和 720；重复、缺值、非法或超帽选项在创建目录、取得运行锁、读取模型配置或调用 host 前拒绝。
 - 限额选项只用于 `new`；`resume`、`stop`、`status`、`continue` 等命令拒绝。追加继续使用原有单独确认协议。
+- 实施核对发现准备模式原 host 在 `entrypoint-human-preparation.ts:139` 与 `entrypoint-human-continuation.ts:49` 固定 ¥200。Root 已批准窄边界：较小限额仅适用于普通生成；准备模式非默认金额或时长在 CLI/session 副作用前拒绝，显式 200/720 归一化为原 origin 格式，不更改 transfer 契约。
 - 访谈和规划分别分配 `Math.floor(limitMicroCny / 20)`，默认仍各 ¥10；后续角色继续使用当前剩余池比例。允许最小 1 micro-CNY，分配可为 0；原预算门禁拒绝无法预留的调用，不提高用户限额。
 - 选择任一新参数时，在现有 `intake-origin.json` 保存完整 `limits: { limitMicroCny, durationMs }`。没有新参数仍沿用旧默认来源格式。公共 intake 恢复核对 origin 与账本/时长；正式恢复核对账本及 `originalDeadlineAt - originalStartedAt`。缺少 `limits` 的旧公共记录必须匹配原默认 200/720；删除新小额来源、字段不完整、非法或不一致均拒绝。
 - 核对放在公共恢复取得 owner、准备环境和新调用之前；`readConfirmedGeneration` 复用同一核对，覆盖正式恢复、原有追加和体验读取。仅对有 `intake-origin.json` 的公共来源和已记录 CLI `local-user` 确认应用公共规则；后者缺失整个 origin 也拒绝。没有公共来源的原内部 API/validation 不套默认 200/720 检查，现有内部较低额度 API 不变。已经确认的停止、费用、起点及截止保持；原始限额与追加窗口的金额/时长分列。
@@ -31,6 +32,8 @@
 | `tests/cli/run-limits.test.ts`（新增） | 金额/分钟边界、取整及命令副作用边界 |
 | `tests/cli/session.test.ts` | 选择、确认、intake/正式恢复、来源缺失与不一致 |
 | `tests/cli/render-frame-selection.test.ts` | 新限额与帧选择共存及恢复的必要组合 |
+| `tests/cli/continuation-session.fixture.ts`、`tests/cli/continuation-session.test.ts` | 较低原限额与追加窗口的真实组合，核对原时长而非追加时长 |
+| `tests/cli/continuation-quote.test.ts`、`tests/cli/continuation-session.test.ts` | Root追加批准：按既有契约校正两处已在基线复现的旧断言，不改对应runtime |
 | `README.md`、`docs/development/quickstart.md` | 小额通用生成示例、默认与恢复语义 |
 
 优先不改 `src/runtime/intake.ts`：其创建参数、账本验证、时限上限与一次激活已具备。若测试暴露必须改动，先报告具体调用证据。公共登记仅本作者维护 `PROGRESS.md`、`docs/specs/cosmos-issues.md`、`docs/specs/github-issues.json`；COS108 作者独占其实现及计划，双方不互写。
@@ -62,3 +65,13 @@
 ## 结果边界
 
 源码验收证明公共入口能够保存并执行较低限额，不能代替实际通用游戏生成。后续可用上述记忆配对 brief 验证正常输入、独立角色与交付；实际付费需另按原共享 ¥150 验证账本办理。本卡不新增固定 validation case。
+
+## 作者实施结果（待源码独审）
+
+公开参数与真实stdin激活先RED两项，随后通过。来源检查的RED直接到达owner恢复/host，帧组合RED被旧白名单拒绝；实施后公共/session/frame27/27。准备模式窄边界另先RED两项，最终参数/边界6/6；原intake15/15及较低原限额追加窗口1/1通过。各组存在重叠，不合计为独立通过数。`npm run typecheck` 与 `npm run build` 均exit0。
+
+计划内caller原组合66/68：`continuation-quote` 的future-format旧regex未包含现有continuation错误，`continuation-session` 的已完成窗口stop后恢复旧断言仍期待拒绝。两项在 `fbacdf5a91c79ebeb299435341c55a2f43ce95ac` 归档原源码同样失败（0/2），Root随后批准只校正测试：future-format精确拒绝 `Invalid formal continuation snapshot.`；停止后按 [COS63任务卡](../specs/cosmos-issues.md) 与 [CLI已完成恢复契约](../development/quickstart.md) 返回同一封存报告/候选，实际 `readCompletedGeneration` 与 `readCompletionTiming` 对未确认完成计时维持 `incomplete`，无prepare/execute，费用、时钟及stop快照字节不变。不锁内部原因措辞或可选字段。
+
+同组串行最终68/69；剩余一项新增断言修正后affected1/1，其余68复用，不声称单次69/69。中间并行组合的owner夹具一次构造失败，原样隔离1/1及随后串行通过，原因未确认；全部失败输出保留，未改runtime。两个原frame断言缺少已存在的module-repair版本后缀，已最小对齐其原始来源；对应生产policy源码与基线相同。
+
+原输出索引：作者工作树 `.cosmos/cos107/verification-index.json`。所有场景均使用临时目录与fake host/SDK，不启动provider、真实浏览器、paid或C16；本结果交专职reviewer审查后才由唯一merger集成。

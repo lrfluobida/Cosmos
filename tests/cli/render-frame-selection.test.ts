@@ -36,7 +36,7 @@ test('public selection is displayed before exact confirmation and anchored in it
   const origin = JSON.parse(await readFile(join(f.root, 'intake-origin.json'), 'utf8'));
   assert.equal(origin.renderFrames.enabled, true); assert.match(origin.renderFrames.observerSha256, /^[a-f0-9]{64}$/);
   const ref = f.executed[0].requirement.sources[1];
-  assert.equal(ref.version, `v1-frames-${origin.renderFrames.observerSha256}`);
+  assert.equal(ref.version, `v1-frames-${origin.renderFrames.observerSha256}-module-repair-${origin.modularRepairPolicy.sha256}`);
   const confirmed = JSON.parse(await readFile(join(f.root, ref.location), 'utf8'));
   assert.deepEqual(confirmed.renderFrames, origin.renderFrames); assert.equal(f.executed[0].draft.renderFrames, undefined);
   const snapshot = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
@@ -50,6 +50,15 @@ test('incomplete resume restores omitted selection and rejects an explicit confl
   const count = f.calls.length;
   await assert.rejects(f.run(['resume', f.root, '--render-frames', 'false']), /original|selection|采样|选择/i);
   assert.equal(f.calls.length, count); assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(before));
+});
+test('selected run limits coexist with the original frame observer through resume', async t => {
+  const f = await fixture(t);
+  await f.run(['new', f.root, '--brief', '点击星星', '--max-cny', '5', '--max-minutes', '30', '--render-frames', 'true'], '点击获胜\nconfirm 1\n');
+  const before = await readFile(join(f.root, 'snapshot.json'));
+  const origin = JSON.parse(await readFile(join(f.root, 'intake-origin.json'), 'utf8'));
+  assert.deepEqual(origin.limits, { limitMicroCny: 5_000_000, durationMs: 1_800_000 });
+  await f.run(['resume', f.root]); assert.equal(f.executed[1].renderFrames, true);
+  assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(before));
 });
 for (const answer of ['cancel', '']) test(`selection cancel/EOF ${answer || 'EOF'} keeps an unconfirmed intake`, async t => {
   const f = await fixture(t);
@@ -91,11 +100,12 @@ test('lost intake choice cannot become a legacy default before confirmation', as
   await assert.rejects(runCli(['status', f.root], { output: new PassThrough() }), /selection|original|采样|选择/i);
   await assert.rejects(f.run(['resume', f.root]), /selection|original|采样|选择/i); assert.equal(f.calls.length, calls);
 });
-test('omitted and explicit false preserve the legacy confirmation reference and choice fields', async t => {
+test('omitted and explicit false preserve absent frame fields and the current policy confirmation', async t => {
   for (const options of [[], ['--render-frames', 'false']]) {
     const f = await fixture(t); await f.run(['new', f.root, '--brief', '--render-frames', ...options], '点击获胜\nconfirm 1\n');
-    assert.equal(f.executed[0].renderFrames, undefined); assert.equal(f.executed[0].requirement.sources[1].version, 'v1');
+    assert.equal(f.executed[0].renderFrames, undefined);
     const origin = JSON.parse(await readFile(join(f.root, 'intake-origin.json'), 'utf8')); assert.equal(origin.renderFrames, undefined);
+    assert.equal(f.executed[0].requirement.sources[1].version, `v1-module-repair-${origin.modularRepairPolicy.sha256}`);
     const confirmation = JSON.parse(await readFile(join(f.root, f.executed[0].requirement.sources[1].location), 'utf8')); assert.equal(confirmation.renderFrames, undefined);
   }
 });

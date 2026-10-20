@@ -62,7 +62,7 @@ export async function readFrameSelection(root: string, state: IntakeSnapshot | R
   if ((selection || policy || created?.includes(' Render-frame observer: ')) && created !== frameIntakeReason(selection, policy)) throw new Error('Original created render-frame selection changed.');
   if (!selection) return undefined;
   if (!origin || origin.runId !== state.run.runId || typeof origin.brief !== 'string' || origin.draftMode !== undefined
-    || Object.keys(origin).some(key => !['runId', 'brief', 'renderFrames', 'modularRepairPolicy'].includes(key))) throw new Error('Original render-frame intake identity changed.');
+    || Object.keys(origin).some(key => !['runId', 'brief', 'renderFrames', 'modularRepairPolicy', 'limits'].includes(key))) throw new Error('Original render-frame intake identity changed.');
   const execution = await optionalJson(root, 'execution.json');
   if (execution) {
     const refs = execution.availableArtifacts?.filter((ref: ArtifactReference) => ref.artifactId === observer.artifactId);

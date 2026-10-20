@@ -16,7 +16,7 @@ import { deliveryTaskProofs, publishGenerationReport } from '../../src/runtime/e
 import { selectRenderFrames } from '../../src/runtime/render-frame-selection.ts';
 
 /** Explicit offline fixture: real runtime/registry, fake model and fake build/browser. */
-export async function continuationSessionFixture(t: test.TestContext, options: { renderFrames?: boolean; completeOriginal?: boolean; entrypointOriginal?: boolean; onHost?: (input: HostInput, host: any) => Promise<void>; unknownAuthor?: boolean; failContinuationPlay?: boolean; interruptRole?: 'design' | 'art' | 'coding'; onContinuedAuthor?: (signal: AbortSignal) => Promise<void> } = {}) {
+export async function continuationSessionFixture(t: test.TestContext, options: { limits?: { limitMicroCny: number; durationMs: number }; renderFrames?: boolean; completeOriginal?: boolean; entrypointOriginal?: boolean; onHost?: (input: HostInput, host: any) => Promise<void>; unknownAuthor?: boolean; failContinuationPlay?: boolean; interruptRole?: 'design' | 'art' | 'coding'; onContinuedAuthor?: (signal: AbortSignal) => Promise<void> } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-public-window-')); t.after(() => rm(root, { recursive: true, force: true }));
   const time = Date.now() - (options.completeOriginal || options.entrypointOriginal ? 0 : 13 * 60 * 60 * 1000), now = () => time;
   const draft = withHostStages({ brief: '点击原创星星获胜', questions: [{ id: 'goal', prompt: '目标？' }], answers: { goal: '点击星星显示胜利' }, unsupported: [],
@@ -25,9 +25,11 @@ export async function continuationSessionFixture(t: test.TestContext, options: {
       { id: 'win', kind: 'assert', acceptanceId: 'win', observation: { kind: 'text', selector: '#result' }, expected: '胜利', timeoutMs: 1000 }] } });
   const renderFrames = options.renderFrames ? await selectRenderFrames() : undefined;
   const intake = await IntakeController.create({ root, runId: 'public-game', ledgerId: 'public-ledger', specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 2,
-    ...(renderFrames ? { renderFrames } : {}),
-    allocations: [{ taskId: 'intake', amountMicroCny: 10_000_000 }, { taskId: 'planning', amountMicroCny: 10_000_000 }], now });
-  if (renderFrames) await writeFile(join(root, 'intake-origin.json'), JSON.stringify({ runId: 'public-game', brief: draft.brief, renderFrames }), { encoding: 'utf8', flag: 'wx' });
+    ...(renderFrames ? { renderFrames } : {}), ...options.limits,
+    allocations: [{ taskId: 'intake', amountMicroCny: Math.floor((options.limits?.limitMicroCny ?? 200_000_000) / 20) },
+      { taskId: 'planning', amountMicroCny: Math.floor((options.limits?.limitMicroCny ?? 200_000_000) / 20) }], now });
+  if (renderFrames || options.limits) await writeFile(join(root, 'intake-origin.json'), JSON.stringify({ runId: 'public-game', brief: draft.brief,
+    ...(renderFrames ? { renderFrames } : {}), ...(options.limits ? { limits: options.limits } : {}) }), { encoding: 'utf8', flag: 'wx' });
   const saved = await intake.saveDraft(draft), requirement = await intake.confirm({ revision: saved.revision, confirmed: true, actorId: 'offline-user', at: new Date(time).toISOString() });
   await intake.activateGeneration({ environmentReady: true, executionReady: true }); await intake.close();
   await mkdir(join(root, 'toolchain')); for (const name of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await writeFile(join(root, 'toolchain', name), name.endsWith('.ts') ? 'export default {}' : '{}', 'utf8');
