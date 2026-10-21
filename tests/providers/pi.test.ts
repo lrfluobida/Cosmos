@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mock, test } from 'node:test';
 import { createPiSession, createWorkspaceTools } from '../../src/providers/pi.ts';
+import { validationReservation } from '../../src/runtime/validation-validation.ts';
+import type { PiRequest } from '../../src/providers/pi.ts';
 
 const usage = { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40, prompt_cache_hit_tokens: 5 };
 const reply = (content = '完成', finish_reason = 'stop') => ({ delta: { content }, finish_reason });
@@ -97,6 +99,63 @@ test('SDK executes tools, returns their results and reasoning, and restores the 
   await restored.prompt('继续');
   assert.equal(f.requests[2].messages.find((m: any) => m.role === 'assistant').reasoning_content, '需要使用工具');
   assert.equal(f.admissions.length, 3);
+});
+
+for (const mode of ['live', 'compaction'] as const) test(`toolResult details do not inflate ${mode} input quotes or change native transport`, async t => {
+  const f = await fixture(t, [call('read', { path: 'synthetic.txt' }), reply(), call('read', { path: 'synthetic.txt' }), reply()]);
+  const projections: Pick<PiRequest, 'inputBytes' | 'hasImages' | 'maxOutputTokens'>[] = [];
+  for (const details of [{ note: '短元数据' }, { note: '合成元数据'.repeat(20000) }]) {
+    const session = await f.create({
+      tools: [{ ...f.config.tools.find(tool => tool.name === 'read')!, async execute() {
+        return { content: [{ type: 'text', text: '固定工具结果，保留中文。' }], details };
+      } }],
+      estimatedMaxCostMicroCny: validationReservation,
+      requestOutputLimit: async (request: PiRequest) => request.maxOutputTokens,
+      ...(mode === 'compaction' ? { requestCompaction: async (request: typeof projections[number]) => { projections.push(request); return false; } } : {}),
+    });
+    await session.prompt('读取合成工具结果');
+    const entries = (await readFile(session.sessionFile!, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+    assert.deepEqual(entries.find(entry => entry.message?.role === 'toolResult').message.details, details);
+  }
+  assert.deepEqual(f.requests[1], f.requests[3], 'metadata must not alter the actual provider body');
+  if (mode === 'live') {
+    assert.equal(f.admissions[1].inputBytes, f.admissions[3].inputBytes);
+    assert.equal(f.admissions[1].estimatedMaxCostMicroCny, f.admissions[3].estimatedMaxCostMicroCny);
+  } else {
+    assert.equal(projections.length, 2);
+    assert.equal(projections[0].inputBytes, projections[1].inputBytes);
+    assert.equal(projections[0].inputBytes, f.admissions[1].inputBytes);
+    assert.equal(validationReservation(projections[0]), validationReservation(projections[1]));
+  }
+});
+
+test('real tool content increases transport and quotes and remains subject to budget admission', async t => {
+  const f = await fixture(t, [call('read', { path: 'synthetic.txt' }), reply(), call('read', { path: 'synthetic.txt' }), reply(), call('read', { path: 'synthetic.txt' })]);
+  let ceiling = Infinity;
+  const short = '固定工具结果。', large = short + '合成内容'.repeat(20000);
+  for (const [index, text] of [short, large, large].entries()) {
+    if (index === 2) ceiling = f.admissions[1].estimatedMaxCostMicroCny;
+    const session = await f.create({
+      tools: [{ ...f.config.tools.find(tool => tool.name === 'read')!, async execute() {
+        return { content: [{ type: 'text', text }], details: { note: '固定元数据' } };
+      } }],
+      estimatedMaxCostMicroCny: validationReservation,
+      budget: { ...f.config.budget, beforeRequest: async (request: PiRequest) => {
+        f.admissions.push(request);
+        if (request.estimatedMaxCostMicroCny > ceiling) throw new Error('Synthetic budget exhausted');
+      } },
+    });
+    if (index === 2) await assert.rejects(session.prompt('读取合成工具结果'), { code: 'admission_rejected' });
+    else await session.prompt('读取合成工具结果');
+  }
+  assert.equal(f.requests[1].messages.find((message: any) => message.role === 'tool').content, short);
+  assert.equal(f.requests[3].messages.find((message: any) => message.role === 'tool').content, large);
+  const growth = Buffer.byteLength(large) - Buffer.byteLength(short);
+  assert.equal(f.admissions[3].inputBytes - f.admissions[1].inputBytes, growth);
+  assert.equal(f.admissions[3].estimatedMaxCostMicroCny - f.admissions[1].estimatedMaxCostMicroCny, growth * 2);
+  assert.equal(f.admissions.length, 6);
+  assert.equal(f.requests.length, 5, 'rejected large content must not reach fetch');
+  assert.equal(f.settlements.length, 5);
 });
 
 test('tool errors return to the model for a bounded repair without expanding write scope', async t => {
