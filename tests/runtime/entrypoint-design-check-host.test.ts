@@ -24,7 +24,8 @@ test('COS46 original design session self-checks identifiers then captures the au
     const map = await readFile(join(config.workspace, 'authors/design/transfer-design.json'));
     assert.equal(JSON.parse((await transfer.execute('seal', {})).content[0].text).passed, true);
     const write = config.tools.find((tool: any) => tool.name === 'write');
-    await write.execute('invalid', { path, content: JSON.stringify(illegal()) });
+    const written = await write.execute('invalid', { path, content: JSON.stringify(illegal()) });
+    assert.equal(written.content.length, 1, 'Preparation writes retain their original result without ordinary automatic feedback.');
     const before = await f.controller.read();
     const invalid = JSON.parse((await generic.execute('self-check', {})).content[0].text);
     assert.equal(invalid.passed, false);
@@ -81,6 +82,8 @@ async function operatorAuthor(t: test.TestContext) {
 
 test('COS46 operator self-check is read-only, absent from other roles, and bound to its original task/workspace', async t => {
   const f = await operatorAuthor(t), before = await f.controller.read(), files = await snapshot(f.root);
+  const written = await f.config.tools.find(tool => tool.name === 'write')!.execute('validation-write', { path, content: await readFile(f.file, 'utf8') }, undefined, undefined, undefined as any);
+  assert.equal(written.content.length, 1, 'Validation writes retain their original result without ordinary automatic feedback.');
   assert.deepEqual(await f.call(), { passed: true, errors: [] });
   await assert.rejects(f.call({ path: 'other.json' }), /no arguments/);
   await assert.rejects(f.host.roleFactory({ ...f.roleInput, role: 'art' }), /role|grant|assigned/i);

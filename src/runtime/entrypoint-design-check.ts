@@ -53,33 +53,44 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
       return errors.length ? { passed: false, errors } : failed(error instanceof Error ? error.message : 'Design output violates its fixed schema.');
     }
   }
-  return { readOnly: true, tool: defineTool({ name: GAME_DESIGN_CHECK, label: 'Check current game design',
+  async function check(signal?: AbortSignal): Promise<Feedback> {
+    const active = signal ?? new AbortController().signal;
+    active.throwIfAborted(); await input.guard(active); active.throwIfAborted();
+    let bytes: Buffer | null;
+    try { bytes = await regularFile(input.workspace, FILE); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; bytes = null; }
+    let result = evaluate(bytes);
+    let viewport = input.classicEntry?.viewport;
+    if (result.passed && input.ordinary) try {
+      const plan = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, ORDINARY_PLAN_SOURCE)));
+      validateOrdinaryAcceptancePlan(plan, input.ordinary.draft);
+      if (!sameValue(plan.requirement, input.ordinary.requirement)) throw new Error('Plan must reference the original complete requirement capture.');
+      viewport = plan.scenario.viewport;
+    } catch (error) { result = { passed: false, errors: [{ path: ORDINARY_PLAN_SOURCE, message: error instanceof Error ? error.message : 'Ordinary plan is missing.' }] }; }
+    if (result.passed && input.modular) try { validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, 'authors/design/module-contracts.d.ts'))); }
+    catch (error) { result = { passed: false, errors: [{ path: 'authors/design/module-contracts.d.ts', message: error instanceof Error ? error.message : 'Protected interfaces are missing.' }] }; }
+    if (result.passed && input.classicEntry) try {
+      const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, 'authors/design/classic-entry-plan.json')));
+      if (!viewport) throw new Error('Design plan viewport is unavailable.');
+      validateClassicEntryPlan(value, input.classicEntry.selection, gameplayIds, viewport);
+    } catch (error) { result = { passed: false, errors: [{ path: 'authors/design/classic-entry-plan.json', message: error instanceof Error ? error.message : 'Fixed classic entry plan is missing.' }] }; }
+    await input.guard(active); active.throwIfAborted();
+    return result;
+  }
+  return { readOnly: true,
+    async afterFileWrite(signal: AbortSignal): Promise<string> {
+      const result = await check(signal);
+      const diagnostics = result.errors.flatMap(error => error.message.replace(/^Unsupported acceptance scenario: /, '').split('; ')
+        .map(message => `${error.path.startsWith('authors/') ? error.path : `${FILE}: ${error.path}`}: ${message}`)).slice(0, 8);
+      return [`Design write feedback (read-only, advisory): ${result.passed ? 'passed' : 'incomplete or invalid; continue writing or correct the fields below'}. Capture and independent review are still required.`,
+        ...diagnostics.map(message => `- ${message}`)].join('\n').slice(0, 4096);
+    },
+    tool: defineTool({ name: GAME_DESIGN_CHECK, label: 'Check current game design',
     description: `Read and validate the current ${gameDesignCheckFiles({ ordinary: !!input.ordinary, modular: input.modular, classicEntry: !!input.classicEntry }).join(', ')}. Write all listed outputs before calling and repair reported errors in the same author session. Returns advisory field errors; does not change files or establish acceptance. No arguments.`,
     parameters: Type.Object({}, { additionalProperties: false }),
     async execute(_id, args, signal) {
       if (!args || typeof args !== 'object' || Array.isArray(args) || Object.keys(args).length) throw new Error('Game design check accepts no arguments.');
-      const active = signal ?? new AbortController().signal;
-      active.throwIfAborted(); await input.guard(active); active.throwIfAborted();
-      let bytes: Buffer | null;
-      try { bytes = await regularFile(input.workspace, FILE); }
-      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; bytes = null; }
-      let result = evaluate(bytes);
-      let viewport = input.classicEntry?.viewport;
-      if (result.passed && input.ordinary) try {
-        const plan = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, ORDINARY_PLAN_SOURCE)));
-        validateOrdinaryAcceptancePlan(plan, input.ordinary.draft);
-        if (!sameValue(plan.requirement, input.ordinary.requirement)) throw new Error('Plan must reference the original complete requirement capture.');
-        viewport = plan.scenario.viewport;
-      } catch (error) { result = { passed: false, errors: [{ path: ORDINARY_PLAN_SOURCE, message: error instanceof Error ? error.message : 'Ordinary plan is missing.' }] }; }
-      if (result.passed && input.modular) try { validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, 'authors/design/module-contracts.d.ts'))); }
-      catch (error) { result = { passed: false, errors: [{ path: 'authors/design/module-contracts.d.ts', message: error instanceof Error ? error.message : 'Protected interfaces are missing.' }] }; }
-      if (result.passed && input.classicEntry) try {
-        const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, 'authors/design/classic-entry-plan.json')));
-        if (!viewport) throw new Error('Design plan viewport is unavailable.');
-        validateClassicEntryPlan(value, input.classicEntry.selection, gameplayIds, viewport);
-      } catch (error) { result = { passed: false, errors: [{ path: 'authors/design/classic-entry-plan.json', message: error instanceof Error ? error.message : 'Fixed classic entry plan is missing.' }] }; }
-      await input.guard(active); active.throwIfAborted();
-      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }], details: {} };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(await check(signal)) }], details: {} };
     },
   }) };
 }

@@ -678,6 +678,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       && !/\b(?:index\.html|src\/main\.ts|src\/integration\/[^\s:]+):\d+:\d+\b/.test(issue.actual)) issue.classification = 'insufficient_evidence';
     return diagnostics;
   };
+  const designWriteChecks = new Map<string, ReturnType<typeof createGameDesignCheck>>();
   const designHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
     if (supplied.role !== 'design') return [];
     const original = (await controller.read()).tasks.find(task => task.taskId === supplied.taskId);
@@ -698,9 +699,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (await realpath(workspace(original)) !== fixedWorkspace) throw new Error('Game design check original workspace changed.');
       signal.throwIfAborted(); work.signal.throwIfAborted(); controller.signal.throwIfAborted();
     };
-    return [createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard,
+    const check = createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard,
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
-      ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) }), ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
+      ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
+    if (ordinary) designWriteChecks.set(original.taskId, check);
+    return [check, ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
   const codingHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
     if (supplied.role !== 'coding') return [];
@@ -865,6 +868,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       ...(ordinary ? { authorThinkingLevel: { design: 'off' } as const } : {}),
       sessionFactory: input.sessionFactory,
       hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],
+      ...(ordinary ? { afterFileWrite: async (roleInput, write, signal) => {
+        if (roleInput.role !== 'design' || roleInput.purpose || roleInput.validation) return;
+        const path = resolve(roleInput.workspace, write.path);
+        if (!gameDesignCheckFiles({ ordinary: true, modular, classicEntry: !!classicEntries?.selection.measurement })
+          .some(file => resolve(roleInput.workspace, file) === path && roleInput.task.ownership.writePaths.includes(file))) return;
+        const check = designWriteChecks.get(roleInput.task.taskId);
+        if (!check) throw new Error('Design write feedback requires its original author check.');
+        return check.afterFileWrite(signal);
+      } } : {}),
       ...(validation || human || ordinary ? { beforeTool: async (roleInput, signal) => {
         if (ordinary && roleInput.purpose === 'planning') { await ordinary.requireCurrent(); return; }
         if (human && roleInput.purpose === 'planning') { await human.requireCurrent(); return; }
