@@ -34,7 +34,8 @@ export function validatePlan(value: unknown): string[] {
   const issues: string[] = [];
   const fail = (path: string, valid: boolean, message: string) => { if (!valid) issues.push(`${path}: ${message}`); };
   const keys = (v: Record<string, any>, allowed: string[], path: string) => {
-    fail(path, Object.keys(v).every(key => allowed.includes(key)), 'Unknown field');
+    const unknown = Object.keys(v).filter(key => !allowed.includes(key));
+    fail(path, unknown.length === 0, `Unknown field: ${unknown.map(key => JSON.stringify(key)).join(', ')}`);
   };
   if (!object(value)) return ['$: Expected a plan object'];
   keys(value, ['formatVersion', 'projectId', 'taskId', 'runId', 'reportId', 'specVersion', 'artifact', 'url', 'viewport', 'acceptanceIds', 'steps'], '$');

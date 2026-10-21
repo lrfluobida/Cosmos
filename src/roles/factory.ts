@@ -64,6 +64,8 @@ export interface RoleFactoryOptions {
   sessionFactory?: (options: PiSessionOptions) => Promise<RoleSession>;
   /** Optional trusted host admission immediately before an existing scoped tool. */
   beforeTool?: (input: Readonly<RoleInput>, signal: AbortSignal) => Promise<void>;
+  /** Advisory host feedback after a scoped file write succeeds; never grants file access. */
+  afterFileWrite?: (input: Readonly<RoleInput>, write: Readonly<{ name: 'write' | 'edit'; path: string }>, signal: AbortSignal) => Promise<string | undefined>;
 }
 
 /** Pass this allowlisted environment to every host child process, never process.env. */
@@ -133,7 +135,14 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       combined.throwIfAborted();
       await options.beforeTool?.(input, combined);
       combined.throwIfAborted();
-      return tool.execute(id, args, combined, onUpdate, ctx);
+      const result = await tool.execute(id, args, combined, onUpdate, ctx);
+      if (options.afterFileWrite && (tool.name === 'write' || tool.name === 'edit') && !('isError' in result && result.isError)) {
+        combined.throwIfAborted();
+        const feedback = await options.afterFileWrite(input, { name: tool.name, path: (args as { path: string }).path }, combined);
+        combined.throwIfAborted();
+        if (feedback) return { ...result, content: [...result.content, { type: 'text' as const, text: feedback }] };
+      }
+      return result;
     } } as ToolDefinition));
     const snapshot = await input.controller.read();
     const packet = freeze({ role: input.role, contextId, taskId: task.taskId, objective: task.objective, specVersion: requirement.specVersion,
