@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-21 第三次room实际验证已 `closed/incomplete`，运行源码 `74b96c12e4d5f3e8a21d3eb6ac9391932967e87d`；[公开结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6319083685)已精确回读。COS116原恢复资格核验通过，draft-4唯一后继实际cap15383、费用23258µ；v4/v5状态顺序矛盾和费用原文保留。原CLI经8条规范回答生成v6（13AC、4体验、8QA），独立语义、完整导出映射与可恢复等待清理均通过；访谈7笔累计153914µ，末笔23248µ。真实用户确认第三次v6，确认记录14:30:20.582Z，绑定原文SHA `a7108767b66a805a74db99cbb532e5f85db94a578509e7297a2dcdcac0e95ec8`。
+
+原生成时钟14:30:21.050Z激活、原截止15:00:21.050Z；CLI于14:31:57.297Z清理结束，exit0但结果incomplete，实际历时96247ms。design-main有15次真实响应，第16次请求仍在16次帽内，但报价482502µ超过设计任务剩余额482362µ，差140µ，派发前拒绝；`insufficient_evidence`不允许追加continuation。美术/代码未启动，无游戏产物或体验通过结论。原过程未调用validate-game-design或handoff，计划还存在acceptanceId、selector和跨进程存档断言问题；离线诊断发现报价多计SDK不发送的toolResult.details共88843字节，发送投影报价为304640µ，此为待独审修复的诊断，源码尚未修复。
+
+原stop于14:37:06.231Z、原settle于14:37:19.689Z完成；24笔请求各导入一次，结算371082µ、释放4628918µ。独立operator于14:38:54.544Z给出PASS_CLOSED：child142持久停止、shared3342，committed19142758µ/unallocated55669667µ，held/reserved/unknown均0，无锁或进程残留。原room-3永久关闭，不再resume或重复结算，原¥5/30分钟限额与真实失败历史保留。父COS18/#19仍open/partial；本次仅记录实际结果，不改运行源码或真实账本。
+
 2026-10-21 [COS116 / #117](https://github.com/lrfluobida/Cosmos/issues/117) 已源码范围完成，`closed(completed)` 与父勾选[x]均已精确核证；[源码批准](https://github.com/lrfluobida/Cosmos/issues/117#issuecomment-6314435325)、[完成回执](https://github.com/lrfluobida/Cosmos/issues/117#issuecomment-6314441297)。作者 `intake_budget_implementer`，独审 `intake_budget_recovery_design` 给出 `APPROVED_SOURCE_SCOPED`、无findings；唯一merger `public_agent_batch_merger` 从基线 `11edf8432a678958466273dab34c1f8d0d941b46` 合入精确源码 `b81e7285557b34090f5d50909345982d43dee8a2`，源码发布 `ab9eef7f353089a0a67053c38ec40f2e457c421a`。普通 draft 保留16K/off原意图，在既有Pi回调中用原估算器和原reserveEntry的账本副本选择预算内最大输出；历史未派发恢复严格核对native、原问答、完整计费与interview事件，复用COS110同一个唯一successor槽。marker发布或session创建失败也保留槽消耗，实际session关闭失败保留pending清理状态。
 
 主线typecheck/build exit0，六个集中代表6/6、0skip、TAP9037.8183ms；原始命令与结果在 `.cosmos/cos116-integration/checks.json`。作者最终新增22/22与既有兼容证据按未变范围复用，不与主线6/6累加；兼容证据为原33项及修正fixture后的2项，未重跑完整矩阵。作者索引 `.cosmos/cos116-evidence/verification-index.json`，原失败记录保留。
