@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-21 [COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115) 已登记为 COS18 第八个原生子项；总任务114、根直接100、父已完成7项。`ordinary_design_repair_design_review` 已批准设计与计划，`ordinary_feedback_implementer` 在基线 `d7a3c755af124196259eb4240e1c4d2493cdf74f` 实施免费源码，当前待独立源码审查，唯一merger为 `public_agent_batch_merger`。统一普通design的角色规则与真实自检工具文件范围，明确两输出完成后在原会话自检修复；既有坐标诊断增加阶段/步骤/x或y，checkpoint诊断指出阶段、snapshot/savedSnapshot、selector和expected。原判定条件、动作词汇、正常输入证明、capture/独审、预算及恢复策略保持。
+
+新回归 RED 0/11→GREEN 11/11、0skip，覆盖实际host packet/工具范围、主设计单文件拒绝与完整计划通过、两阶段坐标边界及缺失/错值/无先前点击的checkpoint；原始输出 `.cosmos/cos114-evidence/`。所有运行仅TEMP/受控角色和browser IO，不证明真实模型遵循提示、自然语言设计正确或游戏生成成功；预算自适应不在本卡范围。
+
+原 `room-20261021-2` 已真实确认v2，design的14次实际响应reasoning均0，写出主设计和计划；唯一自检在计划写入前返回ENOENT，随后没有收到最终字段反馈。第15次请求被原预算预留守卫拒绝，quote512052µ、余额508211µ，未发送provider；原SDK纯函数重建上下文223258 bytes。原运行已停止、结算且独立PASS_CLOSED：18请求合计235926µ、释放4764074µ、shared revision3340，永久关闭不恢复。[公开实际结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6311447223)保留。下段等待确认状态为历史，不能据此恢复原run。
+
 2026-10-21 当前普通验证 `room-20261021-2` 已完成访谈，原CLI cancel正常exit0，等待用户真实确认当前v2；确认问题已发出、尚无回复，未发confirm或开始generation，不能复用旧确认。实际源码 `99e45e96ac571a220091587dbca82ebc1daaed7d`；v2 SHA256为 `1150b5304dd8fc5f69018fcb37ff49ed8a572237c17849562dcd833a2a25595f`，含13条AC（11玩法、2host）及4条体验要求，unsupported=[]，保留原v2功能并约定一次跨进程代表，完整评阅在 `.cosmos/public-validation/room-20261021-2/draft-v2-review.md`。独立 `PASS_RESUMABLE_WAIT`（UTC01:39:29.993–01:39:30.164）：child revision23，confirmation/stopReason均null、生成时钟未启；三请求8241+23051+22037=53329µ CNY均settled，reserved/unknown为0，pending work为0，无owner、锁或进程。shared revision3339保留新5000000µ拨款，held未结算且无overrun；等待真实当前版确认后才能恢复同一room-2开发。[公开状态](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6305888767)已由Root核证。前次room-1的失败、155105µ费用及closed状态保留为历史。
 
 2026-10-21 [COS113 / #114](https://github.com/lrfluobida/Cosmos/issues/114) 最终源码 `52b5fd06b857d557e01076a785c8748a10df7d52` 经 `design_thinking_reviewer` 规格与质量独审 `APPROVED_SOURCE_SCOPED`、无finding，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/114#issuecomment-6305591381)后，唯一merger `public_agent_batch_merger` 合入并发布 `ebac7e8613ca506042d50b2bfc1479efec0b6fe9`。[公开完成评论](https://github.com/lrfluobida/Cosmos/issues/114#issuecomment-6305711332)、`closed(completed)` 与父勾选[x]已核证；本卡 `source-integrated / source-scoped-complete`，总任务113、根直接100，COS18七个源码子项完成，父整体仍open/partial。仅普通 `ordinary-design/1` design作者使用off；原模型、8192 token、16请求、120秒、grant/clock、自检与独审保持，其他路径与角色沿原配置，原failed/insufficient_evidence不获得重试权。

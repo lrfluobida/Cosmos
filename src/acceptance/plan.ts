@@ -63,7 +63,7 @@ export function validatePlan(value: unknown): string[] {
     fail(path, identifier(step.id) && !seen.has(step.id), 'Expected a unique step identifier'); seen.add(step.id);
     if (['mouse-click', 'mouse-move'].includes(step.kind)) {
       keys(step, ['id', 'kind', 'x', 'y', 'selector'], path);
-      for (const axis of ['x', 'y']) fail(path, typeof step[axis] === 'number' && Number.isFinite(step[axis]) && step[axis] >= 0
+      for (const axis of ['x', 'y']) fail(`${path}.${axis}`, typeof step[axis] === 'number' && Number.isFinite(step[axis]) && step[axis] >= 0
         && step[axis] < (step.selector ? 1 : (value.viewport?.[axis === 'x' ? 'width' : 'height'] ?? 0)), 'Coordinates must be within viewport or normalized selector bounds [0,1)');
       if (step.selector !== undefined) fail(path, text(step.selector), 'Expected a selector');
     } else if (step.kind === 'locator-click') {

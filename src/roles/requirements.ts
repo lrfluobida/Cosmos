@@ -133,16 +133,18 @@ export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptanc
       || sameValue(checkpoint.snapshot, checkpoint.savedSnapshot)) throw new Error('Invalid visible save checkpoint.');
     stages.push(reopen.steps);
   }
-  for (const steps of stages) {
+  for (const [stageIndex, steps] of stages.entries()) {
+    const stagePath = stageIndex === 0 ? 'scenario.steps' : 'scenario.reopen.steps';
     const acceptanceIds = draft.scenario.reopen ? gameplay.filter(item => Array.isArray(steps)
       && steps.some(step => 'acceptanceId' in step && step.acceptanceId === item.acceptanceId)).map(item => item.acceptanceId) : gameplay.map(item => item.acceptanceId);
     const issues = validatePlan({ viewport: draft.scenario.viewport, steps, formatVersion: '1.0.0', projectId: 'draft', taskId: 'draft', runId: 'draft', reportId: 'draft', specVersion: 'draft',
       artifact: { artifactId: 'draft', version: 'v1', location: 'draft' }, url: 'http://127.0.0.1:1', acceptanceIds });
-    if (issues.length) throw new Error(`Unsupported acceptance scenario: ${issues.join('; ')}`);
-    if (draft.scenario.reopen) for (const observation of [draft.scenario.reopen.checkpoint.snapshot, draft.scenario.reopen.checkpoint.savedSnapshot]) {
+    if (issues.length) throw new Error(`Unsupported acceptance scenario: ${issues.map(issue => issue.replace(/^steps(?=\[|:)/, stagePath).replace(/^viewport(?=\.|:)/, 'scenario.viewport')).join('; ')}`);
+    if (draft.scenario.reopen) for (const field of ['snapshot', 'savedSnapshot'] as const) {
+      const checkpoint = draft.scenario.reopen.checkpoint, observation = checkpoint[field];
       if (!steps.some((step, index) => 'observation' in step && sameValue(step.observation, observation)
         && step.expected === draft.scenario.reopen!.checkpoint.expected && steps.slice(0, index).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind)))) {
-        throw new Error('Each save stage requires normal input followed by both fixed visible checkpoint checks.');
+        throw new Error(`${stagePath}: Missing checkpoint.${field} visible assertion after normal click input: selector=${JSON.stringify(observation.selector)}, expected=${JSON.stringify(checkpoint.expected)}. Each save stage requires both fixed visible checkpoint checks.`);
       }
     }
   }

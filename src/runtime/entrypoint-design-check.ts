@@ -17,6 +17,11 @@ export const MEDIA_IDENTIFIER_RULE = 'Media IDs, state names and layer IDs must 
 const FILE = 'authors/design/design.json';
 interface Feedback { passed: boolean; errors: { path: string; message: string }[] }
 
+export function gameDesignCheckFiles(scope: { ordinary?: boolean; modular?: boolean; classicEntry?: boolean }): string[] {
+  return [FILE, ...(scope.ordinary ? [ORDINARY_PLAN_SOURCE] : []), ...(scope.modular ? ['authors/design/module-contracts.d.ts'] : []),
+    ...(scope.classicEntry ? ['authors/design/classic-entry-plan.json'] : [])];
+}
+
 /** Advisory author feedback only. Capture and independent review still validate actual output. */
 export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean;
   ordinary?: { draft: OrdinaryGameDraft; requirement: ArtifactReference };
@@ -49,7 +54,7 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
     }
   }
   return { readOnly: true, tool: defineTool({ name: GAME_DESIGN_CHECK, label: 'Check current game design',
-    description: 'Read and validate the current authors/design/design.json. Returns advisory field errors; does not change files or establish acceptance. No arguments.',
+    description: `Read and validate the current ${gameDesignCheckFiles({ ordinary: !!input.ordinary, modular: input.modular, classicEntry: !!input.classicEntry }).join(', ')}. Write all listed outputs before calling and repair reported errors in the same author session. Returns advisory field errors; does not change files or establish acceptance. No arguments.`,
     parameters: Type.Object({}, { additionalProperties: false }),
     async execute(_id, args, signal) {
       if (!args || typeof args !== 'object' || Array.isArray(args) || Object.keys(args).length) throw new Error('Game design check accepts no arguments.');

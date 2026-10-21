@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-21 [COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115) 已登记至父COS18/#19；总任务114、根直接100、父子项8/已完成7。设计与计划已独审批准，当前 `source-review-pending`，只做免费源码与TEMP验证。原room-2已失败、结算并永久关闭，新的提示与诊断不证明实际生成完成。
+
 2026-10-21 [COS113 / #114](https://github.com/lrfluobida/Cosmos/issues/114) 最终 `52b5fd0` 已独审合入并发布 `ebac7e8613ca506042d50b2bfc1479efec0b6fe9`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务113、根直接100、COS18七个源码子项均完成，父整体仍open/partial。仅新普通design作者使用off，原默认、独审与派发边界保持；实际room失败已结算关闭，不恢复旧run，源码完成不代表实际生成通过。
 
 2026-10-21 [COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112) 源码范围closed保持；[COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113) 最终 `64c3b86` 已独审合入 `4c3129693881b80a62b17de7ff40513718094a6b`，源码范围的 `closed(completed)` 与父勾选[x]已由Root核证。新建普通运行默认已接通 `ordinary-design/1`，旧origin不迁移。总任务112、根直接100、父COS18六个源码子项均完成；子项6/6不代表整体完成，COS18仍open/partial。共用[设计](ordinary-design-intake.md)及[计划](../plans/2026-10-21-ordinary-design-intake.md)保持；原普通memory验证已停止结算，不恢复，下列较早阶段状态保留为历史。
@@ -1722,6 +1724,18 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 范围：factory增加受限作者thinking覆盖并保留全局默认，仅 `ordinary-design/1` design作者选off；planning/reviewer、旧普通、preparation、固定validation、art/coding保持原配置。模型、8192 token、16请求、120秒、原grant/clock、自检和独审不变；普通设计提示明确design.json先写、acceptance-plan.json分块write/edit、既有自检。不改变SDK/provider、依赖、失败分类或重试策略，不赋予failed/insufficient_evidence旧任务新派发权。
 
 免费证据：真实SDK mock payload先RED enabled/low，再GREEN disabled/无reasoning_effort；作者新增5项、2项兼容和原affected6项按未变范围复用，不累计重复结果。主线合并时8文件等于批准来源；typecheck/build均exit0，四个集中代表4/4、0skip、14119.9679ms，覆盖原生SDK受控payload、固定validation默认、非法配置拒绝及旧failed/insufficient无新派发；原上限、费用准入、自检和独审保持。作者索引 `.cosmos/cos113-evidence/verification-index.json`，主线原输出 `.cosmos/cos113-integration/`。本批无真实模型/browser/paid、真实账本或旧关闭run操作，COS18整体、实际生成与human未完成。稳定任务ID：COS-113。
+
+### COS-114 · 普通设计自检契约与分阶段错误定位
+
+[COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115)，id5956993439，原生父COS18/#19，依赖COS113，`source-review-pending / open`。基线 `d7a3c755af124196259eb4240e1c4d2493cdf74f`；设计与计划经 `ordinary_design_repair_design_review` 独立 `APPROVED_DESIGN / APPROVED_PLAN`、无finding，Root批准源码实施。作者 `ordinary_feedback_implementer`，唯一merger `public_agent_batch_merger`；源码等待独立规格→质量审查。
+
+实际证据：room-2真实确认v2后，14次design响应reasoning均0，已写主设计与计划；唯一自检在计划尚不存在时返回ENOENT，之后没有最终字段反馈。第15次请求因原预留quote512052µ高于余额508211µ而在provider前拒绝，原SDK纯函数重建上下文223258 bytes；不能称为反复validator错误循环或实际花完¥5。TEMP原validator确认主设计结构通过，计划92+26步中7个mouse-click缺x/y、两阶段缺部分成对checkpoint，并有清档后期待恢复旧档等语义矛盾。原run已停止、结算并独立PASS_CLOSED：18请求合计235926µ、释放4764074µ、shared revision3340；原确认、失败、产物与费用只读，不恢复，[公开实际结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6311447223)保持。
+
+范围：统一host角色规则与真实 `validate-game-design` 描述，按当前配置列明主设计、普通验收计划及既有modular/classic输出；所有输出完成后，在原作者会话自检并修复。工具仍只读/建议性，capture、独审和下游权威保持。简明提示已有selector-only `locator-click` 的timeoutMs，mouse-click/mouse-move即使带selector也需要x/y；保留两阶段正常输入后、同expected、两个不同可见selector的checkpoint，按正常状态变化安排保存/恢复并复用已有步骤。
+
+诊断仅补充位置：坐标包含x/y；步骤明确 `scenario.steps` 或 `scenario.reopen.steps`，共享viewport保持 `scenario.viewport`；缺checkpoint指出阶段、snapshot/savedSnapshot、selector及expected。接受/拒绝条件、边界、动作集合、正常输入证明、失败分类与首个失败阶段行为保持，不新增schema或聚合框架。模型配置、token/请求/时间上限、预算估算与准入、拨款及恢复政策不改；预算自适应、新运行和新的已确认需求复用入口不在本卡范围。
+
+实施与验证计划：独立managed worktree先严格UTF-8检查；以生产host/tool与缩小缺字段夹具做RED，最小补丁后用有效对应计划与缺输入/错expected负例做GREEN；检查受影响兼容、类型/构建/严格测试类型、中文复读与diff；提交确切SHA供独审，唯一merger集成并记录结果。新11项RED全部按预期失败，GREEN11/11、0skip、8374.6654ms；原始输出与后续检查索引 `.cosmos/cos114-evidence/verification-index.json`。全部为FREE SOURCE/TEMP，不调用真实provider/browser、不改变实际run/ledger；源码不证明模型遵循提示、自然语言设计正确或原预算内游戏必定完成。稳定任务ID：COS-114。
 
 ## 5. 任务与上下文包模板
 
