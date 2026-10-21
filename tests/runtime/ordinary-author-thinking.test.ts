@@ -1,0 +1,72 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { mock, test } from 'node:test';
+import { createPiSession } from '../../src/providers/pi.ts';
+import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
+import { readConfirmedGeneration } from '../../src/cli/session.ts';
+import { readRunSnapshot } from '../../src/cli/control.ts';
+
+test('ordinary design alone disables thinking in native SDK payload while original admission and host gates remain', async t => {
+  const f = await ordinaryHostFixture(t), scripted = f.hostOptions.sessionFactory!, payloads: any[] = [], configs: any[] = [];
+  const fetchMock = mock.method(globalThis, 'fetch', async (input: any, init?: RequestInit) => {
+    const request = input instanceof Request ? input : new Request(input, init), body = JSON.parse(await request.text());
+    const state: any = await readRunSnapshot(f.root), config = configs.at(-1), packet = JSON.parse(config.context);
+    payloads.push({ role: packet.role, taskId: packet.taskId, body });
+    assert.equal(body.model, 'deepseek-flash'); assert.equal(state.requests.at(-1).requestId, state.ledger.entries.at(-1).requestId);
+    const entry = state.ledger.entries.at(-1); assert.equal(entry.status, 'reserved'); assert.equal(entry.taskId, packet.taskId);
+    assert.ok(entry.reservedMicroCny > body.max_tokens * 8, 'The existing estimator reserves input and the unchanged output cap before dispatch.');
+    const chunk = { id: 'offline-cos113', model: 'deepseek-flash', choices: [{ index: 0, delta: { content: 'Complete' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40 } };
+    return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+  });
+  t.after(() => fetchMock.mock.restore());
+  f.hostOptions.sessionFactory = async config => {
+    configs.push(config);
+    const native = await createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-cos113' } });
+    try { await native.prompt('Exercise the original role request configuration.'); } finally { await native.close(); }
+    return scripted(config);
+  };
+  const result: any = await f.execute();
+  t.diagnostic(JSON.stringify(payloads.map(({ role, taskId, body }) => ({ role, taskId, model: body.model, thinking: body.thinking, reasoning_effort: body.reasoning_effort, max_tokens: body.max_tokens }))));
+  assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
+  assert.equal(payloads.length, 7);
+  for (const { role, body } of payloads) {
+    assert.deepEqual(body.thinking, { type: role === 'design' ? 'disabled' : 'enabled' });
+    assert.equal(body.reasoning_effort, role === 'design' ? undefined : 'low');
+    assert.equal(body.max_tokens, role === 'art' || role === 'coding' ? 65536 : 8192);
+  }
+  const state: any = await readRunSnapshot(f.root);
+  for (const config of configs) {
+    const packet = JSON.parse(config.context), task = state.tasks.find((task: any) => task.taskId === packet.taskId);
+    assert.equal(config.maxRequests, 16); assert.equal(config.requestTimeoutMs, packet.role === 'coding' ? 600000 : 120000);
+    assert.equal(packet.budget.originalDeadlineAt, state.run.originalDeadlineAt);
+    if (task) assert.equal(packet.budget.allocationMicroCny, task.budget.allocationMicroCny);
+  }
+  assert.equal(state.ledger.limitMicroCny, 200000000); assert.equal(state.ledger.entries.length, 7);
+  assert.ok(state.ledger.entries.every((entry: any) => entry.status === 'settled'));
+  const design = configs.find(config => JSON.parse(config.context).role === 'design'), rules = JSON.parse(design.context).rules.join('\n');
+  assert.match(rules, /First write authors\/design\/design\.json/);
+  assert.match(rules, /Then write authors\/design\/acceptance-plan\.json.*bounded.*write\/edit/);
+  assert.match(rules, /validate-game-design/);
+  assert.ok(f.checks.length > 0 && f.checks.every(value => JSON.parse(value.content[0].text).passed));
+  assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 3);
+  assert.ok(f.packets.filter(packet => packet.role === 'reviewer').every(packet => packet.ownership.writePaths.length === 0));
+  assert.equal(f.plays.length, 1); assert.deepEqual(f.plays[0].plan.steps.filter((step: any) => !step.id.startsWith('host-media-')), f.scenario.steps);
+});
+
+test('ordinary failed insufficient evidence remains closed to redispatch after author configuration changes', async t => {
+  const f = await ordinaryHostFixture(t, { fault: 'capability' }), initial: any = await f.execute();
+  assert.equal(initial.acceptedCandidate, undefined);
+  const before: any = await readRunSnapshot(f.root), design = before.tasks.find((task: any) => task.taskId === 'design-task');
+  assert.equal(design.state, 'failed'); assert.equal(design.attempts[0].failure.classification, 'insufficient_evidence');
+  const feedback = await readFile(join(design.attempts[0].sessionRef, 'failure.json'));
+  const confirmed = await readConfirmedGeneration(f.root, before), count = f.packets.length;
+  const resumed: any = await f.host.execute({ root: f.root, ...confirmed, resume: true });
+  assert.equal(resumed.acceptedCandidate, undefined); assert.equal(f.packets.length, count);
+  const after: any = await readRunSnapshot(f.root);
+  assert.deepEqual(after.tasks, before.tasks); assert.deepEqual(after.ledger, before.ledger);
+  assert.equal(after.run.originalStartedAt, before.run.originalStartedAt); assert.equal(after.run.originalDeadlineAt, before.run.originalDeadlineAt);
+  assert.deepEqual(await readFile(join(design.attempts[0].sessionRef, 'failure.json')), feedback);
+  assert.equal(after.tasks.some((task: any) => task.taskId.includes('repair')), false);
+});
