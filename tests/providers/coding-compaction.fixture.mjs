@@ -167,14 +167,14 @@ export async function codingCompactionFixture(t, mode = 'success', priorHistory 
     parameters: Type.Object({ ordinal: Type.Number() }, { additionalProperties: false }), async execute(id, args) {
       if (args.ordinal === 99) { partialToolCalls++; throw new Error('Truncated summary tool must not execute'); }
       const content = [{ type: 'text', text: '' }], message = { role: 'toolResult', toolCallId: id, toolName: 'synthetic_read', content,
-        details: {}, isError: false, timestamp: Date.now() };
+        isError: false, timestamp: Date.now() };
       const context = normalizeContext({ messages: convertToLlm([...native.sessionManager.buildSessionProjection().messages, message]) });
       const target = mode === 'no-benefit' ? args.ordinal === 1 ? 251339 : bytesOf(context) + 40000
         : mode === 'noop' ? bytesOf(context) + 100
         : mode === 'summary-too-large' ? [600000, 700000][args.ordinal - 1]
         : affordableBalance !== undefined ? [40000, 80000, 131072][args.ordinal - 1] : [80000, 125000, 251339][args.ordinal - 1], difference = target - bytesOf(context);
       assert.ok(difference > 0); content[0].text = 'r'.repeat(difference); assert.equal(bytesOf(context), target);
-      return { content, details: {} };
+      return { content };
     } };
   const factory = createRoleFactory({ maxOutputTokens: 65536, maxRequests: 16, requestTimeoutMs: 3000, estimatedMaxCostMicroCny: validationReservation,
     env: { DEEPSEEK_API_KEY: 'offline-synthetic-key' }, compactionKeepRecentTokens: 16000,

@@ -6,6 +6,7 @@ import {
   createAgentSession, createExtensionRuntime, convertToLlm, ModelRuntime, SessionManager, SettingsManager,
   type AgentSessionEvent, type ResourceLoader, type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
+import { requestInputBytes } from './request-input.ts';
 
 export { createWorkspaceTools } from './workspace-tools.ts';
 export const PI_VERSION = '0.99.2';
@@ -150,7 +151,7 @@ export async function createPiSession(config: PiSessionOptions) {
     };
     const request: Omit<PiRequest, 'estimatedMaxCostMicroCny'> = {
       requestId: randomUUID(), modelId: DEEPSEEK_MODEL, maxOutputTokens,
-      inputBytes: Buffer.byteLength(inputJson),
+      inputBytes: requestInputBytes(requestContext),
       hasImages: requestContext.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image')),
     };
     if (config.requestOutputLimit) {
@@ -300,7 +301,7 @@ export async function createPiSession(config: PiSessionOptions) {
     });
     const projection = () => {
       const context = normalizeContext({ messages: convertToLlm(manager.buildSessionProjection().messages) }), serialized = JSON.stringify(context);
-      return { serialized, maxOutputTokens: config.maxOutputTokens, inputBytes: Buffer.byteLength(serialized),
+      return { serialized, maxOutputTokens: config.maxOutputTokens, inputBytes: requestInputBytes(context),
         hasImages: context.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image')) };
     };
     const projectedCost = ({ serialized: _serialized, ...bounds }: ReturnType<typeof projection>) =>

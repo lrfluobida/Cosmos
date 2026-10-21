@@ -47,6 +47,7 @@ export async function outputLimitFixture(t, options = {}) {
     budget: { beforeRequest: async request => { admissions.push(request); }, afterResponse: async response => { settlements.push(response); } } };
   return { root, workspace, config, admissions, settlements, dispatches,
     create: async overrides => { const session = await createPiSession({ ...config, ...overrides }); sessions.push(session); return session; },
+    /** @param {import('@earendil-works/pi-ai').Context} [context] */
     dispatch: async (context = syntheticContext()) => {
       for await (const event of runtime.streamSimple(runtime.getModel('deepseek', 'deepseek-flash'), context, {})) {
         if (event.type === 'error') throw new Error(event.error.errorMessage);
