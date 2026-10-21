@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-21 [COS117 / #118](https://github.com/lrfluobida/Cosmos/issues/118) 与 [COS118 / #119](https://github.com/lrfluobida/Cosmos/issues/119) 均已源码范围完成，closed(completed)和父勾选[x]已精确GET核证；[117批准](https://github.com/lrfluobida/Cosmos/issues/118#issuecomment-6319877363)、[117完成](https://github.com/lrfluobida/Cosmos/issues/118#issuecomment-6319884870)、[118批准](https://github.com/lrfluobida/Cosmos/issues/119#issuecomment-6319908022)、[118完成](https://github.com/lrfluobida/Cosmos/issues/119#issuecomment-6319915952)。独立reviewer cos117_reviewer、cos118_reviewer均给出APPROVED_SOURCE_SCOPED、无剩余findings。唯一merger从 `32c37b11f4b114ffeb44ed9a3bebbcade3cef8af` 按117→118合入 `e57ea50ae17520535c1d8c95850baffb386c9b08`、`1f482307d3575224ac129f83257deb86dac1ef20`；合并提交分别为 `7d14b33b2943a9864aed90de50efe572b5cd7986`、`48cffe0f0e9a195bf77b601a6e3c928ffa0b993b`，本批源码发布 `48cffe0f0e9a195bf77b601a6e3c928ffa0b993b`，16个来源文件与批准版本一致。
+
+COS117统一live/compaction费用输入投影，仅排除未发送的toolResult顶层details；真实内容、图片、工具定义/参数、native记录及完整输入身份检查保持。作者新增9项、兼容原9项及夹具修正后3项按未变范围复用。COS118仅在普通设计作者成功write/edit声明文件后追加现有validator的简短只读反馈，Windows等价路径同样触发，原写入事实、guard、capture与独立review保持；原14项与新增Windows2项、兼容20/3/3分别复用，两次保留的下游失败不计通过或已修复。
+
+主线typecheck/build均exit0；组合10个集中代表10/10、0fail、0skip，TAP28003.3347ms，含Windows write/edit两项；不与作者证据重复累计。原始命令和输出在 `.cosmos/cos117-118-integration/checks.json`，作者索引分别为 `.cosmos/cos117-evidence/verification-index.json`、`.cosmos/cos118-evidence/verification-index.json`。总任务118、根直接100、父COS18十二个源码子项完成，整体仍open/partial。本次源码集成仅免费SOURCE/TEMP，未调用真实provider/browser或操作实际controller/账本，原memory及room1/2/3永久关闭；源码通过不证明真实生成、语义或体验通过。
+
 2026-10-21 第三次room实际验证已 `closed/incomplete`，运行源码 `74b96c12e4d5f3e8a21d3eb6ac9391932967e87d`；[公开结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6319083685)已精确回读。COS116原恢复资格核验通过，draft-4唯一后继实际cap15383、费用23258µ；v4/v5状态顺序矛盾和费用原文保留。原CLI经8条规范回答生成v6（13AC、4体验、8QA），独立语义、完整导出映射与可恢复等待清理均通过；访谈7笔累计153914µ，末笔23248µ。真实用户确认第三次v6，确认记录14:30:20.582Z，绑定原文SHA `a7108767b66a805a74db99cbb532e5f85db94a578509e7297a2dcdcac0e95ec8`。
 
 原生成时钟14:30:21.050Z激活、原截止15:00:21.050Z；CLI于14:31:57.297Z清理结束，exit0但结果incomplete，实际历时96247ms。design-main有15次真实响应，第16次请求仍在16次帽内，但报价482502µ超过设计任务剩余额482362µ，差140µ，派发前拒绝；`insufficient_evidence`不允许追加continuation。美术/代码未启动，无游戏产物或体验通过结论。原过程未调用validate-game-design或handoff，计划还存在acceptanceId、selector和跨进程存档断言问题；离线诊断发现报价多计SDK不发送的toolResult.details共88843字节，发送投影报价为304640µ，此为待独审修复的诊断，源码尚未修复。

@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-21 COS117 / #118与COS118 / #119已独审合入并发布 `48cffe0f0e9a195bf77b601a6e3c928ffa0b993b`，两卡closed(completed)与父[x]均已GET核证。总任务118、根直接100、COS18十二个源码子项完成，父仍open/partial。typecheck/build及组合10/10代表通过；实际生成与体验仍须另行验证，旧memory及room1/2/3永久关闭。
+
 2026-10-21 [COS116 / #117](https://github.com/lrfluobida/Cosmos/issues/117) 最终 `b81e728` 已独审合入并发布 `ab9eef7f353089a0a67053c38ec40f2e457c421a`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务116、根直接100、COS18十个源码子项均完成，父整体仍open/partial。主线typecheck/build与6个集中代表通过，实际room-3资格仍待Root/operator另行核验。
 
 2026-10-21 [COS115 / #116](https://github.com/lrfluobida/Cosmos/issues/116) 最终 `f5d6328` 已独审合入并发布 `b347cde1f68aff7d732e5adcf8d5be888f63ad27`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务115、根直接100、COS18九个源码子项均完成，父整体仍open/partial。本卡保留room-3同一intake的身份、原费用与时钟规则，不代表实际草稿修订或生成通过。
@@ -1762,6 +1764,22 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 恢复只接受原funded普通草稿完整未派发证明：同原问答/profile/config/capabilities、独立UTF-8 native精确形状与parent/cwd/system/context/user/model/off、唯一空输出零usage预算错误、唯一完整interview区间和无reserve/admit的账务闭包。原子marker前复核原字节；使用COS110同一个successor-1槽，旧length格式兼容，新denial predecessor绑定原native摘要和work身份。失败、marker丢失或源目录删除不新增机会，完整后续interview/request历史继续阻断；success缓存亦须原来源一致。marker/session创建失败清理work，已有session关闭失败保留pending。详见[普通访谈spec](ordinary-design-intake.md)。
 
 免费验证覆盖真实Pi假传输、精确15383/15384边界、常量/非法/非单调估算器、原grant/请求帽/并发准入，历史denial→唯一successor→缓存与公共resume等待真实确认，以及native/配置/账务/来源/生命周期负例。作者最终新增22/22、typecheck/build/strict通过；既有兼容证据为原33项及修正fixture后的2项，按未变范围复用。RED/GREEN、基线旧CLI fixture失配和最小legacy修正、原始输出在 `.cosmos/cos116-evidence/verification-index.json`。主线另跑typecheck/build均exit0，集中代表6/6、0skip、TAP9037.8183ms，命令与输出在 `.cosmos/cos116-integration/checks.json`，不与作者结果累加。无真实provider/browser、实际run/controller/ledger写入或游戏手工实现；merger未核验实际room-3资格，仍由Root/operator在最终主线固定后按原字节另行核验。room-1/2永久关闭，本次发布保持room-3原v3、v4回答、费用和未确认状态。稳定任务ID：COS-116。
+
+### COS-117 · Pi 请求报价排除未发送的工具元数据
+
+[COS117 / #118](https://github.com/lrfluobida/Cosmos/issues/118)，id5962948336，原生父COS18/#19、前置COS116，`source-integrated / source-scoped-complete`；[源码批准](https://github.com/lrfluobida/Cosmos/issues/118#issuecomment-6319877363)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/118#issuecomment-6319884870)及父[x]已精确核证。作者cos117_implementer基于 `74b96c12e4d5f3e8a21d3eb6ac9391932967e87d` 提交 `e57ea50ae17520535c1d8c95850baffb386c9b08`，独审cos117_reviewer的spec与quality均为APPROVED_SOURCE_SCOPED、无findings；唯一merger public_agent_batch_merger从 `32c37b11f4b114ffeb44ed9a3bebbcade3cef8af` 合入 `7d14b33b2943a9864aed90de50efe572b5cd7986`，组合源码发布 `48cffe0f0e9a195bf77b601a6e3c928ffa0b993b`。
+
+只在费用输入副本排除toolResult顶层details，live request和compaction candidate共用；完整身份漂移检查、实际context/传输/native、真实content/图片/工具schema与arguments、原估算器及准入保持，历史账务不重算。详见[规格](cos117-provider-input-cost.md)与[实施计划](../plans/2026-10-21-provider-input-cost.md)。作者新增9项通过、兼容原9项与修正夹具后3项复用，最终helper6项与新增重叠；typecheck/build/strict通过，原失败保留于 `.cosmos/cos117-evidence/verification-index.json`。
+
+本批主线typecheck/build exit0，组合代表10/10、0skip、TAP28003.3347ms，原输出 `.cosmos/cos117-118-integration/`；不与作者或COS118重复计数。总任务118、根直接100、父12个源码子项完成但仍open/partial。本卡仅免费SOURCE/TEMP，不证明实际模型、游戏或体验成功；旧memory与room1/2/3永久关闭。稳定任务ID：COS-117。
+
+### COS-118 · 普通设计写入后的即时只读校验反馈
+
+[COS118 / #119](https://github.com/lrfluobida/Cosmos/issues/119)，id5962948976，原生父COS18/#19、前置COS114/COS112，`source-integrated / source-scoped-complete`；[源码批准](https://github.com/lrfluobida/Cosmos/issues/119#issuecomment-6319908022)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/119#issuecomment-6319915952)及父[x]已精确核证。作者cos118_implementer基于 `74b96c12e4d5f3e8a21d3eb6ac9391932967e87d` 提交最终 `1f482307d3575224ac129f83257deb86dac1ef20`（包含原b89dc621）；独审cos118_reviewer完成原提交全审与唯一Windows路径P2的delta复审，APPROVED_SOURCE_SCOPED、无剩余findings。唯一merger public_agent_batch_merger合并及组合源码发布 `48cffe0f0e9a195bf77b601a6e3c928ffa0b993b`。
+
+仅ordinary-design/1设计作者成功write/edit实际声明文件后追加同源validator的只读反馈，最多8条/4096字符；Windows等价路径也触发。原成功写入字节、scope/UTF-8/link与前后guard保持，缺文件/分块输出允许继续合法写入，capture与独立review继续核验实际内容，其他角色/legacy行为不变。详见[规格](cos118-design-write-feedback.md)与[实施计划](../plans/2026-10-21-design-write-feedback.md)。原14项、兼容20/3/3与新增Windows write/edit 2项按未变范围复用；typecheck/build/strict通过。两次下游失败保留，未当作全流程通过或已修复证据，详见 `.cosmos/cos118-evidence/verification-index.json`。
+
+主线使用与COS117相同的一次组合检查：typecheck/build exit0、10/10代表、0skip、TAP28003.3347ms，含Windows两项，不累计重叠结果。总任务118、根直接100、父12个源码子项完成但仍open/partial。本次源码集成未调用真实provider/browser或操作实际controller/账本，不增加请求、预算、重试或确认权限；结构反馈不能证明模型语义、游戏生成或体验通过。旧memory及room1/2/3永久关闭。稳定任务ID：COS-118。
 
 ## 5. 任务与上下文包模板
 
