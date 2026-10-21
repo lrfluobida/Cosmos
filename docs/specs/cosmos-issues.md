@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-21 [COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115) 已登记至父COS18/#19；总任务114、根直接100、父子项8/已完成7。设计与计划已独审批准，当前 `source-review-pending`，只做免费源码与TEMP验证。原room-2已失败、结算并永久关闭，新的提示与诊断不证明实际生成完成。
+2026-10-21 [COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115) 最终 `bf7506f` 已独审合入并发布 `f73a23cba6d45d33ce41b0f51f9ec4a7b94df062`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务114、根直接100、COS18八个源码子项均完成，父整体仍open/partial。本卡只做免费源码与TEMP验证；原room-2已失败、结算并永久关闭，新的提示与诊断不证明实际生成完成。
 
 2026-10-21 [COS113 / #114](https://github.com/lrfluobida/Cosmos/issues/114) 最终 `52b5fd0` 已独审合入并发布 `ebac7e8613ca506042d50b2bfc1479efec0b6fe9`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务113、根直接100、COS18七个源码子项均完成，父整体仍open/partial。仅新普通design作者使用off，原默认、独审与派发边界保持；实际room失败已结算关闭，不恢复旧run，源码完成不代表实际生成通过。
 
@@ -1727,7 +1727,7 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-114 · 普通设计自检契约与分阶段错误定位
 
-[COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115)，id5956993439，原生父COS18/#19，依赖COS113，`source-review-pending / open`。基线 `d7a3c755af124196259eb4240e1c4d2493cdf74f`；设计与计划经 `ordinary_design_repair_design_review` 独立 `APPROVED_DESIGN / APPROVED_PLAN`、无finding，Root批准源码实施。作者 `ordinary_feedback_implementer`，唯一merger `public_agent_batch_merger`；源码等待独立规格→质量审查。
+[COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115)，id5956993439，原生父COS18/#19，依赖COS113，`source-integrated / source-scoped-complete`；[公开完成评论](https://github.com/lrfluobida/Cosmos/issues/115#issuecomment-6312015221)、`closed(completed)` 与父勾选[x]已精确GET核证。基线 `d7a3c755af124196259eb4240e1c4d2493cdf74f`；作者 `ordinary_feedback_implementer` 的最终 `bf7506fd94d2ee34d3a744b413d3f95a406e7e94` 经 `ordinary_design_repair_design_review` 规格→质量 `APPROVED_SOURCE_SCOPED`、无finding，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/115#issuecomment-6311754523)后，唯一merger `public_agent_batch_merger` 合入并发布 `f73a23cba6d45d33ce41b0f51f9ec4a7b94df062`。原设计与计划的独立批准保持。
 
 实际证据：room-2真实确认v2后，14次design响应reasoning均0，已写主设计与计划；唯一自检在计划尚不存在时返回ENOENT，之后没有最终字段反馈。第15次请求因原预留quote512052µ高于余额508211µ而在provider前拒绝，原SDK纯函数重建上下文223258 bytes；不能称为反复validator错误循环或实际花完¥5。TEMP原validator确认主设计结构通过，计划92+26步中7个mouse-click缺x/y、两阶段缺部分成对checkpoint，并有清档后期待恢复旧档等语义矛盾。原run已停止、结算并独立PASS_CLOSED：18请求合计235926µ、释放4764074µ、shared revision3340；原确认、失败、产物与费用只读，不恢复，[公开实际结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6311447223)保持。
 
@@ -1735,7 +1735,7 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 诊断仅补充位置：坐标包含x/y；步骤明确 `scenario.steps` 或 `scenario.reopen.steps`，共享viewport保持 `scenario.viewport`；缺checkpoint指出阶段、snapshot/savedSnapshot、selector及expected。接受/拒绝条件、边界、动作集合、正常输入证明、失败分类与首个失败阶段行为保持，不新增schema或聚合框架。模型配置、token/请求/时间上限、预算估算与准入、拨款及恢复政策不改；预算自适应、新运行和新的已确认需求复用入口不在本卡范围。
 
-实施与验证计划：独立managed worktree先严格UTF-8检查；以生产host/tool与缩小缺字段夹具做RED，最小补丁后用有效对应计划与缺输入/错expected负例做GREEN；检查受影响兼容、类型/构建/严格测试类型、中文复读与diff；提交确切SHA供独审，唯一merger集成并记录结果。新11项RED全部按预期失败，GREEN11/11、0skip、8374.6654ms；原始输出与后续检查索引 `.cosmos/cos114-evidence/verification-index.json`。全部为FREE SOURCE/TEMP，不调用真实provider/browser、不改变实际run/ledger；源码不证明模型遵循提示、自然语言设计正确或原预算内游戏必定完成。稳定任务ID：COS-114。
+免费验证：作者新11项RED全部按预期失败，GREEN11/11、0skip、8374.6654ms；测试helper类型修正后affected2/2及compat12/12按无变化范围复用，不累计重叠结果，索引 `.cosmos/cos114-evidence/verification-index.json`。主线合并时8文件等于批准来源，typecheck/build均exit0，五个集中代表5/5、0skip、8813.3395ms，覆盖生产host/self-check缺输出与补全正反例、配置化产物范围及阶段/轴/checkpoint诊断。主线原输出 `.cosmos/cos114-integration/`。全部为FREE SOURCE/TEMP，无真实provider/browser或实际run/ledger操作；源码不证明模型遵循提示、自然语言设计正确或原预算内游戏必定完成，COS18整体仍partial。稳定任务ID：COS-114。
 
 ## 5. 任务与上下文包模板
 
