@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-21 [COS116 / #117](https://github.com/lrfluobida/Cosmos/issues/117) 最终 `b81e728` 已独审合入并发布 `ab9eef7f353089a0a67053c38ec40f2e457c421a`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务116、根直接100、COS18十个源码子项均完成，父整体仍open/partial。主线typecheck/build与6个集中代表通过，实际room-3资格仍待Root/operator另行核验。
+
 2026-10-21 [COS115 / #116](https://github.com/lrfluobida/Cosmos/issues/116) 最终 `f5d6328` 已独审合入并发布 `b347cde1f68aff7d732e5adcf8d5be888f63ad27`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务115、根直接100、COS18九个源码子项均完成，父整体仍open/partial。本卡保留room-3同一intake的身份、原费用与时钟规则，不代表实际草稿修订或生成通过。
 
 2026-10-21 [COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115) 最终 `bf7506f` 已独审合入并发布 `f73a23cba6d45d33ce41b0f51f9ec4a7b94df062`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务114、根直接100、COS18八个源码子项均完成，父整体仍open/partial。本卡只做免费源码与TEMP验证；原room-2已失败、结算并永久关闭，新的提示与诊断不证明实际生成完成。
@@ -1753,13 +1755,13 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-116 · 普通访谈预算内输出与未派发恢复
 
-[COS116 / #117](https://github.com/lrfluobida/Cosmos/issues/117)，id5958624170，原生父COS18/#19、前置COS115，`source-review-pending`。基线 `11edf8432a678958466273dab34c1f8d0d941b46`；设计与计划经 `intake_budget_recovery_design` 批准，作者 `intake_budget_implementer`、独审 `intake_budget_recovery_design`、唯一merger `public_agent_batch_merger`。注册总任务116、根直接100，父十个子项中九个源码完成，整体仍partial。
+[COS116 / #117](https://github.com/lrfluobida/Cosmos/issues/117)，id5958624170，原生父COS18/#19、前置COS115，`source-scoped-complete`；`closed(completed)` 与父勾选[x]已精确核证，[源码批准](https://github.com/lrfluobida/Cosmos/issues/117#issuecomment-6314435325)、[完成回执](https://github.com/lrfluobida/Cosmos/issues/117#issuecomment-6314441297)。基线 `11edf8432a678958466273dab34c1f8d0d941b46`，精确获批源码 `b81e7285557b34090f5d50909345982d43dee8a2`、合入并发布 `ab9eef7f353089a0a67053c38ec40f2e457c421a`。作者 `intake_budget_implementer`、独审 `intake_budget_recovery_design` 的spec与quality均通过，结论 `APPROVED_SOURCE_SCOPED`、无findings；唯一merger `public_agent_batch_merger`。注册总任务116、根直接100，父十个源码子项均完成，父整体仍open/partial。
 
 问题：room-3 draft-4保存原回答和intent后，16K预留175930µ超过原intake余额167927µ；原4笔请求82073µ均settled，未派发本轮、无billing/request。新普通draft保留原16K/off配置身份，用Pi实际输入、原估算器和新账本副本上的reserveEntry在固定普通区间选择最大可负担cap；最低min(8192,配置上限)，不假设估算器单调。真实reserve/admit仍有最终拒绝权，实际cap与报价附于既有billing安全元数据，原grant、总额、次数与时钟保持。
 
 恢复只接受原funded普通草稿完整未派发证明：同原问答/profile/config/capabilities、独立UTF-8 native精确形状与parent/cwd/system/context/user/model/off、唯一空输出零usage预算错误、唯一完整interview区间和无reserve/admit的账务闭包。原子marker前复核原字节；使用COS110同一个successor-1槽，旧length格式兼容，新denial predecessor绑定原native摘要和work身份。失败、marker丢失或源目录删除不新增机会，完整后续interview/request历史继续阻断；success缓存亦须原来源一致。marker/session创建失败清理work，已有session关闭失败保留pending。详见[普通访谈spec](ordinary-design-intake.md)。
 
-免费验证覆盖真实Pi假传输、精确15383/15384边界、常量/非法/非单调估算器、原grant/请求帽/并发准入，历史denial→唯一successor→缓存与公共resume等待真实确认，以及native/配置/账务/来源/生命周期负例。RED/GREEN、基线旧CLI fixture失配和最小legacy修正、strict/typecheck/build与原始输出在 `.cosmos/cos116-evidence/verification-index.json`。无真实provider/browser、实际run/controller/ledger写入或游戏手工实现；源码未独审合入前不宣称room-3可恢复，合入后仍须原字节只读资格核验。room-1/2永久关闭，room-3原v3、v4回答、费用和未确认状态保持。稳定任务ID：COS-116。
+免费验证覆盖真实Pi假传输、精确15383/15384边界、常量/非法/非单调估算器、原grant/请求帽/并发准入，历史denial→唯一successor→缓存与公共resume等待真实确认，以及native/配置/账务/来源/生命周期负例。作者最终新增22/22、typecheck/build/strict通过；既有兼容证据为原33项及修正fixture后的2项，按未变范围复用。RED/GREEN、基线旧CLI fixture失配和最小legacy修正、原始输出在 `.cosmos/cos116-evidence/verification-index.json`。主线另跑typecheck/build均exit0，集中代表6/6、0skip、TAP9037.8183ms，命令与输出在 `.cosmos/cos116-integration/checks.json`，不与作者结果累加。无真实provider/browser、实际run/controller/ledger写入或游戏手工实现；merger未核验实际room-3资格，仍由Root/operator在最终主线固定后按原字节另行核验。room-1/2永久关闭，本次发布保持room-3原v3、v4回答、费用和未确认状态。稳定任务ID：COS-116。
 
 ## 5. 任务与上下文包模板
 
