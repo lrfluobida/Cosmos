@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-21 [COS115 / #116](https://github.com/lrfluobida/Cosmos/issues/116) 未支持草稿编辑已完成免费源码与TEMP验证，`source-review-pending`，待独立源码审查与唯一merger集成。总任务115、根直接100、COS18九个源码子项中八项完成，父整体仍open/partial。原room-3仍为未确认的unsupported草稿、生成时钟未启动；本卡不代表实际草稿修订或生成通过。
+2026-10-21 [COS115 / #116](https://github.com/lrfluobida/Cosmos/issues/116) 最终 `f5d6328` 已独审合入并发布 `b347cde1f68aff7d732e5adcf8d5be888f63ad27`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务115、根直接100、COS18九个源码子项均完成，父整体仍open/partial。本卡保留room-3同一intake的身份、原费用与时钟规则，不代表实际草稿修订或生成通过。
 
 2026-10-21 [COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115) 最终 `bf7506f` 已独审合入并发布 `f73a23cba6d45d33ce41b0f51f9ec4a7b94df062`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务114、根直接100、COS18八个源码子项均完成，父整体仍open/partial。本卡只做免费源码与TEMP验证；原room-2已失败、结算并永久关闭，新的提示与诊断不证明实际生成完成。
 
@@ -1741,15 +1741,15 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-115 · 未支持草稿可继续编辑
 
-[COS115 / #116](https://github.com/lrfluobida/Cosmos/issues/116)，id5957712379，原生父COS18/#19，依赖COS114，`source-review-pending / open`；基线 `1ece811dd45d58579213ac324d2c19375fdc47af`。`unsupported_intake_reviewer` 已独立批准设计与计划，Root已授权实施；作者 `unsupported_intake_implementer`，独审 `unsupported_intake_reviewer`，唯一merger `public_agent_batch_merger`。总任务115、根直接100，父九个源码子项中八项完成。
+[COS115 / #116](https://github.com/lrfluobida/Cosmos/issues/116)，id5957712379，原生父COS18/#19，依赖COS114，`source-integrated / source-scoped-complete`；[公开完成评论](https://github.com/lrfluobida/Cosmos/issues/116#issuecomment-6312822700)、`closed(completed)` 与父勾选[x]已精确GET核证。基线 `1ece811dd45d58579213ac324d2c19375fdc47af`；作者 `unsupported_intake_implementer` 的最终 `f5d6328d31b09f482ab1fa9fdb546a9ed3dbafd5` 经 `unsupported_intake_reviewer` 规格→质量 `APPROVED_SOURCE_SCOPED`、无finding，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/116#issuecomment-6312630139)后，唯一merger `public_agent_batch_merger` 合入并发布 `b347cde1f68aff7d732e5adcf8d5be888f63ad27`。总任务115、根直接100，父九个源码子项均完成，整体仍partial。
 
-实际缺口：原room-3尚未确认的v2把用户明确排除的键盘/触摸、外部联网与计时列入unsupported；公开CLI在展示后直接退出，无法edit。修复后，new/resume展示草稿与缺口并只提供edit/cancel；edit沿原问题、回答与新revision循环，cancel/EOF保留unsupported结果和历史。直接confirm或其他输入说明必须先修改，不调用confirm/activateGeneration/execute。有效草稿的原confirm/edit/cancel流程及控制器非空unsupported拒绝保持，新版本仍须真实当前版确认，旧版确认无效。
+修复前实际缺口：room-3尚未确认的v2把用户明确排除的键盘/触摸、外部联网与计时列入unsupported；公开CLI在展示后直接退出，无法edit。修复后，new/resume展示草稿与缺口并只提供edit/cancel；edit沿原问题、回答与新revision循环，cancel/EOF保留unsupported结果和历史。直接confirm或其他输入说明必须先修改，不调用confirm/activateGeneration/execute。有效草稿的原confirm/edit/cancel流程及控制器非空unsupported拒绝保持，新版本仍须真实当前版确认，旧版确认无效。
 
 普通访谈提示明确unsupported只列用户实际要求且能力不支持的内容，排除功能继续保留为排除项。这是模型指导，不是自然语言检测器；原模式/profile、预算、请求限制、恢复机会与生成时钟规则不变，不新增命令、API、自动确认、已确认需求导入或预算自适应。
 
-免费证据：新增8项真实session/controller回归与1项请求提示断言RED全部按预期失败，随后GREEN18/18、0skip（含9项既有普通访谈测试）；严格类型首次发现两处测试夹具类型问题，修正后strict退出0、受影响9/9通过，其余未变证据复用，不累计重复计数。生产typecheck/build退出0，定向兼容7/7、0skip；覆盖原费用与问题、同run恢复、旧revision拒绝、取消/EOF历史保持、原8请求上限及legacy/preparation代表。原始命令、输出和失败历史见 `.cosmos/cos115-evidence/verification-index.json`。
+免费证据：新增8项真实session/controller回归与1项请求提示断言RED全部按预期失败，随后GREEN18/18、0skip（含9项既有普通访谈测试）；测试夹具类型修正后strict0、affected9/9及compat7/7按无变化范围复用，不累计重叠结果。主线合并时7文件等于批准来源；typecheck/build均exit0，六个集中CLI代表6/6、0skip、4704.0289ms，覆盖new/resume编辑、confirmguard、cancel/EOF、旧revision拒绝与原8请求帽，原问答、费用及limits保持。作者索引 `.cosmos/cos115-evidence/verification-index.json`，主线原输出 `.cosmos/cos115-integration/`。
 
-本批仅FREE SOURCE/TEMP，未调用真实模型或浏览器、未修改真实run/ledger。原room-1/2永久关闭；room-3原3笔请求结算55083µ CNY、¥5/30分钟拨款占用、未确认/未硬停止/未启动时钟状态保持，源码独审集成后才由原公共CLI继续访谈。源码通过不证明模型语义判断正确或实际生成成功。稳定任务ID：COS-115。
+本批仅FREE SOURCE/TEMP，未调用真实模型或浏览器、未修改真实run/ledger。原room-1/2永久关闭；room-3修复前3笔结算55083µ CNY、shared revision3341完整5000000µ占额、¥5/30分钟原限额与未确认/未硬停止/时钟未启的历史保留。本修复不stop/recreate/settle，实际后续编辑由原公开CLI另行执行，仍须真实用户确认当前完整版本。源码通过不证明模型语义判断正确或实际生成成功。稳定任务ID：COS-115。
 
 ## 5. 任务与上下文包模板
 
