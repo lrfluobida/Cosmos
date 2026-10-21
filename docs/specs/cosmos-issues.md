@@ -1751,6 +1751,16 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 本批仅FREE SOURCE/TEMP，未调用真实模型或浏览器、未修改真实run/ledger。原room-1/2永久关闭；room-3修复前3笔结算55083µ CNY、shared revision3341完整5000000µ占额、¥5/30分钟原限额与未确认/未硬停止/时钟未启的历史保留。本修复不stop/recreate/settle，实际后续编辑由原公开CLI另行执行，仍须真实用户确认当前完整版本。源码通过不证明模型语义判断正确或实际生成成功。稳定任务ID：COS-115。
 
+### COS-116 · 普通访谈预算内输出与未派发恢复
+
+[COS116 / #117](https://github.com/lrfluobida/Cosmos/issues/117)，id5958624170，原生父COS18/#19、前置COS115，`source-review-pending`。基线 `11edf8432a678958466273dab34c1f8d0d941b46`；设计与计划经 `intake_budget_recovery_design` 批准，作者 `intake_budget_implementer`、独审 `intake_budget_recovery_design`、唯一merger `public_agent_batch_merger`。注册总任务116、根直接100，父十个子项中九个源码完成，整体仍partial。
+
+问题：room-3 draft-4保存原回答和intent后，16K预留175930µ超过原intake余额167927µ；原4笔请求82073µ均settled，未派发本轮、无billing/request。新普通draft保留原16K/off配置身份，用Pi实际输入、原估算器和新账本副本上的reserveEntry在固定普通区间选择最大可负担cap；最低min(8192,配置上限)，不假设估算器单调。真实reserve/admit仍有最终拒绝权，实际cap与报价附于既有billing安全元数据，原grant、总额、次数与时钟保持。
+
+恢复只接受原funded普通草稿完整未派发证明：同原问答/profile/config/capabilities、独立UTF-8 native精确形状与parent/cwd/system/context/user/model/off、唯一空输出零usage预算错误、唯一完整interview区间和无reserve/admit的账务闭包。原子marker前复核原字节；使用COS110同一个successor-1槽，旧length格式兼容，新denial predecessor绑定原native摘要和work身份。失败、marker丢失或源目录删除不新增机会，完整后续interview/request历史继续阻断；success缓存亦须原来源一致。marker/session创建失败清理work，已有session关闭失败保留pending。详见[普通访谈spec](ordinary-design-intake.md)。
+
+免费验证覆盖真实Pi假传输、精确15383/15384边界、常量/非法/非单调估算器、原grant/请求帽/并发准入，历史denial→唯一successor→缓存与公共resume等待真实确认，以及native/配置/账务/来源/生命周期负例。RED/GREEN、基线旧CLI fixture失配和最小legacy修正、strict/typecheck/build与原始输出在 `.cosmos/cos116-evidence/verification-index.json`。无真实provider/browser、实际run/controller/ledger写入或游戏手工实现；源码未独审合入前不宣称room-3可恢复，合入后仍须原字节只读资格核验。room-1/2永久关闭，room-3原v3、v4回答、费用和未确认状态保持。稳定任务ID：COS-116。
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

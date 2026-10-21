@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-21 [COS116 / #117](https://github.com/lrfluobida/Cosmos/issues/117) 处于 `source-review-pending`，基线 `11edf8432a678958466273dab34c1f8d0d941b46`；设计与计划经 `intake_budget_recovery_design` 批准，作者 `intake_budget_implementer`、独审同一设计 reviewer、唯一merger `public_agent_batch_merger`。普通 draft 保留16K/off原意图，在既有Pi回调中用原估算器和原reserveEntry的账本副本选择预算内最大输出；历史未派发恢复严格核对native、原问答、完整计费与interview事件，复用COS110同一个唯一successor槽。marker发布或session创建失败也保留槽消耗，实际session关闭失败保留pending清理状态。
+
+仅免费TEMP与假传输，证据索引 `.cosmos/cos116-evidence/verification-index.json`。原room-3仍是v3未确认、v4答案与intent已保存而无reply；4笔已结算82073µ，原intake250000µ剩167927µ、maxRequests8不变。诊断22429输入字节下15383输出的预留167922µ可负担，15384的167930µ被原准入拒绝；这不是实际费用或输出质量保证。真实资格须在源码独审合入后另行只读核验，未恢复实际模型请求、未确认、未启动生成。room-1/2永久关闭。总任务116、根直接100、COS18十个子项中九个源码完成，父整体仍partial。
+
 2026-10-21 [COS115 / #116](https://github.com/lrfluobida/Cosmos/issues/116) 最终源码 `f5d6328d31b09f482ab1fa9fdb546a9ed3dbafd5` 经 `unsupported_intake_reviewer` 规格与质量独审 `APPROVED_SOURCE_SCOPED`、无finding，Root[公开批准](https://github.com/lrfluobida/Cosmos/issues/116#issuecomment-6312630139)后，唯一merger `public_agent_batch_merger` 合入并发布 `b347cde1f68aff7d732e5adcf8d5be888f63ad27`。[公开完成评论](https://github.com/lrfluobida/Cosmos/issues/116#issuecomment-6312822700)、`closed(completed)` 与父勾选[x]已精确GET核证；本卡 `source-integrated / source-scoped-complete`，总任务115、根直接100，COS18九个源码子项均完成，父整体仍open/partial。作者 `unsupported_intake_implementer` 接通new/resume的unsupported草稿edit/cancel；原问答、新revision真实确认及能力门禁保持，普通提示对排除项的处理仍是模型语义指导。
 
 作者新增9项RED按预期失败，GREEN18/18含9项既有访谈回归；类型修正后affected9/9、strict0及compat7/7按无变化范围复用，重叠不累计，首次失败与原始输出保留于 `.cosmos/cos115-evidence/verification-index.json`。主线合并时7文件等于批准来源；typecheck/build均exit0，六个CLI代表6/6、0skip、4704.0289ms，覆盖新建/恢复编辑、confirm门禁、cancel/EOF、旧revision拒绝及原请求上限，原费用和limits保持。主线原输出 `.cosmos/cos115-integration/`。

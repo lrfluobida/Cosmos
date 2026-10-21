@@ -12,6 +12,8 @@ import type { GameDraft } from './requirements.ts';
 import type { RoleSession } from './factory.ts';
 import { decodeModelJson } from './protocol.ts';
 import { truncatedDraftSuccessor } from './interview-recovery.ts';
+import { deniedDraftSuccessor, requireInterviewHistorySources } from './interview-denial.ts';
+import { ordinaryDraftOutputLimit } from './interview-budget.ts';
 
 export interface InterviewOptions {
   controller: IntakeController; roundId: string; brief: string;
@@ -36,7 +38,7 @@ Scenario is data, not code. Supported inputs are {id,kind:"locator-click",select
 const preparationPrompt = `You are the Cosmos design interviewer for a source-selected preparation mode. You have no tools and cannot generate a game or runtime design, confirm requirements, impersonate the user, change the selected mode/version or choose budget/run identities.
 For phase questions return exactly {"questions":[{"id":"...","prompt":"..."}]} with 1-12 nonempty unique IDs. Compare the actual brief with the supplied complete scope and ask concentrated questions about controls, goal, failure, scope, style and acceptance. Preserve every requested requirement; do not silently choose or truncate the brief to fit this mode.
 For phase draft return exactly {"acceptance":[...],"unsupported":[]}. Copy the complete supplied acceptance without changes, including all six T16 and both host stages. Use the supplied answers without changing them. Describe each requested capability outside the supplied scope in unsupported; an unsupported request cannot be confirmed. Runtime design produces the map, solution and executable acceptance later. Do not emit a scenario, map, solution, paths, preparation selector, sourceVersion, confirmed, confirmedBy, actorId, sources, brief, answers or any other fields.`;
-const ordinaryPrompt = `You are the Cosmos design interviewer for ordinary-design/1. You have no tools and cannot generate a game, executable plan, user confirmation, runtime identity or budget.
+export const ordinaryPrompt = `You are the Cosmos design interviewer for ordinary-design/1. You have no tools and cannot generate a game, executable plan, user confirmation, runtime identity or budget.
 For phase questions return exactly {"questions":[{"id":"...","prompt":"..."}]} with 1-12 nonempty unique IDs. Resolve controls, goal, failure, scope, style and acceptance for the supplied brief.
 For phase draft return exactly {"acceptance":[{"acceptanceId":"...","description":"...","steps":["..."],"expected":"...","evidenceKinds":["test_report"]}],"experienceCriteria":[{"criterionId":"...","description":"...","steps":["..."],"expected":"..."}],"unsupported":[]}. Preserve the complete brief, questions and answers as requirements; never omit or weaken a requested capability. acceptance contains objective automatic requirements and at least one gameplay item. experienceCriteria contains only subjective feel, visual recognizability, listening and overall experience, with unique IDs distinct from acceptance IDs; it may be empty. Do not move an objective requirement to experienceCriteria to avoid unsupported automatic checks.
 Use human-readable actions and outcomes without choosing selectors, coordinates, maps, solutions or executable steps. Runtime design creates the concrete acceptance plan after real user confirmation, within the original generation clock. Static mouse/locator input and fixed visible equality assertions are supported; choosing later inputs from newly observed random states, hidden-state access, numeric ranges and duration measurements are not. A wait timeout does not prove a duration. List unsupported requested capabilities explicitly; do not fix randomized layouts or replace exact timing with eventual success. Only list capabilities the user actually requests and the current capabilities cannot support in unsupported. Keep explicitly excluded features as exclusions; do not list them in unsupported merely because the platform also cannot support them. This is your semantic judgment, not a trusted host detection result; independent design review checks the full original answers.
@@ -55,6 +57,12 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
     : state.ordinaryProfile ? { ordinaryProfile: state.ordinaryProfile, requestConfig: { modelId: 'deepseek-flash', thinkingLevel, maxOutputTokens: options.maxOutputTokens, requestTimeoutMs: options.requestTimeoutMs } } : {};
   let root = join(controller.root, 'intake-sessions', options.roundId);
   let intent: Record<string, unknown> = { formatVersion: 1, runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...(options.capabilities ? { capabilities: options.capabilities } : {}), ...modeContext };
+  const prompt = {
+    systemPrompt: `${state.draftMode ? preparationPrompt : state.ordinaryProfile ? ordinaryPrompt : systemPrompt}\nHost capabilities: ${options.capabilities ?? 'Only the declared normal-input acceptance vocabulary.'}`,
+    context: JSON.stringify({ role: 'design-intake', runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...modeContext }),
+  };
+  let recheck: ((work: string | undefined) => Promise<void>) | undefined;
+  let successorAttempt = false;
   const recorded = await optionalJson(join(root, 'intent.json'));
   if (recorded !== null) {
     if (!sameValue(recorded, intent)) throw new Error('Interview input identity changed; reuse requires the exact original input.');
@@ -64,7 +72,10 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
       return reply.proposal;
     }
     if (input.phase !== 'draft' || state.draftMode) throw new Error('Incomplete interview reply; retain accounting and inspect the original run.');
-    const successor = await truncatedDraftSuccessor(controller, options.roundId, intent);
+    const billing = (await readdir(root)).filter(name => name.startsWith('billing-'));
+    const successor = state.ordinaryProfile && billing.length === 0
+      ? await deniedDraftSuccessor(controller, options.roundId, intent, prompt)
+      : await truncatedDraftSuccessor(controller, options.roundId, intent);
     root = successor.root; intent = successor.intent;
     const started = await optionalJson(join(root, 'intent.json'));
     if (started !== null) {
@@ -72,6 +83,9 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
       if (!sameValue(started, intent) || !completed || !sameValue(completed.intent, intent)) throw new Error('Draft successor is incomplete or its source changed; no further request is allowed.');
       return completed.proposal;
     }
+    if ('canStart' in successor && !successor.canStart) throw new Error('Draft successor slot was consumed by later interview or request history.');
+    successorAttempt = true;
+    if ('recheck' in successor) recheck = successor.recheck;
     const existing = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
     if (existing.length) throw new Error('Draft successor source is missing; existing files cannot authorize another request.');
     await mkdir(root, { recursive: true });
@@ -79,25 +93,31 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
     const existing = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
     const successor = await lstat(`${root}-successor-1`).then(() => true, (error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return false; throw error; });
     if (existing.length || successor) throw new Error('Original interview source is missing; existing records cannot authorize a new request.');
+    if (state.ordinaryProfile) await requireInterviewHistorySources(controller);
     await mkdir(root, { recursive: true });
   }
-  await publishReceipt(join(root, 'intent.json'), intent);
+  if (!successorAttempt) await publishReceipt(join(root, 'intent.json'), intent);
   const fundingWork = await controller.beginFundingWork('interview');
-  const session = await (options.sessionFactory ?? createPiSession)({
-    workspace: controller.root, stateDirectory: join(root, 'native'), systemPrompt: `${state.draftMode ? preparationPrompt : state.ordinaryProfile ? ordinaryPrompt : systemPrompt}\nHost capabilities: ${options.capabilities ?? 'Only the declared normal-input acceptance vocabulary.'}`,
-    context: JSON.stringify({ role: 'design-intake', runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...modeContext }), tools: [], modelId: 'deepseek-flash', thinkingLevel,
-    maxOutputTokens: options.maxOutputTokens, maxRequests: 1, requestTimeoutMs: options.requestTimeoutMs,
-    estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny, env: options.env,
-    budget: createRoleBudget({ controller, taskId: state.interviewTaskId, evidenceDirectory: root }),
-  });
+  let session: RoleSession | undefined;
   try {
+    if (successorAttempt) {
+      await recheck?.(fundingWork);
+      await publishReceipt(join(root, 'intent.json'), intent);
+    }
+    session = await (options.sessionFactory ?? createPiSession)({
+      workspace: controller.root, stateDirectory: join(root, 'native'), ...prompt, tools: [], modelId: 'deepseek-flash', thinkingLevel,
+      maxOutputTokens: options.maxOutputTokens, maxRequests: 1, requestTimeoutMs: options.requestTimeoutMs,
+      estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny, env: options.env,
+      ...(state.ordinaryProfile && input.phase === 'draft' ? { requestOutputLimit: ordinaryDraftOutputLimit(controller, state, options.estimatedMaxCostMicroCny) } : {}),
+      budget: createRoleBudget({ controller, taskId: state.interviewTaskId, evidenceDirectory: root, recordRequest: !!state.ordinaryProfile && input.phase === 'draft' }),
+    });
     const result = await session.prompt(JSON.stringify(input), { signal: controller.signal });
     controller.signal.throwIfAborted();
     if (result.text.length > 128000) throw new Error('Interview proposal exceeds its output bound.');
     const proposal = decodeModelJson(result.text);
     await publishReceipt(join(root, 'reply.json'), { intent, proposal });
     return proposal;
-  } finally { await session.close(); await controller.finishFundingWork(fundingWork); }
+  } finally { await session?.close(); await controller.finishFundingWork(fundingWork); }
 }
 
 export async function requestDesignQuestions(options: InterviewOptions): Promise<Questions> {

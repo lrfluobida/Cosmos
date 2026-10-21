@@ -40,6 +40,14 @@ interface ExperienceCriterion {
 
 `publishGenerationReport` 从已核对的完整确认来源获得 experienceCriteria，加入新版 acceptanceScope；CLI experience 显示清单并说明 approve/reject 覆盖当前完整清单。报告及已有 ExperienceBinding 同时固定确认来源、清单、报告版本和当前 candidate；`loadExperienceBinding` 核对实际原 draft/confirmation 文件，不能只信报告自报。清单更改、缺失、错源或 candidate 改变时拒绝沿用决定。自动通过后体验项仍等待真实 stdin；旧报告/决定不补造清单。完成运行的只读恢复同样核对该绑定。
 
+### 原预算内的普通草稿与历史未派发恢复（COS116）
+
+仅 `ordinary-design/1` draft 使用既有 `requestOutputLimit`，根据Pi实际归一化输入、原估算器及每次新账本副本上的 `reserveEntry` 从配置上限向下选最大可负担值，下限为 `min(8192, configuredCap)`。固定普通区间有界遍历，不假设注入估算器单调；无候选或非法报价在transport前拒绝。原intent中的模型/off/16K/超时、输入、profile、capabilities保持；真实reserve/admit仍独立执行，后续并发费用或funding变化可拒绝。六个安全请求元数据字段附在普通draft既有billing记录中，保存实际cap及最大报价；原账务身份与对账规则保持。questions、legacy和preparation配置不变。
+
+历史准入前失败仅在原funded intake未停止、未确认、未激活、无未决费用或遗留interview工作时可考虑。核对原CLI回答与intent、独立普通UTF-8 native文件、六条精确SDK记录形状/parent链/cwd/model/off/system/context/user，以及唯一末尾空content/全零usage的host预算错误。原完整request/event/已结算billing必须闭合，native须唯一落在原相邻interview起止事件内，其间无reserve/admit或计费；错误文本或零usage本身不能授权。发布marker前再次核对来源字节及native清单。
+
+仍只使用 `draft-N-successor-1`：旧settled-length predecessor格式与核验兼容，新增 `kind: pre_admission_denied` 绑定原round/native字节摘要/原work身份及来源。proof仅供host使用，模型接收原prompt/context。successor成功缓存先核原来源；任何失败都消耗同一槽，不叠加length与denial机会。successor work先于原子marker发布记录，发布/创建失败亦结束work并保留历史；关闭已有session失败保留pending清理。删除marker或整个round不能删除后续interview/request历史的拒绝依据。缺失、漂移、歧义、reserve后admit失败、provider错误和unknown均拒绝；不补造历史billing/request或未派发回执，不提高grant/总额/次数或重置时钟。实际room-3须经合入后的原字节只读资格核验，源码通过不构成实际恢复或用户确认。
+
 ## B：设计产物、独审和实际消费（COS112，依赖 A）
 
 ### 固定产物接口
