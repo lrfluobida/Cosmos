@@ -54,3 +54,9 @@
 - 证据索引 `.cosmos/cos118-evidence/verification-index.json` 记录具体命令与原始输出。保留初始 RED、旧 edit 参数与 TEMP allocation 测试设置错误、首次 `args: unknown` 类型错误及各自修正后的结果；后加或修改测试仅运行受影响代表，复用其余通过证据。
 
 全部验证使用临时目录及受控 session/build/browser；真实模型调用、真实浏览器与真实费用均为零。原已关闭运行和账本未访问或修改。本卡提供结构诊断，不宣称目标游戏生成成功或语义与体验全部正确。
+
+### 独审 P2 修复：Windows 路径大小写
+
+`b89dc6210b58574c2dc6740e1e7af70e596c2d06` 的后写筛选使用字符串相等，遗漏 Windows 原文件工具已允许的大小写变体。仅改为 `relative(expected, actual) === ''`，继续保留实际 ownership 声明过滤及原 guard。真实 scoped write/edit 的两项回归先 RED 0/2，再 GREEN 2/2、0skip；两项均覆盖 design/acceptance-plan 文件的错误和成功修正，并送达原 capture/独审。原 14 项与兼容结果复用。
+
+首次 GREEN 扩展到完整 TEMP 交付时，edit 代表在 design 已通过后的下游出现 controller persistence/`ready.json` 检查失败；原输出与阶段证据保留，未修改下游实现，也未判定为产品缺陷或声称已修复。这两次不计为全链通过。经 Root 同意，最终代表使用既有受控独审拒绝终点，只验证本次设计写入边界。此次 typecheck/build/strict 均通过，证据追加至同一索引。

@@ -76,6 +76,29 @@ test('ordinary author receives current errors after real writes and edits, then 
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 3);
 });
 
+for (const name of ['write', 'edit']) test(`Windows case variants retain ordinary feedback after scoped ${name}`, { skip: process.platform !== 'win32' }, async t => {
+  const f = await ordinaryHostFixture(t, { fault: 'review' });
+  const run = author(f, async config => {
+    const valid = plan(f, config);
+    for (const [path, value] of [[main, design()], [acceptance, valid]] as const) await call(config, 'write', { path, content: JSON.stringify(value) });
+    const change = async (file: string, value: unknown) => {
+      const path = file.replace(/[^/]+$/, filename => filename.toUpperCase()), content = JSON.stringify(value);
+      const result = await call(config, name, name === 'write' ? { path, content }
+        : { path, edits: [{ oldText: await readFile(join(config.workspace, file), 'utf8'), newText: content }] });
+      assert.equal(await readFile(join(config.workspace, file), 'utf8'), content, 'The case variant must write the same declared file.');
+      return feedback(result);
+    };
+    const badDesign = design(); badDesign.characters[0].id = 'BAD_ID';
+    assert.match(await change(main, badDesign), /design\.json: characters\[0\]\.id/);
+    assert.match(await change(main, design()), /passed/);
+    const badPlan = structuredClone(valid); badPlan.scenario.steps[0].acceptanceId = 'light';
+    assert.match(await change(acceptance, badPlan), /scenario\.steps\[0\].*Unknown field.*acceptanceId/);
+    assert.match(await change(acceptance, valid), /passed/);
+  });
+  const result = await run(); assert.equal(result.acceptedCandidate, undefined);
+  assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 1); assert.equal(f.plays.length, 0);
+});
+
 test('automatic diagnostics bound both repeated schema failures and long field names', async t => {
   const f = await ordinaryHostFixture(t);
   const run = author(f, async config => {

@@ -872,7 +872,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         if (roleInput.role !== 'design' || roleInput.purpose || roleInput.validation) return;
         const path = resolve(roleInput.workspace, write.path);
         if (!gameDesignCheckFiles({ ordinary: true, modular, classicEntry: !!classicEntries?.selection.measurement })
-          .some(file => resolve(roleInput.workspace, file) === path && roleInput.task.ownership.writePaths.includes(file))) return;
+          .some(file => relative(resolve(roleInput.workspace, file), path) === '' && roleInput.task.ownership.writePaths.includes(file))) return;
         const check = designWriteChecks.get(roleInput.task.taskId);
         if (!check) throw new Error('Design write feedback requires its original author check.');
         return check.afterFileWrite(signal);
