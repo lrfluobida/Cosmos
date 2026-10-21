@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 6,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112"],
+      "verifiedNativeSubIssues": 7,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113"],
       "verifiedCompletedSubIssues": 6,
       "dependsOn": [
         {
@@ -9750,9 +9750,38 @@
       "implementationAfterDesignReview": true,
       "actualAuthorized": false,
       "paidAuthorized": false
+    },
+    {
+      "taskId": "COS-113",
+      "priority": "P1",
+      "title": "普通设计作者使用独立的非推理配置",
+      "number": 114,
+      "id": 5952280192,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/114",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-113 · 普通设计作者使用独立的非推理配置](https://github.com/lrfluobida/Cosmos/issues/114)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 7,
+      "verifiedParentCompletedSubIssues": 6,
+      "dependsOn": ["COS-112"],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-awaiting-review",
+      "implementationPhase": "source-awaiting-review",
+      "sourceBaseCommit": "dd570a93db637783d5c5dc702bf93cbbee84c068",
+      "sourceVerificationIndex": ".cosmos/cos113-evidence/verification-index.json",
+      "implementer": "design_thinking_implementer",
+      "merger": "public_agent_batch_merger",
+      "failureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6305303809",
+      "actualAuthorized": false,
+      "paidAuthorized": false
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 112,
+  "totalTaskCount": 113,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

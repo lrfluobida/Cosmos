@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-21 [COS113 / #114](https://github.com/lrfluobida/Cosmos/issues/114) 已注册到原生父 COS18/#19，依赖已完成的COS112；总任务113、根直接100、父七子完成六。普通设计作者off配置及原生SDK mock传输回归已形成源码候选，等待独审和唯一merger发布。实际room失败已结算关闭；不恢复旧run，源码完成不代表实际生成通过。
+
 2026-10-21 [COS111 / #112](https://github.com/lrfluobida/Cosmos/issues/112) 源码范围closed保持；[COS112 / #113](https://github.com/lrfluobida/Cosmos/issues/113) 最终 `64c3b86` 已独审合入 `4c3129693881b80a62b17de7ff40513718094a6b`，源码范围的 `closed(completed)` 与父勾选[x]已由Root核证。新建普通运行默认已接通 `ordinary-design/1`，旧origin不迁移。总任务112、根直接100、父COS18六个源码子项均完成；子项6/6不代表整体完成，COS18仍open/partial。共用[设计](ordinary-design-intake.md)及[计划](../plans/2026-10-21-ordinary-design-intake.md)保持；原普通memory验证已停止结算，不恢复，下列较早阶段状态保留为历史。
 
 共用设计 `2c51223` 初审的两项P2已由 `ordinary_intake_spec_reviewer` 在最终 `c4dcb56` 复审闭合：新profile复用COS110原唯一settled-length后继；确定性design输出错误沿原code_defect/返工，能力或可信来源不足另行分类。Root公开批准 [COS111](https://github.com/lrfluobida/Cosmos/issues/112#issuecomment-6298548379) / [COS112](https://github.com/lrfluobida/Cosmos/issues/113#issuecomment-6298549546)，ADR0004 accepted。七个获批文档合并时一致；文档检查原输出 `.cosmos/planning/2026-10-21-ordinary-intake/design-integration/`。本阶段未改源码、切默认或运行源码测试。
@@ -1710,6 +1712,16 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 主线合并时19个变更文件与批准来源一致；typecheck/build均exit0，八个独立短代表8/8、0skip、84478.2623ms。公开默认链、五任务、design原返工、冷恢复、persistent、显式continuation、体验stdin正例和完成后恢复复合用例通过；后者同时覆盖deadline后只读、缺批准和capability降级，不重复计数。原输出 `.cosmos/cos112-integration/`。全部为TEMP/受控角色与browser IO，无真实模型/browser/paid、旧关闭run或shared操作；完整经典、冻结性能与真实human未完成。
 
 免费验证不同 AC/selector 的三/五任务纵向链、persistent 及必要兼容代表；漏 AC、debug-only、未知操作、错来源/候选、篡改、缺批准拒绝。模型声明 unsupported 与 host 结构门禁分开记录；主机不声称可靠理解任意自然语言。动态观察决策和严格计时明确留待后续，不增加 DSL、provider 或固定 memory case。详见同一[spec](ordinary-design-intake.md)与[计划](../plans/2026-10-21-ordinary-design-intake.md)。稳定任务 ID：COS-112。
+
+### COS-113 · 普通设计作者使用独立的非推理配置
+
+[COS113 / #114](https://github.com/lrfluobida/Cosmos/issues/114)，id5952280192，原生父COS18/#19，依赖COS112，open / source-awaiting-review。基线 `dd570a93db637783d5c5dc702bf93cbbee84c068`；作者 `design_thinking_implementer`，独立reviewer由Root分配，唯一merger `public_agent_batch_merger`。
+
+实际room v2确认后的design三请求只四次read，无write、自检或capture，末次output=reasoning=8192；完整运行incomplete、总费用155105µ CNY已结清并永久停止。原失败与费用保留，早期off草稿成功不证明design质量或完成率。
+
+范围：factory增加受限作者thinking覆盖并保留全局默认，仅 `ordinary-design/1` design作者选off；planning/reviewer、旧普通、preparation、固定validation、art/coding保持原配置。模型、8192 token、16请求、120秒、原grant/clock、自检和独审不变；普通设计提示明确design.json先写、acceptance-plan.json分块write/edit、既有自检。不改变SDK/provider、依赖、失败分类或重试策略，不赋予failed/insufficient_evidence旧任务新派发权。
+
+免费证据：真实SDK mock payload先RED enabled/low，再GREEN disabled/无reasoning_effort；检查作者白名单、非法值拒绝、全局回退、固定validation优先、原配置与费用准入、host自检/独审/下游门禁、失败恢复不派发。复用COS112未变consumer证据，定向测试与编译原始索引 `.cosmos/cos113-evidence/verification-index.json`。待独审，不启动真实模型/browser/paid，不改真实账本或旧关闭run。稳定任务 ID：COS-113。
 
 ## 5. 任务与上下文包模板
 
