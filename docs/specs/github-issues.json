@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 8,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114"],
+      "verifiedNativeSubIssues": 9,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115"],
       "verifiedCompletedSubIssues": 8,
       "dependsOn": [
         {
@@ -9827,9 +9827,41 @@
       "failureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6311447223",
       "actualAuthorized": false,
       "paidAuthorized": false
+    },
+    {
+      "taskId": "COS-115",
+      "priority": "P1",
+      "title": "未支持草稿可继续编辑",
+      "number": 116,
+      "id": 5957712379,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/116",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-115 · 未支持草稿可继续编辑](https://github.com/lrfluobida/Cosmos/issues/116)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 9,
+      "verifiedParentCompletedSubIssues": 8,
+      "dependsOn": ["COS-114"],
+      "state": "open",
+      "integrationStatus": "source-review-pending",
+      "implementationPhase": "source-review-pending",
+      "sourceBaseCommit": "1ece811dd45d58579213ac324d2c19375fdc47af",
+      "sourceVerificationIndex": ".cosmos/cos115-evidence/verification-index.json",
+      "sourceReviewStatus": "PENDING",
+      "implementer": "unsupported_intake_implementer",
+      "reviewer": "unsupported_intake_reviewer",
+      "designReviewer": "unsupported_intake_reviewer",
+      "designReviewStatus": "APPROVED_DESIGN",
+      "planReviewStatus": "APPROVED_PLAN",
+      "merger": "public_agent_batch_merger",
+      "actualAuthorized": false,
+      "paidAuthorized": false
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 114,
+  "totalTaskCount": 115,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

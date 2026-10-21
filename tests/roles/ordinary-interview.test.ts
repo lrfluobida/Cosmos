@@ -30,6 +30,14 @@ test('ordinary questions retain low thinking and cannot inject draft authority',
   assert.deepEqual(f.bodies[0].thinking, { type: 'enabled' }); assert.equal(f.bodies[0].reasoning_effort, 'low');
   assert.equal(f.bodies[0].max_tokens, 4096);
 });
+test('ordinary draft prompt distinguishes excluded features from unsupported requests', async t => {
+  const f = await setup(t, ['draft']);
+  const excluded = { goal: '仅用鼠标；排除键盘、触摸、外部联网和计时。' };
+  await requestDesignDraft({ ...f.options, answers: excluded });
+  assert.match(f.configs[0].systemPrompt, /Only list capabilities the user actually requests and the current capabilities cannot support in unsupported/);
+  assert.match(f.configs[0].systemPrompt, /Keep explicitly excluded features as exclusions; do not list them in unsupported/);
+  assert.ok(f.configs[0].context); assert.deepEqual(JSON.parse(f.configs[0].context).input.answers, excluded);
+});
 test('ordinary settled length reuses the original single successor and cache with identical off configuration', async t => {
   const f = await setup(t, ['length', 'draft']);
   await assert.rejects(requestDesignDraft(f.options));

@@ -255,7 +255,13 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         current = await intake.saveDraft(proposal);
       }
       say(displayDraft(current, frames, policy));
-      if (current.unsupported.length) { say('当前可信验收能力不支持上述范围；保留差距，未确认或启动生成。'); return { outcome: 'unsupported', gaps: current.unsupported }; }
+      if (current.unsupported.length) {
+        say('当前可信验收能力不支持上述范围；保留差距，未确认或启动生成。');
+        const answer = await ask('修改回答输入 edit；退出输入 cancel。');
+        if (answer === null || answer === 'cancel') return { outcome: 'unsupported', gaps: current.unsupported };
+        if (answer === 'edit') { current = null; continue; }
+        say('当前草稿含未支持要求，必须先修改；不能确认或启动生成。'); continue;
+      }
       const answer = await ask(`确认当前版本请输入 confirm ${current.revision}；修改回答输入 edit；退出输入 cancel。`);
       if (answer === null || answer === 'cancel') { say('需求未确认，未启动生成。'); return { outcome: 'unconfirmed' }; }
       if (answer === 'edit') { current = null; continue; }
