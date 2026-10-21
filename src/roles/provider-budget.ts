@@ -1,6 +1,6 @@
 import { lstat, mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { PiBudget, PiResponse } from '../providers/pi.ts';
+import type { PiBudget, PiRequest, PiResponse } from '../providers/pi.ts';
 import type { RunController } from '../runtime/run.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
 import type { ValidationPurpose } from '../runtime/validation-types.ts';
@@ -23,10 +23,11 @@ export function usageCostMicroCny(usage: NonNullable<PiResponse['usage']>): numb
 }
 
 /** Uses the existing run only. Every SDK request, including compaction, gets durable admission. */
-export function createRoleBudget(input: { controller: AccountingController; taskId: string; evidenceDirectory: string; validation?: { caseId: string; windowId: string; purpose: ValidationPurpose } }): PiBudget {
+export function createRoleBudget(input: { controller: AccountingController; taskId: string; evidenceDirectory: string; recordRequest?: boolean; validation?: { caseId: string; windowId: string; purpose: ValidationPurpose } }): PiBudget {
   const { controller, taskId, evidenceDirectory } = input;
   const validation = input.validation && structuredClone(input.validation);
   const requests = new Set<string>();
+  const recordedRequests = new Map<string, PiRequest>();
   return {
     async beforeRequest(request) {
       return controller.coordinateAccounting(async () => {
@@ -48,6 +49,8 @@ export function createRoleBudget(input: { controller: AccountingController; task
         throw error;
       }
       requests.add(request.requestId);
+      if (input.recordRequest) recordedRequests.set(request.requestId, { requestId: request.requestId, modelId: request.modelId,
+        maxOutputTokens: request.maxOutputTokens, inputBytes: request.inputBytes, hasImages: request.hasImages, estimatedMaxCostMicroCny: request.estimatedMaxCostMicroCny });
       });
     },
     async afterResponse(response) {
@@ -62,6 +65,7 @@ export function createRoleBudget(input: { controller: AccountingController; task
       const location = join(evidenceDirectory, `billing-${response.requestId}.json`);
       // Only usage and provider metadata; no prompt, tool arguments or credentials.
       await publishReceipt(location, { ...response, formatVersion: 1, runId: before.run.runId, ledgerId: before.ledger.ledgerId, taskId,
+        ...(input.recordRequest ? { request: recordedRequests.get(response.requestId)! } : {}),
         provider: entry.provider, pricingVersion: entry.pricingVersion, admittedAt: before.requests.find(r => r.requestId === response.requestId)!.admittedAt });
       const evidence = [{ artifactId: `billing-${response.requestId}`, version: 'v1', location }];
       if (response.outcome === 'not_sent') await controller.cancel(response.requestId, evidence, { provenNoCost: true });

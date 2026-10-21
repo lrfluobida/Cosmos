@@ -11,11 +11,12 @@ import { reservePublicValidationFunding } from '../../src/runtime/public-validat
 import { fundedIntakeWork } from '../../src/runtime/public-validation-funding-validation.ts';
 import { fundingFixture } from '../runtime/public-validation-funding.fixture.ts';
 import { fakeInterviewSdk, type Reply } from '../roles/interview-recovery.fixture.ts';
+import { PiSessionError } from '../../src/providers/pi.ts';
 
 async function fixture(t: test.TestContext, replies: Reply[]) {
   const f = await fundingFixture(t), args = await f.authorization('truncation'), binding = await reservePublicValidationFunding(args);
   const sdk = fakeInterviewSdk(t, replies, true);
-  const product = createProductHost(fileURLToPath(new URL('../../', import.meta.url)), { sessionFactory: sdk.sessionFactory });
+  const product = { ...createProductHost(fileURLToPath(new URL('../../', import.meta.url)), { sessionFactory: sdk.sessionFactory }), ordinaryProfile: undefined };
   const executed: any[] = []; let text = ''; const output = new PassThrough(); output.on('data', bytes => { text += bytes; });
   const host = { ...product, async prepare() { return { environmentReady: true, executionReady: true }; },
     async execute(input: any) { executed.push(input); return { outcome: 'incomplete', fixtureOnly: true }; } };
@@ -68,7 +69,7 @@ test('successor cannot bypass the original public funding authorization gate', a
   authorization.actorId = 'changed'; await writeFile(path, JSON.stringify(authorization), 'utf8');
   try {
     const answers = JSON.parse(await readFile(join(f.runRoot, 'intake-answers/v1.json'), 'utf8'));
-    await assert.rejects(f.product.draft({ controller, roundId: 'draft-1', ...answers }), /admission/i);
+    await assert.rejects(f.product.draft({ controller, roundId: 'draft-1', ...answers }), (error: unknown) => error instanceof PiSessionError && error.code === 'admission_rejected');
     assert.equal(f.bodies.length, 2);
     assert.deepEqual((await controller.read()).ledger, before.ledger);
   } finally { await writeFile(path, original); await controller.close(); }

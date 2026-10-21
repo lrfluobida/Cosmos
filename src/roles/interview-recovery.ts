@@ -24,7 +24,10 @@ export async function truncatedDraftSuccessor(controller: IntakeController, roun
   if (verified.status !== 'already_closed' || !bytes.equals(await regularFile(controller.root, `${relative}/${files[0]}`))) {
     throw new Error('Original truncated draft receipt conflicts with its settled charge.');
   }
-  return { root: await safePath(controller.root, `${relative}-successor-1`), intent: {
+  const settled = state.events.find(event => event.type === 'settled' && event.requestId === requestId);
+  const canStart = state.ledger.entries.at(-1)?.requestId === requestId && !!settled && !state.events.slice(settled.sequence).some(event =>
+    event.type === 'public_intake_work_started' && JSON.parse(event.reason).kind === 'interview');
+  return { root: await safePath(controller.root, `${relative}-successor-1`), canStart, intent: {
     ...intent, predecessor: { roundId, requestId, billing: { artifactId: `billing-${requestId}`, version: 'v1', location: join(original, files[0]) }, receipt },
   } };
 }
