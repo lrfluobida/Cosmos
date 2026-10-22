@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 14,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120"],
+      "verifiedNativeSubIssues": 15,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121"],
       "verifiedCompletedSubIssues": 14,
       "dependsOn": [
         {
@@ -10071,9 +10071,41 @@
       "sourceReviewedCommit": "9ac2e7671ddb2ef681b59f637009ce3db1d54fa6",
       "sourceIntegratedCommit": "b1b168fb13f67f229e94fc4cd825bdbea754a3f0",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/121#issuecomment-6331182657"
+    },
+    {
+      "taskId": "COS-121",
+      "title": "明确设计映射结构与校验反馈",
+      "number": 122,
+      "id": 5974242973,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/122",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-121 · 明确设计映射结构与校验反馈](https://github.com/lrfluobida/Cosmos/issues/122)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 15,
+      "verifiedParentCompletedSubIssues": 14,
+      "dependsOn": [],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceBaseCommit": "ffd7ad735c0b51003feb8c78e5b82e757f009ac1",
+      "sourceReviewStatus": "pending",
+      "implementer": "cos121_implementer",
+      "reviewer": "cos121_reviewer",
+      "designReviewer": "design_mapping_plan_reviewer",
+      "designReviewStatus": "APPROVED_DESIGN",
+      "planReviewer": "design_mapping_plan_reviewer",
+      "planReviewStatus": "APPROVED_PLAN",
+      "merger": "public_agent_batch_merger",
+      "actualAuthorized": false,
+      "paidAuthorized": false
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 120,
+  "totalTaskCount": 121,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

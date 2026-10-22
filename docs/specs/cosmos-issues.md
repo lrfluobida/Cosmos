@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-22 [COS121 / #122](https://github.com/lrfluobida/Cosmos/issues/122) 已登记为open/source-pending，设计/计划已独审批准，源码实施与独审待完成。总任务121、根直接100、COS18原生15子项中14个源码完成，父仍open/partial。room5实际生成incomplete并已按原流程永久关闭，后续仅免费修复映射提示与字段诊断。
+
 2026-10-22 [COS120 / #121](https://github.com/lrfluobida/Cosmos/issues/121) 已独审合入并发布 `b1b168fb13f67f229e94fc4cd825bdbea754a3f0`，closed(completed)与父[x]已GET核证。总任务120、根直接100、COS18十四个源码子项完成，父仍open/partial；主线typecheck/build及7/7代表通过，room5的实际生产恢复资格仍待Root/operator另行核验。
 
 2026-10-22 [COS119 / #120](https://github.com/lrfluobida/Cosmos/issues/120) 已独审合入并发布 `003e8dceafdd07cf8806be073d53a252d338090f`，closed(completed)与父[x]均已GET核证。总任务119、根直接100、COS18十三个源码子项完成，父仍open/partial。typecheck/build及主线7/7代表通过，JSON对象输出不保证计划语义或端到端完成；旧memory与room1–4永久关闭。
@@ -1802,6 +1804,14 @@ ordinary-design/1草稿只对类型化字段结构失败提供一次有界纠正
 作者58/58原受影响矩阵、最终7/7、typecheck/build/strict通过；reviewer另核真实锁定SDK短schema及旧denial缓存兼容2/2、0skip。主线另跑typecheck/build均exit0，7个集中代表7/7、0skip、TAP5256.7671ms；未变证据复用，重叠不累计。作者索引 `.cosmos/cos120/evidence-index.json`，主线 `.cosmos/cos120-integration/`。总120、根直接100、父14个源码子项完成，整体仍open/partial。
 
 登记时room5原CLI exit1、2笔36705µ已settled、未确认/未生成，原run未stop/settle、shared3345 held5000000µ的事实保留；本次未触碰实际run/账本或核验生产资格，仍由Root/operator在稳定主线后另查，不能以源码通过宣称实际恢复成功。旧memory及room1–4永久关闭。本卡不增预算、次数、语义修复或多轮重试，也不证明游戏或体验通过。稳定任务ID：COS-120。
+
+### COS-121 · 明确设计映射结构与校验反馈
+
+[COS121 / #122](https://github.com/lrfluobida/Cosmos/issues/122)，id5974242973，原生父COS18/#19、父[ ]，`open / source-pending`。design_mapping_plan_reviewer已APPROVED_DESIGN / APPROVED_PLAN、无findings，Root批准免费实施；作者cos121_implementer、源码独审cos121_reviewer、唯一merger public_agent_batch_merger。基线 `ffd7ad735c0b51003feb8c78e5b82e757f009ac1`、分支codex/design-mapping-guidance；[完整规格与计划](https://github.com/lrfluobida/Cosmos/issues/122)已发布，正式两docs由作者随源码提交，当前未批准源码。
+
+只修改现有设计角色提示和validateDesign的mapping判定：用当前完整实际gameplay/experience ID动态生成合法JSON示例并标明占位说明；键为实际ID，值为非空字符串，不能使用伪类型字面键或ID数组。原validator分别给出字段、缺失/额外键及非法值位置，诊断有界；保持原精确集合、text谓词和其他媒体/schema规则，复用显式自检与write/edit只读反馈，不代写设计、不增工具/预算/次数/时限，不改计划validator。
+
+room5最终79.755秒incomplete：planning两请求27306µ通过，design16请求114817µ封顶，字面mapping仍错误，无capture/review或art/code；含访谈22笔228462µ已结算、释放4771538µ，独立PASS_CLOSED child117/shared3346，held/reserved/unknown0。[结案回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6334320635)保留原确认、时钟和失败；旧memory及room1–5永久关闭，不重开或重复结算。内存结构诊断与本卡计划均不证明实际语义或游戏通过。本次仅登记元数据，未运行源码测试或操作实际run/账本；总121、根直接100、父15/14、整体仍open/partial。稳定任务ID：COS-121。
 
 ## 5. 任务与上下文包模板
 

@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-22 [COS121 / #122](https://github.com/lrfluobida/Cosmos/issues/122) 已登记（id5974242973），原生父COS18/#19、父[ ]；design_mapping_plan_reviewer已APPROVED_DESIGN / APPROVED_PLAN、无findings，Root批准免费实施，源码待完成与独审。作者cos121_implementer从 `ffd7ad735c0b51003feb8c78e5b82e757f009ac1` 在codex/design-mapping-guidance实施，源码reviewer cos121_reviewer，唯一merger public_agent_batch_merger。完整spec/plan已在issue正文；本卡仅澄清实际ID→非空字符串的动态映射示例，并让原validateDesign报告具体、有界的字段诊断，复用原自检/write反馈，不改预算、16次帽或计划validator。
+
+room5已永久关闭，结果incomplete（[最终结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6334320635)）。原真实v2确认、时钟与失败保留；planning两次请求27306µ通过并登记三任务，design用完16次请求114817µ后报Session request limit reached，最终mapping仍使用字面键gameplayId/criterionId及ID数组，无capture/review、美术或代码启动。本次79.755秒，含访谈22笔共228462µ，原stop/settle释放4771538µ，独立PASS_CLOSED child117/shared3346：committed19457129µ/unallocated55355296µ，held/reserved/unknown均0。旧memory及room1–5均永久关闭，不恢复或重复结算；这不是游戏或体验通过。总任务121、根直接100、父15子项中14个源码完成，COS121保持open/source-pending，父仍open/partial；此次只登记元数据，未改运行源码或真实账本。
+
 2026-10-22第五次room实际恢复后得到待确认v2（[公开快照](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6331487051)）：独立生产资格canStart=true，原CLI唯一schema后继产出合法v1、新增24687µ，原reply保留。独审发现v1既有客观美术/布局遗漏，原edit仅澄清原要求后得到v2、新增24947µ；v2为11AC（9play+2host）/4体验/7QA、unsupported[]，完整语义PASS、EXPORT_APPROVED_EXACT_MAPPING覆盖127字符串。实际草稿SHA `7086bde67b23577c5e65fa40f0e534dc2d3f1d50ad9815a72978c727a4c3f818`。
 
 原CLI cancel退出0，独立PASS_RESUMABLE_WAIT：child32、4笔86339µ均settled、claim1、pending/reserved/unknown均0，无锁/control/进程；shared3345仍held原5000000µ，未stop/settle。此为呈现真实v2确认前快照，未confirm、未generation，不代表planning、游戏或体验验证通过。原字节与回执见 `.cosmos/public-validation/room-20261022-5/schema-successor-outcome.json`；runtime固定 `b1b168fb13f67f229e94fc4cd825bdbea754a3f0`，父COS18/#19仍open/partial，room5不关闭或结算，旧memory及room1–4永久关闭。
