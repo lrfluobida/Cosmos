@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 13,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119"],
+      "verifiedNativeSubIssues": 14,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120"],
       "verifiedCompletedSubIssues": 13,
       "dependsOn": [
         {
@@ -10031,9 +10031,41 @@
       "merger": "public_agent_batch_merger",
       "actualAuthorized": false,
       "paidAuthorized": false
+    },
+    {
+      "taskId": "COS-120",
+      "title": "普通需求草稿的一次格式纠正",
+      "number": 121,
+      "id": 5971642502,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/121",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-120 · 普通需求草稿的一次格式纠正](https://github.com/lrfluobida/Cosmos/issues/121)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 14,
+      "verifiedParentCompletedSubIssues": 13,
+      "dependsOn": [],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceBaseCommit": "31bbad4b8b1f6143c4722f3f78935a41e08c7fc2",
+      "sourceReviewStatus": "pending",
+      "implementer": "cos120_implementer",
+      "reviewer": "cos120_reviewer",
+      "designReviewer": "intake_schema_plan_reviewer",
+      "designReviewStatus": "APPROVED_DESIGN",
+      "planReviewer": "intake_schema_plan_reviewer",
+      "planReviewStatus": "APPROVED_PLAN",
+      "merger": "public_agent_batch_merger",
+      "actualAuthorized": false,
+      "paidAuthorized": false
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 119,
+  "totalTaskCount": 120,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

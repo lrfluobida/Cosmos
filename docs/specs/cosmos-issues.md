@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-22 [COS120 / #121](https://github.com/lrfluobida/Cosmos/issues/121) 已登记为open/source-pending，设计与计划已独审通过，源码实施/独审待完成。总任务120、根直接100、COS18原生14子项中13个源码完成，父仍open/partial；room5原run保留原拨款，源码合入后再核生产恢复资格。
+
 2026-10-22 [COS119 / #120](https://github.com/lrfluobida/Cosmos/issues/120) 已独审合入并发布 `003e8dceafdd07cf8806be073d53a252d338090f`，closed(completed)与父[x]均已GET核证。总任务119、根直接100、COS18十三个源码子项完成，父仍open/partial。typecheck/build及主线7/7代表通过，JSON对象输出不保证计划语义或端到端完成；旧memory与room1–4永久关闭。
 
 2026-10-21 COS117 / #118与COS118 / #119已独审合入并发布 `48cffe0f0e9a195bf77b601a6e3c928ffa0b993b`，两卡closed(completed)与父[x]均已GET核证。总任务118、根直接100、COS18十二个源码子项完成，父仍open/partial。typecheck/build及组合10/10代表通过；实际生成与体验仍须另行验证，旧memory及room1/2/3永久关闭。
@@ -1790,6 +1792,14 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 仅可信planning purpose启用固定json_object，经锁定SDK原onPayload组合已有hook，返回新对象以保留冻结replacement；system/user共享合法JSON占位示例，含policyId与无policyId形状，实际任务仍绑定原host policies和确认需求。非planning请求、原模型/预算/次数/cap/window及decodeModelJson和完整计划校验保持，空/无效/截断回复继续拒绝，不追加纠正请求或放行缺execution的旧resume。详见[规格](cos119-planning-json-output.md)与[实施计划](../plans/2026-10-22-planning-json-output.md)。
 
 作者原45/45、兼容6/6按未变范围复用，P2后hook4/4通过；原strict退出0但空输出未生成日志的缺口保留，新strict明确保存命令/退出码及空stdout/stderr，不补造旧证据。主线另跑typecheck/build均exit0，集中7/7、0skip、TAP6400.6014ms，不累计重叠。作者索引 `.cosmos/cos119-evidence/verification-index.json`，主线原命令/输出 `.cosmos/cos119-integration/`。总119、根直接100、父13个源码子项完成但整体仍open/partial；本卡仅免费SOURCE/TEMP，未触碰实际运行或账本。旧memory及room1–4永久关闭，源码通过不证明真实模型格式、计划语义或游戏体验通过。稳定任务ID：COS-119。
+
+### COS-120 · 普通需求草稿的一次格式纠正
+
+[COS120 / #121](https://github.com/lrfluobida/Cosmos/issues/121)，id5971642502，原生父COS18/#19、父[ ]，`open / source-pending`。intake_schema_plan_reviewer已APPROVED_DESIGN / APPROVED_PLAN、无阻塞，Root按原持续开发授权批准免费实施；作者cos120_implementer、独立源码reviewer cos120_reviewer、唯一merger public_agent_batch_merger。实施基线 `31bbad4b8b1f6143c4722f3f78935a41e08c7fc2`、分支codex/ordinary-intake-schema-correction；[完整规格与计划](https://github.com/lrfluobida/Cosmos/issues/121)已发布，正式spec/plan文件由作者随源码提交，当前未批准源码。
+
+ordinary-design/1草稿只对明确的字段结构失败提供一次有界纠正：复用draft-N-successor-1和原intake额度，通过窄持久claim防止失败、并发或删目录后重放；先验证原normal-stop已结算请求、reply/native/intent与完整问答来源，再向无工具session提供原要求和有界诊断。完整validator和真实当前revision确认继续决定是否保存并开始生成，合法unsupported或语义遗漏不触发；不修补主机中的模型输出，不连锁length/denial/schema机会，不扩预算、次数或时钟。
+
+登记快照：room5原CLI exit1，合法JSON的四项体验条目带多余evidenceKinds，原2笔36705µ已settled，未确认/未启动生成，资源独立核退出；原run未stop/settle，shared3345 held5000000µ，无新的付费调用。源码独审合入后仍须同一生产资格检查，不能提前宣称该运行可恢复；旧memory及room1–4永久关闭。此次只登记元数据，未运行源码测试或操作实际运行/账本。总120、根直接100、父14子项中13个源码完成，父仍open/partial。稳定任务ID：COS-120。
 
 ## 5. 任务与上下文包模板
 

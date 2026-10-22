@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-22 [COS120 / #121](https://github.com/lrfluobida/Cosmos/issues/121) 已登记（id5971642502），原生父COS18/#19、父[ ]；intake_schema_plan_reviewer已APPROVED_DESIGN / APPROVED_PLAN、无阻塞，Root按原持续开发授权批准免费实施。登记时源码待实施与独审，作者cos120_implementer从 `31bbad4b8b1f6143c4722f3f78935a41e08c7fc2` 在codex/ordinary-intake-schema-correction实施，源码reviewer cos120_reviewer，唯一merger public_agent_batch_merger。完整规格/计划在issue正文；目标为普通草稿结构失败后复用唯一successor槽作一次有界格式纠正，保留原回复、费用、完整校验及真实当前版确认，不增加预算或通用重试。
+
+登记时room5原CLI exit1：draft为合法JSON，但四项体验条目多出evidenceKinds而被原schema拒绝；2笔36705µ均settled，未confirm、未启动generation，资源已独立确认退出。原run未stop/settle，shared3345仍held原5000000µ；当前没有新的付费调用，合入后仍须独立operator核同一生产恢复资格，未预先恢复。COS119真实planning效果尚未验证，因为本次未到planning。旧memory及room1–4永久关闭。总任务120、根直接100、父14子项中13个源码完成，COS120保持open/source-pending，父仍open/partial；本次仅登记与元数据，不改运行源码或真实账本。
+
 2026-10-22 [COS119 / #120](https://github.com/lrfluobida/Cosmos/issues/120) 已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/120#issuecomment-6330503907)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/120#issuecomment-6330508209)和父[x]已GET核证。作者cos119_implementer的 `a5658d239a3479f8af282c2da4c52fcfa3aa5342` 经cos119_reviewer规格/质量审查及冻结payload replacement P2复审，APPROVED_SOURCE_SCOPED、无剩余P1/P2；唯一merger从 `bfbf69173cf63ad1530ba1ddf1f610d811df7cce` 合入并发布 `003e8dceafdd07cf8806be073d53a252d338090f`，9个来源文件与批准提交一致。仅可信planning purpose通过原Pi hook设置固定json_object，保留已有hook语义及冻结替换对象；system/user提示采用合法JSON占位示例，原decodeModelJson和完整计划校验继续决定是否接纳，非planning格式及原预算、次数、cap、window保持。
 
 主线typecheck/build exit0；7个集中代表7/7、0skip，TAP6400.6014ms，覆盖普通/validation实际payload、invalid/length保持失败、nonplanning design、冻结replacement及无policyId示例绑定。作者原45/45、6/6的未变范围与P2后hook4/4复用，不累计重叠；旧strict缺日志已明示，新strict退出0并显式保存结果。原证据 `.cosmos/cos119-evidence/verification-index.json`、主线 `.cosmos/cos119-integration/checks.json`。总任务119、根直接100、父COS18十三个源码子项完成，仍open/partial；本次仅免费SOURCE/TEMP，未操作真实provider/browser/controller/账本，旧memory及room1–4永久关闭。JSON输出约束不证明真实模型、计划语义或游戏体验通过，不增加重试或历史恢复机会。
