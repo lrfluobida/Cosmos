@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-23 [COS123 / #124](https://github.com/lrfluobida/Cosmos/issues/124) 已登记为open/source-pending，设计/计划已独审批准，源码独审已批准、待集成。总123、根直接100、COS18原生17子项中16个源码完成，父仍open/partial；room7因规划任务验收归属被host终验拒绝而incomplete，已按原流程永久关闭。
+2026-10-23 [COS123 / #124](https://github.com/lrfluobida/Cosmos/issues/124) 已独审合入并发布 `ba5dca0df72846bac3b2c40cc326f0f888d5bac5`，closed(completed)与父[x]已GET核证。总123、根直接100、COS18十七个源码子项完成，父仍open/partial；typecheck/build与显式主模板下4/4 host代表通过。旧memory及room1–7永久关闭，本卡不增加规划重试或历史恢复。
 
 2026-10-22 [COS122 / #123](https://github.com/lrfluobida/Cosmos/issues/123) 已独审合入并发布 `4b2eae9a9bccec19f590dd09951b5059d72785f4`，closed(completed)与父[x]已GET核证。总122、根直接100、COS18十六个源码子项完成，父仍open/partial；typecheck/build及显式主模板下3/3代表通过，32次容量不保证真实完成。旧memory及room1–6永久关闭。
 
@@ -1831,11 +1831,13 @@ room6的91.121秒incomplete、21笔314904µ结算、4685096µ释放及PASS_CLOSE
 
 ### COS-123 · 规划任务的可信验收归属
 
-[COS123 / #124](https://github.com/lrfluobida/Cosmos/issues/124)，id5983405083，原生父COS18/#19、父[ ]，`open / source-pending`。planning_assignment_plan_reviewer已APPROVED_DESIGN / APPROVED_PLAN、无findings，Root批准免费实施；作者cos123_implementer从 `33956c44b79d25095945b754f09bbde1887c25c8` 在codex/planning-acceptance-binding实现，独立源码reviewer cos123_reviewer已批准，唯一merger public_agent_batch_merger。[完整规格与计划](https://github.com/lrfluobida/Cosmos/issues/124)已发布，正式两docs由作者提交，当前获批源码为ced0bc2c7cd9962b510b8671d289420cc139f7b0，尚未合入主线。
+[COS123 / #124](https://github.com/lrfluobida/Cosmos/issues/124)，id5983405083，原生父COS18/#19，`source-integrated / source-scoped-complete`；[源码批准](https://github.com/lrfluobida/Cosmos/issues/124#issuecomment-6346610362)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/124#issuecomment-6346617438)和父[x]已精确核证。planning_assignment_plan_reviewer设计/计划已批准；作者cos123_implementer基于 `33956c44b79d25095945b754f09bbde1887c25c8` 提交 `ced0bc2c7cd9962b510b8671d289420cc139f7b0`，独审cos123_reviewer规格/质量通过、无actionable findings。唯一merger public_agent_batch_merger从登记发布 `403546935c06fc54cab5905deaaedf43d4783646` 合入并发布 `ba5dca0df72846bac3b2c40cc326f0f888d5bac5`，8文件与批准版本一致。
 
-拟仅在PlanningTaskPolicy增加可选可信acceptanceIds，并在session创建前核对固定配置；保留原proposal形状、合法/非空/不重复ID、角色/槽位、唯一身份、依赖和总体覆盖等拒绝条件，再按已选可信policy构造最终验收归属与对应原requirement条目，绑定后重核完整覆盖。新plan仅为启用项记录policyId/taskId/proposedIds/boundIds，原native保留，未启用路径保持。ordinary三槽/五槽与普通funded启用；legacy roles、preparation、fixed validation、continuation/inherited不启用，fixed validation错误覆盖在session前拒绝。保留host终验、预算/时间/工具/输出/旧恢复，不增加重试，不手改旧计划。
+PlanningTaskPolicy可选可信acceptanceIds在session前核配置；原proposal的形状、合法/非空/不重复ID、角色/槽位、身份、依赖和总体覆盖仍先检查，再按原策略快照绑定最终acceptanceIds及原requirement条目，绑定后重核覆盖。新plan仅为启用项记录policyId/taskId/proposedIds/boundIds，原native与未启用格式保持。ordinary三槽/五槽及普通funded启用；legacy roles、preparation、fixed validation、continuation/inherited不启用，fixed validation配置错误在session前拒绝。原host.validateTasks未改，原预算、依赖、工具、输出和历史恢复保持，不新增重试。详见[规格](cos123-planning-acceptance-binding.md)与[实施计划](../plans/2026-10-23-planning-acceptance-binding.md)。
 
-room7实际9.175秒incomplete，规划2响应31954µ形成validated_proposal但design同时承担专属项+8玩法，原host终验拒绝，没有execution/tasks、作者或候选，未验证COS122设计容量。含访谈6笔136637µ已结算、释放4863363µ；PASS_CLOSED child45/shared3350、held/reserved/unknown0及[结案回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6346071920)保留原确认、时钟与失败。旧memory及room1–7永久关闭，不重开或重复结算。本次只登记元数据，未跑源码测试或操作实际run/ledger/coordinator；总123、根直接100、父17/16、整体仍open/partial。稳定任务ID：COS-123。
+作者核心29/29、host2/2、兼容54/54、定向3/3及typecheck/build/final-strict通过；独审策略快照/duplicate两项通过，host依赖代表先缺模板依赖失败，显式主模板后通过、0skip。主线另跑typecheck/build exit0，显式主模板下4/4 host代表、0skip、TAP33269.0338ms，覆盖普通三槽、五槽、funded及非法host依赖。原失败与有效证据保留，重叠不累计；作者索引 `.cosmos/cos123/verification-index.json`、主线 `.cosmos/cos123-integration/`。总123、根直接100、父17个源码子项完成，整体仍open/partial。
+
+room7的9.175秒incomplete、6笔136637µ结算、4863363µ释放、PASS_CLOSED child45/shared3350及[原确认/时钟/失败记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6346071920)保持；本案未运行到COS122设计容量。旧memory及room1–7永久关闭，不恢复或重复结算。本批未操作实际run/ledger/coordinator或room8准备，不以假host候选或结构校验宣称实际生成、设计语义或体验通过。稳定任务ID：COS-123。
 
 ## 5. 任务与上下文包模板
 
