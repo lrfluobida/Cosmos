@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-23记录room8 actual v1截至2026-10-22T17:33:54.823Z的确认前快照（[公开回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6347243510)）：原公开CLI提出7问，逐字映射room7已确认的8条原答案，actual v1完整semantic PASS、export EXACT；10AC（8gameplay+2host）/4体验/7QA，132个原字符串+完整JSON。raw SHA `cc75d18491ddde62376c15e219e7a15d9e34b9ea0c0572cee699f6ced9f3d848`，export SHA见公开回执；声音firstmute仍mandatory，可在既有唯一重开的第二阶段覆盖，不增加重开。
+
+该时点原CLI cancel exit0（未stop/settle），独立PASS_RESUMABLE_WAIT：child16、2笔37945µ全settled，reserved/unknown/pending/claim0；无confirm/stop/生成时钟，无locks/control/target process，shared3351仍held原5000000µ、未结算且无overrun。证据位于 `.cosmos/public-validation/room-20261023-8/` 的operation.json、draft-v1-wait.json、draft-v1-review.md。后续阶段以新的真实确认和运行记录为准，不代表规划或游戏验证通过；runtime固定 `ba5dca0df72846bac3b2c40cc326f0f888d5bac5`，#124仍source closed，父COS18/#19仍open/partial，旧memory及room1–7永久关闭。
+
 2026-10-23 [COS123 / #124](https://github.com/lrfluobida/Cosmos/issues/124) 已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/124#issuecomment-6346610362)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/124#issuecomment-6346617438)和父[x]已GET核证。作者cos123_implementer的 `ced0bc2c7cd9962b510b8671d289420cc139f7b0` 经独立cos123_reviewer规格/质量审查，APPROVED_SOURCE_SCOPED、无actionable findings；唯一merger从登记发布 `403546935c06fc54cab5905deaaedf43d4783646` 合入并发布 `ba5dca0df72846bac3b2c40cc326f0f888d5bac5`，8个来源文件与批准版本一致。仅planner/ordinary host接通可选可信PlanningTaskPolicy.acceptanceIds，保留原proposal全部拒绝条件与总体覆盖，再绑定任务验收并重核覆盖，记录proposedIds/boundIds；普通三槽、五槽与funded启用，原host终验、预算及历史恢复保持，不新增重试。
 
 主线typecheck/build exit0，显式COSMOS_TEMPLATE_ROOT=E:/develop/Cosmos/templates/2d下4/4 host代表、0skip、TAP33269.0338ms，覆盖ordinary三槽、modular五槽、funded原预算/窗口及缺host依赖仍拒绝。作者核心29/29、host2/2、兼容54/54、定向3/3及独审策略快照/duplicate代表按未变范围复用，不累计重叠；模板依赖缺失的原失败保留，显式主模板后通过。作者索引 `.cosmos/cos123/verification-index.json`，主线 `.cosmos/cos123-integration/checks.json`；全部为SOURCE/TEMP及假传输/构建/浏览器，不证明真实生成或游戏体验通过。
