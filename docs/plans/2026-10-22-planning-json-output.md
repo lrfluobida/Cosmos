@@ -80,3 +80,7 @@ JSON.stringify({ tasks: [{ taskId: 'example-task',
 - node node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext --allowImportingTsExtensions --skipLibCheck --types node tests/roles/planning-json-output.test.ts tests/roles/planning-schema.test.ts tests/roles/planning-identity.test.ts：退出 0。
 
 RED/GREEN 与中途 fixture 失败均保存在 .cosmos/cos119-evidence/，不累加重叠测试计数。未变更的旧全矩阵、运行恢复、工具执行与计费实现不重复运行；本次真实 SDK + fake fetch 代表验证实际受影响路径。所有真实已关闭运行保持关闭，真实模型效果尚未验证。
+
+### 审查后受影响验证
+
+冻结 hook replacement 的原地修改问题经定向 RED 0/1 复现。Pi 改为返回合并后的新对象，保留原对象，hook 四个代表 GREEN 4/4；原 45/45 与预算/容量 6/6 的未受影响证据继续复用。原 strict 空输出日志缺失已在索引明确标注；本次 strict 复验以 JSON 记录命令、exitCode 0、空 stdout/stderr。所有 RED 与首次审查历史保留。

@@ -43,3 +43,9 @@
 - RED 原日志保留：初次 10 pass / 10 fail，其中 validation fixture 的验收分配过宽被原门禁拒绝；修正 fixture 后 validation 单项因缺少 response_format 得到预期 RED 0/1。随后 GREEN 45/45，未修改真实失败回复。
 - 原始命令、日志与复用说明位于实施 worktree 的忽略目录 .cosmos/cos119-evidence/verification-index.json。独立审查与主线合并由 reviewer 和唯一 merger 完成。
 - 本卡只证明源码接线与离线门禁，未运行真实 provider/browser，未打开或改写历史运行账本。真实模型格式改善和游戏计划语义正确性仍需后续另行获准的有界验证。
+
+## 独立审查修正
+
+审查发现原实现对 hook 返回的冻结 replacement 原地写 response_format 会抛错，使请求未发送且费用状态 unknown。定向 RED 0/1 复现后，改为保留所选 payload 字段并返回带固定格式的新对象。新增冻结 replacement 代表验证实际 fetch、json_object、额外 seed 字段、原冻结对象保持 text 格式及正常 settled；与默认、原地修改、异步 replacement 共 4/4 通过。此前 45/45、6/6 中未受影响部分复用，不叠加计数。
+
+原 changed-tests-strict 命令曾退出 0，但空输出未生成索引所指日志；保留该证据缺口。本次重新 strict 检查退出 0，显式保存命令、退出码和空 stdout/stderr 到 review-changed-tests-strict.log，不补造旧日志。

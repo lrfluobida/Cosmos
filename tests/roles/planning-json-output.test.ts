@@ -6,6 +6,7 @@ import test from 'node:test';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import type { SimpleStreamOptions } from '@earendil-works/pi-ai';
 import { createPiSession } from '../../src/providers/pi.ts';
+import type { PiResponse } from '../../src/providers/pi.ts';
 import { createRoleFactory } from '../../src/roles/factory.ts';
 import { planTaskDag } from '../../src/roles/planner.ts';
 import type { PlanOptions, PlanningTaskPolicy } from '../../src/roles/planner.ts';
@@ -138,16 +139,17 @@ for (const role of ['cosmos', 'design', 'art', 'coding', 'reviewer'] as const) t
   assert.deepEqual(wire.bodies[1].tools?.map(tool => tool.function.name), role === 'reviewer' ? ['read'] : ['read', 'write']);
 });
 
-for (const mode of ['default', 'in-place', 'async-replacement'] as const) test(`native payload hook semantics are retained: ${mode}`, async t => {
+for (const mode of ['default', 'in-place', 'async-replacement', 'frozen-replacement'] as const) test(`native payload hook semantics are retained: ${mode}`, async t => {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-json-hook-')), wire = transport(t, () => '{"synthetic":true}');
   let runtime!: ModelRuntime, hookCalls = 0;
   const nativeCreate = ModelRuntime.create;
   t.mock.method(ModelRuntime, 'create', async (...args: Parameters<typeof nativeCreate>) => (runtime = await nativeCreate(...args)));
-  const admissions: string[] = [], settlements: string[] = [];
+  const admissions: string[] = [], settlements: PiResponse[] = [];
+  let frozenReplacement: Readonly<Record<string, unknown>> | undefined;
   const session = await createPiSession({ workspace: root, stateDirectory: join(root, 'session'), systemPrompt: 'Return JSON.', context: '', tools: [],
     env: { DEEPSEEK_API_KEY: 'offline-hook-key' }, maxOutputTokens: 128, maxRequests: 1, requestTimeoutMs: 1000,
     ...(mode === 'default' ? {} : { jsonOutput: true }), estimatedMaxCostMicroCny: 1000,
-    budget: { beforeRequest: async request => { admissions.push(request.requestId); }, afterResponse: async response => { settlements.push(response.requestId); } } });
+    budget: { beforeRequest: async request => { admissions.push(request.requestId); }, afterResponse: async response => { settlements.push(response); } } });
   t.after(async () => { await session.close(); assert.ok(root.startsWith(tmpdir())); await rm(root, { recursive: true, force: true }); });
   if (mode === 'default') await session.prompt('Return JSON.');
   else {
@@ -156,15 +158,25 @@ for (const mode of ['default', 'in-place', 'async-replacement'] as const) test(`
       hookCalls++; assert.equal(actualModel.id, model.id);
       const body = payload as Record<string, unknown>;
       if (mode === 'in-place') { body.seed = 17; body.response_format = { type: 'text' }; return undefined; }
+      if (mode === 'frozen-replacement') {
+        frozenReplacement = Object.freeze({ ...body, seed: 23, response_format: { type: 'text' } });
+        return Promise.resolve(frozenReplacement);
+      }
       return Promise.resolve({ ...body, seed: 23, response_format: { type: 'text' } });
     };
     const result = await runtime.streamSimple(model, { messages: [{ role: 'user', content: 'Return JSON.', timestamp: 0 }] }, { onPayload: hook }).result();
     assert.equal(result.stopReason, 'stop');
     assert.equal(hookCalls, 1);
     assert.equal(wire.bodies[0].seed, mode === 'in-place' ? 17 : 23);
+    if (mode === 'frozen-replacement') {
+      assert.ok(Object.isFrozen(frozenReplacement));
+      assert.deepEqual(frozenReplacement!.response_format, { type: 'text' });
+      assert.equal(frozenReplacement!.seed, 23);
+    }
   }
   assert.equal(wire.bodies.length, 1); assert.equal(wire.bodies[0].model, 'deepseek-flash');
   assert.equal(wire.bodies[0].max_tokens, 128); assert.ok(wire.bodies[0].messages.length);
   assert.deepEqual(wire.bodies[0].response_format, mode === 'default' ? undefined : { type: 'json_object' });
-  assert.equal(admissions.length, 1); assert.deepEqual(settlements, admissions);
+  assert.equal(admissions.length, 1); assert.deepEqual(settlements.map(response => response.requestId), admissions);
+  assert.equal(settlements[0].outcome, 'settled'); assert.equal(settlements[0].stopReason, 'stop');
 });

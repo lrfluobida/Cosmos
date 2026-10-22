@@ -217,8 +217,7 @@ export async function createPiSession(config: PiSessionOptions) {
           onPayload: config.jsonOutput ? async (payload, model) => {
             const replacement = await options?.onPayload?.(payload, model);
             const body = (replacement === undefined ? payload : replacement) as Record<string, unknown>;
-            body.response_format = { type: 'json_object' };
-            return body;
+            return { ...body, response_format: { type: 'json_object' } };
           } : options?.onPayload,
           onProviderStreamEvent: async (data, model) => {
             firstResponseMs ??= performance.now() - started;
