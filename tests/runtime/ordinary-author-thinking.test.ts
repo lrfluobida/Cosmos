@@ -83,7 +83,9 @@ test('ordinary design alone disables thinking in native SDK payload while origin
   const state: any = await readRunSnapshot(f.root);
   for (const config of configs) {
     const packet = JSON.parse(config.context), task = state.tasks.find((task: any) => task.taskId === packet.taskId);
-    assert.equal(config.maxRequests, 16); assert.equal(config.requestTimeoutMs, packet.role === 'coding' ? 600000 : 120000);
+    assert.equal(config.maxRequests, packet.role === 'design' ? 32 : 16); assert.equal(config.requestTimeoutMs, packet.role === 'coding' ? 600000 : 120000);
+    if (packet.role === 'design') assert.match(config.systemPrompt, /at most 32 model requests/);
+    else assert.doesNotMatch(config.systemPrompt, /model requests/);
     assert.equal(packet.budget.originalDeadlineAt, state.run.originalDeadlineAt);
     if (task) assert.equal(packet.budget.allocationMicroCny, task.budget.allocationMicroCny);
   }
