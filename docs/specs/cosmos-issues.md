@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-22 [COS120 / #121](https://github.com/lrfluobida/Cosmos/issues/121) 已登记为open/source-pending，设计与计划已独审通过，源码实施/独审待完成。总任务120、根直接100、COS18原生14子项中13个源码完成，父仍open/partial；room5原run保留原拨款，源码合入后再核生产恢复资格。
+2026-10-22 [COS120 / #121](https://github.com/lrfluobida/Cosmos/issues/121) 已独审合入并发布 `b1b168fb13f67f229e94fc4cd825bdbea754a3f0`，closed(completed)与父[x]已GET核证。总任务120、根直接100、COS18十四个源码子项完成，父仍open/partial；主线typecheck/build及7/7代表通过，room5的实际生产恢复资格仍待Root/operator另行核验。
 
 2026-10-22 [COS119 / #120](https://github.com/lrfluobida/Cosmos/issues/120) 已独审合入并发布 `003e8dceafdd07cf8806be073d53a252d338090f`，closed(completed)与父[x]均已GET核证。总任务119、根直接100、COS18十三个源码子项完成，父仍open/partial。typecheck/build及主线7/7代表通过，JSON对象输出不保证计划语义或端到端完成；旧memory与room1–4永久关闭。
 
@@ -1795,11 +1795,13 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 
 ### COS-120 · 普通需求草稿的一次格式纠正
 
-[COS120 / #121](https://github.com/lrfluobida/Cosmos/issues/121)，id5971642502，原生父COS18/#19、父[ ]，`open / source-pending`。intake_schema_plan_reviewer已APPROVED_DESIGN / APPROVED_PLAN、无阻塞，Root按原持续开发授权批准免费实施；作者cos120_implementer、独立源码reviewer cos120_reviewer、唯一merger public_agent_batch_merger。实施基线 `31bbad4b8b1f6143c4722f3f78935a41e08c7fc2`、分支codex/ordinary-intake-schema-correction；[完整规格与计划](https://github.com/lrfluobida/Cosmos/issues/121)已发布，正式spec/plan文件由作者随源码提交，当前未批准源码。
+[COS120 / #121](https://github.com/lrfluobida/Cosmos/issues/121)，id5971642502，原生父COS18/#19，`source-integrated / source-scoped-complete`；[源码批准](https://github.com/lrfluobida/Cosmos/issues/121#issuecomment-6331182657)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/121#issuecomment-6331186918)和父[x]已精确核证。intake_schema_plan_reviewer设计/计划已批准，作者cos120_implementer基于 `31bbad4b8b1f6143c4722f3f78935a41e08c7fc2` 提交 `9ac2e7671ddb2ef681b59f637009ce3db1d54fa6`；独审cos120_reviewer规格/质量均批准、无actionable finding。唯一merger public_agent_batch_merger从 `6b0dba561d8cad17a2ab0fd321890d72e528275a` 合入并发布 `b1b168fb13f67f229e94fc4cd825bdbea754a3f0`，15个来源文件与批准提交一致。
 
-ordinary-design/1草稿只对明确的字段结构失败提供一次有界纠正：复用draft-N-successor-1和原intake额度，通过窄持久claim防止失败、并发或删目录后重放；先验证原normal-stop已结算请求、reply/native/intent与完整问答来源，再向无工具session提供原要求和有界诊断。完整validator和真实当前revision确认继续决定是否保存并开始生成，合法unsupported或语义遗漏不触发；不修补主机中的模型输出，不连锁length/denial/schema机会，不扩预算、次数或时钟。
+ordinary-design/1草稿只对类型化字段结构失败提供一次有界纠正，复用draft-N-successor-1和原intake额度；窄持久claim先消费再发布/创建session，阻止并发、失败或删除目录后重放。核验原normal-stop已结算请求、reply/native/intent与完整问答来源；无工具请求保留原预算、输出准入与身份，原回复不覆盖。完整validator和真实当前revision确认继续决定是否保存并开始生成；合法unsupported或语义遗漏不触发，length/denial/schema不能连锁，claim继续由activation/runtime校验读取。详见[规格](cos120-intake-schema-correction.md)与[实施计划](../plans/2026-10-22-intake-schema-correction.md)。
 
-登记快照：room5原CLI exit1，合法JSON的四项体验条目带多余evidenceKinds，原2笔36705µ已settled，未确认/未启动生成，资源独立核退出；原run未stop/settle，shared3345 held5000000µ，无新的付费调用。源码独审合入后仍须同一生产资格检查，不能提前宣称该运行可恢复；旧memory及room1–4永久关闭。此次只登记元数据，未运行源码测试或操作实际运行/账本。总120、根直接100、父14子项中13个源码完成，父仍open/partial。稳定任务ID：COS-120。
+作者58/58原受影响矩阵、最终7/7、typecheck/build/strict通过；reviewer另核真实锁定SDK短schema及旧denial缓存兼容2/2、0skip。主线另跑typecheck/build均exit0，7个集中代表7/7、0skip、TAP5256.7671ms；未变证据复用，重叠不累计。作者索引 `.cosmos/cos120/evidence-index.json`，主线 `.cosmos/cos120-integration/`。总120、根直接100、父14个源码子项完成，整体仍open/partial。
+
+登记时room5原CLI exit1、2笔36705µ已settled、未确认/未生成，原run未stop/settle、shared3345 held5000000µ的事实保留；本次未触碰实际run/账本或核验生产资格，仍由Root/operator在稳定主线后另查，不能以源码通过宣称实际恢复成功。旧memory及room1–4永久关闭。本卡不增预算、次数、语义修复或多轮重试，也不证明游戏或体验通过。稳定任务ID：COS-120。
 
 ## 5. 任务与上下文包模板
 
