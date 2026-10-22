@@ -68,10 +68,10 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
     const put = async (path: string, content: string | Buffer) => { await mkdir(join(writeRoot, path, '..'), { recursive: true }); await writeFile(join(writeRoot, path), content, typeof content === 'string' ? 'utf8' : undefined); };
     return { close: async () => {}, prompt: async () => {
       if (packet.role === 'cosmos') return { text: JSON.stringify({ tasks: [
-        { taskId: 'design-task', policyId: 'game-design', role: 'design', objective: '设计', acceptanceIds: ['COSMOS-DESIGN'], dependsOn: [] },
+        { taskId: 'design-task', policyId: 'game-design', role: 'design', objective: '设计', acceptanceIds: ['COSMOS-DESIGN', ...(fault.startsWith('planning-') ? [id] : [])], dependsOn: [] },
         { taskId: 'art-task', policyId: 'game-art', role: 'art', objective: '素材', acceptanceIds: ['COSMOS-MEDIA'], dependsOn: ['design-task'] },
         ...(modular ? ['a', 'b'].map(slot => ({ taskId: `module-${slot}-task`, policyId: `game-module-${slot}`, role: 'coding', objective: '模块', acceptanceIds: [`COSMOS-MODULE-${slot.toUpperCase()}`], dependsOn: ['design-task', 'art-task'] })) : []),
-        { taskId: 'coding-task', policyId: 'game-code', role: 'coding', objective: '完成游戏', acceptanceIds: [id], dependsOn: ['design-task', 'art-task', ...(modular ? ['module-a-task', 'module-b-task'] : [])] },
+        { taskId: 'coding-task', policyId: 'game-code', role: 'coding', objective: '完成游戏', acceptanceIds: [id], dependsOn: ['design-task', ...(fault === 'planning-dependencies' ? [] : ['art-task']), ...(modular ? ['module-a-task', 'module-b-task'] : [])] },
       ] }) };
       if (packet.role === 'reviewer') {
         if (taskId.startsWith('design-task')) {

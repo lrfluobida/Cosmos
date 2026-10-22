@@ -42,6 +42,7 @@ for (const preparation of [false, true]) test(`${preparation ? 'preparation' : '
   };
   const options = { ...input, sessionFactory };
   const host = input.draft.preparation ? await createHumanTransferConsumerHost({ ...options, draft: input.draft }) : await createBrowserHost(options);
+  assert.ok(host.taskPolicies.every(policy => !('acceptanceIds' in policy)), 'Legacy and preparation hosts keep model-proposed acceptance responsibility.');
   if ('closePreparation' in host) t.after(() => host.closePreparation?.());
   const plan = await planTaskDag({ controller: input.controller, requirement: input.requirement, planningTaskId: 'planning', workspace: input.root,
     sessionRoot: join(input.root, 'sessions'), availableArtifacts: host.availableArtifacts, taskPolicies: host.taskPolicies, roleFactory: host.roleFactory });

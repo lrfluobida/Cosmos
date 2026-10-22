@@ -1391,6 +1391,16 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'The interface is read-only before this context is created. Every .ts file, including unimported helpers, must have module scope through legal import/export or export {}; an empty marker does not replace the required index callable exports. No declaration files, ambient augmentation, ts-ignore/ts-nocheck/ts-expect-error, external/dynamic imports or compiler configuration changes. Module evidence covers actual compile/interface and independent source review, not gameplay. Call check-game-build with {} for actual local compilation in this same session; correct your own source within the original attempt.',
         captureLayout(designLayout, mediaLayout)] })));
   }
+  if (ordinary && !validation && !preparation && !human && !binding && !inherited) {
+    const acceptanceByPolicy = new Map<string, string[]>([
+      ['game-design', [DESIGN_ACCEPTANCE_ID]], ['game-art', [MEDIA_ACCEPTANCE_ID]], ['game-code', gameplayIds],
+      ...MODULE_SLOTS.map((slot, index): [string, string[]] => [`game-module-${slot}`, [MODULE_ACCEPTANCE_IDS[index]]]),
+    ]);
+    for (const policy of host.taskPolicies) {
+      const ids = acceptanceByPolicy.get(policy.policyId);
+      if (ids) policy.acceptanceIds = [...ids];
+    }
+  }
   if (modular) host.bindPreparedTasks = async tasks => {
     const execution = await json(root, 'execution.json'), originals = execution.tasks as PreparedTask[];
     // Validate original policies once; replacements are authenticated by prepareRepairContinuation.
