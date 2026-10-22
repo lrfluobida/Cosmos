@@ -6,6 +6,50 @@ import { createPiSession } from '../../src/providers/pi.ts';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 import { readConfirmedGeneration } from '../../src/cli/session.ts';
 import { readRunSnapshot } from '../../src/cli/control.ts';
+import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
+import { RunController } from '../../src/runtime/run.ts';
+import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+
+for (const [label, gameplayIds, experienceIds] of [
+  ['escaped IDs', ['light', '柜"门\\开'], ['readable', '视"感\\亮']],
+  ['literal labels', ['gameplayId', '__proto__'], ['criterionId']],
+  ['empty experience', ['toggle'], []],
+  ['legacy', ['light'], undefined],
+] as const) test(`COS121 host mapping example parses with complete actual ${label}`, async t => {
+  const f = await ordinaryHostFixture(t);
+  const original = f.draft.acceptance.find(item => item.acceptanceId === 'light')!;
+  f.draft.acceptance = [...f.draft.acceptance.filter(item => item.acceptanceId !== 'light'), ...gameplayIds.map(acceptanceId => ({ ...original, acceptanceId }))];
+  if (experienceIds) f.draft.experienceCriteria = experienceIds.map(criterionId => ({ ...f.draft.experienceCriteria[0], criterionId }));
+  else {
+    const legacy = f.draft as any; delete legacy.ordinaryProfile; delete legacy.experienceCriteria; legacy.scenario = f.scenario;
+    f.host.ordinaryProfile = undefined;
+  }
+  let inspected = false;
+  f.host.execute = async input => {
+    const controller = await RunController.open({ root: f.root });
+    try {
+      const host = await createBrowserHost({ ...input, controller, work: new OwnedWork(controller.signal), ...f.hostOptions });
+      const policy = host.taskPolicies.find(item => item.role === 'design')!, rules = policy.rules!.join('\n');
+      const example = rules.match(/^Mapping JSON example \(replace all placeholder descriptions\): (.+)$/m);
+      assert.ok(example, 'The real design policy must provide a separately parseable JSON mapping example.');
+      const value = JSON.parse(example[1]);
+      assert.deepEqual(Object.keys(value), ['acceptanceMapping', ...(experienceIds ? ['experienceMapping'] : [])]);
+      assert.deepEqual(Object.keys(value.acceptanceMapping).sort(), [...gameplayIds].sort());
+      if (experienceIds) assert.deepEqual(Object.keys(value.experienceMapping).sort(), [...experienceIds].sort());
+      for (const mapping of Object.values(value) as Record<string, unknown>[]) {
+        for (const description of Object.values(mapping)) { assert.equal(typeof description, 'string'); assert.match(description as string, /REPLACE/); }
+      }
+      assert.match(rules, /JSON objects.*actual.*IDs.*non-empty string/);
+      assert.match(rules, /not arrays or nested objects/); assert.match(rules, /placeholders.*not completed design or acceptance evidence/);
+      assert.doesNotMatch(rules, /acceptanceMapping:\{gameplayId:string\}|experienceMapping:\{criterionId:string\}/);
+      assert.deepEqual(policy.tools, ['read', 'write', 'edit', 'validate-game-design']);
+      assert.deepEqual(policy.readOnlyPaths, ['requirements', 'registry']);
+      assert.deepEqual(policy.writePaths, ['authors/design/design.json', ...(experienceIds ? ['authors/design/acceptance-plan.json'] : [])]);
+      inspected = true; return { outcome: 'incomplete', gaps: [] };
+    } finally { await controller.close(); }
+  };
+  await f.execute(); assert.equal(inspected, true); assert.equal(f.packets.length, 0); assert.equal(f.plays.length, 0);
+});
 
 test('ordinary design alone disables thinking in native SDK payload while original admission and host gates remain', async t => {
   const f = await ordinaryHostFixture(t), scripted = f.hostOptions.sessionFactory!, payloads: any[] = [], configs: any[] = [];

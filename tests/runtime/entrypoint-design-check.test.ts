@@ -37,7 +37,7 @@ test('COS46 checks current bytes after missing, invalid JSON, valid and changed 
   await f.write(design()); assert.deepEqual(await f.call(), { passed: true, errors: [] });
   const changed = design(); changed.characters[1].states[2] = 'onTarget'; await f.write(changed);
   assert.equal((await f.call()).errors[0].path, 'characters[1].states[2]');
-  await f.write({ ...design(), acceptanceMapping: {} }); assert.match((await f.call()).errors[0].message, /exact gameplay/);
+  await f.write({ ...design(), acceptanceMapping: {} }); assert.match((await f.call()).errors[0].message, /acceptanceMapping.*missing IDs.*"move"/);
   await unlink(f.file); assert.equal((await f.call()).passed, false);
 });
 
@@ -50,4 +50,58 @@ test('COS46 accepts only empty arguments and checks authority before and after t
   rejectAt = 4; await assert.rejects(f.call(), /authority changed/); assert.equal(calls, 4);
   const aborted = new AbortController(); aborted.abort(new Error('Stopped')); await assert.rejects(f.call({}, aborted.signal), /Stopped/);
   assert.equal(calls, 4);
+});
+
+const experience = [{ criterionId: 'readable', description: '清楚', steps: ['查看'], expected: '清楚' }];
+function mappingError(value: unknown, ids = ['move'], ordinary = false): string {
+  let message = '';
+  assert.throws(() => validateDesign(value, ids, false, ordinary ? experience : undefined), error => {
+    assert.ok(error instanceof Error); message = error.message; return true;
+  });
+  return message;
+}
+for (const field of ['acceptanceMapping', 'experienceMapping']) test(`COS121 ${field} reports missing, extra and invalid values together`, () => {
+  const id = field === 'acceptanceMapping' ? 'move' : 'readable', label = field === 'acceptanceMapping' ? 'gameplayId' : 'criterionId';
+  const value = { ...design(), experienceMapping: { readable: '清楚显示' }, [field]: { [label]: [id] } };
+  const message = mappingError(value, ['move'], true);
+  assert.match(message, new RegExp(field)); assert.match(message, new RegExp(`missing IDs.*"${id}"`));
+  assert.match(message, new RegExp(`extra keys.*"${label}"`)); assert.match(message, new RegExp(`non-string values.*"${label}"`));
+  for (const bad of [[id], { nested: true }, null, 1]) {
+    const error = mappingError({ ...value, [field]: { [id]: bad } }, ['move'], true);
+    assert.match(error, new RegExp(`${field}.*non-string values.*"${id}"`));
+  }
+  for (const bad of ['', ' \n\t', '文'.repeat(16001)]) {
+    const error = mappingError({ ...value, [field]: { [id]: bad } }, ['move'], true);
+    assert.match(error, new RegExp(`${field}.*blank or over-16000-character strings.*"${id}"`));
+    assert.ok(error.length < 1000); assert.ok(!error.includes('文'.repeat(100)));
+  }
+  for (const bad of [undefined, null, [], ['wrong'], 'wrong', true, 1]) {
+    const error = mappingError({ ...value, [field]: bad }, ['move'], true);
+    assert.match(error, new RegExp(`${field}.*JSON object`));
+  }
+});
+
+test('COS121 mapping diagnostics bound key lists and escaped long keys without echoing values', () => {
+  const ids = ['normal', ...Array.from({ length: 30 }, (_, i) => `required-${i}`)];
+  const mapping = Object.fromEntries(['unexpected', ...Array.from({ length: 30 }, (_, i) => `extra-${i}-${'"\\\n'.repeat(2000)}`)].map(key => [key, ['PRIVATE_VALUE_DO_NOT_ECHO']]));
+  const message = mappingError({ ...design(), acceptanceMapping: mapping }, ids);
+  assert.ok(message.length <= 2048); assert.match(message, /acceptanceMapping.*missing IDs.*"normal"/);
+  assert.match(message, /extra keys.*"unexpected"/); assert.match(message, /non-string values.*"unexpected"/);
+  assert.match(message, /\+\d+ more/); assert.match(message, /truncated/); assert.doesNotMatch(message, /PRIVATE_VALUE_DO_NOT_ECHO/);
+});
+
+test('COS121 valid Chinese mappings and literal label IDs preserve all other strict design gates', () => {
+  const value = { ...design(), acceptanceMapping: { gameplayId: '点击后移动箱子', __proto__: 'unused' }, experienceMapping: { criterionId: '状态变化清楚' } };
+  value.acceptanceMapping = JSON.parse('{"gameplayId":"点击后移动箱子","__proto__":"真实条目说明"}');
+  const criteria = [{ ...experience[0], criterionId: 'criterionId' }];
+  assert.doesNotThrow(() => validateDesign(value, ['gameplayId', '__proto__'], false, criteria));
+  assert.doesNotThrow(() => validateDesign({ ...design(), experienceMapping: {} }, ['move'], false, []));
+  assert.doesNotThrow(() => validateDesign({ ...design(), acceptanceMapping: { move: '文'.repeat(16000) } }, ['move']));
+  assert.throws(() => validateDesign(value, ['gameplayId', '__proto__']));
+  for (const change of [
+    { summary: '' }, { implementationNotes: [] }, { characters: [] }, { audio: Array.from({ length: 65 }, () => design().audio[0]) },
+    { characters: [{ id: 'BAD_ID', purpose: '目标', states: ['idle'] }] }, { audio: [{ id: 'push', trigger: '推', loop: 'false' }] },
+    { extra: true }, { modulePurposes: { a: '甲', b: '乙' } },
+  ]) assert.throws(() => validateDesign({ ...design(), ...change }, ['move']));
+  assert.throws(() => validateDesign(design(), ['move'], true), /module purposes/);
 });

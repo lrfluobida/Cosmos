@@ -44,6 +44,36 @@ function author(f: Fixture, action: (config: PiSessionOptions) => Promise<void>)
   return async () => { const result: any = await f.execute(); if (actionError) throw actionError; return result; };
 }
 
+test('COS121 real write and edit feedback share explicit mapping diagnostics without changing authority', async t => {
+  const f = await ordinaryHostFixture(t, { fault: 'review' });
+  const run = author(f, async config => {
+    const state = await readFile(join(f.root, 'snapshot.json'));
+    const bad = { ...design(), acceptanceMapping: { gameplayId: ['light'] }, experienceMapping: { criterionId: ['readable'] } };
+    const first = JSON.stringify(bad);
+    let text = feedback(await call(config, 'write', { path: main, content: first }));
+    assert.match(text, /acceptanceMapping.*missing IDs.*"light"/); assert.match(text, /extra keys.*"gameplayId"/); assert.match(text, /non-string values.*"gameplayId"/);
+    const check = async () => {
+      const result = await call(config, 'validate-game-design', {}), block = result.content[0]; assert.equal(block.type, 'text');
+      if (block.type !== 'text') throw new Error('Expected diagnostic text');
+      const parsed = JSON.parse(block.text); assert.equal(parsed.passed, false); return parsed.errors[0].message as string;
+    };
+    const acceptanceError = await check();
+    for (const part of acceptanceError.split('; ')) assert.ok(text.includes(part));
+    assert.equal(await readFile(join(config.workspace, main), 'utf8'), first);
+    const second = JSON.stringify({ ...bad, acceptanceMapping: design().acceptanceMapping });
+    text = feedback(await call(config, 'edit', { path: main, edits: [{ oldText: first, newText: second }] }));
+    assert.match(text, /experienceMapping.*missing IDs.*"readable"/); assert.match(text, /extra keys.*"criterionId"/); assert.match(text, /non-string values.*"criterionId"/);
+    const experienceError = await check();
+    for (const part of experienceError.split('; ')) assert.ok(text.includes(part));
+    assert.equal(await readFile(join(config.workspace, main), 'utf8'), second);
+    assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), state);
+    await call(config, 'write', { path: acceptance, content: JSON.stringify(plan(f, config)) });
+    assert.match(feedback(await call(config, 'edit', { path: main, edits: [{ oldText: second, newText: JSON.stringify(design()) }] })), /passed/);
+  });
+  const result = await run(); assert.equal(result.acceptedCandidate, undefined);
+  assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 1); assert.equal(f.plays.length, 0);
+});
+
 test('ordinary author receives current errors after real writes and edits, then reaches independent review', async t => {
   const f = await ordinaryHostFixture(t, { persistent: true });
   const run = author(f, async config => {
