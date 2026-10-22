@@ -64,7 +64,7 @@ for (const field of ['ordinaryProfile', 'requestConfig']) test(`ordinary cached 
   await assert.rejects(requestDesignDraft(f.options), /identity|input/i); assert.equal(f.bodies.length, 1);
 });
 for (const injected of [{ ordinaryProfile: profile }, { confirmed: true }, { scenario: {} }]) test(`ordinary model cannot inject ${Object.keys(injected)[0]}`, async t => {
-  const f = await setup(t, ['draft'], { ...proposal, ...injected });
+  const f = await setup(t, ['draft', 'draft'], { ...proposal, ...injected });
   await assert.rejects(requestDesignDraft(f.options), /fields/i);
   assert.equal((await f.controller.read()).confirmation, null);
 });

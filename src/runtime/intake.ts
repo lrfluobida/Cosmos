@@ -25,6 +25,8 @@ import type { ModularRepairPolicy } from './modular-repair-policy.ts';
 import type { PublicValidationFundingBinding } from './public-validation-funding-types.ts';
 import { fundedIntakeWork, fundingHash, validateFundingBinding } from './public-validation-funding-validation.ts';
 import { acquirePublicFundingGate, readFundingRecovery, verifyFundingIntakeClose, verifyFundingIntakeRecovery, verifyPublicValidationFunding } from './public-validation-funding.ts';
+import { intakeSuccessorClaims } from './intake-successor.ts';
+import type { IntakeSuccessorClaim } from './intake-successor.ts';
 
 export type StoredDraft = GameDraft & { revision: number; source: ArtifactReference };
 export interface IntakeSnapshot {
@@ -92,7 +94,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
     const entry = state.ledger.entries.find(item => item.requestId === record.requestId);
     if (!entry || entry.taskId !== state.interviewTaskId || (record.admittedAt !== null && !timestamp(record.admittedAt)) || (entry.status === 'unknown' && record.admittedAt === null)) throw new Error('Invalid intake admission identity.');
   }
-  const events = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'budget_warning', 'stopped',
+  const events = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'budget_warning', 'stopped', ...(state.ordinaryProfile ? ['intake_draft_successor_claimed'] : []),
     ...(state.validationFunding ? ['public_intake_work_started', 'public_intake_work_finished', 'public_intake_work_recovered', 'public_intake_drained'] : [])];
   if (!Array.isArray(state.events) || state.events[0]?.type !== 'created') throw new Error('Missing intake history.');
   if ((state.renderFrames || state.modularRepairPolicy || / Render-frame observer: | Modular-repair policy: /.test(state.events[0].reason))
@@ -102,6 +104,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
       || (event.requestId !== null && !state.requests.some(item => item.requestId === event.requestId))) throw new Error('Invalid intake event.');
   });
   fundedIntakeWork(state);
+  intakeSuccessorClaims(state.events);
   if (state.draft !== null) {
     if (!state.draft || !Number.isSafeInteger(state.draft.revision) || state.draft.revision < 1 || !sameValue(state.draft.source, draftRef(state.draft.revision))) throw new Error('Invalid draft revision.');
     validateGameDraft(payload(state.draft), mode, state.ordinaryProfile);
@@ -194,6 +197,19 @@ export class IntakeController {
     await readOrdinaryProfile(this.store.root, { runId: this.snapshot.run.runId, createdAt: this.snapshot.createdAt }, this.snapshot);
     return structuredClone(this.snapshot);
   }); }
+  claimDraftSuccessor(claim: IntakeSuccessorClaim, expectedRevision: number): Promise<void> {
+    const checked = structuredClone(claim);
+    return this.serial(async () => {
+      this.requireActive();
+      if (this.snapshot.ordinaryProfile !== 'ordinary-design/1' || this.snapshot.confirmation || this.snapshot.revision !== expectedRevision
+        || this.snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)
+        || intakeSuccessorClaims(this.snapshot.events).some(previous => previous.roundId === checked.roundId)) {
+        throw new Error('Draft successor slot was consumed or its source state changed.');
+      }
+      const next = structuredClone(this.snapshot);
+      this.event(next, 'intake_draft_successor_claimed', null, JSON.stringify(checked)); await this.commit(next);
+    });
+  }
   /** Only the funded intake lifecycle uses these records; an operation result is not a cleanup result. */
   beginFundingWork(kind: 'session' | 'interview'): Promise<string | undefined> {
     if (!this.snapshot.validationFunding) return Promise.resolve(undefined);

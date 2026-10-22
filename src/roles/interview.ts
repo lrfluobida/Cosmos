@@ -14,6 +14,11 @@ import { decodeModelJson } from './protocol.ts';
 import { truncatedDraftSuccessor } from './interview-recovery.ts';
 import { deniedDraftSuccessor, requireInterviewHistorySources } from './interview-denial.ts';
 import { ordinaryDraftOutputLimit } from './interview-budget.ts';
+import { ordinaryDraftProposal } from './interview-draft.ts';
+import type { OrdinaryDraftInput } from './interview-draft.ts';
+import { schemaDraftSuccessor, verifyClaimedSuccessor } from './interview-schema-recovery.ts';
+import { intakeSuccessorClaims, successorSourceHash } from '../runtime/intake-successor.ts';
+import type { IntakeSuccessorClaim } from '../runtime/intake-successor.ts';
 
 export interface InterviewOptions {
   controller: IntakeController; roundId: string; brief: string;
@@ -61,28 +66,40 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
     systemPrompt: `${state.draftMode ? preparationPrompt : state.ordinaryProfile ? ordinaryPrompt : systemPrompt}\nHost capabilities: ${options.capabilities ?? 'Only the declared normal-input acceptance vocabulary.'}`,
     context: JSON.stringify({ role: 'design-intake', runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...modeContext }),
   };
-  let recheck: ((work: string | undefined) => Promise<void>) | undefined;
+  let recheck: ((work: string | undefined) => Promise<number>) | undefined;
   let successorAttempt = false;
+  let requestInput: unknown = input, claim: IntakeSuccessorClaim | undefined;
+  const priorClaim = intakeSuccessorClaims(state.events).find(claim => claim.roundId === options.roundId);
   const recorded = await optionalJson(join(root, 'intent.json'));
   if (recorded !== null) {
     if (!sameValue(recorded, intent)) throw new Error('Interview input identity changed; reuse requires the exact original input.');
     const reply = await optionalJson(join(root, 'reply.json')) as { intent: unknown; proposal: unknown } | null;
     if (reply !== null) {
       if (!sameValue(reply.intent, intent)) throw new Error('Incomplete interview reply; retain accounting and inspect the original run.');
-      return reply.proposal;
+      if (!priorClaim && (!state.ordinaryProfile || input.phase !== 'draft' || ordinaryDraftProposal(reply.proposal, input as OrdinaryDraftInput).ok)) return reply.proposal;
     }
     if (input.phase !== 'draft' || state.draftMode) throw new Error('Incomplete interview reply; retain accounting and inspect the original run.');
     const billing = (await readdir(root)).filter(name => name.startsWith('billing-'));
-    const successor = state.ordinaryProfile && billing.length === 0
+    const successor = reply !== null
+      ? await schemaDraftSuccessor(controller, options.roundId, intent, prompt, options.estimatedMaxCostMicroCny)
+      : state.ordinaryProfile && billing.length === 0
       ? await deniedDraftSuccessor(controller, options.roundId, intent, prompt)
       : await truncatedDraftSuccessor(controller, options.roundId, intent);
     root = successor.root; intent = successor.intent;
+    if ('input' in successor) requestInput = successor.input;
+    if (state.ordinaryProfile) claim = { roundId: options.roundId, slot: 1,
+      failureKind: reply !== null ? 'schema' : billing.length === 0 ? 'pre_admission_denied' : 'length', sourceSha256: successorSourceHash(intent) };
     const started = await optionalJson(join(root, 'intent.json'));
     if (started !== null) {
       const completed = await optionalJson(join(root, 'reply.json')) as { intent: unknown; proposal: unknown } | null;
       if (!sameValue(started, intent) || !completed || !sameValue(completed.intent, intent)) throw new Error('Draft successor is incomplete or its source changed; no further request is allowed.');
+      if (priorClaim) {
+        if (!sameValue(priorClaim, claim)) throw new Error('Draft successor claim source changed; no further request is allowed.');
+        return verifyClaimedSuccessor(controller, `${options.roundId}-successor-1`, intent, prompt, requestInput, options.estimatedMaxCostMicroCny);
+      }
       return completed.proposal;
     }
+    if (priorClaim) throw new Error('Draft successor slot was consumed; no further request is allowed.');
     if ('canStart' in successor && !successor.canStart) throw new Error('Draft successor slot was consumed by later interview or request history.');
     successorAttempt = true;
     if ('recheck' in successor) recheck = successor.recheck;
@@ -90,6 +107,7 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
     if (existing.length) throw new Error('Draft successor source is missing; existing files cannot authorize another request.');
     await mkdir(root, { recursive: true });
   } else {
+    if (priorClaim) throw new Error('Draft successor slot was consumed; original source is missing.');
     const existing = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
     const successor = await lstat(`${root}-successor-1`).then(() => true, (error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return false; throw error; });
     if (existing.length || successor) throw new Error('Original interview source is missing; existing records cannot authorize a new request.');
@@ -99,9 +117,11 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
   if (!successorAttempt) await publishReceipt(join(root, 'intent.json'), intent);
   const fundingWork = await controller.beginFundingWork('interview');
   let session: RoleSession | undefined;
+  let proposal: unknown;
   try {
     if (successorAttempt) {
-      await recheck?.(fundingWork);
+      const verifiedRevision = await recheck!(fundingWork);
+      if (claim) await controller.claimDraftSuccessor(claim, verifiedRevision);
       await publishReceipt(join(root, 'intent.json'), intent);
     }
     session = await (options.sessionFactory ?? createPiSession)({
@@ -111,13 +131,14 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
       ...(state.ordinaryProfile && input.phase === 'draft' ? { requestOutputLimit: ordinaryDraftOutputLimit(controller, state, options.estimatedMaxCostMicroCny) } : {}),
       budget: createRoleBudget({ controller, taskId: state.interviewTaskId, evidenceDirectory: root, recordRequest: !!state.ordinaryProfile && input.phase === 'draft' }),
     });
-    const result = await session.prompt(JSON.stringify(input), { signal: controller.signal });
+    const result = await session.prompt(JSON.stringify(requestInput), { signal: controller.signal });
     controller.signal.throwIfAborted();
     if (result.text.length > 128000) throw new Error('Interview proposal exceeds its output bound.');
-    const proposal = decodeModelJson(result.text);
+    proposal = decodeModelJson(result.text);
     await publishReceipt(join(root, 'reply.json'), { intent, proposal });
-    return proposal;
   } finally { await session?.close(); await controller.finishFundingWork(fundingWork); }
+  if (!successorAttempt && state.ordinaryProfile && input.phase === 'draft' && !ordinaryDraftProposal(proposal, input as OrdinaryDraftInput).ok) return request(options, input);
+  return proposal;
 }
 
 export async function requestDesignQuestions(options: InterviewOptions): Promise<Questions> {
@@ -132,6 +153,11 @@ export async function requestDesignDraft(options: InterviewOptions & { questions
   const clarification = prepareClarification({ brief: options.brief, specVersion: 'draft', sources: [], acceptance: [], questions: options.questions, answers: options.answers });
   if (clarification.missingQuestionIds.length) throw new Error('All interview questions require a user answer before the draft.');
   const proposal = await request(options, { phase: 'draft', brief: options.brief, questions: options.questions, answers: options.answers }) as Pick<GameDraft, 'acceptance' | 'scenario' | 'unsupported'>;
+  if (ordinaryProfile) {
+    const result = ordinaryDraftProposal(proposal, { brief: options.brief, questions: options.questions, answers: options.answers });
+    if (!result.ok) throw new Error(result.diagnostic.message);
+    return result.draft;
+  }
   const fields = draftMode ? ['acceptance', 'unsupported'] : ['acceptance', ordinaryProfile ? 'experienceCriteria' : 'scenario', 'unsupported', 'benchmark', 'codeProfile'];
   if (!proposal || typeof proposal !== 'object' || Object.keys(proposal).some(key => !fields.includes(key))) throw new Error('Invalid design draft proposal fields.');
   const draft = { ...structuredClone(proposal), brief: options.brief, questions: structuredClone(options.questions), answers: structuredClone(options.answers), ...(draftMode ? { preparation: draftMode } : {}),

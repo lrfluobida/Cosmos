@@ -4,6 +4,7 @@ import { regularFile, safePath } from '../artifacts/paths.ts';
 import type { IntakeController } from '../runtime/intake.ts';
 import { reconcileRoleReceipt } from './provider-budget.ts';
 import type { PiResponse } from '../providers/pi.ts';
+import { sameValue } from '../contracts/validation.ts';
 
 /** A closed length receipt permits one successor; it never repairs unknown accounting. */
 export async function truncatedDraftSuccessor(controller: IntakeController, roundId: string, intent: Record<string, unknown>) {
@@ -29,5 +30,14 @@ export async function truncatedDraftSuccessor(controller: IntakeController, roun
     event.type === 'public_intake_work_started' && JSON.parse(event.reason).kind === 'interview');
   return { root: await safePath(controller.root, `${relative}-successor-1`), canStart, intent: {
     ...intent, predecessor: { roundId, requestId, billing: { artifactId: `billing-${requestId}`, version: 'v1', location: join(original, files[0]) }, receipt },
+  }, async recheck(work: string | undefined) {
+    if (!bytes.equals(await regularFile(controller.root, `${relative}/${files[0]}`))) throw new Error('Original truncated draft source changed.');
+    const current = await controller.read(), added = current.events.slice(state.events.length);
+    if (!sameValue(current.ledger, state.ledger) || !sameValue(current.requests, state.requests) || current.stopReason || current.confirmation
+      || !sameValue(current.events.slice(0, state.events.length), state.events)
+      || (work === undefined ? added.length !== 0 : added.length !== 1 || added[0].type !== 'public_intake_work_started' || JSON.parse(added[0].reason).workId !== work)) {
+      throw new Error('Original truncated draft state changed before successor publication.');
+    }
+    return current.revision;
   } };
 }

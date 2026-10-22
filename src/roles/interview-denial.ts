@@ -14,7 +14,7 @@ const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: t
 const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
 const local = (root: string, path: string) => relative(root, path).split(sep).join('/');
 const startsInterview = (event: { type: string; reason: string }) => event.type === 'public_intake_work_started' && JSON.parse(event.reason).kind === 'interview';
-async function nativeFiles(root: string): Promise<string[]> {
+export async function nativeFiles(root: string): Promise<string[]> {
   const absent = (error: NodeJS.ErrnoException): string[] => { if (error.code === 'ENOENT') return []; throw error; };
   const files: string[] = [];
   for (const round of await readdir(await safePath(root, 'intake-sessions')).catch(absent)) {
@@ -156,6 +156,7 @@ export async function deniedDraftSuccessor(controller: IntakeController, roundId
         || !sameValue(current.events.slice(0, state.events.length), state.events) || added.length !== 1
         || !startsInterview(added[0]) || JSON.parse(added[0].reason).workId !== fundingWork) denied();
       await verifyPublicValidationFunding({ root: controller.root, snapshot: current, dispatch: true });
+      return current.revision;
     },
   };
 }

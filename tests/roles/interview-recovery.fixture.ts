@@ -14,11 +14,11 @@ export const proposal = { acceptance: [{ acceptanceId: 'win', description: '点�
     { id: 'click', kind: 'locator-click', selector: '#target', timeoutMs: 1000 },
     { id: 'win', kind: 'assert', acceptanceId: 'win', observation: { kind: 'text', selector: '#result' }, expected: '胜利', timeoutMs: 1000 },
   ] }, unsupported: [] };
-export type Reply = 'length' | 'unknown' | 'draft' | 'questions' | 'invalid';
+export type Reply = 'length' | 'unknown' | 'draft' | 'questions' | 'invalid' | 'error';
 
 /** Actual Pi adapter and budget hooks; all transport is an in-memory synthetic stream. */
 export function fakeInterviewSdk(t: TestContext, replies: Reply[], legacyFirstDraft = false, draftProposal: unknown = proposal) {
-  const bodies: any[] = [], configs: { context?: string; systemPrompt: string; maxOutputTokens: number }[] = [];
+  const bodies: any[] = [], configs: { context?: string; systemPrompt: string; maxOutputTokens: number; maxRequests: number; tools: string[]; thinkingLevel?: string }[] = [];
   const estimates: { inputBytes: number; maxOutputTokens: number; estimate: number }[] = [];
   let drafts = 0;
   const fetchMock = mock.method(globalThis, 'fetch', async (input: any, init?: RequestInit) => {
@@ -26,12 +26,13 @@ export function fakeInterviewSdk(t: TestContext, replies: Reply[], legacyFirstDr
     assert.equal(new URL(request.url).origin, 'https://api.deepseek.com');
     bodies.push(JSON.parse(await request.text()));
     const reply = replies.shift(); assert.ok(reply, 'Unexpected extra transport');
+    if (reply === 'error') return new Response(JSON.stringify({ error: { message: 'Synthetic provider error' } }), { status: 400, headers: { 'content-type': 'application/json' } });
     const usage = reply === 'questions' ? { prompt_tokens: 1068, completion_tokens: 1292, completion_tokens_details: { reasoning_tokens: 811 } }
       : reply === 'length' ? { prompt_tokens: 2904, prompt_cache_hit_tokens: 768, completion_tokens: 8192, completion_tokens_details: { reasoning_tokens: 8192 } }
       : { prompt_tokens: 10, completion_tokens: 10 };
     const chunk = { id: 'offline-response', model: 'deepseek-flash',
       choices: [{ index: 0, delta: reply === 'length' ? { reasoning_content: 'Synthetic reasoning placeholder.' }
-        : { content: JSON.stringify(reply === 'questions' ? { questions } : reply === 'invalid' ? { invalid: true } : draftProposal) },
+        : { content: JSON.stringify(reply === 'questions' ? { questions } : reply === 'invalid' ? { invalid: true } : typeof draftProposal === 'function' ? draftProposal() : draftProposal) },
         finish_reason: reply === 'length' ? 'length' : 'stop' }],
       ...(reply === 'unknown' ? {} : { usage }) };
     return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
@@ -40,7 +41,7 @@ export function fakeInterviewSdk(t: TestContext, replies: Reply[], legacyFirstDr
   const sessionFactory = async (config: PiSessionOptions) => {
     const phase = JSON.parse(config.context!).input.phase;
     const maxOutputTokens = legacyFirstDraft && phase === 'draft' && ++drafts === 1 ? 8192 : config.maxOutputTokens;
-    configs.push({ context: config.context, systemPrompt: config.systemPrompt, maxOutputTokens });
+    configs.push({ context: config.context, systemPrompt: config.systemPrompt, maxOutputTokens, maxRequests: config.maxRequests, tools: config.tools.map(tool => tool.name), thinkingLevel: config.thinkingLevel });
     const estimate = config.estimatedMaxCostMicroCny;
     return createPiSession({ ...config, maxOutputTokens, env: { DEEPSEEK_API_KEY: 'offline-fixture' }, estimatedMaxCostMicroCny: request => {
       const value = typeof estimate === 'function' ? estimate(request) : estimate;

@@ -7,6 +7,7 @@ import { validateValidationAllocationClosures } from './validation-allocation-va
 import { validateValidationBudgetGroups } from './validation-budget.ts';
 import { validateValidationGroupSupplements } from './validation-group-supplement-validation.ts';
 import { validatePublicValidationFundings } from './public-validation-funding-validation.ts';
+import { intakeSuccessorClaims } from './intake-successor.ts';
 
 function timestamp(value: unknown): boolean {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -44,7 +45,7 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
     const allocation = ledger.allocations.find(a => a.taskId === task.taskId);
     if (errors.length || !allocation || task.runId !== run.runId || task.kind !== run.kind || task.specVersion !== run.specVersion || task.budget.ledgerId !== ledger.ledgerId || task.budget.allocationMicroCny !== allocation.amountMicroCny || task.budget.originalDeadlineAt !== run.originalDeadlineAt) throw new Error('Invalid snapshot task or task/run contract mismatch.');
   }
-  const eventTypes = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'imported', 'budget_warning', 'stopped', 'task_saved', 'generation_activated',
+  const eventTypes = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'imported', 'budget_warning', 'stopped', 'task_saved', 'generation_activated', 'intake_draft_successor_claimed',
     ...(state.validationFunding ? ['public_intake_work_started', 'public_intake_work_finished', 'public_intake_work_recovered', 'public_intake_drained', 'public_execution_started'] : []),
     ...(state.formatVersion !== 3 ? ['run_owner_drained'] : []),
     ...(state.formatVersion === 2 ? ['continuation_activated', 'window_stopped', 'window_owner_drained', 'window_owner_resumed'] : []),
@@ -54,6 +55,7 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
     if (!event || event.sequence !== i + 1 || !timestamp(event.at) || !eventTypes.includes(event.type) || typeof event.reason !== 'string' || (event.requestId !== null && !ledger.entries.some(entry => entry.requestId === event.requestId))) throw new Error('Invalid snapshot event history.');
   });
   validatePublicValidationFundings(state);
+  intakeSuccessorClaims(state.events);
   validateValidationProfile(state);
   validateValidationBudgetGroups(state);
   validateValidationAllocationClosures(state);

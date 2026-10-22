@@ -13,7 +13,7 @@ import type { Reply } from './interview-recovery.fixture.ts';
 import { answers, questions, profile, proposal } from './ordinary.fixture.ts';
 
 /** Temporary real funded controller and native Pi; synthetic transport only. */
-export async function budgetFixture(t: TestContext, replies: Reply[] = ['draft'], now?: () => number) {
+export async function budgetFixture(t: TestContext, replies: Reply[] = ['draft'], now?: () => number, response: unknown = proposal) {
   let owner: IntakeController | undefined;
   t.after(async () => { await owner?.close(); });
   const shared = await fundingFixture(t), args = await shared.authorization();
@@ -25,7 +25,7 @@ export async function budgetFixture(t: TestContext, replies: Reply[] = ['draft']
   owner = controller;
   await mkdir(join(root, 'intake-answers'));
   await writeFile(join(root, 'intake-answers/v1.json'), JSON.stringify({ brief: args.payload.brief, questions, answers, ordinaryProfile: profile }), 'utf8');
-  const sdk = fakeInterviewSdk(t, replies, false, proposal);
+  const sdk = fakeInterviewSdk(t, replies, false, response);
   const options = { controller, roundId: 'draft-1', brief: args.payload.brief, questions, answers,
     maxOutputTokens: 16384, requestTimeoutMs: 5000, capabilities: 'Normal mouse input and visible assertions.',
     estimatedMaxCostMicroCny: (r: { inputBytes: number; maxOutputTokens: number }) => r.inputBytes * 2 + r.maxOutputTokens * 8,
