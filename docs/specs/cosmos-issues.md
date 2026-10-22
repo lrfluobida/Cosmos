@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-22 [COS119 / #120](https://github.com/lrfluobida/Cosmos/issues/120) 已独审合入并发布 `003e8dceafdd07cf8806be073d53a252d338090f`，closed(completed)与父[x]均已GET核证。总任务119、根直接100、COS18十三个源码子项完成，父仍open/partial。typecheck/build及主线7/7代表通过，JSON对象输出不保证计划语义或端到端完成；旧memory与room1–4永久关闭。
+
 2026-10-21 COS117 / #118与COS118 / #119已独审合入并发布 `48cffe0f0e9a195bf77b601a6e3c928ffa0b993b`，两卡closed(completed)与父[x]均已GET核证。总任务118、根直接100、COS18十二个源码子项完成，父仍open/partial。typecheck/build及组合10/10代表通过；实际生成与体验仍须另行验证，旧memory及room1/2/3永久关闭。
 
 2026-10-21 [COS116 / #117](https://github.com/lrfluobida/Cosmos/issues/117) 最终 `b81e728` 已独审合入并发布 `ab9eef7f353089a0a67053c38ec40f2e457c421a`，源码范围的 `closed(completed)` 与父勾选[x]已核证。总任务116、根直接100、COS18十个源码子项均完成，父整体仍open/partial。主线typecheck/build与6个集中代表通过，实际room-3资格仍待Root/operator另行核验。
@@ -1780,6 +1782,14 @@ COS93最新实际结果：COS93 navigation-v2在`cd8b4b9fe2ee5e2a72ed976b16ca52d
 仅ordinary-design/1设计作者成功write/edit实际声明文件后追加同源validator的只读反馈，最多8条/4096字符；Windows等价路径也触发。原成功写入字节、scope/UTF-8/link与前后guard保持，缺文件/分块输出允许继续合法写入，capture与独立review继续核验实际内容，其他角色/legacy行为不变。详见[规格](cos118-design-write-feedback.md)与[实施计划](../plans/2026-10-21-design-write-feedback.md)。原14项、兼容20/3/3与新增Windows write/edit 2项按未变范围复用；typecheck/build/strict通过。两次下游失败保留，未当作全流程通过或已修复证据，详见 `.cosmos/cos118-evidence/verification-index.json`。
 
 主线使用与COS117相同的一次组合检查：typecheck/build exit0、10/10代表、0skip、TAP28003.3347ms，含Windows两项，不累计重叠结果。总任务118、根直接100、父12个源码子项完成但仍open/partial。本次源码集成未调用真实provider/browser或操作实际controller/账本，不增加请求、预算、重试或确认权限；结构反馈不能证明模型语义、游戏生成或体验通过。旧memory及room1/2/3永久关闭。稳定任务ID：COS-118。
+
+### COS-119 · 规划请求的 JSON 输出约束
+
+[COS119 / #120](https://github.com/lrfluobida/Cosmos/issues/120)，id5971087208，原生父COS18/#19，`source-integrated / source-scoped-complete`；[源码批准](https://github.com/lrfluobida/Cosmos/issues/120#issuecomment-6330503907)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/120#issuecomment-6330508209)和父[x]已精确核证。作者cos119_implementer基于 `bfbf69173cf63ad1530ba1ddf1f610d811df7cce` 提交 `a5658d239a3479f8af282c2da4c52fcfa3aa5342`，独审cos119_reviewer完成spec/quality与冻结replacement P2复审，APPROVED_SOURCE_SCOPED、无剩余P1/P2；唯一merger public_agent_batch_merger合入及源码发布 `003e8dceafdd07cf8806be073d53a252d338090f`，9文件与批准版本一致。
+
+仅可信planning purpose启用固定json_object，经锁定SDK原onPayload组合已有hook，返回新对象以保留冻结replacement；system/user共享合法JSON占位示例，含policyId与无policyId形状，实际任务仍绑定原host policies和确认需求。非planning请求、原模型/预算/次数/cap/window及decodeModelJson和完整计划校验保持，空/无效/截断回复继续拒绝，不追加纠正请求或放行缺execution的旧resume。详见[规格](cos119-planning-json-output.md)与[实施计划](../plans/2026-10-22-planning-json-output.md)。
+
+作者原45/45、兼容6/6按未变范围复用，P2后hook4/4通过；原strict退出0但空输出未生成日志的缺口保留，新strict明确保存命令/退出码及空stdout/stderr，不补造旧证据。主线另跑typecheck/build均exit0，集中7/7、0skip、TAP6400.6014ms，不累计重叠。作者索引 `.cosmos/cos119-evidence/verification-index.json`，主线原命令/输出 `.cosmos/cos119-integration/`。总119、根直接100、父13个源码子项完成但整体仍open/partial；本卡仅免费SOURCE/TEMP，未触碰实际运行或账本。旧memory及room1–4永久关闭，源码通过不证明真实模型格式、计划语义或游戏体验通过。稳定任务ID：COS-119。
 
 ## 5. 任务与上下文包模板
 
