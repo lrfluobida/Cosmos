@@ -15,6 +15,7 @@ import type { ExecutionRequirement } from './execution-input.ts';
 import { requireValidationScope } from '../runtime/validation-scope.ts';
 import type { ValidationExecutionBinding } from '../runtime/validation-scope.ts';
 import { requireValidationTask } from '../runtime/validation-validation.ts';
+import { planningJsonExample } from './planning-protocol.ts';
 
 export interface PlanningRolePolicy {
   workspace: string;
@@ -96,8 +97,7 @@ export async function planTaskDag(options: PlanOptions): Promise<{ tasks: Prepar
   try {
     const policies = slots.map(policy => ({ ...(options.taskPolicies ? { policyId: policy.policyId } : {}), role: policy.role, outputs: policy.outputs, writePaths: policy.writePaths, rules: policy.rules ?? [],
       ...(scope && !bindAliases ? { taskId: scope.window.quote.declaration.grants[policy.role as 'design' | 'art' | 'coding'].taskId } : {}) }));
-    const schema = options.taskPolicies ? '{tasks:[{taskId,policyId,role,objective,acceptanceIds,dependsOn}]}' : '{tasks:[{taskId,role,objective,acceptanceIds,dependsOn}]}';
-    const response = await session.prompt(`Plan only within these host policies: ${JSON.stringify(policies)}. Task IDs must match /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/. Return only JSON ${schema}. ${options.taskPolicies ? 'Every task must include the exact supplied policyId and matching role; select each policyId at most once.' : 'Select each role at most once; do not include policyId.'}${bindAliases ? ' taskId is a unique local proposal alias, not a billing identity. Select all three supplied policies. Every dependsOn entry names a local proposal alias in this reply. The host alone binds each selected policy to its current predeclared task identity.' : ''}`, { signal });
+    const response = await session.prompt(`Plan only within these host policies: ${JSON.stringify(policies)}. Task IDs must match /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/. Return only a JSON object without Markdown, using this shape:\n${planningJsonExample(Boolean(options.taskPolicies))}\n${options.taskPolicies ? 'Every task must include the exact supplied policyId and matching role; select each policyId at most once.' : 'Select each role at most once; do not include policyId.'}${bindAliases ? ' taskId is a unique local proposal alias, not a billing identity. Select all three supplied policies. Every dependsOn entry names a local proposal alias in this reply. The host alone binds each selected policy to its current predeclared task identity.' : ''}`, { signal });
     signal.throwIfAborted();
     const value = decodeModelJson(response.text) as { tasks: Draft[] };
     if (!value || Object.keys(value).some(key => key !== 'tasks') || !Array.isArray(value.tasks) || !value.tasks.length || value.tasks.length > slots.length) throw new Error('Invalid bounded task plan.');
