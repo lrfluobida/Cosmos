@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-22 [COS122 / #123](https://github.com/lrfluobida/Cosmos/issues/123) 已登记为open/source-pending，设计/计划已独审批准，源码待实施与独审。总122、根直接100、COS18原生16子项中15个源码完成，父仍open/partial；room6实际incomplete并永久关闭，后续仅免费实现普通设计作者的有界32次容量，原预算和窗口保持。
+
 2026-10-22 [COS121 / #122](https://github.com/lrfluobida/Cosmos/issues/122) 已独审合入并发布 `3de90d5e05c5ab2d4e7fd8b5c4eb7ba6f35a7a05`，closed(completed)与父[x]已GET核证。总121、根直接100、COS18十五个源码子项完成，父仍open/partial；typecheck/build及显式主模板下4/4代表通过。旧memory及room1–5永久关闭，后续真实效果另行验证。
 
 2026-10-22 [COS120 / #121](https://github.com/lrfluobida/Cosmos/issues/121) 已独审合入并发布 `b1b168fb13f67f229e94fc4cd825bdbea754a3f0`，closed(completed)与父[x]已GET核证。总任务120、根直接100、COS18十四个源码子项完成，父仍open/partial；主线typecheck/build及7/7代表通过，room5的实际生产恢复资格仍待Root/operator另行核验。
@@ -1814,6 +1816,14 @@ ordinary-design/1草稿只对类型化字段结构失败提供一次有界纠正
 作者RED原输出及模板环境失败留存，新增GREEN9/9、受影响44/44已包含全部新增，typecheck/build/strict通过。主线另跑typecheck/build exit0，显式COSMOS_TEMPLATE_ROOT=E:/develop/Cosmos/templates/2d，4/4代表、0skip、TAP9652.0934ms；未变证据复用，不累计重叠。作者索引 `.cosmos/cos121-evidence/verification-index.json`，主线 `.cosmos/cos121-integration/`。总121、根直接100、父15个源码子项完成，整体仍open/partial。
 
 room5实际79.755秒incomplete、22笔228462µ结算与4771538µ释放、PASS_CLOSED child117/shared3346的[结案事实](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6334320635)保留。旧memory及room1–5永久关闭，不恢复或重复结算。本次仅免费SOURCE/TEMP，未操作真实provider/browser/controller或账本，不以结构通过宣称实际设计、语义、游戏或体验成功。稳定任务ID：COS-121。
+
+### COS-122 · 普通设计作者会话的有界调用容量
+
+[COS122 / #123](https://github.com/lrfluobida/Cosmos/issues/123)，id5977733638，原生父COS18/#19、父[ ]，`open / source-pending`。design_capacity_plan_reviewer已APPROVED_DESIGN / APPROVED_PLAN、无findings，Root批准免费实施；作者cos122_implementer、源码独审cos122_reviewer、唯一merger public_agent_batch_merger。基线 `69e3952e6fec9684fee9b2228e4d95f54d8d4fc4`、分支codex/ordinary-design-request-capacity；[完整规格与计划](https://github.com/lrfluobida/Cosmos/issues/123)已发布，正式两docs由作者随源码提交，当前未批准源码。
+
+拟在factory新增可信authorMaxRequests覆盖，校验作者角色键与正安全整数，仅purpose=author且非fixed validation时选择；ordinary host仅设置design=32。提示与实际Pi限额共用同值，说明模型请求轮次并提醒为自检/最终handoff留余量。planning即使复用design角色也不覆盖，reviewer/art/coding及legacy/preparation/fixed validation保持原值；普通funded产品入口仍适用ordinary设计配置。第33次须发送前拒绝，原费用估价/预留/准入/结算、grant、设计review共用分配、deadline、工具和capture/review门禁均保持。32不保证完成，不重置旧会话计数或授予历史恢复，不新增动态计数器、强制终结或JSON编辑工具。
+
+room6运行91.121秒incomplete：planning1/22061µ通过、design16/185378µ封顶；mapping第一write结构成功，plan106+25仍缺reopen savedSnapshot，无capture/review/art/code。含访谈21笔314904µ已结算、释放4685096µ，独立PASS_CLOSED child111/shared3348、held/reserved/unknown0。[结案回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6338803663)保留原确认、时钟与失败，旧memory及room1–6永久关闭。此次仅登记元数据，未跑源码测试或操作实际run/账本，不授权付费。总122、根直接100、父16/15，整体仍open/partial。稳定任务ID：COS-122。
 
 ## 5. 任务与上下文包模板
 

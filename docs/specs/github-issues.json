@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 15,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121"],
+      "verifiedNativeSubIssues": 16,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122"],
       "verifiedCompletedSubIssues": 15,
       "dependsOn": [
         {
@@ -10111,9 +10111,41 @@
       "sourceReviewedCommit": "4f3466eae2776bdf9e96479acb25e6b74802e7be",
       "sourceIntegratedCommit": "3de90d5e05c5ab2d4e7fd8b5c4eb7ba6f35a7a05",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/122#issuecomment-6334533455"
+    },
+    {
+      "taskId": "COS-122",
+      "title": "普通设计作者会话的有界调用容量",
+      "number": 123,
+      "id": 5977733638,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/123",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-122 · 普通设计作者会话的有界调用容量](https://github.com/lrfluobida/Cosmos/issues/123)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 16,
+      "verifiedParentCompletedSubIssues": 15,
+      "dependsOn": [],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceBaseCommit": "69e3952e6fec9684fee9b2228e4d95f54d8d4fc4",
+      "sourceReviewStatus": "pending",
+      "implementer": "cos122_implementer",
+      "reviewer": "cos122_reviewer",
+      "designReviewer": "design_capacity_plan_reviewer",
+      "designReviewStatus": "APPROVED_DESIGN",
+      "planReviewer": "design_capacity_plan_reviewer",
+      "planReviewStatus": "APPROVED_PLAN",
+      "merger": "public_agent_batch_merger",
+      "actualAuthorized": false,
+      "paidAuthorized": false
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 121,
+  "totalTaskCount": 122,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
