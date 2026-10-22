@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-22第六次room实际v2待真实用户确认（[公开快照](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6335056224)）：独立PASS_COMPLETE_REQUIREMENT_SCOPE、EXPORT_APPROVED_EXACT_MAPPING、PASS_RESUMABLE_WAIT；13AC（含2host）/4experience/11QA，165个raw字符串精确映射。v1将存档重开套用无存档初始状态的冲突，已沿原edit仅澄清原要求后得到v2，未手工改写实际draft。raw SHA `d08ef4be44f1aa5c41a96c8e171162ee907157ae8dba6b4b2d128067cf0b38aa`。
+
+原CLI cancel退出0，未stop/settle；child30、4笔107465µ均settled、schema claim1、pending/reserved/unknown均0，confirmation/stop为null、时钟未启动，无锁/control/目标进程。shared3347仍held原5000000µ，限额¥5/30分钟；证据 `.cosmos/public-validation/room-20261022-6/draft-v2-wait.json`。此为actual v2确认前快照，不代表COS121真实设计、生成或体验通过；runtime固定 `3de90d5e05c5ab2d4e7fd8b5c4eb7ba6f35a7a05`，父COS18/#19仍open/partial，旧memory及room1–5永久关闭。
+
 2026-10-22 [COS121 / #122](https://github.com/lrfluobida/Cosmos/issues/122) 已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/122#issuecomment-6334533455)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/122#issuecomment-6334538692)和父[x]已GET核证。作者cos121_implementer的 `4f3466eae2776bdf9e96479acb25e6b74802e7be` 经独立cos121_reviewer规格/质量审查，APPROVED_SOURCE_SCOPED、无actionable finding；唯一merger从 `d5f86151f818c4b3bccf9c338730152fb0524117` 合入并发布 `3de90d5e05c5ab2d4e7fd8b5c4eb7ba6f35a7a05`，7个来源文件与批准版本一致。两个生产文件分别给出实际完整ID的合法JSON映射示例，以及原validator中具体、有界的mapping字段诊断；原精确集合、text谓词、媒体/schema门禁、预算、16次帽和计划validator保持，自检/write反馈继续复用。
 
 主线typecheck/build exit0；显式COSMOS_TEMPLATE_ROOT=E:/develop/Cosmos/templates/2d下4个代表4/4、0skip、TAP9652.0934ms。覆盖需转义实际ID、空体验、legacy，以及原错误mapping的具体诊断经显式自检/write/edit同源传递、有效修正后独审仍可拒绝且无play。作者新增9/9与包含全部新增的44/44按未变范围复用，不累计重叠，原RED和模板环境失败保留；作者索引 `.cosmos/cos121-evidence/verification-index.json`，主线 `.cosmos/cos121-integration/checks.json`。本批只证明源码提示和结构诊断，不证明实际模型完成设计或游戏体验通过。
