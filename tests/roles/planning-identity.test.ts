@@ -55,7 +55,8 @@ test('opt-in binds validated policy aliases to current grants and preserves host
   const f = await fixture(t), result = await planTaskDag({ ...f.options, proposalIdentity: protocol } as PlanOptions);
   assert.equal(f.observed.sessions, 1); assert.equal(f.observed.prompts.length, 1); assert.equal(f.observed.closes, 1);
   assert.match(f.observed.prompts[0], /local proposal alias/i);
-  assert.match(f.observed.prompts[0], /\{tasks:\[\{taskId,policyId,role,objective,acceptanceIds,dependsOn\}\]\}/);
+  const example = JSON.parse(/```json\n([^\n]+)\n```/.exec(f.observed.prompts[0])![1]);
+  assert.deepEqual(Object.keys(example.tasks[0]), ['taskId', 'policyId', 'role', 'objective', 'acceptanceIds', 'dependsOn']);
   for (const role of authorRoles) assert.ok(!f.observed.prompts[0].includes(f.grants[role].taskId), 'Billing task identity is host-owned and absent from the proposal policies.');
   const snapshot = await f.controller.read();
   assert.deepEqual(result.tasks.map(item => item.task.taskId), authorRoles.map(role => f.grants[role].taskId));

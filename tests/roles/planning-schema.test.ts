@@ -24,7 +24,14 @@ const missingPolicyReply = [
 ];
 
 function schemas(prompt: string): string[][] {
-  return [...prompt.matchAll(/\{tasks:\[\{([^{}]+)\}\]\}/g)].map(match => match[1].split(',').map(field => field.trim()));
+  const examples = [...prompt.matchAll(/```json\n([^\n]+)\n```/g)].map(match => JSON.parse(match[1]));
+  assert.ok(examples.length, 'The prompt must include a standalone parseable JSON example.');
+  return examples.map(example => {
+    assert.deepEqual(Object.keys(example), ['tasks']);
+    assert.equal(example.tasks.length, 1);
+    assert.match(example.tasks[0].objective, /"quoted"/);
+    return Object.keys(example.tasks[0]);
+  });
 }
 async function fixture(t: test.TestContext, repeatedRole = false) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-planning-schema-'));
@@ -56,6 +63,8 @@ for (const mode of ['policies', 'roles', 'repeated-role'] as const) test(`planni
       assert.deepEqual(schemas(config.systemPrompt), [policyFields, roleFields], 'System instruction must state both conditional schemas instead of an unconditional five-field reply.');
       const [fields] = schemas(text);
       assert.deepEqual(fields, policyMode ? policyFields : roleFields, 'The actual host request must declare every required field for its selected mode.');
+      for (const policy of f.taskPolicies) assert.ok(text.includes(JSON.stringify(policy.outputs)), 'Actual outputs remain bound to the supplied host policy.');
+      assert.match(config.systemPrompt, /placeholder/i); assert.match(text, /placeholder/i);
       // This offline transport follows the advertised schema; the real planner binds the result.
       return { text: JSON.stringify({ tasks: f.drafts.map((draft, index) => {
         const values = { ...draft, policyId: f.taskPolicies[index].policyId };

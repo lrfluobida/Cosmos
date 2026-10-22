@@ -42,6 +42,8 @@ export interface PiSessionOptions {
   tools: ToolDefinition[];
   modelId?: string;
   thinkingLevel?: 'off' | 'low' | 'high' | 'max';
+  /** Trusted host selection of the fixed JSON object response format. */
+  jsonOutput?: boolean;
   env?: Pick<NodeJS.ProcessEnv, 'DEEPSEEK_API_KEY'>;
   resumeFile?: string;
   maxOutputTokens: number;
@@ -212,6 +214,11 @@ export async function createPiSession(config: PiSessionOptions) {
         sent = true;
         const stream = originalStream(requestModel, requestContext, {
           ...options, signal, maxTokens: request.maxOutputTokens, maxRetries: 0, timeoutMs: requestTimeoutMs,
+          onPayload: config.jsonOutput ? async (payload, model) => {
+            const replacement = await options?.onPayload?.(payload, model);
+            const body = (replacement === undefined ? payload : replacement) as Record<string, unknown>;
+            return { ...body, response_format: { type: 'json_object' } };
+          } : options?.onPayload,
           onProviderStreamEvent: async (data, model) => {
             firstResponseMs ??= performance.now() - started;
             if (data && typeof data === 'object') {
