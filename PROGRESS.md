@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-22第七次room当前actual v3待真实用户确认（[公开快照](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6339558771)）。原8题沿用既有11条已确认回答；v1的覆盖保存/锁门顺序两项缺口经原edit得到v2，v2遗漏无计时客观检查，再edit得到实际v3。独立PASS_COMPLETE_REQUIREMENT_SCOPE与EXPORT_APPROVED_EXACT_MAPPING：10AC（8play+2host）/4体验/8QA，139个原字符串及完整JSON附录；raw SHA `fd75be8c9cabea3009378b683afaa56b8db84d3c8c87176f177c6127c4181481`，export SHA见公开快照。
+
+截至2026-10-22T11:21:44.628Z，原CLI cancel正常exit0（非stop/settle），独立PASS_RESUMABLE_WAIT：child30、4笔104683µ全settled，reserved/unknown/pending/claim均0；无confirmation/stop/generation clock、无锁/control/目标进程，shared3349仍held原5000000µ、未结算且无overrun。证据在 `.cosmos/public-validation/room-20261022-7/` 的operation.json、draft-v3-wait.json与draft-v3-review.md；此为当前actual v3确认前快照，不代表游戏已生成或体验通过。runtime固定 `4b2eae9a9bccec19f590dd09951b5059d72785f4`，#123仍source closed，父COS18/#19仍open/partial；旧memory及room1–6永久关闭，room7保留原拨款等待。
+
 2026-10-22 [COS122 / #123](https://github.com/lrfluobida/Cosmos/issues/123) 已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/123#issuecomment-6339165232)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/123#issuecomment-6339171565)和父[x]已GET核证。作者cos122_implementer的 `56b115b790956a51b3c75726ab1c5db6d631808c` 经独立cos122_reviewer规格/质量审查，APPROVED_SOURCE_SCOPED、无actionable findings；唯一merger从 `39e6df02d0e96a33db1a03965d7723a4168fcd65` 合入并发布 `4b2eae9a9bccec19f590dd09951b5059d72785f4`，6个来源文件与批准版本一致。factory可信authorMaxRequests按purpose/角色选择，ordinary host仅design author=32，提示与实际配置共用值；planning/reviewer、其他未覆盖角色、legacy/preparation及fixed validation保持原限额，普通funded产品入口设计覆盖生效。
 
 主线typecheck/build exit0；显式COSMOS_TEMPLATE_ROOT=E:/develop/Cosmos/templates/2d下3/3代表、0skip、TAP15635.5791ms：ordinary host/native配置、funded author构造保留grant/window、旧insufficient_evidence保持关闭。作者focused11/11、compat3/3及独审实际32/33边界2/2按未变范围复用，不累计重叠；strict-resolved通过，早期夹具/strict失败保留。作者索引 `.cosmos/cos122-evidence/verification-index.json`、主线 `.cosmos/cos122-integration/checks.json`。原grant、review共用分配、费用准入、deadline和恢复门禁保持；32不保证真实完成，funded构造测试不证明完整生成。
