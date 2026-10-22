@@ -143,16 +143,33 @@ export interface DesignDocument {
 const text = (value: unknown): value is string => typeof value === 'string' && !!value.trim() && value.length <= 16000;
 const sameIds = (left: string[], right: string[]) => left.length === right.length && new Set(left).size === left.length && left.every(id => right.includes(id));
 
+function validateDesignMapping(value: unknown, ids: string[], field: 'acceptanceMapping' | 'experienceMapping') {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${field} must be a JSON object keyed by the actual confirmed IDs, with non-empty string values; arrays, null and other containers are invalid.`);
+  const entries = Object.entries(value), keys = Object.keys(value);
+  if (sameIds(keys, ids) && entries.every(([, value]) => text(value))) return;
+  const list = (keys: string[]) => keys.slice(0, 3).map(key => {
+    const encoded = JSON.stringify(key);
+    return encoded.length <= 96 ? encoded : `${JSON.stringify(key.slice(0, 12))} [truncated]`;
+  }).join(', ') + (keys.length > 3 ? ` (+${keys.length - 3} more)` : '');
+  const problems: string[] = [];
+  for (const [label, invalid] of [
+    ['missing IDs', ids.filter(id => !Object.hasOwn(value, id))],
+    ['extra keys', keys.filter(key => !ids.includes(key))],
+    ['non-string values', entries.filter(([, value]) => typeof value !== 'string').map(([key]) => key)],
+    ['blank or over-16000-character strings', entries.filter(([, value]) => typeof value === 'string' && !text(value)).map(([key]) => key)],
+  ] as const) if (invalid.length) problems.push(`${field}: ${label}: ${list(invalid)}`);
+  throw new Error(`${field} must map exactly the required IDs to non-empty strings (at most 16000 characters). ${problems.join('; ')}`.slice(0, 2048));
+}
+
 /** Checks design coverage only. Gameplay still needs the separate normal-input host. */
 export function validateDesign(value: unknown, gameplayIds: string[], modular = false, experience?: import('../roles/ordinary-profile.ts').ExperienceCriterion[]): asserts value is DesignDocument {
   const design = value as DesignDocument;
   if (!design || Object.keys(design).some(key => !['summary', 'implementationNotes', 'acceptanceMapping', 'characters', 'audio', ...(modular ? ['modulePurposes'] : []), ...(experience ? ['experienceMapping'] : [])].includes(key))
     || !text(design.summary) || !Array.isArray(design.implementationNotes) || !design.implementationNotes.length || design.implementationNotes.some(note => !text(note))
-    || !design.acceptanceMapping || !sameIds(Object.keys(design.acceptanceMapping), gameplayIds) || Object.values(design.acceptanceMapping).some(value => !text(value))
     || !Array.isArray(design.characters) || !design.characters.length || design.characters.length > 128 || !Array.isArray(design.audio) || design.audio.length > 64) throw new Error('Design must cover the exact gameplay requirements and bounded media roster.');
+  validateDesignMapping(design.acceptanceMapping, gameplayIds, 'acceptanceMapping');
   if (modular && (!design.modulePurposes || !sameIds(Object.keys(design.modulePurposes), ['a', 'b']) || Object.values(design.modulePurposes).some(value => !text(value)))) throw new Error('Both fixed module purposes are required.');
-  if (experience && (!design.experienceMapping || typeof design.experienceMapping !== 'object' || Array.isArray(design.experienceMapping) || !sameIds(Object.keys(design.experienceMapping), experience.map(item => item.criterionId))
-    || Object.values(design.experienceMapping).some(value => !text(value)))) throw new Error('Design must map the complete confirmed experience criteria.');
+  if (experience) validateDesignMapping(design.experienceMapping, experience.map(item => item.criterionId), 'experienceMapping');
   for (const character of design.characters) {
     identifier(character.id);
     if (Object.keys(character).some(key => !['id', 'purpose', 'states'].includes(key)) || !text(character.purpose) || !Array.isArray(character.states) || !character.states.length || character.states.length > 16 || new Set(character.states).size !== character.states.length) throw new Error('Invalid design character/state declaration.');
