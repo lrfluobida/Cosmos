@@ -58,6 +58,7 @@ test('operator browser host uses current claimed grants without human fields or 
   const role = await host.roleFactory({ controller: f.controller, requirement: f.requirement, role: 'design', task: tasks[0].task, workspace: tasks[0].workspace,
     stateDirectory: join(f.root, 'sessions/design') }); await role.close();
   assert.equal(f.configs[0].maxRequests, 80); assert.equal(f.configs[0].maxOutputTokens, 16384);
+  assert.equal(f.configs[0].requestOutputLimit, undefined);
   assert.equal(f.configs[0].requestTimeoutMs, 120000);
   assert.ok(!('confirmedBy' in f.requirement)); assert.deepEqual((await f.controller.read()).run.humanDecisions, []);
   assert.deepEqual((await f.controller.read()).ledger, before.ledger); assert.deepEqual((await f.controller.read()).stopReason, before.stopReason);

@@ -8,6 +8,7 @@ import { snapshot } from '../../src/artifacts/paths.ts';
 import type { TaskContract } from '../../src/contracts/index.ts';
 import { DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID, withHostStages } from '../../src/roles/requirements.ts';
 import type { RoleFactory } from '../../src/roles/factory.ts';
+import type { PiSessionOptions } from '../../src/providers/pi.ts';
 import { IntakeController } from '../../src/runtime/intake.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { executeTaskDag, resumeTaskDag } from '../../src/runtime/orchestrator.ts';
@@ -57,13 +58,13 @@ async function fixture(t: test.TestContext, failedRole: 'design' | 'coding' = 'c
     const acceptanceIds = index === 0 ? [DESIGN_ACCEPTANCE_ID] : index === 1 ? [MEDIA_ACCEPTANCE_ID] : ['win'];
     Object.assign(task, { taskId: `original-${policy.role}`, kind: 'runtime_generation', runId: initial.run.runId, specVersion: requirement.specVersion, authorId: `author-${policy.role}`,
       objective: `Offline ${policy.role} output`, acceptanceIds, acceptance: requirement.acceptance.filter(item => acceptanceIds.includes(item.acceptanceId)).map(item => ({ acceptanceId: item.acceptanceId, steps: item.steps, expected: item.expected, evidenceDestinations: [`evidence/original-${policy.role}/host-report.json`] })),
-      inputs: [...host.availableArtifacts, ...priorPolicies.map(item => ({ artifactId: item.outputs[0].artifactId, version: item.outputs[0].version, location: item.outputs[0].location }))],
+      inputs: [...host.availableArtifacts, ...priorPolicies.map(item => ({ artifactId: item.outputs[0].artifactId, version: item.outputs[0].version, location: item.outputs[0].destination }))],
       dependsOn: priorPolicies.map(item => ({ taskId: `original-${item.role}`, requiredState: 'passed', state: 'not_started' })),
       context: { contextId: `context-${policy.role}`, rules: policy.rules, interfaces: [], knownFailures: [], tools: [] },
       ownership: { writePaths: policy.writePaths, readOnlyPaths: policy.readOnlyPaths }, outputs: policy.outputs.map(item => ({ type: item.type, schema: item.schema, destination: item.destination })),
       budget: { ledgerId: initial.ledger.ledgerId, allocationMicroCny: policy.allocationMicroCny, originalDeadlineAt: initial.run.originalDeadlineAt }, state: 'not_started', stateReason: null, attempts: [], artifacts: [], evidence: [],
       handoff: { completed: [], remaining: [], uncertainty: [], resumeFrom: null }, review: { reviewerId: null, contextId: null, inputVersions: [], verdict: 'pending', evidenceIds: [] } });
-    return { task, role: policy.role, workspace: root, expectedArtifacts: policy.outputs.map(item => ({ artifactId: item.artifactId, version: item.version, location: item.location })) };
+    return { task, role: policy.role, workspace: root, expectedArtifacts: policy.outputs.map(item => ({ artifactId: item.artifactId, version: item.version, location: item.destination })) };
   });
   let sequence = 0;
   const roleFactory: RoleFactory = async input => ({ actorId: input.role === 'reviewer' ? `reviewer-${input.task.taskId}` : input.task.authorId,
@@ -139,6 +140,17 @@ for (const failedRole of ['coding', 'design'] as const) test(`production host us
   assert.deepEqual((await f.controller.read()).stopReason, f.original.stopReason);
   assert.equal(await f.host.repair(result.tasks.at(-1)!, {} as any), null);
   assert.equal(await f.host.continuationTargets?.([], {} as any, {}), null);
+});
+
+test('COS124 continuation binding retains its original design output cap without budget selection', async t => {
+  const f = await fixture(t, 'design'); let seen: any;
+  const host = await createBrowserHost({ ...f.input, sessionFactory: async (config: PiSessionOptions) => {
+    seen = config; return { prompt: async () => ({ text: '' }), close: async () => {} };
+  } } as any);
+  const prepared = f.tasks.find(item => item.role === 'design')!; await host.preAuthor!(prepared.task, f.controller.signal);
+  const session = await host.roleFactory({ controller: f.controller, requirement: f.input.requirement, role: 'design', task: prepared.task,
+    workspace: prepared.workspace, stateDirectory: join(f.root, 'sessions/cos124-binding') }); await session.close();
+  assert.equal(seen.maxOutputTokens, 8192); assert.equal(seen.requestOutputLimit, undefined);
 });
 
 test('changed original passed evidence blocks before any input mirror or new attempt', async t => {

@@ -21,6 +21,7 @@ import { codingConcernReviewProtocol } from '../runtime/repair/coding-concerns.t
 import type { CodingConcernReview } from '../runtime/repair/coding-concerns.ts';
 import { inputFilesProtocol, roleInputFiles } from './input-files.ts';
 import { planningJsonExample } from './planning-protocol.ts';
+import { authorBudgetOutputLimit } from './author-output-budget.ts';
 
 export type AuthorRole = 'cosmos' | 'design' | 'coding' | 'art';
 export type Role = AuthorRole | 'reviewer';
@@ -50,6 +51,8 @@ export interface RoleFactoryOptions {
   maxOutputTokens: number;
   /** Explicit author overrides; planning and review retain maxOutputTokens. */
   authorMaxOutputTokens?: Partial<Record<AuthorRole, number>>;
+  /** Explicit trusted opt-in; select within the original grant between this floor and the author cap. */
+  authorBudgetOutputFloor?: Partial<Record<AuthorRole, number>>;
   maxRequests: number;
   /** Author overrides only; planning, review and fixed validation retain maxRequests. */
   authorMaxRequests?: Partial<Record<AuthorRole, number>>;
@@ -92,6 +95,13 @@ export function assertOwnership(task: TaskContract, workspace: string): void {
 export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   const authorLimits = { ...options.authorMaxOutputTokens };
   if (Object.entries(authorLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxOutputTokens requires valid author roles and positive safe integers.');
+  const authorFloors = { ...options.authorBudgetOutputFloor };
+  for (const [role, floor] of Object.entries(authorFloors)) {
+    const cap = authorLimits[role as AuthorRole] ?? options.maxOutputTokens;
+    if (!['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(floor) || floor <= 0
+      || !Number.isSafeInteger(cap) || cap < floor || cap > 32768) throw new Error('authorBudgetOutputFloor requires valid author roles, positive safe integers and floor <= cap <= 32768.');
+    authorLimits[role as AuthorRole] = cap;
+  }
   const authorRequestLimits = { ...options.authorMaxRequests };
   if (Object.entries(authorRequestLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxRequests requires valid author roles and positive safe integers.');
   const authorThinking = { ...options.authorThinkingLevel };
@@ -109,6 +119,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const purpose = input.purpose === 'planning' ? 'planning' : input.role === 'reviewer' ? 'reviewer' : 'author';
     const validation = input.validation ? await input.controller.validationAuthority(task.taskId, purpose) : undefined;
     const authorRequestLimit = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorRequestLimits[input.role] : undefined;
+    const authorFloor = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorFloors[input.role] : undefined;
     const maxRequests = authorRequestLimit ?? options.maxRequests;
     const authority = validation ? undefined : await input.controller.executionAuthority(task.taskId);
     input.controller.signal.throwIfAborted();
@@ -211,9 +222,12 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         return request.inputBytes >= 131072
           && validationReservation({ ...request, maxOutputTokens: Math.min(4096, request.maxOutputTokens) }) > current.remainingMicroCny;
       } } : {}),
+      ...(authorFloor === undefined ? {} : { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
+        task, authority: authority!, floor: authorFloor, maxOutputTokens: authorLimits[input.role as AuthorRole]!, estimate: options.estimatedMaxCostMicroCny }) }),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
+        ...(authorFloor === undefined ? {} : { recordRequest: true }),
         ...(validation ? { validation: { caseId: validation.caseId, windowId: validation.windowId, purpose } } : {}) }),
     });
     return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }),

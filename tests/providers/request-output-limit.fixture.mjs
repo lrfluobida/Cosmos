@@ -10,6 +10,7 @@ export const { createPiSession } = await import(new URL(process.env.COSMOS_OUTPU
 export const { validationReservation } = await import(new URL(process.env.COSMOS_OUTPUT_CAP_COMPILED === '1'
   ? '../../dist/runtime/validation-validation.js' : '../../src/runtime/validation-validation.ts', import.meta.url));
 
+/** @returns {import('@earendil-works/pi-ai').Context} */
 export function syntheticContext(bytes = 405672, hasImages = false) {
   const context = { messages: [{ role: 'user', content: [{ type: 'text', text: '' },
     ...(hasImages ? [{ type: 'image', data: 'AA==', mimeType: 'image/png' }] : [])], timestamp: 0 }] };
