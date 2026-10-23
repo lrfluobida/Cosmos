@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-23 [COS124 / #125](https://github.com/lrfluobida/Cosmos/issues/125) 已登记为open/source-pending，最终设计/计划独审批准（含取消接口修订），源码实施及独审待完成。总124、根直接100、COS18原生18子项中17个源码完成，父仍open/partial；room8因设计8K length失败而incomplete，已按原流程永久关闭，不能推断具体截断工具。
+
 2026-10-23 [COS123 / #124](https://github.com/lrfluobida/Cosmos/issues/124) 已独审合入并发布 `ba5dca0df72846bac3b2c40cc326f0f888d5bac5`，closed(completed)与父[x]已GET核证。总123、根直接100、COS18十七个源码子项完成，父仍open/partial；typecheck/build与显式主模板下4/4 host代表通过。旧memory及room1–7永久关闭，本卡不增加规划重试或历史恢复。
 
 2026-10-22 [COS122 / #123](https://github.com/lrfluobida/Cosmos/issues/123) 已独审合入并发布 `4b2eae9a9bccec19f590dd09951b5059d72785f4`，closed(completed)与父[x]已GET核证。总122、根直接100、COS18十六个源码子项完成，父仍open/partial；typecheck/build及显式主模板下3/3代表通过，32次容量不保证真实完成。旧memory及room1–6永久关闭。
@@ -1838,6 +1840,14 @@ PlanningTaskPolicy可选可信acceptanceIds在session前核配置；原proposal�
 作者核心29/29、host2/2、兼容54/54、定向3/3及typecheck/build/final-strict通过；独审策略快照/duplicate两项通过，host依赖代表先缺模板依赖失败，显式主模板后通过、0skip。主线另跑typecheck/build exit0，显式主模板下4/4 host代表、0skip、TAP33269.0338ms，覆盖普通三槽、五槽、funded及非法host依赖。原失败与有效证据保留，重叠不累计；作者索引 `.cosmos/cos123/verification-index.json`、主线 `.cosmos/cos123-integration/`。总123、根直接100、父17个源码子项完成，整体仍open/partial。
 
 room7的9.175秒incomplete、6笔136637µ结算、4863363µ释放、PASS_CLOSED child45/shared3350及[原确认/时钟/失败记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6346071920)保持；本案未运行到COS122设计容量。旧memory及room1–7永久关闭，不恢复或重复结算。本批未操作实际run/ledger/coordinator或room8准备，不以假host候选或结构校验宣称实际生成、设计语义或体验通过。稳定任务ID：COS-123。
+
+### COS-124 · 普通设计作者的预算内输出容量
+
+[COS124 / #125](https://github.com/lrfluobida/Cosmos/issues/125)，id5990331802，原生父COS18/#19、父[ ]，`open / source-pending`。design_output_plan_reviewer最终APPROVED_DESIGN / APPROVED_PLAN、取消接口修订已纳入，Root批准免费实施；作者cos124_implementer基于 `56fb0c1c6c34e25d3cc9dfe8ccbd33c2ef1b3428` 在codex/design-output-budget实现，源码reviewer cos124_reviewer，唯一merger public_agent_batch_merger。[完整规格与计划](https://github.com/lrfluobida/Cosmos/issues/125)已发布，正式两docs由作者提交，当前未批准源码。
+
+拟仅为ordinary新产品design启用可信floor8192与原resolved max32768的预算选择；冻结配置，复用归一化requestInputBytes、原estimator及每候选独立ledger副本上的reserveEntry，从max向floor递减且不假定单调，真正reserve/admit仍为最终派发授权。既有Pi callback窄传已有请求signal，固定批次yield，核caller/owner取消及deadline/cleanup，返回后预留前再检查；实际sent cap/inputBytes/quote/requestId/modelId/hasImages六安全字段沿原recordRequest保存。原32次/off/120s、grant与review共用分配、deadline、partial-tool零执行、capture/review和其它模式保持，不增加allocator/retry/旧恢复。历史room6请求12固定32K quote505410µ超过504239µ余额，最大32621可行；这些免费核算不重派发旧请求，也不保证32K足够。
+
+room8原confirm 1后90.339秒incomplete，规划三任务/binding通过且proposedIds原本正确；design第8响应8192/length，native content为空、partial tool未执行，不能断言具体工具，plan37普通步/0reopen仍有expectAfter错误，无capture/review/art/code，未触32次请求帽。12笔235270µ已结算、释放4764730µ；独立PASS_CLOSED child69/shared3352、held/reserved/unknown0及[结案回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6355403997)保留原确认/时钟/失败。旧memory及room1–8永久关闭；此次仅登记元数据，未跑源码测试或操作实际run/ledger/coordinator。总124、根直接100、父18/17，整体仍open/partial。稳定任务ID：COS-124。
 
 ## 5. 任务与上下文包模板
 
