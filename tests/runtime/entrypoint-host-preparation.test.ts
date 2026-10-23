@@ -25,6 +25,16 @@ test('prepared proposal is explicit and never falls back to a human draft or dum
   await assert.rejects(api.createTransferRuntimeHost({ ...f.input, proposal: { ...f.input.proposal, brief: 'changed' } }), /proposal|frozen|input/i);
 });
 
+test('COS124 preparation retains the fixed design output cap without ordinary budget selection', async t => {
+  const f = await transferFixture(t), api = await import('../../probes/transfer/runtime-host.ts');
+  const host = await api.createTransferRuntimeHost(f.input); t.after(() => host.closePreparation());
+  const tasks = f.prepare(host); host.validateTasks!(tasks); await f.controller.registerTasks(tasks.map(item => item.task));
+  await host.preAuthor!(tasks[0].task, f.controller.signal);
+  const session = await host.roleFactory({ controller: f.controller, requirement: f.requirement, role: 'design', task: tasks[0].task,
+    workspace: tasks[0].workspace, stateDirectory: join(f.root, 'sessions/cos124-preparation') }); await session.close();
+  assert.equal(f.configs.at(-1)!.maxOutputTokens, 16384); assert.equal(f.configs.at(-1)!.requestOutputLimit, undefined);
+});
+
 test('owned loopback origin uses original port on resume, refuses conflicts and drains cancellation', async t => {
   const a = await origins(), root = await mkdtemp(join(tmpdir(), 'cosmos-origin-')); t.after(() => rm(root, { recursive: true, force: true }));
   const signal = new AbortController(); let active = true;

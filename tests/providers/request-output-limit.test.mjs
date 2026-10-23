@@ -69,6 +69,16 @@ test('policy rejection is terminal and leaves no reservation or provider call', 
   assert.equal(calls, 1); assert.equal(f.admissions.length, 0); assert.equal(f.dispatches.length, 0);
 });
 
+test('COS124 existing SDK cancellation signal reaches policy and is rechecked before estimation or reservation', async t => {
+  const f = await outputLimitFixture(t), caller = new AbortController(); let estimates = 0, observed;
+  const session = await f.create({ requestOutputLimit: async (_request, signal) => {
+    observed = signal; caller.abort(); await new Promise(resolve => setTimeout(resolve, 0)); return 4096;
+  }, estimatedMaxCostMicroCny: () => { estimates++; return 1; } });
+  await assert.rejects(session.prompt('Cancel while choosing output.', { signal: caller.signal }));
+  assert.ok(observed instanceof AbortSignal); assert.equal(observed.aborted, true);
+  assert.equal(estimates, 0); assert.equal(f.admissions.length, 0); assert.equal(f.dispatches.length, 0);
+});
+
 test('a shortened output ending in length remains incomplete and is never retried', async t => {
   const f = await outputLimitFixture(t, { stopReason: 'length' });
   const session = await f.create({ requestOutputLimit: async () => 4096 });

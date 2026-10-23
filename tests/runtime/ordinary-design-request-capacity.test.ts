@@ -223,6 +223,7 @@ test('COS122 funded ordinary host gets design capacity while retaining its origi
   await runProductSession({ command: 'new', root: args.runRoot, brief: args.payload.brief, funding: binding, limits: args.payload.limits,
     host, input: Readable.from(['点击完成\nconfirm 1\n']), output });
   assert.deepEqual(configs.map(config => [JSON.parse(config.context).role, config.maxRequests]), [['cosmos', 16], ['design', 32]]);
+  assert.deepEqual(configs.map(config => [config.maxOutputTokens, typeof config.requestOutputLimit]), [[8192, 'undefined'], [32768, 'function']]);
   const state = await f.child(args.runRoot), packet = JSON.parse(configs[1].context);
   assert.equal(state.ledger.limitMicroCny, 5000000); assert.deepEqual(state.validationFunding, binding);
   assert.equal(Date.parse(state.run.originalDeadlineAt) - Date.parse(state.run.originalStartedAt), 1800000);

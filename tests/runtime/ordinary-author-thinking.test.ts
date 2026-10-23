@@ -60,15 +60,19 @@ test('ordinary design alone disables thinking in native SDK payload while origin
     assert.equal(body.model, 'deepseek-flash'); assert.equal(state.requests.at(-1).requestId, state.ledger.entries.at(-1).requestId);
     const entry = state.ledger.entries.at(-1); assert.equal(entry.status, 'reserved'); assert.equal(entry.taskId, packet.taskId);
     assert.ok(entry.reservedMicroCny > body.max_tokens * 8, 'The existing estimator reserves input and the unchanged output cap before dispatch.');
-    const chunk = { id: 'offline-cos113', model: 'deepseek-flash', choices: [{ index: 0, delta: { content: 'Complete' }, finish_reason: 'stop' }],
-      usage: { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40 } };
+    const design = packet.role === 'design', output = design ? Math.min(body.max_tokens, 9001) : 10;
+    const chunk = { id: 'offline-cos113', model: 'deepseek-flash', choices: [{ index: 0, delta: { content: design ? '完整设计内容。'.repeat(5000) : 'Complete' },
+      finish_reason: design && body.max_tokens < 9001 ? 'length' : 'stop' }],
+      usage: { prompt_tokens: 30, completion_tokens: output, total_tokens: 30 + output } };
     return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
   });
   t.after(() => fetchMock.mock.restore());
   f.hostOptions.sessionFactory = async config => {
     configs.push(config);
     const native = await createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-cos113' } });
-    try { await native.prompt('Exercise the original role request configuration.'); } finally { await native.close(); }
+    try { await native.prompt('Exercise the original role request configuration.'); }
+    catch (error) { t.diagnostic(`Controlled native response failure: ${(error as Error & { code?: string }).code}: ${(error as Error).message}`); throw error; }
+    finally { await native.close(); }
     return scripted(config);
   };
   const result: any = await f.execute();
@@ -78,7 +82,7 @@ test('ordinary design alone disables thinking in native SDK payload while origin
   for (const { role, body } of payloads) {
     assert.deepEqual(body.thinking, { type: role === 'design' ? 'disabled' : 'enabled' });
     assert.equal(body.reasoning_effort, role === 'design' ? undefined : 'low');
-    assert.equal(body.max_tokens, role === 'art' || role === 'coding' ? 65536 : 8192);
+    assert.equal(body.max_tokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : 8192);
   }
   const state: any = await readRunSnapshot(f.root);
   for (const config of configs) {
@@ -99,6 +103,27 @@ test('ordinary design alone disables thinking in native SDK payload while origin
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 3);
   assert.ok(f.packets.filter(packet => packet.role === 'reviewer').every(packet => packet.ownership.writePaths.length === 0));
   assert.equal(f.plays.length, 1); assert.deepEqual(f.plays[0].plan.steps.filter((step: any) => !step.id.startsWith('host-media-')), f.scenario.steps);
+});
+
+test('COS124 modular ordinary host enables budget selection only for design while capture and independent review remain required', async t => {
+  const f = await ordinaryHostFixture(t, { modular: true }), scripted = f.hostOptions.sessionFactory!, configs: any[] = [];
+  f.hostOptions.sessionFactory = async config => { configs.push(config); return scripted(config); };
+  const result: any = await f.execute(); assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
+  for (const config of configs) {
+    const role = JSON.parse(config.context).role;
+    assert.equal(config.maxOutputTokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : 8192);
+    assert.equal(typeof config.requestOutputLimit, role === 'design' ? 'function' : 'undefined');
+  }
+  assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 5); assert.ok(f.checks.length); assert.equal(f.plays.length, 1);
+});
+
+test('COS124 legacy browser host retains the original author cap without budget selection', async t => {
+  const f = await ordinaryHostFixture(t), scripted = f.hostOptions.sessionFactory!, configs: any[] = [], draft = f.draft as any;
+  delete draft.ordinaryProfile; delete draft.experienceCriteria; draft.scenario = f.scenario; f.host.ordinaryProfile = undefined;
+  f.hostOptions.sessionFactory = async config => { configs.push(config); return scripted(config); };
+  await f.execute();
+  const design = configs.find(config => JSON.parse(config.context).role === 'design'); assert.ok(design);
+  assert.equal(design.maxOutputTokens, 8192); assert.equal(design.requestOutputLimit, undefined);
 });
 
 test('ordinary failed insufficient evidence remains closed to redispatch after author configuration changes', async t => {

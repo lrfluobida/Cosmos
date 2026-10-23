@@ -52,7 +52,7 @@ export interface PiSessionOptions {
   /** Trusted host authority, refreshed before admission and immediately before dispatch. */
   requestWindow?: () => Promise<{ deadlineAt: number; cleanupMs: number }>;
   /** Trusted host policy using actual input bounds; may only reduce the configured output cap. */
-  requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>) => Promise<number>;
+  requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>, signal?: AbortSignal) => Promise<number>;
   /** Trusted host decision at a successful tool boundary; actual summary requests still need admission. */
   requestCompaction?: (request: Readonly<Pick<PiRequest, 'maxOutputTokens' | 'inputBytes' | 'hasImages'>>) => Promise<boolean>;
   /** Host must cover the input size and image cost of each request, including compaction. */
@@ -158,14 +158,18 @@ export async function createPiSession(config: PiSessionOptions) {
     };
     if (config.requestOutputLimit) {
       let limit: number;
-      try { limit = await config.requestOutputLimit(Object.freeze({ ...request })); }
+      try { limit = await config.requestOutputLimit(Object.freeze({ ...request }), options?.signal); }
       catch { throw fail('admission_rejected', 'Request output limit authority rejected; no provider request sent'); }
+      throwIfFailed();
+      if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled before output limit admission');
       if (!Number.isSafeInteger(limit) || limit <= 0 || limit > request.maxOutputTokens) throw fail('invalid_request', 'Request output limit must be a positive safe integer within the configured cap');
       requireUnchangedInput();
       request.maxOutputTokens = limit;
     }
     const estimate = estimateRequest(request);
     await effectiveRequestTimeout();
+    throwIfFailed();
+    if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled before admission');
     try {
       await config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: estimate });
     } catch {

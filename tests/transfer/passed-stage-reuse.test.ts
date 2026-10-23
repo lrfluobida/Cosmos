@@ -166,6 +166,10 @@ test('new real source DAG dispatches only coding with inherited old IDs, current
   const result = await host.withPreparation(() => executeTaskDag(options));
   assert.deepEqual(result.map(task => task.state), ['failed']); // Synthetic compiler IO deliberately cannot establish gameplay.
   assert.deepEqual(f.calls.slice(callsBefore).map(item => item.kind), ['coding', 'build']);
+  const inheritedCoding = f.configs.find(config => JSON.parse(config.context).taskId === prepared.task.taskId)!;
+  assert.equal(inheritedCoding.maxOutputTokens, 65536);
+  assert.equal(typeof inheritedCoding.requestOutputLimit, 'function'); assert.equal(typeof inheritedCoding.requestCompaction, 'function');
+  assert.ok(f.configs.filter(config => JSON.parse(config.context).role === 'design').every(config => config.maxOutputTokens === 16384 && config.requestOutputLimit === undefined));
   const after = await current.controller.read();
   assert.deepEqual(after.tasks.filter(task => f.result.some(old => old.taskId === task.taskId)), oldTasks);
   assert.deepEqual(after.ledger.allocationClosures, before.ledger.allocationClosures);

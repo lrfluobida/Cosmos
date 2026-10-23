@@ -41,9 +41,10 @@ async function fixture(t: test.TestContext) {
     assert.equal((await f.controller.validationAuthority(coding.task.taskId, 'author')).remainingMicroCny, amount);
   };
   const configs: PiSessionOptions[] = [];
-  const create = async (role: Role = 'coding', sessionFactory?: (config: PiSessionOptions) => Promise<any>) => {
+  const create = async (role: Role = 'coding', sessionFactory?: (config: PiSessionOptions) => Promise<any>, authorFloor = false) => {
     const item = role === 'reviewer' ? coding : planned.tasks.find(item => item.role === role)!;
     const factory = createRoleFactory({ maxOutputTokens: 16384, maxRequests: 3, requestTimeoutMs: 1000, env: { DEEPSEEK_API_KEY: 'offline-synthetic-key' },
+      ...(authorFloor ? { authorMaxOutputTokens: { coding: 32768, design: 32768 }, authorBudgetOutputFloor: { coding: 8192, design: 8192, art: 8192, cosmos: 8192 } } : {}),
       estimatedMaxCostMicroCny: validationReservation, sessionFactory: async config => {
         configs.push(config); return sessionFactory ? sessionFactory(config) : { prompt: async () => ({ text: '' }), close: async () => {} };
       } });
@@ -87,10 +88,11 @@ test('a configured cap below 4096 is preserved as its own minimum and cannot be 
 test('only validation coding authors receive the factory policy', async t => {
   const f = await fixture(t);
   for (const role of ['coding', 'reviewer', 'design', 'art'] as const) {
-    await f.create(role); assert.equal(typeof f.configs.at(-1)!.requestOutputLimit, role === 'coding' ? 'function' : 'undefined', role);
+    await f.create(role, undefined, true); assert.equal(typeof f.configs.at(-1)!.requestOutputLimit, role === 'coding' ? 'function' : 'undefined', role);
     assert.equal(typeof f.configs.at(-1)!.requestCompaction, role === 'coding' ? 'function' : 'undefined', role);
   }
   assert.equal(f.configs[0].maxOutputTokens, 65536);
+  assert.equal(await f.configs[0].requestOutputLimit!(metadata), 65536, 'The original validation coding policy stays independent of the ordinary floor.');
   assert.equal(f.packets[0].role, 'cosmos'); assert.equal(f.planningConfig.requestOutputLimit, undefined);
   assert.equal(f.planningConfig.requestCompaction, undefined);
   assert.equal(f.configs.find(config => JSON.parse(config.context).role === 'reviewer')!.maxOutputTokens, 16384);
