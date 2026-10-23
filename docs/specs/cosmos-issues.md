@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-23 [COS124 / #125](https://github.com/lrfluobida/Cosmos/issues/125) 已登记为open/source-pending，最终设计/计划独审批准（含取消接口修订），源码实施及独审待完成。总124、根直接100、COS18原生18子项中17个源码完成，父仍open/partial；room8因设计8K length失败而incomplete，已按原流程永久关闭，不能推断具体截断工具。
+2026-10-23 [COS124 / #125](https://github.com/lrfluobida/Cosmos/issues/125) 已独审合入并发布 `7e51115bdf87aa8cbe7533a27dc858d9fc0932d7`，closed(completed)与父[x]已GET核证。总124、根直接100、COS18十八个源码子项完成，父仍open/partial；typecheck/build及显式主模板下4/4代表通过。旧memory及room1–8永久关闭，预算内输出容量不保证真实游戏完成。
 
 2026-10-23 [COS123 / #124](https://github.com/lrfluobida/Cosmos/issues/124) 已独审合入并发布 `ba5dca0df72846bac3b2c40cc326f0f888d5bac5`，closed(completed)与父[x]已GET核证。总123、根直接100、COS18十七个源码子项完成，父仍open/partial；typecheck/build与显式主模板下4/4 host代表通过。旧memory及room1–7永久关闭，本卡不增加规划重试或历史恢复。
 
@@ -1843,11 +1843,13 @@ room7的9.175秒incomplete、6笔136637µ结算、4863363µ释放、PASS_CLOSED 
 
 ### COS-124 · 普通设计作者的预算内输出容量
 
-[COS124 / #125](https://github.com/lrfluobida/Cosmos/issues/125)，id5990331802，原生父COS18/#19、父[ ]，`open / source-pending`。design_output_plan_reviewer最终APPROVED_DESIGN / APPROVED_PLAN、取消接口修订已纳入，Root批准免费实施；作者cos124_implementer基于 `56fb0c1c6c34e25d3cc9dfe8ccbd33c2ef1b3428` 在codex/design-output-budget实现，源码reviewer cos124_reviewer，唯一merger public_agent_batch_merger。[完整规格与计划](https://github.com/lrfluobida/Cosmos/issues/125)已发布，正式两docs由作者提交，当前未批准源码。
+[COS124 / #125](https://github.com/lrfluobida/Cosmos/issues/125)，id5990331802，原生父COS18/#19，`source-integrated / source-scoped-complete`；[源码批准](https://github.com/lrfluobida/Cosmos/issues/125#issuecomment-6355858273)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/125#issuecomment-6355863234)和父[x]已精确核证。design_output_plan_reviewer最终设计/计划已批准；作者cos124_implementer基于 `56fb0c1c6c34e25d3cc9dfe8ccbd33c2ef1b3428` 提交 `2bff3ef009cbf1a4fc0575eccacc69d4e7a573a4`，独审cos124_reviewer规格/质量通过、无finding。唯一merger public_agent_batch_merger从 `34b0fdd269340e255a0a2d6ca7fec7cb31439d47` 合入并发布 `7e51115bdf87aa8cbe7533a27dc858d9fc0932d7`，17个来源文件与批准提交一致。
 
-拟仅为ordinary新产品design启用可信floor8192与原resolved max32768的预算选择；冻结配置，复用归一化requestInputBytes、原estimator及每候选独立ledger副本上的reserveEntry，从max向floor递减且不假定单调，真正reserve/admit仍为最终派发授权。既有Pi callback窄传已有请求signal，固定批次yield，核caller/owner取消及deadline/cleanup，返回后预留前再检查；实际sent cap/inputBytes/quote/requestId/modelId/hasImages六安全字段沿原recordRequest保存。原32次/off/120s、grant与review共用分配、deadline、partial-tool零执行、capture/review和其它模式保持，不增加allocator/retry/旧恢复。历史room6请求12固定32K quote505410µ超过504239µ余额，最大32621可行；这些免费核算不重派发旧请求，也不保证32K足够。
+普通新产品design显式启用可信floor8192与原resolved max32768；冻结配置后使用归一化requestInputBytes、原estimator及每候选新ledger副本reserveEntry，从max向floor递减、不假定单调，真实reserve/admit仍决定发送。既有Pi callback兼容传入请求signal，每批64候选yield并核请求/owner取消与deadline/cleanup，返回后预留前再检查；实际sent cap/inputBytes/quote/requestId/modelId/hasImages沿原recordRequest保存。原32次/off/120s、grant及review共用分配、deadline、partial-tool安全与capture/review保持，其它模式隔离，不增加allocator/retry或旧恢复。历史room6请求12固定32K拒绝、32621可行的边界得到免费验证，不重新派发旧请求。详见[规格](cos124-design-output-budget.md)与[实施计划](../plans/2026-10-23-design-output-budget.md)。
 
-room8原confirm 1后90.339秒incomplete，规划三任务/binding通过且proposedIds原本正确；design第8响应8192/length，native content为空、partial tool未执行，不能断言具体工具，plan37普通步/0reopen仍有expectAfter错误，无capture/review/art/code，未触32次请求帽。12笔235270µ已结算、释放4764730µ；独立PASS_CLOSED child69/shared3352、held/reserved/unknown0及[结案回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6355403997)保留原确认/时钟/失败。旧memory及room1–8永久关闭；此次仅登记元数据，未跑源码测试或操作实际run/ledger/coordinator。总124、根直接100、父18/17，整体仍open/partial。稳定任务ID：COS-124。
+作者核心/host/delta/modes/compat/metadata矩阵与typecheck/build/strict有效，原失败保留；独审7/7、0skip、exit0、9451.5696ms包含精确32621、连续结算metadata、async取消、SDKsignal、>8K完整tool/handoff及旧continuation两例。两旧夹具destination类型修正已独立验证。主线另跑typecheck/build exit0、显式主模板下4/4代表、0skip、TAP11358.6285ms，覆盖SDK大输出/取消、funded配置和原intake callback；重叠不累计。作者索引 `.cosmos/cos124-evidence/verification-index.json`及delivery.json，主线 `.cosmos/cos124-integration/`。总124、根直接100、父18个源码子项完成，整体仍open/partial。
+
+room8的90.339秒incomplete、12笔235270µ结算、4764730µ释放、PASS_CLOSED child69/shared3352等[原结案事实](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6355403997)保持。原proposedIds本来正确，不宣称实际纠正错误proposal；length时partial tool未执行、native content为空，不能判断具体工具。旧memory及room1–8永久关闭，不恢复或重复结算。本批未操作真实run/ledger/coordinator或room9准备，不以受控传输、较大输出或结构校验宣称实际语义、设计、游戏或体验通过。稳定任务ID：COS-124。
 
 ## 5. 任务与上下文包模板
 
