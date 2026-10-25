@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已独审合入并发布 `c189c49b0094873d2a8270151915d3aef0eba273`，closed(completed)与父[x]已GET核证。总126、根直接100、COS18二十个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下4/4代表通过。room10原draft4在provider前因原intake额度不足被拒，随后已按原API永久关闭；[结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)保持未确认/未生成，source-scoped完成不等于真实编辑语义通过。
+2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已独审合入并发布 `c189c49b0094873d2a8270151915d3aef0eba273`，closed(completed)与父[x]已GET核证。总126、根直接100、COS18二十个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下4/4代表通过。room10原draft4在provider前因原intake额度不足被拒，随后已按原API永久关闭；[结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)保持未确认/未生成，source-scoped完成不等于真实编辑语义通过；room11的单次实际修订及确认前快照见本卡后续记录。
 
 2026-10-25 [COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126) 已独审合入并发布 `2fbb61d569f88458cc454e2b6f8cb997ced5e5be`，closed(completed)与父[x]已GET核证。总125、根直接100、COS18十九个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下3/3代表通过。room9原失败/闭账保持，预算压力压缩尚无真实游戏通过结论。
 
@@ -1871,9 +1871,11 @@ room9实际13笔432959µ（intake83361、planning30703、design318895）、142.7
 
 主线typecheck/build exit0，显式COSMOS_TEMPLATE_ROOT=E:/develop/Cosmos/templates/2d下4/4、0fail、0skip、TAP16292.4129ms：真实CLI编辑、funded旧v3→新v4、较晚revision cache、新context schema唯一后继。作者compat122/122与最终28/28、独审8/8及只读2/2按未变范围复用，不累计重叠；原失败保留，命令与输出见 `.cosmos/cos126-integration/`。
 
-仅新ordinary编辑轮次携带经固定上一版草稿/完整来源核验的独立editContext；当前真实问答优先，旧proposal是未确认参照。新intent版本绑定旧稿，原版本1缓存及length/denial/schema后继保持原解释，来源失效在派发与claim前拒绝。原answers与完整proposal输出、真实当前版确认、预算估价/准入/结算和生成时钟保持，不增加请求、grant、重试或旧请求回填；实际模型语义保持效果尚未验证。
+仅新ordinary编辑轮次携带经固定上一版草稿/完整来源核验的独立editContext；当前真实问答优先，旧proposal是未确认参照。新intent版本绑定旧稿，原版本1缓存及length/denial/schema后继保持原解释，来源失效在派发与claim前拒绝。原answers与完整proposal输出、真实当前版确认、预算估价/准入/结算和生成时钟保持，不增加请求、grant、重试或旧请求回填；room11已核证一次真实修订结果，详见下文；游戏生成和体验仍未验证。
 
-room10在runtime `c189c49b0094873d2a8270151915d3aef0eba273` 建立format2/v3投影上下文（8玩法AC/4体验），但draft4的input58649 bytes/8192 floor报价182834µ超过原intake余额121179µ，provider未派发，仍4笔128821µ、无新增费用。原v1–v3/runtime2fbb61d及失败native保留；未确认、未生成。2026-10-25T18:44:18.949Z原stop/close+settle后释放4871179µ，18:45:37Z独立PASS_CLOSED child38/shared3356、held/reserved/unknown0、无残留，[结案回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)已核证。旧memory/room1–10永久关闭，不恢复或重复结算。COS126源码范围完成保持，真实编辑语义尚未验证；总126/root100/父20个源码子项完成，父仍open/partial。稳定任务ID：COS-126。
+room10在runtime `c189c49b0094873d2a8270151915d3aef0eba273` 建立format2/v3投影上下文（8玩法AC/4体验），但draft4的input58649 bytes/8192 floor报价182834µ超过原intake余额121179µ，provider未派发，仍4笔128821µ、无新增费用。原v1–v3/runtime2fbb61d及失败native保留；未确认、未生成。2026-10-25T18:44:18.949Z原stop/close+settle后释放4871179µ，18:45:37Z独立PASS_CLOSED child38/shared3356、held/reserved/unknown0、无残留，[结案回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)已核证。旧memory/room1–10永久关闭，不恢复或重复结算。COS126源码范围完成保持，该次请求未验证真实编辑语义；总126/root100/父20个源码子项完成，父仍open/partial。稳定任务ID：COS-126。
+
+room11 actual v2截至2026-10-25T19:14:02Z经独立PASS_COMPLETE_REQUIREMENT_SCOPE、EXPORT_EXACT与PASS_RESUMABLE_WAIT；10AC（8玩法+2host）/4体验/12问答、unsupported[]，145原字符串和raw JSON精确导出。真实draft2 intent/native携带v1投影，只修改A3，其余9AC/4体验不变，无额外successor；这是COS126的本次真实修订结果。原CLI cancel exit0，child23、3笔93226µ settled、reserved/unknown/pending/残留0，shared3357原5M held保留、未settle/confirm/stop/激活时钟。Root已提交当前完整v2确认问题；此为确认前快照，非游戏完成，后续以真实用户答复为准。[公开回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6402042529)记录草稿/导出SHA与原运行边界；runtime保持 `c189c49b0094873d2a8270151915d3aef0eba273`。
 
 ## 5. 任务与上下文包模板
 

@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-26 room11 actual v2截至2026-10-25T19:14:02Z的确认前快照（[公开回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6402042529)）：独立room10_draft_review给出PASS_COMPLETE_REQUIREMENT_SCOPE，10AC（8玩法+2host）/4体验/12问答、unsupported[]，无额外codeProfile/scenario；导出EXPORT_EXACT，145原字符串及完整raw JSON精确对应。草稿SHA `458bef64a03041ab05d05f8893e5e19a83b26b4142d55d801b28bf1a1c1f78e5`，导出SHA `24751b3ef917689f5f9e3dfe9762690b2d0e7736806551a03f279a3ff7296936`，完整文档 `.cosmos/public-validation/room-20261026-11/draft-v2-review.md`。runtime `c189c49b0094873d2a8270151915d3aef0eba273` 的真实draft2 intent/native携带v1投影，仅A3改变，其余9AC/4体验完全不变，未注入旧answers，无successor或额外轮次；这是单次真实修订证据，尚无游戏/体验完成结论。
+
+原CLI3493 cancel exit0，独立operator PASS_RESUMABLE_WAIT/EXPORT_EXACT：child23，3笔8848+41989+42389=93226µ settled，reserved/unknown/pending及资源/锁/进程0；shared3357原5M held保留未settle，无confirm/stop/生成时钟。Root已向用户提交当前完整v2确认问题；本条记录已核时间点快照，后续以真实答复及原CLI为准，不代确认。原¥5/30min与源码保持，父COS18仍open/partial；旧memory及room1–10永久关闭。本次仅进度元数据，未操作真实run/ledger/coordinator。
+
 2026-10-26 room10已永久关闭（[结案核证](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)），未确认、未启动generation。COS126 runtime `c189c49b0094873d2a8270151915d3aef0eba273` 的format2确将v3的8个玩法AC/4体验送入native context，但draft4在provider前被原intake预算拒绝：input58649 bytes、8192 floor报价182834µ超过原余额121179µ，无第五request或新增费用；真实编辑语义仍未验证，COS126 source-scoped完成保持。旧v1–v3的runtime2fbb61d、原问答/草稿及draft4失败native/intent完整保留。
 
 原Intake stop/close一次及wrapper settle一次于2026-10-25T18:44:18.949Z关闭，4笔128821µ结算、释放4871179µ；独立room10_wait_check于18:45:37Z核证PASS_CLOSED，child38/shared3356 committed20705720µ/unallocated54106705µ、held/reserved/unknown0，无锁/control/进程，各请求仅导入一次、一closure/settlement。证据 `.cosmos/public-validation/room-20261025-10/intake-closure.json`及`draft4-admission-failure.json`；旧memory及room1–10永久关闭，不恢复或再次结算。父COS18仍open/partial，本次只发布实际结果元数据，不新开源码任务或预报下一次验证。
