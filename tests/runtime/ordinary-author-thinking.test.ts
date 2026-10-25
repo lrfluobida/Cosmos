@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { mock, test } from 'node:test';
 import { createPiSession } from '../../src/providers/pi.ts';
@@ -88,6 +88,9 @@ test('ordinary design alone disables thinking in native SDK payload while origin
   for (const config of configs) {
     const packet = JSON.parse(config.context), task = state.tasks.find((task: any) => task.taskId === packet.taskId);
     assert.equal(config.maxRequests, packet.role === 'design' ? 32 : 16); assert.equal(config.requestTimeoutMs, packet.role === 'coding' ? 600000 : 120000);
+    assert.equal(typeof config.requestCompactionAdmission, packet.role === 'design' ? 'function' : 'undefined');
+    assert.equal(typeof config.requestCompaction, packet.role === 'design' ? 'function' : 'undefined');
+    assert.equal(config.compactionKeepRecentTokens, packet.role === 'design' ? 8000 : undefined);
     if (packet.role === 'design') assert.match(config.systemPrompt, /at most 32 model requests/);
     else assert.doesNotMatch(config.systemPrompt, /model requests/);
     assert.equal(packet.budget.originalDeadlineAt, state.run.originalDeadlineAt);
@@ -113,6 +116,8 @@ test('COS124 modular ordinary host enables budget selection only for design whil
     const role = JSON.parse(config.context).role;
     assert.equal(config.maxOutputTokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : 8192);
     assert.equal(typeof config.requestOutputLimit, role === 'design' ? 'function' : 'undefined');
+    assert.equal(typeof config.requestCompactionAdmission, role === 'design' ? 'function' : 'undefined');
+    assert.equal(typeof config.requestCompaction, role === 'design' ? 'function' : 'undefined');
   }
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 5); assert.ok(f.checks.length); assert.equal(f.plays.length, 1);
 });
@@ -124,6 +129,7 @@ test('COS124 legacy browser host retains the original author cap without budget 
   await f.execute();
   const design = configs.find(config => JSON.parse(config.context).role === 'design'); assert.ok(design);
   assert.equal(design.maxOutputTokens, 8192); assert.equal(design.requestOutputLimit, undefined);
+  assert.equal(design.requestCompaction, undefined); assert.equal(design.requestCompactionAdmission, undefined);
 });
 
 test('ordinary failed insufficient evidence remains closed to redispatch after author configuration changes', async t => {
@@ -140,4 +146,26 @@ test('ordinary failed insufficient evidence remains closed to redispatch after a
   assert.equal(after.run.originalStartedAt, before.run.originalStartedAt); assert.equal(after.run.originalDeadlineAt, before.run.originalDeadlineAt);
   assert.deepEqual(await readFile(join(design.attempts[0].sessionRef, 'failure.json')), feedback);
   assert.equal(after.tasks.some((task: any) => task.taskId.includes('repair')), false);
+});
+
+test('COS125 compaction capability cannot bypass actual checkpoint validation or capture', async t => {
+  const f = await ordinaryHostFixture(t, { persistent: true }), scripted = f.hostOptions.sessionFactory!;
+  let rejected = 0;
+  f.hostOptions.sessionFactory = async config => {
+    const session = await scripted(config), packet = JSON.parse(config.context);
+    if (packet.role !== 'design') return session;
+    assert.equal(typeof config.requestCompactionAdmission, 'function');
+    return { ...session, prompt: async (...args) => {
+      const result = await session.prompt(...args), path = join(config.workspace, 'authors/design/acceptance-plan.json');
+      const plan = JSON.parse(await readFile(path, 'utf8')); plan.scenario.steps.pop();
+      await writeFile(path, JSON.stringify(plan), 'utf8');
+      const check = config.tools.find(tool => tool.name === 'validate-game-design')!;
+      const checked = await check.execute('missing-checkpoint', {}, undefined, undefined, undefined as any);
+      assert.match(JSON.stringify(checked), /checkpoint/); assert.equal(JSON.parse((checked.content[0] as any).text).passed, false);
+      rejected++; return result;
+    } };
+  };
+  const result: any = await f.execute();
+  assert.ok(rejected > 0); assert.equal(result.acceptedCandidate, undefined);
+  assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 0); assert.equal(f.plays.length, 0);
 });

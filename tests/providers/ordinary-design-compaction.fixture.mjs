@@ -20,7 +20,7 @@ export async function ordinaryDesignCompactionFixture(t, mode = 'success', setti
   await writeFile(join(f.root, 'outside.txt'), 'This is outside the role read scope.', 'utf8');
   let native, config, role, ordinary = 0, summaries = 0, networkCalls = 0, sdkCap, beforeCompaction, closing, error, result;
   const caller = new AbortController(), skipMode = mode === 'skip' || mode.startsWith('skip-');
-  let prior = settings.history === true, mainStarted = !prior, sourceRead = false;
+  let prior = settings.history === true, mainStarted = !prior, sourceRead = false, readonlyTurn = false;
   const projected = () => normalizeContext({ messages: convertToLlm(native.sessionManager.buildSessionProjection().messages) });
   const compactions = () => native.sessionManager.getEntries().filter(entry => entry.type === 'compaction');
   const spendTo = async available => {
@@ -53,6 +53,7 @@ export async function ordinaryDesignCompactionFixture(t, mode = 'success', setti
       native.agent.prepareNextTurnWithContext = async (turn, signal) => {
         const n = ordinary - (prior ? 1 : 0);
         if (n === 2) await spendTo(507835);
+        if (n === 3 && settings.lateGrowth) await spendTo(356105);
         const context = projected(), boundary = { inputBytes: requestInputBytes(context), ordinary, summaries, checkpoints: compactions().length,
           before: JSON.stringify(context), leaf: native.sessionManager.getLeafId() };
         boundaries.push(boundary);
@@ -74,7 +75,7 @@ export async function ordinaryDesignCompactionFixture(t, mode = 'success', setti
       dispatches.push(observed);
       if (!summary) {
         assert.ok(observed.context.includes(JSON.stringify(config.context).slice(1, -1)), 'The complete original authority packet survives compaction.');
-        assert.deepEqual(native.getActiveToolNames().sort(), ['edit', 'read', 'write']);
+        assert.deepEqual(native.getActiveToolNames().sort(), readonlyTurn ? [] : ['edit', 'read', 'write']);
         sourceRead ||= context.messages.some(message => message.role === 'toolResult' && JSON.stringify(message).includes('完整冻结来源'));
       }
       let content, stopReason = 'stop';
@@ -89,17 +90,21 @@ export async function ordinaryDesignCompactionFixture(t, mode = 'success', setti
         if (n === settings.finalAt) content = [{ type: 'text', text: JSON.stringify({ summary: '合成有界交接', remaining: [], uncertainty: [] }) }];
         else if (n <= 2) {
           stopReason = 'toolUse';
-          content = [{ type: 'toolCall', id: 'write-' + n, name: 'write', arguments: { path: 'game/plan.txt', content: '合成计划第' + n + '版。' + 'p'.repeat(mode === 'noop' ? 50 : 55000) } }];
+          content = [{ type: 'toolCall', id: 'write-' + n, name: 'write', arguments: { path: 'game/plan.txt', content: '合成计划第' + n + '版。' + 'p'.repeat(mode === 'noop' ? 50 : 55000 + (n === 2 ? 2423 : 0)) } }];
         } else if (n === 3) {
-          stopReason = 'toolUse'; content = [{ type: 'toolCall', id: 'read-source', name: 'read', arguments: { path: 'requirements/v1.json' } }];
+          stopReason = 'toolUse';
+          content = settings.lateGrowth
+            ? [{ type: 'toolCall', id: 'late-growth', name: 'write', arguments: { path: 'game/plan.txt', content: 'Later synthetic plan. ' + 'p'.repeat(74060) } }]
+            : [{ type: 'toolCall', id: 'read-source', name: 'read', arguments: { path: settings.outsideRead ? 'outside.txt' : 'requirements/v1.json' } }];
         } else if (n === 4) {
           stopReason = 'toolUse'; content = [{ type: 'toolCall', id: 'write-final', name: 'write', arguments: { path: 'game/note.txt', content: 'Synthetic author output. 中文保持。' } }];
         } else content = [{ type: 'text', text: JSON.stringify({ summary: '合成作者交接，仍待验证与独审', remaining: [], uncertainty: [] }) }];
       }
       return lazyStream(model, async () => (async function* () {
-        if (!(summary && mode === 'unknown')) await options.onProviderStreamEvent({ model: 'deepseek-flash', usage: { prompt_tokens: 1, completion_tokens: 1 } }, model);
+        const actualUsage = summary && settings.peakSummary ? { ...usage, input: observed.inputBytes, output: observed.cap, totalTokens: observed.inputBytes + observed.cap } : usage;
+        if (!(summary && mode === 'unknown')) await options.onProviderStreamEvent({ model: 'deepseek-flash', usage: { prompt_tokens: actualUsage.input, completion_tokens: actualUsage.output } }, model);
         yield { type: 'done', reason: stopReason, message: { role: 'assistant', content, api: 'openai-completions', provider: 'deepseek',
-          model: 'deepseek-flash', stopReason, timestamp: Date.now(), usage } };
+          model: 'deepseek-flash', stopReason, timestamp: Date.now(), usage: actualUsage } };
       })());
     };
     return runtime;
@@ -145,5 +150,6 @@ export async function ordinaryDesignCompactionFixture(t, mode = 'success', setti
   const state = await f.controller.read();
   assert.equal(networkCalls, 0);
   return { f, role, native, config, state, report: { error, result, ordinary, summaries, sourceRead, networkCalls, dispatches, admissions, settlements, preflights, selections, boundaries, events, compactions: compactions().length },
+    readonlyPrompt: async () => { readonlyTurn = true; try { return await role.readonlyPrompt('Restate the existing synthetic handoff.'); } finally { readonlyTurn = false; } },
     readOutput: () => readFile(join(f.root, 'game/note.txt'), 'utf8') };
 }
