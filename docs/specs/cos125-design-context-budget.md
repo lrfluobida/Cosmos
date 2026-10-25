@@ -1,8 +1,10 @@
 # COS-125 · 普通设计作者的预算压力压缩
 
-状态：已独立APPROVED_PLAN并获Root批准发布与免费实施；设计作者不得自批准，源码独审与集成待完成。
+状态：已完成独立源码审查与主线集成，source-scoped-complete。
 
-审批记录：[COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126)；独立 reviewer `design_context_plan_reviewer` 给出 `APPROVED_PLAN`、无finding，Root批准固定输入的规格/计划发布与免费源码实施。此为设计/计划批准，源码须另行独审与集成。
+源码结果：独立cos125_reviewer对 `47f975ece24ee32b4361cd9af0c15bbead9a42e9` 完成规格/质量审查，APPROVED_SOURCE_SCOPED、无finding；唯一merger合入发布 `2fbb61d569f88458cc454e2b6f8cb997ced5e5be`，11文件精确一致，主线typecheck/build及3/3短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/126#issuecomment-6396523398)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/126#issuecomment-6396526720)已核证。仅SOURCE范围完成，父COS18仍open/partial；room9永久关闭，新源码尚无真实游戏通过结论。
+
+审批记录：[COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126)；独立 reviewer `design_context_plan_reviewer` 给出 `APPROVED_PLAN`、无finding，Root批准固定输入的规格/计划发布与免费源码实施。此为设计/计划批准记录；源码后续独审与集成结果见上述状态。
 
 - 批准规格输入 SHA256：`34185a611eceba6feffe664c4c73d3331034f4a7d53c34ec6135b066e7e6f5f2`
 - 批准计划输入 SHA256：`6ea930a2b3ad51bf6030e736fc858346d38cbf199683b9f8e66e9661146ddbb5`
@@ -143,4 +145,4 @@ SDK 将摘要中的 toolResult 截至 2000 字符，因此模型必要时通过�
 
 通过条件包括：早触发、实际摘要 quote、合法小 cap、skip 无派发/计数/账务、副作用不变、双摘要已付费用保留、原输入权限保留、严格失败边界、capture/独审要求不变。既有兼容证据按代码影响复用。
 
-实施者在独立 managed worktree/branch 提交 exact SHA、测试证据和缺口；独立 reviewer 审实际 diff。Root 安排唯一 merger 集成。本规格已获批准发布与免费实施；源码尚未完成独审和集成，仍不授权重新运行 room9。
+实施者在独立 managed worktree/branch 提交 exact SHA、测试证据和缺口；独立 reviewer 审实际 diff。Root 安排唯一 merger 集成。本规格的源码已独审批准并集成，仅source-scoped完成，仍不授权重新运行 room9。

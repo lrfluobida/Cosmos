@@ -10,9 +10,11 @@
 
 ---
 
-状态：已独立APPROVED_PLAN并获Root批准发布与免费实施；不得自批准，源码须另行独审。配套规格：[COS125规格](../specs/cos125-design-context-budget.md)。基线 main `9ecc24508da4309a574b6f0a53a4300b2300ee6c`。本计划不恢复永久闭账的 room9，不操作 shared3354。
+状态：已完成独立源码审查与主线集成，source-scoped-complete。配套规格：[COS125规格](../specs/cos125-design-context-budget.md)。基线 main `9ecc24508da4309a574b6f0a53a4300b2300ee6c`。本计划不恢复永久闭账的 room9，不操作 shared3354。
 
-审批记录：[COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126)；独立 reviewer `design_context_plan_reviewer` 给出 `APPROVED_PLAN`、无finding，Root批准固定输入的规格/计划发布与免费源码实施。此为设计/计划批准，源码须另行独审与集成。
+源码结果：独立cos125_reviewer对 `47f975ece24ee32b4361cd9af0c15bbead9a42e9` 完成规格/质量审查，APPROVED_SOURCE_SCOPED、无finding；唯一merger合入发布 `2fbb61d569f88458cc454e2b6f8cb997ced5e5be`，11文件精确一致，主线typecheck/build及3/3短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/126#issuecomment-6396523398)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/126#issuecomment-6396526720)已核证。仅SOURCE范围完成，父COS18仍open/partial；room9永久关闭，新源码尚无真实游戏通过结论。
+
+审批记录：[COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126)；独立 reviewer `design_context_plan_reviewer` 给出 `APPROVED_PLAN`、无finding，Root批准固定输入的规格/计划发布与免费源码实施。此为设计/计划批准记录；源码后续独审与集成结果见上述状态。
 
 - 批准规格输入 SHA256：`34185a611eceba6feffe664c4c73d3331034f4a7d53c34ec6135b066e7e6f5f2`
 - 批准计划输入 SHA256：`6ea930a2b3ad51bf6030e736fc858346d38cbf199683b9f8e66e9661146ddbb5`
