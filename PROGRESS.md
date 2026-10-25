@@ -1,8 +1,12 @@
 # Cosmos 进度
 
-更新时间：2026-10-25
+更新时间：2026-10-26
 
 ## 当前继续通用游戏开发 agent 能力
+
+2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已登记（id6027629266），原生父COS18/#19、父[ ]；独立intake_edit_plan_reviewer已APPROVED_PLAN、无finding，Root批准固定SHA的[正式规格](docs/specs/cos126-intake-edit-context.md)与[实施计划](docs/plans/2026-10-26-intake-edit-context.md)发布和免费实施。作者cos126_implementer基于 `8485321c35bacf06c285596eb808d588027f1774` 实施，源码reviewer待Root指派，唯一merger public_agent_batch_merger；本卡保持open/source-pending。新ordinary编辑拟以独立上下文携带可信上一版proposal，当前完整问答优先，保留仍适用的未改条目；新intent版本与旧缓存/后继严格兼容，不污染原answers、不改完整输出/确认协议、不增加请求或预算。总126、根直接100、父20个子项中19个源码完成，父仍open/partial。
+
+room10等待快照截至2026-10-25T17:46:37Z（北京时间2026-10-26 01:46:37）：原CLI cancel exit0，独立room10_wait_check给出PASS_CLEAN_WAIT；actual v3未确认，child32、4笔128821µ全settled、reserved/unknown/pending及资源/锁/进程0，confirmation/stop/生成时钟为空。shared3355原5000000µ held保留，原run未stop/close/settle；v3 SHA `71a8bd509e0e1c060e4f28f6f5b9345bcf59f13f20c93e5863630eac2fd55c9f`，证据 `.cosmos/public-validation/room-20261025-10/draft-v3-wait.json`。旧v1–v3来自runtime `2fbb61d569f88458cc454e2b6f8cb997ced5e5be`，新edit版本须另记实际源码/来源，保留旧证据。本次仅文档登记；原run后续资格与真实当前稿确认由Root/operator处理，旧memory及room1–9永久关闭，不重复结算。
 
 2026-10-25 [COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126) 已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/126#issuecomment-6396523398)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/126#issuecomment-6396526720)和父[x]已GET核证。作者cos125_implementer的 `47f975ece24ee32b4361cd9af0c15bbead9a42e9` 经独立cos125_reviewer对全部11文件完成规格/质量审查，APPROVED_SOURCE_SCOPED、无finding；唯一merger从 `d06dffec0d19530cac99ef2f16f017e0146a71af` 保留四个作者提交合入并发布 `2fbb61d569f88458cc454e2b6f8cb997ced5e5be`，11个源码/测试文件与批准提交一致。正式[规格](docs/specs/cos125-design-context-budget.md)与[计划](docs/plans/2026-10-25-design-context-budget.md)保留原批准输入SHA，状态收尾。
 
