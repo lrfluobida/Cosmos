@@ -1,8 +1,12 @@
 # Cosmos 进度
 
-更新时间：2026-10-23
+更新时间：2026-10-25
 
 ## 当前继续通用游戏开发 agent 能力
+
+2026-10-25 [COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126) 已登记（id6023281426），原生父COS18/#19、父[ ]；独立design_context_plan_reviewer已APPROVED_PLAN、无finding，Root批准固定SHA规格/计划发布与免费实施。正式[规格](docs/specs/cos125-design-context-budget.md)与[计划](docs/plans/2026-10-25-design-context-budget.md)保留批准技术内容，仅调整状态/链接并记录批准输入SHA；作者cos125_implementer从 `9ecc24508da4309a574b6f0a53a4300b2300ee6c` 在codex/design-context-budget实施，源码候选正由独立cos125_reviewer审查，唯一merger public_agent_batch_merger。源码尚未批准或集成；拟在原8K请求仍可负担时提前使用既有原生压缩，实际摘要预算不足仅按严格未派发规则跳过，不新增session/retry/grant或旧恢复，原32请求/off/120s/32768上限/8192 floor及权限保持。
+
+room9已永久关闭，142.769秒incomplete（[最终结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6396437243)）。2026-10-25原confirm 2于08:42:17.156Z、start08:42:17.683Z/deadline09:12:17.683Z，ended08:44:40.452Z；规划通过三任务，design8次318895µ后，第9次真实输入206370 bytes、8K最低报价478276µ超过原设计余额356105µ，未发送。第7/8次cap31591/11693已体现原预算选择，未触32次帽；最终设计仅结构通过，计划第一阶段52步仍缺checkpoint，无capture/review/art/code/候选。含访谈13笔432959µ，stop09:01:28.708Z child76、settle09:01:36.749Z释放4567041µ；PASS_CLOSED09:21:07.947Z，shared3354 committed20576899µ/unallocated54235526µ、exposure0，各请求仅导入一次、一closure且无残留。旧memory及room1–9永久关闭；总125、根直接100、父19子项中18个源码完成，COS125保持open/source-pending，父仍open/partial，本次仅文档登记。
 
 2026-10-23 [COS124 / #125](https://github.com/lrfluobida/Cosmos/issues/125) 已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/125#issuecomment-6355858273)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/125#issuecomment-6355863234)和父[x]已GET核证。作者cos124_implementer的 `2bff3ef009cbf1a4fc0575eccacc69d4e7a573a4` 经独立cos124_reviewer规格/质量审查，APPROVED_SOURCE_SCOPED、无finding；唯一merger从 `34b0fdd269340e255a0a2d6ca7fec7cb31439d47` 合入并发布 `7e51115bdf87aa8cbe7533a27dc858d9fc0932d7`，17个来源文件与批准版本一致。ordinary新产品design在固定8192..32768范围内按真实inputBytes、原估价和reserveEntry账本副本选择可负担cap；每批64候选yield，复用请求/controller取消信号并在预留前复核，仅该作者沿原recordRequest保存六个安全请求字段。原32次/off/120s、grant/deadline、partial-tool零执行及capture/review保持，不新增allocator/retry或历史恢复。
 
