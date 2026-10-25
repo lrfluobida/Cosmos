@@ -110,11 +110,13 @@ test('COS122 fixed validation retains the declared host cap and ignores a truste
   assert.equal(f.configs.at(-1)!.maxRequests, f.declaration.limits.maxRequests);
   assert.doesNotMatch(f.configs.at(-1)!.systemPrompt, /model requests/);
   let seen!: PiSessionOptions;
-  const factory = createRoleFactory({ ...base, authorMaxRequests: { design: 32 }, sessionFactory: async config => {
+  const factory = createRoleFactory({ ...base, authorMaxRequests: { design: 32 }, authorMaxOutputTokens: { design: 32768 },
+    authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true, sessionFactory: async config => {
     seen = config; return { prompt: async () => ({ text: '' }), close: async () => {} };
   } });
   const overridden = await factory(input); await overridden.close();
   assert.equal(seen.maxRequests, 16); assert.doesNotMatch(seen.systemPrompt, /model requests/);
+  assert.equal(seen.requestCompaction, undefined); assert.equal(seen.requestCompactionAdmission, undefined);
 });
 
 for (const count of [17, 32]) test(`COS122 native design author reaches protocol handoff on model request ${count}`, async t => {
@@ -224,6 +226,8 @@ test('COS122 funded ordinary host gets design capacity while retaining its origi
     host, input: Readable.from(['点击完成\nconfirm 1\n']), output });
   assert.deepEqual(configs.map(config => [JSON.parse(config.context).role, config.maxRequests]), [['cosmos', 16], ['design', 32]]);
   assert.deepEqual(configs.map(config => [config.maxOutputTokens, typeof config.requestOutputLimit]), [[8192, 'undefined'], [32768, 'function']]);
+  assert.deepEqual(configs.map(config => [typeof config.requestCompaction, typeof config.requestCompactionAdmission, config.compactionKeepRecentTokens]),
+    [['undefined', 'undefined', undefined], ['function', 'function', 8000]]);
   const state = await f.child(args.runRoot), packet = JSON.parse(configs[1].context);
   assert.equal(state.ledger.limitMicroCny, 5000000); assert.deepEqual(state.validationFunding, binding);
   assert.equal(Date.parse(state.run.originalDeadlineAt) - Date.parse(state.run.originalStartedAt), 1800000);
@@ -231,4 +235,27 @@ test('COS122 funded ordinary host gets design capacity while retaining its origi
   assert.equal(packet.budget.allocationMicroCny, state.ledger.allocations.find((item: any) => item.taskId === 'design').amountMicroCny);
   assert.equal(state.tasks.find((task: TaskContract) => task.taskId === 'design').attempts.length, 1);
   assert.equal(state.ledger.entries.length, 0);
+});
+
+test('COS125 trusted design compaction selection is frozen and limited to the design author', async t => {
+  const f = await fixture(t); let seen!: PiSessionOptions;
+  const options: RoleFactoryOptions = { ...base, authorMaxOutputTokens: { design: 32768 }, authorBudgetOutputFloor: { design: 8192 },
+    ordinaryDesignBudgetCompaction: true, compactionKeepRecentTokens: 16000, sessionFactory: async config => {
+      seen = config; return { prompt: async () => ({ text: '' }), close: async () => {} };
+    } };
+  const factory = createRoleFactory(options); options.ordinaryDesignBudgetCompaction = undefined;
+  for (const [role, purpose] of [['design', undefined], ['art', undefined], ['coding', undefined], ['cosmos', undefined],
+    ['design', 'planning'], ['cosmos', 'planning'], ['reviewer', undefined]] as const) {
+    const session = await factory({ ...f.input, role, purpose }); await session.close();
+    const enabled = role === 'design' && !purpose;
+    assert.equal(typeof seen.requestCompaction, enabled ? 'function' : 'undefined');
+    assert.equal(typeof seen.requestCompactionAdmission, enabled ? 'function' : 'undefined');
+    assert.equal(seen.compactionKeepRecentTokens, enabled ? 8000 : 16000);
+  }
+  for (const invalid of [false, 'true', 1, null]) {
+    assert.throws(() => createRoleFactory({ ...options, ordinaryDesignBudgetCompaction: invalid } as unknown as RoleFactoryOptions), /ordinaryDesignBudgetCompaction/);
+  }
+  for (const overrides of [{ authorBudgetOutputFloor: undefined }, { authorMaxOutputTokens: { design: 16384 } }, { authorBudgetOutputFloor: { design: 4096 } }]) {
+    assert.throws(() => createRoleFactory({ ...options, ...overrides, ordinaryDesignBudgetCompaction: true }), /ordinaryDesignBudgetCompaction/);
+  }
 });

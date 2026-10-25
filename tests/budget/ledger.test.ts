@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import * as ledgerApi from '../../src/budget/ledger.ts';
 import { RunController } from '../../src/runtime/run.ts';
 
 const evidence = [{ artifactId: 'bill', version: 'v1', location: 'evidence/bill.json' }];
@@ -49,4 +50,34 @@ test('creation rejects increased hard limits and overallocated task totals', asy
     const controller = await RunController.create(options);
     try { assert.equal((await controller.read()).ledger.limitMicroCny, 150_000_000); } finally { await controller.close(); }
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+
+test('COS125 only shared and task insufficiency have a narrow read-only quote classification', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'cosmos-quote-errors-'));
+  const controller = await RunController.create({ root, runId: 'run', ledgerId: 'shared', kind: 'evaluation', specVersion: 'v1', scope: 'validation', limitMicroCny: 100, allocations: [{ taskId: 'model', amountMicroCny: 60 }] });
+  try {
+    const original = (await controller.read()).ledger;
+    const ErrorType = (ledgerApi as any).InsufficientReservationBudgetError;
+    assert.equal(typeof ErrorType, 'function', 'Budget insufficiency must be distinct from authority failures.');
+    for (const [scope, amount, message] of [['shared', 101, 'Shared budget is insufficient.'], ['task', 61, 'Task budget allocation is insufficient.']] as const) {
+      const ledger = structuredClone(original);
+      assert.throws(() => ledgerApi.reserveEntry(ledger, input('quote', 'model', amount)), error => {
+        assert.ok(error instanceof ErrorType); assert.equal((error as any).scope, scope);
+        assert.equal((error as Error).name, 'Error'); assert.equal((error as Error).message, message); return true;
+      });
+      assert.deepEqual(ledger, original);
+    }
+    for (const failure of ['unknown', 'closed', 'missing', 'duplicate', 'invalid']) {
+      const ledger = structuredClone(original), candidate = input('quote', failure === 'missing' ? 'absent' : 'model', failure === 'invalid' ? 0 : 1);
+      if (failure === 'unknown' || failure === 'duplicate') {
+        const entry = ledgerApi.reserveEntry(ledger, input(failure === 'duplicate' ? 'quote' : 'earlier', 'model', 1));
+        if (failure === 'unknown') { entry.unknown = true; entry.status = 'unknown'; }
+      }
+      if (failure === 'closed') ledger.allocationClosures = [{ taskId: 'model' } as any];
+      const before = structuredClone(ledger);
+      assert.throws(() => ledgerApi.reserveEntry(ledger, candidate), error => !(error instanceof ErrorType));
+      assert.deepEqual(ledger, before);
+    }
+  } finally { await controller.close(); await rm(root, { recursive: true, force: true }); }
 });

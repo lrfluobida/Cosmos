@@ -20,6 +20,7 @@ export interface PiRequest {
   hasImages: boolean;
   estimatedMaxCostMicroCny: number;
 }
+export type PiCompactionBounds = Readonly<Pick<PiRequest, 'maxOutputTokens' | 'inputBytes' | 'hasImages'>>;
 export interface PiResponse {
   requestId: string;
   outcome: 'settled' | 'unknown' | 'not_sent';
@@ -54,7 +55,10 @@ export interface PiSessionOptions {
   /** Trusted host policy using actual input bounds; may only reduce the configured output cap. */
   requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>, signal?: AbortSignal) => Promise<number>;
   /** Trusted host decision at a successful tool boundary; actual summary requests still need admission. */
-  requestCompaction?: (request: Readonly<Pick<PiRequest, 'maxOutputTokens' | 'inputBytes' | 'hasImages'>>) => Promise<boolean>;
+  requestCompaction?: (request: PiCompactionBounds) => Promise<boolean>;
+  /** Read-only optional summary preflight; only budget insufficiency may preserve the ordinary turn. */
+  requestCompactionAdmission?: (input: Readonly<{ summary: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>;
+    ordinary: PiCompactionBounds }>, signal?: AbortSignal) => Promise<'admit' | 'skip'>;
   /** Host must cover the input size and image cost of each request, including compaction. */
   estimatedMaxCostMicroCny: number | ((request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) => number);
   budget: PiBudget;
@@ -68,6 +72,7 @@ export class PiSessionError extends Error {
     this.code = code;
   }
 }
+class OptionalSummarySkipped extends Error {}
 
 function positive(value: number, name: string) {
   if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive safe integer`);
@@ -80,6 +85,7 @@ export async function createPiSession(config: PiSessionOptions) {
   positive(config.maxOutputTokens, 'maxOutputTokens');
   positive(config.maxRequests, 'maxRequests');
   positive(config.requestTimeoutMs, 'requestTimeoutMs');
+  if (config.requestCompactionAdmission && !config.requestCompaction) throw new Error('Compaction admission requires a compaction policy');
   const key = (config.env ?? process.env).DEEPSEEK_API_KEY;
   if (!key?.trim()) throw new Error('DEEPSEEK_API_KEY is required');
   const workspace = await realpath(config.workspace);
@@ -111,7 +117,7 @@ export async function createPiSession(config: PiSessionOptions) {
   let callerSignal: AbortSignal | undefined;
   let readonlyRequests: number | undefined;
   let closed = false;
-  let optionalCompaction: { truncatedRequestId?: string; rejected: boolean } | undefined;
+  let optionalCompaction: { ordinary: PiCompactionBounds; skippedRequestId?: string; truncatedRequestId?: string; rejected: boolean } | undefined;
   const records: PiResponse[] = [];
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
   const throwIfFailed = () => { if (failure) throw failure; };
@@ -136,26 +142,44 @@ export async function createPiSession(config: PiSessionOptions) {
   modelRuntime.streamSimple = (requestModel, context, options) => lazyStream(requestModel, async () => {
     throwIfFailed();
     if (requestModel.provider !== 'deepseek' || requestModel.id !== DEEPSEEK_MODEL) throw fail('model_mismatch', 'Unexpected model route');
-    if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled');
-    if (readonlyRequests !== undefined && ++readonlyRequests > 1) throw fail('request_limit', 'Format correction permits one provider request');
-    if (++requests > config.maxRequests) throw fail('request_limit', 'Session request limit reached');
+    if (closed || options?.signal?.aborted || callerSignal?.aborted) throw fail('cancelled', 'Session was cancelled');
     const compaction = session.isCompacting ? optionalCompaction : undefined;
+    const countRequest = () => {
+      if (readonlyRequests !== undefined && ++readonlyRequests > 1) throw fail('request_limit', 'Format correction permits one provider request');
+      if (++requests > config.maxRequests) throw fail('request_limit', 'Session request limit reached');
+    };
+    if (!compaction || !config.requestCompactionAdmission) countRequest();
     let maxOutputTokens = config.maxOutputTokens;
     if (config.requestCompaction && session.isCompacting) {
       try { positive(options?.maxTokens!, 'native compaction maxTokens'); }
       catch { throw fail('invalid_request', 'Native compaction output limit must be a positive safe integer'); }
       maxOutputTokens = Math.min(maxOutputTokens, 8192, options!.maxTokens!);
     }
-    const requestContext = config.requestOutputLimit ? structuredClone(context) : context;
+    const checkInput = config.requestOutputLimit || config.requestCompactionAdmission;
+    const requestContext = checkInput ? structuredClone(context) : context;
     const inputJson = JSON.stringify(requestContext);
     const requireUnchangedInput = () => {
-      if (config.requestOutputLimit && JSON.stringify(context) !== inputJson) throw fail('invalid_request', 'Request input changed during output limit admission; no provider request sent');
+      if (checkInput && JSON.stringify(context) !== inputJson) throw fail('invalid_request', 'Request input changed during output limit admission; no provider request sent');
     };
     const request: Omit<PiRequest, 'estimatedMaxCostMicroCny'> = {
       requestId: randomUUID(), modelId: DEEPSEEK_MODEL, maxOutputTokens,
       inputBytes: requestInputBytes(requestContext),
       hasImages: requestContext.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image')),
     };
+    if (compaction && config.requestCompactionAdmission) {
+      let decision: 'admit' | 'skip';
+      try { decision = await config.requestCompactionAdmission(Object.freeze({ summary: Object.freeze({ ...request }), ordinary: compaction.ordinary }), options?.signal); }
+      catch { throw fail('admission_rejected', 'Native summary preflight rejected; no provider request sent'); }
+      throwIfFailed();
+      if (closed || options?.signal?.aborted || callerSignal?.aborted) throw fail('cancelled', 'Session was cancelled before summary admission');
+      requireUnchangedInput();
+      if (decision === 'skip') {
+        compaction.skippedRequestId = request.requestId;
+        throw new OptionalSummarySkipped('Optional native summary cannot fit the original budget');
+      }
+      if (decision !== 'admit') throw fail('invalid_request', 'Native summary preflight must admit or skip');
+      countRequest();
+    }
     if (config.requestOutputLimit) {
       let limit: number;
       try { limit = await config.requestOutputLimit(Object.freeze({ ...request }), options?.signal); }
@@ -302,7 +326,7 @@ export async function createPiSession(config: PiSessionOptions) {
     let lastProjection: string | undefined, lastCompactedBytes: number | undefined, autoCompactionDisabled = false, compactions = 0;
     session.subscribe(event => {
       if (event.type !== 'compaction_end') return;
-      if (optionalCompaction?.truncatedRequestId && !optionalCompaction.rejected && !failure
+      if ((optionalCompaction?.truncatedRequestId || optionalCompaction?.skippedRequestId) && !optionalCompaction.rejected && !failure
         && event.reason === 'threshold' && !event.aborted && !event.result && event.errorMessage) {
         optionalCompaction.rejected = true;
         return;
@@ -321,11 +345,12 @@ export async function createPiSession(config: PiSessionOptions) {
     session.agent.prepareNextTurnWithContext = async (turn, signal) => {
       const requireActive = () => {
         throwIfFailed();
-        if (closed || signal?.aborted) throw fail('cancelled', 'Session was cancelled at the compaction boundary');
+        if (closed || signal?.aborted || callerSignal?.aborted) throw fail('cancelled', 'Session was cancelled at the compaction boundary');
       };
       requireActive();
       if (readonlyRequests !== undefined || autoCompactionDisabled || turn.message.stopReason !== 'toolUse'
         || !turn.toolResults.length || turn.toolResults.some(result => result.isError)) return previous(turn, signal);
+      if (config.requestCompactionAdmission && config.maxRequests - requests < 3) return previous(turn, signal);
       const before = projection();
       if (before.serialized === lastProjection || lastCompactedBytes !== undefined && before.inputBytes < lastCompactedBytes + 32768) return previous(turn, signal);
       let selected: boolean;
@@ -337,13 +362,13 @@ export async function createPiSession(config: PiSessionOptions) {
       if (!selected) return previous(turn, signal);
       lastProjection = before.serialized;
       const beforeCost = projectedCost(before), completed = compactions, settings = session.settingsManager.getCompactionSettings(model);
-      const leaf = manager.getLeafId(), operation = { rejected: false } as NonNullable<typeof optionalCompaction>;
+      const leaf = manager.getLeafId(), operation = { ordinary: Object.freeze(bounds), rejected: false } as NonNullable<typeof optionalCompaction>;
       optionalCompaction = operation;
       session.settingsManager.applyOverrides({ compaction: { enabled: true, reserveTokens: model.contextWindow, keepRecentTokens: settings.keepRecentTokens } });
       try {
         const result = await previous(turn, signal);
         requireActive();
-        if (operation.truncatedRequestId) {
+        if (operation.truncatedRequestId || operation.skippedRequestId) {
           if (!operation.rejected || compactions !== completed || manager.getLeafId() !== leaf || projection().serialized !== before.serialized) {
             throw fail('compaction_failed', 'Discarded summary changed the original context; session cannot continue');
           }

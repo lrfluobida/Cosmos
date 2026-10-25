@@ -21,7 +21,7 @@ import { codingConcernReviewProtocol } from '../runtime/repair/coding-concerns.t
 import type { CodingConcernReview } from '../runtime/repair/coding-concerns.ts';
 import { inputFilesProtocol, roleInputFiles } from './input-files.ts';
 import { planningJsonExample } from './planning-protocol.ts';
-import { authorBudgetOutputLimit } from './author-output-budget.ts';
+import { authorBudgetCompaction, authorBudgetOutputLimit } from './author-output-budget.ts';
 
 export type AuthorRole = 'cosmos' | 'design' | 'coding' | 'art';
 export type Role = AuthorRole | 'reviewer';
@@ -53,6 +53,8 @@ export interface RoleFactoryOptions {
   authorMaxOutputTokens?: Partial<Record<AuthorRole, number>>;
   /** Explicit trusted opt-in; select within the original grant between this floor and the author cap. */
   authorBudgetOutputFloor?: Partial<Record<AuthorRole, number>>;
+  /** Trusted ordinary design selection; original budget quotes govern optional summaries. */
+  ordinaryDesignBudgetCompaction?: true;
   maxRequests: number;
   /** Author overrides only; planning, review and fixed validation retain maxRequests. */
   authorMaxRequests?: Partial<Record<AuthorRole, number>>;
@@ -102,6 +104,10 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       || !Number.isSafeInteger(cap) || cap < floor || cap > 32768) throw new Error('authorBudgetOutputFloor requires valid author roles, positive safe integers and floor <= cap <= 32768.');
     authorLimits[role as AuthorRole] = cap;
   }
+  const ordinaryDesignCompaction = options.ordinaryDesignBudgetCompaction;
+  if (ordinaryDesignCompaction !== undefined && (ordinaryDesignCompaction !== true || authorFloors.design !== 8192 || authorLimits.design !== 32768)) {
+    throw new Error('ordinaryDesignBudgetCompaction requires the original design floor 8192 and cap 32768.');
+  }
   const authorRequestLimits = { ...options.authorMaxRequests };
   if (Object.entries(authorRequestLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxRequests requires valid author roles and positive safe integers.');
   const authorThinking = { ...options.authorThinkingLevel };
@@ -120,6 +126,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const validation = input.validation ? await input.controller.validationAuthority(task.taskId, purpose) : undefined;
     const authorRequestLimit = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorRequestLimits[input.role] : undefined;
     const authorFloor = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorFloors[input.role] : undefined;
+    const designCompaction = ordinaryDesignCompaction && purpose === 'author' && input.role === 'design' && !validation;
     const maxRequests = authorRequestLimit ?? options.maxRequests;
     const authority = validation ? undefined : await input.controller.executionAuthority(task.taskId);
     input.controller.signal.throwIfAborted();
@@ -224,8 +231,10 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       } } : {}),
       ...(authorFloor === undefined ? {} : { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
         task, authority: authority!, floor: authorFloor, maxOutputTokens: authorLimits[input.role as AuthorRole]!, estimate: options.estimatedMaxCostMicroCny }) }),
+      ...(designCompaction ? authorBudgetCompaction({ controller: input.controller, original: snapshot, task, authority: authority!,
+        floor: authorFloor!, maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny }) : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
-      compactionKeepRecentTokens: options.compactionKeepRecentTokens,
+      compactionKeepRecentTokens: designCompaction ? 8000 : options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
         ...(authorFloor === undefined ? {} : { recordRequest: true }),
         ...(validation ? { validation: { caseId: validation.caseId, windowId: validation.windowId, purpose } } : {}) }),
