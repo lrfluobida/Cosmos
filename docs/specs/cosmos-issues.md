@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已独审合入并发布 `c189c49b0094873d2a8270151915d3aef0eba273`，closed(completed)与父[x]已GET核证。总126、根直接100、COS18二十个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下4/4代表通过。room10原v3等待快照和原5M held保留，新edit的真实来源/资格另由Root/operator核验，本批不close/settle原run。
+2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已独审合入并发布 `c189c49b0094873d2a8270151915d3aef0eba273`，closed(completed)与父[x]已GET核证。总126、根直接100、COS18二十个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下4/4代表通过。room10原draft4在provider前因原intake额度不足被拒，随后已按原API永久关闭；[结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)保持未确认/未生成，source-scoped完成不等于真实编辑语义通过。
 
 2026-10-25 [COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126) 已独审合入并发布 `2fbb61d569f88458cc454e2b6f8cb997ced5e5be`，closed(completed)与父[x]已GET核证。总125、根直接100、COS18十九个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下3/3代表通过。room9原失败/闭账保持，预算压力压缩尚无真实游戏通过结论。
 
@@ -1873,7 +1873,7 @@ room9实际13笔432959µ（intake83361、planning30703、design318895）、142.7
 
 仅新ordinary编辑轮次携带经固定上一版草稿/完整来源核验的独立editContext；当前真实问答优先，旧proposal是未确认参照。新intent版本绑定旧稿，原版本1缓存及length/denial/schema后继保持原解释，来源失效在派发与claim前拒绝。原answers与完整proposal输出、真实当前版确认、预算估价/准入/结算和生成时钟保持，不增加请求、grant、重试或旧请求回填；实际模型语义保持效果尚未验证。
 
-room10截至2026-10-25T17:46:37Z为PASS_CLEAN_WAIT：原CLI cancel exit0、actual v3未确认、child32、4笔128821µ settled、reserved/unknown/pending/资源残留0，confirmation/stop/clock为空；shared3355 held5000000µ原样保留，未stop/close/settle。旧v1–v3的runtime为2fbb61d，新edit来源后续单独记录；本卡不改真实数据，不重放旧请求。旧memory/room1–9永久关闭。总126、根直接100、父20个源码子项完成，整体仍open/partial。新edit若采用runtime c189c49b0094873d2a8270151915d3aef0eba273须Root/operator另核来源与资格；源码测试不代表真实语义、生成或体验通过。稳定任务ID：COS-126。
+room10在runtime `c189c49b0094873d2a8270151915d3aef0eba273` 建立format2/v3投影上下文（8玩法AC/4体验），但draft4的input58649 bytes/8192 floor报价182834µ超过原intake余额121179µ，provider未派发，仍4笔128821µ、无新增费用。原v1–v3/runtime2fbb61d及失败native保留；未确认、未生成。2026-10-25T18:44:18.949Z原stop/close+settle后释放4871179µ，18:45:37Z独立PASS_CLOSED child38/shared3356、held/reserved/unknown0、无残留，[结案回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)已核证。旧memory/room1–10永久关闭，不恢复或重复结算。COS126源码范围完成保持，真实编辑语义尚未验证；总126/root100/父20个源码子项完成，父仍open/partial。稳定任务ID：COS-126。
 
 ## 5. 任务与上下文包模板
 

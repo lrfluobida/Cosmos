@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-26 room10已永久关闭（[结案核证](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)），未确认、未启动generation。COS126 runtime `c189c49b0094873d2a8270151915d3aef0eba273` 的format2确将v3的8个玩法AC/4体验送入native context，但draft4在provider前被原intake预算拒绝：input58649 bytes、8192 floor报价182834µ超过原余额121179µ，无第五request或新增费用；真实编辑语义仍未验证，COS126 source-scoped完成保持。旧v1–v3的runtime2fbb61d、原问答/草稿及draft4失败native/intent完整保留。
+
+原Intake stop/close一次及wrapper settle一次于2026-10-25T18:44:18.949Z关闭，4笔128821µ结算、释放4871179µ；独立room10_wait_check于18:45:37Z核证PASS_CLOSED，child38/shared3356 committed20705720µ/unallocated54106705µ、held/reserved/unknown0，无锁/control/进程，各请求仅导入一次、一closure/settlement。证据 `.cosmos/public-validation/room-20261025-10/intake-closure.json`及`draft4-admission-failure.json`；旧memory及room1–10永久关闭，不恢复或再次结算。父COS18仍open/partial，本次只发布实际结果元数据，不新开源码任务或预报下一次验证。
+
 2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/127#issuecomment-6401471323)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/127#issuecomment-6401474881)及父[x]已GET核证。作者cos126_implementer的 `279e2da111d453fea6070be2d15b37449178e4be` 经独立cos126_reviewer对全部4文件完成规格/质量审查，APPROVED_SOURCE_SCOPED、无finding；唯一merger从 `a99d424925f431b1ac7d559599957cbecf43fa36` 合入并发布 `c189c49b0094873d2a8270151915d3aef0eba273`，4个源码/测试文件与批准提交一致。正式[规格](docs/specs/cos126-intake-edit-context.md)与[计划](docs/plans/2026-10-26-intake-edit-context.md)保留原批准输入SHA并更新源码状态。
 
 新ordinary编辑以独立editContext携带可信上一版proposal，当前完整问答优先；新版intent绑定固定来源，旧版本1/cache/length/denial/schema保持原解释，来源失效在派发或claim前拒绝。原answers、完整proposal输出、当前版真实确认、实际输入估价/预算与生成时钟保持。主线typecheck/build exit0，显式主模板下4/4、0skip、TAP16292.4129ms，覆盖真实CLI编辑、funded旧v3→新v4、较晚revision缓存、新context schema唯一后继。作者122/122及最终28/28、独审8/8与旧缓存/prompt只读2/2按未变范围复用，不累计重叠；原命令和输出见 `.cosmos/cos126-integration/`。总126、根直接100、父20个源码子项完成，父仍open/partial；仅SOURCE/TEMP通过，不保证真实模型语义或游戏效果。
