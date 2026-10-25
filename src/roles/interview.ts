@@ -19,6 +19,7 @@ import type { OrdinaryDraftInput } from './interview-draft.ts';
 import { schemaDraftSuccessor, verifyClaimedSuccessor } from './interview-schema-recovery.ts';
 import { intakeSuccessorClaims, successorSourceHash } from '../runtime/intake-successor.ts';
 import type { IntakeSuccessorClaim } from '../runtime/intake-successor.ts';
+import { ordinaryEditContext } from './interview-edit-context.ts';
 
 export interface InterviewOptions {
   controller: IntakeController; roundId: string; brief: string;
@@ -61,16 +62,23 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
   const modeContext = state.draftMode ? { draftMode: state.draftMode, preparation: { ...preparationContract(state.draftMode), acceptance: preparationAcceptance(state.draftMode) } }
     : state.ordinaryProfile ? { ordinaryProfile: state.ordinaryProfile, requestConfig: { modelId: 'deepseek-flash', thinkingLevel, maxOutputTokens: options.maxOutputTokens, requestTimeoutMs: options.requestTimeoutMs } } : {};
   let root = join(controller.root, 'intake-sessions', options.roundId);
-  let intent: Record<string, unknown> = { formatVersion: 1, runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...(options.capabilities ? { capabilities: options.capabilities } : {}), ...modeContext };
+  const priorClaim = intakeSuccessorClaims(state.events).find(claim => claim.roundId === options.roundId);
+  const recorded = await optionalJson(join(root, 'intent.json'));
+  if (recorded === null) {
+    if (priorClaim) throw new Error('Draft successor slot was consumed; original source is missing.');
+    const existing = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
+    const successor = await lstat(`${root}-successor-1`).then(() => true, (error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return false; throw error; });
+    if (existing.length || successor) throw new Error('Original interview source is missing; existing records cannot authorize a new request.');
+  }
+  const edit = await ordinaryEditContext(controller, options.roundId, input, recorded), editFields = edit ? { editContext: edit.context } : {};
+  let intent: Record<string, unknown> = { formatVersion: edit ? 2 : 1, runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...(options.capabilities ? { capabilities: options.capabilities } : {}), ...modeContext, ...editFields };
   const prompt = {
     systemPrompt: `${state.draftMode ? preparationPrompt : state.ordinaryProfile ? ordinaryPrompt : systemPrompt}\nHost capabilities: ${options.capabilities ?? 'Only the declared normal-input acceptance vocabulary.'}`,
-    context: JSON.stringify({ role: 'design-intake', runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...modeContext }),
+    context: JSON.stringify({ role: 'design-intake', runId: state.run.runId, ledgerId: state.ledger.ledgerId, input, ...modeContext, ...editFields }),
   };
   let recheck: ((work: string | undefined) => Promise<number>) | undefined;
   let successorAttempt = false;
   let requestInput: unknown = input, claim: IntakeSuccessorClaim | undefined;
-  const priorClaim = intakeSuccessorClaims(state.events).find(claim => claim.roundId === options.roundId);
-  const recorded = await optionalJson(join(root, 'intent.json'));
   if (recorded !== null) {
     if (!sameValue(recorded, intent)) throw new Error('Interview input identity changed; reuse requires the exact original input.');
     const reply = await optionalJson(join(root, 'reply.json')) as { intent: unknown; proposal: unknown } | null;
@@ -107,23 +115,21 @@ async function request(options: InterviewOptions, input: { phase: 'questions' | 
     if (existing.length) throw new Error('Draft successor source is missing; existing files cannot authorize another request.');
     await mkdir(root, { recursive: true });
   } else {
-    if (priorClaim) throw new Error('Draft successor slot was consumed; original source is missing.');
-    const existing = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
-    const successor = await lstat(`${root}-successor-1`).then(() => true, (error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return false; throw error; });
-    if (existing.length || successor) throw new Error('Original interview source is missing; existing records cannot authorize a new request.');
     if (state.ordinaryProfile) await requireInterviewHistorySources(controller);
     await mkdir(root, { recursive: true });
   }
-  if (!successorAttempt) await publishReceipt(join(root, 'intent.json'), intent);
+  if (!successorAttempt) { await edit?.recheck(); await publishReceipt(join(root, 'intent.json'), intent); }
   const fundingWork = await controller.beginFundingWork('interview');
   let session: RoleSession | undefined;
   let proposal: unknown;
   try {
     if (successorAttempt) {
       const verifiedRevision = await recheck!(fundingWork);
+      if (edit && await edit.recheck() !== verifiedRevision) throw new Error('Ordinary edit state changed before successor claim.');
       if (claim) await controller.claimDraftSuccessor(claim, verifiedRevision);
       await publishReceipt(join(root, 'intent.json'), intent);
     }
+    await edit?.recheck();
     session = await (options.sessionFactory ?? createPiSession)({
       workspace: controller.root, stateDirectory: join(root, 'native'), ...prompt, tools: [], modelId: 'deepseek-flash', thinkingLevel,
       maxOutputTokens: options.maxOutputTokens, maxRequests: 1, requestTimeoutMs: options.requestTimeoutMs,
