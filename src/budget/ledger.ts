@@ -4,6 +4,14 @@ import type { ArtifactReference, BudgetLedger, LedgerEntry } from '../contracts/
 import { checkShape, referenceShape } from '../contracts/structure.ts';
 import type { RequestInput } from '../runtime/run-types.ts';
 
+export class InsufficientReservationBudgetError extends Error {
+  readonly scope: 'shared' | 'task';
+  constructor(scope: 'shared' | 'task') {
+    super(scope === 'shared' ? 'Shared budget is insufficient.' : 'Task budget allocation is insufficient.');
+    this.scope = scope;
+  }
+}
+
 export function money(value: number, positive = false): void {
   if (!Number.isSafeInteger(value) || value < (positive ? 1 : 0)) throw new Error('Price must be a known safe integer micro-CNY amount' + (positive ? ' and positive.' : '.'));
 }
@@ -46,11 +54,11 @@ export function reserveEntry(ledger: BudgetLedger, input: RequestInput): LedgerE
   if (group?.taskIds.includes(input.taskId) && input.estimatedMaxCostMicroCny > group.remainingMicroCny) throw new Error('Original COS-16 group budget is insufficient.');
   const summary = budgetSummary(ledger);
   if (summary.reconciliationRequired) throw new Error('Reconciliation required before further paid requests.');
-  if (input.estimatedMaxCostMicroCny > summary.availableMicroCny) throw new Error('Shared budget is insufficient.');
+  if (input.estimatedMaxCostMicroCny > summary.availableMicroCny) throw new InsufficientReservationBudgetError('shared');
   const allocation = ledger.allocations.find(item => item.taskId === input.taskId);
   if (!allocation) throw new Error(`Missing task allocation: ${input.taskId}`);
   const committed = ledger.entries.filter(entry => entry.taskId === input.taskId).reduce((sum, entry) => sum + entry.reservedMicroCny + entry.settledMicroCny, 0);
-  if (input.estimatedMaxCostMicroCny > allocation.amountMicroCny - committed) throw new Error('Task budget allocation is insufficient.');
+  if (input.estimatedMaxCostMicroCny > allocation.amountMicroCny - committed) throw new InsufficientReservationBudgetError('task');
   const entry: LedgerEntry = { requestId: input.requestId, taskId: input.taskId, provider: input.provider, pricingVersion: input.pricingVersion, reservedMicroCny: input.estimatedMaxCostMicroCny, settledMicroCny: 0, unknown: false, status: 'reserved', evidence: [] };
   ledger.entries.push(entry);
   return entry;
