@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { createRoleFactory } from '../../src/roles/factory.ts';
 import type { RoleFactoryOptions } from '../../src/roles/factory.ts';
+import * as authorPolicy from '../../src/roles/author-output-budget.ts';
 import { reserveEntry } from '../../src/budget/ledger.ts';
 import { createPiSession } from '../../src/providers/pi.ts';
 import type { PiRequest } from '../../src/providers/pi.ts';
@@ -192,4 +193,52 @@ for (const truncated of [false, true]) test(`COS124 output above 8K ${truncated 
   assert.equal(await readFile(join(f.root, 'game/note.txt'), 'utf8'), content);
   assert.equal(bodies.length, 2); assert.ok(bodies.every(body => body.max_tokens === 32768));
   const state = await f.controller.read(); assert.equal(state.ledger.entries.length, 2); assert.ok(state.ledger.entries.every(entry => entry.status === 'settled'));
+});
+
+
+for (const cap of [8192, 4096, 1]) test('COS125 native summary cap ' + cap + ' stays within the trusted request ceiling', async t => {
+  const f = await authorBudgetFixture(t); await f.create();
+  assert.equal(await f.configs[0].requestOutputLimit!({ ...request, maxOutputTokens: cap }), cap);
+});
+for (const cap of [0, NaN, 32769]) test('COS125 rejects invalid trusted cap ' + cap, async t => {
+  const f = await authorBudgetFixture(t); await f.create();
+  await assert.rejects(f.configs[0].requestOutputLimit!({ ...request, maxOutputTokens: cap }), /Invalid author output cap/);
+});
+
+for (const sample of [
+  { available: 600000, selected: false, summary: 47042, admission: 'admit' },
+  { available: 507835, selected: true, summary: 47042, admission: 'admit' },
+  { available: 320635, selected: false, summary: 47042, admission: 'admit' },
+  { available: 507835, selected: true, summary: 300000, admission: 'skip' },
+  { available: 320635, selected: false, summary: 300000, admission: 'reject' },
+]) test('COS125 budget compaction quotes ' + JSON.stringify(sample), async t => {
+  const f = await authorBudgetFixture(t, sample.available), original = await f.controller.read();
+  const make = (authorPolicy as any).authorBudgetCompaction;
+  assert.equal(typeof make, 'function', 'Ordinary design requires early budget compaction and actual summary admission.');
+  const policy = make({ controller: f.controller, original, task: f.input.task,
+    authority: await f.controller.executionAuthority(f.input.task.taskId), floor: 8192, maxOutputTokens: 32768, estimate });
+  const ordinary = { maxOutputTokens: 32768, inputBytes: 127550, hasImages: false };
+  assert.equal(await policy.requestCompaction(ordinary), sample.selected);
+  const check = () => policy.requestCompactionAdmission({ ordinary, summary: { ...request, inputBytes: sample.summary, maxOutputTokens: 8192 } });
+  if (sample.admission === 'reject') await assert.rejects(check(), /cannot afford/);
+  else assert.equal(await check(), sample.admission);
+  assert.deepEqual(await f.controller.read(), original);
+});
+
+for (const changed of ['unknown', 'closed', 'authority', 'deadline', 'invalid', 'caller']) test('COS125 summary admission preserves fatal ' + changed, async t => {
+  const f = await authorBudgetFixture(t), original = await f.controller.read(), caller = new AbortController();
+  const make = (authorPolicy as any).authorBudgetCompaction; assert.equal(typeof make, 'function');
+  const policy = make({ controller: f.controller, original, task: f.input.task,
+    authority: await f.controller.executionAuthority(f.input.task.taskId), floor: 8192, maxOutputTokens: 32768,
+    estimate: changed === 'invalid' ? 0 : estimate });
+  const state = structuredClone(original);
+  if (changed === 'unknown') { const entry = reserveEntry(state.ledger, { requestId: 'unknown', taskId: f.input.task.taskId, provider: 'deepseek', pricingVersion: 'fixture', estimatedMaxCostMicroCny: 1 }); entry.unknown = true; entry.status = 'unknown'; }
+  if (changed === 'closed') state.ledger.allocationClosures = [{ taskId: f.input.task.taskId } as any];
+  if (changed === 'authority') state.run.runId = 'drift';
+  if (changed === 'deadline') t.mock.method(Date, 'now', () => Date.parse(original.run.originalDeadlineAt) - 5000);
+  if (changed === 'caller') caller.abort();
+  t.mock.method(f.controller, 'read', async () => state);
+  const before = structuredClone(state);
+  await assert.rejects(policy.requestCompactionAdmission({ ordinary: request, summary: { ...request, maxOutputTokens: 8192 } }, caller.signal));
+  assert.deepEqual(state, before);
 });

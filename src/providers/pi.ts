@@ -20,6 +20,7 @@ export interface PiRequest {
   hasImages: boolean;
   estimatedMaxCostMicroCny: number;
 }
+export type PiCompactionBounds = Readonly<Pick<PiRequest, 'maxOutputTokens' | 'inputBytes' | 'hasImages'>>;
 export interface PiResponse {
   requestId: string;
   outcome: 'settled' | 'unknown' | 'not_sent';
@@ -54,7 +55,10 @@ export interface PiSessionOptions {
   /** Trusted host policy using actual input bounds; may only reduce the configured output cap. */
   requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>, signal?: AbortSignal) => Promise<number>;
   /** Trusted host decision at a successful tool boundary; actual summary requests still need admission. */
-  requestCompaction?: (request: Readonly<Pick<PiRequest, 'maxOutputTokens' | 'inputBytes' | 'hasImages'>>) => Promise<boolean>;
+  requestCompaction?: (request: PiCompactionBounds) => Promise<boolean>;
+  /** Read-only optional summary preflight; only budget insufficiency may preserve the ordinary turn. */
+  requestCompactionAdmission?: (input: Readonly<{ summary: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>;
+    ordinary: PiCompactionBounds }>, signal?: AbortSignal) => Promise<'admit' | 'skip'>;
   /** Host must cover the input size and image cost of each request, including compaction. */
   estimatedMaxCostMicroCny: number | ((request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) => number);
   budget: PiBudget;
