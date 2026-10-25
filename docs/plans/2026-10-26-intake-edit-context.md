@@ -10,9 +10,11 @@
 
 ---
 
-状态：已独立APPROVED_PLAN并获Root批准发布与免费实施。配套[规格](../specs/cos126-intake-edit-context.md)，基线 `8485321c35bacf06c285596eb808d588027f1774`；独立计划reviewer intake_edit_plan_reviewer、实现者cos126_implementer、源码reviewer由Root另行指派、唯一merger public_agent_batch_merger。源码仍pending，本计划发布不表示源码已完成。
+状态：已完成独立源码审查与主线集成，source-scoped-complete。配套[规格](../specs/cos126-intake-edit-context.md)，基线 `8485321c35bacf06c285596eb808d588027f1774`；独立计划reviewer intake_edit_plan_reviewer、实现者cos126_implementer、独立源码reviewer cos126_reviewer、唯一merger public_agent_batch_merger。源码范围已完成，实际语义/游戏效果另行验证。
 
-审批记录：[COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127)；独立 `intake_edit_plan_reviewer` 给出 `APPROVED_PLAN`、无finding，Root批准以下固定输入的正式发布与免费源码实施。源码独审和集成待完成。
+源码结果：独立cos126_reviewer对 `279e2da111d453fea6070be2d15b37449178e4be` 完成规格/质量审查，APPROVED_SOURCE_SCOPED、无finding；唯一merger合入发布 `c189c49b0094873d2a8270151915d3aef0eba273`，4文件精确一致，主线typecheck/build与4/4短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/127#issuecomment-6401471323)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/127#issuecomment-6401474881)已核证。仅SOURCE范围完成，父COS18仍open/partial；room10旧v1–v3的runtime2fbb61d与等待证据保持，新edit来源/资格另由Root/operator核验，本批不关闭或结算真实run。
+
+审批记录：[COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127)；独立 `intake_edit_plan_reviewer` 给出 `APPROVED_PLAN`、无finding，Root批准以下固定输入的正式发布与免费源码实施。源码后续独审与集成结果见上述状态记录。
 
 - 批准规格输入 SHA256：`338cf6350db090ba1e24a14b14e70c799908ec2cb93d20669248f9b2a9f29be8`
 - 批准计划输入 SHA256：`457e4419dbf02c174297bc48393f5e1df4deef2d9226849be70dce7b125c610e`

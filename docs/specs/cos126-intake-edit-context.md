@@ -1,8 +1,10 @@
 # COS-126 · 普通需求编辑携带上一版草稿
 
-状态：已独立APPROVED_PLAN并获Root批准发布与免费实施；源码尚未独审和集成。设计作者 `/root/intake_edit_context_assessment`；基线 `8485321c35bacf06c285596eb808d588027f1774`。独立实现者cos126_implementer，源码reviewer由Root另行指派，唯一merger public_agent_batch_merger；仅SOURCE/TEMP范围。
+状态：已完成独立源码审查与主线集成，source-scoped-complete。设计作者 `/root/intake_edit_context_assessment`；基线 `8485321c35bacf06c285596eb808d588027f1774`。独立实现者cos126_implementer，独立源码reviewer cos126_reviewer，唯一merger public_agent_batch_merger；仅SOURCE/TEMP范围。
 
-审批记录：[COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127)；独立 `intake_edit_plan_reviewer` 给出 `APPROVED_PLAN`、无finding，Root批准以下固定输入的正式发布与免费源码实施。源码独审和集成待完成。
+源码结果：独立cos126_reviewer对 `279e2da111d453fea6070be2d15b37449178e4be` 完成规格/质量审查，APPROVED_SOURCE_SCOPED、无finding；唯一merger合入发布 `c189c49b0094873d2a8270151915d3aef0eba273`，4文件精确一致，主线typecheck/build与4/4短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/127#issuecomment-6401471323)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/127#issuecomment-6401474881)已核证。仅SOURCE范围完成，父COS18仍open/partial；room10旧v1–v3的runtime2fbb61d与等待证据保持，新edit来源/资格另由Root/operator核验，本批不关闭或结算真实run。
+
+审批记录：[COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127)；独立 `intake_edit_plan_reviewer` 给出 `APPROVED_PLAN`、无finding，Root批准以下固定输入的正式发布与免费源码实施。源码后续独审与集成结果见上述状态记录。
 
 - 批准规格输入 SHA256：`338cf6350db090ba1e24a14b14e70c799908ec2cb93d20669248f9b2a9f29be8`
 - 批准计划输入 SHA256：`457e4419dbf02c174297bc48393f5e1df4deef2d9226849be70dce7b125c610e`
@@ -16,7 +18,7 @@
 - room10 的 `draft-1/2/3/intent.json` 实际 input 字段均只有上述四项。改动一处后别处回退的具体模型行为有多种可能原因；本卡确认并修复的是上一版生成内容缺失，不能承诺消除所有语义回退。
 - `requireOrdinaryDraftSource` 已核普通 profile、原 brief 与同 revision 的完整 answers；`validateIntakeSnapshot` 固定当前 draft source/revision 并验证 draft；`IntakeController.requireDraftFile` 已使用“文件内容等于 snapshot draft payload”的模式。新读取复用这些规则与 `regularFile` 的目录、独立常规文件、链接及 UTF-8 边界。
 
-依赖已集成的 COS111/112 普通需求契约、COS115 edit、COS116 原预算内输出与 denial、COS120 单次 schema correction。稳定任务映射从 `docs/specs/github-issues.json` 读取；[COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已登记，源码保持pending。产品目标仍是可复用的游戏开发 agent。
+依赖已集成的 COS111/112 普通需求契约、COS115 edit、COS116 原预算内输出与 denial、COS120 单次 schema correction。稳定任务映射从 `docs/specs/github-issues.json` 读取；[COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已完成独立源码审查与集成，仅source-scoped完成。产品目标仍是可复用的游戏开发 agent。
 
 ## 目标与取舍
 

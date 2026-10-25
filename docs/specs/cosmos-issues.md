@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已登记为open/source-pending；固定SHA规格/计划经独立APPROVED_PLAN和Root批准，正式文档由唯一merger发布，源码独审待安排。总126、根直接100、COS18原生20子项中19个源码完成，父仍open/partial。room10仅为未确认v3的PASS_CLEAN_WAIT快照，原5M held保留，未close/settle。
+2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已独审合入并发布 `c189c49b0094873d2a8270151915d3aef0eba273`，closed(completed)与父[x]已GET核证。总126、根直接100、COS18二十个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下4/4代表通过。room10原v3等待快照和原5M held保留，新edit的真实来源/资格另由Root/operator核验，本批不close/settle原run。
 
 2026-10-25 [COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126) 已独审合入并发布 `2fbb61d569f88458cc454e2b6f8cb997ced5e5be`，closed(completed)与父[x]已GET核证。总125、根直接100、COS18十九个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下3/3代表通过。room9原失败/闭账保持，预算压力压缩尚无真实游戏通过结论。
 
@@ -1867,11 +1867,13 @@ room9实际13笔432959µ（intake83361、planning30703、design318895）、142.7
 
 ### COS-126 · 普通需求编辑携带上一版草稿
 
-[COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127)，id6027629266，原生父COS18/#19、父[ ]，`open / source-pending`。intake_edit_plan_reviewer已独立APPROVED_PLAN、无finding，Root批准固定规格/计划正式发布与免费实施；作者cos126_implementer基于 `8485321c35bacf06c285596eb808d588027f1774` 实施，源码reviewer待Root指派，唯一merger public_agent_batch_merger。正式[规格](cos126-intake-edit-context.md)与[实施计划](../plans/2026-10-26-intake-edit-context.md)记录批准输入SHA `338cf6350db090ba1e24a14b14e70c799908ec2cb93d20669248f9b2a9f29be8` / `457e4419dbf02c174297bc48393f5e1df4deef2d9226849be70dce7b125c610e`；源码尚未批准或集成。
+[COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127)，id6027629266，原生父COS18/#19，`source-integrated / source-scoped-complete`；[源码批准](https://github.com/lrfluobida/Cosmos/issues/127#issuecomment-6401471323)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/127#issuecomment-6401474881)及父[x]已GET核证。固定SHA规格/计划先经intake_edit_plan_reviewer独立APPROVED_PLAN与Root批准；作者cos126_implementer基于 `8485321c35bacf06c285596eb808d588027f1774` 提交 `279e2da111d453fea6070be2d15b37449178e4be`，独立cos126_reviewer对4文件规格/质量审查通过、无finding。唯一merger public_agent_batch_merger从 `a99d424925f431b1ac7d559599957cbecf43fa36` 合入发布 `c189c49b0094873d2a8270151915d3aef0eba273`，来源文件精确一致。正式[规格](cos126-intake-edit-context.md)与[实施计划](../plans/2026-10-26-intake-edit-context.md)保留批准输入SHA及源码结果。
+
+主线typecheck/build exit0，显式COSMOS_TEMPLATE_ROOT=E:/develop/Cosmos/templates/2d下4/4、0fail、0skip、TAP16292.4129ms：真实CLI编辑、funded旧v3→新v4、较晚revision cache、新context schema唯一后继。作者compat122/122与最终28/28、独审8/8及只读2/2按未变范围复用，不累计重叠；原失败保留，命令与输出见 `.cosmos/cos126-integration/`。
 
 仅新ordinary编辑轮次携带经固定上一版草稿/完整来源核验的独立editContext；当前真实问答优先，旧proposal是未确认参照。新intent版本绑定旧稿，原版本1缓存及length/denial/schema后继保持原解释，来源失效在派发与claim前拒绝。原answers与完整proposal输出、真实当前版确认、预算估价/准入/结算和生成时钟保持，不增加请求、grant、重试或旧请求回填；实际模型语义保持效果尚未验证。
 
-room10截至2026-10-25T17:46:37Z为PASS_CLEAN_WAIT：原CLI cancel exit0、actual v3未确认、child32、4笔128821µ settled、reserved/unknown/pending/资源残留0，confirmation/stop/clock为空；shared3355 held5000000µ原样保留，未stop/close/settle。旧v1–v3的runtime为2fbb61d，新edit来源后续单独记录；本卡不改真实数据，不重放旧请求。旧memory/room1–9永久关闭。总126、根直接100、父20/19，整体仍open/partial。稳定任务ID：COS-126。
+room10截至2026-10-25T17:46:37Z为PASS_CLEAN_WAIT：原CLI cancel exit0、actual v3未确认、child32、4笔128821µ settled、reserved/unknown/pending/资源残留0，confirmation/stop/clock为空；shared3355 held5000000µ原样保留，未stop/close/settle。旧v1–v3的runtime为2fbb61d，新edit来源后续单独记录；本卡不改真实数据，不重放旧请求。旧memory/room1–9永久关闭。总126、根直接100、父20个源码子项完成，整体仍open/partial。新edit若采用runtime c189c49b0094873d2a8270151915d3aef0eba273须Root/operator另核来源与资格；源码测试不代表真实语义、生成或体验通过。稳定任务ID：COS-126。
 
 ## 5. 任务与上下文包模板
 
