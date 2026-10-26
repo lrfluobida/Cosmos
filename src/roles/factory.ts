@@ -4,7 +4,7 @@ import { resolve, relative, isAbsolute, sep } from 'node:path';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { ImageContent } from '@earendil-works/pi-ai';
 import { createPiSession, createWorkspaceTools } from '../providers/pi.ts';
-import type { PiSessionOptions } from '../providers/pi.ts';
+import type { PiBudgetFinalizationSource, PiSessionOptions } from '../providers/pi.ts';
 import { validateTask } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
 import type { TaskContract } from '../contracts/index.ts';
@@ -30,6 +30,8 @@ export interface RoleSession {
   /** Host-only format correction with native tool execution disabled. */
   readonlyPrompt?(text: string, options?: { signal?: AbortSignal }): Promise<{ text: string }>;
   /** Host-only, idle-session boundary; native pi owns summarization and billing. */
+  budgetFinalization?(error: unknown): Promise<PiBudgetFinalizationSource | null>;
+  finalizeBudget?(error: unknown, text: string, options?: { signal?: AbortSignal }): Promise<{ text: string }>;
   compact?(signal?: AbortSignal): Promise<unknown>;
   close(): Promise<void>;
 }
@@ -56,6 +58,7 @@ export interface RoleFactoryOptions {
   /** Trusted ordinary design selection; original budget quotes govern optional summaries. */
   ordinaryDesignBudgetCompaction?: true;
   ordinaryDesignBudgetPolicy?: 'review-reserve/1';
+  ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   ordinaryDesignRevisionPolicy?: 'independent-review/1';
   /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote a 4096-8192 output cap. */
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
@@ -119,6 +122,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   const recoveryPolicy = options.ordinaryDesignBudgetPolicy;
   if (recoveryPolicy !== undefined && (recoveryPolicy !== 'review-reserve/1' || !ordinaryDesignCompaction)) throw new Error('Invalid ordinaryDesignBudgetPolicy.');
   const authorRequestLimits = { ...options.authorMaxRequests };
+  const finalizationPolicy = options.ordinaryDesignFinalizationPolicy;
+  if (finalizationPolicy !== undefined && (finalizationPolicy !== 'budget-followup/1' || recoveryPolicy !== 'review-reserve/1' || authorRequestLimits.design !== 32)) throw new Error('Invalid ordinaryDesignFinalizationPolicy.');
   const ordinaryDesignReviewBudget = options.ordinaryDesignReviewBudget;
   if (ordinaryDesignReviewBudget !== undefined && (typeof ordinaryDesignReviewBudget !== 'function' || options.maxOutputTokens !== 8192)) {
     throw new Error('ordinaryDesignReviewBudget requires a trusted selector and the original 8192 output cap.');
@@ -129,6 +134,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   const codingTimeout = options.codingAuthorRequestTimeoutMs;
   if (codingTimeout !== undefined && (!Number.isSafeInteger(codingTimeout) || codingTimeout <= 0)) throw new Error('codingAuthorRequestTimeoutMs requires a positive safe integer.');
   return async input => {
+    if (finalizationPolicy && input.validation) throw new Error('Ordinary design finalization cannot authorize validation roles.');
     if (revisionPolicy && input.validation) throw new Error('Ordinary design revision cannot authorize validation roles.');
     input.controller.signal.throwIfAborted();
     const task = structuredClone(input.task), requirement = structuredClone(input.requirement);
@@ -259,7 +265,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         task, authority: authority!, floor: 4096, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny, ...(recoveryPolicy ? { failureCode: 'review_output_budget' } : {}) }) } : {}),
       ...(designCompaction ? authorBudgetCompaction({ controller: input.controller, original: snapshot, task, authority: authority!,
         floor: authorFloor!, maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny, ...(reviewReserve ? { reviewReserve: true, failureCode: 'author_review_reserve' } : {}) }) : {}),
-      ...(reviewReserve ? { readonlyMaxOutputTokens: 4096 as const } : {}),
+      ...(reviewReserve ? { readonlyMaxOutputTokens: 4096 as const, ...(finalizationPolicy ? { ordinaryDesignFinalizationPolicy: finalizationPolicy } : {}) } : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: designCompaction ? 8000 : options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
@@ -269,6 +275,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         ...(validation ? { validation: { caseId: validation.caseId, windowId: validation.windowId, purpose } } : {}) }),
     });
     return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }),
+      ...(session.budgetFinalization && session.finalizeBudget ? { budgetFinalization: async (error: unknown) => { input.controller.signal.throwIfAborted(); return session.budgetFinalization!(error); },
+        finalizeBudget: (error: unknown, text: string, supplied: { signal?: AbortSignal } = {}) => session.finalizeBudget!(error, text, { signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }) } : {}),
       ...(session.readonlyPrompt ? { readonlyPrompt: (text: string, supplied: { signal?: AbortSignal } = {}) => session.readonlyPrompt!(text, { signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }) } : {}),
       ...(session.compact ? { compact: (signal?: AbortSignal) => session.compact!(AbortSignal.any([input.controller.signal, ...(signal ? [signal] : [])])) } : {}), close: () => session.close() };
   };

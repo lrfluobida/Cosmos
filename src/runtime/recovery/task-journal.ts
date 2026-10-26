@@ -29,6 +29,7 @@ export interface RecoveryOrigin {
   artifactRoot: string; sessionRoot: string;
   /** Omission preserves historical origin bytes and disables author corrections. */
   authorProtocolCorrections?: 0 | 1;
+  ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   /** Only enabled validation callers record the new policy; zero/omission retain old origin bytes. */
   codingHandoffClarifications?: 1;
   /** Validation-only host evidence ordering. Omission retains historical origin bytes. */
@@ -46,6 +47,8 @@ export class TaskJournal {
   private constructor(root: string, artifactRoot: string, taskId: string) { this.root = root; this.artifactRoot = artifactRoot; this.taskId = taskId; }
   static async open(options: RecoveryOptions, origin: RecoveryOrigin, resume: boolean, callerSignal?: AbortSignal): Promise<TaskJournal> {
     const signal = resume ? callerSignal : undefined; signal?.throwIfAborted();
+    if (origin.ordinaryDesignFinalizationPolicy !== undefined && (origin.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || origin.formatVersion !== 1
+      || origin.prepared.role !== 'design' || origin.authorProtocolCorrections !== 1)) throw new RecoveryBlocked('Invalid ordinary design finalization origin.');
     if (origin.formatVersion === 3) {
       if (!origin.validationCase || origin.executionWindow || !isValidationRequirement(origin.requirement)
         || origin.validationCase.caseId !== origin.requirement.validation.caseId || origin.validationCase.windowId !== origin.requirement.validation.windowId) throw new RecoveryBlocked('Recovery origin must bind its explicit validation case.');

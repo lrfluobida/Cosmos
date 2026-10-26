@@ -130,3 +130,14 @@ test('shared viewport diagnostics retain scenario ownership and first failing st
     assert.match(error.message, /scenario\.steps/); assert.doesNotMatch(error.message, /scenario\.reopen\.steps/); return true;
   });
 });
+
+
+for (const [label, change, path] of [
+  ['same selectors', (c: any) => { c.savedSnapshot.selector = c.snapshot.selector; }, 'scenario.reopen.checkpoint.savedSnapshot.selector'],
+  ['extra field', (c: any) => { c.checkpointAssertionIds = ['save']; }, 'scenario.reopen.checkpoint.checkpointAssertionIds'],
+  ['bad kind', (c: any) => { c.snapshot.kind = 'value'; }, 'scenario.reopen.checkpoint.snapshot.kind'],
+  ['bad expected', (c: any) => { c.expected = ''; }, 'scenario.reopen.checkpoint.expected'],
+] as const) test('COS136 F8 visible checkpoint reports the exact field for ' + label, () => {
+  const value: any = plan(); change(value.scenario.reopen.checkpoint);
+  assert.throws(() => validateOrdinaryAcceptancePlan(value, draft), error => error instanceof Error && error.message.includes(path));
+});

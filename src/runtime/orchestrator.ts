@@ -58,6 +58,7 @@ export interface DagOptions {
   reviewProtocolCorrections?: 0 | 1;
   /** Explicit single format correction in the original live author; durable recovery is required. */
   authorProtocolCorrections?: 0 | 1;
+  ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   /** Validation-only read-only coding scope clarification; shares the author format slot. */
   codingHandoffClarifications?: 0 | 1;
   /** Validation-only coding host checks precede explicit independent concern resolution. */
@@ -122,6 +123,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   validateProtocolCorrections(options.reviewProtocolCorrections ?? 0);
   if (![0, 1].includes(options.authorProtocolCorrections ?? 0)) throw new Error('Author protocol corrections must be 0 or 1.');
   if (options.authorProtocolCorrections === 1 && !options.recovery) throw new Error('Author protocol correction requires durable host receipts.');
+  if (options.ordinaryDesignFinalizationPolicy !== undefined && (options.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || options.authorProtocolCorrections !== 1 || !options.recovery || options.validation || options.windowId)) throw new Error('Invalid ordinary design finalization scope.');
   if (![0, 1].includes(options.codingHandoffClarifications ?? 0)) throw new Error('Coding handoff clarifications must be 0 or 1.');
   if (options.codingHandoffClarifications === 1 && (!options.validation || !options.recovery || options.scheduling)) throw new Error('Coding handoff clarification requires explicit serial validation and durable host receipts.');
   if (![0, 1].includes(options.hostEvidencedCodingHandoff ?? 0)) throw new Error('Host evidenced coding handoff must be 0 or 1.');
@@ -176,6 +178,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
           runId: initial.run.runId, ledgerId: initial.ledger.ledgerId, originalStartedAt: initial.run.originalStartedAt,
           originalDeadlineAt: initial.run.originalDeadlineAt, limitMicroCny: initial.ledger.limitMicroCny, requirement, prepared: item,
           reviewProtocolCorrections: options.reviewProtocolCorrections ?? 0, artifactRoot: options.recovery.artifactRoot, sessionRoot: resolve(options.sessionRoot),
+          ...(options.ordinaryDesignFinalizationPolicy && item.role === 'design' ? { ordinaryDesignFinalizationPolicy: options.ordinaryDesignFinalizationPolicy } : {}),
           ...(options.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: options.authorProtocolCorrections } : {}),
           ...(options.codingHandoffClarifications === 1 ? { codingHandoffClarifications: 1 as const } : {}),
           ...(options.hostEvidencedCodingHandoff === 1 ? { hostEvidencedCodingHandoff: 1 as const } : {}),
@@ -332,6 +335,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
           let recoveredCorrection = false;
           if ((options.authorProtocolCorrections === 1 || options.codingHandoffClarifications === 1) && (!authored || !await journal!.read('capture-started', attemptId))) {
             const corrected = await recoverAuthorProposal({ journal: journal!, task, workspace: item.workspace, parse: parseProposal,
+              ...(options.ordinaryDesignFinalizationPolicy && item.role === 'design' ? { ordinaryDesignFinalizationPolicy: options.ordinaryDesignFinalizationPolicy } : {}),
               allowCodingScope: options.codingHandoffClarifications === 1 && item.role === 'coding' && !!options.validation });
             if (corrected) {
               if (authored && !sameValue(authored, corrected)) throw new RecoveryBlocked('Author handoff conflicts with its correction response.');
@@ -378,6 +382,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         failureStage = 'author_handoff';
         proposal = await requestAuthorProposal({ author, controller, task, workspace: item.workspace, journal, signal,
           maxCorrections: options.authorProtocolCorrections ?? 0, parse: parseProposal, now: options.now,
+          ...(options.ordinaryDesignFinalizationPolicy && item.role === 'design' ? { ordinaryDesignFinalizationPolicy: options.ordinaryDesignFinalizationPolicy } : {}),
           role: item.role, maxScopeClarifications: options.codingHandoffClarifications ?? 0,
           ...(options.validation ? { validation: { binding: options.validation, requirement } } : {}) });
         if (journal) await journal.write('author', attemptId, { proposal, signature: await journal.signature(task.inputs) });

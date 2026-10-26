@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, realpath, stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { InMemoryCredentialStore, lazyStream, normalizeContext, type AssistantMessage, type AssistantMessageEvent, type ImageContent, type Usage } from '@earendil-works/pi-ai';
@@ -6,6 +6,7 @@ import {
   createAgentSession, createExtensionRuntime, convertToLlm, ModelRuntime, SessionManager, SettingsManager,
   type AgentSessionEvent, type ResourceLoader, type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
+import { regularFile } from '../artifacts/paths.ts';
 import { requestInputBytes } from './request-input.ts';
 
 export { createWorkspaceTools } from './workspace-tools.ts';
@@ -34,6 +35,28 @@ export interface PiBudget {
   beforeRequest(request: PiRequest): Promise<void>;
   afterResponse(response: PiResponse): Promise<void>;
 }
+export interface PiBudgetFinalizationSource {
+  code: 'author_output_budget' | 'author_review_reserve'; stage: 'ordinary_output_limit'; requestId: string;
+  inputBytes: number; floor: 8192; requests: number; maxRequests: 32;
+  native: { file: string; entryId: string; sha256: string };
+}
+const unsentMessage = (source: Omit<PiBudgetFinalizationSource, 'native'>) => `Unsent ordinary output limit: ${JSON.stringify(source)}`;
+const nativeDigest = (entry: unknown) => createHash('sha256').update(JSON.stringify(entry)).digest('hex');
+/** Audit a native unsent error only. This does not reconstruct a live session permission. */
+export async function requireBudgetFinalizationSource(source: PiBudgetFinalizationSource, stateDirectory: string): Promise<void> {
+  const { native, ...reason } = source ?? {};
+  if (!native || !['author_output_budget', 'author_review_reserve'].includes(reason.code) || reason.stage !== 'ordinary_output_limit'
+    || !/^[a-f\d-]{36}$/.test(reason.requestId) || !Number.isSafeInteger(reason.inputBytes) || reason.inputBytes <= 0
+    || reason.floor !== 8192 || reason.maxRequests !== 32 || !Number.isSafeInteger(reason.requests) || reason.requests < 1 || reason.requests >= 32
+    || typeof native.file !== 'string' || !/^[\w-]{1,80}$/.test(native.entryId) || !/^[a-f\d]{64}$/.test(native.sha256)) throw new Error('Invalid native unsent source.');
+  const path = relative(resolve(stateDirectory), resolve(native.file));
+  if (!path || isAbsolute(path) || path.startsWith('..') || path.includes(sep) || !path.endsWith('.jsonl')) throw new Error('Unsent source is outside the original native session directory.');
+  const entries = new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(stateDirectory, path)).trim().split('\n').map(line => JSON.parse(line));
+  const matches = entries.filter(entry => entry.id === native.entryId), entry = matches[0];
+  if (matches.length !== 1 || nativeDigest(entry) !== native.sha256 || entry.type !== 'message' || entry.message?.role !== 'assistant'
+    || entry.message.stopReason !== 'error' || entry.message.errorMessage !== unsentMessage(reason)
+    || ['input', 'output', 'cacheRead', 'cacheWrite', 'totalTokens'].some(key => entry.message.usage?.[key] !== 0)) throw new Error('Native unsent source differs from the original rejection.');
+}
 export interface PiSessionOptions {
   workspace: string;
   stateDirectory: string;
@@ -51,6 +74,7 @@ export interface PiSessionOptions {
   maxRequests: number;
   /** Only the existing tool-free format correction may use this smaller cap. */
   readonlyMaxOutputTokens?: 4096;
+  ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   requestTimeoutMs: number;
   /** Trusted host authority, refreshed before admission and immediately before dispatch. */
   requestWindow?: () => Promise<{ deadlineAt: number; cleanupMs: number }>;
@@ -89,6 +113,8 @@ export async function createPiSession(config: PiSessionOptions) {
   positive(config.requestTimeoutMs, 'requestTimeoutMs');
   if (config.requestCompactionAdmission && !config.requestCompaction) throw new Error('Compaction admission requires a compaction policy');
   if (config.readonlyMaxOutputTokens !== undefined && (config.readonlyMaxOutputTokens !== 4096 || config.maxOutputTokens < 4096)) throw new Error('Invalid readonly output cap');
+  if (config.ordinaryDesignFinalizationPolicy !== undefined && (config.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || config.maxOutputTokens !== 32768
+    || config.maxRequests !== 32 || config.readonlyMaxOutputTokens !== 4096 || !config.requestOutputLimit)) throw new Error('Invalid ordinary design finalization configuration.');
   const key = (config.env ?? process.env).DEEPSEEK_API_KEY;
   if (!key?.trim()) throw new Error('DEEPSEEK_API_KEY is required');
   const workspace = await realpath(config.workspace);
@@ -120,12 +146,14 @@ export async function createPiSession(config: PiSessionOptions) {
   let callerSignal: AbortSignal | undefined;
   let readonlyRequests: number | undefined;
   let closed = false;
+  let pendingFinalization: { error: PiSessionError; source: Omit<PiBudgetFinalizationSource, 'native'>; beforeLeaf: string | null; native?: PiBudgetFinalizationSource['native'] } | undefined;
+  let finalizationActive = false, finalizationUsed = false;
   let optionalCompaction: { ordinary: PiCompactionBounds; skippedRequestId?: string; truncatedRequestId?: string; rejected: boolean } | undefined;
   const records: PiResponse[] = [];
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
   const admissionFailure = (error: unknown, message: string) => error instanceof PiSessionError && ['author_output_budget', 'author_review_reserve', 'review_output_budget'].includes(error.code)
     ? fail(error.code, 'Original request resource capacity is insufficient; no provider request sent.') : fail('admission_rejected', message);
-  const throwIfFailed = () => { if (failure) throw failure; };
+  const throwIfFailed = () => { if (failure) throw failure; if (pendingFinalization && !finalizationActive) throw pendingFinalization.error; };
   function estimateRequest(request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) {
     try {
       const estimate = typeof config.estimatedMaxCostMicroCny === 'function' ? config.estimatedMaxCostMicroCny(request) : config.estimatedMaxCostMicroCny;
@@ -188,7 +216,17 @@ export async function createPiSession(config: PiSessionOptions) {
     if (config.requestOutputLimit) {
       let limit: number;
       try { limit = await config.requestOutputLimit(Object.freeze({ ...request }), options?.signal); }
-      catch (error) { throw admissionFailure(error, 'Request output limit authority rejected; no provider request sent'); }
+      catch (error) {
+        if (config.ordinaryDesignFinalizationPolicy && !session.isCompacting && readonlyRequests === undefined && !pendingFinalization
+          && !failure && !closed && !options?.signal?.aborted && !callerSignal?.aborted && requests < config.maxRequests
+          && error instanceof PiSessionError && ['author_output_budget', 'author_review_reserve'].includes(error.code)) {
+          const source: Omit<PiBudgetFinalizationSource, 'native'> = { code: error.code as PiBudgetFinalizationSource['code'], stage: 'ordinary_output_limit',
+            requestId: request.requestId, inputBytes: request.inputBytes, floor: 8192, requests, maxRequests: 32 };
+          const rejected = new PiSessionError(source.code, unsentMessage(source));
+          pendingFinalization = { error: rejected, source, beforeLeaf: manager.getLeafId() }; throw rejected;
+        }
+        throw admissionFailure(error, 'Request output limit authority rejected; no provider request sent');
+      }
       throwIfFailed();
       if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled before output limit admission');
       if (!Number.isSafeInteger(limit) || limit <= 0 || limit > request.maxOutputTokens) throw fail('invalid_request', 'Request output limit must be a positive safe integer within the configured cap');
@@ -395,7 +433,7 @@ export async function createPiSession(config: PiSessionOptions) {
   let operationDone: Promise<void> | undefined;
   async function run<T>(action: () => Promise<T>, signal?: AbortSignal) {
     if (closed) throw new PiSessionError('closed', 'Session is closed');
-    if (failure) throw failure;
+    throwIfFailed();
     if (busy) throw new PiSessionError('busy', 'Session already has an active operation');
     if (signal?.aborted) throw new PiSessionError('cancelled', 'Operation was cancelled');
     busy = true;
@@ -406,7 +444,7 @@ export async function createPiSession(config: PiSessionOptions) {
     signal?.addEventListener('abort', abort, { once: true });
     try {
       const result = await action();
-      if (failure) throw failure;
+      throwIfFailed();
       return result;
     } finally {
       signal?.removeEventListener('abort', abort);
@@ -415,7 +453,45 @@ export async function createPiSession(config: PiSessionOptions) {
       finish(); operationDone = undefined;
     }
   }
+  async function budgetFinalization(error: unknown): Promise<PiBudgetFinalizationSource | null> {
+    if (!config.ordinaryDesignFinalizationPolicy || !pendingFinalization || error !== pendingFinalization.error || failure || closed || busy || finalizationUsed
+      || !session.isIdle || requests >= config.maxRequests || callerSignal?.aborted) return null;
+    const leaf = manager.getLeafEntry();
+    if (!leaf || leaf.id === pendingFinalization.beforeLeaf || leaf.type !== 'message' || leaf.message.role !== 'assistant'
+      || leaf.message.stopReason !== 'error' || leaf.message.errorMessage !== unsentMessage(pendingFinalization.source)) return null;
+    const native = { file: manager.getSessionFile()!, entryId: leaf.id, sha256: nativeDigest(leaf) };
+    if (pendingFinalization.native && JSON.stringify(native) !== JSON.stringify(pendingFinalization.native)) return null;
+    const source = { ...pendingFinalization.source, native }; await requireBudgetFinalizationSource(source, stateDirectory);
+    if (failure || closed || busy || finalizationUsed) return null;
+    pendingFinalization.native = native; return source;
+  }
+  async function readonly(text: string, signal?: AbortSignal) {
+    return run(async () => {
+      if (!session.isIdle || session.getAllTools().some(tool => tool.exposure === 'codemode' || tool.exposure === 'deferred')) {
+        throw new PiSessionError('readonly_unavailable', 'Native tool registry cannot isolate a read-only format turn');
+      }
+      const active = session.getActiveToolNames();
+      try {
+        session.setActiveToolsByName([]);
+        if (session.getActiveToolNames().length || session.getCallableToolNames().length) throw new PiSessionError('readonly_unavailable', 'Native tools remain callable');
+        readonlyRequests = 0;
+        await session.prompt(text, { expandPromptTemplates: false });
+        return { text: session.getLastAssistantText() ?? '', requests: records.slice() };
+      } finally {
+        readonlyRequests = undefined;
+        if (!session.isIdle) await session.abort();
+        if (!closed) session.setActiveToolsByName(active);
+      }
+    }, signal);
+  }
   return {
+    ...(config.ordinaryDesignFinalizationPolicy ? { budgetFinalization,
+      async finalizeBudget(error: unknown, text: string, options: { signal?: AbortSignal } = {}) {
+        options.signal?.throwIfAborted();
+        if (!await budgetFinalization(error) || finalizationUsed || failure || closed || busy) throw failure ?? error;
+        finalizationUsed = true; finalizationActive = true;
+        try { return await readonly(text, options.signal); } finally { finalizationActive = false; }
+      } } : {}),
     get sessionFile() { return manager.getSessionFile(); },
     get requestRecords(): readonly PiResponse[] { return records.slice(); },
     subscribe(listener: (event: AgentSessionEvent) => void) { return session.subscribe(listener); },
@@ -427,24 +503,8 @@ export async function createPiSession(config: PiSessionOptions) {
     },
     /** Host-only format turn. The existing native session, request guards and history remain authoritative. */
     readonlyPrompt(text: string, options: { signal?: AbortSignal } = {}) {
-      return run(async () => {
-        if (!session.isIdle || session.getAllTools().some(tool => tool.exposure === 'codemode' || tool.exposure === 'deferred')) {
-          throw new PiSessionError('readonly_unavailable', 'Native tool registry cannot isolate a read-only format turn');
-        }
-        const active = session.getActiveToolNames();
-        try {
-          // Formatting needs only facts already in this session, so grant no callable tools.
-          session.setActiveToolsByName([]);
-          if (session.getActiveToolNames().length || session.getCallableToolNames().length) throw new PiSessionError('readonly_unavailable', 'Native tools remain callable');
-          readonlyRequests = 0;
-          await session.prompt(text, { expandPromptTemplates: false });
-          return { text: session.getLastAssistantText() ?? '', requests: records.slice() };
-        } finally {
-          readonlyRequests = undefined;
-          if (!session.isIdle) await session.abort();
-          if (!closed) session.setActiveToolsByName(active);
-        }
-      }, options.signal);
+      if (config.ordinaryDesignFinalizationPolicy) finalizationUsed = true;
+      return readonly(text, options.signal);
     },
     compact(signal?: AbortSignal) {
       return run(() => session.compact(`Preserve all acceptance IDs, interface contracts, input versions, budget references, known failures and remaining work.\n${config.context}`), signal);

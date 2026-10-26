@@ -15,6 +15,7 @@ import type { RecoveryReport } from './recovery/task-journal.ts';
 export const ORDINARY_DESIGN_REVISION_POLICY = 'independent-review/1' as const;
 export interface OrdinaryExecution {
   capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference;
+  ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   authorProtocolCorrections?: 1; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: typeof ORDINARY_DESIGN_REVISION_POLICY;
 }
 interface RevisionPlan {
@@ -40,6 +41,7 @@ async function publish(root: string, name: string, value: unknown) {
   const path = await safePath(root, name); await mkdir(dirname(path), { recursive: true }); await publishReceipt(path, value);
 }
 export function requireDesignRevisionPolicy(execution: OrdinaryExecution) {
+  if (Object.hasOwn(execution, 'ordinaryDesignFinalizationPolicy') && execution.ordinaryDesignFinalizationPolicy !== 'budget-followup/1') fail('invalid_finalization_policy');
   if (execution.ordinaryDesignRevisionPolicy !== ORDINARY_DESIGN_REVISION_POLICY || execution.ordinaryDesignBudgetPolicy !== 'review-reserve/1'
     || execution.capability !== 'ordinary-design-execution/1' || execution.authorProtocolCorrections !== 1
     || execution.tasks.length !== 3 || ['design', 'art', 'coding'].some(role => execution.tasks.filter(item => item.role === role).length !== 1)) fail('invalid_policy_scope');
@@ -47,6 +49,7 @@ export function requireDesignRevisionPolicy(execution: OrdinaryExecution) {
 function origin(root: string, state: RunSnapshot, execution: OrdinaryExecution, prepared: PreparedTask) {
   return { formatVersion: 1 as const, runId: state.run.runId, ledgerId: state.ledger.ledgerId, originalStartedAt: state.run.originalStartedAt,
     originalDeadlineAt: state.run.originalDeadlineAt, limitMicroCny: state.ledger.limitMicroCny, requirement: execution.requirement, prepared,
+    ...(execution.ordinaryDesignFinalizationPolicy && prepared.role === 'design' ? { ordinaryDesignFinalizationPolicy: execution.ordinaryDesignFinalizationPolicy } : {}),
     reviewProtocolCorrections: 1 as const, authorProtocolCorrections: 1 as const, artifactRoot: root, sessionRoot: join(root, 'sessions') };
 }
 export async function requireDesignExecution(root: string, controller: Pick<RunController, 'read'>, execution: OrdinaryExecution) {
