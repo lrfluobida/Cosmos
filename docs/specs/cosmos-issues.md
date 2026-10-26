@@ -1,8 +1,10 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-27 [COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131) 与COS129同批登记，均open/source-pending；独立APPROVED_PLAN及Root实施批准，正式文档已发布。总130、根直接100、COS18原生24子项中22个源码完成，父仍open/partial。原生依赖核证COS124/125/127/128及COS129；免费14项固定检查和新增入口1项真实交付组合分开，不能据expected rejection宣称游戏通过。
+2026-10-27 [COS131 / #132](https://github.com/lrfluobida/Cosmos/issues/132) 已独审合入 `03fb1d5461277b5ca0532ad38f0b5b3b618539fb`，source-scoped关闭、父[x]；typecheck/build与实际raw publisher正例1/1通过。COS129仅source-scoped完成，COS130静态批准但组合未测；总131/root100/父25中24源码完成，父仍open/partial，paidReady=false。
 
-2026-10-27 [COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130) 已登记为open/source-pending；固定SHA规格/计划获独立APPROVED_PLAN与用户/Root实施批准。方法转为复用原完整已确认需求的新尝试，预算/时钟和阶段批准不跨run迁移。本批另登记已独立批准的COS130；总130、根直接100、COS18原生24子项中22个源码完成，父仍open/partial；room14未确认不能作来源，本批不新付费重跑。
+2026-10-27 [COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131) 保持open：基础源码 `9a8f97e71b95eed318849a026dabcecbecc6a178` 已APPROVED_SOURCE_BASE_SCOPED，wrapper `680fe61b714faaf015a017593ab30bb67d6ac165` 仅STATIC_APPROVED_PENDING_COMBINATION，尚未合入/关闭。原14项有效报告复用，在已发布COS131修复上只补1项新增入口→ordinary真实交付组合，newEntryHandoff仍unverified；原生依赖已加COS131，不把静态批准写为整体ready。
+
+2026-10-27 [COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130) 已独审合入 `6bdc9af3c06fee719e50dac8c129e300df22b46f`，source-scoped closed(completed)/父[x]已核证，typecheck/build与3/3短代表通过。paidReady=false，已确定ready竞态由COS131另修，COS130组合未测；总131/root100/父25中24源码完成，整体仍open/partial。
 
 2026-10-26 [COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129) 已独审合入发布 `93b1b0f8e9da14a804542d3f6f4380baed54e12f`，达到 `PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY`；closed(completed)及父[x]已GET核证。总128、根直接100、父22个源码子项完成，父仍open/partial；主线typecheck/build与4/4代表通过。room12永久关闭，源码接线完成不代表实际游戏或体验通过。
 
@@ -1907,19 +1909,27 @@ room11 runtimec189c49的177.047秒incomplete、36笔568980µ结算/4431020µ释�
 
 ### COS-129 · 复用已确认需求的新生成尝试
 
-[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)，id6043759867，原生父COS18/#19、父[ ]，`open / source-pending`。reuse_plan_reviewer独立APPROVED_PLAN、无P1/P2，用户与Root批准改变方法并免费实施。作者confirmed_requirements_implementer基于 `5f1c1db0162fd523714439bc046f49e142977f31` 实施，独立源码reviewer reuse_plan_reviewer，唯一merger public_agent_batch_merger。[正式规格](cos129-confirmed-requirements-reuse.md)与[计划](../plans/2026-10-27-confirmed-requirements-reuse.md)保留批准技术正文，输入SHA `52b79cd81647b76b9c0b4603c9b1c775c52341d7aff25b2b2b2c0cbdc9b977ea` / `bfb2dcfa7656115373bb8b62263da9f510e75915d9f0d74e91ba0a15d01e976a`；源码尚未独审或合入。
+[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)，id6043759867，`source-integrated / source-scoped-complete`；[批准](https://github.com/lrfluobida/Cosmos/issues/130#issuecomment-6423957466)、[关闭](https://github.com/lrfluobida/Cosmos/issues/130#issuecomment-6423965590)、父[x]已核证。作者confirmed_requirements_implementer的 `db6548ace1e930d39f27d9ca30b3318e233e6fda` 经独立reuse_plan_reviewer批准，无findings；唯一merger从 `c65a30233681adbfbf30d96740f0949bec612f05` 合入发布 `6bdc9af3c06fee719e50dac8c129e300df22b46f`，26文件精确一致。typecheck/build exit0，3/3非浏览器短代表、0skip、TAP9380.6674ms；有效原8/8及delta8/8/作者证据复用不累计。[规格](cos129-confirmed-requirements-reuse.md)/[计划](../plans/2026-10-27-confirmed-requirements-reuse.md)仅收尾状态。初始化与accounting P2闭合，ready发布竞态已由COS131源码修复并验证真实publisher；paidReady=false，新入口真实交付仍待COS130组合。
 
 公开 `new --requirements-from <source-run> --requirements-revision N` 只引用原完整ordinary真实确认版本，保留原确认人/时间和逐字节draft/confirmation副本，新run的requirements humanDecisions为空。source/new身份与新ledger/clock独立，不导入旧请求、阶段结果或体验批准；未确认、内容漂移、递归来源或不匹配选项拒绝。funding v2先核源再沿原拨款生命周期，公开实际执行、普通/persistent consumer、resume/report/experience共同绑定来源；旧v1/旧解释保持，新引用型continue本卡明确拒绝。源码与测试须覆盖真实公开入口和实际下游，不能以fake execute成功代替。
 
-room14仍为未确认/deferred、原5M held保留，不能作为已确认来源；本卡不启动、停止、关闭或结算任何真实run。旧来源停止/到期不等于需求确认失效，但这里只在SOURCE/TEMP实现核验，不实际读取或重启旧case。总130/root100/父24中22源码完成，父仍open/partial；本批另登记COS130免费回放，最终组合须独审新增入口到真实delivery代表。稳定任务ID：COS-129。
+room14仍为未确认/deferred、原5M held保留，不能作为已确认来源；本卡不启动、停止、关闭或结算任何真实run。旧来源停止/到期不等于需求确认失效，但这里只在SOURCE/TEMP实现核验，不实际读取或重启旧case。总131/root100/父25中24源码完成，父仍open/partial；COS130 wrapper静态批准但组合未测，COS131已修复并验证合并后raw publisher；COS130新增入口交付仍待组合。稳定任务ID：COS-129。
 
 ### COS-130 · 免费失败回放与阶段交接检查
 
-[COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131)，id6044003264，原生父COS18/#19、父[ ]，`open / source-pending`。preflight_plan_reviewer独立APPROVED_PLAN、两个P2已闭合，Root批准免费实施。作者validation_preflight_implementer、独立源码reviewer preflight_plan_reviewer、唯一merger public_agent_batch_merger，基线 `5f1c1db0162fd523714439bc046f49e142977f31`。[正式规格](cos130-public-validation-preflight.md)与[计划](../plans/2026-10-27-public-validation-preflight.md)保留批准技术正文，输入SHA `aeee5bbb1718fff620c4831f10544f67671b6f4222b950c2b63b203e296a18f4` / `d50925cb6f7a53d80f2cf4130e86a4b49819257cffd7b0afbfd743ca87c421f7`；源码未独审或合入。
+[COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131)，id6044003264，保持open/未勾；基础源码9a8f97e71b95eed318849a026dabcecbecc6a178获APPROVED_SOURCE_BASE_SCOPED，wrapper680fe61b714faaf015a017593ab30bb67d6ac165仅STATIC_APPROVED_PENDING_COMBINATION，未合入或source完成。作者validation_preflight_implementer、独审preflight_plan_reviewer、唯一merger public_agent_batch_merger。原14项有效报告复用，在已发布COS131主线上只补1项新入口真实delivery组合；newEntryHandoff=unverified，paidReady=false。[规格](cos130-public-validation-preflight.md)/[计划](../plans/2026-10-27-public-validation-preflight.md)技术范围保持。
 
 只改4个test/runner/package文件，固定14项SOURCE检查；父进程以白名单环境启动worker，模型边界合成，无live fallback或真实凭据继承。新增ordinary分支必须经过实际生产entrypoint、捕获/独审/consumer和report发布，真实本地编译、媒体、Edge及clean package，体验仍not_confirmed；捕获漂移须在下游派发前拒绝。预算历史负例只计expected_rejection，不是成功交付，runner错名/skip/缺项/清理失败必须失败。此处仅登记计划，没有运行测试。
 
-原生依赖COS124/125/127/128及[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)已GET核证。前四卡只复用有效证据，最终新增入口组合依赖COS129；本卡作者作为delivery integration唯一写者再加1项薄wrapper并独审，已有14项报告不重复跑，缺组合时newEntryHandoff仍unverified。总130/root100/父24中22源码完成，父open/partial；room14未确认且原held保留，本批不付费、不操作真实run/ledger/coordinator。稳定任务ID：COS-130。
+原生依赖COS124/125/127/128及[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)已GET核证。前四卡只复用有效证据，最终新增入口组合依赖COS129；本卡作者作为delivery integration唯一写者再加1项薄wrapper并独审，已有14项报告不重复跑，缺组合时newEntryHandoff仍unverified。已新增原生依赖COS131；总131/root100/父25中24源码完成，父open/partial；room14未确认且原held保留，本批不付费、不操作真实run/ledger/coordinator。稳定任务ID：COS-130。
+
+### COS-131 · ready 发布窗口的有界等待
+
+[COS131 / #132](https://github.com/lrfluobida/Cosmos/issues/132)，id6045400766，原生父COS18/#19、父[x]，`source-integrated / source-scoped-complete`。COS131源码 `9b922f10695c0d45b993cddd4c8b4daad258ca37` 已获ready_publication_reviewer最终APPROVED_SOURCE_SCOPED、无finding，合入发布 `03fb1d5461277b5ca0532ad38f0b5b3b618539fb`；[批准](https://github.com/lrfluobida/Cosmos/issues/132#issuecomment-6424314125)、[关闭](https://github.com/lrfluobida/Cosmos/issues/132#issuecomment-6424321715)已核证。3文件精确一致，typecheck/build exit0，合并COS129后的真实raw publisher屏障正例1/1、0skip、TAP4135.8218ms；19项/正常1/最后2项有效证据复用，不累计。仅source-scoped完成，COS130新入口真实交付组合仍待验证，paidReady=false。 作者ready_publication_implementer、独审ready_publication_reviewer、唯一merger public_agent_batch_merger；[规格](cos131-delivery-ready-publication.md)/[计划](../plans/2026-10-27-delivery-ready-publication.md)保存原固定spec/plan输入SHA与Root接受的normal代表名称修订。
+
+生产限entrypoint-delivery.ts；仅以同目录唯一UUID临时名、bigint dev/ino及精确nlink=2证明原子发布仍进行，返回原等待，最终必须严格regularFile/nlink=1及原identity检查。原readyDeadline、25ms轮询、取消/finally不延长；publisher/paths/budget/worker保持。真实publisher显式unlink屏障RED→GREEN及取消/超时清理，不能用随机sleep或复跑通过掩盖原竞态。批准诊断base c65保留，登记main含已审COS129 raw-bytes publisher `6bdc9af3c06fee719e50dac8c129e300df22b46f`，主线已补合并后真实publisher屏障正例，COS130最终新入口真实交付仍另行验证。
+
+COS130已原生依赖本卡；本卡源码范围完成，COS130最终组合未完成，paidReady=false；总131/root100/父25中24源码完成，父仍open/partial。无真实run/ledger/coordinator/付费操作。稳定任务ID：COS-131。
 
 ## 5. 任务与上下文包模板
 
