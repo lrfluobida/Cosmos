@@ -1105,9 +1105,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                     || !isDeepStrictEqual(await snapshot(server.project), fixedProject) || !(await regularFile(root, `${designArtifact.location}/_cosmos/design.json`)).equals(fixedDesign)) throw new Error('Current generic candidate or design bytes changed.');
                   for (const source of requirement.sources) if (!(await regularFile(root, source.location)).equals(await regularFile(root, `${requirements.location}/_cosmos/${source.artifactId}.json`))) throw new Error('Confirmed generic source changed.');
                   if (!validation) {
-                    const confirmation = await json(root, requirement.sources[1].location);
-                    if (!sameValue(await json(root, requirement.sources[0].location), draft) || confirmation.runId !== task.runId
-                      || !sameValue(confirmation.draft, requirement.sources[0]) || !sameValue(confirmRequirements({ ...(draft as BrowserGameDraft), specVersion: requirement.specVersion, sources: requirement.sources }, confirmation), requirement)) throw new Error('Generic draft confirmation changed.');
+                    const state = await controller.read();
+                    if (state.requirementsSource) {
+                      const original = await (await import('./confirmed-requirements-source.ts')).readConfirmedGeneration(root, state);
+                      if (task.runId !== state.run.runId || !sameValue(original.draft, draft) || !sameValue(original.requirement, requirement)) throw new Error('Referenced generic confirmation changed.');
+                    } else {
+                      const confirmation = await json(root, requirement.sources[1].location);
+                      if (!sameValue(await json(root, requirement.sources[0].location), draft) || confirmation.runId !== task.runId
+                        || !sameValue(confirmation.draft, requirement.sources[0]) || !sameValue(confirmRequirements({ ...(draft as BrowserGameDraft), specVersion: requirement.specVersion, sources: requirement.sources }, confirmation), requirement)) throw new Error('Generic draft confirmation changed.');
+                    }
                   }
                   if (!(await regularFile(root, `${mediaArtifact.location}/public/assets/manifest.json`)).equals(manifestBytes)) throw new Error('Current media manifest changed.');
                 };

@@ -18,6 +18,8 @@ import { reconcileRoleReceipt } from '../roles/provider-budget.ts';
 import type { AccountingController } from '../roles/provider-budget.ts';
 import type { IntakeSnapshot } from './intake.ts';
 import type { RunSnapshot } from './run-types.ts';
+import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
+import { readConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import type { PublicValidationAuthorization, PublicValidationFundingBinding, PublicValidationFundingRecord } from './public-validation-funding-types.ts';
 import { fundedIntakeWork, fundingBinding, fundingClosureId, fundingFields, fundingHash, fundingTaskId, publicFundingExposure, validateFundingAuthorization, validateFundingBinding } from './public-validation-funding-validation.ts';
 
@@ -44,6 +46,13 @@ export async function readPublicValidationAuthorization(sharedRoot: string, auth
   validateFundingAuthorization(payload);
   if (within(payload.runRoot, ref.location)) throw new Error('Public funding authorization must be outside the generated run.');
   return { payload, binding: fundingBinding(payload, ref, bytes) };
+}
+/** Live requirements gate new execution, while immutable authorizations remain accounting evidence. */
+async function requireFundingRequirements(payload: PublicValidationAuthorization) {
+  if (payload.formatVersion === 'public-validation-authorization/2') {
+    const original = await readConfirmedRequirementsSource({ root: payload.requirementsSource.root, revision: payload.requirementsSource.revision, specVersion: '1.0', expected: payload.requirementsSource });
+    if (payload.brief !== original.draft.brief || payload.renderFrames !== !!original.renderFrameSelection || payload.ledgerId === original.ledgerId) throw new Error('Public funding requirements source differs from its original complete confirmation.');
+  }
 }
 export async function readPublicFundingIntent(root: string) {
   const intent = await optional(root, intentName);
@@ -100,6 +109,7 @@ async function commitShared(store: SnapshotStore, previous: RunSnapshot, next: R
 /** Whole-run allocation only; no provider request and no old case owner are created. */
 export async function reservePublicValidationFunding(options: { sharedRoot: string; runRoot: string; authorization: ArtifactReference; now?: () => number }): Promise<PublicValidationFundingBinding> {
   const { payload, binding } = await readPublicValidationAuthorization(options.sharedRoot, options.authorization);
+  await requireFundingRequirements(payload);
   const now = options.now ?? Date.now;
   if (binding.sharedRoot !== resolve(options.sharedRoot) || binding.runRoot !== resolve(options.runRoot) || Date.parse(payload.decidedAt) > now()) throw new Error('Public funding authorization does not match the requested roots or time.');
   await safePath(binding.runRoot); await safePath(binding.sharedRoot);
@@ -150,7 +160,9 @@ export async function acquirePublicFundingGate(root: string, snapshot: IntakeSna
   const duration = snapshot.formatVersion === 'intake-1' ? snapshot.durationMs : Date.parse(snapshot.run.originalDeadlineAt) - Date.parse(snapshot.run.originalStartedAt);
   if (binding.runRoot !== resolve(root) || binding.runId !== snapshot.run.runId || binding.ledgerId !== snapshot.ledger.ledgerId
     || binding.limits.limitMicroCny !== snapshot.ledger.limitMicroCny || binding.limits.durationMs !== duration
-    || origin.brief !== intent.payload.brief || !!origin.renderFrames !== intent.payload.renderFrames) throw new Error('Public funding differs from the original public run.');
+    || origin.brief !== intent.payload.brief || !!origin.renderFrames !== intent.payload.renderFrames
+    || !sameValue(origin.requirementsSource, intent.payload.requirementsSource) || !sameValue(snapshot.requirementsSource, intent.payload.requirementsSource)) throw new Error('Public funding differs from the original public run.');
+  if (dispatch) await requireFundingRequirements(intent.payload);
   const store = await SnapshotStore.acquire(binding.sharedRoot);
   try {
     const state = await store.read(); validateSnapshot(state);
@@ -173,12 +185,13 @@ export async function verifyPublicValidationFunding(options: { root: string; sna
 export async function rejectFundedContinuation(root: string, snapshot: RunSnapshot | IntakeSnapshot) {
   if (snapshot.validationFunding || await optional(root, intentName) || (await optional(root, 'intake-origin.json'))?.validationFunding) throw new Error('Public funding does not authorize a continuation window.');
 }
-export async function verifyFundedNew(root: string, binding: PublicValidationFundingBinding, brief: string, limits: PublicValidationFundingBinding['limits'], renderFrames: boolean) {
+export async function verifyFundedNew(root: string, binding: PublicValidationFundingBinding, brief: string, limits: PublicValidationFundingBinding['limits'], renderFrames: boolean, requirementsSource?: ConfirmedRequirementsSource) {
   validateFundingBinding(binding);
   const intent = await readPublicFundingIntent(root);
-  if (!intent || !sameValue(intent.binding, binding) || intent.payload.brief !== brief || !sameValue(binding.limits, limits) || intent.payload.renderFrames !== renderFrames) throw new Error('Public funding new arguments differ from authorization.');
+  if (!intent || !sameValue(intent.binding, binding) || intent.payload.brief !== brief || !sameValue(binding.limits, limits) || intent.payload.renderFrames !== renderFrames
+    || !sameValue(intent.payload.requirementsSource, requirementsSource)) throw new Error('Public funding new arguments differ from authorization.');
   const contents = await readdir(root);
-  if (contents.some(name => ![intentName, 'intake-origin.json'].includes(name))) throw new Error('Funded new requires its original initialization files only; use resume for a saved run.');
+  if (contents.some(name => ![intentName, 'intake-origin.json', ...(requirementsSource ? ['intake-ordinary-profile.json'] : [])].includes(name))) throw new Error('Funded new requires its original initialization files only; use resume for a saved run.');
 }
 export async function publishFundedOrigin(root: string, value: unknown) { await writeOnce(root, 'intake-origin.json', value); }
 

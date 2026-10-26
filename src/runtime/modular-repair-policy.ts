@@ -33,6 +33,7 @@ async function optional(root: string, path: string): Promise<any | undefined> {
 }
 /** Absence in an old origin means old integration-only scope; absence under an anchor is corruption. */
 export async function readModularRepairPolicy(root: string, state: IntakeSnapshot | RunSnapshot): Promise<ModularRepairPolicy | undefined> {
+  if (state.requirementsSource) return (await (await import('./confirmed-requirements-source.ts')).readReferencedRequirements(root, state, state.formatVersion !== 'intake-1' || !!state.draft)).modularRepairPolicy;
   const origin = await optional(root, 'intake-origin.json');
   let binding: ModularRepairPolicy | undefined, ref: { version: string } | undefined;
   if (state.formatVersion === 'intake-1') binding = state.modularRepairPolicy;

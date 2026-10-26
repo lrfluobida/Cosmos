@@ -1,8 +1,16 @@
 # Cosmos 进度
 
-更新时间：2026-10-26
+更新时间：2026-10-27
 
 ## 当前继续通用游戏开发 agent 能力
+
+2026-10-27 [COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131) 已登记（id6044003264），与COS129同批原生挂父COS18/#19、均[ ]/open。独立preflight_plan_reviewer已APPROVED_PLAN、两个P2闭合，Root批准固定SHA[正式规格](docs/specs/cos130-public-validation-preflight.md)/[实施计划](docs/plans/2026-10-27-public-validation-preflight.md)免费实施；作者validation_preflight_implementer、独立源码reviewer preflight_plan_reviewer、唯一merger public_agent_batch_merger，基线 `5f1c1db0162fd523714439bc046f49e142977f31`。原生依赖已核证：COS124/125/127/128复用有效证据，最终组合依赖COS129。总130/root100/父24子项中22个源码完成，父仍open/partial，两新卡源码均pending。
+
+新方法的免费收口：仅4个test/runner/package文件提供固定14项 `validate:public:offline`，模型传输合成、预算负例标expected_rejection，补ordinary捕获→独审→art/code→真实编译/Edge/clean delivery；只证明SOURCE边界，不把守卫拒绝算游戏成功。COS129接口批准组合后另加1项新入口→ordinary真实delivery，单独独审/计数，基础14项有效报告复用；缺该组合必须保留newEntryHandoff未验证。此登记不运行命令、不改source/tests、不付费或操作room14/ledger/coordinator；room14仍未确认，旧阶段批准不迁移，不盲目再开付费轮次。
+
+2026-10-27 [COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130) 已登记（id6043759867），原生父COS18/#19、父[ ]；独立reuse_plan_reviewer已APPROVED_PLAN、无P1/P2，用户与Root批准新方法和固定SHA的[正式规格](docs/specs/cos129-confirmed-requirements-reuse.md)/[实施计划](docs/plans/2026-10-27-confirmed-requirements-reuse.md)。作者confirmed_requirements_implementer基于 `5f1c1db0162fd523714439bc046f49e142977f31` 免费实施，独立源码reviewer reuse_plan_reviewer，唯一merger public_agent_batch_merger；源码保持open/pending。本批同时登记已独立批准的COS129/COS130，源码均pending；总130/root100/父24子项中22个源码完成，父仍open/partial。
+
+方法调整：新生成尝试引用原真实确认的完整需求版本，省去重复访谈和重复需求确认；保持原actor/time与draft/confirmation逐字节来源，不伪造新humanDecision，不搬旧budget/clock/阶段批准或体验决定。新attempt独立身份、限额与时钟，内容有修改仍走原访谈确认；公开new来源参数、funding v2、普通/persistent实际消费者、resume/report/experience均在本卡计划范围。room14登记时仍未确认/未计时、原5M held保留，必须拒绝其作为批准来源。本批不新付费重跑，不启动或关闭真实run，不改ledger/coordinator；只发布获批设计与登记文档，未改源码或运行测试。
 
 2026-10-26 room14 actual v2截至14:21:13Z的确认前快照（[公开核证](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6418642748)）：独立READY_CONFIRMATION，14AC（12玩法+2host）/4EX/8QA、unsupported[]，173原字符串及raw JSON精确导出；5个指定AC定点变化，其余9AC/4EX精确保留。草稿SHA `59ff37658dff87d2dfa2ac8f9dded9c6a77dea862e90c3b531a84924837a953c`，导出SHA `e6d4c879fe7f89642fad6691b51f44a6bbbd0682e383791e8b1e335a1f104ddd`。独审compact seed等价保留human room12 v2完整需求；实际首次答案2163字符，draft1 input23198 bytes（room13历史44712），draft2 input39190/maxOutput16384/quote209452µ在原余额内通过。
 

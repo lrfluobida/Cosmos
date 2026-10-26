@@ -91,6 +91,16 @@ interface OrdinaryAcceptancePlan {
 
 ## 验收和交付
 
+### 引用已确认需求的新生成尝试（COS129）
+
+`cosmos new <new-dir> --requirements-from <source-run-dir> --requirements-revision <N>` 直接引用原 `ordinary-design/1` 完整确认版本。来源可以是已停止或已完成的原正式运行，也可以是已确认但尚未激活的 intake；必须持有原 CLI `local-user` 决定。来源目录与新目录彼此分离，不接受引用型尝试作为下一层来源。
+
+来源模式与 `--brief`、`--adapter` 互斥。brief、问答、客观条目、体验条目、profile 和原选项均原样保留，修改要求仍使用原访谈流程。`--render-frames` 省略时保留来源选择，显式值必须相同。新尝试显示来源运行、revision、原确认人和时间及本次限额，不再要求 `confirm N`。
+
+新 `intake-origin.json`、intake 和正式快照保存 `confirmed-requirements-source/1`，包含原 root/runId/revision 与 draft/confirmation 的 SHA256。两个本地需求文件是独立的原字节副本，保留原确认身份；intake.confirmation 为 null，正式运行不生成新的 requirements humanDecision。新账本、任务、创建时间及生成时钟各自独立，不继承旧执行或体验批准。
+
+创建、激活、执行、恢复和体验报告均重新核对原完整来源及本地副本。源丢失、漂移、未确认、缺完整摘要或 revision 错误会拒绝；不补造旧字段。未就绪的 intake 可按同一来源 resume，已绑定副本丢失后不能现场重建。该模式当前仅支持 new/resume，continue 明确拒绝；最终体验仍须针对本次 candidate 真实试玩。
+
 A：受控 SDK/CLI 验证新 schema、完整中文展示和真实当前版确认；unsupported、伪造字段、ID 冲突、错来源/版本、体验清单漂移均拒绝；payload off 正反例；旧普通/preparation/确认/已完成报告兼容。B：免费三任务与五任务纵向夹具使用不同 AC/selector；验证独审门禁、capture 及实际 consumer 一致、persistent、模块/采样必要代表、v2/恢复不改计划和原时钟。漏 AC、debug-only 主证明、未知操作、错候选/来源、篡改、缺批准均拒绝。
 
 只对实际改动运行必要免费测试，复用未变证据；typecheck/build 通过后由各卡独立 reviewer 检查真实 diff。唯一 `public_agent_batch_merger` 集成 A→B、执行短组合检查、记录 SHA/证据并更新 issue/PROGRESS。source 通过不等于真实模型生成或用户体验通过；后续实际验证另行安排。
