@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { runCli } from '../../src/cli/index.ts';
 import { removeOwned } from '../../src/artifacts/paths.ts';
 import { fundingFixture } from '../runtime/public-validation-funding.fixture.ts';
-import { reservePublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
+import { reservePublicValidationFunding, verifyPublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
 import { createProductHost } from '../../src/runtime/entrypoint-host.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
@@ -16,6 +16,115 @@ import { settlePublicValidationFunding } from '../../src/runtime/public-validati
 import { SnapshotStore } from '../../src/runtime/store.ts';
 import { runPublicValidationCli } from '../../probes/public-cli/validation.ts';
 import { IntakeController } from '../../src/runtime/intake.ts';
+import { confirmedSource, silentOutput } from '../runtime/confirmed-requirements.fixture.ts';
+import { readConfirmedRequirementsSource } from '../../src/runtime/confirmed-requirements-source.ts';
+import { ordinaryHostFixture } from '../runtime/ordinary-design.fixture.ts';
+
+for (const when of ['before-stop', 'after-close', 'after-settlement']) test(`v2 source drift ${when} does not block accounting or independent v1 funding`, async t => {
+  const source = await confirmedSource(t), original = await readConfirmedRequirementsSource({ root: source.root, revision: 2, specVersion: '1.0' });
+  const f = await fundingFixture(t), args = await f.authorization(`accounting-${when}`);
+  await writeFile(join(args.sharedRoot, args.authorization.location), JSON.stringify({ ...args.payload, formatVersion: 'public-validation-authorization/2', brief: source.draft.brief, requirementsSource: original.source }), 'utf8');
+  await runPublicValidationCli(['new', args.runRoot, '--shared-root', args.sharedRoot, '--authorization', join(args.sharedRoot, args.authorization.location)], {
+    input: Readable.from([]), output: silentOutput(), host: { ordinaryProfile: 'ordinary-design/1',
+      async prepare() { return { environmentReady: false, executionReady: false }; }, async questions() { throw new Error('No interview'); }, async draft() { throw new Error('No draft'); }, async execute() { throw new Error('No execution'); } },
+  });
+  const drift = async () => {
+    const path = join(source.root, 'intake-answers/v2.json'), value = JSON.parse(await readFile(path, 'utf8'));
+    value.answers.goal = '源回答发生变化'; await writeFile(path, JSON.stringify(value), 'utf8');
+  };
+  if (when === 'before-stop') {
+    await drift();
+    await assert.rejects(verifyPublicValidationFunding({ root: args.runRoot, snapshot: await f.child(args.runRoot), dispatch: true }), /source|answer/i);
+  }
+  const owner = await IntakeController.open({ root: args.runRoot }); await owner.stop('End this isolated source fixture'); await owner.close();
+  if (when === 'after-close') await drift();
+  const result = await settlePublicValidationFunding({ ...args, fundingId: args.payload.fundingId });
+  assert.equal(result.settledMicroCny, 0);
+  if (when === 'after-settlement') await drift();
+  const next = await f.authorization(`independent-${when}`), binding = await reservePublicValidationFunding(next);
+  assert.equal(binding.runId, next.payload.runId); assert.equal((await f.snapshot()).publicValidationFundings.length, 2);
+});
+
+test('v2 funding wrapper binds the original complete requirements without a new interview', async t => {
+  const phases: string[] = [];
+  const generated = await ordinaryHostFixture(t, { sessionFactory: async config => ({ close: async () => {}, async prompt() {
+    const packet = JSON.parse(config.context!); phases.push(packet.role);
+    const requestId = 'reused-planning';
+    await config.budget.beforeRequest({ requestId, modelId: 'deepseek-flash', maxOutputTokens: config.maxOutputTokens, inputBytes: 100, hasImages: false, estimatedMaxCostMicroCny: 200 });
+    await config.budget.afterResponse({ requestId, outcome: 'settled', responseModel: 'deepseek-flash', elapsedMs: 1,
+      usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0 } as any });
+    throw new Error('Controlled boundary ends after real planning admission');
+  } }) });
+  const source = await confirmedSource(t, { draft: generated.draft }), original = await readConfirmedRequirementsSource({ root: source.root, revision: 2, specVersion: '1.0' });
+  const f = await fundingFixture(t), args = await f.authorization('requirements-v2');
+  args.runRoot = generated.root;
+  const payload = { ...args.payload, formatVersion: 'public-validation-authorization/2', brief: source.draft.brief, requirementsSource: original.source };
+  payload.runRoot = generated.root;
+  await writeFile(join(args.sharedRoot, args.authorization.location), JSON.stringify(payload), 'utf8');
+  let interviews = 0;
+  await runPublicValidationCli(['new', args.runRoot, '--shared-root', args.sharedRoot, '--authorization', join(args.sharedRoot, args.authorization.location)], {
+    input: Readable.from([]), output: silentOutput(), host: { ...generated.host,
+      async questions() { interviews++; throw new Error('No interview'); }, async draft() { interviews++; throw new Error('No interview'); } },
+  });
+  const state = await f.child(args.runRoot);
+  assert.equal(interviews, 0); assert.deepEqual(state.requirementsSource, original.source); assert.deepEqual(state.run.humanDecisions, []);
+  assert.equal(state.run.runId, args.payload.runId); assert.equal((await f.snapshot()).publicValidationFundings.length, 1);
+  assert.deepEqual(phases, ['cosmos']); assert.equal(state.ledger.entries.length, 1); assert.equal(state.ledger.entries[0].taskId, 'planning');
+  const path = join(source.root, 'intake-answers/v2.json'), answers = JSON.parse(await readFile(path, 'utf8'));
+  answers.answers.goal = '生成结束后的源漂移'; await writeFile(path, JSON.stringify(answers), 'utf8');
+  const settled = await settlePublicValidationFunding({ ...args, fundingId: args.payload.fundingId });
+  assert.equal(settled.settledMicroCny, state.ledger.entries[0].settledMicroCny);
+  assert.deepEqual((await f.snapshot()).publicValidationFundings[0].settlement.requests[0].entry, state.ledger.entries[0]);
+});
+
+for (const changed of ['v1-source', 'v2-missing', 'revision', 'hash', 'brief', 'frames', 'identity', 'source-drift']) test(`v2 funding rejects ${changed} before reservation or host preparation`, async t => {
+  const source = await confirmedSource(t), original = await readConfirmedRequirementsSource({ root: source.root, revision: 2, specVersion: '1.0' });
+  const f = await fundingFixture(t), args = await f.authorization(`invalid-${changed}`);
+  const payload: any = { ...args.payload, formatVersion: 'public-validation-authorization/2', brief: source.draft.brief, requirementsSource: original.source };
+  if (changed === 'v1-source') payload.formatVersion = 'public-validation-authorization/1';
+  if (changed === 'v2-missing') delete payload.requirementsSource;
+  if (changed === 'revision') payload.requirementsSource.revision = 1;
+  if (changed === 'hash') payload.requirementsSource.draftSha256 = '0'.repeat(64);
+  if (changed === 'brief') payload.brief = '不能改写原要求';
+  if (changed === 'frames') payload.renderFrames = true;
+  if (changed === 'identity') payload.runId = source.state.run.runId;
+  if (changed === 'source-drift') {
+    const path = join(source.root, 'intake-answers/v2.json'), value = JSON.parse(await readFile(path, 'utf8')); value.answers.goal = '漂移'; await writeFile(path, JSON.stringify(value), 'utf8');
+  }
+  await writeFile(join(args.sharedRoot, args.authorization.location), JSON.stringify(payload), 'utf8');
+  const before = await readFile(join(args.sharedRoot, 'snapshot.json')); let prepares = 0;
+  await assert.rejects(runPublicValidationCli(['new', args.runRoot, '--shared-root', args.sharedRoot, '--authorization', join(args.sharedRoot, args.authorization.location)], {
+    input: Readable.from([]), output: silentOutput(), host: { async prepare() { prepares++; return { environmentReady: true, executionReady: true }; },
+      async questions() { throw new Error('No interview'); }, async draft() { throw new Error('No draft'); }, async execute() { throw new Error('No execution'); } },
+  }));
+  assert.equal(prepares, 0); assert.deepEqual(await readFile(join(args.sharedRoot, 'snapshot.json')), before);
+});
+
+test('v2 funding initialization retries preserve the one original reservation and source bytes', async t => {
+  for (const phase of ['before-snapshot', 'before-binding', 'during-binding']) {
+    const source = await confirmedSource(t), original = await readConfirmedRequirementsSource({ root: source.root, revision: 2, specVersion: '1.0' });
+    const f = await fundingFixture(t), args = await f.authorization(`reuse-${phase}`);
+    await writeFile(join(args.sharedRoot, args.authorization.location), JSON.stringify({ ...args.payload, formatVersion: 'public-validation-authorization/2', brief: source.draft.brief, requirementsSource: original.source }), 'utf8');
+    const command = ['new', args.runRoot, '--shared-root', args.sharedRoot, '--authorization', join(args.sharedRoot, args.authorization.location)];
+    const write = SnapshotStore.prototype.write; let interrupted = false, prepared = 0;
+    const io = { input: Readable.from([]), output: silentOutput(), host: { ordinaryProfile: 'ordinary-design/1' as const,
+      async prepare() { prepared++; return { environmentReady: false, executionReady: false }; }, async questions() { throw new Error('No interview'); }, async draft() { throw new Error('No draft'); }, async execute() { throw new Error('No execution'); } } };
+    SnapshotStore.prototype.write = async function(value: any) {
+      if (!interrupted && this.root === args.runRoot && value.formatVersion === 'intake-1' && (phase === 'during-binding' ? value.draft !== null : value.draft === null)) {
+        interrupted = true; if (phase === 'before-binding') await write.call(this, value); throw new Error('Injected source initialization interruption');
+      }
+      return write.call(this, value);
+    };
+    try { await assert.rejects(runPublicValidationCli(command, io), /Injected/); }
+    finally { SnapshotStore.prototype.write = write; }
+    assert.equal(prepared, 0);
+    await runPublicValidationCli(command, { ...io, input: Readable.from([]) });
+    assert.equal(prepared, 1); const state = await f.child(args.runRoot);
+    assert.deepEqual(state.requirementsSource, original.source); assert.equal(state.confirmation, null);
+    assert.equal((await f.snapshot()).publicValidationFundings.length, 1); assert.equal(state.run.runId, args.payload.runId);
+    assert.deepEqual(await readFile(join(args.runRoot, 'requirements/v2/confirmation.json')), original.confirmationBytes);
+  }
+});
 
 test('public new rejects an unverified funding binding before touching the host', async t => {
   const parent = await mkdtemp(join(tmpdir(), 'cos109-cli-')), root = join(parent, '运行');
@@ -95,6 +204,8 @@ test('real public stdin confirms the displayed draft before the original generat
       }) };
     } };
   } });
+  // This v1 fixture supplies the original scenario-bearing draft contract.
+  host.ordinaryProfile = undefined;
   host.prepare = async root => {
     await mkdir(join(root, 'toolchain'), { recursive: true });
     for (const name of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await writeFile(join(root, 'toolchain', name), name.endsWith('.ts') ? 'export default {}' : '{}', 'utf8');

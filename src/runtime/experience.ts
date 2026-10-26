@@ -13,6 +13,7 @@ import { readCompletionTiming } from './completion-timing.ts';
 import { ordinaryDraftSha256, readOrdinaryProfile } from './ordinary-profile-source.ts';
 import type { ExperienceCriterion, OrdinaryProfile } from '../roles/ordinary-profile.ts';
 import type { RunSnapshot } from './run-types.ts';
+import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 
 const sha256 = (bytes: Buffer | string) => createHash('sha256').update(bytes).digest('hex');
 const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -21,7 +22,7 @@ export const deliveryTaskProofs = (tasks: TaskContract[]) => tasks.map(task => (
 interface Scope {
   capability: string; acceptance: RequirementContract['acceptance']; notCovered: string[];
   experienceCriteria?: ExperienceCriterion[];
-  ordinaryConfirmation?: { ordinaryProfile: OrdinaryProfile; sources: ArtifactReference[]; draftSha256: string };
+  ordinaryConfirmation?: { ordinaryProfile: OrdinaryProfile; sources: ArtifactReference[]; draftSha256: string; requirementsSource?: ConfirmedRequirementsSource };
 }
 interface Report {
   formatVersion: 'generation-report-1'; reportedAt: string; automaticAcceptance: 'passed' | 'not_passed';
@@ -54,6 +55,7 @@ async function ordinaryExperienceScope(root: string, state: Awaited<ReturnType<t
   return { acceptance: structuredClone(confirmed.requirement.acceptance), experienceCriteria: structuredClone(draft.experienceCriteria), ordinaryConfirmation: {
     ordinaryProfile: draft.ordinaryProfile, sources: structuredClone(confirmed.requirement.sources),
     draftSha256: ordinaryDraftSha256(await regularFile(root, confirmed.requirement.sources[0].location)),
+    ...(state.requirementsSource ? { requirementsSource: structuredClone(state.requirementsSource) } : {}),
   } };
 }
 

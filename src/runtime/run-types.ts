@@ -2,6 +2,7 @@ import type { ArtifactReference, BudgetLedger, RunManifest, TaskContract } from 
 import type { ContinuationQuote } from './continuation-quote.ts';
 import type { ValidationAllocationClosureReceipt, ValidationGroupSupplementReceipt, ValidationProfile, ValidationRequestMetadata } from './validation-types.ts';
 import type { PublicValidationFundingBinding, PublicValidationFundingRecord } from './public-validation-funding-types.ts';
+import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 
 export interface RequestInput {
   requestId: string;
@@ -47,6 +48,7 @@ export interface RunSnapshot {
   allocationSupplementDecisions?: ValidationGroupSupplementReceipt[];
   validationFunding?: PublicValidationFundingBinding;
   publicValidationFundings?: PublicValidationFundingRecord[];
+  requirementsSource?: ConfirmedRequirementsSource;
 }
 
 /** Supplied only by the trusted host after collecting a real user decision. */

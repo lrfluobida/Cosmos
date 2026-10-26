@@ -1,8 +1,8 @@
 import type { ArtifactReference, LedgerEntry } from '../contracts/types.ts';
 import type { RunLimits } from '../cli/run-limits.ts';
+import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 
-export interface PublicValidationAuthorization {
-  formatVersion: 'public-validation-authorization/1';
+interface PublicValidationAuthorizationFields {
   fundingId: string;
   sharedRoot: string; sharedRunId: string; sharedLedgerId: string;
   runRoot: string; runId: string; ledgerId: string;
@@ -10,6 +10,10 @@ export interface PublicValidationAuthorization {
   decisionId: string; actorId: string; decidedAt: string;
   sourceRefs: ArtifactReference[];
 }
+export type PublicValidationAuthorization = PublicValidationAuthorizationFields & (
+  { formatVersion: 'public-validation-authorization/1'; requirementsSource?: never }
+  | { formatVersion: 'public-validation-authorization/2'; requirementsSource: ConfirmedRequirementsSource }
+);
 export interface PublicValidationFundingBinding {
   formatVersion: 'public-validation-binding/1';
   fundingId: string;

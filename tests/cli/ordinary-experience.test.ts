@@ -15,7 +15,9 @@ import { ordinaryHostFixture } from '../runtime/ordinary-design.fixture.ts';
 async function fixture(t: test.TestContext) {
   const generated = await ordinaryHostFixture(t, { productionDefault: true }), { root, draft } = generated;
   t.after(() => removeOwned(tmpdir(), root));
-  const report: any = await generated.execute(); assert.ok(report.acceptedCandidate, JSON.stringify(report.gaps));
+  const report: any = await generated.execute();
+  const failure = !report.acceptedCandidate ? JSON.parse(await readFile(join(root, 'evidence/coding-task/host-report.json'), 'utf8')).evidence.summary : undefined;
+  assert.ok(report.acceptedCandidate, JSON.stringify({ gaps: report.gaps, failure }));
   const state = await readRunSnapshot(root);
   if (state.formatVersion === 'intake-1') throw new Error('Expected the original confirmed generation.');
   const { requirement } = await readConfirmedGeneration(root, state), outcome = report;

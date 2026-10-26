@@ -7,6 +7,7 @@ import { sameValue } from '../contracts/validation.ts';
 import { budgetSummary } from '../contracts/budget.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { PublicValidationAuthorization, PublicValidationFundingBinding, PublicValidationFundingRecord } from './public-validation-funding-types.ts';
+import { requireSeparateRequirementsRoot, validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 
 export const fundingHash = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
 export const fundingTaskId = (fundingId: string) => `public-funding-${fundingId}`;
@@ -27,11 +28,16 @@ function identity(value: PublicValidationFundingBinding | PublicValidationAuthor
   validateRunLimits(value.limits);
 }
 export function validateFundingAuthorization(value: unknown): asserts value is PublicValidationAuthorization {
-  fundingFields(value, ['formatVersion', ...identities, 'brief', 'renderFrames', 'decisionId', 'actorId', 'decidedAt', 'sourceRefs']);
+  const v2 = (value as PublicValidationAuthorization)?.formatVersion === 'public-validation-authorization/2';
+  fundingFields(value, ['formatVersion', ...identities, 'brief', 'renderFrames', 'decisionId', 'actorId', 'decidedAt', 'sourceRefs', ...(v2 ? ['requirementsSource'] : [])]);
   const input = value as unknown as PublicValidationAuthorization;
-  if (input.formatVersion !== 'public-validation-authorization/1' || typeof input.brief !== 'string' || !input.brief.trim()
+  if (!['public-validation-authorization/1', 'public-validation-authorization/2'].includes(input.formatVersion) || typeof input.brief !== 'string' || !input.brief.trim()
     || typeof input.renderFrames !== 'boolean' || typeof input.actorId !== 'string' || !input.actorId.trim()) throw new Error('Invalid public funding authorization.');
   identity(input); id(input.decisionId); fundingTime(input.decidedAt); evidenceReferences(input.sourceRefs);
+  if (v2) {
+    validateConfirmedRequirementsSource(input.requirementsSource); requireSeparateRequirementsRoot(input.runRoot, input.requirementsSource);
+    if (input.runId === input.requirementsSource.runId) throw new Error('Public funding requires a new attempt identity.');
+  }
 }
 export function validateFundingBinding(value: unknown): asserts value is PublicValidationFundingBinding {
   fundingFields(value, ['formatVersion', ...identities, 'authorization', 'authorizationSha256']);

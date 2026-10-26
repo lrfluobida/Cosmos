@@ -27,7 +27,9 @@ export async function runPublicValidationCli(args: string[], io: { input?: Reada
       authorization: { artifactId: 'public-funding-authorization', version: payload.fundingId, location: sourcePath } });
     const saved = await lstat(resolve(root, 'snapshot.json')).then(() => true, error => { if (error.code === 'ENOENT') return false; throw error; });
     if (saved) return runCli(['resume', root], io);
-    return runCli(['new', root, '--brief', payload.brief, '--max-cny', (payload.limits.limitMicroCny / 1_000_000).toFixed(6),
+    const selection = payload.formatVersion === 'public-validation-authorization/2'
+      ? ['--requirements-from', payload.requirementsSource.root, '--requirements-revision', String(payload.requirementsSource.revision)] : ['--brief', payload.brief];
+    return runCli(['new', root, ...selection, '--max-cny', (payload.limits.limitMicroCny / 1_000_000).toFixed(6),
       '--max-minutes', String(payload.limits.durationMs / 60_000), '--render-frames', String(payload.renderFrames)], { ...io, funding: binding });
   }
   if (options.length) throw new Error(usage);

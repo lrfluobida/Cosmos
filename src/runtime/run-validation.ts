@@ -8,6 +8,7 @@ import { validateValidationBudgetGroups } from './validation-budget.ts';
 import { validateValidationGroupSupplements } from './validation-group-supplement-validation.ts';
 import { validatePublicValidationFundings } from './public-validation-funding-validation.ts';
 import { intakeSuccessorClaims } from './intake-successor.ts';
+import { validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 
 function timestamp(value: unknown): boolean {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -28,6 +29,11 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
   const issues = [...validateRun(state.run), ...ledgerIssues.filter(issue => !(acceptedOverrun && ['budget_exceeded', 'allocation_exceeded'].includes(issue.code) || groupOverrun && issue.code === 'group_budget_exceeded'))];
   if (issues.length) throw new Error(`Invalid run snapshot: ${issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
   const { run, ledger } = state;
+  if (state.requirementsSource !== undefined) {
+    validateConfirmedRequirementsSource(state.requirementsSource);
+    if (state.formatVersion !== 1 || run.kind !== 'runtime_generation' || state.requirementsSource.runId === run.runId
+      || run.humanDecisions.some(decision => decision.decisionId.startsWith('requirements-v'))) throw new Error('Invalid referenced requirements execution identity.');
+  }
   if (stop && run.state !== 'waiting_user') throw new Error('Stopped snapshot must remain waiting_user.');
   if (run.ledgerId !== ledger.ledgerId || run.taskIds.length !== ledger.allocations.length || run.taskIds.some(id => !ledger.allocations.some(a => a.taskId === id))) throw new Error('Snapshot run and shared ledger identities do not match.');
   const reserved = ledger.entries.reduce((sum, e) => sum + e.reservedMicroCny, 0);

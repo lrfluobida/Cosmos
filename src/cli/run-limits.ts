@@ -39,7 +39,7 @@ export function requirePublicRunLimits(state: IntakeSnapshot | RunSnapshot, valu
   if (state.run.kind !== 'runtime_generation' || state.ledger.scope !== 'generation') return undefined;
   const cliConfirmed = state.formatVersion !== 'intake-1'
     && state.run.humanDecisions.some(row => row.decisionId.startsWith('requirements-v') && row.actorId === 'local-user');
-  if (value === null && !requireOrigin && !cliConfirmed) return undefined;
+  if (value === null && !requireOrigin && !cliConfirmed && !state.requirementsSource) return undefined;
   const origin = value as { runId?: unknown; brief?: unknown; limits?: unknown } | null;
   if (!origin || typeof origin !== 'object' || Array.isArray(origin) || origin.runId !== state.run.runId
     || typeof origin.brief !== 'string' || !origin.brief.trim()) throw new Error('Original public run limits origin is missing or changed.');

@@ -41,10 +41,12 @@ async function optionalJson(root: string, path: string): Promise<any | undefined
 /** Original confirmation reference binds selection even when its source fields are deleted. */
 export async function readFrameSelection(root: string, state: IntakeSnapshot | RunSnapshot, explicit?: boolean): Promise<RenderFrameSelection | undefined> {
   if (explicit !== undefined && typeof explicit !== 'boolean') throw new Error('Render-frame selection must be boolean.');
+  const original = state.requirementsSource ? await (await import('./confirmed-requirements-source.ts')).readReferencedRequirements(root, state, state.formatVersion !== 'intake-1' || !!state.draft) : undefined;
   const origin = await optionalJson(root, 'intake-origin.json');
-  const policy = await readModularRepairPolicy(root, state);
+  const policy = original ? original.modularRepairPolicy : await readModularRepairPolicy(root, state);
   let selection: RenderFrameSelection | undefined;
-  if (state.formatVersion === 'intake-1') {
+  if (original) selection = original.renderFrameSelection;
+  else if (state.formatVersion === 'intake-1') {
     selection = state.renderFrames; validateFrameSelection(selection);
     if (!isDeepStrictEqual(selection, origin?.renderFrames)) throw new Error('Original intake render-frame selection changed.');
   } else {
@@ -62,7 +64,7 @@ export async function readFrameSelection(root: string, state: IntakeSnapshot | R
   if ((selection || policy || created?.includes(' Render-frame observer: ')) && created !== frameIntakeReason(selection, policy)) throw new Error('Original created render-frame selection changed.');
   if (!selection) return undefined;
   if (!origin || origin.runId !== state.run.runId || typeof origin.brief !== 'string' || origin.draftMode !== undefined
-    || Object.keys(origin).some(key => !['runId', 'brief', 'renderFrames', 'modularRepairPolicy', 'limits', 'validationFunding', 'ordinaryProfile'].includes(key))) throw new Error('Original render-frame intake identity changed.');
+    || Object.keys(origin).some(key => !['runId', 'brief', 'renderFrames', 'modularRepairPolicy', 'limits', 'validationFunding', 'ordinaryProfile', ...(original ? ['requirementsSource'] : [])].includes(key))) throw new Error('Original render-frame intake identity changed.');
   const execution = await optionalJson(root, 'execution.json');
   if (execution) {
     const refs = execution.availableArtifacts?.filter((ref: ArtifactReference) => ref.artifactId === observer.artifactId);

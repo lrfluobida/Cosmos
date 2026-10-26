@@ -15,7 +15,9 @@ import { validateOrdinaryProfile } from '../roles/ordinary-profile.ts';
 import type { OrdinaryProfile } from '../roles/ordinary-profile.ts';
 import { ORDINARY_PROFILE_SOURCE, ordinaryDraftSha256, readOrdinaryProfile, requireOrdinaryDraftSource } from './ordinary-profile-source.ts';
 import { SnapshotStore } from './store.ts';
-import { publishReceipt } from './recovery/receipt-file.ts';
+import { publishReceipt, publishReceiptBytes } from './recovery/receipt-file.ts';
+import { readReferencedRequirements, validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
+import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import { validateSnapshot } from './run-validation.ts';
 import type { RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
 import { frameConfirmationVersion, frameIntakeReason, readFrameSelection, requireCurrentFrameSource, validateFrameSelection } from './render-frame-selection.ts';
@@ -41,6 +43,7 @@ export interface IntakeSnapshot {
   modularRepairPolicy?: ModularRepairPolicy;
   confirmation: { revision: number; requirement: RequirementContract; source: ArtifactReference } | null;
   validationFunding?: PublicValidationFundingBinding;
+  requirementsSource?: ConfirmedRequirementsSource;
 }
 export interface CreateIntakeOptions {
   root: string; runId: string; ledgerId: string; specVersion: string; allocations: BudgetLedger['allocations'];
@@ -50,6 +53,7 @@ export interface CreateIntakeOptions {
   renderFrames?: RenderFrameSelection;
   modularRepairPolicy?: ModularRepairPolicy;
   validationFunding?: PublicValidationFundingBinding;
+  requirementsSource?: ConfirmedRequirementsSource;
 }
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 const draftRef = (revision: number): ArtifactReference => ({ artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` });
@@ -70,6 +74,11 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   const mode = modeFromSelection(state.draftMode);
   validateOrdinaryProfile(state.ordinaryProfile);
   if (state.ordinaryProfile && state.draftMode) throw new Error('Ordinary profile cannot select preparation mode.');
+  if (state.requirementsSource !== undefined) {
+    validateConfirmedRequirementsSource(state.requirementsSource);
+    if (state.ordinaryProfile !== 'ordinary-design/1' || state.confirmation !== null || state.requirementsSource.runId === state.run.runId
+      || state.requests.length || state.draft && state.draft.revision !== state.requirementsSource.revision) throw new Error('Invalid referenced requirements intake.');
+  }
   validateFrameSelection(state.renderFrames);
   validateModularRepairPolicy(state.modularRepairPolicy);
   if (state.renderFrames && state.draftMode) throw new Error('Render-frame sampling is unsupported in preparation mode.');
@@ -153,6 +162,7 @@ export class IntakeController {
       ...(options.renderFrames ? { renderFrames: structuredClone(options.renderFrames) } : {}),
       ...(options.modularRepairPolicy ? { modularRepairPolicy: structuredClone(options.modularRepairPolicy) } : {}),
       ...(options.validationFunding ? { validationFunding: structuredClone(options.validationFunding) } : {}),
+      ...(options.requirementsSource ? { requirementsSource: structuredClone(options.requirementsSource) } : {}),
     };
     validateIntakeSnapshot(state);
     const store = await SnapshotStore.acquire(options.root);
@@ -160,7 +170,17 @@ export class IntakeController {
       if (await store.exists()) throw new Error('Snapshot already exists; intake cannot replace a run.');
       await verifyPublicValidationFunding({ root: store.root, snapshot: state, dispatch: true });
       if (draftMode) await publishReceipt(join(store.root, 'intake-mode.json'), { runId: state.run.runId, createdAt, draftMode });
-      if (state.ordinaryProfile) await publishReceipt(join(store.root, ORDINARY_PROFILE_SOURCE), { runId: state.run.runId, createdAt, ordinaryProfile: state.ordinaryProfile });
+      let existingProfile: { runId: string; createdAt: string; ordinaryProfile: OrdinaryProfile } | undefined;
+      if (state.requirementsSource) {
+        try { existingProfile = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(store.root, ORDINARY_PROFILE_SOURCE))); }
+        catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+        if (existingProfile) {
+          if (!timestamp(existingProfile.createdAt) || Date.parse(existingProfile.createdAt) > now()
+            || !sameValue(existingProfile, { runId: state.run.runId, createdAt: existingProfile.createdAt, ordinaryProfile: state.ordinaryProfile })) throw new Error('Original initialization profile source changed.');
+          state.createdAt = existingProfile.createdAt; state.events[0].at = existingProfile.createdAt;
+        }
+      }
+      if (state.ordinaryProfile && !existingProfile) await publishReceipt(join(store.root, ORDINARY_PROFILE_SOURCE), { runId: state.run.runId, createdAt: state.createdAt, ordinaryProfile: state.ordinaryProfile });
       await store.write(state); return new IntakeController(store, state, now);
     } catch (error) { await store.close(); throw error; }
   }
@@ -171,14 +191,16 @@ export class IntakeController {
       await verifyPublicValidationFunding({ root: store.root, snapshot: state, dispatch: false });
       await requireModeOrigin(store.root, state);
       await readOrdinaryProfile(store.root, { runId: state.run.runId, createdAt: state.createdAt }, state);
-      if (state.renderFrames) await requireCurrentFrameSource(await readFrameSelection(store.root, state));
-      if (state.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(store.root, state));
+      // Opening a referenced intake may be needed only to reconcile, stop and close it.
+      // Bind/activation and actual dispatch still revalidate the complete live source.
+      if (!state.requirementsSource && state.renderFrames) await requireCurrentFrameSource(await readFrameSelection(store.root, state));
+      if (!state.requirementsSource && state.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(store.root, state));
       const controller = new IntakeController(store, state, options.now ?? Date.now), next = structuredClone(state);
       for (const work of fundedIntakeWork(state).pending) {
         const recovery = await readFundingRecovery(store.root, state, work.ownerToken);
         if (recovery) controller.event(next, 'public_intake_work_recovered', null, JSON.stringify({ workId: work.workId, ...recovery }));
       }
-      if ((state.draftMode || state.ordinaryProfile) && state.draft) await controller.requireDraftFile(state.draft);
+      if (!state.requirementsSource && (state.draftMode || state.ordinaryProfile) && state.draft) await controller.requireDraftFile(state.draft);
       for (const record of next.requests) {
         const entry = findRequest(next.ledger, record.requestId);
         if (record.admittedAt && entry.status === 'reserved') {
@@ -201,6 +223,7 @@ export class IntakeController {
     const checked = structuredClone(claim);
     return this.serial(async () => {
       this.requireActive();
+      this.requireInterview();
       if (this.snapshot.ordinaryProfile !== 'ordinary-design/1' || this.snapshot.confirmation || this.snapshot.revision !== expectedRevision
         || this.snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)
         || intakeSuccessorClaims(this.snapshot.events).some(previous => previous.roundId === checked.roundId)) {
@@ -212,6 +235,7 @@ export class IntakeController {
   }
   /** Only the funded intake lifecycle uses these records; an operation result is not a cleanup result. */
   beginFundingWork(kind: 'session' | 'interview'): Promise<string | undefined> {
+    if (kind === 'interview') this.requireInterview();
     if (!this.snapshot.validationFunding) return Promise.resolve(undefined);
     return this.serial(async () => {
       this.requireIntake();
@@ -232,6 +256,7 @@ export class IntakeController {
     const request = structuredClone(input);
     return this.serial(async () => {
       this.requireActive();
+      this.requireInterview();
       const gate = await acquirePublicFundingGate(this.store.root, this.snapshot, true);
       try {
       if (request.taskId !== this.snapshot.interviewTaskId || this.snapshot.requests.length >= this.snapshot.maxRequests) throw new Error('Intake request limit or task identity refused.');
@@ -287,6 +312,7 @@ export class IntakeController {
   saveDraft(input: GameDraft): Promise<StoredDraft> {
     const draft = structuredClone(input);
     return this.serial(async () => {
+      this.requireInterview();
       validateGameDraft(draft, modeFromSelection(this.snapshot.draftMode), this.snapshot.ordinaryProfile);
       await readOrdinaryProfile(this.store.root, { runId: this.snapshot.run.runId, createdAt: this.snapshot.createdAt }, this.snapshot);
       if (this.snapshot.draftMode) await requireModeOrigin(this.store.root, this.snapshot);
@@ -300,6 +326,7 @@ export class IntakeController {
   confirm(input: { revision: number; confirmed: boolean; actorId: string; at: string }): Promise<RequirementContract> {
     const confirmation = structuredClone(input);
     return this.serial(async () => {
+      this.requireInterview();
       this.requireActive(); const next = structuredClone(this.snapshot), draft = next.draft;
       if (!draft || draft.revision !== confirmation.revision) throw new Error('Confirmation must name the current draft revision.');
       if (draft.unsupported.length) throw new Error('Unsupported requirements need a decision before confirmation.');
@@ -323,11 +350,34 @@ export class IntakeController {
       await this.commit(next); return structuredClone(requirement);
     });
   }
+  /** Bind only authenticated original bytes; interrupted initialization may complete the same files. */
+  bindConfirmedRequirements(): Promise<RequirementContract> {
+    return this.serial(async () => {
+      this.requireActive();
+      if (!this.snapshot.requirementsSource) throw new Error('This intake has no confirmed requirements source.');
+      const original = await readReferencedRequirements(this.store.root, this.snapshot, !!this.snapshot.draft);
+      if (this.snapshot.draft) return structuredClone(original.requirement);
+      for (const [index, bytes] of [original.draftBytes, original.confirmationBytes].entries()) {
+        const name = original.requirement.sources[index].location;
+        await mkdir(join(this.store.root, name, '..'), { recursive: true });
+        try { await publishReceiptBytes(join(this.store.root, name), bytes); }
+        catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'EEXIST' || !(await regularFile(this.store.root, name)).equals(bytes)) throw error;
+        }
+      }
+      const next = structuredClone(this.snapshot);
+      next.draft = { ...original.draft, revision: next.requirementsSource!.revision, source: original.requirement.sources[0] };
+      await readReferencedRequirements(this.store.root, next);
+      await this.commit(next); return structuredClone(original.requirement);
+    });
+  }
   activateGeneration(readiness: { environmentReady: boolean; executionReady: boolean }): Promise<RunSnapshot> {
     const ready = { ...readiness };
     return this.serial(async () => {
       if (this.activated) return structuredClone(this.activated);
-      this.requireActive(); const prior = this.snapshot, confirmed = prior.confirmation;
+      this.requireActive(); const prior = this.snapshot;
+      const reused = prior.requirementsSource ? await readReferencedRequirements(this.store.root, prior) : undefined;
+      const confirmed = reused ? { revision: prior.requirementsSource!.revision, requirement: reused.requirement, source: reused.requirement.sources[1] } : prior.confirmation;
       if (fundedIntakeWork(prior).pending.length) throw new Error('Public intake cleanup must finish before generation activation.');
       if (!confirmed || !prior.draft || prior.draft.revision !== confirmed.revision) throw new Error('Current explicit confirmation is required.');
       if (ready.environmentReady !== true) throw new Error('Environment is not ready for formal generation.');
@@ -336,24 +386,27 @@ export class IntakeController {
       if (budgetSummary(prior.ledger).exhausted) throw new Error('Budget exhausted before activation.');
       const draftBytes = await this.requireDraftFile(prior.draft);
       await readOrdinaryProfile(this.store.root, { runId: prior.run.runId, createdAt: prior.createdAt }, prior);
-      if (prior.ordinaryProfile) await requireOrdinaryDraftSource(this.store.root, prior.draft, prior.draft.revision);
+      if (prior.ordinaryProfile && !reused) await requireOrdinaryDraftSource(this.store.root, prior.draft, prior.draft.revision);
       if (prior.renderFrames) await requireCurrentFrameSource(await readFrameSelection(this.store.root, prior));
       if (prior.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(this.store.root, prior));
       const receipt = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await readFile(join(this.store.root, confirmed.source.location))));
-      if (!sameValue(receipt, { revision: confirmed.revision, confirmed: true, actorId: confirmed.requirement.confirmedBy, at: confirmed.requirement.confirmedAt, runId: prior.run.runId, draft: prior.draft.source,
+      if (!sameValue(receipt, { revision: confirmed.revision, confirmed: true, actorId: confirmed.requirement.confirmedBy, at: confirmed.requirement.confirmedAt, runId: prior.requirementsSource?.runId ?? prior.run.runId, draft: prior.draft.source,
         ...(prior.ordinaryProfile ? { ordinaryProfile: prior.ordinaryProfile, ordinaryDraftSha256: ordinaryDraftSha256(draftBytes) } : {}),
         ...(prior.renderFrames ? { renderFrames: prior.renderFrames } : {}), ...(prior.modularRepairPolicy ? { modularRepairPolicy: prior.modularRepairPolicy } : {}) })) throw new Error('Confirmation source changed.');
       const startedAt = this.at();
       const active: RunSnapshot = {
         formatVersion: 1, revision: prior.revision + 1, ledger: structuredClone(prior.ledger), requests: structuredClone(prior.requests), events: structuredClone(prior.events), stopReason: null, tasks: [],
         ...(prior.validationFunding ? { validationFunding: structuredClone(prior.validationFunding) } : {}),
+        ...(prior.requirementsSource ? { requirementsSource: structuredClone(prior.requirementsSource) } : {}),
         run: { contractVersion: '1.0.0', ...prior.run, ledgerId: prior.ledger.ledgerId, originalStartedAt: startedAt,
           originalDeadlineAt: new Date(Date.parse(startedAt) + prior.durationMs).toISOString(), state: 'running', taskIds: prior.ledger.allocations.map(item => item.taskId),
           fees: { settledMicroCny: prior.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny, 0), reservedMicroCny: 0, unknownRequestIds: [] }, artifacts: [],
-          humanDecisions: [{ decisionId: `requirements-v${confirmed.revision}`, actorId: confirmed.requirement.confirmedBy, decidedAt: confirmed.requirement.confirmedAt,
+          humanDecisions: reused ? [] : [{ decisionId: `requirements-v${confirmed.revision}`, actorId: confirmed.requirement.confirmedBy, decidedAt: confirmed.requirement.confirmedAt,
             reason: 'User confirmed this exact intake draft and answers before generation activation.', evidence: confirmed.requirement.sources }] },
       };
-      active.events.push({ sequence: active.events.length + 1, at: startedAt, type: 'generation_activated', requestId: null, reason: 'Confirmed requirements and ready host activated the one original generation window.' });
+      active.events.push({ sequence: active.events.length + 1, at: startedAt, type: 'generation_activated', requestId: null, reason: prior.requirementsSource
+        ? `Confirmed requirements from ${prior.requirementsSource.runId} revision ${prior.requirementsSource.revision} and ready host activated this new generation attempt.`
+        : 'Confirmed requirements and ready host activated the one original generation window.' });
       if (!sameValue(active.ledger, prior.ledger) || !sameValue(active.requests, prior.requests) || !sameValue(active.events.slice(0, -1), prior.events)) throw new Error('Activation cannot change accounting history.');
       validateSnapshot(active); await this.write(active); this.activated = active; this.abort.abort(new Error('Intake activated; open the original run.'));
       return structuredClone(active);
@@ -402,6 +455,7 @@ export class IntakeController {
   private at(): string { return new Date(this.now()).toISOString(); }
   private requireIntake(): void { if (this.activated) throw new Error('Generation already activated; use the original RunController.'); }
   private requireActive(): void { this.requireIntake(); if (this.snapshot.stopReason) throw new Error(`Intake stopped: ${this.snapshot.stopReason.code}.`); }
+  private requireInterview(): void { if (this.snapshot.requirementsSource) throw new Error('Referenced requirements cannot interview, redraft or confirm again.'); }
   private event(next: IntakeSnapshot, type: RunEvent['type'], requestId: string | null, reason: string): void { next.events.push({ sequence: next.events.length + 1, at: this.at(), type, requestId, reason }); }
   private halt(next: IntakeSnapshot, code: 'manual' | 'charge_overrun', reason: string): void {
     if (!next.stopReason || code === 'charge_overrun') next.stopReason = { code, at: this.at(), reason };
