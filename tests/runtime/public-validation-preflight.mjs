@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -62,7 +62,7 @@ async function worker() {
   const output = process.env.COSMOS_PREFLIGHT_RESULTS;
   assert.ok(output && dirname(output) === resolve(tmpdir()) && /^cosmos-public-offline-/.test(output.slice(dirname(output).length + 1)), 'Use the public runner entrypoint.');
   const summary = { scope: 'source_only', realModelGeneration: 'unverified', paidAuthorized: false, newEntryHandoff: 'unverified',
-    sourceSha: null, versions: { node: process.version }, cases, checksPassed: 0, handoffPassed: 0, expectedRejections: 0,
+    sourceSha: null, sourceWorkingTree: 'unverified', versions: { node: process.version }, cases, checksPassed: 0, handoffPassed: 0, expectedRejections: 0,
     selectedSkip: 0, actualProviderCostMicroCny: null, uncovered: ['real model generation', 'new requirements entry handoff', 'user experience', 'full classic benchmark'], errors: [] };
   const logs = [];
   try {
@@ -70,6 +70,8 @@ async function worker() {
     assert.match(process.version, /^v22\./, 'Node 22 is required.');
     assert.equal(cases.length, 14); assert.equal(new Set(cases.map(row => row.name)).size, 14);
     const source = await command('git', ['rev-parse', 'HEAD']); assert.equal(source.code, 0, 'Source SHA is unavailable.'); summary.sourceSha = source.stdout.trim();
+    const status = await command('git', ['status', '--porcelain', '--untracked-files=normal']); assert.equal(status.code, 0, 'Source status is unavailable.');
+    summary.sourceWorkingTree = status.stdout.trim() ? 'modified' : 'clean';
     await installed(repository);
     const template = resolve(process.env.COSMOS_TEMPLATE_ROOT ?? join(repository, 'templates/2d'));
     for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) {
@@ -85,11 +87,16 @@ async function worker() {
     assert.ok(process.env.PLAYWRIGHT_BROWSERS_PATH && existsSync(join(process.env.PLAYWRIGHT_BROWSERS_PATH, `ffmpeg-${ffmpeg.revision}`, 'ffmpeg-win64.exe')),
       'The locked Playwright ffmpeg binary is required. No download is allowed.');
     summary.versions.ffmpegRevision = ffmpeg.revision;
+    // Owned browser workers filter PLAYWRIGHT_BROWSERS_PATH; retain only this binary
+    // at their default cache path inside the isolated local app directory.
+    const localFfmpeg = join(process.env.LOCALAPPDATA, 'ms-playwright', `ffmpeg-${ffmpeg.revision}`, 'ffmpeg-win64.exe');
+    await mkdir(dirname(localFfmpeg), { recursive: true });
+    await copyFile(join(process.env.PLAYWRIGHT_BROWSERS_PATH, `ffmpeg-${ffmpeg.revision}`, 'ffmpeg-win64.exe'), localFfmpeg);
     const build = await command(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json']);
     await writeFile(join(output, 'build.log'), build.stdout + build.stderr, 'utf8'); assert.equal(build.code, 0, 'Build failed; see build.log.');
     for (const file of new Set(cases.map(row => row.file))) {
       const selected = cases.filter(row => row.file === file), stream = run({ files: [join(repository, file)], isolation: 'process', concurrency: 1,
-        execArgv: ['--experimental-strip-types'], testNamePatterns: selected.map(row => exact(row.name)) });
+        execArgv: ['--experimental-strip-types'], timeout: 240000, testNamePatterns: selected.map(row => exact(row.name)) });
       let finalSummary;
       for await (const { type, data } of stream) {
         if (type === 'test:summary') { finalSummary = data; logs.push({ file, type, counts: data.counts, success: data.success }); }
@@ -97,7 +104,7 @@ async function worker() {
           try {
             const value = JSON.parse(data.message);
             if (value.kind === 'COS130-source-only-root' && dirname(value.root) === resolve(tmpdir())) {
-              const row = selected.find(row => row.name === value.caseName); if (row) row.evidence = { root: value.root };
+              const row = selected.find(row => row.name === value.caseName); if (row) row.evidence = { ...row.evidence, root: value.root };
             }
             if (value.kind === 'COS130-source-only-fixture' && dirname(value.root) === resolve(tmpdir())
               && /^delivery\/report-[\da-f-]+\.json$/.test(value.report)) {

@@ -141,6 +141,7 @@ async function ordinaryDelivery(input: { root: string; draft: any; requirement: 
   assert.equal(result.outcome, 'awaiting_user_experience', JSON.stringify(result.gaps));
   assert.equal(report.outcome, result.outcome); assert.equal(report.automaticAcceptance, 'passed'); assert.deepEqual(result.gaps, []);
   assert.deepEqual(report.acceptedCandidate, result.acceptedCandidate); assert.deepEqual(report.ordinaryExecution, result.ordinaryExecution);
+  assert.deepEqual(report.ordinaryExecution.scenario, ordinaryScenario); assert.deepEqual(report.ordinaryExecution.candidate, result.acceptedCandidate.candidateRef);
   assert.equal(result.acceptedCandidate.candidateRef.version, 'v1');
   assert.deepEqual(report.acceptanceScope.experienceCriteria, draft.experienceCriteria);
   assert.deepEqual(report.acceptanceScope.acceptance, requirement.acceptance);
