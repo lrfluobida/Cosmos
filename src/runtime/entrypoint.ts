@@ -132,6 +132,7 @@ export async function executeGeneration(options: GenerationOptions) {
       };
       const existingRepair = options.resume ? await optionalJson(root, 'repair-plan.json') : null;
       if (existingRepair?.formatVersion !== undefined && existingRepair.formatVersion !== 2) throw new SuccessorBlocked('Unknown repair plan version; preserve the original run.');
+      if (existingRepair && !sameValue(authorCorrectionPolicy(existingRepair, execution.capability), policy)) throw new SuccessorBlocked('Original repair author correction policy differs from execution.');
       let continuation: RepairContinuationPlan | null = existingRepair?.formatVersion === 2 ? existingRepair : null;
       if (continuation) await prepareRepairContinuation({ root, controller, plan: continuation, originals: execution.tasks, requirement, originalPlan: execution.plan, now: Date.now() });
       const prepared: PreparedTask[] = existingRepair?.tasks ?? execution.tasks;

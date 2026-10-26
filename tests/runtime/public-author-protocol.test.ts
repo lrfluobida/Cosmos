@@ -195,3 +195,45 @@ test('COS128 public rejects invalid persisted policy before constructing any rec
     const after = await f.state(); assert.deepEqual(after.tasks, before.tasks); assert.deepEqual(after.ledger, before.ledger); assert.deepEqual(after.requests, before.requests);
   }
 });
+
+for (const [enabled, change] of [[true, 'none'], [false, 'none'], [true, 'delete'], [false, 'add'], [true, 'zero'], [true, 'null']] as const)
+  test(`COS128 legacy repair resume ${enabled ? 'enabled' : 'omitted'} policy ${change}`, async t => {
+    // Exercise the actual legacy repair-plan writer with synthetic design files only.
+    const f = await ordinaryHostFixture(t, { productionDefault: true, fault: 'missing' });
+    f.host.execute = input => executeGeneration({ ...input, createHost: async args => ({
+      ...await createBrowserHost({ ...args, ...f.hostOptions }), continuationTargets: undefined,
+    }) });
+    await f.execute();
+    const json = async (path: string) => JSON.parse(await readFile(join(f.root, path), 'utf8'));
+    const first = await readRunSnapshot(f.root); assert.ok('tasks' in first);
+    const plan = await json('repair-plan.json');
+    assert.equal(Object.hasOwn(plan, 'formatVersion'), false); assert.equal(plan.sourceTaskId, 'design-task');
+    assert.equal(plan.replacementTaskId, 'design-task-repair'); assert.equal(plan.authorProtocolCorrections, 1);
+    assert.equal(first.tasks.find(task => task.taskId === plan.replacementTaskId)!.state, 'passed');
+    assert.equal(f.plays.length, 0);
+    if (!enabled) for (const path of ['execution.json', 'repair-plan.json', ...first.tasks.map(task => `journal/task-${task.taskId}/origin.json`)]) {
+      const value = await json(path); delete value.authorProtocolCorrections;
+      await writeFile(join(f.root, path), JSON.stringify(value), 'utf8');
+    }
+    const current = await json('repair-plan.json');
+    if (change === 'delete') delete current.authorProtocolCorrections;
+    if (change === 'add') current.authorProtocolCorrections = 1;
+    if (change === 'zero') current.authorProtocolCorrections = 0;
+    if (change === 'null') current.authorProtocolCorrections = null;
+    if (change !== 'none') await writeFile(join(f.root, 'repair-plan.json'), JSON.stringify(current), 'utf8');
+    const before = await readRunSnapshot(f.root), calls = f.packets.length, fixedPlan = await readFile(join(f.root, 'repair-plan.json'));
+    const execution = await json('execution.json');
+    const result = await f.host.execute({ root: f.root, draft: f.draft, requirement: execution.requirement, resume: true });
+    const after = await readRunSnapshot(f.root); assert.ok('tasks' in before && 'tasks' in after);
+    assert.equal(result.outcome, 'incomplete'); assert.equal(f.packets.length, calls);
+    assert.deepEqual(after.tasks, before.tasks); assert.deepEqual(after.ledger, before.ledger); assert.deepEqual(after.requests, before.requests);
+    assert.deepEqual(await readFile(join(f.root, 'repair-plan.json')), fixedPlan);
+    if (change === 'none') {
+      assert.deepEqual(result.reusedTaskIds, ['design-task-repair']);
+      assert.equal(Object.hasOwn(await json('execution.json'), 'authorProtocolCorrections'), enabled);
+      assert.equal(Object.hasOwn(await json('journal/task-design-task-repair/origin.json'), 'authorProtocolCorrections'), enabled);
+    } else {
+      assert.deepEqual(result.reusedTaskIds, []);
+      assert.ok(result.gaps.some((gap: string) => /author correction policy/.test(gap)), JSON.stringify(result.gaps));
+    }
+  });
