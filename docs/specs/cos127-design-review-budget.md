@@ -1,8 +1,10 @@
 # COS-127 · 普通设计独立评审的原额度内请求容量
 
-状态：已独立APPROVED_PLAN并获Root批准发布与免费实施；源码仍pending，不构成源码完成或真实运行授权。实现者cos127_implementer，独立源码reviewer cos127_reviewer，唯一merger public_agent_batch_merger。
+状态：已完成独立源码审查与主线集成，source-scoped-complete；不构成真实运行授权。实现者cos127_implementer，独立源码reviewer cos127_reviewer，唯一merger public_agent_batch_merger。
 
-审批记录：[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)；独立 `design_review_budget_plan_reviewer` 给出 `APPROVED_PLAN`、无P1/P2阻塞项，Root批准固定输入的正式发布与免费源码实施。源码独审和集成待完成。
+源码结果：独立cos127_reviewer对 `13af7dbec0eddb0d6deb69193f2244ef3c75ebb3` 完成规格/质量审查，APPROVED_SOURCE_SCOPED、无actionable finding；唯一merger合入发布 `d088df021825f1813e5d8fe9f1c775f011144321`，10文件精确一致，主线typecheck/build及3/3短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/128#issuecomment-6406706248)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/128#issuecomment-6406710871)已核证。仅SOURCE范围完成，父COS18仍open/partial；room11永久关闭，新源码尚无真实review verdict或游戏结果。
+
+审批记录：[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)；独立 `design_review_budget_plan_reviewer` 给出 `APPROVED_PLAN`、无P1/P2阻塞项，Root批准固定输入的正式发布与免费源码实施。源码后续独审与集成结果见上述状态记录。
 
 - 批准规格输入 SHA256：`e984dd75874ee3476ad4bb30d1a1d330ae9d933e25ec12e555d5f5cac5d126a8`
 - 批准计划输入 SHA256：`850a9af4cdd97f5730af43efb93ce4c707f738006c0862bcb7b000a5edfc848d`
@@ -132,4 +134,4 @@ Root已报告room11永久closed且独立PASS_CLOSED：child171/shared3358，36�
 5. 真实factory → scoped read → Pi → SDK，仅fake底层provider transport，能给出完整多finding changes_requested及合法approved；length保持失败且无伪批准。
 6. 必要旧作者COS125与旧reviewer兼容证据按实际受影响路径定向复用，不重复宽泛审计或真实付费。
 
-源码完成只能标记本卡source-scoped-ready/complete；真实新run与付费另行授权。本文和配套plan已独立APPROVED_PLAN并获Root实施批准；源码仍须独审和唯一合并。
+源码完成只能标记本卡source-scoped-ready/complete；真实新run与付费另行授权。本文和配套plan已独立APPROVED_PLAN并获Root实施批准；源码已独审批准并由唯一merger合入，限source-scoped完成。

@@ -8,9 +8,11 @@
 
 **Tech Stack:** TypeScript、Node22.22.2、pi-ai/pi-coding-agent0.99.2、node:test；免费合成TEMP文件和fake provider transport。
 
-**Status:** APPROVED_PLAN；Root已批准免费实施，源码独审与集成待完成，没有真实run授权。
+**Status:** source-scoped-complete；源码已独立审查与主线集成，没有真实run授权。
 
-审批记录：[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)；独立 `design_review_budget_plan_reviewer` 给出 `APPROVED_PLAN`、无P1/P2阻塞项，Root批准固定输入的正式发布与免费源码实施。源码独审和集成待完成。
+源码结果：独立cos127_reviewer对 `13af7dbec0eddb0d6deb69193f2244ef3c75ebb3` 完成规格/质量审查，APPROVED_SOURCE_SCOPED、无actionable finding；唯一merger合入发布 `d088df021825f1813e5d8fe9f1c775f011144321`，10文件精确一致，主线typecheck/build及3/3短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/128#issuecomment-6406706248)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/128#issuecomment-6406710871)已核证。仅SOURCE范围完成，父COS18仍open/partial；room11永久关闭，新源码尚无真实review verdict或游戏结果。
+
+审批记录：[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)；独立 `design_review_budget_plan_reviewer` 给出 `APPROVED_PLAN`、无P1/P2阻塞项，Root批准固定输入的正式发布与免费源码实施。源码后续独审与集成结果见上述状态记录。
 
 - 批准规格输入 SHA256：`e984dd75874ee3476ad4bb30d1a1d330ae9d933e25ec12e555d5f5cac5d126a8`
 - 批准计划输入 SHA256：`850a9af4cdd97f5730af43efb93ce4c707f738006c0862bcb7b000a5edfc848d`
