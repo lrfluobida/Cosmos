@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-26 [COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128) 已登记为open/source-pending；固定SHA规格/计划获独立APPROVED_PLAN和Root批准，正式文档由唯一merger发布。总127、根直接100、COS18原生21子项中20个源码完成，父仍open/partial。room11在独立review第3请求预算拒绝后已永久关闭，结构/capture通过不等于runtime verdict或游戏完成。
+
 2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已独审合入并发布 `c189c49b0094873d2a8270151915d3aef0eba273`，closed(completed)与父[x]已GET核证。总126、根直接100、COS18二十个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下4/4代表通过。room10原draft4在provider前因原intake额度不足被拒，随后已按原API永久关闭；[结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)保持未确认/未生成，source-scoped完成不等于真实编辑语义通过；room11的单次实际修订及确认前快照见本卡后续记录。
 
 2026-10-25 [COS125 / #126](https://github.com/lrfluobida/Cosmos/issues/126) 已独审合入并发布 `2fbb61d569f88458cc454e2b6f8cb997ced5e5be`，closed(completed)与父[x]已GET核证。总125、根直接100、COS18十九个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下3/3代表通过。room9原失败/闭账保持，预算压力压缩尚无真实游戏通过结论。
@@ -1876,6 +1878,14 @@ room9实际13笔432959µ（intake83361、planning30703、design318895）、142.7
 room10在runtime `c189c49b0094873d2a8270151915d3aef0eba273` 建立format2/v3投影上下文（8玩法AC/4体验），但draft4的input58649 bytes/8192 floor报价182834µ超过原intake余额121179µ，provider未派发，仍4笔128821µ、无新增费用。原v1–v3/runtime2fbb61d及失败native保留；未确认、未生成。2026-10-25T18:44:18.949Z原stop/close+settle后释放4871179µ，18:45:37Z独立PASS_CLOSED child38/shared3356、held/reserved/unknown0、无残留，[结案回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)已核证。旧memory/room1–10永久关闭，不恢复或重复结算。COS126源码范围完成保持，该次请求未验证真实编辑语义；总126/root100/父20个源码子项完成，父仍open/partial。稳定任务ID：COS-126。
 
 room11 actual v2截至2026-10-25T19:14:02Z经独立PASS_COMPLETE_REQUIREMENT_SCOPE、EXPORT_EXACT与PASS_RESUMABLE_WAIT；10AC（8玩法+2host）/4体验/12问答、unsupported[]，145原字符串和raw JSON精确导出。真实draft2 intent/native携带v1投影，只修改A3，其余9AC/4体验不变，无额外successor；这是COS126的本次真实修订结果。原CLI cancel exit0，child23、3笔93226µ settled、reserved/unknown/pending/残留0，shared3357原5M held保留、未settle/confirm/stop/激活时钟。Root已提交当前完整v2确认问题；此为确认前快照，非游戏完成，后续以真实用户答复为准。[公开回执](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6402042529)记录草稿/导出SHA与原运行边界；runtime保持 `c189c49b0094873d2a8270151915d3aef0eba273`。
+
+### COS-127 · 普通设计独立评审的原额度内请求容量
+
+[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)，id6031812917，原生父COS18/#19、父[ ]，`open / source-pending`。design_review_budget_plan_reviewer已独立APPROVED_PLAN、无P1/P2阻塞项，Root批准固定规格/计划发布与免费实施。作者cos127_implementer基于 `7b6d01ab749cd912a11b2abeb36deda6db882d04` 实施，源码reviewer待Root指派，唯一merger public_agent_batch_merger。正式[规格](cos127-design-review-budget.md)与[实施计划](../plans/2026-10-26-design-review-budget.md)保留批准技术正文，记录输入SHA `e984dd75874ee3476ad4bb30d1a1d330ae9d933e25ec12e555d5f5cac5d126a8` / `850a9af4cdd97f5730af43efb93ce4c707f738006c0862bcb7b000a5edfc848d`；测试组织允许历史byte边界helper测与真实SDK实际bytes验证，技术行为不变。
+
+仅可信ordinary宿主选择的design reviewer启用组合选项：完整且未截断的JSON read结果只删除字符串外四种JSON空白，保留所有词法值、原文件、read权限与其他结果字段；同一原grant内复用既有预算helper选择4096..8192最大可负担cap，并记录既有六个安全字段。部分/不确定读取原样返回，真正reserve/admit仍作最终准入；完整findings/verdict、inputVersions/evidenceIds及length失败保持。不新增预算、重试、compaction或旧attempt恢复，不手修七项旧语义缺口；源码尚未独审或集成。
+
+room11 runtimec189c49的177.047秒incomplete、36笔568980µ结算/4431020µ释放、PASS_CLOSED child171/shared3358均见[结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6406420978)。作者结构/capture通过后review第3请求103650 bytes/8192报价272836µ超过229213µ余额，未派发、无runtime verdict/art/code/game；独立只读语义评估不代替原review verdict。旧memory/room1–11永久关闭。总127/root100/父21中20源码完成，父仍open/partial，本次不跑源码测试或操作真实run/ledger/coordinator。稳定任务ID：COS-127。
 
 ## 5. 任务与上下文包模板
 
