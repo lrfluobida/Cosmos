@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-26 [COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129) 已登记为open/source-pending；固定SHA规格/计划获独立APPROVED_PLAN与Root实施批准，正式文档由唯一merger发布。总128、根直接100、COS18原生22子项中21个源码完成，父仍open/partial。room12永久关闭并复用原结案，本卡仅接线已有作者格式纠正，不恢复旧attempt。
+
 2026-10-26 [COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128) 已独审合入并发布 `d088df021825f1813e5d8fe9f1c775f011144321`，closed(completed)及父[x]已GET核证。总127、根直接100、COS18二十一个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下3/3代表通过。room11永久关闭，原结构/capture与失败事实保留；新源码尚无真实review verdict或游戏结果。
 
 2026-10-26 [COS126 / #127](https://github.com/lrfluobida/Cosmos/issues/127) 已独审合入并发布 `c189c49b0094873d2a8270151915d3aef0eba273`，closed(completed)与父[x]已GET核证。总126、根直接100、COS18二十个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下4/4代表通过。room10原draft4在provider前因原intake额度不足被拒，随后已按原API永久关闭；[结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6401723439)保持未确认/未生成，source-scoped完成不等于真实编辑语义通过；room11的单次实际修订及确认前快照见本卡后续记录。
@@ -1888,6 +1890,14 @@ room11 actual v2截至2026-10-25T19:14:02Z经独立PASS_COMPLETE_REQUIREMENT_SCO
 仅可信ordinary宿主选择的design reviewer启用组合选项：完整且未截断的JSON read结果只删除字符串外四种JSON空白，保留所有词法值、原文件、read权限与其他结果字段；同一原grant内复用既有预算helper选择4096..8192最大可负担cap，并记录既有六个安全字段。部分/不确定读取原样返回，真正reserve/admit仍作最终准入；完整findings/verdict、inputVersions/evidenceIds及length失败保持。不新增预算、重试、compaction或旧attempt恢复，不手修七项旧语义缺口；本卡仅源码范围完成。
 
 room11 runtimec189c49的177.047秒incomplete、36笔568980µ结算/4431020µ释放、PASS_CLOSED child171/shared3358均见[结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6406420978)。作者结构/capture通过后review第3请求103650 bytes/8192报价272836µ超过229213µ余额，未派发、无runtime verdict/art/code/game；独立只读语义评估不代替原review verdict。旧memory/room1–11永久关闭。总127/root100/父21个源码子项完成，父仍open/partial；本批仅SOURCE/TEMP，未操作真实run/ledger/coordinator，不能把容量或合成verdict当作实际游戏完成。稳定任务ID：COS-127。
+
+### COS-128 · 普通公开生成的单次作者格式纠正
+
+[COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129)，id6038311168，原生父COS18/#19、父[ ]，`open / source-pending`。design_review_budget_plan_reviewer最终APPROVED_PLAN、无findings，唯一P2真实prepare harness问题已闭合，Root批准固定规格/计划发布与免费实施。作者cos128_implementer基于 `5700451d5c6140b02cbaae4e7fd9fc6a7f289db3` 实施，独立源码reviewer cos128_reviewer，唯一merger public_agent_batch_merger。正式[规格](cos128-public-author-protocol.md)与[计划](../plans/2026-10-26-public-author-protocol.md)保留批准技术内容，记录输入SHA `ccf3e4a851a4648c8bece394fc9639e2d6b4e41e32fed534690770ff4e865177` / `a7998d98f2d711278c9297f9f0235a69ec31f06d7bba6adea71433387c3058f2`；源码尚未独审或集成。
+
+生产仅entrypoint、orchestrator、scheduler/index、entrypoint-successors、continuation-plan五个既有文件。新ordinary public execution选择可选authorProtocolCorrections:1，旧省略保持，origin及repair/continuation精确继承；scheduler对原作者单次readonly纠正显式独占，继续原cleanup/drain。原严格parser、read-only工具禁用、预算/caps/时钟、单槽回执、失败终态和恢复门禁保持，不提取前导prose、不加重试或付费授权。真实prepareRepairContinuation的落盘/注册harness包含entrypoint-continuation，新1/旧省略与单边漂移都须验证。
+
+复用[room12原结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6413933615)：原最终回复前置prose+JSON严格解析失败，已永久closed，无capture/review/art/code，不能判断COS127 actual成败；本卡不恢复旧attempt、不修旧产物。总128/root100/父22中21源码完成，父仍open/partial。旧memory及room1–12永久关闭；本次仅登记，不跑源码测试、不操作真实run/ledger/coordinator。稳定任务ID：COS-128。
 
 ## 5. 任务与上下文包模板
 
