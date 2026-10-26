@@ -97,7 +97,7 @@ test('COS122 invalid trusted request caps fail before constructing any session',
   }
 });
 
-test('COS122 fixed validation retains the declared host cap and ignores a trusted author override', async t => {
+test('COS122 COS127 fixed validation retains the declared host cap and ignores trusted ordinary overrides', async t => {
   const f = await validationBrowserFixture(t), host = await f.create(), prepared = f.prepare(host);
   host.validateTasks!(prepared); await f.controller.registerTasks(prepared.map(item => item.task));
   await host.preAuthor!(prepared[0].task, f.controller.signal);
@@ -111,12 +111,19 @@ test('COS122 fixed validation retains the declared host cap and ignores a truste
   assert.doesNotMatch(f.configs.at(-1)!.systemPrompt, /model requests/);
   let seen!: PiSessionOptions;
   const factory = createRoleFactory({ ...base, authorMaxRequests: { design: 32 }, authorMaxOutputTokens: { design: 32768 },
-    authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true, sessionFactory: async config => {
+    authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
+    ordinaryDesignReviewBudget: () => { throw new Error('Fixed validation must not call the ordinary selector.'); }, sessionFactory: async config => {
     seen = config; return { prompt: async () => ({ text: '' }), close: async () => {} };
   } });
   const overridden = await factory(input); await overridden.close();
   assert.equal(seen.maxRequests, 16); assert.doesNotMatch(seen.systemPrompt, /model requests/);
   assert.equal(seen.requestCompaction, undefined); assert.equal(seen.requestCompactionAdmission, undefined);
+  const reviewWorkspace = join(f.root, 'reviews', task.taskId); await mkdir(reviewWorkspace, { recursive: true });
+  for (const factory of [host.roleFactory, createRoleFactory({ ...base, ordinaryDesignReviewBudget: () => { throw new Error('No validation selector.'); },
+    sessionFactory: async config => { seen = config; return { prompt: async () => ({ text: '' }), close: async () => {} }; } })]) {
+    const reviewer = await factory({ ...input, role: 'reviewer', workspace: reviewWorkspace }); await reviewer.close();
+  }
+  assert.equal(seen.requestOutputLimit, undefined); assert.equal(f.configs.at(-1)!.requestOutputLimit, undefined);
 });
 
 for (const count of [17, 32]) test(`COS122 native design author reaches protocol handoff on model request ${count}`, async t => {
@@ -181,15 +188,15 @@ for (const fault of ['deadline', 'authority'] as const) test(`COS122 increased c
   assert.equal(f.payloads.length, 1); assert.deepEqual(await f.controller.read(), before);
 });
 
-test('COS122 funded ordinary host gets design capacity while retaining its original grant and window', async t => {
+for (const designId of ['design', 'unrelated-42']) test('COS122 COS127 public funded ordinary session selects semantic design reviewer ' + designId, async t => {
   const f = await fundingFixture(t), args = await f.authorization('capacity'), binding = await reservePublicValidationFunding(args);
   const configs: PiSessionOptions[] = [], output = new PassThrough(); output.resume();
   const sessionFactory = async (config: PiSessionOptions) => {
     configs.push(config); const packet = JSON.parse(config.context);
     return { close: async () => {}, prompt: async () => ({ text: JSON.stringify(packet.role === 'cosmos' ? { tasks: [
-      { taskId: 'design', policyId: 'game-design', role: 'design', objective: '设计', acceptanceIds: ['COSMOS-DESIGN'], dependsOn: [] },
-      { taskId: 'art', policyId: 'game-art', role: 'art', objective: '素材', acceptanceIds: ['COSMOS-MEDIA'], dependsOn: ['design'] },
-      { taskId: 'coding', policyId: 'game-code', role: 'coding', objective: '编码', acceptanceIds: ['click'], dependsOn: ['design', 'art'] },
+      { taskId: designId, policyId: 'game-design', role: 'design', objective: '设计', acceptanceIds: ['COSMOS-DESIGN'], dependsOn: [] },
+      { taskId: 'art', policyId: 'game-art', role: 'art', objective: '素材', acceptanceIds: ['COSMOS-MEDIA'], dependsOn: [designId] },
+      { taskId: 'coding', policyId: 'game-code', role: 'coding', objective: '编码', acceptanceIds: ['click'], dependsOn: [designId, 'art'] },
     ] } : { summary: 'Offline capacity fixture only', remaining: [], uncertainty: ['This fixture cannot supply design content.'] }) }) };
   };
   const host = createProductHost(fileURLToPath(new URL('../../', import.meta.url)), { sessionFactory });
@@ -219,21 +226,27 @@ test('COS122 funded ordinary host gets design capacity while retaining its origi
       task.state = 'running'; task.attempts = [{ attemptId: 'capacity', sessionRef: join(input.root, 'sessions/capacity'), startedAt: new Date().toISOString(), endedAt: null, outcome: 'running', failure: null }];
       await controller.saveTask(task, { role: 'system', actorId: 'runtime' });
       const author = await active.roleFactory({ role: 'design', task, requirement: input.requirement, controller, workspace: plan.tasks[0].workspace, stateDirectory: join(input.root, 'sessions/capacity/author') });
-      await author.close(); return { outcome: 'incomplete', gaps: ['Configuration-only source fixture.'] };
+      await author.close();
+      for (const item of plan.tasks) {
+        const review = await active.roleFactory({ role: 'reviewer', task: item.task, requirement: input.requirement, controller,
+          workspace: item.workspace, stateDirectory: join(input.root, 'sessions', item.task.taskId, 'scope-review') });
+        await review.close();
+      }
+      return { outcome: 'incomplete', gaps: ['Configuration-only source fixture.'] };
     } finally { await controller.close(); }
   };
   await runProductSession({ command: 'new', root: args.runRoot, brief: args.payload.brief, funding: binding, limits: args.payload.limits,
     host, input: Readable.from(['点击完成\nconfirm 1\n']), output });
-  assert.deepEqual(configs.map(config => [JSON.parse(config.context).role, config.maxRequests]), [['cosmos', 16], ['design', 32]]);
-  assert.deepEqual(configs.map(config => [config.maxOutputTokens, typeof config.requestOutputLimit]), [[8192, 'undefined'], [32768, 'function']]);
-  assert.deepEqual(configs.map(config => [typeof config.requestCompaction, typeof config.requestCompactionAdmission, config.compactionKeepRecentTokens]),
+  assert.deepEqual(configs.map(config => [JSON.parse(config.context).role, config.maxRequests]), [['cosmos', 16], ['design', 32], ['reviewer', 16], ['reviewer', 16], ['reviewer', 16]]);
+  assert.deepEqual(configs.map(config => [config.maxOutputTokens, typeof config.requestOutputLimit]), [[8192, 'undefined'], [32768, 'function'], [8192, 'function'], [8192, 'undefined'], [8192, 'undefined']]);
+  assert.deepEqual(configs.slice(0, 2).map(config => [typeof config.requestCompaction, typeof config.requestCompactionAdmission, config.compactionKeepRecentTokens]),
     [['undefined', 'undefined', undefined], ['function', 'function', 8000]]);
   const state = await f.child(args.runRoot), packet = JSON.parse(configs[1].context);
   assert.equal(state.ledger.limitMicroCny, 5000000); assert.deepEqual(state.validationFunding, binding);
   assert.equal(Date.parse(state.run.originalDeadlineAt) - Date.parse(state.run.originalStartedAt), 1800000);
   assert.equal(packet.budget.originalDeadlineAt, state.run.originalDeadlineAt);
-  assert.equal(packet.budget.allocationMicroCny, state.ledger.allocations.find((item: any) => item.taskId === 'design').amountMicroCny);
-  assert.equal(state.tasks.find((task: TaskContract) => task.taskId === 'design').attempts.length, 1);
+  assert.equal(packet.budget.allocationMicroCny, state.ledger.allocations.find((item: any) => item.taskId === designId).amountMicroCny);
+  assert.equal(state.tasks.find((task: TaskContract) => task.taskId === designId).attempts.length, 1);
   assert.equal(state.ledger.entries.length, 0);
 });
 

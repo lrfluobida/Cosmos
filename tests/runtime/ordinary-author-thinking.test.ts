@@ -9,6 +9,7 @@ import { readRunSnapshot } from '../../src/cli/control.ts';
 import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
+import { planTaskDag } from '../../src/roles/planner.ts';
 
 for (const [label, gameplayIds, experienceIds] of [
   ['escaped IDs', ['light', '柜"门\\开'], ['readable', '视"感\\亮']],
@@ -108,28 +109,44 @@ test('ordinary design alone disables thinking in native SDK payload while origin
   assert.equal(f.plays.length, 1); assert.deepEqual(f.plays[0].plan.steps.filter((step: any) => !step.id.startsWith('host-media-')), f.scenario.steps);
 });
 
-test('COS124 modular ordinary host enables budget selection only for design while capture and independent review remain required', async t => {
+test('COS124 COS127 modular ordinary host selects only design author and reviewer budgets while capture remains required', async t => {
   const f = await ordinaryHostFixture(t, { modular: true }), scripted = f.hostOptions.sessionFactory!, configs: any[] = [];
   f.hostOptions.sessionFactory = async config => { configs.push(config); return scripted(config); };
   const result: any = await f.execute(); assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
   for (const config of configs) {
-    const role = JSON.parse(config.context).role;
+    const packet = JSON.parse(config.context), role = packet.role;
     assert.equal(config.maxOutputTokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : 8192);
-    assert.equal(typeof config.requestOutputLimit, role === 'design' ? 'function' : 'undefined');
+    assert.equal(typeof config.requestOutputLimit, role === 'design' || role === 'reviewer' && packet.acceptance.some((item: any) => item.acceptanceId === 'COSMOS-DESIGN') ? 'function' : 'undefined');
     assert.equal(typeof config.requestCompactionAdmission, role === 'design' ? 'function' : 'undefined');
     assert.equal(typeof config.requestCompaction, role === 'design' ? 'function' : 'undefined');
   }
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 5); assert.ok(f.checks.length); assert.equal(f.plays.length, 1);
 });
 
-test('COS124 legacy browser host retains the original author cap without budget selection', async t => {
+test('COS124 COS127 legacy browser host retains original author and reviewer budgets', async t => {
   const f = await ordinaryHostFixture(t), scripted = f.hostOptions.sessionFactory!, configs: any[] = [], draft = f.draft as any;
   delete draft.ordinaryProfile; delete draft.experienceCriteria; draft.scenario = f.scenario; f.host.ordinaryProfile = undefined;
   f.hostOptions.sessionFactory = async config => { configs.push(config); return scripted(config); };
+  f.host.execute = async input => {
+    const controller = await RunController.open({ root: f.root });
+    try {
+      const host = await createBrowserHost({ ...input, controller, work: new OwnedWork(controller.signal), ...f.hostOptions });
+      const plan = await planTaskDag({ controller, requirement: input.requirement, planningTaskId: 'planning', workspace: input.root,
+        sessionRoot: join(input.root, 'sessions'), availableArtifacts: host.availableArtifacts, taskPolicies: host.taskPolicies, roleFactory: host.roleFactory });
+      host.validateTasks!(plan.tasks); await controller.registerTasks(plan.tasks.map(item => item.task));
+      for (const item of plan.tasks) for (const role of (item.role === 'design' ? ['design', 'reviewer'] : ['reviewer']) as ('design' | 'reviewer')[]) {
+        const session = await host.roleFactory({ role, task: item.task, requirement: input.requirement, controller,
+          workspace: item.workspace, stateDirectory: join(input.root, 'sessions', item.task.taskId, role) }); await session.close();
+      }
+      return { outcome: 'incomplete', gaps: ['Configuration-only legacy fixture.'] };
+    } finally { await controller.close(); }
+  };
   await f.execute();
   const design = configs.find(config => JSON.parse(config.context).role === 'design'); assert.ok(design);
   assert.equal(design.maxOutputTokens, 8192); assert.equal(design.requestOutputLimit, undefined);
   assert.equal(design.requestCompaction, undefined); assert.equal(design.requestCompactionAdmission, undefined);
+  const reviewers = configs.filter(config => JSON.parse(config.context).role === 'reviewer'); assert.ok(reviewers.length > 0);
+  for (const reviewer of reviewers) assert.equal(reviewer.requestOutputLimit, undefined);
 });
 
 test('ordinary failed insufficient evidence remains closed to redispatch after author configuration changes', async t => {

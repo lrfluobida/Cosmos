@@ -55,6 +55,8 @@ export interface RoleFactoryOptions {
   authorBudgetOutputFloor?: Partial<Record<AuthorRole, number>>;
   /** Trusted ordinary design selection; original budget quotes govern optional summaries. */
   ordinaryDesignBudgetCompaction?: true;
+  /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote a 4096-8192 output cap. */
+  ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
   maxRequests: number;
   /** Author overrides only; planning, review and fixed validation retain maxRequests. */
   authorMaxRequests?: Partial<Record<AuthorRole, number>>;
@@ -109,6 +111,10 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     throw new Error('ordinaryDesignBudgetCompaction requires the original design floor 8192 and cap 32768.');
   }
   const authorRequestLimits = { ...options.authorMaxRequests };
+  const ordinaryDesignReviewBudget = options.ordinaryDesignReviewBudget;
+  if (ordinaryDesignReviewBudget !== undefined && (typeof ordinaryDesignReviewBudget !== 'function' || options.maxOutputTokens !== 8192)) {
+    throw new Error('ordinaryDesignReviewBudget requires a trusted selector and the original 8192 output cap.');
+  }
   if (Object.entries(authorRequestLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxRequests requires valid author roles and positive safe integers.');
   const authorThinking = { ...options.authorThinkingLevel };
   if (Object.entries(authorThinking).some(([role, level]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !['off', 'low', 'high', 'max'].includes(level))) throw new Error('authorThinkingLevel requires valid author roles and supported thinking levels.');
@@ -123,6 +129,11 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     if (input.codingConcernReview && (!input.validation || input.role !== 'reviewer' || input.purpose || input.codingConcernReview.taskId !== task.taskId
       || input.codingConcernReview.attemptId !== task.attempts.at(-1)?.attemptId || input.codingConcernReview.authorId !== task.authorId || input.codingConcernReview.contextId !== task.context.contextId)) throw new Error('Coding concern review requires its original validation task and attempt.');
     const purpose = input.purpose === 'planning' ? 'planning' : input.role === 'reviewer' ? 'reviewer' : 'author';
+    let designReviewBudget = false;
+    if (ordinaryDesignReviewBudget && input.role === 'reviewer' && !input.purpose && !input.validation) {
+      designReviewBudget = ordinaryDesignReviewBudget(freeze(structuredClone(task)));
+      if (typeof designReviewBudget !== 'boolean') throw new Error('ordinaryDesignReviewBudget must return a boolean.');
+    }
     const validation = input.validation ? await input.controller.validationAuthority(task.taskId, purpose) : undefined;
     const authorRequestLimit = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorRequestLimits[input.role] : undefined;
     const authorFloor = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorFloors[input.role] : undefined;
@@ -147,7 +158,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const actorId = reviewer ? `reviewer-${randomUUID()}` : task.authorId;
     const reads = reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
     const inputFiles = await roleInputFiles(workspace, [...task.inputs, ...task.context.interfaces, ...(reviewer ? [...task.artifacts, ...task.evidence.map(e => e.source)] : [])], input.controller.signal);
-    const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths });
+    const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths,
+      ...(designReviewBudget ? { compactFullJsonReads: true } : {}) });
     const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment() }) ?? [];
     const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name));
     for (const host of hostTools) {
@@ -188,7 +200,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next. Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`) + (authorRequestLimit === undefined ? '' : `\n\nThis author session permits at most ${maxRequests} model requests (model response rounds, not files or individual tool calls). Reserve requests for complete self-checks and the final JSON handoff. If defects remain, report the real unfinished work in remaining; never claim completion solely to finish within this limit.`) + `\n\n${inputFilesProtocol}`,
       context: JSON.stringify(packet), thinkingLevel: (purpose === 'author' && !validation && input.role !== 'reviewer' ? authorThinking[input.role] : undefined) ?? options.thinkingLevel ?? 'low', env: options.env,
       ...(purpose === 'planning' ? { jsonOutput: true } : {}),
-      maxOutputTokens: validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
+      maxOutputTokens: designReviewBudget ? 8192 : validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
       maxRequests, requestTimeoutMs: input.role === 'coding' && purpose === 'author' ? codingTimeout ?? options.requestTimeoutMs : options.requestTimeoutMs,
       requestWindow: async () => {
         input.controller.signal.throwIfAborted();
@@ -231,12 +243,14 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       } } : {}),
       ...(authorFloor === undefined ? {} : { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
         task, authority: authority!, floor: authorFloor, maxOutputTokens: authorLimits[input.role as AuthorRole]!, estimate: options.estimatedMaxCostMicroCny }) }),
+      ...(designReviewBudget ? { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
+        task, authority: authority!, floor: 4096, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny }) } : {}),
       ...(designCompaction ? authorBudgetCompaction({ controller: input.controller, original: snapshot, task, authority: authority!,
         floor: authorFloor!, maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny }) : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: designCompaction ? 8000 : options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
-        ...(authorFloor === undefined ? {} : { recordRequest: true }),
+        ...(authorFloor === undefined && !designReviewBudget ? {} : { recordRequest: true }),
         ...(validation ? { validation: { caseId: validation.caseId, windowId: validation.windowId, purpose } } : {}) }),
     });
     return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }),
