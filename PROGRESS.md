@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-26 room12 actual v2确认前快照（[公开核证](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6407261662)），独立room10_wait_check于02:56:52Z–02:58:06Z给出READY_CONFIRMATION，room10_draft_review给出READY_DRAFT。12AC（10玩法+2host）/4EX/8QA、unsupported[]，166原字符串及完整raw JSON精确导出；仅3个既有AC调整音频顺序、continue媒体观察及完整/跨进程读档后的最近保存保持，其余9AC/4EX精确不变。草稿SHA `94cbc9603c4aa264eabf21a3709bd0a05ccb02281b21f7926c47b72d274a34ae`，导出SHA `279349c125962e914bfaf040e7fc8d41bb5ab003a5a444f90a96399eba98582b`，完整文档 `.cosmos/public-validation/room-20261026-12/draft-v2-review.md`。
+
+原CLI99716 cancel exit0；核验时child23/shared3359，3笔9560+40121+42905=92586µ settled，reserved/unknown/pending/锁/进程0，原5M held未结算，无confirm/activate/stop或生成时钟。保持原¥5/30min与runtime `d088df021825f1813e5d8fe9f1c775f011144321`；此为已核时间点的人类确认前状态，后续以真实用户对当前完整v2的答复及原CLI为准，不能作为游戏成功。父COS18仍open/partial，旧memory及room1–11永久关闭；本次仅进度文档，未操作真实run/ledger/coordinator或重跑源码测试。
+
 2026-10-26 [COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128) 已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/128#issuecomment-6406706248)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/128#issuecomment-6406710871)及父[x]已GET核证。作者cos127_implementer的 `13af7dbec0eddb0d6deb69193f2244ef3c75ebb3` 经独立cos127_reviewer对10文件（4源码+6测试）规格/质量审查，APPROVED_SOURCE_SCOPED、无actionable finding；唯一merger从 `6c3ee178d7827e5f2955e403b7c328509b41f67f` 合入并发布 `d088df021825f1813e5d8fe9f1c775f011144321`，来源文件与获批提交一致。正式[规格](docs/specs/cos127-design-review-budget.md)与[计划](docs/plans/2026-10-26-design-review-budget.md)保留原批准输入SHA及已认可的测试组织说明，更新源码状态。
 
 仅可信ordinary design reviewer组合启用完整JSON字符串外词法空白显示压缩与原grant内4096..8192最大可负担输出选择，保留原文件/词法值/权限/真正reserve-admit、完整verdict与length失败。主线typecheck/build exit0，显式主模板下3/3、0skip、TAP8178.3375ms：真实SDK完整多finding changes_requested、length外观完整仍失败/结算、funded宿主按语义选择unrelated-42。主线合成SDK实测84949 bytes→cap7414/quote229210µ；历史92144/5615/229208为helper边界证据，来源分开。作者39及14项相关证据、最终SDK定向修正与独审8/8按未变范围复用，不累计重叠；命令与原输出见 `.cosmos/cos127-integration/`。总127/root100/父21个源码子项完成，父仍open/partial；新runtime `d088df021825f1813e5d8fe9f1c775f011144321` 尚无真实游戏结果，room11旧runtimec189c49的失败不改写。
