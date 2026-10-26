@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import type { TestContext } from 'node:test';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
-import { readCompletedGeneration } from '../../src/runtime/experience.ts';
+import { deliveryTaskProofs, readCompletedGeneration } from '../../src/runtime/experience.ts';
 import { readDesignRevisionPlan, readDesignSelection } from '../../src/runtime/entrypoint-design-revision.ts';
 import { AgentSession, ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { lazyStream } from '@earendil-works/pi-ai';
@@ -17,6 +17,24 @@ import type { RunController } from '../../src/runtime/run.ts';
 import { readConfirmedRequirementsSource } from '../../src/runtime/confirmed-requirements-source.ts';
 import { runProductSession } from '../../src/cli/session.ts';
 import { Readable, Writable } from 'node:stream';
+
+test('initial ordinary design failure reports only persisted task proofs', async t => {
+  const f = await ordinaryHostFixture(t, { revisionPolicy: true, sessionFactory: async (config, fallback) => {
+    const packet = JSON.parse(config.context!);
+    return packet.role === 'design' ? { ...fallback, prompt: async () => { throw new Error('Synthetic failed design author'); } } : fallback;
+  } });
+  const result: any = await f.execute(), state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+  assert.equal(state.tasks.length, 1); assert.equal(state.tasks[0].state, 'failed');
+  assert.equal(f.packets.filter(packet => packet.role === 'design').length, 1);
+  assert.equal(f.packets.some(packet => ['reviewer', 'art', 'coding'].includes(packet.role)), false);
+  assert.deepEqual(result.effectiveTasks, deliveryTaskProofs(state.tasks));
+  assert.equal(result.outcome, 'incomplete'); assert.equal(result.automaticAcceptance, 'not_passed'); assert.equal(result.acceptedCandidate, undefined);
+  assert.equal(result.ordinaryDesignReview.revisionAttempted, false); assert.equal(result.ordinaryDesignReview.selectedVersion, null);
+  assert.match(result.gaps.join(' '), /素材/); assert.match(result.gaps.join(' '), /完成游戏/);
+  assert.equal(result.completionTiming.current.status, 'in_time'); assert.ok(result.completionTiming.cleanup.every((row: any) => row.outcome === 'closed'));
+  for (const path of ['ordinary-design-revision-plan.json', 'ordinary-design-selection.json', 'journal/task-art-task/origin.json', 'journal/task-coding-task/origin.json']) await assert.rejects(readFile(join(f.root, path)), { code: 'ENOENT' });
+  assert.equal(state.ledger.allocations.some((row: any) => ['art-task', 'coding-task'].includes(row.taskId)), false);
+});
 
 test('independent rejection reaches one revision with frozen feedback and isolated source', async t => {
   const f = await ordinaryHostFixture(t, { revisionPolicy: true, limits: { limitMicroCny: 5000000, durationMs: 1800000 },
@@ -111,6 +129,14 @@ for (const mode of ['rejection', 'unchanged', 'scope']) test(`revision ${mode} s
   assert.equal(result.outcome, 'incomplete'); assert.match(result.gaps.join(' '), mode === 'unchanged' ? /no_output_change/ : /design_revision_limit/);
   const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
   assert.equal(state.tasks.length, 2); assert.equal(state.ledger.allocations.some((item: any) => ['art-task', 'coding-task'].includes(item.taskId)), false);
+  if (mode === 'rejection') {
+    assert.deepEqual(result.effectiveTasks, deliveryTaskProofs(state.tasks.filter((task: any) => task.taskId === 'design-task-revision')));
+    assert.deepEqual(result.taskHistory.map((task: any) => task.taskId), ['design-task', 'design-task-revision']);
+    assert.equal(result.ordinaryDesignReview.revisionAttempted, true); assert.equal(result.ordinaryDesignReview.selectedVersion, null);
+    assert.equal(result.ordinaryDesignReview.sourceTaskId, 'design-task');
+    assert.match(result.gaps.join(' '), /素材/); assert.match(result.gaps.join(' '), /完成游戏/);
+    assert.equal(result.completionTiming.current.status, 'in_time'); assert.ok(result.completionTiming.cleanup.every((row: any) => row.outcome === 'closed'));
+  }
   assert.equal((await readFile(join(f.root, 'registry/captures/design/v1/files/_cosmos/design.json'), 'utf8')).includes('原创鼠标游戏'), true);
   if (mode === 'scope') assert.equal(denied(), true);
 });

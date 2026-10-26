@@ -14,6 +14,9 @@ import { codingInputSignature } from './coding-check-worker.ts';
 import { createPublicKey, generateKeyPairSync, sign, verify } from 'node:crypto';
 import { validateSnapshot } from './run-validation.ts';
 import { validateLedgerUpdate } from '../contracts/updates.ts';
+import { validateTask } from '../contracts/index.ts';
+import { requireOriginalTask } from './recovery/task-journal.ts';
+import type { OrdinaryExecution } from './entrypoint-design-revision.ts';
 
 const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
 export interface CompletionBinding {
@@ -135,6 +138,60 @@ export async function finishCompletion(input: { root: string; controller: RunCon
   return { required: true, ...value };
 }
 
+/** Accounting alone may recognize the signed historical missing-downstream proof defect. */
+async function ordinaryInitialFailureCleanup(root: string, original: RunSnapshot, current: RunSnapshot, value: any, binding: CompletionBinding): Promise<boolean> {
+  try {
+    if (original.formatVersion !== 1 || original.continuation || original.validation || original.run.kind !== 'runtime_generation'
+      || original.stopReason || original.tasks.length !== 1 || !binding.report || binding.windowId !== null || binding.candidate !== null || binding.candidateSignature !== null
+      || current.stopReason?.code !== 'manual' || current.run.state !== 'waiting_user' || current.revision !== original.revision + 1) return false;
+    const extension = current.events.slice(original.events.length);
+    if (extension.length !== 1 || !sameValue(extension[0], { sequence: original.events.length + 1, type: 'stopped', at: current.stopReason.at, requestId: null, reason: current.stopReason.reason })
+      || !sameValue({ ...current, revision: original.revision, stopReason: original.stopReason, events: original.events, run: { ...current.run, state: original.run.state } }, original)
+      || !sameValue(current.events.slice(0, original.events.length), original.events) || original.events.at(-1)?.sequence !== value.anchorSequence) return false;
+    if (!sameValue(value.current, grade(binding.startedAt, binding.deadlineAt, null)) || !sameValue(value.original, grade(binding.originalStartedAt, binding.originalDeadlineAt, null))
+      || value.eligible !== false || value.charges !== 'settled' || value.stopReason !== null
+      || original.ledger.entries.some(row => row.unknown || row.reservedMicroCny || !['settled', 'cancelled'].includes(row.status))
+      || Date.parse(value.observedAt) < Date.parse(binding.report.reportedAt) || Date.parse(current.stopReason.at) < Date.parse(value.observedAt)) return false;
+    const resources = binding.resources;
+    if (!resources.includes('control') || new Set(resources).size !== resources.length || resources.some(name => !['warnings', 'control', 'preparation'].includes(name))
+      || !sameValue(value.cleanup, [...resources.map(name => ({ name, outcome: 'closed' })), { name: 'owner-drain', outcome: 'closed' },
+        { name: 'closed-binding', outcome: 'failed', error: 'Completion report, candidate or task proofs changed.' }])) return false;
+    const { report } = await currentReport(root), source = original.tasks[0], review = 'ordinaryDesignReview' in report ? report.ordinaryDesignReview : undefined;
+    const pending = { reviewerId: null, contextId: null, inputVersions: [], verdict: 'pending', evidenceIds: [] };
+    if (report.acceptanceScope?.capability !== 'ordinary-design-execution/1' || report.outcome !== 'incomplete' || report.automaticAcceptance !== 'not_passed'
+      || Object.hasOwn(report, 'acceptedCandidate') || Object.hasOwn(report, 'delivery') || report.windowId !== null
+      || !sameValue(review, { authority: 'independent_model_review', sourceTaskId: source.taskId, revisionAttempted: false, selectedVersion: null,
+        blocked: [{ taskId: source.taskId, reason: 'Ordinary design revision blocked: initial_design_incomplete.' }] })
+      || source.state !== 'failed' || source.attempts.length !== 1 || source.attempts[0].outcome !== 'failed' || !source.attempts[0].endedAt
+      || source.artifacts.length || source.evidence.length || !sameValue(source.review, pending)) return false;
+    const execution = decode(await regularFile(root, 'execution.json')) as OrdinaryExecution;
+    await (await import('./entrypoint-design-revision.ts')).requireDesignExecution(root, { read: async () => structuredClone(original) }, execution);
+    const tasks = execution.tasks, design = tasks.find(item => item.role === 'design')!;
+    if (design.task.taskId !== source.taskId || new Set(tasks.map(item => item.task.taskId)).size !== 3
+      || tasks.some(item => validateTask(item.task).length || item.task.state !== 'not_started' || item.task.attempts.length || item.task.artifacts.length || item.task.evidence.length || !sameValue(item.task.review, pending))) return false;
+    requireOriginalTask(design.task, source);
+    const { ArtifactRegistry } = await import('../artifacts/index.ts'), registry = new ArtifactRegistry(root, 'registry');
+    for (const item of tasks) {
+      const ref = item.role === 'coding' ? registry.candidateRef('game', 'v1') : registry.artifactRef(item.role === 'design' ? 'design' : 'media', 'v1');
+      if (!sameValue(item.expectedArtifacts, [ref]) || item.task.outputs.length !== 1 || item.task.outputs[0].destination !== ref.location
+        || !await absent(root, dirname(dirname(ref.location)).replaceAll('\\', '/'))) return false;
+    }
+    if (!await absent(root, 'registry/current.json') || !await absent(root, dirname(dirname(registry.artifactRef('game-source', 'v1').location)).replaceAll('\\', '/'))) return false;
+    const expectedProofs = tasks.map(item => item.role === 'design' ? taskProofs(original, [source.taskId])[0]
+      : { taskId: item.task.taskId, attemptId: null, artifacts: [], review: item.task.review });
+    if (!sameValue(report.effectiveTasks, expectedProofs) || !sameValue(binding.taskProofs, expectedProofs)) return false;
+    for (const path of ['ordinary-design-revision-plan.json', 'ordinary-design-selection.json', 'repair-plan.json']) if (!await absent(root, path)) return false;
+    for (const item of tasks.filter(item => item.role !== 'design')) {
+      const id = item.task.taskId;
+      for (const state of [original, current]) if (state.tasks.some(task => task.taskId === id) || state.run.taskIds.includes(id)
+        || state.ledger.allocations.some(row => row.taskId === id) || state.ledger.entries.some(row => row.taskId === id)) return false;
+      if (!await absent(root, `journal/task-${encodeURIComponent(id)}`)) return false;
+      for (const ref of item.expectedArtifacts ?? []) if (!await absent(root, ref.location) || !await absent(root, dirname(ref.location).replaceAll('\\', '/'))) return false;
+    }
+    return true;
+  } catch { return false; }
+}
+
 /** Funding reads the existing signed cleanup facts, including unreported failures.
  * The caller holds the current controller/registry locks; this never supplies a game timing grade. */
 export async function readFundingCleanup(root: string) {
@@ -176,8 +233,11 @@ export async function readFundingCleanup(root: string) {
     || reason.completionSha256 !== idleHash(JSON.stringify(expected))) throw new Error('Funding cleanup owner anchor changed.');
   if (!Array.isArray(value.cleanup) || !Array.isArray(expected.resources)
     || [...expected.resources, 'owner-drain'].some(name => value.cleanup.filter((row: CleanupResult) => row.name === name).length !== 1)
-    || value.cleanup.some((row: CleanupResult) => row.outcome !== 'closed') || !Number.isFinite(value.cleanupStarted)
+    || !Number.isFinite(value.cleanupStarted)
     || !Number.isFinite(Date.parse(value.observedAt)) || Date.parse(value.observedAt) < Math.max(value.cleanupStarted, Date.parse(anchor.at))) {
+    throw new Error('Funding cleanup remains failed or unconfirmed.');
+  }
+  if (value.cleanup.some((row: CleanupResult) => row.outcome !== 'closed') && !await ordinaryInitialFailureCleanup(root, original, current, value, expected)) {
     throw new Error('Funding cleanup remains failed or unconfirmed.');
   }
   if (!bytes.equals(await regularFile(root, 'snapshot.json'))) throw new Error('Funding cleanup snapshot changed during verification.');

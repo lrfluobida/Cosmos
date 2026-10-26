@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile, writeFile, unlink } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
-import { chargeIntake, fundedIntake, fundingFixture } from './public-validation-funding.fixture.ts';
+import { chargeIntake, fundedIntake, fundingFixture, signedOrdinaryIncompleteFunding } from './public-validation-funding.fixture.ts';
 import { reservePublicValidationFunding, settlePublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
 import { fundingHash } from '../../src/runtime/public-validation-funding-validation.ts';
 import { prepareValidationCase } from '../../src/runtime/validation-window.ts';
@@ -20,6 +20,56 @@ import { createProductHost } from '../../src/runtime/entrypoint-host.ts';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { recoverRunOwner } from '../../src/cli/control.ts';
+import { readCompletionTiming, readFundingCleanup } from '../../src/runtime/completion-timing.ts';
+
+test('signed ordinary initial failure settles only missing downstream proofs', async t => {
+  const value = await signedOrdinaryIncompleteFunding(t), before = await value.snapshot();
+  assert.equal(value.receipt.cleanup.filter((row: any) => row.outcome === 'failed').length, 1);
+  assert.deepEqual(value.receipt.cleanup.at(-1), { name: 'closed-binding', outcome: 'failed', error: 'Completion report, candidate or task proofs changed.' });
+  assert.equal(value.receipt.current.status, 'unconfirmed'); assert.equal(value.receipt.eligible, false);
+  const reportBytes = await readFile(value.reportPath), snapshotBytes = await readFile(join(value.runRoot, 'snapshot.json'));
+  const result = await settlePublicValidationFunding({ sharedRoot: value.sharedRoot, runRoot: value.runRoot, fundingId: value.binding.fundingId });
+  const amount = before.ledger.entries.reduce((sum: number, row: any) => sum + row.settledMicroCny, 0);
+  assert.equal(result.outcome, 'closed'); assert.equal(result.settledMicroCny, amount); assert.equal(result.releasedMicroCny, value.binding.limits.limitMicroCny - amount);
+  assert.deepEqual(await readFile(value.receiptPath), value.receiptBytes); assert.deepEqual(await readFile(value.reportPath), reportBytes);
+  assert.deepEqual(await readFile(join(value.runRoot, 'snapshot.json')), snapshotBytes);
+  assert.equal((await readCompletionTiming(value.runRoot)).current.status, 'unconfirmed');
+  assert.deepEqual((await readFundingCleanup(value.runRoot)).cleanup, value.receipt.cleanup);
+  assert.deepEqual(await settlePublicValidationFunding({ sharedRoot: value.sharedRoot, runRoot: value.runRoot, fundingId: value.binding.fundingId }), result);
+  await writeFile(join(value.runRoot, 'cos135-funding-source-result.json'), JSON.stringify({ source: 'Synthetic signed history and settlement only', result, originalTiming: value.receipt.current }, null, 2), 'utf8');
+});
+
+for (const fault of ['design-proof', 'downstream-attempt', 'downstream-artifact', 'downstream-review', 'registered-downstream', 'charged-downstream',
+  'candidate', 'warnings-failed', 'control-failed', 'preparation-failed', 'owner-failed', 'fallback', 'duplicate-cleanup', 'unknown-cleanup', 'no-stop', 'new-execution',
+  'report', 'marker', 'signature', 'nonce', 'anchor', 'ledger', 'requests', 'fees', 'extra-event', 'revision-plan', 'selection', 'downstream-journal', 'downstream-capture', 'current-candidate']) {
+  test(`ordinary incomplete funding rejects ${fault}`, async t => {
+    const value = await signedOrdinaryIncompleteFunding(t, fault), sharedBefore = await value.f.snapshot();
+    const json = async (path: string) => JSON.parse(await readFile(path, 'utf8'));
+    const put = (path: string, contents: unknown) => writeFile(path, JSON.stringify(contents), 'utf8');
+    if (fault === 'report') { const report = await json(value.reportPath); report.gaps.push('Changed signed report'); await put(value.reportPath, report); }
+    if (fault === 'marker') { const path = join(value.runRoot, 'delivery/current-report.json'), marker = await json(path); marker.sha256 = '0'.repeat(64); await put(path, marker); }
+    if (fault === 'signature') { const path = value.receiptPath + '.sha256.json', digest = await json(path); digest.signature = Buffer.alloc(64).toString('base64'); await put(path, digest); }
+    if (fault === 'nonce') { const receipt = await json(value.receiptPath); receipt.nonce = 'untrusted'; await put(value.receiptPath, receipt); }
+    if (['anchor', 'ledger', 'requests', 'fees', 'extra-event'].includes(fault)) {
+      const state = await value.snapshot();
+      if (fault === 'anchor') { const anchor = state.events.find((event: any) => event.type === 'run_owner_drained'); const reason = JSON.parse(anchor.reason); reason.nonceSha256 = '0'.repeat(64); anchor.reason = JSON.stringify(reason); }
+      if (fault === 'ledger') { state.ledger.entries[0].settledMicroCny += 1; state.run.fees.settledMicroCny += 1; }
+      if (fault === 'requests') state.requests[0].admittedAt = new Date(Date.parse(state.requests[0].admittedAt) + 1).toISOString();
+      if (fault === 'fees') state.run.fees.settledMicroCny += 1;
+      if (fault === 'extra-event') { state.events.push({ sequence: state.events.length + 1, type: 'budget_warning', at: new Date().toISOString(), requestId: null, reason: 'Changed history after original stop' }); state.revision++; }
+      await put(join(value.runRoot, 'snapshot.json'), state);
+    }
+    if (fault === 'revision-plan') await put(join(value.runRoot, 'ordinary-design-revision-plan.json'), {});
+    if (fault === 'selection') await put(join(value.runRoot, 'ordinary-design-selection.json'), {});
+    if (fault === 'downstream-journal') await mkdir(join(value.runRoot, 'journal/task-art-task'), { recursive: true });
+    if (fault === 'downstream-capture') await mkdir(join(value.runRoot, 'registry/captures/media/v1'), { recursive: true });
+    if (fault === 'current-candidate') await put(join(value.runRoot, 'registry/current.json'), {});
+    await assert.rejects(settlePublicValidationFunding({ sharedRoot: value.sharedRoot, runRoot: value.runRoot, fundingId: value.binding.fundingId }));
+    const sharedAfter = await value.f.snapshot();
+    assert.deepEqual(sharedAfter, sharedBefore); assert.equal(sharedAfter.publicValidationFundings[0].settlement, undefined);
+    await assert.rejects(readFile(join(value.sharedRoot, `public-funding/${value.binding.fundingId}/settlement.json`)), { code: 'ENOENT' });
+  });
+}
 
 test('a real authorization reserves one complete grant without a provider request and reuses its intent', async t => {
   const f = await fundingFixture(t), args = await f.authorization(), before = await f.snapshot();
