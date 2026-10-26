@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-27 COS135 / #136已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430077591)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430084943)及父[x]已GET核证。独立reuse2_recovery_plan_reviewer批准 `0946205af133b13db3e42b05ce309c378aa1a857`，无P1/P2；5来源文件精确合入发布 `e231434d2a41ba78e36643f1d0fb1db6aa3552c5`。 此为SOURCE/TEMP生命周期与会计边界验证；真实reuse-2仍永久stop、游戏incomplete/timing unconfirmed，原5Mµ hold尚未由本次发布释放，原failed closed-binding回执与费用保持。真实收尾仅由Root随后沿原API办理。COS136/#137仍open/source-pending，新付费仍等两卡及必要组合；总136/root100/父30中29源码完成，父COS18仍open/partial。
+
 2026-10-27 [COS-135 / #136](https://github.com/lrfluobida/Cosmos/issues/136)、[COS-136 / #137](https://github.com/lrfluobida/Cosmos/issues/137) 已登记，固定spec/plan均经独立reuse2_recovery_plan_reviewer APPROVED_PLAN并获Root批准免费实施；两卡source pending、原生父未勾选。总136/root100/父30子项中28源码完成，COS18仍open/partial；两卡并行，不互设阻塞。
 
 2026-10-27 [COS132 / #133](https://github.com/lrfluobida/Cosmos/issues/133#issuecomment-6428851663)、[COS133 / #134](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6428875427)、[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135#issuecomment-6428898881) 已源码范围完成并统一发布 `06709f34e11512f62fc83d2b1ef4591f9c467f32`。COS132作者预算恢复、COS133即时媒体控制态及COS134一次设计修订/下游adaptive容量按批准组合一并发布；旧undefined/modular/validation等原兼容策略保持。
@@ -1985,13 +1987,15 @@ COS130已原生依赖本卡；本卡源码范围完成，COS130最终组合已so
 
 ### COS-135 · 普通未选定设计分支完成证明与历史会计收尾
 
-[COS-135 / #136](https://github.com/lrfluobida/Cosmos/issues/136)，id6049793317，原生父COS18/#19、[ ]，`source-pending`。独立reuse2_recovery_plan_reviewer已APPROVED_PLAN、无remaining，Root批准免费实施；作者ordinary_design_revision_implementer、独立源码reviewer reuse2_recovery_plan_reviewer、唯一merger public_agent_batch_merger。基线 `50f4633b1e682ccadf4844bf8414994a866813a5`。
+[COS-135 / #136](https://github.com/lrfluobida/Cosmos/issues/136)，id6049793317，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`。独立reuse2_recovery_plan_reviewer已APPROVED_PLAN、无remaining，Root批准免费实施；作者ordinary_design_revision_implementer、独立源码reviewer reuse2_recovery_plan_reviewer、唯一merger public_agent_batch_merger。基线 `50f4633b1e682ccadf4844bf8414994a866813a5`。
+
+源码结果：COS135 / #136已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430077591)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430084943)及父[x]已GET核证。独立reuse2_recovery_plan_reviewer批准 `0946205af133b13db3e42b05ce309c378aa1a857`，无P1/P2；5来源文件精确合入发布 `e231434d2a41ba78e36643f1d0fb1db6aa3552c5`。 main typecheck/build exit0；初轮失败证明、修订失败证明、真实签名历史资金收尾正例及原失败清理拒绝4/4、0skip、TAP13195.8368ms。原A2/2与B34项范围有效证据复用（原33/34后候选夹具查找修正、定向1/1，不累加重叠）。附加strict测试仍有6个与50f精确基线一致的旧nullable诊断，无新诊断；未记为strict全通过。
 
 正式[规格](cos135-ordinary-incomplete-funding-recovery.md)/[计划](../plans/2026-10-27-ordinary-incomplete-funding-recovery.md)保留批准技术内容；spec SHA256 `d1e5b9504de3c383f49d73d1ca998013ba0f13cd7f0cfae75a73747b7116360d`，plan SHA256 `1c18d37f6c46597200d9158951751ea32298fa157c72a5022d53bfe89b87f85c`。
 
 未来未选定设计分支仅证明真实注册的有效任务；历史会计识别严格限于原签名初轮失败形状，不改变失败/计时结论、原回执或旧费用。源码发布后仅Root可沿原API核验收尾。 原生依赖COS-134；两卡不互设阻塞。
 
-总136/root100/父30子项中28源码完成，父open/partial；source尚无候选。生命周期源码独审通过后可优先发布、实际会计由Root原API办理，新付费须两卡及组合通过。reuse-2原5Mµ仍held，永久stop不可resume或改旧回执；本卡不操作真实run/ledger/coordinator。稳定任务ID：COS-135。
+总136/root100/父30子项中29源码完成，父open/partial；本卡源码已独审并优先发布，实际会计由Root原API另行办理，新付费须两卡及组合通过。reuse-2原5Mµ仍held，永久stop不可resume或改旧回执；本卡不操作真实run/ledger/coordinator。稳定任务ID：COS-135。
 
 ### COS-136 · 普通设计预算内真实只读收尾
 
@@ -2001,7 +2005,7 @@ COS130已原生依赖本卡；本卡源码范围完成，COS130最终组合已so
 
 只对新ordinary design的可信发送前预算拒绝，复用同session/同一次correction槽的4096真实只读交接；保留原总预算、review reserve、32计数、严格parser/完整capture与独审，补既有checkpoint字段诊断，不放宽验收。 原生依赖COS-128/COS-132/COS-134；两卡不互设阻塞。
 
-总136/root100/父30子项中28源码完成，父open/partial；source尚无候选。生命周期源码独审通过后可优先发布、实际会计由Root原API办理，新付费须两卡及组合通过。reuse-2原5Mµ仍held，永久stop不可resume或改旧回执；本卡不操作真实run/ledger/coordinator。稳定任务ID：COS-136。
+总136/root100/父30子项中29源码完成，父open/partial；source尚无候选。生命周期源码独审通过后可优先发布、实际会计由Root原API办理，新付费须两卡及组合通过。reuse-2原5Mµ仍held，永久stop不可resume或改旧回执；本卡不操作真实run/ledger/coordinator。稳定任务ID：COS-136。
 
 ## 5. 任务与上下文包模板
 

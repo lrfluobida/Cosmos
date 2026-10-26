@@ -655,7 +655,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
       "verifiedNativeSubIssues": 30,
       "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136"],
-      "verifiedCompletedSubIssues": 28,
+      "verifiedCompletedSubIssues": 29,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -10835,11 +10835,11 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "parentChecklistLine": "- [ ] [COS-135 · 普通未选定设计分支完成证明与历史会计收尾](https://github.com/lrfluobida/Cosmos/issues/136)",
+      "parentCheckboxChecked": true,
+      "parentChecklistLine": "- [x] [COS-135 · 普通未选定设计分支完成证明与历史会计收尾](https://github.com/lrfluobida/Cosmos/issues/136)",
       "verifiedRootDirectSubIssues": 100,
       "verifiedParentNativeSubIssues": 30,
-      "verifiedParentCompletedSubIssues": 28,
+      "verifiedParentCompletedSubIssues": 29,
       "dependsOn": [
         "COS-134"
       ],
@@ -10852,12 +10852,12 @@
         }
       ],
       "nativeDependenciesLinked": true,
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-pending",
-      "implementationPhase": "source-pending",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-integrated",
+      "implementationPhase": "source-scoped-complete",
       "sourceBaseCommit": "50f4633b1e682ccadf4844bf8414994a866813a5",
-      "sourceReviewStatus": "pending",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "implementer": "ordinary_design_revision_implementer",
       "reviewer": "reuse2_recovery_plan_reviewer",
       "planReviewer": "reuse2_recovery_plan_reviewer",
@@ -10869,7 +10869,16 @@
       "formalPlanPath": "docs/plans/2026-10-27-ordinary-incomplete-funding-recovery.md",
       "merger": "public_agent_batch_merger",
       "actualAuthorized": false,
-      "paidAuthorized": false
+      "paidAuthorized": false,
+      "stateReason": "completed",
+      "sourceReviewedCommit": "0946205af133b13db3e42b05ce309c378aa1a857",
+      "sourceIntegratedCommit": "e231434d2a41ba78e36643f1d0fb1db6aa3552c5",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430077591",
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430084943",
+      "mainVerificationIndex": ".cosmos/cos135-integration/checks.json",
+      "sourceVerificationIndex": "C:/Users/26557/AppData/Local/Temp/cos135-source-0946205/evidence.json",
+      "optionalStrictTests": "Six pre-existing nullable diagnostics match exact50f baseline; not an all-pass result.",
+      "actualSettlementPerformed": false
     },
     {
       "taskId": "COS-136",
@@ -10885,7 +10894,7 @@
       "parentChecklistLine": "- [ ] [COS-136 · 普通设计预算内真实只读收尾](https://github.com/lrfluobida/Cosmos/issues/137)",
       "verifiedRootDirectSubIssues": 100,
       "verifiedParentNativeSubIssues": 30,
-      "verifiedParentCompletedSubIssues": 28,
+      "verifiedParentCompletedSubIssues": 29,
       "dependsOn": [
         "COS-128",
         "COS-132",

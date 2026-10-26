@@ -1,15 +1,19 @@
 # 普通设计未选定分支的完成记录与历史初轮失败会计收尾
 
-状态：独立 `reuse2_recovery_plan_reviewer` APPROVED_PLAN、无remaining，Root已批准固定工程设计、免费源码实施及登记；本卡source pending。下文待审/未授权源码字样属于批准前原文，当前状态以本段为准；未授权真实模型、结算或旧run恢复。
+状态：独立 `reuse2_recovery_plan_reviewer` APPROVED_PLAN、无remaining，Root已批准固定工程设计、免费源码实施及登记；本卡已最终独审并集成，仅source-scoped完成。下文待审/未授权源码字样属于批准前原文，当前状态以本段为准；未授权真实模型、结算或旧run恢复。
 
-任务：[COS-135 / #136](https://github.com/lrfluobida/Cosmos/issues/136)，原生父COS18/#19、未勾选。实现者 `ordinary_design_revision_implementer`，独立源码reviewer `reuse2_recovery_plan_reviewer`，计划reviewer `reuse2_recovery_plan_reviewer`，唯一merger `public_agent_batch_merger`。
+任务：[COS-135 / #136](https://github.com/lrfluobida/Cosmos/issues/136)，原生父COS18/#19、父[x]。实现者 `ordinary_design_revision_implementer`，独立源码reviewer `reuse2_recovery_plan_reviewer`，计划reviewer `reuse2_recovery_plan_reviewer`，唯一merger `public_agent_batch_merger`。
 
 - 批准规格输入 SHA256：`d1e5b9504de3c383f49d73d1ca998013ba0f13cd7f0cfae75a73747b7116360d`
 - 批准计划输入 SHA256：`1c18d37f6c46597200d9158951751ea32298fa157c72a5022d53bfe89b87f85c`
 
-工程基线：`50f4633b1e682ccadf4844bf8414994a866813a5`。[配套计划](../plans/2026-10-27-ordinary-incomplete-funding-recovery.md)。两卡并行且不互阻；生命周期源码独审后可优先发布，由Root原API收尾会计，新付费须两卡与必要组合通过。reuse-2 child112永久stop、原5Mµ仍held，未settle/释放，旧receipt保持；本卡merger/implementer不操作真实controller/ledger/coordinator。
+工程基线：`50f4633b1e682ccadf4844bf8414994a866813a5`。[配套计划](../plans/2026-10-27-ordinary-incomplete-funding-recovery.md)。两卡并行且不互阻；本卡生命周期源码已优先发布，真实会计仍由Root原API收尾，新付费须两卡与必要组合通过。reuse-2 child112永久stop、原5Mµ仍held，未settle/释放，旧receipt保持；本卡merger/implementer不操作真实controller/ledger/coordinator。
 
 状态：私有设计草案，待独立审查。Root 已接受 A+B 的有界修复方向；本稿不授权源码实施、实际结算或任何模型调用。
+
+源码结果：COS135 / #136已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430077591)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430084943)及父[x]已GET核证。独立reuse2_recovery_plan_reviewer批准 `0946205af133b13db3e42b05ce309c378aa1a857`，无P1/P2；5来源文件精确合入发布 `e231434d2a41ba78e36643f1d0fb1db6aa3552c5`。
+
+main typecheck/build exit0；初轮失败证明、修订失败证明、真实签名历史资金收尾正例及原失败清理拒绝4/4、0skip、TAP13195.8368ms。原A2/2与B34项范围有效证据复用（原33/34后候选夹具查找修正、定向1/1，不累加重叠）。附加strict测试仍有6个与50f精确基线一致的旧nullable诊断，无新诊断；未记为strict全通过。 此为SOURCE/TEMP生命周期与会计边界验证；真实reuse-2仍永久stop、游戏incomplete/timing unconfirmed，原5Mµ hold尚未由本次发布释放，原failed closed-binding回执与费用保持。真实收尾仅由Root随后沿原API办理。COS136/#137仍open/source-pending，新付费仍等两卡及必要组合；总136/root100/父30中29源码完成，父COS18仍open/partial。
 
 ## 1. 目标与范围
 
