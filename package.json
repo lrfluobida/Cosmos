@@ -10,7 +10,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --experimental-strip-types --test \"tests/**/*.test.ts\" \"tests/**/*.test.mjs\"",
-    "test:browser": "playwright test --config tests/browser/playwright.config.ts"
+    "test:browser": "playwright test --config tests/browser/playwright.config.ts",
+    "validate:public:offline": "node tests/runtime/public-validation-preflight.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
