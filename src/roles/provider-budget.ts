@@ -1,5 +1,6 @@
 import { lstat, mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { PiSessionError } from '../providers/pi.ts';
 import type { PiBudget, PiRequest, PiResponse } from '../providers/pi.ts';
 import type { RunController } from '../runtime/run.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
@@ -22,16 +23,38 @@ export function usageCostMicroCny(usage: NonNullable<PiResponse['usage']>): numb
   return amount;
 }
 
+export interface AuthorReviewReserve {
+  runId: string; ledgerId: string; allocationMicroCny: number;
+  requireAuthority(): Promise<void>;
+}
+
+/** One grant retains its first independent review capacity; no ledger entries are invented. */
+export function requireAuthorReviewReserve(state: Awaited<ReturnType<AccountingController['read']>>, taskId: string,
+  reserve: Pick<AuthorReviewReserve, 'runId' | 'ledgerId' | 'allocationMicroCny'>, cost: number): void {
+  if (state.run.runId !== reserve.runId || state.ledger.ledgerId !== reserve.ledgerId
+    || !Number.isSafeInteger(reserve.allocationMicroCny) || reserve.allocationMicroCny <= 0
+    || state.ledger.allocations.find(row => row.taskId === taskId)?.amountMicroCny !== reserve.allocationMicroCny) {
+    throw new Error('Author review reserve differs from the original grant.');
+  }
+  const committed = state.ledger.entries.filter(row => row.taskId === taskId).reduce((sum, row) => sum + row.settledMicroCny + row.reservedMicroCny, 0);
+  if (cost > reserve.allocationMicroCny - committed - Math.floor(reserve.allocationMicroCny / 3)) {
+    throw new PiSessionError(cost > reserve.allocationMicroCny - committed ? 'author_output_budget' : 'author_review_reserve',
+      'Original author budget must retain the independent review reserve; no provider request sent.');
+  }
+}
+
 /** Uses the existing run only. Every SDK request, including compaction, gets durable admission. */
-export function createRoleBudget(input: { controller: AccountingController; taskId: string; evidenceDirectory: string; recordRequest?: boolean; validation?: { caseId: string; windowId: string; purpose: ValidationPurpose } }): PiBudget {
+export function createRoleBudget(input: { controller: AccountingController; taskId: string; evidenceDirectory: string; recordRequest?: boolean; authorReviewReserve?: AuthorReviewReserve; validation?: { caseId: string; windowId: string; purpose: ValidationPurpose } }): PiBudget {
   const { controller, taskId, evidenceDirectory } = input;
   const validation = input.validation && structuredClone(input.validation);
+  const reviewReserve = input.authorReviewReserve && { ...input.authorReviewReserve };
   const requests = new Set<string>();
   const recordedRequests = new Map<string, PiRequest>();
   return {
     async beforeRequest(request) {
       return controller.coordinateAccounting(async () => {
       if (validation && !/^[\w-]+$/.test(request.requestId)) throw new Error('Invalid validation SDK request identity.');
+      if (reviewReserve) { await reviewReserve.requireAuthority(); requireAuthorReviewReserve(await controller.read(), taskId, reviewReserve, request.estimatedMaxCostMicroCny); }
       await controller.reserve({ requestId: request.requestId, taskId, provider: 'deepseek', pricingVersion: ROLE_PRICING_VERSION, estimatedMaxCostMicroCny: request.estimatedMaxCostMicroCny,
         ...(validation ? { validation: { ...validation, modelId: request.modelId, maxOutputTokens: request.maxOutputTokens, inputBytes: request.inputBytes, hasImages: request.hasImages } } : {}) });
       try { await controller.admit(request.requestId); }

@@ -85,8 +85,15 @@ export function buildRepairFeedback(task: TaskContract, error: unknown, stage: F
   const service = error instanceof PiSessionError && serviceCodes.includes(error.code);
   const incomplete = error instanceof PiSessionError && error.code === 'incomplete';
   const admission = error instanceof PiSessionError && error.code === 'admission_rejected';
+  const resourceMessages: Record<string, string> = {
+    author_output_budget: 'The original task cannot afford the author output floor; this request was not sent.',
+    author_review_reserve: 'The author cannot spend the capacity reserved for independent review; this request was not sent.',
+    review_output_budget: 'The original task cannot afford the review output floor; this request was not sent.',
+    request_limit: 'The original session request limit is exhausted; this request was not sent.',
+  };
+  const resource = error instanceof PiSessionError && Object.hasOwn(resourceMessages, error.code) ? error.code : undefined;
   const protocol = error instanceof AuthorProtocolError;
-  const actual = protocol ? `Author protocol_failure: ${error.code}; no valid strict handoff was established.`
+  const actual = resource ? resourceMessages[resource] : protocol ? `Author protocol_failure: ${error.code}; no valid strict handoff was established.`
     : incomplete ? 'Provider output reached its token limit; the response is incomplete and partial tool calls were not executed.'
     : admission ? 'Request admission was rejected (admission_rejected); this request was not sent to the provider.'
     : service ? 'Provider request failed or requires reconciliation.'
@@ -95,7 +102,7 @@ export function buildRepairFeedback(task: TaskContract, error: unknown, stage: F
     : stage === 'independent_review' ? 'No valid independent review proposal for the fixed inputs and host evidence.'
     : 'Host execution did not establish passing evidence.';
   const issues: HostIssue[] = error instanceof HostFailure ? structuredClone(error.issues) : task.acceptance.map(item => ({
-    acceptanceId: item.acceptanceId, checkId: protocol ? 'author_protocol' : incomplete ? 'provider_output_truncated' : admission ? 'admission_rejected' : service ? error.code : stage,
+    acceptanceId: item.acceptanceId, checkId: resource ?? (protocol ? 'author_protocol' : incomplete ? 'provider_output_truncated' : admission ? 'admission_rejected' : service ? error.code : stage),
     classification: service ? 'external_service' : 'insufficient_evidence', summary: actual,
     reproduction: [...item.steps], actual, expected: item.expected, evidenceRefs: task.evidence.filter(e => e.acceptanceIds.includes(item.acceptanceId)).map(e => e.source.location),
   }));

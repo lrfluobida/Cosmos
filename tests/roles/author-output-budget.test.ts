@@ -242,3 +242,39 @@ for (const changed of ['unknown', 'closed', 'authority', 'deadline', 'invalid', 
   await assert.rejects(policy.requestCompactionAdmission({ ordinary: request, summary: { ...request, maxOutputTokens: 8192 } }, caller.signal));
   assert.deepEqual(state, before);
 });
+
+
+test('COS132 review reserve quotes and real admission preserve one third of the original grant', async t => {
+  const f = await authorBudgetFixture(t, 1125000); await f.spend(432885);
+  await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1' } as Partial<RoleFactoryOptions>);
+  const config = f.configs[0], before = await f.controller.read();
+  assert.equal(await config.requestCompaction!({ ...request, inputBytes: 91664 }), 'budget_pressure');
+  assert.equal(await config.requestOutputLimit!({ ...request, inputBytes: 91664 }), 16723);
+  assert.equal(config.readonlyMaxOutputTokens, 4096);
+  await assert.rejects(config.requestOutputLimit!({ ...request, inputBytes: 200000 }), { code: 'author_review_reserve' });
+  await assert.rejects(config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: 317116 }), { code: 'author_review_reserve' });
+  assert.deepEqual(await f.controller.read(), before);
+  await f.spend(100000, 'concurrent-spend');
+  const after = await f.controller.read();
+  await assert.rejects(config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: 248864 }), { code: 'author_review_reserve' });
+  assert.deepEqual(await f.controller.read(), after);
+});
+
+test('COS132 budget pressure includes an unaffordable ordinary floor', async t => {
+  const f = await authorBudgetFixture(t, 1125000); await f.spend(600000);
+  await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1' } as Partial<RoleFactoryOptions>);
+  assert.equal(await f.configs[0].requestCompaction!({ ...request, inputBytes: 91664 }), 'budget_pressure');
+});
+
+
+test('COS132 readonly floor and frozen authority do not relax actual admission', async t => {
+  const f = await authorBudgetFixture(t, 1125000); await f.spend(750000 - 32767);
+  await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1', estimatedMaxCostMicroCny: candidate => candidate.maxOutputTokens * 8 });
+  const config = f.configs[0], before = await f.controller.read();
+  await assert.rejects(config.requestOutputLimit!({ ...request, maxOutputTokens: 4096 }), { code: 'author_review_reserve' });
+  assert.deepEqual(await f.controller.read(), before);
+  const authority = await f.controller.executionAuthority(f.input.task.taskId);
+  t.mock.method(f.controller, 'executionAuthority', async () => ({ ...authority, admissionAllowed: false }));
+  await assert.rejects(config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: 1 }), /authority/);
+  assert.deepEqual(await f.controller.read(), before);
+});

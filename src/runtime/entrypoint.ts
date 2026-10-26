@@ -37,6 +37,7 @@ import { verifyPublicValidationFunding } from './public-validation-funding.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
+  ordinaryDesignBudgetPolicy?: 'review-reserve/1';
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
   validateTasks?(tasks: PreparedTask[]): void;
   bindPreparedTasks?(tasks: PreparedTask[]): Promise<void>;
@@ -46,7 +47,7 @@ export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
   continuationTargets?(sources: PreparedTask[], feedback: RepairFeedback, grants: Record<string, number>): Promise<SuccessorTarget[] | null>;
 }
-export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; renderFrames?: boolean; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
+export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; renderFrames?: boolean; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
 export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; renderFrames?: boolean; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> { try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
@@ -84,6 +85,9 @@ export async function executeGeneration(options: GenerationOptions) {
   if (!sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Confirmed draft source changed.');
   const frames = await readFrameSelection(root, original, options.renderFrames);
   const modulePolicy = await readModularRepairPolicy(root, original);
+  const originalExecution = options.resume ? await optionalJson(root, 'execution.json') : null;
+  if (originalExecution && Object.hasOwn(originalExecution, 'ordinaryDesignBudgetPolicy')
+    && (originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || originalExecution.capability !== 'ordinary-design-execution/1')) throw new Error('Unknown or incompatible ordinaryDesignBudgetPolicy.');
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
   await requireCurrentFrameSource(frames);
   await requireCurrentModularRepairPolicy(modulePolicy);
@@ -103,14 +107,16 @@ export async function executeGeneration(options: GenerationOptions) {
     control = await startControl(root, original.run.runId, stop); process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
     if (options.notify) warnings = await startBudgetWarnings(root, options.notify);
     await reconcileEntryReceipts(root, controller);
-    if (options.resume && !await optionalJson(root, 'execution.json')) throw new Error('Original planning result is unavailable; resume cannot perform another paid plan.');
-    const host = await options.createHost({ root, controller, requirement, draft, resume: options.resume, work, ...(frames ? { renderFrames: true } : {}) });
+    if (options.resume && !originalExecution) throw new Error('Original planning result is unavailable; resume cannot perform another paid plan.');
+    const host = await options.createHost({ root, controller, requirement, draft, resume: options.resume, work, ...(originalExecution?.ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy: originalExecution.ordinaryDesignBudgetPolicy } : {}), ...(frames ? { renderFrames: true } : {}) });
     closePreparation = host.closePreparation?.bind(host);
+    if (host.ordinaryDesignBudgetPolicy !== undefined && (host.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || host.capability !== 'ordinary-design-execution/1')) throw new Error('Invalid host ordinaryDesignBudgetPolicy.');
     let phase = 'planning';
     const outcome = await work.run(async signal => {
-      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1 };
+      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1; ordinaryDesignBudgetPolicy?: 'review-reserve/1' };
       if (options.resume) {
-        execution = await json(root, 'execution.json');
+        execution = originalExecution;
+        if (execution.ordinaryDesignBudgetPolicy !== host.ordinaryDesignBudgetPolicy) throw new Error('Original ordinaryDesignBudgetPolicy changed.');
         if (execution.capability !== host.capability || !sameValue(execution.requirement, requirement) || !sameValue(execution.availableArtifacts, host.availableArtifacts)) throw new Error('Original execution host or fixed requirements changed.');
       } else {
         await publishReceipt(join(root, 'planning-started.json'), { runId: original.run.runId, ledgerId: original.ledger.ledgerId, requirement, capability: host.capability });
@@ -118,6 +124,7 @@ export async function executeGeneration(options: GenerationOptions) {
           taskPolicies: host.taskPolicies, roleFactory: host.roleFactory, signal });
         host.validateTasks?.(planned.tasks);
         execution = { capability: host.capability, requirement, tasks: planned.tasks, availableArtifacts: host.availableArtifacts, plan: planned.plan,
+          ...(host.ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy: host.ordinaryDesignBudgetPolicy } : {}),
           ...(host.capability === 'ordinary-design-execution/1' ? { authorProtocolCorrections: 1 as const } : {}) };
         await publishReceipt(join(root, 'execution.json'), execution);
       }

@@ -157,3 +157,25 @@ for (const stoppedRole of ['cosmos', 'coding']) test(`hard stop saves an incompl
   assert.equal(completed.result.currentProject, f.root); assert.equal(completed.result.status.settledMicroCny, stoppedRole === 'cosmos' ? 0 : 10);
   assert.equal(JSON.parse(await readFile(join(f.root, completed.result.report), 'utf8')).outcome, 'incomplete');
 });
+
+
+for (const policy of [undefined, 'review-reserve/1'] as const) test('COS132 execution persists and restores original budget policy ' + (policy ?? 'legacy'), async t => {
+  const f = await fixture(t), seen: unknown[] = [];
+  const createHost = async (input: any) => {
+    seen.push(input.ordinaryDesignBudgetPolicy);
+    return { ...await f.createHost(input), capability: 'ordinary-design-execution/1', ...(policy ? { ordinaryDesignBudgetPolicy: policy } : {}) };
+  };
+  await entrypoint.executeGeneration({ ...f, createHost, resume: false });
+  const stored = JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8'));
+  assert.equal(stored.ordinaryDesignBudgetPolicy, policy);
+  const before = [...f.calls]; await entrypoint.executeGeneration({ ...f, createHost, resume: true });
+  assert.deepEqual(seen, [undefined, policy]); assert.deepEqual(f.calls, before);
+  assert.equal(JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8')).ordinaryDesignBudgetPolicy, policy);
+});
+
+test('COS132 unknown persisted budget policy rejects before host assembly', async t => {
+  const f = await fixture(t); await writeFile(join(f.root, 'execution.json'), JSON.stringify({ ordinaryDesignBudgetPolicy: 'unknown' }), 'utf8');
+  let hosts = 0;
+  await assert.rejects(entrypoint.executeGeneration({ ...f, resume: true, createHost: async input => { hosts++; return f.createHost(input); } }), /ordinaryDesignBudgetPolicy/);
+  assert.equal(hosts, 0); assert.deepEqual(f.calls, []);
+});
