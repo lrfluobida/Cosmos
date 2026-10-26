@@ -2,14 +2,14 @@
 
 状态：已独立APPROVED_PLAN并获Root批准免费实施；源码已独审批准并集成，仅source-scoped完成，本文件不授权实际运行。基线 main `5f1c1db0162fd523714439bc046f49e142977f31`，runtime `93b1b0f8e9da14a804542d3f6f4380baed54e12f`。依据 CONTEXT、cosmos-spec、ordinary-design-intake、COS109/111/112 既有契约。
 
-源码结果：`db6548ace1e930d39f27d9ca30b3318e233e6fda` 已独立reuse_plan_reviewer APPROVED_SOURCE_SCOPED、无findings并合入发布 `6bdc9af3c06fee719e50dac8c129e300df22b46f`，26文件精确一致，typecheck/build及3/3短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/130#issuecomment-6423957466)、[关闭](https://github.com/lrfluobida/Cosmos/issues/130#issuecomment-6423965590)已核证。仅source-scoped完成；COS131修复及raw publisher正例已通过，COS130最终新增入口组合待完成，paidReady=false，不声明整个新方法ready。
+源码结果：`db6548ace1e930d39f27d9ca30b3318e233e6fda` 已独立reuse_plan_reviewer APPROVED_SOURCE_SCOPED、无findings并合入发布 `6bdc9af3c06fee719e50dac8c129e300df22b46f`，26文件精确一致，typecheck/build及3/3短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/130#issuecomment-6423957466)、[关闭](https://github.com/lrfluobida/Cosmos/issues/130#issuecomment-6423965590)已核证。仅source-scoped完成；COS131修复及raw publisher正例已通过，COS130最终新增入口组合已source_verified，paidReady=false，不声明整个新方法ready。
 
-审批记录：[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)；独立 `reuse_plan_reviewer` 给出 `APPROVED_PLAN`、无P1/P2，用户与Root批准新方法及固定输入的免费源码实施。实现者confirmed_requirements_implementer，独立源码reviewer reuse_plan_reviewer，唯一merger public_agent_batch_merger；源码完成与剩余组合前置见上述状态记录。
+审批记录：[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)；独立 `reuse_plan_reviewer` 给出 `APPROVED_PLAN`、无P1/P2，用户与Root批准新方法及固定输入的免费源码实施。实现者confirmed_requirements_implementer，独立源码reviewer reuse_plan_reviewer，唯一merger public_agent_batch_merger；源码与免费组合完成状态见上述状态记录。
 
 - 批准规格输入 SHA256：`52b79cd81647b76b9c0b4603c9b1c775c52341d7aff25b2b2b2c0cbdc9b977ea`
 - 批准计划输入 SHA256：`bfb2dcfa7656115373bb8b62263da9f510e75915d9f0d74e91ba0a15d01e976a`
 
-登记/实施基线：`5f1c1db0162fd523714439bc046f49e142977f31`。本批不新付费重跑，不操作真实run/ledger/coordinator；room14未确认，不能作为批准来源。
+登记/实施基线：`5f1c1db0162fd523714439bc046f49e142977f31`。本批不新付费重跑，不操作真实run/ledger/coordinator；room14已由Root未确认结案，仍不能作为批准来源。
 
 配套[实施计划](../plans/2026-10-27-confirmed-requirements-reuse.md)。
 

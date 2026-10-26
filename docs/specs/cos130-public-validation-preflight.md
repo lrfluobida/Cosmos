@@ -1,15 +1,15 @@
 # COS-130 · 免费失败回放与阶段交接检查
 
-状态：已独立APPROVED_PLAN并获Root批准免费实施；源码独审与集成待完成，本文件不授权真实确认、启动或付费。
+状态：已独立APPROVED_PLAN并获Root批准免费实施；源码已最终独审批准并合入，仅source-scoped完成，本文件不授权真实确认、启动或付费。
 
-源码阶段记录：基础源码9a8f97e71b95eed318849a026dabcecbecc6a178已APPROVED_SOURCE_BASE_SCOPED；wrapper680fe61b714faaf015a017593ab30bb67d6ac165仅STATIC_APPROVED_PENDING_COMBINATION，尚未合入/完成。本卡在已发布COS131修复上只补1项新入口真实交付组合，已有14项有效报告复用；newEntryHandoff=unverified，paidReady=false。
+源码阶段记录：最终源码 `88cdf0ca6fc6475b0890d836ce20f498cc410d66` 经独立preflight_plan_reviewer APPROVED_SOURCE_SCOPED、无finding，合入发布 `ac1c745eb0be016f8a556edbadabad013fbf61bd`，4个文件与批准树精确一致；主线typecheck/build exit0。新增入口真实交付组合1/1、0skip已独审：真实编译、Edge9/9、clean delivery、CompletionTiming eligible=true及cleanup通过；原14项有效证据复用，不合计或重跑。newEntryHandoff=source_verified；模型传输合成、费用0，realModelGeneration=unverified、userExperience=not_confirmed、paidAuthorized=false。[批准](https://github.com/lrfluobida/Cosmos/issues/131#issuecomment-6424827662)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/131#issuecomment-6424834548)及父[x]已GET核证。
 
-审批记录：[COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131)；独立 `preflight_plan_reviewer` 已给出 `APPROVED_PLAN`、两个P2已闭合，Root批准固定输入的免费实施。实现者validation_preflight_implementer，独立源码reviewer preflight_plan_reviewer，唯一merger public_agent_batch_merger；源码独审与集成待完成。
+审批记录：[COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131)；独立 `preflight_plan_reviewer` 已给出 `APPROVED_PLAN`、两个P2已闭合，Root批准固定输入的免费实施。实现者validation_preflight_implementer，独立源码reviewer preflight_plan_reviewer，唯一merger public_agent_batch_merger；源码已最终独审批准并合入，仅source-scoped完成。
 
 - 批准规格输入 SHA256：`aeee5bbb1718fff620c4831f10544f67671b6f4222b950c2b63b203e296a18f4`
 - 批准计划输入 SHA256：`d50925cb6f7a53d80f2cf4130e86a4b49819257cffd7b0afbfd743ca87c421f7`
 
-登记/实施基线：`5f1c1db0162fd523714439bc046f49e142977f31`。复用COS124/125/127/128已批准证据；最终新入口交付组合依赖[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)，须独审另增1项组合代表。COS129已source-scoped完成，COS131已source-scoped完成，本卡最终wrapper交付组合待验；本批不新付费或操作room14。
+登记/实施基线：`5f1c1db0162fd523714439bc046f49e142977f31`。复用COS124/125/127/128已批准证据；最终新入口交付组合依赖[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)，已独审新增1项组合代表。COS129已source-scoped完成，COS131已source-scoped完成，本卡最终wrapper交付组合已source_verified；测试paidAuthorized=false。room14已由Root未确认结案，merger未操作真实run。
 
 配套[实施计划](../plans/2026-10-27-public-validation-preflight.md)。
 基线：main `5f1c1db0162fd523714439bc046f49e142977f31`；已集成运行源码 `93b1b0f8e9da14a804542d3f6f4380baed54e12f`。

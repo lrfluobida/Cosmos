@@ -10,14 +10,14 @@
 
 基线 `c65a30233681adbfbf30d96740f0949bec612f05`，依据[正式规格](../specs/cos131-delivery-ready-publication.md)及原私有reproduction.json诊断回执。Root 已确定复现；不重复诊断大矩阵。固定计划已独立APPROVED_PLAN并获Root批准实施；源码已最终独审和唯一合入，仅source-scoped完成。
 
-源码记录：COS131源码 `9b922f10695c0d45b993cddd4c8b4daad258ca37` 已获ready_publication_reviewer最终APPROVED_SOURCE_SCOPED、无finding，合入发布 `03fb1d5461277b5ca0532ad38f0b5b3b618539fb`；[批准](https://github.com/lrfluobida/Cosmos/issues/132#issuecomment-6424314125)、[关闭](https://github.com/lrfluobida/Cosmos/issues/132#issuecomment-6424321715)已核证。3文件精确一致，typecheck/build exit0，合并COS129后的真实raw publisher屏障正例1/1、0skip、TAP4135.8218ms；19项/正常1/最后2项有效证据复用，不累计。仅source-scoped完成，COS130新入口真实交付组合仍待验证，paidReady=false。
+源码记录：COS131源码 `9b922f10695c0d45b993cddd4c8b4daad258ca37` 已获ready_publication_reviewer最终APPROVED_SOURCE_SCOPED、无finding，合入发布 `03fb1d5461277b5ca0532ad38f0b5b3b618539fb`；[批准](https://github.com/lrfluobida/Cosmos/issues/132#issuecomment-6424314125)、[关闭](https://github.com/lrfluobida/Cosmos/issues/132#issuecomment-6424321715)已核证。3文件精确一致，typecheck/build exit0，合并COS129后的真实raw publisher屏障正例1/1、0skip、TAP4135.8218ms；19项/正常1/最后2项有效证据复用，不累计。仅source-scoped完成，COS130新入口真实交付组合已source_verified，paidReady=false。
 
 审批记录：[COS131 / #132](https://github.com/lrfluobida/Cosmos/issues/132)；独立ready_publication_reviewer已APPROVED_PLAN，Root批准免费实施并接受其明确非阻塞建议：正常代表名仅字面修正为standalone package records exact capture provenance，其余设计不变。实现者ready_publication_implementer、独立源码reviewer ready_publication_reviewer、唯一merger public_agent_batch_merger；源码已最终独审批准并集成，结果见上述源码记录。
 
 - 批准规格输入 SHA256：`450049530ee045b7108ed82c658520585becc72e391c29e98b5c41722774d1f0`
 - Root接受字面修订后的固定计划输入 SHA256：`e68e711a295f8ac657ce95df3db1318dd0613441b183abc92e83e8794e00b7ae`
 
-批准诊断基线c65a30233681adbfbf30d96740f0949bec612f05保持；登记main为已审COS129源码 `6bdc9af3c06fee719e50dac8c129e300df22b46f`。主线已用合并后的真实raw-bytes publisher完成发布窗口正例；仅源码范围完成，COS130最终新增入口交付组合待验，不授权付费或真实运行。
+批准诊断基线c65a30233681adbfbf30d96740f0949bec612f05保持；登记main为已审COS129源码 `6bdc9af3c06fee719e50dac8c129e300df22b46f`。主线已用合并后的真实raw-bytes publisher完成发布窗口正例；仅源码范围完成，COS130最终新增入口交付组合已source_verified，不授权付费或真实运行。
 
 ## 文件
 

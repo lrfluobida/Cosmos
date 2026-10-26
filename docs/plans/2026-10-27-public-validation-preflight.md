@@ -6,16 +6,16 @@
 **Architecture:** 一个固定清单runner复用Node test runner；一个小预算表驱动测试与现有交付integration的ordinary分支。所有运行只在TEMP，生产helper/host/SDK照常执行，模型传输合成。
 **Tech Stack:** Node22、TypeScript strip-types、node:test、已锁定Pi SDK0.99.2、tsc/Vite、Playwright/Edge；无新依赖。
 
-基线 `5f1c1db0162fd523714439bc046f49e142977f31`；技术规格见[正式规格](../specs/cos130-public-validation-preflight.md)。状态：已独立APPROVED_PLAN并获Root实施批准，源码独审与集成待完成。
+基线 `5f1c1db0162fd523714439bc046f49e142977f31`；技术规格见[正式规格](../specs/cos130-public-validation-preflight.md)。状态：已独立APPROVED_PLAN并获Root实施批准，源码已最终独审批准并合入，仅source-scoped完成。
 
-源码阶段记录：基础源码9a8f97e71b95eed318849a026dabcecbecc6a178已APPROVED_SOURCE_BASE_SCOPED；wrapper680fe61b714faaf015a017593ab30bb67d6ac165仅STATIC_APPROVED_PENDING_COMBINATION，尚未合入/完成。本卡在已发布COS131修复上只补1项新入口真实交付组合，已有14项有效报告复用；newEntryHandoff=unverified，paidReady=false。
+源码阶段记录：最终源码 `88cdf0ca6fc6475b0890d836ce20f498cc410d66` 经独立preflight_plan_reviewer APPROVED_SOURCE_SCOPED、无finding，合入发布 `ac1c745eb0be016f8a556edbadabad013fbf61bd`，4个文件与批准树精确一致；主线typecheck/build exit0。新增入口真实交付组合1/1、0skip已独审：真实编译、Edge9/9、clean delivery、CompletionTiming eligible=true及cleanup通过；原14项有效证据复用，不合计或重跑。newEntryHandoff=source_verified；模型传输合成、费用0，realModelGeneration=unverified、userExperience=not_confirmed、paidAuthorized=false。[批准](https://github.com/lrfluobida/Cosmos/issues/131#issuecomment-6424827662)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/131#issuecomment-6424834548)及父[x]已GET核证。
 
-审批记录：[COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131)；独立 `preflight_plan_reviewer` 已给出 `APPROVED_PLAN`、两个P2已闭合，Root批准固定输入的免费实施。实现者validation_preflight_implementer，独立源码reviewer preflight_plan_reviewer，唯一merger public_agent_batch_merger；源码独审与集成待完成。
+审批记录：[COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131)；独立 `preflight_plan_reviewer` 已给出 `APPROVED_PLAN`、两个P2已闭合，Root批准固定输入的免费实施。实现者validation_preflight_implementer，独立源码reviewer preflight_plan_reviewer，唯一merger public_agent_batch_merger；源码已最终独审批准并合入，仅source-scoped完成。
 
 - 批准规格输入 SHA256：`aeee5bbb1718fff620c4831f10544f67671b6f4222b950c2b63b203e296a18f4`
 - 批准计划输入 SHA256：`d50925cb6f7a53d80f2cf4130e86a4b49819257cffd7b0afbfd743ca87c421f7`
 
-登记/实施基线：`5f1c1db0162fd523714439bc046f49e142977f31`。复用COS124/125/127/128已批准证据；最终新入口交付组合依赖[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)，须独审另增1项组合代表。COS129已source-scoped完成，COS131已source-scoped完成，本卡最终wrapper交付组合待验；本批不新付费或操作room14。
+登记/实施基线：`5f1c1db0162fd523714439bc046f49e142977f31`。复用COS124/125/127/128已批准证据；最终新入口交付组合依赖[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)，已独审新增1项组合代表。COS129已source-scoped完成，COS131已source-scoped完成，本卡最终wrapper交付组合已source_verified；测试paidAuthorized=false。room14已由Root未确认结案，merger未操作真实run。
 
 ## 0. 固定输入与协作
 
