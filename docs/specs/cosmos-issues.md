@@ -1881,7 +1881,7 @@ room11 actual v2截至2026-10-25T19:14:02Z经独立PASS_COMPLETE_REQUIREMENT_SCO
 
 ### COS-127 · 普通设计独立评审的原额度内请求容量
 
-[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)，id6031812917，原生父COS18/#19、父[ ]，`open / source-pending`。design_review_budget_plan_reviewer已独立APPROVED_PLAN、无P1/P2阻塞项，Root批准固定规格/计划发布与免费实施。作者cos127_implementer基于 `7b6d01ab749cd912a11b2abeb36deda6db882d04` 实施，源码reviewer待Root指派，唯一merger public_agent_batch_merger。正式[规格](cos127-design-review-budget.md)与[实施计划](../plans/2026-10-26-design-review-budget.md)保留批准技术正文，记录输入SHA `e984dd75874ee3476ad4bb30d1a1d330ae9d933e25ec12e555d5f5cac5d126a8` / `850a9af4cdd97f5730af43efb93ce4c707f738006c0862bcb7b000a5edfc848d`；测试组织允许历史byte边界helper测与真实SDK实际bytes验证，技术行为不变。
+[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)，id6031812917，原生父COS18/#19、父[ ]，`open / source-pending`。design_review_budget_plan_reviewer已独立APPROVED_PLAN、无P1/P2阻塞项，Root批准固定规格/计划发布与免费实施。作者cos127_implementer基于 `7b6d01ab749cd912a11b2abeb36deda6db882d04` 实施，独立源码reviewer cos127_reviewer，唯一merger public_agent_batch_merger。正式[规格](cos127-design-review-budget.md)与[实施计划](../plans/2026-10-26-design-review-budget.md)保留批准技术正文，记录输入SHA `e984dd75874ee3476ad4bb30d1a1d330ae9d933e25ec12e555d5f5cac5d126a8` / `850a9af4cdd97f5730af43efb93ce4c707f738006c0862bcb7b000a5edfc848d`；测试组织允许历史byte边界helper测与真实SDK实际bytes验证，技术行为不变。
 
 仅可信ordinary宿主选择的design reviewer启用组合选项：完整且未截断的JSON read结果只删除字符串外四种JSON空白，保留所有词法值、原文件、read权限与其他结果字段；同一原grant内复用既有预算helper选择4096..8192最大可负担cap，并记录既有六个安全字段。部分/不确定读取原样返回，真正reserve/admit仍作最终准入；完整findings/verdict、inputVersions/evidenceIds及length失败保持。不新增预算、重试、compaction或旧attempt恢复，不手修七项旧语义缺口；源码尚未独审或集成。
 

@@ -1,6 +1,6 @@
 # COS-127 · 普通设计独立评审的原额度内请求容量
 
-状态：已独立APPROVED_PLAN并获Root批准发布与免费实施；源码仍pending，不构成源码完成或真实运行授权。实现者cos127_implementer，源码reviewer待Root指派，唯一merger public_agent_batch_merger。
+状态：已独立APPROVED_PLAN并获Root批准发布与免费实施；源码仍pending，不构成源码完成或真实运行授权。实现者cos127_implementer，独立源码reviewer cos127_reviewer，唯一merger public_agent_batch_merger。
 
 审批记录：[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)；独立 `design_review_budget_plan_reviewer` 给出 `APPROVED_PLAN`、无P1/P2阻塞项，Root批准固定输入的正式发布与免费源码实施。源码独审和集成待完成。
 

@@ -10370,7 +10370,7 @@
       "sourceBaseCommit": "7b6d01ab749cd912a11b2abeb36deda6db882d04",
       "sourceReviewStatus": "pending",
       "implementer": "cos127_implementer",
-      "reviewer": "pending_assignment",
+      "reviewer": "cos127_reviewer",
       "planReviewer": "design_review_budget_plan_reviewer",
       "planReviewStatus": "APPROVED_PLAN",
       "rootImplementationApproved": true,
