@@ -1,11 +1,13 @@
 import { access, lstat, readFile, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { createEditTool, createReadTool, createWriteTool, defineTool, type ToolDefinition } from '@earendil-works/pi-coding-agent';
+import { compactCompleteJsonRead } from './json-read-display.ts';
 
 export interface WorkspaceToolOptions {
   workspace: string;
   readPaths: string[];
   writePaths: string[];
+  compactFullJsonReads?: true;
 }
 
 function within(root: string, path: string): boolean {
@@ -66,7 +68,10 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
     tools.push(defineTool({ ...read, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, reads, signal);
       await access(full);
-      return read.execute(id, { ...args, path: full }, signal, onUpdate);
+      const result = await read.execute(id, { ...args, path: full }, signal, onUpdate);
+      if (!options.compactFullJsonReads) return result;
+      signal?.throwIfAborted();
+      return compactCompleteJsonRead(result, args);
     } }));
   }
   if (writes.length) {
