@@ -91,6 +91,7 @@ async function readReplacements(root: string, state: RunSnapshot) {
 export async function buildContinuationQuote(options: { root: string; additionalMicroCny: number; additionalDurationMs: number; now?: number }): Promise<ContinuationQuote> {
   const { additionalMicroCny, additionalDurationMs } = options; checkRequest(additionalMicroCny, additionalDurationMs);
   const root = resolve(options.root), bytes = await regularFile(root, 'snapshot.json'), state = decode(bytes);
+  if (state?.requirementsSource) throw new Error('引用已确认需求的新尝试当前仅支持 new/resume，不支持 continue。');
   if (state?.formatVersion !== 1) throw new Error('续跑提案只支持正式 generation v1 快照；intake、validation 或未知格式不能通过本入口续跑。');
   validateSnapshot(state);
   await rejectFundedContinuation(root, state);

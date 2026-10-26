@@ -8,18 +8,16 @@ import { regularFile, safePath } from '../artifacts/paths.ts';
 import { IntakeController } from '../runtime/intake.ts';
 import type { StoredDraft } from '../runtime/intake.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
-import { confirmRequirements, gameplayAcceptance, HOST_STAGE_ACCEPTANCE, MODULE_STAGE_ACCEPTANCE, validateGameDraft } from '../roles/requirements.ts';
+import { gameplayAcceptance, HOST_STAGE_ACCEPTANCE, MODULE_STAGE_ACCEPTANCE } from '../roles/requirements.ts';
 import type { GameDraft } from '../roles/requirements.ts';
 import { validateOrdinaryProfile } from '../roles/ordinary-profile.ts';
 import type { OrdinaryProfile } from '../roles/ordinary-profile.ts';
-import { ordinaryDraftSha256, readOrdinaryProfile, requireOrdinaryDraftSource } from '../runtime/ordinary-profile-source.ts';
 import { modeFromSelection, resolveDraftMode } from '../roles/preparation-mode.ts';
 import type { DraftMode } from '../roles/preparation-mode.ts';
 import { sameValue } from '../contracts/validation.ts';
 import { readRunSnapshot, recoverRunOwner, startBudgetWarnings, startControl } from './control.ts';
-import type { RunSnapshot } from '../runtime/run-types.ts';
 import { readCompletedGeneration } from '../runtime/experience.ts';
-import { frameConfirmationVersion, readFrameSelection, requireCurrentFrameSource, selectRenderFrames } from '../runtime/render-frame-selection.ts';
+import { readFrameSelection, requireCurrentFrameSource, selectRenderFrames } from '../runtime/render-frame-selection.ts';
 import type { RenderFrameSelection } from '../runtime/render-frame-selection.ts';
 import { currentModularRepairPolicy, readModularRepairPolicy, requireCurrentModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
 import type { ModularRepairPolicy } from '../runtime/modular-repair-policy.ts';
@@ -27,6 +25,7 @@ import type { PublicValidationFundingBinding } from '../runtime/public-validatio
 import { publishFundedOrigin, verifyFundedNew, verifyPublicValidationFunding } from '../runtime/public-validation-funding.ts';
 import { DEFAULT_RUN_LIMITS, displayRunLimits, requirePreparationRunLimits, requirePublicRunLimits, validateRunLimits } from './run-limits.ts';
 import type { RunLimits } from './run-limits.ts';
+import { readConfirmedGeneration, readConfirmedRequirementsSource, readReferencedRequirements, requireSeparateRequirementsRoot } from '../runtime/confirmed-requirements-source.ts';
 
 export interface ProductHost {
   /** Source-owned new-run selection; resume always reads the original source. */
@@ -51,33 +50,8 @@ export async function rejectPreparationContinuation(root: string): Promise<void>
     await readHumanContinuationLineage(root, state);
   }
 }
-export async function readConfirmedGeneration(root: string, snapshot: RunSnapshot) {
-  const intakeOrigin = await optionalJson(root, 'intake-origin.json');
-  requirePublicRunLimits(snapshot, intakeOrigin);
-  const ordinaryProfile = await readOrdinaryProfile(root, { runId: snapshot.run.runId, createdAt: snapshot.events[0].at });
-  const source = snapshot.run.humanDecisions.find(decision => decision.decisionId.startsWith('requirements-v'));
-  if (!source || source.evidence.length !== 2 || source.evidence[0].artifactId !== 'requirement-draft' || source.evidence[1].artifactId !== 'user-confirmation') throw new Error('No original CLI requirement confirmation to resume.');
-  const draftBytes = await regularFile(root, source.evidence[0].location);
-  const draft = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(draftBytes)), confirmed = await json(root, source.evidence[1].location);
-  const origin = await optionalJson(root, 'intake-mode.json');
-  if (origin && (origin.runId !== snapshot.run.runId || origin.createdAt !== snapshot.events[0].at
-    || !sameValue(origin, { runId: origin.runId, createdAt: origin.createdAt, draftMode: origin.draftMode }))) throw new Error('Original intake mode origin changed.');
-  validateGameDraft(draft, modeFromSelection(origin?.draftMode), ordinaryProfile);
-  if (confirmed.runId !== snapshot.run.runId || confirmed.actorId !== source.actorId || confirmed.at !== source.decidedAt) throw new Error('Original confirmation identity changed.');
-  const frames = await readFrameSelection(root, snapshot);
-  if (ordinaryProfile) {
-    const revision = confirmed.revision, policy = await readModularRepairPolicy(root, snapshot);
-    const draftRef = { artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` };
-    const confirmationRef = { artifactId: 'user-confirmation', version: frameConfirmationVersion(revision, frames, policy), location: `requirements/v${revision}/confirmation.json` };
-    if (!Number.isSafeInteger(revision) || revision < 1 || source.decisionId !== `requirements-v${revision}` || !sameValue(source.evidence, [draftRef, confirmationRef])
-      || !sameValue(confirmed, { revision, confirmed: true, actorId: source.actorId, at: source.decidedAt, runId: snapshot.run.runId, draft: draftRef,
-        ordinaryProfile, ordinaryDraftSha256: ordinaryDraftSha256(draftBytes), ...(frames ? { renderFrames: frames } : {}), ...(policy ? { modularRepairPolicy: policy } : {}) })) {
-      throw new Error('Original ordinary confirmation or complete draft source changed.');
-    }
-    await requireOrdinaryDraftSource(root, draft, revision);
-  }
-  return { draft, requirement: confirmRequirements({ ...draft, specVersion: snapshot.run.specVersion, sources: source.evidence }, confirmed), ...(frames ? { renderFrames: true } : {}) };
-}
+export { readConfirmedGeneration } from '../runtime/confirmed-requirements-source.ts';
+
 function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?: ModularRepairPolicy): string {
   const lines = [`草稿 v${draft.revision}`, `游戏需求：${draft.brief}`, '已回答的问题：', ...draft.questions.map(question => `- ${question.prompt} ${draft.answers[question.id] ?? '尚未回答'}`), '玩法要求：'];
   for (const item of gameplayAcceptance(draft)) lines.push(`- ${item.description}`, `  操作：${item.steps.join('；')}`, `  期望：${item.expected}`);
@@ -122,7 +96,7 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
 }
 
 /** The only confirmation author is actual stdin; model output never reaches this branch. */
-export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
+export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; requirementsFrom?: { root: string; revision: number }; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
   if (options.limits !== undefined) {
     if (options.command !== 'new') throw new Error('Run limits can only be selected for new.');
     validateRunLimits(options.limits);
@@ -135,6 +109,12 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   if (options.renderFrames !== undefined && typeof options.renderFrames !== 'boolean') throw new Error('Render-frame selection must be boolean.');
   const root = resolve(options.root), { host, output } = options;
   await safePath(root);
+  if (options.requirementsFrom && (options.command !== 'new' || options.brief !== undefined || selectedMode)) throw new Error('Requirements source and ordinary brief are exclusive new modes.');
+  const referenced = options.requirementsFrom ? await readConfirmedRequirementsSource({ ...options.requirementsFrom, specVersion: '1.0' }) : undefined;
+  if (referenced) {
+    requireSeparateRequirementsRoot(root, referenced.source);
+    if (options.renderFrames !== undefined && options.renderFrames !== !!referenced.renderFrameSelection) throw new Error('Cannot replace the original render-frame selection.');
+  }
   const say = (text: string) => { output.write(text + '\n'); };
   const lines = createInterface({ input: options.input, crlfDelay: Infinity, terminal: false }), iterator = lines[Symbol.asyncIterator]();
   const ask = async (prompt: string) => { say(prompt); const next = await iterator.next(); return next.done ? null : next.value.trim(); };
@@ -161,15 +141,18 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   try {
     if (options.command === 'new') {
       validateOrdinaryProfile(host.ordinaryProfile);
-      const ordinaryProfile = selectedMode ? undefined : host.ordinaryProfile;
-      if (!options.brief?.trim()) throw new Error('A one-sentence --brief is required.');
+      const ordinaryProfile = referenced?.draft.ordinaryProfile ?? (selectedMode ? undefined : host.ordinaryProfile);
+      const brief = referenced?.draft.brief ?? options.brief;
+      if (!brief?.trim()) throw new Error('A one-sentence --brief or confirmed requirements source is required.');
       const entries = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
-      if (options.funding) await verifyFundedNew(root, options.funding, options.brief, limits, options.renderFrames === true);
+      if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source);
       else if (entries.length) throw new Error('Choose an empty run directory; existing runs require resume.');
       const runId = options.funding?.runId ?? `game-${randomUUID()}`;
-      frames = options.renderFrames ? await selectRenderFrames() : undefined;
-      policy = currentModularRepairPolicy();
-      const origin = { runId, brief: options.brief, ...(options.limits && !selectedMode ? { limits } : {}), ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), modularRepairPolicy: policy,
+      if (referenced && (runId === referenced.source.runId || options.funding?.ledgerId === referenced.ledgerId)) throw new Error('New attempt must have independent run and ledger identities.');
+      frames = referenced ? referenced.renderFrameSelection : options.renderFrames ? await selectRenderFrames() : undefined;
+      policy = referenced ? referenced.modularRepairPolicy : currentModularRepairPolicy();
+      const origin = { runId, brief, ...((options.limits && !selectedMode || referenced) ? { limits } : {}), ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), ...(policy ? { modularRepairPolicy: policy } : {}),
+        ...(referenced ? { requirementsSource: referenced.source } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(options.funding ? { validationFunding: options.funding } : {}) };
       if (options.funding) await publishFundedOrigin(root, origin);
@@ -177,6 +160,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...limits,
         ...(selectedMode ? { draftMode: options.draftMode } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
+        ...(referenced ? { requirementsSource: referenced.source } : {}),
         ...(frames ? { renderFrames: frames } : {}),
         modularRepairPolicy: policy, ...(options.funding ? { validationFunding: options.funding } : {}),
         allocations: [{ taskId: 'intake', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }, { taskId: 'planning', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }] });
@@ -211,6 +195,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       intake = await IntakeController.open({ root });
     }
     process.on('SIGINT', interrupt); process.on('SIGTERM', interrupt);
+    if ((await intake.read()).requirementsSource) await intake.bindConfirmedRequirements();
     const original = await json(root, 'intake-origin.json'), state = await intake.read();
     requirePublicRunLimits(state, original, true);
     if (original.runId !== state.run.runId || typeof original.brief !== 'string' || !sameValue(original.draftMode, state.draftMode)
@@ -218,6 +203,11 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     fundingLifecycle = await intake.beginFundingWork('session');
     say(`运行 ${state.run.runId}。${displayRunLimits({ limitMicroCny: state.ledger.limitMicroCny, durationMs: state.durationMs })}`);
     say('stop 为持久硬停止；resume 只恢复原窗口内未被硬停止的可核实中断。');
+    let current = state.draft, requirement = state.requirementsSource ? (await readReferencedRequirements(root, state)).requirement : state.confirmation?.requirement;
+    if (state.requirementsSource) {
+      say(`新生成尝试 ${state.run.runId}；完整需求来源 ${state.requirementsSource.runId} / v${state.requirementsSource.revision}；原确认人 ${requirement!.confirmedBy}，原确认时间 ${requirement!.confirmedAt}。`);
+      say(displayDraft(current!, frames, policy));
+    }
     control = await startControl(root, state.run.runId, stop);
     warnings = await startBudgetWarnings(root, say);
     if (options.command === 'resume') {
@@ -228,7 +218,6 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     if (!readiness.environmentReady || !readiness.executionReady) {
       say(`生成前置未就绪：${readiness.reason ?? '环境或执行门禁未通过'}。保留原 intake，不调用访谈或启动计时。`); return { outcome: 'waiting_prerequisites' };
     }
-    let current = state.draft, requirement = state.confirmation?.requirement;
     const questions = current?.questions ?? await run(() => host.questions({ controller: intake!, roundId: 'questions-1', brief: original.brief }));
     while (!requirement) {
       intake.signal.throwIfAborted();

@@ -77,7 +77,10 @@ export async function executeGeneration(options: GenerationOptions) {
   validateGameDraft(draft, modeFromSelection(draft.preparation), await readOrdinaryProfile(root, { runId: original.run.runId, createdAt: original.events[0].at }));
   if (validateRequirement(requirement).length || !sameValue(requirement.acceptance, draft.acceptance)) throw new Error('Generation requires the exact confirmed acceptance.');
   if (original.formatVersion !== 1) throw new Error('Generation has not been activated.');
-  if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))) throw new Error('Requirement confirmation does not match this original run.');
+  if (original.requirementsSource) {
+    const confirmed = await (await import('./confirmed-requirements-source.ts')).readConfirmedGeneration(root, original);
+    if (!sameValue(confirmed.draft, draft) || !sameValue(confirmed.requirement, requirement)) throw new Error('Referenced requirement confirmation differs from this attempt.');
+  } else if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))) throw new Error('Requirement confirmation does not match this original run.');
   if (!sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Confirmed draft source changed.');
   const frames = await readFrameSelection(root, original, options.renderFrames);
   const modulePolicy = await readModularRepairPolicy(root, original);

@@ -15,6 +15,7 @@ const usage = `Usage:
   cosmos build <path>                Typecheck and build an installed project
   cosmos preview <path> [--port N]   Preview its build at http://127.0.0.1:4173
   cosmos new <run-dir> [--adapter sokoban] --brief <text>  Interview, confirm exact requirements, then generate
+  cosmos new <run-dir> --requirements-from <source-run-dir> --requirements-revision <N>  Reuse an exact original ordinary confirmation
   new [--max-cny N] [--max-minutes N]  Original limits: >0..200 CNY (up to 6 decimals), 1..720 whole minutes
   new/resume/continue [--render-frames true|false]  Select samples; recovery preserves the original choice
   cosmos status <run-dir>           Read the original run identity, cost, deadline and gaps
@@ -146,21 +147,26 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
       const control = await import('./control.ts'); const result = command === 'status' ? await control.readRunStatus(root) : await control.requestStop(root, windowId);
       output.write(JSON.stringify(result, null, 2) + '\n'); return result;
     }
-    let brief: string | undefined, draftMode: 'cos16-input/1' | undefined;
+    let brief: string | undefined, draftMode: 'cos16-input/1' | undefined, requirementsRoot: string | undefined, requirementsRevision: number | undefined;
     if (!windowId) for (let i = 0; i < options.length; i += 2) {
       const key = options[i], value = options[i + 1];
-      if (!value?.trim() || (key !== '--brief' && key !== '--adapter') || key === '--brief' && (command !== 'new' || brief !== undefined)
+      if (!value?.trim() || !['--brief', '--adapter', '--requirements-from', '--requirements-revision'].includes(key) || key === '--brief' && (command !== 'new' || brief !== undefined)
         || key === '--adapter' && (draftMode !== undefined || value !== 'sokoban')) throw new Error(usage);
-      if (key === '--brief') brief = value; else draftMode = 'cos16-input/1';
+      if (key === '--brief') brief = value;
+      else if (key === '--adapter') draftMode = 'cos16-input/1';
+      else if (key === '--requirements-from') { if (command !== 'new' || requirementsRoot !== undefined) throw new Error(usage); requirementsRoot = resolve(value); }
+      else { if (command !== 'new' || requirementsRevision !== undefined || !/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value))) throw new Error(usage); requirementsRevision = Number(value); }
     }
-    if (command === 'new' && (windowId || !brief)) throw new Error(usage);
+    const requirementsFrom = requirementsRoot !== undefined && requirementsRevision !== undefined ? { root: requirementsRoot, revision: requirementsRevision } : undefined;
+    if ((requirementsRoot !== undefined || requirementsRevision !== undefined) && (!requirementsFrom || brief !== undefined || draftMode)) throw new Error(usage);
+    if (command === 'new' && (windowId || !brief && !requirementsFrom)) throw new Error(usage);
     if (draftMode) requirePreparationRunLimits(limits);
     if (draftMode && renderFrames) throw new Error('准备模式暂不支持渲染帧采样；未确认或调用模型。');
     const selectedFrames = command === 'new' ? renderFrames === true : await originalFrames(root);
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)), selectedFrames ? { renderFrames: true } : {});
     if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, renderFrames, host, input: io.input ?? process.stdin, output });
     const { runProductSession } = await import('./session.ts');
-    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, draftMode, renderFrames, limits, funding: io.funding, host, input: io.input ?? process.stdin, output });
+    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, requirementsFrom, draftMode, renderFrames, limits, funding: io.funding, host, input: io.input ?? process.stdin, output });
   }
   if (!path?.trim() || !['init', 'run-dir', 'build', 'preview'].includes(command)
     || (command !== 'preview' && options.length)) throw new Error(usage);
