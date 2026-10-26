@@ -48,10 +48,15 @@ export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
   continuationTargets?(sources: PreparedTask[], feedback: RepairFeedback, grants: Record<string, number>): Promise<SuccessorTarget[] | null>;
 }
-export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; renderFrames?: boolean; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
+export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; renderFrames?: boolean; ordinaryMediaObservationPolicy?: 'audio-state/1'; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
 export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; renderFrames?: boolean; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> { try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
+function mediaObservationPolicy(execution: any, ordinary: boolean): 'audio-state/1' | undefined {
+  const selected = execution?.ordinaryMediaObservationPolicy;
+  if (selected !== undefined && (selected !== 'audio-state/1' || !ordinary || execution.capability !== 'ordinary-design-execution/1')) throw new Error('Invalid ordinary media observation policy.');
+  return selected;
+}
 
 /** Project only fixed resource explanations from feedback bound to the current task attempt. */
 async function resourceFailureReport(tasks: TaskContract[]) {
@@ -112,6 +117,8 @@ export async function executeGeneration(options: GenerationOptions) {
   const originalExecution = options.resume ? await optionalJson(root, 'execution.json') : null;
   if (originalExecution && Object.hasOwn(originalExecution, 'ordinaryDesignBudgetPolicy')
     && (originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || originalExecution.capability !== 'ordinary-design-execution/1')) throw new Error('Unknown or incompatible ordinaryDesignBudgetPolicy.');
+  const ordinary = 'ordinaryProfile' in draft && draft.ordinaryProfile === 'ordinary-design/1';
+  const ordinaryMediaObservationPolicy = options.resume ? mediaObservationPolicy(originalExecution, ordinary) : ordinary ? 'audio-state/1' as const : undefined;
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
   await requireCurrentFrameSource(frames);
   await requireCurrentModularRepairPolicy(modulePolicy);
@@ -132,12 +139,14 @@ export async function executeGeneration(options: GenerationOptions) {
     if (options.notify) warnings = await startBudgetWarnings(root, options.notify);
     await reconcileEntryReceipts(root, controller);
     if (options.resume && !originalExecution) throw new Error('Original planning result is unavailable; resume cannot perform another paid plan.');
-    const host = await options.createHost({ root, controller, requirement, draft, resume: options.resume, work, ...(originalExecution?.ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy: originalExecution.ordinaryDesignBudgetPolicy } : {}), ...(frames ? { renderFrames: true } : {}) });
+    const host = await options.createHost({ root, controller, requirement, draft, resume: options.resume, work, ...(originalExecution?.ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy: originalExecution.ordinaryDesignBudgetPolicy } : {}), ...(frames ? { renderFrames: true } : {}),
+      ...(ordinaryMediaObservationPolicy ? { ordinaryMediaObservationPolicy } : {}) });
+    if (ordinaryMediaObservationPolicy && host.capability !== 'ordinary-design-execution/1') throw new Error('Ordinary media observation policy requires the ordinary host.');
     closePreparation = host.closePreparation?.bind(host);
     if (host.ordinaryDesignBudgetPolicy !== undefined && (host.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || host.capability !== 'ordinary-design-execution/1')) throw new Error('Invalid host ordinaryDesignBudgetPolicy.');
     let phase = 'planning';
     const outcome = await work.run(async signal => {
-      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1; ordinaryDesignBudgetPolicy?: 'review-reserve/1' };
+      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryMediaObservationPolicy?: 'audio-state/1' };
       if (options.resume) {
         execution = originalExecution;
         if (execution.ordinaryDesignBudgetPolicy !== host.ordinaryDesignBudgetPolicy) throw new Error('Original ordinaryDesignBudgetPolicy changed.');
@@ -149,7 +158,8 @@ export async function executeGeneration(options: GenerationOptions) {
         host.validateTasks?.(planned.tasks);
         execution = { capability: host.capability, requirement, tasks: planned.tasks, availableArtifacts: host.availableArtifacts, plan: planned.plan,
           ...(host.ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy: host.ordinaryDesignBudgetPolicy } : {}),
-          ...(host.capability === 'ordinary-design-execution/1' ? { authorProtocolCorrections: 1 as const } : {}) };
+          ...(host.capability === 'ordinary-design-execution/1' ? { authorProtocolCorrections: 1 as const } : {}),
+          ...(ordinaryMediaObservationPolicy ? { ordinaryMediaObservationPolicy } : {}) };
         await publishReceipt(join(root, 'execution.json'), execution);
       }
       const policy = authorCorrectionPolicy(execution, execution.capability);
@@ -268,6 +278,7 @@ async function executeContinuation(options: GenerationOptions) {
   if (!original.run.humanDecisions.some(decision => decision.actorId === requirement.confirmedBy && decision.decidedAt === requirement.confirmedAt && sameValue(decision.evidence, requirement.sources))
     || !sameValue(await json(root, requirement.sources[0].location), draft)) throw new Error('Original requirement confirmation changed.');
   const frames = await readFrameSelection(root, original, options.renderFrames);
+  const ordinaryMediaObservationPolicy = mediaObservationPolicy(await json(root, 'execution.json'), 'ordinaryProfile' in draft && draft.ordinaryProfile === 'ordinary-design/1');
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
   await requireCurrentFrameSource(frames);
   if (window.stopReason) throw new Error(`Execution window is stopped: ${window.stopReason.code}.`);
@@ -292,7 +303,9 @@ async function executeContinuation(options: GenerationOptions) {
       try {
         await reconcileEntryReceipts(root, controller);
         plan = await loadContinuationPlan({ root, controller, requirement, windowId });
-        host = await options.createHost({ root, controller, requirement, draft, work, resume: true, ...(frames ? { renderFrames: true } : {}), binding: { windowId, tasks: plan.tasks, ...(plan.preparation ? { preparation: plan.preparation } : {}) } });
+        host = await options.createHost({ root, controller, requirement, draft, work, resume: true, ...(frames ? { renderFrames: true } : {}),
+          ...(ordinaryMediaObservationPolicy ? { ordinaryMediaObservationPolicy } : {}), binding: { windowId, tasks: plan.tasks, ...(plan.preparation ? { preparation: plan.preparation } : {}) } });
+        if (ordinaryMediaObservationPolicy && host.capability !== 'ordinary-design-execution/1') throw new Error('Ordinary media observation policy requires the ordinary host.');
         if (host.capability !== plan.capability || !sameValue(host.availableArtifacts, plan.availableArtifacts)) throw new RecoveryBlocked('Original host capability or available input versions changed.');
         host.validateTasks?.(plan.tasks);
         await host.bindPreparedTasks?.(plan.tasks);
