@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-27 [COS-132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)、[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134) 已登记，固定spec/plan均独立APPROVED_PLAN并获Root批准免费实施；两卡source pending、原生父未勾选。总133/root100/父27子项中25源码完成，COS18仍open/partial。COS132依赖已完成COS129/130/131；COS132与COS133并行，不互设依赖环。
+
+COS132按新ordinary政策在原总¥5/30min内将design pool占比15%→25%、保留1/3给独审，增加一次预算压力冷却例外及原readonly纠正4096，旧execution政策和原32请求上限保持。COS133补同源稳定ID的逐步骤媒体debug契约、独立execution版本及旧modular兼容，并用真实Phaser边界验证；原预算/runner/schema保持。实现者分别author_budget_recovery_implementer、media_observation_contract_implementer，独审分别author_budget_recovery_reviewer、media_observation_contract_reviewer。免费组合后的实际reviewer报价与语义拒绝链是后续付费前置；原reuse-1结案保持，未启动新实际运行。
+
 2026-10-27 首次需求复用实际运行 `public-room-20261027-reuse-1` 已永久失败关闭（[公开结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6425494810)）。精确复用room12 v2原确认并跳过访谈，新run `humanDecisions=[]`，planning通过；design请求准入失败，art/coding未启动、无游戏交付。原CLI exit0但outcome incomplete；2026-10-26T19:13:28.900Z–19:17:02.294Z共213.394秒，30笔合计457374µ（¥0.457374）。
 
 设计任务675000µ额度中author已用432885µ、余242115µ；最后未发送请求input91664 bytes/8192 floor报价248864µ，差6749µ，已以真实Pi投影及生产reserveEntry内存副本免费重现。未触整次¥5/30min/32请求上限；压缩后增长15855 bytes小于32768冷却阈值，预算压缩门禁也要求floor仍可负担。两个设计文件结构passed，但存档/声音语义仍有遗漏，未进入独审。

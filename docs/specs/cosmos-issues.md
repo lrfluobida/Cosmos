@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-27 [COS-132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)、[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134) 已登记，固定spec/plan均独立APPROVED_PLAN并获Root批准免费实施；两卡source pending、原生父未勾选。总133/root100/父27子项中25源码完成，COS18仍open/partial。COS132依赖已完成COS129/130/131；COS132与COS133并行，不互设依赖环。
+
 2026-10-27 [COS131 / #132](https://github.com/lrfluobida/Cosmos/issues/132) 已独审合入 `03fb1d5461277b5ca0532ad38f0b5b3b618539fb`，source-scoped关闭、父[x]；typecheck/build与实际raw publisher正例1/1通过。COS129仅source-scoped完成，COS130最终独审批准且组合已source_verified；总131/root100/父25中25源码完成，父仍open/partial，paidReady=false。
 
 2026-10-27 [COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131) 已source-scoped完成；[批准](https://github.com/lrfluobida/Cosmos/issues/131#issuecomment-6424827662)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/131#issuecomment-6424834548)及父[x]已GET核证。最终源码 `88cdf0ca6fc6475b0890d836ce20f498cc410d66` 经独立preflight_plan_reviewer APPROVED_SOURCE_SCOPED、无finding，合入发布 `ac1c745eb0be016f8a556edbadabad013fbf61bd`，4个文件与批准树精确一致；主线typecheck/build exit0。新增入口真实交付组合1/1、0skip已独审：真实编译、Edge9/9、clean delivery、CompletionTiming eligible=true及cleanup通过；原14项有效证据复用，不合计或重跑。newEntryHandoff=source_verified；模型传输合成、费用0，realModelGeneration=unverified、userExperience=not_confirmed、paidAuthorized=false。
@@ -1930,6 +1932,26 @@ room14已由Root未确认结案并释放原held，不能作为已确认来源；
 生产限entrypoint-delivery.ts；仅以同目录唯一UUID临时名、bigint dev/ino及精确nlink=2证明原子发布仍进行，返回原等待，最终必须严格regularFile/nlink=1及原identity检查。原readyDeadline、25ms轮询、取消/finally不延长；publisher/paths/budget/worker保持。真实publisher显式unlink屏障RED→GREEN及取消/超时清理，不能用随机sleep或复跑通过掩盖原竞态。批准诊断base c65保留，登记main含已审COS129 raw-bytes publisher `6bdc9af3c06fee719e50dac8c129e300df22b46f`，主线已补合并后真实publisher屏障正例，COS130最终新入口真实交付已source_verified。
 
 COS130已原生依赖本卡；本卡源码范围完成，COS130最终组合已source_verified，paidReady=false；总131/root100/父25中25源码完成，父仍open/partial。无真实run/ledger/coordinator/付费操作。稳定任务ID：COS-131。
+
+### COS-132 · 设计作者预算恢复与独审容量
+
+[COS-132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)，id6047229999，原生父COS18/#19、[ ]，`source-pending`。独立author_budget_recovery_reviewer已APPROVED_PLAN、无P1/P2，Root批准固定工程设计与免费实施；作者author_budget_recovery_implementer、独立源码reviewer author_budget_recovery_reviewer、唯一merger public_agent_batch_merger。实施基线 `844df4c7e09d7bbbad0b1a4d0cf2e3006801d9fd`。
+
+正式[规格](cos132-author-budget-recovery.md)/[计划](../plans/2026-10-27-author-budget-recovery.md)保留完整批准正文；输入SHA256：spec `365be142f7b150f21b710d66c3a56b2481f996175acc7b4ba356ec3a4724a5e9`，plan `33ce22beec281c3ec0978bd212186288a81a35e6b7abb6af401a06375932aef3`。
+
+新ordinary原pool内design 15%→25%，同一task grant保留1/3给独审；一次预算压力冷却例外、既有readonly纠正4096及明确资源退出，不增加总预算/时钟/32请求上限。旧execution缺省保留原政策。原生依赖已完成COS129/130/131；COS133仅为最终组合前置，不互设阻塞。
+
+总133/root100/父27子项中25源码完成，父整体open/partial。原reuse-1已永久failedclosed/PASS_CLOSED；[实际失败与结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6425494810)保持。源码尚无候选，组合实际reviewer报价通过前不启动下一次付费；不改旧run/ledger/coordinator。稳定任务ID：COS-132。
+
+### COS-133 · 普通游戏逐步骤媒体观测契约
+
+[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134)，id6047234970，原生父COS18/#19、[ ]，`source-pending`。独立media_observation_contract_reviewer已APPROVED_PLAN、无P1/P2，Root批准固定工程设计与免费实施；作者media_observation_contract_implementer、独立源码reviewer media_observation_contract_reviewer、唯一merger public_agent_batch_merger。实施基线 `844df4c7e09d7bbbad0b1a4d0cf2e3006801d9fd`。
+
+正式[规格](cos133-ordinary-media-observations.md)/[计划](../plans/2026-10-27-ordinary-media-observations.md)保留完整批准正文；输入SHA256：spec `810046fed3c73222614f5cac01be15084c740f2176f91ecc74970edda7d94c34`，plan `6c9e2b9722018b08dee4f3f3924be46edee075087b25a5f617db86123f2b31b0`。
+
+同源稳定ID逐步骤media debug契约、独立ordinaryMediaObservationPolicy版本及旧modular精确恢复；原媒体数组、runner/schema/预算保持。真实Phaser/Edge有限正负边界和现有独审拒绝链验证，SOURCE/TEMP、无模型网络调用。与COS132并行，两个execution字段各自独立。
+
+总133/root100/父27子项中25源码完成，父整体open/partial。原reuse-1已永久failedclosed/PASS_CLOSED；[实际失败与结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6425494810)保持。源码尚无候选，组合实际reviewer报价通过前不启动下一次付费；不改旧run/ledger/coordinator。稳定任务ID：COS-133。
 
 ## 5. 任务与上下文包模板
 
