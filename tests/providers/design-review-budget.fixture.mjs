@@ -17,17 +17,18 @@ export const findings = [
 const usage = { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
 
 /** Temporary synthetic DAG; real factory, scoped read, Pi, SDK and review parser. Only provider transport is fake. */
-export async function designReviewFixture(t, mode = 'changes_requested') {
-  const f = await authorBudgetFixture(t), task = f.input.task;
+export async function designReviewFixture(t, mode = 'changes_requested', settings = {}) {
+  const f = await authorBudgetFixture(t, settings.recovery ? 1125000 : undefined, settings.recovery && mode === 'changes_requested' ? 1200 : 0), task = f.input.task;
   Object.assign(task, { dependsOn: [], state: 'not_started', attempts: [], artifacts: [], evidence: [] });
   task.inputs.push({ artifactId: 'confirmation', version: 'v1', location: 'requirements/confirmation.json' });
   task.context.tools = ['read'];
+  if (settings.recovery) task.context.rules.push('s'.repeat(10740));
   const artifacts = [{ artifactId: 'design', version: 'v1', location: 'artifacts/design.json' },
     { artifactId: 'acceptance-plan', version: 'v1', location: 'artifacts/acceptance-plan.json' }];
   const sources = [...task.inputs, ...artifacts], originals = new Map(), reviewRoot = join(f.root, 'review');
   await mkdir(reviewRoot); await writeFile(join(reviewRoot, 'outside.json'), '{ "unauthorized": true }', 'utf8');
   for (const [index, ref] of sources.entries()) {
-    const text = '{\n' + ' '.repeat(6000) + '"data": "' + 'x'.repeat(19500) + '",\n "中文": "原文 空格\\t\\u4e2d\\\"\\\\", "n": 9007199254740993, "n": -0.1200e+02, "index": ' + index + '\n}\n';
+    const text = '{\n' + ' '.repeat(6000) + '"data": "' + 'x'.repeat(19500 + (settings.recovery && index === 0 ? 8910 : 0)) + '",\n "中文": "原文 空格\\t\\u4e2d\\\"\\\\", "n": 9007199254740993, "n": -0.1200e+02, "index": ' + index + '\n}\n';
     originals.set(ref.location, text);
     for (const root of [f.root, reviewRoot]) { await mkdir(dirname(join(root, ref.location)), { recursive: true }); await writeFile(join(root, ref.location), text, 'utf8'); }
   }
@@ -35,11 +36,12 @@ export async function designReviewFixture(t, mode = 'changes_requested') {
     kind: 'test_report', source: { artifactId: 'host-report', version: 'v1', location: 'evidence/report.json' },
     artifactVersions: [...task.inputs, ...artifacts], outcome: 'passed', recordedAt: new Date().toISOString(), summary: 'Synthetic protocol evidence only; no runtime acceptance.' };
   await mkdir(join(reviewRoot, 'evidence')); await writeFile(join(reviewRoot, evidence.source.location), JSON.stringify(evidence), 'utf8');
+  if (settings.recovery) sources.push(evidence.source);
   const dispatches = [], admissions = [], selections = [], receipts = [], sessions = [];
   let currentConfig, native, config, reviewCalls = 0, networkCalls = 0;
   const spendTo = async available => {
     const state = await f.controller.read(), spent = state.ledger.entries.reduce((sum, row) => sum + row.settledMicroCny + row.reservedMicroCny, 0);
-    const amount = state.ledger.limitMicroCny - spent - available;
+    const amount = (settings.recovery ? task.budget.allocationMicroCny : state.ledger.limitMicroCny) - spent - available;
     if (amount > 0) await f.spend(amount, 'synthetic-history-' + state.ledger.entries.length);
   };
   t.mock.method(globalThis, 'fetch', async () => { networkCalls++; throw new Error('NETWORK_DISABLED'); });
@@ -67,13 +69,15 @@ export async function designReviewFixture(t, mode = 'changes_requested') {
         content = [{ type: 'text', text: JSON.stringify(verdict) }]; if (mode === 'length') stopReason = 'length';
       }
       return lazyStream(model, async () => (async function* () {
-        await options.onProviderStreamEvent({ model: 'deepseek-flash', usage: { prompt_tokens: 1, completion_tokens: 1 } }, model);
-        yield { type: 'done', reason: stopReason, message: { role: 'assistant', content, api: 'openai-completions', provider: 'deepseek', model: 'deepseek-flash', stopReason, timestamp: Date.now(), usage } };
+        const actualUsage = settings.recovery && reviewing ? { ...usage, input: requestInputBytes(context), output: options.maxTokens, totalTokens: requestInputBytes(context) + options.maxTokens } : usage;
+        await options.onProviderStreamEvent({ model: 'deepseek-flash', usage: { prompt_tokens: actualUsage.input, completion_tokens: actualUsage.output } }, model);
+        yield { type: 'done', reason: stopReason, message: { role: 'assistant', content, api: 'openai-completions', provider: 'deepseek', model: 'deepseek-flash', stopReason, timestamp: Date.now(), usage: actualUsage } };
       })());
     };
     return runtime;
   });
   const factory = createRoleFactory({ maxOutputTokens: mode === 'raw-floor' ? 4096 : 8192, maxRequests: 16, requestTimeoutMs: 120000,
+    ...(settings.recovery ? { authorMaxOutputTokens: { design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1' } : {}),
     ordinaryDesignReviewBudget: mode === 'raw-floor' ? undefined : () => true, estimatedMaxCostMicroCny: estimate, env: { DEEPSEEK_API_KEY: 'synthetic-cos127' },
     sessionFactory: async supplied => {
       currentConfig = supplied; const reviewing = JSON.parse(supplied.context).role === 'reviewer'; if (reviewing) config = supplied;
@@ -88,15 +92,23 @@ export async function designReviewFixture(t, mode = 'changes_requested') {
           await supplied.budget.beforeRequest(request);
         }, afterResponse: async response => {
           await supplied.budget.afterResponse(response);
-          if (reviewing && reviewCalls === 1 && response.outcome === 'settled') await spendTo(229213);
+          if (!reviewing && settings.recovery) await spendTo(375000);
+          if (reviewing && reviewCalls === 1 && response.outcome === 'settled' && !settings.recovery) await spendTo(229213);
         } },
       });
       sessions.push(role); return role;
     } });
   t.after(async () => { for (const session of sessions) await session.close(); });
-  const [result] = await executeTaskDag({ controller: f.controller, requirement: f.input.requirement, tasks: [{ task, role: 'design', workspace: f.root }],
+  const downstream = settings.recovery && mode === 'changes_requested' ? ['art', 'coding'].map(role => {
+    const dependent = structuredClone(task); dependent.taskId = role; dependent.authorId = role + '-author'; dependent.context.contextId = role + '-context';
+    dependent.dependsOn = [{ taskId: task.taskId, requiredState: 'passed', state: 'not_started' }]; dependent.budget.allocationMicroCny = 100;
+    dependent.ownership.writePaths = ['downstream/' + role]; dependent.outputs = [{ type: 'game', schema: 'game/1', destination: 'artifacts/' + role }];
+    return { task: dependent, role, workspace: f.root };
+  }) : [];
+  const results = await executeTaskDag({ controller: f.controller, requirement: f.input.requirement, tasks: [{ task, role: 'design', workspace: f.root }, ...downstream],
     sessionRoot: join(f.root, 'sessions'), availableArtifacts: task.inputs, roleFactory: factory, reviewProtocolCorrections: 1,
     capture: async () => ({ artifacts, reviewWorkspace: reviewRoot }), verify: async () => [evidence] });
+  const [result] = results;
   const state = await f.controller.read(), nativePath = native?.sessionManager.getSessionFile();
   const nativeEntries = nativePath ? (await readFile(nativePath, 'utf8')).trim().split('\n').map(line => JSON.parse(line)) : [];
   for (const admission of admissions) {
@@ -105,5 +117,6 @@ export async function designReviewFixture(t, mode = 'changes_requested') {
   }
   for (const [path, original] of originals) assert.equal(await readFile(join(reviewRoot, path), 'utf8'), original);
   assert.equal(networkCalls, 0);
-  return { result, state, config, dispatches, admissions, selections, receipts, nativeEntries, originals, reviewCalls };
+  const feedback = result.state === 'needs_changes' ? JSON.parse(await readFile(join(result.attempts.at(-1).sessionRef, 'failure.json'), 'utf8')) : undefined;
+  return { result, results, feedback, requirement: f.input.requirement, state, config, dispatches, admissions, selections, receipts, nativeEntries, originals, reviewCalls };
 }

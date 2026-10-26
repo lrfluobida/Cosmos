@@ -71,6 +71,7 @@ import type { ModularCompilerInputs, ModuleSlot } from './modular-code.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
 import { associateNativeReadSignal, createNativeSnapshotValidationWaits, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
 import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
+import { optionalDesignJson, readDesignRevisionPlan, readDesignSelection, requireDesignExecution, requireDesignMirrors, requireDesignProgress, seedDesignRevision } from './entrypoint-design-revision.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
@@ -363,7 +364,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const historical = input.historicalStages;
   const requirement = structuredClone(input.requirement), draft = structuredClone(input.draft);
   const ordinaryDraft = 'ordinaryProfile' in draft && draft.ordinaryProfile ? draft as OrdinaryGameDraft : undefined;
+  const mediaPolicy = input.ordinaryMediaObservationPolicy;
+  if (mediaPolicy !== undefined && (mediaPolicy !== 'audio-state/1' || !ordinaryDraft || preparation || validation || human)) throw new Error('Invalid ordinary media observation policy for this host.');
   const modular = !!(draft as BrowserGameDraft).codeProfile;
+  const budgetEligible = !!ordinaryDraft && !modular && !validation && !preparation && !human && !binding && !historical;
+  if (input.ordinaryDesignBudgetPolicy !== undefined && (input.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !budgetEligible)) throw new Error('Invalid ordinaryDesignBudgetPolicy for this host.');
+  const ordinaryDesignBudgetPolicy = budgetEligible && !input.resume ? 'review-reserve/1' as const : input.ordinaryDesignBudgetPolicy;
+  if (input.ordinaryDesignRevisionPolicy !== undefined && (input.ordinaryDesignRevisionPolicy !== 'independent-review/1' || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignRevisionPolicy for this host.');
+  const ordinaryDesignRevisionPolicy = input.ordinaryDesignRevisionPolicy;
+  const ordinaryTasks = new Map<string, PreparedTask>();
   if (modular && (preparation || validation || binding)) throw new Error('Modular coding currently supports only the original ordinary browser generation.');
   const modulePolicy = modular ? await readModularRepairPolicy(root, await controller.read()) : undefined;
   await requireCurrentModularRepairPolicy(modulePolicy);
@@ -496,7 +505,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const boundTask = (task: TaskContract) => {
     const old = inheritedTask(task.taskId);
     if (old) { requireOriginalTask(old.task, task); if (!sameValue(old.task, task)) throw new Error('Inherited stage result changed.'); return { task: old.task, role: old.role, workspace: historical!.originalRoot, expectedArtifacts: old.task.artifacts }; }
-    const item = validation || human && human.bound() ? validationTasks.get(task.taskId) : modular && modularTasks.size ? modularTasks.get(task.taskId) : binding?.tasks.find(item => item.task.taskId === task.taskId);
+    const item = ordinaryDesignRevisionPolicy && ordinaryTasks.size ? ordinaryTasks.get(task.taskId) : validation || human && human.bound() ? validationTasks.get(task.taskId) : modular && modularTasks.size ? modularTasks.get(task.taskId) : binding?.tasks.find(item => item.task.taskId === task.taskId);
+    if (ordinaryDesignRevisionPolicy && ordinaryTasks.size && !item) throw new Error('Task is outside the fixed ordinary design selection.');
     if ((binding || validation || human?.bound()) && !item) throw new Error('Task is outside the fixed host binding.');
     if (modular && modularTasks.size && !item) throw new Error('Task is outside the fixed modular host binding.');
     if (item) requireOriginalTask(item.task, task);
@@ -509,6 +519,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   async function requireDispatch(task: TaskContract, signal: AbortSignal, candidate?: ArtifactReference, callerSignal?: AbortSignal) {
     checkCaller(callerSignal);
     signal.throwIfAborted();
+    if (ordinaryDesignRevisionPolicy) {
+      const execution = await json(root, 'execution.json'); await requireDesignExecution(root, controller, execution);
+      boundTask(task);
+      const revision = await readDesignRevisionPlan(root, controller, execution);
+      if (revision && task.taskId === revision.task.task.taskId && task.attempts.length) {
+        await requireDesignMirrors(root, workspace(task), [...task.inputs, ...task.context.interfaces]);
+      }
+      if (role(task) !== 'design') await readDesignSelection(root, controller, execution);
+    }
     if (ordinary) {
       await ordinary.requireCurrent();
       if (role(task) !== 'design') await ordinary.approved(selected(task, 'design'), task);
@@ -747,9 +766,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const mediaLayout = { artifactId: mediaOutput.artifactId, paths: ['_cosmos/mediaSpec.json', 'public/assets/manifest.json'] };
   const gameLayout = { artifactId: output.artifactId, paths: ['index.html', 'src/main.ts'] };
   const host: GenerationHost = {
+    ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
+    ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy } : {}),
     capability: ordinary ? 'ordinary-design-execution/1' : preparation ? 'browser-design-input-preparation-v1' : 'browser-input-media2d-v1', availableArtifacts,
     taskPolicies: [
-      { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * 0.15), writePaths: ['authors/design/design.json', ...(classicEntries?.selection.measurement ? ['authors/design/classic-entry-plan.json'] : [])],
+      { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * (ordinaryDesignBudgetPolicy ? 0.25 : 0.15)), writePaths: ['authors/design/design.json', ...(classicEntries?.selection.measurement ? ['authors/design/classic-entry-plan.json'] : [])],
         readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit', GAME_DESIGN_CHECK], outputs: [{ ...designOutput, destination: designOutput.location, type: 'design', schema: 'game-design/1' }],
         rules: [`Cover only ${DESIGN_ACCEPTANCE_ID}; no dependencies. This is a design deliverable, not proof the game passes.`, captureLayout(designLayout),
           `Read ${requirement.sources[0].location}. Write authors/design/design.json with exactly {summary:string,implementationNotes:string[],acceptanceMapping:object,characters:[{id,purpose,states:string[]}],audio:[{id,trigger,loop:boolean}]${ordinary ? ',experienceMapping:object' : ''}}. Map every gameplay ID ${JSON.stringify(gameplayIds)}. Declare 1-128 original characters and 0-64 audio clips required by the confirmed brief; preserve every requested actor, action and audio trigger.`,
@@ -870,7 +891,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: 600000, estimatedMaxCostMicroCny: requestReservation,
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
         ? { authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
-          ordinaryDesignReviewBudget: task => role(task) === 'design' } : {}),
+          ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
+          ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 } } : {}) } : {}),
       ...(ordinary ? { authorThinkingLevel: { design: 'off' } as const, authorMaxRequests: { design: 32 } } : {}),
       sessionFactory: input.sessionFactory,
       hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],
@@ -1301,6 +1323,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     },
     async repair(task, feedback) {
       if (binding || validation) return null;
+      if (ordinaryDesignRevisionPolicy && role(task) !== 'coding') return null;
       if (modular && (moduleSlot(task) || role(task) !== 'coding' || taskOutput(task).version !== 'v1')) return null;
       const current = await controller.read(), unallocated = current.ledger.limitMicroCny - current.ledger.allocations.reduce((sum, item) => sum + item.amountMicroCny, 0);
       if (unallocated <= 0) return null;
@@ -1309,6 +1332,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     },
     async continuationTargets(sources, feedback, grants) {
       if (binding || validation) return null;
+      if (ordinaryDesignRevisionPolicy && (sources.length !== 1 || sources[0].role !== 'coding')) return null;
       if (modular) {
         const failed = sources.find(source => source.task.taskId === feedback.sourceTaskId), slot = failed && moduleSlot(failed.task);
         if (!failed || role(failed.task) !== 'coding' || taskOutput(failed.task).version !== 'v1') return null;
@@ -1335,6 +1359,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         catch { return { gaps: ['Current validation scope or complete persistent task approval is unavailable.'] }; }
       }
       const effectiveTasks = [...(inherited?.stages.map(stage => stage.task) ?? []), ...tasks];
+      if (ordinaryDesignRevisionPolicy) {
+        if (effectiveTasks.length !== 3 || effectiveTasks.some(task => task.state !== 'passed')) return { gaps: ['Current tasks lack complete host checks and independent approval.'] };
+        await readDesignSelection(root, controller, await json(root, 'execution.json'));
+      }
       const task = tasks.find(task => role(task) === 'coding' && (!modular || !moduleSlot(task)));
       if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== (modular ? 5 : 3) || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
         || binding && (tasks.some(task => !binding.tasks.some(item => item.task.taskId === task.taskId)) || new Set(tasks.map(task => task.taskId)).size !== binding.tasks.length)) {
@@ -1379,10 +1407,22 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     design.writePaths.push(ORDINARY_PLAN_SOURCE); design.outputs[0].schema = 'game-design/2';
     design.rules!.push('First write authors/design/design.json. Then write authors/design/acceptance-plan.json in bounded write/edit chunks, completing each section before the next. Run the existing validate-game-design self-check after both files are complete and correct any reported defects within this author session.',
       `Map exactly the original experience criterion IDs ${JSON.stringify(ordinaryDraft.experienceCriteria.map(item => item.criterionId))} in experienceMapping ({} for an empty list). Read the complete brief/questions/answers and both criteria lists. Independent review must reject omitted objective rules, objective requirements recategorized as experience, insufficient visible assertions, or unsupported behavior; schema success alone is not semantic proof.`,
-      `Write ${ORDINARY_PLAN_SOURCE} with exactly {formatVersion:"ordinary-acceptance-plan/1",requirement:${JSON.stringify(requirements)},scenario:{viewport:{width,height},steps:[...],reopen?:{steps:[...],checkpoint:{expected:string,snapshot:{kind:"text",selector:string},savedSnapshot:{kind:"text",selector:string}}}}. Use existing mouse-click/mouse-move {x,y,selector?}, locator-click {selector,timeoutMs}, assert/wait-for {acceptanceId,observation:{kind:"text",selector}|{kind:"visible",selector},expected,timeoutMs}; every step has a unique id and kind. Coordinates are inside the viewport, or normalized [0,1) when selector is present; viewport dimensions are 100..4096, timeoutMs is 1..60000, each stage has 1..200 steps, and visible expected is boolean. Each objective gameplay AC requires normal click input followed by a visible assertion. Preserve the exact confirmed requirements, including normal save/reopen when required. Do not supply execution identities, URL, candidate, scripts, or state setters. The host supplies actual execution binding.`,
+      `Write ${ORDINARY_PLAN_SOURCE} with exactly {formatVersion:"ordinary-acceptance-plan/1",requirement:${JSON.stringify(requirements)},scenario:{viewport:{width,height},steps:[...],reopen?:{steps:[...],checkpoint:{expected:string,snapshot:{kind:"text",selector:string},savedSnapshot:{kind:"text",selector:string}}}}. Use existing mouse-click/mouse-move {x,y,selector?}, locator-click {selector,timeoutMs}, assert/wait-for {acceptanceId,observation:{kind:"text",selector}|{kind:"visible",selector}${mediaPolicy ? '|{kind:"debug",path:string[]}' : ''},expected,timeoutMs}; every step has a unique id and kind. Coordinates are inside the viewport, or normalized [0,1) when selector is present; viewport dimensions are 100..4096, timeoutMs is 1..60000, each stage has 1..200 steps, and visible expected is boolean. Each objective gameplay AC requires normal click input followed by a visible assertion. Preserve the exact confirmed requirements, including normal save/reopen when required. Do not supply execution identities, URL, candidate, scripts, or state setters. The host supplies actual execution binding.`,
       'For save/reopen, each stage must contain normal click input followed by assertions of the same checkpoint expected string at the two distinct visible text selectors snapshot and savedSnapshot; the two stages together cover all gameplay acceptance IDs. The host closes the browser process and reopens the same private profile/origin. Checkpoint evidence is recorded at those assertion steps; later steps in the second stage may continue to victory or reset without retaining the checkpoint as the final state.',
       'For selector-only clicks use locator-click with selector and timeoutMs. mouse-click/mouse-move require both x and y even when selector is present. Sequence checks from the state reached by prior normal inputs: create the save before reopening it, and do not expect a cleared save to reappear. Reuse earlier inputs and assertions when they already establish the required state.',
-      'Available plans are static normal mouse/locator inputs and visible equality checks. Observation-dependent random decisions, hidden state, numeric intervals and elapsed-duration assertions are unsupported. wait-for timeoutMs is a wait bound, not evidence of exact elapsed time. Do not change random games into fixed sequences, weaken timing requirements, or move automatic failures into experience criteria. Report unresolved capability/coverage as uncertainty so downstream work remains blocked.');
+      mediaPolicy ? 'Available plans are static normal mouse/locator inputs and visible equality checks, supplemented only by the fixed read-only media debug observations below with scalar expected values. Arbitrary hidden gameplay state, observation-dependent random decisions, numeric intervals and elapsed-duration assertions remain unsupported. wait-for timeoutMs is a wait bound, not evidence of exact elapsed time. Do not change random games into fixed sequences, weaken timing requirements, or move automatic failures into experience criteria. Report unresolved capability/coverage as uncertainty so downstream work remains blocked.'
+        : 'Available plans are static normal mouse/locator inputs and visible equality checks. Observation-dependent random decisions, hidden state, numeric intervals and elapsed-duration assertions are unsupported. wait-for timeoutMs is a wait bound, not evidence of exact elapsed time. Do not change random games into fixed sequences, weaken timing requirements, or move automatic failures into experience criteria. Report unresolved capability/coverage as uncertainty so downstream work remains blocked.');
+    if (mediaPolicy) {
+      const coding = host.taskPolicies.find(policy => policy.policyId === 'game-code')!;
+      const mediaRule = "Audio observations use media.audioById with key 'clip_' + id.replaceAll('-', '_'), for example path:['media','audioById','clip_bgm_soft','outputActive']. Assert the matching id before first observing that key in each document; never assume future art manifest order. The same frozen record appears in media.audio (actual manifest order) and audioById, retaining id/decoded/started and adding playing:boolean, looping:boolean, outputActive:boolean, outputActivations:nonnegative safe integer. playing means any real instance of that ID is playing; looping means any currently playing instance actually loops; outputActive means a playing instance has a running AudioContext and nonzero unmuted instance/manager controls actually accepted by the immediate AudioParam/Phaser API. outputActivations counts entries into that committed software output-control state in this document, including short sounds already completed. These fields do not prove that the audio render thread has emitted nonzero samples or that a person heard them. No-audio games need no extra audio steps.";
+      design.rules!.push(mediaRule,
+        'Preserve every normal visible AC assertion; media debug only supplements it. Apply these checks only to confirmed requirements and declared media/triggers. Do not add BGM, SFX, controls or gameplay to satisfy this observation contract. When the confirmed requirements constrain the first input or browser reopening, preserve that actual input order and reopen count; readiness/audio observations may precede input, but clicking another control cannot precede a required first click. Retain visible results for each applicable audio trigger and check the relevant declared clips decoded. If BGM is declared, check its current playing/looping/outputActive according to the declared playback requirements. If short SFX are declared, use outputActivations with finite absolute counts derived from their actual designed triggers, not timing delays or loop-period waits. Only when the confirmed requirements include sound controls or muted interactions, check relevant clips outputActive=false and unchanged activation counts across those actual muted inputs, then exercise the confirmed re-enable behavior and a valid declared audio trigger if required; internal play while muted or at volume zero is allowed. Collection/opening and uncollected items are conditional examples only when those actions exist in the confirmed game; otherwise use that game\'s own confirmed trigger without adding a mechanic. An applicable sound button label alone proves no audio fact.',
+        'Independent design review must read complete confirmed questions/answers and AC/EX, then check each input prerequisite, ordering, expected value and evidence source. For confirmed save/reopen or victory behavior, include required unsaved changes after save before reopen, the required first post-reopen input, and all controls required after victory. Do not invent pre-reopen zero progress or other unconfirmed state constraints. Reject omitted requirements, text substituted for actual audio, or schema success presented as semantic approval; return specific findings through the existing review feedback.');
+      coding.rules!.push(mediaRule,
+        'Derive the audio fields from every actual Phaser WebAudio instance, its manager, AudioContext and connected gain nodes. Initialize instance/manager gain observations from actual nodes before any mute/volume writes. Phaser MUTE/VOLUME and GLOBAL_MUTE/GLOBAL_VOLUME emit their original values only after immediate setValueAtTime succeeds: track those accepted values thereafter, never overwrite them with a lagging gain.value getter. These events must originate in successful real setters, not manually emitted events, button state or desired config. Establish tracking before any playback, including additional instances and scene changes. Track PLAY, RESUME, PAUSE, STOP, COMPLETE, DESTROY, instance MUTE/VOLUME, manager GLOBAL_MUTE/GLOBAL_VOLUME, and context statechange. Keep cumulative decoded/started/activation facts across scenes; reset per document, never persist counters in game saves. Construct frozen plain records once per getter call and place each same frozen record in the array and keyed view; the getter only reads facts and never increments counters.',
+        'Wrap each real instance play/resume as a narrow synchronous startup transaction, preserving this, arguments, return value and exceptions. During real applyConfig, MUTE then VOLUME can expose intermediate states after isPlaying becomes true: update facts but do not count them. Only after a successful real buffer-source start and successful method completion, settle the final committed immediate output-control state at most once. Initial volume=1 followed by play({volume:0}) counts zero, normal first play counts exactly one; successful replay or pause/resume may add one each, never one per intermediate event. An unsuccessful start cannot count merely because isPlaying=true. Outside the transaction, count each actual false-to-true output transition, including unmute/context resume; loops and repeated getters do not add counts. The transaction ends when play/resume returns: a following manager.mute=true is a separate event and cannot erase a prior activation. Internally playing while manager mute or volume=0 is allowed: started/playing may be true with outputActive=false and no activation.',
+        'Independent coding review must trace each field and count to real media objects, connected output chain and actual successful events; reject constants, DOM labels, omitted instances, or business soundEnabled booleans used as audio evidence. Check play/resume transaction boundaries, manager event names and stop/pause/end/destroy handling. Additional native output paths, unobserved direct node writes or future gain automation need equivalent actual observations; otherwise report insufficient evidence. An event count alone does not establish human audibility of same-turn play then mute. Keep existing raw reports, media coverage and visible acceptance; final listening quality remains user experience.');
+    }
     const preAuthor = host.preAuthor;
     host.preAuthor = async (task, signal) => { await requireDispatch(task, signal); await preAuthor?.(task, signal); };
   }
@@ -1409,6 +1449,66 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const ids = acceptanceByPolicy.get(policy.policyId);
       if (ids) policy.acceptanceIds = [...ids];
     }
+  }
+  if (ordinaryDesignRevisionPolicy) {
+    host.bindPreparedTasks = async tasks => {
+      const execution = await json(root, 'execution.json'); await requireDesignExecution(root, controller, execution);
+      const revision = await readDesignRevisionPlan(root, controller, execution);
+      const selection = await optionalDesignJson(root, 'ordinary-design-selection.json') ? await readDesignSelection(root, controller, execution) : null;
+      const repair = await optionalDesignJson(root, 'repair-plan.json');
+      if (repair && (!selection || repair.formatVersion !== 2 || repair.ordinaryDesignRevisionPolicy !== ordinaryDesignRevisionPolicy
+        || !sameValue(repair.originalPlan, execution.plan))) throw new Error('Ordinary coding repair lacks its fixed design selection.');
+      const fixed: PreparedTask[] = repair?.tasks ?? selection?.tasks ?? (revision ? [revision.task] : execution.tasks.filter((item: PreparedTask) => item.role === 'design'));
+      for (const item of tasks) if (!fixed.some(candidate => sameValue(candidate, item))) throw new Error('Ordinary dispatch differs from its fixed stage plan.');
+      for (const item of [...execution.tasks.filter((item: PreparedTask) => item.role === 'design'), ...(revision ? [revision.task] : []), ...fixed]) {
+        const current = (await controller.read()).tasks.find(task => task.taskId === item.task.taskId);
+        if (current) requireOriginalTask(item.task, current);
+        ordinaryTasks.set(item.task.taskId, structuredClone(item));
+      }
+    };
+    const preAuthor = host.preAuthor, capture = host.capture, verify = host.verify, recover = host.recoverCapture, nativeRoles = host.roleFactory;
+    host.preAuthor = async (task, signal) => {
+      await requireDispatch(task, signal);
+      const execution = await json(root, 'execution.json'), revision = await readDesignRevisionPlan(root, controller, execution);
+      if (revision?.task.task.taskId === task.taskId) {
+        await materializeTaskInputs({ artifactRoot: root, workspace: revision.task.workspace, task, requirement, signal });
+        await seedDesignRevision(root, revision);
+        await requireDesignMirrors(root, revision.task.workspace, [...task.inputs, ...task.context.interfaces]);
+      } else await preAuthor?.(task, signal);
+    };
+    host.capture = async (...args) => {
+      const result = await capture(...args); await requireDispatch(args[0], args[2]); return result;
+    };
+    host.verify = async (...args) => {
+      const revision = await readDesignRevisionPlan(root, controller, await json(root, 'execution.json'));
+      if (revision?.task.task.taskId === args[0].taskId) await requireDesignProgress(root, revision);
+      const evidence = await verify(...args);
+      if (revision?.task.task.taskId === args[0].taskId) {
+        await requireDispatch(args[0], args[1]);
+        await requireDesignMirrors(root, join(root, `reviews/${args[0].taskId}`), [...args[0].inputs, ...args[0].context.interfaces]);
+      }
+      return evidence;
+    };
+    host.recoverCapture = async (...args) => {
+      await requireDispatch(args[0], args[2]); return recover(...args);
+    };
+    host.roleFactory = async roleInput => {
+      if (roleInput.purpose === 'planning') return nativeRoles(roleInput);
+      await requireDispatch(roleInput.task, controller.signal);
+      const expected = roleInput.role === 'reviewer' ? join(root, `reviews/${roleInput.task.taskId}`) : workspace(roleInput.task);
+      if (resolve(roleInput.workspace) !== resolve(expected)) throw new Error('Ordinary role workspace differs from its fixed binding.');
+      const revision = await readDesignRevisionPlan(root, controller, await json(root, 'execution.json'));
+      const guard = async () => {
+        await requireDispatch(roleInput.task, controller.signal);
+        if (revision?.task.task.taskId === roleInput.task.taskId) await requireDesignMirrors(root, roleInput.workspace, [...roleInput.task.inputs, ...roleInput.task.context.interfaces]);
+      };
+      await guard(); const session = await nativeRoles(roleInput);
+      if (revision?.task.task.taskId === roleInput.task.taskId && roleInput.role === 'reviewer') {
+        const source = (await controller.read()).tasks.find(task => task.taskId === revision.sourceTaskId)!;
+        if (session.actorId === source.authorId || session.contextId === source.context.contextId) { await session.close(); throw new Error('Revision reviewer must be independent from both authors.'); }
+      }
+      return { ...session, prompt: async (...args) => { await guard(); const result = await session.prompt(...args); await guard(); return result; } };
+    };
   }
   if (modular) host.bindPreparedTasks = async tasks => {
     const execution = await json(root, 'execution.json'), originals = execution.tasks as PreparedTask[];

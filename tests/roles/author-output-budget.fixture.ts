@@ -14,11 +14,11 @@ export const estimate = (request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) =
 export const options: RoleFactoryOptions = { maxOutputTokens: 8192, authorMaxOutputTokens: { design: 32768 }, authorBudgetOutputFloor: { design: 8192 },
   maxRequests: 32, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: estimate, env: { DEEPSEEK_API_KEY: 'offline-cos124' } };
 
-export async function authorBudgetFixture(t: TestContext, allocation = 675000) {
+export async function authorBudgetFixture(t: TestContext, allocation = 675000, extraCapacity = 0) {
   const root = await mkdtemp(join(tmpdir(), 'cos124-'));
   const requirement = requirementFixture() as RequirementContract, task = taskFixture() as TaskContract;
   const controller = await RunController.create({ root: join(root, 'run'), runId: 'run-1', ledgerId: 'ledger-1', kind: 'runtime_generation',
-    specVersion: requirement.specVersion, scope: 'generation', limitMicroCny: allocation, allocations: [{ taskId: task.taskId, amountMicroCny: allocation }] });
+    specVersion: requirement.specVersion, scope: 'generation', limitMicroCny: allocation + extraCapacity, allocations: [{ taskId: task.taskId, amountMicroCny: allocation }] });
   task.budget = { ...task.budget, allocationMicroCny: allocation, originalDeadlineAt: (await controller.read()).run.originalDeadlineAt };
   task.context.tools = ['read', 'write', 'edit'];
   const input: RoleInput = { role: 'design', task, requirement, controller, workspace: root, stateDirectory: join(root, 'session') };

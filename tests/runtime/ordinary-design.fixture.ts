@@ -17,8 +17,11 @@ import { planTaskDag } from '../../src/roles/planner.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import type { PiSessionOptions } from '../../src/providers/pi.ts';
 import type { RoleSession } from '../../src/roles/factory.ts';
+import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 
 export async function ordinaryHostFixture(t: TestContext, options: { modular?: boolean; fault?: string; persistent?: boolean; classic?: boolean; renderFrames?: boolean; pause?: boolean; productionDefault?: boolean;
+  revisionPolicy?: boolean;
+  mediaPolicy?: 'audio-state/1'; configure?: (draft: OrdinaryGameDraft, scenario: BrowserScenario) => void;
   limits?: Parameters<typeof runProductSession>[0]['limits'];
   sessionFactory?: (config: PiSessionOptions, fallback: RoleSession) => Promise<RoleSession> } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cos112-')), modular = !!options.modular, fault = options.fault ?? '';
@@ -37,6 +40,7 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
     scenario.reopen = { checkpoint, steps: structuredClone(scenario.steps) };
     draft.questions.push({ id: 'save', prompt: '存档要求？' }); draft.answers.save = '正常保存并关闭浏览器进程后恢复。';
   }
+  options.configure?.(draft, scenario);
   const classicSourceRoot = options.classic ? await ordinaryClassicSource(t) : undefined;
   if (classicSourceRoot) { draft.benchmark = 'classic-pc-runtime-policy/1'; draft.classicEntry = await selectClassicEntry(classicSourceRoot); }
   const packets: any[] = [], plays: any[] = [], checks: any[] = [];
@@ -146,14 +150,18 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
       return { environmentReady: true, executionReady: true };
     }, async questions() { return draft.questions; }, async draft() { return draft; },
     async execute(input: Parameters<typeof product.execute>[0]): Promise<any> {
+      if (!options.pause && !options.revisionPolicy && !options.productionDefault) return executeGeneration({ ...input,
+        createHost: hostInput => createBrowserHost({ ...hostInput, ...hostOptions, ordinaryDesignRevisionPolicy: undefined }) });
       if (!options.pause || input.resume) return product.execute(input);
       const controller = await RunController.open({ root }), work = new OwnedWork(controller.signal), abort = new AbortController();
       try {
-        const active = await createBrowserHost({ ...input, controller, work, ...hostOptions });
+        const active = await createBrowserHost({ ...input, controller, work, ...hostOptions, ...(options.mediaPolicy ? { ordinaryMediaObservationPolicy: options.mediaPolicy } : {}) });
         const planned = await planTaskDag({ controller, requirement: input.requirement, planningTaskId: 'planning', workspace: root, sessionRoot: join(root, 'sessions'),
           availableArtifacts: active.availableArtifacts, taskPolicies: active.taskPolicies, roleFactory: active.roleFactory });
-        active.validateTasks!(planned.tasks); await active.bindPreparedTasks?.(planned.tasks);
-        await put('execution.json', JSON.stringify({ capability: active.capability, requirement: input.requirement, tasks: planned.tasks, availableArtifacts: active.availableArtifacts, plan: planned.plan }));
+        active.validateTasks!(planned.tasks);
+        await put('execution.json', JSON.stringify({ capability: active.capability, requirement: input.requirement, tasks: planned.tasks, availableArtifacts: active.availableArtifacts, plan: planned.plan,
+          ...(options.mediaPolicy ? { ordinaryMediaObservationPolicy: options.mediaPolicy } : {}) }));
+        await active.bindPreparedTasks?.(planned.tasks);
         const tasks = await executeTaskDag({ controller, requirement: input.requirement, tasks: planned.tasks, sessionRoot: join(root, 'sessions'), availableArtifacts: active.availableArtifacts,
           roleFactory: active.roleFactory, preAuthor: async (task, signal) => { if (task.taskId === 'coding-task') { abort.abort(); return; } await active.preAuthor!(task, signal); },
           capture: active.capture, verify: active.verify, diagnoseFailure: active.diagnoseFailure, signal: abort.signal, reviewProtocolCorrections: 1,

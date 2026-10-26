@@ -168,3 +168,12 @@ test('renamed output at a new sibling location remains valid', () => {
     outputs: [{ type: 'game', schema: 'game/1', destination: 'artifacts/game/v2' }], expectedArtifacts: [artifact('renamed-game', 'v2', 'artifacts/game/v2')] });
   assert.equal(linked.expectedArtifacts![0].location, 'artifacts/game/v2');
 });
+
+for (const code of ['author_output_budget', 'author_review_reserve', 'review_output_budget', 'request_limit']) test('COS132 resource failure stops with fixed reason ' + code, () => {
+  const f = setup(), feedback = buildRepairFeedback(f.task, new PiSessionError(code, 'SECRET_RAW_RESOURCE'), 'author_handoff', f.snapshot);
+  assert.equal(feedback.issues[0].checkId, code);
+  assert.match(feedback.issues[0].actual, /not sent/);
+  assert.doesNotMatch(JSON.stringify(feedback), /SECRET_RAW_RESOURCE/);
+  const decision = assessRepair({ ...f.options, history: [feedback] });
+  assert.equal(decision.action, 'stop'); assert.equal(decision.reason, code);
+});

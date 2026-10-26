@@ -11,6 +11,30 @@ import type { PiRequest } from '../../src/providers/pi.ts';
 import { authorBudgetFixture, options, request, estimate } from './author-output-budget.fixture.ts';
 import { outputLimitFixture, syntheticContext } from '../providers/request-output-limit.fixture.mjs';
 
+const revisionOptions: RoleFactoryOptions = { ...options, ordinaryDesignRevisionPolicy: 'independent-review/1', ordinaryDesignBudgetPolicy: 'review-reserve/1', ordinaryDesignBudgetCompaction: true,
+  authorMaxOutputTokens: { design: 32768, art: 65536, coding: 65536 }, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 } };
+test('COS134 exact ordinary marker authorizes both art and coding adaptive caps only', async t => {
+  const f = await authorBudgetFixture(t, 450000);
+  for (const role of ['art', 'coding'] as const) {
+    await f.create(revisionOptions, { ...f.input, role });
+    const config = f.configs.at(-1)!;
+    assert.equal(config.maxOutputTokens, 65536);
+    assert.equal(await config.requestOutputLimit!({ ...request, inputBytes: 10000, maxOutputTokens: 65536 }), 53750);
+    await assert.rejects(config.requestOutputLimit!({ ...request, inputBytes: 192233, maxOutputTokens: 65536 }), /cannot afford/);
+    assert.equal(await config.requestOutputLimit!({ ...request, inputBytes: 192232, maxOutputTokens: 65536 }), 8192);
+  }
+  for (const change of [
+    { ordinaryDesignRevisionPolicy: undefined }, { ordinaryDesignRevisionPolicy: 'unknown' }, { ordinaryDesignBudgetPolicy: undefined },
+    { ordinaryDesignBudgetCompaction: undefined }, { authorBudgetOutputFloor: { design: 8192, art: 8192 } },
+    ...['art', 'coding', 'design', 'cosmos'].map(role => ({ authorMaxOutputTokens: { ...revisionOptions.authorMaxOutputTokens, [role]: role === 'design' || role === 'cosmos' ? 65536 : 65537 },
+      authorBudgetOutputFloor: { ...revisionOptions.authorBudgetOutputFloor, [role]: 8192 } })),
+  ]) assert.throws(() => createRoleFactory({ ...revisionOptions, ...change } as RoleFactoryOptions), /authorBudgetOutputFloor|ordinaryDesignRevisionPolicy/);
+  const before = f.configs.length;
+  await assert.rejects(f.create(revisionOptions, { ...f.input, validation: {} as any }), /cannot authorize validation/);
+  assert.equal(f.configs.length, before);
+  assert.equal(typeof createRoleFactory({ ...options, authorBudgetOutputFloor: undefined, authorMaxOutputTokens: { art: 65536, coding: 65536 } }), 'function');
+});
+
 test('COS124 room6 request12 chooses 32621 after fixed 32K rejects, without changing the ledger', async t => {
   const f = await authorBudgetFixture(t); await f.spend(170761); await f.create();
   const before = await f.controller.read(), reserve = (cap: number) => reserveEntry(structuredClone(before.ledger), {
@@ -241,4 +265,40 @@ for (const changed of ['unknown', 'closed', 'authority', 'deadline', 'invalid', 
   const before = structuredClone(state);
   await assert.rejects(policy.requestCompactionAdmission({ ordinary: request, summary: { ...request, maxOutputTokens: 8192 } }, caller.signal));
   assert.deepEqual(state, before);
+});
+
+
+test('COS132 review reserve quotes and real admission preserve one third of the original grant', async t => {
+  const f = await authorBudgetFixture(t, 1125000); await f.spend(432885);
+  await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1' } as Partial<RoleFactoryOptions>);
+  const config = f.configs[0], before = await f.controller.read();
+  assert.equal(await config.requestCompaction!({ ...request, inputBytes: 91664 }), 'budget_pressure');
+  assert.equal(await config.requestOutputLimit!({ ...request, inputBytes: 91664 }), 16723);
+  assert.equal(config.readonlyMaxOutputTokens, 4096);
+  await assert.rejects(config.requestOutputLimit!({ ...request, inputBytes: 200000 }), { code: 'author_review_reserve' });
+  await assert.rejects(config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: 317116 }), { code: 'author_review_reserve' });
+  assert.deepEqual(await f.controller.read(), before);
+  await f.spend(100000, 'concurrent-spend');
+  const after = await f.controller.read();
+  await assert.rejects(config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: 248864 }), { code: 'author_review_reserve' });
+  assert.deepEqual(await f.controller.read(), after);
+});
+
+test('COS132 budget pressure includes an unaffordable ordinary floor', async t => {
+  const f = await authorBudgetFixture(t, 1125000); await f.spend(600000);
+  await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1' } as Partial<RoleFactoryOptions>);
+  assert.equal(await f.configs[0].requestCompaction!({ ...request, inputBytes: 91664 }), 'budget_pressure');
+});
+
+
+test('COS132 readonly floor and frozen authority do not relax actual admission', async t => {
+  const f = await authorBudgetFixture(t, 1125000); await f.spend(750000 - 32767);
+  await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1', estimatedMaxCostMicroCny: candidate => candidate.maxOutputTokens * 8 });
+  const config = f.configs[0], before = await f.controller.read();
+  await assert.rejects(config.requestOutputLimit!({ ...request, maxOutputTokens: 4096 }), { code: 'author_review_reserve' });
+  assert.deepEqual(await f.controller.read(), before);
+  const authority = await f.controller.executionAuthority(f.input.task.taskId);
+  t.mock.method(f.controller, 'executionAuthority', async () => ({ ...authority, admissionAllowed: false }));
+  await assert.rejects(config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: 1 }), /authority/);
+  assert.deepEqual(await f.controller.read(), before);
 });
