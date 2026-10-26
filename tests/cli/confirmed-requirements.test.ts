@@ -12,11 +12,46 @@ import { RunController } from '../../src/runtime/run.ts';
 import { readConfirmedGeneration } from '../../src/cli/session.ts';
 import { loadExperienceBinding } from '../../src/runtime/experience.ts';
 import { createHash } from 'node:crypto';
+import { SnapshotStore } from '../../src/runtime/store.ts';
 
 const noInterviewHost = () => ({ ordinaryProfile: 'ordinary-design/1' as const,
   async prepare() { return { environmentReady: true, executionReady: true }; },
   async questions() { throw new Error('No interview'); }, async draft() { throw new Error('No draft'); }, async execute(input: any) { return input; } });
 const newArgs = (root: string, source: string) => ['new', root, '--requirements-from', source, '--requirements-revision', '2'];
+
+for (const phase of ['before-snapshot', 'after-snapshot', 'during-binding']) test(`unfunded source initialization preserves identity across ${phase}`, async t => {
+  const source = await confirmedSource(t), root = await temporaryRun(t), write = SnapshotStore.prototype.write;
+  let interrupted = false, initial: any, prepares = 0;
+  const host = { ...noInterviewHost(), async prepare() { prepares++; return { environmentReady: false, executionReady: false }; } };
+  SnapshotStore.prototype.write = async function(value: any) {
+    if (!interrupted && this.root === root && value.formatVersion === 'intake-1' && (phase === 'during-binding' ? value.draft !== null : value.draft === null)) {
+      interrupted = true; initial = structuredClone(value); if (phase === 'after-snapshot') await write.call(this, value); throw new Error('Injected unfunded initialization interruption');
+    }
+    return write.call(this, value);
+  };
+  try { await assert.rejects(runCli(newArgs(root, source.root), { host, input: Readable.from([]), output: silentOutput() }), /Injected/); }
+  finally { SnapshotStore.prototype.write = write; }
+  assert.equal(prepares, 0);
+  const originBytes = await readFile(join(root, 'intake-origin.json'));
+  const wrong = await confirmedSource(t);
+  await assert.rejects(runCli(newArgs(root, wrong.root), { host, input: Readable.from([]), output: silentOutput() }), /initialization/i);
+  await assert.rejects(runCli([...newArgs(root, source.root), '--max-cny', '1'], { host, input: Readable.from([]), output: silentOutput() }), /initialization/i);
+  await writeFile(join(root, 'unrelated.txt'), '不能覆盖这个目录', 'utf8');
+  await assert.rejects(runCli(newArgs(root, source.root), { host, input: Readable.from([]), output: silentOutput() }), /initialization/i);
+  await unlink(join(root, 'unrelated.txt'));
+  if (phase === 'during-binding') {
+    const copy = join(root, 'requirements/v2/draft.json'), bytes = await readFile(copy); await writeFile(copy, '{}', 'utf8');
+    await assert.rejects(runCli(newArgs(root, source.root), { host, input: Readable.from([]), output: silentOutput() }), /copy bytes changed/i);
+    await writeFile(copy, bytes);
+  }
+  assert.equal(prepares, 0); assert.deepEqual(await readFile(join(root, 'intake-origin.json')), originBytes);
+  const result: any = await runCli(newArgs(root, source.root), { host, input: Readable.from([]), output: silentOutput() });
+  assert.equal(result.outcome, 'waiting_prerequisites'); assert.equal(prepares, 1);
+  const current = await snapshot(root); assert.deepEqual(current.run, initial.run); assert.deepEqual(current.ledger, initial.ledger);
+  assert.equal(current.createdAt, initial.createdAt); assert.deepEqual(current.requirementsSource, initial.requirementsSource);
+  assert.equal(current.confirmation, null); assert.equal(current.draft.revision, 2);
+  await assert.rejects(runCli(newArgs(root, source.root), { host, input: Readable.from([]), output: silentOutput() }), /initialization|resume/i);
+});
 
 test('public new reuses complete confirmed intake revision 2 without interviewing or a new human decision', async t => {
   const source = await confirmedSource(t, { intake: true, charged: true }), root = await temporaryRun(t), before = await readFile(join(source.root, 'snapshot.json'));

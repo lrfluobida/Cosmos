@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 import type { RequirementContract } from '../contracts/index.ts';
-import { regularFile, safePath } from '../artifacts/paths.ts';
+import { id, regularFile, safePath, snapshot as snapshotFiles } from '../artifacts/paths.ts';
 import { IntakeController } from '../runtime/intake.ts';
 import type { StoredDraft } from '../runtime/intake.ts';
 import { publishReceipt } from '../runtime/recovery/receipt-file.ts';
@@ -144,10 +144,11 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       const ordinaryProfile = referenced?.draft.ordinaryProfile ?? (selectedMode ? undefined : host.ordinaryProfile);
       const brief = referenced?.draft.brief ?? options.brief;
       if (!brief?.trim()) throw new Error('A one-sentence --brief or confirmed requirements source is required.');
-      const entries = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
+      const entries: string[] = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
+      const initialization = referenced && !options.funding && entries.length ? await optionalJson(root, 'intake-origin.json') : null;
       if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source);
-      else if (entries.length) throw new Error('Choose an empty run directory; existing runs require resume.');
-      const runId = options.funding?.runId ?? `game-${randomUUID()}`;
+      else if (entries.length && !initialization) throw new Error('Choose an empty run directory; existing runs require resume.');
+      const runId = options.funding?.runId ?? initialization?.runId ?? `game-${randomUUID()}`; id(runId);
       if (referenced && (runId === referenced.source.runId || options.funding?.ledgerId === referenced.ledgerId)) throw new Error('New attempt must have independent run and ledger identities.');
       frames = referenced ? referenced.renderFrameSelection : options.renderFrames ? await selectRenderFrames() : undefined;
       policy = referenced ? referenced.modularRepairPolicy : currentModularRepairPolicy();
@@ -155,8 +156,31 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...(referenced ? { requirementsSource: referenced.source } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(options.funding ? { validationFunding: options.funding } : {}) };
+      if (initialization) {
+        if (!sameValue(initialization, origin) || entries.some(name => !['intake-origin.json', 'intake-ordinary-profile.json', 'snapshot.json', 'requirements', '.controller.lock'].includes(name)
+          && !/^\.snapshot-[a-f0-9-]{36}\.tmp$/.test(name))) throw new Error('Only the same unfinished requirements initialization can retry new.');
+        const saved = entries.includes('snapshot.json') ? await readRunSnapshot(root) : undefined;
+        if (saved && (saved.formatVersion !== 'intake-1' || saved.draft !== null || saved.confirmation !== null || saved.stopReason || saved.validationFunding
+          || saved.revision !== 1 || saved.events.length !== 1 || saved.requests.length || saved.ledger.entries.length
+          || saved.interviewTaskId !== 'intake' || saved.maxRequests !== 8 || saved.ledger.ledgerId !== `${runId}-budget`
+          || !sameValue(saved.run, { runId, kind: 'runtime_generation', specVersion: '1.0' })
+          || !sameValue(saved.ledger.allocations, [{ taskId: 'intake', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }, { taskId: 'planning', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }]))) {
+          throw new Error('Requirements initialization already advanced; use resume.');
+        }
+        if (saved) await readReferencedRequirements(root, saved, false);
+        if (entries.includes('requirements')) {
+          if (!saved) throw new Error('Requirements initialization copies require their original snapshot.');
+          for (const [name, bytes] of await snapshotFiles(join(root, 'requirements'))) {
+            const index = referenced!.requirement.sources.findIndex(ref => ref.location === `requirements/${name}`);
+            if (index < 0 || !bytes.equals([referenced!.draftBytes, referenced!.confirmationBytes][index])) throw new Error('Requirements initialization copy bytes changed.');
+          }
+        }
+        await recoverRunOwner(root);
+        if (saved) intake = await IntakeController.open({ root });
+      }
       if (options.funding) await publishFundedOrigin(root, origin);
-      intake = await IntakeController.create({ root, runId, ledgerId: options.funding?.ledgerId ?? `${runId}-budget`, specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 8,
+      else if (referenced && !initialization) { await mkdir(root, { recursive: true }); await publishReceipt(join(root, 'intake-origin.json'), origin); }
+      intake ??= await IntakeController.create({ root, runId, ledgerId: options.funding?.ledgerId ?? `${runId}-budget`, specVersion: '1.0', interviewTaskId: 'intake', maxRequests: 8,
         ...limits,
         ...(selectedMode ? { draftMode: options.draftMode } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
@@ -164,7 +188,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...(frames ? { renderFrames: frames } : {}),
         modularRepairPolicy: policy, ...(options.funding ? { validationFunding: options.funding } : {}),
         allocations: [{ taskId: 'intake', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }, { taskId: 'planning', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }] });
-      if (!options.funding) await publishReceipt(join(root, 'intake-origin.json'), origin);
+      if (!options.funding && !referenced) await publishReceipt(join(root, 'intake-origin.json'), origin);
     } else {
       const snapshot = await readRunSnapshot(root);
       requirePublicRunLimits(snapshot, await optionalJson(root, 'intake-origin.json'), snapshot.formatVersion === 'intake-1');

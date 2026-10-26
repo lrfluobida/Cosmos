@@ -171,7 +171,7 @@ export class IntakeController {
       await verifyPublicValidationFunding({ root: store.root, snapshot: state, dispatch: true });
       if (draftMode) await publishReceipt(join(store.root, 'intake-mode.json'), { runId: state.run.runId, createdAt, draftMode });
       let existingProfile: { runId: string; createdAt: string; ordinaryProfile: OrdinaryProfile } | undefined;
-      if (state.requirementsSource && state.validationFunding) {
+      if (state.requirementsSource) {
         try { existingProfile = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(store.root, ORDINARY_PROFILE_SOURCE))); }
         catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
         if (existingProfile) {
@@ -191,15 +191,16 @@ export class IntakeController {
       await verifyPublicValidationFunding({ root: store.root, snapshot: state, dispatch: false });
       await requireModeOrigin(store.root, state);
       await readOrdinaryProfile(store.root, { runId: state.run.runId, createdAt: state.createdAt }, state);
-      if (state.renderFrames) await requireCurrentFrameSource(await readFrameSelection(store.root, state));
-      if (state.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(store.root, state));
+      // Opening a referenced intake may be needed only to reconcile, stop and close it.
+      // Bind/activation and actual dispatch still revalidate the complete live source.
+      if (!state.requirementsSource && state.renderFrames) await requireCurrentFrameSource(await readFrameSelection(store.root, state));
+      if (!state.requirementsSource && state.modularRepairPolicy) await requireCurrentModularRepairPolicy(await readModularRepairPolicy(store.root, state));
       const controller = new IntakeController(store, state, options.now ?? Date.now), next = structuredClone(state);
       for (const work of fundedIntakeWork(state).pending) {
         const recovery = await readFundingRecovery(store.root, state, work.ownerToken);
         if (recovery) controller.event(next, 'public_intake_work_recovered', null, JSON.stringify({ workId: work.workId, ...recovery }));
       }
-      if ((state.draftMode || state.ordinaryProfile) && state.draft) await controller.requireDraftFile(state.draft);
-      if (state.requirementsSource) await readReferencedRequirements(store.root, state, !!state.draft);
+      if (!state.requirementsSource && (state.draftMode || state.ordinaryProfile) && state.draft) await controller.requireDraftFile(state.draft);
       for (const record of next.requests) {
         const entry = findRequest(next.ledger, record.requestId);
         if (record.admittedAt && entry.status === 'reserved') {

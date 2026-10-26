@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { runCli } from '../../src/cli/index.ts';
 import { removeOwned } from '../../src/artifacts/paths.ts';
 import { fundingFixture } from '../runtime/public-validation-funding.fixture.ts';
-import { reservePublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
+import { reservePublicValidationFunding, verifyPublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
 import { createProductHost } from '../../src/runtime/entrypoint-host.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
@@ -19,6 +19,31 @@ import { IntakeController } from '../../src/runtime/intake.ts';
 import { confirmedSource, silentOutput } from '../runtime/confirmed-requirements.fixture.ts';
 import { readConfirmedRequirementsSource } from '../../src/runtime/confirmed-requirements-source.ts';
 import { ordinaryHostFixture } from '../runtime/ordinary-design.fixture.ts';
+
+for (const when of ['before-stop', 'after-close', 'after-settlement']) test(`v2 source drift ${when} does not block accounting or independent v1 funding`, async t => {
+  const source = await confirmedSource(t), original = await readConfirmedRequirementsSource({ root: source.root, revision: 2, specVersion: '1.0' });
+  const f = await fundingFixture(t), args = await f.authorization(`accounting-${when}`);
+  await writeFile(join(args.sharedRoot, args.authorization.location), JSON.stringify({ ...args.payload, formatVersion: 'public-validation-authorization/2', brief: source.draft.brief, requirementsSource: original.source }), 'utf8');
+  await runPublicValidationCli(['new', args.runRoot, '--shared-root', args.sharedRoot, '--authorization', join(args.sharedRoot, args.authorization.location)], {
+    input: Readable.from([]), output: silentOutput(), host: { ordinaryProfile: 'ordinary-design/1',
+      async prepare() { return { environmentReady: false, executionReady: false }; }, async questions() { throw new Error('No interview'); }, async draft() { throw new Error('No draft'); }, async execute() { throw new Error('No execution'); } },
+  });
+  const drift = async () => {
+    const path = join(source.root, 'intake-answers/v2.json'), value = JSON.parse(await readFile(path, 'utf8'));
+    value.answers.goal = '源回答发生变化'; await writeFile(path, JSON.stringify(value), 'utf8');
+  };
+  if (when === 'before-stop') {
+    await drift();
+    await assert.rejects(verifyPublicValidationFunding({ root: args.runRoot, snapshot: await f.child(args.runRoot), dispatch: true }), /source|answer/i);
+  }
+  const owner = await IntakeController.open({ root: args.runRoot }); await owner.stop('End this isolated source fixture'); await owner.close();
+  if (when === 'after-close') await drift();
+  const result = await settlePublicValidationFunding({ ...args, fundingId: args.payload.fundingId });
+  assert.equal(result.settledMicroCny, 0);
+  if (when === 'after-settlement') await drift();
+  const next = await f.authorization(`independent-${when}`), binding = await reservePublicValidationFunding(next);
+  assert.equal(binding.runId, next.payload.runId); assert.equal((await f.snapshot()).publicValidationFundings.length, 2);
+});
 
 test('v2 funding wrapper binds the original complete requirements without a new interview', async t => {
   const phases: string[] = [];
@@ -45,6 +70,11 @@ test('v2 funding wrapper binds the original complete requirements without a new 
   assert.equal(interviews, 0); assert.deepEqual(state.requirementsSource, original.source); assert.deepEqual(state.run.humanDecisions, []);
   assert.equal(state.run.runId, args.payload.runId); assert.equal((await f.snapshot()).publicValidationFundings.length, 1);
   assert.deepEqual(phases, ['cosmos']); assert.equal(state.ledger.entries.length, 1); assert.equal(state.ledger.entries[0].taskId, 'planning');
+  const path = join(source.root, 'intake-answers/v2.json'), answers = JSON.parse(await readFile(path, 'utf8'));
+  answers.answers.goal = '生成结束后的源漂移'; await writeFile(path, JSON.stringify(answers), 'utf8');
+  const settled = await settlePublicValidationFunding({ ...args, fundingId: args.payload.fundingId });
+  assert.equal(settled.settledMicroCny, state.ledger.entries[0].settledMicroCny);
+  assert.deepEqual((await f.snapshot()).publicValidationFundings[0].settlement.requests[0].entry, state.ledger.entries[0]);
 });
 
 for (const changed of ['v1-source', 'v2-missing', 'revision', 'hash', 'brief', 'frames', 'identity', 'source-drift']) test(`v2 funding rejects ${changed} before reservation or host preparation`, async t => {

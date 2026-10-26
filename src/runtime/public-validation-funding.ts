@@ -44,12 +44,15 @@ export async function readPublicValidationAuthorization(sharedRoot: string, auth
   const ref = { ...authorization, location: isAbsolute(authorization.location) ? authorization.location : resolve(sharedRoot, authorization.location) };
   const bytes = await referenceBytes(sharedRoot, ref), payload = decode(bytes);
   validateFundingAuthorization(payload);
+  if (within(payload.runRoot, ref.location)) throw new Error('Public funding authorization must be outside the generated run.');
+  return { payload, binding: fundingBinding(payload, ref, bytes) };
+}
+/** Live requirements gate new execution, while immutable authorizations remain accounting evidence. */
+async function requireFundingRequirements(payload: PublicValidationAuthorization) {
   if (payload.formatVersion === 'public-validation-authorization/2') {
     const original = await readConfirmedRequirementsSource({ root: payload.requirementsSource.root, revision: payload.requirementsSource.revision, specVersion: '1.0', expected: payload.requirementsSource });
     if (payload.brief !== original.draft.brief || payload.renderFrames !== !!original.renderFrameSelection || payload.ledgerId === original.ledgerId) throw new Error('Public funding requirements source differs from its original complete confirmation.');
   }
-  if (within(payload.runRoot, ref.location)) throw new Error('Public funding authorization must be outside the generated run.');
-  return { payload, binding: fundingBinding(payload, ref, bytes) };
 }
 export async function readPublicFundingIntent(root: string) {
   const intent = await optional(root, intentName);
@@ -106,6 +109,7 @@ async function commitShared(store: SnapshotStore, previous: RunSnapshot, next: R
 /** Whole-run allocation only; no provider request and no old case owner are created. */
 export async function reservePublicValidationFunding(options: { sharedRoot: string; runRoot: string; authorization: ArtifactReference; now?: () => number }): Promise<PublicValidationFundingBinding> {
   const { payload, binding } = await readPublicValidationAuthorization(options.sharedRoot, options.authorization);
+  await requireFundingRequirements(payload);
   const now = options.now ?? Date.now;
   if (binding.sharedRoot !== resolve(options.sharedRoot) || binding.runRoot !== resolve(options.runRoot) || Date.parse(payload.decidedAt) > now()) throw new Error('Public funding authorization does not match the requested roots or time.');
   await safePath(binding.runRoot); await safePath(binding.sharedRoot);
@@ -158,6 +162,7 @@ export async function acquirePublicFundingGate(root: string, snapshot: IntakeSna
     || binding.limits.limitMicroCny !== snapshot.ledger.limitMicroCny || binding.limits.durationMs !== duration
     || origin.brief !== intent.payload.brief || !!origin.renderFrames !== intent.payload.renderFrames
     || !sameValue(origin.requirementsSource, intent.payload.requirementsSource) || !sameValue(snapshot.requirementsSource, intent.payload.requirementsSource)) throw new Error('Public funding differs from the original public run.');
+  if (dispatch) await requireFundingRequirements(intent.payload);
   const store = await SnapshotStore.acquire(binding.sharedRoot);
   try {
     const state = await store.read(); validateSnapshot(state);
