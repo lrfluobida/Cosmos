@@ -257,11 +257,13 @@ export async function executeGeneration(options: GenerationOptions) {
       const replacements: Pick<TaskReplacement, 'sourceTaskId' | 'replacementTaskId'>[] = continuation?.replacements ?? (replacement ? [replacement] : []);
       const effective = effectiveTasks.map(item => {
         const id = replacements.find(replacement => replacement.sourceTaskId === item.task.taskId)?.replacementTaskId ?? item.task.taskId;
-        const current = beforeDelivery.tasks.find(task => task.taskId === id); if (!current && !designBranch) throw new Error('Original DAG task or declared successor is missing.'); return current ?? item.task;
+        const current = beforeDelivery.tasks.find(task => task.taskId === id); if (!current && (!designBranch || designBranch.selection)) throw new Error('Original DAG task or declared successor is missing.'); return current ?? item.task;
       });
       phase = 'delivery';
       const final = await host.finish(effective);
       const state = await controller.read();
+      const reportedTasks = designBranch && !designBranch.selection
+        ? effective.flatMap(task => state.tasks.filter(current => current.taskId === task.taskId)) : effective;
       const passed = !state.stopReason && !result.blocked.length && effective.length > 0 && effective.every(task => task.state === 'passed') && final.gaps.length === 0 && !!final.delivery;
       return { outcome: passed ? 'awaiting_user_experience' : 'incomplete', runId: state.run.runId, ledgerId: state.ledger.ledgerId, currentProject: root, ...final,
         ...(designBranch ? { ordinaryDesignReview: { authority: 'independent_model_review', sourceTaskId: execution.tasks.find(item => item.role === 'design')!.task.taskId,
@@ -270,7 +272,7 @@ export async function executeGeneration(options: GenerationOptions) {
         gaps: [...final.gaps, ...result.blocked.map(item => `${item.taskId}: ${item.reason}`), ...effective.filter(task => task.state !== 'passed').flatMap(task => task.handoff.remaining)],
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff,
           supersededBy: replacements.find(replacement => replacement.sourceTaskId === task.taskId)?.replacementTaskId ?? null })), replacement: replacement ?? continuation?.replacements[0] ?? null, replacements,
-        reusedTaskIds: result.reusedTaskIds, effectiveTasks: deliveryTaskProofs(effective), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
+        reusedTaskIds: result.reusedTaskIds, effectiveTasks: deliveryTaskProofs(reportedTasks), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
     }).catch(async error => {
       const state = await controller.read(), final = await host.finish(state.tasks).catch(() => ({ gaps: ['No accepted candidate can be established.'] }));
       return { ...final, outcome: 'incomplete', runId: state.run.runId, ledgerId: state.ledger.ledgerId, currentProject: root,
