@@ -1,5 +1,9 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-27 已批准澄清（[公开记录](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6427444470)）：独立media_observation_contract_reviewer APPROVED_CLARIFICATION，Root批准以真实音频API已接受的即时控制态解释outputActive/outputActivations；滞后getter不覆盖已提交目标，不等同PCM/系统音量/人耳听感。仅已确认/声明的媒体和触发适用，collect/open是条件例。原来源、单次重开、schema/runner及未知通路拒绝保持。
+
+COS132/COS133源码已独审批准，现仅在专属隔离分支组合；main尚未发布新策略，两卡保持open/未勾。新repair余450000µ低于现coding固定65536输出最低524288µ，须待COS134必要adaptive output及最终组合通过后一次发布，不先切默认再补能力；COS134计划尚待批准，未登记。
+
 2026-10-27 [COS-132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)、[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134) 已登记，固定spec/plan均独立APPROVED_PLAN并获Root批准免费实施；两卡source pending、原生父未勾选。总133/root100/父27子项中25源码完成，COS18仍open/partial。COS132依赖已完成COS129/130/131；COS132与COS133并行，不互设依赖环。
 
 2026-10-27 [COS131 / #132](https://github.com/lrfluobida/Cosmos/issues/132) 已独审合入 `03fb1d5461277b5ca0532ad38f0b5b3b618539fb`，source-scoped关闭、父[x]；typecheck/build与实际raw publisher正例1/1通过。COS129仅source-scoped完成，COS130最终独审批准且组合已source_verified；总131/root100/父25中25源码完成，父仍open/partial，paidReady=false。
@@ -1941,17 +1945,19 @@ COS130已原生依赖本卡；本卡源码范围完成，COS130最终组合已so
 
 新ordinary原pool内design 15%→25%，同一task grant保留1/3给独审；一次预算压力冷却例外、既有readonly纠正4096及明确资源退出，不增加总预算/时钟/32请求上限。旧execution缺省保留原政策。原生依赖已完成COS129/130/131；COS133仅为最终组合前置，不互设阻塞。
 
-总133/root100/父27子项中25源码完成，父整体open/partial。原reuse-1已永久failedclosed/PASS_CLOSED；[实际失败与结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6425494810)保持。源码尚无候选，组合实际reviewer报价通过前不启动下一次付费；不改旧run/ledger/coordinator。稳定任务ID：COS-132。
+总133/root100/父27子项中25源码完成，父整体open/partial。原reuse-1已永久failedclosed/PASS_CLOSED；[实际失败与结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6425494810)保持。源码已获独审批准但仍待本批隔离组合与COS134，组合实际reviewer报价通过前不启动下一次付费；不改旧run/ledger/coordinator。稳定任务ID：COS-132。
 
 ### COS-133 · 普通游戏逐步骤媒体观测契约
 
 [COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134)，id6047234970，原生父COS18/#19、[ ]，`source-pending`。独立media_observation_contract_reviewer已APPROVED_PLAN、无P1/P2，Root批准固定工程设计与免费实施；作者media_observation_contract_implementer、独立源码reviewer media_observation_contract_reviewer、唯一merger public_agent_batch_merger。实施基线 `844df4c7e09d7bbbad0b1a4d0cf2e3006801d9fd`。
 
-正式[规格](cos133-ordinary-media-observations.md)/[计划](../plans/2026-10-27-ordinary-media-observations.md)保留完整批准正文；输入SHA256：spec `810046fed3c73222614f5cac01be15084c740f2176f91ecc74970edda7d94c34`，plan `6c9e2b9722018b08dee4f3f3924be46edee075087b25a5f617db86123f2b31b0`。
+正式[规格](cos133-ordinary-media-observations.md)/[计划](../plans/2026-10-27-ordinary-media-observations.md)保留完整批准正文；输入SHA256：spec `b13aa0d9808a79c8fe3991fb10f669f799808462f81d4a72e7fe9be03caab51d`，plan `1bc0f7ee579ac06b9037a22129756a3bb22bd50e5c89981e06139edb0a9495e1`。
 
 同源稳定ID逐步骤media debug契约、独立ordinaryMediaObservationPolicy版本及旧modular精确恢复；原媒体数组、runner/schema/预算保持。真实Phaser/Edge有限正负边界和现有独审拒绝链验证，SOURCE/TEMP、无模型网络调用。与COS132并行，两个execution字段各自独立。
 
-总133/root100/父27子项中25源码完成，父整体open/partial。原reuse-1已永久failedclosed/PASS_CLOSED；[实际失败与结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6425494810)保持。源码尚无候选，组合实际reviewer报价通过前不启动下一次付费；不改旧run/ledger/coordinator。稳定任务ID：COS-133。
+总133/root100/父27子项中25源码完成，父整体open/partial。原reuse-1已永久failedclosed/PASS_CLOSED；[实际失败与结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6425494810)保持。源码已获独审批准但仍待本批隔离组合与COS134，组合实际reviewer报价通过前不启动下一次付费；不改旧run/ledger/coordinator。稳定任务ID：COS-133。
+
+2026-10-27 已批准澄清（[公开记录](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6427444470)）：独立media_observation_contract_reviewer APPROVED_CLARIFICATION，Root批准以真实音频API已接受的即时控制态解释outputActive/outputActivations；滞后getter不覆盖已提交目标，不等同PCM/系统音量/人耳听感。仅已确认/声明的媒体和触发适用，collect/open是条件例。原来源、单次重开、schema/runner及未知通路拒绝保持。
 
 ## 5. 任务与上下文包模板
 

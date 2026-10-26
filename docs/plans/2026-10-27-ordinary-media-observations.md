@@ -1,11 +1,11 @@
 # COS133 Ordinary Media Observations Implementation Plan
 
-状态：固定规格/计划已由独立 `media_observation_contract_reviewer` APPROVED_PLAN、无P1/P2，Root批准工程设计及免费源码实施；source pending，尚未独审或集成。
+状态：固定规格/计划已由独立 `media_observation_contract_reviewer` APPROVED_PLAN、无P1/P2，Root批准工程设计及免费源码实施；source pending本批集成，尚未向main发布或关闭任务。
 
 任务：[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134)，原生父COS18/#19、未勾选。实现者 `media_observation_contract_implementer`，独立源码reviewer `media_observation_contract_reviewer`，唯一merger `public_agent_batch_merger`。
 
-- 批准规格输入 SHA256：`810046fed3c73222614f5cac01be15084c740f2176f91ecc74970edda7d94c34`
-- 批准计划输入 SHA256：`6c9e2b9722018b08dee4f3f3924be46edee075087b25a5f617db86123f2b31b0`
+- 批准规格输入 SHA256：`b13aa0d9808a79c8fe3991fb10f669f799808462f81d4a72e7fe9be03caab51d`
+- 批准计划输入 SHA256：`1bc0f7ee579ac06b9037a22129756a3bb22bd50e5c89981e06139edb0a9495e1`
 
 登记/实施基线：`844df4c7e09d7bbbad0b1a4d0cf2e3006801d9fd`；已发布runtime `ac1c745eb0be016f8a556edbadabad013fbf61bd`。下文设计诊断基线按批准原文保留。[配套技术规格](../specs/cos133-ordinary-media-observations.md)。COS132/COS133并行，不互设阻塞；最终组合的实际reviewer报价为下一次付费前置。本次仅免费源码实施，旧reuse-1永久failedclosed，不操作真实run/ledger/coordinator。
 
@@ -16,6 +16,10 @@
 **Architecture:** 补齐普通任务规则，并在原 execution 固定独立媒体规则版本，保留旧任务的精确恢复。媒体状态继续由生成代码从真实音频对象导出，使用原 static plan/debug 标量读取和原 raw report；原末端媒体 coverage 保持。
 
 **Tech Stack:** TypeScript、Node22、锁定 Phaser3.90.0/tsc/Vite、Playwright Edge，全部 SOURCE/TEMP、无模型调用。
+
+2026-10-27 已批准澄清（[公开记录](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6427444470)）：独立media_observation_contract_reviewer APPROVED_CLARIFICATION，Root批准以真实音频API已接受的即时控制态解释outputActive/outputActivations；滞后getter不覆盖已提交目标，不等同PCM/系统音量/人耳听感。仅已确认/声明的媒体和触发适用，collect/open是条件例。原来源、单次重开、schema/runner及未知通路拒绝保持。
+
+COS132/COS133源码已独审批准，现仅在专属隔离分支组合；main尚未发布新策略，两卡保持open/未勾。新repair余450000µ低于现coding固定65536输出最低524288µ，须待COS134必要adaptive output及最终组合通过后一次发布，不先切默认再补能力；COS134计划尚待批准，未登记。
 
 ## 0. 边界与依赖
 
@@ -42,7 +46,7 @@
 
 - [ ] 修改 ordinary 设计计划语法，将 observation 由 `text|visible` 扩充为原已支持 `text|visible|debug`，限制用途为本卡媒体证据，保留每 AC 点击后可见断言和原 200 步、timeout 限制。
 - [ ] 修改原“static visible equality / hidden state unsupported”说明：允许固定媒体只读 debug 作为补充，任意游戏隐藏状态、随机观察分支、严格时间区间仍不支持。
-- [ ] 在新标记 ordinary code policy 追加精确 getter 契约：保留原数组，新增同源 ID 视图；记录含原字段 + playing/looping/outputActive/outputActivations；说明真实实例/manager/context/gain 来源、每文档累积、所有实例与事件、循环不重复计数、静音 play/volume0 可合规。必须说明play/resume启动事务内配置事件合并、成功终点只结算一次，外部后续mute不合并；manager事件名为GLOBAL_MUTE/GLOBAL_VOLUME。不要自动生成或插入游戏实现。
+- [ ] 在新标记 ordinary code policy 追加精确 getter 契约：保留原数组，新增同源 ID 视图；记录含原字段 + playing/looping/outputActive/outputActivations；说明真实实例/manager/context 来源，以及API已接受的即时控制状态：后续修改前读实际节点初始化，成功setter事件更新已提交目标，滞后getter不覆盖。保留每文档累积、所有实例与事件、循环不重复计数、静音 play/volume0 可合规。必须说明play/resume启动事务内配置事件合并、实际成功终点结合context.running只结算一次，外部后续mute不合并；manager事件名为GLOBAL_MUTE/GLOBAL_VOLUME。仅标准即时通路可据此证明控制状态，不是PCM/操作系统音量/听感证明。不要自动生成或插入游戏实现。
 - [ ] 设计和 coding 共同使用 `clip_` + `id.replaceAll('-', '_')` 固定键规则，覆盖连字符/保留词；每文档首次观察某键须断言对应 id。由同一实际对象记录组成数组/ID视图，不要求 art 顺序，不放宽 debug path。
 - [ ] 设计/编码同一 rules 文本包含对应独审职责：首次输入顺序、实际状态与短音效证据、反对文案/常量替代、完整原要求，源码结构 passed 不代替语义批准。
 - [ ] 与 COS132 作者协调 host 不同段，以及 entrypoint 的同一execution对象上两个独立字段；不改其 factory 配置、budget/compaction/maxRequests/final-handoff。merger按已审 SHA 组合，字段各自恢复/拒绝规则保持。
@@ -50,11 +54,12 @@
 
 ## 3. 真实媒体 fixture 与有限正负代表
 
-- [ ] fixture TypeScript 使用原 Phaser SoundManager 的实际加载与 WAV（复用 synthesizeWav），按钮只有播放、开关、简单收集/存档/恢复；调试 getter 按 spec 从实际对象读取，不把业务标记作为证据。含一个 loop BGM 与一个短 SFX；包围真实实例play/resume同步调用，将内部applyConfig中间事件合并到实际成功终点；manager采用GLOBAL_MUTE/GLOBAL_VOLUME，事务外状态转移仍正常记录。包装保留this/参数/返回值/异常，不改变引擎行为。
+- [ ] fixture TypeScript 使用原 Phaser SoundManager 的实际加载与 WAV（复用 synthesizeWav），按钮只有播放、开关、简单收集/存档/恢复；调试 getter 按 spec 从实际对象及API成功提交状态取值，不把业务标记作为证据。含一个 loop BGM 与一个短 SFX；在后续修改前读实际节点初始化，Phaser成功setter事件更新即时控制目标，不让滞后getter覆盖。包围真实实例play/resume同步调用，将内部applyConfig中间事件合并到实际成功终点；manager采用GLOBAL_MUTE/GLOBAL_VOLUME，事务外状态转移仍正常记录。包装保留this/参数/返回值/异常，不改变引擎行为。
 - [ ] 复制锁定 template 到独立 TEMP，写 fixture src/main.ts/index.html，使用已有本机 node_modules 和锁定 `tsc --noEmit && vite build`；不得 npm install 或网络下载。测试报告记录实际编译退出值和构建路径。不要用 transpile-only 冒充编译。
 - [ ] 用 `src/runtime/entrypoint-persistent.ts` 的 `createGenericPersistentSeries` 和 `src/acceptance/persistent.ts` 原 owned lifecycle 跑正例，两段共享 origin/profile，中间仅一次真实浏览器进程退出重开；第一段含正常音频、静音、重新开启和存档，第二段的首次点击为关闭声音，再真实恢复。使用既有 checkpoint 可见断言，不重造存档harness。
 - [ ] 正例的静音阶段实际调用 play，同时分别覆盖 manager.mute 与 volume=0，证明未把“无内部 play”变成要求。计数从实际成功事件更新；短音效结束后仍可读到记录。无需等待一个循环周期或添加精确时长判断。
 - [ ] 在同一真实浏览器正例补三项有区分力的断言：实例初始volume1→首次play({volume:0})累计0；正常首play累计恰好1；重播与pause→resume分别只新增1。保留普通play后外层立即mute的独立事件记录，不能合并掩盖其已启用过输出。旧按每次MUTE/PLAY各计的fixture应在这些计数断言RED，修正事务后GREEN；不另开整套浏览器矩阵。
+- [ ] 保留已出现的false-volume0真实Edge trace：API提交0后立即getter仍1，约18ms后0且短SFX已结束。按Root已批准澄清修同一正例的提交值来源后，再执行原四个负例；不增加固定等待、不以延长音效或读取UI值绕过，不新增schema/录音/框架。
 - [ ] 正例核对当前 BGM playing/looping/outputActive，正常启动与再次触发计数，重复 debug 读取不改变数值，scene 变更累计保持，新文档从0开始。fixture 将 art 顺序相对 design 重排，仍按稳定ID读取正确对象。所有通过都有真实 raw step actual/expected、编译与清理事实；providerCalls=0。
 - [ ] 从同一 fixture 只加四个有限故障选项，保持记录真实：忽略静音而 UI 显示关；忽略开启后的收集音效；实际 sound.loop=false；ID视图错误绑定另一实际记录。复用已有 plan，每个负例须在实际字段/ID断言失败。不要用 stub browser 或字段常量构造“失败”。
 - [ ] 浏览器基线 RED：旧只有 decoded/started 的 fixture不能满足新计划指定字段；补齐真实 observer 后正常版本 GREEN。故障版本的 RED 是能力负证据，不是生产代码又修了一遍。

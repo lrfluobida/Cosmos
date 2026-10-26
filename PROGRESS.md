@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-27 已批准澄清（[公开记录](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6427444470)）：独立media_observation_contract_reviewer APPROVED_CLARIFICATION，Root批准以真实音频API已接受的即时控制态解释outputActive/outputActivations；滞后getter不覆盖已提交目标，不等同PCM/系统音量/人耳听感。仅已确认/声明的媒体和触发适用，collect/open是条件例。原来源、单次重开、schema/runner及未知通路拒绝保持。
+
+COS132/COS133源码已独审批准，现仅在专属隔离分支组合；main尚未发布新策略，两卡保持open/未勾。新repair余450000µ低于现coding固定65536输出最低524288µ，须待COS134必要adaptive output及最终组合通过后一次发布，不先切默认再补能力；COS134计划尚待批准，未登记。总133/root100/父27中25源码完成，父COS18仍open/partial；旧真实run均已关闭，本批仅免费开发。
+
 2026-10-27 [COS-132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)、[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134) 已登记，固定spec/plan均独立APPROVED_PLAN并获Root批准免费实施；两卡source pending、原生父未勾选。总133/root100/父27子项中25源码完成，COS18仍open/partial。COS132依赖已完成COS129/130/131；COS132与COS133并行，不互设依赖环。
 
 COS132按新ordinary政策在原总¥5/30min内将design pool占比15%→25%、保留1/3给独审，增加一次预算压力冷却例外及原readonly纠正4096，旧execution政策和原32请求上限保持。COS133补同源稳定ID的逐步骤媒体debug契约、独立execution版本及旧modular兼容，并用真实Phaser边界验证；原预算/runner/schema保持。实现者分别author_budget_recovery_implementer、media_observation_contract_implementer，独审分别author_budget_recovery_reviewer、media_observation_contract_reviewer。免费组合后的实际reviewer报价与语义拒绝链是后续付费前置；原reuse-1结案保持，未启动新实际运行。

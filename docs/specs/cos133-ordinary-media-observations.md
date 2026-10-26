@@ -1,15 +1,19 @@
 # COS133 · 普通游戏逐步骤媒体观测契约
 
-状态：固定规格/计划已由独立 `media_observation_contract_reviewer` APPROVED_PLAN、无P1/P2，Root批准工程设计及免费源码实施；source pending，尚未独审或集成。
+状态：固定规格/计划已由独立 `media_observation_contract_reviewer` APPROVED_PLAN、无P1/P2，Root批准工程设计及免费源码实施；source pending本批集成，尚未向main发布或关闭任务。
 
 任务：[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134)，原生父COS18/#19、未勾选。实现者 `media_observation_contract_implementer`，独立源码reviewer `media_observation_contract_reviewer`，唯一merger `public_agent_batch_merger`。
 
-- 批准规格输入 SHA256：`810046fed3c73222614f5cac01be15084c740f2176f91ecc74970edda7d94c34`
-- 批准计划输入 SHA256：`6c9e2b9722018b08dee4f3f3924be46edee075087b25a5f617db86123f2b31b0`
+- 批准规格输入 SHA256：`b13aa0d9808a79c8fe3991fb10f669f799808462f81d4a72e7fe9be03caab51d`
+- 批准计划输入 SHA256：`1bc0f7ee579ac06b9037a22129756a3bb22bd50e5c89981e06139edb0a9495e1`
 
 登记/实施基线：`844df4c7e09d7bbbad0b1a4d0cf2e3006801d9fd`；已发布runtime `ac1c745eb0be016f8a556edbadabad013fbf61bd`。下文设计诊断基线按批准原文保留。[配套实施计划](../plans/2026-10-27-ordinary-media-observations.md)。COS132/COS133并行，不互设阻塞；最终组合的实际reviewer报价为下一次付费前置。本次仅免费源码实施，旧reuse-1永久failedclosed，不操作真实run/ledger/coordinator。
 
 状态：已独立APPROVED_PLAN并获Root批准免费实施；源码pending。基线 `7b5d837636d8f58394182fdad78c51b3806ebdb7`，已发布 runtime `ac1c745eb0be016f8a556edbadabad013fbf61bd`。
+
+2026-10-27 已批准澄清（[公开记录](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6427444470)）：独立media_observation_contract_reviewer APPROVED_CLARIFICATION，Root批准以真实音频API已接受的即时控制态解释outputActive/outputActivations；滞后getter不覆盖已提交目标，不等同PCM/系统音量/人耳听感。仅已确认/声明的媒体和触发适用，collect/open是条件例。原来源、单次重开、schema/runner及未知通路拒绝保持。
+
+COS132/COS133源码已独审批准，现仅在专属隔离分支组合；main尚未发布新策略，两卡保持open/未勾。新repair余450000µ低于现coding固定65536输出最低524288µ，须待COS134必要adaptive output及最终组合通过后一次发布，不先切默认再补能力；COS134计划尚待批准，未登记。
 
 ## 问题与范围
 
@@ -34,18 +38,18 @@
 | `id/decoded/started` | 原类型 | 保持原含义；与 media.audio 数组中同 ID 的记录同源，数组仍按实际 manifest 顺序。 |
 | `playing` | boolean | 该 ID 任一实际音频实例当前正在播放，暂停/停止/结束后相应实例为 false。 |
 | `looping` | boolean | 任一当前播放实例的实际引擎 loop 状态为 true；不能复制 manifest 的 loop 声明。 |
-| `outputActive` | boolean | 任一正在播放实例的实际输出链启用：AudioContext 为 running，实例和 manager 的实际 mute/gain 均允许非零输出。 |
-| `outputActivations` | 非负安全整数 | 当前文档累计进入上述可输出状态的次数，保存短音效已结束前发生的事实；具体计数规则见下。 |
+| `outputActive` | boolean | 任一实际已启动且正在播放实例的即时输出控制启用：AudioContext 为 running，真实音频 API 已接受的实例和 manager 的即时 mute/gain 目标均允许非零输出。不是 PCM 或扬声器输出采样值。 |
+| `outputActivations` | 非负安全整数 | 当前文档累计进入上述已提交即时输出控制状态的次数，保存短音效结束前发生的控制变化；具体计数规则见下。 |
 
 ### 数据来源与计数
 
-1. 标准 Phaser WebAudio 路径读取实际 sound 对象、manager/context、实际 gain 节点或对应真实 getter；不读取按钮文案、业务 `soundEnabled` 布尔、期望值或 manifest 常量作为输出证据。Phaser 3.90.0 的实例/全局 mute 和 volume getter 本身读取 gain.value，PLAY 在实际创建并启动 buffer source 后发送。
+1. 标准 Phaser WebAudio 即时路径读取实际 sound 对象、manager/context；在后续修改前从实际节点初始化控制值，再按真实音频 API 已接受的即时控制目标更新。不读取按钮文案、业务 `soundEnabled` 布尔、期望值或 manifest 常量作为证据。Phaser 3.90.0 的实例/manager mute、volume setter 在 setValueAtTime 成功返回后发送 MUTE/VOLUME 或 GLOBAL_MUTE/GLOBAL_VOLUME 的传入值，这些事件更新已提交目标；之后滞后的 gain.value/sound.volume getter 不能覆盖它。PLAY 在实际创建并启动 buffer source 后发送。控制提交与音频渲染回读是两件事，不以固定延时等待 getter 追上来绕过。
 2. 对每个 ID 的全部实际实例跟踪 PLAY、RESUME、PAUSE、STOP、COMPLETE、DESTROY，以及实例 MUTE/VOLUME、manager GLOBAL_MUTE/GLOBAL_VOLUME 与 context statechange。必须在可触发播放前建立跟踪；不能仅在 `cosmosDebug` getter 中加一，也不能仅在下一帧采样，以免漏掉短音效。
-3. 每次实际 `sound.play(...)` / `sound.resume()` 是一个同步启动事务：在调用真实方法前进入实例事务，期间 applyConfig 的 MUTE/VOLUME 等中间事件只更新事实、不计数；在真实方法成功完成、buffer source 已启动的终点，用最终实际输出状态结算至多一次。必须保留真实方法的 this、参数、返回值与异常；未成功启动不得凭 isPlaying=true 加一。Phaser 的 BaseSound 先设 isPlaying=true，WebAudioSound 再依次 mute→volume 配置、source.start、PLAY/RESUME，因此不得在内部 MUTE(false) 时读旧 volume=1 误计，也不得同时按配置事件和终点双计。可用生成代码中包围实际实例 play/resume 的窄包装落实；所有播放通路须被覆盖，getter仍只读 plain data。
+3. 每次实际 `sound.play(...)` / `sound.resume()` 是一个同步启动事务：在调用真实方法前进入实例事务，期间 applyConfig 的 MUTE/VOLUME 等中间事件只更新已提交控制事实、不计数；在真实方法成功完成、buffer source 已启动的终点，用最终已提交即时控制状态及实际 context.running 结算至多一次。必须保留真实方法的 this、参数、返回值与异常；未成功启动不得凭 isPlaying=true 加一。Phaser 的 BaseSound 先设 isPlaying=true，WebAudioSound 再依次 mute→volume 配置、source.start、PLAY/RESUME，因此不得在内部 MUTE(false) 时读旧 volume=1 误计，也不得同时按配置事件和终点双计。可用生成代码中包围实际实例 play/resume 的窄包装落实；所有播放通路须被覆盖，getter仍只读 plain data。
 4. 事务之外，正在播放实例由不可输出变为可输出记录一次；一个成功的重播/RESUME 终点按最终输出状态记录一次，循环周回不增加，重复读取不增加。停止/静音/暂停/失去 context 后更新实例当前输出状态。事务到真实 play/resume 返回即结束，不能把外层后续 `sound.play(); manager.mute=true` 合并成“从未输出”。直接操作未纳入观测的原生节点、额外音频通路、延迟/自动化 gain 必须提供同等真实来源，否则独审报告证据不足，不能填常量凑数。
 5. getter 只把这些事实转为冻结 plain data。原累计字段和计数跨 scene 保留；新浏览器文档重新从实际初始状态开始，不把观测计数写入游戏存档。
 6. 内部 `play()` 在全局静音或音量 0 下成功是允许的：`started` 可以为 true、`playing` 可以为 true，但 `outputActive=false` 且该次不增加 `outputActivations`。包括实例初始 volume=1、首次 `play({volume:0})`：配置中间态不算输出激活。不得要求“静音时绝不调用 play”。
-7. 这些字段证明软件输出链状态与事件，不是操作系统扬声器录音，也不是每个采样点的波形证明。源码独审必须核对事件来源、覆盖的实例、连线和执行顺序。瞬态同一 JS 回合的播放再静音不能仅凭一次事件计数宣布已被人耳听到；存在无法解释的输出顺序时报告证据不足。最终听感仍由用户试玩确认。
+7. 这些字段只证明标准即时通路中真实 API 已接受的输出控制状态及变化，不是 PCM、操作系统音量或人耳听到的证明。源码独审必须核对事件来源、覆盖的实例、连线和执行顺序；未知原生节点、未来自动化或额外通路仍属证据不足。瞬态同一 JS 回合的播放再静音不能仅凭一次事件计数宣布已被人耳听到；存在无法解释的输出顺序时报告证据不足。最终听感仍由用户试玩确认。
 
 ### 稳定 ID 视图
 
@@ -95,3 +99,5 @@
 2026-10-27，本机 Node22 stdin probe 调用真实 `validateOrdinaryAcceptancePlan`：合法媒体 debug 补充接受，移除可见断言后拒绝。对当前 host 规则检查结果 `promptDocumentsStepDebug=false`、`promptDocumentsOutputState=false`，命令 exit 1，建立提示缺口的 RED。未调用模型、未修改 run/ledger/游戏。
 
 同日第二个 stdin probe 通过真实媒体 identifier 与 `validatePlan` 核对 `bgm-soft/constructor/prototype/a-b/ab` 的固定键，得到 `clip_bgm_soft/clip_constructor/clip_prototype/clip_a_b/clip_ab`，`issues=[]`、无碰撞、exit 0。这只验证现有路径能力，不是浏览器或真实性验证。
+
+后续实际 Edge 的 false-volume0 trace 保留：setValueAtTime(0,0) 成功后，同次 play 返回点 gain.value/sound.volume 仍为1，约18ms后读回0，此时短音效已结束。独审核对 Phaser setter 先完成API再emit原值，Root已批准本卡按已提交即时控制状态解释；修正同一正例后继续原四个负例，不加固定延时、录音或新schema。
