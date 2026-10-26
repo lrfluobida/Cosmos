@@ -62,6 +62,38 @@ test('new ordinary author and independent reviewer packets share the fixed media
   await writeFile(join(f.root, 'execution.json'), JSON.stringify(execution), 'utf8');
 });
 
+test('SFX-only button game packets apply media checks only to confirmed declared sounds and triggers', async t => {
+  const f = await ordinaryHostFixture(t, { pause: true, mediaPolicy: 'audio-state/1', configure(draft) {
+    draft.brief = '鼠标点击按钮显示完成并播放一次短提示音；没有背景音乐、收集、开门或声音开关。';
+    draft.acceptance[0].description = '按钮完成提示'; draft.acceptance[0].steps = ['点击按钮，显示完成并播放一次短提示音'];
+    draft.acceptance[0].expected = '完成文字与一次短提示音';
+  }, sessionFactory: async (config, fallback) => {
+    const packet = JSON.parse(config.context!);
+    if (!['design', 'art'].includes(packet.role)) return fallback;
+    return { close: fallback.close, prompt: async (...args) => {
+      const result = await fallback.prompt(...args), path = packet.role === 'design' ? 'authors/design/design.json' : 'authors/art/media.json';
+      const output = await read(config.workspace, path);
+      output.audio = packet.role === 'design' ? [{ id: 'click-tone', trigger: '点击按钮时播放一次', loop: false }]
+        : [{ id: 'click-tone', sampleRate: 22050, duration: 0.05, loop: false, notes: [{ midi: 65, start: 0, duration: 0.05, gain: 0.1, wave: 'sine', attack: 0.002, release: 0.003 }] }];
+      await writeFile(join(config.workspace, path), JSON.stringify(output), 'utf8'); return result;
+    } };
+  } }); await f.execute();
+  const author = f.packets.find(p => p.role === 'design'), reviewer = f.packets.find(p => p.role === 'reviewer' && p.taskId === 'design-task');
+  assert.ok(author && reviewer); assert.deepEqual(reviewer.rules, author.rules);
+  const mediaRule = author.rules.find((rule: string) => rule.startsWith('Preserve every normal visible AC assertion;'));
+  assert.ok(mediaRule);
+  for (const condition of ['only to confirmed requirements and declared media/triggers', 'Do not add BGM, SFX, controls or gameplay', 'If BGM is declared', 'If short SFX are declared', 'Only when the confirmed requirements include sound controls', 'Collection/opening and uncollected items are conditional examples']) {
+    assert.ok(mediaRule.includes(condition), condition);
+  }
+  const capture = reviewer.inputs.find((ref: any) => ref.artifactId === 'design');
+  assert.deepEqual((await read(f.root, capture.location + '/_cosmos/design.json')).audio, [{ id: 'click-tone', trigger: '点击按钮时播放一次', loop: false }]);
+  const state = await read(f.root, 'snapshot.json'), art = state.tasks.find((task: any) => task.taskId === 'art-task');
+  assert.equal(art.state, 'passed');
+  const manifest = await read(f.root, art.artifacts[0].location + '/public/assets/manifest.json');
+  assert.deepEqual(manifest.audio.map((clip: any) => [clip.manifest.id, clip.manifest.loop]), [['click-tone', false]]);
+  assert.equal(f.packets.some(p => p.role === 'coding'), false); assert.deepEqual(state.ledger.entries, []);
+});
+
 test('old ordinary modular execution resumes with exact baseline rules and no media upgrade', async t => {
   const f = await ordinaryHostFixture(t, { modular: true, pause: true }); await f.execute();
   const original = await read(f.root, 'execution.json');
