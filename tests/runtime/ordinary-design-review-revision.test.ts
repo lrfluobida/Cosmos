@@ -230,6 +230,31 @@ test('revision identity collision with an unregistered downstream task stops bef
   await assert.rejects(readFile(join(f.root, 'ordinary-design-revision-plan.json')), { code: 'ENOENT' });
 });
 
+test('revision recovery preserves orphan review-started without an origin and sends no author request', async t => {
+  const { f } = await rejectedFixture(t, 'orphan');
+  f.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => {
+    const host = await createBrowserHost({ ...hostInput, ...f.hostOptions }), bind = host.bindPreparedTasks!.bind(host);
+    if (!input.resume) host.bindPreparedTasks = async tasks => {
+      await bind(tasks);
+      if (tasks.some(item => item.task.taskId === 'design-task-revision')) throw new RecoveryBlocked('Synthetic interruption after fixed revision plan.');
+    };
+    return host;
+  } });
+  await f.execute();
+  const execution = JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8'));
+  const folder = join(f.root, 'journal/task-design-task-revision'); await mkdir(folder, { recursive: true });
+  const orphan = Buffer.from(JSON.stringify({ formatVersion: 1, taskId: 'design-task-revision', attemptId: 'unknown-attempt', value: { reviewerId: 'unknown-reviewer', contextId: 'unknown-context' } }));
+  await writeFile(join(folder, 'review-started.json'), orphan);
+  const before = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+  const result = await f.host.execute({ root: f.root, requirement: execution.requirement, draft: f.draft, resume: true });
+  assert.equal(f.packets.filter(p => p.role === 'design').length, 1);
+  assert.match(result.gaps.join(' '), /missing_origin_with_journal_records/);
+  assert.deepEqual(await readFile(join(folder, 'review-started.json')), orphan);
+  await assert.rejects(readFile(join(folder, 'origin.json')), { code: 'ENOENT' });
+  const after = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+  assert.deepEqual(after.ledger.entries, before.ledger.entries); assert.equal(after.tasks.length, 1);
+});
+
 for (const { maximum, full } of [{ maximum: false, full: false }, { maximum: true, full: false },
   ...(process.env.COS134_CONFIRMED_SOURCE ? [{ maximum: false, full: true }] : [])]) test(`native revision ${full ? 'complete confirmed source' : maximum ? 'maximum reservation stops' : 'settlements retain review and coding repair'} without network`, async t => {
   const confirmed = full ? await readConfirmedRequirementsSource({ root: process.env.COS134_CONFIRMED_SOURCE!, revision: 2, specVersion: '1.0' }) : undefined;

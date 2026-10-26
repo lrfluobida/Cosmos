@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, sep } from 'node:path';
 import { ArtifactRegistry } from '../artifacts/index.ts';
 import { regularFile, safePath, snapshot } from '../artifacts/paths.ts';
@@ -184,12 +184,18 @@ export async function readDesignSelection(root: string, controller: Pick<RunCont
   if (!sameValue(selection, expected)) fail('selection_changed'); return selection;
 }
 /** Fill only an unstarted, fixed stage's origin; never infer missing execution evidence. */
+async function requireEmptyUnboundJournal(root: string, taskId: string) {
+  const folder = await safePath(root, `journal/task-${taskId}`);
+  const files = await readdir(folder).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
+  if (files.length) fail('missing_origin_with_journal_records');
+}
 export async function prepareDesignOrigins(root: string, controller: RunController, execution: OrdinaryExecution, tasks: PreparedTask[]) {
   const state = await controller.read();
   for (const item of tasks) {
     const current = state.tasks.find(task => task.taskId === item.task.taskId);
     if (current) requireOriginalTask(item.task, current);
     if (!await optionalDesignJson(root, `journal/task-${item.task.taskId}/origin.json`)) {
+      await requireEmptyUnboundJournal(root, item.task.taskId);
       if (current?.attempts.length || current?.artifacts.length || current?.evidence.length || state.ledger.entries.some(entry => entry.taskId === item.task.taskId)
         || await optionalDesignJson(root, `journal/task-${item.task.taskId}/author.json`)) fail('missing_origin_after_dispatch');
       for (const ref of item.expectedArtifacts ?? []) if (await lstat(await safePath(root, ref.location)).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; })) fail('unregistered_output_exists');
@@ -208,6 +214,7 @@ export async function executeOrdinaryDesign(input: { root: string; controller: R
     for (const item of tasks) {
       await mkdir(item.workspace, { recursive: true });
       const old = await optionalDesignJson(root, `journal/task-${item.task.taskId}/origin.json`), current = state.tasks.find(task => task.taskId === item.task.taskId);
+      if (!old) await requireEmptyUnboundJournal(root, item.task.taskId);
       if (old || current) resume = true;
     }
     if (resume) await prepareDesignOrigins(root, controller, execution, tasks);
