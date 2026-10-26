@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-26 room14 actual v2截至14:21:13Z的确认前快照（[公开核证](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6418642748)）：独立READY_CONFIRMATION，14AC（12玩法+2host）/4EX/8QA、unsupported[]，173原字符串及raw JSON精确导出；5个指定AC定点变化，其余9AC/4EX精确保留。草稿SHA `59ff37658dff87d2dfa2ac8f9dded9c6a77dea862e90c3b531a84924837a953c`，导出SHA `e6d4c879fe7f89642fad6691b51f44a6bbbd0682e383791e8b1e335a1f104ddd`。独审compact seed等价保留human room12 v2完整需求；实际首次答案2163字符，draft1 input23198 bytes（room13历史44712），draft2 input39190/maxOutput16384/quote209452µ在原余额内通过。
+
+原CLI64220 cancel exit0；核验时child23/shared3363，3笔9056+29537+36462=75055µ settled，reserved/unknown/pending/锁/进程0，原5M held保留未关闭/结算，无confirm/activate/clock/stop。原¥5/30min和runtime `93b1b0f8e9da14a804542d3f6f4380baed54e12f`保持；后续以真实用户对当前完整v2的答复及原CLI为准，此快照不代确认或宣称游戏成功。父COS18仍open/partial，旧memory及room1–13永久关闭；本次仅进度文档，不重新核验或修改source/tests/运行/授权/seed/ledger/coordinator。
+
 2026-10-26 room13 intake已永久关闭，未confirm或启动generation（[结案核证](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6417119208)）。v1独审有4项缺口，edit draft2在provider前被原output-limit门禁拒绝：grant250000µ/余196003µ，input66697 bytes、8192 floor报价198930µ，差2927µ；答案增长与editContext均计入估价，两笔7584+46413=53997µ，无第三provider/新费用。原v2 answers/intent固定，不能同run改短；拒绝签名也不匹配既有denial successor，未尝试补发或改来源。
 
 原stop/close+单次settle13:04:09.595Z释放4946003µ；独立room10_wait_check截至13:07:02Z（本地21:07:02）核证PASS_CLOSED，child20/shared3362 committed21689060µ/unallocated53123365µ，held/reserved/unknown/pending/锁/进程0，各请求仅导入一次、一closure/settlement，原draft/intent/native及费用保留。证据 `.cosmos/public-validation/room-20261026-13/intake-closure.json`与`draft2-admission-failure.json`。runtime `93b1b0f8e9da14a804542d3f6f4380baed54e12f` 的COS128实际generation未进入，不判其运行成败；父COS18仍open/partial，旧memory及room1–13永久关闭。本次仅进度文档，不改源码/授权/seed/真实run/ledger/coordinator，不重测或预报下一次验证。
