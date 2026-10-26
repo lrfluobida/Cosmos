@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-26 room12已永久关闭，109.790秒incomplete（[结案核证](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6413933615)）。真实用户确认当前v2后，原confirm 2于10:06:48.491Z、start10:06:49.115Z/deadline10:36:49.115Z，cleanup10:08:38.905Z。设计结构自检通过，但最终native3e902364为前置prose加JSON，严格协议解析失败；公开入口未开启已有authorProtocolCorrections（默认0），原attempt已终态不能补发。无capture/review/art/code；COS127评审路径未进入，不据此判定其actual成败。原runtime `d088df021825f1813e5d8fe9f1c775f011144321`、用户确认/clock/native与失败保持。
+
+20笔360363µ（含intake92586µ）结算，单次settle10:19:43.023Z释放4639637µ；独立room10_wait_check于10:21:45Z（本地18:21:45）核证PASS_CLOSED，child104/shared3360 committed21635063µ/unallocated53177362µ，held/reserved/unknown/pending/锁/进程0，各请求仅导入一次、一closure/settlement。证据 `.cosmos/public-validation/room-20261026-12/generation-closure.json`，原native SHA `b6c4564a08d45dc2893b48422f150928b378d01eb09f639d6430b4936fc33976`。旧memory及room1–12永久关闭，不恢复或重复结算；父COS18仍open/partial，下一任务等待独立计划批准。本次仅进度文档，未改源码、旧产物、真实run/ledger/coordinator或重跑测试。
+
 2026-10-26 room12 actual v2确认前快照（[公开核证](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6407261662)），独立room10_wait_check于02:56:52Z–02:58:06Z给出READY_CONFIRMATION，room10_draft_review给出READY_DRAFT。12AC（10玩法+2host）/4EX/8QA、unsupported[]，166原字符串及完整raw JSON精确导出；仅3个既有AC调整音频顺序、continue媒体观察及完整/跨进程读档后的最近保存保持，其余9AC/4EX精确不变。草稿SHA `94cbc9603c4aa264eabf21a3709bd0a05ccb02281b21f7926c47b72d274a34ae`，导出SHA `279349c125962e914bfaf040e7fc8d41bb5ab003a5a444f90a96399eba98582b`，完整文档 `.cosmos/public-validation/room-20261026-12/draft-v2-review.md`。
 
 原CLI99716 cancel exit0；核验时child23/shared3359，3笔9560+40121+42905=92586µ settled，reserved/unknown/pending/锁/进程0，原5M held未结算，无confirm/activate/stop或生成时钟。保持原¥5/30min与runtime `d088df021825f1813e5d8fe9f1c775f011144321`；此为已核时间点的人类确认前状态，后续以真实用户对当前完整v2的答复及原CLI为准，不能作为游戏成功。父COS18仍open/partial，旧memory及room1–11永久关闭；本次仅进度文档，未操作真实run/ledger/coordinator或重跑源码测试。
