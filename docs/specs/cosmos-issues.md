@@ -1,8 +1,10 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-27 [COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135) 已独立APPROVED_PLAN并获Root批准免费实施，源码pending。实际基线为已审隔离组合 `5a17b5671da33282ad9a1a117621fea7189107bc`；原生依赖COS132/COS133，无反向依赖。总134/root100/父28子项中25源码完成，父COS18仍open/partial；三卡新源码继续留在隔离分支，最终组合通过后一次发布。
+
 2026-10-27 已批准澄清（[公开记录](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6427444470)）：独立media_observation_contract_reviewer APPROVED_CLARIFICATION，Root批准以真实音频API已接受的即时控制态解释outputActive/outputActivations；滞后getter不覆盖已提交目标，不等同PCM/系统音量/人耳听感。仅已确认/声明的媒体和触发适用，collect/open是条件例。原来源、单次重开、schema/runner及未知通路拒绝保持。
 
-COS132/COS133源码已独审批准，现仅在专属隔离分支组合；main尚未发布新策略，两卡保持open/未勾。新repair余450000µ低于现coding固定65536输出最低524288µ，须待COS134必要adaptive output及最终组合通过后一次发布，不先切默认再补能力；COS134计划尚待批准，未登记。
+COS132/COS133源码已独审批准，现仅在专属隔离分支组合；main尚未发布新策略，两卡保持open/未勾。新repair余450000µ低于现coding固定65536输出最低524288µ，须待COS134必要adaptive output及最终组合通过后一次发布，不先切默认再补能力；COS134计划现已批准并登记，见上方当前状态。
 
 2026-10-27 [COS-132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)、[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134) 已登记，固定spec/plan均独立APPROVED_PLAN并获Root批准免费实施；两卡source pending、原生父未勾选。总133/root100/父27子项中25源码完成，COS18仍open/partial。COS132依赖已完成COS129/130/131；COS132与COS133并行，不互设依赖环。
 
@@ -1958,6 +1960,16 @@ COS130已原生依赖本卡；本卡源码范围完成，COS130最终组合已so
 总133/root100/父27子项中25源码完成，父整体open/partial。原reuse-1已永久failedclosed/PASS_CLOSED；[实际失败与结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6425494810)保持。源码已获独审批准但仍待本批隔离组合与COS134，组合实际reviewer报价通过前不启动下一次付费；不改旧run/ledger/coordinator。稳定任务ID：COS-133。
 
 2026-10-27 已批准澄清（[公开记录](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6427444470)）：独立media_observation_contract_reviewer APPROVED_CLARIFICATION，Root批准以真实音频API已接受的即时控制态解释outputActive/outputActivations；滞后getter不覆盖已提交目标，不等同PCM/系统音量/人耳听感。仅已确认/声明的媒体和触发适用，collect/open是条件例。原来源、单次重开、schema/runner及未知通路拒绝保持。
+
+### COS-134 · 普通设计独审后的有界修订
+
+[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)，id6048570589，原生父COS18/#19、[ ]，`source-pending`。独立ordinary_design_revision_reviewer已APPROVED_PLAN，两项P1/P2闭合、无remaining，Root批准最终设计和免费实施。作者ordinary_design_revision_implementer，独立源码reviewer ordinary_design_revision_reviewer，唯一merger public_agent_batch_merger；实际实施基线 `5a17b5671da33282ad9a1a117621fea7189107bc`。
+
+正式[规格](cos134-ordinary-design-review-revision.md)/[计划](../plans/2026-10-27-ordinary-design-review-revision.md)保留批准正文；输入SHA256：spec `8fb15b4c083734640ef6b9e6f2c83be1fd05b78379d616d19d9045626d2629ea`，plan `c9ba2def9250403c2bfd64c4e66acd83facd4a1943bbe30e4e8e96a6e10e5f67`。
+
+新ordinary先design-only，最多一次已认证独审建议驱动的新作者修订，v2经新capture/freshreview批准后首次绑定尚未注册art/code；完整原需求与原codingrepair唯一槽保持。仅新policy给art/code/repair启用既有adaptive8192..65536及必要factory guard，保留总¥5/30min/session32和旧undefined/modular/validation路径。最高费用不足负例与明确synthetic结算链分别验证；本次只登记，不改源码、真实run/ledger/coordinator或启动模型。
+
+原生blocked_by COS132/COS133，二前置仅已审源码隔离组合，不设置反向依赖。总134/root100/父28子项中25源码完成，父整体open/partial；本卡尚无source候选，三卡最终审批/实际报价及最小组合后统一发布main。旧actual均已永久关闭，不重开或重复结算。稳定任务ID：COS-134。
 
 ## 5. 任务与上下文包模板
 
