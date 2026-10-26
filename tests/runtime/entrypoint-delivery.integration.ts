@@ -3,7 +3,9 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Readable } from 'node:stream';
 import test from 'node:test';
+import { runCli } from '../../dist/cli/index.js';
 import { IntakeController } from '../../dist/runtime/intake.js';
 import { RunController } from '../../dist/runtime/run.js';
 import { OwnedWork } from '../../dist/runtime/recovery/owned-work.js';
@@ -15,6 +17,7 @@ import type { GenerationHost, HostInput } from '../../src/runtime/entrypoint.ts'
 import { withHostStages, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../../dist/roles/requirements.js';
 import { task as taskFixture } from '../contracts/fixtures.ts';
 import { genericMediaFixture } from '../acceptance/generic-media.fixture.ts';
+import { confirmedSource, silentOutput } from './confirmed-requirements.fixture.ts';
 
 const ordinaryScenario = { viewport: { width: 1280, height: 720 }, steps: [
   { id: 'click', kind: 'locator-click', selector: '#star', timeoutMs: 1000 },
@@ -27,16 +30,24 @@ async function writeFixtureMedia(root: string) {
     audio: [{ id: 'tone', sampleRate: 22050, duration: 0.2, loop: false, notes: [{ midi: 72, start: 0, duration: 0.2, gain: 0.2, wave: 'sine', attack: 0.01, release: 0.02 }] }] }), 'utf8');
 }
 
-async function prepareOrdinaryDelivery(t: test.TestContext) {
+async function copyDeliveryToolchain(root: string) {
   const template = resolve(process.env.COSMOS_TEMPLATE_ROOT ?? fileURLToPath(new URL('../../templates/2d', import.meta.url)));
-  const root = await mkdtemp(join(tmpdir(), 'Cosmos COS130 中文交付 '));
-  t.diagnostic(JSON.stringify({ kind: 'COS130-source-only-root', caseName: t.name, root }));
-  t.after(async () => { if (!process.env.COSMOS_KEEP_EVIDENCE) await rm(root, { recursive: true, force: true }); });
   await cp(template, join(root, 'toolchain'), { recursive: true, filter: path => !['dist', 'public'].includes(relative(template, path).split(sep)[0]) });
-  const draft = withHostStages({ ordinaryProfile: 'ordinary-design/1', brief: '通用媒体正常输入交付夹具',
+}
+
+function ordinaryDeliveryDraft() {
+  return withHostStages({ ordinaryProfile: 'ordinary-design/1', brief: '通用媒体正常输入交付夹具',
     questions: [{ id: 'scope', prompt: '范围？' }], answers: { scope: '仅免费源码 fixture' }, unsupported: [],
     acceptance: [{ acceptanceId: 'win', description: '点击后显示结果', steps: ['点击 Play'], expected: '胜利', evidenceKinds: ['test_report'] }],
     experienceCriteria: [{ criterionId: 'readable', description: '状态清楚', steps: ['试玩查看目标状态'], expected: '容易辨认' }] });
+}
+
+async function prepareOrdinaryDelivery(t: test.TestContext) {
+  const root = await mkdtemp(join(tmpdir(), 'Cosmos COS130 中文交付 '));
+  t.diagnostic(JSON.stringify({ kind: 'COS130-source-only-root', caseName: t.name, root }));
+  t.after(async () => { if (!process.env.COSMOS_KEEP_EVIDENCE) await rm(root, { recursive: true, force: true }); });
+  await copyDeliveryToolchain(root);
+  const draft = ordinaryDeliveryDraft();
   assert.equal('scenario' in draft, false);
   const runId = 'ordinary-offline-fixture', limits = { limitMicroCny: 200000000, durationMs: 180000 };
   await writeFile(join(root, 'intake-origin.json'), JSON.stringify({ runId, brief: draft.brief, ordinaryProfile: draft.ordinaryProfile, limits }), 'utf8');
@@ -136,7 +147,7 @@ async function ordinaryDelivery(input: { root: string; draft: any; requirement: 
     assert.ok(rejectedBeforeDispatch); assert.deepEqual(calls, ['cosmos:planning', 'design:fixture-design', 'reviewer:fixture-design']);
     assert.equal(result.outcome, 'incomplete'); assert.equal(result.acceptedCandidate, undefined); assert.equal(result.delivery, undefined);
     assert.equal(report.automaticAcceptance, 'not_passed'); assert.equal(report.acceptedCandidate, undefined);
-    return;
+    return result;
   }
   assert.equal(result.outcome, 'awaiting_user_experience', JSON.stringify(result.gaps));
   assert.equal(report.outcome, result.outcome); assert.equal(report.automaticAcceptance, 'passed'); assert.deepEqual(result.gaps, []);
@@ -167,6 +178,7 @@ async function ordinaryDelivery(input: { root: string; draft: any; requirement: 
   assert.ok(journal.value.signature.some((item: any) => item.location === result.delivery && item.files.some((file: any) => file.path === 'standalone-launcher.mjs')));
   assert.deepEqual(calls, ['cosmos:planning', 'design:fixture-design', 'reviewer:fixture-design', 'art:fixture-art', 'reviewer:fixture-art', 'coding:fixture-coding', 'reviewer:fixture-coding']);
   console.log(JSON.stringify({ kind: 'COS130-source-only-fixture', root, report: result.report, browser: browser.browser, paid: 0, userExperience: report.userExperience }));
+  return result;
 }
 
 test('public offline ordinary captured design reaches real clean delivery', async t => {
@@ -174,6 +186,39 @@ test('public offline ordinary captured design reaches real clean delivery', asyn
 });
 test('public offline ordinary changed capture blocks downstream dispatch', async t => {
   await ordinaryDelivery(await prepareOrdinaryDelivery(t), 'capture-drift');
+});
+
+test('public offline reused requirements reach ordinary clean delivery', async t => {
+  const source = await confirmedSource(t, { draft: ordinaryDeliveryDraft() });
+  const original = await readFile(join(source.root, 'snapshot.json'));
+  const root = await mkdtemp(join(tmpdir(), 'Cosmos COS130 中文复用交付 '));
+  t.diagnostic(JSON.stringify({ kind: 'COS130-source-only-root', caseName: t.name, root }));
+  t.after(async () => { if (!process.env.COSMOS_KEEP_EVIDENCE) await rm(root, { recursive: true, force: true }); });
+  let prepared = false, executions = 0;
+  const result: any = await runCli(['new', root, '--requirements-from', source.root, '--requirements-revision', '2', '--max-cny', '3', '--max-minutes', '3'], {
+    host: { ordinaryProfile: 'ordinary-design/1',
+      async prepare() { if (!prepared) { await copyDeliveryToolchain(root); prepared = true; } return { environmentReady: true, executionReady: true }; },
+      async questions() { throw new Error('The reused source must not interview.'); },
+      async draft() { throw new Error('The reused source must not redraft.'); },
+      async execute(input: any) { executions++; assert.deepEqual(input.draft, source.draft); return ordinaryDelivery(input); } },
+    input: Readable.from([]), output: silentOutput(),
+  });
+  assert.equal(executions, 1); assert.equal(result.outcome, 'awaiting_user_experience');
+  const state = JSON.parse(await readFile(join(root, 'snapshot.json'), 'utf8'));
+  assert.deepEqual(state.run.humanDecisions, []); assert.deepEqual(state.ledger.entries, []); assert.deepEqual(state.requests, []);
+  assert.notEqual(state.run.runId, source.state.run.runId); assert.notEqual(state.ledger.ledgerId, source.state.ledger.ledgerId);
+  assert.equal(state.requirementsSource.runId, source.state.run.runId); assert.equal(state.requirementsSource.revision, 2);
+  assert.deepEqual(await readFile(join(source.root, 'snapshot.json')), original);
+  for (const name of ['draft', 'confirmation']) {
+    const bytes = await readFile(join(source.root, `requirements/v2/${name}.json`));
+    assert.deepEqual(await readFile(join(root, `requirements/v2/${name}.json`)), bytes);
+    assert.deepEqual(await readFile(join(root, `registry/captures/requirement-bundle/v2/files/_cosmos/${name === 'draft' ? 'requirement-draft' : 'user-confirmation'}.json`)), bytes);
+  }
+  const { report }: any = await readAutomaticReport(root);
+  assert.deepEqual(report.acceptanceScope.ordinaryConfirmation.requirementsSource, state.requirementsSource);
+  assert.equal(report.ordinaryExecution.runId, state.run.runId); assert.equal(report.userExperience, 'not_confirmed');
+  console.log(JSON.stringify({ kind: 'COS130-new-entry-source-only-fixture', root, report: result.report,
+    newEntryHandoff: 'source_verified', realModelGeneration: 'unverified', paidAuthorized: false, actualProviderCostMicroCny: 0 }));
 });
 
 /** Explicit free fixture: fake authors/reviewer; actual locked compiler, renderer, Node server and Edge normal inputs. */
