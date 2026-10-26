@@ -1323,6 +1323,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     },
     async repair(task, feedback) {
       if (binding || validation) return null;
+      if (ordinaryDesignRevisionPolicy && role(task) !== 'coding') return null;
       if (modular && (moduleSlot(task) || role(task) !== 'coding' || taskOutput(task).version !== 'v1')) return null;
       const current = await controller.read(), unallocated = current.ledger.limitMicroCny - current.ledger.allocations.reduce((sum, item) => sum + item.amountMicroCny, 0);
       if (unallocated <= 0) return null;
@@ -1331,6 +1332,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     },
     async continuationTargets(sources, feedback, grants) {
       if (binding || validation) return null;
+      if (ordinaryDesignRevisionPolicy && (sources.length !== 1 || sources[0].role !== 'coding')) return null;
       if (modular) {
         const failed = sources.find(source => source.task.taskId === feedback.sourceTaskId), slot = failed && moduleSlot(failed.task);
         if (!failed || role(failed.task) !== 'coding' || taskOutput(failed.task).version !== 'v1') return null;

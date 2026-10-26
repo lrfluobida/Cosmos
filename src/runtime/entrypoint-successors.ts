@@ -331,6 +331,7 @@ export async function prepareRepairContinuation(options: { root: string; control
   const native = await readJson(root, originalPlan.location);
   const execution = await readJson(root, 'execution.json'), policy = authorCorrectionPolicy(execution, execution.capability);
   const effective = execution.ordinaryDesignRevisionPolicy ? (await readDesignSelection(root, controller, execution)).tasks : execution.tasks;
+  if (execution.ordinaryDesignRevisionPolicy && effective.find((item: PreparedTask) => item.task.taskId === plan.failedTaskId)?.role !== 'coding') blocked('Ordinary design selection reserves its repair slot for coding.');
   if (native.status !== 'validated_proposal' || native.specVersion !== requirement.specVersion || !sameValue(native.tasks, execution.tasks)) blocked('Original native plan is missing or changed.');
   const prior = await exists(root, 'repair-plan.json') ? await readJson(root, 'repair-plan.json') : null;
   if (prior && !sameValue(prior, plan)) blocked('Write-once repair plan changed.');

@@ -6,7 +6,7 @@ import type { TestContext } from 'node:test';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 import { readCompletedGeneration } from '../../src/runtime/experience.ts';
 import { readDesignRevisionPlan, readDesignSelection } from '../../src/runtime/entrypoint-design-revision.ts';
-import { ModelRuntime } from '@earendil-works/pi-coding-agent';
+import { AgentSession, ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { lazyStream } from '@earendil-works/pi-ai';
 import { createPiSession } from '../../src/providers/pi.ts';
 import { requestInputBytes } from '../../src/providers/request-input.ts';
@@ -39,7 +39,7 @@ test('independent rejection reaches one revision with frozen feedback and isolat
       } };
       return fallback;
     } });
-  const result = await f.execute();
+  const result: any = await f.execute();
   const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
   const original = state.tasks.find((task: any) => task.taskId === 'design-task');
   assert.equal(original.state, 'needs_changes');
@@ -104,7 +104,7 @@ async function rejectedFixture(t: TestContext, mode: string) {
   return { f, denied: () => denied };
 }
 for (const mode of ['rejection', 'unchanged', 'scope']) test(`revision ${mode} stops without a third author or downstream`, async t => {
-  const { f, denied } = await rejectedFixture(t, mode), result = await f.execute();
+  const { f, denied } = await rejectedFixture(t, mode), result: any = await f.execute();
   assert.equal(f.packets.filter(p => p.role === 'design').length, 2);
   assert.equal(f.packets.filter(p => p.role === 'reviewer').length, mode === 'unchanged' ? 1 : 2);
   assert.equal(f.packets.filter(p => ['art', 'coding'].includes(p.role)).length, 0);
@@ -147,7 +147,9 @@ for (const boundary of ['plan', 'registered', 'author-started', 'captured', 'rev
     };
     return host;
   } });
-  const first = await f.execute(); assert.equal(interrupted, true); assert.equal(first.outcome, 'incomplete');
+  const first: any = await f.execute(); assert.equal(interrupted, true);
+  // A complete review receipt may finish in the same invocation; the resume must still reuse it.
+  assert.equal(first.outcome, boundary === 'review-recorded' ? 'awaiting_user_experience' : 'incomplete');
   const execution = JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8'));
   const before = f.packets.map(p => ({ taskId: p.taskId, role: p.role }));
   const resumed = await f.host.execute({ root: f.root, requirement: execution.requirement, draft: f.draft, resume: true });
@@ -182,16 +184,49 @@ for (const mode of ['deadline', 'reserved', 'unknown', 'cancelled']) test(`revis
     } };
   };
   f.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => { controller = hostInput.controller; return createBrowserHost({ ...hostInput, ...f.hostOptions }); } });
-  const result = await f.execute();
+  const result: any = await f.execute();
   assert.equal(result.outcome, 'incomplete'); assert.equal(f.packets.filter(p => p.role === 'design').length, 1);
   assert.equal(f.packets.filter(p => ['art', 'coding'].includes(p.role)).length, 0);
   await assert.rejects(readFile(join(f.root, 'ordinary-design-revision-plan.json')), { code: 'ENOENT' });
 });
 for (const mode of ['empty', 'blank', 'duplicate-evidence', 'missing-review-started', 'source-bytes', 'bad-signature', 'same-author']) test(`source rejection ${mode} cannot authorize revision`, async t => {
-  const { f } = await rejectedFixture(t, mode), result = await f.execute();
+  const { f } = await rejectedFixture(t, mode), result: any = await f.execute();
   assert.equal(f.packets.filter(p => p.role === 'design').length, 1);
   assert.equal(f.packets.filter(p => ['art', 'coding'].includes(p.role)).length, 0);
   assert.equal(result.outcome, 'incomplete');
+  await assert.rejects(readFile(join(f.root, 'ordinary-design-revision-plan.json')), { code: 'ENOENT' });
+});
+
+test('new ordinary policy preserves the coding repair slot after a trusted art failure', async t => {
+  const f = await ordinaryHostFixture(t, { revisionPolicy: true, limits: { limitMicroCny: 5000000, durationMs: 1800000 }, sessionFactory: async (config, fallback) => {
+    const packet = JSON.parse(config.context!);
+    if (packet.role !== 'art' || packet.taskId !== 'art-task') return fallback;
+    return { ...fallback, prompt: async (...args) => { const result = await fallback.prompt(...args); await writeFile(join(config.workspace, 'authors/art/media.json'), '{}', 'utf8'); return result; } };
+  } });
+  const result: any = await f.execute(); assert.equal(result.outcome, 'incomplete');
+  const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8')), art = state.tasks.find((task: any) => task.taskId === 'art-task');
+  const feedback = JSON.parse(await readFile(join(art.attempts[0].sessionRef, 'failure.json'), 'utf8'));
+  assert.equal(feedback.issues[0].classification, 'code_defect');
+  assert.equal(f.packets.filter(p => p.role === 'art').length, 1); assert.equal(f.packets.filter(p => p.role === 'coding').length, 0);
+  assert.equal(state.ledger.allocations.some((row: any) => row.taskId.includes('repair') || row.taskId.includes('successor')), false);
+  await assert.rejects(readFile(join(f.root, 'repair-plan.json')), { code: 'ENOENT' });
+});
+
+test('revision identity collision with an unregistered downstream task stops before dispatch', async t => {
+  const { f } = await rejectedFixture(t, 'collision'), sessions = f.hostOptions.sessionFactory!;
+  f.hostOptions.sessionFactory = async config => {
+    const session = await sessions(config), packet = JSON.parse(config.context!);
+    if (packet.role !== 'cosmos') return session;
+    return { ...session, prompt: async (...args) => {
+      const response = await session.prompt(...args), proposal = JSON.parse(response.text);
+      for (const task of proposal.tasks) { if (task.taskId === 'art-task') task.taskId = 'design-task-revision'; task.dependsOn = task.dependsOn.map((id: string) => id === 'art-task' ? 'design-task-revision' : id); }
+      return { ...response, text: JSON.stringify(proposal) };
+    } };
+  };
+  const result: any = await f.execute();
+  assert.equal(f.packets.filter(p => p.role === 'design').length, 1);
+  assert.equal(f.packets.filter(p => ['art', 'coding'].includes(p.role)).length, 0);
+  assert.match(result.gaps.join(' '), /revision_identity_collision/);
   await assert.rejects(readFile(join(f.root, 'ordinary-design-revision-plan.json')), { code: 'ENOENT' });
 });
 
@@ -202,30 +237,36 @@ for (const { maximum, full } of [{ maximum: false, full: false }, { maximum: tru
   const seed = full ? { design: await readFile(join(seedRoot!, 'design.json'), 'utf8'), plan: await readFile(join(seedRoot!, 'acceptance-plan.json'), 'utf8') } : undefined;
   const design = seed && JSON.parse(seed.design);
   const requests: any[] = []; let packetForRuntime: any, network = 0;
+  let native: AgentSession | undefined;
+  const prompt = AgentSession.prototype.prompt;
+  t.mock.method(AgentSession.prototype, 'prompt', async function (this: AgentSession, ...args: Parameters<typeof prompt>) { native = this; return prompt.apply(this, args); });
   t.mock.method(globalThis, 'fetch', async () => { network++; throw new Error('NETWORK_DISABLED'); });
   const create = ModelRuntime.create;
   t.mock.method(ModelRuntime, 'create', async function (...args: Parameters<typeof create>) {
-    const packet = packetForRuntime, runtime = await create.apply(ModelRuntime, args); let round = 0;
+    const packet = packetForRuntime, runtime = await create.apply(ModelRuntime, args); let round = 0, actionRound = 0;
     runtime.streamSimple = ((model: any, context: any, config: any) => {
       round++; const inputBytes = requestInputBytes(context), revision = packet.taskId === 'design-task-revision', reviewer = packet.role === 'reviewer';
-      const amount = maximum ? 2 * inputBytes + 8 * config.maxTokens : revision ? round === 1 ? 16000 : 64000 : 8;
+      const summary = native?.isCompacting ?? false;
+      if (!summary) actionRound++;
+      const amount = maximum ? 2 * inputBytes + 8 * config.maxTokens : summary ? 16000 : revision ? actionRound === 1 ? 16000 : 64000 : 8;
       const inputTokens = maximum ? inputBytes : 0, outputTokens = maximum ? config.maxTokens : amount / 8;
-      requests.push({ taskId: packet.taskId, role: packet.role, round, inputBytes, cap: config.maxTokens, quote: 2 * inputBytes + 8 * config.maxTokens, settlement: amount,
+      requests.push({ taskId: packet.taskId, role: packet.role, round, actionRound, kind: summary ? 'summary' : 'ordinary', inputBytes, cap: config.maxTokens, quote: 2 * inputBytes + 8 * config.maxTokens, settlement: amount,
         tools: context.messages.filter((message: any) => message.role === 'toolResult').map((message: any) => ({ name: message.toolName, error: !!message.isError, truncated: !!message.details?.truncation })) });
       let content: any[], stopReason = 'stop';
-      if (revision && round === 1) {
+      if (summary) content = [{ type: 'text', text: 'Synthetic context summary. Full original confirmed requirements, the rejected capture and independent review feedback remain fixed scoped inputs. The author read all five complete files and edited its isolated design and acceptance plan. Preserve all original acceptance and experience criteria. Next run validate-game-design and return the handoff; the independent reviewer must check the complete original requirements. This is SOURCE control-flow and capacity evidence only.' }];
+      else if (revision && actionRound === 1) {
         const ref = packet.interfaces.find((ref: any) => ref.artifactId === 'design'), current = reviewer ? packet.inputs.find((ref: any) => ref.artifactId === 'design') : ref;
         const paths = [...packet.inputs.filter((ref: any) => ['requirement-draft', 'user-confirmation'].includes(ref.artifactId)).map((ref: any) => ref.location),
           `${current.location}/_cosmos/design.json`, `${current.location}/_cosmos/acceptance-plan.json`, packet.inputs.find((ref: any) => ref.artifactId.startsWith('ordinary-design-review-feedback-')).location,
           ...(reviewer ? [packet.evidence[0].source.location] : [])];
         content = paths.map((path: string, index: number) => ({ type: 'toolCall', id: `read-${index}`, name: 'read', arguments: { path } })); stopReason = 'toolUse';
-      } else if (revision && !reviewer && round === 2) {
+      } else if (revision && !reviewer && actionRound === 2) {
         content = [{ path: 'authors/design/design.json', edits: [full
           ? { oldText: JSON.stringify(design.summary), newText: JSON.stringify(design.summary + '（完整确认来源的合成修订容量样本）') }
           : { oldText: '原创鼠标游戏', newText: '原创鼠标游戏：点击后显示完成' }] },
           { path: 'authors/design/acceptance-plan.json', edits: [{ oldText: '"formatVersion":', newText: '"formatVersion" :' }] }]
           .map((arguments_, index) => ({ type: 'toolCall', id: `edit-${index}`, name: 'edit', arguments: arguments_ })); stopReason = 'toolUse';
-      } else if (revision && !reviewer && round === 3) {
+      } else if (revision && !reviewer && actionRound === 3) {
         content = [{ type: 'toolCall', id: 'check', name: 'validate-game-design', arguments: {} }]; stopReason = 'toolUse';
       } else content = [{ type: 'text', text: JSON.stringify(reviewer
         ? { verdict: 'approved', findings: [], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: any) => e.evidenceId) }
@@ -280,11 +321,11 @@ for (const { maximum, full } of [{ maximum: false, full: false }, { maximum: tru
       } };
     } });
   if (full) f.host.execute = input => executeGeneration({ ...input, createHost: hostInput => createBrowserHost({ ...hostInput, ...f.hostOptions }) });
-  const result = full ? await runProductSession({ command: 'new', root: f.root, host: f.host, requirementsFrom: { root: process.env.COS134_CONFIRMED_SOURCE!, revision: 2 },
+  const result: any = full ? await runProductSession({ command: 'new', root: f.root, host: f.host, requirementsFrom: { root: process.env.COS134_CONFIRMED_SOURCE!, revision: 2 },
     limits: { limitMicroCny: 5000000, durationMs: 1800000 }, input: Readable.from([]), output: new Writable({ write(_chunk, _encoding, done) { done(); } }) }) : await f.execute();
   const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
   await writeFile(join(f.root, 'cos134-native-evidence.json'), JSON.stringify({ scope: 'Synthetic settlements and provider transport; real Pi, tools, controller reserve/admit/settle. No semantic recall or generated game claim.',
-    ...(confirmed ? { confirmedSource: confirmed.source, acceptanceIds: confirmed.draft.acceptance.map(item => item.acceptanceId), experienceIds: confirmed.draft.experienceCriteria.map(item => item.criterionId) } : {}), network, requests, admissions }, null, 2) + '\n', 'utf8');
+    ...(confirmed ? { confirmedSource: confirmed.source, acceptanceIds: confirmed.draft.acceptance.map(item => item.acceptanceId), experienceIds: confirmed.draft.experienceCriteria!.map(item => item.criterionId) } : {}), network, requests, admissions }, null, 2) + '\n', 'utf8');
   assert.equal(network, 0); assert.ok(requests.every(row => row.tools.every((tool: any) => !tool.error && !tool.truncated)));
   assert.deepEqual(requests.map(row => row.inputBytes), admissions.map(row => row.inputBytes));
   assert.ok(state.ledger.entries.every((row: any) => row.status === 'settled' && row.reservedMicroCny === 0 && !row.unknown));
@@ -294,10 +335,10 @@ for (const { maximum, full } of [{ maximum: false, full: false }, { maximum: tru
   } else {
     assert.equal(result.outcome, 'awaiting_user_experience', JSON.stringify(result.gaps));
     const revision = admissions.filter(row => row.taskId === 'design-task-revision');
-    assert.deepEqual(revision.filter(row => row.role === 'design').map(row => row.available), [600000, 584000, 520000, 456000]);
-    assert.deepEqual(revision.filter(row => row.role === 'reviewer').map(row => row.available), [692000, 676000]);
+    assert.deepEqual(revision.filter(row => row.role === 'design').map(row => row.available), full ? [600000, 584000, 520000, 504000, 440000] : [600000, 584000, 520000, 456000]);
+    assert.deepEqual(revision.filter(row => row.role === 'reviewer').map(row => row.available), full ? [676000, 660000] : [692000, 676000]);
     assert.deepEqual(revision.filter(row => row.role === 'reviewer').map(row => row.maxOutputTokens), [8192, 8192]);
-    assert.equal(900000 - state.ledger.entries.filter((row: any) => row.taskId === 'design-task-revision').reduce((sum: number, row: any) => sum + row.settledMicroCny, 0), 612000);
+    assert.equal(900000 - state.ledger.entries.filter((row: any) => row.taskId === 'design-task-revision').reduce((sum: number, row: any) => sum + row.settledMicroCny, 0), full ? 596000 : 612000);
     assert.deepEqual(state.ledger.allocations.filter((row: any) => !['intake', 'planning'].includes(row.taskId)).map((row: any) => [row.taskId, row.amountMicroCny]),
       [['design-task', 1125000], ['design-task-revision', 900000], ['art-task', 900000], ['coding-task', 1125000], ['coding-task-repair', 450000]]);
     for (const id of ['art-task', 'coding-task', 'coding-task-repair']) {

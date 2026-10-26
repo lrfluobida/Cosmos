@@ -200,7 +200,7 @@ export async function executeGeneration(options: GenerationOptions) {
         : await run(prepared, options.resume);
       let replacement: { sourceTaskId: string; replacementTaskId: string } | null = existingRepair && !continuation ? { sourceTaskId: existingRepair.sourceTaskId, replacementTaskId: existingRepair.replacementTaskId } : null;
       const failed = result.tasks.find(task => ['failed', 'needs_changes', 'waiting_user'].includes(task.state) && task.attempts.length);
-      if (!existingRepair && failed && !signal.aborted && (!designBranch || designBranch.selection && effectiveTasks.find(item => item.task.taskId === failed.taskId)?.role !== 'design')) {
+      if (!existingRepair && failed && !signal.aborted && (!designBranch || designBranch.selection && effectiveTasks.find(item => item.task.taskId === failed.taskId)?.role === 'coding')) {
         const source = effectiveTasks.find(item => item.task.taskId === failed.taskId);
         if (!source) throw new Error('Failed task does not belong to the original prepared DAG.');
         const session = failed.attempts.at(-1)!.sessionRef;
