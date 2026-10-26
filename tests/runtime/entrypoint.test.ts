@@ -6,6 +6,8 @@ import test from 'node:test';
 import { IntakeController } from '../../src/runtime/intake.ts';
 import { createRoleBudget } from '../../src/roles/provider-budget.ts';
 import { withHostStages, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../../src/roles/requirements.ts';
+import { PiSessionError } from '../../src/providers/pi.ts';
+import { readAutomaticReport } from '../../src/runtime/experience.ts';
 import { HostFailure } from '../../src/runtime/repair/feedback.ts';
 import { requestStop } from '../../src/cli/control.ts';
 import * as entrypoint from '../../src/runtime/entrypoint.ts';
@@ -178,4 +180,43 @@ test('COS132 unknown persisted budget policy rejects before host assembly', asyn
   let hosts = 0;
   await assert.rejects(entrypoint.executeGeneration({ ...f, resume: true, createHost: async input => { hosts++; return f.createHost(input); } }), /ordinaryDesignBudgetPolicy/);
   assert.equal(hosts, 0); assert.deepEqual(f.calls, []);
+});
+
+
+for (const code of ['author_output_budget', 'author_review_reserve', 'review_output_budget', 'request_limit', 'unrecognized', 'changed-message', 'mismatched-feedback']) test('COS132 published report retains only fixed resource diagnostics ' + code, async t => {
+  const f = await fixture(t), selectedCode = ['changed-message', 'mismatched-feedback'].includes(code) ? 'author_review_reserve' : code;
+  const createHost = async (input: any) => {
+    const base = await f.createHost(input);
+    return { ...base, continuationTargets: async () => null,
+      finish: async (tasks: any[]) => {
+        if (['changed-message', 'mismatched-feedback'].includes(code)) {
+          const path = join(tasks[0].attempts[0].sessionRef, 'failure.json'), feedback = JSON.parse(await readFile(path, 'utf8'));
+          if (code === 'changed-message') { feedback.issues[0].actual = 'RAW_RESOURCE_MUST_NOT_LEAK'; feedback.issues[0].summary = 'RAW_RESOURCE_MUST_NOT_LEAK'; }
+          else feedback.sourceAttemptId = 'different-attempt';
+          await writeFile(path, JSON.stringify(feedback), 'utf8');
+        }
+        return base.finish();
+      },
+      roleFactory: async (roleInput: any) => {
+        const session = await base.roleFactory(roleInput);
+        return roleInput.role === 'coding' ? { ...session, prompt: async () => { throw new PiSessionError(selectedCode, 'RAW_RESOURCE_MUST_NOT_LEAK'); } } : session;
+      } };
+  };
+  const result = await entrypoint.executeGeneration({ ...f, createHost, resume: false });
+  const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
+  const task = state.tasks[0], attempt = task.attempts[0];
+  const failure = JSON.parse(await readFile(join(attempt.sessionRef, 'failure.json'), 'utf8'));
+  const report = JSON.parse(await readFile(join(f.root, result.report), 'utf8'));
+  assert.deepEqual(report, (await readAutomaticReport(f.root)).report);
+  assert.equal(report.automaticAcceptance, 'not_passed'); assert.equal(report.finalCompletion, 'pending');
+  assert.doesNotMatch(JSON.stringify(report), /RAW_RESOURCE_MUST_NOT_LEAK/);
+  if (code === 'unrecognized' || code === 'mismatched-feedback') assert.equal(report.resourceIssues, undefined);
+  else {
+    assert.equal(failure.issues[0].checkId, selectedCode);
+    const expected = code === 'changed-message' ? 'The author cannot spend the capacity reserved for independent review; this request was not sent.' : failure.issues[0].actual;
+    assert.match(expected, /not sent/);
+    assert.deepEqual(report.resourceIssues, [{ taskId: task.taskId, attemptId: attempt.attemptId,
+      acceptanceId: 'win', checkId: selectedCode, summary: expected }]);
+    assert.match(report.resourceIssues[0].summary, /not sent/);
+  }
 });

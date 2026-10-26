@@ -22,6 +22,7 @@ import { executeTaskDag, resumeTaskDag } from './orchestrator.ts';
 import type { DagOptions, PreparedTask } from './orchestrator.ts';
 import { schedulerStatus } from './scheduler/index.ts';
 import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from './repair/policy.ts';
+import { feedbackReference, RESOURCE_FAILURE_MESSAGES, validateHostIssues } from './repair/feedback.ts';
 import type { RepairFeedback } from './repair/feedback.ts';
 import { allocateRepairGrants, authorCorrectionPolicy, buildRepairContinuation, findUnstartedSuccessors, prepareRepairContinuation, sealRepairDiagnostics, SuccessorBlocked } from './entrypoint-successors.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
@@ -51,6 +52,29 @@ export interface HostInput { root: string; controller: RunController; requiremen
 export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; renderFrames?: boolean; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> { try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
+
+/** Project only fixed resource explanations from feedback bound to the current task attempt. */
+async function resourceFailureReport(tasks: TaskContract[]) {
+  const resourceIssues: { taskId: string; attemptId: string; acceptanceId: string; checkId: string; summary: string }[] = [];
+  for (const task of tasks) {
+    const attempt = task.attempts.at(-1);
+    if (!attempt || !['failed', 'needs_changes', 'waiting_user'].includes(task.state)) continue;
+    let feedback: RepairFeedback | null;
+    try {
+      feedback = await optionalJson(attempt.sessionRef, 'failure.json');
+      if (!feedback || feedback.formatVersion !== 1 || feedback.runId !== task.runId || feedback.specVersion !== task.specVersion
+        || feedback.sourceTaskId !== task.taskId || feedback.sourceAttemptId !== attempt.attemptId || feedback.sessionRef !== attempt.sessionRef
+        || feedback.originalDeadlineAt !== task.budget.originalDeadlineAt || !sameValue(feedback.reference, feedbackReference(task))
+        || !sameValue(feedback.acceptance, task.acceptance) || !sameValue(feedback.artifactVersions, [...task.inputs, ...task.artifacts])) continue;
+      validateHostIssues(task, feedback.issues);
+    } catch { continue; } // Old or unverifiable feedback cannot become a trusted resource diagnosis.
+    for (const issue of feedback.issues) if (issue.classification === 'insufficient_evidence' && Object.hasOwn(RESOURCE_FAILURE_MESSAGES, issue.checkId)) {
+      resourceIssues.push({ taskId: task.taskId, attemptId: attempt.attemptId, acceptanceId: issue.acceptanceId,
+        checkId: issue.checkId, summary: RESOURCE_FAILURE_MESSAGES[issue.checkId] });
+    }
+  }
+  return resourceIssues.length ? { resourceIssues } : {};
+}
 
 export async function reconcileEntryReceipts(root: string, controller: AccountingController) {
   const state = await controller.read();
@@ -223,7 +247,7 @@ export async function executeGeneration(options: GenerationOptions) {
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff })),
         replacement: null, reusedTaskIds: [], effectiveTasks: deliveryTaskProofs(state.tasks), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
     });
-    published = await publishGenerationReport(root, { ...outcome, requiresCompletionTiming: true }, { capability: host.capability, requirement, unsupported: draft.unsupported });
+    published = await publishGenerationReport(root, { ...outcome, ...await resourceFailureReport((await controller.read()).tasks), requiresCompletionTiming: true }, { capability: host.capability, requirement, unsupported: draft.unsupported });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
     completionTiming = await finishCompletion({ root, controller, work, published: published?.report, cleanup: [
@@ -297,7 +321,7 @@ async function executeContinuation(options: GenerationOptions) {
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff,
           supersededBy: plan?.replacements.find(item => item.sourceTaskId === task.taskId && state.tasks.some(target => target.taskId === item.replacementTaskId))?.replacementTaskId ?? null })),
         effectiveTasks: deliveryTaskProofs(effective), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
-      return await publishGenerationReport(root, { ...outcome, requiresCompletionTiming: true }, { capability: host?.capability ?? 'unavailable', requirement, unsupported: draft.unsupported });
+      return await publishGenerationReport(root, { ...outcome, ...await resourceFailureReport((await controller.read()).tasks), requiresCompletionTiming: true }, { capability: host?.capability ?? 'unavailable', requirement, unsupported: draft.unsupported });
     });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);

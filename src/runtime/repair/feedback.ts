@@ -76,6 +76,13 @@ export function validatePassedChecks(task: TaskContract, issues: HostIssue[], pa
   }
 }
 
+export const RESOURCE_FAILURE_MESSAGES: Readonly<Record<string, string>> = Object.freeze({
+  author_output_budget: 'The original task cannot afford the author output floor; this request was not sent.',
+  author_review_reserve: 'The author cannot spend the capacity reserved for independent review; this request was not sent.',
+  review_output_budget: 'The original task cannot afford the review output floor; this request was not sent.',
+  request_limit: 'The original session request limit is exhausted; this request was not sent.',
+});
+
 /** No unknown exception text enters durable feedback. Public host diagnostics
  * are explicit; otherwise only stable stage/provider categories are recorded. */
 export function buildRepairFeedback(task: TaskContract, error: unknown, stage: FailureStage, snapshot?: RunSnapshot): RepairFeedback {
@@ -85,15 +92,9 @@ export function buildRepairFeedback(task: TaskContract, error: unknown, stage: F
   const service = error instanceof PiSessionError && serviceCodes.includes(error.code);
   const incomplete = error instanceof PiSessionError && error.code === 'incomplete';
   const admission = error instanceof PiSessionError && error.code === 'admission_rejected';
-  const resourceMessages: Record<string, string> = {
-    author_output_budget: 'The original task cannot afford the author output floor; this request was not sent.',
-    author_review_reserve: 'The author cannot spend the capacity reserved for independent review; this request was not sent.',
-    review_output_budget: 'The original task cannot afford the review output floor; this request was not sent.',
-    request_limit: 'The original session request limit is exhausted; this request was not sent.',
-  };
-  const resource = error instanceof PiSessionError && Object.hasOwn(resourceMessages, error.code) ? error.code : undefined;
+  const resource = error instanceof PiSessionError && Object.hasOwn(RESOURCE_FAILURE_MESSAGES, error.code) ? error.code : undefined;
   const protocol = error instanceof AuthorProtocolError;
-  const actual = resource ? resourceMessages[resource] : protocol ? `Author protocol_failure: ${error.code}; no valid strict handoff was established.`
+  const actual = resource ? RESOURCE_FAILURE_MESSAGES[resource] : protocol ? `Author protocol_failure: ${error.code}; no valid strict handoff was established.`
     : incomplete ? 'Provider output reached its token limit; the response is incomplete and partial tool calls were not executed.'
     : admission ? 'Request admission was rejected (admission_rejected); this request was not sent to the provider.'
     : service ? 'Provider request failed or requires reconciliation.'
