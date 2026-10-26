@@ -36,8 +36,10 @@ import { finishCompletion } from './completion-timing.ts';
 import { readFrameSelection, requireCurrentFrameSource } from './render-frame-selection.ts';
 import { verifyPublicValidationFunding } from './public-validation-funding.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
+import { executeOrdinaryDesign, prepareDesignOrigins, optionalDesignJson } from './entrypoint-design-revision.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
+  ordinaryDesignRevisionPolicy?: 'independent-review/1';
   ordinaryDesignBudgetPolicy?: 'review-reserve/1';
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
   validateTasks?(tasks: PreparedTask[]): void;
@@ -48,7 +50,7 @@ export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
   continuationTargets?(sources: PreparedTask[], feedback: RepairFeedback, grants: Record<string, number>): Promise<SuccessorTarget[] | null>;
 }
-export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; renderFrames?: boolean; ordinaryMediaObservationPolicy?: 'audio-state/1'; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
+export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: 'independent-review/1'; renderFrames?: boolean; ordinaryMediaObservationPolicy?: 'audio-state/1'; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
 export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; renderFrames?: boolean; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> { try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
@@ -118,6 +120,8 @@ export async function executeGeneration(options: GenerationOptions) {
   if (originalExecution && Object.hasOwn(originalExecution, 'ordinaryDesignBudgetPolicy')
     && (originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || originalExecution.capability !== 'ordinary-design-execution/1')) throw new Error('Unknown or incompatible ordinaryDesignBudgetPolicy.');
   const ordinary = 'ordinaryProfile' in draft && draft.ordinaryProfile === 'ordinary-design/1';
+  if (originalExecution?.ordinaryDesignRevisionPolicy !== undefined && (originalExecution.ordinaryDesignRevisionPolicy !== 'independent-review/1'
+    || originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !ordinary || draft.codeProfile || draft.preparation)) throw new Error('Invalid ordinary design revision policy.');
   const ordinaryMediaObservationPolicy = options.resume ? mediaObservationPolicy(originalExecution, ordinary) : ordinary ? 'audio-state/1' as const : undefined;
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
   await requireCurrentFrameSource(frames);
@@ -140,16 +144,19 @@ export async function executeGeneration(options: GenerationOptions) {
     await reconcileEntryReceipts(root, controller);
     if (options.resume && !originalExecution) throw new Error('Original planning result is unavailable; resume cannot perform another paid plan.');
     const host = await options.createHost({ root, controller, requirement, draft, resume: options.resume, work, ...(originalExecution?.ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy: originalExecution.ordinaryDesignBudgetPolicy } : {}), ...(frames ? { renderFrames: true } : {}),
+      ...((options.resume ? originalExecution?.ordinaryDesignRevisionPolicy : ordinary && !draft.codeProfile && !draft.preparation)
+        ? { ordinaryDesignRevisionPolicy: 'independent-review/1' as const } : {}),
       ...(ordinaryMediaObservationPolicy ? { ordinaryMediaObservationPolicy } : {}) });
     if (ordinaryMediaObservationPolicy && host.capability !== 'ordinary-design-execution/1') throw new Error('Ordinary media observation policy requires the ordinary host.');
     closePreparation = host.closePreparation?.bind(host);
     if (host.ordinaryDesignBudgetPolicy !== undefined && (host.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || host.capability !== 'ordinary-design-execution/1')) throw new Error('Invalid host ordinaryDesignBudgetPolicy.');
     let phase = 'planning';
     const outcome = await work.run(async signal => {
-      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryMediaObservationPolicy?: 'audio-state/1' };
+      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: 'independent-review/1'; ordinaryMediaObservationPolicy?: 'audio-state/1' };
       if (options.resume) {
         execution = originalExecution;
         if (execution.ordinaryDesignBudgetPolicy !== host.ordinaryDesignBudgetPolicy) throw new Error('Original ordinaryDesignBudgetPolicy changed.');
+        if (execution.ordinaryDesignRevisionPolicy !== host.ordinaryDesignRevisionPolicy) throw new Error('Original ordinaryDesignRevisionPolicy changed.');
         if (execution.capability !== host.capability || !sameValue(execution.requirement, requirement) || !sameValue(execution.availableArtifacts, host.availableArtifacts)) throw new Error('Original execution host or fixed requirements changed.');
       } else {
         await publishReceipt(join(root, 'planning-started.json'), { runId: original.run.runId, ledgerId: original.ledger.ledgerId, requirement, capability: host.capability });
@@ -158,6 +165,7 @@ export async function executeGeneration(options: GenerationOptions) {
         host.validateTasks?.(planned.tasks);
         execution = { capability: host.capability, requirement, tasks: planned.tasks, availableArtifacts: host.availableArtifacts, plan: planned.plan,
           ...(host.ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy: host.ordinaryDesignBudgetPolicy } : {}),
+          ...(host.ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy: host.ordinaryDesignRevisionPolicy } : {}),
           ...(host.capability === 'ordinary-design-execution/1' ? { authorProtocolCorrections: 1 as const } : {}),
           ...(ordinaryMediaObservationPolicy ? { ordinaryMediaObservationPolicy } : {}) };
         await publishReceipt(join(root, 'execution.json'), execution);
@@ -174,32 +182,42 @@ export async function executeGeneration(options: GenerationOptions) {
           recovery: { journalRoot: join(root, 'journal'), artifactRoot: root, recoverCapture: host.recoverCapture } };
         return resume ? resumeTaskDag(common) : executeTaskDag(common).then(tasks => ({ tasks, reusedTaskIds: [] as string[], blocked: [] as { taskId: string; reason: string }[] }));
       };
+      const designBranch = execution.ordinaryDesignRevisionPolicy ? await executeOrdinaryDesign({ root, controller, execution, signal, run }) : null;
+      const effectiveTasks = designBranch?.effective ?? execution.tasks;
       const existingRepair = options.resume ? await optionalJson(root, 'repair-plan.json') : null;
       if (existingRepair?.formatVersion !== undefined && existingRepair.formatVersion !== 2) throw new SuccessorBlocked('Unknown repair plan version; preserve the original run.');
       if (existingRepair && !sameValue(authorCorrectionPolicy(existingRepair, execution.capability), policy)) throw new SuccessorBlocked('Original repair author correction policy differs from execution.');
       let continuation: RepairContinuationPlan | null = existingRepair?.formatVersion === 2 ? existingRepair : null;
-      if (continuation) await prepareRepairContinuation({ root, controller, plan: continuation, originals: execution.tasks, requirement, originalPlan: execution.plan, now: Date.now() });
-      const prepared: PreparedTask[] = existingRepair?.tasks ?? execution.tasks;
-      let result = await run(prepared, options.resume);
+      if (continuation) await prepareRepairContinuation({ root, controller, plan: continuation, originals: effectiveTasks, requirement, originalPlan: execution.plan, now: Date.now() });
+      const prepared: PreparedTask[] = existingRepair?.tasks ?? effectiveTasks;
+      const resumeSelected = !!designBranch?.selection && !existingRepair && ((await controller.read()).tasks.some(task => effectiveTasks.some(item => item.role !== 'design' && item.task.taskId === task.taskId))
+        || (await Promise.all(effectiveTasks.filter(item => item.role !== 'design').map(item => optionalDesignJson(root, `journal/task-${item.task.taskId}/origin.json`)))).some(Boolean));
+      if (resumeSelected) await prepareDesignOrigins(root, controller, execution, effectiveTasks);
+      let result = designBranch && !designBranch.selection ? designBranch.result : designBranch && !existingRepair
+        ? resumeSelected
+          ? await run(prepared, true, [...execution.availableArtifacts, ...(designBranch.selection!.tasks[0].task.inputs.filter(ref => ref.artifactId.startsWith('ordinary-design-review-feedback-')))])
+          : await run(prepared.filter(item => item.role !== 'design'), false, [...execution.availableArtifacts, designBranch.selection!.design])
+        : await run(prepared, options.resume);
       let replacement: { sourceTaskId: string; replacementTaskId: string } | null = existingRepair && !continuation ? { sourceTaskId: existingRepair.sourceTaskId, replacementTaskId: existingRepair.replacementTaskId } : null;
       const failed = result.tasks.find(task => ['failed', 'needs_changes', 'waiting_user'].includes(task.state) && task.attempts.length);
-      if (!existingRepair && failed && !signal.aborted) {
-        const source = execution.tasks.find(item => item.task.taskId === failed.taskId);
+      if (!existingRepair && failed && !signal.aborted && (!designBranch || designBranch.selection && effectiveTasks.find(item => item.task.taskId === failed.taskId)?.role === 'coding')) {
+        const source = effectiveTasks.find(item => item.task.taskId === failed.taskId);
         if (!source) throw new Error('Failed task does not belong to the original prepared DAG.');
         const session = failed.attempts.at(-1)!.sessionRef;
         const feedback = await optionalJson(session, 'failure.json') as RepairFeedback | null;
         if (feedback) {
           if (host.continuationTargets) {
             try {
-              const snapshot = await controller.read(), sources = [source, ...findUnstartedSuccessors(snapshot, execution.tasks, failed.taskId, modulePolicy)];
+              const snapshot = await controller.read(), sources = [source, ...findUnstartedSuccessors(snapshot, effectiveTasks, failed.taskId, modulePolicy)];
               const grants = allocateRepairGrants(snapshot, sources);
               const assessment = assessRepair({ snapshot, requirement, history: [feedback], policy: DEFAULT_REPAIR_POLICY, now: Date.now(),
                 estimate: { costMicroCny: Object.values(grants).reduce((sum, amount) => sum + amount, 0), durationMs: sources.length * 60000, cleanupMs: 5000 } });
               if (assessment.action !== 'repair') throw new SuccessorBlocked(`Bounded continuation blocked: ${assessment.reason}.`);
               const targets = await host.continuationTargets(sources, feedback, grants);
               if (!targets) throw new SuccessorBlocked('Host cannot establish safe fixed continuation outputs.');
-              const plan = await sealRepairDiagnostics(root, buildRepairContinuation({ snapshot, originals: execution.tasks, requirement, originalPlan: execution.plan, failedId: failed.taskId, feedback, targets, now: Date.now(), modulePolicy, ...policy }));
-              await prepareRepairContinuation({ root, controller, plan, originals: execution.tasks, requirement, originalPlan: execution.plan, now: Date.now() });
+              const plan = await sealRepairDiagnostics(root, buildRepairContinuation({ snapshot, originals: effectiveTasks, requirement, originalPlan: execution.plan, failedId: failed.taskId, feedback, targets, now: Date.now(), modulePolicy, ...policy,
+                ...(execution.ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy: execution.ordinaryDesignRevisionPolicy } : {}) }));
+              await prepareRepairContinuation({ root, controller, plan, originals: effectiveTasks, requirement, originalPlan: execution.plan, now: Date.now() });
               continuation = plan;
               const next = await run(plan.tasks, true);
               result = { ...next, reusedTaskIds: [...new Set([...result.reusedTaskIds, ...next.reusedTaskIds])],
@@ -237,15 +255,18 @@ export async function executeGeneration(options: GenerationOptions) {
       }
       const beforeDelivery = await controller.read();
       const replacements: Pick<TaskReplacement, 'sourceTaskId' | 'replacementTaskId'>[] = continuation?.replacements ?? (replacement ? [replacement] : []);
-      const effective = execution.tasks.map(item => {
+      const effective = effectiveTasks.map(item => {
         const id = replacements.find(replacement => replacement.sourceTaskId === item.task.taskId)?.replacementTaskId ?? item.task.taskId;
-        const current = beforeDelivery.tasks.find(task => task.taskId === id); if (!current) throw new Error('Original DAG task or declared successor is missing.'); return current;
+        const current = beforeDelivery.tasks.find(task => task.taskId === id); if (!current && !designBranch) throw new Error('Original DAG task or declared successor is missing.'); return current ?? item.task;
       });
       phase = 'delivery';
       const final = await host.finish(effective);
       const state = await controller.read();
       const passed = !state.stopReason && !result.blocked.length && effective.length > 0 && effective.every(task => task.state === 'passed') && final.gaps.length === 0 && !!final.delivery;
       return { outcome: passed ? 'awaiting_user_experience' : 'incomplete', runId: state.run.runId, ledgerId: state.ledger.ledgerId, currentProject: root, ...final,
+        ...(designBranch ? { ordinaryDesignReview: { authority: 'independent_model_review', sourceTaskId: execution.tasks.find(item => item.role === 'design')!.task.taskId,
+          revisionAttempted: effectiveTasks[0].task.taskId !== execution.tasks.find(item => item.role === 'design')!.task.taskId,
+          selectedVersion: designBranch.selection?.design.version ?? null, blocked: result.blocked } } : {}),
         gaps: [...final.gaps, ...result.blocked.map(item => `${item.taskId}: ${item.reason}`), ...effective.filter(task => task.state !== 'passed').flatMap(task => task.handoff.remaining)],
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff,
           supersededBy: replacements.find(replacement => replacement.sourceTaskId === task.taskId)?.replacementTaskId ?? null })), replacement: replacement ?? continuation?.replacements[0] ?? null, replacements,

@@ -56,6 +56,7 @@ export interface RoleFactoryOptions {
   /** Trusted ordinary design selection; original budget quotes govern optional summaries. */
   ordinaryDesignBudgetCompaction?: true;
   ordinaryDesignBudgetPolicy?: 'review-reserve/1';
+  ordinaryDesignRevisionPolicy?: 'independent-review/1';
   /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote a 4096-8192 output cap. */
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
   maxRequests: number;
@@ -101,10 +102,14 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   const authorLimits = { ...options.authorMaxOutputTokens };
   if (Object.entries(authorLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxOutputTokens requires valid author roles and positive safe integers.');
   const authorFloors = { ...options.authorBudgetOutputFloor };
+  const revisionPolicy = options.ordinaryDesignRevisionPolicy;
+  if (revisionPolicy !== undefined && (revisionPolicy !== 'independent-review/1' || options.ordinaryDesignBudgetPolicy !== 'review-reserve/1'
+    || options.ordinaryDesignBudgetCompaction !== true || authorFloors.design !== 8192 || authorLimits.design !== 32768
+    || authorFloors.art !== 8192 || authorLimits.art !== 65536 || authorFloors.coding !== 8192 || authorLimits.coding !== 65536)) throw new Error('Invalid ordinaryDesignRevisionPolicy output configuration.');
   for (const [role, floor] of Object.entries(authorFloors)) {
     const cap = authorLimits[role as AuthorRole] ?? options.maxOutputTokens;
     if (!['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(floor) || floor <= 0
-      || !Number.isSafeInteger(cap) || cap < floor || cap > 32768) throw new Error('authorBudgetOutputFloor requires valid author roles, positive safe integers and floor <= cap <= 32768.');
+      || !Number.isSafeInteger(cap) || cap < floor || cap > (revisionPolicy && ['art', 'coding'].includes(role) ? 65536 : 32768)) throw new Error('authorBudgetOutputFloor requires valid author roles, positive safe integers and floor <= cap <= 32768.');
     authorLimits[role as AuthorRole] = cap;
   }
   const ordinaryDesignCompaction = options.ordinaryDesignBudgetCompaction;
@@ -124,6 +129,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   const codingTimeout = options.codingAuthorRequestTimeoutMs;
   if (codingTimeout !== undefined && (!Number.isSafeInteger(codingTimeout) || codingTimeout <= 0)) throw new Error('codingAuthorRequestTimeoutMs requires a positive safe integer.');
   return async input => {
+    if (revisionPolicy && input.validation) throw new Error('Ordinary design revision cannot authorize validation roles.');
     input.controller.signal.throwIfAborted();
     const task = structuredClone(input.task), requirement = structuredClone(input.requirement);
     const errors = [...validateTask(task), ...validateExecutionRequirement(requirement, input.validation ? 'operator_validation' : 'human')];

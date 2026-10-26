@@ -99,8 +99,17 @@ export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, t
   const requirementCapture = task.inputs.find(ref => ref.artifactId === 'requirement-bundle'), design = task.inputs.find(ref => ref.artifactId === 'design');
   const author = design && state.tasks.find(item => item.artifacts.some(ref => sameValue(ref, design)));
   if (!requirementCapture || !design || !author) throw new Error('Ordinary delivery is missing its original plan sources.');
+  let dependencies = author.inputs.filter(ref => !confirmed.requirement.sources.some(source => sameValue(source, ref)));
+  const execution = await json(root, 'execution.json');
+  if (execution.ordinaryDesignRevisionPolicy !== undefined) {
+    const { readDesignSelection } = await import('./entrypoint-design-revision.ts');
+    const selected = await readDesignSelection(root, { read: async () => structuredClone(state) }, execution);
+    if (!sameValue(selected.design, design)) throw new Error('Ordinary delivery differs from its authenticated design selection.');
+    // The ordinary host captures design against its original available capture set.
+    dependencies = execution.availableArtifacts.filter((ref: ArtifactReference) => !confirmed.requirement.sources.some(source => sameValue(source, ref)));
+  }
   const scope = createOrdinaryAcceptanceScope({ root, controller: { read: async () => structuredClone(state) }, registry: new ArtifactRegistry(root, 'registry'),
     requirement: confirmed.requirement, draft: confirmed.draft, requirementCapture,
-    dependencies: author.inputs.filter(ref => !confirmed.requirement.sources.some(source => sameValue(source, ref))) });
+    dependencies });
   if (!sameValue(binding, await scope.bindCandidate(task, design, candidate))) throw new Error('Ordinary delivery report plan binding changed.');
 }
