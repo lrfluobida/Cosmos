@@ -29,7 +29,7 @@ const cases = [
   ['capture-drift', 'tests/runtime/entrypoint-delivery.integration.ts', 'public offline ordinary changed capture blocks downstream dispatch', 'expected_rejection'],
 ].map(([caseId, file, name, expected = 'flow_passed']) => ({ caseId, file, name, expected, observed: 'uncovered', hits: 0, selectedSkip: 0 }));
 const localKeys = ['PATH', 'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP', 'COMSPEC', 'PATHEXT', 'PROGRAMFILES', 'PROGRAMFILES(X86)', 'PROGRAMW6432', 'COMMONPROGRAMFILES', 'COMMONPROGRAMFILES(X86)'];
-const internalKeys = ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'COSMOS_TEMPLATE_ROOT', 'COSMOS_PREFLIGHT_RESULTS', 'COSMOS_KEEP_EVIDENCE'];
+const internalKeys = ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'PLAYWRIGHT_BROWSERS_PATH', 'COSMOS_TEMPLATE_ROOT', 'COSMOS_PREFLIGHT_RESULTS', 'COSMOS_KEEP_EVIDENCE'];
 // Windows adds these OS variables to child environments even when env is explicit.
 const windowsKeys = ['HOMEDRIVE', 'HOMEPATH', 'LOGONSERVER', 'SYSTEMDRIVE', 'USERDOMAIN', 'USERNAME'];
 const json = async path => JSON.parse(await readFile(path, 'utf8'));
@@ -81,6 +81,10 @@ async function worker() {
     assert.ok(edge, 'Local Microsoft Edge is required. No browser download is allowed.');
     const version = await command('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `(Get-Item -LiteralPath '${edge}').VersionInfo.ProductVersion`]);
     assert.equal(version.code, 0, 'Edge version is unavailable.'); summary.versions.edge = version.stdout.trim();
+    const ffmpeg = (await json(join(repository, 'node_modules/playwright-core/browsers.json'))).browsers.find(item => item.name === 'ffmpeg');
+    assert.ok(process.env.PLAYWRIGHT_BROWSERS_PATH && existsSync(join(process.env.PLAYWRIGHT_BROWSERS_PATH, `ffmpeg-${ffmpeg.revision}`, 'ffmpeg-win64.exe')),
+      'The locked Playwright ffmpeg binary is required. No download is allowed.');
+    summary.versions.ffmpegRevision = ffmpeg.revision;
     const build = await command(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'), '-p', 'tsconfig.json']);
     await writeFile(join(output, 'build.log'), build.stdout + build.stderr, 'utf8'); assert.equal(build.code, 0, 'Build failed; see build.log.');
     for (const file of new Set(cases.map(row => row.file))) {
@@ -89,9 +93,12 @@ async function worker() {
       let finalSummary;
       for await (const { type, data } of stream) {
         if (type === 'test:summary') { finalSummary = data; logs.push({ file, type, counts: data.counts, success: data.success }); }
-        if (type === 'test:stdout') {
+        if (type === 'test:stdout' || type === 'test:diagnostic') {
           try {
             const value = JSON.parse(data.message);
+            if (value.kind === 'COS130-source-only-root' && dirname(value.root) === resolve(tmpdir())) {
+              const row = selected.find(row => row.name === value.caseName); if (row) row.evidence = { root: value.root };
+            }
             if (value.kind === 'COS130-source-only-fixture' && dirname(value.root) === resolve(tmpdir())
               && /^delivery\/report-[\da-f-]+\.json$/.test(value.report)) {
               cases.find(row => row.caseId === 'ordinary-delivery').evidence = { root: value.root, report: value.report };
@@ -131,6 +138,7 @@ if (process.argv.length === 2) {
   const home = join(output, 'home'); await mkdir(home);
   Object.assign(safeEnv, { HOME: home, USERPROFILE: home, APPDATA: home, LOCALAPPDATA: home, COSMOS_PREFLIGHT_RESULTS: output, COSMOS_KEEP_EVIDENCE: '1' });
   if (process.platform === 'win32') Object.assign(safeEnv, { HOMEDRIVE: home.slice(0, 2), HOMEPATH: home.slice(2) });
+  if (process.env.LOCALAPPDATA) safeEnv.PLAYWRIGHT_BROWSERS_PATH = resolve(process.env.PLAYWRIGHT_BROWSERS_PATH ?? join(process.env.LOCALAPPDATA, 'ms-playwright'));
   if (process.env.COSMOS_TEMPLATE_ROOT) safeEnv.COSMOS_TEMPLATE_ROOT = resolve(process.env.COSMOS_TEMPLATE_ROOT);
   console.log(`SOURCE only; synthetic transport; results: ${output}`);
   const child = await command(process.execPath, [self, '--worker'], { env: safeEnv, stdio: 'inherit' });

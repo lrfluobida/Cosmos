@@ -30,7 +30,7 @@ async function writeFixtureMedia(root: string) {
 async function prepareOrdinaryDelivery(t: test.TestContext) {
   const template = resolve(process.env.COSMOS_TEMPLATE_ROOT ?? fileURLToPath(new URL('../../templates/2d', import.meta.url)));
   const root = await mkdtemp(join(tmpdir(), 'Cosmos COS130 中文交付 '));
-  t.diagnostic(`SOURCE only; synthetic roles; ${root}`);
+  t.diagnostic(JSON.stringify({ kind: 'COS130-source-only-root', caseName: t.name, root }));
   t.after(async () => { if (!process.env.COSMOS_KEEP_EVIDENCE) await rm(root, { recursive: true, force: true }); });
   await cp(template, join(root, 'toolchain'), { recursive: true, filter: path => !['dist', 'public'].includes(relative(template, path).split(sep)[0]) });
   const draft = withHostStages({ ordinaryProfile: 'ordinary-design/1', brief: '通用媒体正常输入交付夹具',
