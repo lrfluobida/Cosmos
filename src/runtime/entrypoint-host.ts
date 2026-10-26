@@ -71,6 +71,7 @@ import type { ModularCompilerInputs, ModuleSlot } from './modular-code.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
 import { associateNativeReadSignal, createNativeSnapshotValidationWaits, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
 import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
+import { optionalDesignJson, readDesignRevisionPlan, readDesignSelection, requireDesignExecution, requireDesignMirrors, requireDesignProgress, seedDesignRevision } from './entrypoint-design-revision.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
@@ -369,6 +370,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const budgetEligible = !!ordinaryDraft && !modular && !validation && !preparation && !human && !binding && !historical;
   if (input.ordinaryDesignBudgetPolicy !== undefined && (input.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !budgetEligible)) throw new Error('Invalid ordinaryDesignBudgetPolicy for this host.');
   const ordinaryDesignBudgetPolicy = budgetEligible && !input.resume ? 'review-reserve/1' as const : input.ordinaryDesignBudgetPolicy;
+  if (input.ordinaryDesignRevisionPolicy !== undefined && (input.ordinaryDesignRevisionPolicy !== 'independent-review/1' || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignRevisionPolicy for this host.');
+  const ordinaryDesignRevisionPolicy = input.ordinaryDesignRevisionPolicy;
+  const ordinaryTasks = new Map<string, PreparedTask>();
   if (modular && (preparation || validation || binding)) throw new Error('Modular coding currently supports only the original ordinary browser generation.');
   const modulePolicy = modular ? await readModularRepairPolicy(root, await controller.read()) : undefined;
   await requireCurrentModularRepairPolicy(modulePolicy);
@@ -501,7 +505,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const boundTask = (task: TaskContract) => {
     const old = inheritedTask(task.taskId);
     if (old) { requireOriginalTask(old.task, task); if (!sameValue(old.task, task)) throw new Error('Inherited stage result changed.'); return { task: old.task, role: old.role, workspace: historical!.originalRoot, expectedArtifacts: old.task.artifacts }; }
-    const item = validation || human && human.bound() ? validationTasks.get(task.taskId) : modular && modularTasks.size ? modularTasks.get(task.taskId) : binding?.tasks.find(item => item.task.taskId === task.taskId);
+    const item = ordinaryDesignRevisionPolicy && ordinaryTasks.size ? ordinaryTasks.get(task.taskId) : validation || human && human.bound() ? validationTasks.get(task.taskId) : modular && modularTasks.size ? modularTasks.get(task.taskId) : binding?.tasks.find(item => item.task.taskId === task.taskId);
+    if (ordinaryDesignRevisionPolicy && ordinaryTasks.size && !item) throw new Error('Task is outside the fixed ordinary design selection.');
     if ((binding || validation || human?.bound()) && !item) throw new Error('Task is outside the fixed host binding.');
     if (modular && modularTasks.size && !item) throw new Error('Task is outside the fixed modular host binding.');
     if (item) requireOriginalTask(item.task, task);
@@ -514,6 +519,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   async function requireDispatch(task: TaskContract, signal: AbortSignal, candidate?: ArtifactReference, callerSignal?: AbortSignal) {
     checkCaller(callerSignal);
     signal.throwIfAborted();
+    if (ordinaryDesignRevisionPolicy) {
+      const execution = await json(root, 'execution.json'); await requireDesignExecution(root, controller, execution);
+      boundTask(task);
+      const revision = await readDesignRevisionPlan(root, controller, execution);
+      if (revision && task.taskId === revision.task.task.taskId && task.attempts.length) {
+        await requireDesignMirrors(root, workspace(task), [...task.inputs, ...task.context.interfaces]);
+      }
+      if (role(task) !== 'design') await readDesignSelection(root, controller, execution);
+    }
     if (ordinary) {
       await ordinary.requireCurrent();
       if (role(task) !== 'design') await ordinary.approved(selected(task, 'design'), task);
@@ -753,6 +767,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const gameLayout = { artifactId: output.artifactId, paths: ['index.html', 'src/main.ts'] };
   const host: GenerationHost = {
     ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
+    ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy } : {}),
     capability: ordinary ? 'ordinary-design-execution/1' : preparation ? 'browser-design-input-preparation-v1' : 'browser-input-media2d-v1', availableArtifacts,
     taskPolicies: [
       { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * (ordinaryDesignBudgetPolicy ? 0.25 : 0.15)), writePaths: ['authors/design/design.json', ...(classicEntries?.selection.measurement ? ['authors/design/classic-entry-plan.json'] : [])],
@@ -876,7 +891,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: 600000, estimatedMaxCostMicroCny: requestReservation,
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
         ? { authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
-          ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}) } : {}),
+          ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
+          ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 } } : {}) } : {}),
       ...(ordinary ? { authorThinkingLevel: { design: 'off' } as const, authorMaxRequests: { design: 32 } } : {}),
       sessionFactory: input.sessionFactory,
       hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],
@@ -1341,6 +1357,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         catch { return { gaps: ['Current validation scope or complete persistent task approval is unavailable.'] }; }
       }
       const effectiveTasks = [...(inherited?.stages.map(stage => stage.task) ?? []), ...tasks];
+      if (ordinaryDesignRevisionPolicy) {
+        if (effectiveTasks.length !== 3 || effectiveTasks.some(task => task.state !== 'passed')) return { gaps: ['Current tasks lack complete host checks and independent approval.'] };
+        await readDesignSelection(root, controller, await json(root, 'execution.json'));
+      }
       const task = tasks.find(task => role(task) === 'coding' && (!modular || !moduleSlot(task)));
       if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== (modular ? 5 : 3) || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
         || binding && (tasks.some(task => !binding.tasks.some(item => item.task.taskId === task.taskId)) || new Set(tasks.map(task => task.taskId)).size !== binding.tasks.length)) {
@@ -1427,6 +1447,66 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const ids = acceptanceByPolicy.get(policy.policyId);
       if (ids) policy.acceptanceIds = [...ids];
     }
+  }
+  if (ordinaryDesignRevisionPolicy) {
+    host.bindPreparedTasks = async tasks => {
+      const execution = await json(root, 'execution.json'); await requireDesignExecution(root, controller, execution);
+      const revision = await readDesignRevisionPlan(root, controller, execution);
+      const selection = await optionalDesignJson(root, 'ordinary-design-selection.json') ? await readDesignSelection(root, controller, execution) : null;
+      const repair = await optionalDesignJson(root, 'repair-plan.json');
+      if (repair && (!selection || repair.formatVersion !== 2 || repair.ordinaryDesignRevisionPolicy !== ordinaryDesignRevisionPolicy
+        || !sameValue(repair.originalPlan, execution.plan))) throw new Error('Ordinary coding repair lacks its fixed design selection.');
+      const fixed: PreparedTask[] = repair?.tasks ?? selection?.tasks ?? (revision ? [revision.task] : execution.tasks.filter((item: PreparedTask) => item.role === 'design'));
+      for (const item of tasks) if (!fixed.some(candidate => sameValue(candidate, item))) throw new Error('Ordinary dispatch differs from its fixed stage plan.');
+      for (const item of [...execution.tasks.filter((item: PreparedTask) => item.role === 'design'), ...(revision ? [revision.task] : []), ...fixed]) {
+        const current = (await controller.read()).tasks.find(task => task.taskId === item.task.taskId);
+        if (current) requireOriginalTask(item.task, current);
+        ordinaryTasks.set(item.task.taskId, structuredClone(item));
+      }
+    };
+    const preAuthor = host.preAuthor, capture = host.capture, verify = host.verify, recover = host.recoverCapture, nativeRoles = host.roleFactory;
+    host.preAuthor = async (task, signal) => {
+      await requireDispatch(task, signal);
+      const execution = await json(root, 'execution.json'), revision = await readDesignRevisionPlan(root, controller, execution);
+      if (revision?.task.task.taskId === task.taskId) {
+        await materializeTaskInputs({ artifactRoot: root, workspace: revision.task.workspace, task, requirement, signal });
+        await seedDesignRevision(root, revision);
+        await requireDesignMirrors(root, revision.task.workspace, [...task.inputs, ...task.context.interfaces]);
+      } else await preAuthor?.(task, signal);
+    };
+    host.capture = async (...args) => {
+      const result = await capture(...args); await requireDispatch(args[0], args[2]); return result;
+    };
+    host.verify = async (...args) => {
+      const revision = await readDesignRevisionPlan(root, controller, await json(root, 'execution.json'));
+      if (revision?.task.task.taskId === args[0].taskId) await requireDesignProgress(root, revision);
+      const evidence = await verify(...args);
+      if (revision?.task.task.taskId === args[0].taskId) {
+        await requireDispatch(args[0], args[1]);
+        await requireDesignMirrors(root, join(root, `reviews/${args[0].taskId}`), [...args[0].inputs, ...args[0].context.interfaces]);
+      }
+      return evidence;
+    };
+    host.recoverCapture = async (...args) => {
+      await requireDispatch(args[0], args[2]); return recover(...args);
+    };
+    host.roleFactory = async roleInput => {
+      if (roleInput.purpose === 'planning') return nativeRoles(roleInput);
+      await requireDispatch(roleInput.task, controller.signal);
+      const expected = roleInput.role === 'reviewer' ? join(root, `reviews/${roleInput.task.taskId}`) : workspace(roleInput.task);
+      if (resolve(roleInput.workspace) !== resolve(expected)) throw new Error('Ordinary role workspace differs from its fixed binding.');
+      const revision = await readDesignRevisionPlan(root, controller, await json(root, 'execution.json'));
+      const guard = async () => {
+        await requireDispatch(roleInput.task, controller.signal);
+        if (revision?.task.task.taskId === roleInput.task.taskId) await requireDesignMirrors(root, roleInput.workspace, [...roleInput.task.inputs, ...roleInput.task.context.interfaces]);
+      };
+      await guard(); const session = await nativeRoles(roleInput);
+      if (revision?.task.task.taskId === roleInput.task.taskId && roleInput.role === 'reviewer') {
+        const source = (await controller.read()).tasks.find(task => task.taskId === revision.sourceTaskId)!;
+        if (session.actorId === source.authorId || session.contextId === source.context.contextId) { await session.close(); throw new Error('Revision reviewer must be independent from both authors.'); }
+      }
+      return { ...session, prompt: async (...args) => { await guard(); const result = await session.prompt(...args); await guard(); return result; } };
+    };
   }
   if (modular) host.bindPreparedTasks = async tasks => {
     const execution = await json(root, 'execution.json'), originals = execution.tasks as PreparedTask[];

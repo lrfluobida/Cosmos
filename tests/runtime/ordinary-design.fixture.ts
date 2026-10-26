@@ -17,8 +17,10 @@ import { planTaskDag } from '../../src/roles/planner.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
 import type { PiSessionOptions } from '../../src/providers/pi.ts';
 import type { RoleSession } from '../../src/roles/factory.ts';
+import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 
 export async function ordinaryHostFixture(t: TestContext, options: { modular?: boolean; fault?: string; persistent?: boolean; classic?: boolean; renderFrames?: boolean; pause?: boolean; productionDefault?: boolean;
+  revisionPolicy?: boolean;
   mediaPolicy?: 'audio-state/1'; configure?: (draft: OrdinaryGameDraft, scenario: BrowserScenario) => void;
   limits?: Parameters<typeof runProductSession>[0]['limits'];
   sessionFactory?: (config: PiSessionOptions, fallback: RoleSession) => Promise<RoleSession> } = {}) {
@@ -148,6 +150,8 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
       return { environmentReady: true, executionReady: true };
     }, async questions() { return draft.questions; }, async draft() { return draft; },
     async execute(input: Parameters<typeof product.execute>[0]): Promise<any> {
+      if (!options.pause && !options.revisionPolicy && !options.productionDefault) return executeGeneration({ ...input,
+        createHost: hostInput => createBrowserHost({ ...hostInput, ...hostOptions, ordinaryDesignRevisionPolicy: undefined }) });
       if (!options.pause || input.resume) return product.execute(input);
       const controller = await RunController.open({ root }), work = new OwnedWork(controller.signal), abort = new AbortController();
       try {

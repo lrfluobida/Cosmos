@@ -16,6 +16,7 @@ import { failureRecord, feedbackReference, validateHostIssues, validatePassedChe
 import type { RepairFeedback } from './repair/feedback.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy, validateModularRepairPolicy } from './modular-repair-policy.ts';
 import type { ModularRepairPolicy } from './modular-repair-policy.ts';
+import { readDesignSelection } from './entrypoint-design-revision.ts';
 
 export interface SuccessorTarget {
   sourceTaskId: string; taskId: string; allocationMicroCny: number;
@@ -36,6 +37,7 @@ export interface RepairContinuationPlan {
   tasks: PreparedTask[];
   reviewProtocolCorrections: 1;
   authorProtocolCorrections?: 1;
+  ordinaryDesignRevisionPolicy?: 'independent-review/1';
   /** Sealed before publication; only the preserved diagnostic manifest and its raw files are hashed. */
   diagnosticSignatures?: { reference: ArtifactReference; files: { path: string; sha256: string }[] }[];
 }
@@ -145,6 +147,7 @@ export function buildRepairContinuation(options: {
   failedId: string; feedback: RepairFeedback; targets: readonly SuccessorTarget[]; now: number;
   modulePolicy?: ModularRepairPolicy;
   authorProtocolCorrections?: 1;
+  ordinaryDesignRevisionPolicy?: 'independent-review/1';
 }): RepairContinuationPlan {
   const { snapshot, requirement, failedId, feedback } = options, originals = ordered(options.originals);
   const policy = authorCorrectionPolicy(options, 'ordinary-design-execution/1');
@@ -191,7 +194,8 @@ export function buildRepairContinuation(options: {
   const tasks = originals.map(item => created.find(created => replacements.some(replacement => replacement.sourceTaskId === item.task.taskId && replacement.replacementTaskId === created.task.taskId)) ?? structuredClone(item));
   return { formatVersion: 2, runId: run.runId, ledgerId: ledger.ledgerId, originalStartedAt: run.originalStartedAt, originalDeadlineAt: run.originalDeadlineAt, limitMicroCny: ledger.limitMicroCny,
     originalPlan: structuredClone(options.originalPlan), requirement: structuredClone(requirement), failedTaskId: failedId, feedback: structuredClone(feedback.reference),
-    allocationsBefore: structuredClone(snapshot.ledger.allocations), replacements, newTaskIds: created.map(item => item.task.taskId), tasks, reviewProtocolCorrections: 1, ...policy };
+    allocationsBefore: structuredClone(snapshot.ledger.allocations), replacements, newTaskIds: created.map(item => item.task.taskId), tasks, reviewProtocolCorrections: 1, ...policy,
+    ...(options.ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy: options.ordinaryDesignRevisionPolicy } : {}) };
 }
 
 function relativeName(root: string, path: string): string {
@@ -325,11 +329,13 @@ export async function prepareRepairContinuation(options: { root: string; control
   originals: readonly PreparedTask[]; requirement: RequirementContract; originalPlan: ArtifactReference; now: number }): Promise<void> {
   const { root, controller, plan, requirement, originalPlan } = options, originals = ordered(options.originals), state = await controller.read();
   const native = await readJson(root, originalPlan.location);
-  if (native.status !== 'validated_proposal' || native.specVersion !== requirement.specVersion || !sameValue(native.tasks, options.originals)) blocked('Original native plan is missing or changed.');
+  const execution = await readJson(root, 'execution.json'), policy = authorCorrectionPolicy(execution, execution.capability);
+  const effective = execution.ordinaryDesignRevisionPolicy ? (await readDesignSelection(root, controller, execution)).tasks : execution.tasks;
+  if (native.status !== 'validated_proposal' || native.specVersion !== requirement.specVersion || !sameValue(native.tasks, execution.tasks)) blocked('Original native plan is missing or changed.');
   const prior = await exists(root, 'repair-plan.json') ? await readJson(root, 'repair-plan.json') : null;
   if (prior && !sameValue(prior, plan)) blocked('Write-once repair plan changed.');
-  const execution = await readJson(root, 'execution.json'), policy = authorCorrectionPolicy(execution, execution.capability);
-  if (typeof execution.capability !== 'string' || !sameValue(execution.requirement, requirement) || !sameValue(execution.tasks, options.originals)
+  if (typeof execution.capability !== 'string' || !sameValue(execution.requirement, requirement) || !sameValue(effective, options.originals)
+    || plan.ordinaryDesignRevisionPolicy !== execution.ordinaryDesignRevisionPolicy
     || !sameValue(execution.plan, originalPlan) || !sameValue(authorCorrectionPolicy(plan, execution.capability), policy)) blocked('Original execution or repair author correction policy changed.');
   const feedback = await readJson(root, plan.feedback.location) as RepairFeedback;
   const modulePolicy = await readModularRepairPolicy(root, state); await requireCurrentModularRepairPolicy(modulePolicy);
