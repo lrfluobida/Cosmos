@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-26 [COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129) 已登记为open/source-pending；固定SHA规格/计划获独立APPROVED_PLAN与Root实施批准，正式文档由唯一merger发布。总128、根直接100、COS18原生22子项中21个源码完成，父仍open/partial。room12永久关闭并复用原结案，本卡仅接线已有作者格式纠正，不恢复旧attempt。
+2026-10-26 [COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129) 已独审合入发布 `93b1b0f8e9da14a804542d3f6f4380baed54e12f`，达到 `PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY`；closed(completed)及父[x]已GET核证。总128、根直接100、父22个源码子项完成，父仍open/partial；主线typecheck/build与4/4代表通过。room12永久关闭，源码接线完成不代表实际游戏或体验通过。
 
 2026-10-26 [COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128) 已独审合入并发布 `d088df021825f1813e5d8fe9f1c775f011144321`，closed(completed)及父[x]已GET核证。总127、根直接100、COS18二十一个源码子项完成，父仍open/partial；主线typecheck/build及显式主模板下3/3代表通过。room11永久关闭，原结构/capture与失败事实保留；新源码尚无真实review verdict或游戏结果。
 
@@ -1893,11 +1893,13 @@ room11 runtimec189c49的177.047秒incomplete、36笔568980µ结算/4431020µ释�
 
 ### COS-128 · 普通公开生成的单次作者格式纠正
 
-[COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129)，id6038311168，原生父COS18/#19、父[ ]，`open / source-pending`。design_review_budget_plan_reviewer最终APPROVED_PLAN、无findings，唯一P2真实prepare harness问题已闭合，Root批准固定规格/计划发布与免费实施。作者cos128_implementer基于 `5700451d5c6140b02cbaae4e7fd9fc6a7f289db3` 实施，独立源码reviewer cos128_reviewer，唯一merger public_agent_batch_merger。正式[规格](cos128-public-author-protocol.md)与[计划](../plans/2026-10-26-public-author-protocol.md)保留批准技术内容，记录输入SHA `ccf3e4a851a4648c8bece394fc9639e2d6b4e41e32fed534690770ff4e865177` / `a7998d98f2d711278c9297f9f0235a69ec31f06d7bba6adea71433387c3058f2`；源码尚未独审或集成。
+[COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129)，id6038311168，原生父COS18/#19，`source-integrated / source-scoped-complete`，完成标记 `PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY`；[源码批准](https://github.com/lrfluobida/Cosmos/issues/129#issuecomment-6415474509)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/129#issuecomment-6415484176)及父[x]已核证。固定规格/计划先经design_review_budget_plan_reviewer最终APPROVED_PLAN及Root批准；作者cos128_implementer基于 `5700451d5c6140b02cbaae4e7fd9fc6a7f289db3` 提交最终 `4319f10ecb501eb5ce6c6455cfce87c3b02d88cb`，独立cos128_reviewer规格/质量审查通过、无剩余finding。唯一merger从 `70cbe1868531c8f6c0905babd5b82609aaf5d403` 合入发布 `93b1b0f8e9da14a804542d3f6f4380baed54e12f`，11来源文件精确一致。[正式规格](cos128-public-author-protocol.md)与[计划](../plans/2026-10-26-public-author-protocol.md)保留批准输入SHA及技术正文，状态收尾。
+
+主线typecheck/build exit0，显式COSMOS_TEMPLATE_ROOT=E:/develop/Cosmos/templates/2d下4/4、0fail、0skip、TAP13614.2667ms；覆盖真实public prose一次readonly纠正、legacy repair旧省略合法/plan单边add拒绝、author独占scheduler。P2旧repair-plan恢复漏比较已修；作者原18+新增legacy6、来源调度21、原回归7及独审9/9+affected2/2分别复用、不累计重叠。原失败和完整证据见作者 `.cosmos/evidence/cos128/index.json`及主线 `.cosmos/cos128-integration/`；fixture在art前截止，不生成游戏。
 
 生产仅entrypoint、orchestrator、scheduler/index、entrypoint-successors、continuation-plan五个既有文件。新ordinary public execution选择可选authorProtocolCorrections:1，旧省略保持，origin及repair/continuation精确继承；scheduler对原作者单次readonly纠正显式独占，继续原cleanup/drain。原严格parser、read-only工具禁用、预算/caps/时钟、单槽回执、失败终态和恢复门禁保持，不提取前导prose、不加重试或付费授权。真实prepareRepairContinuation的落盘/注册harness包含entrypoint-continuation，新1/旧省略与单边漂移都须验证。
 
-复用[room12原结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6413933615)：原最终回复前置prose+JSON严格解析失败，已永久closed，无capture/review/art/code，不能判断COS127 actual成败；本卡不恢复旧attempt、不修旧产物。总128/root100/父22中21源码完成，父仍open/partial。旧memory及room1–12永久关闭；本次仅登记，不跑源码测试、不操作真实run/ledger/coordinator。稳定任务ID：COS-128。
+复用[room12原结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6413933615)：原最终回复前置prose+JSON严格解析失败，已永久closed，无capture/review/art/code，不能判断COS127 actual成败；本卡不恢复旧attempt、不修旧产物。总128/root100/父22个源码子项完成，父仍open/partial。旧memory及room1–12永久关闭；本批仅SOURCE/TEMP，不操作真实run/ledger/coordinator，不把SOURCE_READY当作实际游戏成功。稳定任务ID：COS-128。
 
 ## 5. 任务与上下文包模板
 

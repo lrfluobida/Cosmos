@@ -10,9 +10,11 @@
 
 ---
 
-状态：已批准发布与免费实施，源码仍pending。
+状态：PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY；源码已独立审查并由唯一merger集成。
 
-审批记录：[COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129)；独立 `design_review_budget_plan_reviewer` 最终给出 `APPROVED_PLAN`、无findings，唯一P2测试harness问题已闭合，Root批准固定输入的正式发布与免费源码实施。实现者cos128_implementer，独立源码reviewer cos128_reviewer，唯一merger public_agent_batch_merger；源码仍pending。
+源码结果：独立cos128_reviewer批准 `4319f10ecb501eb5ce6c6455cfce87c3b02d88cb`，APPROVED_SOURCE_SCOPED、无剩余finding；唯一merger合入发布 `93b1b0f8e9da14a804542d3f6f4380baed54e12f`，11文件精确一致，主线typecheck/build与4/4短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/129#issuecomment-6415474509)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/129#issuecomment-6415484176)已核证。仅达到 `PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY`，父COS18仍open/partial；room12永久关闭，不代表实际游戏成功。
+
+审批记录：[COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129)；独立 `design_review_budget_plan_reviewer` 最终给出 `APPROVED_PLAN`、无findings，唯一P2测试harness问题已闭合，Root批准固定输入的正式发布与免费源码实施。实现者cos128_implementer，独立源码reviewer cos128_reviewer，唯一merger public_agent_batch_merger；源码完成结果见上述状态记录。
 
 - 批准规格输入 SHA256：`ccf3e4a851a4648c8bece394fc9639e2d6b4e41e32fed534690770ff4e865177`
 - 批准计划输入 SHA256：`a7998d98f2d711278c9297f9f0235a69ec31f06d7bba6adea71433387c3058f2`
@@ -22,7 +24,7 @@
 ## 0. 执行约束与基线
 
 - 规格：[COS128正式规格](../specs/cos128-public-author-protocol.md)；诊断基线 main31ca74725c55997eb66f2074d8c2b1a663f000ee/runtime d088df021825f1813e5d8fe9f1c775f011144321。实施可从最新 main5700451d5c6140b02cbaae4e7fd9fc6a7f289db3 开始；该提交仅更新 PROGRESS 结案元数据，生产源码相同。实施前记录实际 worktree base 与本计划差异，不改正在运行的 source。
-- 当前状态为APPROVED_PLAN，Root已批准免费实施；源码独审与集成待完成。正式文档由唯一merger发布，实现者仅在指定branch/worktree提交源码和测试。
+- 当前状态为PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY；源码已独立批准并集成。正式文档由唯一merger发布，实现者仅在指定branch/worktree提交源码和测试。
 - room12 已 PASS_CLOSED。其原数据只作已确认诊断背景；全部新测试从 TEMP fixture 开始，禁止读取/修改实际 room1–12、共享账本、API key 或参考游戏。
 - UTF-8 严格解码检查在每次编辑前执行；最小补丁，保留中文和行尾；写后读回。使用原生 PowerShell/Node 清理自建 TEMP，先核绝对路径，不拼跨 shell 删除命令。
 - Root 分配专属 implementer、独立 reviewer、唯一 merger。实施者只提交已授权文件和准确测试证据；不自行合 main、推送或启动真实案例。
@@ -137,4 +139,4 @@ npm.cmd run build
 - [ ] 独立reviewer先核P128-1至7，再查实际diff、policy来源、旧origin形态、串行/清理和真实public fixture；纠正findings后只复查受影响差异。
 - [ ] 唯一merger核批准SHA，集成后跑typecheck/build和最小public/lineage代表。Root负责源码状态、任务元数据和后续是否另开真实验证；本卡不恢复room12。
 
-最终完成标志只能是 PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY，且须实际独立批准与集成后才能使用。当前计划已批准实施；该源码完成标志仍须实际独立批准与集成后才能使用。
+最终完成标志只能是 PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY，且须实际独立批准与集成后才能使用。源码现已实际独审批准并集成，达到上述源码完成标志；实际游戏和体验仍需后续验证。

@@ -1,8 +1,10 @@
 # COS-128 · 普通公开生成的单次作者格式纠正
 
-状态：已独立APPROVED_PLAN并获Root批准发布与免费源码实施；源码独审和集成待完成，不授权真实运行。
+状态：PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY；已完成独立源码审查与主线集成，仅source-scoped完成，不授权真实运行。
 
-审批记录：[COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129)；独立 `design_review_budget_plan_reviewer` 最终给出 `APPROVED_PLAN`、无findings，唯一P2测试harness问题已闭合，Root批准固定输入的正式发布与免费源码实施。实现者cos128_implementer，独立源码reviewer cos128_reviewer，唯一merger public_agent_batch_merger；源码仍pending。
+源码结果：独立cos128_reviewer批准 `4319f10ecb501eb5ce6c6455cfce87c3b02d88cb`，APPROVED_SOURCE_SCOPED、无剩余finding；唯一merger合入发布 `93b1b0f8e9da14a804542d3f6f4380baed54e12f`，11文件精确一致，主线typecheck/build与4/4短代表通过。[批准](https://github.com/lrfluobida/Cosmos/issues/129#issuecomment-6415474509)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/129#issuecomment-6415484176)已核证。仅达到 `PUBLIC_AUTHOR_PROTOCOL_CORRECTION_SOURCE_READY`，父COS18仍open/partial；room12永久关闭，不代表实际游戏成功。
+
+审批记录：[COS128 / #129](https://github.com/lrfluobida/Cosmos/issues/129)；独立 `design_review_budget_plan_reviewer` 最终给出 `APPROVED_PLAN`、无findings，唯一P2测试harness问题已闭合，Root批准固定输入的正式发布与免费源码实施。实现者cos128_implementer，独立源码reviewer cos128_reviewer，唯一merger public_agent_batch_merger；源码完成结果见上述状态记录。
 
 - 批准规格输入 SHA256：`ccf3e4a851a4648c8bece394fc9639e2d6b4e41e32fed534690770ff4e865177`
 - 批准计划输入 SHA256：`a7998d98f2d711278c9297f9f0235a69ec31f06d7bba6adea71433387c3058f2`
