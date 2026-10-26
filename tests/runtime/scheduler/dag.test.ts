@@ -123,6 +123,31 @@ test('failed branch prevents its descendants but independent work still complete
   assert.equal(tasks.find(task => task.taskId === 'c')!.attempts.length, 0); assert.ok(!f.events.some(e => e.startsWith('start:c')));
 });
 
+test('COS128 author correction alone serializes independent tasks without shared resources', async t => {
+  const f = await fixture(t);
+  Object.assign(f.options, { authorProtocolCorrections: 1, reviewProtocolCorrections: 0,
+    recovery: { journalRoot: join(f.root, 'journal'), artifactRoot: f.root } });
+  const tasks = await executeTaskDag(f.options), summary = (await schedulerStatus(f.controller)).scheduling!;
+  assert.ok(tasks.every(task => task.state === 'passed'));
+  assert.equal(summary.configuredParallel, 2); assert.equal(summary.effectiveParallel, 1);
+  assert.equal(summary.peakActiveTasks, 1); assert.equal(f.peak(), 1); assert.equal(summary.exclusiveReason, 'author_protocol_correction');
+  assert.ok(f.events.indexOf('start:b-coding-1') > f.events.indexOf('end:a-reviewer-1'));
+});
+
+test('COS128 author correction retains scheduler cutoff and drains active work', async t => {
+  const f = await fixture(t), factory = f.options.roleFactory;
+  Object.assign(f.options, { authorProtocolCorrections: 1, reviewProtocolCorrections: 0,
+    recovery: { journalRoot: join(f.root, 'journal'), artifactRoot: f.root } });
+  f.options.roleFactory = async input => { const role = await factory(input); return { ...role, prompt: async (text, supplied) => {
+    f.setTime(start + 12 * 60 * 60 * 1000 - 500); return role.prompt(text, supplied);
+  } }; };
+  await executeTaskDag(f.options);
+  assert.equal(f.active(), 0); assert.ok(!f.events.some(event => event.startsWith('start:b')));
+  const state = await f.controller.read(), summary = (await schedulerStatus(f.controller)).scheduling!;
+  assert.ok(state.stopReason); assert.equal(summary.state, 'drained'); assert.equal(summary.exclusiveReason, 'author_protocol_correction');
+  assert.equal(state.run.originalDeadlineAt, new Date(start + 12 * 60 * 60 * 1000).toISOString());
+});
+
 test('overlapping physical writes across nested workspaces are rejected before dispatch', async t => {
   const f = await fixture(t);
   f.options.tasks[0].task.ownership.writePaths = [join(f.options.tasks[1].workspace, 'work')];

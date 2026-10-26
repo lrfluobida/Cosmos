@@ -122,7 +122,6 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   validateProtocolCorrections(options.reviewProtocolCorrections ?? 0);
   if (![0, 1].includes(options.authorProtocolCorrections ?? 0)) throw new Error('Author protocol corrections must be 0 or 1.');
   if (options.authorProtocolCorrections === 1 && !options.recovery) throw new Error('Author protocol correction requires durable host receipts.');
-  if (options.authorProtocolCorrections === 1 && options.scheduling) throw new Error('Author protocol correction requires serial host scheduling.');
   if (![0, 1].includes(options.codingHandoffClarifications ?? 0)) throw new Error('Coding handoff clarifications must be 0 or 1.');
   if (options.codingHandoffClarifications === 1 && (!options.validation || !options.recovery || options.scheduling)) throw new Error('Coding handoff clarification requires explicit serial validation and durable host receipts.');
   if (![0, 1].includes(options.hostEvidencedCodingHandoff ?? 0)) throw new Error('Host evidenced coding handoff must be 0 or 1.');
@@ -533,7 +532,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     }
   }
   if (options.scheduling) await scheduleTasks({ tasks: ordered, controller, windowId: options.windowId, options: options.scheduling, signal, now: options.now,
-    exclusiveReason: resume ? 'recovery' : options.reviewProtocolCorrections === 1 ? 'review_protocol_correction' : null, execute: executeOne });
+    exclusiveReason: resume ? 'recovery' : options.authorProtocolCorrections === 1 ? 'author_protocol_correction' : options.reviewProtocolCorrections === 1 ? 'review_protocol_correction' : null, execute: executeOne });
   else for (const item of ordered) await executeOne(item);
   return { tasks: results, reusedTaskIds, blocked: [...blocked].map(([taskId, reason]) => ({ taskId, reason })) };
 }

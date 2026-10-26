@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { PreparedTask } from '../../src/runtime/orchestrator.ts';
-const successors = await import('../../src/runtime/entrypoint-successors.ts').catch(error => { if (error.code === 'ERR_MODULE_NOT_FOUND') return {}; throw error; });
+import * as successors from '../../src/runtime/entrypoint-successors.ts';
 
 import { fixture, now, output, planRef } from './entrypoint-successors.fixture.ts';
 function targets(f: ReturnType<typeof fixture>) {
@@ -11,6 +11,12 @@ function targets(f: ReturnType<typeof fixture>) {
   return selected.map(item => ({ sourceTaskId: item.task.taskId, taskId: `${item.task.taskId}-${item.task.taskId === f.failedId ? 'repair' : 'successor'}`,
     allocationMicroCny: grants[item.task.taskId], outputs: item.task.outputs.map(value => ({ ...value, destination: output(item.role, 'v2').location })), expectedArtifacts: [output(item.role, 'v2')] }));
 }
+
+for (const enabled of [true, false]) test(`COS128 pure repair plan inherits ${enabled ? 'enabled' : 'omitted'} author policy`, () => {
+  const f = fixture(), plan = successors.buildRepairContinuation({ ...f, targets: targets(f), ...(enabled ? { authorProtocolCorrections: 1 as const } : {}) });
+  assert.equal(Object.hasOwn(plan, 'authorProtocolCorrections'), enabled);
+  if (enabled) assert.equal(plan.authorProtocolCorrections, 1);
+});
 
 test('only unstarted affected descendants are selected, retaining passed ancestors', () => {
   assert.equal(typeof successors.findUnstartedSuccessors, 'function', 'Explicit successor qualification is required');
@@ -38,7 +44,7 @@ test('design repair and both successors retain the original plan and bind precis
   assert.deepEqual(plan.replacements.map((item: any) => [item.sourceTaskId, item.replacementTaskId, item.kind]), [
     ['design', 'design-repair', 'repair'], ['art', 'art-successor', 'unstarted_successor'], ['coding', 'coding-successor', 'unstarted_successor'],
   ]);
-  const art = plan.tasks.find((item: PreparedTask) => item.role === 'art').task, code = plan.tasks.find((item: PreparedTask) => item.role === 'coding').task;
+  const art = plan.tasks.find((item: PreparedTask) => item.role === 'art')!.task, code = plan.tasks.find((item: PreparedTask) => item.role === 'coding')!.task;
   assert.deepEqual(art.dependsOn.map((item: any) => item.taskId), ['design-repair']);
   assert.deepEqual(code.dependsOn.map((item: any) => item.taskId), ['design-repair', 'art-successor']);
   assert.deepEqual(code.inputs.slice(1), [output('design', 'v2'), output('art', 'v2')]);

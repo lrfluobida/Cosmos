@@ -15,8 +15,12 @@ import { RunController } from '../../src/runtime/run.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
 import { planTaskDag } from '../../src/roles/planner.ts';
 import { executeTaskDag } from '../../src/runtime/orchestrator.ts';
+import type { PiSessionOptions } from '../../src/providers/pi.ts';
+import type { RoleSession } from '../../src/roles/factory.ts';
 
-export async function ordinaryHostFixture(t: TestContext, options: { modular?: boolean; fault?: string; persistent?: boolean; classic?: boolean; renderFrames?: boolean; pause?: boolean; productionDefault?: boolean } = {}) {
+export async function ordinaryHostFixture(t: TestContext, options: { modular?: boolean; fault?: string; persistent?: boolean; classic?: boolean; renderFrames?: boolean; pause?: boolean; productionDefault?: boolean;
+  limits?: Parameters<typeof runProductSession>[0]['limits'];
+  sessionFactory?: (config: PiSessionOptions, fallback: RoleSession) => Promise<RoleSession> } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'cos112-')), modular = !!options.modular, fault = options.fault ?? '';
   const id = modular ? 'count' : 'light', selector = modular ? '#counter' : '#light';
   const draft: OrdinaryGameDraft = withHostStages({ ordinaryProfile: 'ordinary-design/1', brief: modular ? '鼠标增加计数' : '鼠标点亮目标',
@@ -66,7 +70,7 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
     const packet = JSON.parse(config.context!), taskId = packet.taskId; packets.push(packet);
     const writeRoot = packet.role === 'reviewer' ? root : config.workspace;
     const put = async (path: string, content: string | Buffer) => { await mkdir(join(writeRoot, path, '..'), { recursive: true }); await writeFile(join(writeRoot, path), content, typeof content === 'string' ? 'utf8' : undefined); };
-    return { close: async () => {}, prompt: async () => {
+    const session: RoleSession = { close: async () => {}, prompt: async () => {
       if (packet.role === 'cosmos') return { text: JSON.stringify({ tasks: [
         { taskId: 'design-task', policyId: 'game-design', role: 'design', objective: '设计', acceptanceIds: ['COSMOS-DESIGN', ...(fault.startsWith('planning-') ? [id] : [])], dependsOn: [] },
         { taskId: 'art-task', policyId: 'game-art', role: 'art', objective: '素材', acceptanceIds: ['COSMOS-MEDIA'], dependsOn: ['design-task'] },
@@ -123,6 +127,7 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
       }
       return { text: JSON.stringify({ summary: 'Controlled source fixture only', remaining: [], uncertainty: fault === 'capability' && packet.role === 'design' ? ['The static plan cannot establish the requested elapsed-time interval.'] : [] }) };
     } };
+    return options.sessionFactory ? options.sessionFactory(config, session) : session;
   } };
   const product = createProductHost(repository, hostOptions);
   let prepared = false;
@@ -157,7 +162,7 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
       } finally { await controller.close(); }
     } };
   let output = ''; const sink = new Writable({ write(chunk, _encoding, done) { output += chunk; done(); } });
-  const execute = () => runProductSession({ command: 'new', root, brief: draft.brief, host, ...(options.renderFrames ? { renderFrames: true } : {}),
+  const execute = () => runProductSession({ command: 'new', root, brief: draft.brief, host, ...(options.limits ? { limits: options.limits } : {}), ...(options.renderFrames ? { renderFrames: true } : {}),
     input: Readable.from([`点击后显示完成\n${options.persistent || options.classic ? '正常保存并关闭浏览器进程后恢复。\n' : ''}confirm 1\n`]), output: sink });
   t.after(() => { t.diagnostic(`SOURCE only; fake provider/browser; ${root}`); });
   return { root, draft, scenario, packets, plays, checks, execute, host, hostOptions, output: () => output };

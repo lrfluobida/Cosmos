@@ -17,12 +17,14 @@ import type { RecoveryOptions, ContentSignature, RecoveryOrigin } from './recove
 import { publishReceipt } from './recovery/receipt-file.ts';
 import { deriveHumanContinuationPreparation } from './continuation-preparation.ts';
 import type { HumanContinuationPreparation } from './continuation-preparation.ts';
+import { authorCorrectionPolicy } from './entrypoint-successors.ts';
 
 export interface ContinuationPlan {
   formatVersion: 'continuation-plan-1'; runId: string; ledgerId: string; windowId: string; decisionId: string; quoteId: string;
   capability: string; requirement: RequirementContract; availableArtifacts: ArtifactReference[];
   sources: { path: string; sha256: string }[]; tasks: PreparedTask[];
   replacements: { sourceTaskId: string; replacementTaskId: string }[]; reviewProtocolCorrections: 1;
+  authorProtocolCorrections?: 1;
   preparation?: HumanContinuationPreparation;
 }
 interface Input { root: string; controller: RunController; requirement: RequirementContract; windowId: string }
@@ -45,11 +47,11 @@ async function windowState(input: Input) {
   if (hash(proof) !== window.confirmation.sourceSha256) fail('Original continuation confirmation source changed or is missing.');
   return { state, window };
 }
-function origin(root: string, state: RunSnapshot, requirement: RequirementContract, prepared: PreparedTask): RecoveryOrigin {
+function origin(root: string, state: RunSnapshot, requirement: RequirementContract, prepared: PreparedTask, policy: { authorProtocolCorrections?: 1 }): RecoveryOrigin {
   const binding = taskWindowBinding(state, prepared.task.taskId);
   return { ...(binding ? { formatVersion: 2 as const, executionWindow: binding } : { formatVersion: 1 as const }),
     runId: state.run.runId, ledgerId: state.ledger.ledgerId, originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt,
-    limitMicroCny: state.ledger.limitMicroCny, requirement, prepared, reviewProtocolCorrections: 1, artifactRoot: root, sessionRoot: join(root, 'sessions') };
+    limitMicroCny: state.ledger.limitMicroCny, requirement, prepared, reviewProtocolCorrections: 1, ...policy, artifactRoot: root, sessionRoot: join(root, 'sessions') };
 }
 
 async function derive(input: Input, state: RunSnapshot, window: ExecutionWindow): Promise<{ plan: ContinuationPlan; originalSources: PreparedTask[] }> {
@@ -58,6 +60,7 @@ async function derive(input: Input, state: RunSnapshot, window: ExecutionWindow)
   const execution = await read('execution.json');
   if (!sameValue(execution.requirement, requirement) || !Array.isArray(execution.tasks) || !execution.tasks.length || execution.tasks.length > 3
     || typeof execution.capability !== 'string' || !Array.isArray(execution.availableArtifacts)) fail('Original fixed execution plan is unavailable.');
+  const policy = authorCorrectionPolicy(execution, execution.capability);
   const native = await read(execution.plan.location);
   if (native.status !== 'validated_proposal' || native.specVersion !== requirement.specVersion || !sameValue(native.tasks, execution.tasks)) fail('Original native plan changed.');
   const pool = new Map<string, PreparedTask>((execution.tasks as PreparedTask[]).map(item => [item.task.taskId, item]));
@@ -66,6 +69,7 @@ async function derive(input: Input, state: RunSnapshot, window: ExecutionWindow)
   if (repairSource) {
     const repair = await read(repairSource.path);
     if (sources.at(-1)!.sha256 !== repairSource.sha256 || !Array.isArray(repair.tasks)) fail('Quoted repair plan changed.');
+    if (!sameValue(authorCorrectionPolicy(repair, execution.capability), policy)) fail('Original repair author correction policy changed.');
     for (const item of repair.tasks as PreparedTask[]) pool.set(item.task.taskId, item);
     const mappings = repair.formatVersion === 2 ? repair.replacements : [{ sourceTaskId: repair.sourceTaskId, replacementTaskId: repair.replacementTaskId }];
     for (const mapping of mappings) aliases.set(mapping.sourceTaskId, mapping.replacementTaskId);
@@ -132,7 +136,7 @@ async function derive(input: Input, state: RunSnapshot, window: ExecutionWindow)
     windowId: window.windowId, decisionId: window.decisionId, quoteId: window.quote.quoteId, capability: execution.capability,
     requirement: structuredClone(requirement), availableArtifacts: execution.availableArtifacts, sources, tasks,
     replacements: [...aliases].map(([sourceTaskId, replacementTaskId]) => ({ sourceTaskId, replacementTaskId })).concat(replacements), reviewProtocolCorrections: 1,
-    ...(preparation ? { preparation } : {}) } };
+    ...policy, ...(preparation ? { preparation } : {}) } };
 }
 
 /** Builds or reads fixed plan data only; author preparation and paid work do not run here. */
@@ -147,13 +151,14 @@ export async function loadContinuationPlan(input: Input): Promise<ContinuationPl
 export async function prepareContinuationPlan(input: Input & { plan: ContinuationPlan; recoverCapture: NonNullable<RecoveryOptions['recoverCapture']> }): Promise<void> {
   const { root, controller, requirement } = input, { state, window } = await windowState(input), { plan, originalSources } = await derive(input, state, window);
   if (!sameValue(input.plan, plan)) fail('Continuation plan differs from the exact authorized source mapping.');
+  const policy = authorCorrectionPolicy(plan, plan.capability);
   const path = continuationPlanPath(window.decisionId), published = await exists(root, path);
   if (published && !sameValue(decode(await regularFile(root, path)), plan)) fail('Immutable continuation plan changed.');
   const recovery = { journalRoot: join(root, 'journal'), artifactRoot: root };
-  for (const item of originalSources) await TaskJournal.open(recovery, origin(root, state, requirement, item), true);
+  for (const item of originalSources) await TaskJournal.open(recovery, origin(root, state, requirement, item, policy), true);
   // Authentication precedes every new origin or registration. Copying fixed bytes is handled later by preAuthor.
   for (const item of plan.tasks.filter(item => !window.grants.some(grant => grant.taskId === item.task.taskId))) {
-    const task = state.tasks.find(task => task.taskId === item.task.taskId)!, journal = await TaskJournal.open(recovery, origin(root, state, requirement, item), true), attempt = task.attempts.at(-1)!;
+    const task = state.tasks.find(task => task.taskId === item.task.taskId)!, journal = await TaskJournal.open(recovery, origin(root, state, requirement, item, policy), true), attempt = task.attempts.at(-1)!;
     const authored = await journal.read<{ proposal: AuthorProposal }>('author', attempt.attemptId), verified = await journal.read<{ evidence: TaskContract['evidence']; signature: ContentSignature }>('verified', attempt.attemptId);
     if (!authored?.proposal?.summary || !Array.isArray(authored.proposal.remaining) || authored.proposal.remaining.length || !Array.isArray(authored.proposal.uncertainty) || authored.proposal.uncertainty.length
       || !verified || !sameValue(verified.evidence, task.evidence) || task.review.verdict !== 'approved') fail('Passed ancestor evidence or author handoff is incomplete.');
@@ -172,7 +177,7 @@ export async function prepareContinuationPlan(input: Input & { plan: Continuatio
   for (const item of additions) {
     const current = state.tasks.find(task => task.taskId === item.task.taskId), folder = `journal/task-${encodeURIComponent(item.task.taskId)}`;
     if (current) requireOriginalTask(item.task, current);
-    if (await exists(root, `${folder}/origin.json`)) { await TaskJournal.open(recovery, origin(root, state, requirement, item), true); existingOrigins.add(item.task.taskId); }
+    if (await exists(root, `${folder}/origin.json`)) { await TaskJournal.open(recovery, origin(root, state, requirement, item, policy), true); existingOrigins.add(item.task.taskId); }
     else if (current) fail('Registered continuation origin is missing; no origin may be fabricated.');
     if (!current?.attempts.length) {
       if (state.ledger.entries.some(entry => entry.taskId === item.task.taskId) || current && (current.artifacts.length || current.evidence.length || current.review.verdict !== 'pending')) fail('Unstarted continuation has prior execution or charges.');
@@ -186,7 +191,7 @@ export async function prepareContinuationPlan(input: Input & { plan: Continuatio
   }
   if (!published) { await directory(root, `continuations/${id(window.decisionId)}`); await publishReceipt(join(root, path), plan); }
   if (!registered.length) {
-    for (const item of additions) if (!existingOrigins.has(item.task.taskId)) await TaskJournal.open(recovery, origin(root, state, requirement, item), false);
+    for (const item of additions) if (!existingOrigins.has(item.task.taskId)) await TaskJournal.open(recovery, origin(root, state, requirement, item, policy), false);
     await controller.registerTasks(additions.map(item => item.task));
   }
 }

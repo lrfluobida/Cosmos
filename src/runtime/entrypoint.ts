@@ -23,7 +23,7 @@ import type { DagOptions, PreparedTask } from './orchestrator.ts';
 import { schedulerStatus } from './scheduler/index.ts';
 import { assessRepair, createLinkedRepairTask, DEFAULT_REPAIR_POLICY } from './repair/policy.ts';
 import type { RepairFeedback } from './repair/feedback.ts';
-import { allocateRepairGrants, buildRepairContinuation, findUnstartedSuccessors, prepareRepairContinuation, sealRepairDiagnostics, SuccessorBlocked } from './entrypoint-successors.ts';
+import { allocateRepairGrants, authorCorrectionPolicy, buildRepairContinuation, findUnstartedSuccessors, prepareRepairContinuation, sealRepairDiagnostics, SuccessorBlocked } from './entrypoint-successors.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
 import type { RepairContinuationPlan, SuccessorTarget, TaskReplacement } from './entrypoint-successors.ts';
 import { loadContinuationPlan, prepareContinuationPlan } from './continuation-plan.ts';
@@ -105,7 +105,7 @@ export async function executeGeneration(options: GenerationOptions) {
     closePreparation = host.closePreparation?.bind(host);
     let phase = 'planning';
     const outcome = await work.run(async signal => {
-      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference };
+      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1 };
       if (options.resume) {
         execution = await json(root, 'execution.json');
         if (execution.capability !== host.capability || !sameValue(execution.requirement, requirement) || !sameValue(execution.availableArtifacts, host.availableArtifacts)) throw new Error('Original execution host or fixed requirements changed.');
@@ -114,16 +114,18 @@ export async function executeGeneration(options: GenerationOptions) {
         const planned = await planTaskDag({ controller, requirement, planningTaskId: 'planning', workspace: root, sessionRoot: join(root, 'sessions'), availableArtifacts: host.availableArtifacts,
           taskPolicies: host.taskPolicies, roleFactory: host.roleFactory, signal });
         host.validateTasks?.(planned.tasks);
-        execution = { capability: host.capability, requirement, tasks: planned.tasks, availableArtifacts: host.availableArtifacts, plan: planned.plan };
+        execution = { capability: host.capability, requirement, tasks: planned.tasks, availableArtifacts: host.availableArtifacts, plan: planned.plan,
+          ...(host.capability === 'ordinary-design-execution/1' ? { authorProtocolCorrections: 1 as const } : {}) };
         await publishReceipt(join(root, 'execution.json'), execution);
       }
+      const policy = authorCorrectionPolicy(execution, execution.capability);
       host.validateTasks?.(execution.tasks);
       phase = options.resume ? 'recovery' : 'execution';
       const run = async (tasks: PreparedTask[], resume: boolean, availableArtifacts = execution.availableArtifacts) => {
         await host.bindPreparedTasks?.(tasks);
         const common: DagOptions = { controller, requirement, tasks, sessionRoot: join(root, 'sessions'), availableArtifacts,
           roleFactory: host.roleFactory, preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure, signal,
-          reviewProtocolCorrections: 1,
+          reviewProtocolCorrections: 1, ...policy,
           scheduling: { maxParallel: 2, resources: Object.fromEntries(tasks.map(item => [item.task.taskId, ['browser-build-promotion']])) },
           recovery: { journalRoot: join(root, 'journal'), artifactRoot: root, recoverCapture: host.recoverCapture } };
         return resume ? resumeTaskDag(common) : executeTaskDag(common).then(tasks => ({ tasks, reusedTaskIds: [] as string[], blocked: [] as { taskId: string; reason: string }[] }));
@@ -151,7 +153,7 @@ export async function executeGeneration(options: GenerationOptions) {
               if (assessment.action !== 'repair') throw new SuccessorBlocked(`Bounded continuation blocked: ${assessment.reason}.`);
               const targets = await host.continuationTargets(sources, feedback, grants);
               if (!targets) throw new SuccessorBlocked('Host cannot establish safe fixed continuation outputs.');
-              const plan = await sealRepairDiagnostics(root, buildRepairContinuation({ snapshot, originals: execution.tasks, requirement, originalPlan: execution.plan, failedId: failed.taskId, feedback, targets, now: Date.now(), modulePolicy }));
+              const plan = await sealRepairDiagnostics(root, buildRepairContinuation({ snapshot, originals: execution.tasks, requirement, originalPlan: execution.plan, failedId: failed.taskId, feedback, targets, now: Date.now(), modulePolicy, ...policy }));
               await prepareRepairContinuation({ root, controller, plan, originals: execution.tasks, requirement, originalPlan: execution.plan, now: Date.now() });
               continuation = plan;
               const next = await run(plan.tasks, true);
@@ -179,7 +181,7 @@ export async function executeGeneration(options: GenerationOptions) {
                 ancestors(repaired.task);
                 const recoveryTasks = [...execution.tasks.filter(item => ancestorIds.has(item.task.taskId)), repaired];
                 replacement = { sourceTaskId: failed.taskId, replacementTaskId: taskId };
-                await publishReceipt(join(root, 'repair-plan.json'), { tasks: recoveryTasks, ...replacement, feedback: feedback.reference });
+                await publishReceipt(join(root, 'repair-plan.json'), { tasks: recoveryTasks, ...replacement, feedback: feedback.reference, ...policy });
                 const passedInputs = result.tasks.filter(task => task.state === 'passed').flatMap(task => task.artifacts);
                 const next = await run([repaired], false, [...execution.availableArtifacts, ...passedInputs]);
                 result = { ...next, reusedTaskIds: [...new Set([...result.reusedTaskIds, ...next.reusedTaskIds])], blocked: [...result.blocked.filter(item => item.taskId !== failed.taskId), ...next.blocked] };
@@ -262,7 +264,7 @@ async function executeContinuation(options: GenerationOptions) {
         await prepareContinuationPlan({ root, controller, requirement, windowId, plan, recoverCapture: host.recoverCapture });
         const result = await resumeTaskDag({ controller, windowId, requirement, tasks: plan.tasks, sessionRoot: join(root, 'sessions'), availableArtifacts: plan.availableArtifacts,
           roleFactory: host.roleFactory, preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure,
-          reviewProtocolCorrections: plan.reviewProtocolCorrections, signal, scheduling: { maxParallel: 2, resources: Object.fromEntries(plan.tasks.map(item => [item.task.taskId, ['browser-build-promotion']])) },
+          reviewProtocolCorrections: plan.reviewProtocolCorrections, ...authorCorrectionPolicy(plan, plan.capability), signal, scheduling: { maxParallel: 2, resources: Object.fromEntries(plan.tasks.map(item => [item.task.taskId, ['browser-build-promotion']])) },
           recovery: { journalRoot: join(root, 'journal'), artifactRoot: root, recoverCapture: host.recoverCapture } });
         reusedTaskIds = result.reusedTaskIds; blocked = result.blocked;
       } catch (error) {

@@ -35,11 +35,18 @@ export interface RepairContinuationPlan {
   /** Complete effective DAG; unchanged ancestors retain their original prepared contracts. */
   tasks: PreparedTask[];
   reviewProtocolCorrections: 1;
+  authorProtocolCorrections?: 1;
   /** Sealed before publication; only the preserved diagnostic manifest and its raw files are hashed. */
   diagnosticSignatures?: { reference: ArtifactReference; files: { path: string; sha256: string }[] }[];
 }
 export class SuccessorBlocked extends Error {}
 const blocked = (message: string): never => { throw new SuccessorBlocked(message); };
+/** Preserve the exact optional public policy; an old omitted field is never upgraded. */
+export function authorCorrectionPolicy(source: { authorProtocolCorrections?: unknown }, capability: string): { authorProtocolCorrections?: 1 } {
+  if (!Object.hasOwn(source, 'authorProtocolCorrections')) return {};
+  if (source.authorProtocolCorrections !== 1 || capability !== 'ordinary-design-execution/1') blocked('Original author correction policy or capability is invalid.');
+  return { authorProtocolCorrections: 1 };
+}
 const currentTask = (snapshot: RunSnapshot, id: string) => snapshot.tasks.find(task => task.taskId === id) ?? blocked(`Original task is missing: ${id}`);
 const moduleIds = ['COSMOS-MODULE-A', 'COSMOS-MODULE-B'];
 const isModule = (item: PreparedTask) => item.role === 'coding' && item.task.acceptanceIds.length === 1 && moduleIds.includes(item.task.acceptanceIds[0]);
@@ -137,8 +144,10 @@ export function buildRepairContinuation(options: {
   snapshot: RunSnapshot; originals: readonly PreparedTask[]; requirement: RequirementContract; originalPlan: ArtifactReference;
   failedId: string; feedback: RepairFeedback; targets: readonly SuccessorTarget[]; now: number;
   modulePolicy?: ModularRepairPolicy;
+  authorProtocolCorrections?: 1;
 }): RepairContinuationPlan {
   const { snapshot, requirement, failedId, feedback } = options, originals = ordered(options.originals);
+  const policy = authorCorrectionPolicy(options, 'ordinary-design-execution/1');
   if (snapshot.stopReason || snapshot.run.state !== 'running') blocked('Original run is stopped.');
   if (snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)) blocked('Unknown or reserved requests block continuation.');
   const source = originals.find(item => item.task.taskId === failedId) ?? blocked('Missing original repair source.');
@@ -182,7 +191,7 @@ export function buildRepairContinuation(options: {
   const tasks = originals.map(item => created.find(created => replacements.some(replacement => replacement.sourceTaskId === item.task.taskId && replacement.replacementTaskId === created.task.taskId)) ?? structuredClone(item));
   return { formatVersion: 2, runId: run.runId, ledgerId: ledger.ledgerId, originalStartedAt: run.originalStartedAt, originalDeadlineAt: run.originalDeadlineAt, limitMicroCny: ledger.limitMicroCny,
     originalPlan: structuredClone(options.originalPlan), requirement: structuredClone(requirement), failedTaskId: failedId, feedback: structuredClone(feedback.reference),
-    allocationsBefore: structuredClone(snapshot.ledger.allocations), replacements, newTaskIds: created.map(item => item.task.taskId), tasks, reviewProtocolCorrections: 1 };
+    allocationsBefore: structuredClone(snapshot.ledger.allocations), replacements, newTaskIds: created.map(item => item.task.taskId), tasks, reviewProtocolCorrections: 1, ...policy };
 }
 
 function relativeName(root: string, path: string): string {
@@ -319,6 +328,9 @@ export async function prepareRepairContinuation(options: { root: string; control
   if (native.status !== 'validated_proposal' || native.specVersion !== requirement.specVersion || !sameValue(native.tasks, options.originals)) blocked('Original native plan is missing or changed.');
   const prior = await exists(root, 'repair-plan.json') ? await readJson(root, 'repair-plan.json') : null;
   if (prior && !sameValue(prior, plan)) blocked('Write-once repair plan changed.');
+  const execution = await readJson(root, 'execution.json'), policy = authorCorrectionPolicy(execution, execution.capability);
+  if (typeof execution.capability !== 'string' || !sameValue(execution.requirement, requirement) || !sameValue(execution.tasks, options.originals)
+    || !sameValue(execution.plan, originalPlan) || !sameValue(authorCorrectionPolicy(plan, execution.capability), policy)) blocked('Original execution or repair author correction policy changed.');
   const feedback = await readJson(root, plan.feedback.location) as RepairFeedback;
   const modulePolicy = await readModularRepairPolicy(root, state); await requireCurrentModularRepairPolicy(modulePolicy);
   const { additions, registered, failed } = validateContinuation(plan, state, originals, requirement, originalPlan, feedback, modulePolicy);
@@ -329,7 +341,7 @@ export async function prepareRepairContinuation(options: { root: string; control
   const recovery = { journalRoot: join(root, 'journal'), artifactRoot: root };
   const origin = (prepared: PreparedTask) => ({ formatVersion: 1 as const, runId: plan.runId, ledgerId: plan.ledgerId, originalStartedAt: plan.originalStartedAt,
     originalDeadlineAt: plan.originalDeadlineAt, limitMicroCny: plan.limitMicroCny, requirement, prepared, reviewProtocolCorrections: plan.reviewProtocolCorrections,
-    artifactRoot: root, sessionRoot: join(root, 'sessions') });
+    ...policy, artifactRoot: root, sessionRoot: join(root, 'sessions') });
   for (const item of originals) await TaskJournal.open(recovery, origin(item), true);
   for (const replacement of plan.replacements.filter(item => item.kind === 'unstarted_successor')) {
     const source = originals.find(item => item.task.taskId === replacement.sourceTaskId)!;
