@@ -1,8 +1,8 @@
 # COS133 Ordinary Media Observations Implementation Plan
 
-状态：固定规格/计划已由独立 `media_observation_contract_reviewer` APPROVED_PLAN、无P1/P2，Root批准工程设计及免费源码实施；source pending本批集成，尚未向main发布或关闭任务。
+状态：固定规格/计划已由独立 `media_observation_contract_reviewer` APPROVED_PLAN、无P1/P2，Root批准工程设计及免费源码实施；已最终独审并集成，仅source-scoped完成。
 
-任务：[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134)，原生父COS18/#19、未勾选。实现者 `media_observation_contract_implementer`，独立源码reviewer `media_observation_contract_reviewer`，唯一merger `public_agent_batch_merger`。
+任务：[COS-133 / #134](https://github.com/lrfluobida/Cosmos/issues/134)，原生父COS18/#19、父[x]。实现者 `media_observation_contract_implementer`，独立源码reviewer `media_observation_contract_reviewer`，唯一merger `public_agent_batch_merger`。
 
 - 批准规格输入 SHA256：`b13aa0d9808a79c8fe3991fb10f669f799808462f81d4a72e7fe9be03caab51d`
 - 批准计划输入 SHA256：`1bc0f7ee579ac06b9037a22129756a3bb22bd50e5c89981e06139edb0a9495e1`
@@ -19,7 +19,9 @@
 
 2026-10-27 已批准澄清（[公开记录](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6427444470)）：独立media_observation_contract_reviewer APPROVED_CLARIFICATION，Root批准以真实音频API已接受的即时控制态解释outputActive/outputActivations；滞后getter不覆盖已提交目标，不等同PCM/系统音量/人耳听感。仅已确认/声明的媒体和触发适用，collect/open是条件例。原来源、单次重开、schema/runner及未知通路拒绝保持。
 
-COS132/COS133源码已独审批准，现仅在专属隔离分支组合；main尚未发布新策略，两卡保持open/未勾。新repair余450000µ低于现coding固定65536输出最低524288µ，须待COS134必要adaptive output及最终组合通过后一次发布，不先切默认再补能力；COS134计划尚待批准，未登记。
+本批三卡SOURCE组合已通过并统一发布；COS134 adaptive容量保持原repair额度，真实生成仍按原门禁核验。
+
+源码结果：获批源码 `084543c10f1aab3e96b999b8f2b8a0fc0642c42e` 已独立APPROVED_SOURCE_SCOPED，无剩余finding；三卡统一合入main `06709f34e11512f62fc83d2b1ef4591f9c467f32`。[精确批准](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6428869316)、[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6428875427)及父[x]已GET核证。 最终typecheck/build exit0，art留槽1/1及公开复用→设计v2→真实编译/Edge10步/clean delivery1/1分别通过、均0skip；独立APPROVED_INTEGRATION_SCOPED。完整native及171步/四故障有效证据复用；真实模型与人工体验仍未验证，paidAuthorized=false，父COS18仍open/partial。
 
 ## 0. 边界与依赖
 

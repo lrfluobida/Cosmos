@@ -1,13 +1,13 @@
 # COS134 Ordinary Design Review Revision Implementation Plan
 
-状态：独立 `ordinary_design_revision_reviewer` APPROVED_PLAN，两项P1/P2已闭合、无remaining；Root批准最终工程设计与免费源码实施。源码pending，尚未独审或集成，本文件不授权付费运行。
+状态：独立 `ordinary_design_revision_reviewer` APPROVED_PLAN，两项P1/P2已闭合、无remaining；Root批准最终工程设计与免费源码实施。源码已最终独审并集成，仅source-scoped完成，本文件不授权付费运行。
 
-任务：[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)，原生父COS18/#19、未勾；原生依赖[COS132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)及[COS133 / #134](https://github.com/lrfluobida/Cosmos/issues/134)，无反向依赖。实现者 `ordinary_design_revision_implementer`、独立源码reviewer `ordinary_design_revision_reviewer`、唯一merger `public_agent_batch_merger`。
+任务：[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)，原生父COS18/#19、父[x]；原生依赖[COS132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)及[COS133 / #134](https://github.com/lrfluobida/Cosmos/issues/134)，无反向依赖。实现者 `ordinary_design_revision_implementer`、独立源码reviewer `ordinary_design_revision_reviewer`、唯一merger `public_agent_batch_merger`。
 
 - 批准规格输入 SHA256：`8fb15b4c083734640ef6b9e6f2c83be1fd05b78379d616d19d9045626d2629ea`
 - 批准计划输入 SHA256：`c9ba2def9250403c2bfd64c4e66acd83facd4a1943bbe30e4e8e96a6e10e5f67`
 
-实际实施基线：隔离组合 `5a17b5671da33282ad9a1a117621fea7189107bc`，分支 `codex/budget-media-revision-integration`；main仅metadata，三卡源码等最终审批与必要组合通过后一次发布。
+实际实施基线：隔离组合 `5a17b5671da33282ad9a1a117621fea7189107bc`，分支 `codex/budget-media-revision-integration`；三卡源码已按最终审批与必要组合统一发布，结果见下述记录。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. One dedicated implementer owns the card; an independent reviewer inspects its actual diff; only the batch merger integrates approved commits.
 
@@ -18,6 +18,8 @@
 **Tech Stack:** TypeScript / Node22.22.2、Pi0.99.2、现文件工具/RunController/native预算钩子、node:test。
 
 设计依据：[正式规格](../specs/cos134-ordinary-design-review-revision.md)。状态：Root已选择预算方向②，固定spec/plan已独立APPROVED_PLAN并获Root免费源码实施批准；此计划不执行付费验证。整批COS132/133/134在必要adaptive和组合检查完成前不向main发布新默认。
+
+源码结果：获批源码 `a773623293412b75c06a7a0455c55577bf37d2bb` 已独立APPROVED_SOURCE_SCOPED，无剩余finding；三卡统一合入main `06709f34e11512f62fc83d2b1ef4591f9c467f32`。[精确批准](https://github.com/lrfluobida/Cosmos/issues/135#issuecomment-6428892920)、[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/135#issuecomment-6428898881)及父[x]已GET核证。 最终typecheck/build exit0，art留槽1/1及公开复用→设计v2→真实编译/Edge10步/clean delivery1/1分别通过、均0skip；独立APPROVED_INTEGRATION_SCOPED。完整native及171步/四故障有效证据复用；真实模型与人工体验仍未验证，paidAuthorized=false，父COS18仍open/partial。
 
 ## 0. 实施前锁定输入
 

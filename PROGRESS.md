@@ -4,6 +4,14 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-27 [COS132 / #133](https://github.com/lrfluobida/Cosmos/issues/133#issuecomment-6428851663)、[COS133 / #134](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6428875427)、[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135#issuecomment-6428898881) 已源码范围完成并统一发布 `06709f34e11512f62fc83d2b1ef4591f9c467f32`。COS132作者预算恢复、COS133即时媒体控制态及COS134一次设计修订/下游adaptive容量按批准组合一并发布；旧undefined/modular/validation等原兼容策略保持。
+
+最终隔离组合typecheck/build exit0；art故障保留codingrepair槽代表1/1、0skip。新增公开复用→首次独审拒绝→一次设计修订v2→新capture/独审批准→art/code→真实tsc/Vite、Edge10步与clean delivery代表1/1、0skip、58621.5107ms；candidate计划字节精确取自v2，原v1拒绝与合成确认源保留，CompletionTiming eligible=true、cleanup通过，脚本及实际结果已独立批准。两类代表分别计数。
+
+完整room12实际factory/Pi/SDK的10笔synthetic结算链按未变packet/预算来源复用：修订余596000µ，repair B43662/cap45334/quote449996µ在450000µ原额度内；generic余612000µ另存。COS133原171步/四故障及各卡有效边界证据复用，不重跑矩阵或累加重叠。
+
+仅SOURCE范围完成；模型响应/结算为合成，实际provider费用0，paidAuthorized=false，真实模型生成和人工体验仍未验证。总134/root100/父28个源码子项均完成，COS18整体仍open/partial；所有旧实际失败和永久闭账保持，本批未操作真实run/ledger/coordinator。 原输出见cos01工作树 `.cosmos/budget-media-revision-integration/`，发布回执 `.cosmos/budget-media-revision-publication/`。
+
 2026-10-27 [COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135) 已独立APPROVED_PLAN并获Root批准免费实施，源码pending。实际基线为已审隔离组合 `5a17b5671da33282ad9a1a117621fea7189107bc`；原生依赖COS132/COS133，无反向依赖。总134/root100/父28子项中25源码完成，父COS18仍open/partial；三卡新源码继续留在隔离分支，最终组合通过后一次发布。
 
 新ordinary先design-only，最多一次已认证独审建议驱动的新作者修订，v2经新capture/freshreview批准后首次绑定尚未注册art/code；完整原需求与原codingrepair唯一槽保持。仅新policy给art/code/repair启用既有adaptive8192..65536及必要factory guard，保留总¥5/30min/session32和旧undefined/modular/validation路径。最高费用不足负例与明确synthetic结算链分别验证；本次只登记，不改源码、真实run/ledger/coordinator或启动模型。

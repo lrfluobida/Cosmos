@@ -1,8 +1,8 @@
 # COS132 Author Budget Recovery Implementation Plan
 
-状态：固定规格/计划已由独立 `author_budget_recovery_reviewer` APPROVED_PLAN、无P1/P2，Root批准工程设计及免费源码实施；source pending，尚未独审或集成。
+状态：固定规格/计划已由独立 `author_budget_recovery_reviewer` APPROVED_PLAN、无P1/P2，Root批准工程设计及免费源码实施；已最终独审并集成，仅source-scoped完成。
 
-任务：[COS-132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)，原生父COS18/#19、未勾选。实现者 `author_budget_recovery_implementer`，独立源码reviewer `author_budget_recovery_reviewer`，唯一merger `public_agent_batch_merger`。
+任务：[COS-132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)，原生父COS18/#19、父[x]。实现者 `author_budget_recovery_implementer`，独立源码reviewer `author_budget_recovery_reviewer`，唯一merger `public_agent_batch_merger`。
 
 - 批准规格输入 SHA256：`365be142f7b150f21b710d66c3a56b2481f996175acc7b4ba356ec3a4724a5e9`
 - 批准计划输入 SHA256：`33ce22beec281c3ec0978bd212186288a81a35e6b7abb6af401a06375932aef3`
@@ -16,6 +16,8 @@
 **Architecture:** 复用 author-output-budget、Pi 的 successful-tool boundary、现有 readonlyPrompt 与 role-budget 串行准入。一个可选 execution 字段固定新运行策略；原记录缺省走旧行为。不开新配额或交接框架。
 
 **Tech Stack:** TypeScript、Node 22.22.2、Pi 0.99.2、node:test；fake provider transport，实际 SDK / scoped tools / ledger / DAG。
+
+源码结果：获批源码 `e2df1148e1f49f213b893efbcffff9b0a5726b5f` 已独立APPROVED_SOURCE_SCOPED，无剩余finding；三卡统一合入main `06709f34e11512f62fc83d2b1ef4591f9c467f32`。[精确批准](https://github.com/lrfluobida/Cosmos/issues/133#issuecomment-6428846258)、[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/133#issuecomment-6428851663)及父[x]已GET核证。 最终typecheck/build exit0，art留槽1/1及公开复用→设计v2→真实编译/Edge10步/clean delivery1/1分别通过、均0skip；独立APPROVED_INTEGRATION_SCOPED。完整native及171步/四故障有效证据复用；真实模型与人工体验仍未验证，paidAuthorized=false，父COS18仍open/partial。
 
 ## 文件边界
 
