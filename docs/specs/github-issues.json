@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 22,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128"],
+      "verifiedNativeSubIssues": 24,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130"],
       "verifiedCompletedSubIssues": 22,
       "dependsOn": [
         {
@@ -10433,9 +10433,125 @@
       "sourceReviewedCommit": "4319f10ecb501eb5ce6c6455cfce87c3b02d88cb",
       "sourceIntegratedCommit": "93b1b0f8e9da14a804542d3f6f4380baed54e12f",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/129#issuecomment-6415474509"
+    },
+    {
+      "taskId": "COS-129",
+      "title": "复用已确认需求的新生成尝试",
+      "number": 130,
+      "id": 6043759867,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/130",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-129 · 复用已确认需求的新生成尝试](https://github.com/lrfluobida/Cosmos/issues/130)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 24,
+      "verifiedParentCompletedSubIssues": 22,
+      "dependsOn": [],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceBaseCommit": "5f1c1db0162fd523714439bc046f49e142977f31",
+      "sourceReviewStatus": "pending",
+      "implementer": "confirmed_requirements_implementer",
+      "reviewer": "reuse_plan_reviewer",
+      "planReviewer": "reuse_plan_reviewer",
+      "planReviewStatus": "APPROVED_PLAN",
+      "rootImplementationApproved": true,
+      "approvedSpecSha256": "52b79cd81647b76b9c0b4603c9b1c775c52341d7aff25b2b2b2c0cbdc9b977ea",
+      "approvedPlanSha256": "bfb2dcfa7656115373bb8b62263da9f510e75915d9f0d74e91ba0a15d01e976a",
+      "formalSpecPath": "docs/specs/cos129-confirmed-requirements-reuse.md",
+      "formalPlanPath": "docs/plans/2026-10-27-confirmed-requirements-reuse.md",
+      "merger": "public_agent_batch_merger",
+      "actualAuthorized": false,
+      "paidAuthorized": false
+    },
+    {
+      "taskId": "COS-130",
+      "title": "免费失败回放与阶段交接检查",
+      "number": 131,
+      "id": 6044003264,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/131",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-130 · 免费失败回放与阶段交接检查](https://github.com/lrfluobida/Cosmos/issues/131)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 24,
+      "verifiedParentCompletedSubIssues": 22,
+      "dependsOn": [
+        "COS-124",
+        "COS-125",
+        "COS-127",
+        "COS-128",
+        "COS-129"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-124",
+          "number": 125,
+          "id": 5990331802,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/125"
+        },
+        {
+          "taskId": "COS-125",
+          "number": 126,
+          "id": 6023281426,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/126"
+        },
+        {
+          "taskId": "COS-127",
+          "number": 128,
+          "id": 6031812917,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/128"
+        },
+        {
+          "taskId": "COS-128",
+          "number": 129,
+          "id": 6038311168,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/129"
+        },
+        {
+          "taskId": "COS-129",
+          "number": 130,
+          "id": 6043759867,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/130"
+        }
+      ],
+      "evidenceReuseTaskIds": [
+        "COS-124",
+        "COS-125",
+        "COS-127",
+        "COS-128"
+      ],
+      "finalCombinationDependsOn": "COS-129",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceBaseCommit": "5f1c1db0162fd523714439bc046f49e142977f31",
+      "sourceReviewStatus": "pending",
+      "implementer": "validation_preflight_implementer",
+      "reviewer": "preflight_plan_reviewer",
+      "planReviewer": "preflight_plan_reviewer",
+      "planReviewStatus": "APPROVED_PLAN",
+      "rootImplementationApproved": true,
+      "approvedSpecSha256": "aeee5bbb1718fff620c4831f10544f67671b6f4222b950c2b63b203e296a18f4",
+      "approvedPlanSha256": "d50925cb6f7a53d80f2cf4130e86a4b49819257cffd7b0afbfd743ca87c421f7",
+      "formalSpecPath": "docs/specs/cos130-public-validation-preflight.md",
+      "formalPlanPath": "docs/plans/2026-10-27-public-validation-preflight.md",
+      "merger": "public_agent_batch_merger",
+      "actualAuthorized": false,
+      "paidAuthorized": false
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 128,
+  "totalTaskCount": 130,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
