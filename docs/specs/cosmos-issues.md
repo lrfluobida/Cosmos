@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-27 [COS-135 / #136](https://github.com/lrfluobida/Cosmos/issues/136)、[COS-136 / #137](https://github.com/lrfluobida/Cosmos/issues/137) 已登记，固定spec/plan均经独立reuse2_recovery_plan_reviewer APPROVED_PLAN并获Root批准免费实施；两卡source pending、原生父未勾选。总136/root100/父30子项中28源码完成，COS18仍open/partial；两卡并行，不互设阻塞。
+
 2026-10-27 [COS132 / #133](https://github.com/lrfluobida/Cosmos/issues/133#issuecomment-6428851663)、[COS133 / #134](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6428875427)、[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135#issuecomment-6428898881) 已源码范围完成并统一发布 `06709f34e11512f62fc83d2b1ef4591f9c467f32`。COS132作者预算恢复、COS133即时媒体控制态及COS134一次设计修订/下游adaptive容量按批准组合一并发布；旧undefined/modular/validation等原兼容策略保持。
 
 仅SOURCE范围完成；模型响应/结算为合成，实际provider费用0，paidAuthorized=false，真实模型生成和人工体验仍未验证。总134/root100/父28个源码子项均完成，COS18整体仍open/partial；所有旧实际失败和永久闭账保持，本批未操作真实run/ledger/coordinator。
@@ -1980,6 +1982,26 @@ COS130已原生依赖本卡；本卡源码范围完成，COS130最终组合已so
 新ordinary先design-only，最多一次已认证独审建议驱动的新作者修订，v2经新capture/freshreview批准后首次绑定尚未注册art/code；完整原需求与原codingrepair唯一槽保持。仅新policy给art/code/repair启用既有adaptive8192..65536及必要factory guard，保留总¥5/30min/session32和旧undefined/modular/validation路径。最高费用不足负例与明确synthetic结算链分别验证；本次SOURCE实现和组合通过，未操作真实run/ledger/coordinator或调用模型。
 
 原生blocked_by COS132/COS133，二前置已一并source-scoped发布，不设置反向依赖。总134/root100/父28个源码子项全部完成，父整体open/partial；本卡最终源码、完整native证据和唯一真实交付组合已独审通过并统一发布main。旧actual均已永久关闭，不重开或重复结算。稳定任务ID：COS-134。
+
+### COS-135 · 普通未选定设计分支完成证明与历史会计收尾
+
+[COS-135 / #136](https://github.com/lrfluobida/Cosmos/issues/136)，id6049793317，原生父COS18/#19、[ ]，`source-pending`。独立reuse2_recovery_plan_reviewer已APPROVED_PLAN、无remaining，Root批准免费实施；作者ordinary_design_revision_implementer、独立源码reviewer reuse2_recovery_plan_reviewer、唯一merger public_agent_batch_merger。基线 `50f4633b1e682ccadf4844bf8414994a866813a5`。
+
+正式[规格](cos135-ordinary-incomplete-funding-recovery.md)/[计划](../plans/2026-10-27-ordinary-incomplete-funding-recovery.md)保留批准技术内容；spec SHA256 `d1e5b9504de3c383f49d73d1ca998013ba0f13cd7f0cfae75a73747b7116360d`，plan SHA256 `1c18d37f6c46597200d9158951751ea32298fa157c72a5022d53bfe89b87f85c`。
+
+未来未选定设计分支仅证明真实注册的有效任务；历史会计识别严格限于原签名初轮失败形状，不改变失败/计时结论、原回执或旧费用。源码发布后仅Root可沿原API核验收尾。 原生依赖COS-134；两卡不互设阻塞。
+
+总136/root100/父30子项中28源码完成，父open/partial；source尚无候选。生命周期源码独审通过后可优先发布、实际会计由Root原API办理，新付费须两卡及组合通过。reuse-2原5Mµ仍held，永久stop不可resume或改旧回执；本卡不操作真实run/ledger/coordinator。稳定任务ID：COS-135。
+
+### COS-136 · 普通设计预算内真实只读收尾
+
+[COS-136 / #137](https://github.com/lrfluobida/Cosmos/issues/137)，id6049797585，原生父COS18/#19、[ ]，`source-pending`。独立reuse2_recovery_plan_reviewer已APPROVED_PLAN、无remaining，Root批准免费实施；作者author_budget_recovery_implementer、独立源码reviewer author_budget_recovery_reviewer、唯一merger public_agent_batch_merger。基线 `50f4633b1e682ccadf4844bf8414994a866813a5`。
+
+正式[规格](cos136-ordinary-design-budget-finalization.md)/[计划](../plans/2026-10-27-ordinary-design-budget-finalization.md)保留批准技术内容；spec SHA256 `39f13d74d89cc5e2789f7714f16307b96f6ac28cf95a563b7407ec8b5ec00150`，plan SHA256 `c52c6679543d68f3aeccc9cbd1dd3f76dae4ff404a131b647b3d8760abe43bcd`。
+
+只对新ordinary design的可信发送前预算拒绝，复用同session/同一次correction槽的4096真实只读交接；保留原总预算、review reserve、32计数、严格parser/完整capture与独审，补既有checkpoint字段诊断，不放宽验收。 原生依赖COS-128/COS-132/COS-134；两卡不互设阻塞。
+
+总136/root100/父30子项中28源码完成，父open/partial；source尚无候选。生命周期源码独审通过后可优先发布、实际会计由Root原API办理，新付费须两卡及组合通过。reuse-2原5Mµ仍held，永久stop不可resume或改旧回执；本卡不操作真实run/ledger/coordinator。稳定任务ID：COS-136。
 
 ## 5. 任务与上下文包模板
 

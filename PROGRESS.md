@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-27 [COS-135 / #136](https://github.com/lrfluobida/Cosmos/issues/136)、[COS-136 / #137](https://github.com/lrfluobida/Cosmos/issues/137) 已登记，固定spec/plan均经独立reuse2_recovery_plan_reviewer APPROVED_PLAN并获Root批准免费实施；两卡source pending、原生父未勾选。总136/root100/父30子项中28源码完成，COS18仍open/partial；两卡并行，不互设阻塞。
+
+COS135修复未选定设计分支的真实任务证明，并严格识别原签名初轮失败的历史会计证据；依赖COS134，作者ordinary_design_revision_implementer、独审reuse2_recovery_plan_reviewer。COS136在新ordinary design可信发送前预算拒绝后复用原一次只读机会，保留预算/保留额/32计数/完整独审及冷恢复守卫，补checkpoint字段诊断；依赖COS128/132/134，作者author_budget_recovery_implementer、独审author_budget_recovery_reviewer。生命周期源码通过可优先发布，由Root沿原API收尾；新付费须两卡及必要组合均通过。
+
+[reuse-2实际结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6429307270)保持：25请求540200µ，作者预算准入失败且无交付；child112永久stop，原source `50f4633b1e682ccadf4844bf8414994a866813a5` 和旧receipt保留。shared3367原5Mµ仍held、尚未settle/释放，不能称PASS_CLOSED；本批登记不操作真实run/ledger/coordinator，不恢复该run。
+
 2026-10-27 [COS132 / #133](https://github.com/lrfluobida/Cosmos/issues/133#issuecomment-6428851663)、[COS133 / #134](https://github.com/lrfluobida/Cosmos/issues/134#issuecomment-6428875427)、[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135#issuecomment-6428898881) 已源码范围完成并统一发布 `06709f34e11512f62fc83d2b1ef4591f9c467f32`。COS132作者预算恢复、COS133即时媒体控制态及COS134一次设计修订/下游adaptive容量按批准组合一并发布；旧undefined/modular/validation等原兼容策略保持。
 
 最终隔离组合typecheck/build exit0；art故障保留codingrepair槽代表1/1、0skip。新增公开复用→首次独审拒绝→一次设计修订v2→新capture/独审批准→art/code→真实tsc/Vite、Edge10步与clean delivery代表1/1、0skip、58621.5107ms；candidate计划字节精确取自v2，原v1拒绝与合成确认源保留，CompletionTiming eligible=true、cleanup通过，脚本及实际结果已独立批准。两类代表分别计数。
