@@ -21,7 +21,7 @@ import { codingConcernReviewProtocol } from '../runtime/repair/coding-concerns.t
 import type { CodingConcernReview } from '../runtime/repair/coding-concerns.ts';
 import { inputFilesProtocol, roleInputFiles } from './input-files.ts';
 import { planningJsonExample } from './planning-protocol.ts';
-import { authorBudgetCompaction, authorBudgetOutputLimit } from './author-output-budget.ts';
+import { authorBudgetCompaction, authorBudgetOutputLimit, requireOriginalAuthorBudget } from './author-output-budget.ts';
 
 export type AuthorRole = 'cosmos' | 'design' | 'coding' | 'art';
 export type Role = AuthorRole | 'reviewer';
@@ -55,6 +55,7 @@ export interface RoleFactoryOptions {
   authorBudgetOutputFloor?: Partial<Record<AuthorRole, number>>;
   /** Trusted ordinary design selection; original budget quotes govern optional summaries. */
   ordinaryDesignBudgetCompaction?: true;
+  ordinaryDesignBudgetPolicy?: 'review-reserve/1';
   /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote a 4096-8192 output cap. */
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
   maxRequests: number;
@@ -110,6 +111,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (ordinaryDesignCompaction !== undefined && (ordinaryDesignCompaction !== true || authorFloors.design !== 8192 || authorLimits.design !== 32768)) {
     throw new Error('ordinaryDesignBudgetCompaction requires the original design floor 8192 and cap 32768.');
   }
+  const recoveryPolicy = options.ordinaryDesignBudgetPolicy;
+  if (recoveryPolicy !== undefined && (recoveryPolicy !== 'review-reserve/1' || !ordinaryDesignCompaction)) throw new Error('Invalid ordinaryDesignBudgetPolicy.');
   const authorRequestLimits = { ...options.authorMaxRequests };
   const ordinaryDesignReviewBudget = options.ordinaryDesignReviewBudget;
   if (ordinaryDesignReviewBudget !== undefined && (typeof ordinaryDesignReviewBudget !== 'function' || options.maxOutputTokens !== 8192)) {
@@ -138,6 +141,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const authorRequestLimit = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorRequestLimits[input.role] : undefined;
     const authorFloor = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorFloors[input.role] : undefined;
     const designCompaction = ordinaryDesignCompaction && purpose === 'author' && input.role === 'design' && !validation;
+    const reviewReserve = !!(recoveryPolicy && designCompaction);
     const maxRequests = authorRequestLimit ?? options.maxRequests;
     const authority = validation ? undefined : await input.controller.executionAuthority(task.taskId);
     input.controller.signal.throwIfAborted();
@@ -191,6 +195,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         ...(validation ? { validationCase: { ...validation } } : authority!.windowId ? { executionWindow: { windowId: authority!.windowId, deadlineAt: authority!.deadlineAt,
           effectiveLimitMicroCny: authority!.effectiveLimitMicroCny, taskGrantMicroCny: authority!.taskGrantMicroCny } } : {}) },
       ...(reviewer ? { evidence: task.evidence, ...(input.codingConcernReview ? { codingConcernReview: structuredClone(input.codingConcernReview) } : {}) } : { outputs: task.outputs }) });
+    const recoveryBudget = { controller: input.controller, original: snapshot, task, authority: authority!, floor: authorFloor!,
+      maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny, reviewReserve: true as const, failureCode: 'author_review_reserve' as const };
     const session = await (options.sessionFactory ?? createPiSession)({
       workspace, stateDirectory: input.stateDirectory, tools,
       systemPrompt: (input.purpose === 'planning'
@@ -242,14 +248,17 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
           && validationReservation({ ...request, maxOutputTokens: Math.min(4096, request.maxOutputTokens) }) > current.remainingMicroCny;
       } } : {}),
       ...(authorFloor === undefined ? {} : { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
-        task, authority: authority!, floor: authorFloor, maxOutputTokens: authorLimits[input.role as AuthorRole]!, estimate: options.estimatedMaxCostMicroCny }) }),
+        task, authority: authority!, floor: authorFloor, maxOutputTokens: authorLimits[input.role as AuthorRole]!, estimate: options.estimatedMaxCostMicroCny, ...(reviewReserve ? { reviewReserve: true, failureCode: 'author_review_reserve' } : {}) }) }),
       ...(designReviewBudget ? { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
-        task, authority: authority!, floor: 4096, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny }) } : {}),
+        task, authority: authority!, floor: 4096, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny, ...(recoveryPolicy ? { failureCode: 'review_output_budget' } : {}) }) } : {}),
       ...(designCompaction ? authorBudgetCompaction({ controller: input.controller, original: snapshot, task, authority: authority!,
-        floor: authorFloor!, maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny }) : {}),
+        floor: authorFloor!, maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny, ...(reviewReserve ? { reviewReserve: true, failureCode: 'author_review_reserve' } : {}) }) : {}),
+      ...(reviewReserve ? { readonlyMaxOutputTokens: 4096 as const } : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: designCompaction ? 8000 : options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
+        ...(reviewReserve ? { authorReviewReserve: { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, allocationMicroCny: task.budget.allocationMicroCny,
+          requireAuthority: () => requireOriginalAuthorBudget(recoveryBudget) } } : {}),
         ...(authorFloor === undefined && !designReviewBudget ? {} : { recordRequest: true }),
         ...(validation ? { validation: { caseId: validation.caseId, windowId: validation.windowId, purpose } } : {}) }),
     });

@@ -70,6 +70,8 @@ export function assessRepair(options: RepairOptions): RepairDecision {
   if (options.cancelled || (window ? window.stopReason : snapshot.stopReason || snapshot.run.state !== 'running')) return decision('stop', 'cancelled');
   if (snapshot.ledger.entries.some(entry => entry.unknown || entry.status === 'unknown' || entry.reservedMicroCny > 0)) return decision('stop', 'unknown_charges');
   if (now + estimate.durationMs + estimate.cleanupMs >= Date.parse(window?.deadlineAt ?? snapshot.run.originalDeadlineAt)) return decision('stop', 'deadline');
+  const resource = current.issues.find(issue => ['author_output_budget', 'author_review_reserve', 'review_output_budget', 'request_limit'].includes(issue.checkId));
+  if (resource) return decision('stop', resource.checkId);
   if (tasks.reduce((sum, task) => sum + task.attempts.length, 0) >= policy.maxTaskAttempts) return decision('stop', 'attempt_limit');
   if (history.length - 1 >= policy.maxRepairTasks) return decision('stop', 'repair_limit');
   if (window && (history.length !== 1 || history[0].sourceTaskId !== window.quote.declaration.grants.coding.taskId

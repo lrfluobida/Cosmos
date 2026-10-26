@@ -188,7 +188,7 @@ for (const fault of ['deadline', 'authority'] as const) test(`COS122 increased c
   assert.equal(f.payloads.length, 1); assert.deepEqual(await f.controller.read(), before);
 });
 
-for (const designId of ['design', 'unrelated-42']) test('COS122 COS127 public funded ordinary session selects semantic design reviewer ' + designId, async t => {
+for (const designId of ['design', 'unrelated-42']) test('COS122 COS127 COS132 public funded ordinary session selects semantic design reviewer ' + designId, async t => {
   const f = await fundingFixture(t), args = await f.authorization('capacity'), binding = await reservePublicValidationFunding(args);
   const configs: PiSessionOptions[] = [], output = new PassThrough(); output.resume();
   const sessionFactory = async (config: PiSessionOptions) => {
@@ -216,6 +216,13 @@ for (const designId of ['design', 'unrelated-42']) test('COS122 COS127 public fu
     try {
       const options = { ...input, controller, work: new OwnedWork(controller.signal), sessionFactory };
       const active = await createBrowserHost(options);
+      assert.equal(active.ordinaryDesignBudgetPolicy, 'review-reserve/1');
+      const old = await createBrowserHost({ ...options, resume: true });
+      assert.equal(old.ordinaryDesignBudgetPolicy, undefined); assert.equal(old.taskPolicies[0].allocationMicroCny, 675000);
+      const restored = await createBrowserHost({ ...options, resume: true, ordinaryDesignBudgetPolicy: 'review-reserve/1' });
+      assert.equal(restored.ordinaryDesignBudgetPolicy, 'review-reserve/1'); assert.equal(restored.taskPolicies[0].allocationMicroCny, 1125000);
+      await assert.rejects(createBrowserHost({ ...options, ordinaryDesignBudgetPolicy: 'unknown' } as any), /ordinaryDesignBudgetPolicy/);
+      assert.deepEqual(active.taskPolicies.map(policy => policy.allocationMicroCny), [1125000, 1125000, 1800000]);
       const plan = await planTaskDag({ controller, requirement: input.requirement, planningTaskId: 'planning', workspace: input.root,
         sessionRoot: join(input.root, 'sessions'), availableArtifacts: active.availableArtifacts, taskPolicies: active.taskPolicies, roleFactory: active.roleFactory });
       active.validateTasks!(plan.tasks);

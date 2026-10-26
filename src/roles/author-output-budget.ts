@@ -1,13 +1,15 @@
 import { setTimeout as yieldToTimers } from 'node:timers/promises';
 import { InsufficientReservationBudgetError, reserveEntry } from '../budget/ledger.ts';
 import type { TaskContract } from '../contracts/index.ts';
+import { PiSessionError } from '../providers/pi.ts';
 import type { PiRequest, PiSessionOptions } from '../providers/pi.ts';
 import type { RunController, RunSnapshot } from '../runtime/run.ts';
 import type { ExecutionAuthority } from '../runtime/run-types.ts';
-import { ROLE_PRICING_VERSION } from './provider-budget.ts';
+import { ROLE_PRICING_VERSION, requireAuthorReviewReserve } from './provider-budget.ts';
 
 interface AuthorBudgetInput {
   controller: RunController; original: RunSnapshot; task: TaskContract; authority: ExecutionAuthority;
+  reviewReserve?: true; failureCode?: 'author_output_budget' | 'author_review_reserve' | 'review_output_budget';
   floor: number; maxOutputTokens: number; estimate: PiSessionOptions['estimatedMaxCostMicroCny'];
 }
 type QuoteRequest = Omit<PiRequest, 'estimatedMaxCostMicroCny'>;
@@ -35,21 +37,29 @@ async function originalQuotes(input: AuthorBudgetInput, requestSignal?: AbortSig
     || current.effectiveLimitMicroCny !== authority.effectiveLimitMicroCny || current.taskGrantMicroCny !== authority.taskGrantMicroCny) {
     throw new Error('Author output limit has no current original run, grant or window authority.');
   }
-  const quote = (request: QuoteRequest) => {
+  const quote = (request: QuoteRequest, protectReview = true) => {
     const cost = typeof estimate === 'function' ? estimate(Object.freeze({ ...request })) : estimate;
     if (!Number.isSafeInteger(cost) || cost <= 0) throw new Error('Invalid author output cost estimate.');
     let affordable = false;
     try {
       reserveEntry(structuredClone(state.ledger), { requestId: request.requestId, taskId: task.taskId,
         provider: 'deepseek', pricingVersion: ROLE_PRICING_VERSION, estimatedMaxCostMicroCny: cost });
+      if (input.reviewReserve && protectReview) requireAuthorReviewReserve(state, task.taskId, { runId: original.run.runId, ledgerId: original.ledger.ledgerId, allocationMicroCny: task.budget.allocationMicroCny }, cost);
       affordable = true;
     } catch (error) {
-      if (!(error instanceof InsufficientReservationBudgetError)) throw error;
+      if (!(error instanceof InsufficientReservationBudgetError) && !(error instanceof PiSessionError && ['author_output_budget', 'author_review_reserve'].includes(error.code))) throw error;
     }
     requireActive();
     return affordable;
   };
   return { quote, requireActive, signal };
+}
+
+export async function requireOriginalAuthorBudget(input: AuthorBudgetInput) { await originalQuotes(input); }
+
+function insufficient(input: AuthorBudgetInput): Error {
+  return input.failureCode ? new PiSessionError(input.failureCode, 'Original task budget cannot afford the output floor; no provider request sent.')
+    : new Error('Original task budget cannot afford the author output floor.');
 }
 
 function requireCap(request: QuoteRequest, input: AuthorBudgetInput) {
@@ -70,7 +80,8 @@ export function authorBudgetOutputLimit(input: AuthorBudgetInput): NonNullable<P
       }
     }
     requireActive();
-    throw new Error('Original task budget cannot afford the author output floor.');
+    throw insufficient(input.reviewReserve && !quote({ ...request, maxOutputTokens: Math.min(input.floor, request.maxOutputTokens) }, false)
+      ? { ...input, failureCode: 'author_output_budget' } : input);
   };
 }
 
@@ -82,7 +93,7 @@ export function authorBudgetCompaction(input: AuthorBudgetInput): Pick<PiSession
       const request = { ...bounds, requestId: 'ordinary-compaction-quote', modelId: 'deepseek-flash' as const };
       requireCap(request, input);
       if (request.maxOutputTokens !== input.maxOutputTokens) throw new Error('Invalid ordinary compaction cap.');
-      return !quote(request) && quote({ ...request, maxOutputTokens: input.floor });
+      return !quote(request) && (input.reviewReserve ? 'budget_pressure' : quote({ ...request, maxOutputTokens: input.floor }));
     },
     requestCompactionAdmission: async ({ summary, ordinary }, signal) => {
       const { quote } = await originalQuotes(input, signal);
@@ -92,7 +103,8 @@ export function authorBudgetCompaction(input: AuthorBudgetInput): Pick<PiSession
       requireCap(request, input);
       if (request.maxOutputTokens !== input.maxOutputTokens) throw new Error('Invalid ordinary compaction cap.');
       if (quote({ ...request, maxOutputTokens: input.floor })) return 'skip';
-      throw new Error('Original task budget cannot afford the author output floor.');
+      throw insufficient(input.reviewReserve && !quote({ ...request, maxOutputTokens: input.floor }, false)
+        ? { ...input, failureCode: 'author_output_budget' } : input);
     },
   };
 }

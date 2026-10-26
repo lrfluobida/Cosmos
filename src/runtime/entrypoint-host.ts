@@ -364,6 +364,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const requirement = structuredClone(input.requirement), draft = structuredClone(input.draft);
   const ordinaryDraft = 'ordinaryProfile' in draft && draft.ordinaryProfile ? draft as OrdinaryGameDraft : undefined;
   const modular = !!(draft as BrowserGameDraft).codeProfile;
+  const budgetEligible = !!ordinaryDraft && !modular && !validation && !preparation && !human && !binding && !historical;
+  if (input.ordinaryDesignBudgetPolicy !== undefined && (input.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !budgetEligible)) throw new Error('Invalid ordinaryDesignBudgetPolicy for this host.');
+  const ordinaryDesignBudgetPolicy = budgetEligible && !input.resume ? 'review-reserve/1' as const : input.ordinaryDesignBudgetPolicy;
   if (modular && (preparation || validation || binding)) throw new Error('Modular coding currently supports only the original ordinary browser generation.');
   const modulePolicy = modular ? await readModularRepairPolicy(root, await controller.read()) : undefined;
   await requireCurrentModularRepairPolicy(modulePolicy);
@@ -747,9 +750,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const mediaLayout = { artifactId: mediaOutput.artifactId, paths: ['_cosmos/mediaSpec.json', 'public/assets/manifest.json'] };
   const gameLayout = { artifactId: output.artifactId, paths: ['index.html', 'src/main.ts'] };
   const host: GenerationHost = {
+    ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
     capability: ordinary ? 'ordinary-design-execution/1' : preparation ? 'browser-design-input-preparation-v1' : 'browser-input-media2d-v1', availableArtifacts,
     taskPolicies: [
-      { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * 0.15), writePaths: ['authors/design/design.json', ...(classicEntries?.selection.measurement ? ['authors/design/classic-entry-plan.json'] : [])],
+      { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * (ordinaryDesignBudgetPolicy ? 0.25 : 0.15)), writePaths: ['authors/design/design.json', ...(classicEntries?.selection.measurement ? ['authors/design/classic-entry-plan.json'] : [])],
         readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit', GAME_DESIGN_CHECK], outputs: [{ ...designOutput, destination: designOutput.location, type: 'design', schema: 'game-design/1' }],
         rules: [`Cover only ${DESIGN_ACCEPTANCE_ID}; no dependencies. This is a design deliverable, not proof the game passes.`, captureLayout(designLayout),
           `Read ${requirement.sources[0].location}. Write authors/design/design.json with exactly {summary:string,implementationNotes:string[],acceptanceMapping:object,characters:[{id,purpose,states:string[]}],audio:[{id,trigger,loop:boolean}]${ordinary ? ',experienceMapping:object' : ''}}. Map every gameplay ID ${JSON.stringify(gameplayIds)}. Declare 1-128 original characters and 0-64 audio clips required by the confirmed brief; preserve every requested actor, action and audio trigger.`,
@@ -870,7 +874,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: 600000, estimatedMaxCostMicroCny: requestReservation,
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
         ? { authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
-          ordinaryDesignReviewBudget: task => role(task) === 'design' } : {}),
+          ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}) } : {}),
       ...(ordinary ? { authorThinkingLevel: { design: 'off' } as const, authorMaxRequests: { design: 32 } } : {}),
       sessionFactory: input.sessionFactory,
       hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],

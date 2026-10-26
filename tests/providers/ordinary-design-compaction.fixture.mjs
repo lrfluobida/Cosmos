@@ -12,7 +12,7 @@ const usage = { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2
 
 /** Real factory, budget, scoped file tools and pinned SDK. Only transport supplies synthetic responses. */
 export async function ordinaryDesignCompactionFixture(t, mode = 'success', settings = {}) {
-  const f = await authorBudgetFixture(t), dispatches = [], admissions = [], settlements = [], preflights = [], selections = [], boundaries = [], events = [];
+  const f = await authorBudgetFixture(t, settings.allocation), dispatches = [], admissions = [], settlements = [], preflights = [], selections = [], boundaries = [], events = [];
   if (mode === 'noop') f.input.task.context.rules.push('Synthetic fixed context ' + 's'.repeat(120000));
   await mkdir(join(f.root, 'requirements'), { recursive: true });
   const sourceText = '完整冻结来源。中文、反斜杠\\与引号"。'.repeat(400);
@@ -20,6 +20,7 @@ export async function ordinaryDesignCompactionFixture(t, mode = 'success', setti
   await writeFile(join(f.root, 'outside.txt'), 'This is outside the role read scope.', 'utf8');
   let native, config, role, ordinary = 0, summaries = 0, networkCalls = 0, sdkCap, beforeCompaction, closing, error, result;
   const caller = new AbortController(), skipMode = mode === 'skip' || mode.startsWith('skip-');
+  const warmup = settings.warmupRounds ?? 0;
   let prior = settings.history === true, mainStarted = !prior, sourceRead = false, readonlyTurn = false;
   const projected = () => normalizeContext({ messages: convertToLlm(native.sessionManager.buildSessionProjection().messages) });
   const compactions = () => native.sessionManager.getEntries().filter(entry => entry.type === 'compaction');
@@ -51,8 +52,9 @@ export async function ordinaryDesignCompactionFixture(t, mode = 'success', setti
       });
       const prepare = native.agent.prepareNextTurnWithContext;
       native.agent.prepareNextTurnWithContext = async (turn, signal) => {
-        const n = ordinary - (prior ? 1 : 0);
-        if (n === 2) await spendTo(507835);
+        const n = ordinary - (prior ? 1 : 0) - warmup;
+        if (n === (settings.pressureAt ?? 2)) await spendTo(settings.availableAt2 ?? 507835);
+        if (n === (settings.pressureAt ?? 2) + 1 && settings.availableAt3) await spendTo(settings.availableAt3);
         if (n === 3 && settings.lateGrowth) await spendTo(356105);
         const context = projected(), boundary = { inputBytes: requestInputBytes(context), ordinary, summaries, checkpoints: compactions().length,
           before: JSON.stringify(context), leaf: native.sessionManager.getLeafId() };
@@ -80,15 +82,22 @@ export async function ordinaryDesignCompactionFixture(t, mode = 'success', setti
       }
       let content, stopReason = 'stop';
       if (summary) {
-        content = [{ type: 'text', text: settings.summaryText ?? '原生摘要：继续读取原授权路径；保留中文、反斜杠\\和引号"。' }];
+        content = [{ type: 'text', text: (typeof settings.summaryText === 'function' ? settings.summaryText(summaries) : settings.summaryText) ?? '原生摘要：继续读取原授权路径；保留中文、反斜杠\\和引号"。' }];
         if (mode === 'toolcall') { stopReason = 'toolUse'; content = [{ type: 'toolCall', id: 'illegal-summary', name: 'write', arguments: { path: 'game/illegal.txt', content: 'must not execute' } }]; }
         if (mode === 'sdk-error') stopReason = 'error';
         if (mode === 'length') stopReason = 'length';
+      } else if (readonlyTurn && !settings.readonlyTool) {
+        content = [{ type: 'text', text: JSON.stringify({ summary: '合成只读交接', remaining: [], uncertainty: [] }) }];
+        if (settings.readonlyLength) stopReason = 'length';
       } else if (!mainStarted) content = [{ type: 'text', text: 'Earlier history. '.repeat(500) }];
       else {
-        const n = ordinary - (prior ? 1 : 0);
-        if (n === settings.finalAt) content = [{ type: 'text', text: JSON.stringify({ summary: '合成有界交接', remaining: [], uncertainty: [] }) }];
-        else if (n <= 2) {
+        const n = ordinary - (prior ? 1 : 0) - warmup;
+        if (n <= 0) { stopReason = 'toolUse'; content = [{ type: 'toolCall', id: 'warmup-' + ordinary, name: 'write', arguments: { path: 'game/warmup.txt', content: '合成小轮次。' } }]; }
+        else if (n === settings.finalAt) content = [{ type: 'text', text: JSON.stringify({ summary: '合成有界交接', remaining: [], uncertainty: [] }) }];
+        else if (settings.smallTurns && n <= (settings.smallTurnCount ?? 4)) {
+          stopReason = 'toolUse';
+          content = [{ type: 'toolCall', id: 'small-' + n, name: 'write', arguments: { path: 'game/plan.txt', content: '合成分块。' + 'p'.repeat(n === 1 ? 55000 : 15000) } }];
+        } else if (n <= 2) {
           stopReason = 'toolUse';
           content = [{ type: 'toolCall', id: 'write-' + n, name: 'write', arguments: { path: 'game/plan.txt', content: '合成计划第' + n + '版。' + 'p'.repeat(mode === 'noop' ? 50 : 55000 + (n === 2 ? 2423 : 0)) } }];
         } else if (n === 3) {
@@ -110,6 +119,7 @@ export async function ordinaryDesignCompactionFixture(t, mode = 'success', setti
     return runtime;
   });
   role = await f.create({ ordinaryDesignBudgetCompaction: mode === 'disabled' ? undefined : true,
+    ...(settings.newPolicy ? { ordinaryDesignBudgetPolicy: 'review-reserve/1' } : {}),
     maxRequests: settings.maxRequests ?? 32, authorThinkingLevel: { design: 'off' },
     estimatedMaxCostMicroCny: request => (skipMode || mode === 'split-skip' && request.inputBytes > 20000) && request.maxOutputTokens === 8192 && request.inputBytes < 100000 ? 1000000 : estimate(request),
     afterFileWrite: async (_input, write) => write.path === 'game/plan.txt' && mode !== 'noop' ? '合成只读反馈：仍须按原要求逐项自检。' + 'f'.repeat(4000) : undefined,
