@@ -9,7 +9,7 @@ import { executionWindowView } from '../execution-window.ts';
 
 interface SchedulingSummary {
   configuredParallel: number; effectiveParallel: number; peakActiveTasks: number;
-  exclusiveReason: 'recovery' | 'review_protocol_correction' | null;
+  exclusiveReason: 'recovery' | 'author_protocol_correction' | 'review_protocol_correction' | null;
   state: 'running' | 'drained' | 'drain_unconfirmed';
 }
 const schedules = new WeakMap<RunController, SchedulingSummary>();

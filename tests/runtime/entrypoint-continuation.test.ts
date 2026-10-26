@@ -10,7 +10,7 @@ import { TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
 import { publishReceipt } from '../../src/runtime/recovery/receipt-file.ts';
 import { fixture, output } from './entrypoint-successors.fixture.ts';
 
-async function setup(t: test.TestContext, failedId = 'design') {
+async function setup(t: test.TestContext, failedId = 'design', authorProtocolCorrections?: 1) {
   assert.equal(typeof successors.prepareRepairContinuation, 'function', 'Continuation needs a durable preparation boundary');
   const f = fixture(failedId), root = await mkdtemp(join(tmpdir(), 'cosmos-continuation-'));
   f.originals.forEach(item => { item.workspace = root; });
@@ -20,10 +20,13 @@ async function setup(t: test.TestContext, failedId = 'design') {
   for (const folder of ['requirements', 'sessions/planning', 'authors/design', 'authors/art', 'authors/coding', 'repair-feedback']) await mkdir(join(root, folder), { recursive: true });
   await writeFile(join(root, 'requirements/v1.json'), JSON.stringify(f.requirement), 'utf8');
   await writeFile(join(root, f.originalPlan.location), JSON.stringify({ status: 'validated_proposal', specVersion: f.requirement.specVersion, tasks: f.originals }), 'utf8');
+  const policy = authorProtocolCorrections === 1 ? { authorProtocolCorrections: 1 as const } : {};
+  await writeFile(join(root, 'execution.json'), JSON.stringify({ capability: 'ordinary-design-execution/1', requirement: f.requirement,
+    tasks: f.originals, availableArtifacts: f.requirement.sources, plan: f.originalPlan, ...policy }), 'utf8');
   const recovery = { journalRoot: join(root, 'journal'), artifactRoot: root };
   const origin = (prepared: typeof f.originals[number]) => ({ formatVersion: 1 as const, runId: f.snapshot.run.runId, ledgerId: f.snapshot.ledger.ledgerId,
     originalStartedAt: f.snapshot.run.originalStartedAt, originalDeadlineAt: f.snapshot.run.originalDeadlineAt, limitMicroCny: f.snapshot.ledger.limitMicroCny,
-    requirement: f.requirement, prepared, reviewProtocolCorrections: 1 as const, artifactRoot: root, sessionRoot: join(root, 'sessions') });
+    requirement: f.requirement, prepared, reviewProtocolCorrections: 1 as const, ...policy, artifactRoot: root, sessionRoot: join(root, 'sessions') });
   for (const item of f.originals) await TaskJournal.open(recovery, origin(item), false);
   const failed = f.snapshot.tasks.find(task => task.taskId === failedId)!, attempt = failed.attempts[0];
   const diagnostic = { artifactId: `failure-source-${failedId}`, version: attempt.attemptId, location: `failure-sources/${failedId}/${attempt.attemptId}` };
@@ -40,11 +43,47 @@ async function setup(t: test.TestContext, failedId = 'design') {
   const targets = candidates.map(item => ({ sourceTaskId: item.task.taskId, taskId: `${item.task.taskId}-${item.task.taskId === failedId ? 'repair' : 'successor'}`,
     allocationMicroCny: grants[item.task.taskId], outputs: item.task.outputs.map(value => ({ ...value, destination: output(item.role, 'v2').location })), expectedArtifacts: [output(item.role, 'v2')],
     ...(item.task.taskId === failedId ? { interfaces: [diagnostic] } : {}) }));
-  const plan = await successors.sealRepairDiagnostics(root, successors.buildRepairContinuation({ ...f, targets }));
+  const plan = await successors.sealRepairDiagnostics(root, successors.buildRepairContinuation({ ...f, targets, ...policy }));
   const options = () => ({ root, controller, plan, originals: f.originals, requirement: f.requirement, originalPlan: f.originalPlan, now: f.now });
   return { ...f, root, plan, recovery, origin, diagnostic, options, current: () => controller,
     reopen: async () => { await controller.close(); controller = await RunController.open({ root, now: () => f.now }); } };
 }
+
+for (const enabled of [true, false]) test(`COS128 repair persists the original ${enabled ? 'enabled' : 'omitted'} author policy and cold registration`, async t => {
+  const f = await setup(t, 'design', enabled ? 1 : undefined), original = await readFile(join(f.root, 'journal/task-design/origin.json'));
+  await successors.prepareRepairContinuation(f.options());
+  const plan = JSON.parse(await readFile(join(f.root, 'repair-plan.json'), 'utf8'));
+  assert.equal(Object.hasOwn(plan, 'authorProtocolCorrections'), enabled);
+  if (enabled) assert.equal(plan.authorProtocolCorrections, 1);
+  for (const task of (await f.current().read()).tasks) {
+    const origin = JSON.parse(await readFile(join(f.root, `journal/task-${task.taskId}/origin.json`), 'utf8'));
+    assert.equal(Object.hasOwn(origin, 'authorProtocolCorrections'), enabled);
+    if (enabled) assert.equal(origin.authorProtocolCorrections, 1);
+  }
+  assert.deepEqual(await readFile(join(f.root, 'journal/task-design/origin.json')), original);
+  const state = await f.current().read(); await f.reopen(); await successors.prepareRepairContinuation(f.options());
+  assert.deepEqual(await f.current().read(), state); assert.equal(state.requests.length, 0);
+});
+
+for (const enabled of [true, false]) for (const changed of ['execution', 'plan', 'origin']) test(`COS128 repair rejects ${enabled ? 'enabled' : 'omitted'} ${changed} policy drift before registration`, async t => {
+  const f = await setup(t, 'design', enabled ? 1 : undefined), before = await f.current().read();
+  const path = changed === 'origin' ? 'journal/task-design/origin.json' : 'execution.json';
+  const value = changed === 'plan' ? f.plan : JSON.parse(await readFile(join(f.root, path), 'utf8'));
+  if (enabled) delete (value as any).authorProtocolCorrections; else (value as any).authorProtocolCorrections = 1;
+  if (changed !== 'plan') await writeFile(join(f.root, path), JSON.stringify(value), 'utf8');
+  await assert.rejects(successors.prepareRepairContinuation(f.options())); assert.deepEqual(await f.current().read(), before);
+  await assert.rejects(readFile(join(f.root, 'repair-plan.json')), { code: 'ENOENT' });
+  for (const taskId of f.plan.newTaskIds) await assert.rejects(readFile(join(f.root, `journal/task-${taskId}/origin.json`)), { code: 'ENOENT' });
+});
+
+test('COS128 repair authenticates execution in its original native task order', async t => {
+  const f = await setup(t); f.originals.reverse();
+  const executionPath = join(f.root, 'execution.json'), execution = JSON.parse(await readFile(executionPath, 'utf8'));
+  execution.tasks = f.originals; await writeFile(executionPath, JSON.stringify(execution), 'utf8');
+  await writeFile(join(f.root, f.originalPlan.location), JSON.stringify({ status: 'validated_proposal', specVersion: f.requirement.specVersion, tasks: f.originals }), 'utf8');
+  await successors.prepareRepairContinuation(f.options());
+  assert.deepEqual((await f.current().read()).tasks.slice(-3).map(task => task.taskId), f.plan.newTaskIds);
+});
 
 test('group plan, all origins and allocations are durable before any first attempt, and registration is idempotent', async t => {
   const f = await setup(t), old = await f.current().read();

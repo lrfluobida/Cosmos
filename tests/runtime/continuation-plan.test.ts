@@ -6,22 +6,50 @@ import { runtimeFixture } from './continuation-runtime.fixture.ts';
 import { TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
 import * as plans from '../../src/runtime/continuation-plan.ts';
 
-async function fixture(t: test.TestContext, failDesign = false) {
+async function fixture(t: test.TestContext, failDesign = false, authorProtocolCorrections?: 1) {
   const f = await runtimeFixture(t, { prepareNew: false, failDesign });
   const plan = { artifactId: 'native-plan', version: 'v1', location: 'original-plan.json' };
   await writeFile(join(f.root, plan.location), JSON.stringify({ status: 'validated_proposal', specVersion: f.requirement.specVersion, tasks: f.originals }), 'utf8');
-  await writeFile(join(f.root, 'execution.json'), JSON.stringify({ capability: 'offline-fixture', requirement: f.requirement, tasks: f.originals, availableArtifacts: f.requirement.sources, plan }), 'utf8');
+  const policy = authorProtocolCorrections === 1 ? { authorProtocolCorrections: 1 as const } : {};
+  await writeFile(join(f.root, 'execution.json'), JSON.stringify({ capability: 'ordinary-design-execution/1', requirement: f.requirement, tasks: f.originals, availableArtifacts: f.requirement.sources, plan, ...policy }), 'utf8');
+  if (authorProtocolCorrections === 1) for (const item of f.originals) {
+    const path = join(f.root, `journal/task-${item.task.taskId}/origin.json`), origin = JSON.parse(await readFile(path, 'utf8'));
+    await writeFile(path, JSON.stringify({ ...origin, ...policy }), 'utf8');
+  }
   const input = { root: f.root, controller: f.controller, requirement: f.requirement, windowId: f.window.windowId };
   const prepared = await plans.loadContinuationPlan(input);
   const prepare = () => plans.prepareContinuationPlan({ ...input, plan: prepared, recoverCapture: f.common.recovery.recoverCapture });
   return { ...f, input, prepared, prepare, path: join(f.root, 'continuations/runtime-decision/plan.json') };
 }
 
+for (const enabled of [true, false]) test(`COS128 authorized non-funded continuation inherits ${enabled ? 'enabled' : 'omitted'} author policy`, async t => {
+  const f = await fixture(t, false, enabled ? 1 : undefined), old = await f.state();
+  await f.prepare(); assert.equal(Object.hasOwn(f.prepared, 'authorProtocolCorrections'), enabled);
+  for (const task of (await f.state()).tasks) {
+    const origin = JSON.parse(await readFile(join(f.root, `journal/task-${task.taskId}/origin.json`), 'utf8'));
+    assert.equal(Object.hasOwn(origin, 'authorProtocolCorrections'), enabled);
+    if (enabled) assert.equal(origin.authorProtocolCorrections, 1);
+  }
+  const fixed = await readFile(f.path); await f.prepare(); assert.deepEqual(await readFile(f.path), fixed);
+  assert.deepEqual((await f.state()).ledger, old.ledger); assert.deepEqual((await f.state()).requests, old.requests);
+});
+
+for (const enabled of [true, false]) for (const changed of ['execution', 'plan', 'origin']) test(`COS128 continuation rejects ${enabled ? 'enabled' : 'omitted'} ${changed} policy drift before registration`, async t => {
+  const f = await fixture(t, false, enabled ? 1 : undefined), before = await f.state();
+  const path = changed === 'origin' ? `journal/task-${f.originals[0].task.taskId}/origin.json` : 'execution.json';
+  const value = changed === 'plan' ? f.prepared : JSON.parse(await readFile(join(f.root, path), 'utf8'));
+  if (enabled) delete (value as any).authorProtocolCorrections; else (value as any).authorProtocolCorrections = 1;
+  if (changed !== 'plan') await writeFile(join(f.root, path), JSON.stringify(value), 'utf8');
+  await assert.rejects(f.prepare()); assert.deepEqual(await f.state(), before);
+  await assert.rejects(readFile(f.path), { code: 'ENOENT' });
+  for (const grant of f.window.grants) await assert.rejects(readFile(join(f.root, `journal/task-${grant.taskId}/origin.json`)), { code: 'ENOENT' });
+});
+
 test('fixed window plan registers only quoted new tasks, retains original history, and reuses the same plan', async t => {
   const f = await fixture(t), before = await f.state(); await f.prepare(); const state = await f.state();
   assert.deepEqual(state.tasks.slice(0, before.tasks.length), before.tasks); assert.deepEqual(state.ledger, before.ledger); assert.deepEqual(state.continuation, before.continuation);
   const added = state.tasks.filter(task => f.window.grants.some(grant => grant.taskId === task.taskId)); assert.equal(added.length, 1); assert.equal(added[0].attempts.length, 0);
-  const task = f.prepared.tasks.find((item: any) => item.task.taskId === added[0].taskId); assert.equal(task.workspace, join(f.root, 'continuations/runtime-decision/workspace'));
+  const task = f.prepared.tasks.find((item: any) => item.task.taskId === added[0].taskId); assert.ok(task?.expectedArtifacts); assert.equal(task.workspace, join(f.root, 'continuations/runtime-decision/workspace'));
   assert.equal(task.expectedArtifacts[0].version, f.window.windowId); assert.notEqual(task.task.authorId, f.original.tasks[1].authorId);
   const bytes = await readFile(f.path, 'utf8'); await f.prepare(); assert.equal(await readFile(f.path, 'utf8'), bytes); assert.deepEqual(await f.state(), state);
   assert.deepEqual(await plans.loadContinuationPlan(f.input), f.prepared);
@@ -72,7 +100,7 @@ test('interruption between fresh origins resumes the same group only before any 
 
 test('interruption after atomic registration reuses the recorded group without duplicate grants or origins', async t => {
   const f = await fixture(t), register = f.controller.registerTasks.bind(f.controller);
-  const mock = t.mock.method(f.controller, 'registerTasks', async tasks => { await register(tasks); throw new Error('Offline registration interruption'); });
+  const mock = t.mock.method(f.controller, 'registerTasks', async (tasks: Parameters<typeof register>[0]) => { await register(tasks); throw new Error('Offline registration interruption'); });
   await assert.rejects(f.prepare(), /registration interruption/); mock.mock.restore();
   const state = await f.state(), fixed = await readFile(f.path); await f.prepare();
   assert.deepEqual(await f.state(), state); assert.deepEqual(await readFile(f.path), fixed);
