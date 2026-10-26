@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-27 首次需求复用实际运行 `public-room-20261027-reuse-1` 已永久失败关闭（[公开结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6425494810)）。精确复用room12 v2原确认并跳过访谈，新run `humanDecisions=[]`，planning通过；design请求准入失败，art/coding未启动、无游戏交付。原CLI exit0但outcome incomplete；2026-10-26T19:13:28.900Z–19:17:02.294Z共213.394秒，30笔合计457374µ（¥0.457374）。
+
+设计任务675000µ额度中author已用432885µ、余242115µ；最后未发送请求input91664 bytes/8192 floor报价248864µ，差6749µ，已以真实Pi投影及生产reserveEntry内存副本免费重现。未触整次¥5/30min/32请求上限；压缩后增长15855 bytes小于32768冷却阈值，预算压缩门禁也要求floor仍可负担。两个设计文件结构passed，但存档/声音语义仍有遗漏，未进入独审。
+
+Root沿原API单次stop/close/settle后，独立reuse_attempt_readiness核验PASS_CLOSED：child134/shared3366，30笔各导入一次、单closure/event、无锁；结算457374µ、释放4542626µ，shared committed22221489µ/held-reserved-unknown0。原确认和作者文件保留，本run不得恢复或重复结算；证据 `.cosmos/public-validation/room-20261027-reuse-1/generation-closure.json`。COS129/130/131源码结论保持，父COS18仍open/partial；后续免费设计聚焦作者预算恢复与媒体观察契约，待计划独审批准后另行登记。
+
 2026-10-27 [COS131 / #132](https://github.com/lrfluobida/Cosmos/issues/132) 已source-scoped关闭、父[x]。COS131源码 `9b922f10695c0d45b993cddd4c8b4daad258ca37` 已获ready_publication_reviewer最终APPROVED_SOURCE_SCOPED、无finding，合入发布 `03fb1d5461277b5ca0532ad38f0b5b3b618539fb`；[批准](https://github.com/lrfluobida/Cosmos/issues/132#issuecomment-6424314125)、[关闭](https://github.com/lrfluobida/Cosmos/issues/132#issuecomment-6424321715)已核证。3文件精确一致，typecheck/build exit0，合并COS129后的真实raw publisher屏障正例1/1、0skip、TAP4135.8218ms；19项/正常1/最后2项有效证据复用，不累计。仅source-scoped完成，COS130新入口真实交付组合已source_verified，paidReady=false。 正式[规格](docs/specs/cos131-delivery-ready-publication.md)/[计划](docs/plans/2026-10-27-delivery-ready-publication.md)保留批准输入SHA及原诊断；publisher/paths/budget相对COS129基线未改。总131/root100/父25中25源码完成，父仍open/partial，room14现已由Root未确认结案，见下述回执。
 
 2026-10-27 [COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131) 已source-scoped完成；[批准](https://github.com/lrfluobida/Cosmos/issues/131#issuecomment-6424827662)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/131#issuecomment-6424834548)及父[x]已GET核证。最终源码 `88cdf0ca6fc6475b0890d836ce20f498cc410d66` 经独立preflight_plan_reviewer APPROVED_SOURCE_SCOPED、无finding，合入发布 `ac1c745eb0be016f8a556edbadabad013fbf61bd`，4个文件与批准树精确一致；主线typecheck/build exit0。新增入口真实交付组合1/1、0skip已独审：真实编译、Edge9/9、clean delivery、CompletionTiming eligible=true及cleanup通过；原14项有效证据复用，不合计或重跑。newEntryHandoff=source_verified；模型传输合成、费用0，realModelGeneration=unverified、userExperience=not_confirmed、paidAuthorized=false。
