@@ -93,6 +93,8 @@ export async function withCleanDelivery<T>(input: { root: string; project: strin
       while (true) {
         signal.throwIfAborted();
         const receipt = await readReady();
+        signal.throwIfAborted();
+        if (Date.now() >= readyDeadline) throw new Error('Clean launcher readiness timed out.');
         if (receipt) {
           const parsed = new URL(receipt.url);
           if (receipt.formatVersion !== 'delivery-ready/1' || !sameValue(receipt.candidate, input.candidate) || receipt.project !== project
@@ -100,10 +102,33 @@ export async function withCleanDelivery<T>(input: { root: string; project: strin
           url = receipt.url; pid = receipt.pid; break;
         }
         const stopped = await Promise.race([running, new Promise<null>(done => setTimeout(() => done(null), 25))]);
+        signal.throwIfAborted();
         if (stopped) throw stopped.error ?? new Error(`Clean launcher exited before readiness: ${stopped.result?.diagnostics}`);
         if (Date.now() >= readyDeadline) throw new Error('Clean launcher readiness timed out.');
       }
-      async function readReady() { try { return decode(await regularFile(control, 'ready.json')); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
+      async function readReady() {
+        signal.throwIfAborted();
+        try {
+          const path = await safePath(control, 'ready.json', signal);
+          const stat = await lstat(path, { bigint: true }); signal.throwIfAborted();
+          if (stat.isFile() && stat.nlink === 2n && stat.ino > 0n && stat.dev >= 0n) {
+            const names = await readdir(control); signal.throwIfAborted();
+            let matches = 0, disappeared = false;
+            for (const name of names.filter(name => /^ready\.json\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.tmp$/.test(name))) {
+              const temporary = await lstat(join(control, name), { bigint: true }).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
+              signal.throwIfAborted();
+              if (!temporary) { disappeared = true; break; }
+              if (temporary.isFile() && temporary.nlink === 2n && temporary.dev === stat.dev && temporary.ino === stat.ino) matches++;
+            }
+            if (matches === 1 && !disappeared) {
+              const current = await lstat(path, { bigint: true }); signal.throwIfAborted();
+              // Only this publisher's still-linked temporary inode explains a pending receipt.
+              if (current.isFile() && current.nlink === 2n && current.dev === stat.dev && current.ino === stat.ino) return null;
+            }
+          }
+          const bytes = await regularFile(control, 'ready.json', signal); signal.throwIfAborted(); return decode(bytes);
+        } catch (error) { signal.throwIfAborted(); if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
+      }
       const checkSignals = (callerSignal?: AbortSignal) => { input.controller.signal.throwIfAborted(); signal.throwIfAborted(); callerSignal?.throwIfAborted(); };
       const check = (callerSignal?: AbortSignal) => { checkSignals(callerSignal); if (Date.now() >= deadlineAt) throw new Error('Clean delivery reached its cleanup deadline.'); };
       const requireCurrent = async (callerSignal?: AbortSignal) => {
