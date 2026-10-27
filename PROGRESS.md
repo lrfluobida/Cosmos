@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-27 [COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139) 已获Root批准并登记，source pending。captured_output必须包含精确当前capture，可补同task.inputs固定比较引用；interfaces、foreign、stale和only-input继续拒绝，预算/纠正/revision及政策版本保持。独立契约判断与[reuse-4永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6437253918)复用；旧run不再操作。总138/root100，父COS18的32个子项中31个源码完成，整体open/partial。
+
 2026-10-27 [reuse-4实际结果与永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6437253918)：runtime `b287e812f8994e23466297f63ca4454a935eb67d`，07:52:07.142Z→07:57:32.451Z，325.309秒，CLI exit0但incomplete。设计capture和host verify成功；4个实际review请求返回changes_requested/8条findings，但两条captured_output resolution混合引用同任务requirements/confirmation与design，解析器拒绝，未形成有效review；8条findings尚未认证，无revision/art/code或游戏交付。
 
 原一次纠正的第5请求未发送/扣费：原native完整历史重建input181535B、floor4096报价395838µ，余额371841µ，差23997µ。引用契约文字与解析限制的歧义正独立评估，尚无新修复发布。Root于08:04:41.725Z永久stop、08:04:43.340Z一次settle；36笔776868µ，释放4223132µ。独立PASS_CLOSED：child159/shared3372、各项一次导入、共享累计24106167µ、held/reserved/unknown0，无锁、原确认不变，永久不得恢复或重复结算。证据 `.cosmos/public-validation/room-20261027-reuse-4/generation-closure.json` 与 `.cosmos/planning/ordinary-design-candidate-review/reuse4-review-diagnosis.json`。COS137源码结论保持，实际门槛通路已到达但游戏未完成，父COS18仍open/partial。
