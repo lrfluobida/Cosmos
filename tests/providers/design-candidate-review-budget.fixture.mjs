@@ -10,7 +10,13 @@ import { execFileSync } from 'node:child_process';
 
 export async function designCandidateBudget(mode, options) {
   // Complete readonly R3 inputs and actual TEMP budget finalization; only fetch returns synthetic SSE.
-  const repo = fileURLToPath(new URL('../../', import.meta.url));
+  const repo = options.repositoryRoot ?? fileURLToPath(new URL('../../', import.meta.url));
+  const replayProfile = options.replayProfile;
+  const taskId = replayProfile?.taskId ?? 'cos137-design-source';
+  const journalRoot = `journal/task-${taskId}`;
+  const authorSettled = replayProfile?.authorSettled ?? 544313;
+  const expectedReadCount = replayProfile?.readCalls.length ?? 11;
+  const sentRequests = replayProfile?.sentRequests;
   const privateRoot = options.reportRoot ?? await mkdtemp(join(tmpdir(), 'cos137-native-budget-'));
   const r3 = options.sourceRoot;
   const confirmedRoot = options.confirmedRoot;
@@ -62,9 +68,9 @@ export async function designCandidateBudget(mode, options) {
     originals.set(path, bytes);
     materials.push({ path, sourceBytes: bytes.length, sourceSha256: hash(bytes), lines: decode(bytes).split('\n').length });
   }
-  assert.equal(materials.reduce((sum, row) => sum + row.sourceBytes, 0), 170142);
-  assert.equal(materials.at(-2).sourceSha256, '3b8d88f2d4a5c8dcd462b7d98b1d7d524c27e5606fc6e64c5710c14132c190dc');
-  assert.equal(materials.at(-1).sourceSha256, '6be9ac8755910019a1dc9ca6996a777e1a19c2e8c4352f3b35c1639f4b81e269');
+  assert.equal(materials.reduce((sum, row) => sum + row.sourceBytes, 0), replayProfile?.sourceBytes ?? 170142);
+  assert.equal(materials.at(-2).sourceSha256, replayProfile?.outputSha256[0] ?? '3b8d88f2d4a5c8dcd462b7d98b1d7d524c27e5606fc6e64c5710c14132c190dc');
+  assert.equal(materials.at(-1).sourceSha256, replayProfile?.outputSha256[1] ?? '6be9ac8755910019a1dc9ca6996a777e1a19c2e8c4352f3b35c1639f4b81e269');
   const sourceAttachments = [];
   for (const name of ['author.json', 'author-correction-started.json', 'author-correction-response.json']) {
     const bytes = await readFile(join(r3, 'journal/task-design-room-game', name));
@@ -77,12 +83,12 @@ export async function designCandidateBudget(mode, options) {
   const proposal = sourceAuthor.value.proposal;
   assert.deepEqual(JSON.parse(sourceResponse.value.reply), proposal);
   assert.equal(hash(sourceResponse.value.reply), sourceResponse.value.replySha256);
-  assert.equal(proposal.remaining.length, 3); assert.equal(proposal.uncertainty.length, 4);
+  assert.equal(proposal.remaining.length, replayProfile?.remainingCount ?? 3); assert.equal(proposal.uncertainty.length, replayProfile?.uncertaintyCount ?? 4);
   const confirmed = await readConfirmedRequirementsSource({ root: confirmedRoot, revision: 2, specVersion: '1.0' });
   assert.deepEqual(confirmed.draftBytes, originals.get(files[0]));
   assert.deepEqual(confirmed.confirmationBytes, originals.get(files[1]));
 
-  const findings = [
+  const findings = replayProfile?.findings ?? [
     'audio-enable-and-toggle 要求首个正常输入关闭声音；当前 acceptance-plan.json 的首击顺序没有覆盖该约束，必须保留原首击关声场景。',
     'audio-enable-and-toggle 要求每个新文档先核实匹配音频 id 再观测该 key；当前计划的 clip_sfx_collect、clip_sfx_door 观测存在缺口，需补全同 id 的存在性与 decoded 检查。',
     'collect-no-double-count 要求通过正常可见目标输入验证收集和重复点击；当前计划包含隐藏目标点击，必须从真实可点击前置状态执行并核对可见结果。',
@@ -98,11 +104,11 @@ export async function designCandidateBudget(mode, options) {
   const authorReadPath = 'registry/captures/generic-template/v1/files/package.json';
   let activeActor, latestAuthorAdmission, f, controller, reviewerPacket, latestAdmission, readPaths, fatal, executionResult, cliOutput = '';
   let authorCorrectionStarted, authorCorrectionResponse, authorNativeUnsent;
-  const usageAssumption = fullQuote
+  const usageAssumption = replayProfile?.usageAssumption ?? (fullQuote
     ? 'Conservative synthetic usage for every dispatched round: prompt_tokens=production inputBytes, completion_tokens=selected cap, cache=0; each settlement equals its full reservation quote.'
-    : `Synthetic nonzero usage sensitivity scenario, not a tokenizer estimate or real provider bill: prompt_tokens=ceil(production inputBytes/${density}), cache=0; tool-call output=2048, every verdict/correction output=4096. Density6 is an optimistic synthetic sensitivity case, not inferred from the real author sample of about 4.125 bytes per input token; it does not replace failed density3 or full-quote scenarios.`;
+    : `Synthetic nonzero usage sensitivity scenario, not a tokenizer estimate or real provider bill: prompt_tokens=ceil(production inputBytes/${density}), cache=0; tool-call output=2048, every verdict/correction output=4096. Density6 is an optimistic synthetic sensitivity case, not inferred from the real author sample of about 4.125 bytes per input token; it does not replace failed density3 or full-quote scenarios.`);
   const taskBalance = async () => {
-    const state = await controller.read(), rows = state.ledger.entries.filter(row => row.taskId === 'cos137-design-source');
+    const state = await controller.read(), rows = state.ledger.entries.filter(row => row.taskId === taskId);
     const settled = rows.reduce((sum, row) => sum + row.settledMicroCny, 0), reserved = rows.reduce((sum, row) => sum + row.reservedMicroCny, 0);
     return { revision: state.revision, settled, reserved, unknown: rows.filter(row => row.unknown).length, remaining: 1125000 - settled - reserved };
   };
@@ -144,11 +150,11 @@ export async function designCandidateBudget(mode, options) {
       let delta, finish_reason, usage;
       if (finalization) {
         assert.equal(index, 2); assert.deepEqual(body.tools ?? [], []); assert.equal(body.max_tokens, 4096);
-        const started = await json(join(f.root, 'journal/task-cos137-design-source/author-correction-started.json'));
+        const started = await json(join(f.root, `${journalRoot}/author-correction-started.json`));
         assert.equal(started.value.kind, 'budget_finalization'); assert.equal(started.value.used, 1);
         assert.equal(started.value.unsent.code, 'author_review_reserve'); assert.equal(started.value.originalReply, undefined);
         assert.equal(started.value.unsent.requests, 3); assert.equal(started.value.unsent.maxRequests, 32);
-        usage = { prompt_tokens: 29440, completion_tokens: 765, prompt_cache_hit_tokens: 0 };
+        usage = { ...(replayProfile?.authorFinalizationUsage ?? { prompt_tokens: 29440, completion_tokens: 765, prompt_cache_hit_tokens: 0 }) };
         delta = { content: sourceResponse.value.reply }; finish_reason = 'stop';
       } else {
         assert.ok(index < 2, 'Unexpected summary or ordinary turn: stop and report; do not disable compaction or change budget.');
@@ -173,21 +179,23 @@ export async function designCandidateBudget(mode, options) {
     await put(reportDirectory, `http/${index + 1}-body.json`, rawBody);
     const toolMessages = body.messages.filter(row => row.role === 'tool');
     if (index >= 1) {
-      assert.equal(toolMessages.length, readPaths.length);
-      for (const [toolIndex, path] of readPaths.entries()) {
+      assert.equal(toolMessages.length, replayProfile?.cumulativeReads[index] ?? readPaths.length);
+      for (const [toolIndex, path] of readPaths.slice(0, replayProfile?.cumulativeReads[index] ?? readPaths.length).entries()) {
         const text = decode(await readFile(join(configs[0].workspace, path)));
         const expected = compactCompleteJsonRead({ content: [{ type: 'text', text }] }, { path }).content[0].text;
-        const actual = toolMessages.find(row => row.tool_call_id === `source-read-${toolIndex}`);
+        const actual = toolMessages.find(row => row.tool_call_id === (replayProfile?.readCalls[toolIndex].id ?? `source-read-${toolIndex}`));
         assert.ok(actual, `Missing actual HTTP tool response for ${path}`);
         assert.equal(actual.content, expected, `HTTP tool response altered or truncated ${path}`);
       }
     }
-    const usage = { prompt_tokens: fullQuote ? latestAdmission.inputBytes : Math.ceil(latestAdmission.inputBytes / density),
+    let delta, deltas, finish_reason, usage;
+    if (replayProfile) ({ delta, deltas, finish_reason, usage } = await replayProfile.response(index, { packet: reviewerPacket, workspace: configs[0].workspace }));
+    else {
+    usage = { prompt_tokens: fullQuote ? latestAdmission.inputBytes : Math.ceil(latestAdmission.inputBytes / density),
       completion_tokens: fullQuote ? latestAdmission.maxOutputTokens : index === 0 ? 2048 : 4096,
       prompt_cache_hit_tokens: 0 };
     usage.total_tokens = usage.prompt_tokens + usage.completion_tokens;
     assert.ok(usage.completion_tokens <= latestAdmission.maxOutputTokens);
-    let delta, finish_reason;
     if (index === 0) {
       delta = { reasoning_content: 'SOURCE fixture reads all frozen files and current host evidence before the complete negative verdict.',
         tool_calls: readPaths.map((path, index) => ({ index, id: `source-read-${index}`, type: 'function', function: { name: 'read', arguments: JSON.stringify({ path }) } })) };
@@ -199,10 +207,14 @@ export async function designCandidateBudget(mode, options) {
       delta = { reasoning_content: 'SOURCE fake verdict retains all six specification gaps.', content: JSON.stringify(verdict) };
       finish_reason = 'stop';
     }
+    }
+    assert.ok(usage.completion_tokens <= latestAdmission.maxOutputTokens);
     transports.push({ round: index + 1, requestId: latestAdmission.requestId, bodyBytes: Buffer.byteLength(rawBody), bodySha256: hash(rawBody),
       bodyFile: join(reportDirectory, `http/${index + 1}-body.json`), maxTokens: body.max_tokens, toolResults: toolMessages.map(row => ({ id: row.tool_call_id, bytes: Buffer.byteLength(row.content), sha256: hash(row.content) })), usage });
-    const chunk = { id: `offline-cos137-${mode}-${index + 1}`, model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason }], usage };
-    return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+    const parts = deltas ?? [delta];
+    const chunks = parts.map((part, partIndex) => ({ id: `offline-cos137-${mode}-${index + 1}`, model: 'deepseek-flash',
+      choices: [{ index: 0, delta: part, finish_reason: partIndex === parts.length - 1 ? finish_reason : null }], ...(partIndex === parts.length - 1 ? { usage } : {}) }));
+    return new Response(chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`).join('') + 'data: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
   };
 
   try {
@@ -212,11 +224,11 @@ export async function designCandidateBudget(mode, options) {
       sessionFactory: async (config, fallback) => {
         const packet = JSON.parse(config.context);
         if (packet.role === 'cosmos') return { close: async () => {}, prompt: async () => ({ text: JSON.stringify({ tasks: [
-          { taskId: 'cos137-design-source', policyId: 'game-design', role: 'design', objective: sourceOrigin.prepared.task.objective, acceptanceIds: ['COSMOS-DESIGN'], dependsOn: [] },
-          { taskId: 'cos137-art-source', policyId: 'game-art', role: 'art', objective: 'SOURCE downstream must remain undispatched.', acceptanceIds: ['COSMOS-MEDIA'], dependsOn: ['cos137-design-source'] },
-          { taskId: 'cos137-code-source', policyId: 'game-code', role: 'coding', objective: 'SOURCE downstream must remain undispatched.', acceptanceIds: confirmed.draft.acceptance.filter(item => !item.acceptanceId.startsWith('COSMOS-')).map(item => item.acceptanceId), dependsOn: ['cos137-design-source', 'cos137-art-source'] },
+          { taskId: taskId, policyId: 'game-design', role: 'design', objective: sourceOrigin.prepared.task.objective, acceptanceIds: ['COSMOS-DESIGN'], dependsOn: [] },
+          { taskId: 'cos137-art-source', policyId: 'game-art', role: 'art', objective: 'SOURCE downstream must remain undispatched.', acceptanceIds: ['COSMOS-MEDIA'], dependsOn: [taskId] },
+          { taskId: 'cos137-code-source', policyId: 'game-code', role: 'coding', objective: 'SOURCE downstream must remain undispatched.', acceptanceIds: confirmed.draft.acceptance.filter(item => !item.acceptanceId.startsWith('COSMOS-')).map(item => item.acceptanceId), dependsOn: [taskId, 'cos137-art-source'] },
         ] }) }) };
-        if (packet.role === 'design' && packet.taskId === 'cos137-design-source') {
+        if (packet.role === 'design' && packet.taskId === taskId) {
           await put(config.workspace, 'authors/design/design.json', originals.get(files.at(-2)));
           await put(config.workspace, 'authors/design/acceptance-plan.json', originals.get(files.at(-1)));
           assert.equal(config.maxRequests, 32); assert.equal(config.maxOutputTokens, 32768); assert.equal(config.readonlyMaxOutputTokens, 4096);
@@ -256,17 +268,17 @@ export async function designCandidateBudget(mode, options) {
           session.subscribe(event => { if (event.type.startsWith('compaction') || event.type === 'agent_settled') authorEvents.push({ type: event.type, reason: event.reason, errorMessage: event.errorMessage }); });
           authorSessionFiles.push(session.sessionFile); return session;
         }
-        assert.equal(packet.role, 'reviewer'); assert.equal(packet.taskId, 'cos137-design-source');
+        assert.equal(packet.role, 'reviewer'); assert.equal(packet.taskId, taskId);
         reviewerPacket = packet; configs.push({ ...config, tools: config.tools.map(tool => tool.name) });
         assert.equal(config.maxRequests, 16); assert.equal(config.maxOutputTokens, 8192); assert.equal(config.requestTimeoutMs, 120000);
         assert.equal(config.requestCompaction, undefined); assert.deepEqual(packet.tools, ['read']);
-        assert.deepEqual(packet.designConcernReview.proposal, proposal); assert.equal(packet.designConcernReview.concerns.length, 7);
+        assert.deepEqual(packet.designConcernReview.proposal, proposal); assert.equal(packet.designConcernReview.concerns.length, proposal.remaining.length + proposal.uncertainty.length);
         assert.equal(packet.designConcernReview.authorSources.length, 3); assert.equal(packet.designConcernReview.originalReply, undefined);
-        assert.deepEqual(packet.designConcernReview.authorSources.map(row => row.location).sort(), ['author', 'author-correction-started', 'author-correction-response'].map(stage => `journal/task-cos137-design-source/${stage}.json`).sort());
-        assert.equal(packet.budget.allocationMicroCny, 1125000); assert.equal(packet.budget.committedMicroCny, 544313);
+        assert.deepEqual(packet.designConcernReview.authorSources.map(row => row.location).sort(), ['author', 'author-correction-started', 'author-correction-response'].map(stage => `${journalRoot}/${stage}.json`).sort());
+        assert.equal(packet.budget.allocationMicroCny, 1125000); assert.equal(packet.budget.committedMicroCny, authorSettled);
         assert.equal(packet.evidence.length, 1); assert.equal(packet.evidence[0].outcome, 'passed');
-        readPaths = [...files, ...packet.evidence.map(row => row.source.location)];
-        assert.equal(readPaths.length, 11);
+        readPaths = replayProfile ? replayProfile.readCalls.map(row => row.path) : [...files, ...packet.evidence.map(row => row.source.location)];
+        assert.equal(readPaths.length, expectedReadCount);
         for (const path of files) assert.deepEqual(await readFile(join(config.workspace, path)), originals.get(path));
         await put(reportDirectory, 'review-packet.json', JSON.stringify(packet, null, 2) + '\n');
         await put(reportDirectory, 'review-system.txt', config.systemPrompt);
@@ -313,12 +325,12 @@ export async function designCandidateBudget(mode, options) {
         lifecycle.push({ role: input.role, taskId: input.task.taskId });
         if (input.role === 'reviewer') {
           assert.equal(input.task.budget.allocationMicroCny, 1125000);
-          assert.deepEqual(authorSettlements.map(row => row.chargedMicroCny), [240000, 239313, 65000]);
+          assert.deepEqual(authorSettlements.map(row => row.chargedMicroCny), [240000, 239313, authorSettled - 479313]);
           assert.equal(authorAdmissions.length, 3); assert.equal(authorSelections.length, 4);
           assert.equal(authorSelections[2].rejected.code, 'author_review_reserve');
-          assert.deepEqual(Object.fromEntries(Object.entries(await taskBalance()).filter(([key]) => key !== 'revision')), { settled: 544313, reserved: 0, unknown: 0, remaining: 580687 });
-          authorCorrectionStarted = (await json(join(f.root, 'journal/task-cos137-design-source/author-correction-started.json'))).value;
-          authorCorrectionResponse = (await json(join(f.root, 'journal/task-cos137-design-source/author-correction-response.json'))).value;
+          assert.deepEqual(Object.fromEntries(Object.entries(await taskBalance()).filter(([key]) => key !== 'revision')), { settled: authorSettled, reserved: 0, unknown: 0, remaining: 1125000 - authorSettled });
+          authorCorrectionStarted = (await json(join(f.root, `${journalRoot}/author-correction-started.json`))).value;
+          authorCorrectionResponse = (await json(join(f.root, `${journalRoot}/author-correction-response.json`))).value;
           assert.equal(authorCorrectionStarted.kind, 'budget_finalization'); assert.equal(authorCorrectionResponse.kind, 'budget_finalization');
           assert.equal(authorCorrectionStarted.originalReply, undefined);
           assert.equal(authorCorrectionResponse.reply, sourceResponse.value.reply);
@@ -339,9 +351,9 @@ export async function designCandidateBudget(mode, options) {
     for (const path of sessionFiles) {
       const native = (await readFile(path, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
       const rows = native.filter(row => row.type === 'message' && row.message?.role === 'toolResult').map(row => row.message);
-      assert.equal(rows.length, 11);
+      assert.equal(rows.length, expectedReadCount);
       for (const [index, path] of readPaths.entries()) {
-        const row = rows.find(row => row.toolCallId === `source-read-${index}`);
+        const row = rows.find(row => row.toolCallId === (replayProfile?.readCalls[index].id ?? `source-read-${index}`));
         assert.ok(row); assert.equal(!!row.isError, false); assert.equal(row.details?.truncation, undefined); assert.equal(row.content.length, 1);
         assert.equal(row.content[0].type, 'text'); assert.doesNotMatch(row.content[0].text, /\[Showing lines |more lines in file|exceeds .* limit/);
         const source = await readFile(join(configs[0].workspace, path));
@@ -350,8 +362,11 @@ export async function designCandidateBudget(mode, options) {
         nativeTools.push({ path, toolCallId: row.toolCallId, sourceBytes: source.length, sourceSha256: hash(source), readBytes: Buffer.byteLength(expected), readSha256: hash(expected), isError: false, truncated: false });
       }
     }
-    assert.equal(nativeTools.slice(0, 10).reduce((sum, row) => sum + row.readBytes, 0), 152817);
-    assert.equal(nativeTools[8].readBytes, 22636); assert.equal(nativeTools[9].readBytes, 39384);
+    if (replayProfile) await replayProfile.verifyNative({ sessionFile: sessionFiles[0], transports, settlements, nativeTools, packet: reviewerPacket, workspace: configs[0].workspace });
+    else {
+      assert.equal(nativeTools.slice(0, 10).reduce((sum, row) => sum + row.readBytes, 0), 152817);
+      assert.equal(nativeTools[8].readBytes, 22636); assert.equal(nativeTools[9].readBytes, 39384);
+    }
     assert.ok(admissions.length <= 16); assert.equal(transports.length, admissions.length); assert.equal(settlements.length, admissions.length);
     assert.equal(lifecycle.filter(row => row.role === 'design').length, 1); assert.equal(lifecycle.filter(row => ['art', 'coding'].includes(row.role)).length, 0);
     assert.equal(ModelRuntime.prototype.streamSimple, originalStreamSimple);
@@ -359,19 +374,19 @@ export async function designCandidateBudget(mode, options) {
   finally { globalThis.fetch = originalFetch; for (const owner of controllers) await owner.close().catch(() => {}); }
 
   const state = f ? await json(join(f.root, 'snapshot.json')).catch(() => null) : null;
-  const task = state?.tasks?.find(row => row.taskId === 'cos137-design-source');
+  const task = state?.tasks?.find(row => row.taskId === taskId);
   let expectedOutcomeVerified = false, reviewReceipt, correctionReceipt;
   try {
     if (task && !fatal) {
       if (correction && mode !== 'density6-correction') {
         assert.equal(task.state, 'waiting_user'); assert.equal(task.review.verdict, 'pending');
-        assert.equal(transports.length, 2); assert.equal(selections.length, 3);
-        assert.equal(selections[2].rejected.code, 'review_output_budget');
+        assert.equal(transports.length, sentRequests ?? 2); assert.equal(selections.length, (sentRequests ?? 2) + 1);
+        assert.equal(selections.at(-1).rejected.code, 'review_output_budget');
       } else {
         assert.equal(task.state, 'needs_changes'); assert.equal(task.review.verdict, 'changes_requested');
-        assert.equal(transports.length, correction ? 3 : 2);
-        reviewReceipt = await json(join(f.root, 'journal/task-cos137-design-source/review.json'));
-        assert.equal(reviewReceipt.value.verdict.concernResolutions.length, 7);
+        assert.equal(transports.length, sentRequests ?? (correction ? 3 : 2));
+        reviewReceipt = await json(join(f.root, `${journalRoot}/review.json`));
+        assert.equal(reviewReceipt.value.verdict.concernResolutions.length, proposal.remaining.length + proposal.uncertainty.length);
         assert.deepEqual(reviewReceipt.value.verdict.findings, findings);
         assert.deepEqual(reviewReceipt.value.verdict.concernResolutions.map(row => row.concernText), [...proposal.remaining, ...proposal.uncertainty]);
       }
@@ -384,13 +399,13 @@ export async function designCandidateBudget(mode, options) {
   } catch (error) { fatal = { name: error.name, message: error.message, stack: error.stack }; }
   const report = { scope: 'Free SOURCE native capacity only. All model replies and usage synthetic; no real model judgment, provider call or generated-game acceptance.',
     mode, sourcePathVersion: 'actual-author-budget-finalization/1', startedAt: stamp, repository: repo, commit, sourceFingerprints, reportDirectory, tempRoot: f?.root, confirmedSource: confirmed.source, originalSource: r3,
-    grantMicroCny: 1125000, initialSettledMicroCny: 544313, initialAvailableMicroCny: 580687, usageAssumption,
-    originalAuthorSource: { proposalSha256: hash(JSON.stringify(proposal)), replySha256: sourceResponse.value.replySha256, replyBytes: Buffer.byteLength(sourceResponse.value.reply), remaining: 3, uncertainty: 4 },
+    grantMicroCny: 1125000, initialSettledMicroCny: authorSettled, initialAvailableMicroCny: 1125000 - authorSettled, usageAssumption, replay: replayProfile?.evidence,
+    originalAuthorSource: { proposalSha256: hash(JSON.stringify(proposal)), replySha256: sourceResponse.value.replySha256, replyBytes: Buffer.byteLength(sourceResponse.value.reply), remaining: proposal.remaining.length, uncertainty: proposal.uncertainty.length },
     sourceAttachments, materials, sourceBytes: materials.reduce((sum, row) => sum + row.sourceBytes, 0),
     reviewerPolicy: { version: 'independent-review/2', maxRequests: configs[0]?.maxRequests, requestTimeoutMs: configs[0]?.requestTimeoutMs, outputFloor: 4096, outputMaximum: 8192, cleanupMs: 5000,
       deadlineDurationMs: 180000, revisionMinimumRemainingMs: 185000, authorRequests: 32, protocolCorrections: 1, revisions: 1 },
     fetchInterceptedOnly: true, originalStreamSimplePreserved: ModelRuntime.prototype.streamSimple === originalStreamSimple,
-    authorSource: { usageAssumption: 'Actual TEMP admissions and settlements using explicit fake SSE usage: 240000 + 239313 + 65000 = 544313 microCNY. No imported history. Ordinary outputs4096 each; second cacheRead25 yields the one-microCNY remainder; readonly output765.',
+    authorSource: { usageAssumption: replayProfile?.authorUsageAssumption ?? 'Actual TEMP admissions and settlements using explicit fake SSE usage: 240000 + 239313 + 65000 = 544313 microCNY. No imported history. Ordinary outputs4096 each; second cacheRead25 yields the one-microCNY remainder; readonly output765.',
       pressure: { scope: 'Artificial author-only system context pressure; not part of reviewer input or a claim about R3 author capacity.', paddingBytes: authorPressureBytes, addedSystemBytes: Buffer.byteLength(authorPressure) },
       readPath: authorReadPath, selections: authorSelections, admissions: authorAdmissions, settlements: authorSettlements, transports: authorTransports,
       compaction: authorCompaction, events: authorEvents, nativeSessionFiles: authorSessionFiles, correctionStarted: authorCorrectionStarted, correctionResponse: authorCorrectionResponse, nativeUnsent: authorNativeUnsent },
