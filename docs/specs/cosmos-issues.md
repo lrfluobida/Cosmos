@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-27 COS137 / #138已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/138#issuecomment-6436182327)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/138#issuecomment-6436182896)及父[x]已GET核证。独立design_candidate_review_reviewer批准 `0487e6946b1d904599cf26ed3cffb850443dbffe`，无P1/P2；17批准文件精确、无冲突合入发布 `b287e812f8994e23466297f63ca4454a935eb67d`。 仅SOURCE范围完成；R3原候选的六项语义缺口仍为changes_requested负例，真实模型召回、游戏完成和人工体验未获证明。既有有效旧证据复用，未重跑Edge/media/完整历史矩阵，未启动真实run/付费或改账本。原reuse-3永久结案保持，总137/root100/父31个源码子项完成，COS18整体仍open/partial。
+
 2026-10-27 [COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138) 已独立APPROVED_PLAN并获Root批准免费实施，source pending；工程基线 `14adda9a795de23111dc9e407b9219473306b75f`，原生父COS18/#19未勾、依赖COS134/135/136。总137/root100/父31子项中30源码完成，父整体open/partial。扩展既有ordinaryDesignRevisionPolicy为independent-review/2，保留原proposal/concerns/signature，经当前host检查、逐项独审与原唯一revision；不新增平行flag，不改预算/次数/标准/旧execution。Root批准的计划Task3权限解释：先持久化完整review，再由system依据固定回执派生attempt/handoff；reviewer只保存review/state/evidence，不获得改写作者报告或直接清空handoff的权限。
 
 2026-10-27 COS136 / #137已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/137#issuecomment-6431623562)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/137#issuecomment-6431628170)及父[x]已GET核证。独立author_budget_recovery_reviewer批准 `6e7228e17c26dd27ff49872dba1f0f19d5091f86`，无剩余P1/P2；无冲突合入发布 `aa50ecd1a18fc88fed5a27e8966cdcdddde34a38`，14候选独有文件精确一致，COS135四独有文件及entrypoint证明选择改动完整保留。 仅SOURCE范围完成，真实模型生成和人工体验仍未验证；本批未操作真实funding/controller/ledger或启动付费。总136/root100/父30个源码子项完成，父COS18整体仍open/partial；后续实际运行由Root另行安排。
@@ -2017,7 +2019,9 @@ F3原完整历史TEMP证据复用：95134 bytes、4096 cap、223036µ≤231989µ
 
 ### COS-137 · 普通设计候选携带作者 concerns 进入独审
 
-[COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138)，id6053110207，原生父COS18/#19、[ ]，`source-pending`。独立design_candidate_review_reviewer已APPROVED_PLAN、无P1/P2，Root批准免费实施；作者ordinary_design_revision_implementer、独审design_candidate_review_reviewer、唯一merger public_agent_batch_merger。基线 `14adda9a795de23111dc9e407b9219473306b75f`。
+[COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138)，id6053110207，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`。独立design_candidate_review_reviewer已APPROVED_PLAN、无P1/P2，Root批准免费实施；作者ordinary_design_revision_implementer、独审design_candidate_review_reviewer、唯一merger public_agent_batch_merger。基线 `14adda9a795de23111dc9e407b9219473306b75f`。
+
+源码结果：COS137 / #138已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/138#issuecomment-6436182327)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/138#issuecomment-6436182896)及父[x]已GET核证。独立design_candidate_review_reviewer批准 `0487e6946b1d904599cf26ed3cffb850443dbffe`，无P1/P2；17批准文件精确、无冲突合入发布 `b287e812f8994e23466297f63ca4454a935eb67d`。 main typecheck/build exit0，5项短代表5/5、0skip、TAP88517.1685ms：/1旧门禁、/2冻结候选与concerns准入、原唯一revision/freshreview、冷恢复首次capture时间戳、原文/当前capture/host证据绑定。仅真实首次capture补实际capturedAt，已有缺时间回执仍阻断。原proposal与来源保留，完整review先落盘、system再派生attempt/handoff；reviewer只保存review/state/evidence。
 
 正式[规格](cos137-ordinary-design-candidate-review.md)/[计划](../plans/2026-10-27-ordinary-design-candidate-review.md)保留批准内容；spec SHA256 `5360db3938ca50b7ca9bb57bdc7b9d99669e2ddfc59d15c69386bd8ec61e87af`，plan SHA256 `5fe65fa49422ae7616334331ab02a8b973b3920244e1422f32744f02e86e3340`。
 
@@ -2027,7 +2031,9 @@ Root批准的计划Task3权限解释：先持久化完整review，再由system�
 
 Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4432390µ，独立PASS_CLOSED child129/shared3370 committed23329299µ/held-reserved-unknown0、无锁；原cleanup全closed/in_time220874ms仅为清理和计时，game仍incomplete。永久不resume、不再次settle；本批登记不操作真实run/ledger/coordinator或启动模型。
 
-原生依赖COS134/135/136，总137/root100/父31中30源码完成；本卡source pending，父仍open/partial。稳定任务ID：COS-137。
+原生依赖COS134/135/136，总137/root100/父31个源码子项完成；本卡仅source-scoped完成，父仍open/partial。稳定任务ID：COS-137。
+
+当前F3复用完整budget_finalization三份作者来源、10文件170142B/完整read152817B、7concerns及11条工具结果与最终HTTP内容一致的已审证明；仅fetch提供fake SSE，原streamSimple保持。normal为changes_requested、余382513µ；fullquote正常路径同样changes_requested、余2523µ。density3纠正（floor446628µ/余382511µ）与fullquote纠正（floor446720µ/余2501µ）均在transport/reserve前拒绝；density6/cap5389的一次纠正成功仅是乐观合成敏感性，不是tokenizer预测或必过保证。每分支SOURCE指纹及最终冷恢复delta等价已审，新tracked normal亦含最终源码；旧简化作者/早无指纹报告不计当前证明。 仅SOURCE范围完成；R3原候选的六项语义缺口仍为changes_requested负例，真实模型召回、游戏完成和人工体验未获证明。既有有效旧证据复用，未重跑Edge/media/完整历史矩阵，未启动真实run/付费或改账本。原reuse-3永久结案保持，总137/root100/父31个源码子项完成，COS18整体仍open/partial。
 
 ## 5. 任务与上下文包模板
 

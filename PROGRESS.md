@@ -4,6 +4,18 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-27 [reuse-4实际结果与永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6437253918)：runtime `b287e812f8994e23466297f63ca4454a935eb67d`，07:52:07.142Z→07:57:32.451Z，325.309秒，CLI exit0但incomplete。设计capture和host verify成功；4个实际review请求返回changes_requested/8条findings，但两条captured_output resolution混合引用同任务requirements/confirmation与design，解析器拒绝，未形成有效review；8条findings尚未认证，无revision/art/code或游戏交付。
+
+原一次纠正的第5请求未发送/扣费：原native完整历史重建input181535B、floor4096报价395838µ，余额371841µ，差23997µ。引用契约文字与解析限制的歧义正独立评估，尚无新修复发布。Root于08:04:41.725Z永久stop、08:04:43.340Z一次settle；36笔776868µ，释放4223132µ。独立PASS_CLOSED：child159/shared3372、各项一次导入、共享累计24106167µ、held/reserved/unknown0，无锁、原确认不变，永久不得恢复或重复结算。证据 `.cosmos/public-validation/room-20261027-reuse-4/generation-closure.json` 与 `.cosmos/planning/ordinary-design-candidate-review/reuse4-review-diagnosis.json`。COS137源码结论保持，实际门槛通路已到达但游戏未完成，父COS18仍open/partial。
+
+2026-10-27 COS137 / #138已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/138#issuecomment-6436182327)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/138#issuecomment-6436182896)及父[x]已GET核证。独立design_candidate_review_reviewer批准 `0487e6946b1d904599cf26ed3cffb850443dbffe`，无P1/P2；17批准文件精确、无冲突合入发布 `b287e812f8994e23466297f63ca4454a935eb67d`。
+
+main typecheck/build exit0，5项短代表5/5、0skip、TAP88517.1685ms：/1旧门禁、/2冻结候选与concerns准入、原唯一revision/freshreview、冷恢复首次capture时间戳、原文/当前capture/host证据绑定。仅真实首次capture补实际capturedAt，已有缺时间回执仍阻断。原proposal与来源保留，完整review先落盘、system再派生attempt/handoff；reviewer只保存review/state/evidence。
+
+当前F3复用完整budget_finalization三份作者来源、10文件170142B/完整read152817B、7concerns及11条工具结果与最终HTTP内容一致的已审证明；仅fetch提供fake SSE，原streamSimple保持。normal为changes_requested、余382513µ；fullquote正常路径同样changes_requested、余2523µ。density3纠正（floor446628µ/余382511µ）与fullquote纠正（floor446720µ/余2501µ）均在transport/reserve前拒绝；density6/cap5389的一次纠正成功仅是乐观合成敏感性，不是tokenizer预测或必过保证。每分支SOURCE指纹及最终冷恢复delta等价已审，新tracked normal亦含最终源码；旧简化作者/早无指纹报告不计当前证明。
+
+仅SOURCE范围完成；R3原候选的六项语义缺口仍为changes_requested负例，真实模型召回、游戏完成和人工体验未获证明。既有有效旧证据复用，未重跑Edge/media/完整历史矩阵，未启动真实run/付费或改账本。原reuse-3永久结案保持，总137/root100/父31个源码子项完成，COS18整体仍open/partial。 本批原输出见 `.cosmos/cos137-integration/`；最终作者索引 `C:/Users/26557/AppData/Local/Temp/cos137-source-0487e69/evidence.json`。
+
 2026-10-27 [COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138) 已独立APPROVED_PLAN并获Root批准免费实施，source pending；工程基线 `14adda9a795de23111dc9e407b9219473306b75f`，原生父COS18/#19未勾、依赖COS134/135/136。总137/root100/父31子项中30源码完成，父整体open/partial。扩展既有ordinaryDesignRevisionPolicy为independent-review/2，保留原proposal/concerns/signature，经当前host检查、逐项独审与原唯一revision；不新增平行flag，不改预算/次数/标准/旧execution。Root批准的计划Task3权限解释：先持久化完整review，再由system依据固定回执派生attempt/handoff；reviewer只保存review/state/evidence，不获得改写作者报告或直接清空handoff的权限。
 
 [reuse-3实际结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6434074975)：COS136 budget_finalization真实成功并capture design@v1；3 remaining/4 uncertainty触发原author_handoff，hostverify/独审/revision/art/code未到。L48最后edit后L50显式自检passed，workspace/capture字节一致，作者未自检自述与记录不符；实际候选仍有6项语义缺口，必须changes_requested而非强批。

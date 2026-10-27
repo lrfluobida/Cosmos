@@ -1,8 +1,8 @@
 # 普通设计候选携带 concerns 独审 Implementation Plan
 
-状态：独立 `design_candidate_review_reviewer` APPROVED_PLAN、无P1/P2，Root批准固定设计、免费源码实施与登记；source pending。原文待审/未授权源码或登记字样属于批准前记录，当前状态以本段为准；未授权真实模型、旧run恢复或费用操作。
+状态：独立 `design_candidate_review_reviewer` APPROVED_PLAN、无P1/P2，Root批准固定设计、免费源码实施与登记；源码已最终独审并集成，仅source-scoped完成。原文待审/未授权源码或登记字样属于批准前记录，当前状态以本段为准；未授权真实模型、旧run恢复或费用操作。
 
-任务：[COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138)，原生父COS18/#19、未勾；原生依赖COS134/135/136。作者 `ordinary_design_revision_implementer`，独立reviewer `design_candidate_review_reviewer`，唯一merger `public_agent_batch_merger`。
+任务：[COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138)，原生父COS18/#19、父[x]；原生依赖COS134/135/136。作者 `ordinary_design_revision_implementer`，独立reviewer `design_candidate_review_reviewer`，唯一merger `public_agent_batch_merger`。
 
 - 批准规格输入 SHA256：`5360db3938ca50b7ca9bb57bdc7b9d99669e2ddfc59d15c69386bd8ec61e87af`
 - 批准计划输入 SHA256：`5fe65fa49422ae7616334331ab02a8b973b3920244e1422f32744f02e86e3340`
@@ -22,6 +22,12 @@ Root批准的计划Task3权限解释：先持久化完整review，再由system�
 ---
 
 状态：私有计划草案v1，2026-10-27；配套[正式规格](../specs/cos137-ordinary-design-candidate-review.md)待Root和独立reviewer批准。下列checkbox是未来实施步骤，本次只写这两个文档，不实施、不建GitHub、不启动真实run。
+
+源码结果：COS137 / #138已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/138#issuecomment-6436182327)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/138#issuecomment-6436182896)及父[x]已GET核证。独立design_candidate_review_reviewer批准 `0487e6946b1d904599cf26ed3cffb850443dbffe`，无P1/P2；17批准文件精确、无冲突合入发布 `b287e812f8994e23466297f63ca4454a935eb67d`。
+
+main typecheck/build exit0，5项短代表5/5、0skip、TAP88517.1685ms：/1旧门禁、/2冻结候选与concerns准入、原唯一revision/freshreview、冷恢复首次capture时间戳、原文/当前capture/host证据绑定。仅真实首次capture补实际capturedAt，已有缺时间回执仍阻断。原proposal与来源保留，完整review先落盘、system再派生attempt/handoff；reviewer只保存review/state/evidence。
+
+当前F3复用完整budget_finalization三份作者来源、10文件170142B/完整read152817B、7concerns及11条工具结果与最终HTTP内容一致的已审证明；仅fetch提供fake SSE，原streamSimple保持。normal为changes_requested、余382513µ；fullquote正常路径同样changes_requested、余2523µ。density3纠正（floor446628µ/余382511µ）与fullquote纠正（floor446720µ/余2501µ）均在transport/reserve前拒绝；density6/cap5389的一次纠正成功仅是乐观合成敏感性，不是tokenizer预测或必过保证。每分支SOURCE指纹及最终冷恢复delta等价已审，新tracked normal亦含最终源码；旧简化作者/早无指纹报告不计当前证明。 仅SOURCE范围完成；R3原候选的六项语义缺口仍为changes_requested负例，真实模型召回、游戏完成和人工体验未获证明。既有有效旧证据复用，未重跑Edge/media/完整历史矩阵，未启动真实run/付费或改账本。原reuse-3永久结案保持，总137/root100/父31个源码子项完成，COS18整体仍open/partial。
 
 ## 0. 固定边界与文件职责
 
