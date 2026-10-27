@@ -346,10 +346,11 @@ export async function prepareRepairContinuation(options: { root: string; control
   if (state.stopReason || state.run.state !== 'running' || state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny)
     || options.now >= Date.parse(state.run.originalDeadlineAt) || !registered && options.now + additions.length * 60000 + 5000 >= Date.parse(state.run.originalDeadlineAt)) blocked('Original admission, charges or deadline block continuation.');
   const recovery = { journalRoot: join(root, 'journal'), artifactRoot: root };
-  const origin = (prepared: PreparedTask) => ({ formatVersion: 1 as const, runId: plan.runId, ledgerId: plan.ledgerId, originalStartedAt: plan.originalStartedAt,
+  const origin = (prepared: PreparedTask, original = false) => ({ formatVersion: 1 as const, runId: plan.runId, ledgerId: plan.ledgerId, originalStartedAt: plan.originalStartedAt,
     originalDeadlineAt: plan.originalDeadlineAt, limitMicroCny: plan.limitMicroCny, requirement, prepared, reviewProtocolCorrections: plan.reviewProtocolCorrections,
-    ...policy, artifactRoot: root, sessionRoot: join(root, 'sessions') });
-  for (const item of originals) await TaskJournal.open(recovery, origin(item), true);
+    ...policy, ...(original && prepared.role === 'design' && execution.ordinaryDesignFinalizationPolicy === 'budget-followup/1'
+      ? { ordinaryDesignFinalizationPolicy: 'budget-followup/1' as const } : {}), artifactRoot: root, sessionRoot: join(root, 'sessions') });
+  for (const item of originals) await TaskJournal.open(recovery, origin(item, true), true);
   for (const replacement of plan.replacements.filter(item => item.kind === 'unstarted_successor')) {
     const source = originals.find(item => item.task.taskId === replacement.sourceTaskId)!;
     const folder = await safePath(recovery.journalRoot, `task-${encodeURIComponent(source.task.taskId)}`);

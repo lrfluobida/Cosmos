@@ -111,11 +111,11 @@ export async function requestAuthorProposal<T extends AuthorProposal>(options: {
     workspaceSignature: await options.journal.workspaceSignature(options.workspace, options.task.ownership.writePaths) };
   if (unsent && fixedInputs) await options.journal.requireSignature(fixedInputs, [...options.task.inputs, ...options.task.context.interfaces]);
   if (unsent) await requireBudgetFinalizationSource(unsent, join(options.task.attempts.at(-1)!.sessionRef, 'author'));
-  const common = { ...fixed, used: 1 as const, recordedAt: new Date((options.now ?? Date.now)()).toISOString(), ...signatures };
-  const started: AuthorStarted = unsent ? { ...common, kind: 'budget_finalization', unsent } : { ...common,
+  const common = { ...fixed, used: 1 as const, recordedAt: new Date((options.now ?? Date.now)()).toISOString() };
+  const started: AuthorStarted = unsent ? { ...common, kind: 'budget_finalization', unsent, ...signatures } : { ...common,
     originalReply: original!.text, originalReplySha256: sha256(original!.text),
     ...(scope ? { kind: 'coding_scope' as const, role: 'coding' as const, reason: { code: 'author_handoff' as const, reason: 'pending_uncertainty' as const }, originalProposal: originalProposal!, originalProposalSha256: sha256(JSON.stringify(originalProposal)) }
-      : { parseFailure: { code: 'invalid_proposal' as const, reason: parseCause instanceof Error ? parseReasons.get(parseCause.message) ?? 'invalid_fields' : 'invalid_fields' } }) };
+      : { parseFailure: { code: 'invalid_proposal' as const, reason: parseCause instanceof Error ? parseReasons.get(parseCause.message) ?? 'invalid_fields' : 'invalid_fields' } }), ...signatures };
   // Write-once publication consumes the slot before dispatch, including interrupted or unknown requests.
   await options.journal.write('author-correction-started', fixed.attemptId, started);
   options.signal.throwIfAborted();

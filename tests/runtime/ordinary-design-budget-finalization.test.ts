@@ -8,6 +8,7 @@ import { createPiSession } from '../../src/providers/pi.ts';
 import { requestInputBytes } from '../../src/providers/request-input.ts';
 import { TaskJournal, RecoveryBlocked } from '../../src/runtime/recovery/task-journal.ts';
 import { readRunSnapshot } from '../../src/cli/control.ts';
+import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 
 test('COS136 F1 new ordinary policy is frozen on execution and design origin only', async t => {
@@ -23,6 +24,15 @@ test('COS136 F1 new ordinary policy is frozen on execution and design origin onl
   assert.equal(design.ordinaryDesignFinalizationPolicy, 'budget-followup/1');
   const art = JSON.parse(await readFile(join(f.root, 'journal/task-art-task/origin.json'), 'utf8'));
   assert.equal(art.ordinaryDesignFinalizationPolicy, undefined); assert.equal(f.plays.length, 0);
+  let hosts = 0;
+  for (const changed of [{ ordinaryDesignFinalizationPolicy: null }, { ordinaryDesignFinalizationPolicy: 'unknown' },
+    { ordinaryDesignBudgetPolicy: undefined }, { authorProtocolCorrections: undefined }]) {
+    await writeFile(join(f.root, 'execution.json'), JSON.stringify({ ...execution, ...changed }), 'utf8');
+    await assert.rejects(executeGeneration({ root: f.root, draft: f.draft, requirement: execution.requirement, resume: true,
+      createHost: async () => { hosts++; throw new Error('Invalid policy must reject before host assembly.'); } }), /(?:finalization|revision) policy/);
+  }
+  await writeFile(join(f.root, 'execution.json'), JSON.stringify(execution), 'utf8'); assert.equal(hosts, 0);
+
 });
 
 
@@ -39,11 +49,12 @@ async function nativeHost(t: test.TestContext, mode = 'approved') {
       const readonly = native.getActiveToolNames().length === 0, index = dispatched.length;
       dispatched.push({ readonly, inputBytes: requestInputBytes(context), cap: options.maxTokens, tools: context.tools });
       const reply = mode === 'invalid' ? 'No complete JSON.' : JSON.stringify({ summary: 'Synthetic current design; host checks remain pending.', remaining: mode === 'remaining' ? ['Unverified coverage remains.'] : [], uncertainty: [] });
-      const content: any = readonly ? [{ type: 'text', text: reply }] : [{ type: 'toolCall', id: 'read-' + index, name: 'read', arguments: { path: 'authors/design/design.json' } }];
-      const stopReason = readonly ? 'stop' : 'toolUse';
+      const formatBudget = mode === 'format-budget' && index === 1;
+      const content: any = formatBudget ? [{ type: 'text', text: 'Prose before a missing required JSON response.' }] : readonly ? [{ type: 'text', text: reply }] : [{ type: 'toolCall', id: 'read-' + index, name: 'read', arguments: { path: 'authors/design/design.json' } }];
+      const stopReason = readonly || formatBudget ? 'stop' : 'toolUse';
       return lazyStream(model, async () => (async function* () {
-        const usage = { input: readonly ? 1 : index === 0 ? 129500 : 129505, output: readonly ? 1 : 0, cacheRead: !readonly && index === 1 ? 25 : 0,
-          cacheWrite: 0, totalTokens: readonly ? 2 : index === 0 ? 129500 : 129530, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+        const usage = { input: readonly ? 1 : index === 0 ? 129500 : formatBudget ? 175000 : 129505, output: readonly ? 1 : 0, cacheRead: !readonly && !formatBudget && index === 1 ? 25 : 0,
+          cacheWrite: 0, totalTokens: readonly ? 2 : index === 0 ? 129500 : formatBudget ? 175000 : 129530, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
         await options.onProviderStreamEvent({ model: 'deepseek-flash', usage: { prompt_tokens: usage.input, completion_tokens: usage.output } }, model);
         yield { type: 'done', reason: stopReason, message: { role: 'assistant', content, api: 'openai-completions', provider: 'deepseek', model: 'deepseek-flash', stopReason, timestamp: Date.now(), usage } };
       })());
@@ -98,7 +109,7 @@ for (const mode of ['remaining', 'invalid', 'host-failed', 'review']) test('COS1
   if (mode === 'host-failed') assert.equal(JSON.parse(f.guards[0].content[0].text).passed, false);
 });
 
-for (const interruption of ['started', 'response', 'native-source']) test('COS136 F7 cold recovery keeps one shared slot after ' + interruption, async t => {
+for (const interruption of ['started', 'response', 'native-source', 'origin-policy', 'execution-policy']) test('COS136 F7 cold recovery keeps one shared slot after ' + interruption, async t => {
   const f = await nativeHost(t), write = TaskJournal.prototype.write;
   const target = interruption === 'started' ? 'author-correction-started' : 'author-correction-response';
   const crash = t.mock.method(TaskJournal.prototype, 'write', async function(this: TaskJournal, stage, attemptId, value) {
@@ -110,8 +121,36 @@ for (const interruption of ['started', 'response', 'native-source']) test('COS13
     const path = join(f.root, 'journal/task-design-task/author-correction-started.json'), receipt = JSON.parse(await readFile(path, 'utf8'));
     receipt.value.unsent.native.entryId = 'missing-source'; await writeFile(path, JSON.stringify(receipt), 'utf8');
   }
+  if (interruption === 'origin-policy' || interruption === 'execution-policy') {
+    const path = join(f.root, interruption === 'origin-policy' ? 'journal/task-design-task/origin.json' : 'execution.json');
+    const value = JSON.parse(await readFile(path, 'utf8')); delete value.ordinaryDesignFinalizationPolicy; await writeFile(path, JSON.stringify(value), 'utf8');
+  }
   await f.resume(); const state = await f.state(), design = state.tasks.find((row: any) => row.taskId === 'design-task');
   assert.equal(f.dispatched.length, before);
   if (interruption === 'response') assert.equal(design.state, 'passed'); else assert.equal(design.state, 'running');
   assert.equal(before, interruption === 'started' ? 2 : 3);
+});
+
+
+test('COS136 F5 format resource failure cannot obtain a budget followup', async t => {
+  const f = await nativeHost(t, 'format-budget'); await f.execute();
+  const started = (await f.json('journal/task-design-task/author-correction-started.json')).value;
+  assert.equal(started.kind, undefined); assert.equal(started.unsent, undefined); assert.equal(started.used, 1);
+  assert.equal(started.originalReply, 'Prose before a missing required JSON response.');
+  assert.equal(f.dispatched.length, 2); assert.equal(f.plays.length, 0);
+  await assert.rejects(readFile(join(f.root, 'journal/task-design-task/author-correction-response.json')), { code: 'ENOENT' });
+});
+
+
+test('COS136 F1 existing coding repair authenticates design policy without gaining the followup', async t => {
+  const f = await ordinaryHostFixture(t, { productionDefault: true, fault: 'code-repair', limits: { limitMicroCny: 5000000, durationMs: 1800000 } });
+  const result = await f.execute(), state: any = await readRunSnapshot(f.root);
+  assert.equal(state.tasks.find((row: any) => row.taskId === 'design-task').state, 'passed');
+  const repair = state.tasks.find((row: any) => row.taskId === 'coding-task-repair');
+  assert.ok(repair, JSON.stringify(result.gaps)); assert.equal(repair.state, 'passed');
+  const designOrigin = JSON.parse(await readFile(join(f.root, 'journal/task-design-task/origin.json'), 'utf8'));
+  const repairOrigin = JSON.parse(await readFile(join(f.root, 'journal/task-coding-task-repair/origin.json'), 'utf8'));
+  assert.equal(designOrigin.ordinaryDesignFinalizationPolicy, 'budget-followup/1');
+  assert.equal(repairOrigin.ordinaryDesignFinalizationPolicy, undefined);
+  assert.equal(f.packets.filter(row => row.role === 'design').length, 1);
 });

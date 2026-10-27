@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PiSessionError } from '../../src/providers/pi.ts';
 import { BUDGET_FINALIZATION_PROMPT } from '../../src/runtime/repair/author-protocol.ts';
+import { authorBudgetFixture } from '../roles/author-output-budget.fixture.ts';
 import { finalizationFixture } from './ordinary-design-budget-finalization.fixture.mjs';
 
 test('COS136 F2 exact unsent output floor rejection permits one native tool-free followup', async t => {
@@ -51,4 +52,34 @@ test('COS136 F4 finalization settles its real highest quote within the original 
   assert.equal(after.run.fees.settledMicroCny - before.run.fees.settledMicroCny, quote);
   assert.ok(1125000 - after.run.fees.settledMicroCny >= 375000);
   assert.equal(after.run.fees.reservedMicroCny, 0);
+});
+
+
+test('COS136 F2 summary admission rejection cannot authorize an ordinary finalization', async t => {
+  const f = await finalizationFixture(t, { workAt: 2, summaryBudget: true });
+  assert.equal(f.error.code, 'author_output_budget'); assert.equal(f.dispatches.length, 2);
+  assert.equal(await f.role.budgetFinalization(f.error), null);
+  await assert.rejects(f.finalize(BUDGET_FINALIZATION_PROMPT)); assert.equal(f.dispatches.length, 2);
+});
+
+for (const reason of ['closed', 'cancelled', 'deadline']) test('COS136 F2 pending source respects ' + reason, async t => {
+  const f = await finalizationFixture(t), sent = f.dispatches.length;
+  if (reason === 'closed') await f.role.close();
+  if (reason === 'deadline') t.mock.method(Date, 'now', () => Date.parse(f.input.task.budget.originalDeadlineAt));
+  const signal = reason === 'cancelled' ? AbortSignal.abort() : undefined;
+  await assert.rejects(f.role.finalizeBudget(f.error, BUDGET_FINALIZATION_PROMPT, { signal }));
+  assert.equal(f.dispatches.length, sent);
+});
+
+
+test('COS136 F1 finalization is a trusted design-only selection and rejects invalid policy', async t => {
+  const f = await authorBudgetFixture(t, 1125000);
+  const enabled = { ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1', ordinaryDesignFinalizationPolicy: 'budget-followup/1', authorMaxRequests: { design: 32 } };
+  for (const [role, purpose] of [['design', undefined], ['art', undefined], ['coding', undefined], ['reviewer', undefined], ['cosmos', 'planning'], ['design', 'planning']]) {
+    await f.create(enabled, { ...f.input, role, purpose });
+    assert.equal(f.configs.at(-1).ordinaryDesignFinalizationPolicy, role === 'design' && !purpose ? 'budget-followup/1' : undefined);
+  }
+  for (const patch of [{ ordinaryDesignFinalizationPolicy: null }, { ordinaryDesignFinalizationPolicy: 'unknown' }, { ordinaryDesignBudgetPolicy: undefined }, { authorMaxRequests: { design: 16 } }]) {
+    await assert.rejects(f.create({ ...enabled, ...patch }), /ordinaryDesignFinalizationPolicy/);
+  }
 });

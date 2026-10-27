@@ -34,6 +34,9 @@ export async function finalizationFixture(t, settings = {}) {
   role = await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1',
     ...(settings.legacy ? {} : { ordinaryDesignFinalizationPolicy: 'budget-followup/1' }),
     authorMaxRequests: { design: 32 }, authorThinkingLevel: { design: 'off' }, sessionFactory: async config => createPiSession({ ...config,
+      ...(settings.summaryBudget ? { requestCompactionAdmission: async (input, signal) => {
+        const state = await f.controller.read(); await f.spend(1125000 - state.run.fees.settledMicroCny - 1, 'summary-race');
+        return config.requestCompactionAdmission(input, signal); } } : {}),
       requestOutputLimit: async (request, signal) => { selections.push(request); const cap = await config.requestOutputLimit(request, signal);
         if (settings.race && dispatches.length === workAt && !finalizing) await f.spend(518011 - workAt * 10); return cap; },
       budget: { beforeRequest: async request => { admissions.push(request); await config.budget.beforeRequest(request); }, afterResponse: async response => { await config.budget.afterResponse(response); if (dispatches.length === workAt && !finalizing && !settings.race) await f.spend(518011 - workAt * 10); } },

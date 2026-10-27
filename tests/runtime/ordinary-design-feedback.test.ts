@@ -136,6 +136,10 @@ for (const [label, change, path] of [
   ['same selectors', (c: any) => { c.savedSnapshot.selector = c.snapshot.selector; }, 'scenario.reopen.checkpoint.savedSnapshot.selector'],
   ['extra field', (c: any) => { c.checkpointAssertionIds = ['save']; }, 'scenario.reopen.checkpoint.checkpointAssertionIds'],
   ['bad kind', (c: any) => { c.snapshot.kind = 'value'; }, 'scenario.reopen.checkpoint.snapshot.kind'],
+  ['bad observation', (c: any) => { c.savedSnapshot = null; }, 'scenario.reopen.checkpoint.savedSnapshot'],
+  ['extra observation field', (c: any) => { c.snapshot.value = true; }, 'scenario.reopen.checkpoint.snapshot.value'],
+  ['bad selector', (c: any) => { c.snapshot.selector = ' '; }, 'scenario.reopen.checkpoint.snapshot.selector'],
+  ['long selector', (c: any) => { c.snapshot.selector = 's'.repeat(16001); }, 'scenario.reopen.checkpoint.snapshot.selector'],
   ['bad expected', (c: any) => { c.expected = ''; }, 'scenario.reopen.checkpoint.expected'],
 ] as const) test('COS136 F8 visible checkpoint reports the exact field for ' + label, () => {
   const value: any = plan(); change(value.scenario.reopen.checkpoint);
