@@ -126,11 +126,21 @@ export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptanc
   const stages = [draft.scenario.steps];
   if (draft.scenario.reopen !== undefined) {
     const reopen = draft.scenario.reopen, checkpoint = reopen?.checkpoint;
-    if (!reopen || Object.keys(reopen).some(key => !['steps', 'checkpoint'].includes(key)) || !checkpoint
-      || Object.keys(checkpoint).some(key => !['expected', 'snapshot', 'savedSnapshot'].includes(key)) || !text(checkpoint.expected)
-      || [checkpoint.snapshot, checkpoint.savedSnapshot].some(observation => !observation || observation.kind !== 'text'
-        || Object.keys(observation).some(key => !['kind', 'selector'].includes(key)) || !text(observation.selector))
-      || sameValue(checkpoint.snapshot, checkpoint.savedSnapshot)) throw new Error('Invalid visible save checkpoint.');
+    if (!reopen || Object.keys(reopen).some(key => !['steps', 'checkpoint'].includes(key))) throw new Error('scenario.reopen: allowed fields are steps and checkpoint.');
+    const path = 'scenario.reopen.checkpoint';
+    if (!checkpoint || typeof checkpoint !== 'object') throw new Error(`${path}: requires a visible checkpoint object.`);
+    const extra = Object.keys(checkpoint).find(key => !['expected', 'snapshot', 'savedSnapshot'].includes(key));
+    if (extra) throw new Error(`${path}.${extra.slice(0, 80)}: allowed fields are expected, snapshot and savedSnapshot.`);
+    if (!text(checkpoint.expected)) throw new Error(`${path}.expected: requires a nonempty string of at most 16000 characters.`);
+    for (const field of ['snapshot', 'savedSnapshot'] as const) {
+      const observation = checkpoint[field], location = `${path}.${field}`;
+      if (!observation || typeof observation !== 'object') throw new Error(`${location}: requires an observation object.`);
+      if (observation.kind !== 'text') throw new Error(`${location}.kind: must be text.`);
+      const extra = Object.keys(observation).find(key => !['kind', 'selector'].includes(key));
+      if (extra) throw new Error(`${location}.${extra.slice(0, 80)}: allowed fields are kind and selector.`);
+      if (!text(observation.selector)) throw new Error(`${location}.selector: requires a nonempty string of at most 16000 characters.`);
+    }
+    if (sameValue(checkpoint.snapshot, checkpoint.savedSnapshot)) throw new Error(`${path}.savedSnapshot.selector: must differ from scenario.reopen.checkpoint.snapshot.selector.`);
     stages.push(reopen.steps);
   }
   for (const [stageIndex, steps] of stages.entries()) {

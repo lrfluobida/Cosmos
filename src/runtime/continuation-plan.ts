@@ -6,6 +6,7 @@ import { directory, id, regularFile, safePath, snapshot as files, within } from 
 import { validateExecution, validateTask } from '../contracts/index.ts';
 import type { ArtifactReference, RequirementContract, TaskContract } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
+import type { OrdinaryExecution } from './entrypoint-design-revision.ts';
 import type { PreparedTask, AuthorProposal } from './orchestrator.ts';
 import type { RunController } from './run.ts';
 import type { RunSnapshot, ExecutionWindow } from './run-types.ts';
@@ -47,20 +48,24 @@ async function windowState(input: Input) {
   if (hash(proof) !== window.confirmation.sourceSha256) fail('Original continuation confirmation source changed or is missing.');
   return { state, window };
 }
-function origin(root: string, state: RunSnapshot, requirement: RequirementContract, prepared: PreparedTask, policy: { authorProtocolCorrections?: 1 }): RecoveryOrigin {
+function origin(root: string, state: RunSnapshot, requirement: RequirementContract, prepared: PreparedTask, policy: { authorProtocolCorrections?: 1 }, execution?: OrdinaryExecution): RecoveryOrigin {
   const binding = taskWindowBinding(state, prepared.task.taskId);
   return { ...(binding ? { formatVersion: 2 as const, executionWindow: binding } : { formatVersion: 1 as const }),
     runId: state.run.runId, ledgerId: state.ledger.ledgerId, originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt,
-    limitMicroCny: state.ledger.limitMicroCny, requirement, prepared, reviewProtocolCorrections: 1, ...policy, artifactRoot: root, sessionRoot: join(root, 'sessions') };
+    limitMicroCny: state.ledger.limitMicroCny, requirement, prepared, reviewProtocolCorrections: 1, ...policy,
+    ...(!binding && prepared.role === 'design' && execution?.ordinaryDesignFinalizationPolicy === 'budget-followup/1'
+      && execution.tasks.some(item => item.role === 'design' && sameValue(item, prepared)) ? { ordinaryDesignFinalizationPolicy: 'budget-followup/1' as const } : {}), artifactRoot: root, sessionRoot: join(root, 'sessions') };
 }
 
-async function derive(input: Input, state: RunSnapshot, window: ExecutionWindow): Promise<{ plan: ContinuationPlan; originalSources: PreparedTask[] }> {
+async function derive(input: Input, state: RunSnapshot, window: ExecutionWindow): Promise<{ plan: ContinuationPlan; originalSources: PreparedTask[]; execution: OrdinaryExecution }> {
   const { root, requirement } = input, sources: ContinuationPlan['sources'] = [];
   const read = async (path: string) => { const fixed = name(root, path), bytes = await regularFile(root, fixed); sources.push({ path: fixed, sha256: hash(bytes) }); return decode(bytes); };
   const execution = await read('execution.json');
   if (!sameValue(execution.requirement, requirement) || !Array.isArray(execution.tasks) || !execution.tasks.length || execution.tasks.length > 3
     || typeof execution.capability !== 'string' || !Array.isArray(execution.availableArtifacts)) fail('Original fixed execution plan is unavailable.');
   const policy = authorCorrectionPolicy(execution, execution.capability);
+  if (Object.hasOwn(execution, 'ordinaryDesignFinalizationPolicy') && (execution.ordinaryDesignFinalizationPolicy !== 'budget-followup/1'
+    || execution.capability !== 'ordinary-design-execution/1' || execution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || policy.authorProtocolCorrections !== 1)) fail('Original design finalization policy changed.');
   const native = await read(execution.plan.location);
   if (native.status !== 'validated_proposal' || native.specVersion !== requirement.specVersion || !sameValue(native.tasks, execution.tasks)) fail('Original native plan changed.');
   const pool = new Map<string, PreparedTask>((execution.tasks as PreparedTask[]).map(item => [item.task.taskId, item]));
@@ -132,7 +137,7 @@ async function derive(input: Input, state: RunSnapshot, window: ExecutionWindow)
   }
   await requireContinuationInputs(state, tasks, root);
   for (const item of tasks) if (validateExecution({ requirement, task: item.task, ledger: state.ledger, run: state.run }).length) fail('Continuation task does not preserve its execution contract.');
-  return { originalSources: [...pool.values()], plan: { formatVersion: 'continuation-plan-1', runId: state.run.runId, ledgerId: state.ledger.ledgerId,
+  return { execution, originalSources: [...pool.values()], plan: { formatVersion: 'continuation-plan-1', runId: state.run.runId, ledgerId: state.ledger.ledgerId,
     windowId: window.windowId, decisionId: window.decisionId, quoteId: window.quote.quoteId, capability: execution.capability,
     requirement: structuredClone(requirement), availableArtifacts: execution.availableArtifacts, sources, tasks,
     replacements: [...aliases].map(([sourceTaskId, replacementTaskId]) => ({ sourceTaskId, replacementTaskId })).concat(replacements), reviewProtocolCorrections: 1,
@@ -149,16 +154,16 @@ export async function loadContinuationPlan(input: Input): Promise<ContinuationPl
 }
 
 export async function prepareContinuationPlan(input: Input & { plan: ContinuationPlan; recoverCapture: NonNullable<RecoveryOptions['recoverCapture']> }): Promise<void> {
-  const { root, controller, requirement } = input, { state, window } = await windowState(input), { plan, originalSources } = await derive(input, state, window);
+  const { root, controller, requirement } = input, { state, window } = await windowState(input), { plan, originalSources, execution } = await derive(input, state, window);
   if (!sameValue(input.plan, plan)) fail('Continuation plan differs from the exact authorized source mapping.');
   const policy = authorCorrectionPolicy(plan, plan.capability);
   const path = continuationPlanPath(window.decisionId), published = await exists(root, path);
   if (published && !sameValue(decode(await regularFile(root, path)), plan)) fail('Immutable continuation plan changed.');
   const recovery = { journalRoot: join(root, 'journal'), artifactRoot: root };
-  for (const item of originalSources) await TaskJournal.open(recovery, origin(root, state, requirement, item, policy), true);
+  for (const item of originalSources) await TaskJournal.open(recovery, origin(root, state, requirement, item, policy, execution), true);
   // Authentication precedes every new origin or registration. Copying fixed bytes is handled later by preAuthor.
   for (const item of plan.tasks.filter(item => !window.grants.some(grant => grant.taskId === item.task.taskId))) {
-    const task = state.tasks.find(task => task.taskId === item.task.taskId)!, journal = await TaskJournal.open(recovery, origin(root, state, requirement, item, policy), true), attempt = task.attempts.at(-1)!;
+    const task = state.tasks.find(task => task.taskId === item.task.taskId)!, journal = await TaskJournal.open(recovery, origin(root, state, requirement, item, policy, execution), true), attempt = task.attempts.at(-1)!;
     const authored = await journal.read<{ proposal: AuthorProposal }>('author', attempt.attemptId), verified = await journal.read<{ evidence: TaskContract['evidence']; signature: ContentSignature }>('verified', attempt.attemptId);
     if (!authored?.proposal?.summary || !Array.isArray(authored.proposal.remaining) || authored.proposal.remaining.length || !Array.isArray(authored.proposal.uncertainty) || authored.proposal.uncertainty.length
       || !verified || !sameValue(verified.evidence, task.evidence) || task.review.verdict !== 'approved') fail('Passed ancestor evidence or author handoff is incomplete.');

@@ -372,6 +372,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const ordinaryDesignBudgetPolicy = budgetEligible && !input.resume ? 'review-reserve/1' as const : input.ordinaryDesignBudgetPolicy;
   if (input.ordinaryDesignRevisionPolicy !== undefined && (input.ordinaryDesignRevisionPolicy !== 'independent-review/1' || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignRevisionPolicy for this host.');
   const ordinaryDesignRevisionPolicy = input.ordinaryDesignRevisionPolicy;
+  if (input.ordinaryDesignFinalizationPolicy !== undefined && (input.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignFinalizationPolicy for this host.');
+  const ordinaryDesignFinalizationPolicy = input.ordinaryDesignFinalizationPolicy;
   const ordinaryTasks = new Map<string, PreparedTask>();
   if (modular && (preparation || validation || binding)) throw new Error('Modular coding currently supports only the original ordinary browser generation.');
   const modulePolicy = modular ? await readModularRepairPolicy(root, await controller.read()) : undefined;
@@ -767,6 +769,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const gameLayout = { artifactId: output.artifactId, paths: ['index.html', 'src/main.ts'] };
   const host: GenerationHost = {
     ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
+    ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}),
     ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy } : {}),
     capability: ordinary ? 'ordinary-design-execution/1' : preparation ? 'browser-design-input-preparation-v1' : 'browser-input-media2d-v1', availableArtifacts,
     taskPolicies: [
@@ -891,7 +894,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: 600000, estimatedMaxCostMicroCny: requestReservation,
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
         ? { authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
-          ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
+          ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}), ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
           ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 } } : {}) } : {}),
       ...(ordinary ? { authorThinkingLevel: { design: 'off' } as const, authorMaxRequests: { design: 32 } } : {}),
       sessionFactory: input.sessionFactory,
@@ -1507,7 +1510,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         const source = (await controller.read()).tasks.find(task => task.taskId === revision.sourceTaskId)!;
         if (session.actorId === source.authorId || session.contextId === source.context.contextId) { await session.close(); throw new Error('Revision reviewer must be independent from both authors.'); }
       }
-      return { ...session, prompt: async (...args) => { await guard(); const result = await session.prompt(...args); await guard(); return result; } };
+      return { ...session, prompt: async (...args) => { await guard(); const result = await session.prompt(...args); await guard(); return result; },
+        ...(session.budgetFinalization ? { budgetFinalization: async (error: unknown) => { await guard(); return session.budgetFinalization!(error); } } : {}),
+        ...(session.finalizeBudget ? { finalizeBudget: async (...args: Parameters<NonNullable<typeof session.finalizeBudget>>) => { await guard(); const result = await session.finalizeBudget!(...args); await guard(); return result; } } : {}) };
     };
   }
   if (modular) host.bindPreparedTasks = async tasks => {
