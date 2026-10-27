@@ -88,8 +88,9 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
           const captured = JSON.parse(await readFile(join(root, designRef.location, '_cosmos/acceptance-plan.json'), 'utf8'));
           assert.deepEqual(captured.scenario, scenario);
           // The mutable author's newer selectors must never reach the consumer.
-          await put('authors/design/acceptance-plan.json', JSON.stringify({ ...captured, scenario: { ...scenario, steps: [] } }));
-          if (fault === 'review') return { text: JSON.stringify({ verdict: 'changes_requested', findings: ['无法确认当前计划完整覆盖原规则'], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: any) => e.evidenceId) }) };
+          if (!packet.designConcernReview) await put('authors/design/acceptance-plan.json', JSON.stringify({ ...captured, scenario: { ...scenario, steps: [] } }));
+          if (fault === 'review') return { text: JSON.stringify({ verdict: 'changes_requested', findings: ['无法确认当前计划完整覆盖原规则'], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: any) => e.evidenceId),
+            ...(packet.designConcernReview?.concerns.length === 0 ? { concernResolutions: [] } : {}) }) };
         }
         if (taskId === 'art-task' && fault === 'review-receipt') {
           const path = 'journal/task-design-task/review.json', receipt = JSON.parse(await readFile(join(root, path), 'utf8'));
@@ -103,7 +104,8 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
           assert.deepEqual(raw.plan.steps.filter((step: any) => !step.id.startsWith('host-media-')), scenario.steps);
           assert.deepEqual(raw.plan.artifact, packet.inputs.find((ref: any) => ref.artifactId === 'game'));
         }
-        return { text: JSON.stringify({ verdict: 'approved', findings: [], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: any) => e.evidenceId) }) };
+        return { text: JSON.stringify({ verdict: 'approved', findings: [], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((e: any) => e.evidenceId),
+          ...(packet.designConcernReview?.concerns.length === 0 ? { concernResolutions: [] } : {}) }) };
       }
       if (packet.role === 'design') {
         const requirement = packet.inputs.find((ref: any) => ref.artifactId === 'requirement-bundle'); assert.ok(requirement);
@@ -150,9 +152,9 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
       return { environmentReady: true, executionReady: true };
     }, async questions() { return draft.questions; }, async draft() { return draft; },
     async execute(input: Parameters<typeof product.execute>[0]): Promise<any> {
-      if (!options.pause && !options.productionDefault) return executeGeneration({ ...input,
+      if (!options.pause && (!options.productionDefault || options.revisionPolicy !== undefined)) return executeGeneration({ ...input,
         createHost: hostInput => createBrowserHost({ ...hostInput, ...hostOptions,
-          ordinaryDesignRevisionPolicy: (options.revisionPolicy === true ? 'independent-review/1' : options.revisionPolicy || undefined) as any }) });
+          ordinaryDesignRevisionPolicy: options.revisionPolicy === true ? 'independent-review/1' : options.revisionPolicy || undefined }) });
       if (!options.pause || input.resume) return product.execute(input);
       const controller = await RunController.open({ root }), work = new OwnedWork(controller.signal), abort = new AbortController();
       try {

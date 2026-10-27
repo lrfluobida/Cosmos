@@ -17,6 +17,8 @@ import type { RepairFeedback } from './repair/feedback.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy, validateModularRepairPolicy } from './modular-repair-policy.ts';
 import type { ModularRepairPolicy } from './modular-repair-policy.ts';
 import { readDesignSelection } from './entrypoint-design-revision.ts';
+import { designOriginPolicy } from './repair/design-concerns.ts';
+import type { OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 
 export interface SuccessorTarget {
   sourceTaskId: string; taskId: string; allocationMicroCny: number;
@@ -37,7 +39,7 @@ export interface RepairContinuationPlan {
   tasks: PreparedTask[];
   reviewProtocolCorrections: 1;
   authorProtocolCorrections?: 1;
-  ordinaryDesignRevisionPolicy?: 'independent-review/1';
+  ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
   /** Sealed before publication; only the preserved diagnostic manifest and its raw files are hashed. */
   diagnosticSignatures?: { reference: ArtifactReference; files: { path: string; sha256: string }[] }[];
 }
@@ -147,7 +149,7 @@ export function buildRepairContinuation(options: {
   failedId: string; feedback: RepairFeedback; targets: readonly SuccessorTarget[]; now: number;
   modulePolicy?: ModularRepairPolicy;
   authorProtocolCorrections?: 1;
-  ordinaryDesignRevisionPolicy?: 'independent-review/1';
+  ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
 }): RepairContinuationPlan {
   const { snapshot, requirement, failedId, feedback } = options, originals = ordered(options.originals);
   const policy = authorCorrectionPolicy(options, 'ordinary-design-execution/1');
@@ -347,6 +349,7 @@ export async function prepareRepairContinuation(options: { root: string; control
     || options.now >= Date.parse(state.run.originalDeadlineAt) || !registered && options.now + additions.length * 60000 + 5000 >= Date.parse(state.run.originalDeadlineAt)) blocked('Original admission, charges or deadline block continuation.');
   const recovery = { journalRoot: join(root, 'journal'), artifactRoot: root };
   const origin = (prepared: PreparedTask, original = false) => ({ formatVersion: 1 as const, runId: plan.runId, ledgerId: plan.ledgerId, originalStartedAt: plan.originalStartedAt,
+    ...(original ? designOriginPolicy(execution.ordinaryDesignRevisionPolicy, prepared.role) : {}),
     originalDeadlineAt: plan.originalDeadlineAt, limitMicroCny: plan.limitMicroCny, requirement, prepared, reviewProtocolCorrections: plan.reviewProtocolCorrections,
     ...policy, ...(original && prepared.role === 'design' && execution.ordinaryDesignFinalizationPolicy === 'budget-followup/1'
       ? { ordinaryDesignFinalizationPolicy: 'budget-followup/1' as const } : {}), artifactRoot: root, sessionRoot: join(root, 'sessions') });

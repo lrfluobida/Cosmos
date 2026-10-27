@@ -12,6 +12,22 @@ import { RunController } from '../../src/runtime/run.ts';
 import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
+import type { PiSessionOptions } from '../../src/providers/pi.ts';
+import type { RoleSession } from '../../src/roles/factory.ts';
+
+function reviewedDesignSource(config: PiSessionOptions, fallback: RoleSession): RoleSession {
+  const packet = JSON.parse(config.context!);
+  if (packet.role === 'design') return { ...fallback, prompt: async (...args) => {
+    await fallback.prompt(...args); return { text: JSON.stringify({ summary: 'Synthetic completed candidate, original self-report retained.',
+      remaining: ['最终设计还需独立全范围核对。'], uncertainty: ['作者未确认最终结构验证结果。'] }) };
+  } };
+  if (packet.designConcernReview) return { ...fallback, prompt: async () => ({ text: JSON.stringify({ verdict: 'approved', findings: [], inputVersions: packet.inputs,
+    evidenceIds: packet.evidence.map((row: any) => row.evidenceId), concernResolutions: packet.designConcernReview.concerns.map((concern: any) => ({ concernId: concern.concernId,
+      concernText: packet.designConcernReview.proposal[concern.field][concern.index], status: 'resolved', basis: 'host_evidence',
+      rationale: 'light/readable: 当前 host-report.json 验证了完整最终结构；独审核对 design.json 与 acceptance-plan.json 的点击和完成映射。',
+      acceptanceIds: packet.acceptance.map((row: any) => row.acceptanceId), inputVersions: packet.inputs, evidenceIds: packet.evidence.map((row: any) => row.evidenceId), evidenceRefs: packet.evidence.map((row: any) => row.source) })) }) }) };
+  return fallback;
+}
 
 test('COS136 F1 new ordinary policy is frozen on execution and design origin only', async t => {
   const f = await ordinaryHostFixture(t, { productionDefault: true, sessionFactory: async (config, fallback) => {
@@ -38,7 +54,7 @@ test('COS136 F1 new ordinary policy is frozen on execution and design origin onl
 });
 
 
-async function nativeHost(t: test.TestContext, mode = 'approved') {
+async function nativeHost(t: test.TestContext, mode = 'approved', revisionPolicy: 'independent-review/1' | 'independent-review/2' = 'independent-review/1') {
   const dispatched: any[] = [], selections: any[] = [], guards: any[] = [];
   let native: any, f: Awaited<ReturnType<typeof ordinaryHostFixture>>;
   const prompt = AgentSession.prototype.prompt;
@@ -62,10 +78,15 @@ async function nativeHost(t: test.TestContext, mode = 'approved') {
       })());
     }; return runtime;
   });
-  f = await ordinaryHostFixture(t, { productionDefault: true, limits: { limitMicroCny: 5000000, durationMs: 1800000 },
+  f = await ordinaryHostFixture(t, { productionDefault: true, revisionPolicy, limits: { limitMicroCny: 5000000, durationMs: 1800000 },
     fault: mode === 'review' ? 'review' : undefined, sessionFactory: async (config, fallback) => {
       const packet = JSON.parse(config.context);
       if (packet.role === 'art' || packet.role === 'design' && packet.taskId !== 'design-task') throw new Error('Bounded source fixture cutoff after initial design.');
+      if (packet.designConcernReview && mode === 'remaining') return { ...fallback, prompt: async () => ({ text: JSON.stringify({ verdict: 'changes_requested',
+        findings: ['light: 完整设计覆盖仍待修订，结构通过不消除该缺口。'], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((row: any) => row.evidenceId),
+        concernResolutions: packet.designConcernReview.concerns.map((concern: any) => ({ concernId: concern.concernId, concernText: packet.designConcernReview.proposal[concern.field][concern.index],
+          status: 'unresolved', basis: 'captured_output', rationale: 'light: _cosmos/design.json 的覆盖说明仍缺少明确原要求映射，必须修订后再核对。',
+          acceptanceIds: packet.acceptance.map((row: any) => row.acceptanceId), inputVersions: packet.inputs.filter((ref: any) => ref.artifactId === 'design'), evidenceIds: [], evidenceRefs: [] })) }) }) };
       if (packet.role !== 'design') return fallback;
       const role = await createPiSession({ ...config, systemPrompt: config.systemPrompt + '\n' + 's'.repeat(70000), env: { DEEPSEEK_API_KEY: 'offline-cos136' },
         requestOutputLimit: async (request, signal) => { selections.push(request); return config.requestOutputLimit!(request, signal); } });
@@ -95,6 +116,23 @@ test('COS136 F5 F6 budget followup uses shared receipts and actual capture host 
   assert.equal(start.originalReply, undefined); assert.equal(start.parseFailure, undefined); assert.equal(start.unsent.floor, 8192);
   assert.ok(await f.json('journal/task-design-task/capture.json')); assert.ok(await f.json('journal/task-design-task/verified.json'));
   assert.equal(f.plays.length, 0);
+});
+
+test('COS137 budget finalization concerns retain native source and reach explicit rejection', async t => {
+  const f = await nativeHost(t, 'remaining', 'independent-review/2'); await f.execute();
+  const state = await f.state(), design = state.tasks.find((row: any) => row.taskId === 'design-task');
+  assert.equal(design.state, 'needs_changes'); assert.equal(f.dispatched.length, 3);
+  const author = (await f.json('journal/task-design-task/author.json')).value;
+  const packet = (await f.json('journal/task-design-task/design-concerns.json')).value;
+  assert.deepEqual(packet.proposal, author.proposal); assert.deepEqual(packet.proposal.remaining, ['Unverified coverage remains.']);
+  assert.equal(packet.originalReply, undefined); assert.equal(packet.authorSources.length, 3);
+  assert.equal((await f.json('journal/task-design-task/author-correction-started.json')).value.kind, 'budget_finalization');
+  assert.equal((await f.json('journal/task-design-task/review.json')).value.verdict.concernResolutions[0].status, 'unresolved');
+  assert.ok(design.handoff.remaining.includes('Unverified coverage remains.'));
+  const responsePath = join(f.root, 'journal/task-design-task/author-correction-response.json'), response = await readFile(responsePath);
+  await writeFile(responsePath, '{}', 'utf8'); const before = f.dispatched.length;
+  const resumed = await f.resume(); assert.equal(resumed.outcome, 'incomplete'); assert.equal(f.dispatched.length, before);
+  await writeFile(responsePath, response);
 });
 
 
@@ -145,7 +183,7 @@ test('COS136 F5 format resource failure cannot obtain a budget followup', async 
 
 
 test('COS136 F1 existing coding repair authenticates design policy without gaining the followup', async t => {
-  const f = await ordinaryHostFixture(t, { productionDefault: true, fault: 'code-repair', limits: { limitMicroCny: 5000000, durationMs: 1800000 } });
+  const f = await ordinaryHostFixture(t, { productionDefault: true, fault: 'code-repair', limits: { limitMicroCny: 5000000, durationMs: 1800000 }, sessionFactory: async (config, fallback) => reviewedDesignSource(config, fallback) });
   const result = await f.execute(), state: any = await readRunSnapshot(f.root);
   assert.equal(state.tasks.find((row: any) => row.taskId === 'design-task').state, 'passed');
   const repair = state.tasks.find((row: any) => row.taskId === 'coding-task-repair');
@@ -153,6 +191,8 @@ test('COS136 F1 existing coding repair authenticates design policy without gaini
   const designOrigin = JSON.parse(await readFile(join(f.root, 'journal/task-design-task/origin.json'), 'utf8'));
   const repairOrigin = JSON.parse(await readFile(join(f.root, 'journal/task-coding-task-repair/origin.json'), 'utf8'));
   assert.equal(designOrigin.ordinaryDesignFinalizationPolicy, 'budget-followup/1');
+  assert.equal(designOrigin.ordinaryDesignRevisionPolicy, 'independent-review/2'); assert.equal(repairOrigin.ordinaryDesignRevisionPolicy, undefined);
+  assert.equal(JSON.parse(await readFile(join(f.root, 'journal/task-design-task/author.json'), 'utf8')).value.proposal.remaining.length, 1);
   assert.equal(repairOrigin.ordinaryDesignFinalizationPolicy, undefined);
   assert.equal(f.packets.filter(row => row.role === 'design').length, 1);
 });
@@ -166,7 +206,7 @@ test('COS136 F1 supported continuation authenticates historical design without g
       await fallback.prompt(...args); return { text: JSON.stringify({ summary: 'Controlled partial source only.', remaining: ['Synthetic coding remains unfinished.'], uncertainty: [] }) };
     } };
     if (continued && packet.role === 'coding') windowConfigs.push(config);
-    return fallback;
+    return reviewedDesignSource(config, fallback);
   } });
   await f.execute(); const original: any = await readRunSnapshot(f.root);
   assert.equal(original.requirementsSource, undefined); assert.equal(original.validationFunding, undefined);
@@ -186,6 +226,8 @@ test('COS136 F1 supported continuation authenticates historical design without g
   assert.equal(windowConfigs.length, 1); assert.equal(windowConfigs[0].ordinaryDesignFinalizationPolicy, undefined);
   const origin = JSON.parse(await readFile(join(f.root, 'journal/task-' + coding.taskId + '/origin.json'), 'utf8'));
   assert.equal(origin.formatVersion, 2); assert.equal(origin.ordinaryDesignFinalizationPolicy, undefined);
+  assert.equal(origin.ordinaryDesignRevisionPolicy, undefined); assert.equal(JSON.parse(windowConfigs[0].context).designConcernReview, undefined);
+  assert.equal(JSON.parse(await readFile(join(f.root, 'journal/task-design-task/author.json'), 'utf8')).value.proposal.remaining.length, 1);
   assert.deepEqual(await readFile(join(f.root, 'journal/task-design-task/origin.json')), oldOrigin);
   assert.equal(f.packets.filter(row => row.role === 'design').length, 1);
 });

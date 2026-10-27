@@ -165,6 +165,7 @@ async function ordinaryInitialFailureCleanup(root: string, original: RunSnapshot
       || source.state !== 'failed' || source.attempts.length !== 1 || source.attempts[0].outcome !== 'failed' || !source.attempts[0].endedAt
       || source.artifacts.length || source.evidence.length || !sameValue(source.review, pending)) return false;
     const execution = decode(await regularFile(root, 'execution.json')) as OrdinaryExecution;
+    if (execution.ordinaryDesignRevisionPolicy !== 'independent-review/1') return false;
     await (await import('./entrypoint-design-revision.ts')).requireDesignExecution(root, { read: async () => structuredClone(original) }, execution);
     const tasks = execution.tasks, design = tasks.find(item => item.role === 'design')!;
     if (design.task.taskId !== source.taskId || new Set(tasks.map(item => item.task.taskId)).size !== 3

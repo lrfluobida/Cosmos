@@ -19,6 +19,8 @@ import { publishReceipt } from './recovery/receipt-file.ts';
 import { deriveHumanContinuationPreparation } from './continuation-preparation.ts';
 import type { HumanContinuationPreparation } from './continuation-preparation.ts';
 import { authorCorrectionPolicy } from './entrypoint-successors.ts';
+import { designOriginPolicy } from './repair/design-concerns.ts';
+import { authenticateDesign } from './entrypoint-design-revision.ts';
 
 export interface ContinuationPlan {
   formatVersion: 'continuation-plan-1'; runId: string; ledgerId: string; windowId: string; decisionId: string; quoteId: string;
@@ -53,6 +55,7 @@ function origin(root: string, state: RunSnapshot, requirement: RequirementContra
   return { ...(binding ? { formatVersion: 2 as const, executionWindow: binding } : { formatVersion: 1 as const }),
     runId: state.run.runId, ledgerId: state.ledger.ledgerId, originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt,
     limitMicroCny: state.ledger.limitMicroCny, requirement, prepared, reviewProtocolCorrections: 1, ...policy,
+    ...(!binding && execution ? designOriginPolicy(execution.ordinaryDesignRevisionPolicy, prepared.role) : {}),
     ...(!binding && prepared.role === 'design' && execution?.ordinaryDesignFinalizationPolicy === 'budget-followup/1'
       && execution.tasks.some(item => item.role === 'design' && sameValue(item, prepared)) ? { ordinaryDesignFinalizationPolicy: 'budget-followup/1' as const } : {}), artifactRoot: root, sessionRoot: join(root, 'sessions') };
 }
@@ -165,7 +168,9 @@ export async function prepareContinuationPlan(input: Input & { plan: Continuatio
   for (const item of plan.tasks.filter(item => !window.grants.some(grant => grant.taskId === item.task.taskId))) {
     const task = state.tasks.find(task => task.taskId === item.task.taskId)!, journal = await TaskJournal.open(recovery, origin(root, state, requirement, item, policy, execution), true), attempt = task.attempts.at(-1)!;
     const authored = await journal.read<{ proposal: AuthorProposal }>('author', attempt.attemptId), verified = await journal.read<{ evidence: TaskContract['evidence']; signature: ContentSignature }>('verified', attempt.attemptId);
-    if (!authored?.proposal?.summary || !Array.isArray(authored.proposal.remaining) || authored.proposal.remaining.length || !Array.isArray(authored.proposal.uncertainty) || authored.proposal.uncertainty.length
+    const designCandidate = execution.ordinaryDesignRevisionPolicy === 'independent-review/2' && item.role === 'design';
+    if (designCandidate) await authenticateDesign(root, controller, execution, item);
+    if (!authored?.proposal?.summary || !Array.isArray(authored.proposal.remaining) || !designCandidate && authored.proposal.remaining.length || !Array.isArray(authored.proposal.uncertainty) || !designCandidate && authored.proposal.uncertainty.length
       || !verified || !sameValue(verified.evidence, task.evidence) || task.review.verdict !== 'approved') fail('Passed ancestor evidence or author handoff is incomplete.');
     const capture = await input.recoverCapture(task, authored.proposal, controller.signal);
     if (!capture || !sameValue(capture.artifacts, task.artifacts) || !sameValue(task.artifacts, item.expectedArtifacts)) fail('Passed ancestor registry provenance cannot be established.');

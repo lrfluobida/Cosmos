@@ -19,6 +19,8 @@ import { validationReservation, validationRole } from '../runtime/validation-val
 import { requireOriginalTask } from '../runtime/recovery/task-journal.ts';
 import { codingConcernReviewProtocol } from '../runtime/repair/coding-concerns.ts';
 import type { CodingConcernReview } from '../runtime/repair/coding-concerns.ts';
+import { designConcernReviewProtocol, isOrdinaryDesignRevisionPolicy } from '../runtime/repair/design-concerns.ts';
+import type { DesignConcernReview, OrdinaryDesignRevisionPolicy } from '../runtime/repair/design-concerns.ts';
 import { inputFilesProtocol, roleInputFiles } from './input-files.ts';
 import { planningJsonExample } from './planning-protocol.ts';
 import { authorBudgetCompaction, authorBudgetOutputLimit, requireOriginalAuthorBudget } from './author-output-budget.ts';
@@ -43,6 +45,7 @@ export interface RoleInput {
   validation?: ValidationExecutionBinding;
   /** Host-provided original coding concerns for the explicit validation review policy. */
   codingConcernReview?: CodingConcernReview;
+  designConcernReview?: DesignConcernReview;
   workspace: string;
   stateDirectory: string;
   controller: RunController;
@@ -59,7 +62,7 @@ export interface RoleFactoryOptions {
   ordinaryDesignBudgetCompaction?: true;
   ordinaryDesignBudgetPolicy?: 'review-reserve/1';
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
-  ordinaryDesignRevisionPolicy?: 'independent-review/1';
+  ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
   /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote a 4096-8192 output cap. */
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
   maxRequests: number;
@@ -106,7 +109,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (Object.entries(authorLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxOutputTokens requires valid author roles and positive safe integers.');
   const authorFloors = { ...options.authorBudgetOutputFloor };
   const revisionPolicy = options.ordinaryDesignRevisionPolicy;
-  if (revisionPolicy !== undefined && (revisionPolicy !== 'independent-review/1' || options.ordinaryDesignBudgetPolicy !== 'review-reserve/1'
+  if (revisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(revisionPolicy) || options.ordinaryDesignBudgetPolicy !== 'review-reserve/1'
     || options.ordinaryDesignBudgetCompaction !== true || authorFloors.design !== 8192 || authorLimits.design !== 32768
     || authorFloors.art !== 8192 || authorLimits.art !== 65536 || authorFloors.coding !== 8192 || authorLimits.coding !== 65536)) throw new Error('Invalid ordinaryDesignRevisionPolicy output configuration.');
   for (const [role, floor] of Object.entries(authorFloors)) {
@@ -141,6 +144,10 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const errors = [...validateTask(task), ...validateExecutionRequirement(requirement, input.validation ? 'operator_validation' : 'human')];
     if (errors.length || task.specVersion !== requirement.specVersion) throw new Error('Invalid role task or confirmed requirements.');
     const scope = input.validation ? await requireValidationScope(input.controller, requirement, input.validation) : undefined;
+    if (input.designConcernReview && (revisionPolicy !== 'independent-review/2' || input.role !== 'reviewer' || input.purpose || input.validation || input.codingConcernReview
+      || input.designConcernReview.policy !== 'independent-review/2' || input.designConcernReview.formatVersion !== 'ordinary-design-concern-review/1'
+      || task.acceptanceIds.length !== 1 || task.acceptanceIds[0] !== 'COSMOS-DESIGN' || input.designConcernReview.taskId !== task.taskId
+      || input.designConcernReview.attemptId !== task.attempts.at(-1)?.attemptId || input.designConcernReview.authorId !== task.authorId || input.designConcernReview.contextId !== task.context.contextId)) throw new Error('Design concern review requires its original ordinary design policy, task and attempt.');
     if (input.codingConcernReview && (!input.validation || input.role !== 'reviewer' || input.purpose || input.codingConcernReview.taskId !== task.taskId
       || input.codingConcernReview.attemptId !== task.attempts.at(-1)?.attemptId || input.codingConcernReview.authorId !== task.authorId || input.codingConcernReview.contextId !== task.context.contextId)) throw new Error('Coding concern review requires its original validation task and attempt.');
     const purpose = input.purpose === 'planning' ? 'planning' : input.role === 'reviewer' ? 'reviewer' : 'author';
@@ -156,6 +163,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const reviewReserve = !!(recoveryPolicy && designCompaction);
     const maxRequests = authorRequestLimit ?? options.maxRequests;
     const authority = validation ? undefined : await input.controller.executionAuthority(task.taskId);
+    if (input.designConcernReview && authority?.windowId) throw new Error('A continuation reviewer cannot acquire ordinary design candidate authority.');
     input.controller.signal.throwIfAborted();
     if (validation ? !validation.admissionAllowed : authority!.windowId && !authority!.admissionAllowed) throw new Error('Role task has no active execution window authority.');
     if (scope) {
@@ -206,7 +214,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       budget: { ...task.budget, committedMicroCny: snapshot.ledger.entries.filter(e => e.taskId === task.taskId).reduce((total, e) => total + e.reservedMicroCny + e.settledMicroCny, 0),
         ...(validation ? { validationCase: { ...validation } } : authority!.windowId ? { executionWindow: { windowId: authority!.windowId, deadlineAt: authority!.deadlineAt,
           effectiveLimitMicroCny: authority!.effectiveLimitMicroCny, taskGrantMicroCny: authority!.taskGrantMicroCny } } : {}) },
-      ...(reviewer ? { evidence: task.evidence, ...(input.codingConcernReview ? { codingConcernReview: structuredClone(input.codingConcernReview) } : {}) } : { outputs: task.outputs }) });
+      ...(reviewer ? { evidence: task.evidence, ...(input.codingConcernReview ? { codingConcernReview: structuredClone(input.codingConcernReview) } : {}),
+        ...(input.designConcernReview ? { designConcernReview: structuredClone(input.designConcernReview) } : {}) } : { outputs: task.outputs }) });
     const recoveryBudget = { controller: input.controller, original: snapshot, task, authority: authority!, floor: authorFloor!,
       maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny, reviewReserve: true as const, failureCode: 'author_review_reserve' as const };
     const session = await (options.sessionFactory ?? createPiSession)({
@@ -214,7 +223,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       systemPrompt: (input.purpose === 'planning'
         ? `You are the Cosmos task planner. Follow the host-supplied output schema and use only the host policies supplied in the prompt. Return only a JSON object without Markdown. When policies have policyId, use this shape:\n${planningJsonExample(true)}\npolicyId is required, must name a supplied policy, must match its role, and each policyId may be selected at most once. Otherwise use this shape:\n${planningJsonExample(false)}\nSelect each role at most once and do not add policyId. Cover every confirmed acceptance ID. Each dependency names a task in this plan. The host binds its declared output versions as inputs after the dependency passes. You cannot choose tools, paths, budget, acceptance steps, evidence or task state. This is a proposal, not a claim that the game passes.`
         : reviewer
-        ? input.codingConcernReview ? `You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. ${codingConcernReviewProtocol} Your verdict is a proposal checked by the host.` : 'You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. Return JSON {verdict:"approved"|"changes_requested",inputVersions:all packet inputs,evidenceIds:host evidence IDs,findings:string[]}. findings contains only unresolved actionable defects, not successful checks, positive observations or explanations. approved requires findings:[]; changes_requested requires at least one such defect with the unmet requirement and actual versus expected behavior. Do not hide actual defects to produce an empty array. Return only these JSON fields. Your verdict is a proposal checked by the host. Do not infer success from author claims.'
+        ? input.designConcernReview ? `You are the independent Cosmos design reviewer. ${designConcernReviewProtocol}` : input.codingConcernReview ? `You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. ${codingConcernReviewProtocol} Your verdict is a proposal checked by the host.` : 'You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. Return JSON {verdict:"approved"|"changes_requested",inputVersions:all packet inputs,evidenceIds:host evidence IDs,findings:string[]}. findings contains only unresolved actionable defects, not successful checks, positive observations or explanations. approved requires findings:[]; changes_requested requires at least one such defect with the unmet requirement and actual versus expected behavior. Do not hide actual defects to produce an empty array. Return only these JSON fields. Your verdict is a proposal checked by the host. Do not infer success from author claims.'
         : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next. Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`) + (authorRequestLimit === undefined ? '' : `\n\nThis author session permits at most ${maxRequests} model requests (model response rounds, not files or individual tool calls). Reserve requests for complete self-checks and the final JSON handoff. If defects remain, report the real unfinished work in remaining; never claim completion solely to finish within this limit.`) + `\n\n${inputFilesProtocol}`,
       context: JSON.stringify(packet), thinkingLevel: (purpose === 'author' && !validation && input.role !== 'reviewer' ? authorThinking[input.role] : undefined) ?? options.thinkingLevel ?? 'low', env: options.env,
       ...(purpose === 'planning' ? { jsonOutput: true } : {}),
