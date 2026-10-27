@@ -8,6 +8,8 @@ import { createPiSession } from '../../src/providers/pi.ts';
 import { requestInputBytes } from '../../src/providers/request-input.ts';
 import { TaskJournal, RecoveryBlocked } from '../../src/runtime/recovery/task-journal.ts';
 import { readRunSnapshot } from '../../src/cli/control.ts';
+import { RunController } from '../../src/runtime/run.ts';
+import { buildContinuationQuote } from '../../src/runtime/continuation-quote.ts';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 
@@ -152,5 +154,38 @@ test('COS136 F1 existing coding repair authenticates design policy without gaini
   const repairOrigin = JSON.parse(await readFile(join(f.root, 'journal/task-coding-task-repair/origin.json'), 'utf8'));
   assert.equal(designOrigin.ordinaryDesignFinalizationPolicy, 'budget-followup/1');
   assert.equal(repairOrigin.ordinaryDesignFinalizationPolicy, undefined);
+  assert.equal(f.packets.filter(row => row.role === 'design').length, 1);
+});
+
+
+test('COS136 F1 supported continuation authenticates historical design without granting new window followup', async t => {
+  let continued = false; const windowConfigs: any[] = [];
+  const f = await ordinaryHostFixture(t, { productionDefault: true, limits: { limitMicroCny: 5000000, durationMs: 1800000 }, sessionFactory: async (config, fallback) => {
+    const packet = JSON.parse(config.context);
+    if (packet.role === 'coding' && !continued) return { ...fallback, prompt: async (...args) => {
+      await fallback.prompt(...args); return { text: JSON.stringify({ summary: 'Controlled partial source only.', remaining: ['Synthetic coding remains unfinished.'], uncertainty: [] }) };
+    } };
+    if (continued && packet.role === 'coding') windowConfigs.push(config);
+    return fallback;
+  } });
+  await f.execute(); const original: any = await readRunSnapshot(f.root);
+  assert.equal(original.requirementsSource, undefined); assert.equal(original.validationFunding, undefined);
+  assert.equal(original.tasks.find((row: any) => row.taskId === 'design-task').state, 'passed');
+  const oldOrigin = await readFile(join(f.root, 'journal/task-design-task/origin.json'));
+  const stopped = await RunController.open({ root: f.root }); await stopped.stop('Synthetic continuation source only.'); await stopped.close();
+  const quote = await buildContinuationQuote({ root: f.root, additionalMicroCny: 0, additionalDurationMs: 600000 });
+  const confirmation = { decisionId: 'cos136-window', actorId: 'synthetic-user', decidedAt: new Date().toISOString(),
+    source: { artifactId: 'synthetic-confirmation', version: 'v1', location: 'synthetic-continuation.json' } };
+  await writeFile(join(f.root, confirmation.source.location), JSON.stringify({ formatVersion: 'continuation-confirmation-1',
+    decisionId: confirmation.decisionId, actorId: confirmation.actorId, decidedAt: confirmation.decidedAt, confirmed: true, quote }), 'utf8');
+  const window = await RunController.activateContinuation({ root: f.root, quote, confirmation }); continued = true;
+  const execution = JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8'));
+  const result = await f.host.execute({ root: f.root, draft: f.draft, requirement: execution.requirement, resume: false, windowId: window.windowId });
+  const after: any = await readRunSnapshot(f.root), coding = after.tasks.find((row: any) => row.taskId === window.grants[0].taskId);
+  assert.ok(coding, JSON.stringify(result.gaps)); assert.equal(coding.state, 'passed', JSON.stringify(result.gaps));
+  assert.equal(windowConfigs.length, 1); assert.equal(windowConfigs[0].ordinaryDesignFinalizationPolicy, undefined);
+  const origin = JSON.parse(await readFile(join(f.root, 'journal/task-' + coding.taskId + '/origin.json'), 'utf8'));
+  assert.equal(origin.formatVersion, 2); assert.equal(origin.ordinaryDesignFinalizationPolicy, undefined);
+  assert.deepEqual(await readFile(join(f.root, 'journal/task-design-task/origin.json')), oldOrigin);
   assert.equal(f.packets.filter(row => row.role === 'design').length, 1);
 });
