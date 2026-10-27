@@ -49,7 +49,7 @@ test('design resolution parser binds current text, captures and host evidence', 
   task.context.interfaces = [{ artifactId: 'design', version: 'v1', location: 'registry/captures/design/v1/files' }];
   task.evidence = [{ evidenceId: 'host', taskId: task.taskId, outcome: 'passed', recordedAt: now, acceptanceIds: task.acceptanceIds,
     artifactVersions: [...task.inputs, ...task.artifacts], source: { artifactId: 'report', version: 'v2', location: 'evidence/report.json' } }];
-  const proposal = { summary: '原始报告', remaining: ['检查顺序'], uncertainty: ['检查结构'] }, packet: any = { proposal, concerns: indexDesignConcerns(proposal), capturedAt: now };
+  const proposal = { summary: '原始报告', remaining: ['检查顺序'], uncertainty: ['检查结构'] }, packet: any = { proposal, concerns: indexDesignConcerns(proposal), capturedAt: now, capture: task.artifacts[0] };
   const make = (basis: string): any => ({ verdict: 'approved', findings: [], inputVersions: [...task.inputs, ...task.artifacts], evidenceIds: ['host'],
     concernResolutions: packet.concerns.map((concern: any) => ({ concernId: concern.concernId, concernText: proposal[concern.field as 'remaining' | 'uncertainty'][concern.index], status: 'resolved', basis,
       rationale: 'AC-1: final design.json and actual host report establish this specific order/structure; complete requirements remain the scope.', acceptanceIds: task.acceptanceIds,
@@ -67,6 +67,21 @@ test('design resolution parser binds current text, captures and host evidence', 
   ]) { const value = make('host_evidence'); mutate(value); assert.throws(() => parseDesignConcernReview(JSON.stringify(value), task, requirement, packet, base)); }
   const stale = make('captured_output'); stale.concernResolutions[0].inputVersions = task.context.interfaces;
   assert.throws(() => parseDesignConcernReview(JSON.stringify(stale), task, requirement, packet, base));
+  for (const refs of [[...task.artifacts, ...task.inputs], [...task.inputs, ...task.artifacts]]) {
+    const compared = make('captured_output'); compared.concernResolutions[0].inputVersions = refs;
+    assert.deepEqual(parseDesignConcernReview(JSON.stringify(compared), task, requirement, packet, base), compared);
+  }
+  for (const refs of [[], task.inputs, [...task.artifacts, ...task.context.interfaces],
+    [...task.artifacts, { ...task.inputs[0], artifactId: 'foreign' }], [...task.artifacts, { ...task.inputs[0], version: 'stale' }],
+    [...task.artifacts, { ...task.inputs[0], location: 'foreign/file.json' }], [...task.artifacts, ...task.artifacts],
+    [{ ...task.artifacts[0], version: 'stale' }, ...task.inputs]]) {
+    const invalid = make('captured_output'); invalid.concernResolutions[0].inputVersions = refs;
+    assert.throws(() => parseDesignConcernReview(JSON.stringify(invalid), task, requirement, packet, base), JSON.stringify(refs));
+  }
+  for (const field of ['evidenceIds', 'evidenceRefs']) {
+    const invalid = make('captured_output'); invalid.concernResolutions[0][field] = field === 'evidenceIds' ? ['host'] : [task.evidence[0].source];
+    assert.throws(() => parseDesignConcernReview(JSON.stringify(invalid), task, requirement, packet, base));
+  }
   const otherGap = make('captured_output'); otherGap.verdict = 'changes_requested'; otherGap.findings = ['Another original requirement is missing.'];
   assert.equal(parseDesignConcernReview(JSON.stringify(otherGap), task, requirement, packet, base).verdict, 'changes_requested');
   const passed = task.evidence[0]; task.evidence[0] = { ...passed, outcome: 'failed' };
