@@ -396,12 +396,14 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
           const captureStarted = await journal!.read('capture-started', attemptId);
           if (!capture && !captureStarted && !recoveredCorrection) throw new RecoveryBlocked('Capture was never durably started; no completed output can be inferred.');
           if (!capture && !captureStarted) await journal!.write('capture-started', attemptId, {});
-          const recovered = !capture && !captureStarted && recoveredCorrection
+          const firstCapture = !capture && !captureStarted && recoveredCorrection;
+          const recovered = firstCapture
             ? await options.capture(freeze(structuredClone(task)), freeze(proposal), signal)
             : await inspectCaptured(task, proposal, item.expectedArtifacts);
           if (!capture) {
+            if (candidateDesigns.has(task.taskId) && !firstCapture) throw new RecoveryBlocked('Design capture started without its original completion time; preserve the unknown capture.');
             capture = { captured: recovered, signature: await journal!.signature(recovered.artifacts),
-              ...(options.hostEvidencedCodingHandoff === 1 && item.role === 'coding' ? { capturedAt: at() } : {}) };
+              ...(options.hostEvidencedCodingHandoff === 1 && item.role === 'coding' || candidateDesigns.has(task.taskId) && firstCapture ? { capturedAt: at() } : {}) };
             await journal!.write('capture', attemptId, capture);
           }
           if (!sameValue(recovered, capture.captured)) throw new RecoveryBlocked('Recovered capture differs from its durable snapshot handoff.');

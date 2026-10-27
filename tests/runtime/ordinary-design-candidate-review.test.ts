@@ -179,6 +179,51 @@ test('/2 format correction preserves the original unstructured self-report for i
   assert.equal(correction.value.originalReply, originalReply);
 });
 
+test('/2 cold recovery after a complete format response timestamps its first actual capture', async t => {
+  let interrupted = false, corrections = 0;
+  const f = await ordinaryHostFixture(t, { revisionPolicy: 'independent-review/2', sessionFactory: async (config, fallback) => {
+    const packet = JSON.parse(config.context!);
+    if (packet.role === 'design') return { ...fallback, prompt: async (...args) => { await fallback.prompt(...args); return { text: '原始作者报告格式不合法。' }; },
+      readonlyPrompt: async () => { corrections++; return { text: JSON.stringify(proposal) }; } };
+    if (packet.designConcernReview) return { ...fallback, prompt: async () => ({ text: JSON.stringify(review(packet, 'approved')) }) };
+    if (packet.role === 'art') throw new Error('Synthetic cutoff after reviewed design.');
+    return fallback;
+  } });
+  const write = TaskJournal.prototype.write;
+  t.mock.method(TaskJournal.prototype, 'write', async function (this: TaskJournal, ...args: Parameters<typeof write>) {
+    await write.apply(this, args);
+    if (!interrupted && args[0] === 'author-correction-response') { interrupted = true; throw new RecoveryBlocked('Synthetic interruption after complete author correction response.'); }
+  });
+  await f.execute(); assert.equal(interrupted, true);
+  const execution = JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8'));
+  const responsePath = join(f.root, 'journal/task-design-task/author-correction-response.json'), response = await readFile(responsePath);
+  await assert.rejects(readFile(join(f.root, 'journal/task-design-task/capture.json')), { code: 'ENOENT' });
+  await f.host.execute({ root: f.root, requirement: execution.requirement, draft: f.draft, resume: true });
+  const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8')), task = state.tasks.find((row: any) => row.taskId === 'design-task');
+  assert.equal(task.state, 'passed'); assert.equal(corrections, 1);
+  assert.equal(f.packets.filter(p => p.role === 'design').length, 1); assert.equal(f.packets.filter(p => p.role === 'reviewer').length, 1);
+  const capture = JSON.parse(await readFile(join(f.root, 'journal/task-design-task/capture.json'), 'utf8'));
+  assert.ok(Date.parse(capture.value.capturedAt) >= Date.parse(task.attempts[0].startedAt));
+  assert.ok(Date.parse(capture.value.capturedAt) <= Date.parse(task.attempts[0].endedAt));
+  assert.deepEqual(await readFile(responsePath), response);
+});
+
+test('/2 recovery does not invent a capture time from an existing capture with a missing receipt', async t => {
+  const f = await candidateFixture(t, 'approved', true); let interrupted = false;
+  f.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => {
+    const host = await createBrowserHost({ ...hostInput, ...f.hostOptions }), capture = host.capture;
+    if (!input.resume) host.capture = async (...args) => { await capture(...args); interrupted = true; throw new RecoveryBlocked('Synthetic interruption before capture receipt.'); };
+    return host;
+  } });
+  await f.execute(); assert.equal(interrupted, true);
+  const execution = JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8')), captureBytes = await readFile(join(f.root, 'registry/captures/design/v1/files/_cosmos/design.json'));
+  const result = await f.host.execute({ root: f.root, requirement: execution.requirement, draft: f.draft, resume: true });
+  assert.equal(f.packets.filter(p => p.role === 'design').length, 1); assert.equal(f.packets.some(p => p.role === 'reviewer'), false);
+  assert.equal(result.outcome, 'incomplete');
+  await assert.rejects(readFile(join(f.root, 'journal/task-design-task/capture.json')), { code: 'ENOENT' });
+  assert.deepEqual(await readFile(join(f.root, 'registry/captures/design/v1/files/_cosmos/design.json')), captureBytes);
+});
+
 test('/2 read mirror tamper is rejected before the reviewer can inspect another capture', async t => {
   const f = await candidateFixture(t, 'approved', true);
   f.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => {
