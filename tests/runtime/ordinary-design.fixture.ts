@@ -20,7 +20,7 @@ import type { RoleSession } from '../../src/roles/factory.ts';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 
 export async function ordinaryHostFixture(t: TestContext, options: { modular?: boolean; fault?: string; persistent?: boolean; classic?: boolean; renderFrames?: boolean; pause?: boolean; productionDefault?: boolean;
-  revisionPolicy?: boolean;
+  revisionPolicy?: boolean | 'independent-review/1' | 'independent-review/2';
   mediaPolicy?: 'audio-state/1'; configure?: (draft: OrdinaryGameDraft, scenario: BrowserScenario) => void;
   limits?: Parameters<typeof runProductSession>[0]['limits'];
   sessionFactory?: (config: PiSessionOptions, fallback: RoleSession) => Promise<RoleSession> } = {}) {
@@ -150,8 +150,9 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
       return { environmentReady: true, executionReady: true };
     }, async questions() { return draft.questions; }, async draft() { return draft; },
     async execute(input: Parameters<typeof product.execute>[0]): Promise<any> {
-      if (!options.pause && !options.revisionPolicy && !options.productionDefault) return executeGeneration({ ...input,
-        createHost: hostInput => createBrowserHost({ ...hostInput, ...hostOptions, ordinaryDesignRevisionPolicy: undefined }) });
+      if (!options.pause && !options.productionDefault) return executeGeneration({ ...input,
+        createHost: hostInput => createBrowserHost({ ...hostInput, ...hostOptions,
+          ordinaryDesignRevisionPolicy: (options.revisionPolicy === true ? 'independent-review/1' : options.revisionPolicy || undefined) as any }) });
       if (!options.pause || input.resume) return product.execute(input);
       const controller = await RunController.open({ root }), work = new OwnedWork(controller.signal), abort = new AbortController();
       try {
