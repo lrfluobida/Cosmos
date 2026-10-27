@@ -72,6 +72,7 @@ import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './mo
 import { associateNativeReadSignal, createNativeSnapshotValidationWaits, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
 import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
 import { optionalDesignJson, readDesignRevisionPlan, readDesignSelection, requireDesignExecution, requireDesignMirrors, requireDesignProgress, seedDesignRevision } from './entrypoint-design-revision.ts';
+import { isOrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
@@ -370,7 +371,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const budgetEligible = !!ordinaryDraft && !modular && !validation && !preparation && !human && !binding && !historical;
   if (input.ordinaryDesignBudgetPolicy !== undefined && (input.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !budgetEligible)) throw new Error('Invalid ordinaryDesignBudgetPolicy for this host.');
   const ordinaryDesignBudgetPolicy = budgetEligible && !input.resume ? 'review-reserve/1' as const : input.ordinaryDesignBudgetPolicy;
-  if (input.ordinaryDesignRevisionPolicy !== undefined && (input.ordinaryDesignRevisionPolicy !== 'independent-review/1' || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignRevisionPolicy for this host.');
+  if (input.ordinaryDesignRevisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(input.ordinaryDesignRevisionPolicy) || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignRevisionPolicy for this host.');
   const ordinaryDesignRevisionPolicy = input.ordinaryDesignRevisionPolicy;
   if (input.ordinaryDesignFinalizationPolicy !== undefined && (input.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignFinalizationPolicy for this host.');
   const ordinaryDesignFinalizationPolicy = input.ordinaryDesignFinalizationPolicy;
@@ -912,7 +913,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         if (ordinary && roleInput.purpose === 'planning') { await ordinary.requireCurrent(); return; }
         if (human && roleInput.purpose === 'planning') { await human.requireCurrent(); return; }
         if (roleInput.purpose === 'planning') await requirePlanningDispatch(roleInput, signal);
-        else await requireDispatch(roleInput.task, signal);
+        else {
+          await requireDispatch(roleInput.task, signal);
+          if (roleInput.designConcernReview) await requireDesignMirrors(root, roleInput.workspace, [...roleInput.task.inputs, ...roleInput.task.artifacts,
+            ...roleInput.task.context.interfaces, ...roleInput.task.evidence.map(item => item.source)]);
+        }
       } } : {}) }),
     async capture(task, _proposal, signal) {
       await requireDispatch(task, signal); const ref = taskOutput(task), kind = role(task);
@@ -1503,6 +1508,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const revision = await readDesignRevisionPlan(root, controller, await json(root, 'execution.json'));
       const guard = async () => {
         await requireDispatch(roleInput.task, controller.signal);
+        if (roleInput.designConcernReview) await requireDesignMirrors(root, roleInput.workspace, [...roleInput.task.inputs, ...roleInput.task.artifacts,
+          ...roleInput.task.context.interfaces, ...roleInput.task.evidence.map(item => item.source)]);
         if (revision?.task.task.taskId === roleInput.task.taskId) await requireDesignMirrors(root, roleInput.workspace, [...roleInput.task.inputs, ...roleInput.task.context.interfaces]);
       };
       await guard(); const session = await nativeRoles(roleInput);

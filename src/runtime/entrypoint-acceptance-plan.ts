@@ -76,6 +76,11 @@ export function createOrdinaryAcceptanceScope(input: { root: string; controller:
     }
     const refs = [...task.inputs, ...task.artifacts, ...task.evidence.map(item => item.source)];
     await journal.requireSignature(verified.signature, refs); await journal.requireSignature(review.signature, refs);
+    const execution = await json(root, 'execution.json');
+    if (execution.ordinaryDesignRevisionPolicy === 'independent-review/2') {
+      const { authenticateDesign } = await import('./entrypoint-design-revision.ts');
+      await authenticateDesign(root, controller, execution, origin.prepared);
+    }
     return plan;
   };
   const bindCandidate = async (task: TaskContract, design: ArtifactReference, candidate: ArtifactReference) => {

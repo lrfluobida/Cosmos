@@ -9,22 +9,25 @@ import { sameValue } from '../contracts/validation.ts';
 import type { PreparedTask } from './orchestrator.ts';
 import type { RunController, RunSnapshot } from './run.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
+import { designConcernPacket, designOriginPolicy, designReviewedHandoff, isOrdinaryDesignRevisionPolicy, parseDesignConcernReview } from './repair/design-concerns.ts';
+import type { DesignConcernReview, OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
+import { parseProposal, parseReview } from './orchestrator.ts';
 import { RecoveryBlocked, TaskJournal, requireCorrectionIdentity, requireOriginalTask } from './recovery/task-journal.ts';
 import type { RecoveryReport } from './recovery/task-journal.ts';
 
-export const ORDINARY_DESIGN_REVISION_POLICY = 'independent-review/1' as const;
+export const ORDINARY_DESIGN_REVISION_POLICY = 'independent-review/2' as const;
 export interface OrdinaryExecution {
   capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference;
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
-  authorProtocolCorrections?: 1; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: typeof ORDINARY_DESIGN_REVISION_POLICY;
+  authorProtocolCorrections?: 1; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
 }
 interface RevisionPlan {
-  formatVersion: 'ordinary-design-revision-plan/1'; policy: typeof ORDINARY_DESIGN_REVISION_POLICY;
+  formatVersion: 'ordinary-design-revision-plan/1'; policy: OrdinaryDesignRevisionPolicy;
   executionSha256: string; nativePlanSha256: string; sourceTaskId: string; sourceAttemptId: string;
   feedback: ArtifactReference; feedbackSha256: string; originalDeadlineAt: string; task: PreparedTask; downstream: PreparedTask[];
 }
 interface Selection {
-  formatVersion: 'ordinary-design-selection/1'; policy: typeof ORDINARY_DESIGN_REVISION_POLICY;
+  formatVersion: 'ordinary-design-selection/1'; policy: OrdinaryDesignRevisionPolicy;
   executionSha256: string; nativePlanSha256: string; revisionPlanSha256: string | null;
   approvedTaskId: string; approvedAttemptId: string; design: ArtifactReference; receipts: Record<string, string>; tasks: PreparedTask[];
 }
@@ -42,7 +45,7 @@ async function publish(root: string, name: string, value: unknown) {
 }
 export function requireDesignRevisionPolicy(execution: OrdinaryExecution) {
   if (Object.hasOwn(execution, 'ordinaryDesignFinalizationPolicy') && execution.ordinaryDesignFinalizationPolicy !== 'budget-followup/1') fail('invalid_finalization_policy');
-  if (execution.ordinaryDesignRevisionPolicy !== ORDINARY_DESIGN_REVISION_POLICY || execution.ordinaryDesignBudgetPolicy !== 'review-reserve/1'
+  if (!isOrdinaryDesignRevisionPolicy(execution.ordinaryDesignRevisionPolicy) || execution.ordinaryDesignBudgetPolicy !== 'review-reserve/1'
     || execution.capability !== 'ordinary-design-execution/1' || execution.authorProtocolCorrections !== 1
     || execution.tasks.length !== 3 || ['design', 'art', 'coding'].some(role => execution.tasks.filter(item => item.role === role).length !== 1)) fail('invalid_policy_scope');
 }
@@ -50,6 +53,7 @@ function origin(root: string, state: RunSnapshot, execution: OrdinaryExecution, 
   return { formatVersion: 1 as const, runId: state.run.runId, ledgerId: state.ledger.ledgerId, originalStartedAt: state.run.originalStartedAt,
     originalDeadlineAt: state.run.originalDeadlineAt, limitMicroCny: state.ledger.limitMicroCny, requirement: execution.requirement, prepared,
     ...(execution.ordinaryDesignFinalizationPolicy && prepared.role === 'design' ? { ordinaryDesignFinalizationPolicy: execution.ordinaryDesignFinalizationPolicy } : {}),
+    ...designOriginPolicy(execution.ordinaryDesignRevisionPolicy, prepared.role),
     reviewProtocolCorrections: 1 as const, authorProtocolCorrections: 1 as const, artifactRoot: root, sessionRoot: join(root, 'sessions') };
 }
 export async function requireDesignExecution(root: string, controller: Pick<RunController, 'read'>, execution: OrdinaryExecution) {
@@ -73,20 +77,20 @@ export async function authenticateDesign(root: string, controller: Pick<RunContr
   const state = await controller.read(), task = state.tasks.find(item => item.taskId === prepared.task.taskId);
   if (!task || validateTask(task).length || task.attempts.length !== 1 || !['passed', 'needs_changes'].includes(task.state)) fail('source_not_reviewed');
   requireOriginalTask(prepared.task, task);
-  const attempt = task.attempts[0], approved = task.state === 'passed';
+  const attempt = task.attempts[0], approved = task.state === 'passed', candidate = execution.ordinaryDesignRevisionPolicy === 'independent-review/2';
   if (attempt.outcome !== 'passed' || !attempt.endedAt || task.review.verdict !== (approved ? 'approved' : 'changes_requested')
-    || task.artifacts.length !== 1 || !sameValue(task.artifacts, prepared.expectedArtifacts) || task.handoff.uncertainty.length) fail('source_result_changed');
+    || task.artifacts.length !== 1 || !sameValue(task.artifacts, prepared.expectedArtifacts) || !candidate && task.handoff.uncertainty.length) fail('source_result_changed');
   const journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin(root, state, execution, prepared), true);
   const author = await journal.read<any>('author', attempt.attemptId), capture = await journal.read<any>('capture', attempt.attemptId);
   const verified = await journal.read<any>('verified', attempt.attemptId), started = await journal.read<any>('review-started', attempt.attemptId);
   const review = await journal.read<any>('review', attempt.attemptId), verdict = review?.verdict;
-  if (!author || !capture || !verified || !started || !review || !author.proposal?.summary?.trim() || author.proposal.remaining?.length || author.proposal.uncertainty?.length
+  if (!author || !capture || !verified || !started || !review || !author.proposal?.summary?.trim() || !candidate && (author.proposal.remaining?.length || author.proposal.uncertainty?.length)
     || !sameValue(capture.captured, { artifacts: task.artifacts, reviewWorkspace: join(root, `reviews/${task.taskId}`) })
     || !sameValue(verified.evidence, task.evidence) || !task.evidence.length || task.evidence.some(e => e.outcome !== 'passed')
     || task.acceptanceIds.some(id => !task.evidence.some(e => e.acceptanceIds.includes(id)))
     || !review.reviewerId?.trim() || !review.contextId?.trim() || review.reviewerId === task.authorId || review.contextId === task.context.contextId
     || !sameValue(started, { reviewerId: review.reviewerId, contextId: review.contextId }) || review.completedAt !== attempt.endedAt
-    || !verdict || Object.keys(verdict).some(key => !['verdict', 'findings', 'inputVersions', 'evidenceIds'].includes(key))
+    || !verdict || Object.keys(verdict).some(key => !['verdict', 'findings', 'inputVersions', 'evidenceIds', ...(candidate ? ['concernResolutions'] : [])].includes(key))
     || verdict.verdict !== task.review.verdict || !sameValue(verdict.inputVersions, [...task.inputs, ...task.artifacts])
     || !sameValue(task.review, { reviewerId: review.reviewerId, contextId: review.contextId, verdict: verdict.verdict, inputVersions: verdict.inputVersions, evidenceIds: verdict.evidenceIds })
     || !Array.isArray(verdict.evidenceIds) || !verdict.evidenceIds.length || new Set(verdict.evidenceIds).size !== verdict.evidenceIds.length
@@ -97,19 +101,30 @@ export async function authenticateDesign(root: string, controller: Pick<RunContr
   await journal.requireSignature(author.signature, task.inputs); await journal.requireSignature(capture.signature, task.artifacts);
   const refs = [...task.inputs, ...task.artifacts, ...task.evidence.map(e => e.source)];
   await journal.requireSignature(verified.signature, refs); await journal.requireSignature(review.signature, refs);
+  let designConcerns: DesignConcernReview | undefined;
+  if (candidate) {
+    const packet = designConcerns = await designConcernPacket({ task, proposal: author.proposal, requirement: execution.requirement, journal, workspace: prepared.workspace, artifactRoot: root, parseProposal,
+      ordinaryDesignFinalizationPolicy: execution.ordinaryDesignFinalizationPolicy, reuse: true });
+    const checked = parseDesignConcernReview(JSON.stringify(verdict), task, execution.requirement, packet, parseReview);
+    if (!sameValue(task.handoff, designReviewedHandoff(task, packet, checked))) fail('reviewed_design_handoff_changed');
+  }
   const fixed = await new ArtifactRegistry(root, 'registry').getCapture(task.artifacts[0]);
   const dependencies = execution.availableArtifacts.filter(ref => !execution.requirement.sources.some(source => sameValue(source, ref)));
   if (fixed.taskId !== task.taskId || !fixed.metadata.provenance.sourceRefs.includes(attempt.sessionRef) || !sameValue(fixed.dependencies, dependencies)) fail('capture_provenance_changed');
   const receipts: Record<string, string> = {};
   for (const stage of ['origin', 'author', 'capture', 'verified', 'review-started', 'review']) receipts[stage] = digest(await regularFile(root, `journal/task-${task.taskId}/${stage}.json`));
-  return { task, review, receipts };
+  if (candidate) for (const stage of ['design-concerns', ...((await journal.read('author-correction-started', attempt.attemptId)) ? ['author-correction-started', 'author-correction-response'] : [])]) {
+    receipts[stage] = digest(await regularFile(root, `journal/task-${task.taskId}/${stage}.json`));
+  }
+  return { task, review, receipts, ...(designConcerns ? { designConcernReview: designConcerns } : {}) };
 }
 async function feedbackFor(root: string, controller: Pick<RunController, 'read'>, execution: OrdinaryExecution) {
   const source = execution.tasks.find(item => item.role === 'design')!, authenticated = await authenticateDesign(root, controller, execution, source);
   if (authenticated.task.state !== 'needs_changes') fail('source_not_rejected');
   const { task, review, receipts } = authenticated;
   return { formatVersion: 'ordinary-design-review-feedback/1', authority: 'independent_model_review', sourceTaskId: task.taskId,
-    sourceAttemptId: task.attempts[0].attemptId, inputs: task.inputs, capture: task.artifacts[0], review, receipts };
+    sourceAttemptId: task.attempts[0].attemptId, inputs: task.inputs, capture: task.artifacts[0], review, receipts,
+    ...(authenticated.designConcernReview ? { designConcernReview: authenticated.designConcernReview } : {}) };
 }
 function deriveRevision(root: string, state: RunSnapshot, execution: OrdinaryExecution, feedback: ArtifactReference) {
   const source = execution.tasks.find(item => item.role === 'design')!, prepared = structuredClone(source), task = prepared.task;
@@ -137,7 +152,7 @@ export async function readDesignRevisionPlan(root: string, controller: Pick<RunC
   const bindings = await requireDesignExecution(root, controller, execution), feedback = await feedbackFor(root, controller, execution), state = await controller.read();
   const ref: ArtifactReference = { artifactId: `ordinary-design-review-feedback-${feedback.sourceTaskId}`, version: 'v1', location: `design-review-feedback/${feedback.sourceTaskId}.json` };
   if (!sameValue(await json(root, ref.location), feedback)) fail('feedback_source_changed');
-  const expected: RevisionPlan = { formatVersion: 'ordinary-design-revision-plan/1', policy: ORDINARY_DESIGN_REVISION_POLICY, ...bindings,
+  const expected: RevisionPlan = { formatVersion: 'ordinary-design-revision-plan/1', policy: execution.ordinaryDesignRevisionPolicy!, ...bindings,
     sourceTaskId: feedback.sourceTaskId, sourceAttemptId: feedback.sourceAttemptId, feedback: ref, feedbackSha256: digest(await regularFile(root, ref.location)),
     originalDeadlineAt: state.run.originalDeadlineAt, ...deriveRevision(root, state, execution, ref) };
   if (!sameValue(plan, expected)) fail('revision_plan_changed');
@@ -180,7 +195,7 @@ export async function readDesignSelection(root: string, controller: Pick<RunCont
     await requireDesignMirrors(root, revision.task.workspace, [...prepared.task.inputs, ...prepared.task.context.interfaces]);
     await requireDesignMirrors(root, join(root, `reviews/${prepared.task.taskId}`), [...prepared.task.inputs, ...prepared.task.context.interfaces]);
   }
-  const expected: Selection = { formatVersion: 'ordinary-design-selection/1', policy: ORDINARY_DESIGN_REVISION_POLICY, ...bindings,
+  const expected: Selection = { formatVersion: 'ordinary-design-selection/1', policy: execution.ordinaryDesignRevisionPolicy!, ...bindings,
     revisionPlanSha256: revision ? digest(await regularFile(root, 'ordinary-design-revision-plan.json')) : null,
     approvedTaskId: approved.task.taskId, approvedAttemptId: approved.task.attempts[0].attemptId, design: approved.task.artifacts[0], receipts: approved.receipts,
     tasks: revision ? [revision.task, ...revision.downstream] : execution.tasks };
@@ -240,7 +255,7 @@ export async function executeOrdinaryDesign(input: { root: string; controller: R
         const feedback = await feedbackFor(root, controller, execution);
         const ref = { artifactId: `ordinary-design-review-feedback-${source.task.taskId}`, version: 'v1', location: `design-review-feedback/${source.task.taskId}.json` };
         await publish(root, ref.location, feedback);
-        revision = { formatVersion: 'ordinary-design-revision-plan/1', policy: ORDINARY_DESIGN_REVISION_POLICY, ...await requireDesignExecution(root, controller, execution),
+        revision = { formatVersion: 'ordinary-design-revision-plan/1', policy: execution.ordinaryDesignRevisionPolicy!, ...await requireDesignExecution(root, controller, execution),
           sourceTaskId: source.task.taskId, sourceAttemptId: current.attempts[0].attemptId, feedback: ref, feedbackSha256: digest(await regularFile(root, ref.location)),
           originalDeadlineAt: state.run.originalDeadlineAt, ...deriveRevision(root, state, execution, ref) };
         await publish(root, 'ordinary-design-revision-plan.json', revision);
@@ -258,7 +273,7 @@ export async function executeOrdinaryDesign(input: { root: string; controller: R
       approved = await authenticateDesign(root, controller, execution, revision.task);
       await requireDesignProgress(root, revision);
     }
-    const selection: Selection = { formatVersion: 'ordinary-design-selection/1', policy: ORDINARY_DESIGN_REVISION_POLICY, ...await requireDesignExecution(root, controller, execution),
+    const selection: Selection = { formatVersion: 'ordinary-design-selection/1', policy: execution.ordinaryDesignRevisionPolicy!, ...await requireDesignExecution(root, controller, execution),
       revisionPlanSha256: revision ? digest(await regularFile(root, 'ordinary-design-revision-plan.json')) : null,
       approvedTaskId: approved.task.taskId, approvedAttemptId: approved.task.attempts[0].attemptId, design: approved.task.artifacts[0], receipts: approved.receipts, tasks: effective };
     await publish(root, 'ordinary-design-selection.json', selection);

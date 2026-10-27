@@ -22,7 +22,7 @@ export interface RecoveryOptions {
 }
 export interface RecoveryReport { tasks: TaskContract[]; reusedTaskIds: string[]; blocked: { taskId: string; reason: string }[] }
 export class RecoveryBlocked extends Error {}
-type Stage = 'author' | 'author-correction-started' | 'author-correction-response' | 'capture-started' | 'capture' | 'coding-concerns' | 'verify-started' | 'verified' | 'review-started' | 'review' | 'failure-snapshot';
+type Stage = 'author' | 'author-correction-started' | 'author-correction-response' | 'capture-started' | 'capture' | 'coding-concerns' | 'design-concerns' | 'verify-started' | 'verified' | 'review-started' | 'review' | 'failure-snapshot';
 export interface RecoveryOrigin {
   formatVersion: 1 | 2 | 3; runId: string; ledgerId: string; originalStartedAt: string; originalDeadlineAt: string;
   limitMicroCny: number; requirement: ExecutionRequirement; prepared: PreparedTask; reviewProtocolCorrections: 0 | 1;
@@ -30,6 +30,7 @@ export interface RecoveryOrigin {
   /** Omission preserves historical origin bytes and disables author corrections. */
   authorProtocolCorrections?: 0 | 1;
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
+  ordinaryDesignRevisionPolicy?: 'independent-review/2';
   /** Only enabled validation callers record the new policy; zero/omission retain old origin bytes. */
   codingHandoffClarifications?: 1;
   /** Validation-only host evidence ordering. Omission retains historical origin bytes. */
@@ -47,6 +48,8 @@ export class TaskJournal {
   private constructor(root: string, artifactRoot: string, taskId: string) { this.root = root; this.artifactRoot = artifactRoot; this.taskId = taskId; }
   static async open(options: RecoveryOptions, origin: RecoveryOrigin, resume: boolean, callerSignal?: AbortSignal): Promise<TaskJournal> {
     const signal = resume ? callerSignal : undefined; signal?.throwIfAborted();
+    if (origin.ordinaryDesignRevisionPolicy !== undefined && (origin.ordinaryDesignRevisionPolicy !== 'independent-review/2' || origin.formatVersion !== 1
+      || origin.prepared.role !== 'design' || origin.authorProtocolCorrections !== 1 || origin.executionWindow || origin.validationCase)) throw new RecoveryBlocked('Invalid ordinary design candidate review origin.');
     if (origin.ordinaryDesignFinalizationPolicy !== undefined && (origin.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || origin.formatVersion !== 1
       || origin.prepared.role !== 'design' || origin.authorProtocolCorrections !== 1)) throw new RecoveryBlocked('Invalid ordinary design finalization origin.');
     if (origin.formatVersion === 3) {

@@ -37,10 +37,12 @@ import { readFrameSelection, requireCurrentFrameSource } from './render-frame-se
 import { verifyPublicValidationFunding } from './public-validation-funding.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 import { executeOrdinaryDesign, prepareDesignOrigins, optionalDesignJson } from './entrypoint-design-revision.ts';
+import { isOrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
+import type { OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 
 export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
-  ordinaryDesignRevisionPolicy?: 'independent-review/1';
+  ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
   ordinaryDesignBudgetPolicy?: 'review-reserve/1';
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
   validateTasks?(tasks: PreparedTask[]): void;
@@ -51,7 +53,7 @@ export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
   continuationTargets?(sources: PreparedTask[], feedback: RepairFeedback, grants: Record<string, number>): Promise<SuccessorTarget[] | null>;
 }
-export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; ordinaryDesignFinalizationPolicy?: 'budget-followup/1'; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: 'independent-review/1'; renderFrames?: boolean; ordinaryMediaObservationPolicy?: 'audio-state/1'; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
+export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; ordinaryDesignFinalizationPolicy?: 'budget-followup/1'; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy; renderFrames?: boolean; ordinaryMediaObservationPolicy?: 'audio-state/1'; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
 export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; renderFrames?: boolean; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> { try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
@@ -121,7 +123,7 @@ export async function executeGeneration(options: GenerationOptions) {
   if (originalExecution && Object.hasOwn(originalExecution, 'ordinaryDesignBudgetPolicy')
     && (originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || originalExecution.capability !== 'ordinary-design-execution/1')) throw new Error('Unknown or incompatible ordinaryDesignBudgetPolicy.');
   const ordinary = 'ordinaryProfile' in draft && draft.ordinaryProfile === 'ordinary-design/1';
-  if (originalExecution?.ordinaryDesignRevisionPolicy !== undefined && (originalExecution.ordinaryDesignRevisionPolicy !== 'independent-review/1'
+  if (originalExecution?.ordinaryDesignRevisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(originalExecution.ordinaryDesignRevisionPolicy)
     || originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !ordinary || draft.codeProfile || draft.preparation)) throw new Error('Invalid ordinary design revision policy.');
   if (originalExecution && Object.hasOwn(originalExecution, 'ordinaryDesignFinalizationPolicy')
     && (originalExecution.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1'
@@ -151,7 +153,7 @@ export async function executeGeneration(options: GenerationOptions) {
     if (options.resume && !originalExecution) throw new Error('Original planning result is unavailable; resume cannot perform another paid plan.');
     const host = await options.createHost({ root, controller, requirement, draft, resume: options.resume, work, ...(originalExecution?.ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy: originalExecution.ordinaryDesignBudgetPolicy } : {}), ...(frames ? { renderFrames: true } : {}),
       ...((options.resume ? originalExecution?.ordinaryDesignRevisionPolicy : ordinary && !draft.codeProfile && !draft.preparation)
-        ? { ordinaryDesignRevisionPolicy: 'independent-review/1' as const } : {}),
+        ? { ordinaryDesignRevisionPolicy: options.resume ? originalExecution.ordinaryDesignRevisionPolicy : 'independent-review/2' as const } : {}),
       ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}),
       ...(ordinaryMediaObservationPolicy ? { ordinaryMediaObservationPolicy } : {}) });
     if (ordinaryMediaObservationPolicy && host.capability !== 'ordinary-design-execution/1') throw new Error('Ordinary media observation policy requires the ordinary host.');
@@ -160,7 +162,7 @@ export async function executeGeneration(options: GenerationOptions) {
     if (host.ordinaryDesignFinalizationPolicy !== ordinaryDesignFinalizationPolicy || ordinaryDesignFinalizationPolicy && (host.capability !== 'ordinary-design-execution/1' || host.ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Original ordinaryDesignFinalizationPolicy changed.');
     let phase = 'planning';
     const outcome = await work.run(async signal => {
-      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1; ordinaryDesignFinalizationPolicy?: 'budget-followup/1'; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: 'independent-review/1'; ordinaryMediaObservationPolicy?: 'audio-state/1' };
+      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1; ordinaryDesignFinalizationPolicy?: 'budget-followup/1'; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy; ordinaryMediaObservationPolicy?: 'audio-state/1' };
       if (options.resume) {
         execution = originalExecution;
         if (execution.ordinaryDesignBudgetPolicy !== host.ordinaryDesignBudgetPolicy) throw new Error('Original ordinaryDesignBudgetPolicy changed.');
@@ -187,6 +189,7 @@ export async function executeGeneration(options: GenerationOptions) {
         const common: DagOptions = { controller, requirement, tasks, sessionRoot: join(root, 'sessions'), availableArtifacts,
           roleFactory: host.roleFactory, preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure, signal,
           reviewProtocolCorrections: 1, ...policy, ...(execution.ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy: execution.ordinaryDesignFinalizationPolicy } : {}),
+          ...(execution.ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy: execution.ordinaryDesignRevisionPolicy } : {}),
           scheduling: { maxParallel: 2, resources: Object.fromEntries(tasks.map(item => [item.task.taskId, ['browser-build-promotion']])) },
           recovery: { journalRoot: join(root, 'journal'), artifactRoot: root, recoverCapture: host.recoverCapture } };
         return resume ? resumeTaskDag(common) : executeTaskDag(common).then(tasks => ({ tasks, reusedTaskIds: [] as string[], blocked: [] as { taskId: string; reason: string }[] }));
