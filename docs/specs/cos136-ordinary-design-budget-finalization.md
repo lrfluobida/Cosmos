@@ -1,17 +1,23 @@
 # 普通设计作者的预算内只读收尾
 
-状态：独立 `reuse2_recovery_plan_reviewer` APPROVED_PLAN、无remaining，Root已批准固定工程设计、免费源码实施及登记；本卡source pending。下文待审/未授权源码字样属于批准前原文，当前状态以本段为准；未授权真实模型、结算或旧run恢复。
+状态：独立 `reuse2_recovery_plan_reviewer` APPROVED_PLAN、无remaining，Root已批准固定工程设计、免费源码实施及登记；本卡已最终独审并集成，仅source-scoped完成。下文待审/未授权源码字样属于批准前原文，当前状态以本段为准；未授权真实模型、结算或旧run恢复。
 
-任务：[COS-136 / #137](https://github.com/lrfluobida/Cosmos/issues/137)，原生父COS18/#19、未勾选。实现者 `author_budget_recovery_implementer`，独立源码reviewer `author_budget_recovery_reviewer`，计划reviewer `reuse2_recovery_plan_reviewer`，唯一merger `public_agent_batch_merger`。
+任务：[COS-136 / #137](https://github.com/lrfluobida/Cosmos/issues/137)，原生父COS18/#19、父[x]。实现者 `author_budget_recovery_implementer`，独立源码reviewer `author_budget_recovery_reviewer`，计划reviewer `reuse2_recovery_plan_reviewer`，唯一merger `public_agent_batch_merger`。
 
 - 批准规格输入 SHA256：`39f13d74d89cc5e2789f7714f16307b96f6ac28cf95a563b7407ec8b5ec00150`
 - 批准计划输入 SHA256：`c52c6679543d68f3aeccc9cbd1dd3f76dae4ff404a131b647b3d8760abe43bcd`
 
-工程基线：`50f4633b1e682ccadf4844bf8414994a866813a5`。[配套计划](../plans/2026-10-27-ordinary-design-budget-finalization.md)。两卡并行且不互阻；生命周期源码独审后可优先发布，由Root原API收尾会计，新付费须两卡与必要组合通过。reuse-2 child112永久stop、原5Mµ仍held，未settle/释放，旧receipt保持；本卡merger/implementer不操作真实controller/ledger/coordinator。
+工程基线：`50f4633b1e682ccadf4844bf8414994a866813a5`。[配套计划](../plans/2026-10-27-ordinary-design-budget-finalization.md)。两卡并行且不互阻；两卡源码和必要组合已通过，实际运行仍由Root另行安排。reuse-2已由Root原API完成会计结案，child112和旧receipt保持、永久不恢复；本卡merger/implementer不操作真实controller/ledger/coordinator。
 
 状态：固定草案 v1，待独立规格与计划评审。仅授权写本目录的规格和计划；本稿不是源码实施批准，也不授权操作真实 run、账本或模型。配套计划：[正式实施计划](../plans/2026-10-27-ordinary-design-budget-finalization.md)。
 
 诊断基线：`50f4633b1e682ccadf4844bf8414994a866813a5`；已发布源码组合 `06709f34e11512f62fc83d2b1ef4591f9c467f32`。相关契约为 COS128 的单次作者格式纠正、COS132 的原额度内独审保留及 COS134 的独审后设计修订。当前主线可能并行进行独立的交付生命周期修复；本卡不包含该修复。
+
+源码结果：COS136 / #137已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/137#issuecomment-6431623562)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/137#issuecomment-6431628170)及父[x]已GET核证。独立author_budget_recovery_reviewer批准 `6e7228e17c26dd27ff49872dba1f0f19d5091f86`，无剩余P1/P2；无冲突合入发布 `aa50ecd1a18fc88fed5a27e8966cdcdddde34a38`，14候选独有文件精确一致，COS135四独有文件及entrypoint证明选择改动完整保留。
+
+main typecheck/build exit0，最小组合5/5、0skip、TAP46061.5526ms：native无工具收尾、实际host/capture/独审、codingrepair祖先认证、支持的continue无新window收尾权限，以及COS135初轮失败proof。新ordinary design可信未发送预算拒绝只复用原同session/单次correction槽；预算/独审保留/32计数、严格proposal与完整验收保持，checkpoint只补字段反馈。
+
+F3原完整历史TEMP证据复用：95134 bytes、4096 cap、223036µ≤231989µ、余8953µ；最高合成结算后余383953µ≥375000µ独审保留。最终prompt/provider/factory/原生编码路径未变，COS135组合只影响执行后的证明/资金reader。原native/affected、Edge10/v2交付、媒体171步/四故障按有效范围复用，未新跑浏览器或大矩阵，不把小输入代表混为F3测量。 仅SOURCE范围完成，真实模型生成和人工体验仍未验证；本批未操作真实funding/controller/ledger或启动付费。总136/root100/父30个源码子项完成，父COS18整体仍open/partial；后续实际运行由Root另行安排。
 
 ## 1. 问题与已经建立的事实
 

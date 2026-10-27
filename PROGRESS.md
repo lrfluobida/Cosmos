@@ -4,6 +4,14 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-27 COS136 / #137已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/137#issuecomment-6431623562)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/137#issuecomment-6431628170)及父[x]已GET核证。独立author_budget_recovery_reviewer批准 `6e7228e17c26dd27ff49872dba1f0f19d5091f86`，无剩余P1/P2；无冲突合入发布 `aa50ecd1a18fc88fed5a27e8966cdcdddde34a38`，14候选独有文件精确一致，COS135四独有文件及entrypoint证明选择改动完整保留。
+
+main typecheck/build exit0，最小组合5/5、0skip、TAP46061.5526ms：native无工具收尾、实际host/capture/独审、codingrepair祖先认证、支持的continue无新window收尾权限，以及COS135初轮失败proof。新ordinary design可信未发送预算拒绝只复用原同session/单次correction槽；预算/独审保留/32计数、严格proposal与完整验收保持，checkpoint只补字段反馈。
+
+F3原完整历史TEMP证据复用：95134 bytes、4096 cap、223036µ≤231989µ、余8953µ；最高合成结算后余383953µ≥375000µ独审保留。最终prompt/provider/factory/原生编码路径未变，COS135组合只影响执行后的证明/资金reader。原native/affected、Edge10/v2交付、媒体171步/四故障按有效范围复用，未新跑浏览器或大矩阵，不把小输入代表混为F3测量。 原输出见 `.cosmos/cos136-integration/`。
+
+原reuse-2已由Root沿原API完成[会计结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6430460373)：25笔540200µ、释放4459800µ，shared3368 committed22761689µ/held-reserved-unknown0，独立PASS_ACCOUNTING_CLOSED；child112与原completion字节、failed closed-binding、timing unconfirmed/eligiblefalse保持。游戏仍incomplete，无设计独审/art/code；永久不恢复、不重复结算。 仅SOURCE范围完成，真实模型生成和人工体验仍未验证；本批未操作真实funding/controller/ledger或启动付费。总136/root100/父30个源码子项完成，父COS18整体仍open/partial；后续实际运行由Root另行安排。
+
 2026-10-27 COS135 / #136已源码范围完成；[精确批准](https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430077591)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/136#issuecomment-6430084943)及父[x]已GET核证。独立reuse2_recovery_plan_reviewer批准 `0946205af133b13db3e42b05ce309c378aa1a857`，无P1/P2；5来源文件精确合入发布 `e231434d2a41ba78e36643f1d0fb1db6aa3552c5`。
 
 main typecheck/build exit0；初轮失败证明、修订失败证明、真实签名历史资金收尾正例及原失败清理拒绝4/4、0skip、TAP13195.8368ms。原A2/2与B34项范围有效证据复用（原33/34后候选夹具查找修正、定向1/1，不累加重叠）。附加strict测试仍有6个与50f精确基线一致的旧nullable诊断，无新诊断；未记为strict全通过。 原命令/输出见 `.cosmos/cos135-integration/`。
