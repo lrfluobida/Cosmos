@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 32,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138"],
+      "verifiedNativeSubIssues": 33,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139"],
       "verifiedCompletedSubIssues": 32,
       "dependsOn": [
         {
@@ -11089,9 +11089,56 @@
       "latestActualResult": "reuse-5 permanently closed after planning budget rejection; COS138 design review not reached",
       "realModelGeneration": "unverified",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-139",
+      "title": "普通规划的完整需求来源与精简显示",
+      "number": 140,
+      "id": 6081020291,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/140",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-138"
+      ],
+      "sourceBaseCommit": "dbc0a6233b6cff30c529f0f3f2d739e764784405",
+      "registrationBaseCommit": "d7db48d52ee5e8a0d37194607da97ace0efa51a6",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "implementer": "planning_context_implementer",
+      "reviewer": "planning_context_reviewer",
+      "independentContractReview": "APPROVED_PLAN minimal direction; fixed spec/plan authorized by Root; SOURCE review pending",
+      "rootImplementationApproved": true,
+      "approvedSpecSha256": "1b34f947b785bf143d41ff5748fbea731674aeef4654dabfce78b38aeffc6a6e",
+      "approvedPlanSha256": "0143f55b3754360b9809326f35f8ea8e8e981ce2ef92c5481dadf6a1fac41cd3",
+      "formalSpecPath": "docs/specs/cos139-planning-context-index.md",
+      "formalPlanPath": "docs/plans/2026-10-28-planning-context-index.md",
+      "merger": "planning_budget_merger",
+      "actualAuthorized": false,
+      "paidAuthorized": false,
+      "actualFailureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6471286054",
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-138",
+          "number": 139,
+          "id": 6055871918,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/139"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-139 · 普通规划的完整需求来源与精简显示](https://github.com/lrfluobida/Cosmos/issues/140)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 33,
+      "verifiedParentCompletedSubIssues": 32
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 138,
+  "totalTaskCount": 139,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
