@@ -67,6 +67,8 @@ export interface RoleFactoryOptions {
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
   /** Trusted ordinary host verifies complete fixed sources before planning displays only acceptance IDs. */
   ordinaryPlanningAcceptanceIndex?: (input: Readonly<RoleInput>) => Promise<void>;
+  /** Trusted ordinary planning opt-in; preserve 8192 when affordable, otherwise select down to this new floor. */
+  ordinaryPlanningOutputFloor?: 4096;
   maxRequests: number;
   /** Author overrides only; planning, review and fixed validation retain maxRequests. */
   authorMaxRequests?: Partial<Record<AuthorRole, number>>;
@@ -133,6 +135,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (ordinaryDesignReviewBudget !== undefined && (typeof ordinaryDesignReviewBudget !== 'function' || options.maxOutputTokens !== 8192)) {
     throw new Error('ordinaryDesignReviewBudget requires a trusted selector and the original 8192 output cap.');
   }
+  const planningFloor = options.ordinaryPlanningOutputFloor;
+  if (planningFloor !== undefined && (planningFloor !== 4096 || options.maxOutputTokens !== 8192)) throw new Error('ordinaryPlanningOutputFloor requires the fixed 4096 floor and original 8192 output cap.');
   if (Object.entries(authorRequestLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxRequests requires valid author roles and positive safe integers.');
   const authorThinking = { ...options.authorThinkingLevel };
   if (Object.entries(authorThinking).some(([role, level]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !['off', 'low', 'high', 'max'].includes(level))) throw new Error('authorThinkingLevel requires valid author roles and supported thinking levels.');
@@ -154,6 +158,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     if (input.codingConcernReview && (!input.validation || input.role !== 'reviewer' || input.purpose || input.codingConcernReview.taskId !== task.taskId
       || input.codingConcernReview.attemptId !== task.attempts.at(-1)?.attemptId || input.codingConcernReview.authorId !== task.authorId || input.codingConcernReview.contextId !== task.context.contextId)) throw new Error('Coding concern review requires its original validation task and attempt.');
     const purpose = input.purpose === 'planning' ? 'planning' : input.role === 'reviewer' ? 'reviewer' : 'author';
+    const planningOutputBudget = planningFloor !== undefined && purpose === 'planning' && input.role === 'cosmos' && !input.validation;
     const planningAcceptanceIndex = !!options.ordinaryPlanningAcceptanceIndex && purpose === 'planning' && input.role === 'cosmos' && !input.validation;
     if (planningAcceptanceIndex) await options.ordinaryPlanningAcceptanceIndex!({ ...input, task, requirement });
     let designReviewBudget = false;
@@ -233,7 +238,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next. Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`) + (authorRequestLimit === undefined ? '' : `\n\nThis author session permits at most ${maxRequests} model requests (model response rounds, not files or individual tool calls). Reserve requests for complete self-checks and the final JSON handoff. If defects remain, report the real unfinished work in remaining; never claim completion solely to finish within this limit.`) + (planningAcceptanceIndex ? '\n\nPlanning acceptance is an exact ID index. Read every complete fixed requirement source at the exact version and location in inputs/inputFiles before producing the plan; continue any partial read until complete. Preserve all descriptions, steps, expected outcomes, evidence kinds, brief, questions, answers and experience criteria from those sources. Do not infer missing content from IDs.' : '') + `\n\n${inputFilesProtocol}`,
       context: JSON.stringify(packet), thinkingLevel: (purpose === 'author' && !validation && input.role !== 'reviewer' ? authorThinking[input.role] : undefined) ?? options.thinkingLevel ?? 'low', env: options.env,
       ...(purpose === 'planning' ? { jsonOutput: true } : {}),
-      maxOutputTokens: designReviewBudget ? 8192 : validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
+      maxOutputTokens: planningOutputBudget || designReviewBudget ? 8192 : validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
       maxRequests, requestTimeoutMs: input.role === 'coding' && purpose === 'author' ? codingTimeout ?? options.requestTimeoutMs : options.requestTimeoutMs,
       requestWindow: async () => {
         input.controller.signal.throwIfAborted();
@@ -278,6 +283,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         task, authority: authority!, floor: authorFloor, maxOutputTokens: authorLimits[input.role as AuthorRole]!, estimate: options.estimatedMaxCostMicroCny, ...(reviewReserve ? { reviewReserve: true, failureCode: 'author_review_reserve' } : {}) }) }),
       ...(designReviewBudget ? { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
         task, authority: authority!, floor: 4096, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny, ...(recoveryPolicy ? { failureCode: 'review_output_budget' } : {}) }) } : {}),
+      ...(planningOutputBudget ? { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
+        task, authority: authority!, floor: planningFloor, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny }) } : {}),
       ...(designCompaction ? authorBudgetCompaction({ controller: input.controller, original: snapshot, task, authority: authority!,
         floor: authorFloor!, maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny, ...(reviewReserve ? { reviewReserve: true, failureCode: 'author_review_reserve' } : {}) }) : {}),
       ...(reviewReserve ? { readonlyMaxOutputTokens: 4096 as const, ...(finalizationPolicy ? { ordinaryDesignFinalizationPolicy: finalizationPolicy } : {}) } : {}),
@@ -286,7 +293,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
         ...(reviewReserve ? { authorReviewReserve: { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, allocationMicroCny: task.budget.allocationMicroCny,
           requireAuthority: () => requireOriginalAuthorBudget(recoveryBudget) } } : {}),
-        ...(authorFloor === undefined && !designReviewBudget ? {} : { recordRequest: true }),
+        ...(authorFloor === undefined && !designReviewBudget && !planningOutputBudget ? {} : { recordRequest: true }),
         ...(validation ? { validation: { caseId: validation.caseId, windowId: validation.windowId, purpose } } : {}) }),
     });
     return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }),
