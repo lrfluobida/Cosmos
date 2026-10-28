@@ -1,12 +1,16 @@
 # COS141：普通设计审查的输出上限
 
-状态：Root已批准固定短规格/计划与免费SOURCE实施；独立planning_context_reviewer已批准最小方向，SOURCE待实际diff独审。
+状态：`source-integrated / source-scoped-complete`；最终 `e9950eb6c7cbbd0deb49423950ef4a0b238df50e` 经planning_context_reviewer独立APPROVED_SOURCE_SCOPED、无剩余finding及Root批准，已发布 `af50b0754e2248074b3bc2414ed31ee6824887d4`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/142#issuecomment-6475599514)、closed(completed)及父[x]已GET核证。
 
-任务：[COS141 / #142](https://github.com/lrfluobida/Cosmos/issues/142)，id6083423627，原生父COS18/#19未勾，依赖[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
+任务：[COS141 / #142](https://github.com/lrfluobida/Cosmos/issues/142)，id6083423627，原生父COS18/#19已勾，依赖[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `55c6c38054be404538f63434688804874a2da3f1693680554856a5314449a5a6`；plan `d5c95b9affcd5b431fe844ebfb6f4494aaee941f1346c350d0ebe0d7d07c502e`。
 
 基线：e3043858efad2e4d0c1025fc47f5f8fd7a990ae9（runtime7cffc467）；依赖COS140/#141。
+
+源码结果：5个批准文件精确、无冲突集成；main typecheck/build0，最短代表5/5、0skip、TAP5302.2947ms。完整10/10、恢复3/3、strict、三模式native和两项full-quote按源码/fixture指纹一致性复用；full-quote的GREEN只指第二请求前预算拒绝且无review/correction的正确断言。TEMP末轮128048B/16384/387168µ可由余额530014µ承担；synthetic output12288、费用118500µ形成changes_requested，该用量是假设而非tokenizer实测。旧未开始首次ordinary review可用当前host16K，valid/started/closed门禁保持。父COS18仍open/partial，35/35仅指源码子项。
+
+[reuse-8实际结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6477727894)已永久PASS_CLOSED：作者第33次尝试因request_limit拒绝，当前计划仍有31项主stage结构错误；无作者完成/capture/review，COS141的16K路径未到达。当前累计25384044µ再加完整5000000µ窗口将超过30000000µ阶段guard，未准备新付费窗口；源码工作不调整该guard。
 
 ## 实际问题
 

@@ -1,8 +1,8 @@
 # COS141 实施计划
 
-状态：Root已批准固定短规格/计划与免费SOURCE实施；独立planning_context_reviewer已批准最小方向，SOURCE待实际diff独审。
+状态：`source-integrated / source-scoped-complete`；最终 `e9950eb6c7cbbd0deb49423950ef4a0b238df50e` 已独审APPROVED_SOURCE_SCOPED、无剩余finding，经Root批准合入发布 `af50b0754e2248074b3bc2414ed31ee6824887d4`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/142#issuecomment-6475599514)及父[x]已GET核证；main typecheck/build0、代表5/5、0skip，完整10/10、恢复3/3、strict、native和full-quote两项失败断言按字节等价复用。下列步骤保留为原批准计划。
 
-任务：[COS141 / #142](https://github.com/lrfluobida/Cosmos/issues/142)，id6083423627，原生父COS18/#19未勾，依赖[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
+任务：[COS141 / #142](https://github.com/lrfluobida/Cosmos/issues/142)，id6083423627，原生父COS18/#19已勾，依赖[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `55c6c38054be404538f63434688804874a2da3f1693680554856a5314449a5a6`；plan `d5c95b9affcd5b431fe844ebfb6f4494aaee941f1346c350d0ebe0d7d07c502e`。
 
