@@ -63,8 +63,10 @@ export interface RoleFactoryOptions {
   ordinaryDesignBudgetPolicy?: 'review-reserve/1';
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
-  /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote a 4096-8192 output cap. */
+  /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote down to the 4096 floor. */
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
+  /** Explicit trusted reviewer ceiling; omitted callers retain the original 8192 cap. */
+  ordinaryDesignReviewMaxOutputTokens?: 16384;
   /** Trusted ordinary host verifies complete fixed sources before planning displays only acceptance IDs. */
   ordinaryPlanningAcceptanceIndex?: (input: Readonly<RoleInput>) => Promise<void>;
   /** Trusted ordinary planning opt-in; preserve 8192 when affordable, otherwise select down to this new floor. */
@@ -135,6 +137,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (ordinaryDesignReviewBudget !== undefined && (typeof ordinaryDesignReviewBudget !== 'function' || options.maxOutputTokens !== 8192)) {
     throw new Error('ordinaryDesignReviewBudget requires a trusted selector and the original 8192 output cap.');
   }
+  const designReviewMaxOutputTokens = options.ordinaryDesignReviewMaxOutputTokens ?? 8192;
+  if (options.ordinaryDesignReviewMaxOutputTokens !== undefined && (options.ordinaryDesignReviewMaxOutputTokens !== 16384 || !ordinaryDesignReviewBudget)) throw new Error('ordinaryDesignReviewMaxOutputTokens requires the trusted reviewer selector and the explicit 16384 cap.');
   const planningFloor = options.ordinaryPlanningOutputFloor;
   if (planningFloor !== undefined && (planningFloor !== 4096 || options.maxOutputTokens !== 8192)) throw new Error('ordinaryPlanningOutputFloor requires the fixed 4096 floor and original 8192 output cap.');
   if (Object.entries(authorRequestLimits).some(([role, limit]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(limit) || limit <= 0)) throw new Error('authorMaxRequests requires valid author roles and positive safe integers.');
@@ -238,7 +242,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next. Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`) + (authorRequestLimit === undefined ? '' : `\n\nThis author session permits at most ${maxRequests} model requests (model response rounds, not files or individual tool calls). Reserve requests for complete self-checks and the final JSON handoff. If defects remain, report the real unfinished work in remaining; never claim completion solely to finish within this limit.`) + (planningAcceptanceIndex ? '\n\nPlanning acceptance is an exact ID index. Read every complete fixed requirement source at the exact version and location in inputs/inputFiles before producing the plan; continue any partial read until complete. Preserve all descriptions, steps, expected outcomes, evidence kinds, brief, questions, answers and experience criteria from those sources. Do not infer missing content from IDs.' : '') + `\n\n${inputFilesProtocol}`,
       context: JSON.stringify(packet), thinkingLevel: (purpose === 'author' && !validation && input.role !== 'reviewer' ? authorThinking[input.role] : undefined) ?? options.thinkingLevel ?? 'low', env: options.env,
       ...(purpose === 'planning' ? { jsonOutput: true } : {}),
-      maxOutputTokens: planningOutputBudget || designReviewBudget ? 8192 : validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
+      maxOutputTokens: designReviewBudget ? designReviewMaxOutputTokens : planningOutputBudget ? 8192 : validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
       maxRequests, requestTimeoutMs: input.role === 'coding' && purpose === 'author' ? codingTimeout ?? options.requestTimeoutMs : options.requestTimeoutMs,
       requestWindow: async () => {
         input.controller.signal.throwIfAborted();
@@ -282,7 +286,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       ...(authorFloor === undefined ? {} : { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
         task, authority: authority!, floor: authorFloor, maxOutputTokens: authorLimits[input.role as AuthorRole]!, estimate: options.estimatedMaxCostMicroCny, ...(reviewReserve ? { reviewReserve: true, failureCode: 'author_review_reserve' } : {}) }) }),
       ...(designReviewBudget ? { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
-        task, authority: authority!, floor: 4096, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny, ...(recoveryPolicy ? { failureCode: 'review_output_budget' } : {}) }) } : {}),
+        task, authority: authority!, floor: 4096, maxOutputTokens: designReviewMaxOutputTokens, estimate: options.estimatedMaxCostMicroCny, ...(recoveryPolicy ? { failureCode: 'review_output_budget' } : {}) }) } : {}),
       ...(planningOutputBudget ? { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
         task, authority: authority!, floor: planningFloor, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny }) } : {}),
       ...(designCompaction ? authorBudgetCompaction({ controller: input.controller, original: snapshot, task, authority: authority!,
