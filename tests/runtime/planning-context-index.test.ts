@@ -45,7 +45,7 @@ async function planningOnly(t: test.TestContext, modular: boolean, check: (input
 }
 
 for (const modular of [false, true]) test(`ordinary ${modular ? 'five' : 'three'} slot planning indexes only display and retains full contracts`, async t => {
-  await planningOnly(t, modular, async ({ roleInput, configs, planned }) => {
+  await planningOnly(t, modular, async ({ host, roleInput, configs, planned }) => {
     const original = structuredClone({ task: roleInput.task, requirement: roleInput.requirement });
     const config = configs[0], packet = JSON.parse(config.context);
     assert.deepEqual(packet.acceptance, roleInput.requirement.acceptance.map(({ acceptanceId }) => ({ acceptanceId })));
@@ -71,6 +71,14 @@ for (const modular of [false, true]) test(`ordinary ${modular ? 'five' : 'three'
     for (const { task } of planned.tasks) assert.deepEqual(task.acceptance.map(({ evidenceDestinations, ...item }) => item),
       roleInput.requirement.acceptance.filter(item => task.acceptanceIds.includes(item.acceptanceId)).map(({ acceptanceId, steps, expected }) => ({ acceptanceId, steps, expected })));
     assert.deepEqual({ task: roleInput.task, requirement: roleInput.requirement }, original);
+    await roleInput.controller.registerTasks(planned.tasks.map(item => item.task));
+    for (const item of planned.tasks.slice(0, 2)) {
+      const review = await host.roleFactory({ ...roleInput, role: 'reviewer', purpose: undefined, task: item.task }); await review.close();
+      const reviewConfig = configs.at(-1)!, cap = item.role === 'design' ? 16384 : 8192;
+      assert.equal(reviewConfig.maxOutputTokens, cap); assert.equal(reviewConfig.maxRequests, 16); assert.equal(reviewConfig.thinkingLevel, 'low');
+      if (item.role === 'design') assert.equal(await reviewConfig.requestOutputLimit!({ requestId: 'design-review-source-cap', modelId: 'deepseek-flash', maxOutputTokens: cap, inputBytes: 1000, hasImages: false }), cap);
+      else assert.equal(reviewConfig.requestOutputLimit, undefined);
+    }
   });
 });
 

@@ -270,7 +270,7 @@ export async function designCandidateBudget(mode, options) {
         }
         assert.equal(packet.role, 'reviewer'); assert.equal(packet.taskId, taskId);
         reviewerPacket = packet; configs.push({ ...config, tools: config.tools.map(tool => tool.name) });
-        assert.equal(config.maxRequests, 16); assert.equal(config.maxOutputTokens, 8192); assert.equal(config.requestTimeoutMs, 120000);
+        assert.equal(config.maxRequests, 16); assert.equal(config.maxOutputTokens, 16384); assert.equal(config.requestTimeoutMs, 120000);
         assert.equal(config.requestCompaction, undefined); assert.deepEqual(packet.tools, ['read']);
         assert.deepEqual(packet.designConcernReview.proposal, proposal); assert.equal(packet.designConcernReview.concerns.length, proposal.remaining.length + proposal.uncertainty.length);
         assert.equal(packet.designConcernReview.authorSources.length, 3); assert.equal(packet.designConcernReview.originalReply, undefined);
@@ -378,7 +378,13 @@ export async function designCandidateBudget(mode, options) {
   let expectedOutcomeVerified = false, reviewReceipt, correctionReceipt;
   try {
     if (task && !fatal) {
-      if (correction && mode !== 'density6-correction') {
+      if (fullQuote && !replayProfile) {
+        assert.equal(task.state, 'waiting_user'); assert.equal(task.review.verdict, 'pending');
+        assert.equal(transports.length, 1); assert.equal(selections.length, 2);
+        assert.equal(selections.at(-1).rejected.code, 'review_output_budget');
+        await assert.rejects(json(join(f.root, `${journalRoot}/review.json`)), { code: 'ENOENT' });
+        await assert.rejects(json(join(task.attempts.at(-1).sessionRef, 'review-correction.json')), { code: 'ENOENT' });
+      } else if (correction && mode !== 'density6-correction') {
         assert.equal(task.state, 'waiting_user'); assert.equal(task.review.verdict, 'pending');
         assert.equal(transports.length, sentRequests ?? 2); assert.equal(selections.length, (sentRequests ?? 2) + 1);
         assert.equal(selections.at(-1).rejected.code, 'review_output_budget');
@@ -390,7 +396,7 @@ export async function designCandidateBudget(mode, options) {
         assert.deepEqual(reviewReceipt.value.verdict.findings, findings);
         assert.deepEqual(reviewReceipt.value.verdict.concernResolutions.map(row => row.concernText), [...proposal.remaining, ...proposal.uncertainty]);
       }
-      if (correction) {
+      if (correction && !(fullQuote && !replayProfile)) {
         correctionReceipt = await json(join(task.attempts.at(-1).sessionRef, 'review-correction.json'));
         assert.equal(correctionReceipt.used, 1);
       }
@@ -402,7 +408,7 @@ export async function designCandidateBudget(mode, options) {
     grantMicroCny: 1125000, initialSettledMicroCny: authorSettled, initialAvailableMicroCny: 1125000 - authorSettled, usageAssumption, replay: replayProfile?.evidence,
     originalAuthorSource: { proposalSha256: hash(JSON.stringify(proposal)), replySha256: sourceResponse.value.replySha256, replyBytes: Buffer.byteLength(sourceResponse.value.reply), remaining: proposal.remaining.length, uncertainty: proposal.uncertainty.length },
     sourceAttachments, materials, sourceBytes: materials.reduce((sum, row) => sum + row.sourceBytes, 0),
-    reviewerPolicy: { version: 'independent-review/2', maxRequests: configs[0]?.maxRequests, requestTimeoutMs: configs[0]?.requestTimeoutMs, outputFloor: 4096, outputMaximum: 8192, cleanupMs: 5000,
+    reviewerPolicy: { version: 'independent-review/2', maxRequests: configs[0]?.maxRequests, requestTimeoutMs: configs[0]?.requestTimeoutMs, outputFloor: 4096, outputMaximum: configs[0]?.maxOutputTokens, cleanupMs: 5000,
       deadlineDurationMs: 180000, revisionMinimumRemainingMs: 185000, authorRequests: 32, protocolCorrections: 1, revisions: 1 },
     fetchInterceptedOnly: true, originalStreamSimplePreserved: ModelRuntime.prototype.streamSimple === originalStreamSimple,
     authorSource: { usageAssumption: replayProfile?.authorUsageAssumption ?? 'Actual TEMP admissions and settlements using explicit fake SSE usage: 240000 + 239313 + 65000 = 544313 microCNY. No imported history. Ordinary outputs4096 each; second cacheRead25 yields the one-microCNY remainder; readonly output765.',
