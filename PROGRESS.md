@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-29 [COS142 / #143](https://github.com/lrfluobida/Cosmos/issues/143) 已获Root批准并登记，source pending；独立planning_context_reviewer已批准64次方向。仅可信ordinary design作者使用64次原会话上限，普通/摘要/合法收尾共用计数；budget-followup/1精确兼容32或64来源并记录实际max。原budget/time/schema不变，request_limit不多授收尾，旧会话不补次数。原[reuse-8永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6477727894)及31项主stage结构错误/12项reopen静态观察保持，新64不代表错误已修好。本卡不调整phase30 guard或准备新付费窗口。总142/root100，父COS18的36个子项中35个源码完成，整体open/partial。
+
 2026-10-29 [COS141 / #142](https://github.com/lrfluobida/Cosmos/issues/142) 已源码范围完成：最终 `e9950eb6c7cbbd0deb49423950ef4a0b238df50e` 经planning_context_reviewer独立APPROVED_SOURCE_SCOPED、无剩余finding及Root批准，唯一planning_budget_merger发布 `af50b0754e2248074b3bc2414ed31ee6824887d4`，5个批准文件精确一致。[精确批准](https://github.com/lrfluobida/Cosmos/issues/142#issuecomment-6475598689)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/142#issuecomment-6475599514)、closed(completed)及父[x]已GET核证。main typecheck/build0、代表5/5、0skip、TAP5302.2947ms；完整10/10、恢复3/3、strict与native按9生产指纹复用，两项full-quote各15指纹匹配最终fixture。总141/root100、父35个源码子项完成，COS18仍open/partial。
 
 COS141只为可信design reviewer显式选择16K，默认仍8K；原floor4096/grant/16/thinking/输入/parser保持。TEMP末轮128048B/16384/387168µ可由余额530014µ承担，synthetic output12288/118500µ形成changes_requested，usage是假设非tokenizer实测。旧length85724µ、新length151268µ均先结算后pending，无第五请求或纠正。两个full-quote旧预期已修正：现16K首笔synthetic188530µ后，第二请求前floor不足而拒绝、无review/correction；GREEN不是review成功。旧未开始首次review可用当前host16K，有效verdict复用、started无verdict阻断、closed永久不动。

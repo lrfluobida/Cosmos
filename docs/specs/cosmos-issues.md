@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-29 [COS142 / #143](https://github.com/lrfluobida/Cosmos/issues/143) 已获Root批准并登记，source pending；独立planning_context_reviewer已批准64次方向。仅可信ordinary design作者使用64次原会话上限，普通/摘要/合法收尾共用计数；budget-followup/1精确兼容32或64来源并记录实际max。原budget/time/schema不变，request_limit不多授收尾，旧会话不补次数。原[reuse-8永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6477727894)及31项主stage结构错误/12项reopen静态观察保持，新64不代表错误已修好。本卡不调整phase30 guard或准备新付费窗口。总142/root100，父COS18的36个子项中35个源码完成，整体open/partial。
+
 2026-10-29 [COS141 / #142](https://github.com/lrfluobida/Cosmos/issues/142) 已源码范围完成；独审批准 `e9950eb6c7cbbd0deb49423950ef4a0b238df50e`，无剩余finding，经Root批准发布 `af50b0754e2248074b3bc2414ed31ee6824887d4`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/142#issuecomment-6475599514)、closed(completed)及父[x]已GET核证。main typecheck/build0、代表5/5、0skip，完整10/10、恢复3/3、strict、native与full-quote失败断言按字节一致性复用。总141/root100、父35个源码子项完成，COS18仍open/partial。
 
 [reuse-8实际结果已永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6477727894)：planning2笔27561µ，作者29普通+3摘要32笔465703µ，review0；第33尝试request_limit前拒，原预算/时间仍足。主stage仍有31项输入action禁止field acceptanceId，ID值合法；reopen12项仅静态观察。无作者完成/capture/review，COS14116K未到达。34笔493264µ、释放4506736µ、child148/shared3380、累计25384044µ、held/reserved/unknown0；201939ms仅清理计时。下一完整5M预留将超过当前30M阶段guard，未准备新付费。
@@ -2074,6 +2076,12 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 [COS141 / #142](https://github.com/lrfluobida/Cosmos/issues/142)，id6083423627，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS140/#141。作者planning_context_implementer，独审planning_context_reviewer；最终 `e9950eb6c7cbbd0deb49423950ef4a0b238df50e` 已APPROVED_SOURCE_SCOPED、无剩余finding，经Root[精确批准](https://github.com/lrfluobida/Cosmos/issues/142#issuecomment-6475598689)，由唯一merger planning_budget_merger发布 `af50b0754e2248074b3bc2414ed31ee6824887d4`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/142#issuecomment-6475599514)及父[x]已GET核证。
 
 正式[规格](cos141-design-review-output-capacity.md)/[计划](../plans/2026-10-29-design-review-output-capacity.md)。5个批准文件精确；main typecheck/build0、代表5/5、0skip、TAP5302.2947ms，完整10/10、恢复3/3、strict及native/full-quote按指纹复用。独立可信design reviewer可选16K，默认8K，原floor4096、预算/16/thinking/输入/parser保持；TEMP synthetic12288输出、118500µ形成changes_requested，仅证明接线/容量。新旧length结算后pending，两full-quote正确结果是第二请求前预算拒绝、无review/correction。旧未开始首次ordinary review可用当前host16K，有效verdict复用、started无verdict阻断，closed永久不恢复。[reuse-8](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6477727894)在作者request_limit处停止且原计划结构不合格，16K未到达。后续新付费仍受当前30M阶段guard与预算/身份readiness约束，已有长期授权保持。总141/root100/父35个源码子项完成，父整体open/partial。
+
+### COS-142 · 普通设计作者的有界修复调用
+
+[COS142 / #143](https://github.com/lrfluobida/Cosmos/issues/143)，id6085456542，原生父COS18/#19、[ ]，`source-pending`；依赖COS141/#142。Root已批准固定短规格/计划与免费SOURCE实施，独立planning_context_reviewer已批准64次方向；作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。源码基线 `af50b0754e2248074b3bc2414ed31ee6824887d4`。
+
+正式[规格](cos142-design-author-request-capacity.md)/[计划](../plans/2026-10-29-design-author-request-capacity.md)。仅可信ordinary design作者选择64，普通请求/native摘要/合法只读收尾共享计数，第65次拒绝；原32来源保留并精确支持新64 actual max，非法/篡改/越界来源拒绝。原grant、独审保留、输出、时限和schema保持，request_limit不新增收尾槽，旧会话不补次数。不修改原禁止field acceptanceId规则，不把新调用空间或合成交接当成实际结构修复。旧run永久闭账，当前25.384044加下一完整5将超过阶段30；本卡只免费源码，不改guard、不新建预算任务或准备付费窗口，后续付费待阶段范围及readiness。总142/root100/父36中35源码完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 
