@@ -895,6 +895,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: 600000, estimatedMaxCostMicroCny: requestReservation,
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
         ? { authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
+          ordinaryPlanningAcceptanceIndex: async roleInput => {
+            await ordinary.requireCurrent();
+            if (!sameValue(roleInput.requirement, requirement) || roleInput.controller !== controller
+              || await realpath(roleInput.workspace) !== await realpath(root) || !roleInput.task.context.tools.includes('read')
+              || !sameValue(roleInput.task.acceptanceIds, requirement.acceptance.map(item => item.acceptanceId))
+              || requirement.sources.some(source => !roleInput.task.inputs.some(ref => sameValue(ref, source)))) {
+              throw new Error('Ordinary planning index requires the complete confirmed requirement and exact readable source inputs.');
+            }
+          },
           ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}), ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
           ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 } } : {}) } : {}),
       ...(ordinary ? { authorThinkingLevel: { design: 'off' } as const, authorMaxRequests: { design: 32 } } : {}),
