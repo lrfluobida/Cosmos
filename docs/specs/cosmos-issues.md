@@ -1,6 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-28 [COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140) 已获Root批准并登记，source pending；独立planning_context_reviewer已APPROVED_PLAN最小方向。仅可信新ordinary planning在完整来源与requirement核验后，将模型显示中的重复验收全文投影为精确ID索引，覆盖普通三槽和模块化五槽；全量合同、8192/16/grant、权限、来源及最终计划校验保持，不增policy或动态cap。原[reuse-5永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6471286054)保持；原两轮完整read轨迹的免费native回放与三/五槽planning-only代表待源码实施验证。总139/root100，父COS18的33个子项中32个源码完成，整体open/partial。
+2026-10-28 [COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140) 已源码范围完成；独审批准 `92f6da18f423562b5fda229d30f60a0266b65d54`，无P1/P2，经Root批准发布 `457c90c8e212ff2a4fe0c64584104d6eb1aa34fa`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/140#issuecomment-6472336109)、closed(completed)及父[x]已GET核证。main typecheck/build0、新增4/4、0skip，完整35/35、strict及native按源码一致性复用。总139/root100、父33个源码子项完成，COS18整体仍open/partial。
+
+[reuse-6实际结果已永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6473070452)：索引与来源提示实际生效，完整读原来源后又读相同bundle镜像，第三轮预算拒绝。按生产口径重构input77482B/cap8192/报价220500µ，余额215177µ、差5323µ；无最终规划JSON/schema错误或生成task。独立PASS_CLOSED，2笔14814+20009=34823µ、释放4965177µ，child16/shared3376、共享累计24168115µ、held/reserved/unknown0。10.639秒/in_time仅为清理计时；原COS139 SOURCE固定的reuse5分段读取证据不扩称覆盖这一新分支。
 
 2026-10-28 [COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139) 状态收尾：已独审批准 `bd25ea39b7688ca96a5f15260b2897b2a933799f`，无P1/P2，Root批准后于2026-10-27发布 `dbc0a6233b6cff30c529f0f3f2d739e764784405`。[源码完成关闭](https://github.com/lrfluobida/Cosmos/issues/139#issuecomment-6438579855)、closed(completed)及父[x]已GET核证；main typecheck/build0、proof/parser回放4/4、0skip，已审native证据按源码与fixture字节一致性复用。总138/root100、父32个源码子项完成；COS18整体仍open/partial。
 
@@ -2049,9 +2051,9 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 
 ### COS-139 · 普通规划的完整需求来源与精简显示
 
-[COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140)，id6081020291，原生父COS18/#19、[ ]，`source-pending`；依赖COS138/#139。Root已批准固定短规格/计划与免费SOURCE实施，独立planning_context_reviewer已APPROVED_PLAN最小方向；作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。实施基线 `d7db48d52ee5e8a0d37194607da97ace0efa51a6`。
+[COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140)，id6081020291，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS138/#139。作者planning_context_implementer，独审planning_context_reviewer；最终 `92f6da18f423562b5fda229d30f60a0266b65d54` 已APPROVED_SOURCE_SCOPED、无P1/P2，经Root[精确批准](https://github.com/lrfluobida/Cosmos/issues/140#issuecomment-6472335154)，由唯一merger planning_budget_merger发布 `457c90c8e212ff2a4fe0c64584104d6eb1aa34fa`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/140#issuecomment-6472336109)及父[x]已GET核证。实施基线 `d7db48d52ee5e8a0d37194607da97ace0efa51a6`。
 
-正式[规格](cos139-planning-context-index.md)/[计划](../plans/2026-10-28-planning-context-index.md)。仅可信新ordinary planning显示去除与完整固定来源相同的重复验收全文，保留精确ID顺序并明确完整读取要求；缺来源、requirement不同、独有新增内容或缺精确输入时，在session前拒绝。正常三槽/模块化五槽的全量需求、任务合同与最终校验保持，8192/16/grant、预算算法与权限不变，不增加policy/动态cap。实际源码和原两轮完整read轨迹的免费native回放仍待验证，反事实208202µ报价不当作SOURCE或真实结果。reuse-5永久closed，新真实运行/付费未授权。总139/root100/父33中32源码完成，父整体open/partial。
+正式[规格](cos139-planning-context-index.md)/[计划](../plans/2026-10-28-planning-context-index.md)。3个批准文件精确一致；main typecheck/build0、新增4/4、0skip、TAP5974.4541ms，完整35/35、strict及native按6个生产文件指纹一致性复用。仅可信新ordinary planning投影显示索引，三/五槽全量需求、任务合同与最终校验，以及8192/16/grant、来源、权限和预算算法保持。原reuse5两轮完整读取的TEMP第三71301B/208138µ可发送，第三合法规划响应和22600µ明确synthetic；完整12条验收与真实host绑定通过。reuse-5与[reuse-6](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6473070452)永久closed，reuse-6的新镜像读取分支仍planning incomplete；源码通过不代表真实游戏完成。后续新真实运行尚未启动，需先通过源码、集成和预算检查；已有长期授权保持。总139/root100/父33个源码子项完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 

@@ -1,12 +1,16 @@
 # COS139：普通规划的完整需求来源与精简显示
 
-状态：Root已批准固定短规格/计划及免费SOURCE实施；独立planning_context_reviewer已APPROVED_PLAN最小方向，SOURCE待实际diff独审。
+状态：`source-integrated / source-scoped-complete`；最终 `92f6da18f423562b5fda229d30f60a0266b65d54` 经planning_context_reviewer独立APPROVED_SOURCE_SCOPED、无P1/P2及Root批准，已发布 `457c90c8e212ff2a4fe0c64584104d6eb1aa34fa`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/140#issuecomment-6472336109)、closed(completed)及父[x]已GET核证。
 
-任务：[COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140)，id6081020291，原生父COS18/#19未勾，依赖[COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
+任务：[COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140)，id6081020291，原生父COS18/#19已勾，依赖[COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `1b34f947b785bf143d41ff5748fbea731674aeef4654dabfce78b38aeffc6a6e`；plan `0143f55b3754360b9809326f35f8ea8e8e981ce2ef92c5481dadf6a1fac41cd3`。
 
 基线：d7db48d52ee5e8a0d37194607da97ace0efa51a6（源码 dbc0a623）；依赖 COS138 / #139。
+
+源码结果：3个批准文件精确、无冲突集成；main typecheck/build0，新增4/4、0skip、TAP5974.4541ms，完整35/35、strict及native证据按源码一致性复用。原reuse5分段读取轨迹的TEMP第三请求71301B/208138µ在原cap8192/余额222875µ内发送，第三规划回复及22600µ费用明确为synthetic；原完整读取、12条验收与真实host全量绑定保持。只完成SOURCE范围，父COS18仍open/partial、33/33仅指源码子项。
+
+[reuse-6实际结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6473070452)已永久PASS_CLOSED：索引和来源提示实际生效，但完整读取原来源后又读bundle镜像，第三轮预算拒绝，未形成规划或游戏任务；原SOURCE证据未覆盖这一新读取分支。后续新真实运行尚未启动，需先通过源码、集成和预算检查；已有长期授权保持。
 
 ## 已核实的问题
 
