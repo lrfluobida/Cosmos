@@ -1,12 +1,16 @@
 # COS143：显式公共验证阶段扩展
 
-状态：Root已批准固定短规格/计划的免费SOURCE支持，来自独立validation_phase_design方案及stale-running修正；SOURCE待实际diff独审。真实阶段仍30000000µ，尚无30→40预算决定，部署源码不等于预算批准。
+状态：`source-integrated / source-scoped-complete`；最终 `830256110dcd441c5ff1baa86cb441630e2873fa` 经validation_phase_design独立APPROVED_SOURCE_SCOPED、全部10文件无P1/P2及Root批准，已发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)、closed(completed)及父[x]已GET核证。真实阶段仍30000000µ，尚无30→40预算决定，部署源码不等于预算批准。
 
-任务：[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)，id6086446699，原生父COS18/#19未勾；依赖[COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110)及[COS142 / #143](https://github.com/lrfluobida/Cosmos/issues/143)。作者validation_phase_implementer，独审validation_phase_design，唯一merger planning_budget_merger。
+任务：[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)，id6086446699，原生父COS18/#19已勾；依赖[COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110)及[COS142 / #143](https://github.com/lrfluobida/Cosmos/issues/143)。作者validation_phase_implementer，独审validation_phase_design，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `359b036ea0527b66dcb233aa85098fe9c9db47dd5c8fba0686271a8fb9aa8abf`；plan `8dbe8d2e33fe6f572c7594515250552fd52b7fb9c2ae261075a0bbd2e19b7560`。
 
-基线：85782fab382d10d2ae1b9a7c93944b788a4f10c2（runtime f7ef059）；依赖COS109/#110公共拨款与COS142/#143当前验证能力。GitHub身份已登记，SOURCE pending。
+基线：85782fab382d10d2ae1b9a7c93944b788a4f10c2（runtime f7ef059）；依赖COS109/#110公共拨款与COS142/#143当前验证能力。GitHub身份与SOURCE关闭已核证，真实阶段未扩展。
+
+SOURCE结果：10个批准文件精确、无冲突集成；main typecheck/build0，最短TEMP代表4/4、0skip、TAP5972.2789ms，覆盖default30/显式跨30、写后丢响应幂等、phase引用/新run限制及stopped-case running兼容。作者phase9/9、追加ledger5 1/1、旧funding11/11、CLI3/3与独审后续拨款/结算后再试幂等1/1按批准源码等价复用。所有本次phase测试仅使用新TEMP ledger/repository和合成决定；真实prepare/apply、sharedRoot/账本、newfund/provider调用均0。
+
+真实snapshot3380、已结25384044µ、held/reserved/unknown0及阶段30Mµ保持，尚无真实phase决定，未准备付费运行；原cosmos spec首批30历史未改。父COS18仍open/partial，37/37仅指源码子项。下列规格是已实现的支持边界，不能替代真实预算决定。
 
 ## 实际阻塞与目标
 

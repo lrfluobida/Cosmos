@@ -4,7 +4,11 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-2026-10-29 [COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144) 已获Root批准免费SOURCE支持并登记，source pending；作者validation_phase_implementer，独审validation_phase_design。仅单个可选公共phase回执及prepare/apply支持，默认阶段¥30，lifetime¥150、单次≤¥5/30min保持；真实阶段¥40须真实当前quote绑定的独立operator预算决定，源码批准不能替代决定。当前shared3380/已结25384044µ/held0不动，实际阶段仍¥30、无决定，不调用真实phase API或准备新付费。旧case/来源/账目/历史前缀与原¥30派发保持；已停case中的running任务按原authority判断、不修史。总143/root100，父COS18的37个子项中36个源码完成，整体open/partial。
+2026-10-29 [COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144) 已在免费SOURCE范围完成：最终 `830256110dcd441c5ff1baa86cb441630e2873fa` 经validation_phase_design独审全部10文件APPROVED_SOURCE_SCOPED、无P1/P2及Root批准，唯一planning_budget_merger无冲突发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`，批准文件精确一致。[SOURCE批准](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479876167)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)、closed(completed)及父[x]已GET核证。main typecheck/build0、最短TEMP代表4/4、0skip、TAP5972.2789ms；作者phase9/9、追加ledger5 1/1、旧funding11/11、CLI3/3及独审后续拨款/结算后再试幂等1/1按源码等价复用。总143/root100、父37个源码子项完成，COS18仍open/partial。
+
+COS143支持单个可选phase回执、只读prepare和明确quote/operator决定绑定的幂等apply，默认¥30，lifetime¥150、新公共单次≤¥5/30min保持。TEMP证明prepare不锁/不写，apply只追加回执/事件/revision且activationAllowed:false；旧历史前缀、金额/来源/stop/clock/tasks保持。已停case中的running/null-endedAt标签不修史，旧正常派发和新fixed claim继续阻断；扩展后新公共funding必须绑定精确phase决定，旧账务读路径兼容。
+
+**SOURCE完成不是30→40预算批准。** 真实共享snapshot3380、SHA `8c411706deca3253f6b13c4428101a2590a6a8ade868ed6dda51a4762196acde`、已结25384044µ、held/reserved/unknown0保持，实际阶段仍30000000µ且无预算决定。本批真实prepare/apply、真实sharedRoot/账本、newfund/provider调用均0，未准备新付费窗口；原cosmos spec首批30历史不改。真实quote、独立readiness与明确预算决定留Root后续另行处理，任何旧run都不重开。
 
 2026-10-29 [COS142 / #143](https://github.com/lrfluobida/Cosmos/issues/143) 已源码范围完成：最终 `456df3960a22a9edf162c15231d463e742d76cc5` 经planning_context_reviewer独立APPROVED_SOURCE_SCOPED、无finding及Root批准，唯一planning_budget_merger无冲突发布 `f7ef059cac5022c0834dc6e0a0d14eb32dbf0fa6`，9个批准文件精确一致。[精确批准](https://github.com/lrfluobida/Cosmos/issues/143#issuecomment-6478302418)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/143#issuecomment-6478303414)、closed(completed)及父[x]已GET核证。main typecheck/build0、代表5/5、0skip、TAP26668.1135ms；核心10/10、funded2/2、角色2/2、strict与native按7生产文件及锁定SDK compaction文件指纹复用。总142/root100、父36个源码子项完成，COS18仍open/partial。
 

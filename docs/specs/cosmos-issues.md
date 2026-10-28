@@ -1,6 +1,6 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-29 [COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144) 已获Root批准免费SOURCE支持并登记，source pending；作者validation_phase_implementer，独审validation_phase_design。仅单个可选公共phase回执及prepare/apply支持，默认阶段¥30，lifetime¥150、单次≤¥5/30min保持；真实阶段¥40须真实当前quote绑定的独立operator预算决定，源码批准不能替代决定。当前shared3380/已结25384044µ/held0不动，实际阶段仍¥30、无决定，不调用真实phase API或准备新付费。旧case/来源/账目/历史前缀与原¥30派发保持；已停case中的running任务按原authority判断、不修史。总143/root100，父COS18的37个子项中36个源码完成，整体open/partial。
+2026-10-29 [COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144) 已在免费SOURCE范围完成；独审批准 `830256110dcd441c5ff1baa86cb441630e2873fa` 全部10文件、无P1/P2，经Root批准发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)、closed(completed)及父[x]已GET核证。main typecheck/build0、最短TEMP代表4/4、0skip，作者phase9/9+ledger5追加1/1、旧funding11/11、CLI3/3与独审幂等1/1按源码一致性复用。总143/root100、父37个源码子项完成，COS18仍open/partial。真实shared3380/已结25384044µ/held0、阶段¥30不变；¥40尚无预算决定，真实phase API/账本/newfund/provider调用0，未准备新付费。
 
 2026-10-29 [COS142 / #143](https://github.com/lrfluobida/Cosmos/issues/143) 已源码范围完成；独审批准 `456df3960a22a9edf162c15231d463e742d76cc5`，无finding，经Root批准发布 `f7ef059cac5022c0834dc6e0a0d14eb32dbf0fa6`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/143#issuecomment-6478303414)、closed(completed)及父[x]已GET核证。main typecheck/build0、代表5/5、0skip，核心10/10、funded2/2、角色2/2、strict及native按字节等价复用。总142/root100、父36个源码子项完成，COS18仍open/partial。新64仅证明有界调用空间，TEMP仍main30/reopen静态12、原reuse8仍31/12；未准备新付费运行，阶段30000000µ guard不变。
 
@@ -2087,9 +2087,9 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 
 ### COS-143 · 显式公共验证阶段扩展
 
-[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)，id6086446699，原生父COS18/#19、[ ]，`source-pending`；依赖COS109/#110及COS142/#143。Root已批准固定短规格/计划的免费SOURCE支持，来自独立validation_phase_design方案及stale-running历史兼容修正；作者validation_phase_implementer，独审validation_phase_design，唯一merger planning_budget_merger。源码基线 `85782fab382d10d2ae1b9a7c93944b788a4f10c2`。
+[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)，id6086446699，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS109/#110及COS142/#143。作者validation_phase_implementer，独审validation_phase_design；最终 `830256110dcd441c5ff1baa86cb441630e2873fa` 已APPROVED_SOURCE_SCOPED、全部10文件无P1/P2，经Root[精确SOURCE批准](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479876167)，由唯一merger planning_budget_merger发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)及父[x]已GET核证。
 
-正式[规格](cos143-public-validation-phase-extension.md)/[计划](../plans/2026-10-29-public-validation-phase-extension.md)。只提供单个可选phase回执、只读prepare及quote/真实operator决定绑定的幂等apply支持；缺省30Mµ，lifetime150Mµ、公共单次≤5Mµ/30min保持。源码批准不构成30→40预算决定；当前实际shared3380/已结25384044µ/held0和阶段30Mµ保持，不调用真实prepare/apply、不新拨款或付费。冻结旧case/任务/来源/账目/事件前缀，旧30声明与dispatch保持；已停case里的running task原值保留，依据原run/window authority而非task.state判断，无旧权限迁移。原cosmos spec首批30历史不改。总143/root100/父37中36源码完成，父整体open/partial。
+正式[规格](cos143-public-validation-phase-extension.md)/[计划](../plans/2026-10-29-public-validation-phase-extension.md)。10个批准文件精确；main typecheck/build0、最短TEMP代表4/4、0skip、TAP5972.2789ms，原phase/funding/CLI、追加ledger5与独审后续结算幂等证据复用。单个可选回执支持prepare零锁零写、apply幂等及精确决定/历史来源核验，activationAllowed:false；默认30Mµ，lifetime150Mµ、公共单次≤5Mµ/30min保持。旧case/任务/账目前缀和原30派发不变，stopped-case running标签原值保留，旧正常派发/新fixed claim仍阻断、账务读兼容。**SOURCE批准不是预算批准**：实际shared3380/已结25384044µ/held0和阶段30Mµ保持，无30→40决定，本批真实prepare/apply/账本/newfund/provider调用0，未准备付费运行；原cosmos spec首批30历史不改。总143/root100/父37个源码子项完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 
