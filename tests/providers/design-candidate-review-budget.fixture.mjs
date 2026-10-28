@@ -378,7 +378,13 @@ export async function designCandidateBudget(mode, options) {
   let expectedOutcomeVerified = false, reviewReceipt, correctionReceipt;
   try {
     if (task && !fatal) {
-      if (correction && mode !== 'density6-correction') {
+      if (fullQuote && !replayProfile) {
+        assert.equal(task.state, 'waiting_user'); assert.equal(task.review.verdict, 'pending');
+        assert.equal(transports.length, 1); assert.equal(selections.length, 2);
+        assert.equal(selections.at(-1).rejected.code, 'review_output_budget');
+        await assert.rejects(json(join(f.root, `${journalRoot}/review.json`)), { code: 'ENOENT' });
+        await assert.rejects(json(join(task.attempts.at(-1).sessionRef, 'review-correction.json')), { code: 'ENOENT' });
+      } else if (correction && mode !== 'density6-correction') {
         assert.equal(task.state, 'waiting_user'); assert.equal(task.review.verdict, 'pending');
         assert.equal(transports.length, sentRequests ?? 2); assert.equal(selections.length, (sentRequests ?? 2) + 1);
         assert.equal(selections.at(-1).rejected.code, 'review_output_budget');
@@ -390,7 +396,7 @@ export async function designCandidateBudget(mode, options) {
         assert.deepEqual(reviewReceipt.value.verdict.findings, findings);
         assert.deepEqual(reviewReceipt.value.verdict.concernResolutions.map(row => row.concernText), [...proposal.remaining, ...proposal.uncertainty]);
       }
-      if (correction) {
+      if (correction && !(fullQuote && !replayProfile)) {
         correctionReceipt = await json(join(task.attempts.at(-1).sessionRef, 'review-correction.json'));
         assert.equal(correctionReceipt.used, 1);
       }
