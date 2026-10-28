@@ -1,12 +1,12 @@
 # COS138：设计审查的固定比较输入
 
-状态：Root已批准固定设计、计划及免费SOURCE实施；独立design_candidate_review_reviewer已确认比较引用契约，源码审查仍pending。
+状态：`source-integrated / source-scoped-complete`；独立design_candidate_review_reviewer已批准最终 `bd25ea39b7688ca96a5f15260b2897b2a933799f`，无P1/P2；Root批准后发布为 `dbc0a6233b6cff30c529f0f3f2d739e764784405`。[源码完成关闭](https://github.com/lrfluobida/Cosmos/issues/139#issuecomment-6438579855)、closed(completed)及父[x]已GET核证。
 
-任务：[COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139)，父COS18/#19未勾，依赖[COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138)。作者ordinary_design_revision_implementer，独审design_candidate_review_reviewer，唯一merger public_agent_batch_merger。
+任务：[COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139)，父COS18/#19已勾，依赖[COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138)。作者ordinary_design_revision_implementer，独审design_candidate_review_reviewer，源码唯一merger public_agent_batch_merger；本次状态收尾merger planning_budget_merger。
 
 批准私有输入SHA256：spec `e32f801d98db33157296b5fadbba14256f25e740750297a1535e8612371c4a16`；plan `2d6f99421b6597771e993c5eb6f2b8d5ed2ca78747a24c0c6111ff0dedc2a0cc`。
 
-状态：Root 按实际 reuse-4 失败和独立设计判断批准免费实现；GitHub 身份已登记，SOURCE待独立审查。
+源码结果：6个批准文件精确、无冲突集成；main typecheck/build退出0，完整proof与原R4纯parser回放4/4、0skip、TAP3533.1158ms。已审native正常、malformed及旧R3证据按13个生产文件及fixture字节一致性复用；仅SOURCE范围完成，父COS18仍open/partial，32/32仅指源码子项。
 基线源码：b287e812f8994e23466297f63ca4454a935eb67d。依赖 COS137 / #138。
 
 ## 问题与证据

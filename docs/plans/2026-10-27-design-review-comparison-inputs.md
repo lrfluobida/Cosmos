@@ -1,8 +1,8 @@
 # COS138 实施计划
 
-状态：Root已批准固定设计、计划及免费SOURCE实施；独立design_candidate_review_reviewer已确认比较引用契约，源码审查仍pending。
+状态：`source-integrated / source-scoped-complete`；最终 `bd25ea39b7688ca96a5f15260b2897b2a933799f` 已获独立APPROVED_SOURCE_SCOPED、无P1/P2，经Root批准合入并发布 `dbc0a6233b6cff30c529f0f3f2d739e764784405`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/139#issuecomment-6438579855)及父[x]已GET核证；main typecheck/build0、proof/parser回放4/4、0skip，已审native证据按源码与fixture字节一致性复用。
 
-任务：[COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139)，父COS18/#19未勾，依赖[COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138)。作者ordinary_design_revision_implementer，独审design_candidate_review_reviewer，唯一merger public_agent_batch_merger。
+任务：[COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139)，父COS18/#19已勾，依赖[COS137 / #138](https://github.com/lrfluobida/Cosmos/issues/138)。作者ordinary_design_revision_implementer，独审design_candidate_review_reviewer，源码唯一merger public_agent_batch_merger；本次状态收尾merger planning_budget_merger。
 
 批准私有输入SHA256：spec `e32f801d98db33157296b5fadbba14256f25e740750297a1535e8612371c4a16`；plan `2d6f99421b6597771e993c5eb6f2b8d5ed2ca78747a24c0c6111ff0dedc2a0cc`。
 
