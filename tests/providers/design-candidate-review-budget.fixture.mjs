@@ -153,7 +153,7 @@ export async function designCandidateBudget(mode, options) {
         const started = await json(join(f.root, `${journalRoot}/author-correction-started.json`));
         assert.equal(started.value.kind, 'budget_finalization'); assert.equal(started.value.used, 1);
         assert.equal(started.value.unsent.code, 'author_review_reserve'); assert.equal(started.value.originalReply, undefined);
-        assert.equal(started.value.unsent.requests, 3); assert.equal(started.value.unsent.maxRequests, 32);
+        assert.equal(started.value.unsent.requests, 3); assert.equal(started.value.unsent.maxRequests, 64);
         usage = { ...(replayProfile?.authorFinalizationUsage ?? { prompt_tokens: 29440, completion_tokens: 765, prompt_cache_hit_tokens: 0 }) };
         delta = { content: sourceResponse.value.reply }; finish_reason = 'stop';
       } else {
@@ -231,7 +231,7 @@ export async function designCandidateBudget(mode, options) {
         if (packet.role === 'design' && packet.taskId === taskId) {
           await put(config.workspace, 'authors/design/design.json', originals.get(files.at(-2)));
           await put(config.workspace, 'authors/design/acceptance-plan.json', originals.get(files.at(-1)));
-          assert.equal(config.maxRequests, 32); assert.equal(config.maxOutputTokens, 32768); assert.equal(config.readonlyMaxOutputTokens, 4096);
+          assert.equal(config.maxRequests, 64); assert.equal(config.maxOutputTokens, 32768); assert.equal(config.readonlyMaxOutputTokens, 4096);
           assert.equal(config.ordinaryDesignFinalizationPolicy, 'budget-followup/1');
           assert.equal(typeof config.requestCompaction, 'function'); assert.equal(typeof config.requestCompactionAdmission, 'function');
           await put(reportDirectory, 'author-packet.json', JSON.stringify(packet, null, 2) + '\n');
@@ -409,7 +409,7 @@ export async function designCandidateBudget(mode, options) {
     originalAuthorSource: { proposalSha256: hash(JSON.stringify(proposal)), replySha256: sourceResponse.value.replySha256, replyBytes: Buffer.byteLength(sourceResponse.value.reply), remaining: proposal.remaining.length, uncertainty: proposal.uncertainty.length },
     sourceAttachments, materials, sourceBytes: materials.reduce((sum, row) => sum + row.sourceBytes, 0),
     reviewerPolicy: { version: 'independent-review/2', maxRequests: configs[0]?.maxRequests, requestTimeoutMs: configs[0]?.requestTimeoutMs, outputFloor: 4096, outputMaximum: configs[0]?.maxOutputTokens, cleanupMs: 5000,
-      deadlineDurationMs: 180000, revisionMinimumRemainingMs: 185000, authorRequests: 32, protocolCorrections: 1, revisions: 1 },
+      deadlineDurationMs: 180000, revisionMinimumRemainingMs: 185000, authorRequests: 64, protocolCorrections: 1, revisions: 1 },
     fetchInterceptedOnly: true, originalStreamSimplePreserved: ModelRuntime.prototype.streamSimple === originalStreamSimple,
     authorSource: { usageAssumption: replayProfile?.authorUsageAssumption ?? 'Actual TEMP admissions and settlements using explicit fake SSE usage: 240000 + 239313 + 65000 = 544313 microCNY. No imported history. Ordinary outputs4096 each; second cacheRead25 yields the one-microCNY remainder; readonly output765.',
       pressure: { scope: 'Artificial author-only system context pressure; not part of reviewer input or a claim about R3 author capacity.', paddingBytes: authorPressureBytes, addedSystemBytes: Buffer.byteLength(authorPressure) },

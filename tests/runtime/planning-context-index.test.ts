@@ -72,6 +72,9 @@ for (const modular of [false, true]) test(`ordinary ${modular ? 'five' : 'three'
       roleInput.requirement.acceptance.filter(item => task.acceptanceIds.includes(item.acceptanceId)).map(({ acceptanceId, steps, expected }) => ({ acceptanceId, steps, expected })));
     assert.deepEqual({ task: roleInput.task, requirement: roleInput.requirement }, original);
     await roleInput.controller.registerTasks(planned.tasks.map(item => item.task));
+    const author = await host.roleFactory({ ...roleInput, role: 'design', purpose: undefined, task: planned.tasks[0].task }); await author.close();
+    assert.equal(configs.at(-1)!.maxRequests, 64); assert.equal(configs.at(-1)!.maxOutputTokens, 32768);
+    assert.match(configs.at(-1)!.systemPrompt, /at most 64 model requests/);
     for (const item of planned.tasks.slice(0, 2)) {
       const review = await host.roleFactory({ ...roleInput, role: 'reviewer', purpose: undefined, task: item.task }); await review.close();
       const reviewConfig = configs.at(-1)!, cap = item.role === 'design' ? 16384 : 8192;

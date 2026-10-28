@@ -37,7 +37,7 @@ export interface PiBudget {
 }
 export interface PiBudgetFinalizationSource {
   code: 'author_output_budget' | 'author_review_reserve'; stage: 'ordinary_output_limit'; requestId: string;
-  inputBytes: number; floor: 8192; requests: number; maxRequests: 32;
+  inputBytes: number; floor: 8192; requests: number; maxRequests: 32 | 64;
   native: { file: string; entryId: string; sha256: string };
 }
 const unsentMessage = (source: Omit<PiBudgetFinalizationSource, 'native'>) => `Unsent ordinary output limit: ${JSON.stringify(source)}`;
@@ -47,7 +47,7 @@ export async function requireBudgetFinalizationSource(source: PiBudgetFinalizati
   const { native, ...reason } = source ?? {};
   if (!native || !['author_output_budget', 'author_review_reserve'].includes(reason.code) || reason.stage !== 'ordinary_output_limit'
     || !/^[a-f\d-]{36}$/.test(reason.requestId) || !Number.isSafeInteger(reason.inputBytes) || reason.inputBytes <= 0
-    || reason.floor !== 8192 || reason.maxRequests !== 32 || !Number.isSafeInteger(reason.requests) || reason.requests < 1 || reason.requests >= 32
+    || reason.floor !== 8192 || ![32, 64].includes(reason.maxRequests) || !Number.isSafeInteger(reason.requests) || reason.requests < 1 || reason.requests >= reason.maxRequests
     || typeof native.file !== 'string' || !/^[\w-]{1,80}$/.test(native.entryId) || !/^[a-f\d]{64}$/.test(native.sha256)) throw new Error('Invalid native unsent source.');
   const path = relative(resolve(stateDirectory), resolve(native.file));
   if (!path || isAbsolute(path) || path.startsWith('..') || path.includes(sep) || !path.endsWith('.jsonl')) throw new Error('Unsent source is outside the original native session directory.');
@@ -114,7 +114,7 @@ export async function createPiSession(config: PiSessionOptions) {
   if (config.requestCompactionAdmission && !config.requestCompaction) throw new Error('Compaction admission requires a compaction policy');
   if (config.readonlyMaxOutputTokens !== undefined && (config.readonlyMaxOutputTokens !== 4096 || config.maxOutputTokens < 4096)) throw new Error('Invalid readonly output cap');
   if (config.ordinaryDesignFinalizationPolicy !== undefined && (config.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || config.maxOutputTokens !== 32768
-    || config.maxRequests !== 32 || config.readonlyMaxOutputTokens !== 4096 || !config.requestOutputLimit)) throw new Error('Invalid ordinary design finalization configuration.');
+    || ![32, 64].includes(config.maxRequests) || config.readonlyMaxOutputTokens !== 4096 || !config.requestOutputLimit)) throw new Error('Invalid ordinary design finalization configuration.');
   const key = (config.env ?? process.env).DEEPSEEK_API_KEY;
   if (!key?.trim()) throw new Error('DEEPSEEK_API_KEY is required');
   const workspace = await realpath(config.workspace);
@@ -221,7 +221,7 @@ export async function createPiSession(config: PiSessionOptions) {
           && !failure && !closed && !options?.signal?.aborted && !callerSignal?.aborted && requests < config.maxRequests
           && error instanceof PiSessionError && ['author_output_budget', 'author_review_reserve'].includes(error.code)) {
           const source: Omit<PiBudgetFinalizationSource, 'native'> = { code: error.code as PiBudgetFinalizationSource['code'], stage: 'ordinary_output_limit',
-            requestId: request.requestId, inputBytes: request.inputBytes, floor: 8192, requests, maxRequests: 32 };
+            requestId: request.requestId, inputBytes: request.inputBytes, floor: 8192, requests, maxRequests: config.maxRequests as 32 | 64 };
           const rejected = new PiSessionError(source.code, unsentMessage(source));
           pendingFinalization = { error: rejected, source, beforeLeaf: manager.getLeafId() }; throw rejected;
         }

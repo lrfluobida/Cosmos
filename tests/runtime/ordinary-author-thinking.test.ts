@@ -80,19 +80,19 @@ test('ordinary design alone disables thinking in native SDK payload while origin
   t.diagnostic(JSON.stringify(payloads.map(({ role, taskId, body }) => ({ role, taskId, model: body.model, thinking: body.thinking, reasoning_effort: body.reasoning_effort, max_tokens: body.max_tokens }))));
   assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
   assert.equal(payloads.length, 7);
-  for (const { role, body } of payloads) {
+  for (const { role, taskId, body } of payloads) {
     assert.deepEqual(body.thinking, { type: role === 'design' ? 'disabled' : 'enabled' });
     assert.equal(body.reasoning_effort, role === 'design' ? undefined : 'low');
-    assert.equal(body.max_tokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : 8192);
+    assert.equal(body.max_tokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : role === 'reviewer' && taskId === 'design-task' ? 16384 : 8192);
   }
   const state: any = await readRunSnapshot(f.root);
   for (const config of configs) {
     const packet = JSON.parse(config.context), task = state.tasks.find((task: any) => task.taskId === packet.taskId);
-    assert.equal(config.maxRequests, packet.role === 'design' ? 32 : 16); assert.equal(config.requestTimeoutMs, packet.role === 'coding' ? 600000 : 120000);
+    assert.equal(config.maxRequests, packet.role === 'design' ? 64 : 16); assert.equal(config.requestTimeoutMs, packet.role === 'coding' ? 600000 : 120000);
     assert.equal(typeof config.requestCompactionAdmission, packet.role === 'design' ? 'function' : 'undefined');
     assert.equal(typeof config.requestCompaction, packet.role === 'design' ? 'function' : 'undefined');
     assert.equal(config.compactionKeepRecentTokens, packet.role === 'design' ? 8000 : undefined);
-    if (packet.role === 'design') assert.match(config.systemPrompt, /at most 32 model requests/);
+    if (packet.role === 'design') assert.match(config.systemPrompt, /at most 64 model requests/);
     else assert.doesNotMatch(config.systemPrompt, /model requests/);
     assert.equal(packet.budget.originalDeadlineAt, state.run.originalDeadlineAt);
     if (task) assert.equal(packet.budget.allocationMicroCny, task.budget.allocationMicroCny);
@@ -115,8 +115,8 @@ test('COS124 COS127 modular ordinary host selects only design author and reviewe
   const result: any = await f.execute(); assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
   for (const config of configs) {
     const packet = JSON.parse(config.context), role = packet.role;
-    assert.equal(config.maxOutputTokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : 8192);
-    assert.equal(typeof config.requestOutputLimit, role === 'design' || role === 'reviewer' && packet.acceptance.some((item: any) => item.acceptanceId === 'COSMOS-DESIGN') ? 'function' : 'undefined');
+    assert.equal(config.maxOutputTokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : role === 'reviewer' && packet.acceptance.some((item: any) => item.acceptanceId === 'COSMOS-DESIGN') ? 16384 : 8192);
+    assert.equal(typeof config.requestOutputLimit, role === 'cosmos' || role === 'design' || role === 'reviewer' && packet.acceptance.some((item: any) => item.acceptanceId === 'COSMOS-DESIGN') ? 'function' : 'undefined');
     assert.equal(typeof config.requestCompactionAdmission, role === 'design' ? 'function' : 'undefined');
     assert.equal(typeof config.requestCompaction, role === 'design' ? 'function' : 'undefined');
   }

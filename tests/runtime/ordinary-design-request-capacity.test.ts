@@ -244,8 +244,8 @@ for (const designId of ['design', 'unrelated-42']) test('COS122 COS127 COS132 pu
   };
   await runProductSession({ command: 'new', root: args.runRoot, brief: args.payload.brief, funding: binding, limits: args.payload.limits,
     host, input: Readable.from(['点击完成\nconfirm 1\n']), output });
-  assert.deepEqual(configs.map(config => [JSON.parse(config.context).role, config.maxRequests]), [['cosmos', 16], ['design', 32], ['reviewer', 16], ['reviewer', 16], ['reviewer', 16]]);
-  assert.deepEqual(configs.map(config => [config.maxOutputTokens, typeof config.requestOutputLimit]), [[8192, 'undefined'], [32768, 'function'], [8192, 'function'], [8192, 'undefined'], [8192, 'undefined']]);
+  assert.deepEqual(configs.map(config => [JSON.parse(config.context).role, config.maxRequests]), [['cosmos', 16], ['design', 64], ['reviewer', 16], ['reviewer', 16], ['reviewer', 16]]);
+  assert.deepEqual(configs.map(config => [config.maxOutputTokens, typeof config.requestOutputLimit]), [[8192, 'function'], [32768, 'function'], [16384, 'function'], [8192, 'undefined'], [8192, 'undefined']]);
   assert.deepEqual(configs.slice(0, 2).map(config => [typeof config.requestCompaction, typeof config.requestCompactionAdmission, config.compactionKeepRecentTokens]),
     [['undefined', 'undefined', undefined], ['function', 'function', 8000]]);
   const state = await f.child(args.runRoot), packet = JSON.parse(configs[1].context);

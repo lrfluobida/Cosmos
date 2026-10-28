@@ -132,7 +132,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (recoveryPolicy !== undefined && (recoveryPolicy !== 'review-reserve/1' || !ordinaryDesignCompaction)) throw new Error('Invalid ordinaryDesignBudgetPolicy.');
   const authorRequestLimits = { ...options.authorMaxRequests };
   const finalizationPolicy = options.ordinaryDesignFinalizationPolicy;
-  if (finalizationPolicy !== undefined && (finalizationPolicy !== 'budget-followup/1' || recoveryPolicy !== 'review-reserve/1' || authorRequestLimits.design !== 32)) throw new Error('Invalid ordinaryDesignFinalizationPolicy.');
+  if (finalizationPolicy !== undefined && (finalizationPolicy !== 'budget-followup/1' || recoveryPolicy !== 'review-reserve/1' || ![32, 64].includes(authorRequestLimits.design!))) throw new Error('Invalid ordinaryDesignFinalizationPolicy.');
   const ordinaryDesignReviewBudget = options.ordinaryDesignReviewBudget;
   if (ordinaryDesignReviewBudget !== undefined && (typeof ordinaryDesignReviewBudget !== 'function' || options.maxOutputTokens !== 8192)) {
     throw new Error('ordinaryDesignReviewBudget requires a trusted selector and the original 8192 output cap.');
