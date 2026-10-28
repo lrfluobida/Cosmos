@@ -57,6 +57,9 @@ for (const modular of [false, true]) test(`ordinary ${modular ? 'five' : 'three'
       assert.ok(packet.inputFiles.some((ref: any) => ref.artifactId === source.artifactId && ref.version === source.version && ref.location === source.location && ref.kind === 'file'));
     }
     assert.equal(config.maxOutputTokens, 8192); assert.equal(config.maxRequests, 16); assert.equal(config.jsonOutput, true);
+    assert.equal(typeof config.requestOutputLimit, 'function');
+    assert.equal(await config.requestOutputLimit!({ requestId: 'planning-source-cap', modelId: 'deepseek-flash', maxOutputTokens: 8192, inputBytes: 1000, hasImages: false }), 8192);
+    assert.equal(config.requestCompaction, undefined); assert.equal(config.readonlyMaxOutputTokens, undefined);
     assert.deepEqual(packet.tools, ['read']); assert.equal(planned.tasks.length, modular ? 5 : 3);
     let legacy: PiSessionOptions | undefined;
     const session = await createRoleFactory({ maxOutputTokens: 8192, maxRequests: 16, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: 1000,
