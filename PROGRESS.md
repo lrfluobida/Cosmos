@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-28 [COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141) 已获Root批准并登记，source pending；独立planning_context_reviewer已APPROVED_PLAN方向A。仅可信新ordinary cosmos planning新增4096–8192预算内输出选择，4096是本卡新工程floor；复用原helper及recordRequest，保留原总额/分配、16请求、clock、全部输入和验收标准。floor不足或length仍失败，不加policy版本、压缩或重试。原[reuse-6永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6473070452)保持，原镜像重复读取及两笔usage须在新TEMP原样重放以证明第三请求机械准入，源码与native仍待验证。总140/root100，父COS18的34个子项中33个源码完成，整体open/partial。
+
 2026-10-28 [COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140) 已源码范围完成：最终 `92f6da18f423562b5fda229d30f60a0266b65d54` 经planning_context_reviewer独立APPROVED_SOURCE_SCOPED、无P1/P2及Root批准，唯一planning_budget_merger无冲突发布 `457c90c8e212ff2a4fe0c64584104d6eb1aa34fa`，3个批准文件精确一致。[精确批准](https://github.com/lrfluobida/Cosmos/issues/140#issuecomment-6472335154)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/140#issuecomment-6472336109)、closed(completed)及父[x]已GET核证。main typecheck/build0、新增4/4、0skip、TAP5974.4541ms；完整35/35、strict及已审native按6个生产文件指纹一致性复用。仅可信新ordinary planning显示验收ID索引，三/五槽全量合同、8192/16/grant、来源、权限及最终计划校验保持。总139/root100、父33个源码子项完成，COS18整体仍open/partial。
 
 COS139免费native固定原reuse5两轮完整分段读取：实际旧factory第三84906B/235348µ被拒，新显示第三71301B/208138µ在原cap8192/余额222875µ内发送；原20481+6644µ保留，第三合法规划响应及22600µ费用明确synthetic，非真实模型成功。原3条工具结果、完整draft/confirmation、12条验收及其他packet字段保持，36B/32B只来自TEMP根映射；同一第三响应在另一TEMP经真实planner/host.validateTasks全量绑定通过。既有SOURCE证据继续有效，不扩称覆盖后续新模型分支。
