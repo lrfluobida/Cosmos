@@ -10,6 +10,7 @@ import { requestInputBytes } from '../../src/providers/request-input.ts';
 export async function finalizationFixture(t, settings = {}) {
   const f = await authorBudgetFixture(t, 1125000), dispatches = [], selections = [], admissions = [];
   const workAt = settings.workAt ?? 30;
+  const settledAfterWork = settings.settledAfterWork ?? 518011;
   let native, role, error, finalizing = false;
   const usage = { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
   t.mock.method(globalThis, 'fetch', async () => { throw new Error('NETWORK_DISABLED'); });
@@ -33,13 +34,13 @@ export async function finalizationFixture(t, settings = {}) {
   });
   role = await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1',
     ...(settings.legacy ? {} : { ordinaryDesignFinalizationPolicy: 'budget-followup/1' }),
-    authorMaxRequests: { design: 32 }, authorThinkingLevel: { design: 'off' }, sessionFactory: async config => createPiSession({ ...config,
+    authorMaxRequests: { design: settings.maxRequests ?? 32 }, authorThinkingLevel: { design: 'off' }, sessionFactory: async config => createPiSession({ ...config,
       ...(settings.summaryBudget ? { requestCompactionAdmission: async (input, signal) => {
         const state = await f.controller.read(); await f.spend(1125000 - state.run.fees.settledMicroCny - 1, 'summary-race');
         return config.requestCompactionAdmission(input, signal); } } : {}),
       requestOutputLimit: async (request, signal) => { selections.push(request); const cap = await config.requestOutputLimit(request, signal);
-        if (settings.race && dispatches.length === workAt && !finalizing) await f.spend(518011 - workAt * 10); return cap; },
-      budget: { beforeRequest: async request => { admissions.push(request); await config.budget.beforeRequest(request); }, afterResponse: async response => { await config.budget.afterResponse(response); if (dispatches.length === workAt && !finalizing && !settings.race) await f.spend(518011 - workAt * 10); } },
+        if (settings.race && dispatches.length === workAt && !finalizing) await f.spend(settledAfterWork - workAt * 10); return cap; },
+      budget: { beforeRequest: async request => { admissions.push(request); await config.budget.beforeRequest(request); }, afterResponse: async response => { await config.budget.afterResponse(response); if (dispatches.length === workAt && !finalizing && !settings.race) await f.spend(settledAfterWork - workAt * 10); } },
     }) });
   try { await role.prompt('Write the complete synthetic plan, then report the required proposal.'); } catch (caught) { error = caught; }
   return { ...f, role, error, dispatches, selections, admissions, native,
