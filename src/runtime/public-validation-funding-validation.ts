@@ -8,6 +8,7 @@ import { budgetSummary } from '../contracts/budget.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { PublicValidationAuthorization, PublicValidationFundingBinding, PublicValidationFundingRecord } from './public-validation-funding-types.ts';
 import { requireSeparateRequirementsRoot, validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
+import { publicValidationPhaseLimit } from './public-validation-phase-validation.ts';
 
 export const fundingHash = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
 export const fundingTaskId = (fundingId: string) => `public-funding-${fundingId}`;
@@ -56,7 +57,8 @@ export function publicFundingExposure(state: Pick<RunSnapshot, 'publicValidation
   return { heldMicroCny: records.filter(record => record.settlement?.outcome !== 'closed').reduce((sum, record) => sum + record.binding.limits.limitMicroCny, 0),
     overrun: records.some(record => record.settlement?.outcome === 'overrun') };
 }
-export function requireLegacyFundingAvailable(state: Pick<RunSnapshot, 'publicValidationFundings'>) {
+export function requireLegacyFundingAvailable(state: Pick<RunSnapshot, 'publicValidationFundings' | 'publicValidationPhaseExtension'>) {
+  if (state.publicValidationPhaseExtension) throw new Error('Public phase extension permanently blocks new legacy validation case dispatch.');
   const exposure = publicFundingExposure(state);
   if (exposure.heldMicroCny || exposure.overrun) throw new Error('Public funding holds or overrun block new validation case dispatch.');
 }
@@ -109,7 +111,7 @@ export function validatePublicValidationFundings(state: RunSnapshot): void {
     || state.validationFunding !== undefined || !['3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion)) throw new Error('Invalid shared public funding profile.');
   const names = new Set<string>(), roots = new Set<string>(), requests = new Set<string>();
   for (const record of records) {
-    fundingFields(record, ['binding', 'taskId', 'claimedAt', 'basisRevision', ...(record.settlement ? ['settlement'] : [])]);
+    fundingFields(record, ['binding', 'taskId', 'claimedAt', 'basisRevision', ...(record.phaseDecisionId !== undefined ? ['phaseDecisionId'] : []), ...(record.settlement ? ['settlement'] : [])]);
     validateFundingBinding(record.binding); fundingTime(record.claimedAt);
     const b = record.binding;
     if (names.has(b.fundingId) || roots.has(b.runRoot.toLowerCase()) || record.taskId !== fundingTaskId(b.fundingId)
@@ -157,5 +159,5 @@ export function validatePublicValidationFundings(state: RunSnapshot): void {
   for (const row of state.requests.filter(row => row.publicFunding)) if (!requests.has(row.requestId)) throw new Error('Unowned public funding request.');
   if (state.events.filter(event => event.type === 'public_funding_reserved').length !== records.length
     || state.events.filter(event => event.type === 'public_funding_settled').length !== records.filter(row => row.settlement).length
-    || budgetSummary(state.ledger).committedMicroCny + publicFundingExposure(state).heldMicroCny > 30_000_000) throw new Error('Public funding exceeds the original phase or event history.');
+    || budgetSummary(state.ledger).committedMicroCny + publicFundingExposure(state).heldMicroCny > publicValidationPhaseLimit(state)) throw new Error('Public funding exceeds the authorized phase or event history.');
 }

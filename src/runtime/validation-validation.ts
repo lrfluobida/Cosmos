@@ -3,6 +3,7 @@ import { pathName } from '../artifacts/paths.ts';
 import { sameValue } from '../contracts/validation.ts';
 import type { ArtifactReference, TaskContract } from '../contracts/index.ts';
 import { evidenceReferences } from '../budget/ledger.ts';
+import { publicValidationPhaseLimit } from './public-validation-phase-validation.ts';
 import { COS16_GROUP_GRANTS } from '../contracts/budget.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ValidationCaseWindow, ValidationDeclaration, ValidationPurpose, ValidationRequestMetadata, ValidationRole } from './validation-types.ts';
@@ -176,7 +177,7 @@ export function validateValidationProfile(state: RunSnapshot): void {
     if (state.tasks.some(task => task.taskId === quote.declaration.grants.planning.taskId)) fail('Planning cannot be represented as a fabricated task.');
     for (const task of state.tasks) if (validationRole(window, task.taskId)) requireValidationTask(state, task, window);
   }
-  if (state.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0) > 30_000_000 && !cases.some(window => window.stopReason?.code === 'charge_overrun')) fail('Cumulative validation phase ceiling exceeded.');
+  if (state.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0) > publicValidationPhaseLimit(state) && !cases.some(window => window.stopReason?.code === 'charge_overrun')) fail('Cumulative validation phase ceiling exceeded.');
   const first = cases[0];
   if (!sameValue(first.quote.basis.requestIds, state.ledger.entries.slice(0, first.quote.basis.requestIds.length).map(entry => entry.requestId))) fail('Historical request prefix changed.');
   for (const record of state.requests) {

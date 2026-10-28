@@ -25,6 +25,7 @@ export interface PublicValidationFundingBinding {
 export interface PublicValidationSettledRequest { entry: LedgerEntry; admittedAt: string | null }
 export interface PublicValidationFundingRecord {
   binding: PublicValidationFundingBinding;
+  phaseDecisionId?: string;
   taskId: string; claimedAt: string; basisRevision: number;
   settlement?: {
     settledAt: string; outcome: 'closed' | 'overrun';

@@ -22,6 +22,7 @@ import type { ConfirmedRequirementsSource } from './confirmed-requirements-sourc
 import { readConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import type { PublicValidationAuthorization, PublicValidationFundingBinding, PublicValidationFundingRecord } from './public-validation-funding-types.ts';
 import { fundedIntakeWork, fundingBinding, fundingClosureId, fundingFields, fundingHash, fundingTaskId, publicFundingExposure, validateFundingAuthorization, validateFundingBinding } from './public-validation-funding-validation.ts';
+import { publicValidationPhaseLimit, requirePhaseFundingAuthorization, verifyPublicValidationPhaseSource } from './public-validation-phase-validation.ts';
 
 const intentName = 'public-validation-origin.json';
 const decode = (bytes: Uint8Array): any => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -69,7 +70,8 @@ async function source(binding: PublicValidationFundingBinding) {
   if (!sameValue(observed.binding, binding)) throw new Error('Public funding authorization source changed.');
   return observed.payload;
 }
-async function sharedSources(root: string, state: RunSnapshot) {
+export async function sharedSources(root: string, state: RunSnapshot) {
+  await verifyPublicValidationPhaseSource(root, state);
   await verifyValidationBudgetSources(root, state);
   for (const window of state.validation?.cases ?? []) {
     const { sourceSha256, ...decision } = window.operatorDecision;
@@ -82,6 +84,8 @@ async function sharedSources(root: string, state: RunSnapshot) {
   const decisions = new Set<string>();
   for (const record of state.publicValidationFundings ?? []) {
     const authorization = await source(record.binding);
+    if (record.phaseDecisionId !== undefined) requirePhaseFundingAuthorization(state, authorization);
+    if (authorization.decisionId === state.publicValidationPhaseExtension?.operatorDecision.decisionId) throw new Error('Public funding cannot reuse the phase decision identity.');
     if (decisions.has(authorization.decisionId)) throw new Error('Public funding operator decision was already consumed.');
     decisions.add(authorization.decisionId);
     if (record.settlement) {
@@ -133,16 +137,18 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
       return structuredClone(existing.binding);
     }
     if (decisions.has(payload.decisionId)) throw new Error('Public funding operator decision cannot authorize another run.');
+    requirePhaseFundingAuthorization(state, payload);
     const exposure = publicFundingExposure(state);
     if (exposure.overrun || state.stopReason?.code === 'charge_overrun' || state.validation!.cases.some(row => !row.stopReason || row.stopReason.code === 'charge_overrun')
       || state.ledger.entries.some(row => row.unknown || row.reservedMicroCny || !['settled', 'cancelled'].includes(row.status))) throw new Error('Public funding requires stopped and reconciled validation history.');
     const capacity = budgetCapacity(state.ledger);
     if (binding.limits.limitMicroCny > capacity.effectiveLimitMicroCny - capacity.allocatedMicroCny
-      || budgetSummary(state.ledger).committedMicroCny + exposure.heldMicroCny + binding.limits.limitMicroCny > 30_000_000) throw new Error('Public funding exceeds shared allocation capacity or the original phase.');
+      || budgetSummary(state.ledger).committedMicroCny + exposure.heldMicroCny + binding.limits.limitMicroCny > publicValidationPhaseLimit(state)) throw new Error('Public funding exceeds shared allocation capacity or the authorized phase.');
     if (state.run.taskIds.includes(fundingTaskId(binding.fundingId)) || state.publicValidationFundings?.some(row => row.binding.runRoot.toLowerCase() === binding.runRoot.toLowerCase()
       || row.binding.runId === binding.runId || row.binding.ledgerId === binding.ledgerId)) throw new Error('Public funding run identity was already used.');
     const next = structuredClone(state), claimedAt = new Date(now()).toISOString();
     const record: PublicValidationFundingRecord = { binding, taskId: fundingTaskId(binding.fundingId), claimedAt, basisRevision: state.revision };
+    if (state.publicValidationPhaseExtension) record.phaseDecisionId = state.publicValidationPhaseExtension.operatorDecision.decisionId;
     next.publicValidationFundings = [...(next.publicValidationFundings ?? []), record];
     next.ledger.allocations.push({ taskId: record.taskId, amountMicroCny: binding.limits.limitMicroCny }); next.run.taskIds.push(record.taskId);
     next.events.push({ sequence: next.events.length + 1, type: 'public_funding_reserved', at: claimedAt, requestId: null, reason: binding.fundingId });
