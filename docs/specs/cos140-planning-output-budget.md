@@ -1,12 +1,16 @@
 # COS140：普通规划的预算内请求输出容量
 
-状态：Root已批准固定短规格/计划及免费SOURCE实施；独立planning_context_reviewer已APPROVED_PLAN方向A，SOURCE待实际diff独审。4096为本卡新批准的ordinary planning工程floor，并非既有下限。
+状态：`source-integrated / source-scoped-complete`；最终 `67ebd312fddd5d4a95a7dcbc6d2d58b9c1831cda` 经planning_context_reviewer独立APPROVED_SOURCE_SCOPED、无P1/P2及Root批准，已发布 `7cffc467082fdd1fe9cc8e438023edde2a2f54a7`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/141#issuecomment-6474127714)、closed(completed)及父[x]已GET核证。4096为本卡新批准的ordinary planning工程floor，并非历史下限或完成保证。
 
-任务：[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)，id6082443833，原生父COS18/#19未勾，依赖[COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
+任务：[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)，id6082443833，原生父COS18/#19已勾，依赖[COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `22d61b133e86391ebee9ebb7daf784c8ad8d4def719178466b8edd8e6a9d1eb5`；plan `1276cd13ff29913943717816c73cab5a0b1b645e3590ec0f54c68d2182fbf29f`。
 
 基线：5445eda446442f9a01ba030ffdc41c4f52b0355a（runtime457c90c8）；依赖COS139/#140。
+
+源码结果：4个批准文件精确、无冲突集成；main typecheck/build0，最短代表5/5、0skip、TAP5022.7093ms，完整9/9、旧受影响3/3、strict及native按8个生产文件指纹一致性复用。原R6固定读取和两笔usage在TEMP保持，第三同input77452B选择cap7534/报价215176µ，原余额215177µ可承担；cap7535即超额。第三最终规划回复及22600µ结算明确synthetic；floor拒绝、length结算后失败、严格host完整12条验收绑定均保持。仅SOURCE范围完成，父COS18仍open/partial、34/34仅指源码子项。
+
+[reuse-7实际结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6474843576)已永久PASS_CLOSED：规划2请求均cap8192通过，没有触发压力降cap；设计捕获与host验证后，review第四响应在预算充分时因length终止，无有效review、修订、art或code。实际正常规划通过不扩大为压力分支实证，真实游戏与人工体验未完成。
 
 ## 问题
 

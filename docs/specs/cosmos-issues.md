@@ -1,6 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-28 [COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141) 已获Root批准并登记，source pending；独立planning_context_reviewer已APPROVED_PLAN方向A。仅可信新ordinary cosmos planning新增4096–8192预算内输出选择，4096是本卡新工程floor；复用原helper及recordRequest，保留原总额/分配、16请求、clock、全部输入和验收标准。floor不足或length仍失败，不加policy版本、压缩或重试。原[reuse-6永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6473070452)保持，原镜像重复读取及两笔usage须在新TEMP原样重放以证明第三请求机械准入，源码与native仍待验证。总140/root100，父COS18的34个子项中33个源码完成，整体open/partial。
+2026-10-29 [COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141) 已源码范围完成；独审批准 `67ebd312fddd5d4a95a7dcbc6d2d58b9c1831cda`，无P1/P2，经Root批准发布 `7cffc467082fdd1fe9cc8e438023edde2a2f54a7`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/141#issuecomment-6474127714)、closed(completed)及父[x]已GET核证。main typecheck/build0、代表5/5、0skip，完整9/9、旧3/3、strict及native按源码一致性复用。总140/root100、父34个源码子项完成，COS18整体仍open/partial。
+
+[reuse-7实际结果已永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6474843576)：规划2请求41955µ、cap均8192正常通过，未测实际压力降cap；design作者28请求551715µ，捕获和host验证成功，review4请求128995µ后第四响应length。input128050B/cap8192/报价321636µ，余额530014µ充分；本轮85724µ先结算，Pi清空content=[]后终止，无有效review、schema错误、纠正、修订或art/code。独立PASS_CLOSED，34笔722665µ、释放4277335µ、child151/shared3378、共享累计24890780µ、held/reserved/unknown0；4分36.598秒/in_time仅为清理计时。
 
 2026-10-28 [COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140) 已源码范围完成；独审批准 `92f6da18f423562b5fda229d30f60a0266b65d54`，无P1/P2，经Root批准发布 `457c90c8e212ff2a4fe0c64584104d6eb1aa34fa`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/140#issuecomment-6472336109)、closed(completed)及父[x]已GET核证。main typecheck/build0、新增4/4、0skip，完整35/35、strict及native按源码一致性复用。总139/root100、父33个源码子项完成，COS18整体仍open/partial。
 
@@ -2059,9 +2061,9 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 
 ### COS-140 · 普通规划的预算内请求输出容量
 
-[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)，id6082443833，原生父COS18/#19、[ ]，`source-pending`；依赖COS139/#140。Root已批准固定短规格/计划与免费SOURCE实施，独立planning_context_reviewer已APPROVED_PLAN方向A；作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。实施基线 `5445eda446442f9a01ba030ffdc41c4f52b0355a`。
+[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)，id6082443833，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS139/#140。作者planning_context_implementer，独审planning_context_reviewer；最终 `67ebd312fddd5d4a95a7dcbc6d2d58b9c1831cda` 已APPROVED_SOURCE_SCOPED、无P1/P2，经Root[精确批准](https://github.com/lrfluobida/Cosmos/issues/141#issuecomment-6474126749)，由唯一merger planning_budget_merger发布 `7cffc467082fdd1fe9cc8e438023edde2a2f54a7`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/141#issuecomment-6474127714)及父[x]已GET核证。实施基线 `5445eda446442f9a01ba030ffdc41c4f52b0355a`。
 
-正式[规格](cos140-planning-output-budget.md)/[计划](../plans/2026-10-28-planning-output-budget.md)。独立可信planning配置复用原预算输出helper，优先8192，不足时选择4096–8192内原余额可承担的最大值；4096为新批准工程floor。recordRequest保留实际selected cap/inputBytes/quote，HTTP/准入/回执须一致；原16、预算、时限、完整输入及plan/host标准保持。原R6镜像重复读取和两笔真实usage在新TEMP原样重放，旧固定8192机械RED、新选择第三请求机械GREEN仍待实测；最终规划回复必须明确synthetic。floor不足、length或准入变化仍失败，不增policy版本、compaction或重试。旧run永久关闭，后续新真实运行尚未启动，需先通过源码、集成和预算检查；已有长期授权保持。总140/root100/父34中33源码完成，父整体open/partial。
+正式[规格](cos140-planning-output-budget.md)/[计划](../plans/2026-10-28-planning-output-budget.md)。4个批准文件精确一致；main typecheck/build0、代表5/5、0skip、TAP5022.7093ms，完整9/9、旧3/3、strict及native按8个生产指纹一致性复用。独立trusted planning配置复用helper，在新4096工程floor与8192原max间选择最大可负担值，recordRequest/HTTP/admit/billing与实际reserve匹配；原预算、16、clock、完整输入和验收标准保持。固定R6读取/usage的TEMP第三77452B选择7534/215176µ可发送，第三final及22600µ明确synthetic；floor拒绝、length结算后失败与12AC严格host绑定通过。[reuse-7](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6474843576)实际规划仅以8192正常通过，未触发压力降cap，后续review length而无有效review/修订/art/code；该运行永久关闭。后续新真实运行需先通过源码、集成和预算检查，已有长期授权保持。总140/root100/父34个源码子项完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 

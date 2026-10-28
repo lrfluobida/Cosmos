@@ -1,8 +1,8 @@
 # COS140 实施计划
 
-状态：Root已批准固定短规格/计划及免费SOURCE实施；独立planning_context_reviewer已APPROVED_PLAN方向A，SOURCE待实际diff独审。4096为本卡新批准的ordinary planning工程floor，并非既有下限。
+状态：`source-integrated / source-scoped-complete`；最终 `67ebd312fddd5d4a95a7dcbc6d2d58b9c1831cda` 已独审APPROVED_SOURCE_SCOPED、无P1/P2，经Root批准合入发布 `7cffc467082fdd1fe9cc8e438023edde2a2f54a7`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/141#issuecomment-6474127714)及父[x]已GET核证；main typecheck/build0、代表5/5、0skip，完整9/9、旧3/3、strict及native按源码一致性复用。4096是本卡新工程floor；下列步骤保留为原批准计划。
 
-任务：[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)，id6082443833，原生父COS18/#19未勾，依赖[COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
+任务：[COS140 / #141](https://github.com/lrfluobida/Cosmos/issues/141)，id6082443833，原生父COS18/#19已勾，依赖[COS139 / #140](https://github.com/lrfluobida/Cosmos/issues/140)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `22d61b133e86391ebee9ebb7daf784c8ad8d4def719178466b8edd8e6a9d1eb5`；plan `1276cd13ff29913943717816c73cab5a0b1b645e3590ec0f54c68d2182fbf29f`。
 
