@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-29 [COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144) 已获Root批准免费SOURCE支持并登记，source pending；作者validation_phase_implementer，独审validation_phase_design。仅单个可选公共phase回执及prepare/apply支持，默认阶段¥30，lifetime¥150、单次≤¥5/30min保持；真实阶段¥40须真实当前quote绑定的独立operator预算决定，源码批准不能替代决定。当前shared3380/已结25384044µ/held0不动，实际阶段仍¥30、无决定，不调用真实phase API或准备新付费。旧case/来源/账目/历史前缀与原¥30派发保持；已停case中的running任务按原authority判断、不修史。总143/root100，父COS18的37个子项中36个源码完成，整体open/partial。
+
 2026-10-29 [COS142 / #143](https://github.com/lrfluobida/Cosmos/issues/143) 已源码范围完成：最终 `456df3960a22a9edf162c15231d463e742d76cc5` 经planning_context_reviewer独立APPROVED_SOURCE_SCOPED、无finding及Root批准，唯一planning_budget_merger无冲突发布 `f7ef059cac5022c0834dc6e0a0d14eb32dbf0fa6`，9个批准文件精确一致。[精确批准](https://github.com/lrfluobida/Cosmos/issues/143#issuecomment-6478302418)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/143#issuecomment-6478303414)、closed(completed)及父[x]已GET核证。main typecheck/build0、代表5/5、0skip、TAP26668.1135ms；核心10/10、funded2/2、角色2/2、strict与native按7生产文件及锁定SDK compaction文件指纹复用。总142/root100、父36个源码子项完成，COS18仍open/partial。
 
 COS142只为可信ordinary design作者选择64，普通/摘要/合法收尾共享计数，精确兼容32|64 budget-followup来源及actual max；第65次拒绝，request_limit不新增收尾机会，旧会话不补次数。实际旧af50 host/factory/Pi的TEMP原29普通+3摘要/465703µ拒绝33；新64保留原32轨迹且本次新增summary0。第33ordinary edit的77755B/cap16098/quote284294µ由原author可用284297µ承担，reserve后task保留375003µ；第33编辑与第34不完整handoff均synthetic，各8400µ，总482503µ，HTTP/admit/billing及实际reserve一致。
