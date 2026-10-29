@@ -1,12 +1,16 @@
 # COS144：新需求复用运行的规划分配
 
-状态：Root与独立planning_context_reviewer已批准方向B及固定短规格/计划，仅免费SOURCE实施；SOURCE待实际diff独审。已有phase40预算决定保持有效，新实际运行尚未启动、待源码与资金readiness，不增加总额或阶段额度。
+状态：`source-integrated / source-scoped-complete`；最终 `92339a0f6fbf2312b9e1231b4e3204a642262786` 经planning_context_reviewer独立APPROVED_SOURCE_SCOPED、无finding及Root批准，已发布 `d97b0a69da6194df3c64a0aa0a05095acacd4a14`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/145#issuecomment-6486246285)、closed(completed)及父[x]已GET核证。phase40原决定有效，总额与阶段额度不变；reuse10实际规划通过但初始设计不完整，已永久结案。
 
-任务：[COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145)，id6091042587，原生父COS18/#19未勾；依赖[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)及[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
+任务：[COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145)，id6091042587，原生父COS18/#19已勾；依赖[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)及[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `86907c5fb4b23e5fc18b319426f58ee88d77f36602aee25ee08e4c02786b4337`；plan `18b20cb7cda7e5faf35b01b3339a3162d00f36ba484191d07da5f476056bbd0d`。
 
 源码基线：02882711225d466660806aa0c59bf81d6457de31（runtime20fa9dae）；依赖COS129/#130与COS143/#144。
+
+SOURCE结果：6个批准文件精确、无冲突集成；main typecheck/build0，有限代表4/4、0skip、TAP7605.0748ms。作者8/8、旧21/21、带费用结算1/1、strict及native按11生产文件指纹复用。新TEMP原R9完整responses/4read/两笔费用保持，0/500000实际初始化后第三110444B/8192/286424µ可由465935µ承担；明确synthetic最终规划及全8文件分支经严格plan/host绑定通过，不称真实模型成功。旧无marker、funded/unfunded恢复及本地settle隔离保持。
+
+[reuse10实际结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6486301047)：新0/500k分配实际生效，规划3请求64138µ通过；design作者27请求563763µ，初始验收计划fixed-schema/roster校验失败，review未启动，无revision/game。30笔627901µ、释放4372099µ，child132/shared3385、累计26046010µ/H0，phase40/ref不变；333510ms仅清理时间。最早原因另行独立诊断，本记录不推断根因。父COS18仍open/partial，38/38仅指源码子项。
 
 ## 依据
 

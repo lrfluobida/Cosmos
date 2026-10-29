@@ -1,6 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-29 [COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145) 已获Root及planning_context_reviewer批准方向B并登记，source pending。仅新confirmed reuse origin选择intake0/planning=2*floor(L/20)，保留两allocation行；原5M总额、base500000与下游4.5M不变。旧无marker保持原5%+5%，funded/unfunded原初始化恢复、来源读取与settle会计隔离保持，不改旧run或旧费用。原[reuse9永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6485574791)保持；新TEMP仍须完整重放原primary+镜像读取和两笔用量，最终回复明确synthetic。phase40已批准且有效，不增加phase/总额；新实际运行未启动待checks。总144/root100，父COS18的38个子项中37个源码完成，整体open/partial。
+2026-10-29 [COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145) 已源码范围完成；独审批准 `92339a0f6fbf2312b9e1231b4e3204a642262786`、无finding，经Root批准发布 `d97b0a69da6194df3c64a0aa0a05095acacd4a14`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/145#issuecomment-6486246285)、closed(completed)及父[x]已GET核证。main typecheck/build0、有限4/4、0skip，原8/8、21/21、带费用结算1/1、strict与native按源码一致性复用。总144/root100、父38个源码子项完成，COS18仍open/partial。
+
+[reuse10实际结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6486301047)：新0/500k实际生效，planning3请求64138µ通过；design作者27请求563763µ，初始验收计划fixed-schema/roster失败，review未启动、无revision/game。30笔627901µ、release4372099µ，child132/shared3385、累计26046010µ/H0，phase40/ref保持。333510ms仅清理计时；独立PASS_CLOSED，最早原因另行诊断，不猜测根因。
 
 2026-10-29 [COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144) 已在免费SOURCE范围完成；独审批准 `830256110dcd441c5ff1baa86cb441630e2873fa` 全部10文件、无P1/P2，经Root批准发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)、closed(completed)及父[x]已GET核证。main typecheck/build0、最短TEMP代表4/4、0skip，既有证据按源码一致性复用。总143/root100、父37个源码子项完成，COS18仍open/partial。后续用户独立批准的[phase40决定已单次应用](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6484789381)，3380→3381历史不变；reuse9引用该决定正常预留并[永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6485574791)，shared3383/累计25418109µ/held0，实际phase40有效。
 
@@ -2097,9 +2099,9 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 
 ### COS-144 · 新需求复用运行的规划分配
 
-[COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145)，id6091042587，原生父COS18/#19、[ ]，`source-pending`；依赖COS129/#130及COS143/#144。Root与独立planning_context_reviewer已批准方向B及固定短规格/计划；作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。源码基线 `02882711225d466660806aa0c59bf81d6457de31`，runtime20fa9dae。
+[COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145)，id6091042587，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS129/#130及COS143/#144。作者planning_context_implementer，独审planning_context_reviewer；最终 `92339a0f6fbf2312b9e1231b4e3204a642262786` 已APPROVED_SOURCE_SCOPED、无finding，经Root[精确批准](https://github.com/lrfluobida/Cosmos/issues/145#issuecomment-6486245712)，由唯一merger planning_budget_merger发布 `d97b0a69da6194df3c64a0aa0a05095acacd4a14`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/145#issuecomment-6486246285)及父[x]已GET核证。
 
-正式[规格](cos144-reuse-planning-allocation.md)/[计划](../plans/2026-10-29-reuse-planning-allocation.md)。仅新reuse写可信窄origin标记：intake0/planning=2*floor(L/20)，保留两行与原合计，不使用可能多1µ的floor(L/10)；L<20沿无marker等价0/0。旧缺省仍5%+5%，funded/unfunded origin-only及已有snapshot恢复按持久选择，读/dispatch/settle共用窄本地核验，原会计隔离及旧来源不升级。原总5M/base500k/downstream4.5M、phase40/lifetime150、planning16/8192与4096 floor保持。固定R9两响应/4完整read/用量及明确synthetic全8可读文件分支待免费native验证，不称真实规划成功。phase40已有明确决定，无需重复预算确认；新运行未启动，仍待源码/新身份/原5M与30min及资金readiness。总144/root100/父38中37源码完成，父整体open/partial。
+正式[规格](cos144-reuse-planning-allocation.md)/[计划](../plans/2026-10-29-reuse-planning-allocation.md)。6个批准文件精确；main typecheck/build0、有限4/4、0skip、TAP7605.0748ms，原8/8、21/21、带费用结算1/1、strict和native按11指纹复用。仅新reuse写可信origin选择0/2*floor(L/20)，保留两行、旧缺省5%+5%、极小金额0/0及原base/downstream池；funded/unfunded恢复和本地settle会计隔离保持。固定R9轨迹新500k第三8192可准入，synthetic最终计划与全8文件分支严格host通过；该合成证明不当作真实模型成功。[reuse10](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6486301047)实际0/500k生效且规划通过，但初始设计fixed-schema/roster校验失败、review未启动、无revision/game，已永久PASS_CLOSED。phase40及原总5M/30min保持，根因另行诊断。总144/root100/父38个源码子项完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 

@@ -1,8 +1,8 @@
 # COS144 实施计划
 
-状态：Root与独立planning_context_reviewer已批准方向B及固定短规格/计划，仅免费SOURCE实施；SOURCE待实际diff独审。已有phase40预算决定保持有效，新实际运行尚未启动、待源码与资金readiness，不增加总额或阶段额度。
+状态：`source-integrated / source-scoped-complete`；最终 `92339a0f6fbf2312b9e1231b4e3204a642262786` 已独审APPROVED_SOURCE_SCOPED、无finding，经Root批准发布 `d97b0a69da6194df3c64a0aa0a05095acacd4a14`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/145#issuecomment-6486246285)及父[x]已GET核证；main typecheck/build0、有限代表4/4、0skip，原8/8、21/21、带费用结算1/1、strict和native按源码等价复用。phase40决定保持；reuse10实际规划通过、初始设计不完整并永久结案。下列步骤保留为原批准计划。
 
-任务：[COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145)，id6091042587，原生父COS18/#19未勾；依赖[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)及[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
+任务：[COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145)，id6091042587，原生父COS18/#19已勾；依赖[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130)及[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)。作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `86907c5fb4b23e5fc18b319426f58ee88d77f36602aee25ee08e4c02786b4337`；plan `18b20cb7cda7e5faf35b01b3339a3162d00f36ba484191d07da5f476056bbd0d`。
 
