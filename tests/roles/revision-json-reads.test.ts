@@ -6,6 +6,8 @@ import { createRoleFactory } from '../../src/roles/factory.ts';
 import type { RoleFactoryOptions } from '../../src/roles/factory.ts';
 import { createPiSession } from '../../src/providers/pi.ts';
 import { authorBudgetFixture, options } from './author-output-budget.fixture.ts';
+import { planTaskDag } from '../../src/roles/planner.ts';
+import { validationRoutingFixture } from '../runtime/validation-routing.fixture.ts';
 
 test('COS146 revision display selector is trusted, snapshotted, and limited to ordinary design authors', async t => {
   const f = await authorBudgetFixture(t);
@@ -19,6 +21,8 @@ test('COS146 revision display selector is trusted, snapshotted, and limited to o
   for (const [role, purpose] of [['design', undefined], ['design', 'planning'], ['reviewer', undefined], ['art', undefined], ['coding', undefined], ['cosmos', undefined]] as const) {
     const session = await factory({ ...f.input, role, purpose }); await session.close();
     const config = f.configs.at(-1)!, read = config.tools!.find(tool => tool.name === 'read')!;
+    if (role === 'design' && !purpose) assert.match(read.description, /^For JSON revision,/);
+    else assert.doesNotMatch(read.description, /^For JSON (review|revision),/);
     const result = await read.execute('selection', { path: 'requirements/v1.json' }, undefined, undefined, undefined as never);
     assert.equal(result.content[0].type === 'text' && result.content[0].text, role === 'design' && !purpose ? '{"value":1}' : '{ "value": 1 }');
     assert.equal(config.maxOutputTokens, role === 'design' && !purpose ? 32768 : 8192);
@@ -28,11 +32,31 @@ test('COS146 revision display selector is trusted, snapshotted, and limited to o
   for (const ordinaryDesignRevisionJsonReads of [undefined, async () => false]) {
     await f.create({ ordinaryDesignRevisionJsonReads });
     assert.doesNotMatch(f.configs.at(-1)!.tools!.find(tool => tool.name === 'read')!.description, /compact display/);
+    assert.doesNotMatch(f.configs.at(-1)!.tools!.find(tool => tool.name === 'read')!.description, /^For JSON (review|revision),/);
   }
   for (const selector of [async () => undefined, async () => 'true', async () => { throw new Error('unbound revision'); }]) {
+    const count = f.configs.length;
     await assert.rejects(f.create({ ordinaryDesignRevisionJsonReads: selector } as unknown as Partial<RoleFactoryOptions>));
+    assert.equal(f.configs.length, count, 'Invalid revision selection cannot create a session or publish guidance.');
   }
   assert.deepEqual((await f.controller.read()).ledger.entries, []);
+});
+
+test('COS154 fixed validation design authors do not invoke the revision selector or receive its guidance', async t => {
+  const f = await validationRoutingFixture(t);
+  const planned = await planTaskDag({ ...f.planning, roles: { ...f.roles, design: { ...f.roles.design, tools: ['read'] } } } as any);
+  await f.controller.registerTasks(planned.tasks.map(item => item.task));
+  const design = planned.tasks.find(item => item.role === 'design')!;
+  let calls = 0;
+  const factory = createRoleFactory({ ...options, ordinaryDesignRevisionJsonReads: async () => { calls++; return true; },
+    sessionFactory: async config => {
+      assert.doesNotMatch(config.tools!.find(tool => tool.name === 'read')!.description, /^For JSON (review|revision),|compact display/);
+      return { prompt: async () => ({ text: '' }), close: async () => {} };
+    } });
+  const session = await factory({ controller: f.controller, validation: f.binding, requirement: f.requirement, role: 'design', task: design.task,
+    workspace: design.workspace, stateDirectory: join(f.planning.sessionRoot, 'revision-guidance-validation') });
+  await session.close();
+  assert.equal(calls, 0);
 });
 
 for (const role of ['design', 'reviewer'] as const) test('COS146 native factory ' + role + ' receives complete compact JSON within the original display limit', async t => {

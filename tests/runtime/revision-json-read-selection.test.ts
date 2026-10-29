@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import type { ReadToolDetails } from '@earendil-works/pi-coding-agent';
 import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import type { RoleInput } from '../../src/roles/factory.ts';
@@ -20,14 +21,16 @@ test('COS146 host selects its verified revision and reviewer, not an initial aut
     } };
     if (packet.role === 'design' && packet.taskId === originalId) return { close: fallback.close, prompt: async (...args) => {
       assert.doesNotMatch(read.description, /compact display/);
+      assert.doesNotMatch(read.description, /^For JSON (review|revision),/);
       const response = await fallback.prompt(...args), path = 'authors/design/acceptance-plan.json';
       source = ' \n'.repeat(30000) + JSON.stringify(JSON.parse(await readFile(join(config.workspace, path), 'utf8')), null, 2);
       await writeFile(join(config.workspace, path), source, 'utf8');
-      assert.equal((await invoke(path)).details?.truncation?.truncated, true);
+      assert.equal(((await invoke(path)).details as ReadToolDetails | undefined)?.truncation?.truncated, true);
       selected.push('initial-raw'); return response;
     } };
     if (packet.role === 'reviewer') return { close: fallback.close, prompt: async () => {
       assert.equal(packet.taskId, originalId); assert.match(read.description, /compact display/);
+      assert.match(read.description, /^For JSON review,/);
       capture = packet.inputs.find((ref: any) => ref.artifactId === 'design').location + '/_cosmos/acceptance-plan.json';
       const result = await invoke(capture);
       assert.equal(result.details, undefined);
@@ -38,6 +41,7 @@ test('COS146 host selects its verified revision and reviewer, not an initial aut
     assert.equal(packet.role, 'design');
     return { close: fallback.close, prompt: async () => {
       assert.equal(packet.taskId, originalId + '-revision'); assert.match(read.description, /compact display/);
+      assert.match(read.description, /^For JSON revision,/);
       const result = await invoke(capture);
       assert.equal(result.details, undefined);
       assert.equal(result.content[0].type === 'text' && result.content[0].text, JSON.stringify(JSON.parse(source)));
