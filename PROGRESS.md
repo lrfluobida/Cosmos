@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-29 [COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145) 已获Root及planning_context_reviewer批准方向B并登记，source pending。仅新confirmed reuse origin选择intake0/planning=2*floor(L/20)，保留两allocation行；原5M总额、base500000与下游4.5M不变。旧无marker保持原5%+5%，funded/unfunded原初始化恢复、来源读取与settle会计隔离保持，不改旧run或旧费用。原[reuse9永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6485574791)保持；新TEMP仍须完整重放原primary+镜像读取和两笔用量，最终回复明确synthetic。phase40已批准且有效，不增加phase/总额；新实际运行未启动待checks。总144/root100，父COS18的38个子项中37个源码完成，整体open/partial。
+
 2026-10-29 [COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144) 已在免费SOURCE范围完成：最终 `830256110dcd441c5ff1baa86cb441630e2873fa` 经validation_phase_design独审全部10文件APPROVED_SOURCE_SCOPED、无P1/P2及Root批准，唯一planning_budget_merger无冲突发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`，批准文件精确一致。[SOURCE批准](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479876167)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)、closed(completed)及父[x]已GET核证。main typecheck/build0、最短TEMP代表4/4、0skip、TAP5972.2789ms；作者phase9/9、追加ledger5 1/1、旧funding11/11、CLI3/3及独审后续拨款/结算后再试幂等1/1按源码等价复用。总143/root100、父37个源码子项完成，COS18仍open/partial。
 
 COS143支持单个可选phase回执、只读prepare和明确quote/operator决定绑定的幂等apply，默认¥30，lifetime¥150、新公共单次≤¥5/30min保持。TEMP证明prepare不锁/不写，apply只追加回执/事件/revision且activationAllowed:false；旧历史前缀、金额/来源/stop/clock/tasks保持。已停case中的running/null-endedAt标签不修史，旧正常派发和新fixed claim继续阻断；扩展后新公共funding必须绑定精确phase决定，旧账务读路径兼容。

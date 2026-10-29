@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-29 [COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145) 已获Root及planning_context_reviewer批准方向B并登记，source pending。仅新confirmed reuse origin选择intake0/planning=2*floor(L/20)，保留两allocation行；原5M总额、base500000与下游4.5M不变。旧无marker保持原5%+5%，funded/unfunded原初始化恢复、来源读取与settle会计隔离保持，不改旧run或旧费用。原[reuse9永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6485574791)保持；新TEMP仍须完整重放原primary+镜像读取和两笔用量，最终回复明确synthetic。phase40已批准且有效，不增加phase/总额；新实际运行未启动待checks。总144/root100，父COS18的38个子项中37个源码完成，整体open/partial。
+
 2026-10-29 [COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144) 已在免费SOURCE范围完成；独审批准 `830256110dcd441c5ff1baa86cb441630e2873fa` 全部10文件、无P1/P2，经Root批准发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)、closed(completed)及父[x]已GET核证。main typecheck/build0、最短TEMP代表4/4、0skip，既有证据按源码一致性复用。总143/root100、父37个源码子项完成，COS18仍open/partial。后续用户独立批准的[phase40决定已单次应用](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6484789381)，3380→3381历史不变；reuse9引用该决定正常预留并[永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6485574791)，shared3383/累计25418109µ/held0，实际phase40有效。
 
 reuse9两轮完整primary/镜像读取后，第三input110463B、floor4096报价253694µ大于余215935µ，输入本身亦超4991µ；COS140正确拒绝整个区间，无plan JSON/schema错误/task/execution。2planning费用14368+19697=34065µ、释放4965935µ；17.743秒仅清理计时。旧run永久关闭，phase40/lifetime150/单次5与30min保持；新分配方案尚是免费SOURCE工作，未启动新paid。
@@ -2092,6 +2094,12 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 [COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)，id6086446699，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS109/#110及COS142/#143。作者validation_phase_implementer，独审validation_phase_design；最终 `830256110dcd441c5ff1baa86cb441630e2873fa` 已APPROVED_SOURCE_SCOPED、全部10文件无P1/P2，经Root[精确SOURCE批准](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479876167)，由唯一merger planning_budget_merger发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)及父[x]已GET核证。
 
 正式[规格](cos143-public-validation-phase-extension.md)/[计划](../plans/2026-10-29-public-validation-phase-extension.md)。10个批准文件精确；main typecheck/build0、最短TEMP代表4/4、0skip、TAP5972.2789ms，原phase/funding/CLI、追加ledger5与独审后续结算幂等证据复用。单个可选回执支持prepare零锁零写、apply幂等及精确决定/历史来源核验，activationAllowed:false；无extension仍默认30Mµ，lifetime150Mµ、公共单次≤5Mµ/30min保持。旧case/任务/账目前缀与原30派发不变，stopped-case running标签原值保留，账务读兼容。**SOURCE批准与预算决定独立**：用户随后明确批准的`public-phase2-20261029-budget`已单次应用，阶段40Mµ有效；reuse9正常引用该决定，C+L30384044µ跨旧30但≤40，永久结案后shared3383/已结25418109µ/held0。规划仍因整个输出区间不可负担而失败，未生成游戏。本次只更新metadata，不重apply/资金操作；原cosmos spec首批30历史不改。总143/root100/父37个源码子项完成，父整体open/partial。
+
+### COS-144 · 新需求复用运行的规划分配
+
+[COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145)，id6091042587，原生父COS18/#19、[ ]，`source-pending`；依赖COS129/#130及COS143/#144。Root与独立planning_context_reviewer已批准方向B及固定短规格/计划；作者planning_context_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。源码基线 `02882711225d466660806aa0c59bf81d6457de31`，runtime20fa9dae。
+
+正式[规格](cos144-reuse-planning-allocation.md)/[计划](../plans/2026-10-29-reuse-planning-allocation.md)。仅新reuse写可信窄origin标记：intake0/planning=2*floor(L/20)，保留两行与原合计，不使用可能多1µ的floor(L/10)；L<20沿无marker等价0/0。旧缺省仍5%+5%，funded/unfunded origin-only及已有snapshot恢复按持久选择，读/dispatch/settle共用窄本地核验，原会计隔离及旧来源不升级。原总5M/base500k/downstream4.5M、phase40/lifetime150、planning16/8192与4096 floor保持。固定R9两响应/4完整read/用量及明确synthetic全8可读文件分支待免费native验证，不称真实规划成功。phase40已有明确决定，无需重复预算确认；新运行未启动，仍待源码/新身份/原5M与30min及资金readiness。总144/root100/父38中37源码完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 
