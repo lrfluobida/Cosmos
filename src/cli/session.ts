@@ -26,6 +26,7 @@ import { publishFundedOrigin, verifyFundedNew, verifyPublicValidationFunding } f
 import { DEFAULT_RUN_LIMITS, displayRunLimits, requirePreparationRunLimits, requirePublicRunLimits, validateRunLimits } from './run-limits.ts';
 import type { RunLimits } from './run-limits.ts';
 import { readConfirmedGeneration, readConfirmedRequirementsSource, readReferencedRequirements, requireSeparateRequirementsRoot } from '../runtime/confirmed-requirements-source.ts';
+import { publicBaseAllocations } from '../runtime/public-base-allocations.ts';
 
 export interface ProductHost {
   /** Source-owned new-run selection; resume always reads the original source. */
@@ -145,26 +146,31 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       const brief = referenced?.draft.brief ?? options.brief;
       if (!brief?.trim()) throw new Error('A one-sentence --brief or confirmed requirements source is required.');
       const entries: string[] = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
-      const initialization = referenced && !options.funding && entries.length ? await optionalJson(root, 'intake-origin.json') : null;
+      const initialization = referenced && entries.length ? await optionalJson(root, 'intake-origin.json') : null;
       if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source);
       else if (entries.length && !initialization) throw new Error('Choose an empty run directory; existing runs require resume.');
       const runId = options.funding?.runId ?? initialization?.runId ?? `game-${randomUUID()}`; id(runId);
       if (referenced && (runId === referenced.source.runId || options.funding?.ledgerId === referenced.ledgerId)) throw new Error('New attempt must have independent run and ledger identities.');
       frames = referenced ? referenced.renderFrameSelection : options.renderFrames ? await selectRenderFrames() : undefined;
       policy = referenced ? referenced.modularRepairPolicy : currentModularRepairPolicy();
+      const allocationSelection = initialization ? (Object.hasOwn(initialization, 'planningAllocation') ? { planningAllocation: initialization.planningAllocation } : {})
+        : referenced && limits.limitMicroCny >= 20 ? { planningAllocation: 'reuse-intake-share' } : {};
       const origin = { runId, brief, ...((options.limits && !selectedMode || referenced) ? { limits } : {}), ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), ...(policy ? { modularRepairPolicy: policy } : {}),
+        ...allocationSelection,
         ...(referenced ? { requirementsSource: referenced.source } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(options.funding ? { validationFunding: options.funding } : {}) };
-      if (initialization) {
-        if (!sameValue(initialization, origin) || entries.some(name => !['intake-origin.json', 'intake-ordinary-profile.json', 'snapshot.json', 'requirements', '.controller.lock'].includes(name)
+      const allocations = publicBaseAllocations(limits.limitMicroCny, origin);
+      if (initialization && !sameValue(initialization, origin)) throw new Error('Only the same unfinished requirements initialization can retry new.');
+      if (initialization && !options.funding) {
+        if (entries.some(name => !['intake-origin.json', 'intake-ordinary-profile.json', 'snapshot.json', 'requirements', '.controller.lock'].includes(name)
           && !/^\.snapshot-[a-f0-9-]{36}\.tmp$/.test(name))) throw new Error('Only the same unfinished requirements initialization can retry new.');
         const saved = entries.includes('snapshot.json') ? await readRunSnapshot(root) : undefined;
         if (saved && (saved.formatVersion !== 'intake-1' || saved.draft !== null || saved.confirmation !== null || saved.stopReason || saved.validationFunding
           || saved.revision !== 1 || saved.events.length !== 1 || saved.requests.length || saved.ledger.entries.length
           || saved.interviewTaskId !== 'intake' || saved.maxRequests !== 8 || saved.ledger.ledgerId !== `${runId}-budget`
           || !sameValue(saved.run, { runId, kind: 'runtime_generation', specVersion: '1.0' })
-          || !sameValue(saved.ledger.allocations, [{ taskId: 'intake', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }, { taskId: 'planning', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }]))) {
+          || !sameValue(saved.ledger.allocations, allocations))) {
           throw new Error('Requirements initialization already advanced; use resume.');
         }
         if (saved) await readReferencedRequirements(root, saved, false);
@@ -187,7 +193,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...(referenced ? { requirementsSource: referenced.source } : {}),
         ...(frames ? { renderFrames: frames } : {}),
         modularRepairPolicy: policy, ...(options.funding ? { validationFunding: options.funding } : {}),
-        allocations: [{ taskId: 'intake', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }, { taskId: 'planning', amountMicroCny: Math.floor(limits.limitMicroCny / 20) }] });
+        allocations });
       if (!options.funding && !referenced) await publishReceipt(join(root, 'intake-origin.json'), origin);
     } else {
       const snapshot = await readRunSnapshot(root);
