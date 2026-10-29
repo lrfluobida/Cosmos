@@ -1,6 +1,8 @@
 import { DEFAULT_BUDGETS } from '../contracts/budget.ts';
 import type { IntakeSnapshot } from '../runtime/intake.ts';
 import type { RunSnapshot } from '../runtime/run-types.ts';
+import { requirePublicBaseAllocations } from '../runtime/public-base-allocations.ts';
+import type { PublicAllocationOrigin } from '../runtime/public-base-allocations.ts';
 
 export interface RunLimits { limitMicroCny: number; durationMs: number }
 export const DEFAULT_RUN_LIMITS: Readonly<RunLimits> = Object.freeze({
@@ -40,12 +42,13 @@ export function requirePublicRunLimits(state: IntakeSnapshot | RunSnapshot, valu
   const cliConfirmed = state.formatVersion !== 'intake-1'
     && state.run.humanDecisions.some(row => row.decisionId.startsWith('requirements-v') && row.actorId === 'local-user');
   if (value === null && !requireOrigin && !cliConfirmed && !state.requirementsSource) return undefined;
-  const origin = value as { runId?: unknown; brief?: unknown; limits?: unknown } | null;
+  const origin = value as ({ runId?: unknown; brief?: unknown; limits?: unknown } & PublicAllocationOrigin) | null;
   if (!origin || typeof origin !== 'object' || Array.isArray(origin) || origin.runId !== state.run.runId
     || typeof origin.brief !== 'string' || !origin.brief.trim()) throw new Error('Original public run limits origin is missing or changed.');
   const limits = origin.limits === undefined ? DEFAULT_RUN_LIMITS : origin.limits;
   validateRunLimits(limits);
   const duration = state.formatVersion === 'intake-1' ? state.durationMs : Date.parse(state.run.originalDeadlineAt) - Date.parse(state.run.originalStartedAt);
   if (state.ledger.limitMicroCny !== limits.limitMicroCny || duration !== limits.durationMs) throw new Error('Original public run limits differ from their saved source.');
+  requirePublicBaseAllocations(state, origin);
   return { ...limits };
 }

@@ -23,6 +23,7 @@ import { readConfirmedRequirementsSource } from './confirmed-requirements-source
 import type { PublicValidationAuthorization, PublicValidationFundingBinding, PublicValidationFundingRecord } from './public-validation-funding-types.ts';
 import { fundedIntakeWork, fundingBinding, fundingClosureId, fundingFields, fundingHash, fundingTaskId, publicFundingExposure, validateFundingAuthorization, validateFundingBinding } from './public-validation-funding-validation.ts';
 import { publicValidationPhaseLimit, requirePhaseFundingAuthorization, verifyPublicValidationPhaseSource } from './public-validation-phase-validation.ts';
+import { requirePublicRunLimits } from '../cli/run-limits.ts';
 
 const intentName = 'public-validation-origin.json';
 const decode = (bytes: Uint8Array): any => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -168,6 +169,7 @@ export async function acquirePublicFundingGate(root: string, snapshot: IntakeSna
     || binding.limits.limitMicroCny !== snapshot.ledger.limitMicroCny || binding.limits.durationMs !== duration
     || origin.brief !== intent.payload.brief || !!origin.renderFrames !== intent.payload.renderFrames
     || !sameValue(origin.requirementsSource, intent.payload.requirementsSource) || !sameValue(snapshot.requirementsSource, intent.payload.requirementsSource)) throw new Error('Public funding differs from the original public run.');
+  requirePublicRunLimits(snapshot, origin, true);
   if (dispatch) await requireFundingRequirements(intent.payload);
   const store = await SnapshotStore.acquire(binding.sharedRoot);
   try {
@@ -197,6 +199,7 @@ export async function verifyFundedNew(root: string, binding: PublicValidationFun
   if (!intent || !sameValue(intent.binding, binding) || intent.payload.brief !== brief || !sameValue(binding.limits, limits) || intent.payload.renderFrames !== renderFrames
     || !sameValue(intent.payload.requirementsSource, requirementsSource)) throw new Error('Public funding new arguments differ from authorization.');
   const contents = await readdir(root);
+  if (requirementsSource && contents.includes('intake-ordinary-profile.json') && !contents.includes('intake-origin.json')) throw new Error('Original requirements initialization origin is missing.');
   if (contents.some(name => ![intentName, 'intake-origin.json', ...(requirementsSource ? ['intake-ordinary-profile.json'] : [])].includes(name))) throw new Error('Funded new requires its original initialization files only; use resume for a saved run.');
 }
 export async function publishFundedOrigin(root: string, value: unknown) { await writeOnce(root, 'intake-origin.json', value); }

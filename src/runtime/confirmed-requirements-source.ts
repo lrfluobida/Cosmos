@@ -55,9 +55,9 @@ export async function readConfirmedRequirementsSource(input: { root: string; rev
 export async function readReferencedRequirements(root: string, snapshot: IntakeSnapshot | RunSnapshot, copies = true) {
   const source = snapshot.requirementsSource; validateConfirmedRequirementsSource(source);
   requireSeparateRequirementsRoot(root, source);
-  const original = await readConfirmedRequirementsSource({ root: source.root, revision: source.revision, specVersion: snapshot.run.specVersion, expected: source });
   const origin = await json(root, 'intake-origin.json');
   requirePublicRunLimits(snapshot, origin, true);
+  const original = await readConfirmedRequirementsSource({ root: source.root, revision: source.revision, specVersion: snapshot.run.specVersion, expected: source });
   if (snapshot.run.runId === source.runId || snapshot.ledger.ledgerId === original.ledgerId
     || !sameValue(origin.requirementsSource, source) || origin.brief !== original.draft.brief || origin.draftMode !== undefined
     || origin.ordinaryProfile !== original.draft.ordinaryProfile
