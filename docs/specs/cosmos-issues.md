@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-29 [COS146 / #147](https://github.com/lrfluobida/Cosmos/issues/147) 已获revision_json_read_reviewer APPROVED_PLAN及Root源码实施/登记批准，source pending。仅默认整读的有效UTF8 JSON，在原授权后/SDK截断前做source-token无损去字符串外空白展示，仍受原51200B/2000行限；显式offset/limit保留raw分页，坏内容或仍超限走原SDK。原token/字符串/数字lexeme/重复键/Unicode与文件字节保持。仅既有可信design reviewer及真实revision plan绑定作者选中，预算/需求/strict/权限不变。原[reuse11结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6487266211)保持，完整展示不保证模型修订成功。总146/root100，父COS18的40个子项中39个源码完成，整体open/partial。
+
 2026-10-29 [COS145 / #146](https://github.com/lrfluobida/Cosmos/issues/146) 已源码范围完成；独审批准 `f1882ffd6cd6ec114c873d41b96c2371109a3bdd`、无finding，经Root批准发布 `f6019c4a6fd05b3857e9725dc1d61112b50b6f22`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/146#issuecomment-6487236274)、closed(completed)及父[x]已GET核证。main typecheck/build0、有限4/4、0skip，新6/6、8host、4guard及原稿回放按同SHA复用。总145/root100、父39个源码子项完成，COS18仍open/partial。
 
 [reuse11实际结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6487266211)：规划3/39503µ；初始design-room-hunt36/660880µ含有效changes_requested独审，hostcheck通过；自动revision28/382430µ后因author_review_reserve未发请求失败，revision review未启动、无game。28次为22read+6摘要，write/edit/check0、工作副本原样，58907B计划read被50KiB截断后反复读取。67笔1082813µ、release3917187µ，child288/shared3387/C27128823/H0，phase40/ref保持；687143ms仅清理计时，独立PASS_CLOSED。下一SOURCE范围仍在评估，本次不推测已修。
@@ -2112,6 +2114,12 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 [COS145 / #146](https://github.com/lrfluobida/Cosmos/issues/146)，id6091618219，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS114/#115及COS118/#119。作者design_diagnostics_implementer，独审planning_context_reviewer；最终 `f1882ffd6cd6ec114c873d41b96c2371109a3bdd` 已APPROVED_SOURCE_SCOPED、无finding，经Root[精确批准](https://github.com/lrfluobida/Cosmos/issues/146#issuecomment-6487235769)，由唯一merger planning_budget_merger发布 `f6019c4a6fd05b3857e9725dc1d61112b50b6f22`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/146#issuecomment-6487236274)及父[x]已GET核证。
 
 正式[规格](cos145-design-diagnostic-aggregation.md)/[计划](../plans/2026-10-29-design-diagnostic-aggregation.md)。3个批准文件精确；main typecheck/build0、有限4/4、0skip、TAP15599.4376ms，原6/6、8host、4guard及三原稿/最终实际文件对照按同SHA复用。只读复用validatePlan聚合双stage局部诊断并保留原strict/source错误，strict仍唯一决定passed；自动8项/4096字符与明确省略提示、显式完整收集结果保持。原稿仍strict拒绝且字节不变，不称模型修复或语义成功。[reuse11](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6487266211)初始hostcheck通过、有效changes_requested后自动revision因独审预留预算门禁停止，未形成游戏并永久PASS_CLOSED。phase40、room12v2、原单次5M/30min保持，下一SOURCE范围未在本次登记。总145/root100/父39个源码子项完成，父整体open/partial。
+
+### COS-146 · 在SDK截断前提供有界完整JSON展示
+
+[COS146 / #147](https://github.com/lrfluobida/Cosmos/issues/147)，id6092397335，原生父COS18/#19、[ ]，`source-pending`；依赖COS127/#128及COS134/#135。revision_json_read_reviewer已APPROVED_PLAN、无必要修正，Root批准源码实施与登记；作者revision_json_read_implementer，独审revision_json_read_reviewer，唯一merger planning_budget_merger。runtime源码基线 `f6019c4a6fd05b3857e9725dc1d61112b50b6f22`，作者分支从 `9b844186acfa2138bb2922745b88b5a4bd0cf08b`开始。
+
+正式[规格](cos146-revision-json-read.md)/[计划](../plans/2026-10-29-revision-json-read.md)。已有58907B原计划整读被SDK截断；修复只在授权后通过单次ReadOperations读出的展示Buffer无损去JSON字符串外空白，再走原SDK51200B/2000行限制。仅默认整文件有效UTF8 JSON且压缩能完整返回才选，显式分页保留raw，其他内容/超限回原SDK；不以parse/stringify重序列化数据，不改文件/哈希/capture或SDK依赖。既有reviewer及经真实revision计划绑定的作者窄选，不能靠后缀/自报role。预算/模型/请求数/确认/strict不变，原稿只读，新展示不保证模型会编辑或完成。phase40及单次5M/30min保持，旧run永久关闭。总146/root100/父40中39源码完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 
