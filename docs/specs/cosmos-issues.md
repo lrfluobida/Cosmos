@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-29 [COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149) 已获Root按唯一字段实证批准最小实施并登记；固定 `6c175bc6aafc72a9e680e795542d29286250fdad` 已独审APPROVED_SOURCE_SCOPED、无finding并获Root集成批准，当前source集成/发布pending，不增加额外计划审批。只让原inputVersions exact失败的可信有界字段/expected诊断进入既有唯一correction，保留专用协议/record/actor/0|1计数与原budget。完整expected来自冻结task/packet，不接纳额外host-ref、不自动删字段或改verdict/findings，不增加retry。原[R14结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6489905622)两份正常stop原文仍拒绝；native正例末条必须明确synthetic正确refs且仍7findings changes_requested，不称approved或游戏成功。phase40/shared3393/C28948131/H0与room12v2保持，无paid/新run。总148/root100，父COS18的42个子项中41个源码完成，整体open/partial。
+
 2026-10-29 [COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148) 已源码范围完成；最终 `ef09163da2a83645774da1b07fc14a55e4cc732c` 独审APPROVED_SOURCE_SCOPED、无剩余finding，经Root批准发布 `6d92bbe1cf2bbc0de26f8c80abba21f81a638513`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/148#issuecomment-6489822351)、closed(completed)及父[x]已GET核证。main typecheck/build0、有限4/4、0skip，unit/host/compat/native/P2/strict/TEMP有效证据复用。总147/root100、父41个源码子项完成，COS18仍open/partial；ADR0005接受时SOURCE实施中的历史表述不改。
 
 [R14实际结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6489905622)：structured-plan/1同写双记录，新工具2save+8append/0toolErrors，host/capture通过。两份正常stop的独审JSON都额外inputVersions[5] host-report，唯一correction只重发协议后重复，strict拒绝；7findings只是原模型建议，无有效verdict/revision/game。planning2/41818µ、author24/354335µ、review8/223073µ（内含correction50761µ），总34/619226µ、释放4380774µ；child151/shared3393/C28948131µ/H0，phase40/ref保持，374249ms仅清理事实。旧run永久PASS_CLOSED，下一SOURCE未登记。
@@ -2132,6 +2134,12 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 [COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148)，id6093554669，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS145/#146及COS134/#135。作者structured_plan_implementer，独审structured_plan_reviewer；最终 `ef09163da2a83645774da1b07fc14a55e4cc732c` 已APPROVED_SOURCE_SCOPED、无剩余finding，经Root[精确批准](https://github.com/lrfluobida/Cosmos/issues/148#issuecomment-6489821648)，由唯一merger planning_budget_merger发布 `6d92bbe1cf2bbc0de26f8c80abba21f81a638513`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/148#issuecomment-6489822351)及父[x]已GET核证。
 
 正式[规格](cos147-structured-plan-authoring.md)/[计划](../plans/2026-10-29-structured-plan-authoring.md)/[ADR0005](../adr/0005-structured-plan-authoring.md)。ADR接受时SOURCE实施中的历史说明保持。5个批准文件精确；main typecheck/build0、有限4/4、0skip、TAP7548.9691ms，8unit、其余6host、native1、compat4、strict及原稿TEMP复用。新工具固定草稿路径和host外层/真实ref，作者负责语义，原raw/strict/反馈/capture/review/预算保留；新policy双记录冻结，legacy不回填、不从brief子串推断。R14真实10调用无toolError、host/capture通过，但两份独审proposal均额外host-report顶层inputVersions，原parser拒绝；不得删项改verdict或把7模型建议批准。R14永久closed、无revision/game，phase40/room12v2不变，无下一paid准备。总147/root100/父41个源码子项完成，父整体open/partial。
+
+### COS-148 · 独立评审单次纠正的固定输入诊断
+
+[COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149)，id6094791306，原生父COS18/#19、[ ]，`source-pending`；依赖COS138/#139及COS141/#142。Root按实际唯一字段复现批准最小实施，不增加额外plan审批；作者review_input_correction_implementer，native辅助review_input_correction_replay，独立源码reviewer review_input_correction_reviewer已批准固定 `6c175bc6aafc72a9e680e795542d29286250fdad`、无finding，Root已批准后续集成，唯一merger planning_budget_merger。runtime基线 `6d92bbe1cf2bbc0de26f8c80abba21f81a638513`。
+
+正式[规格](cos148-review-input-version-correction.md)/[计划](../plans/2026-10-29-review-input-version-correction.md)。仅原exact inputVersions检查失败产生可信路径/数量/完整expected与evidence通道提示，经原唯一correction发回；有界UTF8反馈不回显任意异常/stack或整份模型文本，长列表明确省略并指回packet.inputs。原strict/顺序/数量/专用协议/record/同actor/0|1与预算保持；固定expected本来含host-report时仍保留，不按名字删除。原R14两JSON仍拒绝；native保留前7原responses/reads/usage/grant，末条仅明确synthetic正确refs且保持7findings changes_requested，全原始bad分支仍失败无第2纠正。无额外独立plan审批；固定源码已独审但尚未集成发布，不新ADR或改CONTEXT，不改真实旧输出。phase40、room12v2和单次5M/30min保持，无新run准备。总148/root100/父42中41源码完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 
