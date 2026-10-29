@@ -376,6 +376,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   if (input.ordinaryDesignFinalizationPolicy !== undefined && (input.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignFinalizationPolicy for this host.');
   const ordinaryDesignFinalizationPolicy = input.ordinaryDesignFinalizationPolicy;
   const ordinaryTasks = new Map<string, PreparedTask>();
+  let ordinaryRevisionTaskId: string | undefined;
   if (modular && (preparation || validation || binding)) throw new Error('Modular coding currently supports only the original ordinary browser generation.');
   const modulePolicy = modular ? await readModularRepairPolicy(root, await controller.read()) : undefined;
   await requireCurrentModularRepairPolicy(modulePolicy);
@@ -908,7 +909,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             }
           },
           ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}), ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
-          ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 } } : {}) } : {}),
+          ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 },
+            ordinaryDesignRevisionJsonReads: async task => {
+              await requireDispatch(task, controller.signal);
+              return task.taskId === ordinaryRevisionTaskId && role(task) === 'design';
+            } } : {}) } : {}),
       sessionFactory: input.sessionFactory,
       hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],
       ...(ordinary ? { afterFileWrite: async (roleInput, write, signal) => {
@@ -1484,6 +1489,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         if (current) requireOriginalTask(item.task, current);
         ordinaryTasks.set(item.task.taskId, structuredClone(item));
       }
+      ordinaryRevisionTaskId = revision?.task.task.taskId;
     };
     const preAuthor = host.preAuthor, capture = host.capture, verify = host.verify, recover = host.recoverCapture, nativeRoles = host.roleFactory;
     host.preAuthor = async (task, signal) => {

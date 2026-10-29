@@ -34,8 +34,8 @@ export async function designCandidateBudget(mode, options) {
   const { readConfirmedRequirementsSource } = await local('src/runtime/confirmed-requirements-source.ts');
   const { createPiSession } = await local('src/providers/pi.ts');
   const { BUDGET_FINALIZATION_PROMPT } = await local('src/runtime/repair/author-protocol.ts');
-  const { compactCompleteJsonRead } = await local('src/providers/json-read-display.ts');
-  const { ModelRuntime } = await local('node_modules/@earendil-works/pi-coding-agent/dist/index.js');
+  const { compactJsonReadBuffer } = await local('src/providers/json-read-display.ts');
+  const { createReadTool, ModelRuntime } = await local('node_modules/@earendil-works/pi-coding-agent/dist/index.js');
   const originalStreamSimple = ModelRuntime.prototype.streamSimple;
   const hash = bytes => createHash('sha256').update(bytes).digest('hex');
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim();
@@ -46,6 +46,14 @@ export async function designCandidateBudget(mode, options) {
     'tests/runtime/ordinary-design.fixture.ts', 'tests/providers/design-candidate-review-budget.fixture.mjs'];
   const sourceFingerprints = await Promise.all(sourceModules.map(async path => ({ path, sha256: hash(await readFile(join(repo, path))) })));
   const decode = bytes => new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  const expectedReadText = async (workspace, path, index, source) => {
+    const args = replayProfile?.readCalls[index].originalArguments ?? {};
+    if (args.offset === undefined && args.limit === undefined) return decode(compactJsonReadBuffer(source));
+    // Explicit replay windows retain native raw pagination, including the source formatting.
+    const result = await createReadTool(workspace).execute('expected-raw-page', { ...args, path });
+    assert.equal(result.content.length, 1); assert.equal(result.content[0].type, 'text');
+    return result.content[0].text;
+  };
   const json = async path => JSON.parse(decode(await readFile(path)));
   const put = async (root, name, bytes) => {
     const target = resolve(root, name), rel = relative(resolve(root), target);
@@ -181,8 +189,8 @@ export async function designCandidateBudget(mode, options) {
     if (index >= 1) {
       assert.equal(toolMessages.length, replayProfile?.cumulativeReads[index] ?? readPaths.length);
       for (const [toolIndex, path] of readPaths.slice(0, replayProfile?.cumulativeReads[index] ?? readPaths.length).entries()) {
-        const text = decode(await readFile(join(configs[0].workspace, path)));
-        const expected = compactCompleteJsonRead({ content: [{ type: 'text', text }] }, { path }).content[0].text;
+        const source = await readFile(join(configs[0].workspace, path));
+        const expected = await expectedReadText(configs[0].workspace, path, toolIndex, source);
         const actual = toolMessages.find(row => row.tool_call_id === (replayProfile?.readCalls[toolIndex].id ?? `source-read-${toolIndex}`));
         assert.ok(actual, `Missing actual HTTP tool response for ${path}`);
         assert.equal(actual.content, expected, `HTTP tool response altered or truncated ${path}`);
@@ -357,7 +365,7 @@ export async function designCandidateBudget(mode, options) {
         assert.ok(row); assert.equal(!!row.isError, false); assert.equal(row.details?.truncation, undefined); assert.equal(row.content.length, 1);
         assert.equal(row.content[0].type, 'text'); assert.doesNotMatch(row.content[0].text, /\[Showing lines |more lines in file|exceeds .* limit/);
         const source = await readFile(join(configs[0].workspace, path));
-        const expected = compactCompleteJsonRead({ content: [{ type: 'text', text: decode(source) }] }, { path }).content[0].text;
+        const expected = await expectedReadText(configs[0].workspace, path, index, source);
         assert.equal(row.content[0].text, expected);
         nativeTools.push({ path, toolCallId: row.toolCallId, sourceBytes: source.length, sourceSha256: hash(source), readBytes: Buffer.byteLength(expected), readSha256: hash(expected), isError: false, truncated: false });
       }

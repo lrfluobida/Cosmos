@@ -1,7 +1,8 @@
+import { constants } from 'node:fs';
 import { access, lstat, readFile, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
-import { createEditTool, createReadTool, createWriteTool, defineTool, type ToolDefinition } from '@earendil-works/pi-coding-agent';
-import { compactCompleteJsonRead } from './json-read-display.ts';
+import { createEditTool, createReadTool, createWriteTool, defineTool, detectSupportedImageMimeTypeFromFile, type ToolDefinition } from '@earendil-works/pi-coding-agent';
+import { compactJsonReadBuffer } from './json-read-display.ts';
 
 export interface WorkspaceToolOptions {
   workspace: string;
@@ -65,13 +66,24 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
   const tools: ToolDefinition[] = [];
   if (reads.length) {
     const read = createReadTool(workspace);
-    tools.push(defineTool({ ...read, async execute(id, args, signal, onUpdate) {
+    const description = read.description + (options.compactFullJsonReads
+      ? ' Whole-file JSON may use compact display; source formatting is unchanged. Before exact-text edits, use explicit offset/limit reads to obtain raw source text.' : '');
+    tools.push(defineTool({ ...read, description, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, reads, signal);
       await access(full);
-      const result = await read.execute(id, { ...args, path: full }, signal, onUpdate);
-      if (!options.compactFullJsonReads) return result;
-      signal?.throwIfAborted();
-      return compactCompleteJsonRead(result, args);
+      // Each invocation owns its operations; a concurrent paged read must still see raw bytes.
+      const selected = options.compactFullJsonReads && args.offset === undefined && args.limit === undefined
+        ? createReadTool(workspace, { operations: {
+          access: path => access(path, constants.R_OK),
+          detectImageMimeType: detectSupportedImageMimeTypeFromFile,
+          readFile: async path => {
+            signal?.throwIfAborted();
+            const buffer = await readFile(path, { signal });
+            signal?.throwIfAborted();
+            return compactJsonReadBuffer(buffer);
+          },
+        } }) : read;
+      return selected.execute(id, { ...args, path: full }, signal, onUpdate);
     } }));
   }
   if (writes.length) {
