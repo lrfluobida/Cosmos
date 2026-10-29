@@ -65,6 +65,8 @@ export interface RoleFactoryOptions {
   ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
   /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote down to the 4096 floor. */
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
+  /** Trusted host selects only a design revision from its verified fixed revision plan. */
+  ordinaryDesignRevisionJsonReads?: (task: Readonly<TaskContract>) => Promise<boolean>;
   /** Explicit trusted reviewer ceiling; omitted callers retain the original 8192 cap. */
   ordinaryDesignReviewMaxOutputTokens?: 16384;
   /** Trusted ordinary host verifies complete fixed sources before planning displays only acceptance IDs. */
@@ -134,6 +136,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   const finalizationPolicy = options.ordinaryDesignFinalizationPolicy;
   if (finalizationPolicy !== undefined && (finalizationPolicy !== 'budget-followup/1' || recoveryPolicy !== 'review-reserve/1' || ![32, 64].includes(authorRequestLimits.design!))) throw new Error('Invalid ordinaryDesignFinalizationPolicy.');
   const ordinaryDesignReviewBudget = options.ordinaryDesignReviewBudget;
+  const ordinaryDesignRevisionJsonReads = options.ordinaryDesignRevisionJsonReads;
+  if (ordinaryDesignRevisionJsonReads !== undefined && typeof ordinaryDesignRevisionJsonReads !== 'function') throw new Error('ordinaryDesignRevisionJsonReads requires a trusted selector.');
   if (ordinaryDesignReviewBudget !== undefined && (typeof ordinaryDesignReviewBudget !== 'function' || options.maxOutputTokens !== 8192)) {
     throw new Error('ordinaryDesignReviewBudget requires a trusted selector and the original 8192 output cap.');
   }
@@ -170,6 +174,11 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       designReviewBudget = ordinaryDesignReviewBudget(freeze(structuredClone(task)));
       if (typeof designReviewBudget !== 'boolean') throw new Error('ordinaryDesignReviewBudget must return a boolean.');
     }
+    let designRevisionJsonReads = false;
+    if (ordinaryDesignRevisionJsonReads && input.role === 'design' && !input.purpose && !input.validation) {
+      designRevisionJsonReads = await ordinaryDesignRevisionJsonReads(freeze(structuredClone(task)));
+      if (typeof designRevisionJsonReads !== 'boolean') throw new Error('ordinaryDesignRevisionJsonReads must return a boolean.');
+    }
     const validation = input.validation ? await input.controller.validationAuthority(task.taskId, purpose) : undefined;
     const authorRequestLimit = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorRequestLimits[input.role] : undefined;
     const authorFloor = purpose === 'author' && !validation && input.role !== 'reviewer' ? authorFloors[input.role] : undefined;
@@ -197,7 +206,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const reads = reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
     const inputFiles = await roleInputFiles(workspace, [...task.inputs, ...task.context.interfaces, ...(reviewer ? [...task.artifacts, ...task.evidence.map(e => e.source)] : [])], input.controller.signal);
     const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths,
-      ...(designReviewBudget ? { compactFullJsonReads: true } : {}) });
+      ...(designReviewBudget || designRevisionJsonReads ? { compactFullJsonReads: true } : {}) });
     const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment() }) ?? [];
     const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name));
     for (const host of hostTools) {

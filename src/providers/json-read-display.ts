@@ -1,17 +1,13 @@
-import type { AgentToolResult, ReadToolDetails, ReadToolInput } from '@earendil-works/pi-coding-agent';
+import { truncateHead } from '@earendil-works/pi-coding-agent';
 
-/** Display-only whitespace removal for a complete text result from the pinned SDK read tool. */
-export function compactCompleteJsonRead(
-  result: AgentToolResult<ReadToolDetails | undefined>, args: ReadToolInput,
-): AgentToolResult<ReadToolDetails | undefined> {
-  if (('isError' in result && result.isError) || (args.offset !== undefined && args.offset !== 1)
-    || (args.limit !== undefined && (!Number.isSafeInteger(args.limit) || args.limit <= 0))
-    || result.content.length !== 1 || result.content[0].type !== 'text' || result.details?.truncation !== undefined) return result;
-  const block = result.content[0], text = block.text;
-  // A user limit can append this continuation notice without any truncation details.
-  if (/\n\n\[\d+ more lines in file\. Use offset=\d+ to continue\.\]$/.test(text)
-    || /\n\n\[Showing lines [^\n]+\]$/.test(text) || /^\[Line \d+ is [^\n]+, exceeds /.test(text)) return result;
-  try { JSON.parse(text); } catch { return result; }
+/** Display-only whitespace removal, only if complete JSON fits the unchanged SDK limits. */
+export function compactJsonReadBuffer(buffer: Buffer): Buffer {
+  let text: string;
+  try {
+    // Keep a BOM visible to JSON validation; decoding must not silently remove source bytes.
+    text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(buffer);
+    JSON.parse(text);
+  } catch { return buffer; }
   let compact = '', quoted = false, escaped = false;
   for (const char of text) {
     if (quoted) {
@@ -22,5 +18,5 @@ export function compactCompleteJsonRead(
     } else if (char === '"') { quoted = true; compact += char; }
     else if (char !== ' ' && char !== '\t' && char !== '\n' && char !== '\r') compact += char;
   }
-  return compact === text ? result : { ...result, content: [{ ...block, text: compact }] };
+  return compact === text || truncateHead(compact).truncated ? buffer : Buffer.from(compact, 'utf8');
 }
