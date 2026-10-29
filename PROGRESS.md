@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-29 [COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148) 已获structured_plan_reviewer APPROVED_PLAN与Root实施/登记批准，source pending；[ADR0005](docs/adr/0005-structured-plan-authoring.md)决策accepted，SOURCE仍在实施。新普通设计作者专用save/append只写固定计划草稿，host管理外层/真实ref，作者负责所有游戏语义；保存不等于strict/捕获/独审或验收通过，raw编辑兼容。structured-plan/1同写planning-started/execution，缺execution仍原阻断；旧legacy冻结tools/rules不回填，选择消失却留新标记须拒绝，不从brief子串推断。预算/需求/strict不变，phase40/shared3391/C28328905/H0保持，无下一paid准备。总147/root100，父COS18的41个子项中40个源码完成，整体open/partial。
+
 2026-10-29 [COS146 / #147](https://github.com/lrfluobida/Cosmos/issues/147) 已源码范围完成：最终 `7dc79e19df2088cc3fb8a9eca2809a0083f3787b` 经revision_json_read_reviewer独立APPROVED_SOURCE_SCOPED、P2闭合且无剩余finding及Root批准，唯一planning_budget_merger发布 `3ceadde07d19d94cc89a1ff9699da4dd7dab1928`，9个批准文件精确一致。[SOURCE批准](https://github.com/lrfluobida/Cosmos/issues/147#issuecomment-6488550091)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/147#issuecomment-6488550726)、closed(completed)及父[x]已GET核证。main typecheck/build0、有限4/4、0skip、TAP9978.5572ms；原23/23、host1/1、scope/cap4/4、原稿与P2两normal按字节等价复用。总146/root100、父40个源码子项完成，COS18仍open/partial。
 
 COS146 SOURCE原58907B计划经同SDK从51196B/1710行截断变为完整39414B展示，6225源token、原SHA、显式raw分页及权限/预算/strict保持；1443010a→7dc79e1仅两夹具P2变化，生产/TS测试无delta。仅可信reviewer和真实revision plan绑定作者选中；R12/R13均未到这些分支，不能将其实际失败写成本修复的live成功或失败。

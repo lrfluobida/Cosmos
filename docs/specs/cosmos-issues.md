@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-29 [COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148) 已获structured_plan_reviewer APPROVED_PLAN与Root实施/登记批准，source pending；[ADR0005](../adr/0005-structured-plan-authoring.md)决策accepted，SOURCE仍在实施。新普通设计作者专用save/append只写固定计划草稿，host管理外层/真实ref，作者负责所有游戏语义；保存不等于strict/捕获/独审或验收通过，raw编辑兼容。structured-plan/1同写planning-started/execution，缺execution仍原阻断；旧legacy冻结tools/rules不回填，选择消失却留新标记须拒绝，不从brief子串推断。预算/需求/strict不变，phase40/shared3391/C28328905/H0保持，无下一paid准备。总147/root100，父COS18的41个子项中40个源码完成，整体open/partial。
+
 2026-10-29 [COS146 / #147](https://github.com/lrfluobida/Cosmos/issues/147) 已源码范围完成；最终 `7dc79e19df2088cc3fb8a9eca2809a0083f3787b` 独审APPROVED_SOURCE_SCOPED、P2闭合且无剩余finding，经Root批准发布 `3ceadde07d19d94cc89a1ff9699da4dd7dab1928`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/147#issuecomment-6488550726)、closed(completed)及父[x]已GET核证。main typecheck/build0、有限4/4、0skip，23/23、host1/1、scope/cap4/4、原稿及两个P2 normal复用。总146/root100、父40个源码子项完成，COS18仍open/partial。
 
 [R12](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6488612834)与预先声明的单次same-source受限[R13](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6488614818)均永久PASS_CLOSED、未到COS146选中reviewer/revision分支，不能记为该修复live成败。R12恢复124steps后仍缺3IDs/无reopen，36请求608152µ、释放4391848µ、shared3389/C27736975µ/H0；R13顶层reopen位置错误且无provider length，26请求591930µ、释放4408070µ、shared3391/C28328905µ/H0。338488ms/323491ms都仅清理时间；两者无review/revision/game，phase40/room12v2保持，无后续paid已准备。
@@ -2122,6 +2124,12 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 [COS146 / #147](https://github.com/lrfluobida/Cosmos/issues/147)，id6092397335，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS127/#128及COS134/#135。作者revision_json_read_implementer，独审revision_json_read_reviewer；最终 `7dc79e19df2088cc3fb8a9eca2809a0083f3787b` 已APPROVED_SOURCE_SCOPED、P2闭合且无剩余finding，经Root[精确批准](https://github.com/lrfluobida/Cosmos/issues/147#issuecomment-6488550091)，由唯一merger planning_budget_merger发布 `3ceadde07d19d94cc89a1ff9699da4dd7dab1928`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/147#issuecomment-6488550726)及父[x]已GET核证。
 
 正式[规格](cos146-revision-json-read.md)/[计划](../plans/2026-10-29-revision-json-read.md)。9个批准文件精确；main typecheck/build0、有限4/4、0skip、TAP9978.5572ms，原23/23、host1/1、scope/cap4/4、真实原稿与两个P2 normal按字节等价复用。原58907B完整展示为39414B/6225源token，原SHA/raw分页及原SDK51200B/2000行限保持；只选可信reviewer和实际revision作者，不重序列化源数据或改变预算/权限/strict。R12/R13都停在初始设计，未到选中分支，不能写成COS146 live修复成功或失败；R13为预先声明的一次same-source尝试，无新代码/重复SOURCE测试。两者永久closed，最新shared3391/C28328905µ/H0，phase40/room12v2保持，无后续paid已准备。总146/root100/父40个源码子项完成，父整体open/partial。
+
+### COS-147 · 结构化执行验收计划草稿写入
+
+[COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148)，id6093554669，原生父COS18/#19、[ ]，`source-pending`；依赖COS145/#146及COS134/#135。structured_plan_reviewer已APPROVED_PLAN，Root批准production实施与登记；作者structured_plan_implementer，独审structured_plan_reviewer，唯一merger planning_budget_merger。runtime源码基线 `3ceadde07d19d94cc89a1ff9699da4dd7dab1928`。
+
+正式[规格](cos147-structured-plan-authoring.md)/[计划](../plans/2026-10-29-structured-plan-authoring.md)/[ADR0005](../adr/0005-structured-plan-authoring.md)。ADR决策accepted，SOURCE实施中。单个作者专用工具只对固定acceptance-plan草稿save/append，host构造外层与真实ref，不生成游戏语义或补覆盖；操作guard、现有诊断hook、strict/capture/review/预算均保留，原raw编辑兼容。仅新eligible任务及其revision使用ordinaryPlanAuthoringPolicy:structured-plan/1，同写planning-started/execution；无execution不重规划，旧legacy不回填，政策消失却遗留工具/规范规则或反向不匹配必须拒绝，不靠brief子串判断。R12/R13是作者机械写入错误，不称strict bug；CONTEXT术语已完成不再编辑。phase40、room12v2、单次5M/30min保持，无下一paid已准备。总147/root100/父41中40源码完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 
