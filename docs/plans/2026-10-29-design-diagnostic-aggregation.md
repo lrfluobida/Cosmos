@@ -1,8 +1,8 @@
 # COS145 实施计划
 
-状态：planning_context_reviewer已APPROVED_PLAN、无阻塞，Root已批准固定短规格/计划的实施与登记；仅免费SOURCE，源码待实际diff独审。只增强普通设计advisory诊断，strict/source检查仍唯一决定passed，phase40原决定与实际运行门禁保持。
+状态：`source-integrated / source-scoped-complete`；最终 `f1882ffd6cd6ec114c873d41b96c2371109a3bdd` 已独审APPROVED_SOURCE_SCOPED、无finding，经Root批准发布 `f6019c4a6fd05b3857e9725dc1d61112b50b6f22`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/146#issuecomment-6487236274)及父[x]已GET核证；main typecheck/build0、有限4/4、0skip，原6/6、8host、4guard与原稿回放按同SHA复用。strict/source/预算不变；reuse11初始hostcheck与有效changes_requested后自动修订未完成，已永久结案。下列步骤保留为原批准计划。
 
-任务：[COS145 / #146](https://github.com/lrfluobida/Cosmos/issues/146)，id6091618219，原生父COS18/#19未勾；依赖[COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115)及[COS118 / #119](https://github.com/lrfluobida/Cosmos/issues/119)。作者design_diagnostics_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
+任务：[COS145 / #146](https://github.com/lrfluobida/Cosmos/issues/146)，id6091618219，原生父COS18/#19已勾；依赖[COS114 / #115](https://github.com/lrfluobida/Cosmos/issues/115)及[COS118 / #119](https://github.com/lrfluobida/Cosmos/issues/119)。作者design_diagnostics_implementer，独审planning_context_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `0f872ff3bee00e65f3c21d84935538fd2c84fd873b315274034da5963f785fca`；plan `621aa643382212c3b86d35b1bbf299d78392252002438f1c202bf17035e98633`。
 
