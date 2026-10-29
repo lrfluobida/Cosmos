@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 45,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151"],
+      "verifiedNativeSubIssues": 46,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152"],
       "verifiedCompletedSubIssues": 45,
       "dependsOn": [
         {
@@ -11981,9 +11981,58 @@
       "actualSharedHeldReservedUnknownMicroCny": 0,
       "realModelGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-152",
+      "title": "设计关切引用的有界纠正诊断",
+      "number": 153,
+      "id": 6100549858,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/153",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-148"
+      ],
+      "sourceBaseCommit": "3da616849839b7f7756d0ab248a58ed5110f1239",
+      "registrationBaseCommit": "4d82491d4cd39548013e2d3323e518472976ce27",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "implementer": "concern_reference_diagnostic_implementer",
+      "reviewer": "concern_reference_diagnostic_reviewer",
+      "independentContractReview": "Root directly approved bounded known concern-reference diagnostics in existing single correction; no extra independent plan approval; independent SOURCE actual-diff review pending",
+      "rootImplementationApproved": true,
+      "approvedSpecSha256": "e55cca0627e67eb087ba1242974d328b416de0b3b838cc4415b4698eb1c60333",
+      "approvedPlanSha256": "dd2bda6e80e708f90dee1a46ee43e741f20919eb2edef21397abe8db6ea7f88c",
+      "formalSpecPath": "docs/specs/cos152-concern-reference-diagnostic.md",
+      "formalPlanPath": "docs/plans/2026-10-29-concern-reference-diagnostic.md",
+      "merger": "planning_budget_merger",
+      "nativeReplayAssistant": "review_reply_diagnosis",
+      "actualExecutionStatus": "SOURCE pending; new run not started and still requires source and funding readiness; approved phase40 remains valid",
+      "actualPhaseLimitMicroCny": 40000000,
+      "actualPhaseDecision": "public-phase2-20261029-budget",
+      "actualFailureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6497722597",
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-148",
+          "number": 149,
+          "id": 6094791306,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/149"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-152 · 设计关切引用的有界纠正诊断](https://github.com/lrfluobida/Cosmos/issues/153)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 46,
+      "verifiedParentCompletedSubIssues": 45
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 151,
+  "totalTaskCount": 152,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
