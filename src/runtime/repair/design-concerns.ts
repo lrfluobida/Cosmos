@@ -9,6 +9,8 @@ import type { AuthorProposal } from '../orchestrator.ts';
 import { RecoveryBlocked, requireOriginalTask } from '../recovery/task-journal.ts';
 import type { ContentSignature, TaskJournal } from '../recovery/task-journal.ts';
 import { recoverAuthorProposal } from './author-protocol.ts';
+import { DesignConcernReferenceError } from './design-concern-reference-diagnostic.ts';
+import type { DesignConcernReferenceIssue } from './design-concern-reference-diagnostic.ts';
 
 export type OrdinaryDesignRevisionPolicy = 'independent-review/1' | 'independent-review/2';
 export const isOrdinaryDesignRevisionPolicy = (value: unknown): value is OrdinaryDesignRevisionPolicy => value === 'independent-review/1' || value === 'independent-review/2';
@@ -91,6 +93,25 @@ export function requireDesignHostEvidence(task: TaskContract, capturedAt: string
     || !Number.isFinite(Date.parse(evidence.recordedAt)) || Date.parse(evidence.recordedAt) > Date.now()
     || !sameValue(evidence.artifactVersions, [...task.inputs, ...task.artifacts])) throw new Error('Design host evidence must match the current capture and attempt boundary.');
 }
+
+/** Shared rejection predicates and field diagnostics for the non-host channels.
+ * Call only after the existing row identity and array guards have passed. */
+function referenceIssues(resolution: DesignConcernResolution, row: number, task: TaskContract, requirement: ExecutionRequirement, capture: ArtifactReference): DesignConcernReferenceIssue[] {
+  const issues: DesignConcernReferenceIssue[] = [];
+  if (resolution.evidenceIds.length) issues.push({ row, field: 'evidenceIds', reason: 'evidence_ids_must_be_empty' });
+  if (resolution.evidenceRefs.length) issues.push({ row, field: 'evidenceRefs', reason: 'evidence_refs_must_be_empty' });
+  const allowed = resolution.basis === 'captured_output' ? [...task.artifacts, ...task.inputs] : [...requirement.sources, ...task.inputs, ...task.context.interfaces];
+  const seen = new Set<string>();
+  for (const [referenceIndex, ref] of resolution.inputVersions.entries()) {
+    const key = JSON.stringify(ref);
+    if (seen.has(key)) issues.push({ row, field: 'inputVersions', referenceIndex, reason: 'duplicate_input_reference' });
+    seen.add(key);
+    if (!allowed.some(fixed => sameValue(fixed, ref))) issues.push({ row, field: 'inputVersions', referenceIndex, reason: 'unauthorized_input_reference' });
+  }
+  if (resolution.basis === 'captured_output' && !resolution.inputVersions.some(ref => sameValue(ref, capture))) issues.push({ row, field: 'inputVersions', reason: 'missing_current_capture' });
+  return issues;
+}
+
 export function parseDesignConcernReview(text: string, task: TaskContract, requirement: ExecutionRequirement, packet: DesignConcernReview,
   parseOriginal: (text: string, task: TaskContract) => { verdict: string; inputVersions: ArtifactReference[]; evidenceIds: string[]; findings: string[] }): DesignReviewProposal {
   const value = decodeModelJson(text) as DesignReviewProposal;
@@ -100,30 +121,41 @@ export function parseDesignConcernReview(text: string, task: TaskContract, requi
   requireDesignHostEvidence(task, packet.capturedAt);
   if (!Array.isArray(concernResolutions) || concernResolutions.length !== packet.concerns.length) throw new Error('Design review must answer every original concern exactly once.');
   const seen = new Set<string>();
-  for (const resolution of concernResolutions) {
-    const concern = packet.concerns.find(item => item.concernId === resolution?.concernId);
-    if (!concern || seen.has(resolution.concernId) || resolution.concernText !== packet.proposal[concern.field][concern.index]
-      || Object.keys(resolution).some(key => !['concernId', 'concernText', 'status', 'basis', 'rationale', 'acceptanceIds', 'inputVersions', 'evidenceIds', 'evidenceRefs'].includes(key))
-      || !['resolved', 'unresolved'].includes(resolution.status) || !['fixed_input', 'captured_output', 'host_evidence'].includes(resolution.basis)
-      || typeof resolution.rationale !== 'string' || !resolution.rationale.trim()) throw new Error('Invalid design concern identity, original text or rationale.');
-    seen.add(resolution.concernId);
-    for (const key of ['acceptanceIds', 'evidenceIds'] as const) if (!Array.isArray(resolution[key]) || resolution[key].some(id => typeof id !== 'string') || new Set(resolution[key]).size !== resolution[key].length) throw new Error('Design resolution identifiers must be unique.');
-    if (!resolution.acceptanceIds.length || resolution.acceptanceIds.some(id => !task.acceptanceIds.includes(id) || !requirement.acceptance.some(item => item.acceptanceId === id))) throw new Error('Design resolution needs current fixed task acceptance IDs.');
-    if (!Array.isArray(resolution.inputVersions) || !resolution.inputVersions.length || !Array.isArray(resolution.evidenceRefs)) throw new Error('Design resolution needs exact fixed references.');
-    if (resolution.basis === 'host_evidence') {
-      const evidence = resolution.evidenceIds.map(id => task.evidence.find(item => item.evidenceId === id));
-      if (!sameValue(resolution.inputVersions, [...task.inputs, ...task.artifacts]) || !evidence.length
-        || evidence.some(item => !item || item.outcome !== 'passed' || !value.evidenceIds.includes(item.evidenceId))
-        || !sameValue(resolution.evidenceRefs, evidence.map(item => item!.source))
-        || resolution.acceptanceIds.some(id => !evidence.some(item => item!.acceptanceIds.includes(id)))) throw new Error('Design resolution lacks current passing host proof.');
-    } else {
-      const allowed = resolution.basis === 'captured_output' ? [...task.artifacts, ...task.inputs] : [...requirement.sources, ...task.inputs, ...task.context.interfaces];
-      if (resolution.evidenceIds.length || resolution.evidenceRefs.length || new Set(resolution.inputVersions.map(ref => JSON.stringify(ref))).size !== resolution.inputVersions.length
-        || resolution.inputVersions.some(ref => !allowed.some(fixed => sameValue(fixed, ref)))) throw new Error('Design resolution references an unauthorized input or stale output.');
-      if (resolution.basis === 'captured_output' && !resolution.inputVersions.some(ref => sameValue(ref, packet.capture))) throw new Error('Design resolution must reference the current capture.');
+  const issues: DesignConcernReferenceIssue[] = [];
+  let referenceMessage: ConstructorParameters<typeof DesignConcernReferenceError>[0] | undefined;
+  try {
+    for (const [row, resolution] of concernResolutions.entries()) {
+      const concern = packet.concerns.find(item => item.concernId === resolution?.concernId);
+      if (!concern || seen.has(resolution.concernId) || resolution.concernText !== packet.proposal[concern.field][concern.index]
+        || Object.keys(resolution).some(key => !['concernId', 'concernText', 'status', 'basis', 'rationale', 'acceptanceIds', 'inputVersions', 'evidenceIds', 'evidenceRefs'].includes(key))
+        || !['resolved', 'unresolved'].includes(resolution.status) || !['fixed_input', 'captured_output', 'host_evidence'].includes(resolution.basis)
+        || typeof resolution.rationale !== 'string' || !resolution.rationale.trim()) throw new Error('Invalid design concern identity, original text or rationale.');
+      seen.add(resolution.concernId);
+      for (const key of ['acceptanceIds', 'evidenceIds'] as const) if (!Array.isArray(resolution[key]) || resolution[key].some(id => typeof id !== 'string') || new Set(resolution[key]).size !== resolution[key].length) throw new Error('Design resolution identifiers must be unique.');
+      if (!resolution.acceptanceIds.length || resolution.acceptanceIds.some(id => !task.acceptanceIds.includes(id) || !requirement.acceptance.some(item => item.acceptanceId === id))) throw new Error('Design resolution needs current fixed task acceptance IDs.');
+      if (!Array.isArray(resolution.inputVersions) || !resolution.inputVersions.length || !Array.isArray(resolution.evidenceRefs)) throw new Error('Design resolution needs exact fixed references.');
+      if (resolution.basis === 'host_evidence') {
+        const evidence = resolution.evidenceIds.map(id => task.evidence.find(item => item.evidenceId === id));
+        if (!sameValue(resolution.inputVersions, [...task.inputs, ...task.artifacts]) || !evidence.length
+          || evidence.some(item => !item || item.outcome !== 'passed' || !value.evidenceIds.includes(item.evidenceId))
+          || !sameValue(resolution.evidenceRefs, evidence.map(item => item!.source))
+          || resolution.acceptanceIds.some(id => !evidence.some(item => item!.acceptanceIds.includes(id)))) throw new Error('Design resolution lacks current passing host proof.');
+      } else {
+        const invalid = referenceIssues(resolution, row, task, requirement, packet.capture);
+        if (invalid.length) {
+          referenceMessage ??= invalid.some(issue => issue.reason !== 'missing_current_capture')
+            ? 'Design resolution references an unauthorized input or stale output.' : 'Design resolution must reference the current capture.';
+          for (const issue of invalid) issues.push(issue);
+          continue;
+        }
+      }
+      if (value.verdict === 'approved' && resolution.status !== 'resolved') throw new Error('Unresolved design concerns cannot approve a task.');
     }
-    if (value.verdict === 'approved' && resolution.status !== 'resolved') throw new Error('Unresolved design concerns cannot approve a task.');
+  } catch (error) {
+    // Preserve the original first failure; stop collecting at an unrelated guard.
+    if (!referenceMessage) throw error;
   }
+  if (referenceMessage) throw new DesignConcernReferenceError(referenceMessage, issues, packet.capture);
   return value;
 }
 export function designReviewedHandoff(task: TaskContract, packet: DesignConcernReview, verdict: DesignReviewProposal): TaskContract['handoff'] {

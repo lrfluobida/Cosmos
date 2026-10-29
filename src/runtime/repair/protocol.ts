@@ -8,6 +8,7 @@ import type { ValidationExecutionBinding } from '../validation-scope.ts';
 import type { ExecutionRequirement } from '../../roles/execution-input.ts';
 import type { TaskContract } from '../../contracts/types.ts';
 import { sameValue } from '../../contracts/validation.ts';
+import { DesignConcernReferenceError } from './design-concern-reference-diagnostic.ts';
 
 export class ReviewProtocolError extends Error {
   constructor() { super('Independent review did not return a valid fixed-version proposal.'); }
@@ -89,7 +90,7 @@ export async function requestReview<T>(options: {
     try { return options.parse(answer.text); }
     catch (error) {
       if (response === options.maxCorrections) throw new ReviewProtocolError();
-      diagnostic = error instanceof ReviewInputVersionsError ? error.correctionDiagnostic : '';
+      diagnostic = error instanceof ReviewInputVersionsError || error instanceof DesignConcernReferenceError ? error.correctionDiagnostic : '';
     }
   }
   throw new ReviewProtocolError();
