@@ -1,6 +1,6 @@
 # COS143 实施计划
 
-状态：`source-integrated / source-scoped-complete`；最终 `830256110dcd441c5ff1baa86cb441630e2873fa` 已经validation_phase_design独立APPROVED_SOURCE_SCOPED、无P1/P2与Root批准，发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)及父[x]已GET核证；main typecheck/build0、最短TEMP代表4/4、0skip，原phase/funding/CLI与追加ledger5/独审幂等证据按源码一致性复用。真实阶段仍30000000µ，无30→40预算决定或实际phase API操作；下列步骤保留为原批准计划，后续真实预算流程未执行。
+状态：`source-integrated / source-scoped-complete`；最终 `830256110dcd441c5ff1baa86cb441630e2873fa` 已经validation_phase_design独立APPROVED_SOURCE_SCOPED、无P1/P2与Root批准，发布 `20fa9dae13471580c5f69d4cd8293172cbd8b233`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6479877216)及父[x]已GET核证；main typecheck/build0、最短TEMP代表4/4、0skip，既有证据按源码一致性复用。随后独立用户预算决定已由Root单次[应用phase40](https://github.com/lrfluobida/Cosmos/issues/144#issuecomment-6484789381)，reuse9已正常预留并[永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6485574791)。下列步骤保留为原批准计划；SOURCE实施批次未操作真实阶段，当前metadata批次也不重做apply或资金动作。
 
 任务：[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)，id6086446699，原生父COS18/#19已勾；依赖[COS109 / #110](https://github.com/lrfluobida/Cosmos/issues/110)及[COS142 / #143](https://github.com/lrfluobida/Cosmos/issues/143)。作者validation_phase_implementer，独审validation_phase_design，唯一merger planning_budget_merger。
 
