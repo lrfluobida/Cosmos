@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 46,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152"],
+      "verifiedNativeSubIssues": 47,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153"],
       "verifiedCompletedSubIssues": 46,
       "dependsOn": [
         {
@@ -12050,9 +12050,58 @@
       "actualSharedHeldReservedUnknownMicroCny": 0,
       "realModelGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-153",
+      "title": "设计关切原文精确匹配诊断",
+      "number": 154,
+      "id": 6101431263,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/154",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-152"
+      ],
+      "sourceBaseCommit": "7337a4703892f2f8bcfcb939de3befbee7e95f60",
+      "registrationBaseCommit": "22c10bec77ed08a4f50a54a1f61e2fd7db4abc75",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "implementer": "concern_text_diagnostic_implementer",
+      "reviewer": "concern_text_diagnostic_reviewer",
+      "independentContractReview": "Root directly approved exact known concernText mismatch diagnostic in existing bounded supplement; no extra independent plan approval; independent SOURCE actual-diff review pending",
+      "rootImplementationApproved": true,
+      "approvedSpecSha256": "09eba98df520f3e46c255ad3fadba1bf59a4da12d09931be9b212ede3cece7d0",
+      "approvedPlanSha256": "560698c064b7646e6d65a00ff4bdbc96c476c367b4726d91490452b849ab9636",
+      "formalSpecPath": "docs/specs/cos153-concern-text-diagnostic.md",
+      "formalPlanPath": "docs/plans/2026-10-29-concern-text-diagnostic.md",
+      "merger": "planning_budget_merger",
+      "nativeReplayAssistant": "review_reply_diagnosis",
+      "actualExecutionStatus": "SOURCE pending; new run not started and still requires source and funding readiness; approved phase40 remains valid",
+      "actualPhaseLimitMicroCny": 40000000,
+      "actualPhaseDecision": "public-phase2-20261029-budget",
+      "actualFailureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6498687459",
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-152",
+          "number": 153,
+          "id": 6100549858,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/153"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-153 · 设计关切原文精确匹配诊断](https://github.com/lrfluobida/Cosmos/issues/154)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 47,
+      "verifiedParentCompletedSubIssues": 46
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 152,
+  "totalTaskCount": 153,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
