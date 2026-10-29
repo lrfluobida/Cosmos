@@ -11,7 +11,7 @@ import { assertOwnership, pathsOverlap } from '../roles/factory.ts';
 import type { AuthorRole, CreatedRole, RoleFactory } from '../roles/factory.ts';
 import { freeze } from '../roles/requirements.ts';
 import { decodeModelJson } from '../roles/protocol.ts';
-import { requestReview, validateProtocolCorrections } from './repair/protocol.ts';
+import { requestReview, ReviewInputVersionsError, validateProtocolCorrections } from './repair/protocol.ts';
 import { requestAuthorProposal, recoverAuthorProposal } from './repair/author-protocol.ts';
 import { codingConcernPacket, codingConcernReviewProtocol, parseCodingConcernReview, requireCodingHostEvidence } from './repair/coding-concerns.ts';
 import type { CodingConcernReview, ReviewProposal } from './repair/coding-concerns.ts';
@@ -86,7 +86,7 @@ export function parseProposal(text: string): AuthorProposal {
 export function parseReview(text: string, task: TaskContract) {
   const value = decodeModelJson(text) as { verdict: 'approved' | 'changes_requested'; inputVersions: ArtifactReference[]; evidenceIds: string[]; findings: string[] };
   if (!value || !['approved', 'changes_requested'].includes(value.verdict) || !Array.isArray(value.findings) || !value.findings.every((s: unknown) => typeof s === 'string') || Object.keys(value).some(key => !['verdict', 'inputVersions', 'evidenceIds', 'findings'].includes(key))) throw new Error('Invalid independent review proposal.');
-  if (!sameValue(value.inputVersions, [...task.inputs, ...task.artifacts])) throw new Error('Review input versions are stale or incomplete.');
+  if (!sameValue(value.inputVersions, [...task.inputs, ...task.artifacts])) throw new ReviewInputVersionsError(value.inputVersions, task);
   if (!Array.isArray(value.evidenceIds) || !value.evidenceIds.length || value.evidenceIds.some((id: string) => !task.evidence.some(e => e.evidenceId === id))) throw new Error('Review must reference host evidence.');
   if (value.verdict === 'approved' && value.findings.length) throw new Error('Unresolved review findings cannot approve a task.');
   if (value.verdict === 'changes_requested' && !value.findings.length) throw new Error('Requested changes require findings.');
