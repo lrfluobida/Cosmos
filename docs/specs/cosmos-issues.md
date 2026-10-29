@@ -1,6 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-10-29 [COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149) 已获Root按唯一字段实证批准最小实施并登记；固定 `6c175bc6aafc72a9e680e795542d29286250fdad` 已独审APPROVED_SOURCE_SCOPED、无finding并获Root集成批准，当前source集成/发布pending，不增加额外计划审批。只让原inputVersions exact失败的可信有界字段/expected诊断进入既有唯一correction，保留专用协议/record/actor/0|1计数与原budget。完整expected来自冻结task/packet，不接纳额外host-ref、不自动删字段或改verdict/findings，不增加retry。原[R14结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6489905622)两份正常stop原文仍拒绝；native正例末条必须明确synthetic正确refs且仍7findings changes_requested，不称approved或游戏成功。phase40/shared3393/C28948131/H0与room12v2保持，无paid/新run。总148/root100，父COS18的42个子项中41个源码完成，整体open/partial。
+2026-10-29 [COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149) 已源码范围完成；最终 `6c175bc6aafc72a9e680e795542d29286250fdad` 独立源码APPROVED_SOURCE_SCOPED、无finding，经Root批准发布 `479d890fdeb4ad1b379ac7e6bbfbeca7ea1da967`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/149#issuecomment-6492302540)、closed(completed)及父[x]已GET核证。main typecheck/build0、有限4/4、0skip，49/49、admit delta1/1、严格类型与native A/B复用。没有新增独立plan审批。总148/root100、父42个源码子项完成，COS18仍open/partial。
+
+[R15结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6492408799)：初稿host/capture通过，首review final length且4848output全reasoning，无text/proposal/correction，COS148 live分支未触发。186062B/4848报价410908µ在余410914µ内，4849需410916µ，guard正确；11显式read连续无重复/缺页，58364B计划可compact37132B但未选择整读。planning3/41720µ、author42/583130µ、review9/172732µ，总54/797582µ、release4202418µ，child231/shared3395/C29745713µ/H0；513800ms仅清理，phase40保持，旧run永久closed。
 
 2026-10-29 [COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148) 已源码范围完成；最终 `ef09163da2a83645774da1b07fc14a55e4cc732c` 独审APPROVED_SOURCE_SCOPED、无剩余finding，经Root批准发布 `6d92bbe1cf2bbc0de26f8c80abba21f81a638513`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/148#issuecomment-6489822351)、closed(completed)及父[x]已GET核证。main typecheck/build0、有限4/4、0skip，unit/host/compat/native/P2/strict/TEMP有效证据复用。总147/root100、父41个源码子项完成，COS18仍open/partial；ADR0005接受时SOURCE实施中的历史表述不改。
 
@@ -2137,9 +2139,9 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 
 ### COS-148 · 独立评审单次纠正的固定输入诊断
 
-[COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149)，id6094791306，原生父COS18/#19、[ ]，`source-pending`；依赖COS138/#139及COS141/#142。Root按实际唯一字段复现批准最小实施，不增加额外plan审批；作者review_input_correction_implementer，native辅助review_input_correction_replay，独立源码reviewer review_input_correction_reviewer已批准固定 `6c175bc6aafc72a9e680e795542d29286250fdad`、无finding，Root已批准后续集成，唯一merger planning_budget_merger。runtime基线 `6d92bbe1cf2bbc0de26f8c80abba21f81a638513`。
+[COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149)，id6094791306，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS138/#139及COS141/#142。作者review_input_correction_implementer，native辅助review_input_correction_replay，独审review_input_correction_reviewer；最终 `6c175bc6aafc72a9e680e795542d29286250fdad` 已APPROVED_SOURCE_SCOPED、无finding，经Root[精确批准](https://github.com/lrfluobida/Cosmos/issues/149#issuecomment-6492301774)，由唯一merger planning_budget_merger发布 `479d890fdeb4ad1b379ac7e6bbfbeca7ea1da967`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/149#issuecomment-6492302540)及父[x]已GET核证。
 
-正式[规格](cos148-review-input-version-correction.md)/[计划](../plans/2026-10-29-review-input-version-correction.md)。仅原exact inputVersions检查失败产生可信路径/数量/完整expected与evidence通道提示，经原唯一correction发回；有界UTF8反馈不回显任意异常/stack或整份模型文本，长列表明确省略并指回packet.inputs。原strict/顺序/数量/专用协议/record/同actor/0|1与预算保持；固定expected本来含host-report时仍保留，不按名字删除。原R14两JSON仍拒绝；native保留前7原responses/reads/usage/grant，末条仅明确synthetic正确refs且保持7findings changes_requested，全原始bad分支仍失败无第2纠正。无额外独立plan审批；固定源码已独审但尚未集成发布，不新ADR或改CONTEXT，不改真实旧输出。phase40、room12v2和单次5M/30min保持，无新run准备。总148/root100/父42中41源码完成，父整体open/partial。
+正式[规格](cos148-review-input-version-correction.md)/[计划](../plans/2026-10-29-review-input-version-correction.md)。3文件精确，main typecheck/build0、4/4、0skip、TAP3452.5477ms，49/49、admit delta1/1、strict及native双分支复用。只有可信inputVersions exact诊断进入原单次correction，strict/协议/record/actor/预算不变。A全原bad仍拒绝且仅1纠正；B前7原response/10read/usage/grant保持，仅末条synthetic正确refs并保留7findings changes_requested，不批准实际R14或认证语义。R15无proposal/correction，live分支未到达，不能记为该修复失败；provider length与正确最大可付cap另有记录。R15永久closed，phase40/room12v2保持，无新paid准备。总148/root100/父42个源码子项完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 

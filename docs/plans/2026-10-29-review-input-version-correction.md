@@ -1,8 +1,8 @@
 # COS148 实施计划
 
-状态：Root已依据唯一字段实证批准最小实施，不增加额外计划审批。登记期间，review_input_correction_reviewer已对固定 `6c175bc6aafc72a9e680e795542d29286250fdad` 给出APPROVED_SOURCE_SCOPED、无finding，Root批准随后唯一集成；当前尚未集成或发布。只增强原唯一correction的可信有界诊断，strict/预算/record/0|1上限保持。
+状态：`source-integrated / source-scoped-complete`；最终 `6c175bc6aafc72a9e680e795542d29286250fdad` 已经review_input_correction_reviewer实际diff独审APPROVED_SOURCE_SCOPED、无finding与Root集成批准，发布 `479d890fdeb4ad1b379ac7e6bbfbeca7ea1da967`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/149#issuecomment-6492302540)及父[x]已GET核证；main typecheck/build0、4/4、0skip，49/49、admit delta1/1、严格类型与native A/B证据复用。未新增独立plan审批。R15在provider length时终止，无proposal/correction，未触发本live分支；下列步骤保留为原批准计划。
 
-任务：[COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149)，id6094791306，原生父COS18/#19未勾；依赖[COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139)及[COS141 / #142](https://github.com/lrfluobida/Cosmos/issues/142)。作者review_input_correction_implementer，native辅助review_input_correction_replay，独立源码reviewer review_input_correction_reviewer，唯一merger planning_budget_merger。
+任务：[COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149)，id6094791306，原生父COS18/#19已勾；依赖[COS138 / #139](https://github.com/lrfluobida/Cosmos/issues/139)及[COS141 / #142](https://github.com/lrfluobida/Cosmos/issues/142)。作者review_input_correction_implementer，native辅助review_input_correction_replay，独立源码reviewer review_input_correction_reviewer，唯一merger planning_budget_merger。
 
 Root批准输入SHA256：spec `ac99996c9aafa7911f9ecd1baccdfdc5020db9026f30efcea0e0f5bca031d936`；plan `34c6fd463726a020efe1a5b83abdfb0e652c216683041f8acb8c286117958a64`。
 
