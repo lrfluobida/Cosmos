@@ -66,7 +66,7 @@ export async function createGamePlanWriter(input: { workspace: string; requireme
   guard(signal: AbortSignal): Promise<void>; afterFileWrite(signal: AbortSignal): Promise<string> }) {
   const requirement = structuredClone(input.requirement);
   const writer = (await createWorkspaceTools({ workspace: input.workspace, readPaths: [], writePaths: [ORDINARY_PLAN_SOURCE] })).find(tool => tool.name === 'write')!;
-  return { readOnly: false, tool: defineTool({ name: GAME_PLAN_WRITE, label: 'Save game acceptance plan draft',
+  return { readOnly: false, tool: defineTool({ name: GAME_PLAN_WRITE, label: 'Save game acceptance plan draft', executionMode: 'sequential',
     description: `Save structured scenario data or append main/reopen steps to ${ORDINARY_PLAN_SOURCE}. Supply game-specific values yourself. The host fixes the envelope and requirement reference. Save may record an incomplete draft; diagnostics, capture and independent review still decide validity and acceptance. No path, reference, authority or script arguments.`,
     parameters: Type.Object({ operation: Type.Union([Type.Literal('save'), Type.Literal('append')]),
       scenario: Type.Optional(Type.Object({}, { additionalProperties: true })),

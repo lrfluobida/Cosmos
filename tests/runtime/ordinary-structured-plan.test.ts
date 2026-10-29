@@ -111,7 +111,7 @@ test('planning interrupted before execution keeps its selection and cannot repla
   assert.equal(f.packets.length, before); assert.deepEqual(await readFile(join(f.root, 'planning-started.json')), planningBytes);
 });
 
-test('native SDK receives the object schema and calls save/append while capture and independent rejection stay authoritative', async t => {
+test('native SDK serializes same-reply save and append batches while capture and independent rejection stay authoritative', async t => {
   const f = await ordinaryHostFixture(t, { fault: 'review' }), scripted = f.hostOptions.sessionFactory!;
   const payloads: any[] = [];
   t.mock.method(globalThis, 'fetch', async (input: any, init?: RequestInit) => {
@@ -122,18 +122,19 @@ test('native SDK receives the object schema and calls save/append while capture 
     const actions = [
       { name: 'write', arguments: { path: 'authors/design/design.json', content: JSON.stringify(design) } },
       { name: 'write-game-plan', arguments: { operation: 'save', scenario: { viewport: f.scenario.viewport, steps: [] } } },
-      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: f.scenario.steps } },
+      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: f.scenario.steps.slice(0, 1) } },
+      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: f.scenario.steps.slice(1) } },
     ];
-    const action = actions[payloads.length - 1];
-    const delta = action ? { tool_calls: [{ index: 0, id: `synthetic-${payloads.length}`, type: 'function', function: { name: action.name, arguments: JSON.stringify(action.arguments) } }] } : { content: handoff.text };
-    const chunk = { id: 'offline-cos147', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: action ? 'tool_calls' : 'stop' }],
+    const writing = payloads.length === 1;
+    const delta = writing ? { tool_calls: actions.map((action, index) => ({ index, id: `synthetic-${index}`, type: 'function', function: { name: action.name, arguments: JSON.stringify(action.arguments) } })) } : { content: handoff.text };
+    const chunk = { id: 'offline-cos147', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: writing ? 'tool_calls' : 'stop' }],
       usage: { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40 } };
     return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
   });
   f.hostOptions.sessionFactory = async config => JSON.parse(config.context!).role === 'design'
     ? createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-cos147-synthetic' } }) : scripted(config);
   const result: any = await f.execute();
-  assert.equal(payloads.length, 4); assert.equal(result.acceptedCandidate, undefined); assert.equal(f.plays.length, 0);
+  assert.equal(payloads.length, 2); assert.equal(result.acceptedCandidate, undefined); assert.equal(f.plays.length, 0);
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 1);
   assert.ok(payloads.at(-1).messages.some((message: any) => message.role === 'tool' && /Saved acceptance plan draft/.test(JSON.stringify(message.content))));
   const captured = JSON.parse(await readFile(join(f.root, 'registry/captures/design/v1/files/_cosmos/acceptance-plan.json'), 'utf8'));
