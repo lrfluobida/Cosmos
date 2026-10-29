@@ -152,8 +152,19 @@ export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptanc
     if (issues.length) throw new Error(`Unsupported acceptance scenario: ${issues.map(issue => issue.replace(/^steps(?=\[|:)/, stagePath).replace(/^viewport(?=\.|:)/, 'scenario.viewport')).join('; ')}`);
     if (draft.scenario.reopen) for (const field of ['snapshot', 'savedSnapshot'] as const) {
       const checkpoint = draft.scenario.reopen.checkpoint, observation = checkpoint[field];
-      if (!steps.some((step, index) => 'observation' in step && sameValue(step.observation, observation)
-        && step.expected === draft.scenario.reopen!.checkpoint.expected && steps.slice(0, index).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind)))) {
+      const matchesCheckpoint = (step: AcceptancePlan['steps'][number]) => 'observation' in step && sameValue(step.observation, observation) && step.expected === checkpoint.expected;
+      if (!steps.some((step, index) => matchesCheckpoint(step) && steps.slice(0, index).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind)))) {
+        const matches = steps.flatMap((step, index) => matchesCheckpoint(step) ? [index] : []);
+        if (matches.length) {
+          const describeStep = (index: number) => {
+            const id = Array.from(steps[index].id);
+            return { index, id: id.slice(0, 80).join(''), omittedIdCodePoints: Math.max(0, id.length - 80) };
+          };
+          const firstClick = steps.findIndex(step => ['mouse-click', 'locator-click'].includes(step.kind));
+          const data = { matchingSteps: matches.slice(0, 4).map(describeStep), omittedMatchingSteps: Math.max(0, matches.length - 4),
+            firstNormalClick: firstClick < 0 ? null : describeStep(firstClick) };
+          throw new Error(`${stagePath}: checkpoint.${field} has matching visible checks, but none has preceding normal click input (mouse-click or locator-click). Matching uses observation kind/selector and expected; step order determines preceding input. Renaming step IDs does not fix input order. Step data (JSON; zero-based indexes): ${JSON.stringify(data)}. selector=${JSON.stringify(observation.selector)}, expected=${JSON.stringify(checkpoint.expected)}.`);
+        }
         throw new Error(`${stagePath}: Missing checkpoint.${field} visible assertion after normal click input: selector=${JSON.stringify(observation.selector)}, expected=${JSON.stringify(checkpoint.expected)}. Each save stage requires both fixed visible checkpoint checks.`);
       }
     }
