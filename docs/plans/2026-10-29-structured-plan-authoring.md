@@ -1,8 +1,8 @@
 # COS147 实施计划
 
-状态：structured_plan_reviewer已APPROVED_PLAN，Root已批准最终兼容边界的源码实施与登记；SOURCE待实际diff独审。新能力不把R12/R13包装成strict bug。[ADR0005](../adr/0005-structured-plan-authoring.md)决策已accepted，接受时SOURCE实施中，不表示代码已完成。
+状态：`source-integrated / source-scoped-complete`；最终 `ef09163da2a83645774da1b07fc14a55e4cc732c` 已独审APPROVED_SOURCE_SCOPED、无剩余finding，经Root批准发布 `6d92bbe1cf2bbc0de26f8c80abba21f81a638513`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/148#issuecomment-6489822351)及父[x]已GET核证；main typecheck/build0、有限4/4、0skip，unit/host/compat/native/P2/strict与原稿TEMP证据复用。ADR0005接受时SOURCE实施中的历史说明保持。R14新工具实际成功保存草稿并通过初始host/capture，但独审提案引用非法、无有效verdict，已永久结案；下列步骤保留为原批准计划。
 
-任务：[COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148)，id6093554669，原生父COS18/#19未勾；依赖[COS145 / #146](https://github.com/lrfluobida/Cosmos/issues/146)及[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)。作者structured_plan_implementer，独审structured_plan_reviewer，唯一merger planning_budget_merger。
+任务：[COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148)，id6093554669，原生父COS18/#19已勾；依赖[COS145 / #146](https://github.com/lrfluobida/Cosmos/issues/146)及[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)。作者structured_plan_implementer，独审structured_plan_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `efc2f9c3a691d12bfd93dbd6b0f628282f30bced3d23fecf4c52a7f6126788e0`；plan `fff207dfd24e48e7d77afe1a8db307dafc8ee7ffe88ddc3a705c60157d27d1b6`；ADR草稿 `f29071a915bf694deff79c62953aa63e65a0926284fd837c169582813a9dc834`。
 

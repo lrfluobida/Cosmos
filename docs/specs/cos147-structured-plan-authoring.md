@@ -1,12 +1,16 @@
 # COS147：结构化执行验收计划草稿写入
 
-状态：structured_plan_reviewer已APPROVED_PLAN，Root已批准最终兼容边界的源码实施与登记；SOURCE待实际diff独审。新能力不把R12/R13包装成strict bug。[ADR0005](../adr/0005-structured-plan-authoring.md)决策已accepted，接受时SOURCE实施中，不表示代码已完成。
+状态：`source-integrated / source-scoped-complete`；最终 `ef09163da2a83645774da1b07fc14a55e4cc732c` 经structured_plan_reviewer独立APPROVED_SOURCE_SCOPED、无剩余finding及Root批准，已发布 `6d92bbe1cf2bbc0de26f8c80abba21f81a638513`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/148#issuecomment-6489822351)、closed(completed)及父[x]已GET核证。新能力不把R12/R13包装成strict bug；[ADR0005](../adr/0005-structured-plan-authoring.md)接受时SOURCE实施中的历史表述保持，当前源码完成另由本次审批与发布记录证明。
 
-任务：[COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148)，id6093554669，原生父COS18/#19未勾；依赖[COS145 / #146](https://github.com/lrfluobida/Cosmos/issues/146)及[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)。作者structured_plan_implementer，独审structured_plan_reviewer，唯一merger planning_budget_merger。
+任务：[COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148)，id6093554669，原生父COS18/#19已勾；依赖[COS145 / #146](https://github.com/lrfluobida/Cosmos/issues/146)及[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)。作者structured_plan_implementer，独审structured_plan_reviewer，唯一merger planning_budget_merger。
 
 批准私有输入SHA256：spec `efc2f9c3a691d12bfd93dbd6b0f628282f30bced3d23fecf4c52a7f6126788e0`；plan `fff207dfd24e48e7d77afe1a8db307dafc8ee7ffe88ddc3a705c60157d27d1b6`；ADR草稿 `f29071a915bf694deff79c62953aa63e65a0926284fd837c169582813a9dc834`。
 
-运行时代码基线3ceadde07d19d94cc89a1ff9699da4dd7dab1928。GitHub身份已登记，SOURCE pending。父COS18/#19；直接依赖COS145/#146(id6091618219)与COS134/#135(id6048570589)。
+运行时代码基线3ceadde07d19d94cc89a1ff9699da4dd7dab1928。GitHub身份与SOURCE完成已核证。父COS18/#19；直接依赖COS145/#146(id6091618219)与COS134/#135(id6048570589)。
+
+SOURCE结果：5个批准文件精确集成；main typecheck/build0、有限4/4、0skip、TAP7548.9691ms，8unit、其余6host、同reply native1、compat4及新测试严格tsc0按有效范围复用。P2真实SDK同reply并行丢批经executionMode sequential修正，4条toolResult按序成功、capture保留双批，原独审仍changes_requested且未accepted。Array.toJSON拒绝已复核；R12/R13原稿TEMP机械save/append仍被strict拒绝，原字节不变，不称语义修复。
+
+[R14永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6489905622)：planning-started/execution均structured-plan/1，2save+8append/0toolErrors，初稿hostcheck和capture通过。两份独审JSON final均正常stop，却都在inputVersions[5]额外列入host-report；唯一correction只重发协议后仍重复，strict拒绝，无有效review/revision/game。7findings保留原模型建议，不删除引用替换实际verdict或转approved。34笔619226µ、释放4380774µ，shared3393/C28948131/H0，phase40/ref不变；374249ms仅清理计时。父COS18仍open/partial，41/41仅指源码子项。
 
 ## 依据及边界
 
