@@ -6,17 +6,19 @@ import test from 'node:test';
 import { createGamePlanWriter, ORDINARY_PLAN_AUTHORING_RULE, readPlanAuthoringPolicy, requirePlanAuthoringTasks } from '../../src/runtime/entrypoint-plan-authoring.ts';
 import { task } from '../contracts/fixtures.ts';
 import type { TaskContract } from '../../src/contracts/types.ts';
+import { validateOrdinaryAcceptancePlan } from '../../src/runtime/entrypoint-acceptance-plan.ts';
+import { ordinaryDraft } from '../roles/ordinary.fixture.ts';
 
 const path = 'authors/design/acceptance-plan.json';
 const requirement = { artifactId: 'requirement-bundle', version: 'v1', location: 'registry/captures/requirement-bundle/v1/files' };
 const scenario = () => ({ viewport: { width: 800, height: 600 }, steps: [{ id: 'click', kind: 'locator-click', selector: '#开始', timeoutMs: 1000 }] });
 const checkpoint = { expected: '已保存', snapshot: { kind: 'text', selector: '#current' }, savedSnapshot: { kind: 'text', selector: '#saved' } };
 const envelope = () => ({ formatVersion: 'ordinary-acceptance-plan/1', requirement, scenario: scenario() });
-async function fixture(t: test.TestContext, guard: (signal: AbortSignal) => Promise<void> = async () => {}) {
+async function fixture(t: test.TestContext, guard: (signal: AbortSignal) => Promise<void> = async () => {}, seededRevision?: boolean) {
   const workspace = await mkdtemp(join(tmpdir(), 'cos147-plan-')); t.after(() => rm(workspace, { recursive: true, force: true }));
   await mkdir(join(workspace, 'authors/design'), { recursive: true });
   let feedback = 0;
-  const host = await createGamePlanWriter({ workspace, requirement, guard, afterFileWrite: async () => { feedback++; return 'Existing advisory diagnostics'; } });
+  const host = await createGamePlanWriter({ workspace, requirement, guard, seededRevision, afterFileWrite: async () => { feedback++; return 'Existing advisory diagnostics'; } });
   const invoke = (args: any, signal?: AbortSignal) => host.tool.execute('synthetic-write', args, signal, undefined, undefined as any);
   const put = (value: string | Buffer) => writeFile(join(workspace, path), value, typeof value === 'string' ? 'utf8' : undefined);
   const read = () => readFile(join(workspace, path));
@@ -35,6 +37,28 @@ test('tool owns only a fixed path and preserves BOM/newlines, parsed values and 
   assert.equal(f.feedback(), 1); assert.equal(f.host.readOnly, false);
   const schema = f.host.tool.parameters as any; assert.equal(schema.type, 'object'); assert.equal(schema.additionalProperties, false);
   assert.deepEqual(Object.keys(schema.properties).sort(), ['checkpoint', 'operation', 'scenario', 'stage', 'steps']);
+});
+
+test('save documents full replacement while empty and omitted scenario data remain valid drafts to record', async t => {
+  const f = await fixture(t);
+  assert.match(f.host.tool.description, /[Ss]ave replaces the entire scenario/);
+  assert.match(f.host.tool.description, /viewport, all steps and reopen; omitted content is not retained/);
+  assert.match(f.host.tool.description, /[Aa]ppend adds steps to the chosen stage in order/);
+  assert.doesNotMatch(f.host.tool.description, /seeded|unapproved drafts/);
+  assert.equal(f.host.tool.executionMode, 'sequential');
+  const revision = await fixture(t, async () => {}, true);
+  assert.deepEqual(revision.host.tool.parameters, f.host.tool.parameters);
+  const complete = { ...scenario(), reopen: { steps: [{ id: 'reopen' }], checkpoint } };
+  for (const selected of [f, revision]) for (const replacement of [{ viewport: scenario().viewport, steps: [] }, {}]) {
+    await selected.invoke({ operation: 'save', scenario: complete });
+    await selected.invoke({ operation: 'save', scenario: replacement });
+    const saved = JSON.parse((await selected.read()).toString('utf8'));
+    assert.deepEqual(saved, { formatVersion: 'ordinary-acceptance-plan/1', requirement, scenario: replacement });
+    assert.throws(() => validateOrdinaryAcceptancePlan(saved, ordinaryDraft()));
+  }
+  const before = await f.read();
+  await assert.rejects(f.invoke({ operation: 'save', scenario: scenario(), seededRevision: true }), /field/);
+  assert.deepEqual(await f.read(), before);
 });
 
 test('unknown and inapplicable arguments or non-JSON values never change a saved draft', async t => {

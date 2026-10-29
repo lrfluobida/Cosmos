@@ -731,7 +731,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
       ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
     if (ordinary) designWriteChecks.set(original.taskId, check);
-    return [check, ...(ordinaryPlanAuthoringPolicy ? [await createGamePlanWriter({ workspace: fixedWorkspace, requirement: requirements, guard, afterFileWrite: check.afterFileWrite })] : []),
+    return [check, ...(ordinaryPlanAuthoringPolicy ? [await createGamePlanWriter({ workspace: fixedWorkspace, requirement: requirements,
+      seededRevision: original.taskId === ordinaryRevisionTaskId, guard, afterFileWrite: check.afterFileWrite })] : []),
       ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
   const codingHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
