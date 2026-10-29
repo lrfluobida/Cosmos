@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 38,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144"],
+      "verifiedNativeSubIssues": 39,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145"],
       "verifiedCompletedSubIssues": 38,
       "dependsOn": [
         {
@@ -11468,9 +11468,64 @@
       "actualSharedHeldReservedUnknownMicroCny": 0,
       "realModelGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-145",
+      "title": "设计诊断聚合反馈",
+      "number": 146,
+      "id": 6091618219,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/146",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-114",
+        "COS-118"
+      ],
+      "sourceBaseCommit": "d97b0a69da6194df3c64a0aa0a05095acacd4a14",
+      "registrationBaseCommit": "f5c2559ff60e6ca9cd502d398abb72f8ff69b2e4",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "implementer": "design_diagnostics_implementer",
+      "reviewer": "planning_context_reviewer",
+      "independentContractReview": "planning_context_reviewer APPROVED_PLAN diagnostic aggregation; strict validator/source/capture/budget unchanged; SOURCE review pending",
+      "rootImplementationApproved": true,
+      "approvedSpecSha256": "0f872ff3bee00e65f3c21d84935538fd2c84fd873b315274034da5963f785fca",
+      "approvedPlanSha256": "621aa643382212c3b86d35b1bbf299d78392252002438f1c202bf17035e98633",
+      "formalSpecPath": "docs/specs/cos145-design-diagnostic-aggregation.md",
+      "formalPlanPath": "docs/plans/2026-10-29-design-diagnostic-aggregation.md",
+      "merger": "planning_budget_merger",
+      "actualExecutionStatus": "SOURCE pending; new run not started and still requires source and funding readiness; approved phase40 remains valid",
+      "actualPhaseLimitMicroCny": 40000000,
+      "actualPhaseDecision": "public-phase2-20261029-budget",
+      "actualFailureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6486301047",
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-114",
+          "number": 115,
+          "id": 5956993439,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/115"
+        },
+        {
+          "taskId": "COS-118",
+          "number": 119,
+          "id": 5962948976,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/119"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-145 · 设计诊断聚合反馈](https://github.com/lrfluobida/Cosmos/issues/146)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 39,
+      "verifiedParentCompletedSubIssues": 38
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 144,
+  "totalTaskCount": 145,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
