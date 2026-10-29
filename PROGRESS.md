@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-10-29 [COS149 / #150](https://github.com/lrfluobida/Cosmos/issues/150) 已获Root批准小范围guidance实施并登记，无额外独立plan审批；固定 `aef3b221abd9bd10886f0261846535091acb569f` 已独审APPROVED_SOURCE_SCOPED、无finding并获Root集成批准，当前source集成/发布pending。仅可信ordinary design reviewer的read描述优先完整JSON：不用numeric offset/limit；接口允许时省略，strict schema要求nullable两键时都传null，由既有normalizeOptionalNulls删除可选null。原schema/execute/executionMode、51200B/2000行、权限/预算/model/thinking/retries/strict不变，数值分页仍原文；其他角色和exact-text编辑说明保持。不强制重写参数，模型采纳或收益须后续实证，不能称自动节费/成功。原[R15结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6492408799)保持，phase40/shared3395/C29745713/H0，无新paid准备。总149/root100，父COS18的43个子项中42个源码完成，整体open/partial。
+
 2026-10-29 [COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149) 已源码范围完成：Root按实证批准最小实施，后续review_input_correction_reviewer独审最终 `6c175bc6aafc72a9e680e795542d29286250fdad` APPROVED_SOURCE_SCOPED、无finding，唯一planning_budget_merger经Root批准发布 `479d890fdeb4ad1b379ac7e6bbfbeca7ea1da967`，3批准文件精确。[SOURCE批准](https://github.com/lrfluobida/Cosmos/issues/149#issuecomment-6492301774)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/149#issuecomment-6492302540)、closed(completed)及父[x]已GET核证。main typecheck/build0、有限4/4、0skip、TAP3452.5477ms，49/49、独审admit delta1/1、严格类型及native A/B复用。总148/root100、父42个源码子项完成，COS18仍open/partial。
 
 COS148仅让原exact inputVersions失败的可信有界诊断进入既有唯一correction，原strict/协议/record/actor/0|1与budget保持。A全原8回复仍strict失败，只1纠正；B原前7回复/10read/usage/grant保持，末条明确synthetic正确refs，7findings/verdict仍changes_requested而非approved。诊断增加1090 raw UTF8B、JSON增加1156B、cwd短16B；实际caps前6次16384再12621/7420，output1712可容纳。223073µ是fixture重放，不是新真实账单；不替换R14实际review或认证全部findings语义。

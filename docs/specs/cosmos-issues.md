@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-29 [COS149 / #150](https://github.com/lrfluobida/Cosmos/issues/150) 已获Root批准小范围guidance实施并登记，无额外独立plan审批；固定 `aef3b221abd9bd10886f0261846535091acb569f` 已独审APPROVED_SOURCE_SCOPED、无finding并获Root集成批准，当前source集成/发布pending。仅可信ordinary design reviewer的read描述优先完整JSON：不用numeric offset/limit；接口允许时省略，strict schema要求nullable两键时都传null，由既有normalizeOptionalNulls删除可选null。原schema/execute/executionMode、51200B/2000行、权限/预算/model/thinking/retries/strict不变，数值分页仍原文；其他角色和exact-text编辑说明保持。不强制重写参数，模型采纳或收益须后续实证，不能称自动节费/成功。原[R15结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6492408799)保持，phase40/shared3395/C29745713/H0，无新paid准备。总149/root100，父COS18的43个子项中42个源码完成，整体open/partial。
+
 2026-10-29 [COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149) 已源码范围完成；最终 `6c175bc6aafc72a9e680e795542d29286250fdad` 独立源码APPROVED_SOURCE_SCOPED、无finding，经Root批准发布 `479d890fdeb4ad1b379ac7e6bbfbeca7ea1da967`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/149#issuecomment-6492302540)、closed(completed)及父[x]已GET核证。main typecheck/build0、有限4/4、0skip，49/49、admit delta1/1、严格类型与native A/B复用。没有新增独立plan审批。总148/root100、父42个源码子项完成，COS18仍open/partial。
 
 [R15结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6492408799)：初稿host/capture通过，首review final length且4848output全reasoning，无text/proposal/correction，COS148 live分支未触发。186062B/4848报价410908µ在余410914µ内，4849需410916µ，guard正确；11显式read连续无重复/缺页，58364B计划可compact37132B但未选择整读。planning3/41720µ、author42/583130µ、review9/172732µ，总54/797582µ、release4202418µ，child231/shared3395/C29745713µ/H0；513800ms仅清理，phase40保持，旧run永久closed。
@@ -2142,6 +2144,12 @@ Root单次stop/settle于2026-10-27T02:33:09.298Z结算29请求567610µ、释放4
 [COS148 / #149](https://github.com/lrfluobida/Cosmos/issues/149)，id6094791306，原生父COS18/#19、[x]，`source-integrated / source-scoped-complete`；依赖COS138/#139及COS141/#142。作者review_input_correction_implementer，native辅助review_input_correction_replay，独审review_input_correction_reviewer；最终 `6c175bc6aafc72a9e680e795542d29286250fdad` 已APPROVED_SOURCE_SCOPED、无finding，经Root[精确批准](https://github.com/lrfluobida/Cosmos/issues/149#issuecomment-6492301774)，由唯一merger planning_budget_merger发布 `479d890fdeb4ad1b379ac7e6bbfbeca7ea1da967`。[完成关闭](https://github.com/lrfluobida/Cosmos/issues/149#issuecomment-6492302540)及父[x]已GET核证。
 
 正式[规格](cos148-review-input-version-correction.md)/[计划](../plans/2026-10-29-review-input-version-correction.md)。3文件精确，main typecheck/build0、4/4、0skip、TAP3452.5477ms，49/49、admit delta1/1、strict及native双分支复用。只有可信inputVersions exact诊断进入原单次correction，strict/协议/record/actor/预算不变。A全原bad仍拒绝且仅1纠正；B前7原response/10read/usage/grant保持，仅末条synthetic正确refs并保留7findings changes_requested，不批准实际R14或认证语义。R15无proposal/correction，live分支未到达，不能记为该修复失败；provider length与正确最大可付cap另有记录。R15永久closed，phase40/room12v2保持，无新paid准备。总148/root100/父42个源码子项完成，父整体open/partial。
+
+### COS-149 · 普通设计评审优先完整JSON读取指引
+
+[COS149 / #150](https://github.com/lrfluobida/Cosmos/issues/150)，id6096612550，原生父COS18/#19、[ ]，`source-pending`；依赖COS146/#147及COS141/#142。Root直接批准小范围指引实施及nullable事实澄清，不追加plan审批；作者review_json_guidance_implementer，独立源码reviewer review_json_guidance_reviewer已批准固定 `aef3b221abd9bd10886f0261846535091acb569f`、无finding，Root已批准后续集成，唯一merger planning_budget_merger。runtime基线 `479d890fdeb4ad1b379ac7e6bbfbeca7ea1da967`。
+
+正式[规格](cos149-review-complete-json-guidance.md)/[计划](../plans/2026-10-29-review-complete-json-guidance.md)。只为既有trusted普通design reviewer增≤512 UTF8B read描述指导，不新增工具/协议/metadata框架。JSON首读无numeric窗口；允许省略则省略，实际required-nullable schema要求offset/limit时两者null，保留SDK原normalizeOptionalNulls；不能要求违反wire schema，也不能手工转换fake参数冒充SDK。明确截断时再分页补齐，非JSON/原文需求仍原窗口；schema/execute/mode和所有权限/预算/strict不改，不影响作者及其精确编辑说明。R15原计划path-only可完整37132B是现有能力，new guidance不保证模型采纳、自动节费或有效review；SOURCE只测真实payload/SDK与明确synthetic选择。phase40、room12v2、5M/30min保持，无paid/新run；不新ADR/CONTEXT。总149/root100/父43中42源码完成，父整体open/partial。
 
 ## 5. 任务与上下文包模板
 
