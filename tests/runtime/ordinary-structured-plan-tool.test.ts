@@ -36,7 +36,8 @@ test('tool owns only a fixed path and preserves BOM/newlines, parsed values and 
   value.scenario.steps.push({ id: 'last', kind: 'bad-step' }); assert.deepEqual(JSON.parse(decoded), value);
   assert.equal(f.feedback(), 1); assert.equal(f.host.readOnly, false);
   const schema = f.host.tool.parameters as any; assert.equal(schema.type, 'object'); assert.equal(schema.additionalProperties, false);
-  assert.deepEqual(Object.keys(schema.properties).sort(), ['checkpoint', 'operation', 'scenario', 'stage', 'steps']);
+  assert.deepEqual(Object.keys(schema.properties).sort(), ['afterStepId', 'checkpoint', 'operation', 'scenario', 'stage', 'steps']);
+  assert.deepEqual(schema.properties.afterStepId, { type: 'string' }); assert.ok(!schema.required.includes('afterStepId'));
 });
 
 test('save documents full replacement while empty and omitted scenario data remain valid drafts to record', async t => {
@@ -101,6 +102,65 @@ test('reopen appends retain checkpoint and order and refuse replacement until ex
   assert.deepEqual(value.scenario.reopen, { checkpoint, steps: [{ id: 'one' }, { id: 'two' }] }); assert.equal(value.reopen, undefined);
   await f.invoke({ operation: 'save', scenario: { ...scenario(), reopen: { steps: [], checkpoint: { ...checkpoint, expected: 'changed' } } } });
   assert.equal(JSON.parse((await f.read()).toString('utf8')).scenario.reopen.checkpoint.expected, 'changed');
+});
+
+test('anchored append inserts ordered batches in only the selected stage and retains all other data', async t => {
+  const f = await fixture(t), value: any = envelope();
+  value.scenario.steps.push({ id: 'last', text: '原有末尾' });
+  value.scenario.reopen = { checkpoint, steps: [{ id: 'click', text: '另一阶段同名' }, { id: 'last', text: '重开末尾' }] };
+  await f.put('\ufeff' + JSON.stringify(value, null, 2).replaceAll('\n', '\r\n') + '\r\n');
+  for (const stage of ['main', 'reopen']) {
+    const steps = [{ id: `${stage}-one`, text: '中文 "引号"\n下一行' }, { id: `${stage}-two`, text: '第二步' }];
+    await f.invoke({ operation: 'append', stage, afterStepId: 'click', steps, ...(stage === 'reopen' ? { checkpoint: structuredClone(checkpoint) } : {}) });
+    (stage === 'main' ? value.scenario.steps : value.scenario.reopen.steps).splice(1, 0, ...steps);
+    const bytes = await f.read(), decoded = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    assert.ok(bytes.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf]))); assert.ok(!/(?<!\r)\n/.test(decoded));
+    assert.deepEqual(JSON.parse(decoded), value);
+  }
+  assert.equal(f.feedback(), 2);
+  assert.match(f.host.tool.description, /afterStepId/);
+  assert.match(f.host.tool.description, /A,C,B/);
+  assert.match(f.host.tool.description, /last inserted step/);
+});
+
+test('anchored append uses current step IDs for chaining and repeats the same anchor without a cursor', async t => {
+  const f = await fixture(t); await f.put(JSON.stringify(envelope()));
+  for (const [afterStepId, id] of [['click', 'B'], ['click', 'C'], ['C', 'D']]) {
+    await f.invoke({ operation: 'append', stage: 'main', afterStepId, steps: [{ id }] });
+  }
+  await f.invoke({ operation: 'append', stage: 'main', steps: [{ id: 'tail' }] });
+  const value = JSON.parse((await f.read()).toString('utf8'));
+  assert.deepEqual(value.scenario.steps.map((step: any) => step.id), ['click', 'C', 'D', 'B', 'tail']);
+});
+
+test('invalid or ambiguous anchors and changed source or checkpoint leave draft bytes intact', async t => {
+  const f = await fixture(t), value: any = envelope();
+  value.scenario.reopen = { checkpoint, steps: [{ id: 'reopen-only' }, { id: 'duplicate' }, { id: 'duplicate' }] };
+  const cases = [
+    { operation: 'append', stage: 'main', afterStepId: 'missing', steps: [] },
+    { operation: 'append', stage: 'main', afterStepId: 'reopen-only', steps: [] },
+    { operation: 'append', stage: 'reopen', afterStepId: 'click', steps: [] },
+    { operation: 'append', stage: 'reopen', afterStepId: 'duplicate', steps: [] },
+    { operation: 'append', stage: 'reopen', afterStepId: 'reopen-only', steps: [], checkpoint: { ...checkpoint, expected: 'changed' } },
+    { operation: 'append', stage: 'main', afterStepId: 'click', steps: [], unknown: true },
+    { operation: 'save', scenario: scenario(), afterStepId: 'click' },
+    ...['', null, 1, true, [], {}].map(afterStepId => ({ operation: 'append', stage: 'main', afterStepId, steps: [] })),
+  ];
+  await f.put(JSON.stringify(value)); const before = await f.read();
+  for (const args of cases) { await assert.rejects(f.invoke(args)); assert.deepEqual(await f.read(), before); }
+  for (const invalid of [envelope(), { ...value, requirement: { ...requirement, version: 'changed' } }]) {
+    await f.put(JSON.stringify(invalid)); const original = await f.read();
+    await assert.rejects(f.invoke({ operation: 'append', stage: 'reopen', afterStepId: 'reopen-only', steps: [{ id: 'not-written' }], checkpoint }));
+    assert.deepEqual(await f.read(), original);
+  }
+  assert.equal(f.feedback(), 0);
+});
+
+for (const phase of [1, 2]) test(`anchored append preserves both original guards (${phase})`, async t => {
+  let calls = 0; const f = await fixture(t, async () => { if (++calls === phase) throw new Error('Original authority changed'); });
+  await f.put(JSON.stringify(envelope())); const before = await f.read();
+  await assert.rejects(f.invoke({ operation: 'append', stage: 'main', afterStepId: 'click', steps: [{ id: 'not-written' }] }), /authority changed/);
+  assert.deepEqual(await f.read(), before); assert.equal(f.feedback(), 0);
 });
 
 for (const phase of [1, 2]) test(`guard refusal before operation or write (${phase}) leaves original bytes intact`, async t => {

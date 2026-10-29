@@ -60,6 +60,12 @@ function containers(plan: JsonObject, requirement: ArtifactReference) {
     throw new Error('Existing draft envelope, requirement or step containers are invalid; use explicit save.');
   }
 }
+function appendSteps(steps: unknown[], added: unknown[], afterStepId?: string) {
+  if (afterStepId === undefined) { steps.push(...added); return; }
+  const matches = steps.flatMap((step, index) => object(step) && step.id === afterStepId ? [index] : []);
+  if (matches.length !== 1) throw new Error('Append requires a unique existing afterStepId in the selected stage.');
+  steps.splice(matches[0] + 1, 0, ...added);
+}
 
 /** Writes only the mutable author draft. Validation and approval stay with the original host. */
 export async function createGamePlanWriter(input: { workspace: string; requirement: ArtifactReference; seededRevision?: boolean;
@@ -67,11 +73,12 @@ export async function createGamePlanWriter(input: { workspace: string; requireme
   const requirement = structuredClone(input.requirement);
   const writer = (await createWorkspaceTools({ workspace: input.workspace, readPaths: [], writePaths: [ORDINARY_PLAN_SOURCE] })).find(tool => tool.name === 'write')!;
   return { readOnly: false, tool: defineTool({ name: GAME_PLAN_WRITE, label: 'Save game acceptance plan draft', executionMode: 'sequential',
-    description: `Save structured scenario data or append main/reopen steps to ${ORDINARY_PLAN_SOURCE}. Save replaces the entire scenario, including viewport, all steps and reopen; omitted content is not retained. Append adds steps to the chosen stage in order. Supply game-specific values yourself. The host fixes the envelope and requirement reference. Save may record an incomplete draft; diagnostics, capture and independent review still decide validity and acceptance. No path, reference, authority or script arguments.`
+    description: `Save structured scenario data or append main/reopen steps to ${ORDINARY_PLAN_SOURCE}. Save replaces the entire scenario, including viewport, all steps and reopen; omitted content is not retained. Append adds steps to the chosen stage in order. Optional append-only afterStepId inserts the whole batch immediately after that unique existing step ID in the chosen stage; omitted means append at the end. The stage and anchor must already exist. Reusing anchor A to insert B then C yields A,C,B; to continue a batch, use its last inserted step ID as the next anchor. Supply game-specific values yourself. The host fixes the envelope and requirement reference. Save may record an incomplete draft; diagnostics, capture and independent review still decide validity and acceptance. No path, reference, authority or script arguments.`
       + (input.seededRevision ? ' Revision workspace: editable authors/design/design.json and authors/design/acceptance-plan.json are seeded from the previous capture and remain unapproved drafts. Read the current drafts and actual review findings first. Prefer targeted edits that preserve unaffected coverage and reopen structure; do not save an empty plan just to start revision. Intentional full replacement remains allowed: supply the full replacement and pass the existing checks. Raw read/write/edit remain available. For complete JSON reads, use null for unspecified offset/limit when the schema requires them; before exact-text edits, read numeric pages for exact source anchors.' : ''),
     parameters: Type.Object({ operation: Type.Union([Type.Literal('save'), Type.Literal('append')]),
       scenario: Type.Optional(Type.Object({}, { additionalProperties: true })),
       stage: Type.Optional(Type.Union([Type.Literal('main'), Type.Literal('reopen')])), steps: Type.Optional(Type.Array(Type.Unknown())),
+      afterStepId: Type.Optional(Type.String()),
       checkpoint: Type.Optional(Type.Object({}, { additionalProperties: true })) }, { additionalProperties: false }),
     async execute(id, supplied, signal, onUpdate, context) {
       const active = signal ?? new AbortController().signal;
@@ -83,7 +90,8 @@ export async function createGamePlanWriter(input: { workspace: string; requireme
         keys(args, ['operation', 'scenario']);
         if (!object(args.scenario)) throw new Error('Save requires a scenario JSON object.');
       } else if (args.operation === 'append') {
-        keys(args, ['operation', 'stage', 'steps', 'checkpoint']);
+        keys(args, ['operation', 'stage', 'steps', 'checkpoint', 'afterStepId']);
+        if (Object.hasOwn(args, 'afterStepId') && (typeof args.afterStepId !== 'string' || !args.afterStepId.length)) throw new Error('Append afterStepId must be a non-empty string.');
         if (!['main', 'reopen'].includes(args.stage) || !Array.isArray(args.steps)
           || Object.hasOwn(args, 'checkpoint') && (args.stage !== 'reopen' || !object(args.checkpoint))) throw new Error('Append requires main/reopen, a steps array and only an optional reopen checkpoint object.');
       } else throw new Error('Unknown plan authoring operation.');
@@ -102,13 +110,14 @@ export async function createGamePlanWriter(input: { workspace: string; requireme
         if (!object(plan)) throw new Error('Existing draft requires an object envelope; use explicit save.');
         requireJson(plan);
         containers(plan, requirement);
-        if (args.stage === 'main') plan.scenario.steps.push(...args.steps);
+        if (args.stage === 'main') appendSteps(plan.scenario.steps, args.steps, args.afterStepId);
         else if (!Object.hasOwn(plan.scenario, 'reopen')) {
+          if (args.afterStepId !== undefined) throw new Error('Anchored append requires an existing reopen stage.');
           if (!object(args.checkpoint)) throw new Error('The first reopen append requires an author checkpoint.');
           plan.scenario.reopen = { steps: args.steps, checkpoint: args.checkpoint };
         } else {
           if (Object.hasOwn(args, 'checkpoint') && !sameValue(plan.scenario.reopen.checkpoint, args.checkpoint)) throw new Error('Reopen checkpoint differs; use explicit save or local edit.');
-          plan.scenario.reopen.steps.push(...args.steps);
+          appendSteps(plan.scenario.reopen.steps, args.steps, args.afterStepId);
         }
       }
       const newline = previous?.includes('\r\n') ? '\r\n' : '\n';

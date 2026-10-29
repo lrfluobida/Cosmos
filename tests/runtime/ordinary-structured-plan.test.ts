@@ -111,19 +111,26 @@ test('planning interrupted before execution keeps its selection and cannot repla
   assert.equal(f.packets.length, before); assert.deepEqual(await readFile(join(f.root, 'planning-started.json')), planningBytes);
 });
 
-test('native SDK serializes same-reply save and append batches while capture and independent rejection stay authoritative', async t => {
-  const f = await ordinaryHostFixture(t, { fault: 'review' }), scripted = f.hostOptions.sessionFactory!;
+test('native SDK normalizes null anchors and serializes same-reply anchored batches before independent rejection', async t => {
+  const f = await ordinaryHostFixture(t, { fault: 'review', persistent: true, configure: (_draft, scenario) => {
+    const complete = scenario.steps[1];
+    scenario.steps = [scenario.steps[0], complete, ...['A', 'B', 'C', 'tail'].map(id => ({ ...complete, id }))];
+    scenario.steps.push(...scenario.reopen!.steps.slice(2));
+  } }), scripted = f.hostOptions.sessionFactory!;
   const payloads: any[] = [];
   t.mock.method(globalThis, 'fetch', async (input: any, init?: RequestInit) => {
     const request = input instanceof Request ? input : new Request(input, init), body = JSON.parse(await request.text()); payloads.push(body);
-    const fn = body.tools.find((tool: any) => tool.function.name === 'write-game-plan')?.function;
-    assert.ok(fn); assert.equal(fn.parameters.type, 'object'); assert.equal(fn.parameters.additionalProperties, false);
-    assert.deepEqual(Object.keys(fn.parameters.properties).sort(), ['checkpoint', 'operation', 'scenario', 'stage', 'steps']);
+    const [click, complete, a, b, c, ...tail] = f.scenario.steps;
     const actions = [
       { name: 'write', arguments: { path: 'authors/design/design.json', content: JSON.stringify(design) } },
-      { name: 'write-game-plan', arguments: { operation: 'save', scenario: { viewport: f.scenario.viewport, steps: [] } } },
-      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: f.scenario.steps.slice(0, 1) } },
-      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: f.scenario.steps.slice(1) } },
+      { name: 'write-game-plan', arguments: { operation: 'save', scenario: { ...f.scenario, steps: [click] }, stage: null, steps: null, checkpoint: null, afterStepId: null } },
+      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: tail.slice(0, 1) } },
+      { name: 'write-game-plan', arguments: { operation: 'append', scenario: null, stage: 'main', steps: tail.slice(1), checkpoint: null, afterStepId: null } },
+      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: [complete], afterStepId: click.id } },
+      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: [c], afterStepId: complete.id } },
+      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: [a], afterStepId: complete.id } },
+      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: [b], afterStepId: a.id } },
+      { name: 'write-game-plan', arguments: { operation: 'save', scenario: {}, afterStepId: click.id } },
     ];
     const writing = payloads.length === 1;
     const delta = writing ? { tool_calls: actions.map((action, index) => ({ index, id: `synthetic-${index}`, type: 'function', function: { name: action.name, arguments: JSON.stringify(action.arguments) } })) } : { content: handoff.text };
@@ -131,12 +138,26 @@ test('native SDK serializes same-reply save and append batches while capture and
       usage: { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40 } };
     return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
   });
-  f.hostOptions.sessionFactory = async config => JSON.parse(config.context!).role === 'design'
-    ? createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-cos147-synthetic' } }) : scripted(config);
+  f.hostOptions.sessionFactory = async config => {
+    if (JSON.parse(config.context!).role !== 'design') return scripted(config);
+    const tool = config.tools!.find(tool => tool.name === 'write-game-plan')!;
+    assert.equal(tool.executionMode, 'sequential');
+    assert.deepEqual((tool.parameters as any).properties.afterStepId, { type: 'string' });
+    assert.ok(!(tool.parameters as any).required.includes('afterStepId'));
+    return createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-cos147-synthetic' } });
+  };
   const result: any = await f.execute();
+  const fn = payloads[0]?.tools.find((tool: any) => tool.function.name === 'write-game-plan')?.function;
+  assert.ok(fn); assert.equal(fn.parameters.type, 'object'); assert.equal(fn.parameters.additionalProperties, false);
+  assert.deepEqual(Object.keys(fn.parameters.properties).sort(), ['afterStepId', 'checkpoint', 'operation', 'scenario', 'stage', 'steps']);
+  assert.equal(fn.strict, false); assert.ok(!fn.parameters.required.includes('afterStepId'));
+  assert.deepEqual(fn.parameters.properties.afterStepId, { type: 'string' });
   assert.equal(payloads.length, 2); assert.equal(result.acceptedCandidate, undefined); assert.equal(f.plays.length, 0);
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 1);
-  assert.ok(payloads.at(-1).messages.some((message: any) => message.role === 'tool' && /Saved acceptance plan draft/.test(JSON.stringify(message.content))));
+  const results = payloads.at(-1).messages.filter((message: any) => message.role === 'tool' && /Saved acceptance plan draft/.test(JSON.stringify(message.content)));
+  assert.equal(results.length, 7); assert.match(JSON.stringify(results.at(-1).content), /read-only.*advisory.*passed/i);
+  const refused = payloads.at(-1).messages.filter((message: any) => message.role === 'tool' && /Unknown or inapplicable plan authoring field/.test(JSON.stringify(message.content)));
+  assert.equal(refused.length, 1);
   const captured = JSON.parse(await readFile(join(f.root, 'registry/captures/design/v1/files/_cosmos/acceptance-plan.json'), 'utf8'));
   assert.deepEqual(captured.scenario, f.scenario);
 });
