@@ -208,8 +208,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths,
       ...(designReviewBudget || designRevisionJsonReads ? { compactFullJsonReads: true } : {}) });
     const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment() }) ?? [];
-    const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name)).map(tool => designReviewBudget && tool.name === 'read'
-      ? { ...tool, description: 'For JSON review, first request the complete file without numeric offset/limit: omit offset and limit when optional; if the tool schema requires them, set both to null (the SDK treats these as omitted). Do not fill in numeric defaults. If the result reports truncation or remaining lines, follow its paging instructions until complete; never treat a partial result as the full file. Keep normal paging for non-JSON files and targeted raw-source reads.\n\n' + tool.description }
+    const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name)).map(tool => (designReviewBudget || designRevisionJsonReads) && tool.name === 'read'
+      ? { ...tool, description: `For JSON ${designReviewBudget ? 'review' : 'revision'}, first request the complete file without numeric offset/limit: omit offset and limit when optional; if the tool schema requires them, set both to null (the SDK treats these as omitted). Do not fill in numeric defaults. If the result reports truncation or remaining lines, follow its paging instructions until complete; never treat a partial result as the full file. Keep normal paging for non-JSON files and targeted raw-source reads.\n\n` + tool.description }
       : tool);
     for (const host of hostTools) {
       if (!task.context.tools.includes(host.tool.name) || (reviewer && !host.readOnly)) continue;

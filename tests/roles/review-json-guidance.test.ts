@@ -7,16 +7,20 @@ import { createPiSession, createWorkspaceTools } from '../../src/providers/pi.ts
 import { authorBudgetFixture } from './author-output-budget.fixture.ts';
 
 const enabled = { ordinaryDesignReviewBudget: () => true };
-const guidance = /^For JSON review, first request the complete file without numeric offset\/limit:/;
+const guidance = /^For JSON (review|revision), first request the complete file without numeric offset\/limit:/;
+const reviewerPrefix = 'For JSON review, first request the complete file without numeric offset/limit: omit offset and limit when optional; if the tool schema requires them, set both to null (the SDK treats these as omitted). Do not fill in numeric defaults. If the result reports truncation or remaining lines, follow its paging instructions until complete; never treat a partial result as the full file. Keep normal paging for non-JSON files and targeted raw-source reads.\n\n';
 
-test('COS149 selected reviewer gets bounded complete JSON guidance without changing the read contract', async t => {
+for (const role of ['reviewer', 'design'] as const) test(`COS154 selected ${role} gets bounded complete JSON guidance without changing the read contract`, async t => {
   const f = await authorBudgetFixture(t);
-  await f.create(enabled, { ...f.input, role: 'reviewer' });
+  await f.create({ ...enabled, ordinaryDesignRevisionJsonReads: async () => true }, { ...f.input, role });
   const selected = f.configs[0].tools!.find(tool => tool.name === 'read')!;
-  const original = (await createWorkspaceTools({ workspace: f.root, readPaths: f.input.task.inputs.map(ref => ref.location), writePaths: [], compactFullJsonReads: true }))[0];
+  const originals = await createWorkspaceTools({ workspace: f.root, readPaths: f.input.task.inputs.map(ref => ref.location),
+    writePaths: role === 'reviewer' ? [] : f.input.task.ownership.writePaths, compactFullJsonReads: true });
+  const original = originals[0];
   assert.match(selected.description, guidance);
   assert.ok(selected.description.endsWith(original.description), 'Keep the SDK and exact-text editing instructions.');
   const prefix = selected.description.slice(0, -original.description.length);
+  assert.equal(prefix, role === 'reviewer' ? reviewerPrefix : reviewerPrefix.replace('JSON review,', 'JSON revision,'));
   assert.ok(Buffer.byteLength(prefix, 'utf8') <= 512);
   assert.match(prefix, /omit offset and limit when optional; if the tool schema requires them, set both to null/);
   assert.match(prefix, /Do not fill in numeric defaults/);
@@ -28,12 +32,13 @@ test('COS149 selected reviewer gets bounded complete JSON guidance without chang
   assert.deepEqual(selected.constrainedSampling, original.constrainedSampling);
   assert.equal(selected.prepareArguments, original.prepareArguments);
   assert.doesNotMatch(original.description, guidance, 'Do not mutate shared SDK metadata.');
-  assert.deepEqual(f.configs[0].tools!.map(tool => tool.name), ['read']);
-  assert.equal(f.configs[0].maxOutputTokens, 8192);
+  assert.deepEqual(f.configs[0].tools!.map(tool => tool.name), role === 'reviewer' ? ['read'] : ['read', 'write', 'edit']);
+  for (const tool of f.configs[0].tools!.filter(tool => tool.name !== 'read')) assert.equal(tool.description, originals.find(item => item.name === tool.name)!.description);
+  assert.equal(f.configs[0].maxOutputTokens, role === 'reviewer' ? 8192 : 32768);
   assert.equal(f.configs[0].thinkingLevel, 'low');
 });
 
-test('COS149 guidance stays out of unselected reviewers, authors, revisions and planning', async t => {
+test('COS154 guidance stays out of unselected reviewers, authors and planning', async t => {
   const f = await authorBudgetFixture(t);
   for (const ordinaryDesignReviewBudget of [undefined, () => false]) {
     await f.create({ ordinaryDesignReviewBudget }, { ...f.input, role: 'reviewer' });
@@ -46,12 +51,12 @@ test('COS149 guidance stays out of unselected reviewers, authors, revisions and 
   }
   await f.create({ ...enabled, ordinaryDesignRevisionJsonReads: async () => true });
   const revision = f.configs.at(-1)!.tools!.find(tool => tool.name === 'read')!;
-  assert.doesNotMatch(revision.description, guidance);
+  assert.match(revision.description, /^For JSON revision,/);
   assert.match(revision.description, /compact display.*exact-text/);
   assert.deepEqual((await f.controller.read()).ledger.entries, []);
 });
 
-for (const windowed of [false, true]) test(`COS149 native SYNTHETIC ${windowed ? 'explicit window remains raw' : 'schema-required nulls return complete JSON'}`, async t => {
+for (const role of ['reviewer', 'design'] as const) for (const windowed of [false, true]) test(`COS154 native SYNTHETIC ${role} ${windowed ? 'explicit window remains raw' : 'schema-required nulls return complete JSON'}`, async t => {
   const f = await authorBudgetFixture(t), path = 'requirements/v1.json';
   await mkdir(join(f.root, 'requirements'));
   const items = Array.from({ length: 450 }, (_, index) => index);
@@ -94,7 +99,8 @@ for (const windowed of [false, true]) test(`COS149 native SYNTHETIC ${windowed ?
       return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
     } catch (error) { payloadFailure = error; throw error; }
   });
-  const session = await f.create({ ...enabled, sessionFactory: config => createPiSession(config) }, { ...f.input, role: 'reviewer' });
+  const session = await f.create({ ...enabled, ordinaryDesignRevisionJsonReads: async () => true,
+    sessionFactory: config => createPiSession(config) }, { ...f.input, role });
   const result = await session.prompt('Exercise one synthetic read choice.').catch(error => { throw payloadFailure ?? error; });
   assert.equal(result.text, 'Synthetic read result received; no semantic review performed.');
   assert.equal(requests, 2);
