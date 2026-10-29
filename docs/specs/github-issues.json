@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 44,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150"],
+      "verifiedNativeSubIssues": 45,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151"],
       "verifiedCompletedSubIssues": 44,
       "dependsOn": [
         {
@@ -11914,9 +11914,57 @@
       "actualSharedHeldReservedUnknownMicroCny": 0,
       "realModelGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-151",
+      "title": "按现有步骤锚点插入计划步骤",
+      "number": 152,
+      "id": 6099354043,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/152",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-147"
+      ],
+      "sourceBaseCommit": "5619429c8882bd381140211f701740474e44a1f6",
+      "registrationBaseCommit": "f256042cb338da7d8d7b5cce61167e14b14ac178",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "implementer": "plan_step_insertion_implementer",
+      "reviewer": "plan_step_insertion_reviewer",
+      "independentContractReview": "Root directly approved minimal compatible append anchor extension; no extra independent plan approval; independent SOURCE actual-diff review pending",
+      "rootImplementationApproved": true,
+      "approvedSpecSha256": "829cdf7801c9105a29ff5b11ffc4df5d708523a817971bdc1ef1e531da075857",
+      "approvedPlanSha256": "fb02fbd6c6bf4b7b4bd3b586d678b2ea7d424f4a49433c631b90dbc774168e30",
+      "formalSpecPath": "docs/specs/cos151-plan-step-anchor-insertion.md",
+      "formalPlanPath": "docs/plans/2026-10-29-plan-step-anchor-insertion.md",
+      "merger": "planning_budget_merger",
+      "actualExecutionStatus": "SOURCE pending; new run not started and still requires source and funding readiness; approved phase40 remains valid",
+      "actualPhaseLimitMicroCny": 40000000,
+      "actualPhaseDecision": "public-phase2-20261029-budget",
+      "actualFailureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6496249569",
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-147",
+          "number": 148,
+          "id": 6093554669,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/148"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-151 · 按现有步骤锚点插入计划步骤](https://github.com/lrfluobida/Cosmos/issues/152)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 45,
+      "verifiedParentCompletedSubIssues": 44
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 150,
+  "totalTaskCount": 151,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
