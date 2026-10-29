@@ -110,6 +110,32 @@ test('ordinary author receives current errors after real writes and edits, then 
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 3);
 });
 
+test('COS155 real write/edit feedback distinguishes checkpoint matches without prior input and preserves draft bytes', async t => {
+  const f = await ordinaryHostFixture(t, { persistent: true, fault: 'review' });
+  const run = author(f, async config => {
+    const state = await readFile(join(f.root, 'snapshot.json'));
+    await call(config, 'write', { path: main, content: JSON.stringify(design()) });
+    const value = plan(f, config), steps = value.scenario.reopen.steps;
+    for (let index = steps.length - 1; index >= 0; index--) if (['mouse-click', 'locator-click'].includes(steps[index].kind)) steps.splice(index, 1);
+    const first = JSON.stringify(value);
+    let text = feedback(await call(config, 'write', { path: acceptance, content: first }));
+    assert.match(text, /scenario\.reopen\.steps: checkpoint.snapshot has matching visible checks, but none has preceding normal click input/);
+    assert.match(text, /"firstNormalClick":null/); assert.match(text, /Renaming step IDs does not fix input order/);
+    assert.equal(await readFile(join(config.workspace, acceptance), 'utf8'), first);
+    const renamed = steps.find((step: any) => step.observation?.selector === value.scenario.reopen.checkpoint.snapshot.selector);
+    renamed.id = 'renamed-checkpoint'; const second = JSON.stringify(value);
+    text = feedback(await call(config, 'edit', { path: acceptance, edits: [{ oldText: first, newText: second }] }));
+    assert.match(text, /"id":"renamed-checkpoint"/); assert.match(text, /none has preceding normal click input/);
+    const explicit = await call(config, 'validate-game-design', {}), block = explicit.content[0];
+    assert.equal(block.type, 'text'); if (block.type !== 'text') throw new Error('Expected diagnostic text');
+    const checked = JSON.parse(block.text); assert.equal(checked.passed, false); assert.ok(text.includes(checked.errors[0].message));
+    assert.equal(await readFile(join(config.workspace, acceptance), 'utf8'), second);
+    assert.deepEqual(await readFile(join(f.root, 'snapshot.json')), state);
+  });
+  const result = await run(); assert.equal(result.acceptedCandidate, undefined); assert.equal(f.plays.length, 0);
+  assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 0, 'Invalid checkpoint input still fails before capture and independent review.');
+});
+
 for (const name of ['write', 'edit']) test(`Windows case variants retain ordinary feedback after scoped ${name}`, { skip: process.platform !== 'win32' }, async t => {
   const f = await ordinaryHostFixture(t, { fault: 'review' });
   const run = author(f, async config => {
