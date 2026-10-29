@@ -1,12 +1,16 @@
 # COS146：在SDK截断前提供有界完整JSON展示
 
-状态：revision_json_read_reviewer已APPROVED_PLAN、无必要修正，Root已批准固定短规格/计划的源码实施与登记；SOURCE待实际diff独审。仅选中角色的有界JSON展示，原SDK限额/raw分页/权限/预算/strict保持。
+状态：`source-integrated / source-scoped-complete`；最终 `7dc79e19df2088cc3fb8a9eca2809a0083f3787b` 经revision_json_read_reviewer独立APPROVED_SOURCE_SCOPED、P2闭合且无剩余finding及Root批准，已发布 `3ceadde07d19d94cc89a1ff9699da4dd7dab1928`。[SOURCE完成关闭](https://github.com/lrfluobida/Cosmos/issues/147#issuecomment-6488550726)、closed(completed)及父[x]已GET核证。仅选中角色的有界JSON展示，原SDK限额/raw分页/权限/预算/strict保持。
 
-任务：[COS146 / #147](https://github.com/lrfluobida/Cosmos/issues/147)，id6092397335，原生父COS18/#19未勾；依赖[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)及[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)。作者revision_json_read_implementer，独审revision_json_read_reviewer，唯一merger planning_budget_merger。作者分支起点 `9b844186acfa2138bb2922745b88b5a4bd0cf08b`，与原runtime源码等价。
+任务：[COS146 / #147](https://github.com/lrfluobida/Cosmos/issues/147)，id6092397335，原生父COS18/#19已勾；依赖[COS127 / #128](https://github.com/lrfluobida/Cosmos/issues/128)及[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)。作者revision_json_read_implementer，独审revision_json_read_reviewer，唯一merger planning_budget_merger。作者分支起点 `9b844186acfa2138bb2922745b88b5a4bd0cf08b`，与原runtime源码等价。
 
 批准私有输入SHA256：spec `aa49d10c3fa75f142be6f77352edf117d4c1c4e9ee96975455556ee3da35b207`；plan `10a7d2c46ed00656a91864fc505e2ad4a5bde491aa430237f1fee1159697a53f`。
 
-源码基线f6019c4a6fd05b3857e9725dc1d61112b50b6f22。GitHub身份已登记，SOURCE pending。父COS18/#19；直接依赖COS127/#128(id6031812917)、COS134/#135(id6048570589)。
+源码基线f6019c4a6fd05b3857e9725dc1d61112b50b6f22。GitHub身份与SOURCE完成已核证。父COS18/#19；直接依赖COS127/#128(id6031812917)、COS134/#135(id6048570589)。
+
+SOURCE结果：1443010a→7dc79e1仅追加两mjs夹具P2修正，生产/TS测试无delta；9个批准文件精确集成。main typecheck/build0、有限4/4、0skip、TAP9978.5572ms；provider+factory23/23、host1/1、旧scope/cap4/4及P2 R3/R4 normal各1/1按已审字节等价复用。真正SDK原58907B计划由截断51196B/1710行变为完整39414B，6225源token、原SHA及显式raw分页保持。结论仅限完整有界展示和可信选择，不证明模型修订成功。
+
+[reuse12](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6488612834)和预先声明的一次same-source受限[reuse13](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6488614818)均已永久PASS_CLOSED。R12草稿增量JSON被破坏后恢复124steps，仍缺3IDs/无reopen，准确反馈已到达；R13最终reopen置于顶层而非scenario内，无provider length，strict正确拒绝。两次都未进入选中的reviewer/revision分支，不能写成COS146的live成功或失败；无review/revision/game。最新shared3391/C28328905/H0，phase40/room12v2保持，无后续paid已准备。父COS18仍open/partial，40/40仅指源码子项。
 
 ## 实证
 
