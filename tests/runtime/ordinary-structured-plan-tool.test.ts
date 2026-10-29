@@ -40,13 +40,14 @@ test('tool owns only a fixed path and preserves BOM/newlines, parsed values and 
 test('unknown and inapplicable arguments or non-JSON values never change a saved draft', async t => {
   const f = await fixture(t); await f.invoke({ operation: 'save', scenario: scenario() }); const before = await f.read();
   const cycle: any = {}; cycle.self = cycle;
+  const customArray = new class extends Array<unknown> { toJSON() { return 'Changed by inherited serialization'; } }();
   const sparse = Array(1), symbol = { [Symbol('x')]: 'discarded' }, getter = Object.defineProperty({}, 'x', { enumerable: true, get() { throw new Error('Getter must not run'); } });
   for (const args of [null, [], {}, { operation: 'other' }, { operation: 'save', scenario: [], path },
     ...['path', 'requirement', 'formatVersion', 'authority', 'url', 'steps', 'checkpoint', 'stage'].map(key => ({ operation: 'save', scenario: scenario(), [key]: key })),
     { operation: 'append', stage: 'other', steps: [] }, { operation: 'append', stage: 'main', steps: {}, },
     { operation: 'append', stage: 'main', steps: [], checkpoint }, { operation: 'append', stage: 'reopen', steps: [] },
     { operation: 'append', stage: 'main', steps: [], scenario: {} },
-    ...[undefined, () => {}, Number.NaN, Infinity, BigInt(1), cycle, sparse, symbol, getter, new Date()].map(bad => ({ operation: 'save', scenario: { bad } }))]) {
+    ...[undefined, () => {}, Number.NaN, Infinity, BigInt(1), cycle, sparse, symbol, getter, new Date(), customArray].map(bad => ({ operation: 'save', scenario: { bad } }))]) {
     await assert.rejects(f.invoke(args)); assert.deepEqual(await f.read(), before);
   }
   assert.equal(f.feedback(), 1);

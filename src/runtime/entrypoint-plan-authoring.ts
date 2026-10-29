@@ -36,7 +36,8 @@ const object = (value: unknown): value is JsonObject => !!value && typeof value 
 function requireJson(value: unknown, parents = new Set<object>()): void {
   if (value === null || typeof value === 'string' || typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value)) return;
   if (typeof value !== 'object' || parents.has(value)) throw new Error('Plan authoring accepts JSON data only.');
-  if (!Array.isArray(value) && ![Object.prototype, null].includes(Object.getPrototypeOf(value))) throw new Error('Plan authoring requires plain JSON objects.');
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== null && prototype !== (Array.isArray(value) ? Array.prototype : Object.prototype)) throw new Error('Plan authoring requires plain JSON containers.');
   parents.add(value);
   const keys = Reflect.ownKeys(value);
   if (Array.isArray(value) && (keys.length !== value.length + 1 || keys.some(key => key !== 'length' && (typeof key !== 'string' || !/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length)))) throw new Error('Plan authoring requires dense JSON arrays.');
