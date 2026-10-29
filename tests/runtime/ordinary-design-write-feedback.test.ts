@@ -91,6 +91,10 @@ test('ordinary author receives current errors after real writes and edits, then 
     const pixels = structuredClone(valid); pixels.scenario.steps[0] = { id: 'click', kind: 'mouse-click', selector: '#light', x: 240, y: 160 };
     text = feedback(await put(acceptance, pixels));
     assert.match(text, /scenario\.steps\[0\]\.x/); assert.match(text, /normalized selector bounds/);
+    const multiple = structuredClone(valid); multiple.scenario.reopen.checkpoint.expected = '';
+    multiple.scenario.steps[1].observation.kind = 'appears'; multiple.scenario.reopen.steps[1].observation.kind = 'disabled';
+    text = feedback(await put(acceptance, multiple));
+    assert.match(text, /checkpoint.expected/); assert.match(text, /scenario.steps\[1\]/); assert.match(text, /scenario.reopen.steps\[1\]/);
     const reopen = structuredClone(valid); reopen.scenario.reopen.steps.pop();
     text = feedback(await put(acceptance, reopen));
     assert.match(text, /scenario\.reopen\.steps.*checkpoint.savedSnapshot/);
@@ -140,10 +144,10 @@ test('automatic diagnostics bound both repeated schema failures and long field n
     const bad = plan(f, config);
     bad.scenario.steps = [...Array.from({ length: 12 }, (_, i) => ({ id: `click-${i}`, kind: 'locator-click', selector: '#light', timeoutMs: 1000, acceptanceId: 'light' })), bad.scenario.steps[1]];
     text = feedback(await call(config, 'write', { path: acceptance, content: JSON.stringify(bad) }));
-    assert.equal(text.split('\n').filter(line => line.startsWith('- ')).length, 8); assert.doesNotMatch(text, /steps\[8\]/);
+    assert.equal(text.split('\n').filter(line => line.startsWith('- ')).length, 1); assert.match(text, /steps\[11\]/);
     const long = plan(f, config); long.scenario.steps[0]['错误字段'.repeat(2000)] = true;
     text = feedback(await call(config, 'write', { path: acceptance, content: JSON.stringify(long) }));
-    assert.equal(text.length, 4096); assert.match(text, /Unknown field.*错误字段/);
+    assert.ok(text.length <= 4096); assert.match(text, /Unknown field.*错误字段/); assert.match(text, /detail characters omitted.*validate-game-design/);
     assert.match(feedback(await call(config, 'write', { path: acceptance, content: JSON.stringify(plan(f, config)) })), /passed/);
   });
   assert.ok((await run()).acceptedCandidate);
