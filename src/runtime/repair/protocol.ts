@@ -6,9 +6,33 @@ import { executionWindowView } from '../execution-window.ts';
 import { requireValidationScope } from '../validation-scope.ts';
 import type { ValidationExecutionBinding } from '../validation-scope.ts';
 import type { ExecutionRequirement } from '../../roles/execution-input.ts';
+import type { TaskContract } from '../../contracts/types.ts';
+import { sameValue } from '../../contracts/validation.ts';
 
 export class ReviewProtocolError extends Error {
   constructor() { super('Independent review did not return a valid fixed-version proposal.'); }
+}
+
+/** Raised only by the original exact-input check. Never echo reply values or
+ * arbitrary exception text into the trusted correction instructions. */
+export class ReviewInputVersionsError extends Error {
+  readonly correctionDiagnostic: string;
+  constructor(actual: unknown, task: TaskContract) {
+    super('Review input versions are stale or incomplete.');
+    const expected = [...task.inputs, ...task.artifacts];
+    let path = '$.inputVersions';
+    if (Array.isArray(actual)) {
+      let index = 0;
+      while (index < Math.min(actual.length, expected.length) && sameValue(actual[index], expected[index])) index++;
+      path += `[${index}]`;
+    }
+    const prefix = `\n\nFixed inputVersions diagnostic: Review input versions are stale or incomplete. Field: ${path}. Expected count: ${expected.length}; received count: ${Array.isArray(actual) ? actual.length : 'not an array'}. Top-level inputVersions must exactly equal packet.inputs in order and count. Cite host evidence separately through evidenceIds using recorded IDs; reading host evidence does not add its source to packet.inputs. Preserve every reference already in packet.inputs, including any host source listed there.\n`;
+    const omittedEvidence = `${task.evidence.length} evidence IDs omitted; use the recorded IDs in packet.evidence.`;
+    let inputs = `Expected inputVersions: ${JSON.stringify(expected)}\n`;
+    if (Buffer.byteLength(prefix + inputs + omittedEvidence, 'utf8') > 4096) inputs = `${expected.length} references omitted; use the complete exact packet.inputs from the original fixed packet.\n`;
+    const evidence = `Recorded host evidence IDs: ${JSON.stringify(task.evidence.map(item => item.evidenceId))}`;
+    this.correctionDiagnostic = prefix + inputs + (Buffer.byteLength(prefix + inputs + evidence, 'utf8') <= 4096 ? evidence : omittedEvidence);
+  }
 }
 
 export interface ReviewCorrectionRecord {
@@ -34,6 +58,7 @@ export async function requestReview<T>(options: {
   validation?: { binding: ValidationExecutionBinding; requirement: ExecutionRequirement };
 }): Promise<T> {
   validateProtocolCorrections(options.maxCorrections);
+  let diagnostic = '';
   for (let response = 0; response <= options.maxCorrections; response++) {
     options.signal.throwIfAborted();
     if (response > 0) {
@@ -59,10 +84,13 @@ export async function requestReview<T>(options: {
     }
     options.signal.throwIfAborted();
     // Provider/timeout/admission failures are not parse failures and never retry here.
-    const answer = await options.reviewer.prompt(response === 0 ? options.prompt : options.correctionPrompt ?? correction, { signal: options.signal, ...(response === 0 && options.images ? { images: options.images } : {}) });
+    const answer = await options.reviewer.prompt(response === 0 ? options.prompt : (options.correctionPrompt ?? correction) + diagnostic, { signal: options.signal, ...(response === 0 && options.images ? { images: options.images } : {}) });
     options.signal.throwIfAborted();
     try { return options.parse(answer.text); }
-    catch { if (response === options.maxCorrections) throw new ReviewProtocolError(); }
+    catch (error) {
+      if (response === options.maxCorrections) throw new ReviewProtocolError();
+      diagnostic = error instanceof ReviewInputVersionsError ? error.correctionDiagnostic : '';
+    }
   }
   throw new ReviewProtocolError();
 }
