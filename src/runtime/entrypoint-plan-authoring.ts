@@ -62,12 +62,13 @@ function containers(plan: JsonObject, requirement: ArtifactReference) {
 }
 
 /** Writes only the mutable author draft. Validation and approval stay with the original host. */
-export async function createGamePlanWriter(input: { workspace: string; requirement: ArtifactReference;
+export async function createGamePlanWriter(input: { workspace: string; requirement: ArtifactReference; seededRevision?: boolean;
   guard(signal: AbortSignal): Promise<void>; afterFileWrite(signal: AbortSignal): Promise<string> }) {
   const requirement = structuredClone(input.requirement);
   const writer = (await createWorkspaceTools({ workspace: input.workspace, readPaths: [], writePaths: [ORDINARY_PLAN_SOURCE] })).find(tool => tool.name === 'write')!;
   return { readOnly: false, tool: defineTool({ name: GAME_PLAN_WRITE, label: 'Save game acceptance plan draft', executionMode: 'sequential',
-    description: `Save structured scenario data or append main/reopen steps to ${ORDINARY_PLAN_SOURCE}. Supply game-specific values yourself. The host fixes the envelope and requirement reference. Save may record an incomplete draft; diagnostics, capture and independent review still decide validity and acceptance. No path, reference, authority or script arguments.`,
+    description: `Save structured scenario data or append main/reopen steps to ${ORDINARY_PLAN_SOURCE}. Save replaces the entire scenario, including viewport, all steps and reopen; omitted content is not retained. Append adds steps to the chosen stage in order. Supply game-specific values yourself. The host fixes the envelope and requirement reference. Save may record an incomplete draft; diagnostics, capture and independent review still decide validity and acceptance. No path, reference, authority or script arguments.`
+      + (input.seededRevision ? ' Revision workspace: editable authors/design/design.json and authors/design/acceptance-plan.json are seeded from the previous capture and remain unapproved drafts. Read the current drafts and actual review findings first. Prefer targeted edits that preserve unaffected coverage and reopen structure; do not save an empty plan just to start revision. Intentional full replacement remains allowed: supply the full replacement and pass the existing checks. Raw read/write/edit remain available. For complete JSON reads, use null for unspecified offset/limit when the schema requires them; before exact-text edits, read numeric pages for exact source anchors.' : ''),
     parameters: Type.Object({ operation: Type.Union([Type.Literal('save'), Type.Literal('append')]),
       scenario: Type.Optional(Type.Object({}, { additionalProperties: true })),
       stage: Type.Optional(Type.Union([Type.Literal('main'), Type.Literal('reopen')])), steps: Type.Optional(Type.Array(Type.Unknown())),
