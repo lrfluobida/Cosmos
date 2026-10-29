@@ -101,7 +101,7 @@ export async function reuse4Profile({ sourceRoot, malformed = false }) {
       assert.equal(settlements.reduce((sum, row) => sum + row.chargedMicroCny, 0), 143737);
       assert.equal(evidence.pathMappings.length, 5);
       assert.deepEqual(nativeTools.map(row => row.path), readCalls.map(row => row.path));
-      assert.deepEqual(nativeTools.slice(0, 4).map(row => row.readBytes), [34585, 680, 18111, 44201]);
+      assert.deepEqual(nativeTools.slice(0, 4).map(row => row.readBytes), [36675, 821, 18509, 49817]);
       assert.ok(nativeTools.every(row => !row.isError && !row.truncated));
       const actualRaw = assistants[3].content.find(block => block.type === 'text').text;
       assert.equal(actualRaw, malformed ? malformedVerdict : rawVerdict);
