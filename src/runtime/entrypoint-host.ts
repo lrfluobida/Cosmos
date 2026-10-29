@@ -7,8 +7,9 @@ import { validateTask } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
 import { createArtifactRegistry } from '../artifacts/index.ts';
 import type { PassedEvidence } from '../artifacts/index.ts';
-import { directory, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
+import { directory, owns, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
 import { createRoleFactory } from '../roles/factory.ts';
+import { createGamePlanWriter, GAME_PLAN_WRITE, ORDINARY_PLAN_AUTHORING_RULE, requirePlanAuthoringTasks } from './entrypoint-plan-authoring.ts';
 import { requestDesignDraft, requestDesignQuestions } from '../roles/interview.ts';
 import { requireBrowserDraft, validateGameDraft, confirmRequirements, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID, MODULE_ACCEPTANCE_IDS } from '../roles/requirements.ts';
 import type { AcceptancePlan } from '../acceptance/plan.ts';
@@ -369,6 +370,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   if (mediaPolicy !== undefined && (mediaPolicy !== 'audio-state/1' || !ordinaryDraft || preparation || validation || human)) throw new Error('Invalid ordinary media observation policy for this host.');
   const modular = !!(draft as BrowserGameDraft).codeProfile;
   const budgetEligible = !!ordinaryDraft && !modular && !validation && !preparation && !human && !binding && !historical;
+  const ordinaryPlanAuthoringPolicy = input.ordinaryPlanAuthoringPolicy;
+  if (ordinaryPlanAuthoringPolicy !== undefined && (ordinaryPlanAuthoringPolicy !== 'structured-plan/1' || !budgetEligible)) throw new Error('Invalid ordinary plan authoring policy for this host.');
   if (input.ordinaryDesignBudgetPolicy !== undefined && (input.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !budgetEligible)) throw new Error('Invalid ordinaryDesignBudgetPolicy for this host.');
   const ordinaryDesignBudgetPolicy = budgetEligible && !input.resume ? 'review-reserve/1' as const : input.ordinaryDesignBudgetPolicy;
   if (input.ordinaryDesignRevisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(input.ordinaryDesignRevisionPolicy) || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignRevisionPolicy for this host.');
@@ -706,6 +709,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     if (supplied.role !== 'design') return [];
     const original = (await controller.read()).tasks.find(task => task.taskId === supplied.taskId);
     if (!original || role(original) !== 'design') throw new Error('Game design check requires its original design author task.');
+    requirePlanAuthoringTasks([{ role: 'design', task: original }], ordinaryPlanAuthoringPolicy);
+    if (ordinaryPlanAuthoringPolicy) owns(original.ownership, ORDINARY_PLAN_SOURCE);
     const fixedWorkspace = await realpath(workspace(original));
     if (resolve(supplied.workspace) !== fixedWorkspace) throw new Error('Game design check workspace differs from its original author.');
     const guard = async (signal: AbortSignal) => {
@@ -726,7 +731,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
       ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
     if (ordinary) designWriteChecks.set(original.taskId, check);
-    return [check, ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
+    return [check, ...(ordinaryPlanAuthoringPolicy ? [await createGamePlanWriter({ workspace: fixedWorkspace, requirement: requirements, guard, afterFileWrite: check.afterFileWrite })] : []),
+      ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
   const codingHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
     if (supplied.role !== 'coding') return [];
@@ -773,6 +779,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
     ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}),
     ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy } : {}),
+    ...(ordinaryPlanAuthoringPolicy ? { ordinaryPlanAuthoringPolicy } : {}),
     capability: ordinary ? 'ordinary-design-execution/1' : preparation ? 'browser-design-input-preparation-v1' : 'browser-input-media2d-v1', availableArtifacts,
     taskPolicies: [
       { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * (ordinaryDesignBudgetPolicy ? 0.25 : 0.15)), writePaths: ['authors/design/design.json', ...(classicEntries?.selection.measurement ? ['authors/design/classic-entry-plan.json'] : [])],
@@ -807,6 +814,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Expose a non-configurable getter window.cosmosDebug returning frozen plain data. Its media.characters array follows manifest order: {id,loadedFrames,states:[{name,seen}]}; media.audio follows manifest order: {id,decoded,started}. Derive loadedFrames/decoded from actual Phaser texture/audio-cache readiness, states seen from actual displayed animation transitions, and started from successful sound start after normal user input. Preserve cumulative observations across scene changes in this document. Never fill these fields with declared constants or fabricate them; independent review checks their source. The host checks every declared state and audio clip on the frozen normal-input path and reports missing coverage as incomplete.',
         'The host builds, runs normal inputs, captures immutable output and asks a separate reviewer. Return only the required author handoff JSON after writing files.'] }],
     validateTasks(tasks) {
+      requirePlanAuthoringTasks(tasks, ordinaryPlanAuthoringPolicy);
       if (human && !binding) for (const item of tasks) {
         const policy = host.taskPolicies.find(policy => policy.role === item.role);
         if (!policy || validateTask(item.task).length || resolve(item.workspace) !== resolve(policy.workspace)
@@ -1429,7 +1437,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   if (ordinary && ordinaryDraft) {
     const design = host.taskPolicies.find(policy => policy.role === 'design')!;
     design.writePaths.push(ORDINARY_PLAN_SOURCE); design.outputs[0].schema = 'game-design/2';
-    design.rules!.push('First write authors/design/design.json. Then write authors/design/acceptance-plan.json in bounded write/edit chunks, completing each section before the next. Run the existing validate-game-design self-check after both files are complete and correct any reported defects within this author session.',
+    if (ordinaryPlanAuthoringPolicy) design.tools.push(GAME_PLAN_WRITE);
+    design.rules!.push(ordinaryPlanAuthoringPolicy ? ORDINARY_PLAN_AUTHORING_RULE : 'First write authors/design/design.json. Then write authors/design/acceptance-plan.json in bounded write/edit chunks, completing each section before the next. Run the existing validate-game-design self-check after both files are complete and correct any reported defects within this author session.',
       `Map exactly the original experience criterion IDs ${JSON.stringify(ordinaryDraft.experienceCriteria.map(item => item.criterionId))} in experienceMapping ({} for an empty list). Read the complete brief/questions/answers and both criteria lists. Independent review must reject omitted objective rules, objective requirements recategorized as experience, insufficient visible assertions, or unsupported behavior; schema success alone is not semantic proof.`,
       `Write ${ORDINARY_PLAN_SOURCE} with exactly {formatVersion:"ordinary-acceptance-plan/1",requirement:${JSON.stringify(requirements)},scenario:{viewport:{width,height},steps:[...],reopen?:{steps:[...],checkpoint:{expected:string,snapshot:{kind:"text",selector:string},savedSnapshot:{kind:"text",selector:string}}}}. Use existing mouse-click/mouse-move {x,y,selector?}, locator-click {selector,timeoutMs}, assert/wait-for {acceptanceId,observation:{kind:"text",selector}|{kind:"visible",selector}${mediaPolicy ? '|{kind:"debug",path:string[]}' : ''},expected,timeoutMs}; every step has a unique id and kind. Coordinates are inside the viewport, or normalized [0,1) when selector is present; viewport dimensions are 100..4096, timeoutMs is 1..60000, each stage has 1..200 steps, and visible expected is boolean. Each objective gameplay AC requires normal click input followed by a visible assertion. Preserve the exact confirmed requirements, including normal save/reopen when required. Do not supply execution identities, URL, candidate, scripts, or state setters. The host supplies actual execution binding.`,
       'For save/reopen, each stage must contain normal click input followed by assertions of the same checkpoint expected string at the two distinct visible text selectors snapshot and savedSnapshot; the two stages together cover all gameplay acceptance IDs. The host closes the browser process and reopens the same private profile/origin. Checkpoint evidence is recorded at those assertion steps; later steps in the second stage may continue to victory or reset without retaining the checkpoint as the final state.',
