@@ -1,8 +1,12 @@
 # COS156：结构化游戏设计草稿写入
 
-状态：Root已读固定完整spec/plan并直接批准实施，无额外独立plan审批；SOURCE pending。作者structured_design_implementer，独立源码reviewer structured_design_reviewer待候选审actualdiff，尚无SOURCE批准，唯一merger planning_budget_merger。下方原计划的准备/等待follow-up措辞保留原批准快照语境，当前实施授权以本状态为准；不授权付费或恢复旧run。
+状态：SOURCE范围完成。structured_design_reviewer已对 `aae5b7905e542b8d87f592dbf2a86a29127646a4` 独审APPROVED_SOURCE_SCOPED、无finding，Root批准唯一merger发布 `075203d05f5f2be4b64886b8586e208c7095491c`；[批准](https://github.com/lrfluobida/Cosmos/issues/157#issuecomment-6512609238)、[关闭](https://github.com/lrfluobida/Cosmos/issues/157#issuecomment-6512609757)及父[x]已GET。main types/build0、有限4/4、0skip；10files exact。Root直接批准scope，无额外plan审批，原计划准备语境保留为批准快照，不新增gate。
 
-任务：[COS156 / #157](https://github.com/lrfluobida/Cosmos/issues/157)，id6111163694；原生父COS18/#19未勾，依赖[COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148)结构化writer基础。runtime基线 `0341094c8cc12179f0de3a303318227681f907d3`。遵循既有ADR0005，无新ADR/CONTEXT。
+任务：[COS156 / #157](https://github.com/lrfluobida/Cosmos/issues/157)，id6111163694；原生父COS18/#19已勾（仅SOURCE，父仍open/partial），依赖[COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148)结构化writer基础。runtime基线 `0341094c8cc12179f0de3a303318227681f907d3`。遵循既有ADR0005，无新ADR/CONTEXT。
+
+作者六文件原invocation为54/55、exit1，仅旧revision schema期望遗漏baseline afterStepId；Root批准一行期望修正后该项1/1。最终55个不同检查由原54不变通过+修正后1覆盖，不将原invocation改写为exit0，low-level8/native重叠不相加。另列真实SDK budget-finalization1/1、readonly cap4096保持。exact types/build/strict0、UTF8/中文及旧plan function/canonical rule字节相等已独审核证，JSON-only检查仅label抽取。
+
+仅免费SOURCE/TEMP完成，无源码发布后的真实生成或资金操作；[R22永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6512088069)保持。实际phase40/C35395421µ/H0与room12v2不变，下一完整5M exposure40395421µ超阶段395421µ，禁新fullpaid、未准备真实quote/apply或批准增额。COS157候选未合并，源码完成不授予预算授权。
 
 Root批准输入SHA256：spec `ae4371a241d995f17d4b8e9b407ca0f71d9702d3781adcc4a9e09c0873b2bb1f`；plan `efe434cd020b71e1d29839805df750bc8dd57d9d516f33a316886bb7c5e88774`；原批准快照保留。phase40/C35395421µ/H0不变，下一完整5M exposure40395421µ超395421µ，当前禁止新fullpaid，增额未批准。
 
