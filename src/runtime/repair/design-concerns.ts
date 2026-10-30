@@ -141,10 +141,18 @@ export function parseDesignConcernReview(text: string, task: TaskContract, requi
       if (!Array.isArray(resolution.inputVersions) || !resolution.inputVersions.length || !Array.isArray(resolution.evidenceRefs)) throw new Error('Design resolution needs exact fixed references.');
       if (resolution.basis === 'host_evidence') {
         const evidence = resolution.evidenceIds.map(id => task.evidence.find(item => item.evidenceId === id));
-        if (!sameValue(resolution.inputVersions, [...task.inputs, ...task.artifacts]) || !evidence.length
-          || evidence.some(item => !item || item.outcome !== 'passed' || !value.evidenceIds.includes(item.evidenceId))
-          || !sameValue(resolution.evidenceRefs, evidence.map(item => item!.source))
+        // Diagnose representation only after the selected proof and coverage pass.
+        if (!evidence.length || evidence.some(item => !item || item.outcome !== 'passed' || !value.evidenceIds.includes(item.evidenceId))
           || resolution.acceptanceIds.some(id => !evidence.some(item => item!.acceptanceIds.includes(id)))) throw new Error('Design resolution lacks current passing host proof.');
+        const inputs = [...task.inputs, ...task.artifacts], sources = evidence.map(item => item!.source);
+        const inputMismatch = !sameValue(resolution.inputVersions, inputs), sourceMismatch = !sameValue(resolution.evidenceRefs, sources);
+        if (inputMismatch || sourceMismatch) {
+          diagnosticMessage ??= 'Design resolution lacks current passing host proof.';
+          if (inputMismatch) issues.push({ row, field: 'inputVersions', reason: 'host_input_versions_mismatch', source: 'task.inputs + task.artifacts', expectedReferences: inputs });
+          if (sourceMismatch) issues.push({ row, field: 'evidenceRefs', reason: 'host_evidence_refs_mismatch',
+            source: evidence.map(item => `task.evidence[${task.evidence.indexOf(item!)}].source`).join(' + '), expectedReferences: sources });
+          continue;
+        }
       } else {
         const invalid = referenceIssues(resolution, row, task, requirement, packet.capture);
         if (invalid.length) {
