@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 51,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157"],
+      "verifiedNativeSubIssues": 52,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158"],
       "verifiedCompletedSubIssues": 51,
       "dependsOn": [
         {
@@ -12441,9 +12441,60 @@
       "actualHistoricalSourceFilesPreserved": 123,
       "actualFirstSuccessorFunding": "public-room-20261030-reuse-23",
       "actualFirstSuccessorFundingClosed": true
+    },
+    {
+      "taskId": "COS-158",
+      "title": "按步骤类型区分acceptanceId诊断",
+      "number": 159,
+      "id": 6112816276,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/159",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-145"
+      ],
+      "sourceBaseCommit": "5c43c9c9b4531674f26b1f7e576a0cff96d83249",
+      "registrationBaseCommit": "47b1b4bf0d3f440afa556a3811228946ed1bec32",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-reviewed-awaiting-integration",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "implementer": "acceptance_kind_diagnostic_implementer",
+      "reviewer": "acceptance_kind_diagnostic_reviewer",
+      "independentContractReview": "Root direct scope approval; acceptance_kind_diagnostic_reviewer APPROVED_SOURCE_SCOPED at 1b6a951 with no findings and4320 combinations preserving predicate/count/order/input; integration pending",
+      "rootImplementationApproved": true,
+      "approvedSpecSha256": "9e87ed0b0f2cf2983dee03d1b19df67348edabe3dcb80c60ac0c2e895467f6d3",
+      "approvedPlanSha256": "a17f7d8166ed6d38d3c63c60316e31ee363a1adfdf4576c1862d3622320c5014",
+      "formalSpecPath": "docs/specs/cos158-acceptance-kind-diagnostic.md",
+      "formalPlanPath": "docs/plans/2026-10-30-acceptance-kind-diagnostic.md",
+      "merger": "planning_budget_merger",
+      "nativeReplayAssistant": "author_budget_recovery_design",
+      "actualExecutionStatus": "SOURCE pending; user-approved phase45 already applied, C35976709/H0 after R23 closure; no new paid prepared and no game passed",
+      "actualPhaseLimitMicroCny": 45000000,
+      "actualPhaseDecision": "public-phase3-20261030-budget",
+      "actualFailureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6514264442",
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-145",
+          "number": 146,
+          "id": 6091618219,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/146"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-158 · 按步骤类型区分acceptanceId诊断](https://github.com/lrfluobida/Cosmos/issues/159)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 52,
+      "verifiedParentCompletedSubIssues": 51,
+      "sourceReviewedCommit": "1b6a951b500b6a65c89fe45e86175fce6f627ac6",
+      "rootSourceIntegrationApproved": true
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 157,
+  "totalTaskCount": 158,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
