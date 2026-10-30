@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-10-30 [COS157 / #158](https://github.com/lrfluobida/Cosmos/issues/158) 已独立DESIGN_APPROVED（phase_successor_reviewer），Root批准免费SOURCE/TEMP实施，SOURCE pending且真实预算未增加。作者phase_successor_implementer，同一独立reviewer后续审actualdiff、独立于作者，唯一merger planning_budget_merger。只增加一个继任槽位40M→显式安全整数X（40M<X<=150M），不默认45或自动递增。原receipt/source和pre-extension/phase40历史funding按原阶段保留，新funding引用最新有效source；readonly quote+新的独立明确决定才apply，原/新exact幂等重试与旧case永久停止保持。沿ADR0001无新ADR。[R22结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6512088069)后实际phase40/C35395421µ/H0不变，下一5M超阶段395421µ，禁新fullpaid；45M仅可能提案，无真实quote/apply。COS156并行SOURCE仍pending。总157/root100、父51中49源码完成，COS18仍open/partial。
+
 2026-10-30 [COS156 / #157](https://github.com/lrfluobida/Cosmos/issues/157) 已按Root直接批准登记，SOURCE pending，无额外独立plan审批；作者structured_design_implementer，独立源码reviewer structured_design_reviewer待候选，唯一merger planning_budget_merger。新增固定write-game-design save整对象/set整顶层section，宿主JSON.stringify保真，不手工escape或自动修语义；原JSON-only、安全writer/guard/反馈/strict保持。现有ordinaryPlanAuthoringPolicy新增structured-design-plan/1，新eligible运行planning前及execution持久化；旧absent/structured-plan/1工具规则与恢复byteexact，新mode额外设计工具/canonical rule，旧plan rule不改，revision继承冻结选择，不回填或从brief/suffix推断。完整三态/删除降级残留拒绝边界见spec。沿ADR0005无新ADR。[R22结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6512088069)保持，phase40/C35395421µ/H0、room12v2不变；下一完整5M超阶段395421µ，禁新fullpaid、增额未批准，本卡不作预算决定。总156/root100、父50中49源码完成，COS18仍open/partial。
 
 2026-10-30 [COS155 / #156](https://github.com/lrfluobida/Cosmos/issues/156) 已源码范围完成：Root直接批准最小checkpoint诊断scope，无额外独立plan审批；checkpoint_input_diagnostic_reviewer独审最终 `dc1f7ac4d5823e2a363489a3da8c30f2b687ccb9` APPROVED_SOURCE_SCOPED、无finding，唯一planning_budget_merger按Root批准发布 `0341094c8cc12179f0de3a303318227681f907d3`，3批准文件精确。[SOURCE批准](https://github.com/lrfluobida/Cosmos/issues/156#issuecomment-6512079089)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/156#issuecomment-6512079682)、closed(completed)及父[x]已GET核证。main typecheck/build0，4个不同代表分2+2通过、0skip，TAP9235.337/10583.3882ms；仅私有筛选regex漏选后补2项，无source delta或重复已过检查。作者15/18/types/build/strict、R21 original/rename/afterFileWrite及独审5600差分复用（360同accept、2504仅预期诊断、2736同error）。总155/root100、父49/49仅SOURCE，COS18仍open/partial。
@@ -2264,6 +2266,14 @@ main types/build0、4unique代表分2+2全过/0skip；筛选补正未改source�
 正式[规格](cos156-structured-design-authoring.md)/[计划](../plans/2026-10-30-structured-design-authoring.md)。fixed authors/design/design.json工具save整对象、set六个已知section之一且仅校验最外层容器；其他字段保留，不深合并/清洗/修复语义。宿主JSON.stringify处理引号/中文，原JSON-only checker只小范围抽取并保持plan原错误；UTF8+BOM/EOL/scoped writer/两段guard/cancel/ownership/afterFileWrite沿旧路径，SDK sequential保同reply多set顺序。有效UTF8坏JSON可显式save替换，set拒绝缺失/坏JSON/非object，非UTF8一律拒绝；raw工具仍可用，不完整草稿不等于接受。
 
 ordinaryPlanAuthoringPolicy新structured-design-plan/1仅新eligible ordinary选择并在planning-started/execution冻结。absent/structured-plan/1旧工具规则恢复byteexact，新值只额外设计工具和独立canonical rule，旧plan rule保持；严格检查三态/marker次数/角色/receipt一致性/两标记删除/降级残留，无execution仍拒绝重规划，旧任务不回填，revision从原任务继承并真实绑定。原schema/coverage/checkpoint/capture/独审/预算不变。遵ADR0005无需新ADR，SOURCE/TEMP不能证明模型采纳/R22修好/游戏通过。phase40/C35395421µ/H0不变，下一5M exposure40395421µ超395421µ、禁新fullpaid、增额未批准。总156/root100/父50中49源码完成，COS18仍partial。
+
+### COS-157 · 公共验证阶段的一次显式继任
+
+[COS157 / #158](https://github.com/lrfluobida/Cosmos/issues/158)，id6111325804，原生父COS18/#19、[ ]，`source-pending`；依赖COS143/#144。phase_successor_reviewer独立DESIGN_APPROVED、Root批准免费SOURCE/TEMP实施；作者phase_successor_implementer（cos01），同一独立reviewer待候选审actualdiff，唯一merger planning_budget_merger。设计批准不是源码批准或真实预算授权。runtime基线 `0341094c8cc12179f0de3a303318227681f907d3`。
+
+正式[规格](cos157-public-validation-phase-successor.md)/[计划](../plans/2026-10-30-public-validation-phase-successor.md)。单个publicValidationPhaseSuccessor、独立quote/decision/receipt/event，40M→显式safe integer X<=150M，不默认45/不做阶段数组。原extension receipt/source/hash/历史不覆写；原无tag、原phase40 tag、新successor tag三段来源精确解析，新拨款只选最新source。prepare只读零锁零写，apply必须当前完整quote+新独立明确决定并持原锁核stale/source/idle/owner/历史；仅追加receipt/event/revision。原30→40及新apply在后续funding/settlement后相同输入重试仍幂等不写，冲突/重复继任拒绝。旧账务/结算按原授权可查，但旧case/closedfunding派发不复活、storedrunning标签无执行权。原150M/每次5M30min/cleanup/H/R/U/来源门禁保持。
+
+沿ADR0001同一权威账本，无新ADR/ledger；本卡不调用真实prepare/apply/funding/provider。实际phase40/C35395421µ/H0不变，下一5M exposure40395421µ超395421µ、禁新fullpaid；45M只是可能提案，无实际quote/决定/apply。稳定源码后Root另行准备精确quote并取得人类明确预算决定，SOURCE_READY不等于增额或运行成功。总157/root100/父51中49源码完成，COS156并行未完成，COS18仍partial。
 
 ## 5. 任务与上下文包模板
 

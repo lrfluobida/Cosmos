@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 50,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156"],
+      "verifiedNativeSubIssues": 51,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157"],
       "verifiedCompletedSubIssues": 49,
       "dependsOn": [
         {
@@ -12320,9 +12320,60 @@
       "verifiedRootDirectSubIssues": 100,
       "verifiedParentNativeSubIssues": 50,
       "verifiedParentCompletedSubIssues": 49
+    },
+    {
+      "taskId": "COS-157",
+      "title": "公共验证阶段的一次显式继任",
+      "number": 158,
+      "id": 6111325804,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/158",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-143"
+      ],
+      "sourceBaseCommit": "0341094c8cc12179f0de3a303318227681f907d3",
+      "registrationBaseCommit": "9fc843c64926704f03c7551037edb635d7d27955",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "implementer": "phase_successor_implementer",
+      "reviewer": "phase_successor_reviewer",
+      "independentContractReview": "phase_successor_reviewer independently DESIGN_APPROVED the fixed plan; Root approved free SOURCE/TEMP implementation; same independent reviewer will inspect actual source diff; SOURCE and real budget decision remain unapproved",
+      "rootImplementationApproved": true,
+      "designReviewStatus": "DESIGN_APPROVED",
+      "designReviewer": "phase_successor_reviewer",
+      "rootDesignApproved": true,
+      "approvedSpecSha256": "03e603f57f23b0f7a40b147c49ccef1b52a9431ae650f05831793cd790381892",
+      "approvedPlanSha256": "494757eeebc603f4dababd60e3e2e13f6261a51bf5c09cfec29d3434b7081927",
+      "formalSpecPath": "docs/specs/cos157-public-validation-phase-successor.md",
+      "formalPlanPath": "docs/plans/2026-10-30-public-validation-phase-successor.md",
+      "merger": "planning_budget_merger",
+      "actualExecutionStatus": "SOURCE pending; phase40 unchanged, next full5M exposure40395421 exceeds phase by395421; no approved increase or new paid preparation",
+      "actualPhaseLimitMicroCny": 40000000,
+      "actualPhaseDecision": "public-phase2-20261029-budget",
+      "actualFailureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6512088069",
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-143",
+          "number": 144,
+          "id": 6086446699,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/144"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-157 · 公共验证阶段的一次显式继任](https://github.com/lrfluobida/Cosmos/issues/158)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 51,
+      "verifiedParentCompletedSubIssues": 49
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 156,
+  "totalTaskCount": 157,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
