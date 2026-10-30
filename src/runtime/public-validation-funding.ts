@@ -85,8 +85,8 @@ export async function sharedSources(root: string, state: RunSnapshot) {
   const decisions = new Set<string>();
   for (const record of state.publicValidationFundings ?? []) {
     const authorization = await source(record.binding);
-    if (record.phaseDecisionId !== undefined) requirePhaseFundingAuthorization(state, authorization);
-    if (authorization.decisionId === state.publicValidationPhaseExtension?.operatorDecision.decisionId) throw new Error('Public funding cannot reuse the phase decision identity.');
+    if (record.phaseDecisionId !== undefined) requirePhaseFundingAuthorization(state, authorization, record.phaseDecisionId);
+    if ([state.publicValidationPhaseExtension, state.publicValidationPhaseSuccessor].some(phase => authorization.decisionId === phase?.operatorDecision.decisionId)) throw new Error('Public funding cannot reuse the phase decision identity.');
     if (decisions.has(authorization.decisionId)) throw new Error('Public funding operator decision was already consumed.');
     decisions.add(authorization.decisionId);
     if (record.settlement) {
@@ -149,7 +149,8 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
       || row.binding.runId === binding.runId || row.binding.ledgerId === binding.ledgerId)) throw new Error('Public funding run identity was already used.');
     const next = structuredClone(state), claimedAt = new Date(now()).toISOString();
     const record: PublicValidationFundingRecord = { binding, taskId: fundingTaskId(binding.fundingId), claimedAt, basisRevision: state.revision };
-    if (state.publicValidationPhaseExtension) record.phaseDecisionId = state.publicValidationPhaseExtension.operatorDecision.decisionId;
+    const phase = state.publicValidationPhaseSuccessor ?? state.publicValidationPhaseExtension;
+    if (phase) record.phaseDecisionId = phase.operatorDecision.decisionId;
     next.publicValidationFundings = [...(next.publicValidationFundings ?? []), record];
     next.ledger.allocations.push({ taskId: record.taskId, amountMicroCny: binding.limits.limitMicroCny }); next.run.taskIds.push(record.taskId);
     next.events.push({ sequence: next.events.length + 1, type: 'public_funding_reserved', at: claimedAt, requestId: null, reason: binding.fundingId });
