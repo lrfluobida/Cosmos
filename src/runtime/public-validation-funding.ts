@@ -24,6 +24,8 @@ import type { PublicValidationAuthorization, PublicValidationFundingBinding, Pub
 import { fundedIntakeWork, fundingBinding, fundingClosureId, fundingFields, fundingHash, fundingTaskId, publicFundingExposure, validateFundingAuthorization, validateFundingBinding } from './public-validation-funding-validation.ts';
 import { publicValidationPhaseLimit, requirePhaseFundingAuthorization, verifyPublicValidationPhaseSource } from './public-validation-phase-validation.ts';
 import { requirePublicRunLimits } from '../cli/run-limits.ts';
+import { verifyOrdinaryDesignRevisionBudget } from './ordinary-design-revision-budget.ts';
+import { verifyOrdinaryBudgetOwnerHistory } from './ordinary-design-revision-lifecycle.ts';
 
 const intentName = 'public-validation-origin.json';
 const decode = (bytes: Uint8Array): any => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -160,6 +162,7 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
 
 /** Caller already owns the child root. The returned read lock covers the local reserve/admit write. */
 export async function acquirePublicFundingGate(root: string, snapshot: IntakeSnapshot | RunSnapshot, dispatch: boolean) {
+  if (snapshot.formatVersion !== 'intake-1') await verifyOrdinaryDesignRevisionBudget(root, snapshot);
   const intent = await readPublicFundingIntent(root), binding = snapshot.validationFunding;
   const origin = await optional(root, 'intake-origin.json');
   if (!binding && !intent && origin?.validationFunding === undefined) return { async close() {} };
@@ -218,7 +221,7 @@ export async function recordFundingRecovery(root: string, owner: OwnerRecord) {
   await writeOnce(root, path, receipt);
   if (!sameValue(await optional(root, path), receipt)) throw new Error('Public funding recovery record was not preserved.');
 }
-export async function readFundingRecovery(root: string, state: IntakeSnapshot, ownerToken: string) {
+export async function readFundingRecovery(root: string, state: IntakeSnapshot | RunSnapshot, ownerToken: string) {
   const location = `public-funding-recovery/${ownerToken}.json`, value = await optional(root, location);
   if (!value) return undefined;
   if (value.formatVersion !== 'public-funding-owner-recovery/1' || value.runId !== state.run.runId || value.ledgerId !== state.ledger.ledgerId
@@ -257,6 +260,7 @@ export async function settlePublicValidationFunding(options: { sharedRoot: strin
       validateIntakeSnapshot(snapshot);
     } else validateSnapshot(snapshot);
     await verifyPublicValidationFunding({ root, snapshot, dispatch: false });
+    if (snapshot.formatVersion !== 'intake-1') await verifyOrdinaryBudgetOwnerHistory(root, snapshot);
     const binding = snapshot.validationFunding!;
     if (binding.sharedRoot !== resolve(options.sharedRoot) || binding.fundingId !== options.fundingId) throw new Error('Public funding settlement selects a different run.');
     if (snapshot.ledger.entries.some(row => row.unknown || row.reservedMicroCny || !['settled', 'cancelled'].includes(row.status))) throw new Error('Public funding retains its whole allocation until unknown or reserved charges are reconciled.');

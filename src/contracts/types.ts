@@ -92,7 +92,7 @@ export interface LedgerEntry {
   evidence: ArtifactReference[];
 }
 export interface BudgetLedger {
-  contractVersion: ContractVersion | '2.0.0' | '3.0.0' | '4.0.0' | '5.0.0';
+  contractVersion: ContractVersion | '2.0.0' | '3.0.0' | '4.0.0' | '5.0.0' | '6.0.0';
   ledgerId: string;
   scope: 'validation' | 'generation';
   limitMicroCny: number;

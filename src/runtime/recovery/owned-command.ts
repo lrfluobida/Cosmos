@@ -28,7 +28,7 @@ export async function runOwnedNode(options: { controller: RunController; authori
   if (authority.deadlineAt !== undefined && authority.deadlineAt !== deadlineAt) throw new Error('Host child deadline differs from its current window.');
   const remaining = Date.parse(deadlineAt) - Date.now() - 5000;
   if (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs < 1 || remaining < 1) throw new Error('Execution time is insufficient for host child cleanup.');
-  const ticket = await controller.prepareOwnedChild(authority.windowId ? { taskId: authority.taskId, windowId: authority.windowId } : undefined);
+  const ticket = await controller.prepareOwnedChild({ taskId: authority.taskId, ...(authority.windowId ? { windowId: authority.windowId } : {}) });
   const processModule = new URL(import.meta.url.endsWith('.ts') ? '../../acceptance/process.ts' : '../../acceptance/process.js', import.meta.url).href;
   // Keep IPC open: owner loss must stop the worker tree instead of orphaning a compiler/browser.
   const launcher = `import {spawn} from 'node:child_process';import {stopBrowserProcess} from ${JSON.stringify(processModule)};

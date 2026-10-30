@@ -18,6 +18,7 @@ import type { AcceptanceReport } from '../acceptance/runner.ts';
 import type { GenericMediaObservationRequest } from '../acceptance/browser.ts';
 import { runOwnedNode } from './recovery/owned-command.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
+import { authenticatedOrdinaryFunding, CONSERVED_DESIGN_BUDGET, ordinaryUnallocated } from './ordinary-design-revision-budget.ts';
 import { HostFailure } from './repair/feedback.ts';
 import type { RepairFeedback } from './repair/feedback.ts';
 import type { GenerationHost, HostInput } from './entrypoint.ts';
@@ -377,6 +378,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const ordinaryDesignBudgetPolicy = budgetEligible && !input.resume ? 'review-reserve/1' as const : input.ordinaryDesignBudgetPolicy;
   if (input.ordinaryDesignRevisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(input.ordinaryDesignRevisionPolicy) || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignRevisionPolicy for this host.');
   const ordinaryDesignRevisionPolicy = input.ordinaryDesignRevisionPolicy;
+  const ordinaryDesignRevisionBudgetPolicy = input.ordinaryDesignRevisionBudgetPolicy;
+  if (ordinaryDesignRevisionBudgetPolicy !== undefined && (ordinaryDesignRevisionBudgetPolicy !== CONSERVED_DESIGN_BUDGET || !budgetEligible
+    || ordinaryDesignRevisionPolicy !== 'independent-review/2' || !await authenticatedOrdinaryFunding(root, await controller.read()))) throw new Error('Invalid funded ordinary revision budget policy.');
   if (input.ordinaryDesignFinalizationPolicy !== undefined && (input.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || !budgetEligible || ordinaryDesignBudgetPolicy !== 'review-reserve/1')) throw new Error('Invalid ordinaryDesignFinalizationPolicy for this host.');
   const ordinaryDesignFinalizationPolicy = input.ordinaryDesignFinalizationPolicy;
   const ordinaryTasks = new Map<string, PreparedTask>();
@@ -781,6 +785,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const mediaLayout = { artifactId: mediaOutput.artifactId, paths: ['_cosmos/mediaSpec.json', 'public/assets/manifest.json'] };
   const gameLayout = { artifactId: output.artifactId, paths: ['index.html', 'src/main.ts'] };
   const host: GenerationHost = {
+    ...(ordinaryDesignRevisionBudgetPolicy ? { ordinaryDesignRevisionBudgetPolicy } : {}),
     ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
     ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}),
     ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy } : {}),
@@ -1362,7 +1367,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (binding || validation) return null;
       if (ordinaryDesignRevisionPolicy && role(task) !== 'coding') return null;
       if (modular && (moduleSlot(task) || role(task) !== 'coding' || taskOutput(task).version !== 'v1')) return null;
-      const current = await controller.read(), unallocated = current.ledger.limitMicroCny - current.ledger.allocations.reduce((sum, item) => sum + item.amountMicroCny, 0);
+      const current = await controller.read(), unallocated = ordinaryUnallocated(current.ledger);
       if (unallocated <= 0) return null;
       await stageFeedback(feedback); const ref = nextOutput(task);
       return { outputs: [{ ...task.outputs[0], destination: ref.location }], expectedArtifacts: [ref], allocationMicroCny: unallocated };

@@ -10,6 +10,7 @@ import { validatePublicValidationFundings } from './public-validation-funding-va
 import { intakeSuccessorClaims } from './intake-successor.ts';
 import { validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import { validatePublicValidationPhaseExtension } from './public-validation-phase-validation.ts';
+import { validateOrdinaryDesignBudget } from './ordinary-design-revision-budget.ts';
 
 function timestamp(value: unknown): boolean {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -53,7 +54,7 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
     if (errors.length || !allocation || task.runId !== run.runId || task.kind !== run.kind || task.specVersion !== run.specVersion || task.budget.ledgerId !== ledger.ledgerId || task.budget.allocationMicroCny !== allocation.amountMicroCny || task.budget.originalDeadlineAt !== run.originalDeadlineAt) throw new Error('Invalid snapshot task or task/run contract mismatch.');
   }
   const eventTypes = ['created', 'reserved', 'admitted', 'settled', 'unknown', 'cancelled', 'imported', 'budget_warning', 'stopped', 'task_saved', 'generation_activated', 'intake_draft_successor_claimed',
-    ...(state.validationFunding ? ['public_intake_work_started', 'public_intake_work_finished', 'public_intake_work_recovered', 'public_intake_drained', 'public_execution_started'] : []),
+    ...(state.validationFunding ? ['public_intake_work_started', 'public_intake_work_finished', 'public_intake_work_recovered', 'public_intake_drained', 'public_execution_started', 'ordinary_design_budget_owner_started', 'ordinary_design_revision_budget_activated'] : []),
     ...(state.formatVersion !== 3 ? ['run_owner_drained'] : []),
     ...(state.formatVersion === 2 ? ['continuation_activated', 'window_stopped', 'window_owner_drained', 'window_owner_resumed'] : []),
     ...(state.formatVersion === 3 ? ['validation_case_claimed', 'validation_case_stopped', 'validation_repair_claimed', 'validation_allocation_closed', 'validation_group_supplemented', 'public_funding_reserved', 'public_funding_settled', 'public_validation_phase_extended', 'public_validation_phase_successor_applied'] : [])];
@@ -62,6 +63,7 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
     if (!event || event.sequence !== i + 1 || !timestamp(event.at) || !eventTypes.includes(event.type) || typeof event.reason !== 'string' || (event.requestId !== null && !ledger.entries.some(entry => entry.requestId === event.requestId))) throw new Error('Invalid snapshot event history.');
   });
   validatePublicValidationPhaseExtension(state);
+  validateOrdinaryDesignBudget(state);
   validatePublicValidationFundings(state);
   intakeSuccessorClaims(state.events);
   validateValidationProfile(state);

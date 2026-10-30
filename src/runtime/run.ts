@@ -27,6 +27,9 @@ import { bounded } from '../acceptance/deadline.ts';
 import { associateNativeReadSignal } from '../acceptance/native-validation-waits.ts';
 import { acquirePublicFundingGate, verifyPublicValidationFunding } from './public-validation-funding.ts';
 import { publicFundingExposure } from './public-validation-funding-validation.ts';
+import { budgetDigest, budgetJson, revisionPlanReference, verifyOrdinaryDesignRevisionBudget } from './ordinary-design-revision-budget.ts';
+import { createOrdinaryBudgetLifecycle, requireOrdinaryBudgetCapability } from './ordinary-design-revision-lifecycle.ts';
+import type { OrdinaryDesignBudgetLifecycle } from './ordinary-design-revision-lifecycle.ts';
 export type { ImportedCharge, RequestInput, RunSnapshot } from './run-types.ts';
 
 export interface OpenRunOptions { root: string; now?: () => number; windowId?: string }
@@ -63,6 +66,7 @@ export class RunController {
   private childTasks = new Map<string, string>();
   private readonly validationContext?: OpenValidationCaseOptions;
   private readonly combinedSignal?: AbortSignal;
+  private ordinaryBudgetLifecycle?: OrdinaryDesignBudgetLifecycle;
 
   private constructor(store: SnapshotStore, snapshot: RunSnapshot, now: () => number, windowId?: string, validationContext?: OpenValidationCaseOptions) {
     this.store = store; this.snapshot = snapshot; this.now = now;
@@ -102,17 +106,71 @@ export class RunController {
     return result;
   }
 
+  async bindOrdinaryDesignBudgetLifecycle(): Promise<OrdinaryDesignBudgetLifecycle> {
+    if (this.ordinaryBudgetLifecycle) throw new Error('Ordinary design budget host is already bound.');
+    return this.coordinateAccounting(() => this.serial(async () => {
+      this.requireActive();
+      this.ordinaryBudgetLifecycle = await createOrdinaryBudgetLifecycle({ root: this.store.root, controller: this, state: structuredClone(this.snapshot), owner: this.store.ownerIdentity(),
+        appendStart: async start => { const next = structuredClone(this.snapshot); this.event(next, 'ordinary_design_budget_owner_started', null, JSON.stringify(start)); await this.commit(next); } });
+      return this.ordinaryBudgetLifecycle;
+    }));
+  }
+
+  /** Fixed host plan only. An exact committed retry never runs expiry or writes. */
+  activateOrdinaryDesignRevision(capability?: object): Promise<void> {
+    return this.coordinateAccounting(() => {
+      if (this.closing || this.failed) throw new Error('Ordinary design budget controller is closed.');
+      const result = this.pending.then(async () => {
+        if (this.failed || this.closing) throw new Error('Ordinary design budget controller is closed.');
+        if (this.snapshot.ordinaryDesignRevisionBudgetActivation) { await verifyOrdinaryDesignRevisionBudget(this.store.root, this.snapshot); return; }
+        await this.expire(); this.requireActive();
+        if (this.now() + 185000 >= Date.parse(this.deadlineAt()) || this.snapshot.ledger.contractVersion !== '1.0.0'
+          || this.snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny || !['settled', 'cancelled'].includes(entry.status))
+          || this.snapshot.tasks.some(task => task.attempts.some(attempt => attempt.outcome === 'running'))) throw new Error('Ordinary design revision resources are unavailable.');
+        const funding = await acquirePublicFundingGate(this.store.root, this.snapshot, true);
+        try {
+          const execution = await budgetJson(this.store.root, 'execution.json');
+          const { readDesignRevisionPlan } = await import('./entrypoint-design-revision.ts');
+          const plan = await readDesignRevisionPlan(this.store.root, { read: async () => structuredClone(this.snapshot) }, execution);
+          if (!plan?.budget || !capability || !this.ordinaryBudgetLifecycle) throw new Error('Ordinary design budget requires its fixed intent and live host.');
+          const b = plan.budget, planSha256 = budgetDigest(await regularFile(this.store.root, revisionPlanReference.location));
+          await requireNoRegistryWriter(this.store.root);
+          if (this.snapshot.tasks.some(task => task.taskId === b.targetTaskId || execution.tasks.some((item: { role: string; task: TaskContract }) => item.role !== 'design' && item.task.taskId === task.taskId))
+            || this.snapshot.ledger.allocations.some(row => row.taskId === b.targetTaskId) || this.snapshot.ledger.allocationClosures) throw new Error('Ordinary design budget target or closure conflicts.');
+          const next = structuredClone(this.snapshot);
+          this.requireActive();
+          if (this.now() + 185000 >= Date.parse(this.deadlineAt())) throw new Error('Ordinary design revision deadline margin expired.');
+          const { release, ...proof } = requireOrdinaryBudgetCapability(this, capability, b.sourceTaskId, b.sourceAttemptId, planSha256);
+          try {
+            next.ledger.contractVersion = '6.0.0'; next.ledger.allocationClosures = [{ taskId: b.sourceTaskId, decisionId: b.activationId, releasedMicroCny: b.unusedMicroCny }];
+            next.ledger.allocations.push({ taskId: b.targetTaskId, amountMicroCny: b.targetMicroCny }); next.run.taskIds.push(b.targetTaskId); next.tasks.push(structuredClone(plan.task.task));
+            next.ordinaryDesignRevisionBudgetActivation = { formatVersion: 'ordinary-design-budget-activation/1', budget: structuredClone(b), planSha256,
+              basisRevision: this.snapshot.revision, activatedAt: this.at(), ...proof };
+            next.events.push({ sequence: next.events.length + 1, at: next.ordinaryDesignRevisionBudgetActivation.activatedAt,
+              type: 'ordinary_design_revision_budget_activated', requestId: null, reason: b.activationId });
+            await this.commit(next, true);
+          } finally { release(); }
+        } finally { await funding.close(); }
+      });
+      this.pending = result.catch(() => {}); return result;
+    });
+  }
+
   /** Persist before spawn; a pending ticket blocks automatic recovery after a crash. */
-  prepareOwnedChild(authority?: { taskId: string; windowId: string }, checkLaunch?: () => void): Promise<string> {
+  prepareOwnedChild(authority?: { taskId: string; windowId?: string }, checkLaunch?: () => void): Promise<string> {
     return this.serial(async () => {
       this.requireActive(); checkLaunch?.();
-      if (this.snapshot.validationFunding) {
+      if (this.snapshot.validationFunding && this.snapshot.ledger.contractVersion !== '6.0.0') {
         const next = structuredClone(this.snapshot); this.event(next, 'public_execution_started', null, 'child-launch'); await this.commit(next);
       }
-      if (this.windowId) {
+      if (this.windowId || this.snapshot.ledger.contractVersion === '6.0.0') {
         if (!authority || authority.windowId !== this.windowId) throw new Error('Owned child requires its explicit task and window authority.');
+        await verifyOrdinaryDesignRevisionBudget(this.store.root, this.snapshot);
         this.requireTaskAuthority(authority.taskId);
         if (['4.0.0', '5.0.0'].includes(this.snapshot.ledger.contractVersion)) await this.checkValidationIdentity();
+      }
+      if (this.snapshot.validationFunding && this.snapshot.ledger.contractVersion === '6.0.0') {
+        const next = structuredClone(this.snapshot); this.event(next, 'public_execution_started', null, 'child-launch'); await this.commit(next);
       }
       checkLaunch?.();
       const ticket = await this.store.prepareOwnedChild(checkLaunch);
@@ -122,7 +180,7 @@ export class RunController {
         catch (cleanup) { throw new UnspawnedChildCleanupError(error, cleanup); }
         throw error;
       }
-      if (authority && this.windowId) this.childTasks.set(ticket, authority.taskId);
+      if (authority && (this.windowId || this.snapshot.ledger.contractVersion === '6.0.0')) this.childTasks.set(ticket, authority.taskId);
       return ticket;
     });
   }
@@ -135,7 +193,7 @@ export class RunController {
     return this.serial(async () => {
       // Retain the PID even when authority expired, so close/recovery cannot lose a writer.
       await this.store.registerOwnedChild(pid, ticket);
-      if (this.windowId) { this.requireActive(); this.requireTaskAuthority(this.childTasks.get(ticket) ?? ''); if (['4.0.0', '5.0.0'].includes(this.snapshot.ledger.contractVersion)) await this.checkValidationIdentity(); }
+      if (this.windowId || this.snapshot.ledger.contractVersion === '6.0.0') { this.requireActive(); this.requireTaskAuthority(this.childTasks.get(ticket) ?? ''); if (['4.0.0', '5.0.0'].includes(this.snapshot.ledger.contractVersion)) await this.checkValidationIdentity(); }
     });
   }
 
@@ -233,7 +291,7 @@ export class RunController {
   /** One authority view for all window-aware host admission paths. */
   executionAuthority(taskId: string): Promise<ExecutionAuthority> {
     if (this.snapshot.formatVersion === 3) return Promise.reject(new Error('Validation profile requires validationAuthority; the legacy SDK path is unsupported.'));
-    return this.serial(async () => this.taskAuthority(taskId));
+    return this.serial(async () => { await verifyOrdinaryDesignRevisionBudget(this.store.root, this.snapshot); return this.taskAuthority(taskId); });
   }
 
   validationAuthority(taskId: string, purpose: ValidationPurpose, callerSignal?: AbortSignal): Promise<ValidationAuthority> {
@@ -355,6 +413,7 @@ export class RunController {
   async settle(requestId: string, actualCostMicroCny: number, evidence: ArtifactReference[]): Promise<{ halted: boolean }> {
     const references = structuredClone(evidence);
     return this.serial(async () => {
+      await verifyOrdinaryDesignRevisionBudget(this.store.root, this.snapshot);
       const next = structuredClone(this.snapshot);
       const entry = findRequest(next.ledger, requestId);
       if (!next.requests.find(r => r.requestId === requestId)?.admittedAt) throw new Error('Unadmitted requests cannot incur new charges; use importSettled for prior usage.');
@@ -407,6 +466,7 @@ export class RunController {
       }
       const next = structuredClone(this.snapshot);
       if (this.windowId) throw new Error('Historical imports must be reconciled before continuation; closed grants cannot receive new charges.');
+      if (next.ledger.contractVersion === '6.0.0' && next.ledger.allocationClosures!.some(row => row.taskId === charge.taskId)) throw new Error('Closed ordinary design cannot import new charges.');
       if (!next.ledger.allocations.some(a => a.taskId === charge.taskId)) throw new Error('Imported charge requires an existing shared task allocation.');
       next.ledger.entries.push({ requestId: charge.requestId, taskId: charge.taskId, provider: charge.provider, pricingVersion: charge.pricingVersion, settledMicroCny: charge.actualCostMicroCny, reservedMicroCny: 0, status: 'settled', unknown: false, evidence: charge.evidence });
       next.requests.push({ requestId: charge.requestId, admittedAt: null });
@@ -448,6 +508,13 @@ export class RunController {
     return this.serial(async () => {
       const next = structuredClone(this.snapshot);
       const previous = next.tasks.find(t => t.taskId === value.taskId);
+      if (next.ledger.contractVersion === '6.0.0') {
+        await verifyOrdinaryDesignRevisionBudget(this.store.root, this.snapshot);
+        if (next.ledger.allocationClosures!.some(row => row.taskId === value.taskId)) {
+          if (sameValue(previous, value)) return;
+          throw new Error('Closed ordinary design task is immutable.');
+        }
+      }
       if (this.windowId) {
         if (next.formatVersion === 3) {
           if (this.validationContext?.accountingOnly) throw new Error('Accounting-only validation cannot write task or attempt history.');
@@ -594,7 +661,10 @@ export class RunController {
     this.closing = true;
     clearTimeout(this.timer);
     this.abort.abort(new Error('Run controller closed.'));
-    this.closePromise = this.pending.then(() => this.store.close()).catch(error => { this.closePromise = undefined; throw error; });
+    this.closePromise = this.pending.then(async () => {
+      if (this.ordinaryBudgetLifecycle) { await this.accounting; await this.ordinaryBudgetLifecycle.beforeClose(); }
+      await this.store.close();
+    }).catch(error => { this.closePromise = undefined; throw error; });
     return this.closePromise;
   }
 
@@ -662,7 +732,7 @@ export class RunController {
       if (!authority.executionAllowed) throw new Error('Task has no validation execution authority.');
       return;
     }
-    if (!this.windowId) return;
+    if (!this.windowId && this.snapshot.ledger.contractVersion !== '6.0.0') return;
     if (budgetSummary(this.snapshot.ledger).reconciliationRequired) throw new Error('Reconciliation required before further execution admission.');
     if (!this.taskAuthority(taskId).admissionAllowed) throw new Error('Task is not registered with active execution authority, or its grant is closed.');
   }
@@ -748,7 +818,7 @@ export class RunController {
     this.timer.unref();
   }
 
-  private async commit(next: RunSnapshot): Promise<void> {
+  private async commit(next: RunSnapshot, ordinaryDesignRevisionUpgrade = false): Promise<void> {
     next.revision = this.snapshot.revision + 1;
     next.run.fees = {
       reservedMicroCny: next.ledger.entries.reduce((sum, e) => sum + e.reservedMicroCny, 0),
@@ -758,7 +828,8 @@ export class RunController {
     if (budgetSummary(next.ledger).warning && !next.events.some(e => e.type === 'budget_warning')) this.event(next, 'budget_warning', null, 'Settled and reserved exposure reached 80% of the shared budget.');
     validateSnapshot(next);
     const issues = validateRunUpdate(this.snapshot.run, next.run, { role: 'system', actorId: 'runtime' });
-    if (next.formatVersion !== 1) issues.push(...validateLedgerUpdate(this.snapshot.ledger, next.ledger, { role: 'system', actorId: 'runtime' }, { allowOverrunFacts: this.activeStop(next)?.code === 'charge_overrun' }));
+    if (next.formatVersion !== 1 || next.ledger.contractVersion === '6.0.0') issues.push(...validateLedgerUpdate(this.snapshot.ledger, next.ledger, { role: 'system', actorId: 'runtime' }, { ordinaryDesignRevisionUpgrade, allowOverrunFacts: this.activeStop(next)?.code === 'charge_overrun' }));
+    if (this.snapshot.ordinaryDesignRevisionBudgetActivation && !sameValue(this.snapshot.ordinaryDesignRevisionBudgetActivation, next.ordinaryDesignRevisionBudgetActivation)) throw new Error('Ordinary design budget activation is immutable.');
     if (issues.length) throw new Error(`Invalid run update: ${issues.map(i => i.message).join('; ')}`);
     try { await this.store.write(next); }
     catch (error) { this.failed = true; clearTimeout(this.timer); this.abort.abort(error); throw error; }

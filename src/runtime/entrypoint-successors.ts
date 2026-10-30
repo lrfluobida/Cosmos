@@ -19,6 +19,7 @@ import type { ModularRepairPolicy } from './modular-repair-policy.ts';
 import { readDesignSelection } from './entrypoint-design-revision.ts';
 import { designOriginPolicy } from './repair/design-concerns.ts';
 import type { OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
+import { ordinaryUnallocated } from './ordinary-design-revision-budget.ts';
 
 export interface SuccessorTarget {
   sourceTaskId: string; taskId: string; allocationMicroCny: number;
@@ -40,6 +41,7 @@ export interface RepairContinuationPlan {
   reviewProtocolCorrections: 1;
   authorProtocolCorrections?: 1;
   ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
+  ordinaryDesignRevisionBudget?: { activationId: string; intentSha256: string; allocationClosuresBefore: BudgetLedger['allocationClosures'] };
   /** Sealed before publication; only the preserved diagnostic manifest and its raw files are hashed. */
   diagnosticSignatures?: { reference: ArtifactReference; files: { path: string; sha256: string }[] }[];
 }
@@ -103,7 +105,7 @@ export function findUnstartedSuccessors(snapshot: RunSnapshot, originals: readon
 
 /** Integer weighted grants from the unused allocation pool; no old grant is reclaimed. */
 export function allocateRepairGrants(snapshot: RunSnapshot, sources: readonly PreparedTask[]): Record<string, number> {
-  const unused = snapshot.ledger.limitMicroCny - snapshot.ledger.allocations.reduce((sum, entry) => sum + entry.amountMicroCny, 0);
+  const unused = ordinaryUnallocated(snapshot.ledger);
   return weightedGrants(unused, sources);
 }
 function weightedGrants(unused: number, sources: readonly PreparedTask[]): Record<string, number> {
@@ -197,6 +199,8 @@ export function buildRepairContinuation(options: {
   return { formatVersion: 2, runId: run.runId, ledgerId: ledger.ledgerId, originalStartedAt: run.originalStartedAt, originalDeadlineAt: run.originalDeadlineAt, limitMicroCny: ledger.limitMicroCny,
     originalPlan: structuredClone(options.originalPlan), requirement: structuredClone(requirement), failedTaskId: failedId, feedback: structuredClone(feedback.reference),
     allocationsBefore: structuredClone(snapshot.ledger.allocations), replacements, newTaskIds: created.map(item => item.task.taskId), tasks, reviewProtocolCorrections: 1, ...policy,
+    ...(snapshot.ledger.contractVersion === '6.0.0' ? { ordinaryDesignRevisionBudget: { activationId: snapshot.ordinaryDesignRevisionBudgetActivation!.budget.activationId,
+      intentSha256: snapshot.ordinaryDesignRevisionBudgetActivation!.planSha256, allocationClosuresBefore: structuredClone(snapshot.ledger.allocationClosures) } } : {}),
     ...(options.ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy: options.ordinaryDesignRevisionPolicy } : {}) };
 }
 
@@ -283,7 +287,10 @@ function validateContinuation(plan: RepairContinuationPlan, state: RunSnapshot, 
   const allocations = [...plan.allocationsBefore, ...additions.map(item => ({ taskId: item.task.taskId, amountMicroCny: item.task.budget.allocationMicroCny }))];
   if (!sameValue(state.ledger.allocations, registered.length ? allocations : plan.allocationsBefore)) blocked('Continuation allocations or registration changed.');
   // This is allocation arithmetic only; settled requests and the live ledger are never removed or rewritten.
-  const grants = weightedGrants(plan.limitMicroCny - plan.allocationsBefore.reduce((sum, allocation) => sum + allocation.amountMicroCny, 0), sources);
+  const budgetBinding = state.ledger.contractVersion === '6.0.0' ? { activationId: state.ordinaryDesignRevisionBudgetActivation!.budget.activationId,
+    intentSha256: state.ordinaryDesignRevisionBudgetActivation!.planSha256, allocationClosuresBefore: state.ledger.allocationClosures } : undefined;
+  if (!sameValue(plan.ordinaryDesignRevisionBudget, budgetBinding)) blocked('Repair allocation closure provenance changed.');
+  const grants = weightedGrants(ordinaryUnallocated({ ...state.ledger, allocations: plan.allocationsBefore }), sources);
   const projected = registered.length ? state : { ...state, ledger: { ...state.ledger, allocations }, run: { ...state.run, taskIds: [...state.run.taskIds, ...plan.newTaskIds] } };
   const previous: TaskReplacement[] = [];
   for (const [index, item] of sources.entries()) {

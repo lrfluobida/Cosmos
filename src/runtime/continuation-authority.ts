@@ -18,6 +18,7 @@ export async function activateContinuation(options: ActivateContinuationOptions)
   const store = await SnapshotStore.acquire(root);
   try {
     const previous = await store.read(); validateSnapshot(previous);
+    if (previous.ledger.contractVersion === '6.0.0') throw new Error('Conserved ordinary design budget does not support a continuation window.');
     for (const key of ['decisionId', 'actorId', 'decidedAt'] as const) nonEmpty(confirmation[key], key);
     evidenceReferences([confirmation.source]);
     const decidedAt = Date.parse(confirmation.decidedAt);
