@@ -1,10 +1,14 @@
 # COS159 host evidence reference correction diagnostic
 
-状态：Root已读immutable批准稿并直接授权scope，无额外独立plan审批；SOURCE pending。作者host_evidence_diagnostic_implementer，独立reviewer host_evidence_diagnostic_reviewer正在核固定候选 `dbb7aa2663cf0ab9ecd8a1a92c732a62858b65ca`，尚未SOURCE批准；native helper review_reply_diagnosis的A/B尚未记作通过，唯一merger planning_budget_merger。原计划checkbox为作者执行记录，不代表独立源码批准。
+状态：SOURCE范围完成。host_evidence_diagnostic_reviewer已对 `dbb7aa2663cf0ab9ecd8a1a92c732a62858b65ca` 独审APPROVED_SOURCE_SCOPED、无finding，Root批准唯一merger发布 `66884f836b6b8f8e49872208be3b2c0a54f23808`；[批准](https://github.com/lrfluobida/Cosmos/issues/160#issuecomment-6516313250)、[关闭](https://github.com/lrfluobida/Cosmos/issues/160#issuecomment-6516313758)及父[x]已GET。main types/build0、4/4、0skip；3files exact/protocol未变，作者50/28/types/build/strict、720/12、独审duplicate/order及native A/B复用。Root直接批准scope，无额外plan审批。
 
-任务：[COS159 / #160](https://github.com/lrfluobida/Cosmos/issues/160)，id6113292513；原生父COS18/#19未勾，依赖[COS152 / #153](https://github.com/lrfluobida/Cosmos/issues/153)及[COS153 / #154](https://github.com/lrfluobida/Cosmos/issues/154)既有typed诊断通道。runtime基线 `edd0375869523817b47f95c09b7486163fdea21c`。
+任务：[COS159 / #160](https://github.com/lrfluobida/Cosmos/issues/160)，id6113292513；原生父COS18/#19已勾（仅SOURCE，父仍open/partial），依赖[COS152 / #153](https://github.com/lrfluobida/Cosmos/issues/153)及[COS153 / #154](https://github.com/lrfluobida/Cosmos/issues/154)既有typed诊断通道。runtime基线 `edd0375869523817b47f95c09b7486163fdea21c`。
 
-Root批准输入SHA256：spec `be0b58d1fea63b23486567ca9b60bcdce208eea76132300207dcebe3d659db73`；plan `dfebe6fb8e954052203c8c9991b30c91dbd4db1c9bb9918547fb9a764f86e0b3`；immutable originals及登记副本保留。R24已永久closed，phase45/C36738979µ/H0不变，当前无新paid准备。
+[R25结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6516329580)：initial有效changes_requested后唯一revision启动；作者13reads+1structured design save，plan未改，readonly收尾成功remaining8/uncertainty3，v2 capture/verified通过。revision review4实际请求，首final完整24508B/normal stop、15findings/11concerns/10unresolved；COS152/COS159合计5typed诊断已构造，但correction发送前floor拒，无secondreply，无法评价模型遵循。input211718B/floor4096 quote456204µ>余305692µ差150512µ；去整个correction仍443978µ>305692µ，不能怪新diag或靠再加metadata解决。未写有效revision verdict/未语义批准、无game。
+
+R25 planning3/45851µ、initial author20/366305µ、initial review4/125864µ、revision author17/410600µ、revision review4/183708µ，共48笔1132328µ、释放3867672µ。04:46:47.725Z→04:57:49.221Z的661496ms仅清理，05:00:26.272Z永久stop、05:00:32.068Z一次settle。独立PASS_CLOSED：child215 SHA `b5fd5ed55170e8cdabf7f6ab2b61a192d52c80457d63c7a67cdc24916ab61659`；shared3416 SHA `c8ff424f4ebc58ff8c906212d3d1845723e09a652b266c6ff743bc593574e0e8`，C37871307µ/H0、phase45、room12v2保持。证据 `.cosmos/public-validation/room-20261030-reuse-25/{generation-closure.json,generation-execution.json}`，只读诊断 `.cosmos/planning/revision-review-reuse25/diagnosis.md`；旧run永久closed，无新paid。初稿1125000µ grant/492169µ实际/632831µ未用差额仅研究观察，未转移给revision或改额，不是额外release，不能重复加到全运行释放数。
+
+Root批准输入SHA256：spec `be0b58d1fea63b23486567ca9b60bcdce208eea76132300207dcebe3d659db73`；plan `dfebe6fb8e954052203c8c9991b30c91dbd4db1c9bb9918547fb9a764f86e0b3`；immutable originals及登记副本保留。R24保持永久closed；R25闭账后当前phase45/C37871307µ/H0，无新paid准备。
 
 Root directly approved this bounded source scope; no additional plan approval is required. Runtime base: edd0375869523817b47f95c09b7486163fdea21c. Implementer: host_evidence_diagnostic_implementer. Independent source reviewer: host_evidence_diagnostic_reviewer. Unique merger: planning_budget_merger.
 
