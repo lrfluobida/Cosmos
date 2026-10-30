@@ -67,8 +67,8 @@ test('structured author saves JSON data and appends both stages through the real
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 3);
   const executionPath = join(f.root, 'execution.json'), planningPath = join(f.root, 'planning-started.json');
   const executionBytes = await readFile(executionPath), planningBytes = await readFile(planningPath), execution = JSON.parse(executionBytes.toString('utf8'));
-  assert.equal(execution.ordinaryPlanAuthoringPolicy, 'structured-plan/1');
-  assert.equal(JSON.parse(planningBytes.toString('utf8')).ordinaryPlanAuthoringPolicy, 'structured-plan/1');
+  assert.equal(execution.ordinaryPlanAuthoringPolicy, 'structured-design-plan/1');
+  assert.equal(JSON.parse(planningBytes.toString('utf8')).ordinaryPlanAuthoringPolicy, 'structured-design-plan/1');
   const before = f.packets.length;
   for (const mutate of [
     (value: any) => { delete value.ordinaryPlanAuthoringPolicy; },
@@ -104,7 +104,7 @@ test('planning interrupted before execution keeps its selection and cannot repla
     ? { ...fallback, prompt: async () => { throw new Error('Synthetic planning interruption'); } } : fallback });
   assert.equal((await f.execute() as any).outcome, 'incomplete');
   const planningBytes = await readFile(join(f.root, 'planning-started.json')), planning = JSON.parse(planningBytes.toString('utf8'));
-  assert.equal(planning.ordinaryPlanAuthoringPolicy, 'structured-plan/1'); await assert.rejects(readFile(join(f.root, 'execution.json')), { code: 'ENOENT' });
+  assert.equal(planning.ordinaryPlanAuthoringPolicy, 'structured-design-plan/1'); await assert.rejects(readFile(join(f.root, 'execution.json')), { code: 'ENOENT' });
   const before = f.packets.length;
   await assert.rejects(f.host.execute({ root: f.root, requirement: planning.requirement, draft: f.draft, resume: true }), /planning result is unavailable/);
   await assert.rejects(f.host.execute({ root: f.root, requirement: planning.requirement, draft: f.draft, resume: false }), /Immutable version already exists|EEXIST/);

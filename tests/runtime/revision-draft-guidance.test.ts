@@ -80,7 +80,7 @@ test('verified revision guidance reaches native payloads while a same-suffix ini
       const writer = body.tools.find((tool: any) => tool.function.name === 'write-game-plan')?.function;
       assert.ok(writer); assert.equal(writer.description, descriptions[1]);
       assert.equal(writer.parameters.additionalProperties, false);
-      assert.deepEqual(Object.keys(writer.parameters.properties).sort(), ['checkpoint', 'operation', 'scenario', 'stage', 'steps']);
+      assert.deepEqual(Object.keys(writer.parameters.properties).sort(), ['afterStepId', 'checkpoint', 'operation', 'scenario', 'stage', 'steps']);
       const actions = [
         { name: 'read', arguments: { path, offset: null, limit: null } },
         { name: 'read', arguments: { path, offset: 1, limit: 100 } },

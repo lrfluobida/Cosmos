@@ -128,7 +128,7 @@ export async function executeGeneration(options: GenerationOptions) {
   const ordinary = 'ordinaryProfile' in draft && draft.ordinaryProfile === 'ordinary-design/1';
   const ordinaryPlanAuthoringPolicy = options.resume
     ? originalExecution ? readPlanAuthoringPolicy(originalExecution, await optionalJson(root, 'planning-started.json'), ordinary && !draft.codeProfile && !draft.preparation) : undefined
-    : ordinary && !draft.codeProfile && !draft.preparation ? 'structured-plan/1' as const : undefined;
+    : ordinary && !draft.codeProfile && !draft.preparation ? 'structured-design-plan/1' as const : undefined;
   if (originalExecution?.ordinaryDesignRevisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(originalExecution.ordinaryDesignRevisionPolicy)
     || originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !ordinary || draft.codeProfile || draft.preparation)) throw new Error('Invalid ordinary design revision policy.');
   if (originalExecution && Object.hasOwn(originalExecution, 'ordinaryDesignFinalizationPolicy')
