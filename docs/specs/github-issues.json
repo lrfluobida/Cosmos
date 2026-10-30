@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 49,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155"],
+      "verifiedNativeSubIssues": 50,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156"],
       "verifiedCompletedSubIssues": 49,
       "dependsOn": [
         {
@@ -12272,9 +12272,57 @@
       "nextFull5MAllowed": false,
       "realModelGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-156",
+      "title": "结构化游戏设计草稿写入",
+      "number": 157,
+      "id": 6111163694,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/157",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-147"
+      ],
+      "sourceBaseCommit": "0341094c8cc12179f0de3a303318227681f907d3",
+      "registrationBaseCommit": "76c4db3bded37a5058acdc88cb1839171844addf",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "implementer": "structured_design_implementer",
+      "reviewer": "structured_design_reviewer",
+      "independentContractReview": "Root directly approved structured design writer and explicit new value in existing frozen policy; no extra independent plan approval; independent SOURCE actual-diff review pending",
+      "rootImplementationApproved": true,
+      "approvedSpecSha256": "ae4371a241d995f17d4b8e9b407ca0f71d9702d3781adcc4a9e09c0873b2bb1f",
+      "approvedPlanSha256": "efe434cd020b71e1d29839805df750bc8dd57d9d516f33a316886bb7c5e88774",
+      "formalSpecPath": "docs/specs/cos156-structured-design-authoring.md",
+      "formalPlanPath": "docs/plans/2026-10-30-structured-design-authoring.md",
+      "merger": "planning_budget_merger",
+      "actualExecutionStatus": "SOURCE pending; phase40 unchanged, next full5M exposure40395421 exceeds phase by395421; no approved increase or new paid preparation",
+      "actualPhaseLimitMicroCny": 40000000,
+      "actualPhaseDecision": "public-phase2-20261029-budget",
+      "actualFailureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6512088069",
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-147",
+          "number": 148,
+          "id": 6093554669,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/148"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-156 · 结构化游戏设计草稿写入](https://github.com/lrfluobida/Cosmos/issues/157)",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 50,
+      "verifiedParentCompletedSubIssues": 49
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 155,
+  "totalTaskCount": 156,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
