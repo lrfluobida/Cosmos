@@ -6,9 +6,11 @@
 
 组合main typecheck/build0，有限4/4、0skip、TAP6991.3404ms：旧40不变、三代funding/latest source与历史reserve/settlement、原/新apply在held及后续结算后的无写精确重试，加COS156真实factory/Pi native save+2set。复用作者final new12、旧phase10、funding5、CLI4/types/build/strict；早期22包含new12+old10，production字节未变、后续仅new-test narrowing，不能再加22+12。独审TEMP1/1验证baseline phaseHistory字节/未知snapshot字段/原receipt/hash/三代source/held重试无写。COS156的55distinct及单列finalization证据按原边界保持。
 
-尚未做真实状态兼容审计、readonly quote、apply、controller、ledger、readiness或provider操作；SOURCE完成不是高于40M的真实预算决定。[R22永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6512088069)与实际phase40/C35395421µ/H0、room12v2保持。下一完整5M exposure40395421µ超395421µ，当前禁新fullpaid；45M仅可能提案，须Root后续准备当前精确quote并由人类另作明确预算决定。没有游戏完成或模型实际生成通过声明。
+[实际phase45应用](https://github.com/lrfluobida/Cosmos/issues/158#issuecomment-6514232685)：用户明确批准quote `pvpsq1-dad2d34bc052d4b2a5bae1df28b57eb8c4be418d9aece1dff635cded695dcfec` 的40M→45M；决定 `public-phase3-20261030-budget`，文件SHA `c1303f8d6104f5000cc4415a805622c748cd0723756e9f303c0ac93d87764e9e`。2026-10-30T02:37:34.305Z单次apply，shared3409→3410、SHA `919f61fc8124ab15e0068e0e875080202424917e00e515eff10da9bd300ab497`。Root后续只读兼容审计及应用独审已分别PASS_READ_ONLY_COMPATIBILITY/PASS_APPLIED_ONLY；原40M receipt和123份来源字节保持，应用只追加successor/event/revision，当时C35395421µ/H0且activationAllowed=false，不启动运行。原150M lifetime/每次5M30min保持；SOURCE批准与用户预算决定分别留证。
 
-设计批准输入SHA256：spec `03e603f57f23b0f7a40b147c49ccef1b52a9431ae650f05831793cd790381892`；plan `494757eeebc603f4dababd60e3e2e13f6261a51bf5c09cfec29d3434b7081927`；原批准快照保留。实际phase40/C35395421µ/H0不变；下一完整5M exposure40395421µ超395421µ，当前禁新fullpaid。X须显式，45M仅可能提案，未生成真实quote或apply，增额未批准。
+R23 planning3/52501µ、author40/528787µ，共43笔581288µ、释放4418712µ。02:45:33.043Z→02:53:56.503Z的503460ms仅清理，03:02:50.930Z永久stop、03:02:56.588Z一次settle。独立PASS_CLOSED：child184 SHA `1e050c2353d1c34792eed1fb67e1716e7fe630bfce349b3d0ce2badf6ec6e7b1`；shared3412 SHA `d7b08c7deaa30c8b4a6410eea72b1ac5907308db47c3fac70dd4c8a7d17db135`，C35976709µ/H0、phase45、room12v2不变。证据 `.cosmos/public-validation/room-20261030-reuse-23/{generation-closure.json,generation-execution.json}` 和 `.cosmos/planning/initial-design-reuse23/diagnosis.md`；无新paid准备，不重复apply或重开旧run。
+
+设计批准输入SHA256：spec `03e603f57f23b0f7a40b147c49ccef1b52a9431ae650f05831793cd790381892`；plan `494757eeebc603f4dababd60e3e2e13f6261a51bf5c09cfec29d3434b7081927`；原批准快照保留。设计批准时phase40为原基线；后续用户对精确quote明确批准45M并单次apply，现有决定/审计及R23结案记录见上。没有自动默认增额。
 
 实现基线：`0341094c8cc12179f0de3a303318227681f907d3`。作者工作树：`E:/CodexData/.codex/worktrees/cos-01-reference/Cosmos`，分支 `codex/phase-successor-budget`。唯一 merger：`planning_budget_merger`。后续免费 SOURCE/TEMP 实施须经独立设计审查和 Root 批准；实际预算仍须另行明确决定。
 
