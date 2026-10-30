@@ -5,25 +5,33 @@ import { sameValue } from '../contracts/validation.ts';
 import { regularFile } from '../artifacts/paths.ts';
 import { createWorkspaceTools } from '../providers/workspace-tools.ts';
 import { ORDINARY_PLAN_SOURCE } from './entrypoint-acceptance-plan.ts';
+import { GAME_DESIGN_WRITE, ORDINARY_DESIGN_AUTHORING_RULE } from './entrypoint-design-authoring.ts';
+import { requireAuthorJson } from './structured-author-json.ts';
 
 export const GAME_PLAN_WRITE = 'write-game-plan';
 export const ORDINARY_PLAN_AUTHORING_RULE = 'First write authors/design/design.json. Prefer write-game-plan with {operation:"save",scenario:{viewport,steps,reopen?}} to establish the acceptance plan draft, then {operation:"append",stage:"main"|"reopen",steps:[...],checkpoint?} for bounded ordered batches. The host supplies the fixed formatVersion and original requirement reference and nests reopen inside scenario. The first reopen append requires your checkpoint; a different checkpoint requires explicit save or local edit. Raw read/write/edit remain available for local corrections. Saving a draft does not establish structural validity, coverage, capture, independent approval or acceptance. Run validate-game-design after both files are complete and correct its diagnostics within this author session.';
-export type OrdinaryPlanAuthoringPolicy = 'structured-plan/1';
+export type OrdinaryPlanAuthoringPolicy = 'structured-plan/1' | 'structured-design-plan/1';
+export function isOrdinaryPlanAuthoringPolicy(value: unknown): value is OrdinaryPlanAuthoringPolicy {
+  return value === 'structured-plan/1' || value === 'structured-design-plan/1';
+}
 
 /** A missing selection is legacy only when the frozen task has no new author surface. */
 export function requirePlanAuthoringTasks(tasks: { role: string; task: TaskContract }[], selected?: OrdinaryPlanAuthoringPolicy): void {
+  if (selected !== undefined && !isOrdinaryPlanAuthoringPolicy(selected)) throw new Error('Invalid ordinary plan authoring policy.');
   for (const { role, task } of tasks) {
-    const tools = task.context.tools.filter(name => name === GAME_PLAN_WRITE);
-    const rules = task.context.rules.filter(rule => rule === ORDINARY_PLAN_AUTHORING_RULE);
-    if (selected && role === 'design' ? tools.length !== 1 || rules.length !== 1 || rules[0] !== ORDINARY_PLAN_AUTHORING_RULE : tools.length || rules.length) {
-      throw new Error('Frozen task differs from its ordinary plan authoring policy.');
+    for (const [tool, rule, enabled] of [[GAME_PLAN_WRITE, ORDINARY_PLAN_AUTHORING_RULE, !!selected],
+      [GAME_DESIGN_WRITE, ORDINARY_DESIGN_AUTHORING_RULE, selected === 'structured-design-plan/1']] as const) {
+      const count = enabled && role === 'design' ? 1 : 0;
+      if (task.context.tools.filter(name => name === tool).length !== count || task.context.rules.filter(value => value === rule).length !== count) {
+        throw new Error('Frozen task differs from its ordinary plan authoring policy.');
+      }
     }
   }
 }
 
 export function readPlanAuthoringPolicy(execution: any, planning: any, eligible: boolean): OrdinaryPlanAuthoringPolicy | undefined {
   const selected = execution?.ordinaryPlanAuthoringPolicy;
-  if (selected !== undefined && (selected !== 'structured-plan/1' || !eligible || execution.capability !== 'ordinary-design-execution/1')) throw new Error('Invalid ordinary plan authoring policy.');
+  if (selected !== undefined && (!isOrdinaryPlanAuthoringPolicy(selected) || !eligible || execution.capability !== 'ordinary-design-execution/1')) throw new Error('Invalid ordinary plan authoring policy.');
   if (planning?.ordinaryPlanAuthoringPolicy !== selected) throw new Error('Original planning ordinary plan authoring policy changed.');
   if (selected && !planning) throw new Error('Original planning ordinary plan authoring policy is unavailable.');
   if (execution) requirePlanAuthoringTasks(execution.tasks, selected);
@@ -32,23 +40,7 @@ export function readPlanAuthoringPolicy(execution: any, planning: any, eligible:
 
 type JsonObject = Record<string, any>;
 const object = (value: unknown): value is JsonObject => !!value && typeof value === 'object' && !Array.isArray(value);
-/** Reject values that JSON.stringify would drop, coerce or execute through a getter/toJSON. */
-function requireJson(value: unknown, parents = new Set<object>()): void {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value)) return;
-  if (typeof value !== 'object' || parents.has(value)) throw new Error('Plan authoring accepts JSON data only.');
-  const prototype = Object.getPrototypeOf(value);
-  if (prototype !== null && prototype !== (Array.isArray(value) ? Array.prototype : Object.prototype)) throw new Error('Plan authoring requires plain JSON containers.');
-  parents.add(value);
-  const keys = Reflect.ownKeys(value);
-  if (Array.isArray(value) && (keys.length !== value.length + 1 || keys.some(key => key !== 'length' && (typeof key !== 'string' || !/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length)))) throw new Error('Plan authoring requires dense JSON arrays.');
-  for (const key of keys) {
-    if (Array.isArray(value) && key === 'length') continue;
-    const descriptor = Object.getOwnPropertyDescriptor(value, key)!;
-    if (typeof key !== 'string' || !descriptor.enumerable || !Object.hasOwn(descriptor, 'value')) throw new Error('Plan authoring accepts enumerable JSON data only.');
-    requireJson(descriptor.value, parents);
-  }
-  parents.delete(value);
-}
+const requireJson = (value: unknown) => requireAuthorJson(value, 'Plan authoring');
 function keys(value: JsonObject, allowed: string[]) {
   if (Object.keys(value).some(key => !allowed.includes(key))) throw new Error('Unknown or inapplicable plan authoring field.');
 }
