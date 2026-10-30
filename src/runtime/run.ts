@@ -28,8 +28,9 @@ import { associateNativeReadSignal } from '../acceptance/native-validation-waits
 import { acquirePublicFundingGate, verifyPublicValidationFunding } from './public-validation-funding.ts';
 import { publicFundingExposure } from './public-validation-funding-validation.ts';
 import { budgetDigest, budgetJson, revisionPlanReference, verifyOrdinaryDesignRevisionBudget } from './ordinary-design-revision-budget.ts';
-import { createOrdinaryBudgetLifecycle, requireOrdinaryBudgetCapability } from './ordinary-design-revision-lifecycle.ts';
+import { createOrdinaryBudgetLifecycle, requireOrdinaryBudgetCapability, verifyOrdinaryBudgetOwnerHistory } from './ordinary-design-revision-lifecycle.ts';
 import type { OrdinaryDesignBudgetLifecycle } from './ordinary-design-revision-lifecycle.ts';
+import { requireOriginalTask } from './recovery/task-journal.ts';
 export type { ImportedCharge, RequestInput, RunSnapshot } from './run-types.ts';
 
 export interface OpenRunOptions { root: string; now?: () => number; windowId?: string }
@@ -122,6 +123,7 @@ export class RunController {
       if (this.closing || this.failed) throw new Error('Ordinary design budget controller is closed.');
       const result = this.pending.then(async () => {
         if (this.failed || this.closing) throw new Error('Ordinary design budget controller is closed.');
+        await verifyOrdinaryBudgetOwnerHistory(this.store.root, this.snapshot, this.store.ownerIdentity().token);
         if (this.snapshot.ordinaryDesignRevisionBudgetActivation) { await verifyOrdinaryDesignRevisionBudget(this.store.root, this.snapshot); return; }
         await this.expire(); this.requireActive();
         if (this.now() + 185000 >= Date.parse(this.deadlineAt()) || this.snapshot.ledger.contractVersion !== '1.0.0'
@@ -227,6 +229,7 @@ export class RunController {
     try {
       const snapshot = await store.read();
       validateSnapshot(snapshot);
+      await verifyOrdinaryBudgetOwnerHistory(store.root, snapshot, store.ownerIdentity().token);
       await verifyPublicValidationFunding({ root: store.root, snapshot, dispatch: false });
       if (snapshot.formatVersion === 3) throw new Error('Validation profile requires explicit openValidationCase; legacy and formal entrypoints are unsupported.');
       if (snapshot.formatVersion === 2 ? options.windowId !== snapshot.continuation!.currentWindowId : options.windowId !== undefined) throw new Error('Continuation snapshot requires its explicit current execution window; ordinary execution entrypoints are unsupported.');
@@ -509,7 +512,8 @@ export class RunController {
       const next = structuredClone(this.snapshot);
       const previous = next.tasks.find(t => t.taskId === value.taskId);
       if (next.ledger.contractVersion === '6.0.0') {
-        await verifyOrdinaryDesignRevisionBudget(this.store.root, this.snapshot);
+        const plan = await verifyOrdinaryDesignRevisionBudget(this.store.root, this.snapshot);
+        if (plan?.task.task.taskId === value.taskId) requireOriginalTask(plan.task.task, value);
         if (next.ledger.allocationClosures!.some(row => row.taskId === value.taskId)) {
           if (sameValue(previous, value)) return;
           throw new Error('Closed ordinary design task is immutable.');
@@ -676,6 +680,7 @@ export class RunController {
     if (this.closing || this.failed) return Promise.reject(new Error('Run controller is closed or persistence failed.'));
     const result = this.pending.then(async () => {
       if (this.failed) throw new Error('Run controller persistence failed.');
+      await verifyOrdinaryBudgetOwnerHistory(this.store.root, this.snapshot, this.store.ownerIdentity().token);
       await this.expire();
       return operation();
     });

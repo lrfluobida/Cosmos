@@ -8,8 +8,8 @@ import { budgetCapacity } from '../../src/contracts/index.ts';
 import { allocateRepairGrants, prepareRepairContinuation } from '../../src/runtime/entrypoint-successors.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { OwnedWork } from '../../src/runtime/recovery/owned-work.ts';
-import { authenticatedOrdinaryFunding, budgetDigest } from '../../src/runtime/ordinary-design-revision-budget.ts';
-import { settlePublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
+import { authenticatedOrdinaryFunding, budgetDigest, readConservedBudgetPolicy, verifyOrdinaryDesignRevisionBudget } from '../../src/runtime/ordinary-design-revision-budget.ts';
+import { acquirePublicFundingGate, settlePublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
 import { validateSnapshot } from '../../src/runtime/run-validation.ts';
 import { SnapshotStore } from '../../src/runtime/store.ts';
 
@@ -23,6 +23,67 @@ test('an unfunded run or raw funding flag cannot select the conserved policy', a
     await assert.rejects(controller.bindOrdinaryDesignBudgetLifecycle(), /funded host/);
     assert.ok((await readFile(join(root, 'snapshot.json'))).equals(before));
   } finally { await controller.close(); }
+});
+
+test('revision target static contract is authenticated at open, admission and proposed task save', async t => {
+  const f = await conservedFixture(t, undefined, { intercept: controller => {
+    const activate = controller.activateOrdinaryDesignRevision.bind(controller);
+    controller.activateOrdinaryDesignRevision = async capability => { await activate(capability); throw new Error('Synthetic stop before revision starts'); };
+  } });
+  await f.execute();
+  const snapshotPath = join(f.root, 'snapshot.json'), before = await readFile(snapshotPath), state = await f.state();
+  const targetId = state.ordinaryDesignRevisionBudgetActivation.budget.targetTaskId;
+  assert.equal(state.tasks.find((row: any) => row.taskId === targetId).state, 'not_started');
+  const tampered = structuredClone(state); tampered.tasks.find((row: any) => row.taskId === targetId).objective = 'Unbound revision objective';
+  await writeFile(snapshotPath, JSON.stringify(tampered), 'utf8');
+  let unexpectedOwner: RunController | undefined;
+  try {
+    await assert.rejects(async () => { unexpectedOwner = await RunController.open({ root: f.root }); }, /original execution contract/);
+    await assert.rejects(readFile(join(f.root, '.controller.lock')), { code: 'ENOENT' });
+  } finally { await unexpectedOwner?.close(); await writeFile(snapshotPath, before); }
+  await assert.rejects(verifyOrdinaryDesignRevisionBudget(f.root, tampered), /original execution contract/);
+  let unexpectedGate: Awaited<ReturnType<typeof acquirePublicFundingGate>> | undefined;
+  try { await assert.rejects(async () => { unexpectedGate = await acquirePublicFundingGate(f.root, tampered, true); }, /original execution contract/); }
+  finally { await unexpectedGate?.close(); }
+  const controller = await RunController.open({ root: f.root });
+  try {
+    const target = (await controller.read()).tasks.find(row => row.taskId === targetId)!;
+    const changed = structuredClone(target); changed.context.rules.push('Unbound revision rule');
+    await assert.rejects(controller.saveTask(changed, { role: 'system', actorId: 'fixture' }), /original execution contract/);
+    assert.ok((await readFile(snapshotPath)).equals(before), 'Rejected static mutation must not write the snapshot');
+    const ready = structuredClone(target); ready.state = 'ready';
+    await controller.saveTask(ready, { role: 'system', actorId: 'fixture' });
+    assert.equal((await controller.executionAuthority(targetId)).admissionAllowed, true);
+    await controller.reserve({ requestId: 'valid-revision-admission', taskId: targetId, provider: 'fake', pricingVersion: 'fake', estimatedMaxCostMicroCny: 1 });
+    await controller.admit('valid-revision-admission');
+    await controller.cancel('valid-revision-admission', [{ artifactId: 'no-cost', version: 'v1', location: 'fixture-no-cost.json' }], { provenNoCost: true });
+  } finally { await controller.close(); }
+});
+
+test('missing policy markers cannot downgrade selected initial ledger1 while true legacy remains omitted', async t => {
+  const f = await conservedFixture(t, undefined, { intercept: controller => { controller.activateOrdinaryDesignRevision = async () => { throw new Error('Synthetic initial-ledger checkpoint'); }; } });
+  await f.execute();
+  const state = await f.state(); assert.equal(state.ledger.contractVersion, '1.0.0');
+  const executionPath = join(f.root, 'execution.json'), planningPath = join(f.root, 'planning-started.json');
+  const executionBytes = await readFile(executionPath), planningBytes = await readFile(planningPath);
+  const execution = JSON.parse(executionBytes.toString('utf8')), planning = JSON.parse(planningBytes.toString('utf8'));
+  delete execution.ordinaryDesignRevisionBudgetPolicy; delete planning.ordinaryDesignRevisionBudgetPolicy;
+  await writeFile(executionPath, JSON.stringify(execution), 'utf8');
+  try {
+    await writeFile(planningPath, JSON.stringify(planning), 'utf8');
+    await assert.rejects(readConservedBudgetPolicy(f.root, execution, state), /policy changed/);
+    const legacyState = structuredClone(state); legacyState.events = legacyState.events.filter((row: any) => row.type !== 'ordinary_design_budget_owner_started');
+    const legacyPlanning = structuredClone(planning); delete legacyPlanning.ordinaryDesignBudgetFunding; delete legacyPlanning.ordinaryDesignBudgetOwner;
+    for (const key of ['ordinaryDesignBudgetFunding', 'ordinaryDesignBudgetOwner']) {
+      await writeFile(planningPath, JSON.stringify({ ...legacyPlanning, [key]: planning[key] }), 'utf8');
+      await assert.rejects(readConservedBudgetPolicy(f.root, execution, legacyState), /policy changed/);
+    }
+    await writeFile(planningPath, JSON.stringify(legacyPlanning), 'utf8');
+    await assert.rejects(readConservedBudgetPolicy(f.root, execution, state), /policy changed/);
+    assert.equal(await readConservedBudgetPolicy(f.root, execution, legacyState), undefined);
+    assert.equal(execution.ordinaryDesignBudgetPolicy, 'review-reserve/1');
+    assert.equal(execution.ordinaryDesignRevisionPolicy, 'independent-review/2');
+  } finally { await writeFile(executionPath, executionBytes); await writeFile(planningPath, planningBytes); }
 });
 
 test('funded ordinary negative design atomically conserves unused allocation into one revision', async t => {

@@ -5,6 +5,7 @@ import { sameValue } from '../contracts/validation.ts';
 import type { ArtifactReference, BudgetLedger } from '../contracts/types.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { OrdinaryExecution } from './entrypoint-design-revision.ts';
+import { requireOriginalTask } from './recovery/task-journal.ts';
 
 export const CONSERVED_DESIGN_BUDGET = 'conserved-initial-unused/1' as const;
 export type ConservedDesignBudgetPolicy = typeof CONSERVED_DESIGN_BUDGET;
@@ -66,7 +67,11 @@ export async function authenticatedOrdinaryFunding(root: string, state: RunSnaps
 }
 export async function readConservedBudgetPolicy(root: string, execution: OrdinaryExecution, state: RunSnapshot): Promise<ConservedDesignBudgetPolicy | undefined> {
   const selected = execution.ordinaryDesignRevisionBudgetPolicy, planning = await optionalBudgetJson(root, 'planning-started.json');
-  if (selected === undefined && planning?.ordinaryDesignRevisionBudgetPolicy === undefined) return undefined;
+  const selectedBefore = ['ordinaryDesignRevisionBudgetPolicy', 'ordinaryDesignBudgetFunding', 'ordinaryDesignBudgetOwner']
+    .some(key => Object.hasOwn(execution, key) || planning && Object.hasOwn(planning, key))
+    || state.events.some(event => event.type === 'ordinary_design_budget_owner_started')
+    || state.ordinaryDesignRevisionBudgetActivation !== undefined || state.ledger.contractVersion === '6.0.0';
+  if (!selectedBefore) return undefined;
   if (selected !== CONSERVED_DESIGN_BUDGET || planning?.ordinaryDesignRevisionBudgetPolicy !== selected || !state.validationFunding
     || execution.capability !== 'ordinary-design-execution/1' || execution.ordinaryDesignRevisionPolicy !== 'independent-review/2'
     || execution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || execution.authorProtocolCorrections !== 1
@@ -136,10 +141,12 @@ export async function verifyOrdinaryDesignRevisionBudget(root: string, state: Ru
   const { readDesignRevisionPlan } = await import('./entrypoint-design-revision.ts');
   const plan = await readDesignRevisionPlan(root, { read: async () => structuredClone(state) }, execution);
   if (!plan?.budget || !sameValue(plan.budget, receipt.budget) || budgetDigest(await regularFile(root, revisionPlanReference.location)) !== receipt.planSha256) throw new Error('Ordinary design activation source changed.');
+  requireOriginalTask(plan.task.task, state.tasks.find(task => task.taskId === receipt.budget.targetTaskId)!);
   for (const start of ordinaryBudgetOwners(state)) {
     const bytes = await regularFile(root, start.reference.location);
     if (budgetDigest(bytes) !== start.sha256 || !sameValue(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)), ownerStartContents(state, start.owner))) throw new Error('Ordinary design owner provenance changed.');
   }
+  return plan;
 }
 /** Only the new profile subtracts its closure in legacy allocation consumers. */
 export function ordinaryUnallocated(ledger: BudgetLedger): number {

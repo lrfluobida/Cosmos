@@ -26,9 +26,13 @@ test('cold lifecycle requires exact owner close or a proved exited owner, never 
   const state = await f.state(), start = JSON.parse(state.events.find((row: any) => row.type === 'ordinary_design_budget_owner_started').reason);
   const closed = join(f.root, `ordinary-design-budget-lifecycle/owner-${start.owner.token}-closed.json`);
   await rename(closed, `${closed}.preserved`);
-  const controller = await RunController.open({ root: f.root });
-  try { await assert.rejects(controller.bindOrdinaryDesignBudgetLifecycle(), /no proved close or exit/); }
-  finally { await controller.close(); await rename(`${closed}.preserved`, closed); }
+  const before = await readFile(join(f.root, 'snapshot.json')); let unexpectedOwner: RunController | undefined;
+  try {
+    await assert.rejects(async () => { unexpectedOwner = await RunController.open({ root: f.root, now: () => Date.parse(state.run.originalDeadlineAt) + 1 }); }, /no proved close or exit/);
+    assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(before), 'Rejected open must not expire or mutate accounting');
+    await assert.rejects(readFile(join(f.root, '.controller.lock')), { code: 'ENOENT' });
+    await assert.rejects(readFile(closed), { code: 'ENOENT' });
+  } finally { await unexpectedOwner?.close(); await rename(`${closed}.preserved`, closed); }
   const module = new URL('../../src/runtime/run.ts', import.meta.url).href;
   const child = `import {RunController} from ${JSON.stringify(module)};
 const controller=await RunController.open({root:${JSON.stringify(f.root)}});
