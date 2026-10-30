@@ -33,9 +33,11 @@ export function isLocalUrl(value: string): boolean {
 export function validatePlan(value: unknown): string[] {
   const issues: string[] = [];
   const fail = (path: string, valid: boolean, message: string) => { if (!valid) issues.push(`${path}: ${message}`); };
-  const keys = (v: Record<string, any>, allowed: string[], path: string) => {
+  const keys = (v: Record<string, any>, allowed: string[], path: string, inputKind?: 'mouse-click' | 'mouse-move' | 'locator-click') => {
     const unknown = Object.keys(v).filter(key => !allowed.includes(key));
-    fail(path, unknown.length === 0, `Unknown field: ${unknown.map(key => JSON.stringify(key)).join(', ')}`);
+    const hint = inputKind && unknown.includes('acceptanceId')
+      ? `. acceptanceId is forbidden on ${inputKind}; required on assert/wait-for. Do not remove it from assertions.` : '';
+    fail(path, unknown.length === 0, `Unknown field: ${unknown.map(key => JSON.stringify(key)).join(', ')}${hint}`);
   };
   if (!object(value)) return ['$: Expected a plan object'];
   keys(value, ['formatVersion', 'projectId', 'taskId', 'runId', 'reportId', 'specVersion', 'artifact', 'url', 'viewport', 'acceptanceIds', 'steps'], '$');
@@ -63,17 +65,18 @@ export function validatePlan(value: unknown): string[] {
     if (!object(step)) { issues.push(`${path}: Expected a step`); return; }
     fail(path, identifier(step.id) && !seen.has(step.id), 'Expected a unique step identifier'); seen.add(step.id);
     if (['mouse-click', 'mouse-move'].includes(step.kind)) {
-      keys(step, ['id', 'kind', 'x', 'y', 'selector'], path);
+      keys(step, ['id', 'kind', 'x', 'y', 'selector'], path, step.kind);
       for (const axis of ['x', 'y']) fail(`${path}.${axis}`, typeof step[axis] === 'number' && Number.isFinite(step[axis]) && step[axis] >= 0
         && step[axis] < (step.selector ? 1 : (value.viewport?.[axis === 'x' ? 'width' : 'height'] ?? 0)), 'Coordinates must be within viewport or normalized selector bounds [0,1)');
       if (step.selector !== undefined) fail(path, text(step.selector), 'Expected a selector');
     } else if (step.kind === 'locator-click') {
-      keys(step, ['id', 'kind', 'selector', 'timeoutMs'], path);
+      keys(step, ['id', 'kind', 'selector', 'timeoutMs'], path, step.kind);
       fail(path, text(step.selector), 'Expected a selector');
       fail(path, integer(step.timeoutMs, 1, 60_000), 'Expected timeoutMs 1..60000');
     } else if (['assert', 'wait-for'].includes(step.kind)) {
       keys(step, ['id', 'kind', 'acceptanceId', 'observation', 'expected', 'timeoutMs'], path);
-      fail(path, Array.isArray(ids) && ids.includes(step.acceptanceId), 'Unknown acceptanceId'); covered.add(step.acceptanceId);
+      fail(path, Array.isArray(ids) && ids.includes(step.acceptanceId), Object.hasOwn(step, 'acceptanceId') ? 'Unknown acceptanceId'
+        : `Missing required field: acceptanceId for ${step.kind}. Use the original criterion ID for this assertion.`); covered.add(step.acceptanceId);
       fail(path, scalar(step.expected), 'Expected a finite JSON scalar');
       fail(path, integer(step.timeoutMs, 1, 60_000), 'Expected timeoutMs 1..60000');
       const observation = step.observation;

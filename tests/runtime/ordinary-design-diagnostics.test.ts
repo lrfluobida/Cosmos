@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { removeOwned } from '../../src/artifacts/paths.ts';
 import { createGameDesignCheck } from '../../src/runtime/entrypoint-design-check.ts';
+import { createGamePlanWriter } from '../../src/runtime/entrypoint-plan-authoring.ts';
 import { validateOrdinaryAcceptancePlan } from '../../src/runtime/entrypoint-acceptance-plan.ts';
 import { withHostStages } from '../../src/roles/requirements.ts';
 
@@ -154,4 +155,25 @@ test('COS145 local checks use the actual viewport and confirmed gameplay IDs for
   await f.put(envelope);
   const errors = (await f.explicit()).errors;
   assert.match(errors[0].message, /envelope/); assert.equal(errors.length, 3);
+});
+
+test('COS158 structured plan writes expose opposite kind rules through bounded read-only feedback', async t => {
+  const f = await fixture(t), bad = structuredClone(f.plan);
+  bad.scenario.steps[0].acceptanceId = 'light';
+  delete bad.scenario.steps[1].acceptanceId;
+  bad.scenario.reopen.steps[1].kind = 'wait-for'; delete bad.scenario.reopen.steps[1].acceptanceId;
+  const writer = await createGamePlanWriter({ workspace: f.workspace, requirement: f.plan.requirement,
+    guard: async () => {}, afterFileWrite: async () => f.automatic() });
+  const result = await writer.tool.execute('kind-feedback', { operation: 'save', scenario: bad.scenario }, undefined, undefined, undefined as any);
+  const feedback = result.content[1]; assert.equal(feedback.type, 'text');
+  if (feedback.type !== 'text') throw new Error('Expected automatic write feedback');
+  assert.match(feedback.text, /scenario.steps\[0\]: Unknown field: "acceptanceId"\. acceptanceId is forbidden on locator-click; required on assert\/wait-for\. Do not remove it from assertions\./);
+  assert.match(feedback.text, /scenario.steps\[1\]: Missing required field: acceptanceId for assert\. Use the original criterion ID for this assertion\./);
+  assert.match(feedback.text, /scenario.reopen.steps\[1\]: Missing required field: acceptanceId for wait-for/);
+  assert.ok(feedback.text.length <= 4096); assert.ok(feedback.text.split('\n').filter(line => line.startsWith('- ')).length <= 8);
+  assert.deepEqual(JSON.parse(await readFile(join(f.workspace, file), 'utf8')), bad);
+  assert.equal((await f.explicit()).passed, false);
+  assert.throws(() => validateOrdinaryAcceptancePlan(bad, f.draft), /scenario.steps\[0\]: Unknown field: "acceptanceId"/);
+  await writer.tool.execute('correct-kinds', { operation: 'save', scenario: f.plan.scenario }, undefined, undefined, undefined as any);
+  assert.deepEqual(await f.explicit(), { passed: true, errors: [] });
 });
