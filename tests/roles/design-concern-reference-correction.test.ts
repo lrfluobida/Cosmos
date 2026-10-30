@@ -57,6 +57,27 @@ function r19Fixture() {
   return f;
 }
 
+function r24Fixture() {
+  const f = fixture(7);
+  f.task.inputs.push(artifact('confirmation'), artifact('design-source'), artifact('review-source'));
+  f.task.evidence[0].artifactVersions = [...f.task.inputs, ...f.task.artifacts];
+  f.valid.inputVersions = [...f.task.inputs, ...f.task.artifacts];
+  f.valid.findings = Array.from({ length: 8 }, (_, i) => `原有缺陷 ${i}`);
+  for (const [index, row] of f.valid.concernResolutions.entries()) {
+    row.status = [1, 3, 4].includes(index) ? 'unresolved' : 'resolved';
+    row.basis = [0, 5].includes(index) ? 'host_evidence' : 'captured_output';
+    row.inputVersions = row.basis === 'host_evidence' ? [...f.valid.inputVersions] : [f.packet.capture];
+    row.evidenceIds = row.basis === 'host_evidence' ? [f.task.evidence[0].evidenceId] : [];
+    row.evidenceRefs = row.basis === 'host_evidence' ? [f.task.evidence[0].source] : [];
+  }
+  f.invalid = structuredClone(f.valid);
+  for (const index of [0, 5]) {
+    f.invalid.concernResolutions[index].inputVersions = f.valid.inputVersions.slice(0, index === 0 ? 2 : 1);
+    Object.assign(f.invalid.concernResolutions[index], { evidenceRefs: ['MODEL_BAD_PATH'] });
+  }
+  return f;
+}
+
 async function setup(t: test.TestContext, f = fixture()) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-concern-reference-'));
   const controller = await RunController.create({ root: join(root, 'state'), runId: f.task.runId, ledgerId: f.task.budget.ledgerId,
@@ -91,6 +112,162 @@ function expectedTexts(diagnostic: string): { source: string; text: string }[] {
   assert.ok(line, 'exact original text must be quoted as data');
   return JSON.parse(line.slice(prefix.length));
 }
+
+function expectedHostReferences(diagnostic: string): { source: string; references: unknown[] }[] {
+  const prefix = 'Expected host references (exact objects, in order): ';
+  const line = diagnostic.split('\n').find(line => line.startsWith(prefix));
+  assert.ok(line, 'known passing host proof needs exact reference objects');
+  return JSON.parse(line.slice(prefix.length));
+}
+
+test('R24-shaped host reference errors reach the existing single correction across both host rows', async t => {
+  const f = await setup(t, r24Fixture()), before = structuredClone(f.invalid);
+  assert.throws(() => f.parse(f.invalid), { message: 'Design resolution lacks current passing host proof.' });
+  const result = await requestReview(f.options), diagnostic = f.prompts[1].slice(designConcernReviewProtocol.length);
+  assert.deepEqual(issues(diagnostic), [0, 5].flatMap(row => [
+    { path: `$.concernResolutions[${row}].inputVersions`, reason: 'host_input_versions_mismatch', source: 'task.inputs + task.artifacts' },
+    { path: `$.concernResolutions[${row}].evidenceRefs`, reason: 'host_evidence_refs_mismatch', source: 'task.evidence[0].source' },
+  ]));
+  assert.deepEqual(expectedHostReferences(diagnostic), [
+    { source: 'task.inputs + task.artifacts', references: f.valid.inputVersions },
+    { source: 'task.evidence[0].source', references: [f.task.evidence[0].source] },
+  ]);
+  assert.ok(Buffer.byteLength(diagnostic, 'utf8') <= 4096);
+  assert.match(diagnostic, /artifactId.*version.*location/); assert.match(diagnostic, /path string/);
+  assert.match(diagnostic, /Structural.*semantic completeness.*gameplay/);
+  assert.doesNotMatch(diagnostic, /MODEL_|Fixed inputVersions diagnostic/);
+  assert.deepEqual(result, f.valid); assert.deepEqual(result.findings, before.findings);
+  assert.equal(result.verdict, 'changes_requested'); assert.equal(result.findings.length, 8);
+  assert.equal(result.concernResolutions.filter(row => row.status === 'unresolved').length, 3);
+  assert.deepEqual(f.invalid, before); assert.throws(() => f.parse(f.invalid), { message: 'Design resolution lacks current passing host proof.' });
+  assert.equal(f.prompts.length, 2);
+});
+
+test('R24-shaped second reply stays rejected after one correction; only synthetic exact source objects repair representation', async t => {
+  const f = await setup(t, r24Fixture()), second = structuredClone(f.invalid);
+  for (const index of [0, 5]) second.concernResolutions[index].inputVersions = [...f.valid.inputVersions];
+  f.replies[0] = second; f.replies[1] = second;
+  await assert.rejects(requestReview(f.options), ReviewProtocolError);
+  assert.equal(f.prompts.length, 2); assert.equal(JSON.parse(await readFile(f.options.correctionRecordPath, 'utf8')).used, 1);
+  assert.deepEqual(issues(f.prompts[1]).map(issue => issue.path), ['$.concernResolutions[0].evidenceRefs', '$.concernResolutions[5].evidenceRefs']);
+  const synthetic = structuredClone(second);
+  synthetic.concernResolutions[0].evidenceRefs = [f.task.evidence[0].source];
+  assert.throws(() => f.parse(synthetic), { message: 'Design resolution lacks current passing host proof.' });
+  synthetic.concernResolutions[5].evidenceRefs = [f.task.evidence[0].source];
+  assert.deepEqual(f.parse(synthetic), f.valid);
+  assert.throws(() => f.parse(second), { message: 'Design resolution lacks current passing host proof.' });
+});
+
+for (const mode of ['unknown', 'failed', 'skipped', 'observed', 'stale', 'uncovered', 'top-missing', 'empty', 'shape', 'identity'] as const) test(`host ${mode} guard gives no expected proof`, () => {
+  const f = r24Fixture(), row = f.invalid.concernResolutions[0];
+  if (mode === 'unknown') row.evidenceIds = ['MODEL_UNKNOWN'];
+  if (mode === 'failed' || mode === 'skipped' || mode === 'observed') Object.assign(f.task.evidence[0], { outcome: mode });
+  if (mode === 'stale') f.task.evidence[0].recordedAt = '2000-01-01T00:00:00.000Z';
+  if (mode === 'uncovered') f.task.evidence[0].acceptanceIds = [];
+  if (mode === 'top-missing') f.invalid.evidenceIds = [];
+  if (mode === 'empty') row.evidenceIds = [];
+  if (mode === 'shape') row.inputVersions = [];
+  if (mode === 'identity') row.concernId = 'MODEL_UNKNOWN';
+  assert.throws(() => f.parse(f.invalid), error => {
+    assert.ok(error instanceof Error); assert.ok(!('correctionDiagnostic' in error)); return true;
+  });
+});
+
+test('host exact references retain order, count and complete values, using selected source order', () => {
+  const f = r24Fixture();
+  f.task.evidence.push({ ...f.task.evidence[0], evidenceId: 'second-host', source: artifact('second-report') });
+  f.valid.evidenceIds.push('second-host');
+  const row = f.valid.concernResolutions[0]; row.evidenceIds = ['second-host', f.task.evidence[0].evidenceId];
+  row.evidenceRefs = [f.task.evidence[1].source, f.task.evidence[0].source];
+  assert.deepEqual(f.parse(f.valid), f.valid);
+  for (const field of ['inputVersions', 'evidenceRefs'] as const) for (const mode of ['reorder', 'extra', 'value'] as const) {
+    const invalid = structuredClone(f.valid), refs = invalid.concernResolutions[0][field];
+    if (mode === 'reorder') refs.reverse();
+    if (mode === 'extra') refs.push(refs[0]);
+    if (mode === 'value') refs[0] = { ...refs[0], version: 'MODEL_STALE' };
+    assert.throws(() => f.parse(invalid), error => {
+      assert.ok(error instanceof Error && 'correctionDiagnostic' in error);
+      const diagnostic = String(error.correctionDiagnostic);
+      assert.equal(issues(diagnostic)[0].path, `$.concernResolutions[0].${field}`);
+      const expected = expectedHostReferences(diagnostic)[0];
+      assert.deepEqual(expected.references, row[field]);
+      if (field === 'evidenceRefs') assert.equal(expected.source, 'task.evidence[1].source + task.evidence[0].source');
+      assert.doesNotMatch(diagnostic, /MODEL_/); return true;
+    });
+  }
+});
+
+test('earlier text and non-host errors keep priority while collecting eligible host fields', () => {
+  for (const mode of ['text', 'reference'] as const) {
+    const f = r24Fixture(), row = f.invalid.concernResolutions[0];
+    if (mode === 'text') row.concernText = 'MODEL_TEXT';
+    else { row.basis = 'captured_output'; row.inputVersions = [f.packet.capture]; }
+    assert.throws(() => f.parse(f.invalid), error => {
+      assert.ok(error instanceof Error && 'correctionDiagnostic' in error);
+      assert.equal(error.message, mode === 'text' ? textMessage : referenceMessage);
+      const diagnostic = String(error.correctionDiagnostic);
+      assert.ok(issues(diagnostic).some(issue => issue.path === '$.concernResolutions[5].evidenceRefs'));
+      if (mode === 'text') assert.deepEqual(expectedTexts(diagnostic), [{ source: 'designConcernReview.proposal.remaining[0]', text: f.packet.proposal.remaining[0] }]);
+      assert.doesNotMatch(diagnostic, /MODEL_TEXT|MODEL_BAD_PATH/); return true;
+    });
+  }
+});
+
+test('a later identity or unavailable host proof stops collection while preserving the first host rejection', () => {
+  for (const mode of ['identity', 'proof'] as const) {
+    const f = r24Fixture();
+    if (mode === 'identity') f.invalid.concernResolutions[1].concernId = 'MODEL_UNKNOWN';
+    else f.invalid.concernResolutions[5].evidenceIds = ['MODEL_UNKNOWN'];
+    assert.throws(() => f.parse(f.invalid), error => {
+      assert.ok(error instanceof Error && 'correctionDiagnostic' in error);
+      assert.equal(error.message, 'Design resolution lacks current passing host proof.');
+      assert.deepEqual(issues(String(error.correctionDiagnostic)).map(issue => issue.path), ['$.concernResolutions[0].inputVersions', '$.concernResolutions[0].evidenceRefs']);
+      return true;
+    });
+  }
+});
+
+test('host, text and non-host diagnostics share a byte bound with complete JSON and omitted pointers', () => {
+  const f = r24Fixture();
+  f.task.inputs[0].location = '可信多字节/'.repeat(2000);
+  f.task.evidence[0].source.location = '可信证据/'.repeat(2000);
+  f.valid.inputVersions = [...f.task.inputs, ...f.task.artifacts];
+  f.invalid.inputVersions = f.valid.inputVersions;
+  f.packet.proposal.remaining[0] = '原文'.repeat(3000);
+  f.invalid.concernResolutions[2].evidenceIds = ['MODEL_BAD'];
+  assert.throws(() => f.parse(f.invalid), error => {
+    assert.ok(error instanceof Error && 'correctionDiagnostic' in error);
+    const diagnostic = String(error.correctionDiagnostic);
+    assert.ok(Buffer.byteLength(diagnostic, 'utf8') <= 4096);
+    assert.equal(issues(diagnostic).length, 6); assert.deepEqual(expectedTexts(diagnostic), []);
+    assert.deepEqual(expectedHostReferences(diagnostic), []);
+    assert.match(diagnostic, /2 host reference lists omitted/); assert.match(diagnostic, /1 expected texts omitted/);
+    assert.match(diagnostic, /task\.evidence\[0\]\.source/); assert.match(diagnostic, /designConcernReview\.proposal\.remaining\[0\]/);
+    assert.doesNotMatch(diagnostic, /可信多字节|可信证据|MODEL_BAD/); return true;
+  });
+});
+
+test('many host fields keep complete issue items and explicit omission counts within the shared byte cap', () => {
+  const f = r24Fixture(), template = f.invalid.concernResolutions[0];
+  f.packet.proposal.remaining = Array.from({ length: 100 }, (_, i) => `主机证据关切 ${i}`);
+  f.packet.concerns = indexDesignConcerns(f.packet.proposal);
+  f.invalid.concernResolutions = f.packet.concerns.map((concern, i) => ({ ...template, concernId: concern.concernId, concernText: f.packet.proposal.remaining[i] }));
+  assert.throws(() => f.parse(f.invalid), error => {
+    assert.ok(error instanceof Error && 'correctionDiagnostic' in error);
+    const diagnostic = String(error.correctionDiagnostic), listed = issues(diagnostic);
+    assert.ok(Buffer.byteLength(diagnostic, 'utf8') <= 4096);
+    const omitted = diagnostic.match(/(\d+) issues omitted/); assert.ok(omitted);
+    assert.ok(Number(omitted[1]) > 0); assert.equal(listed.length + Number(omitted[1]), 200);
+    expectedHostReferences(diagnostic); assert.match(diagnostic, /host reference lists omitted/);
+    assert.doesNotMatch(diagnostic, /MODEL_/); return true;
+  });
+});
+
+test('zero host corrections retains strict rejection without writing a correction record', async t => {
+  const f = await setup(t, r24Fixture());
+  await assert.rejects(requestReview({ ...f.options, maxCorrections: 0 }), ReviewProtocolError);
+  assert.equal(f.prompts.length, 1); await assert.rejects(readFile(f.options.correctionRecordPath), { code: 'ENOENT' });
+});
 
 test('R19-shaped reference and exact text errors reach the single correction including the same last row', async t => {
   const f = await setup(t, r19Fixture()), before = structuredClone(f.invalid);
