@@ -1,8 +1,12 @@
 # COS157：公共验证阶段的一次显式继任
 
-状态：phase_successor_reviewer已独立DESIGN_APPROVED，Root批准免费SOURCE/TEMP实施；SOURCE pending，尚非源码批准或真实预算授权。作者phase_successor_implementer（cos01），同一独立reviewer后续审actualdiff、与作者保持独立，唯一merger planning_budget_merger。原稿准备/等待设计审查措辞仅为批准前快照，当前设计状态以本段为准。
+状态：SOURCE范围完成。phase_successor_reviewer已先DESIGN_APPROVED，再对 `26a11bed54b5fbaf4fceec4c2056f936e9b21d45` 独审APPROVED_SOURCE_SCOPED、无finding；Root批准唯一merger与COS156组合发布 `bb25f37b93ff9408dba5685b5f1d45ad7a71df02`。[批准](https://github.com/lrfluobida/Cosmos/issues/158#issuecomment-6512808268)、[关闭](https://github.com/lrfluobida/Cosmos/issues/158#issuecomment-6512808747)及父[x]已GET。main types/build0、组合4/4、0skip，C1577+C15610 approved union17 exact；仅SOURCE/TEMP，非真实预算批准。原准备措辞保留为批准前快照，不新增设计gate。
 
-任务：[COS157 / #158](https://github.com/lrfluobida/Cosmos/issues/158)，id6111325804；原生父COS18/#19未勾，依赖[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)。runtime基线 `0341094c8cc12179f0de3a303318227681f907d3`。沿ADR0001同一权威账本，无新ADR。
+任务：[COS157 / #158](https://github.com/lrfluobida/Cosmos/issues/158)，id6111325804；原生父COS18/#19已勾（仅SOURCE，父仍open/partial），依赖[COS143 / #144](https://github.com/lrfluobida/Cosmos/issues/144)。runtime基线 `0341094c8cc12179f0de3a303318227681f907d3`。沿ADR0001同一权威账本，无新ADR。
+
+组合main typecheck/build0，有限4/4、0skip、TAP6991.3404ms：旧40不变、三代funding/latest source与历史reserve/settlement、原/新apply在held及后续结算后的无写精确重试，加COS156真实factory/Pi native save+2set。复用作者final new12、旧phase10、funding5、CLI4/types/build/strict；早期22包含new12+old10，production字节未变、后续仅new-test narrowing，不能再加22+12。独审TEMP1/1验证baseline phaseHistory字节/未知snapshot字段/原receipt/hash/三代source/held重试无写。COS156的55distinct及单列finalization证据按原边界保持。
+
+尚未做真实状态兼容审计、readonly quote、apply、controller、ledger、readiness或provider操作；SOURCE完成不是高于40M的真实预算决定。[R22永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6512088069)与实际phase40/C35395421µ/H0、room12v2保持。下一完整5M exposure40395421µ超395421µ，当前禁新fullpaid；45M仅可能提案，须Root后续准备当前精确quote并由人类另作明确预算决定。没有游戏完成或模型实际生成通过声明。
 
 设计批准输入SHA256：spec `03e603f57f23b0f7a40b147c49ccef1b52a9431ae650f05831793cd790381892`；plan `494757eeebc603f4dababd60e3e2e13f6261a51bf5c09cfec29d3434b7081927`；原批准快照保留。实际phase40/C35395421µ/H0不变；下一完整5M exposure40395421µ超395421µ，当前禁新fullpaid。X须显式，45M仅可能提案，未生成真实quote或apply，增额未批准。
 

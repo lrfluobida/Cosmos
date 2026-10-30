@@ -6,7 +6,7 @@
 
 作者六文件原invocation为54/55、exit1，仅旧revision schema期望遗漏baseline afterStepId；Root批准一行期望修正后该项1/1。最终55个不同检查由原54不变通过+修正后1覆盖，不将原invocation改写为exit0，low-level8/native重叠不相加。另列真实SDK budget-finalization1/1、readonly cap4096保持。exact types/build/strict0、UTF8/中文及旧plan function/canonical rule字节相等已独审核证，JSON-only检查仅label抽取。
 
-仅免费SOURCE/TEMP完成，无源码发布后的真实生成或资金操作；[R22永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6512088069)保持。实际phase40/C35395421µ/H0与room12v2不变，下一完整5M exposure40395421µ超阶段395421µ，禁新fullpaid、未准备真实quote/apply或批准增额。COS157候选未合并，源码完成不授予预算授权。
+仅免费SOURCE/TEMP完成，无源码发布后的真实生成或资金操作；[R22永久结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6512088069)保持。实际phase40/C35395421µ/H0与room12v2不变，下一完整5M exposure40395421µ超阶段395421µ，禁新fullpaid、未准备真实quote/apply或批准增额。COS156首次SOURCE发布时COS157候选尚未合并；后续组合状态见COS157任务卡，源码完成不授予预算授权。
 
 Root批准输入SHA256：spec `ae4371a241d995f17d4b8e9b407ca0f71d9702d3781adcc4a9e09c0873b2bb1f`；plan `efe434cd020b71e1d29839805df750bc8dd57d9d516f33a316886bb7c5e88774`；原批准快照保留。phase40/C35395421µ/H0不变，下一完整5M exposure40395421µ超395421µ，当前禁止新fullpaid，增额未批准。
 
