@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -23,6 +23,50 @@ test('an unfunded run or raw funding flag cannot select the conserved policy', a
     await assert.rejects(controller.bindOrdinaryDesignBudgetLifecycle(), /funded host/);
     assert.ok((await readFile(join(root, 'snapshot.json'))).equals(before));
   } finally { await controller.close(); }
+});
+
+test('lost owner close proof denies new work while stop and admitted accounting still converge', async t => {
+  const f = await conservedFixture(t); await f.execute();
+  const initial = await f.state(), taskId = initial.ordinaryDesignRevisionBudgetActivation.budget.targetTaskId;
+  const start = JSON.parse(initial.events.find((row: any) => row.type === 'ordinary_design_budget_owner_started').reason);
+  const closed = join(f.root, `ordinary-design-budget-lifecycle/owner-${start.owner.token}-closed.json`);
+  const controller = await RunController.open({ root: f.root }); let moved = false, ticket: string | undefined;
+  const evidence = [{ artifactId: 'fake-no-real-provider', version: 'v1', location: 'fixture-accounting.json' }];
+  try {
+    for (const requestId of ['already-admitted-settle', 'already-admitted-cancel', 'not-yet-admitted']) {
+      await controller.reserve({ requestId, taskId, provider: 'fake', pricingVersion: 'fake', estimatedMaxCostMicroCny: 2 });
+      if (requestId !== 'not-yet-admitted') await controller.admit(requestId);
+    }
+    ticket = await controller.prepareOwnedChild({ taskId });
+    await rename(closed, `${closed}.preserved`); moved = true;
+    const before = await readFile(join(f.root, 'snapshot.json'));
+    await assert.rejects(controller.executionAuthority(taskId), /no proved close or exit/);
+    await assert.rejects(controller.reserve({ requestId: 'forbidden-new-request', taskId, provider: 'fake', pricingVersion: 'fake', estimatedMaxCostMicroCny: 1 }), /no proved close or exit/);
+    await assert.rejects(controller.admit('not-yet-admitted'), /no proved close or exit/);
+    await assert.rejects(controller.prepareOwnedChild({ taskId }), /no proved close or exit/);
+    assert.ok((await readFile(join(f.root, 'snapshot.json'))).equals(before), 'Denied execution must not write');
+    await controller.releaseUnspawnedChild(ticket); ticket = undefined;
+    assert.deepEqual(JSON.parse(await readFile(join(f.root, '.controller.lock'), 'utf8')).children, []);
+    await controller.stop('Synthetic provenance revocation');
+    assert.equal(controller.signal.aborted, true);
+    await controller.markUnknown('already-admitted-settle', evidence);
+    await controller.settle('already-admitted-settle', 1, evidence);
+    await assert.rejects(controller.cancel('already-admitted-cancel', evidence), /explicit no-cost evidence/);
+    await controller.cancel('already-admitted-cancel', evidence, { provenNoCost: true });
+    const state = await controller.read();
+    assert.equal(state.stopReason!.code, 'manual');
+    assert.equal(state.ledger.entries.find(row => row.requestId === 'already-admitted-settle')!.settledMicroCny, 1);
+    assert.equal(state.ledger.entries.find(row => row.requestId === 'already-admitted-cancel')!.status, 'cancelled');
+    assert.equal(state.ledger.entries.find(row => row.requestId === 'not-yet-admitted')!.status, 'cancelled');
+    assert.equal(state.ledger.entries.some(row => row.requestId === 'forbidden-new-request'), false);
+    assert.equal(state.run.fees.reservedMicroCny, 0); assert.deepEqual(state.run.fees.unknownRequestIds, []);
+  } finally {
+    if (moved) await rename(`${closed}.preserved`, closed);
+    if (ticket) await controller.releaseUnspawnedChild(ticket);
+    const state = await controller.read();
+    for (const entry of state.ledger.entries.filter(row => ['reserved', 'unknown'].includes(row.status))) await controller.cancel(entry.requestId, evidence, { provenNoCost: true });
+    await controller.close();
+  }
 });
 
 test('revision target static contract is authenticated at open, admission and proposed task save', async t => {

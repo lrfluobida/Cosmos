@@ -188,7 +188,7 @@ export class RunController {
   }
   /** Cleanup remains possible after cancellation, but never after owner close or for a PID. */
   releaseUnspawnedChild(ticket: string): Promise<void> {
-    return this.serial(async () => { await this.store.releaseUnspawnedChild(ticket); this.childTasks.delete(ticket); });
+    return this.serial(async () => { await this.store.releaseUnspawnedChild(ticket); this.childTasks.delete(ticket); }, 'reconciliation');
   }
   /** Bind the waiting child before releasing its startup barrier or allowing writes. */
   registerOwnedChild(pid: number, ticket: string): Promise<void> {
@@ -279,7 +279,7 @@ export class RunController {
 
   async read(callerSignal?: AbortSignal): Promise<RunSnapshot> {
     this.checkCaller(callerSignal);
-    return this.serial(async () => { this.checkCaller(callerSignal); return structuredClone(this.snapshot); });
+    return this.serial(async () => { this.checkCaller(callerSignal); return structuredClone(this.snapshot); }, 'reconciliation');
   }
 
   /** Detached scope identity and complete current window, with the same read queue and expiry. */
@@ -425,7 +425,7 @@ export class RunController {
       if (overrun) this.halt(next, 'charge_overrun', `Actual charge exceeded the reservation for ${requestId}.`);
       await this.commit(next);
       return { halted: this.activeStop(next) !== null };
-    });
+    }, 'reconciliation');
   }
 
   async markUnknown(requestId: string, evidence: ArtifactReference[]): Promise<void> {
@@ -438,7 +438,7 @@ export class RunController {
       entry.status = 'unknown'; entry.unknown = true; appendEvidence(entry, references);
       this.event(next, 'unknown', requestId, 'Unknown provider result; reservation retained for reconciliation.');
       await this.commit(next);
-    });
+    }, 'reconciliation');
   }
 
   async cancel(requestId: string, evidence: ArtifactReference[], options: { provenNoCost?: boolean } = {}): Promise<void> {
@@ -452,7 +452,7 @@ export class RunController {
       appendEvidence(entry, references);
       this.event(next, 'cancelled', requestId, provenNoCost ? 'Provider proved no charge.' : 'Cancelled before admission.');
       await this.commit(next);
-    });
+    }, 'reconciliation');
   }
 
   /** Generic idempotent import; the caller supplies the prior charge and its source. */
@@ -585,7 +585,7 @@ export class RunController {
       const next = structuredClone(this.snapshot);
       this.halt(next, 'manual', reason);
       await this.commit(next);
-    });
+    }, 'reconciliation');
   }
 
   /** Distinguish new funded host work from later accounting-only owner activity. */
@@ -676,11 +676,12 @@ export class RunController {
     if (callerSignal) { this.signal.throwIfAborted(); callerSignal.throwIfAborted(); }
   }
 
-  private serial<T>(operation: () => Promise<T>): Promise<T> {
+  /** Revocation and existing-request facts must remain writable after execution proof is lost. */
+  private serial<T>(operation: () => Promise<T>, scope: 'execution' | 'reconciliation' = 'execution'): Promise<T> {
     if (this.closing || this.failed) return Promise.reject(new Error('Run controller is closed or persistence failed.'));
     const result = this.pending.then(async () => {
       if (this.failed) throw new Error('Run controller persistence failed.');
-      await verifyOrdinaryBudgetOwnerHistory(this.store.root, this.snapshot, this.store.ownerIdentity().token);
+      if (scope === 'execution') await verifyOrdinaryBudgetOwnerHistory(this.store.root, this.snapshot, this.store.ownerIdentity().token);
       await this.expire();
       return operation();
     });
@@ -818,7 +819,7 @@ export class RunController {
     if (this.activeStop()) return;
     const delay = Math.max(1, Date.parse(this.deadlineAt()) - this.now());
     this.timer = setTimeout(() => {
-      void this.serial(async () => { this.armDeadline(); }).catch(() => { this.abort.abort(new Error('Deadline persistence failed.')); });
+      void this.serial(async () => { this.armDeadline(); }, 'reconciliation').catch(() => { this.abort.abort(new Error('Deadline persistence failed.')); });
     }, delay);
     this.timer.unref();
   }
