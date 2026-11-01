@@ -1,10 +1,14 @@
 # COS160：同一运行内守恒的设计修订额度
 
-状态：review-v2已由design_revision_budget_reviewer独立DESIGN_APPROVED，Root明确批准实施及ADR设计决定；SOURCE pending，非源码批准或预算增额。作者design_revision_budget_implementer，独立reviewer后续审actualdiff，唯一merger planning_budget_merger。只以v2技术条款为当前实施依据，不混入v1过宽eligibility或统一32请求上限。
+状态：SOURCE范围完成。design_revision_budget_reviewer对组合 `1a4d955e65f08f787f20317b16030101e08cdb5b` 独审APPROVED_SOURCE_SCOPED、无剩余finding；Root批准唯一merger planning_budget_merger发布 `d606f465fc8ff2acb23e414c8860dce0377c0e4f`。[批准](https://github.com/lrfluobida/Cosmos/issues/161#issuecomment-6558267783)、[关闭](https://github.com/lrfluobida/Cosmos/issues/161#issuecomment-6558268303)及父[x]已GET。main typecheck/build0、4/4、0skip，27files exact；最终同SHA accounting3/3、独审原P1复现1/1及此前有效完整证据复用。v2仍是唯一技术条款，设计/SOURCE验收均不增加总预算或代表游戏通过。
 
-任务：[COS160 / #161](https://github.com/lrfluobida/Cosmos/issues/161)，id6115177248；原生父COS18/#19未勾，依赖[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)唯一design revision与[COS132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)review reserve。runtime基线 `66884f836b6b8f8e49872208be3b2c0a54f23808`。[ADR0006](../adr/0006-conserved-ordinary-design-revision-budget.md)的accepted仅代表Root接受设计决定，SOURCE仍pending。
+任务：[COS160 / #161](https://github.com/lrfluobida/Cosmos/issues/161)，id6115177248；原生父COS18/#19已勾（仅SOURCE，父仍open/partial），依赖[COS134 / #135](https://github.com/lrfluobida/Cosmos/issues/135)唯一design revision与[COS132 / #133](https://github.com/lrfluobida/Cosmos/issues/133)review reserve。runtime基线 `66884f836b6b8f8e49872208be3b2c0a54f23808`。[ADR0006](../adr/0006-conserved-ordinary-design-revision-budget.md)的accepted仅代表Root接受设计决定，SOURCE完成状态见本页记录。
 
-v2批准输入SHA256：spec `52b3efc20712a2cd812b00339f642d5ff04aa052b2f97b009b10ff9e2013daa3`；plan `ec60fc6ac98c16f1980edaca16e44cf576639e0d0ce98c3847ff408f156e83d5`；ADR `bd5f111f0cb5b8bce838156460cd9f193b94f8019b93d72c9bdcdf505412c344`。immutable approved-v2原件及登记副本保持。真实phase45/C37871307µ/H0无变更，无新paid或实际预算激活。
+[R26结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6558270925)：planning-started/execution实际选中conserved-initial-unused/1，owner start/close来源通过独立核验。初始设计initial_design_incomplete，独立review未开始，账本仍1.0.0；没有ledger6激活、初稿额度关闭、修订或accepted game。新策略选择与生命周期已有实际记录，守恒激活分支本轮未到达。尚未完成的原稿诊断不作为结案定论。
+
+R26 planning2/39077µ、design author53/554622µ，共55笔593699µ、释放4406301µ。2026-11-01T12:38:11.707Z→12:47:48.127Z的576420ms（9分36.420秒）仅清理事实；12:49:34.499Z永久stop、12:49:39.760Z一次settle。独立PASS_CLOSED：child233 SHA `7835e18057d0dada6878985a921ef96b1a35ff1b8e7c0675540df802fc5cebdc`；shared3418 SHA `d1c4ac6cecfbdd76d2d5131d936899dcd5e4581fd63f72d3264c687d7cadf5a9`，C38465006µ/H0/R0/U0。phase45/phase3决定、room12v2及旧来源保持，当前无paid active；证据 `.cosmos/public-validation/room-20261101-reuse-26/{generation-closure.json,generation-execution.json,closure-readonly-audit.json}`。旧run永久closed，本次元数据收尾不启动运行或改变额度。
+
+v2批准输入SHA256：spec `52b3efc20712a2cd812b00339f642d5ff04aa052b2f97b009b10ff9e2013daa3`；plan `ec60fc6ac98c16f1980edaca16e44cf576639e0d0ce98c3847ff408f156e83d5`；ADR `bd5f111f0cb5b8bce838156460cd9f193b94f8019b93d72c9bdcdf505412c344`。immutable approved-v2原件及登记副本保持。登记时phase45/C37871307µ/H0及无激活事实保留；R26闭账后当前C38465006µ/H0/R0/U0，phase45保持，本轮未进入修订额度激活。
 
 ## v1 审查纠正记录
 
@@ -15,7 +19,7 @@ v1曾收到DESIGN_CHANGES_REQUIRED。原始spec/plan/ADR逐字节保存在`.cosm
 - 已提交exact retry经专用no-expire队列只读返回；首次激活仍执行原expire/stop/余量门禁。
 - 请求上限保持当前design author64、reviewer/planner16及其他角色overrides；v1统一32的表述不再适用。
 
-v2完整变更记录另见`.cosmos/planning/conserved-design-revision-budget/review-v2/changes.md`。以下技术条款以immutable approved-v2为准；设计已获批准，实际SOURCE仍须独立审查与唯一集成。
+v2完整变更记录另见`.cosmos/planning/conserved-design-revision-budget/review-v2/changes.md`。以下技术条款以immutable approved-v2为准；设计及实际SOURCE已分别独立审查并由唯一merger集成；状态与证据见页首。
 
 ## 1. 问题和边界
 
@@ -35,7 +39,7 @@ R25 初始设计获得有效 `changes_requested`，原 grant 1,125,000µ 中已�
 - **设计修订预算意图**：主机准备并固定的唯一旧 grant 关闭及新 revision grant 方案；存在此文件尚无新的派发权。
 - **设计修订预算激活回执**：与关闭记录和目标任务在同一 snapshot 内提交的主机来源链；独审建议仅是触发事实，不是预算授权。
 
-设计术语已按纯glossary格式最小写入`CONTEXT.md`；[ADR0006](../adr/0006-conserved-ordinary-design-revision-budget.md)编号已核无冲突，accepted仅代表Root设计决定，SOURCE仍pending。
+设计术语已按纯glossary格式最小写入`CONTEXT.md`；[ADR0006](../adr/0006-conserved-ordinary-design-revision-budget.md)编号已核无冲突，accepted仅代表Root设计决定，SOURCE完成状态见本页记录。
 
 ## 3. 策略冻结与兼容
 
@@ -124,4 +128,4 @@ activation 后 crash、revision 尚无 origin：复用既有 `current → prepar
 
 ## 9. v2 独立设计复审记录
 
-design_revision_budget_reviewer已针对funded-only eligibility与非funded正式续窗、具体owner retention/起止回执/live operation/epoch能力、no-expire exact retry、public settlement首次认证/只读历史和repair-plan closure basis给出DESIGN_APPROVED。Root已批准v2实施与ADR设计决定；实现后仍需独立actualdiff SOURCE审查，当前SOURCE pending。
+design_revision_budget_reviewer已针对funded-only eligibility与非funded正式续窗、具体owner retention/起止回执/live operation/epoch能力、no-expire exact retry、public settlement首次认证/只读历史和repair-plan closure basis给出DESIGN_APPROVED。Root已批准v2实施与ADR设计决定；实现后actualdiff SOURCE审查已完成，无剩余finding；27文件集成与R26未到达激活的边界见页首。
