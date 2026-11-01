@@ -23,7 +23,7 @@ export function requireContinuationTask(state: RunSnapshot, task: TaskContract):
 /** The current release supports one explicit v1-to-v2 authorization, including durable recovery. */
 export function validateContinuation(state: RunSnapshot): void {
   if (state.formatVersion === 1) {
-    if (state.continuation !== undefined || state.ledger.contractVersion !== '1.0.0' || state.requests.some(record => record.windowId !== undefined)) throw new Error('Original v1 snapshot cannot contain continuation authority.');
+    if (state.continuation !== undefined || !['1.0.0', '6.0.0'].includes(state.ledger.contractVersion) || state.requests.some(record => record.windowId !== undefined)) throw new Error('Original v1 snapshot cannot contain continuation authority.');
     return;
   }
   const data = state.continuation;

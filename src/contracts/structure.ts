@@ -65,6 +65,10 @@ const validationClosureLedgerShape = object({
   contractVersion: enumeration(['3.0.0']), ...ledgerFields,
   allocationClosures: array(object({ taskId: text, decisionId: text, releasedMicroCny: money })),
 });
+const ordinaryDesignLedgerShape = object({
+  contractVersion: enumeration(['6.0.0']), ...ledgerFields,
+  allocationClosures: array(object({ taskId: text, decisionId: text, releasedMicroCny: money }), 1),
+});
 const validationGroupLedgerShape = object({
   contractVersion: enumeration(['4.0.0']), ...ledgerFields,
   allocationClosures: array(object({ taskId: text, decisionId: text, releasedMicroCny: money })),
@@ -80,7 +84,7 @@ const supplementedGroupLedgerShape = object({
 });
 export const ledgerShape: Check = (value, path, issues) => {
   const version = (value as { contractVersion?: unknown })?.contractVersion;
-  (version === '5.0.0' ? supplementedGroupLedgerShape : version === '4.0.0' ? validationGroupLedgerShape : version === '3.0.0' ? validationClosureLedgerShape : version === '2.0.0' ? continuationLedgerShape : originalLedgerShape)(value, path, issues);
+  (version === '6.0.0' ? ordinaryDesignLedgerShape : version === '5.0.0' ? supplementedGroupLedgerShape : version === '4.0.0' ? validationGroupLedgerShape : version === '3.0.0' ? validationClosureLedgerShape : version === '2.0.0' ? continuationLedgerShape : originalLedgerShape)(value, path, issues);
 };
 export const runShape = object({
   contractVersion: version, runId: text, kind, specVersion: text, ledgerId: text, originalStartedAt: timestamp, originalDeadlineAt: timestamp, state, taskIds: nonEmptyStrings,

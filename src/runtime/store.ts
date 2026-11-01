@@ -30,6 +30,7 @@ export class SnapshotStore {
   prepareOwnedChild(checkLaunch?: () => void): Promise<string> { this.assertWritable(); return this.lock.prepareOwnedChild(checkLaunch); }
   releaseUnspawnedChild(ticket: string): Promise<void> { this.assertWritable(); return this.lock.releaseUnspawnedChild(ticket); }
   registerOwnedChild(pid: number, ticket: string): Promise<void> { this.assertWritable(); return this.lock.registerOwnedChild(pid, ticket); }
+  ownerIdentity(): Readonly<Pick<OwnerRecord, 'token' | 'pid' | 'acquiredAt'>> { return this.lock.originalIdentity(); }
 
   private async checkTarget(): Promise<boolean> {
     try {

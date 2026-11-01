@@ -97,6 +97,14 @@ export function validateLedger(value: unknown): ValidationIssue[] {
   unique(ledger.allocations.map(item => item.taskId), '$.allocations', issues); unique(ledger.entries.map(item => item.requestId), '$.entries', issues);
   const summary = { ...budgetSummary(ledger), ...budgetCapacity(ledger) };
   if (![summary.effectiveLimitMicroCny, summary.allocatedMicroCny, summary.committedMicroCny, ledger.allocations.reduce((sum, item) => sum + item.amountMicroCny, 0)].every(Number.isSafeInteger)) issue(issues, '$', 'money_overflow', 'Cumulative budget amounts must remain safe integers.');
+  if (ledger.contractVersion === '6.0.0') {
+    if (ledger.scope !== 'generation' || ledger.allocationClosures!.length !== 1) issue(issues, '$.allocationClosures', 'ordinary_design_closure', 'Ordinary design permits one same-run generation closure.');
+    for (const closure of ledger.allocationClosures!) {
+      const allocation = ledger.allocations.find(item => item.taskId === closure.taskId), entries = ledger.entries.filter(item => item.taskId === closure.taskId);
+      if (!allocation || allocation.amountMicroCny <= 0 || entries.some(item => item.reservedMicroCny || item.unknown || !['settled', 'cancelled'].includes(item.status))
+        || closure.releasedMicroCny !== allocation.amountMicroCny - entries.reduce((sum, item) => sum + item.settledMicroCny, 0)) issue(issues, '$.allocationClosures', 'invalid_closure', 'Close the original reconciled design grant with its exact unused allocation.');
+    }
+  }
   if (ledger.contractVersion === '2.0.0') {
     if (ledger.scope !== 'generation') issue(issues, '$.scope', 'continuation_scope', 'Continuation is formal generation only.');
     unique(ledger.authorizations!.map(item => item.decisionId), '$.authorizations', issues);

@@ -5,15 +5,24 @@ export class OwnedWork {
   private abort = new AbortController();
   private operations = new Set<Promise<unknown>>();
   private cleanupFailures: unknown[] = [];
+  private operationTokens = new WeakMap<object, { settled: boolean }>();
   readonly signal: AbortSignal;
   constructor(signal?: AbortSignal) { this.signal = signal ? AbortSignal.any([this.abort.signal, signal]) : this.abort.signal; }
 
-  run<T>(action: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  run<T>(action: (signal: AbortSignal, operation: object) => Promise<T>): Promise<T> {
     if (this.signal.aborted) return Promise.reject(new Error('Owned work was cancelled; dispatch is stopped.'));
-    const operation = Promise.resolve().then(() => { this.signal.throwIfAborted(); return action(this.signal); });
+    const token = Object.freeze({}), state = { settled: false };
+    const operation = Promise.resolve().then(() => { this.signal.throwIfAborted(); this.operationTokens.set(token, state); return action(this.signal, token); });
     this.operations.add(operation);
-    void operation.then(() => this.operations.delete(operation), () => this.operations.delete(operation));
+    const ended = () => { state.settled = true; this.operations.delete(operation); };
+    void operation.then(ended, ended);
     return operation;
+  }
+
+  /** Identity comes only from this instance's actual callback, never a caller flag. */
+  operationState(token: object): 'unknown' | 'active' | 'cancelled' | 'settled' {
+    const state = this.operationTokens.get(token);
+    return !state ? 'unknown' : state.settled ? 'settled' : this.signal.aborted ? 'cancelled' : 'active';
   }
 
   /** Explicit cleanup failures survive operation removal; ordinary cancellation stays unchanged. */

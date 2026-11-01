@@ -262,6 +262,10 @@ export class OwnerLock {
   private released = false;
   private closePromise?: Promise<void>;
   private pending: Promise<unknown> = Promise.resolve();
+  originalIdentity(): Readonly<Pick<OwnerRecord, 'token' | 'pid' | 'acquiredAt'>> {
+    const { token, pid, acquiredAt } = this.record;
+    return Object.freeze({ token, pid, acquiredAt });
+  }
 
   /** Read-only maintenance quote; v1 historical attribution remains the independent operator's judgment. */
   static async preparePreviousBootRecovery(options: PreparePreviousBootRecovery): Promise<PreviousBootRecoveryQuote> {

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ordinaryUnallocated } from '../ordinary-design-revision-budget.ts';
 import { validateContext, validateTask } from '../../contracts/index.ts';
 import { sameValue } from '../../contracts/validation.ts';
 import type { ArtifactReference, TaskContract } from '../../contracts/types.ts';
@@ -80,7 +81,7 @@ export function assessRepair(options: RepairOptions): RepairDecision {
   const committed = snapshot.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0);
   const capacity = window ? Math.min(window.quote.declaration.grants.repair.amountMicroCny - snapshot.ledger.entries.filter(entry => entry.taskId === window.quote.declaration.grants.repair.taskId).reduce((sum, entry) => sum + entry.settledMicroCny + entry.reservedMicroCny, 0),
     window.quote.declaration.limits.cumulativeMicroCny - committed, window.quote.declaration.limits.incrementalMicroCny - validationUsage(snapshot, window).caseCommittedMicroCny)
-    : snapshot.ledger.limitMicroCny - snapshot.ledger.allocations.reduce((sum, entry) => sum + entry.amountMicroCny, 0);
+    : ordinaryUnallocated(snapshot.ledger);
   if (estimate.costMicroCny > snapshot.ledger.limitMicroCny - committed || estimate.costMicroCny > capacity) return decision('stop', 'budget');
   let unchanged = 0;
   for (let index = history.length - 1; index > 0; index--) {
@@ -112,7 +113,7 @@ export function createLinkedRepairTask(options: RepairOptions & {
   if (!options.taskId.trim() || (window ? !window.repair || window.repair.taskId !== options.taskId || !sameValue(window.repair.feedback, current.reference)
     || window.repair.sourceTaskId !== source.task.taskId || snapshot.tasks.some(task => task.taskId === options.taskId) : snapshot.run.taskIds.includes(options.taskId))) throw new Error('Repair requires its new claimed task ID.');
   if (!Number.isSafeInteger(options.allocationMicroCny) || options.allocationMicroCny < options.estimate.costMicroCny
-    || (window ? options.allocationMicroCny !== window.quote.declaration.grants.repair.amountMicroCny : options.allocationMicroCny > snapshot.ledger.limitMicroCny - snapshot.ledger.allocations.reduce((sum, entry) => sum + entry.amountMicroCny, 0))) throw new Error('Repair needs an explicit available allocation; no reallocation is performed.');
+    || (window ? options.allocationMicroCny !== window.quote.declaration.grants.repair.amountMicroCny : options.allocationMicroCny > ordinaryUnallocated(snapshot.ledger))) throw new Error('Repair needs an explicit available allocation; no reallocation is performed.');
   const protectedRefs = [...options.history.flatMap(item => [...item.artifactVersions, item.reference,
     ...snapshot.tasks.find(task => task.taskId === item.sourceTaskId)!.evidence.map(evidence => evidence.source)]), ...source.task.context.interfaces];
   if (!options.expectedArtifacts.length || options.expectedArtifacts.length !== options.outputs.length
