@@ -101,7 +101,9 @@ test('ordinary design alone disables thinking in native SDK payload while origin
   assert.ok(state.ledger.entries.every((entry: any) => entry.status === 'settled'));
   const design = configs.find(config => JSON.parse(config.context).role === 'design'), rules = JSON.parse(design.context).rules.join('\n');
   assert.match(rules, /First write authors\/design\/design\.json/);
-  assert.match(rules, /Then write authors\/design\/acceptance-plan\.json.*bounded.*write\/edit/);
+  assert.match(rules, /Prefer write-game-plan.*bounded ordered batches/);
+  assert.match(rules, /Once the pair passes, each edit must keep it valid/);
+  assert.ok(design.tools.some((tool: { name: string }) => tool.name === 'write-game-plan'));
   assert.match(rules, /validate-game-design/);
   assert.ok(f.checks.length > 0 && f.checks.every(value => JSON.parse(value.content[0].text).passed));
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 3);
