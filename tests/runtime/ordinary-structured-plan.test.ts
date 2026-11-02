@@ -55,8 +55,8 @@ test('structured author saves JSON data and appends both stages through the real
       await call(config, 'write-game-plan', { operation: 'append', stage: 'main', steps: [step] });
     }
     const first = f.scenario.reopen!;
-    await call(config, 'write-game-plan', { operation: 'append', stage: 'reopen', steps: first.steps.slice(0, 2), checkpoint: first.checkpoint });
-    const last = await call(config, 'write-game-plan', { operation: 'append', stage: 'reopen', steps: first.steps.slice(2) });
+    await assert.rejects(call(config, 'write-game-plan', { operation: 'append', stage: 'reopen', steps: first.steps.slice(0, 2), checkpoint: first.checkpoint }), /current draft preserved/i);
+    const last = await call(config, 'write-game-plan', { operation: 'append', stage: 'reopen', steps: first.steps, checkpoint: first.checkpoint });
     assert.match(content(last), /read-only.*advisory.*passed/i);
     assert.deepEqual(await read(), { formatVersion: 'ordinary-acceptance-plan/1', requirement, scenario: { viewport: f.scenario.viewport, steps, reopen: first } });
     assert.equal(Object.hasOwn(await read(), 'reopen'), false);
@@ -67,8 +67,8 @@ test('structured author saves JSON data and appends both stages through the real
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 3);
   const executionPath = join(f.root, 'execution.json'), planningPath = join(f.root, 'planning-started.json');
   const executionBytes = await readFile(executionPath), planningBytes = await readFile(planningPath), execution = JSON.parse(executionBytes.toString('utf8'));
-  assert.equal(execution.ordinaryPlanAuthoringPolicy, 'structured-design-plan/1');
-  assert.equal(JSON.parse(planningBytes.toString('utf8')).ordinaryPlanAuthoringPolicy, 'structured-design-plan/1');
+  assert.equal(execution.ordinaryPlanAuthoringPolicy, 'structured-design-plan/2');
+  assert.equal(JSON.parse(planningBytes.toString('utf8')).ordinaryPlanAuthoringPolicy, 'structured-design-plan/2');
   const before = f.packets.length;
   for (const mutate of [
     (value: any) => { delete value.ordinaryPlanAuthoringPolicy; },
@@ -104,7 +104,7 @@ test('planning interrupted before execution keeps its selection and cannot repla
     ? { ...fallback, prompt: async () => { throw new Error('Synthetic planning interruption'); } } : fallback });
   assert.equal((await f.execute() as any).outcome, 'incomplete');
   const planningBytes = await readFile(join(f.root, 'planning-started.json')), planning = JSON.parse(planningBytes.toString('utf8'));
-  assert.equal(planning.ordinaryPlanAuthoringPolicy, 'structured-design-plan/1'); await assert.rejects(readFile(join(f.root, 'execution.json')), { code: 'ENOENT' });
+  assert.equal(planning.ordinaryPlanAuthoringPolicy, 'structured-design-plan/2'); await assert.rejects(readFile(join(f.root, 'execution.json')), { code: 'ENOENT' });
   const before = f.packets.length;
   await assert.rejects(f.host.execute({ root: f.root, requirement: planning.requirement, draft: f.draft, resume: true }), /planning result is unavailable/);
   await assert.rejects(f.host.execute({ root: f.root, requirement: planning.requirement, draft: f.draft, resume: false }), /Immutable version already exists|EEXIST/);

@@ -88,15 +88,21 @@ test('ordinary author receives current errors after real writes and edits, then 
     assert.match(text, /acceptance-plan\.json/); assert.match(text, /scenario\.steps\[0\].*Unknown field.*acceptanceId/);
     text = feedback(await call(config, 'edit', { path: acceptance, edits: [{ oldText: JSON.stringify(bad), newText: JSON.stringify(valid) }] }));
     assert.match(text, /passed/);
+    const rejected = async (candidate: unknown) => {
+      const error = await put(acceptance, candidate).then(() => undefined, error => error);
+      assert.ok(error instanceof Error && /current draft preserved/i.test(error.message));
+      assert.equal(await readFile(join(config.workspace, acceptance), 'utf8'), JSON.stringify(valid));
+      return error.message;
+    };
     const pixels = structuredClone(valid); pixels.scenario.steps[0] = { id: 'click', kind: 'mouse-click', selector: '#light', x: 240, y: 160 };
-    text = feedback(await put(acceptance, pixels));
+    text = await rejected(pixels);
     assert.match(text, /scenario\.steps\[0\]\.x/); assert.match(text, /normalized selector bounds/);
     const multiple = structuredClone(valid); multiple.scenario.reopen.checkpoint.expected = '';
     multiple.scenario.steps[1].observation.kind = 'appears'; multiple.scenario.reopen.steps[1].observation.kind = 'disabled';
-    text = feedback(await put(acceptance, multiple));
+    text = await rejected(multiple);
     assert.match(text, /checkpoint.expected/); assert.match(text, /scenario.steps\[1\]/); assert.match(text, /scenario.reopen.steps\[1\]/);
     const reopen = structuredClone(valid); reopen.scenario.reopen.steps.pop();
-    text = feedback(await put(acceptance, reopen));
+    text = await rejected(reopen);
     assert.match(text, /scenario\.reopen\.steps.*checkpoint.savedSnapshot/);
     assert.match(feedback(await put(acceptance, valid)), /passed/);
     const read = await call(config, 'read', { path: main }); assert.equal(read.content.length, 1); assert.match(JSON.stringify(read), /原创鼠标游戏/);
@@ -143,17 +149,17 @@ for (const name of ['write', 'edit']) test(`Windows case variants retain ordinar
     for (const [path, value] of [[main, design()], [acceptance, valid]] as const) await call(config, 'write', { path, content: JSON.stringify(value) });
     const change = async (file: string, value: unknown) => {
       const path = file.replace(/[^/]+$/, filename => filename.toUpperCase()), content = JSON.stringify(value);
-      const result = await call(config, name, name === 'write' ? { path, content }
+      return call(config, name, name === 'write' ? { path, content }
         : { path, edits: [{ oldText: await readFile(join(config.workspace, file), 'utf8'), newText: content }] });
-      assert.equal(await readFile(join(config.workspace, file), 'utf8'), content, 'The case variant must write the same declared file.');
-      return feedback(result);
     };
     const badDesign = design(); badDesign.characters[0].id = 'BAD_ID';
-    assert.match(await change(main, badDesign), /design\.json: characters\[0\]\.id/);
-    assert.match(await change(main, design()), /passed/);
+    await assert.rejects(change(main, badDesign), /design\.json: characters\[0\]\.id/);
+    assert.equal(await readFile(join(config.workspace, main), 'utf8'), JSON.stringify(design()));
+    assert.match(feedback(await change(main, { ...design(), summary: '已修订' })), /passed/);
     const badPlan = structuredClone(valid); badPlan.scenario.steps[0].acceptanceId = 'light';
-    assert.match(await change(acceptance, badPlan), /scenario\.steps\[0\].*Unknown field.*acceptanceId/);
-    assert.match(await change(acceptance, valid), /passed/);
+    await assert.rejects(change(acceptance, badPlan), /scenario\.steps\[0\].*Unknown field.*acceptanceId/);
+    assert.equal(await readFile(join(config.workspace, acceptance), 'utf8'), JSON.stringify(valid));
+    assert.match(feedback(await change(acceptance, { ...valid, scenario: { ...valid.scenario, viewport: { width: 1000, height: 700 } } })), /passed/);
   });
   const result = await run(); assert.equal(result.acceptedCandidate, undefined);
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 1); assert.equal(f.plays.length, 0);

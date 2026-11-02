@@ -9,8 +9,8 @@ import { createArtifactRegistry } from '../artifacts/index.ts';
 import type { PassedEvidence } from '../artifacts/index.ts';
 import { directory, owns, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
 import { createRoleFactory } from '../roles/factory.ts';
-import { createGamePlanWriter, GAME_PLAN_WRITE, isOrdinaryPlanAuthoringPolicy, ORDINARY_PLAN_AUTHORING_RULE, requirePlanAuthoringTasks } from './entrypoint-plan-authoring.ts';
-import { createGameDesignWriter, GAME_DESIGN_SOURCE, GAME_DESIGN_WRITE, ORDINARY_DESIGN_AUTHORING_RULE } from './entrypoint-design-authoring.ts';
+import { createGamePlanWriter, GAME_PLAN_WRITE, hasDesignWriter, isOrdinaryPlanAuthoringPolicy, ORDINARY_PLAN_AUTHORING_RULE, requirePlanAuthoringTasks } from './entrypoint-plan-authoring.ts';
+import { createGameDesignWriter, GAME_DESIGN_SOURCE, GAME_DESIGN_WRITE, ORDINARY_DESIGN_AUTHORING_RULE, ORDINARY_DRAFT_PRESERVATION_RULE } from './entrypoint-design-authoring.ts';
 import { requestDesignDraft, requestDesignQuestions } from '../roles/interview.ts';
 import { requireBrowserDraft, validateGameDraft, confirmRequirements, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID, MODULE_ACCEPTANCE_IDS } from '../roles/requirements.ts';
 import type { AcceptancePlan } from '../acceptance/plan.ts';
@@ -709,14 +709,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       && !/\b(?:index\.html|src\/main\.ts|src\/integration\/[^\s:]+):\d+:\d+\b/.test(issue.actual)) issue.classification = 'insufficient_evidence';
     return diagnostics;
   };
-  const designWriteChecks = new Map<string, ReturnType<typeof createGameDesignCheck>>();
+  const designWriteChecks = new Map<string, ReturnType<typeof createGameDesignCheck> & { workspace: string; attemptId?: string }>();
   const designHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
     if (supplied.role !== 'design') return [];
     const original = (await controller.read()).tasks.find(task => task.taskId === supplied.taskId);
     if (!original || role(original) !== 'design') throw new Error('Game design check requires its original design author task.');
     requirePlanAuthoringTasks([{ role: 'design', task: original }], ordinaryPlanAuthoringPolicy);
     if (ordinaryPlanAuthoringPolicy) owns(original.ownership, ORDINARY_PLAN_SOURCE);
-    if (ordinaryPlanAuthoringPolicy === 'structured-design-plan/1') owns(original.ownership, GAME_DESIGN_SOURCE);
+    if (hasDesignWriter(ordinaryPlanAuthoringPolicy)) owns(original.ownership, GAME_DESIGN_SOURCE);
     const fixedWorkspace = await realpath(workspace(original));
     if (resolve(supplied.workspace) !== fixedWorkspace) throw new Error('Game design check workspace differs from its original author.');
     const guard = async (signal: AbortSignal) => {
@@ -736,11 +736,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const check = createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard,
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
       ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
-    if (ordinary) designWriteChecks.set(original.taskId, check);
+    if (ordinary) designWriteChecks.set(original.taskId, { ...check, workspace: fixedWorkspace, attemptId: original.attempts.at(-1)?.attemptId });
+    const beforeFileWrite = ordinaryPlanAuthoringPolicy === 'structured-design-plan/2' ? check.beforeFileWrite : undefined;
     return [check, ...(ordinaryPlanAuthoringPolicy ? [await createGamePlanWriter({ workspace: fixedWorkspace, requirement: requirements,
-      seededRevision: original.taskId === ordinaryRevisionTaskId, guard, afterFileWrite: check.afterFileWrite })] : []),
-      ...(ordinaryPlanAuthoringPolicy === 'structured-design-plan/1' ? [await createGameDesignWriter({ workspace: fixedWorkspace,
-        seededRevision: original.taskId === ordinaryRevisionTaskId, guard, afterFileWrite: check.afterFileWrite })] : []),
+      seededRevision: original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite })] : []),
+      ...(hasDesignWriter(ordinaryPlanAuthoringPolicy) ? [await createGameDesignWriter({ workspace: fixedWorkspace,
+        seededRevision: original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite })] : []),
       ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
   const codingHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
@@ -934,6 +935,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             } } : {}) } : {}),
       sessionFactory: input.sessionFactory,
       hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],
+      ...(ordinaryPlanAuthoringPolicy === 'structured-design-plan/2' ? { beforeDesignFileWrite: roleInput => async (path, bytes, signal) => {
+        const check = designWriteChecks.get(roleInput.task.taskId);
+        if (!check || !check.attemptId || check.attemptId !== roleInput.task.attempts.at(-1)?.attemptId
+          || relative(check.workspace, resolve(roleInput.workspace)) !== '') throw new Error('Design write requires its original author attempt and workspace check.');
+        await check.beforeFileWrite(path, bytes, signal);
+      } } : {}),
       ...(ordinary ? { afterFileWrite: async (roleInput, write, signal) => {
         if (roleInput.role !== 'design' || roleInput.purpose || roleInput.validation) return;
         const path = resolve(roleInput.workspace, write.path);
@@ -1448,9 +1455,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const design = host.taskPolicies.find(policy => policy.role === 'design')!;
     design.writePaths.push(ORDINARY_PLAN_SOURCE); design.outputs[0].schema = 'game-design/2';
     if (ordinaryPlanAuthoringPolicy) design.tools.push(GAME_PLAN_WRITE);
-    if (ordinaryPlanAuthoringPolicy === 'structured-design-plan/1') {
+    if (hasDesignWriter(ordinaryPlanAuthoringPolicy)) {
       design.tools.push(GAME_DESIGN_WRITE); design.rules!.push(ORDINARY_DESIGN_AUTHORING_RULE);
     }
+    if (ordinaryPlanAuthoringPolicy === 'structured-design-plan/2') design.rules!.push(ORDINARY_DRAFT_PRESERVATION_RULE);
     design.rules!.push(ordinaryPlanAuthoringPolicy ? ORDINARY_PLAN_AUTHORING_RULE : 'First write authors/design/design.json. Then write authors/design/acceptance-plan.json in bounded write/edit chunks, completing each section before the next. Run the existing validate-game-design self-check after both files are complete and correct any reported defects within this author session.',
       `Map exactly the original experience criterion IDs ${JSON.stringify(ordinaryDraft.experienceCriteria.map(item => item.criterionId))} in experienceMapping ({} for an empty list). Read the complete brief/questions/answers and both criteria lists. Independent review must reject omitted objective rules, objective requirements recategorized as experience, insufficient visible assertions, or unsupported behavior; schema success alone is not semantic proof.`,
       `Write ${ORDINARY_PLAN_SOURCE} with exactly {formatVersion:"ordinary-acceptance-plan/1",requirement:${JSON.stringify(requirements)},scenario:{viewport:{width,height},steps:[...],reopen?:{steps:[...],checkpoint:{expected:string,snapshot:{kind:"text",selector:string},savedSnapshot:{kind:"text",selector:string}}}}. Use existing mouse-click/mouse-move {x,y,selector?}, locator-click {selector,timeoutMs}, assert/wait-for {acceptanceId,observation:{kind:"text",selector}|{kind:"visible",selector}${mediaPolicy ? '|{kind:"debug",path:string[]}' : ''},expected,timeoutMs}; every step has a unique id and kind. Coordinates are inside the viewport, or normalized [0,1) when selector is present; viewport dimensions are 100..4096, timeoutMs is 1..60000, each stage has 1..200 steps, and visible expected is boolean. Each objective gameplay AC requires normal click input followed by a visible assertion. Preserve the exact confirmed requirements, including normal save/reopen when required. Do not supply execution identities, URL, candidate, scripts, or state setters. The host supplies actual execution binding.`,
