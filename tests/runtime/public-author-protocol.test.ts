@@ -106,10 +106,10 @@ test('COS128 public correction cannot afford its actual quote after the original
   const state = await f.state(), execution = await f.json('execution.json'), design = state.tasks.find(task => task.taskId === 'design-task')!;
   assert.equal(f.payloads.length, 1); assert.equal(state.requests.length, 1); assert.equal(state.ledger.entries.length, 1);
   assert.equal(state.ledger.entries[0].status, 'settled'); assert.equal(state.ledger.entries[0].settledMicroCny, 144060);
-  assert.equal(state.ledger.limitMicroCny, 1_500_000); assert.equal(design.budget.allocationMicroCny, 202500);
+  assert.equal(state.ledger.limitMicroCny, 1_500_000); assert.equal(design.budget.allocationMicroCny, 337500);
   assert.deepEqual(design.budget, execution.tasks[0].task.budget); assert.equal(design.budget.originalDeadlineAt, state.run.originalDeadlineAt);
   const config = f.configs.find(config => JSON.parse(config.context).role === 'design')!;
-  assert.equal(config.maxRequests, 32); assert.equal(config.maxOutputTokens, 32768); assert.ok(f.payloads[0].max_tokens >= 18000);
+  assert.equal(config.maxRequests, 64); assert.equal(config.maxOutputTokens, 32768); assert.ok(f.payloads[0].max_tokens >= 18000);
   assert.notEqual(design.state, 'passed'); assert.equal((await f.json('journal/task-design-task/author-correction-started.json')).value.used, 1);
   await assert.rejects(readFile(join(f.root, 'journal/task-design-task/author-correction-response.json')), { code: 'ENOENT' });
 });
