@@ -1,14 +1,17 @@
 import { constants } from 'node:fs';
-import { access, lstat, readFile, realpath } from 'node:fs/promises';
+import { access, lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { createEditTool, createReadTool, createWriteTool, defineTool, detectSupportedImageMimeTypeFromFile, type ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { compactJsonReadBuffer } from './json-read-display.ts';
+
+export type BeforeFileWrite = (absolutePath: string, candidate: Buffer, signal: AbortSignal) => Promise<void>;
 
 export interface WorkspaceToolOptions {
   workspace: string;
   readPaths: string[];
   writePaths: string[];
   compactFullJsonReads?: true;
+  beforeFileWrite?: BeforeFileWrite;
 }
 
 function within(root: string, path: string): boolean {
@@ -44,7 +47,7 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
     }
     if (!within(workspace, await realpath(existing))) throw new Error('Symlink is outside allowed workspace');
     // Reject links even within the workspace: a linked path must not bypass the role's scopes.
-    for (let component = full; component !== workspace; component = dirname(component)) {
+    for (let component = full; relative(workspace, component) !== ''; component = dirname(component)) {
       try {
         if ((await lstat(component)).isSymbolicLink()) throw new Error('Symlink is outside allowed task paths');
       } catch (error) {
@@ -89,17 +92,33 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
   if (writes.length) {
     const write = createWriteTool(workspace);
     const edit = createEditTool(workspace);
-    tools.push(defineTool({ ...write, async execute(id, args, signal, onUpdate) {
+    const before = options.beforeFileWrite;
+    const mode = before ? { executionMode: 'sequential' as const } : {};
+    const checkedWrite = (guard: BeforeFileWrite, signal = new AbortController().signal) => async (path: string, content: string) => {
+      const bytes = Buffer.from(content, 'utf8');
+      signal.throwIfAborted();
+      await guard(path, bytes, signal);
+      signal.throwIfAborted();
+      await writeFile(path, bytes);
+    };
+    tools.push(defineTool({ ...write, ...mode, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, writes, signal);
       await checkEncoding(full);
       signal?.throwIfAborted();
-      return write.execute(id, { ...args, path: full }, signal, onUpdate);
+      const selected = before ? createWriteTool(workspace, { operations: {
+        mkdir: async dir => { await mkdir(dir, { recursive: true }); }, writeFile: checkedWrite(before, signal),
+      } }) : write;
+      return selected.execute(id, { ...args, path: full }, signal, onUpdate);
     } }));
-    tools.push(defineTool({ ...edit, async execute(id, args, signal, onUpdate) {
+    tools.push(defineTool({ ...edit, ...mode, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, writes, signal);
       await checkEncoding(full);
       signal?.throwIfAborted();
-      return edit.execute(id, { ...args, path: full }, signal, onUpdate);
+      const selected = before ? createEditTool(workspace, { operations: {
+        access: path => access(path, constants.R_OK | constants.W_OK), readFile: path => readFile(path),
+        writeFile: checkedWrite(before, signal),
+      } }) : edit;
+      return selected.execute(id, { ...args, path: full }, signal, onUpdate);
     } }));
   }
   return tools;

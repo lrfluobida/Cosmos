@@ -3,6 +3,7 @@ import { realpath } from 'node:fs/promises';
 import { resolve, relative, isAbsolute, sep } from 'node:path';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { ImageContent } from '@earendil-works/pi-ai';
+import type { BeforeFileWrite } from '../providers/workspace-tools.ts';
 import { createPiSession, createWorkspaceTools } from '../providers/pi.ts';
 import type { PiBudgetFinalizationSource, PiSessionOptions } from '../providers/pi.ts';
 import { validateTask } from '../contracts/index.ts';
@@ -91,6 +92,7 @@ export interface RoleFactoryOptions {
   /** Optional trusted host admission immediately before an existing scoped tool. */
   beforeTool?: (input: Readonly<RoleInput>, signal: AbortSignal) => Promise<void>;
   /** Advisory host feedback after a scoped file write succeeds; never grants file access. */
+  beforeDesignFileWrite?: (input: Readonly<RoleInput>) => BeforeFileWrite;
   afterFileWrite?: (input: Readonly<RoleInput>, write: Readonly<{ name: 'write' | 'edit'; path: string }>, signal: AbortSignal) => Promise<string | undefined>;
 }
 
@@ -206,6 +208,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const reads = reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
     const inputFiles = await roleInputFiles(workspace, [...task.inputs, ...task.context.interfaces, ...(reviewer ? [...task.artifacts, ...task.evidence.map(e => e.source)] : [])], input.controller.signal);
     const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths,
+      ...(input.role === 'design' && !input.purpose && !input.validation && options.beforeDesignFileWrite ? { beforeFileWrite: options.beforeDesignFileWrite(input) } : {}),
       ...(designReviewBudget || designRevisionJsonReads ? { compactFullJsonReads: true } : {}) });
     const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment() }) ?? [];
     const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name)).map(tool => (designReviewBudget || designRevisionJsonReads) && tool.name === 'read'
