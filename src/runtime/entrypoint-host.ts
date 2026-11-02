@@ -733,11 +733,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (await realpath(workspace(original)) !== fixedWorkspace) throw new Error('Game design check original workspace changed.');
       signal.throwIfAborted(); work.signal.throwIfAborted(); controller.signal.throwIfAborted();
     };
-    const check = createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard,
+    const preserveValidDraft = ordinaryPlanAuthoringPolicy === 'structured-design-plan/2';
+    const check = createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard, preserveValidDraft,
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
       ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
     if (ordinary) designWriteChecks.set(original.taskId, { ...check, workspace: fixedWorkspace, attemptId: original.attempts.at(-1)?.attemptId });
-    const beforeFileWrite = ordinaryPlanAuthoringPolicy === 'structured-design-plan/2' ? check.beforeFileWrite : undefined;
+    const beforeFileWrite = preserveValidDraft ? check.beforeFileWrite : undefined;
     return [check, ...(ordinaryPlanAuthoringPolicy ? [await createGamePlanWriter({ workspace: fixedWorkspace, requirement: requirements,
       seededRevision: original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite })] : []),
       ...(hasDesignWriter(ordinaryPlanAuthoringPolicy) ? [await createGameDesignWriter({ workspace: fixedWorkspace,

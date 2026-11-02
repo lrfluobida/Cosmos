@@ -113,3 +113,23 @@ test('COS161 validates actual SDK edit bytes and observes cancellation between v
   await assert.rejects(write.execute('write', { path, content: 'new\ud800text' }, controller.signal, undefined, undefined as never), /abort/i);
   assert.deepEqual(candidates[1], Buffer.from('new\ufffdtext')); assert.deepEqual(await readFile(full), before);
 });
+
+test('COS161 a malformed viewport can be repaired and cannot replace a valid plan', async t => {
+  let completed = false, failure: unknown;
+  const f = await ordinaryHostFixture(t, { fault: 'review', sessionFactory: async (config, fallback) => {
+    if (JSON.parse(config.context!).role !== 'design') return fallback;
+    return { close: fallback.close, prompt: async () => { try {
+      await call(config, 'write-game-design', { operation: 'save', design });
+      const malformed = { ...f.scenario, viewport: { width: { toString: '1280' }, height: 720 },
+        steps: [{ id: 'click', kind: 'mouse-click', x: 42, y: 24 }, f.scenario.steps[1]] };
+      await call(config, 'write-game-plan', { operation: 'save', scenario: malformed });
+      await call(config, 'write-game-plan', { operation: 'save', scenario: f.scenario });
+      const target = join(config.workspace, planPath), before = await readFile(target);
+      assert.deepEqual(JSON.parse(before.toString('utf8')).scenario, f.scenario);
+      await assert.rejects(call(config, 'write-game-plan', { operation: 'save', scenario: malformed }), /current draft preserved[\s\S]*Cannot convert object to primitive value/i);
+      assert.deepEqual(await readFile(target), before);
+      completed = true; return { text: JSON.stringify({ summary: '合成修复测试', remaining: [], uncertainty: [] }) };
+    } catch (error) { failure = error; throw error; } } };
+  } });
+  await f.execute(); if (failure) throw failure; assert.ok(completed);
+});

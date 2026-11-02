@@ -88,7 +88,7 @@ export function gameDesignCheckFiles(scope: { ordinary?: boolean; modular?: bool
 }
 
 /** Advisory author feedback only. Capture and independent review still validate actual output. */
-export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean;
+export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean; preserveValidDraft?: boolean;
   ordinary?: { draft: OrdinaryGameDraft; requirement: ArtifactReference };
   classicEntry?: { selection: ClassicEntrySelection; viewport?: AcceptancePlan['viewport'] }; guard(signal: AbortSignal): Promise<void> }) {
   const gameplayIds = [...input.gameplayIds];
@@ -119,22 +119,28 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
     }
   }
   type Ordinary = NonNullable<typeof input.ordinary>;
-  function planFailure(ordinary: Ordinary, plan: unknown, error: unknown): Feedback {
+  function planFailure(ordinary: Ordinary, plan: unknown, error: unknown, preserve = false): Feedback {
     const message = error instanceof Error ? error.message : 'Ordinary plan is missing.';
-    const stages = ordinaryPlanDiagnostics(plan, ordinary.draft);
+    let stages: string[][];
+    try { stages = ordinaryPlanDiagnostics(plan, ordinary.draft); }
+    catch (diagnosticError) {
+      if (!preserve) throw diagnosticError;
+      // Additional local diagnostics can fail on malformed JSON shapes. Keep the strict rejection.
+      stages = [];
+    }
     const strict = stages.find(issues => message === `Unsupported acceptance scenario: ${issues.join('; ')}`) ?? [message];
     const ordinaryDiagnostics = [...new Set([...strict, ...stages.flat()])];
     return { passed: false, errors: [{ path: ORDINARY_PLAN_SOURCE, message },
       ...ordinaryDiagnostics.filter(issue => !strict.includes(issue)).map(message => ({ path: ORDINARY_PLAN_SOURCE, message }))], ordinaryDiagnostics };
   }
-  function evaluatePlan(ordinary: Ordinary, text: string): Feedback & { viewport?: AcceptancePlan['viewport'] } {
+  function evaluatePlan(ordinary: Ordinary, text: string, preserve: boolean): Feedback & { viewport?: AcceptancePlan['viewport'] } {
     let plan: unknown;
     try {
       plan = JSON.parse(text);
       validateOrdinaryAcceptancePlan(plan, ordinary.draft);
       if (!sameValue(plan.requirement, ordinary.requirement)) throw new Error('Plan must reference the original complete requirement capture.');
       return { passed: true, errors: [], viewport: plan.scenario.viewport };
-    } catch (error) { return planFailure(ordinary, plan, error); }
+    } catch (error) { return planFailure(ordinary, plan, error, preserve); }
   }
   const decode = (bytes: Buffer) => new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   async function readOptional(file: string, signal: AbortSignal): Promise<Buffer | null> {
@@ -151,9 +157,9 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
     // Even with an incomplete companion, unsafe reads and malformed UTF-8 must fail closed.
     if (design) decode(design);
     const planText = plan && decode(plan);
-    if (evaluate(design).passed && planText !== null && evaluatePlan(input.ordinary, planText).passed) {
+    if (evaluate(design).passed && planText !== null && evaluatePlan(input.ordinary, planText, true).passed) {
       // The unchanged half already passed against the same frozen inputs.
-      const result = target === FILE ? evaluate(candidate) : evaluatePlan(input.ordinary, decode(candidate));
+      const result = target === FILE ? evaluate(candidate) : evaluatePlan(input.ordinary, decode(candidate), true);
       if (!result.passed) {
         const diagnostics = result.ordinaryDiagnostics ?? result.errors.map(({ path, message }) => path === FILE ? message : `${path}: ${message}`);
         throw new Error(ordinaryWriteFeedback('Proposed write rejected; current draft preserved. This change was not saved.', diagnostics, target));
@@ -168,10 +174,15 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
     catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; bytes = null; }
     let result = evaluate(bytes);
     let viewport = input.classicEntry?.viewport;
-    if (result.passed && input.ordinary) try {
-      const plan = evaluatePlan(input.ordinary, decode(await regularFile(input.workspace, ORDINARY_PLAN_SOURCE)));
-      result = plan; viewport = plan.viewport;
-    } catch (error) { result = planFailure(input.ordinary, undefined, error); }
+    if (result.passed && input.ordinary) {
+      let planText: string | undefined;
+      try { planText = decode(await regularFile(input.workspace, ORDINARY_PLAN_SOURCE)); }
+      catch (error) { result = planFailure(input.ordinary, undefined, error); }
+      if (planText !== undefined) {
+        const plan = evaluatePlan(input.ordinary, planText, !!input.preserveValidDraft);
+        result = plan; viewport = plan.viewport;
+      }
+    }
     if (result.passed && input.modular) try { validateModuleContracts(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(input.workspace, 'authors/design/module-contracts.d.ts'))); }
     catch (error) { result = { passed: false, errors: [{ path: 'authors/design/module-contracts.d.ts', message: error instanceof Error ? error.message : 'Protected interfaces are missing.' }] }; }
     if (result.passed && input.classicEntry) try {
