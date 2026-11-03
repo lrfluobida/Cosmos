@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-11-03 [COS167 / #168](https://github.com/lrfluobida/Cosmos/issues/168) 已登记。`frame_reuse_reviewer` 已独立核对固定规格，Root 批准 `frame_reuse_implementer` 实施，源码待独审。公开 CLI 使用已确认的普通需求新建尝试时，如果原选择启用了 `renderFrames`，采帧读取器会把新 origin 的合法 `planningAllocation` 当作未知字段。这使带引用来源的运行在进入环境准备前失败，也影响已暂停 intake 的恢复。 原生父任务61项，其中58项已关闭。
+
 2026-11-03 COS166 的离线源码范围已完成。`saved_boundary_reviewer` 独立批准最终源码 `ce319576975881e5b6ca3afb43ac615e2b1b8a9b`，损坏 PNG 被错误接受的 P2 已闭合。Root 授权唯一 merger 合入 `codex/gameplay-offline`。 运行时提交 `e0c3e5c6772e14b2b12ab48c0938fbb3067c08d4`。新建的通用持久浏览器系列在作者步骤、媒体及渲染采样完成后、首进程关闭前，再读取一次界面上的已保存状态。关闭检查使用冻结的选择器、该次实际观察与对应截图，判断是否可以重开。当前游戏进度可以高于最后一次存档。 GitHub #167 已关闭，父 #19 保持开放，60 项子任务中 58 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/167#issuecomment-6601445508)
 
 9 个批准文件与候选逐字节一致，离线类型检查和构建通过。集成中的原始证据代表 1/1、无跳过，覆盖选中的关闭回执、损坏或缺少 PNG 的拒绝，以及旧版未选系列的兼容。成功结果核验与重开失败诊断复用同一关闭证据要求。 独立 TEMP/loopback 真 Edge 正反两例均通过。只保存 4 后继续玩到 5，关闭样本实际读到 4，首进程退出后在同源、同用户目录启动不同的第二进程，继续操作恢复为 4，两个进程都已退出。再次保存为 5 的反例中，所有作者步骤均已通过，关闭前的新样本读到 5（预期 4）。原始报告保留不匹配及截图，首进程退出，未启动第二进程。主阶段记录 segment_failed，系列 outcome 为 failed，checkpoint 为 skipped。证据来自合成游戏夹具，目标游戏与用户体验验收仍待完成。
@@ -2392,6 +2394,16 @@ COS166 的离线源码范围已完成。`saved_boundary_reviewer` 独立批准�
 9 个批准文件与候选逐字节一致，离线类型检查和构建通过。集成中的原始证据代表 1/1、无跳过，覆盖选中的关闭回执、损坏或缺少 PNG 的拒绝，以及旧版未选系列的兼容。成功结果核验与重开失败诊断复用同一关闭证据要求。 独立 TEMP/loopback 真 Edge 正反两例均通过。只保存 4 后继续玩到 5，关闭样本实际读到 4，首进程退出后在同源、同用户目录启动不同的第二进程，继续操作恢复为 4，两个进程都已退出。再次保存为 5 的反例中，所有作者步骤均已通过，关闭前的新样本读到 5（预期 4）。原始报告保留不匹配及截图，首进程退出，未启动第二进程。主阶段记录 segment_failed，系列 outcome 为 failed，checkpoint 为 skipped。证据来自合成游戏夹具，目标游戏与用户体验验收仍待完成。
 
 GitHub ID `6180748326`，原生父 COS18/#19、[x]，依赖 COS37/#38 与 COS66/#67。作者 `saved_boundary_implementer`，唯一 merger `planning_budget_merger`。[正式规格](cos166-saved-state-close-boundary.md)
+
+### COS-167 · 复用已确认需求时恢复采帧设置
+
+[COS167 / #168](https://github.com/lrfluobida/Cosmos/issues/168) 已登记。`frame_reuse_reviewer` 已独立核对固定规格，Root 批准 `frame_reuse_implementer` 实施，源码待独审。公开 CLI 使用已确认的普通需求新建尝试时，如果原选择启用了 `renderFrames`，采帧读取器会把新 origin 的合法 `planningAllocation` 当作未知字段。这使带引用来源的运行在进入环境准备前失败，也影响已暂停 intake 的恢复。
+
+只在原始需求引用及分配策略均通过认证的分支识别该标记，并复用原采帧选择、观察器源码与确认绑定。未知字段、错误分配、采帧来源篡改，以及未引用原需求却携带外来标记，仍须拒绝。原无标记的兼容路径按冻结含义恢复。 父任务为 [COS18 / #19](https://github.com/lrfluobida/Cosmos/issues/19)。直接依赖 [COS70 / #71](https://github.com/lrfluobida/Cosmos/issues/71) 的公开采帧选择及恢复绑定、[COS129 / #130](https://github.com/lrfluobida/Cosmos/issues/130) 的已确认需求复用和 [COS144 / #145](https://github.com/lrfluobida/Cosmos/issues/145) 的规划分配策略。
+
+批准规格原稿 SHA256 为 `d5afa38e5f141885291b7b3377bdd2c68f93ddc89bad85fc00d50ee00a304980`。
+
+GitHub ID `6180957430`，登记时的离线运行时 `e0c3e5c6772e14b2b12ab48c0938fbb3067c08d4`，实现基线 `f2074d7e670cbf2941b8d2ff655b3a0dc14c38d6`，状态 `source-pending`。[正式规格](cos167-referenced-frame-selection.md)
 
 ## 5. 任务与上下文包模板
 

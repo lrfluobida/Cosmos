@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 60,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166"],
+      "verifiedNativeSubIssues": 61,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167"],
       "verifiedCompletedSubIssues": 58,
       "dependsOn": [
         {
@@ -13006,9 +13006,68 @@
       "verification": "Nine approved files exact. Offline typecheck/build and raw evidence test1/1 passed. Selected close-time PNG P2 fixed. Real Edge2/2: saved4/live5 terminal4 and two exited PIDs; overwrite5 terminal5 with one exited PID, skipped checkpoint and no reopen. Authentic historical data retains its frozen contract.",
       "actualGameGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-167",
+      "title": "复用已确认需求时恢复采帧设置",
+      "number": 168,
+      "id": 6180957430,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/168",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-70",
+        "COS-129",
+        "COS-144"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-70",
+          "number": 71,
+          "id": 5719982616,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/71"
+        },
+        {
+          "taskId": "COS-129",
+          "number": 130,
+          "id": 6043759867,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/130"
+        },
+        {
+          "taskId": "COS-144",
+          "number": 145,
+          "id": 6091042587,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/145"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-167 · 复用已确认需求时恢复采帧设置](https://github.com/lrfluobida/Cosmos/issues/168)",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "registrationBaseCommit": "16188a421aac1a4281c60e546a1a42eac0a1412a",
+      "integrationRuntimeBase": "e0c3e5c6772e14b2b12ab48c0938fbb3067c08d4",
+      "sourceBaseCommit": "f2074d7e670cbf2941b8d2ff655b3a0dc14c38d6",
+      "integrationBranch": "codex/gameplay-offline",
+      "formalSpecPath": "docs/specs/cos167-referenced-frame-selection.md",
+      "approvedSpecSha256": "d5afa38e5f141885291b7b3377bdd2c68f93ddc89bad85fc00d50ee00a304980",
+      "rootImplementationApproved": true,
+      "designReviewStatus": "independently-reviewed",
+      "designReviewer": "frame_reuse_reviewer",
+      "implementer": "frame_reuse_implementer",
+      "reviewer": "frame_reuse_reviewer",
+      "merger": "planning_budget_merger",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 61,
+      "verifiedParentCompletedSubIssues": 58
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 166,
+  "totalTaskCount": 167,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
