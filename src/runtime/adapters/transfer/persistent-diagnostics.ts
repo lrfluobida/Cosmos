@@ -193,7 +193,7 @@ async function rawEvidence(report: AcceptanceReport, plan: AcceptancePlan, root:
   check(isDeepStrictEqual(raw, report));
 }
 
-function validCheckpoint(report: PersistentAcceptanceReport, series: PersistentAcceptanceSeries) {
+async function validCheckpoint(report: PersistentAcceptanceReport, series: PersistentAcceptanceSeries, evidenceRoot: string) {
   const c = report.checkpoint, expected = series.checkpoint;
   check(object(c) && only(c, ['outcome', 'expected', 'actual', 'savedActual', 'before', 'after']) && c.expected === expected.expected);
   const afterIndex = series.segments.findIndex(segment => segment.id === expected.afterSegment);
@@ -202,7 +202,7 @@ function validCheckpoint(report: PersistentAcceptanceReport, series: PersistentA
   }
   const before = report.segments[afterIndex]?.report, after = report.segments[afterIndex + 1]?.report;
   check(before && c.actual === expected.expected && c.savedActual === expected.expected && isDeepStrictEqual(c.before, before.session));
-  verifySavedStateAtClose(series, before);
+  await verifySavedStateAtClose(series, before, evidenceRoot);
   for (const observation of [expected.snapshot, expected.savedSnapshot]) {
     const indices = before.plan.steps.flatMap((step, index) => (step.kind === 'assert' || step.kind === 'wait-for')
       && isDeepStrictEqual(step.observation, observation) && step.expected === expected.expected ? [index] : []);
@@ -271,7 +271,7 @@ export async function diagnosePersistentBrowser(task: TaskContract, value: unkno
       diagnostics.issues.push(...diagnostic.issues.map(issue => ({ ...issue, checkId: `persistent/${segment.id}/${issue.checkId}` })));
       diagnostics.passedChecks.push(...diagnostic.passedChecks.map(check => ({ ...check, checkId: `persistent/${segment.id}/${check.checkId}` })));
     }
-    validCheckpoint(report, current.series);
+    await validCheckpoint(report, current.series, options.evidenceRoot);
     if (report.outcome === 'passed') check(!diagnostics.issues.length);
     else check(diagnostics.issues.length > 0);
     await guard();

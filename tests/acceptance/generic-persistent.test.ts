@@ -81,7 +81,10 @@ test('generic raw verification authenticates the selected receipt and preserves 
     const save = report.segments[0].report;
     await writeFile(join(root, save.reportPath), JSON.stringify(save), 'utf8');
     await writeFile(join(root, report.reportPath), JSON.stringify(report), 'utf8');
-    await unlink(join(root, save.savedAtClose!.screenshot!));
+    const screenshot = join(root, save.savedAtClose!.screenshot!);
+    await writeFile(screenshot, '!', 'utf8');
+    await assert.rejects(api.verifyGenericPersistentEvidence(series, report, root, deadlineAt), /PNG/);
+    await unlink(screenshot);
     await assert.rejects(api.verifyGenericPersistentEvidence(series, report, root, deadlineAt));
   }
 });

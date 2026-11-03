@@ -210,18 +210,20 @@ function savedAtCloseRequest(series: PersistentAcceptanceSeries): SavedAtCloseRe
   return { formatVersion: savedAtClose, seriesBindingSha256: series.bindingSha256, observation: structuredClone(savedSnapshot), expected };
 }
 /** Both promotion and failed-reopen diagnosis require the same fresh observation. */
-export function verifySavedStateAtClose(series: PersistentAcceptanceSeries, report: AcceptanceReport) {
+export async function verifySavedStateAtClose(series: PersistentAcceptanceSeries, report: AcceptanceReport, evidenceRoot: string) {
   const request = savedAtCloseRequest(series);
   if (!request) return;
   const plan = report.plan, sample = report.savedAtClose;
   const screenshot = [plan.projectId, plan.artifact.artifactId, plan.artifact.version, plan.runId, plan.reportId, 'saved-at-close.png'].join('/');
   requireThat(sample && isDeepStrictEqual(sample.request, request) && sample.actual === request.expected
     && sample.screenshot === screenshot && report.files.includes(screenshot), 'saved state at close evidence mismatch');
+  const bytes = await regularFile(evidenceRoot, screenshot);
+  requireThat(bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), 'saved state at close screenshot is not a PNG');
 }
 export async function verifyReopenCheckpoint(series: PersistentAcceptanceSeries, report: AcceptanceReport, evidenceRoot: string, profile: string) {
   const segment = series.segments.find(item => item.id === series.checkpoint.afterSegment)!;
   passedReport(report, segment.plan, profile);
-  verifySavedStateAtClose(series, report);
+  await verifySavedStateAtClose(series, report, evidenceRoot);
   for (const observation of [series.checkpoint.snapshot, series.checkpoint.savedSnapshot]) {
     const steps = checksFor(segment.plan, observation, series.checkpoint.expected);
     const row = report.steps.find(item => item.id === steps.at(-1)?.id);
