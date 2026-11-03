@@ -54,6 +54,10 @@ export async function readRunSnapshot(root: string): Promise<IntakeSnapshot | Ru
   if (value.formatVersion === 'intake-1') validateIntakeSnapshot(value); else validateSnapshot(value);
   return value;
 }
+export function playtestAction(root: string) {
+  return { command: 'cosmos', args: ['experience', resolve(root)] };
+}
+
 /** Read-only status never opens a writer, reconciles charges or updates a deadline. */
 export async function readRunStatus(root: string) {
   const snapshot = await readRunSnapshot(root), intake = snapshot.formatVersion === 'intake-1';
@@ -64,7 +68,9 @@ export async function readRunStatus(root: string) {
   const delivery = generated ? await (await import('../runtime/experience.ts')).readExperienceStatus(root) : null;
   const window = generated?.continuation?.windows.find(item => item.windowId === generated.continuation?.currentWindowId);
   const successors = new Map((window?.grants ?? []).filter(grant => generated!.tasks.some(task => task.taskId === grant.taskId)).map(grant => [grant.sourceTaskId, grant.taskId]));
-  return { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, phase: intake ? 'intake' : 'generation', revision: snapshot.revision,
+  const awaitingPlayer = delivery && !('reason' in delivery) && !delivery.decision && delivery.completionTiming.eligible === true;
+  return { ...(awaitingPlayer ? { nextAction: playtestAction(root) } : {}),
+    runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, phase: intake ? 'intake' : 'generation', revision: snapshot.revision,
     ...(frames ? { renderFrames: { ...frames, performancePolicy: 'not_executed' } } : {}),
     draftRevision: intake ? snapshot.draft?.revision ?? null : null,
     confirmed: !!snapshot.requirementsSource || (intake ? snapshot.confirmation !== null : generated!.run.humanDecisions.some(decision => decision.decisionId.startsWith('requirements-v') && decision.evidence.some(ref => ref.artifactId === 'user-confirmation'))),

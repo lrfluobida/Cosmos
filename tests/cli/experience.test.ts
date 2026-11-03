@@ -17,7 +17,7 @@ import { passedTask } from '../contracts/fixtures.ts';
 
 const digest = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
 async function fixture(t: test.TestContext) {
-  const root = await mkdtemp(join(tmpdir(), 'cosmos-experience-'));
+  const root = await mkdtemp(join(tmpdir(), 'cosmos 试玩 '));
   t.after(() => rm(root, { recursive: true, force: true }));
   const controller = await RunController.create({ root, runId: 'run-1', ledgerId: 'ledger-1', kind: 'runtime_generation', specVersion: 'spec-v1', scope: 'generation',
     now: () => Date.parse('2026-10-01T00:00:00.000Z'), allocations: [{ taskId: 'COS-example', amountMicroCny: 50_000_000 }] });
@@ -59,7 +59,7 @@ async function fixture(t: test.TestContext) {
   await publish();
   const command = async (answer?: string, mutate?: () => Promise<void>, failAfterReceipt = false) => {
     const input = new PassThrough(), output = new PassThrough(); let text = '', supplied = false;
-    output.on('data', part => { text += part.toString(); if (failAfterReceipt && part.toString().includes('体验已通过')) throw new Error('Synthetic interruption after durable receipt'); if (!supplied && text.includes('approve')) { supplied = true; void (async () => { await mutate?.(); if (answer === '[interrupt]') process.emit('SIGINT'); input.end(answer === undefined || answer === '[interrupt]' ? '' : answer + '\n'); })(); } });
+    output.on('data', part => { text += part.toString(); if (failAfterReceipt && part.toString().includes('体验已通过')) throw new Error('Synthetic interruption after durable receipt'); if (!supplied && text.includes('退出请输入 cancel')) { supplied = true; void (async () => { await mutate?.(); if (answer === '[interrupt]') process.emit('SIGINT'); input.end(answer === undefined || answer === '[interrupt]' ? '' : answer + '\n'); })(); } });
     const result = await runCli(['experience', root], { input, output }); return { result: result as any, text };
   };
   return { root, state, task, report, accepted, publish, command, replaceCandidate };
@@ -68,12 +68,15 @@ async function fixture(t: test.TestContext) {
 test('explicit stdin approval and rejection persist exact scoped evidence and recover without changing run accounting', async t => {
   for (const decision of ['approve', 'reject']) {
     const f = await fixture(t), before = await readFile(join(f.root, 'snapshot.json'));
+    assert.equal((await readRunStatus(f.root)).nextAction, undefined, 'Legacy delivery timing is unverified');
     const { result, text } = await f.command(decision);
+    assert.match(text, /查看试玩工程目录/); assert.doesNotMatch(text, /双击 Play\.cmd/);
     assert.equal(result.userExperience, decision === 'approve' ? 'approved' : 'rejected');
     assert.equal(result.finalCompletion, decision === 'approve' ? 'complete_for_report_scope' : 'pending');
     assert.match(text, /临时点击切片/); assert.match(text, /完整经典/); assert.match(text, /v1/);
     assert.doesNotMatch(text, /approve [a-f0-9]{64}/, 'People should not have to copy a binding hash');
     const status = await readRunStatus(f.root); assert.equal(status.delivery?.userExperience, result.userExperience);
+    assert.equal(status.nextAction, undefined);
     assert.equal(status.delivery?.automaticAcceptance, 'passed'); assert.equal(status.delivery?.finalCompletion, result.finalCompletion);
     const files = await readdir(join(f.root, 'delivery/experience')); assert.equal(files.length, 1);
     const receipt = JSON.parse(await readFile(join(f.root, 'delivery/experience', files[0]), 'utf8'));
@@ -156,6 +159,7 @@ test('automatic failure, missing accepted candidate and non-independent review c
     if (failure === 'review') { f.report.acceptedCandidate.review.reviewerId = 'author-1'; await writeFile(join(f.root, 'registry/current.json'), JSON.stringify(f.report.acceptedCandidate), 'utf8'); await f.publish(); }
     if (failure === 'legacy') { delete (f.report as any).formatVersion; await f.publish(); }
     if (failure === 'validation') { f.state.ledger.scope = 'validation'; f.state.ledger.limitMicroCny = 150_000_000; f.state.run.kind = 'evaluation'; f.state.tasks[0].kind = 'evaluation'; await writeFile(join(f.root, 'snapshot.json'), JSON.stringify(f.state), 'utf8'); }
+    assert.equal((await readRunStatus(f.root)).nextAction, undefined);
     await assert.rejects(f.command('approve'), (error: Error) => !error.message.startsWith('Usage:') && /automatic|accepted|independent|report|generation|体验|自动|候选|报告|正式/i.test(error.message));
     await assert.rejects(readdir(join(f.root, 'delivery/experience')), { code: 'ENOENT' });
   }

@@ -31,7 +31,7 @@ import { loadContinuationPlan, prepareContinuationPlan } from './continuation-pl
 import type { ContinuationPlan } from './continuation-plan.ts';
 import { executionWindowView } from './execution-window.ts';
 import type { AcceptedCandidate } from '../artifacts/index.ts';
-import { deliveryTaskProofs, publishGenerationReport, readCompletedGeneration } from './experience.ts';
+import { deliveryTaskProofs, freshPlaytestAction, publishGenerationReport, readCompletedGeneration } from './experience.ts';
 import { finishCompletion } from './completion-timing.ts';
 import { readFrameSelection, requireCurrentFrameSource } from './render-frame-selection.ts';
 import { verifyPublicValidationFunding } from './public-validation-funding.ts';
@@ -333,7 +333,8 @@ export async function executeGeneration(options: GenerationOptions) {
       ...(warnings ? [{ name: 'warnings', close: () => warnings!.close() }] : []), ...(control ? [{ name: 'control', close: () => control!.close() }] : []),
       ...(closePreparation ? [{ name: 'preparation', close: closePreparation }] : [])] });
   }
-  return { ...published, completionTiming, ...(!completionTiming.eligible ? { outcome: 'incomplete' } : {}) };
+  return { ...await freshPlaytestAction(root, published.outcome, completionTiming),
+    ...published, completionTiming, ...(!completionTiming.eligible ? { outcome: 'incomplete' } : {}) };
 }
 
 /** One existing explicit window, using the same executor and the host's fixed complete binding. */
@@ -411,5 +412,6 @@ async function executeContinuation(options: GenerationOptions) {
       ...(warnings ? [{ name: 'warnings', close: () => warnings!.close() }] : []), { name: 'preparation', close: closePreparation },
       ...(control ? [{ name: 'control', close: () => control!.close() }] : [])] });
   }
-  return { ...published, completionTiming, ...(!completionTiming.eligible ? { outcome: 'incomplete' } : {}) };
+  return { ...await freshPlaytestAction(root, published.outcome, completionTiming),
+    ...published, completionTiming, ...(!completionTiming.eligible ? { outcome: 'incomplete' } : {}) };
 }

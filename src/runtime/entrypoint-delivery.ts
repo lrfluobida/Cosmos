@@ -34,6 +34,14 @@ const windowsPlay = [
   '',
 ].join('\r\n');
 
+/** Only recommend the two exact launcher files Cosmos packages itself. */
+export async function hasPackagedLauncher(project: string): Promise<boolean> {
+  try {
+    return (await regularFile(project, 'Play.cmd')).equals(Buffer.from(windowsPlay))
+      && (await regularFile(project, 'standalone-launcher.mjs')).equals(await regularFile(dirname(fileURLToPath(import.meta.url)), 'standalone-launcher.mjs'));
+  } catch { return false; }
+}
+
 function playtestGuide(candidate: ArtifactReference, criteria: readonly ExperienceCriterion[]) {
   const version = `${candidate.artifactId}@${candidate.version}`;
   const lines = ['', '## 试玩反馈清单', ''];
