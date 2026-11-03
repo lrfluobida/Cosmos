@@ -154,7 +154,8 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
     }
     const strict = stages.find(issues => message === `Unsupported acceptance scenario: ${issues.join('; ')}`) ?? [message];
     const repairHints = input.repairAcceptanceIds ? experienceIdDiagnostics(plan, ordinary.draft, stages) : [];
-    const ordinaryDiagnostics = [...new Set([...strict, ...repairHints, ...stages.flat()])];
+    // Keep the first strict error, then reserve bounded feedback for actionable repairs before unrelated defects.
+    const ordinaryDiagnostics = [...new Set([...strict.slice(0, 1), ...repairHints, ...strict.slice(1), ...stages.flat()])];
     return { passed: false, errors: [{ path: ORDINARY_PLAN_SOURCE, message },
       ...ordinaryDiagnostics.filter(issue => !strict.includes(issue)).map(message => ({ path: ORDINARY_PLAN_SOURCE, message }))], ordinaryDiagnostics };
   }

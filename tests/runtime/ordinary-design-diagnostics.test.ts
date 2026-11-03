@@ -53,6 +53,22 @@ test('COS163 author feedback distinguishes experience IDs on assertions includin
   assert.ok((await f.automatic()).length <= 4096);
 });
 
+test('COS163 bounded write feedback retains the strict error and repair targets from both stages amid other defects', async t => {
+  const f = await fixture(t, true), bad = structuredClone(f.plan);
+  const noisySteps = Array.from({ length: 8 }, (_, i) => ({ ...bad.scenario.steps[0], id: `noisy-${i}`, [`obsolete${i}`]: true }));
+  bad.scenario.steps = [...noisySteps, { ...bad.scenario.steps[1], id: 'main-target', acceptanceId: 'readable' }];
+  bad.scenario.reopen.steps[2] = { ...bad.scenario.reopen.steps[2], id: 'reopen-target', acceptanceId: 'readable' };
+  const checkFeedback = (message: string) => {
+    for (const fragment of ['obsolete0', 'main-target', 'reopen-target', 'readable', 'experienceMapping', 'light']) assert.ok(message.includes(fragment), fragment);
+    assert.ok(message.length <= 4096);
+  };
+  await f.put(f.plan);
+  await assert.rejects(f.check.beforeFileWrite(join(f.workspace, file), Buffer.from(JSON.stringify(bad)), new AbortController().signal),
+    (error: Error) => { checkFeedback(error.message); return true; });
+  await f.put(bad);
+  checkFeedback(await f.automatic());
+});
+
 test('COS145 checkpoint failure preserves strict error and collects both stage diagnostics without changing files', async t => {
   const f = await fixture(t), bad = structuredClone(f.plan);
   bad.scenario.reopen.checkpoint.expected = '';
