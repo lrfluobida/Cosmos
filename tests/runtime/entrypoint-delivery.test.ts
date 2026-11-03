@@ -162,6 +162,7 @@ test('packaged Play.cmd opens only its live loopback URL and keeps serving on br
   assert.deepEqual(JSON.parse(opened), { file: join(system, 'rundll32.exe'), args: [join(system, 'url.dll') + ',FileProtocolHandler', url], shell: false });
   assert.ok(stderr.includes(url));
   const response = await fetch(url); assert.equal(response.status, 200); assert.equal(await response.text(), html);
+  assert.equal(response.headers.get('content-type'), 'text/html; charset=utf-8');
   child.stdin.end('stop\n');
   const [code] = await once(child, 'close', { signal: AbortSignal.timeout(3000) });
   assert.equal(code, 0); await assert.rejects(fetch(url));
