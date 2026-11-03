@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-11-03 [COS164 / #165](https://github.com/lrfluobida/Cosmos/issues/165) 已登记。`offline_repair_origin_reviewer` 对固定规格给出 APPROVED_DESIGN，Root 批准 `offline_repair_origin_implementer` 实施，源码待独审。三项已有测试复现了同一个问题：在允许通用设计修复的普通运行中，初稿缺失、JSON 无效、玩法覆盖缺失都会登记替换任务，但重建的来源与原 journal 不匹配，修复作者无法接手。本卡恢复这一次原有修复，并按已核实的替换关系区分原始设计、独立修订与通用替换任务。通用修复与续跑均没有 `budget-followup/1` 的额外收尾权限。 原生父任务58项，其中55项已关闭。
+
 2026-11-03 COS163 的离线源码范围已完成。`offline_plan_reviewer` 已批准最终源码 `7a8b23474a735b5cb62b7a1d3b2369b2d1a5ede5`，P2 已复核关闭。Root 批准将该提交集成到 `codex/gameplay-offline`。 运行时提交 `a86cc321e070664dc1023db14124505ea8f1d41f`。新普通任务及其修订在 `/3` 下可定位断言或等待步骤中误用的体验 ID。作者在同一阶段显式指定 1 至 16 处 `stepId/from/to`，通过整批检查后一次写入，失败保留原稿。 GitHub #164 已关闭，父 #19 保持开放，57 项子任务中 55 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/164#issuecomment-6597169025)
 
 10 个文件与批准版本逐字节一致。离线集成的类型检查、构建通过，3 项代表全部通过且无跳过，覆盖误填体验 ID 的定位、双阶段诊断的大小限制和按步骤原子修正。作者诊断 9/9、原生工具及主机恢复 18/18、strict 编译结果沿用已审证据。 R27 草稿副本经生产工具在 TEMP 中回放，写入反馈和显式检查均定位到五处原步骤。一次修正后深比较仅这五个 `acceptanceId` 改变，设计副本和两份历史原件均保留原字节。随后严格检查仍为 `passed:false`，重开阶段第 0 项匹配观测之前没有普通点击。实际 R27 以服务方错误终止，游戏和体验验收尚未完成。
@@ -2356,6 +2358,16 @@ COS163 的离线源码范围已完成。`offline_plan_reviewer` 已批准最终�
 10 个文件与批准版本逐字节一致。离线集成的类型检查、构建通过，3 项代表全部通过且无跳过，覆盖误填体验 ID 的定位、双阶段诊断的大小限制和按步骤原子修正。作者诊断 9/9、原生工具及主机恢复 18/18、strict 编译结果沿用已审证据。 R27 草稿副本经生产工具在 TEMP 中回放，写入反馈和显式检查均定位到五处原步骤。一次修正后深比较仅这五个 `acceptanceId` 改变，设计副本和两份历史原件均保留原字节。随后严格检查仍为 `passed:false`，重开阶段第 0 项匹配观测之前没有普通点击。实际 R27 以服务方错误终止，游戏和体验验收尚未完成。
 
 GitHub ID `6177505838`，原生父 COS18/#19、[x]，依赖 COS147/#148 与 COS161/#162。作者 `offline_plan_implementer`，唯一 merger `planning_budget_merger`。[正式规格](cos163-offline-plan-repair.md)
+
+### COS-164 · 恢复普通设计修复任务的原有执行范围
+
+[COS164 / #165](https://github.com/lrfluobida/Cosmos/issues/165) 已登记。`offline_repair_origin_reviewer` 对固定规格给出 APPROVED_DESIGN，Root 批准 `offline_repair_origin_implementer` 实施，源码待独审。三项已有测试复现了同一个问题：在允许通用设计修复的普通运行中，初稿缺失、JSON 无效、玩法覆盖缺失都会登记替换任务，但重建的来源与原 journal 不匹配，修复作者无法接手。本卡恢复这一次原有修复，并按已核实的替换关系区分原始设计、独立修订与通用替换任务。通用修复与续跑均没有 `budget-followup/1` 的额外收尾权限。
+
+父任务为 COS18/#19，直接依赖 [COS136 / #137](https://github.com/lrfluobida/Cosmos/issues/137) 第 3 节的来源与收尾政策。原始设计及合法独立修订仍按其各自已认证策略工作。R27 采用独立设计修订流程，本任务的通用修复回归由离线测试验证。唯一 merger `planning_budget_merger` 在 Root 精确放行后集成到 `codex/gameplay-offline`。
+
+批准规格原稿 SHA256 为 `2961a144c7b50d32640b032421d193cf495b7ee973e6042b04b452bc7c865338`。
+
+GitHub ID `6177691732`，源码基线 `a86cc321e070664dc1023db14124505ea8f1d41f`，状态 `source-pending`。[正式规格](cos164-ordinary-repair-origin-scope.md)
 
 ## 5. 任务与上下文包模板
 

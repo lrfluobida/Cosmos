@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 57,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163"],
+      "verifiedNativeSubIssues": 58,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164"],
       "verifiedCompletedSubIssues": 55,
       "dependsOn": [
         {
@@ -12837,9 +12837,52 @@
       "offlineReplay": "R27 TEMP copies: explicit writer corrected exactly five requested acceptanceId fields. Design and both original files byte-preserved. Next strict check failed on missing preceding normal click in reopen.",
       "actualGameGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-164",
+      "title": "恢复普通设计修复任务的原有执行范围",
+      "number": 165,
+      "id": 6177691732,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/165",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-136"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-136",
+          "number": 137,
+          "id": 6049797585,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/137"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-164 · 恢复普通设计修复任务的原有执行范围](https://github.com/lrfluobida/Cosmos/issues/165)",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "sourceBaseCommit": "a86cc321e070664dc1023db14124505ea8f1d41f",
+      "integrationBranch": "codex/gameplay-offline",
+      "formalSpecPath": "docs/specs/cos164-ordinary-repair-origin-scope.md",
+      "approvedSpecSha256": "2961a144c7b50d32640b032421d193cf495b7ee973e6042b04b452bc7c865338",
+      "rootImplementationApproved": true,
+      "designReviewStatus": "APPROVED_DESIGN",
+      "designReviewer": "offline_repair_origin_reviewer",
+      "implementer": "offline_repair_origin_implementer",
+      "reviewer": "offline_repair_origin_reviewer",
+      "merger": "planning_budget_merger",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 58,
+      "verifiedParentCompletedSubIssues": 55
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 163,
+  "totalTaskCount": 164,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
