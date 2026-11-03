@@ -214,11 +214,15 @@ export async function executeGeneration(options: GenerationOptions) {
       const policy = authorCorrectionPolicy(execution, execution.capability);
       host.validateTasks?.(execution.tasks);
       phase = options.resume ? 'recovery' : 'execution';
+      let continuation: RepairContinuationPlan | null = null;
       const run = async (tasks: PreparedTask[], resume: boolean, availableArtifacts = execution.availableArtifacts) => {
         await host.bindPreparedTasks?.(tasks);
+        // The ordinary DAG has one design slot. Its generic replacement keeps the marker-free continuation origin.
+        const replacedDesign = execution.ordinaryDesignFinalizationPolicy && tasks.some(item => item.role === 'design' && continuation?.newTaskIds.includes(item.task.taskId));
         const common: DagOptions = { controller, requirement, tasks, sessionRoot: join(root, 'sessions'), availableArtifacts,
-          roleFactory: host.roleFactory, preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure, signal,
-          reviewProtocolCorrections: 1, ...policy, ...(execution.ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy: execution.ordinaryDesignFinalizationPolicy } : {}),
+          roleFactory: replacedDesign ? input => host.roleFactory(input.role === 'design' ? { ...input, disableDesignFinalization: true } : input) : host.roleFactory,
+          preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure, signal,
+          reviewProtocolCorrections: 1, ...policy, ...(execution.ordinaryDesignFinalizationPolicy && !replacedDesign ? { ordinaryDesignFinalizationPolicy: execution.ordinaryDesignFinalizationPolicy } : {}),
           ...(execution.ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy: execution.ordinaryDesignRevisionPolicy } : {}),
           scheduling: { maxParallel: 2, resources: Object.fromEntries(tasks.map(item => [item.task.taskId, ['browser-build-promotion']])) },
           recovery: { journalRoot: join(root, 'journal'), artifactRoot: root, recoverCapture: host.recoverCapture } };
@@ -229,7 +233,7 @@ export async function executeGeneration(options: GenerationOptions) {
       const existingRepair = options.resume ? await optionalJson(root, 'repair-plan.json') : null;
       if (existingRepair?.formatVersion !== undefined && existingRepair.formatVersion !== 2) throw new SuccessorBlocked('Unknown repair plan version; preserve the original run.');
       if (existingRepair && !sameValue(authorCorrectionPolicy(existingRepair, execution.capability), policy)) throw new SuccessorBlocked('Original repair author correction policy differs from execution.');
-      let continuation: RepairContinuationPlan | null = existingRepair?.formatVersion === 2 ? existingRepair : null;
+      continuation = existingRepair?.formatVersion === 2 ? existingRepair : null;
       if (continuation) await prepareRepairContinuation({ root, controller, plan: continuation, originals: effectiveTasks, requirement, originalPlan: execution.plan, now: Date.now() });
       const prepared: PreparedTask[] = existingRepair?.tasks ?? effectiveTasks;
       const resumeSelected = !!designBranch?.selection && !existingRepair && ((await controller.read()).tasks.some(task => effectiveTasks.some(item => item.role !== 'design' && item.task.taskId === task.taskId))

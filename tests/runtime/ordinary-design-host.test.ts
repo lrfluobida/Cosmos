@@ -7,6 +7,7 @@ import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 import { readConfirmedGeneration } from '../../src/cli/session.ts';
 import { readRunSnapshot } from '../../src/cli/control.ts';
 import { loadExperienceBinding, readCompletedGeneration } from '../../src/runtime/experience.ts';
+import { RecoveryBlocked, TaskJournal } from '../../src/runtime/recovery/task-journal.ts';
 
 for (const modular of [false, true]) test(`ordinary ${modular ? 'five' : 'three'} task generation consumes the independently reviewed captured plan`, async t => {
   const f = await ordinaryHostFixture(t, { modular }), result: any = await f.execute();
@@ -36,7 +37,12 @@ for (const fault of ['review', 'review-receipt', 'plan-drift', 'candidate', 'sou
   }
 });
 for (const fault of ['missing', 'json', 'coverage']) test(`ordinary ${fault} plan keeps original design defect repair and successor bounds`, async t => {
-  const f = await ordinaryHostFixture(t, { fault }), result: any = await f.execute();
+  const designSessions: { taskId: string; finalization?: string }[] = [];
+  const f = await ordinaryHostFixture(t, { fault, sessionFactory: async (config, session) => {
+    const packet = JSON.parse(config.context!);
+    if (packet.role === 'design') designSessions.push({ taskId: packet.taskId, finalization: config.ordinaryDesignFinalizationPolicy });
+    return session;
+  } }), result: any = await f.execute();
   assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
   const state: any = await readRunSnapshot(f.root), design = state.tasks.find((task: any) => task.taskId === 'design-task');
   const feedback = JSON.parse(await readFile(join(design.attempts[0].sessionRef, 'failure.json'), 'utf8'));
@@ -44,8 +50,36 @@ for (const fault of ['missing', 'json', 'coverage']) test(`ordinary ${fault} pla
   assert.equal(feedback.issues[0].checkId, `role-output-${fault === 'missing' ? 'missing_output' : fault === 'json' ? 'invalid_json' : 'invalid_schema'}`);
   assert.equal(state.tasks.filter((task: any) => task.taskId === 'design-task-repair').length, 1);
   assert.equal(state.tasks.filter((task: any) => task.taskId.includes('repair')).length, 1);
+  assert.deepEqual(designSessions, [{ taskId: 'design-task', finalization: 'budget-followup/1' }, { taskId: 'design-task-repair', finalization: undefined }]);
+  for (const { taskId, finalization } of designSessions) {
+    const origin = JSON.parse(await readFile(join(f.root, 'journal', `task-${taskId}`, 'origin.json'), 'utf8'));
+    assert.equal(origin.ordinaryDesignFinalizationPolicy, finalization);
+  }
   assert.equal(result.ordinaryExecution.design.version, 'v2'); assert.equal(f.plays.length, 1);
   assert.equal(state.ledger.limitMicroCny, 200000000); assert.deepEqual(state.ledger.entries, []);
+});
+test('registered generic design repair resumes only with its original marker-free origin', async t => {
+  const f = await ordinaryHostFixture(t, { fault: 'missing' }), open = TaskJournal.open;
+  const interrupt = t.mock.method(TaskJournal, 'open', async (...args: Parameters<typeof open>) => {
+    if (args[2] && args[1].prepared.task.taskId === 'design-task-repair') throw new RecoveryBlocked('Synthetic interruption after group registration.');
+    return open(...args);
+  });
+  const initial = await f.execute(); interrupt.mock.restore();
+  assert.ok(initial.gaps.includes('design-task-repair: Synthetic interruption after group registration.'));
+  const before = await readRunSnapshot(f.root), confirmed = await readConfirmedGeneration(f.root, before);
+  const resume = () => f.host.execute({ root: f.root, ...confirmed, resume: true });
+  const path = join(f.root, 'journal/task-design-task-repair/origin.json'), original = await readFile(path);
+  const count = f.packets.length;
+  await writeFile(path, JSON.stringify({ ...JSON.parse(original.toString('utf8')), ordinaryDesignFinalizationPolicy: 'budget-followup/1' }), 'utf8');
+  const refused = await resume();
+  assert.ok(refused.gaps.some((gap: string) => gap.includes('Recovery origin, task, requirements or execution policy changed.')));
+  assert.equal(f.packets.length, count);
+  await writeFile(path, original);
+  const completed = await resume();
+  assert.ok(completed.acceptedCandidate, JSON.stringify(completed.gaps));
+  assert.equal(f.packets.filter(packet => packet.role === 'design' && packet.taskId === 'design-task').length, 1);
+  assert.deepEqual(await readFile(path), original);
+  assert.deepEqual((await readRunSnapshot(f.root)).ledger, before.ledger);
 });
 test('completed ordinary recovery refuses a missing original design approval receipt and report downgrade', async t => {
   const f = await ordinaryHostFixture(t), result: any = await f.execute(); assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
