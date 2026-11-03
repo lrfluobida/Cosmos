@@ -41,6 +41,7 @@ export interface AcceptanceReport {
   steps: StepResult[]; errors: string[]; files: string[]; reportPath: string; evidence: EvidenceContract[];
   failureFacts?: BrowserFailureFacts;
   session?: PersistentBrowserIdentity;
+  savedAtClose?: { request: SavedAtCloseRequest; actual: Scalar; screenshot: string | null };
   mediaObservations?: MediaObservationSample;
   renderFrames?: RenderFrameSample;
   nativeWaits?: { contractVersion: NativeValidationWaits['contractVersion']; deadlineAt: number; workDeadlineAt: number; segment: NativeSegmentSnapshot;
@@ -58,8 +59,12 @@ export interface PersistentBrowserIdentity {
 }
 /** Trusted host transport only; never accepted as game/model plan data. */
 export interface BrowserLaunchLifetime { signal: AbortSignal; deadlineAt: number }
+export interface SavedAtCloseRequest {
+  formatVersion: 'visible-saved-state/1'; seriesBindingSha256: string; observation: { kind: 'text'; selector: string }; expected: string;
+}
 export interface OwnedAcceptanceLifecycle {
   deadlineAt: number; signal?: AbortSignal;
+  savedAtClose?: SavedAtCloseRequest;
   nativeValidationWaits?: NativeValidationWaits; nativeSegmentWaits?: NativeSegmentWaits;
   open(directory: string, timeoutMs: number, launch?: BrowserLaunchLifetime): Promise<{ browser: Browser; context: BrowserContext }>;
   process(): ChildProcess | undefined;
@@ -304,6 +309,24 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
       report.renderFrames = await run(() => collectRenderFrames(page!, options.renderFrames!, { viewport: plan.viewport, browser: report.browser,
         recording: { kind: lifecycle ? 'persistent-screencast' : 'context-video', enabled: true } }), options.renderFrames.durationMs + 1000, 'Rendered-frame sampling');
       await writeFile(join(directory, 'render-frames.json'), JSON.stringify(report.renderFrames, null, 2) + '\n', 'utf8'); report.files.push(path('render-frames.json'));
+    }
+    if (lifecycle?.savedAtClose && report.steps.every(row => row.outcome === 'passed') && !report.errors.length) {
+      const request = lifecycle.savedAtClose;
+      const sample: NonNullable<AcceptanceReport['savedAtClose']> = { request, actual: null, screenshot: null };
+      report.savedAtClose = sample;
+      try {
+        if (new URL(page.url()).origin !== origin) throw new Error('Page left the project origin');
+        sample.actual = await genericStep(() => observe(page!, request.observation, Math.max(1, remaining(1500))),
+          Math.min(deadline, Date.now() + 2000), 'Saved state at close', lifecycle.signal);
+        if (new URL(page.url()).origin !== origin) throw new Error('Page left the project origin');
+      } catch (error) {
+        recordError(`Saved state at close unavailable: ${message(error)}`);
+        if (error instanceof DeadlineError || error instanceof AcceptanceCancelledError) throw error;
+      }
+      sample.screenshot = await screenshot('saved-at-close.png');
+      if (!sample.screenshot) recordError('Saved state at close screenshot unavailable');
+      if (sample.actual !== null && sample.actual !== request.expected)
+        recordError(`Saved state at close: expected ${JSON.stringify(request.expected)}, observed ${JSON.stringify(sample.actual)}`);
     }
   } catch (error) {
     executionError = { error };

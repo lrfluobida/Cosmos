@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { mkdtemp, unlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { removeOwned } from '../../src/artifacts/paths.ts';
+import { ordinaryPersistentReport } from '../runtime/ordinary-browser.fixture.ts';
 import test from 'node:test';
 import * as persistent from '../../src/acceptance/persistent.ts';
 import * as media from '../../src/runtime/entrypoint-media.ts';
@@ -9,9 +14,9 @@ import * as api from '../../src/runtime/entrypoint-persistent.ts';
 const candidate = { artifactId: 'game', version: 'v1', location: 'candidate/game/v1' };
 const manifest: any = { characters: [{ directory: 'assets/marker', manifest: { id: 'marker', states: [{ name: 'play', frames: ['a.svg'] }, { name: 'resume', frames: ['b.svg'] }] } }],
   audio: [{ directory: 'assets', manifest: { id: 'purchase' } }, { directory: 'assets', manifest: { id: 'continue' } }] };
-export function boundSeries(): any {
+export function boundSeries(scenario = genericPersistentDraft().scenario): any {
   assert.equal(typeof api.createGenericPersistentSeries, 'function', 'Generic series assembly is required');
-  return api.createGenericPersistentSeries({ scenario: genericPersistentDraft().scenario, projectId: 'game', taskId: 'coding', runId: 'run', specVersion: '1.0', reportId: 'series',
+  return api.createGenericPersistentSeries({ scenario, projectId: 'game', taskId: 'coding', runId: 'run', specVersion: '1.0', reportId: 'series',
     url: 'http://127.0.0.1:32123', candidate, requirement: { artifactId: 'requirement', version: 'v1', location: 'capture/requirement/v1' },
     design: { artifactId: 'design', version: 'v1', location: 'capture/design/v1' }, acceptanceIds: ['save', 'resume'] });
 }
@@ -27,6 +32,58 @@ test('generic series binds fixed current captures and distinct plans without tra
     (s: any) => { s.segments[1].plan.steps[1].expected = 'wrong'; }, (s: any) => { s.segments[1].plan.runId = 'wrong'; },
     (s: any) => { s.segments[1].plan.url = 'http://localhost:32123'; }, (s: any) => { s.segments.push(structuredClone(s.segments[0])); },
   ]) { const changed = structuredClone(series); change(changed); assert.ok(persistent.validatePersistentSeries(changed).length); }
+});
+
+test('fresh save boundary selection is host bound and absent in authentic legacy series', () => {
+  const scenario = genericPersistentDraft().scenario;
+  while (scenario.steps.length < 200) scenario.steps.push({ id: 'move-' + scenario.steps.length, kind: 'mouse-move', x: 5, y: 5 });
+  const series = boundSeries(scenario);
+  assert.equal(series.checkpoint.savedAtClose, 'visible-saved-state/1');
+  assert.deepEqual(series.segments[0].plan.steps, scenario.steps);
+  delete series.checkpoint.savedAtClose;
+  assert.ok(persistent.validatePersistentSeries(series).includes('Generic fixed plans changed'));
+  const rebind = () => { series.bindingSha256 = createHash('sha256').update(JSON.stringify({ binding: series.binding, segments: series.segments, checkpoint: series.checkpoint })).digest('hex'); };
+  rebind();
+  assert.deepEqual(persistent.validatePersistentSeries(series), []);
+  series.checkpoint.savedAtClose = 'unknown';
+  rebind();
+  assert.ok(persistent.validatePersistentSeries(series).length);
+});
+
+test('generic raw verification authenticates the selected receipt and preserves frozen legacy evidence', async t => {
+  const series = boundSeries(), legacy = structuredClone(series);
+  delete legacy.checkpoint.savedAtClose;
+  legacy.bindingSha256 = createHash('sha256').update(JSON.stringify({ binding: legacy.binding, segments: legacy.segments, checkpoint: legacy.checkpoint })).digest('hex');
+  for (const current of [legacy, series]) {
+    const root = await mkdtemp(join(tmpdir(), 'cos166-proof-')), deadlineAt = Date.now() + 30_000;
+    t.after(() => removeOwned(tmpdir(), root));
+    const report = await ordinaryPersistentReport(current, { evidenceRoot: root, deadlineAt, verifyBinding: async () => {} });
+    t.after(() => removeOwned(tmpdir(), report.profileRoot));
+    await api.verifyGenericPersistentEvidence(current, report, root, deadlineAt);
+    if (current === legacy) {
+      assert.equal(report.segments[0].report.savedAtClose, undefined);
+      await assert.rejects(api.verifyGenericPersistentEvidence(series, report, root, deadlineAt));
+      continue;
+    }
+    for (const change of [
+      (save: any) => { delete save.savedAtClose; },
+      (save: any) => { save.savedAtClose.request.seriesBindingSha256 = legacy.bindingSha256; },
+      (save: any) => { save.savedAtClose.request.observation = series.checkpoint.snapshot; },
+      (save: any) => { save.savedAtClose.actual = 'different save'; },
+      (save: any) => { save.savedAtClose.screenshot = save.steps.at(-1).screenshot; },
+    ]) {
+      const altered = structuredClone(report), save = altered.segments[0].report;
+      change(save);
+      await writeFile(join(root, save.reportPath), JSON.stringify(save), 'utf8');
+      await writeFile(join(root, altered.reportPath), JSON.stringify(altered), 'utf8');
+      await assert.rejects(api.verifyGenericPersistentEvidence(series, altered, root, deadlineAt), /saved state at close/);
+    }
+    const save = report.segments[0].report;
+    await writeFile(join(root, save.reportPath), JSON.stringify(save), 'utf8');
+    await writeFile(join(root, report.reportPath), JSON.stringify(report), 'utf8');
+    await unlink(join(root, save.savedAtClose!.screenshot!));
+    await assert.rejects(api.verifyGenericPersistentEvidence(series, report, root, deadlineAt));
+  }
 });
 
 function report(series: any) {

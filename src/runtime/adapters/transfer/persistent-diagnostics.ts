@@ -6,7 +6,7 @@ import type { AcceptanceReport } from '../../../acceptance/runner.ts';
 import { completedObservation, deliveredInputs } from '../../../acceptance/failure-facts.ts';
 import { bounded } from '../../../acceptance/deadline.ts';
 import { regularFile } from '../../../artifacts/paths.ts';
-import { PERSISTENT_PROFILE_CAPABILITY, validatePersistentSeries } from '../../../acceptance/persistent.ts';
+import { PERSISTENT_PROFILE_CAPABILITY, validatePersistentSeries, verifySavedStateAtClose } from '../../../acceptance/persistent.ts';
 import type { PersistentAcceptanceReport, PersistentAcceptanceSeries } from '../../../acceptance/persistent.ts';
 import { diagnoseBrowser } from '../../repair/browser-diagnostics.ts';
 import type { Diagnostics } from '../../repair/browser-diagnostics.ts';
@@ -202,6 +202,7 @@ function validCheckpoint(report: PersistentAcceptanceReport, series: PersistentA
   }
   const before = report.segments[afterIndex]?.report, after = report.segments[afterIndex + 1]?.report;
   check(before && c.actual === expected.expected && c.savedActual === expected.expected && isDeepStrictEqual(c.before, before.session));
+  verifySavedStateAtClose(series, before);
   for (const observation of [expected.snapshot, expected.savedSnapshot]) {
     const indices = before.plan.steps.flatMap((step, index) => (step.kind === 'assert' || step.kind === 'wait-for')
       && isDeepStrictEqual(step.observation, observation) && step.expected === expected.expected ? [index] : []);

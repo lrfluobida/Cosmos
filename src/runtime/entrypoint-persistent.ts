@@ -22,7 +22,7 @@ export function createGenericPersistentSeries(input: { scenario: BrowserScenario
     return { id: index ? 'resume' : 'save', prerequisite: index ? 'same-profile-reopened' : 'fresh-profile', plan };
   });
   const checkpoint = { ...structuredClone(reopen.checkpoint), kind: 'close-process-reopen' as const, afterSegment: 'save', beforeSegment: 'resume', sameProfile: true as const,
-    sameOrigin: true as const, origin: new URL(input.url).origin };
+    sameOrigin: true as const, origin: new URL(input.url).origin, savedAtClose: 'visible-saved-state/1' as const };
   const series: GenericPersistentAcceptanceSeries = { formatVersion: 'persistent-acceptance/generic-1', reportId: input.reportId, binding, segments, checkpoint,
     bindingSha256: createHash('sha256').update(JSON.stringify({ binding, segments, checkpoint })).digest('hex') };
   const issues = validatePersistentSeries(series); if (issues.length) throw new Error(`Invalid generic save binding: ${issues.join('; ')}`);

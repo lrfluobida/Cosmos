@@ -77,7 +77,7 @@ after(async () => {
   if (buildRoot) await writeFile(join(buildRoot, 'server-cleanup.json'), JSON.stringify({ listening: server?.listening ?? false, providerCalls: 0 }), 'utf8');
 });
 
-function scenario(): BrowserScenario {
+function scenario(overwriteSave: boolean): BrowserScenario {
   let index = 0, steps: PlanStep[] = [];
   const check = (selector: string, expected: string) => steps.push({ id: `s${++index}`, kind: 'wait-for', acceptanceId: 'audio', observation: { kind: 'text', selector }, expected, timeoutMs: 5000 });
   const click = (id: string) => { steps.push({ id: `s${++index}`, kind: 'locator-click', selector: '#' + id, timeoutMs: 5000 }); check('#last', id); };
@@ -112,6 +112,7 @@ function scenario(): BrowserScenario {
   click('destroy'); audio('bgm-soft', 'playing', false); audio('bgm-soft', 'outputActive', false); audio('bgm-soft', 'outputActivations', 8);
   click('save'); check('#progress', '4'); check('#saved', '4');
   click('collect'); check('#progress', '5'); check('#saved', '4'); audio('constructor', 'outputActivations', 4);
+  if (overwriteSave) { click('save'); check('#saved', '5'); }
   const first = steps; steps = [];
   initial(); // No input before sound-off; the new document has independent observation counters.
   click('sound'); check('#sound', '声音：关'); audio('bgm-soft', 'started', true); audio('bgm-soft', 'playing', true);
@@ -128,7 +129,7 @@ async function run(t: TestContext, fault = '') {
   const controller = await RunController.create({ root: join(root, 'ledger'), runId: 'ordinary-media', ledgerId: 'source-only', kind: 'evaluation', scope: 'validation',
     specVersion: 'source', durationMs: 120_000, allocations: [{ taskId: 'media', amountMicroCny: 1 }] });
   const work = new OwnedWork(controller.signal), pids: number[] = [], ref = { artifactId: 'fixture', version: 'v1', location: 'source/fixture' };
-  const series = createGenericPersistentSeries({ scenario: scenario(), projectId: 'ordinary-media', taskId: 'media', runId: 'ordinary-media', specVersion: 'source', reportId: 'series',
+  const series = createGenericPersistentSeries({ scenario: scenario(fault === 'overwrite-save'), projectId: 'ordinary-media', taskId: 'media', runId: 'ordinary-media', specVersion: 'source', reportId: 'series',
     url: url + '/?fault=' + encodeURIComponent(fault), candidate: { ...ref, artifactId: 'game' }, requirement: { ...ref, artifactId: 'requirements' }, design: { ...ref, artifactId: 'design' }, acceptanceIds: ['audio'] });
   const evidenceRoot = join(root, 'evidence'), manifestSha256 = createHash('sha256').update(JSON.stringify(media)).digest('hex');
   const segmentMediaObservations = series.segments.map(segment => ({ segmentId: segment.id, request: createGenericMediaObservationRequest(media,
@@ -154,9 +155,21 @@ test('ordinary real media transaction states survive scenes and exactly one brow
   assert.equal(f.report.outcome, 'passed', JSON.stringify({ errors: f.report.errors, firstFailed: f.report.segments.flatMap(s => s.report.steps).find(s => s.outcome === 'failed') }));
   assert.equal(f.pids.length, 2); assert.notEqual(f.pids[0], f.pids[1]);
   await verifyGenericPersistentEvidence(f.series, f.report, f.evidenceRoot, f.deadlineAt);
+  assert.equal(f.report.segments[0].report.savedAtClose?.actual, '4');
+  assert.equal(f.report.segments[1].report.savedAtClose, undefined);
   const coverage = assessGenericSeriesMediaCoverage(media, { series: f.series, media: f.ref, manifestSha256: f.manifestSha256, deadlineAt: f.deadlineAt }, f.report);
   assert.equal(coverage.valid, true); assert.equal(coverage.complete, true);
   assert.equal(f.series.segments[1].plan.steps.find(step => step.kind === 'locator-click')!.selector, '#sound');
+});
+test('a later normal save overwrites the checkpoint before any reopen', async t => {
+  const f = await run(t, 'overwrite-save');
+  assert.equal(f.pids.length, 1);
+  assert.equal(f.report.outcome, 'failed');
+  const save = f.report.segments[0].report;
+  assert.ok(save.steps.every(row => row.outcome === 'passed'));
+  assert.equal(save.savedAtClose?.actual, '5');
+  assert.ok(save.savedAtClose?.screenshot && save.files.includes(save.savedAtClose.screenshot));
+  assert.match(save.errors.join('\n'), /saved state at close/i);
 });
 for (const [fault, field] of [['ignore-mute', 'outputActive'], ['omit-resumed-effect', 'outputActivations'], ['no-loop', 'looping'], ['wrong-id', 'id']]) {
   test(`ordinary real media rejects ${fault} at the actual ${field} observation`, async t => {

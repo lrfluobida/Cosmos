@@ -13,7 +13,7 @@ import { bounded, DeadlineError, AcceptanceCancelledError } from './deadline.ts'
 import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Observation } from './plan.ts';
 import { runAcceptanceInOwnedSession } from './runner.ts';
-import type { AcceptanceOptions, AcceptanceReport, OwnedAcceptanceLifecycle, PersistentBrowserIdentity, BrowserLaunchLifetime } from './runner.ts';
+import type { AcceptanceOptions, AcceptanceReport, OwnedAcceptanceLifecycle, PersistentBrowserIdentity, BrowserLaunchLifetime, SavedAtCloseRequest } from './runner.ts';
 import { isNativeValidationWaits } from './native-validation-waits.ts';
 import type { NativeReadLifetime, NativeValidationWaits } from './native-validation-waits.ts';
 
@@ -31,6 +31,7 @@ export interface TransferPersistentAcceptanceSeries extends PersistentSeriesFiel
 }
 export interface GenericPersistentAcceptanceSeries extends PersistentSeriesFields {
   formatVersion: 'persistent-acceptance/generic-1'; sourceVersion?: never; scope?: never;
+  checkpoint: PersistentSeriesFields['checkpoint'] & { savedAtClose?: SavedAtCloseRequest['formatVersion'] };
   binding: { requirement: ArtifactReference; design: ArtifactReference; candidate: ArtifactReference; acceptanceIds: string[] };
 }
 export type PersistentAcceptanceSeries = TransferPersistentAcceptanceSeries | GenericPersistentAcceptanceSeries;
@@ -133,7 +134,8 @@ export function validatePersistentSeries(value: unknown): string[] {
     [...new Set(value.segments.flatMap(item => item?.plan?.acceptanceIds ?? []))].sort()), 'Scope acceptance coverage changed');
   const c = value.checkpoint;
   if (!object(c)) return [...issues, 'Missing process reopen checkpoint'];
-  check(hasOnly(c, ['kind', 'afterSegment', 'beforeSegment', 'sameProfile', 'sameOrigin', 'origin', 'expected', 'snapshot', 'savedSnapshot']), 'Unknown checkpoint field');
+  check(hasOnly(c, ['kind', 'afterSegment', 'beforeSegment', 'sameProfile', 'sameOrigin', 'origin', 'expected', 'snapshot', 'savedSnapshot', ...(generic ? ['savedAtClose'] : [])]), 'Unknown checkpoint field');
+  if (Object.hasOwn(c, 'savedAtClose')) check(c.savedAtClose === 'visible-saved-state/1', 'Invalid saved state at close capability');
   check(c.kind === 'close-process-reopen' && c.sameProfile === true && c.sameOrigin === true, 'Invalid process reopen capability');
   const after = value.segments.findIndex(item => item?.id === c.afterSegment), before = value.segments.findIndex(item => item?.id === c.beforeSegment);
   check(after === value.segments.length - 2 && before === after + 1, 'Checkpoint must precede the final reopened segment');
@@ -201,9 +203,25 @@ async function evidenceFiles(report: AcceptanceReport, root: string) {
 export async function verifyPersistentSegmentEvidence(report: AcceptanceReport, plan: AcceptancePlan, evidenceRoot: string, profile: string) {
   exactSegment(report, plan); passedReport(report, plan, profile); await evidenceFiles(report, evidenceRoot);
 }
+function savedAtCloseRequest(series: PersistentAcceptanceSeries): SavedAtCloseRequest | undefined {
+  if (series.formatVersion !== 'persistent-acceptance/generic-1' || !series.checkpoint.savedAtClose) return;
+  const { savedAtClose, savedSnapshot, expected } = series.checkpoint;
+  requireThat(savedSnapshot.kind === 'text', 'saved state at close requires visible text');
+  return { formatVersion: savedAtClose, seriesBindingSha256: series.bindingSha256, observation: structuredClone(savedSnapshot), expected };
+}
+/** Both promotion and failed-reopen diagnosis require the same fresh observation. */
+export function verifySavedStateAtClose(series: PersistentAcceptanceSeries, report: AcceptanceReport) {
+  const request = savedAtCloseRequest(series);
+  if (!request) return;
+  const plan = report.plan, sample = report.savedAtClose;
+  const screenshot = [plan.projectId, plan.artifact.artifactId, plan.artifact.version, plan.runId, plan.reportId, 'saved-at-close.png'].join('/');
+  requireThat(sample && isDeepStrictEqual(sample.request, request) && sample.actual === request.expected
+    && sample.screenshot === screenshot && report.files.includes(screenshot), 'saved state at close evidence mismatch');
+}
 export async function verifyReopenCheckpoint(series: PersistentAcceptanceSeries, report: AcceptanceReport, evidenceRoot: string, profile: string) {
   const segment = series.segments.find(item => item.id === series.checkpoint.afterSegment)!;
   passedReport(report, segment.plan, profile);
+  verifySavedStateAtClose(series, report);
   for (const observation of [series.checkpoint.snapshot, series.checkpoint.savedSnapshot]) {
     const steps = checksFor(segment.plan, observation, series.checkpoint.expected);
     const row = report.steps.find(item => item.id === steps.at(-1)?.id);
@@ -214,7 +232,7 @@ export async function verifyReopenCheckpoint(series: PersistentAcceptanceSeries,
   await evidenceFiles(report, evidenceRoot);
 }
 
-interface SegmentLifecycle { profile: string; deadlineAt: number; signal?: AbortSignal }
+interface SegmentLifecycle { profile: string; deadlineAt: number; signal?: AbortSignal; savedAtClose?: SavedAtCloseRequest }
 type SegmentExecutor = (plan: AcceptancePlan, lifecycle: SegmentLifecycle) => Promise<AcceptanceReport>;
 /** Transport seam for trusted host tests. Profile ownership and all execution gates remain here. */
 export async function executePersistentSeries(value: unknown, options: PersistentAcceptanceOptions, execute: SegmentExecutor): Promise<PersistentAcceptanceReport> {
@@ -286,7 +304,8 @@ export async function executePersistentSeries(value: unknown, options: Persisten
         await safePath(profileRoot, profile.slice(profileRoot.length + 1));
       }
       at('execute', 'unknown');
-      const result = await execute(structuredClone(segment.plan), { profile, deadlineAt: options.deadlineAt, signal: options.signal });
+      const savedAtClose = segment.id === series.checkpoint.afterSegment ? savedAtCloseRequest(series) : undefined;
+      const result = await execute(structuredClone(segment.plan), { profile, deadlineAt: options.deadlineAt, signal: options.signal, ...(savedAtClose ? { savedAtClose } : {}) });
       report.segments.push({ id: segment.id, report: result });
       await guard(); // Close has completed; recheck source/candidate/cancellation before considering a reopen.
       at('segment_report', 'invalid_segment'); exactSegment(result, segment.plan);
@@ -361,7 +380,7 @@ export function ownedPersistentBrowserLifecycle(plan: AcceptancePlan, options: P
   if (native) requireThat(isNativeValidationWaits(native) && native.taskId === plan.taskId && native.deadlineAt === session.deadlineAt
     && native.deadlineAt === options.deadlineAt && !!options.ownedChild, 'native lifecycle differs from its source-owned task/deadline/child');
   const nativeSegmentWaits = native?.beginSegment(plan.reportId);
-  return { deadlineAt: session.deadlineAt, signal: session.signal, process: () => child, nativeValidationWaits: native, nativeSegmentWaits,
+  return { deadlineAt: session.deadlineAt, signal: session.signal, savedAtClose: session.savedAtClose, process: () => child, nativeValidationWaits: native, nativeSegmentWaits,
     identity: () => { if (identity) identity.closeEvent = closeEvent; return identity; },
     async open(directory, timeoutMs, outerLaunch) {
       const started = Date.now(), end = native ? Math.min(native.workDeadlineAt, outerLaunch?.deadlineAt ?? Infinity)
