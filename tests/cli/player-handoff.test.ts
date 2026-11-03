@@ -25,6 +25,11 @@ test('public new, resume and status lead to the same undecided playable delivery
   const timing = created.result.completionTiming;
   assert.deepEqual(await freshPlaytestAction(f.root, created.result.outcome, { ...timing, binding: { ...timing.binding, candidate: null } }), {},
     'A cleanup proof without an accepted candidate cannot guide the player');
+  const issued = timing.binding.report, version = '00000000-0000-4000-8000-000000000001';
+  const differentRef = { ...issued.ref, version, location: `delivery/report-${version}.json` };
+  assert.deepEqual(await freshPlaytestAction(f.root, created.result.outcome, { ...timing, binding: {
+    ...timing.binding, report: { ...issued, ref: differentRef },
+  } }), {}, 'Matching report bytes cannot replace the exact selected report version');
   const action = { command: 'cosmos', args: ['experience', f.root] };
   for (const response of [created, await cli(['resume', f.root]), await cli(['status', f.root])]) {
     assert.deepEqual(JSON.parse(response.chunks.at(-1)!).nextAction, action);

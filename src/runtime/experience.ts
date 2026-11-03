@@ -173,7 +173,8 @@ export async function freshPlaytestAction(root: string, outcome: string, timing:
   if (outcome !== 'awaiting_user_experience' || !('eligible' in timing) || !timing.eligible || !timing.binding.candidate || !timing.binding.report) return {};
   try {
     const binding = await loadExperienceBinding(root);
-    if (binding.reportSha256 === timing.binding.report.sha256 && !await receipt(root, binding)) return { nextAction: playtestAction(root) };
+    const issued = timing.binding.report;
+    if (sameValue(binding.report, issued.ref) && binding.reportSha256 === issued.sha256 && !await receipt(root, binding)) return { nextAction: playtestAction(root) };
   } catch { /* Preserve the original generation result when the playtest cannot be verified. */ }
   return {};
 }
