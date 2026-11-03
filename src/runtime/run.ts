@@ -224,6 +224,31 @@ export class RunController {
     } catch (error) { await store.close(); throw error; }
   }
 
+  /** A closed funding proof can authorize only zero-attribution accounting, never a dispatch-capable owner. */
+  static async applyPublicFundingChargeResolution(target: import('./public-funding-charge-resolution.ts').ChargeTarget) {
+    const store = await SnapshotStore.acquire(target.runRoot);
+    let registry: import('./recovery/ownership.ts').OwnerLock | undefined, shared: SnapshotStore | undefined;
+    try {
+      const state = await store.read(); validateSnapshot(state);
+      if (state.formatVersion !== 1 || !state.validationFunding || state.validationFunding.fundingId !== target.fundingId
+        || state.validationFunding.sharedRoot !== resolve(target.sharedRoot)) throw new Error('Invalid external funding target.');
+      const { OwnerLock } = await import('./recovery/ownership.ts');
+      const { safePath } = await import('../artifacts/paths.ts');
+      registry = await OwnerLock.acquire(await safePath(store.root, 'registry'), '.commit.lock');
+      await verifyPublicValidationFunding({ root: store.root, snapshot: state, dispatch: false });
+      shared = await SnapshotStore.acquire(state.validationFunding.sharedRoot);
+      const sharedState = await shared.read(); validateSnapshot(sharedState);
+      await (await import('./public-validation-funding.ts')).sharedSources(shared.root, sharedState);
+      const resolution = await (await import('./public-funding-charge-resolution.ts')).verifyChargeResolution(target, store, shared, true);
+      if (!resolution.closed) {
+        const owner = new RunController(store, state, Date.now);
+        await owner.stop('Accounting-only reconciliation after original signed cleanup.');
+        await owner.settle(resolution.requestId, 0, [resolution.reference]);
+      }
+    } finally { await shared?.close(); await registry?.close(); await store.close(); }
+    return (await import('./public-validation-funding.ts')).settlePublicValidationFunding(target);
+  }
+
   static async open(options: OpenRunOptions): Promise<RunController> {
     const store = await SnapshotStore.acquire(options.root);
     try {
