@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-11-03 [COS172 / #173](https://github.com/lrfluobida/Cosmos/issues/173) 已登记。最终源码经独审及 Root 批准，待离线集成。普通游戏打包器在封存新候选前，从本次运行已核实的原始确认来源读取主观体验条目，按原顺序写入包内 README.zh-CN.md。玩家可在已交付目录中查看本版的编号、描述、试玩步骤及期望表现。 [规格](cos172-portable-playtest-guide.md)
+
 2026-11-03 [COS171 / #172](https://github.com/lrfluobida/Cosmos/issues/172) 已登记。最终源码经独审及 Root 批准，待离线集成。玩家可在 `experience` 输入 `changes`，选择当前交付已确认的一项主观体验要求，或输入 0 表示整体体验。输入一条有长度限制、非空的单行实际表现后，先显示将记录的意见，只有再明确输入 `reject` 才保存。 [规格](cos171-bound-player-observation.md)
 
 2026-11-03 [COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已在 `codex/gameplay-offline` 离线源码范围完成。`portable_play_reviewer` 独立审查 `dc62ab464066ff937e3f87e15340a0e0d795831f`，Root 放行后由唯一 merger 集成到 `282e271afebba230f82a6301b565c46ecacfec3a`。可信打包器在封存前向新游戏目录写入 `Play.cmd` 和启动说明。Windows 玩家在安装 Node 22 后可以双击启动本地只读服务，服务绑定端口后才向系统传递本次实际 URL。桌面打开失败时仍可手动访问。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/171#issuecomment-6603413798)
@@ -2454,6 +2456,18 @@ GitHub ID `6182088095`，原生父 COS18/#19、[x]，直接依赖 COS-65/#66。[
 批准规格原稿 SHA256 为 `ef68c2fe7e6dbba94810fcfdb4b94a556b1da25edba81d8a99b156ff5d9c5a8e`。
 
 GitHub ID `6182828041`，原生父任务 [ ]，实现状态 `source-approved-awaiting-integration`。[正式规格](cos171-bound-player-observation.md)
+
+### COS-172 · 独立交付包附上本版试玩清单
+
+[COS172 / #173](https://github.com/lrfluobida/Cosmos/issues/173) 已登记。最终源码经独审及 Root 批准，待离线集成。普通游戏打包器在封存新候选前，从本次运行已核实的原始确认来源读取主观体验条目，按原顺序写入包内 README.zh-CN.md。玩家可在已交付目录中查看本版的编号、描述、试玩步骤及期望表现。
+
+清单关联运行和候选版本，只展示所需条目。空清单给出整体体验指引。描述中的中文、换行和 Markdown 特殊符号按文字呈现，不能变成意外链接或指令。清单本身不写入玩家决定。
+
+TEMP 中使用真实打包和宿主路径，比对确认需求、封存候选及评审副本里的说明，并检查既有双击和手动启动方式。验证材料使用合成需求。 原生父任务为 COS18/#19，直接依赖 [COS-170 / #171](https://github.com/lrfluobida/Cosmos/issues/171)、[COS-111 / #112](https://github.com/lrfluobida/Cosmos/issues/112)。实现者 `portable_checklist_implementer`，独审 `portable_checklist_reviewer`，唯一 merger `planning_budget_merger` 集成到 `codex/gameplay-offline`。
+
+批准规格原稿 SHA256 为 `e00eb425d04ad6941b478c2a7d9f1e2dde4d00c17ce575ca7ab15b359d265b37`。
+
+GitHub ID `6182891998`，原生父任务 [ ]，实现状态 `source-approved-awaiting-integration`。[正式规格](cos172-portable-playtest-guide.md)
 
 ## 5. 任务与上下文包模板
 

@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-11-03 [COS172 / #173](https://github.com/lrfluobida/Cosmos/issues/173) 已登记。最终源码经独审及 Root 批准，待离线集成。普通游戏打包器在封存新候选前，从本次运行已核实的原始确认来源读取主观体验条目，按原顺序写入包内 README.zh-CN.md。玩家可在已交付目录中查看本版的编号、描述、试玩步骤及期望表现。 [规格](docs/specs/cos172-portable-playtest-guide.md)
+
 2026-11-03 [COS171 / #172](https://github.com/lrfluobida/Cosmos/issues/172) 已登记。最终源码经独审及 Root 批准，待离线集成。玩家可在 `experience` 输入 `changes`，选择当前交付已确认的一项主观体验要求，或输入 0 表示整体体验。输入一条有长度限制、非空的单行实际表现后，先显示将记录的意见，只有再明确输入 `reject` 才保存。 [规格](docs/specs/cos171-bound-player-observation.md)
 
 2026-11-03 [COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已在 `codex/gameplay-offline` 离线源码范围完成。`portable_play_reviewer` 独立审查 `dc62ab464066ff937e3f87e15340a0e0d795831f`，Root 放行后由唯一 merger 集成到 `282e271afebba230f82a6301b565c46ecacfec3a`。可信打包器在封存前向新游戏目录写入 `Play.cmd` 和启动说明。Windows 玩家在安装 Node 22 后可以双击启动本地只读服务，服务绑定端口后才向系统传递本次实际 URL。桌面打开失败时仍可手动访问。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/171#issuecomment-6603413798)

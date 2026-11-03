@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 65,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171"],
+      "verifiedNativeSubIssues": 66,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172"],
       "verifiedCompletedSubIssues": 62,
       "dependsOn": [
         {
@@ -13309,9 +13309,61 @@
       "verifiedParentCompletedSubIssues": 62,
       "sourceReviewedCommit": "dc147da98a642e7ce4e16b89f6c96fe8e0d14d10",
       "rootSourceIntegrationApproved": true
+    },
+    {
+      "taskId": "COS-172",
+      "title": "独立交付包附上本版试玩清单",
+      "number": 173,
+      "id": 6182891998,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/173",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-172 · 独立交付包附上本版试玩清单](https://github.com/lrfluobida/Cosmos/issues/173)",
+      "dependsOn": [
+        "COS-170",
+        "COS-111"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-170",
+          "number": 171,
+          "id": 6182088095,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/171"
+        },
+        {
+          "taskId": "COS-111",
+          "number": 112,
+          "id": 5947315778,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/112"
+        }
+      ],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-approved-awaiting-integration",
+      "implementationPhase": "awaiting-offline-integration",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "integrationBranch": "codex/gameplay-offline",
+      "implementationBaseCommit": "4a544076947468661b38efc7f254144cd145c5bd",
+      "formalSpecPath": "docs/specs/cos172-portable-playtest-guide.md",
+      "approvedSpecSha256": "e00eb425d04ad6941b478c2a7d9f1e2dde4d00c17ce575ca7ab15b359d265b37",
+      "rootImplementationApproved": true,
+      "designReviewStatus": "APPROVED_DESIGN",
+      "designReviewer": "portable_checklist_reviewer",
+      "implementer": "portable_checklist_implementer",
+      "reviewer": "portable_checklist_reviewer",
+      "merger": "planning_budget_merger",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 66,
+      "verifiedParentCompletedSubIssues": 62,
+      "sourceReviewedCommit": "f8fe82cf8e8ee65dad0fff5aae2351c8bc73935c",
+      "rootSourceIntegrationApproved": true
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 171,
+  "totalTaskCount": 172,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
