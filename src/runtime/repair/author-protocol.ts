@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
-import { requireBudgetFinalizationSource } from '../../providers/pi.ts';
+import { PiSessionError, requireBudgetFinalizationSource } from '../../providers/pi.ts';
 import type { PiBudgetFinalizationSource } from '../../providers/pi.ts';
 import type { AuthorRole, CreatedRole } from '../../roles/factory.ts';
 import { sameValue } from '../../contracts/validation.ts';
@@ -78,7 +78,8 @@ export async function requestAuthorProposal<T extends AuthorProposal>(options: {
   try { original = await options.author.prompt('Execute this scoped task and return the required JSON proposal.', { signal: options.signal }); }
   catch (error) {
     options.signal.throwIfAborted();
-    if (options.ordinaryDesignFinalizationPolicy === 'budget-followup/1' && options.role === 'design' && !options.validation
+    if (error instanceof PiSessionError && (error.code === 'author_output_budget' || error.code === 'author_review_reserve')
+      && options.ordinaryDesignFinalizationPolicy === 'budget-followup/1' && options.role === 'design' && !options.validation
       && options.maxCorrections === 1 && options.journal && options.author.finalizeBudget) unsent = await options.author.budgetFinalization?.(error) ?? null;
     if (!unsent) throw error;
     rejected = error;
