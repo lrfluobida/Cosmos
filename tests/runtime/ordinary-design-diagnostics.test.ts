@@ -10,7 +10,7 @@ import { validateOrdinaryAcceptancePlan } from '../../src/runtime/entrypoint-acc
 import { withHostStages } from '../../src/roles/requirements.ts';
 
 const file = 'authors/design/acceptance-plan.json';
-async function fixture(t: test.TestContext) {
+async function fixture(t: test.TestContext, repairAcceptanceIds = false) {
   const workspace = await mkdtemp(join(tmpdir(), 'cos145-diagnostics-'));
   t.after(() => removeOwned(tmpdir(), workspace));
   await mkdir(join(workspace, 'authors/design'), { recursive: true });
@@ -24,7 +24,7 @@ async function fixture(t: test.TestContext) {
   const plan: any = { formatVersion: 'ordinary-acceptance-plan/1', requirement, scenario: { viewport: { width: 1280, height: 720 }, steps, reopen: { checkpoint, steps: structuredClone(steps) } } };
   await writeFile(join(workspace, 'authors/design/design.json'), JSON.stringify({ summary: '原创鼠标游戏', implementationNotes: ['点击后显示结果'], acceptanceMapping: { light: '完成' },
     experienceMapping: { readable: '状态清楚' }, characters: [{ id: 'target', purpose: '目标', states: ['idle'] }], audio: [] }), 'utf8');
-  const check = createGameDesignCheck({ workspace, gameplayIds: ['light'], ordinary: { draft, requirement }, guard: async () => {} });
+  const check = createGameDesignCheck({ workspace, gameplayIds: ['light'], ordinary: { draft, requirement }, repairAcceptanceIds, guard: async () => {} });
   const put = async (value: unknown) => { await writeFile(join(workspace, file), JSON.stringify(value), 'utf8'); };
   const automatic = () => check.afterFileWrite(new AbortController().signal);
   const explicit = async () => {
@@ -33,8 +33,41 @@ async function fixture(t: test.TestContext) {
     if (block.type !== 'text') throw new Error('Expected text');
     return JSON.parse(block.text) as { passed: boolean; errors: { path: string; message: string }[] };
   };
-  return { workspace, draft, plan, put, automatic, explicit };
+  return { workspace, draft, plan, put, automatic, explicit, check };
 }
+
+test('COS163 author feedback distinguishes experience IDs on assertions including debug observations', async t => {
+  const f = await fixture(t, true), bad = structuredClone(f.plan);
+  bad.scenario.steps[1].acceptanceId = 'readable';
+  bad.scenario.reopen.steps[2] = { ...bad.scenario.reopen.steps[2], kind: 'wait-for', observation: { kind: 'debug', path: ['audio'] }, acceptanceId: 'readable' };
+  await f.put(f.plan);
+  const original = await readFile(join(f.workspace, file));
+  await assert.rejects(f.check.beforeFileWrite(join(f.workspace, file), Buffer.from(JSON.stringify(bad)), new AbortController().signal), /current draft preserved[\s\S]*experienceMapping/);
+  assert.deepEqual(await readFile(join(f.workspace, file)), original);
+  await f.put(bad);
+  const explicit = await f.explicit(); assert.equal(explicit.passed, false);
+  for (const content of [await f.automatic(), explicit.errors.map(x => x.message).join('\n')]) {
+    for (const fragment of ['scenario.steps[1]', 'scenario.reopen.steps[2]', 'save-0', 'save-1', 'readable', 'light', 'debug', 'experienceMapping', 'human']) assert.ok(content.includes(fragment), fragment);
+    assert.doesNotMatch(content, /COSMOS-DESIGN/);
+  }
+  assert.ok((await f.automatic()).length <= 4096);
+});
+
+test('COS163 bounded write feedback retains the strict error and repair targets from both stages amid other defects', async t => {
+  const f = await fixture(t, true), bad = structuredClone(f.plan);
+  const noisySteps = Array.from({ length: 8 }, (_, i) => ({ ...bad.scenario.steps[0], id: `noisy-${i}`, [`obsolete${i}`]: true }));
+  bad.scenario.steps = [...noisySteps, { ...bad.scenario.steps[1], id: 'main-target', acceptanceId: 'readable' }];
+  bad.scenario.reopen.steps[2] = { ...bad.scenario.reopen.steps[2], id: 'reopen-target', acceptanceId: 'readable' };
+  const checkFeedback = (message: string) => {
+    for (const fragment of ['obsolete0', 'main-target', 'reopen-target', 'readable', 'experienceMapping', 'light']) assert.ok(message.includes(fragment), fragment);
+    assert.ok(message.length <= 4096);
+  };
+  await f.put(f.plan);
+  await assert.rejects(f.check.beforeFileWrite(join(f.workspace, file), Buffer.from(JSON.stringify(bad)), new AbortController().signal),
+    (error: Error) => { checkFeedback(error.message); return true; });
+  await f.put(bad);
+  checkFeedback(await f.automatic());
+});
 
 test('COS145 checkpoint failure preserves strict error and collects both stage diagnostics without changing files', async t => {
   const f = await fixture(t), bad = structuredClone(f.plan);

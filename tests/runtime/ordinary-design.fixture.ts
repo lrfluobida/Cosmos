@@ -20,7 +20,7 @@ import type { RoleSession } from '../../src/roles/factory.ts';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 
 export async function ordinaryHostFixture(t: TestContext, options: { modular?: boolean; fault?: string; persistent?: boolean; classic?: boolean; renderFrames?: boolean; pause?: boolean; productionDefault?: boolean;
-  frozenPlanAuthoringPolicy?: 'structured-plan/1' | 'structured-design-plan/1';
+  frozenPlanAuthoringPolicy?: 'structured-plan/1' | 'structured-design-plan/1' | 'structured-design-plan/2';
   revisionPolicy?: boolean | 'independent-review/1' | 'independent-review/2';
   mediaPolicy?: 'audio-state/1'; configure?: (draft: OrdinaryGameDraft, scenario: BrowserScenario) => void;
   limits?: Parameters<typeof runProductSession>[0]['limits'];

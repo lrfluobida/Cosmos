@@ -25,6 +25,34 @@ async function fixture(t: test.TestContext, guard: (signal: AbortSignal) => Prom
   return { workspace, host, invoke, put, read, feedback: () => feedback };
 }
 
+test('COS163 corrections repair only explicit invalid assertion IDs atomically within the selected stage', async t => {
+  const f = await fixture(t), value: any = envelope();
+  const step = { id: 'fix', kind: 'assert', acceptanceId: 'readable', expected: true };
+  value.scenario.steps.push(step, { ...step, id: 'good', acceptanceId: 'light' }, { ...step, id: 'again' }, { ...step, id: 'again' });
+  value.scenario.reopen = { checkpoint, steps: [{ ...step, kind: 'wait-for' }, { ...step, id: 'other' }] };
+  await f.put(JSON.stringify(value));
+  const original = await f.read(), ids = ['light', 'second'];
+  const writer = await createGamePlanWriter({ workspace: f.workspace, requirement, repairGameplayIds: ids,
+    guard: async () => {}, afterFileWrite: async () => 'advisory' });
+  ids.push('foreign');
+  const correction = { stepId: 'fix', from: 'readable', to: 'light' };
+  const args = { operation: 'repair-acceptance-ids', stage: 'main', corrections: [correction] };
+  const invoke = (supplied: any) => writer.tool.execute('repair', supplied, undefined, undefined, undefined as any);
+  await assert.rejects(f.invoke(args), /unknown/i);
+  for (const invalid of [
+    { ...args, stage: 'both' }, { ...args, checkpoint }, { ...args, corrections: [] }, { ...args, corrections: Array(17).fill(correction) },
+    ...[{ stepId: 'other' }, { stepId: 'again' }, { stepId: 'click' }, { stepId: 'good', from: 'light', to: 'second' },
+      { stepId: 'good', from: 'stale' }, { to: 'foreign' }, { script: 'x' }, {}].map(extra =>
+      ({ ...args, corrections: [correction, { ...correction, ...extra }] })),
+    { ...args, corrections: [{ ...correction, from: 'stale' }] }, { ...args, corrections: [{ ...correction, to: 'readable' }] },
+    { ...args, corrections: [{ ...correction, to: 'foreign' }] }, { ...args, corrections: [{ ...correction, from: null }] },
+    { ...args, corrections: [{ ...correction, extra: true }] },
+  ]) { await assert.rejects(invoke(invalid)); assert.deepEqual(await f.read(), original); }
+  await invoke({ ...args, stage: 'reopen', corrections: [correction, { ...correction, stepId: 'other', to: 'second' }] });
+  value.scenario.reopen.steps[0].acceptanceId = 'light'; value.scenario.reopen.steps[1].acceptanceId = 'second';
+  assert.deepEqual(JSON.parse((await f.read()).toString('utf8')), value);
+});
+
 test('tool owns only a fixed path and preserves BOM/newlines, parsed values and large complete drafts', async t => {
   const f = await fixture(t), value: any = envelope();
   value.scenario.steps[0].selector = '#中文 "引号"\n下一行';
