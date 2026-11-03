@@ -69,7 +69,7 @@ test('typed admission rejection preserves its safe reason and charges without re
   assert.doesNotMatch(JSON.stringify(feedback), /SECRET_RAW_ADMISSION_ERROR|declares unresolved/);
   const untyped = buildRepairFeedback(f.task, { code: 'admission_rejected', message: 'SECRET_RAW_ADMISSION_ERROR' }, 'author_handoff', f.snapshot);
   assert.equal(untyped.issues[0].checkId, 'author_handoff');
-  assert.equal(untyped.issues[0].actual, 'Author handoff declares unresolved assigned work or uncertainty.');
+  assert.equal(untyped.issues[0].actual, 'Author handoff did not complete.');
   assert.doesNotMatch(JSON.stringify(untyped), /SECRET_RAW_ADMISSION_ERROR/);
 });
 

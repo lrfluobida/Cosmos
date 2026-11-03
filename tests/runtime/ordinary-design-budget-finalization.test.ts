@@ -104,6 +104,33 @@ async function nativeHost(t: test.TestContext, mode = 'approved', revisionPolicy
     resume: async () => f.host.execute({ root: f.root, draft: f.draft, requirement: JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8')).requirement, resume: true }) };
 }
 
+test('admitted design transport failure reaches durable feedback with its unknown reservation', async t => {
+  const transport = t.mock.method(globalThis, 'fetch', async () => { throw new Error('RAW_TRANSPORT_SENTINEL'); });
+  const f = await ordinaryHostFixture(t, { productionDefault: true, limits: { limitMicroCny: 5000000, durationMs: 1800000 },
+    sessionFactory: async (config, fallback) => JSON.parse(config.context).role === 'design'
+      ? createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-design' } }) : fallback });
+  await f.execute();
+  const state = await readRunSnapshot(f.root);
+  assert.equal(state.formatVersion, 1);
+  const design = state.tasks.find(task => task.taskId === 'design-task')!;
+  const attempt = design.attempts[0];
+  const feedback = JSON.parse(await readFile(join(attempt.sessionRef, 'failure.json'), 'utf8'));
+  assert.equal(transport.mock.callCount(), 1);
+  const entries = state.ledger.entries.filter(entry => entry.taskId === design.taskId);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].status, 'unknown');
+  assert.ok(entries[0].reservedMicroCny > 0);
+  assert.deepEqual(feedback.charges, [{ requestId: entries[0].requestId, status: 'unknown', reservedMicroCny: entries[0].reservedMicroCny, settledMicroCny: entries[0].settledMicroCny }]);
+  assert.equal(design.review.verdict, 'pending');
+  assert.deepEqual(design.artifacts, []);
+  for (const receipt of ['author', 'author-correction-started', 'capture']) {
+    await assert.rejects(readFile(join(f.root, 'journal/task-design-task', receipt + '.json')), { code: 'ENOENT' });
+  }
+  assert.equal(feedback.issues[0].checkId, 'provider_error');
+  assert.equal(attempt.failure?.classification, 'external_service');
+  assert.doesNotMatch(JSON.stringify([feedback, attempt.failure]), /declares unresolved|RAW_TRANSPORT_SENTINEL/);
+});
+
 test('COS136 F5 F6 budget followup uses shared receipts and actual capture host check and independent review', async t => {
   const f = await nativeHost(t); await f.execute(); const state = await f.state(), design = state.tasks.find((row: any) => row.taskId === 'design-task');
   t.diagnostic(JSON.stringify({ sent: f.dispatched, selected: f.selections.map(r => ({ bytes: r.inputBytes, cap: r.maxOutputTokens })), state: design.state, failure: design.attempts[0].failure }));
@@ -143,7 +170,10 @@ for (const mode of ['remaining', 'invalid', 'host-failed', 'review']) test('COS1
   assert.equal(start.kind, 'budget_finalization'); assert.equal(start.used, 1);
   assert.equal(f.packets.filter((row: any) => row.role === 'art' || row.role === 'coding').length, 0);
   assert.equal(f.plays.length, 0);
-  if (mode === 'remaining') assert.ok(design.handoff.remaining.includes('Unverified coverage remains.'));
+  if (mode === 'remaining') {
+    assert.ok(design.handoff.remaining.includes('Unverified coverage remains.'));
+    assert.equal(design.attempts[0].failure.actual, 'Author handoff declares unresolved assigned work or uncertainty.');
+  }
   if (mode === 'invalid') assert.match(design.attempts[0].failure.actual, /protocol_failure/);
   if (mode === 'review') assert.equal(design.review.verdict, 'changes_requested');
   if (mode === 'host-failed') assert.equal(JSON.parse(f.guards[0].content[0].text).passed, false);

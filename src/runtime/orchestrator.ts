@@ -17,7 +17,7 @@ import { codingConcernPacket, codingConcernReviewProtocol, parseCodingConcernRev
 import type { CodingConcernReview, ReviewProposal } from './repair/coding-concerns.ts';
 import { designConcernPacket, designConcernReviewProtocol, designOriginPolicy, designReviewedHandoff, isOrdinaryDesignRevisionPolicy, parseDesignConcernReview, requireDesignHostEvidence } from './repair/design-concerns.ts';
 import type { DesignConcernReview, DesignReviewProposal, OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
-import { buildRepairFeedback, failureRecord } from './repair/feedback.ts';
+import { buildRepairFeedback, failureRecord, UnresolvedAuthorHandoff } from './repair/feedback.ts';
 import type { FailureStage, HostFailure } from './repair/feedback.ts';
 import { TaskJournal, RecoveryBlocked, hasHostRecord, requireOriginalTask, requireCorrectionIdentity } from './recovery/task-journal.ts';
 import type { CapturedTask, ContentSignature, RecoveryOptions, RecoveryReport } from './recovery/task-journal.ts';
@@ -459,7 +459,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       signal.throwIfAborted();
       if (!task.artifacts.length) throw new Error('Host capture returned no versioned output artifacts.');
       failureStage = 'author_handoff';
-      if (!designConcerns && (proposal.remaining.length || proposal.uncertainty.length && !codingConcerns)) throw new Error('Author handoff still has unresolved assigned work or uncertainty.');
+      if (!designConcerns && (proposal.remaining.length || proposal.uncertainty.length && !codingConcerns)) throw new UnresolvedAuthorHandoff('Author handoff still has unresolved assigned work or uncertainty.');
       failureStage = 'host_verification';
       if (codingConcerns) await requireCodingPhase(task);
       const verified = continuing ? await journal!.read<{ evidence: EvidenceContract[]; signature: ContentSignature }>('verified', attemptId) : null;

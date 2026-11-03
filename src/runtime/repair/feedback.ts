@@ -10,6 +10,7 @@ export interface HostIssue extends FailureRecord { acceptanceId: string; checkId
  * may still fail other steps; this witness never becomes completion evidence. */
 export interface HostPassedCheck { acceptanceId: string; checkId: string; evidenceId: string }
 export type FailureStage = 'execution' | 'author_handoff' | 'host_verification' | 'independent_review';
+export class UnresolvedAuthorHandoff extends Error {}
 export interface RepairFeedback {
   formatVersion: 1;
   reference: ArtifactReference;
@@ -98,7 +99,8 @@ export function buildRepairFeedback(task: TaskContract, error: unknown, stage: F
     : incomplete ? 'Provider output reached its token limit; the response is incomplete and partial tool calls were not executed.'
     : admission ? 'Request admission was rejected (admission_rejected); this request was not sent to the provider.'
     : service ? 'Provider request failed or requires reconciliation.'
-    : stage === 'author_handoff' ? 'Author handoff declares unresolved assigned work or uncertainty.'
+    : stage === 'author_handoff' && error instanceof UnresolvedAuthorHandoff ? 'Author handoff declares unresolved assigned work or uncertainty.'
+    : stage === 'author_handoff' ? 'Author handoff did not complete.'
     : stage === 'independent_review' && task.review.verdict === 'changes_requested' ? 'Independent review requested changes; host diagnosis is required.'
     : stage === 'independent_review' ? 'No valid independent review proposal for the fixed inputs and host evidence.'
     : 'Host execution did not establish passing evidence.';
