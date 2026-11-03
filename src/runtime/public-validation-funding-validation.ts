@@ -111,7 +111,7 @@ export function validatePublicValidationFundings(state: RunSnapshot): void {
     || state.validationFunding !== undefined || !['3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion)) throw new Error('Invalid shared public funding profile.');
   const names = new Set<string>(), roots = new Set<string>(), requests = new Set<string>();
   for (const record of records) {
-    fundingFields(record, ['binding', 'taskId', 'claimedAt', 'basisRevision', ...(record.phaseDecisionId !== undefined ? ['phaseDecisionId'] : []), ...(record.settlement ? ['settlement'] : [])]);
+    fundingFields(record, ['binding', 'taskId', 'claimedAt', 'basisRevision', ...(record.phaseDecisionId !== undefined ? ['phaseDecisionId'] : []), ...(record.chargeClaimSha256 !== undefined ? ['chargeClaimSha256'] : []), ...(record.settlement ? ['settlement'] : [])]);
     validateFundingBinding(record.binding); fundingTime(record.claimedAt);
     const b = record.binding;
     if (names.has(b.fundingId) || roots.has(b.runRoot.toLowerCase()) || record.taskId !== fundingTaskId(b.fundingId)
@@ -123,6 +123,8 @@ export function validatePublicValidationFundings(state: RunSnapshot): void {
     names.add(b.fundingId); roots.add(b.runRoot.toLowerCase());
     const matches = state.events.filter(event => event.type === 'public_funding_reserved' && event.reason === b.fundingId);
     if (matches.length !== 1 || matches[0].at !== record.claimedAt || matches[0].requestId !== null) throw new Error('Missing public funding reservation event.');
+    const claims = state.events.filter(e => e.type === 'public_funding_charge_claimed' && e.requestId === null && e.reason === b.fundingId + ':' + record.chargeClaimSha256);
+    if (record.chargeClaimSha256 !== undefined) { digest(record.chargeClaimSha256); if (claims.length !== 1) throw new Error('Funding evidence claim has no unique shared anchor.'); }
     const settled = record.settlement;
     if (!settled) {
       if (state.ledger.entries.some(entry => entry.taskId === record.taskId) || state.ledger.allocationClosures?.some(row => row.taskId === record.taskId)) throw new Error('Open public funding cannot release or import costs.');
@@ -157,7 +159,8 @@ export function validatePublicValidationFundings(state: RunSnapshot): void {
     if (events.length !== 1 || events[0].at !== settled.settledAt || events[0].requestId !== null) throw new Error('Missing public funding settlement event.');
   }
   for (const row of state.requests.filter(row => row.publicFunding)) if (!requests.has(row.requestId)) throw new Error('Unowned public funding request.');
-  if (state.events.filter(event => event.type === 'public_funding_reserved').length !== records.length
+  if (state.events.filter(event => event.type === 'public_funding_charge_claimed').length !== records.filter(row => row.chargeClaimSha256 !== undefined).length
+    || state.events.filter(event => event.type === 'public_funding_reserved').length !== records.length
     || state.events.filter(event => event.type === 'public_funding_settled').length !== records.filter(row => row.settlement).length
     || budgetSummary(state.ledger).committedMicroCny + publicFundingExposure(state).heldMicroCny > publicValidationPhaseLimit(state)) throw new Error('Public funding exceeds the authorized phase or event history.');
 }

@@ -175,6 +175,25 @@ function uniquePartition(groups: BillingBucket[], known: Vector[]) {
   search(0, 0, 0, 0, 0);
   check(matches === 1, 'ambiguous or missing known request partition');
 }
+/** Evaluated only after the success vectors establish their unique partition. Billing instants can be anywhere within each request. */
+export function checkCommonClockWindow(
+  known: { start: number; end: number; bucket: number }[],
+  unknown: { start: number; end: number },
+  from: number,
+  to: number
+) {
+  const lower = Math.max(...known.map((r) => r.bucket - r.end));
+  const upper = Math.min(...known.map((r) => r.bucket + billingHour - r.start)); // Exclusive.
+  check(
+    Number.isFinite(lower) &&
+      Number.isFinite(upper) &&
+      lower < upper &&
+      unknown.start + lower >= from &&
+      unknown.end + upper <= to,
+    'compatible clock offset can place the unresolved request outside the approved interval'
+  );
+  return { kind: 'inferred_common_offset' as const, lowerInclusiveMs: lower, upperExclusiveMs: upper };
+}
 async function collectBilling(root: string, requested: Set<string>) {
   const seen = new Map<string, string>();
   let visited = 0;
@@ -278,6 +297,8 @@ async function evaluate(target: ChargeTarget, state: RunSnapshot) {
     vectors: Vector[] = [];
   const locations = await collectBilling(root, new Set(records.map((r) => r.requestId)));
   check(e.known.length === records.length - 1, 'known baseline incomplete');
+  const times: { start: number; end: number; bucket: number }[] = [];
+  let unknownTime: { start: number; end: number } | undefined;
   for (const row of records) {
     const ref = row.evidence.filter((r) => r.artifactId === 'billing-' + row.requestId && r.version === 'v1');
     const loc = locations.get(row.requestId)!;
@@ -317,7 +338,13 @@ async function evaluate(target: ChargeTarget, state: RunSnapshot) {
         Date.parse(at) + Math.ceil(b.elapsedMs) + skew < Date.parse(t.buckets[index].startAt) + billingHour,
       'request crosses an unresolved billing boundary'
     );
+    const interval = {
+      start: Date.parse(at),
+      end: Date.parse(at) + Math.ceil(b.elapsedMs),
+      bucket: Date.parse(t.buckets[index].startAt),
+    };
     if (row === entry) {
+      unknownTime = interval;
       check(
         fundingHash(bytes) === e.billingSha256 &&
           b.outcome === 'unknown' &&
@@ -351,6 +378,7 @@ async function evaluate(target: ChargeTarget, state: RunSnapshot) {
     );
     const v = { miss: b.usage.input, hit: b.usage.cacheRead, output: b.usage.output };
     check(b.usage.totalTokens === v.miss + v.hit + v.output, 'known token total differs');
+    times.push(interval);
     vectors.push(v);
     const s = local[index];
     s.count++;
@@ -362,7 +390,14 @@ async function evaluate(target: ChargeTarget, state: RunSnapshot) {
     t.buckets.every((b, i) => Object.entries(local[i]).every(([k, v]) => b[k as keyof BillingBucket] === v)),
     'nonzero per-bucket residual'
   );
-  if (e.clockUncertaintyMs === null) uniquePartition(t.buckets, vectors);
+  let clockBasis;
+  if (e.clockUncertaintyMs === null) {
+    uniquePartition(t.buckets, vectors);
+    check(unknownTime, 'missing unresolved interval');
+    clockBasis = checkCommonClockWindow(times, unknownTime, Date.parse(e.startAt), Date.parse(e.endAt));
+  } else {
+    clockBasis = { kind: 'attested_clock_bound' as const, uncertaintyMs: e.clockUncertaintyMs };
+  }
   const hash = fundingHash(doc);
   for (const [file, key] of [
     ['operator-facts', 'operatorFactsSha256'],
@@ -390,9 +425,14 @@ async function evaluate(target: ChargeTarget, state: RunSnapshot) {
       snapshotSha256: completion.snapshotSha256,
     },
     originalOutcome: 'unknown',
+    originalStopReason: 'error',
+    dispatched: true,
+    responseId: null,
+    attribution: 'derived_financial_attribution',
     tokens: null,
     attributedMicroCny: 0,
     buckets: t.buckets,
+    clockBasis,
     reviewDueAt: e.reviewDueAt,
   };
   const actual = state.ledger.entries.find((row) => row.requestId === entry.requestId)!;
@@ -404,7 +444,7 @@ async function evaluate(target: ChargeTarget, state: RunSnapshot) {
       !!state.stopReason &&
         fixed.length === 1 &&
         digest(fixed[0].version) &&
-        fixed[0].location === join(root,supplement(entry.requestId)),
+        fixed[0].location === join(root, supplement(entry.requestId)),
       'settled charge lacks exact supplemental reference'
     );
     settleEntry(projected.entries.find((row) => row.requestId === entry.requestId)!, 0, fixed);
@@ -426,10 +466,43 @@ async function evaluate(target: ChargeTarget, state: RunSnapshot) {
     scope: t.buckets.map((b) => fundingHash(JSON.stringify([e.accountSha256, e.model, b.startAt]))),
   };
 }
+export async function requireMatchingResolutionClaim(
+  root: string,
+  fundingId: string,
+  anchor: string | undefined,
+  expected?: unknown
+) {
+  check((anchor === undefined) === (expected === undefined), 'external resolution missing for anchored funding');
+  check(sameValue(await getClaim(root, fundingId), expected ?? null), 'unmatched external accounting claim');
+}
 async function requireExclusiveBuckets(target: ChargeTarget, scope: string[], shared: RunSnapshot) {
   for (const record of shared.publicValidationFundings ?? []) {
     if (record.binding.fundingId === target.fundingId) continue;
     const other = await getClaim(target.sharedRoot, record.binding.fundingId);
+    if (record.chargeClaimSha256)
+      check(
+        other &&
+          fundingHash(await boundedFile(target.sharedRoot, claimPath(record.binding.fundingId))) ===
+            record.chargeClaimSha256,
+        'another pending or settled claim is missing or altered'
+      );
+    if (record.settlement?.requests.some((r) => r.entry.evidence.some((ref) => ref.artifactId === resolutionId))) {
+      const archiveBytes = await regularFile(target.sharedRoot, record.settlement.source.location);
+      check(fundingHash(archiveBytes) === record.settlement.sourceSha256, 'prior settlement archive changed');
+      const archive = decode(archiveBytes);
+      check(
+        Array.isArray(archive.externalResolution?.claim?.scope) &&
+          !archive.externalResolution.claim.scope.some((s: string) => scope.includes(s)),
+        'archived account/model/hour already claimed'
+      );
+      check(
+        other &&
+          archive.formatVersion === 'public-validation-settlement/2' &&
+          sameValue(archive.externalResolution?.claim, other),
+        'prior resolved scope claim changed'
+      );
+    }
+
     check(
       !other || (Array.isArray(other.scope) && !other.scope.some((s: string) => scope.includes(s))),
       'overlapping account/model/hour already claimed'
@@ -445,6 +518,7 @@ async function approvals(v: Awaited<ReturnType<typeof evaluate>>) {
 }
 export async function previewPublicFundingChargeResolution(target: ChargeTarget) {
   try {
+    fundingFields(target, ['sharedRoot', 'runRoot', 'fundingId']);
     const state = decode(await regularFile(target.runRoot, 'snapshot.json'));
     validateSnapshot(state);
     const funding = await import('./public-validation-funding.ts');
@@ -458,18 +532,46 @@ export async function previewPublicFundingChargeResolution(target: ChargeTarget)
       'funding hold is not bound'
     );
     await requireExclusiveBuckets(target, v.scope, shared);
-    let approvalsReady = false;
+    const approvalBlockers: string[] = [];
+    let trust: Awaited<ReturnType<typeof machineTrust>> | undefined;
     try {
-      const trust = await machineTrust(v.bind.sharedRunId, v.bind.sharedLedgerId);
-      ensureNotFrozen(trust, v.hash, v.e.reviewDueAt, Date.now());
-      checkApprovals(trust, v.e, v.hash, await approvals(v), Date.now());
-      approvalsReady = true;
+      trust = await machineTrust(v.bind.sharedRunId, v.bind.sharedLedgerId);
     } catch {
-      /* Evidence preview grants no authority. */
+      approvalBlockers.push('machine_trust_unavailable_or_unverified');
+    }
+    const signatures = [];
+    for (const name of ['operator', 'reviewer', 'owner']) {
+      try {
+        signatures.push(decode(await boundedFile(v.bind.sharedRoot, v.folder + name + '.json', 4096)));
+      } catch {
+        approvalBlockers.push(name + '_signature_missing_or_invalid');
+      }
+    }
+    if (trust) {
+      try {
+        await ensureNotFrozen(
+          trust,
+          v.hash,
+          v.e.reviewDueAt,
+          Date.now(),
+          v.bind.sharedRoot,
+          v.e.followupOperator,
+          v.e.followupReviewer
+        );
+      } catch {
+        approvalBlockers.push('case_revoked_disputed_or_review_overdue');
+      }
+      if (signatures.length === 3)
+        try {
+          checkApprovals(trust, v.e, v.hash, signatures, Date.now());
+        } catch {
+          approvalBlockers.push('signatures_not_valid_for_current_scope_and_time');
+        }
     }
     return {
       status: 'checked' as const,
-      approvalsReady,
+      approvalsReady: approvalBlockers.length === 0,
+      approvalBlockers,
       receipt: v.receipt,
       expectedSettledMicroCny: v.amount,
       expectedReleasedMicroCny: v.bind.limits.limitMicroCny - v.amount,
@@ -520,17 +622,48 @@ export async function verifyChargeResolution(
     authorizedAt,
     reviewDueAt: v.e.reviewDueAt,
     signatureSha256: fundingHash(contents(signatures)),
+    followupOperator: v.e.followupOperator,
+    followupReviewer: v.e.followupReviewer,
   };
   check(!oldClaim || sameValue(oldClaim, claim), 'conflicting prior intent');
   checkApprovals(trust, v.e, v.hash, signatures, Date.parse(authorizedAt));
-  if (!v.closed) {
+  const record = shared.publicValidationFundings!.find((r) => r.binding.fundingId === target.fundingId)!;
+  if (v.closed) check(record.chargeClaimSha256, 'closed child lacks registered shared accounting intent');
+  if (record.chargeClaimSha256)
+    check(
+      oldClaim &&
+        fundingHash(await boundedFile(target.sharedRoot, claimPath(target.fundingId))) === record.chargeClaimSha256,
+      'original shared claim changed'
+    );
+  if (record.settlement)
+    check(
+      v.closed &&
+        record.settlement.requests.some(
+          (r) =>
+            r.entry.requestId === v.entry.requestId && r.entry.evidence.some((ref) => ref.artifactId === resolutionId)
+        ),
+      'not an exact historical replay'
+    );
+  if (!record.settlement) {
     checkApprovals(trust, v.e, v.hash, signatures, Date.now());
-    ensureNotFrozen(trust, v.hash, v.e.reviewDueAt, Date.now());
+    await ensureNotFrozen(
+      trust,
+      v.hash,
+      v.e.reviewDueAt,
+      Date.now(),
+      v.bind.sharedRoot,
+      v.e.followupOperator,
+      v.e.followupReviewer
+    );
   }
   await requireExclusiveBuckets(target, v.scope, shared);
   const receipt = { ...v.receipt, claimSha256: fundingHash(contents(claim)) };
   const bytes = contents(receipt),
-    reference = { artifactId: resolutionId, version: fundingHash(bytes), location: join(target.runRoot,supplement(v.entry.requestId)) };
+    reference = {
+      artifactId: resolutionId,
+      version: fundingHash(bytes),
+      location: join(target.runRoot, supplement(v.entry.requestId)),
+    };
   const relativeReceipt = supplement(v.entry.requestId);
   const sourcePath = dirname(relativeReceipt).split(sep).join('/') + '/evidence.json';
   const archive = { receipt, evidence: v.doc.toString('utf8'), approvals: signatures, claim };
@@ -547,6 +680,9 @@ export async function verifyChargeResolution(
   }
   if (publish && !v.closed) {
     await writeOnce(target.sharedRoot, claimPath(target.fundingId), contents(claim));
+    await (
+      await import('./public-validation-funding.ts')
+    ).anchorPublicFundingChargeClaim(sharedStore, target.fundingId);
     await writeOnce(target.runRoot, sourcePath, v.doc);
     await writeOnce(target.runRoot, relativeReceipt, bytes);
   } else {
@@ -559,12 +695,37 @@ export async function verifyChargeResolution(
   }
   return { archive, reference, requestId: v.entry.requestId, closed: v.closed };
 }
+// First release can follow a long interrupted child commit. Recheck external policy immediately before import.
+export async function requireCurrentReleaseApproval(
+  binding: NonNullable<RunSnapshot['validationFunding']>,
+  archive: Awaited<ReturnType<typeof verifyChargeResolution>>['archive']
+) {
+  const evidence = JSON.parse(archive.evidence);
+  validateEvidence(evidence);
+  const trust = await machineTrust(binding.sharedRunId, binding.sharedLedgerId),
+    now = Date.now();
+  checkApprovals(trust, evidence, archive.receipt.evidenceSha256, archive.approvals, now);
+  await ensureNotFrozen(
+    trust,
+    archive.receipt.evidenceSha256,
+    evidence.reviewDueAt,
+    now,
+    binding.sharedRoot,
+    evidence.followupOperator,
+    evidence.followupReviewer
+  );
+}
 export async function requireCurrentAccountingReviews(root: string, state: RunSnapshot) {
   for (const r of state.publicValidationFundings ?? []) {
     const claim = await getClaim(root, r.binding.fundingId);
     const resolved = r.settlement?.requests.some((q) =>
       q.entry.evidence.some((ref) => ref.artifactId === resolutionId)
     );
+    if (r.chargeClaimSha256)
+      check(
+        claim && fundingHash(await boundedFile(root, claimPath(r.binding.fundingId))) === r.chargeClaimSha256,
+        'shared accounting claim missing or altered'
+      );
     if (!claim) {
       check(!resolved, 'completed accounting claim missing');
       continue;
@@ -577,7 +738,15 @@ export async function requireCurrentAccountingReviews(root: string, state: RunSn
         'archived accounting claim differs'
       );
     const trust = await machineTrust(r.binding.sharedRunId, r.binding.sharedLedgerId);
-    ensureNotFrozen(trust, claim.evidenceSha256, claim.reviewDueAt, Date.now());
+    await ensureNotFrozen(
+      trust,
+      claim.evidenceSha256,
+      claim.reviewDueAt,
+      Date.now(),
+      root,
+      claim.followupOperator,
+      claim.followupReviewer
+    );
     check(resolved, 'accounting claim awaits shared settlement');
   }
 }

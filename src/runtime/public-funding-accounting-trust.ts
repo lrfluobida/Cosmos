@@ -1,10 +1,49 @@
 import fs from 'node:fs/promises';
 import { execFile } from 'node:child_process';
-import { createPublicKey, verify } from 'node:crypto';
+import { createHash, createPublicKey, verify } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 import { fundingFields, fundingTime } from './public-validation-funding-validation.ts';
 import { safePath, id } from '../artifacts/paths.ts';
 
+interface TrustManifest {
+  formatVersion: 'public-funding-accounting-trust/1';
+  sharedRunId: string;
+  sharedLedgerId: string;
+  principals: { id: string; publicKey: string; roles: string[] }[];
+  revoked: string[];
+  disputed: string[];
+  statements: {
+    evidenceSha256: string;
+    availableAt: string;
+    review?: {
+      outcome: 'matched';
+      reviewedAt: string;
+      statementSha256: string;
+      comparisonSha256: string;
+      operatorSignature: string;
+      reviewerSignature: string;
+    };
+  }[];
+}
+interface SignedApproval {
+  purpose: string;
+  principal: string;
+  approvedAt: string;
+  expiresAt: string;
+  sourceSha256: string;
+  signature: string;
+}
+interface ApprovalScope {
+  fundingId: string;
+  requestId: string;
+  operatorFactsSha256: string;
+  reviewerFactsSha256: string;
+  ownerDecisionSha256: string;
+  targetExport: { cutoffAt: string };
+  allExport: { cutoffAt: string };
+  followupOperator: string;
+  followupReviewer: string;
+}
 export const trustFile =
   process.platform === 'win32'
     ? 'C:/ProgramData/Cosmos/AccountingTrust/trust-v1.json'
@@ -13,7 +52,7 @@ export function requireFact(value: unknown, why: string): asserts value {
   if (!value) throw new Error('Public accounting: ' + why);
 }
 // No environment, caller-supplied key or case-file override. Operators provision this domain out of band.
-export async function machineTrust(sharedRunId: string, sharedLedgerId: string) {
+export async function machineTrust(sharedRunId: string, sharedLedgerId: string): Promise<TrustManifest> {
   const file = resolve(trustFile);
   await safePath(dirname(file));
   const stat = await fs.lstat(file);
@@ -33,7 +72,12 @@ export async function machineTrust(sharedRunId: string, sharedLedgerId: string) 
       execFile(
         'C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
         ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
-        { windowsHide: true, timeout: 10000, maxBuffer: 4096, env: { SystemRoot: 'C:/Windows', PSModulePath: 'C:/Windows/System32/WindowsPowerShell/v1.0/Modules' } },
+        {
+          windowsHide: true,
+          timeout: 10000,
+          maxBuffer: 4096,
+          env: { SystemRoot: 'C:/Windows', PSModulePath: 'C:/Windows/System32/WindowsPowerShell/v1.0/Modules' },
+        },
         (err, stdout) => (err ? reject(err) : accept(stdout))
       )
     );
@@ -87,16 +131,38 @@ export async function machineTrust(sharedRunId: string, sharedLedgerId: string) 
   for (const h of [...t.revoked, ...t.disputed])
     requireFact(typeof h === 'string' && /^[a-f0-9]{64}$/.test(h), 'invalid machine hold');
   for (const s of t.statements) {
-    fundingFields(s, ['evidenceSha256', 'availableAt']);
+    fundingFields(s, ['evidenceSha256', 'availableAt', ...(s.review === undefined ? [] : ['review'])]);
+    if (s.review !== undefined) {
+      fundingFields(s.review, [
+        'outcome',
+        'reviewedAt',
+        'statementSha256',
+        'comparisonSha256',
+        'operatorSignature',
+        'reviewerSignature',
+      ]);
+      fundingTime(s.review.reviewedAt);
+      requireFact(
+        s.review.outcome === 'matched' &&
+          [s.review.statementSha256, s.review.comparisonSha256].every(
+            (h) => typeof h === 'string' && /^[0-9a-f]{64}$/.test(h)
+          ),
+        'invalid statement review'
+      );
+    }
     fundingTime(s.availableAt);
     requireFact(/^[a-f0-9]{64}$/.test(s.evidenceSha256), 'invalid statement notice');
   }
-  return t;
+  requireFact(
+    new Set(t.statements.map((s: { evidenceSha256: string }) => s.evidenceSha256)).size === t.statements.length,
+    'duplicate statement notice'
+  );
+  return t as unknown as TrustManifest;
 }
 export function approvalBytes(
   purpose: string,
   principal: string,
-  e: any,
+  e: Pick<ApprovalScope, 'fundingId' | 'requestId'>,
   sharedRunId: string,
   sharedLedgerId: string,
   evidenceSha256: string,
@@ -123,9 +189,9 @@ export function approvalBytes(
 }
 export function checkApprovals(
   trust: Awaited<ReturnType<typeof machineTrust>>,
-  e: any,
+  e: ApprovalScope,
   hash: string,
-  approvals: any[],
+  approvals: SignedApproval[],
   at: number
 ) {
   requireFact(approvals.length === 3, 'three authenticated approvals required');
@@ -134,7 +200,7 @@ export function checkApprovals(
     fundingFields(a, ['purpose', 'principal', 'approvedAt', 'expiresAt', 'sourceSha256', 'signature']);
     fundingTime(a.approvedAt);
     fundingTime(a.expiresAt);
-    const key = trust.principals.find((p: any) => p.id === a.principal && p.roles.includes(roles[i]));
+    const key = trust.principals.find((p) => p.id === a.principal && p.roles.includes(roles[i]));
     requireFact(
       key &&
         a.purpose === roles[i] &&
@@ -143,6 +209,8 @@ export function checkApprovals(
         Date.parse(a.approvedAt) <= at &&
         at < Date.parse(a.expiresAt) &&
         typeof a.signature === 'string' &&
+        /^[A-Za-z0-9+/]{86}==$/.test(a.signature) &&
+        Buffer.from(a.signature, 'base64').toString('base64') === a.signature &&
         verify(
           null,
           approvalBytes(
@@ -165,29 +233,103 @@ export function checkApprovals(
   requireFact(
     approvals[0].principal !== approvals[1].principal &&
       approvals[2].principal !== approvals[1].principal &&
-      trust.principals.some((p: any) => p.id === e.followupOperator && p.roles.includes('operator')) &&
-      trust.principals.some((p: any) => p.id === e.followupReviewer && p.roles.includes('reviewer')) &&
+      trust.principals.some((p) => p.id === e.followupOperator && p.roles.includes('operator')) &&
+      trust.principals.some((p) => p.id === e.followupReviewer && p.roles.includes('reviewer')) &&
       e.followupOperator !== e.followupReviewer,
     'independent follow-up owners required'
   );
 }
-export function ensureNotFrozen(
+export async function ensureNotFrozen(
   trust: Awaited<ReturnType<typeof machineTrust>>,
   hash: string,
   due: string,
-  at: number
+  at: number,
+  sharedRoot: string,
+  operator: string,
+  reviewer: string
 ) {
   requireFact(
     !trust.revoked.includes(hash) && !trust.disputed.includes(hash),
     'authorization revoked or corrected statement disputed; notify budget owner'
   );
   let deadline = Date.parse(due);
-  for (const s of trust.statements.filter((s: any) => s.evidenceSha256 === hash)) {
+  for (const s of trust.statements.filter((s) => s.evidenceSha256 === hash)) {
     const date = new Date(Date.parse(s.availableAt) + 8 * 3600000);
     do {
       date.setUTCDate(date.getUTCDate() + 1);
     } while ([0, 6].includes(date.getUTCDay()));
     deadline = Math.min(deadline, date.getTime() - 8 * 3600000);
+    if (s.review) {
+      const r = s.review;
+      requireFact(
+        Date.parse(r.reviewedAt) >= Date.parse(s.availableAt) &&
+          Date.parse(r.reviewedAt) < deadline &&
+          Date.parse(r.reviewedAt) <= at,
+        'statement review was not timely'
+      );
+      for (const [name, digest] of [
+        ['statement.bin', r.statementSha256],
+        ['comparison.json', r.comparisonSha256],
+      ] as const) {
+        const path = await safePath(sharedRoot, 'public-funding-accounting/statement-reviews/' + hash + '/' + name);
+        const fh = await fs.open(path, 'r');
+        try {
+          const stat = await fh.stat();
+          requireFact(
+            stat.isFile() && stat.nlink === 1 && stat.size > 0 && stat.size <= 8 * 1024 * 1024,
+            'unsafe reviewed statement source'
+          );
+          const data = Buffer.alloc(stat.size + 1);
+          let pos = 0;
+          while (pos < data.length) {
+            const n = await fh.read(data, pos, data.length - pos, pos);
+            if (!n.bytesRead) break;
+            pos += n.bytesRead;
+          }
+          requireFact(
+            pos === stat.size && createHash('sha256').update(data.subarray(0, pos)).digest('hex') === digest,
+            'statement source changed'
+          );
+        } finally {
+          await fh.close();
+        }
+      }
+      for (const [role, principal, signature] of [
+        ['operator', operator, r.operatorSignature],
+        ['reviewer', reviewer, r.reviewerSignature],
+      ] as const) {
+        const signer = trust.principals.find((p) => p.id === principal && p.roles.includes(role));
+        requireFact(
+          operator !== reviewer &&
+            signer &&
+            typeof signature === 'string' &&
+            /^[A-Za-z0-9+/]{86}==$/.test(signature) &&
+            Buffer.from(signature, 'base64').toString('base64') === signature &&
+            verify(
+              null,
+              Buffer.from(
+                JSON.stringify([
+                  'public-funding-statement-review/1',
+                  role,
+                  principal,
+                  trust.sharedRunId,
+                  trust.sharedLedgerId,
+                  hash,
+                  s.availableAt,
+                  r.reviewedAt,
+                  r.statementSha256,
+                  r.comparisonSha256,
+                  r.outcome,
+                ])
+              ),
+              createPublicKey({ key: Buffer.from(signer.publicKey, 'base64'), format: 'der', type: 'spki' }),
+              Buffer.from(signature, 'base64')
+            ),
+          'statement review lacks independent signatures'
+        );
+      }
+      return;
+    }
   }
   requireFact(
     Number.isFinite(deadline) && at < deadline,

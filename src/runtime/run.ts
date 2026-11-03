@@ -26,7 +26,7 @@ import type { CompletionBinding, ClosedCompletionProof } from './completion-timi
 import { bounded } from '../acceptance/deadline.ts';
 import { associateNativeReadSignal } from '../acceptance/native-validation-waits.ts';
 import { acquirePublicFundingGate, verifyPublicValidationFunding } from './public-validation-funding.ts';
-import { publicFundingExposure } from './public-validation-funding-validation.ts';
+import { publicFundingExposure, fundingFields } from './public-validation-funding-validation.ts';
 import { budgetDigest, budgetJson, revisionPlanReference, verifyOrdinaryDesignRevisionBudget } from './ordinary-design-revision-budget.ts';
 import { createOrdinaryBudgetLifecycle, requireOrdinaryBudgetCapability, verifyOrdinaryBudgetOwnerHistory } from './ordinary-design-revision-lifecycle.ts';
 import type { OrdinaryDesignBudgetLifecycle } from './ordinary-design-revision-lifecycle.ts';
@@ -226,6 +226,8 @@ export class RunController {
 
   /** A closed funding proof can authorize only zero-attribution accounting, never a dispatch-capable owner. */
   static async applyPublicFundingChargeResolution(target: import('./public-funding-charge-resolution.ts').ChargeTarget) {
+    fundingFields(target, ['sharedRoot', 'runRoot', 'fundingId']);
+    await regularFile(target.runRoot, 'snapshot.json'); // Accounting cannot create a new run root.
     const store = await SnapshotStore.acquire(target.runRoot);
     let registry: import('./recovery/ownership.ts').OwnerLock | undefined, shared: SnapshotStore | undefined;
     try {

@@ -113,6 +113,23 @@ async function commitShared(store: SnapshotStore, previous: RunSnapshot, next: R
   await store.write(next);
 }
 
+/** Bind this write-once attribution intent before its child is modified; no fees or grants change. */
+export async function anchorPublicFundingChargeClaim(store: SnapshotStore, fundingId: string) {
+  const previous = await store.read(); validateSnapshot(previous);
+  const record = previous.publicValidationFundings?.find(r => r.binding.fundingId === fundingId);
+  if (!record) throw new Error('Unknown public funding claim.');
+  const hash = fundingHash(await regularFile(store.root, 'public-funding-accounting/claims/'+fundingId+'.json'));
+  if (record.chargeClaimSha256) {
+    if (record.chargeClaimSha256 !== hash) throw new Error('Public funding claim changed after registration.');
+    return;
+  }
+  if(record.settlement) throw new Error('Cannot bind a claim after shared settlement.');
+  const next = structuredClone(previous);
+  next.publicValidationFundings!.find(r => r.binding.fundingId === fundingId)!.chargeClaimSha256 = hash;
+  next.events.push({sequence:next.events.length+1,type:'public_funding_charge_claimed',at:new Date(Date.now()).toISOString(),requestId:null,reason:fundingId+':'+hash});
+  await commitShared(store,previous,next);
+}
+
 /** Whole-run allocation only; no provider request and no old case owner are created. */
 export async function reservePublicValidationFunding(options: { sharedRoot: string; runRoot: string; authorization: ArtifactReference; now?: () => number }): Promise<PublicValidationFundingBinding> {
   const { payload, binding } = await readPublicValidationAuthorization(options.sharedRoot, options.authorization);
@@ -134,12 +151,12 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
     const decisions = await sharedSources(binding.sharedRoot, state);
     if (state.run.runId !== binding.sharedRunId || state.ledger.ledgerId !== binding.sharedLedgerId || state.formatVersion !== 3
       || state.ledger.limitMicroCny !== 150_000_000 || !['3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion)) throw new Error('Public funding requires the original audited shared ledger.');
-    await (await import('./public-funding-charge-resolution.ts')).requireCurrentAccountingReviews(binding.sharedRoot, state);
     const existing = state.publicValidationFundings?.find(row => row.binding.fundingId === binding.fundingId);
     if (existing) {
       if (!sameValue(existing.binding, binding)) throw new Error('Public funding identity conflicts with its source.');
       return structuredClone(existing.binding);
     }
+    await (await import('./public-funding-charge-resolution.ts')).requireCurrentAccountingReviews(binding.sharedRoot, state);
     if (decisions.has(payload.decisionId)) throw new Error('Public funding operator decision cannot authorize another run.');
     requirePhaseFundingAuthorization(state, payload);
     const exposure = publicFundingExposure(state);
@@ -291,7 +308,7 @@ export async function settlePublicValidationFunding(options: { sharedRoot: strin
       const refs = entry.evidence.filter(ref => ref.artifactId === `billing-${entry.requestId}` && ref.version === 'v1');
       if (refs.length !== 1 || !isAbsolute(refs[0].location) || !within(root, refs[0].location)) throw new Error('Public funding billing receipt is missing or outside its run.');
       const checked = await reconcileRoleReceipt({ controller: readonly, requestId: entry.requestId, evidenceDirectory: dirname(refs[0].location) });
-      if (checked.status !== 'already_closed') {
+      if (checked.status !== 'already_closed' || entry.evidence.some(ref => ref.artifactId === 'public-funding-zero-resolution')) {
         const external = await import('./public-funding-charge-resolution.ts');
         if (externalResolution || snapshot.formatVersion !== 1 || !entry.evidence.some(ref => ref.artifactId === external.resolutionId)) throw new Error('Public funding billing receipt is missing or conflicts with the original charge.');
         shared = await SnapshotStore.acquire(binding.sharedRoot);
@@ -305,6 +322,7 @@ export async function settlePublicValidationFunding(options: { sharedRoot: strin
     shared ??= await SnapshotStore.acquire(binding.sharedRoot);
     const previous = await shared.read(); validateSnapshot(previous); await sharedSources(binding.sharedRoot, previous);
     const current = previous.publicValidationFundings!.find(record => record.binding.fundingId === binding.fundingId)!;
+    await (await import('./public-funding-charge-resolution.ts')).requireMatchingResolutionClaim(binding.sharedRoot,binding.fundingId,current.chargeClaimSha256,externalResolution?.archive.claim);
     const requests = snapshot.ledger.entries.map(entry => ({ entry: structuredClone(entry), admittedAt: snapshot.requests.find(row => row.requestId === entry.requestId)!.admittedAt }));
     const evidence = { formatVersion: externalResolution ? 'public-validation-settlement/2' : 'public-validation-settlement/1', ...(externalResolution ? { externalResolution: externalResolution.archive } : {}), binding, snapshotSha256: fundingHash(bytes), snapshot, requests, receipts };
     if (current.settlement) {
@@ -329,6 +347,7 @@ export async function settlePublicValidationFunding(options: { sharedRoot: strin
     }
     record.settlement = settlement;
     next.events.push({ sequence: next.events.length + 1, type: 'public_funding_settled', at: settlement.settledAt, requestId: null, reason: binding.fundingId });
+    if(externalResolution)await (await import('./public-funding-charge-resolution.ts')).requireCurrentReleaseApproval(binding,externalResolution.archive);
     await commitShared(shared, previous, next); return structuredClone(settlement);
   } finally { await shared?.close(); await registry?.close(); await child.close(); }
 }
