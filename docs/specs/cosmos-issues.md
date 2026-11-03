@@ -1,6 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-11-03 [COS163 / #164](https://github.com/lrfluobida/Cosmos/issues/164) 已登记，设计经 `offline_plan_reviewer` 独立审查，Root 已批准 `offline_plan_implementer` 实施。新普通运行在 `structured-design-plan/3` 下为误用体验 ID 的断言提供定位，并允许作者按步骤一次明确修正同一阶段的 1 至 16 个玩法验收 ID。整批失败保留双文件原字节，继续沿用 `/2` 草稿保护。规格与集成仅在 `codex/gameplay-offline` 发布，源码待审。 已核实原生父任务含57项，其中54项已关闭。
+2026-11-03 COS163 的离线源码范围已完成。`offline_plan_reviewer` 已批准最终源码 `7a8b23474a735b5cb62b7a1d3b2369b2d1a5ede5`，P2 已复核关闭。Root 批准将该提交集成到 `codex/gameplay-offline`。 运行时提交 `a86cc321e070664dc1023db14124505ea8f1d41f`。新普通任务及其修订在 `/3` 下可定位断言或等待步骤中误用的体验 ID。作者在同一阶段显式指定 1 至 16 处 `stepId/from/to`，通过整批检查后一次写入，失败保留原稿。 GitHub #164 已关闭，父 #19 保持开放，57 项子任务中 55 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/164#issuecomment-6597169025)
+
+10 个文件与批准版本逐字节一致。离线集成的类型检查、构建通过，3 项代表全部通过且无跳过，覆盖误填体验 ID 的定位、双阶段诊断的大小限制和按步骤原子修正。作者诊断 9/9、原生工具及主机恢复 18/18、strict 编译结果沿用已审证据。 R27 草稿副本经生产工具在 TEMP 中回放，写入反馈和显式检查均定位到五处原步骤。一次修正后深比较仅这五个 `acceptanceId` 改变，设计副本和两份历史原件均保留原字节。随后严格检查仍为 `passed:false`，重开阶段第 0 项匹配观测之前没有普通点击。实际 R27 以服务方错误终止，游戏和体验验收尚未完成。
 
 2026-11-03 [COS161 / #162](https://github.com/lrfluobida/Cosmos/issues/162) 已登记。独立 reviewer design_draft_guard_reviewer 批准 v2，F1–F8 已处理，Root 批准 design_draft_guard_implementer 开始实施。源码待独审及唯一 merger 集成。草稿双文件通过现有结构检查后，raw write/edit、计划 save/append、设计 save/set 的候选也须通过才能写入。尚未完整的初稿可逐步构建，有效修改可继续保存。新 policy `structured-design-plan/2` 按原 fresh 条件冻结，作者及已绑定修订的四种写工具按次序读取当前字节。权限、取消、UTF-8 及链接安全先行，拒绝时保留双文件并返回候选诊断。 本卡挂父 #19，依赖 COS156/#157 和 COS145/#146。目前共161项，根直接子项100，父子项55项中54项源码完成。R26 的 159 步原计划通过既有双文件结构检查。native97 的 raw write 覆盖了计划，native99 再次 raw write，三次 structured append 后终稿有 52 步，初始设计未完成。原稿没有 reopen，独立语义评审和修订额度激活均未到达。 当前 phase45，累计38465006µ，held/reserved/unknown 为0，R26 已永久闭账。
 
@@ -2349,11 +2351,11 @@ R26 的 159 步原计划通过既有双文件结构检查。native97 的 raw wri
 
 ### COS-163 · 按步骤纠正验收编号
 
-[COS163 / #164](https://github.com/lrfluobida/Cosmos/issues/164) 已登记，设计经 `offline_plan_reviewer` 独立审查，Root 已批准 `offline_plan_implementer` 实施。新普通运行在 `structured-design-plan/3` 下为误用体验 ID 的断言提供定位，并允许作者按步骤一次明确修正同一阶段的 1 至 16 个玩法验收 ID。整批失败保留双文件原字节，继续沿用 `/2` 草稿保护。规格与集成仅在 `codex/gameplay-offline` 发布，源码待审。
+COS163 的离线源码范围已完成。`offline_plan_reviewer` 已批准最终源码 `7a8b23474a735b5cb62b7a1d3b2369b2d1a5ede5`，P2 已复核关闭。Root 批准将该提交集成到 `codex/gameplay-offline`。 运行时提交 `a86cc321e070664dc1023db14124505ea8f1d41f`。新普通任务及其修订在 `/3` 下可定位断言或等待步骤中误用的体验 ID。作者在同一阶段显式指定 1 至 16 处 `stepId/from/to`，通过整批检查后一次写入，失败保留原稿。 GitHub #164 已关闭，父 #19 保持开放，57 项子任务中 55 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/164#issuecomment-6597169025)
 
-原生父任务为 COS18/#19，直接依赖 COS147/#148 的验收计划工具和 COS161/#162 的写前保护。运行基线 `eb8eff8dba8c6a127b32403d5b76b5d6e8ea11e1`。冻结基线上 R27 的终止事件是服务方错误，本任务的草稿问题已另行离线复现。
+10 个文件与批准版本逐字节一致。离线集成的类型检查、构建通过，3 项代表全部通过且无跳过，覆盖误填体验 ID 的定位、双阶段诊断的大小限制和按步骤原子修正。作者诊断 9/9、原生工具及主机恢复 18/18、strict 编译结果沿用已审证据。 R27 草稿副本经生产工具在 TEMP 中回放，写入反馈和显式检查均定位到五处原步骤。一次修正后深比较仅这五个 `acceptanceId` 改变，设计副本和两份历史原件均保留原字节。随后严格检查仍为 `passed:false`，重开阶段第 0 项匹配观测之前没有普通点击。实际 R27 以服务方错误终止，游戏和体验验收尚未完成。
 
-GitHub ID `6177505838`。`offline_plan_reviewer` 后续审查实际源码，`planning_budget_merger` 在 Root 精确批准后集成到离线分支。玩法验收 ID 源自冻结需求，体验映射继续由设计维护并交给试玩判断。验证使用临时目录和合成响应。[正式规格](cos163-offline-plan-repair.md)
+GitHub ID `6177505838`，原生父 COS18/#19、[x]，依赖 COS147/#148 与 COS161/#162。作者 `offline_plan_implementer`，唯一 merger `planning_budget_merger`。[正式规格](cos163-offline-plan-repair.md)
 
 ## 5. 任务与上下文包模板
 
