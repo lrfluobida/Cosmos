@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-11-03 [COS166 / #167](https://github.com/lrfluobida/Cosmos/issues/167) 已登记。`saved_boundary_reviewer` 独立批准固定规格，Root 批准 `saved_boundary_implementer` 实施，源码待独审。通用持久浏览器验收在主阶段保存并检查 4 后，如果后续操作把存档覆盖为 5，更早的匹配断言仍可能被用来放行第二个进程。新的 generic 系列在作者步骤、媒体及渲染采样完成后、关闭首进程前，会按冻结的 `savedSnapshot` 选择器重新读取同一页面上的可见存档文本，并保存绑定到该系列的实际观察与截图。 [分支规格](docs/specs/cos166-saved-state-close-boundary.md)
+
 2026-11-03 COS165 的离线源码范围已完成。`offline_repair_origin_reviewer` 独立批准精确源码 `8094d7eac862cfc863f735de80cd6468361e2305`，历史无标记修复设计祖先的 P2 已闭合。Root 授权唯一 merger 合入 `codex/gameplay-offline`。 运行时提交 `221ddc6a81e3128bf4a1e275087532ae1e42ceb5`。显式追加窗口现在按原运行的 planning/execution 选择认证已通过的设计祖先，再按当前窗口的授权派发新的编码任务。它支持 `/3` 冻结的设计以及来源没有写入策略标记的已通过通用修复设计。设计与美术祖先直接复用，编码任务不继承设计写入工具、预算收尾或设计修订权限。 GitHub #166 已关闭，父 #19 保持开放，59 项子任务中 57 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/166#issuecomment-6597613600)
 
 2 个批准文件与候选逐字节一致，离线集成 typecheck 和 build 通过。此前 `ordinary-design-budget-finalization.test.ts:225` 找不到新编码任务的 F1 故障已修复：原 F1 集成代表 1/1 通过，在生产入口的 TEMP 运行中一个新编码任务完成，已通过的设计、美术均未重复执行，历史来源字节保留。 作者在相同 SHA 上核对 `/3` 正例和 planning 从 `/3` 篡改为 `/2` 的拒绝例，2/2 通过，篡改在派发前被拒。无标记已通过修复设计祖先的追加窗口 1/1 通过，P2 的旧失败在修正前版本已复现。三项均无跳过，独审已核实际差异及 TEMP 快照和报告。本卡只完成离线源码与合成角色验证，实际游戏与体验验收仍未完成。

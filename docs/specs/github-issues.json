@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 59,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165"],
+      "verifiedNativeSubIssues": 60,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166"],
       "verifiedCompletedSubIssues": 57,
       "dependsOn": [
         {
@@ -12947,9 +12947,60 @@
       "verification": "Two approved files exact. Offline typecheck/build and original F1 integration1/1 passed. Previously failing baseline line225 now reaches one new passed coding task. Historical design/art reused and origin bytes preserved. Final /3 positive and planning tamper negative2/2, marker-free generic repair ancestor1/1 with no skips; independent P2 closure verified.",
       "actualGameGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-166",
+      "title": "关闭浏览器前核对可见存档状态",
+      "number": 167,
+      "id": 6180748326,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/167",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-37",
+        "COS-66"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-37",
+          "number": 38,
+          "id": 5696255260,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/38"
+        },
+        {
+          "taskId": "COS-66",
+          "number": 67,
+          "id": 5717406960,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/67"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-166 · 关闭浏览器前核对可见存档状态](https://github.com/lrfluobida/Cosmos/issues/167)",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "implementationBaseCommit": "f2074d7e670cbf2941b8d2ff655b3a0dc14c38d6",
+      "sourceBaseCommit": "221ddc6a81e3128bf4a1e275087532ae1e42ceb5",
+      "integrationBranch": "codex/gameplay-offline",
+      "formalSpecPath": "docs/specs/cos166-saved-state-close-boundary.md",
+      "approvedSpecSha256": "1cd381c316dc8cc2be23d598d38ef4e50b023862eb5f88e625c1025b406ce4b5",
+      "rootImplementationApproved": true,
+      "designReviewStatus": "APPROVED_DESIGN",
+      "designReviewer": "saved_boundary_reviewer",
+      "implementer": "saved_boundary_implementer",
+      "reviewer": "saved_boundary_reviewer",
+      "merger": "planning_budget_merger",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 60,
+      "verifiedParentCompletedSubIssues": 57
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 165,
+  "totalTaskCount": 166,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
