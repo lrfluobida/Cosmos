@@ -4,7 +4,9 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-2026-11-03 [COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已登记。Root 已批准固定设计，`portable_play_reviewer` 独审批准 `portable_play_implementer` 的最终源码 `dc62ab464066ff937e3f87e15340a0e0d795831f`，待唯一 merger 集成到 `codex/gameplay-offline`。玩家可在新交付包中双击 `Play.cmd` 启动独立本地服务，并在默认浏览器中打开实际游戏 URL。 [规格](docs/specs/cos170-windows-playable-package.md)
+2026-11-03 [COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已在 `codex/gameplay-offline` 离线源码范围完成。`portable_play_reviewer` 独立审查 `dc62ab464066ff937e3f87e15340a0e0d795831f`，Root 放行后由唯一 merger 集成到 `282e271afebba230f82a6301b565c46ecacfec3a`。可信打包器在封存前向新游戏目录写入 `Play.cmd` 和启动说明。Windows 玩家在安装 Node 22 后可以双击启动本地只读服务，服务绑定端口后才向系统传递本次实际 URL。桌面打开失败时仍可手动访问。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/171#issuecomment-6603413798)
+
+五个批准文件与候选逐字节一致，先前 COS169 的两个文件也已核对。离线工作区类型检查、构建、启动测试和 opener fixture 的 strict 检查通过。实际 Play.cmd 在干净目录启动服务，测试读取 dist 和正确的 MIME，检查清理及系统打开失败回退。桌面打开动作使用替身。作者六项检查与最终 MIME 定向用例的重叠结果分别记录。含原宿主测试的扩大 strict 检查仍有 16 项在实现前基线逐项复现的诊断。 合入后的完整 COS169 用例再次通过：本次新生成的受控合成候选和审查副本均包含相同的 Play.cmd，关闭前采样及第二个 Edge 进程中的恢复通过，公开 resume 返回同一交付，用户体验仍待确认。
 
 2026-11-03 [COS169 / #170](https://github.com/lrfluobida/Cosmos/issues/170) 已在 `codex/gameplay-offline` 离线源码范围完成。`public_real_host_review` 独立审查 `e8c6de4d3370264092ad1f47f2c3cd42dee45f23`，Root 放行后由唯一 merger 集成到 `e567bb828a20eceedd92062f32170063cd32e223`。公开 `runCli(new --requirements-from)` 在编译件的进程内 API 进入生产 ProductHost。模型只提供 23 次脚本 SDK 回复。作者实际使用工具纠正验收编号，构建、素材验收和交付走生产路径。合成游戏在两个不同的真实 Edge 进程中接受正常输入，两个进程均退出，关闭前的可见存档状态与重开恢复匹配。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/170#issuecomment-6603307470)
 

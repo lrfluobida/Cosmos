@@ -1,8 +1,8 @@
 # COS170 · 交付包双击试玩
 
-[COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已登记。Root 已批准固定设计，`portable_play_reviewer` 独审批准 `portable_play_implementer` 的最终源码 `dc62ab464066ff937e3f87e15340a0e0d795831f`，待唯一 merger 集成到 `codex/gameplay-offline`。玩家可在新交付包中双击 `Play.cmd` 启动独立本地服务，并在默认浏览器中打开实际游戏 URL。
+[COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已在 `codex/gameplay-offline` 离线源码范围完成。`portable_play_reviewer` 独立审查 `dc62ab464066ff937e3f87e15340a0e0d795831f`，Root 放行后由唯一 merger 集成到 `282e271afebba230f82a6301b565c46ecacfec3a`。可信打包器在封存前向新游戏目录写入 `Play.cmd` 和启动说明。Windows 玩家在安装 Node 22 后可以双击启动本地只读服务，服务绑定端口后才向系统传递本次实际 URL。桌面打开失败时仍可手动访问。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/171#issuecomment-6603413798)
 
-原生父 COS18/#19、[ ]，直接依赖 [COS65 / #66](https://github.com/lrfluobida/Cosmos/issues/66) 的可信打包与干净目录启动。验收范围含真实 Windows 批处理、HTTP 内容与 MIME、关闭清理，桌面打开调用使用替身。
+五个批准文件与候选逐字节一致，先前 COS169 的两个文件也已核对。离线工作区类型检查、构建、启动测试和 opener fixture 的 strict 检查通过。实际 Play.cmd 在干净目录启动服务，测试读取 dist 和正确的 MIME，检查清理及系统打开失败回退。桌面打开动作使用替身。作者六项检查与最终 MIME 定向用例的重叠结果分别记录。含原宿主测试的扩大 strict 检查仍有 16 项在实现前基线逐项复现的诊断。 合入后的完整 COS169 用例再次通过：本次新生成的受控合成候选和审查副本均包含相同的 Play.cmd，关闭前采样及第二个 Edge 进程中的恢复通过，公开 resume 返回同一交付，用户体验仍待确认。
 
 批准规格原稿 SHA256 为 `2396434fde9afc34c3853946a529dd2b1bd96b26a191167efe84171957e5216f`。
 
