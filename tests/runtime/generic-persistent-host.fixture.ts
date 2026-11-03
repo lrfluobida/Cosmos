@@ -12,6 +12,7 @@ import { createBrowserHost, createPersistentOwnedChild } from '../../src/runtime
 import type { BrowserHostIO } from '../../src/runtime/entrypoint-host.ts';
 import { withHostStages, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID } from '../../src/roles/requirements.ts';
 import { executePersistentSeries, runPersistentAcceptance } from '../../src/acceptance/persistent.ts';
+import { syntheticSavedAtClose } from './ordinary-browser.fixture.ts';
 import { genericArt, genericDesign, genericPersistentDraft, genericPersistentHtml } from '../acceptance/generic-persistent.fixture.ts';
 import { selectClassicEntry } from '../../src/runtime/classic-entry-input.ts';
 
@@ -143,9 +144,16 @@ export async function genericHostFixture(t: test.TestContext, fault = '', classi
         }
         if (!index && fault === 'classic-build') await writeFile(join(root, 'evidence/coding/build.json'), '{"passed":true}', 'utf8');
         if (!index && fault === 'classic-plan') plan.specVersion = 'different';
+        await syntheticSavedAtClose(options.evidenceRoot, folder, raw, lifecycle.savedAtClose);
         await writeFile(join(options.evidenceRoot, raw.reportPath), JSON.stringify(raw), 'utf8'); return raw;
       });
       if (fault === 'first-only') report.segments.pop();
+      if (fault === 'resume-mismatch-missing-boundary') {
+        const save = report.segments[0].report;
+        delete save.savedAtClose;
+        await writeFile(join(options.evidenceRoot, save.reportPath), JSON.stringify(save), 'utf8');
+        await writeFile(join(options.evidenceRoot, report.reportPath), JSON.stringify(report), 'utf8');
+      }
       if (fault === 'raw') { await writeFile(join(options.evidenceRoot, report.reportPath), '{}', 'utf8'); }
       if (fault === 'classic-cleanup') {
         const ready = JSON.parse(await readFile(join(root, 'delivery-work/coding/ready.json'), 'utf8')); process.kill(ready.pid);

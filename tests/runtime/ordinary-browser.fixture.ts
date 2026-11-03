@@ -4,9 +4,18 @@ import { tmpdir } from 'node:os';
 import type { TestContext } from 'node:test';
 import { removeOwned } from '../../src/artifacts/paths.ts';
 import { executePersistentSeries } from '../../src/acceptance/persistent.ts';
+import type { SavedAtCloseRequest } from '../../src/acceptance/runner.ts';
+
+export async function syntheticSavedAtClose(root: string, folder: string, report: any, request?: SavedAtCloseRequest) {
+  if (!request || report.outcome !== 'passed') return;
+  const screenshot = folder + '/saved-at-close.png';
+  await cp(join(root, folder, 'final.png'), join(root, screenshot));
+  report.savedAtClose = { request: structuredClone(request), actual: request.expected, screenshot };
+  report.files.push(screenshot);
+}
 
 /** Fake browser transport only; the production normal/persistent verifiers consume these explicit synthetic records. */
-export async function ordinaryBrowserReport(root: string, plan: any, request?: any, session?: any) {
+export async function ordinaryBrowserReport(root: string, plan: any, request?: any, session?: any, savedAtClose?: SavedAtCloseRequest) {
   const folder = [plan.projectId, plan.artifact.artifactId, plan.artifact.version, plan.runId, plan.reportId].join('/'), startedAt = new Date().toISOString();
   await mkdir(join(root, folder), { recursive: true });
   for (const file of ['final.png', 'browser.webm', 'browser.log']) await writeFile(join(root, folder, file), file.endsWith('.png')
@@ -22,15 +31,16 @@ export async function ordinaryBrowserReport(root: string, plan: any, request?: a
     failureFacts: { formatVersion: 1, termination: null, errors: [] },
     ...(request ? { mediaObservations: { request: structuredClone(request), recordedAt: endedAt, values: request.fields.map((field: any) => field.expected) } } : {}) };
   await writeFile(join(root, folder, 'plan.json'), JSON.stringify(plan), 'utf8');
+  await syntheticSavedAtClose(root, folder, report, savedAtClose);
   await writeFile(join(root, report.reportPath), JSON.stringify(report), 'utf8'); return report;
 }
 export async function ordinaryPersistentReport(series: any, options: any) {
   let index = 0;
   return executePersistentSeries(series, options, async (plan, lifecycle) => {
     const current = index++, pid = 3000 + current;
-    return ordinaryBrowserReport(options.evidenceRoot, plan, options.segmentMediaObservations[current].request,
+    return ordinaryBrowserReport(options.evidenceRoot, plan, options.segmentMediaObservations?.[current].request,
       { browserPid: pid, profile: lifecycle.profile, commandLineProfile: lifecycle.profile, origin: new URL(plan.url).origin,
-        closeEvent: true, exitConfirmed: true, exitCode: 0, signalCode: null });
+        closeEvent: true, exitConfirmed: true, exitCode: 0, signalCode: null }, lifecycle.savedAtClose);
   });
 }
 
