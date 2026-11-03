@@ -38,6 +38,30 @@ function ordinaryPlanDiagnostics(value: unknown, draft: OrdinaryGameDraft): stri
   });
 }
 
+function experienceIdDiagnostics(plan: unknown, draft: OrdinaryGameDraft, stages: string[][]): string[] {
+  if (!object(plan) || !object(plan.scenario)) return [];
+  const experience = new Set(draft.experienceCriteria.map(item => item.criterionId));
+  const details: string[] = [];
+  const display = (id: string) => JSON.stringify(id.length <= 120 ? id : id.slice(0, 120) + '…');
+  for (const [index, issues] of stages.entries()) {
+    const steps = index === 0 ? plan.scenario.steps : plan.scenario.reopen?.steps;
+    let reported = 0;
+    for (const issue of issues) {
+      const match = /^(scenario\.(?:reopen\.)?steps\[(\d+)\]): Unknown acceptanceId$/.exec(issue);
+      if (!match) continue;
+      const step = steps[Number(match[2])];
+      if (!experience.has(step.acceptanceId)) continue;
+      if (++reported <= 8) details.push(`${match[1]}: stepId=${typeof step.id === 'string' ? display(step.id) : '(missing or invalid)'}, acceptanceId=${display(step.acceptanceId)} is a subjective experience criterion.`);
+    }
+    if (reported > 8) details.push(`${reported - 8} additional experience-ID locations omitted in ${index === 0 ? 'main' : 'reopen'}.`);
+  }
+  if (!details.length) return [];
+  const ids = gameplayAcceptance(draft).map(item => item.acceptanceId);
+  const shown = ids.filter(id => id.length <= 120).slice(0, 12);
+  const omitted = ids.length - shown.length;
+  return [`Use an objective gameplay ID on every assert/wait-for, including debug observations. Subjective IDs belong in experienceMapping and human review. Choose from the confirmed gameplay criteria: ${JSON.stringify(shown)}${omitted ? ` (${omitted} omitted; read the original requirement)` : ''}.`, ...details];
+}
+
 function ordinaryWriteFeedback(header: string, diagnostics: string[], rejectedPath?: string): string {
   const groups = new Map<string, { message: string; paths: string[] }>();
   for (const diagnostic of diagnostics) {
@@ -88,7 +112,7 @@ export function gameDesignCheckFiles(scope: { ordinary?: boolean; modular?: bool
 }
 
 /** Advisory author feedback only. Capture and independent review still validate actual output. */
-export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean; preserveValidDraft?: boolean;
+export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean; preserveValidDraft?: boolean; repairAcceptanceIds?: boolean;
   ordinary?: { draft: OrdinaryGameDraft; requirement: ArtifactReference };
   classicEntry?: { selection: ClassicEntrySelection; viewport?: AcceptancePlan['viewport'] }; guard(signal: AbortSignal): Promise<void> }) {
   const gameplayIds = [...input.gameplayIds];
@@ -129,7 +153,8 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
       stages = [];
     }
     const strict = stages.find(issues => message === `Unsupported acceptance scenario: ${issues.join('; ')}`) ?? [message];
-    const ordinaryDiagnostics = [...new Set([...strict, ...stages.flat()])];
+    const repairHints = input.repairAcceptanceIds ? experienceIdDiagnostics(plan, ordinary.draft, stages) : [];
+    const ordinaryDiagnostics = [...new Set([...strict, ...repairHints, ...stages.flat()])];
     return { passed: false, errors: [{ path: ORDINARY_PLAN_SOURCE, message },
       ...ordinaryDiagnostics.filter(issue => !strict.includes(issue)).map(message => ({ path: ORDINARY_PLAN_SOURCE, message }))], ordinaryDiagnostics };
   }

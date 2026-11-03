@@ -8,7 +8,7 @@ import type { RoleInput } from '../../src/roles/factory.ts';
 import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { ORDINARY_DESIGN_AUTHORING_RULE, ORDINARY_DRAFT_PRESERVATION_RULE } from '../../src/runtime/entrypoint-design-authoring.ts';
-import { ORDINARY_PLAN_AUTHORING_RULE } from '../../src/runtime/entrypoint-plan-authoring.ts';
+import { ORDINARY_PLAN_AUTHORING_RULE, ORDINARY_PLAN_REPAIR_RULE } from '../../src/runtime/entrypoint-plan-authoring.ts';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 
 const path = 'authors/design/design.json';
@@ -83,9 +83,9 @@ test('native factory exposes structured design data and serializes same-reply se
   const executionPath = join(f.root, 'execution.json'), planningPath = join(f.root, 'planning-started.json');
   const executionBytes = await readFile(executionPath), planningBytes = await readFile(planningPath);
   const execution = JSON.parse(executionBytes.toString('utf8')), planning = JSON.parse(planningBytes.toString('utf8'));
-  assert.equal(execution.ordinaryPlanAuthoringPolicy, 'structured-design-plan/2'); assert.equal(planning.ordinaryPlanAuthoringPolicy, 'structured-design-plan/2');
+  assert.equal(execution.ordinaryPlanAuthoringPolicy, 'structured-design-plan/3'); assert.equal(planning.ordinaryPlanAuthoringPolicy, 'structured-design-plan/3');
   const before = f.packets.length;
-  for (const policy of [undefined, 'structured-plan/1', 'structured-design-plan/1', 'future']) {
+  for (const policy of [undefined, 'structured-plan/1', 'structured-design-plan/1', 'structured-design-plan/2', 'future']) {
     await writeFile(executionPath, JSON.stringify({ ...execution, ordinaryPlanAuthoringPolicy: policy }), 'utf8');
     await writeFile(planningPath, JSON.stringify({ ...planning, ordinaryPlanAuthoringPolicy: policy }), 'utf8');
     await assert.rejects(f.host.execute({ root: f.root, requirement: execution.requirement, draft: f.draft, resume: true }), /policy/i);
@@ -182,6 +182,7 @@ test('new-policy revision uses only its bound seeded draft and preserves the ori
     if (packet.taskId === 'design-task') { assert.doesNotMatch(writer.description, /seeded from/); return fallback; }
     return { close: fallback.close, prompt: async () => { try {
       assert.equal(packet.taskId, 'design-task-revision'); assert.match(writer.description, /seeded from the previous capture.*unapproved draft/);
+      assert.ok(packet.rules.includes(ORDINARY_PLAN_REPAIR_RULE));
       assert.ok(packet.rules.includes(ORDINARY_PLAN_AUTHORING_RULE)); assert.ok(packet.rules.includes(ORDINARY_DESIGN_AUTHORING_RULE));
       const capturedPath = join(f.root, 'registry/captures/design/v1/files/_cosmos/design.json'), captured = await readFile(capturedPath);
       assert.deepEqual(await readFile(join(config.workspace, path)), captured);
@@ -203,16 +204,19 @@ test('new-policy revision uses only its bound seeded draft and preserves the ori
   assert.equal(result.ordinaryDesignReview.selectedVersion, 'v2');
 });
 
-for (const policy of [undefined, 'structured-plan/1', 'structured-design-plan/1'] as const) test(`frozen ${policy ?? 'legacy'} author and revision resume without upgrading their surface`, async t => {
+for (const policy of [undefined, 'structured-plan/1', 'structured-design-plan/1', 'structured-design-plan/2'] as const) test(`frozen ${policy ?? 'legacy'} author and revision resume without upgrading their surface`, async t => {
   let revised = false, failure: unknown;
   const f = await ordinaryHostFixture(t, { pause: true, frozenPlanAuthoringPolicy: policy, revisionPolicy: true,
     limits: { limitMicroCny: 5000000, durationMs: 1800000 }, sessionFactory: async (config, fallback) => {
       const packet = JSON.parse(config.context!);
-      assert.equal(!!config.tools?.some(tool => tool.name === 'write-game-design'), packet.role === 'design' && policy === 'structured-design-plan/1');
+      assert.equal(!!config.tools?.some(tool => tool.name === 'write-game-design'), packet.role === 'design' && !!policy?.startsWith('structured-design-plan/'));
       if (packet.role === 'design') {
-        assert.equal(packet.rules.includes(ORDINARY_DESIGN_AUTHORING_RULE), policy === 'structured-design-plan/1');
-        assert.ok(!packet.rules.includes(ORDINARY_DRAFT_PRESERVATION_RULE));
-        assert.ok(!config.tools!.some(tool => /current draft is preserved/.test(tool.description)));
+        assert.equal(packet.rules.includes(ORDINARY_DESIGN_AUTHORING_RULE), !!policy?.startsWith('structured-design-plan/'));
+        assert.equal(packet.rules.includes(ORDINARY_DRAFT_PRESERVATION_RULE), policy === 'structured-design-plan/2');
+        assert.equal(config.tools!.some(tool => /current draft is preserved/.test(tool.description)), policy === 'structured-design-plan/2');
+        assert.ok(!packet.rules.includes(ORDINARY_PLAN_REPAIR_RULE));
+        const planWriter = config.tools!.find(tool => tool.name === 'write-game-plan');
+        if (planWriter) { assert.doesNotMatch(planWriter.description, /repair-acceptance-ids/); assert.ok(!Object.hasOwn((planWriter.parameters as any).properties, 'corrections')); }
       }
       if (packet.role === 'art') throw new Error('SOURCE cutoff after frozen design revision.');
       if (packet.role === 'reviewer' && packet.taskId === 'design-task') return { close: fallback.close, prompt: async () => ({ text: JSON.stringify({
@@ -230,8 +234,13 @@ for (const policy of [undefined, 'structured-plan/1', 'structured-design-plan/1'
         const revision = JSON.parse(await readFile(join(f.root, 'ordinary-design-revision-plan.json'), 'utf8'));
         assert.deepEqual(revision.task.task.context.tools, original.context.tools);
         const current = JSON.parse(await readFile(join(config.workspace, path), 'utf8'));
-        assert.match(content(await call(config, 'write', { path, content: '{}' })), /read-only.*advisory.*invalid/i);
-        assert.equal(await readFile(join(config.workspace, path), 'utf8'), '{}');
+        if (policy === 'structured-design-plan/2') {
+          await assert.rejects(call(config, 'write', { path, content: '{}' }), /current draft preserved/i);
+          assert.deepEqual(JSON.parse(await readFile(join(config.workspace, path), 'utf8')), current);
+        } else {
+          assert.match(content(await call(config, 'write', { path, content: '{}' })), /read-only.*advisory.*invalid/i);
+          assert.equal(await readFile(join(config.workspace, path), 'utf8'), '{}');
+        }
         await call(config, 'write', { path, content: JSON.stringify({ ...current, summary: '原选择保留，修订只澄清文本' }) });
         revised = true; return handoff;
       } catch (error) { failure = error; throw error; } } };

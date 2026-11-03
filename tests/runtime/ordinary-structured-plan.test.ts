@@ -67,8 +67,8 @@ test('structured author saves JSON data and appends both stages through the real
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 3);
   const executionPath = join(f.root, 'execution.json'), planningPath = join(f.root, 'planning-started.json');
   const executionBytes = await readFile(executionPath), planningBytes = await readFile(planningPath), execution = JSON.parse(executionBytes.toString('utf8'));
-  assert.equal(execution.ordinaryPlanAuthoringPolicy, 'structured-design-plan/2');
-  assert.equal(JSON.parse(planningBytes.toString('utf8')).ordinaryPlanAuthoringPolicy, 'structured-design-plan/2');
+  assert.equal(execution.ordinaryPlanAuthoringPolicy, 'structured-design-plan/3');
+  assert.equal(JSON.parse(planningBytes.toString('utf8')).ordinaryPlanAuthoringPolicy, 'structured-design-plan/3');
   const before = f.packets.length;
   for (const mutate of [
     (value: any) => { delete value.ordinaryPlanAuthoringPolicy; },
@@ -104,7 +104,7 @@ test('planning interrupted before execution keeps its selection and cannot repla
     ? { ...fallback, prompt: async () => { throw new Error('Synthetic planning interruption'); } } : fallback });
   assert.equal((await f.execute() as any).outcome, 'incomplete');
   const planningBytes = await readFile(join(f.root, 'planning-started.json')), planning = JSON.parse(planningBytes.toString('utf8'));
-  assert.equal(planning.ordinaryPlanAuthoringPolicy, 'structured-design-plan/2'); await assert.rejects(readFile(join(f.root, 'execution.json')), { code: 'ENOENT' });
+  assert.equal(planning.ordinaryPlanAuthoringPolicy, 'structured-design-plan/3'); await assert.rejects(readFile(join(f.root, 'execution.json')), { code: 'ENOENT' });
   const before = f.packets.length;
   await assert.rejects(f.host.execute({ root: f.root, requirement: planning.requirement, draft: f.draft, resume: true }), /planning result is unavailable/);
   await assert.rejects(f.host.execute({ root: f.root, requirement: planning.requirement, draft: f.draft, resume: false }), /Immutable version already exists|EEXIST/);
@@ -123,10 +123,10 @@ test('native SDK normalizes null anchors and serializes same-reply anchored batc
     const [click, complete, a, b, c, ...tail] = f.scenario.steps;
     const actions = [
       { name: 'write', arguments: { path: 'authors/design/design.json', content: JSON.stringify(design) } },
-      { name: 'write-game-plan', arguments: { operation: 'save', scenario: { ...f.scenario, steps: [click] }, stage: null, steps: null, checkpoint: null, afterStepId: null } },
+      { name: 'write-game-plan', arguments: { operation: 'save', scenario: { ...f.scenario, steps: [click, { ...complete, acceptanceId: 'readable' }] }, stage: null, steps: null, checkpoint: null, afterStepId: null, corrections: null } },
       { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: tail.slice(0, 1) } },
       { name: 'write-game-plan', arguments: { operation: 'append', scenario: null, stage: 'main', steps: tail.slice(1), checkpoint: null, afterStepId: null } },
-      { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: [complete], afterStepId: click.id } },
+      { name: 'write-game-plan', arguments: { operation: 'repair-acceptance-ids', stage: 'main', corrections: [{ stepId: complete.id, from: 'readable', to: 'light' }], scenario: null, steps: null, checkpoint: null, afterStepId: null } },
       { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: [c], afterStepId: complete.id } },
       { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: [a], afterStepId: complete.id } },
       { name: 'write-game-plan', arguments: { operation: 'append', stage: 'main', steps: [b], afterStepId: a.id } },
@@ -149,12 +149,14 @@ test('native SDK normalizes null anchors and serializes same-reply anchored batc
   const result: any = await f.execute();
   const fn = payloads[0]?.tools.find((tool: any) => tool.function.name === 'write-game-plan')?.function;
   assert.ok(fn); assert.equal(fn.parameters.type, 'object'); assert.equal(fn.parameters.additionalProperties, false);
-  assert.deepEqual(Object.keys(fn.parameters.properties).sort(), ['afterStepId', 'checkpoint', 'operation', 'scenario', 'stage', 'steps']);
+  assert.deepEqual(Object.keys(fn.parameters.properties).sort(), ['afterStepId', 'checkpoint', 'corrections', 'operation', 'scenario', 'stage', 'steps']);
   assert.equal(fn.strict, false); assert.ok(!fn.parameters.required.includes('afterStepId'));
   assert.deepEqual(fn.parameters.properties.afterStepId, { type: 'string' });
   assert.equal(payloads.length, 2); assert.equal(result.acceptedCandidate, undefined); assert.equal(f.plays.length, 0);
   assert.equal(f.packets.filter(packet => packet.role === 'reviewer').length, 1);
   const results = payloads.at(-1).messages.filter((message: any) => message.role === 'tool' && /Saved acceptance plan draft/.test(JSON.stringify(message.content)));
+  assert.match(JSON.stringify(results[0].content), /experienceMapping/);
+  assert.match(JSON.stringify(results[0].content), /readable/);
   assert.equal(results.length, 7); assert.match(JSON.stringify(results.at(-1).content), /read-only.*advisory.*passed/i);
   const refused = payloads.at(-1).messages.filter((message: any) => message.role === 'tool' && /Unknown or inapplicable plan authoring field/.test(JSON.stringify(message.content)));
   assert.equal(refused.length, 1);

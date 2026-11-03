@@ -10,20 +10,26 @@ import { requireAuthorJson } from './structured-author-json.ts';
 
 export const GAME_PLAN_WRITE = 'write-game-plan';
 export const ORDINARY_PLAN_AUTHORING_RULE = 'First write authors/design/design.json. Prefer write-game-plan with {operation:"save",scenario:{viewport,steps,reopen?}} to establish the acceptance plan draft, then {operation:"append",stage:"main"|"reopen",steps:[...],checkpoint?} for bounded ordered batches. The host supplies the fixed formatVersion and original requirement reference and nests reopen inside scenario. The first reopen append requires your checkpoint; a different checkpoint requires explicit save or local edit. Raw read/write/edit remain available for local corrections. Saving a draft does not establish structural validity, coverage, capture, independent approval or acceptance. Run validate-game-design after both files are complete and correct its diagnostics within this author session.';
-export type OrdinaryPlanAuthoringPolicy = 'structured-plan/1' | 'structured-design-plan/1' | 'structured-design-plan/2';
+export const ORDINARY_PLAN_REPAIR_RULE = 'For invalid assertion acceptanceIds, use write-game-plan repair-acceptance-ids with explicit step IDs and original gameplay criterion IDs.';
+export type OrdinaryPlanAuthoringPolicy = 'structured-plan/1' | 'structured-design-plan/1' | 'structured-design-plan/2' | 'structured-design-plan/3';
+export function preservesValidDraft(selected?: OrdinaryPlanAuthoringPolicy): boolean {
+  return selected === 'structured-design-plan/2' || selected === 'structured-design-plan/3';
+}
 export function hasDesignWriter(selected?: OrdinaryPlanAuthoringPolicy): boolean {
-  return selected === 'structured-design-plan/1' || selected === 'structured-design-plan/2';
+  return selected === 'structured-design-plan/1' || preservesValidDraft(selected);
 }
 export function isOrdinaryPlanAuthoringPolicy(value: unknown): value is OrdinaryPlanAuthoringPolicy {
-  return value === 'structured-plan/1' || value === 'structured-design-plan/1' || value === 'structured-design-plan/2';
+  return value === 'structured-plan/1' || value === 'structured-design-plan/1' || value === 'structured-design-plan/2' || value === 'structured-design-plan/3';
 }
 
 /** A missing selection is legacy only when the frozen task has no new author surface. */
 export function requirePlanAuthoringTasks(tasks: { role: string; task: TaskContract }[], selected?: OrdinaryPlanAuthoringPolicy): void {
   if (selected !== undefined && !isOrdinaryPlanAuthoringPolicy(selected)) throw new Error('Invalid ordinary plan authoring policy.');
   for (const { role, task } of tasks) {
-    const preserve = selected === 'structured-design-plan/2' && role === 'design';
-    if (task.context.rules.filter(rule => rule === ORDINARY_DRAFT_PRESERVATION_RULE).length !== Number(preserve)) {
+    const preserve = preservesValidDraft(selected) && role === 'design';
+    const repair = selected === 'structured-design-plan/3' && role === 'design';
+    if (task.context.rules.filter(rule => rule === ORDINARY_DRAFT_PRESERVATION_RULE).length !== Number(preserve)
+      || task.context.rules.filter(rule => rule === ORDINARY_PLAN_REPAIR_RULE).length !== Number(repair)) {
       throw new Error('Frozen task differs from its ordinary plan authoring policy.');
     }
     for (const [tool, rule, enabled] of [[GAME_PLAN_WRITE, ORDINARY_PLAN_AUTHORING_RULE, !!selected],
@@ -66,15 +72,41 @@ function appendSteps(steps: unknown[], added: unknown[], afterStepId?: string) {
   steps.splice(matches[0] + 1, 0, ...added);
 }
 
+function repairAcceptanceIds(plan: JsonObject, args: JsonObject, gameplayIds: Set<string>) {
+  if (args.stage !== 'main' && args.stage !== 'reopen') throw new Error('Repair requires a main or reopen stage.');
+  const steps: unknown[] | undefined = args.stage === 'main' ? plan.scenario.steps : plan.scenario.reopen?.steps;
+  if (!steps || !Array.isArray(args.corrections) || args.corrections.length < 1 || args.corrections.length > 16) {
+    throw new Error('Repair requires an existing stage and 1 through 16 corrections.');
+  }
+  const targets = new Set<string>();
+  const edits = args.corrections.map((correction: unknown) => {
+    if (!object(correction)) throw new Error('Each correction requires stepId, from and to.');
+    keys(correction, ['stepId', 'from', 'to']);
+    const { stepId, from, to } = correction;
+    if (typeof stepId !== 'string' || !stepId.length || targets.has(stepId)) throw new Error('Each correction requires a distinct nonempty stepId.');
+    targets.add(stepId);
+    if (typeof from !== 'string' || gameplayIds.has(from) || !gameplayIds.has(to)) throw new Error('Repair requires an invalid source ID and a confirmed gameplay destination ID.');
+    const matches = steps.filter((step): step is JsonObject => object(step) && step.id === stepId);
+    if (matches.length !== 1 || !['assert', 'wait-for'].includes(matches[0].kind) || matches[0].acceptanceId !== from) {
+      throw new Error('Correction requires a unique assertion step in the selected stage with the exact current source ID.');
+    }
+    return { step: matches[0], to };
+  });
+  for (const { step, to } of edits) step.acceptanceId = to;
+}
+
 /** Writes only the mutable author draft. Validation and approval stay with the original host. */
 export async function createGamePlanWriter(input: { workspace: string; requirement: ArtifactReference; seededRevision?: boolean; beforeFileWrite?: BeforeFileWrite;
-  guard(signal: AbortSignal): Promise<void>; afterFileWrite(signal: AbortSignal): Promise<string> }) {
+  repairGameplayIds?: readonly string[]; guard(signal: AbortSignal): Promise<void>; afterFileWrite(signal: AbortSignal): Promise<string> }) {
   const requirement = structuredClone(input.requirement);
+  const gameplayIds = input.repairGameplayIds && new Set(input.repairGameplayIds);
   const writer = (await createWorkspaceTools({ workspace: input.workspace, readPaths: [], writePaths: [ORDINARY_PLAN_SOURCE], beforeFileWrite: input.beforeFileWrite })).find(tool => tool.name === 'write')!;
   return { readOnly: false, tool: defineTool({ name: GAME_PLAN_WRITE, label: 'Save game acceptance plan draft', executionMode: 'sequential',
     description: `Save structured scenario data or append main/reopen steps to ${ORDINARY_PLAN_SOURCE}. Save replaces the entire scenario, including viewport, all steps and reopen; omitted content is not retained. Append adds steps to the chosen stage in order. Optional append-only afterStepId inserts the whole batch immediately after that unique existing step ID in the chosen stage; omitted means append at the end. The stage and anchor must already exist. Reusing anchor A to insert B then C yields A,C,B; to continue a batch, use its last inserted step ID as the next anchor. Supply game-specific values yourself. The host fixes the envelope and requirement reference. ${input.beforeFileWrite ? ORDINARY_DRAFT_PRESERVATION_RULE : 'Save may record an incomplete draft; diagnostics, capture and independent review still decide validity and acceptance.'} No path, reference, authority or script arguments.`
-      + (input.seededRevision ? ' Revision workspace: editable authors/design/design.json and authors/design/acceptance-plan.json are seeded from the previous capture and remain unapproved drafts. Read the current drafts and actual review findings first. Prefer targeted edits that preserve unaffected coverage and reopen structure; do not save an empty plan just to start revision. Intentional full replacement remains allowed: supply the full replacement and pass the existing checks. Raw read/write/edit remain available. For complete JSON reads, use null for unspecified offset/limit when the schema requires them; before exact-text edits, read numeric pages for exact source anchors.' : ''),
-    parameters: Type.Object({ operation: Type.Union([Type.Literal('save'), Type.Literal('append')]),
+      + (input.seededRevision ? ' Revision workspace: editable authors/design/design.json and authors/design/acceptance-plan.json are seeded from the previous capture and remain unapproved drafts. Read the current drafts and actual review findings first. Prefer targeted edits that preserve unaffected coverage and reopen structure; do not save an empty plan just to start revision. Intentional full replacement remains allowed: supply the full replacement and pass the existing checks. Raw read/write/edit remain available. For complete JSON reads, use null for unspecified offset/limit when the schema requires them; before exact-text edits, read numeric pages for exact source anchors.' : '')
+      + (gameplayIds ? ' Repair invalid acceptanceIds with {operation:"repair-acceptance-ids",stage,corrections:[{stepId,from,to}]}. Choose 1 to 16 unique assertion steps in one stage, providing each current invalid string and the applicable original gameplay ID. The complete batch must match before any change is saved.' : ''),
+    parameters: Type.Object({ operation: Type.Union([Type.Literal('save'), Type.Literal('append'), ...(gameplayIds ? [Type.Literal('repair-acceptance-ids')] : [])]),
+      ...(gameplayIds ? { corrections: Type.Optional(Type.Array(Type.Object({ stepId: Type.String(), from: Type.String(), to: Type.String() }, { additionalProperties: false }), { minItems: 1, maxItems: 16 })) } : {}),
       scenario: Type.Optional(Type.Object({}, { additionalProperties: true })),
       stage: Type.Optional(Type.Union([Type.Literal('main'), Type.Literal('reopen')])), steps: Type.Optional(Type.Array(Type.Unknown())),
       afterStepId: Type.Optional(Type.String()),
@@ -93,7 +125,8 @@ export async function createGamePlanWriter(input: { workspace: string; requireme
         if (Object.hasOwn(args, 'afterStepId') && (typeof args.afterStepId !== 'string' || !args.afterStepId.length)) throw new Error('Append afterStepId must be a non-empty string.');
         if (!['main', 'reopen'].includes(args.stage) || !Array.isArray(args.steps)
           || Object.hasOwn(args, 'checkpoint') && (args.stage !== 'reopen' || !object(args.checkpoint))) throw new Error('Append requires main/reopen, a steps array and only an optional reopen checkpoint object.');
-      } else throw new Error('Unknown plan authoring operation.');
+      } else if (args.operation === 'repair-acceptance-ids' && gameplayIds) keys(args, ['operation', 'stage', 'corrections']);
+      else throw new Error('Unknown plan authoring operation.');
       let bytes: Buffer | undefined;
       try { bytes = await regularFile(input.workspace, ORDINARY_PLAN_SOURCE, active); }
       catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
@@ -109,7 +142,8 @@ export async function createGamePlanWriter(input: { workspace: string; requireme
         if (!object(plan)) throw new Error('Existing draft requires an object envelope; use explicit save.');
         requireJson(plan);
         containers(plan, requirement);
-        if (args.stage === 'main') appendSteps(plan.scenario.steps, args.steps, args.afterStepId);
+        if (args.operation === 'repair-acceptance-ids' && gameplayIds) repairAcceptanceIds(plan, args, gameplayIds);
+        else if (args.stage === 'main') appendSteps(plan.scenario.steps, args.steps, args.afterStepId);
         else if (!Object.hasOwn(plan.scenario, 'reopen')) {
           if (args.afterStepId !== undefined) throw new Error('Anchored append requires an existing reopen stage.');
           if (!object(args.checkpoint)) throw new Error('The first reopen append requires an author checkpoint.');
