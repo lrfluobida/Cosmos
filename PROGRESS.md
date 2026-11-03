@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-11-03 [COS163 / #164](https://github.com/lrfluobida/Cosmos/issues/164) 已登记，设计经 `offline_plan_reviewer` 独立审查，Root 已批准 `offline_plan_implementer` 实施。新普通运行在 `structured-design-plan/3` 下为误用体验 ID 的断言提供定位，并允许作者按步骤一次明确修正同一阶段的 1 至 16 个玩法验收 ID。整批失败保留双文件原字节，继续沿用 `/2` 草稿保护。规格与集成仅在 `codex/gameplay-offline` 发布，源码待审。 [分支规格](docs/specs/cos163-offline-plan-repair.md)
+
 2026-11-03 [COS161 / #162](https://github.com/lrfluobida/Cosmos/issues/162) 已登记。独立 reviewer design_draft_guard_reviewer 批准 v2，F1–F8 已处理，Root 批准 design_draft_guard_implementer 开始实施。源码待独审及唯一 merger 集成。草稿双文件通过现有结构检查后，raw write/edit、计划 save/append、设计 save/set 的候选也须通过才能写入。尚未完整的初稿可逐步构建，有效修改可继续保存。新 policy `structured-design-plan/2` 按原 fresh 条件冻结，作者及已绑定修订的四种写工具按次序读取当前字节。权限、取消、UTF-8 及链接安全先行，拒绝时保留双文件并返回候选诊断。 本卡挂父 #19，依赖 COS156/#157 和 COS145/#146。目前共161项，根直接子项100，父子项55项中54项源码完成。R26 的 159 步原计划通过既有双文件结构检查。native97 的 raw write 覆盖了计划，native99 再次 raw write，三次 structured append 后终稿有 52 步，初始设计未完成。原稿没有 reopen，独立语义评审和修订额度激活均未到达。 当前 phase45，累计38465006µ，held/reserved/unknown 为0，R26 已永久闭账。
 
 2026-11-01 [COS160 / #161](https://github.com/lrfluobida/Cosmos/issues/161) 已SOURCE范围完成：review-v2设计批准及ADR0006设计决定保持；design_revision_budget_reviewer独审组合 `1a4d955e65f08f787f20317b16030101e08cdb5b` APPROVED_SOURCE_SCOPED、无剩余finding，Root批准唯一planning_budget_merger发布 `d606f465fc8ff2acb23e414c8860dce0377c0e4f`。27批准文件精确、无额外src/tests/package差异；[SOURCE批准](https://github.com/lrfluobida/Cosmos/issues/161#issuecomment-6558267783)、[完成关闭](https://github.com/lrfluobida/Cosmos/issues/161#issuecomment-6558268303)及父[x]已GET。main typecheck/build0、短代表4/4、0skip、15563.503ms；最终同SHA accounting affected3/3、独审原P1复现1/1及此前有效完整repair/兼容证据复用，未重跑约99秒流程，重叠计数不相加。总160/root100、父54/54仅SOURCE，COS18仍open/partial。
