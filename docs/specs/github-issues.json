@@ -655,7 +655,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
       "verifiedNativeSubIssues": 66,
       "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172"],
-      "verifiedCompletedSubIssues": 62,
+      "verifiedCompletedSubIssues": 64,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -13268,8 +13268,8 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "parentChecklistLine": "- [ ] [COS-171 · 记录当前交付的具体试玩意见](https://github.com/lrfluobida/Cosmos/issues/172)",
+      "parentCheckboxChecked": true,
+      "parentChecklistLine": "- [x] [COS-171 · 记录当前交付的具体试玩意见](https://github.com/lrfluobida/Cosmos/issues/172)",
       "dependsOn": [
         "COS-34",
         "COS-111"
@@ -13289,10 +13289,10 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/112"
         }
       ],
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-approved-awaiting-integration",
-      "implementationPhase": "awaiting-offline-integration",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-integrated-gameplay-offline",
+      "implementationPhase": "offline-source-scoped-complete",
       "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "integrationBranch": "codex/gameplay-offline",
       "implementationBaseCommit": "4a544076947468661b38efc7f254144cd145c5bd",
@@ -13305,10 +13305,16 @@
       "reviewer": "playtest_observation_reviewer",
       "merger": "planning_budget_merger",
       "verifiedRootDirectSubIssues": 100,
-      "verifiedParentNativeSubIssues": 65,
-      "verifiedParentCompletedSubIssues": 62,
+      "verifiedParentNativeSubIssues": 66,
+      "verifiedParentCompletedSubIssues": 64,
       "sourceReviewedCommit": "dc147da98a642e7ce4e16b89f6c96fe8e0d14d10",
-      "rootSourceIntegrationApproved": true
+      "rootSourceIntegrationApproved": true,
+      "stateReason": "completed",
+      "sourceIntegratedCommit": "07c66a01ee871e3f8240e65cc5b4455afd9c5f6c",
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/172#issuecomment-6604322045",
+      "scope": "这是后续普通交付的反馈功能。合成拒绝不代表真实玩家作出决定，目标游戏与真实用户体验仍待验收。",
+      "verification": "四个文件与批准版本逐字节一致，离线集成的类型检查、构建和编号意见代表（1/1，无跳过）通过。该代表使用模拟 stdin 明确拒绝，在完成态 resume 中读回同一 criterionId 与观察。保存反馈前后的自动报告及快照保持原字节。测试只写入临时夹具的合成决定。",
+      "userExperience": "not_confirmed"
     },
     {
       "taskId": "COS-172",
@@ -13320,8 +13326,8 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "parentChecklistLine": "- [ ] [COS-172 · 独立交付包附上本版试玩清单](https://github.com/lrfluobida/Cosmos/issues/173)",
+      "parentCheckboxChecked": true,
+      "parentChecklistLine": "- [x] [COS-172 · 独立交付包附上本版试玩清单](https://github.com/lrfluobida/Cosmos/issues/173)",
       "dependsOn": [
         "COS-170",
         "COS-111"
@@ -13341,10 +13347,10 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/112"
         }
       ],
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-approved-awaiting-integration",
-      "implementationPhase": "awaiting-offline-integration",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-integrated-gameplay-offline",
+      "implementationPhase": "offline-source-scoped-complete",
       "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "integrationBranch": "codex/gameplay-offline",
       "implementationBaseCommit": "4a544076947468661b38efc7f254144cd145c5bd",
@@ -13358,9 +13364,15 @@
       "merger": "planning_budget_merger",
       "verifiedRootDirectSubIssues": 100,
       "verifiedParentNativeSubIssues": 66,
-      "verifiedParentCompletedSubIssues": 62,
+      "verifiedParentCompletedSubIssues": 64,
       "sourceReviewedCommit": "f8fe82cf8e8ee65dad0fff5aae2351c8bc73935c",
-      "rootSourceIntegrationApproved": true
+      "rootSourceIntegrationApproved": true,
+      "stateReason": "completed",
+      "sourceIntegratedCommit": "4f0548e89dc4f7610c502546264453d2bfec6707",
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/173#issuecomment-6604467878",
+      "scope": "模型决策由脚本提供，本次试玩及拒绝均为专用 TEMP 夹具中的模拟行为。包内清单不产生用户决定，实际游戏和真实用户体验另行验收。",
+      "verification": "四个批准文件与 COS171 的四个文件无交叉，八个文件分别与各自批准版本逐字节一致。离线类型检查、构建、带条目及空列表的真实打包代表 2/2 通过。完整组合用例由独立验证者执行一次，覆盖生产 CLI、SDK 工具、构建、两个 Edge 进程及同源重开。交付包与评审副本的清单一致，并以合成意见验证显式拒绝后的 status/resume 读回。 两份改动测试的 strict 编译也通过。扩大到旧宿主回归的结果为 16/17，剩余的时限用例在修改前的基线也失败，保留为已有缺口。",
+      "userExperience": "not_confirmed"
     }
   ],
   "verifiedNativeSubIssues": 100,

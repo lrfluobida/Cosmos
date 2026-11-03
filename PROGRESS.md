@@ -4,9 +4,13 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-2026-11-03 [COS172 / #173](https://github.com/lrfluobida/Cosmos/issues/173) 已登记。最终源码经独审及 Root 批准，待离线集成。普通游戏打包器在封存新候选前，从本次运行已核实的原始确认来源读取主观体验条目，按原顺序写入包内 README.zh-CN.md。玩家可在已交付目录中查看本版的编号、描述、试玩步骤及期望表现。 [规格](docs/specs/cos172-portable-playtest-guide.md)
+2026-11-03 [COS172 / #173](https://github.com/lrfluobida/Cosmos/issues/173) 已在 `codex/gameplay-offline` 离线源码范围完成。`portable_checklist_reviewer` 独立批准 `f8fe82cf8e8ee65dad0fff5aae2351c8bc73935c`，Root 放行后由唯一 merger 集成到 `4f0548e89dc4f7610c502546264453d2bfec6707`。普通交付包在封存前从可信确认来源读取该版主观体验要求，按原顺序将编号、描述、试玩步骤和期望写入 README.zh-CN.md。清单关联运行及候选版本，特殊字符和换行按文字呈现。没有条目时保留整体体验指引。 [发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/173#issuecomment-6604467878)
 
-2026-11-03 [COS171 / #172](https://github.com/lrfluobida/Cosmos/issues/172) 已登记。最终源码经独审及 Root 批准，待离线集成。玩家可在 `experience` 输入 `changes`，选择当前交付已确认的一项主观体验要求，或输入 0 表示整体体验。输入一条有长度限制、非空的单行实际表现后，先显示将记录的意见，只有再明确输入 `reject` 才保存。 [规格](docs/specs/cos171-bound-player-observation.md)
+四个批准文件与 COS171 的四个文件无交叉，八个文件分别与各自批准版本逐字节一致。离线类型检查、构建、带条目及空列表的真实打包代表 2/2 通过。完整组合用例由独立验证者执行一次，覆盖生产 CLI、SDK 工具、构建、两个 Edge 进程及同源重开。交付包与评审副本的清单一致，并以合成意见验证显式拒绝后的 status/resume 读回。 两份改动测试的 strict 编译也通过。扩大到旧宿主回归的结果为 16/17，剩余的时限用例在修改前的基线也失败，保留为已有缺口。 模型决策由脚本提供，本次试玩及拒绝均为专用 TEMP 夹具中的模拟行为。包内清单不产生用户决定，实际游戏和真实用户体验另行验收。 组合 TEMP 用例 1/1 通过，23 次脚本 SDK 回复、0 次外部请求。两个真实 Edge 进程完成退出并验证存档恢复。候选、审查副本与确认来源的清单及 CLI 编号一致。模拟玩家预览后显式拒绝，独立 `status` 和 `resume` 读回了相同意见。前后四份原始记录逐字节一致。真实游戏与真实玩家体验仍待验收。
+
+2026-11-03 [COS171 / #172](https://github.com/lrfluobida/Cosmos/issues/172) 已在 `codex/gameplay-offline` 离线源码范围完成。`playtest_observation_reviewer` 独立批准 `dc147da98a642e7ce4e16b89f6c96fe8e0d14d10`，Root 放行后由唯一 merger 集成到 `07c66a01ee871e3f8240e65cc5b4455afd9c5f6c`。玩家可在 `experience` 选择 `changes`，指定已确认清单编号或 0（整体体验），填写一条实际表现并预览。只有随后明确输入 `reject` 才保存意见。记录绑定原确认条目、报告和候选，精确重试幂等，不同意见不能覆盖已有决定；现有无附注回执保持兼容。意见作为原文展示，不会自动启动修复。 [发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/172#issuecomment-6604322045)
+
+四个文件与批准版本逐字节一致，离线集成的类型检查、构建和编号意见代表（1/1，无跳过）通过。该代表使用模拟 stdin 明确拒绝，在完成态 resume 中读回同一 criterionId 与观察。保存反馈前后的自动报告及快照保持原字节。测试只写入临时夹具的合成决定。 这是后续普通交付的反馈功能。合成拒绝不代表真实玩家作出决定，目标游戏与真实用户体验仍待验收。
 
 2026-11-03 [COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已在 `codex/gameplay-offline` 离线源码范围完成。`portable_play_reviewer` 独立审查 `dc62ab464066ff937e3f87e15340a0e0d795831f`，Root 放行后由唯一 merger 集成到 `282e271afebba230f82a6301b565c46ecacfec3a`。可信打包器在封存前向新游戏目录写入 `Play.cmd` 和启动说明。Windows 玩家在安装 Node 22 后可以双击启动本地只读服务，服务绑定端口后才向系统传递本次实际 URL。桌面打开失败时仍可手动访问。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/171#issuecomment-6603413798)
 

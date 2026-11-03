@@ -1,10 +1,8 @@
 # COS172 · 独立交付包附上本版试玩清单
 
-[COS172 / #173](https://github.com/lrfluobida/Cosmos/issues/173) 已登记。最终源码经独审及 Root 批准，待离线集成。普通游戏打包器在封存新候选前，从本次运行已核实的原始确认来源读取主观体验条目，按原顺序写入包内 README.zh-CN.md。玩家可在已交付目录中查看本版的编号、描述、试玩步骤及期望表现。
+[COS172 / #173](https://github.com/lrfluobida/Cosmos/issues/173) 已在 `codex/gameplay-offline` 离线源码范围完成。`portable_checklist_reviewer` 独立批准 `f8fe82cf8e8ee65dad0fff5aae2351c8bc73935c`，Root 放行后由唯一 merger 集成到 `4f0548e89dc4f7610c502546264453d2bfec6707`。普通交付包在封存前从可信确认来源读取该版主观体验要求，按原顺序将编号、描述、试玩步骤和期望写入 README.zh-CN.md。清单关联运行及候选版本，特殊字符和换行按文字呈现。没有条目时保留整体体验指引。 [发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/173#issuecomment-6604467878)
 
-清单关联运行和候选版本，只展示所需条目。空清单给出整体体验指引。描述中的中文、换行和 Markdown 特殊符号按文字呈现，不能变成意外链接或指令。清单本身不写入玩家决定。
-
-TEMP 中使用真实打包和宿主路径，比对确认需求、封存候选及评审副本里的说明，并检查既有双击和手动启动方式。验证材料使用合成需求。 原生父任务为 COS18/#19，直接依赖 [COS-170 / #171](https://github.com/lrfluobida/Cosmos/issues/171)、[COS-111 / #112](https://github.com/lrfluobida/Cosmos/issues/112)。实现者 `portable_checklist_implementer`，独审 `portable_checklist_reviewer`，唯一 merger `planning_budget_merger` 集成到 `codex/gameplay-offline`。
+四个批准文件与 COS171 的四个文件无交叉，八个文件分别与各自批准版本逐字节一致。离线类型检查、构建、带条目及空列表的真实打包代表 2/2 通过。完整组合用例由独立验证者执行一次，覆盖生产 CLI、SDK 工具、构建、两个 Edge 进程及同源重开。交付包与评审副本的清单一致，并以合成意见验证显式拒绝后的 status/resume 读回。 两份改动测试的 strict 编译也通过。扩大到旧宿主回归的结果为 16/17，剩余的时限用例在修改前的基线也失败，保留为已有缺口。 模型决策由脚本提供，本次试玩及拒绝均为专用 TEMP 夹具中的模拟行为。包内清单不产生用户决定，实际游戏和真实用户体验另行验收。 组合 TEMP 用例 1/1 通过，23 次脚本 SDK 回复、0 次外部请求。两个真实 Edge 进程完成退出并验证存档恢复。候选、审查副本与确认来源的清单及 CLI 编号一致。模拟玩家预览后显式拒绝，独立 `status` 和 `resume` 读回了相同意见。前后四份原始记录逐字节一致。真实游戏与真实玩家体验仍待验收。
 
 批准规格原稿 SHA256 为 `e00eb425d04ad6941b478c2a7d9f1e2dde4d00c17ce575ca7ab15b359d265b37`。
 

@@ -1,10 +1,8 @@
 # COS171 · 记录当前交付的具体试玩意见
 
-[COS171 / #172](https://github.com/lrfluobida/Cosmos/issues/172) 已登记。最终源码经独审及 Root 批准，待离线集成。玩家可在 `experience` 输入 `changes`，选择当前交付已确认的一项主观体验要求，或输入 0 表示整体体验。输入一条有长度限制、非空的单行实际表现后，先显示将记录的意见，只有再明确输入 `reject` 才保存。
+[COS171 / #172](https://github.com/lrfluobida/Cosmos/issues/172) 已在 `codex/gameplay-offline` 离线源码范围完成。`playtest_observation_reviewer` 独立批准 `dc147da98a642e7ce4e16b89f6c96fe8e0d14d10`，Root 放行后由唯一 merger 集成到 `07c66a01ee871e3f8240e65cc5b4455afd9c5f6c`。玩家可在 `experience` 选择 `changes`，指定已确认清单编号或 0（整体体验），填写一条实际表现并预览。只有随后明确输入 `reject` 才保存意见。记录绑定原确认条目、报告和候选，精确重试幂等，不同意见不能覆盖已有决定；现有无附注回执保持兼容。意见作为原文展示，不会自动启动修复。 [发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/172#issuecomment-6604322045)
 
-意见按原始 criterionId 或整体体验绑定到同一报告和候选，之后可在 status、resume 和 experience 中读回。取消、EOF、中断、非法输入及版本漂移都不能产生决定。原有 approve/reject 和无附注历史回执继续按原契约处理，精确重试幂等，不同意见不能覆盖已经保存的决定。反馈作为原文数据展示，不触发自动修复。
-
-用 TEMP 目录和模拟 stdin 检验提交、取消、冲突、篡改与状态回读。测试使用合成决定，实际用户体验另行确认。 原生父任务为 COS18/#19，直接依赖 [COS-34 / #35](https://github.com/lrfluobida/Cosmos/issues/35)、[COS-111 / #112](https://github.com/lrfluobida/Cosmos/issues/112)。实现者 `playtest_observation_implementer`，独审 `playtest_observation_reviewer`，唯一 merger `planning_budget_merger` 集成到 `codex/gameplay-offline`。
+四个文件与批准版本逐字节一致，离线集成的类型检查、构建和编号意见代表（1/1，无跳过）通过。该代表使用模拟 stdin 明确拒绝，在完成态 resume 中读回同一 criterionId 与观察。保存反馈前后的自动报告及快照保持原字节。测试只写入临时夹具的合成决定。 这是后续普通交付的反馈功能。合成拒绝不代表真实玩家作出决定，目标游戏与真实用户体验仍待验收。
 
 批准规格原稿 SHA256 为 `ef68c2fe7e6dbba94810fcfdb4b94a556b1da25edba81d8a99b156ff5d9c5a8e`。
 
