@@ -117,7 +117,16 @@ test('public ordinary requirements reuse repairs the authored plan and delivers 
     })());
     return runtime;
   });
-  const host = createProductHost(installed, { sessionFactory: (config: PiSessionOptions) => role.run(JSON.parse(config.context), () => createPiSession(config)) });
+  let reviewerReadme: Buffer | undefined;
+  const host = createProductHost(installed, { sessionFactory: async (config: PiSessionOptions) => {
+    const packet = JSON.parse(config.context);
+    if (packet.role === 'reviewer' && packet.taskId === 'coding-task') {
+      assert.notEqual(config.workspace, root);
+      const candidate = packet.inputs.find((ref: any) => ref.artifactId === 'game');
+      reviewerReadme = await readFile(join(config.workspace, candidate.location, 'README.zh-CN.md'));
+    }
+    return role.run(packet, () => createPiSession(config));
+  } });
   const io = () => ({ host, input: Readable.from([]), output: silentOutput() });
   const result: any = await runCli(['new', root, '--requirements-from', source.root, '--requirements-revision', '2', '--max-minutes', '5'], io());
   if (failures.length) throw failures[0];
@@ -140,6 +149,12 @@ test('public ordinary requirements reuse repairs the authored plan and delivers 
   assert.equal(build.passed, true); assert.deepEqual(build.results.map((command: any) => command.code), [0, 0]);
   assert.equal(media.coverage.complete, true); assert.equal(media.coverage.valid, true);
   const candidate = report.acceptedCandidate.candidateRef;
+  const readme = await readFile(join(root, result.delivery, 'README.zh-CN.md'));
+  assert.deepEqual(readme, reviewerReadme);
+  const guide = readme.toString('utf8');
+  assert.match(guide, /### 体验条目 1\n\n    标识：readable\n    要求：存档状态清楚\n    步骤 1：购买保存后查看状态\n    期望：容易辨认/);
+  assert.doesNotMatch(guide, /状态清楚呈现/);
+  assert.ok(!guide.includes(draft.brief) && !guide.includes(root));
   assert.deepEqual(delivery.candidate, candidate); assert.equal(result.delivery, candidate.location);
   assert.equal(delivery.outcome, 'passed'); assert.equal(delivery.helperExited, true); assert.notEqual(delivery.project, join(root, result.delivery));
   assert.equal(browser.outcome, 'passed'); assert.equal(browser.segments.length, 2);

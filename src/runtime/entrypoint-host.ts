@@ -1118,7 +1118,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             await writeJson(root, `evidence/${task.taskId}/build.json`, checked);
             if (checked.passed) {
               await requireDispatch(task, signal);
-              await packageStandalone({ root, project, candidate: ref, task, registry, signal });
+              await packageStandalone({ root, project, candidate: ref, task, registry, signal, experienceCriteria: ordinaryDraft?.experienceCriteria });
             }
             if (!checked.passed) {
               if (preparation?.candidateConsumer) {

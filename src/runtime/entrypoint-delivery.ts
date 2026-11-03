@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { sameValue } from '../contracts/validation.ts';
 import type { ArtifactReference, TaskContract } from '../contracts/index.ts';
 import type { ArtifactRegistry } from '../artifacts/index.ts';
+import type { ExperienceCriterion } from '../roles/ordinary-profile.ts';
 import { directory, regularFile, removeOwned, safePath, snapshot } from '../artifacts/paths.ts';
 import type { RunController } from './run.ts';
 import type { OwnedWork } from './recovery/owned-work.ts';
@@ -33,8 +34,23 @@ const windowsPlay = [
   '',
 ].join('\r\n');
 
+function playtestGuide(candidate: ArtifactReference, criteria: readonly ExperienceCriterion[]) {
+  const version = `${candidate.artifactId}@${candidate.version}`;
+  const lines = ['', '## 试玩反馈清单', ''];
+  if (!criteria.length) return [...lines, `请将整体试玩感受发给提供游戏的人，并附上本页开头的运行标识和候选版本 ${version}。`, ''].join('\n');
+  lines.push(`请按顺序试玩，将条目编号、实际感受和希望调整的地方发给提供游戏的人，并附上本页开头的运行标识和候选版本 ${version}。`);
+  for (const [index, item] of criteria.entries()) {
+    const fields = [`标识：${item.criterionId}`, `要求：${item.description}`,
+      ...item.steps.map((step, i) => `步骤 ${i + 1}：${step}`), `期望：${item.expected}`];
+    // Indent every physical line so Markdown renders confirmed text literally.
+    lines.push('', `### 体验条目 ${index + 1}`, '', '    ' + fields.join('\n').replace(/\r\n?|\n/g, '\n    '));
+  }
+  return lines.join('\n') + '\n';
+}
+
 /** Called inside the original unsealed candidate build callback. */
-export async function packageStandalone(input: { root: string; project: string; candidate: ArtifactReference; task: Readonly<TaskContract>; registry: ArtifactRegistry; signal: AbortSignal }) {
+export async function packageStandalone(input: { root: string; project: string; candidate: ArtifactReference; task: Readonly<TaskContract>;
+  registry: ArtifactRegistry; signal: AbortSignal; experienceCriteria?: readonly ExperienceCriterion[] }) {
   const { root, project, candidate, task, registry, signal } = input;
   if (await safePath(root, candidate.location) !== project) throw new Error('Delivery project differs from its fixed candidate.');
   const sealed = await lstat(await safePath(root, `${dirname(candidate.location).replaceAll('\\', '/')}/sealed.json`)).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
@@ -78,7 +94,8 @@ export async function packageStandalone(input: { root: string; project: string; 
     source: ['src', 'index.html'], build: 'dist', dependencies: ['package.json', 'package-lock.json'], captures: captures.map(capture => capture.artifactRef) }, signal);
   await publishReceipt(await safePath(project, '_cosmos/sources.json'), { formatVersion: 'delivery-sources/1', candidate,
     captures: captures.map(capture => ({ artifact: capture.artifactRef, kind: capture.metadata.kind, provenance: capture.metadata.provenance })), dependencies }, signal);
-  await writeFile(await safePath(project, 'README.zh-CN.md'), `# 游戏启动说明\n\n交付版本：${candidate.artifactId}@${candidate.version}；运行：${task.runId}。\n\n已有 Node 22 和桌面浏览器即可离线运行。完整复制此目录，在 Windows 上双击 \`Play.cmd\` 即可试玩。游戏运行时请保留启动窗口，按 Ctrl+C 可停止服务。如果浏览器未自动打开，请打开窗口中显示的本机 URL。\n\n也可以在此目录的终端执行：\n\n\`\`\`powershell\nnode standalone-launcher.mjs\n\`\`\`\n\n在浏览器打开终端显示的本机 URL。指定端口可执行 \`node standalone-launcher.mjs --port 4173\`；端口占用会报错，请换端口。按 Ctrl+C 停止服务。\n\n源码位于 src/ 与 index.html，已构建游戏位于 dist/。运行不需要安装依赖。重建时使用 package-lock.json 锁定依赖，安装后运行 package.json 的 build 命令。素材与依赖来源见 _cosmos/sources.json，依赖许可文本见 _cosmos/licenses/。\n\n自动验收报告在原 Cosmos 运行目录的 delivery/current-report.json 中引用，接受后才发布。单独复制本游戏目录时，可另带该引用对应的报告 sidecar；该报告与最终试玩记录按交付版本绑定。\n`, { encoding: 'utf8', flag: 'wx' });
+  const guide = input.experienceCriteria ? playtestGuide(candidate, input.experienceCriteria) : '';
+  await writeFile(await safePath(project, 'README.zh-CN.md'), `# 游戏启动说明\n\n交付版本：${candidate.artifactId}@${candidate.version}；运行：${task.runId}。\n\n已有 Node 22 和桌面浏览器即可离线运行。完整复制此目录，在 Windows 上双击 \`Play.cmd\` 即可试玩。游戏运行时请保留启动窗口，按 Ctrl+C 可停止服务。如果浏览器未自动打开，请打开窗口中显示的本机 URL。\n\n也可以在此目录的终端执行：\n\n\`\`\`powershell\nnode standalone-launcher.mjs\n\`\`\`\n\n在浏览器打开终端显示的本机 URL。指定端口可执行 \`node standalone-launcher.mjs --port 4173\`；端口占用会报错，请换端口。按 Ctrl+C 停止服务。\n\n源码位于 src/ 与 index.html，已构建游戏位于 dist/。运行不需要安装依赖。重建时使用 package-lock.json 锁定依赖，安装后运行 package.json 的 build 命令。素材与依赖来源见 _cosmos/sources.json，依赖许可文本见 _cosmos/licenses/。\n\n自动验收报告在原 Cosmos 运行目录的 delivery/current-report.json 中引用，接受后才发布。单独复制本游戏目录时，可另带该引用对应的报告 sidecar；该报告与最终试玩记录按交付版本绑定。\n${guide}`, { encoding: 'utf8', flag: 'wx' });
 }
 
 export interface CleanDelivery {

@@ -42,6 +42,7 @@ async function fixture(t: test.TestContext, durationMs = 60000) {
 
 test('standalone package records exact capture provenance and rejects altered promotion bytes', async t => {
   const f = await fixture(t); await f.pack();
+  assert.doesNotMatch(await readFile(join(f.project, 'README.zh-CN.md'), 'utf8'), /试玩反馈清单/);
   await assert.rejects(withCleanDelivery({ ...f.input, project: join(f.root, 'fixture') }, async () => assert.fail('Wrong path launched')), /fixed candidate path/i);
   const sources = JSON.parse(await readFile(join(f.project, '_cosmos/sources.json'), 'utf8'));
   assert.deepEqual(sources.captures[0].provenance.sourceRefs, ['test:generic-input']); assert.deepEqual(sources.dependencies, []);
@@ -50,6 +51,30 @@ test('standalone package records exact capture provenance and rejects altered pr
   await writeFile(join(f.project, 'README.zh-CN.md'), '已变动\n', 'utf8');
   await assert.rejects(f.registry.promoteCandidate(f.candidate, { evidence: proof, review: { candidateRef: f.candidate, attemptId: proof.attemptId,
     reviewerId: 'independent-fixture', contextId: 'independent-context', verdict: 'approved', evidenceIds: ['fixture'] } }), /snapshot changed/i);
+});
+
+test('ordinary package prints numbered literal criteria for portable feedback', async t => {
+  const f = await fixture(t);
+  const experienceCriteria = [
+    { criterionId: ' 中文 标识 ', description: '状态清楚\r\n\r\n![图](https://example.invalid)', steps: ['按下按钮\r# 标题', '再按一次'], expected: '容易辨认' },
+    { criterionId: 'audio', description: '听感', steps: ['播放'], expected: '余音\n```\n<script>脚本</script>' },
+  ];
+  await packageStandalone({ ...f, experienceCriteria });
+  const guide = (await readFile(join(f.project, 'README.zh-CN.md'), 'utf8')).split('## 试玩反馈清单\n')[1];
+  assert.ok(guide);
+  assert.match(guide, /game@v1/);
+  assert.ok(guide.includes('### 体验条目 1\n\n    标识： 中文 标识 \n    要求：状态清楚\n    \n    ![图](https://example.invalid)\n    步骤 1：按下按钮\n    # 标题\n    步骤 2：再按一次\n    期望：容易辨认'));
+  assert.ok(guide.includes('### 体验条目 2\n\n    标识：audio\n    要求：听感\n    步骤 1：播放\n    期望：余音\n    ```\n    <script>脚本</script>'));
+});
+
+test('ordinary package without additional criteria requests overall playtest feedback', async t => {
+  const f = await fixture(t);
+  await packageStandalone({ ...f, experienceCriteria: [] });
+  const guide = (await readFile(join(f.project, 'README.zh-CN.md'), 'utf8')).split('## 试玩反馈清单\n')[1];
+  assert.ok(guide);
+  assert.match(guide, /game@v1/);
+  assert.match(guide, /整体试玩感受/);
+  assert.doesNotMatch(guide, /### 体验条目/);
 });
 
 test('clean package version and copy bytes must match before a normal-input result can pass', async t => {
