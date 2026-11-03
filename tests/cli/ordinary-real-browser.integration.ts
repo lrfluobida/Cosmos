@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { spawnSync } from 'node:child_process';
 import { cp, mkdir, mkdtemp, readFile, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, relative, sep } from 'node:path';
@@ -88,7 +89,8 @@ test('public ordinary requirements reuse repairs the authored plan and delivers 
   await cp(template, target, { recursive: true, filter: file => !['dist', 'node_modules'].includes(relative(template, file).split(sep)[0]) });
   const modules = await realpath(join(process.env.COSMOS_TEMPLATE_ROOT ?? template, 'node_modules'));
   await cp(modules, join(target, 'node_modules'), { recursive: true, dereference: true });
-  const source = await confirmedSource(t, { draft, intake: true });
+  const source = await confirmedSource(t, { draft, intake: true, callerOwnedRoot: join(sandbox, 'source') });
+  const sourceSnapshot = await readFile(join(source.root, 'snapshot.json'));
   const root = join(sandbox, 'run'), roles: string[] = [], failures: unknown[] = [];
   let externalRequests = 0;
   const nativeFetch = globalThis.fetch;
@@ -147,10 +149,20 @@ test('public ordinary requirements reuse repairs the authored plan and delivers 
     assert.equal(segment.session.exitConfirmed, true); assert.equal(segment.cleanup.processExited, true);
   }
   assert.ok((await readFile(join(root, result.delivery, 'dist/index.html'), 'utf8')).includes('generic-save'));
-  const before = await readFile(join(root, 'snapshot.json')), calls = roles.length;
-  const resumed: any = await runCli(['resume', root], io());
-  assert.deepEqual(await readFile(join(root, 'snapshot.json')), before); assert.equal(resumed.report, result.report);
-  assert.equal(resumed.userExperience, 'not_confirmed'); assert.equal(roles.length, calls); assert.equal(externalRequests, 0);
-  t.diagnostic(JSON.stringify({ root, report: result.report, delivery: result.delivery, scriptedSdkDispatches: calls, externalRequests,
+  const before = await readFile(join(root, 'snapshot.json'));
+  const guard = `import { Socket } from 'node:net';
+    import { ModelRuntime } from ${JSON.stringify(import.meta.resolve('@earendil-works/pi-coding-agent'))};
+    ModelRuntime.create = () => process.exit(91);
+    Socket.prototype.connect = globalThis.fetch = () => process.exit(92);`;
+  const child = spawnSync(process.execPath, ['--import', 'data:text/javascript,' + encodeURIComponent(guard), join(repository, 'dist/cli/index.js'), 'resume', root],
+    { encoding: 'utf8', windowsHide: true, timeout: 30_000, env: { SYSTEMROOT: process.env.SYSTEMROOT, TEMP: isolated, TMP: isolated, TMPDIR: isolated } });
+  assert.equal(child.status, 0, String(child.error ?? child.stderr));
+  const resumed = JSON.parse(child.stdout);
+  assert.equal(resumed.outcome, result.outcome); assert.equal(resumed.report, result.report);
+  assert.deepEqual(resumed.acceptanceScope.ordinaryConfirmation.requirementsSource, state.requirementsSource);
+  assert.deepEqual(await readFile(join(source.root, 'snapshot.json')), sourceSnapshot);
+  assert.deepEqual(await readFile(join(root, 'snapshot.json')), before);
+  assert.equal(resumed.userExperience, 'not_confirmed'); assert.equal(externalRequests, 0);
+  t.diagnostic(JSON.stringify({ root, report: result.report, delivery: result.delivery, scriptedSdkDispatches: roles.length, externalRequests,
     browserPids: [first.session.browserPid, second.session.browserPid], savedAtClose: first.savedAtClose.actual, userExperience: resumed.userExperience }));
 });

@@ -15,8 +15,8 @@ export async function temporaryRun(t: TestContext) {
   t.after(() => removeOwned(tmpdir(), root)); return root;
 }
 /** The original public stdin path owns the only human confirmation, at revision 2. */
-export async function confirmedSource(t: TestContext, options: { draft?: OrdinaryGameDraft; intake?: boolean; unconfirmed?: boolean; frames?: boolean; charged?: boolean } = {}) {
-  const root = await temporaryRun(t), draft = options.draft ?? ordinaryDraft();
+export async function confirmedSource(t: TestContext, options: { draft?: OrdinaryGameDraft; intake?: boolean; unconfirmed?: boolean; frames?: boolean; charged?: boolean; callerOwnedRoot?: string } = {}) {
+  const root = options.callerOwnedRoot ?? await temporaryRun(t), draft = options.draft ?? ordinaryDraft();
   let prepares = 0;
   const host = { ordinaryProfile: 'ordinary-design/1' as const,
     async prepare() { return { environmentReady: true, executionReady: !(options.intake && ++prepares === 2) }; },
