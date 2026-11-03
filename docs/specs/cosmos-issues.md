@@ -1,6 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-11-03 [COS164 / #165](https://github.com/lrfluobida/Cosmos/issues/165) 已登记。`offline_repair_origin_reviewer` 对固定规格给出 APPROVED_DESIGN，Root 批准 `offline_repair_origin_implementer` 实施，源码待独审。三项已有测试复现了同一个问题：在允许通用设计修复的普通运行中，初稿缺失、JSON 无效、玩法覆盖缺失都会登记替换任务，但重建的来源与原 journal 不匹配，修复作者无法接手。本卡恢复这一次原有修复，并按已核实的替换关系区分原始设计、独立修订与通用替换任务。通用修复与续跑均没有 `budget-followup/1` 的额外收尾权限。 原生父任务58项，其中55项已关闭。
+2026-11-03 COS164 的离线源码范围已完成。`offline_repair_origin_reviewer` 已独立批准精确源码 `30102bf3b26aef82caa790652de35e1967d8a734`，无剩余 finding。Root 授权唯一 merger 合入 `codex/gameplay-offline`。 运行时提交 `2021750d901bc2c719cabde9116aa4230ea6e9d8`。在允许通用设计修复的普通运行中，派发与冷恢复现在根据已验证的替换关系使用各自登记的来源。初稿缺失、JSON 无效或漏掉玩法覆盖时，原设计保留自己的收尾策略，唯一通用替换设计任务可继续修复，且 journal 和 Pi 均不给它额外收尾权限。 GitHub #165 已关闭，父 #19 保持开放，58 项子任务中 56 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/165#issuecomment-6597365086)
+
+3 个批准文件逐字节一致。离线集成的 typecheck、build 通过，JSON 无效初稿的生产入口 TEMP 代表 1/1 通过，验证了唯一修复、原始与替换任务的实际作者配置及后继版本绑定。三类原故障已在旧基线复现，修复后作者定向 4/4 含篡加标记零派发和恢复原 journal 的冷启动。既有 F1 编码修复通过，独审另核获准设计修订转编码修复并冷恢复 1/1。该长链的结果直接复用。 另有既存失败：`ordinary-design-budget-finalization.test.ts:225` 的 COS136 F1 supported continuation 在旧基线与本候选同为失败，未计入通过数。R27 采用独立修订流程，此项通用修复仅在离线生产入口与合成响应中验证。实际游戏及体验验收仍未完成。
 
 2026-11-03 COS163 的离线源码范围已完成。`offline_plan_reviewer` 已批准最终源码 `7a8b23474a735b5cb62b7a1d3b2369b2d1a5ede5`，P2 已复核关闭。Root 批准将该提交集成到 `codex/gameplay-offline`。 运行时提交 `a86cc321e070664dc1023db14124505ea8f1d41f`。新普通任务及其修订在 `/3` 下可定位断言或等待步骤中误用的体验 ID。作者在同一阶段显式指定 1 至 16 处 `stepId/from/to`，通过整批检查后一次写入，失败保留原稿。 GitHub #164 已关闭，父 #19 保持开放，57 项子任务中 55 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/164#issuecomment-6597169025)
 
@@ -2361,13 +2363,11 @@ GitHub ID `6177505838`，原生父 COS18/#19、[x]，依赖 COS147/#148 与 COS1
 
 ### COS-164 · 恢复普通设计修复任务的原有执行范围
 
-[COS164 / #165](https://github.com/lrfluobida/Cosmos/issues/165) 已登记。`offline_repair_origin_reviewer` 对固定规格给出 APPROVED_DESIGN，Root 批准 `offline_repair_origin_implementer` 实施，源码待独审。三项已有测试复现了同一个问题：在允许通用设计修复的普通运行中，初稿缺失、JSON 无效、玩法覆盖缺失都会登记替换任务，但重建的来源与原 journal 不匹配，修复作者无法接手。本卡恢复这一次原有修复，并按已核实的替换关系区分原始设计、独立修订与通用替换任务。通用修复与续跑均没有 `budget-followup/1` 的额外收尾权限。
+COS164 的离线源码范围已完成。`offline_repair_origin_reviewer` 已独立批准精确源码 `30102bf3b26aef82caa790652de35e1967d8a734`，无剩余 finding。Root 授权唯一 merger 合入 `codex/gameplay-offline`。 运行时提交 `2021750d901bc2c719cabde9116aa4230ea6e9d8`。在允许通用设计修复的普通运行中，派发与冷恢复现在根据已验证的替换关系使用各自登记的来源。初稿缺失、JSON 无效或漏掉玩法覆盖时，原设计保留自己的收尾策略，唯一通用替换设计任务可继续修复，且 journal 和 Pi 均不给它额外收尾权限。 GitHub #165 已关闭，父 #19 保持开放，58 项子任务中 56 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/165#issuecomment-6597365086)
 
-父任务为 COS18/#19，直接依赖 [COS136 / #137](https://github.com/lrfluobida/Cosmos/issues/137) 第 3 节的来源与收尾政策。原始设计及合法独立修订仍按其各自已认证策略工作。R27 采用独立设计修订流程，本任务的通用修复回归由离线测试验证。唯一 merger `planning_budget_merger` 在 Root 精确放行后集成到 `codex/gameplay-offline`。
+3 个批准文件逐字节一致。离线集成的 typecheck、build 通过，JSON 无效初稿的生产入口 TEMP 代表 1/1 通过，验证了唯一修复、原始与替换任务的实际作者配置及后继版本绑定。三类原故障已在旧基线复现，修复后作者定向 4/4 含篡加标记零派发和恢复原 journal 的冷启动。既有 F1 编码修复通过，独审另核获准设计修订转编码修复并冷恢复 1/1。该长链的结果直接复用。 另有既存失败：`ordinary-design-budget-finalization.test.ts:225` 的 COS136 F1 supported continuation 在旧基线与本候选同为失败，未计入通过数。R27 采用独立修订流程，此项通用修复仅在离线生产入口与合成响应中验证。实际游戏及体验验收仍未完成。
 
-批准规格原稿 SHA256 为 `2961a144c7b50d32640b032421d193cf495b7ee973e6042b04b452bc7c865338`。
-
-GitHub ID `6177691732`，源码基线 `a86cc321e070664dc1023db14124505ea8f1d41f`，状态 `source-pending`。[正式规格](cos164-ordinary-repair-origin-scope.md)
+GitHub ID `6177691732`，原生父 COS18/#19、[x]，依赖 COS136/#137。作者 `offline_repair_origin_implementer`，唯一 merger `planning_budget_merger`。[正式规格](cos164-ordinary-repair-origin-scope.md)
 
 ## 5. 任务与上下文包模板
 

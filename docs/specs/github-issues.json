@@ -655,7 +655,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
       "verifiedNativeSubIssues": 58,
       "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164"],
-      "verifiedCompletedSubIssues": 55,
+      "verifiedCompletedSubIssues": 56,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -12848,7 +12848,7 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
+      "parentCheckboxChecked": true,
       "dependsOn": [
         "COS-136"
       ],
@@ -12861,12 +12861,12 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/137"
         }
       ],
-      "parentChecklistLine": "- [ ] [COS-164 · 恢复普通设计修复任务的原有执行范围](https://github.com/lrfluobida/Cosmos/issues/165)",
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-pending",
-      "implementationPhase": "source-pending",
-      "sourceReviewStatus": "pending",
+      "parentChecklistLine": "- [x] [COS-164 · 恢复普通设计修复任务的原有执行范围](https://github.com/lrfluobida/Cosmos/issues/165)",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-integrated-gameplay-offline",
+      "implementationPhase": "offline-source-scoped-complete",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "sourceBaseCommit": "a86cc321e070664dc1023db14124505ea8f1d41f",
       "integrationBranch": "codex/gameplay-offline",
       "formalSpecPath": "docs/specs/cos164-ordinary-repair-origin-scope.md",
@@ -12879,7 +12879,16 @@
       "merger": "planning_budget_merger",
       "verifiedRootDirectSubIssues": 100,
       "verifiedParentNativeSubIssues": 58,
-      "verifiedParentCompletedSubIssues": 55
+      "verifiedParentCompletedSubIssues": 56,
+      "stateReason": "completed",
+      "sourceReviewedCommit": "30102bf3b26aef82caa790652de35e1967d8a734",
+      "sourceIntegratedCommit": "2021750d901bc2c719cabde9116aa4230ea6e9d8",
+      "rootSourceIntegrationApproved": true,
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/165#issuecomment-6597365086",
+      "verification": "Three approved files exact. Offline types/build and1 JSON-defect integration pass. Baseline three defects RED; author final4/4 includes cold origin rejection/recovery. Existing F1 coding repair and independent revision-to-coding-repair cold1/1 passed.",
+      "knownBaselineFailure": "COS136 F1 supported continuation at ordinary-design-budget-finalization.test.ts:225 fails on both previous baseline and candidate; excluded from passing counts.",
+      "actualGameGeneration": "incomplete",
+      "userExperience": "not_confirmed"
     }
   ],
   "verifiedNativeSubIssues": 100,
