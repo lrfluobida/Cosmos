@@ -431,7 +431,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     || ![DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID].every(id => requirement.acceptance.some(item => item.acceptanceId === id))) throw new Error('The browser-input host requires separately confirmed design, media and gameplay checks.');
   const gameplayIds = gameplayAcceptance(draft).map(item => item.acceptanceId);
   const state = await controller.read();
-  let historicalDesign: { source: PreparedTask; policy: HostInput['ordinaryPlanAuthoringPolicy'] } | undefined;
+  let historicalDesign: { source: PreparedTask; policy: NonNullable<HostInput['ordinaryPlanAuthoringPolicy']> } | undefined;
   if (binding) {
     if (!input.resume) throw new Error('A continuation host must reuse its existing registry inputs.');
     await requireContinuationInputs(state, binding.tasks, root);
@@ -439,7 +439,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const execution = await json(root, 'execution.json');
       const policy = readPlanAuthoringPolicy(execution, await optionalDesignJson(root, 'planning-started.json'), true);
       const design = binding.tasks.find(item => item.role === 'design');
-      if (design && !state.continuation!.windows[0].grants.some(grant => grant.taskId === design.task.taskId)) {
+      if (policy && design && !state.continuation!.windows[0].grants.some(grant => grant.taskId === design.task.taskId)) {
         if (!execution.tasks.some((source: PreparedTask) => sameValue(source, design))) throw new Error('Historical design differs from the original execution.');
         // Only this passed ancestor is checked under the original selection. Window dispatch keeps its own policy.
         historicalDesign = { source: design, policy };
