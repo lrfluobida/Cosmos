@@ -84,10 +84,54 @@ test('stopped source is read-only and a paused new intake resumes with the same 
   await assert.rejects(owner.saveDraft(source.draft), /cannot interview/); await assert.rejects(owner.confirm({ revision: 2, confirmed: true, actorId: 'local-user', at: new Date().toISOString() }), /cannot interview/);
   await assert.rejects(owner.reserve({ requestId: 'forbidden', taskId: 'intake', provider: 'fixture', pricingVersion: 'v1', estimatedMaxCostMicroCny: 1 }), /cannot interview/);
   await owner.close();
-  await runCli(['resume', root], { host: { ...noInterviewHost(), ordinaryProfile: undefined }, input: Readable.from([]), output: silentOutput() });
+  const resumed: any = await runCli(['resume', root], { host: { ...noInterviewHost(), ordinaryProfile: undefined }, input: Readable.from([]), output: silentOutput() });
+  assert.equal(resumed.renderFrames, true);
   const state = await snapshot(root); assert.deepEqual(state.requirementsSource, intake.requirementsSource); assert.deepEqual(state.ledger, intake.ledger);
   assert.deepEqual(await readFile(join(source.root, 'snapshot.json')), before);
   await assert.rejects(runCli(['continue', root, '--quote', '--add-cny', '1', '--add-minutes', '1'], { output: silentOutput() }), /仅支持 new\/resume/);
+});
+
+test('frame-enabled reuse rejects changes to the origin before host preparation', async t => {
+  const source = await confirmedSource(t, { frames: true }), root = await temporaryRun(t);
+  let prepares = 0;
+  const host = { ...noInterviewHost(), async prepare() { prepares++; return { environmentReady: false, executionReady: false }; } };
+  const io = () => ({ host, input: Readable.from([]), output: silentOutput() });
+  const result: any = await runCli(newArgs(root, source.root), io());
+  assert.equal(result.outcome, 'waiting_prerequisites');
+  const path = join(root, 'intake-origin.json'), origin = JSON.parse(await readFile(path, 'utf8'));
+  assert.equal(origin.planningAllocation, 'reuse-intake-share');
+  for (const [changed, error] of [
+    [{ ...origin, planningAllocation: 'other' }, /planning allocation selection/i],
+    [{ ...origin, planningAllocation: undefined }, /allocations differ/i],
+    [{ ...origin, unexpected: true }, /render-frame intake identity/i],
+    [{ ...origin, renderFrames: { ...origin.renderFrames, observerSha256: '0'.repeat(64) } }, /requirements origin or identity/i],
+  ] as const) {
+    await writeFile(path, JSON.stringify(changed), 'utf8');
+    await assert.rejects(runCli(['resume', root], io()), error);
+  }
+  const originalPath = join(source.root, 'intake-origin.json');
+  const original = JSON.parse(await readFile(originalPath, 'utf8'));
+  await writeFile(originalPath, JSON.stringify({ ...original, planningAllocation: 'reuse-intake-share' }), 'utf8');
+  await assert.rejects(runCli(['resume', source.root], io()), /render-frame intake identity/i);
+  assert.equal(prepares, 1);
+});
+
+test('active frame-enabled reuse cannot bypass planning allocation checks with a validation ledger', async t => {
+  const source = await confirmedSource(t, { frames: true }), root = await temporaryRun(t);
+  let actions = 0;
+  const host = { ...noInterviewHost(),
+    async prepare() { actions++; return { environmentReady: true, executionReady: true }; },
+    async execute() { actions++; return {}; } };
+  const io = () => ({ host, input: Readable.from([]), output: silentOutput() });
+  await runCli([...newArgs(root, source.root), '--max-cny', '1'], io());
+  const state = await snapshot(root), before = actions;
+  assert.equal(state.formatVersion, 1);
+  state.ledger.scope = 'validation';
+  await writeFile(join(root, 'snapshot.json'), JSON.stringify(state), 'utf8');
+  const path = join(root, 'intake-origin.json'), origin = JSON.parse(await readFile(path, 'utf8'));
+  await writeFile(path, JSON.stringify({ ...origin, planningAllocation: 'other' }), 'utf8');
+  await assert.rejects(runCli(['resume', root], io()), /public generation/i);
+  assert.equal(actions, before);
 });
 
 for (const mode of ['unconfirmed', 'revision', 'nested', 'same', 'frames', 'mixed']) test(`invalid public requirements ${mode} rejects before preparing a host`, async t => {
