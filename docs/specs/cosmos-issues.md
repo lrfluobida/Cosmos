@@ -1,5 +1,7 @@
 # Cosmos 父任务与子任务发布稿
 
+2026-11-03 [COS171 / #172](https://github.com/lrfluobida/Cosmos/issues/172) 已登记。最终源码经独审及 Root 批准，待离线集成。玩家可在 `experience` 输入 `changes`，选择当前交付已确认的一项主观体验要求，或输入 0 表示整体体验。输入一条有长度限制、非空的单行实际表现后，先显示将记录的意见，只有再明确输入 `reject` 才保存。 [规格](cos171-bound-player-observation.md)
+
 2026-11-03 [COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已在 `codex/gameplay-offline` 离线源码范围完成。`portable_play_reviewer` 独立审查 `dc62ab464066ff937e3f87e15340a0e0d795831f`，Root 放行后由唯一 merger 集成到 `282e271afebba230f82a6301b565c46ecacfec3a`。可信打包器在封存前向新游戏目录写入 `Play.cmd` 和启动说明。Windows 玩家在安装 Node 22 后可以双击启动本地只读服务，服务绑定端口后才向系统传递本次实际 URL。桌面打开失败时仍可手动访问。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/171#issuecomment-6603413798)
 
 五个批准文件与候选逐字节一致，先前 COS169 的两个文件也已核对。离线工作区类型检查、构建、启动测试和 opener fixture 的 strict 检查通过。实际 Play.cmd 在干净目录启动服务，测试读取 dist 和正确的 MIME，检查清理及系统打开失败回退。桌面打开动作使用替身。作者六项检查与最终 MIME 定向用例的重叠结果分别记录。含原宿主测试的扩大 strict 检查仍有 16 项在实现前基线逐项复现的诊断。 合入后的完整 COS169 用例再次通过：本次新生成的受控合成候选和审查副本均包含相同的 Play.cmd，关闭前采样及第二个 Edge 进程中的恢复通过，公开 resume 返回同一交付，用户体验仍待确认。
@@ -2440,6 +2442,18 @@ GitHub ID `6181903847`，原生父 COS18/#19、[x]，直接依赖 COS-130/#131�
 五个批准文件与候选逐字节一致，先前 COS169 的两个文件也已核对。离线工作区类型检查、构建、启动测试和 opener fixture 的 strict 检查通过。实际 Play.cmd 在干净目录启动服务，测试读取 dist 和正确的 MIME，检查清理及系统打开失败回退。桌面打开动作使用替身。作者六项检查与最终 MIME 定向用例的重叠结果分别记录。含原宿主测试的扩大 strict 检查仍有 16 项在实现前基线逐项复现的诊断。 合入后的完整 COS169 用例再次通过：本次新生成的受控合成候选和审查副本均包含相同的 Play.cmd，关闭前采样及第二个 Edge 进程中的恢复通过，公开 resume 返回同一交付，用户体验仍待确认。
 
 GitHub ID `6182088095`，原生父 COS18/#19、[x]，直接依赖 COS-65/#66。[正式规格](cos170-windows-playable-package.md)
+
+### COS-171 · 记录当前交付的具体试玩意见
+
+[COS171 / #172](https://github.com/lrfluobida/Cosmos/issues/172) 已登记。最终源码经独审及 Root 批准，待离线集成。玩家可在 `experience` 输入 `changes`，选择当前交付已确认的一项主观体验要求，或输入 0 表示整体体验。输入一条有长度限制、非空的单行实际表现后，先显示将记录的意见，只有再明确输入 `reject` 才保存。
+
+意见按原始 criterionId 或整体体验绑定到同一报告和候选，之后可在 status、resume 和 experience 中读回。取消、EOF、中断、非法输入及版本漂移都不能产生决定。原有 approve/reject 和无附注历史回执继续按原契约处理，精确重试幂等，不同意见不能覆盖已经保存的决定。反馈作为原文数据展示，不触发自动修复。
+
+用 TEMP 目录和模拟 stdin 检验提交、取消、冲突、篡改与状态回读。测试使用合成决定，实际用户体验另行确认。 原生父任务为 COS18/#19，直接依赖 [COS-34 / #35](https://github.com/lrfluobida/Cosmos/issues/35)、[COS-111 / #112](https://github.com/lrfluobida/Cosmos/issues/112)。实现者 `playtest_observation_implementer`，独审 `playtest_observation_reviewer`，唯一 merger `planning_budget_merger` 集成到 `codex/gameplay-offline`。
+
+批准规格原稿 SHA256 为 `ef68c2fe7e6dbba94810fcfdb4b94a556b1da25edba81d8a99b156ff5d9c5a8e`。
+
+GitHub ID `6182828041`，原生父任务 [ ]，实现状态 `source-approved-awaiting-integration`。[正式规格](cos171-bound-player-observation.md)
 
 ## 5. 任务与上下文包模板
 

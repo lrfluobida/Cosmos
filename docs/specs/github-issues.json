@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 64,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170"],
+      "verifiedNativeSubIssues": 65,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171"],
       "verifiedCompletedSubIssues": 62,
       "dependsOn": [
         {
@@ -13257,9 +13257,61 @@
       "verification": "五个批准文件与候选逐字节一致，先前 COS169 的两个文件也已核对。离线工作区类型检查、构建、启动测试和 opener fixture 的 strict 检查通过。实际 Play.cmd 在干净目录启动服务，测试读取 dist 和正确的 MIME，检查清理及系统打开失败回退。桌面打开动作使用替身。作者六项检查与最终 MIME 定向用例的重叠结果分别记录。含原宿主测试的扩大 strict 检查仍有 16 项在实现前基线逐项复现的诊断。",
       "scope": "合入后的完整 COS169 用例再次通过：本次新生成的受控合成候选和审查副本均包含相同的 Play.cmd，关闭前采样及第二个 Edge 进程中的恢复通过，公开 resume 返回同一交付，用户体验仍待确认。",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-171",
+      "title": "记录当前交付的具体试玩意见",
+      "number": 172,
+      "id": 6182828041,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/172",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-171 · 记录当前交付的具体试玩意见](https://github.com/lrfluobida/Cosmos/issues/172)",
+      "dependsOn": [
+        "COS-34",
+        "COS-111"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-34",
+          "number": 35,
+          "id": 5692013242,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/35"
+        },
+        {
+          "taskId": "COS-111",
+          "number": 112,
+          "id": 5947315778,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/112"
+        }
+      ],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-approved-awaiting-integration",
+      "implementationPhase": "awaiting-offline-integration",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "integrationBranch": "codex/gameplay-offline",
+      "implementationBaseCommit": "4a544076947468661b38efc7f254144cd145c5bd",
+      "formalSpecPath": "docs/specs/cos171-bound-player-observation.md",
+      "approvedSpecSha256": "ef68c2fe7e6dbba94810fcfdb4b94a556b1da25edba81d8a99b156ff5d9c5a8e",
+      "rootImplementationApproved": true,
+      "designReviewStatus": "APPROVED_DESIGN",
+      "designReviewer": "playtest_observation_reviewer",
+      "implementer": "playtest_observation_implementer",
+      "reviewer": "playtest_observation_reviewer",
+      "merger": "planning_budget_merger",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 65,
+      "verifiedParentCompletedSubIssues": 62,
+      "sourceReviewedCommit": "dc147da98a642e7ce4e16b89f6c96fe8e0d14d10",
+      "rootSourceIntegrationApproved": true
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 170,
+  "totalTaskCount": 171,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
