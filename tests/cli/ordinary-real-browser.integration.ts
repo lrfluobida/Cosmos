@@ -7,11 +7,12 @@ import { join, relative, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { lazyStream } from '@earendil-works/pi-ai';
+import { lazyStream, type TextContent, type ToolCall } from '@earendil-works/pi-ai';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { runCli } from '../../dist/cli/index.js';
 import { createProductHost } from '../../dist/runtime/entrypoint-host.js';
 import { createPiSession } from '../../dist/providers/pi.js';
+import type { PiSessionOptions } from '../../src/providers/pi.ts';
 import { withHostStages } from '../../dist/roles/requirements.js';
 import { removeOwned } from '../../src/artifacts/paths.ts';
 import { confirmedSource, silentOutput, snapshot } from '../runtime/confirmed-requirements.fixture.ts';
@@ -24,8 +25,8 @@ const draft = withHostStages({ ...requirements, ordinaryProfile: 'ordinary-desig
 const design = { ...genericDesign, experienceMapping: { readable: '状态清楚呈现' } };
 const handoff = { summary: 'Controlled save and resume fixture.', remaining: [], uncertainty: [] };
 const usage = { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
-const say = (value: unknown) => [{ type: 'text', text: JSON.stringify(value) }];
-const call = (id: string, name: string, args: object) => ({ type: 'toolCall', id, name, arguments: args });
+const say = (value: unknown): TextContent[] => [{ type: 'text', text: JSON.stringify(value) }];
+const call = (id: string, name: string, args: ToolCall['arguments']): ToolCall => ({ type: 'toolCall', id, name, arguments: args });
 const read = (id: string, path: string) => call(id, 'read', { path });
 const write = (id: string, path: string, content: string) => call(id, 'write', { path, content });
 
@@ -94,13 +95,13 @@ test('public ordinary requirements reuse repairs the authored plan and delivers 
   const root = join(sandbox, 'run'), roles: string[] = [], failures: unknown[] = [];
   let externalRequests = 0;
   const nativeFetch = globalThis.fetch;
-  t.mock.method(globalThis, 'fetch', async (input, init) => {
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : input);
     if (url.hostname !== '127.0.0.1') { externalRequests++; throw new Error('External network disabled'); }
     return nativeFetch(input, { ...init, redirect: 'error' });
   });
   const role = new AsyncLocalStorage<object>(), create = ModelRuntime.create;
-  t.mock.method(ModelRuntime, 'create', async function (...args) {
+  t.mock.method(ModelRuntime, 'create', async function (this: typeof ModelRuntime, ...args: Parameters<typeof create>) {
     const packet: any = role.getStore(); assert.ok(packet);
     const runtime = await create.apply(this, args);
     runtime.streamSimple = (model, context, options) => lazyStream(model, async () => (async function* () {
@@ -110,12 +111,13 @@ test('public ordinary requirements reuse repairs the authored plan and delivers 
         content = response(packet, context.messages);
       } catch (error) { failures.push(error); throw error; }
       const stopReason = content[0].type === 'toolCall' ? 'toolUse' : 'stop';
+      assert.ok(options?.onProviderStreamEvent, 'Native Pi must install the provider accounting callback');
       await options.onProviderStreamEvent({ model: 'deepseek-flash', usage: { prompt_tokens: usage.input, completion_tokens: usage.output } }, model);
       yield { type: 'done', reason: stopReason, message: { role: 'assistant', content, api: 'openai-completions', provider: 'deepseek', model: 'deepseek-flash', stopReason, timestamp: Date.now(), usage } };
     })());
     return runtime;
   });
-  const host = createProductHost(installed, { sessionFactory: config => role.run(JSON.parse(config.context), () => createPiSession(config)) });
+  const host = createProductHost(installed, { sessionFactory: (config: PiSessionOptions) => role.run(JSON.parse(config.context), () => createPiSession(config)) });
   const io = () => ({ host, input: Readable.from([]), output: silentOutput() });
   const result: any = await runCli(['new', root, '--requirements-from', source.root, '--requirements-revision', '2', '--max-minutes', '5'], io());
   if (failures.length) throw failures[0];
