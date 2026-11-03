@@ -655,7 +655,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
       "verifiedNativeSubIssues": 60,
       "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166"],
-      "verifiedCompletedSubIssues": 57,
+      "verifiedCompletedSubIssues": 58,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -12958,7 +12958,7 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
+      "parentCheckboxChecked": true,
       "dependsOn": [
         "COS-37",
         "COS-66"
@@ -12978,12 +12978,12 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/67"
         }
       ],
-      "parentChecklistLine": "- [ ] [COS-166 · 关闭浏览器前核对可见存档状态](https://github.com/lrfluobida/Cosmos/issues/167)",
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-pending",
-      "implementationPhase": "source-pending",
-      "sourceReviewStatus": "pending",
+      "parentChecklistLine": "- [x] [COS-166 · 关闭浏览器前核对可见存档状态](https://github.com/lrfluobida/Cosmos/issues/167)",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-integrated-gameplay-offline",
+      "implementationPhase": "offline-source-scoped-complete",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "implementationBaseCommit": "f2074d7e670cbf2941b8d2ff655b3a0dc14c38d6",
       "sourceBaseCommit": "221ddc6a81e3128bf4a1e275087532ae1e42ceb5",
       "integrationBranch": "codex/gameplay-offline",
@@ -12997,7 +12997,15 @@
       "merger": "planning_budget_merger",
       "verifiedRootDirectSubIssues": 100,
       "verifiedParentNativeSubIssues": 60,
-      "verifiedParentCompletedSubIssues": 57
+      "verifiedParentCompletedSubIssues": 58,
+      "stateReason": "completed",
+      "sourceReviewedCommit": "ce319576975881e5b6ca3afb43ac615e2b1b8a9b",
+      "sourceIntegratedCommit": "e0c3e5c6772e14b2b12ab48c0938fbb3067c08d4",
+      "rootSourceIntegrationApproved": true,
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/167#issuecomment-6601445508",
+      "verification": "Nine approved files exact. Offline typecheck/build and raw evidence test1/1 passed. Selected close-time PNG P2 fixed. Real Edge2/2: saved4/live5 terminal4 and two exited PIDs; overwrite5 terminal5 with one exited PID, skipped checkpoint and no reopen. Authentic historical data retains its frozen contract.",
+      "actualGameGeneration": "incomplete",
+      "userExperience": "not_confirmed"
     }
   ],
   "verifiedNativeSubIssues": 100,
