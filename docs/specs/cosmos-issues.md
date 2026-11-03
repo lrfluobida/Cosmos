@@ -1,6 +1,8 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-11-03 [COS164 / #166](https://github.com/lrfluobida/Cosmos/issues/166) 已登记。`offline_repair_origin_reviewer` 已对固定规格给出 APPROVED_DESIGN，Root 批准 `continuation_history_implementer` 实施。源码待独审。普通非验证资金运行的设计、美术已通过而编码尚未完成时，显式确认的追加窗口应能核验历史设计并派发新的编码任务。既有 F1 用例在登记编码任务前失败：原设计冻结了结构化写入策略，绑定宿主却用新窗口的工具选择去核对它。修复目标是按原始 planning/execution 选择认证历史设计契约和已通过的来源，再按当前窗口授权派发新任务。 原生父任务59项，其中56项已关闭。
+2026-11-03 COS165 的离线源码范围已完成。`offline_repair_origin_reviewer` 独立批准精确源码 `8094d7eac862cfc863f735de80cd6468361e2305`，历史无标记修复设计祖先的 P2 已闭合。Root 授权唯一 merger 合入 `codex/gameplay-offline`。 运行时提交 `221ddc6a81e3128bf4a1e275087532ae1e42ceb5`。显式追加窗口现在按原运行的 planning/execution 选择认证已通过的设计祖先，再按当前窗口的授权派发新的编码任务。它支持 `/3` 冻结的设计以及来源没有写入策略标记的已通过通用修复设计。设计与美术祖先直接复用，编码任务不继承设计写入工具、预算收尾或设计修订权限。 GitHub #166 已关闭，父 #19 保持开放，59 项子任务中 57 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/166#issuecomment-6597613600)
+
+2 个批准文件与候选逐字节一致，离线集成 typecheck 和 build 通过。此前 `ordinary-design-budget-finalization.test.ts:225` 找不到新编码任务的 F1 故障已修复：原 F1 集成代表 1/1 通过，在生产入口的 TEMP 运行中一个新编码任务完成，已通过的设计、美术均未重复执行，历史来源字节保留。 作者在相同 SHA 上核对 `/3` 正例和 planning 从 `/3` 篡改为 `/2` 的拒绝例，2/2 通过，篡改在派发前被拒。无标记已通过修复设计祖先的追加窗口 1/1 通过，P2 的旧失败在修正前版本已复现。三项均无跳过，独审已核实际差异及 TEMP 快照和报告。本卡只完成离线源码与合成角色验证，实际游戏与体验验收仍未完成。
 
 2026-11-03 COS164 的离线源码范围已完成。`offline_repair_origin_reviewer` 已独立批准精确源码 `30102bf3b26aef82caa790652de35e1967d8a734`，无剩余 finding。Root 授权唯一 merger 合入 `codex/gameplay-offline`。 运行时提交 `2021750d901bc2c719cabde9116aa4230ea6e9d8`。在允许通用设计修复的普通运行中，派发与冷恢复现在根据已验证的替换关系使用各自登记的来源。初稿缺失、JSON 无效或漏掉玩法覆盖时，原设计保留自己的收尾策略，唯一通用替换设计任务可继续修复，且 journal 和 Pi 均不给它额外收尾权限。 GitHub #165 已关闭，父 #19 保持开放，58 项子任务中 56 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/165#issuecomment-6597365086)
 
@@ -2373,13 +2375,11 @@ GitHub ID `6177691732`，原生父 COS18/#19、[x]，依赖 COS136/#137。作者
 
 ### COS-165 · 在追加窗口核验历史设计写入策略
 
-[COS164 / #166](https://github.com/lrfluobida/Cosmos/issues/166) 已登记。`offline_repair_origin_reviewer` 已对固定规格给出 APPROVED_DESIGN，Root 批准 `continuation_history_implementer` 实施。源码待独审。普通非验证资金运行的设计、美术已通过而编码尚未完成时，显式确认的追加窗口应能核验历史设计并派发新的编码任务。既有 F1 用例在登记编码任务前失败：原设计冻结了结构化写入策略，绑定宿主却用新窗口的工具选择去核对它。修复目标是按原始 planning/execution 选择认证历史设计契约和已通过的来源，再按当前窗口授权派发新任务。
+COS165 的离线源码范围已完成。`offline_repair_origin_reviewer` 独立批准精确源码 `8094d7eac862cfc863f735de80cd6468361e2305`，历史无标记修复设计祖先的 P2 已闭合。Root 授权唯一 merger 合入 `codex/gameplay-offline`。 运行时提交 `221ddc6a81e3128bf4a1e275087532ae1e42ceb5`。显式追加窗口现在按原运行的 planning/execution 选择认证已通过的设计祖先，再按当前窗口的授权派发新的编码任务。它支持 `/3` 冻结的设计以及来源没有写入策略标记的已通过通用修复设计。设计与美术祖先直接复用，编码任务不继承设计写入工具、预算收尾或设计修订权限。 GitHub #166 已关闭，父 #19 保持开放，59 项子任务中 57 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/166#issuecomment-6597613600)
 
-原省略值、`structured-plan/1` 及 `structured-design-plan/1`、`/2`、`/3` 都按冻结版本解释。未知值、单边漂移和历史来源篡改须在派发前拒绝。新窗口不会继承历史设计的结构化写入、预算收尾或修订权限。 直接依赖 [COS147 / #148](https://github.com/lrfluobida/Cosmos/issues/148) 的冻结写入规则和 [COS136 / #137](https://github.com/lrfluobida/Cosmos/issues/137) 的 F1 续跑回归。父任务 [COS18 / #19](https://github.com/lrfluobida/Cosmos/issues/19) 的 [续跑宿主契约](https://github.com/lrfluobida/Cosmos/blob/2021750d901bc2c719cabde9116aa4230ea6e9d8/docs/development/continuation-host.md) 定义历史来源与当前执行绑定。
+2 个批准文件与候选逐字节一致，离线集成 typecheck 和 build 通过。此前 `ordinary-design-budget-finalization.test.ts:225` 找不到新编码任务的 F1 故障已修复：原 F1 集成代表 1/1 通过，在生产入口的 TEMP 运行中一个新编码任务完成，已通过的设计、美术均未重复执行，历史来源字节保留。 作者在相同 SHA 上核对 `/3` 正例和 planning 从 `/3` 篡改为 `/2` 的拒绝例，2/2 通过，篡改在派发前被拒。无标记已通过修复设计祖先的追加窗口 1/1 通过，P2 的旧失败在修正前版本已复现。三项均无跳过，独审已核实际差异及 TEMP 快照和报告。本卡只完成离线源码与合成角色验证，实际游戏与体验验收仍未完成。
 
-批准规格原稿 SHA256 为 `aee24c5a3a62f8901d5fd98425b6de320b1961e84f9efd7e20b8f25387a56c22`。
-
-GitHub ID `6177808752`，源码基线 `2021750d901bc2c719cabde9116aa4230ea6e9d8`，状态 `source-pending`。[正式规格](cos165-continuation-historical-authoring.md)
+GitHub ID `6177808752`，原生父 COS18/#19、[x]，依赖 COS147/#148 与 COS136/#137。作者 `continuation_history_implementer`，唯一 merger `planning_budget_merger`。[正式规格](cos165-continuation-historical-authoring.md)
 
 ## 5. 任务与上下文包模板
 

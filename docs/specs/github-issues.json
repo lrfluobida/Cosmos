@@ -655,7 +655,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
       "verifiedNativeSubIssues": 59,
       "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165"],
-      "verifiedCompletedSubIssues": 56,
+      "verifiedCompletedSubIssues": 57,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -12900,7 +12900,7 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
+      "parentCheckboxChecked": true,
       "dependsOn": [
         "COS-147",
         "COS-136"
@@ -12920,12 +12920,12 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/137"
         }
       ],
-      "parentChecklistLine": "- [ ] [COS-165 · 在追加窗口核验历史设计写入策略](https://github.com/lrfluobida/Cosmos/issues/166)",
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-pending",
-      "implementationPhase": "source-pending",
-      "sourceReviewStatus": "pending",
+      "parentChecklistLine": "- [x] [COS-165 · 在追加窗口核验历史设计写入策略](https://github.com/lrfluobida/Cosmos/issues/166)",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-integrated-gameplay-offline",
+      "implementationPhase": "offline-source-scoped-complete",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "sourceBaseCommit": "2021750d901bc2c719cabde9116aa4230ea6e9d8",
       "integrationBranch": "codex/gameplay-offline",
       "formalSpecPath": "docs/specs/cos165-continuation-historical-authoring.md",
@@ -12938,7 +12938,15 @@
       "merger": "planning_budget_merger",
       "verifiedRootDirectSubIssues": 100,
       "verifiedParentNativeSubIssues": 59,
-      "verifiedParentCompletedSubIssues": 56
+      "verifiedParentCompletedSubIssues": 57,
+      "stateReason": "completed",
+      "sourceReviewedCommit": "8094d7eac862cfc863f735de80cd6468361e2305",
+      "sourceIntegratedCommit": "221ddc6a81e3128bf4a1e275087532ae1e42ceb5",
+      "rootSourceIntegrationApproved": true,
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/166#issuecomment-6597613600",
+      "verification": "Two approved files exact. Offline typecheck/build and original F1 integration1/1 passed. Previously failing baseline line225 now reaches one new passed coding task. Historical design/art reused and origin bytes preserved. Final /3 positive and planning tamper negative2/2, marker-free generic repair ancestor1/1 with no skips; independent P2 closure verified.",
+      "actualGameGeneration": "incomplete",
+      "userExperience": "not_confirmed"
     }
   ],
   "verifiedNativeSubIssues": 100,
