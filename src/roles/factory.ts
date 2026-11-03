@@ -41,6 +41,8 @@ export interface RoleSession {
 export interface RoleInput {
   role: Role;
   purpose?: 'planning';
+  /** The generic replacement for a design task cannot inherit its budget follow-up. */
+  disableDesignFinalization?: true;
   task: TaskContract;
   requirement: ExecutionRequirement;
   validation?: ValidationExecutionBinding;
@@ -305,7 +307,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         task, authority: authority!, floor: planningFloor, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny }) } : {}),
       ...(designCompaction ? authorBudgetCompaction({ controller: input.controller, original: snapshot, task, authority: authority!,
         floor: authorFloor!, maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny, ...(reviewReserve ? { reviewReserve: true, failureCode: 'author_review_reserve' } : {}) }) : {}),
-      ...(reviewReserve ? { readonlyMaxOutputTokens: 4096 as const, ...(finalizationPolicy ? { ordinaryDesignFinalizationPolicy: finalizationPolicy } : {}) } : {}),
+      ...(reviewReserve ? { readonlyMaxOutputTokens: 4096 as const, ...(finalizationPolicy && !input.disableDesignFinalization ? { ordinaryDesignFinalizationPolicy: finalizationPolicy } : {}) } : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: designCompaction ? 8000 : options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
