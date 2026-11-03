@@ -7,7 +7,7 @@ import { PassThrough, Readable } from 'node:stream';
 import test from 'node:test';
 import { removeOwned } from '../../src/artifacts/paths.ts';
 import { loadExperienceBinding, publishGenerationReport, readCompletedGeneration, readExperienceStatus } from '../../src/runtime/experience.ts';
-import { runExperienceSession } from '../../src/cli/experience-session.ts';
+import { runCli } from '../../src/cli/index.ts';
 import { readRunSnapshot } from '../../src/cli/control.ts';
 import { readConfirmedGeneration } from '../../src/cli/session.ts';
 import { ordinaryHostFixture } from '../runtime/ordinary-design.fixture.ts';
@@ -23,7 +23,7 @@ async function fixture(t: test.TestContext) {
   const { requirement } = await readConfirmedGeneration(root, state), outcome = report;
   const command = async (answer: string) => {
     let text = ''; const output = new PassThrough(); output.on('data', part => { text += part.toString(); });
-    const result = await runExperienceSession({ root, input: Readable.from([answer + '\n']), output }); return { text, result: result as any };
+    const result = await runCli(['experience', root], { input: Readable.from([answer + '\n']), output }); return { text, result: result as any };
   };
   return { root, requirement, draft, state, report: report as any, outcome, command };
 }
@@ -40,6 +40,22 @@ test('ordinary report and real experience stdin bind every original criterion to
     assert.equal(completed.userExperience, result.userExperience);
     assert.deepEqual(completed.acceptanceScope.experienceCriteria, f.draft.experienceCriteria);
   }
+});
+test('numbered playtest feedback binds to a confirmed criterion and survives completed resume', async t => {
+  const f = await fixture(t), first = f.draft.experienceCriteria[0];
+  const observation = '  对手回合结束时，我看不清轮到谁。  ';
+  const feedback = { selection: '1', criterionId: first.criterionId, observation };
+  const original = await Promise.all(['snapshot.json', f.report.report, 'delivery/current-report.json'].map(file => readFile(join(f.root, file))));
+  const { result, text } = await f.command('changes\n1\n' + observation + '\nreject');
+  assert.ok(text.includes('1. ' + first.description));
+  assert.ok(text.indexOf(observation) >= 0 && text.indexOf(observation) < text.lastIndexOf('reject'));
+  assert.deepEqual(result.decision.source.playtestFeedback, feedback);
+  assert.equal(result.userExperience, 'rejected'); assert.equal(result.finalCompletion, 'pending');
+  const resumed: any = await runCli(['resume', f.root], { input: Readable.from([]), output: new PassThrough() });
+  assert.deepEqual(resumed.playtestFeedback, feedback); assert.equal(resumed.finalCompletion, 'pending');
+  assert.ok((await f.command('cancel')).text.includes(observation));
+  await assert.rejects(f.command('changes\n0\n' + observation + '\nreject'), /conflict/i);
+  assert.deepEqual(await Promise.all(['snapshot.json', f.report.report, 'delivery/current-report.json'].map(file => readFile(join(f.root, file)))), original);
 });
 for (const changed of ['criteria', 'automatic', 'confirmation', 'draft', 'candidate']) test(`ordinary experience rejects changed ${changed} instead of reusing approval`, async t => {
   const f = await fixture(t); await f.command('approve');

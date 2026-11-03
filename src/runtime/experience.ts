@@ -35,9 +35,27 @@ export interface ExperienceBinding {
   runId: string; ledgerId: string; windowId: string | null; report: ArtifactReference; reportSha256: string;
   acceptedCandidate: AcceptedCandidate; acceptanceScope: Scope; effectiveTasks: Report['effectiveTasks'];
 }
+interface PlaytestFeedback { selection: string; criterionId: string | null; observation: string }
 interface ExperienceReceipt {
-  formatVersion: 'user-experience-1'; bindingId: string; binding: ExperienceBinding; actorId: 'local-user'; decidedAt: string;
-  decision: 'approved' | 'rejected'; source: { kind: 'cli-stdin'; command: 'experience'; rawInput: string };
+  formatVersion: 'user-experience-1' | 'user-experience-2'; bindingId: string; binding: ExperienceBinding; actorId: 'local-user'; decidedAt: string;
+  decision: 'approved' | 'rejected'; source: { kind: 'cli-stdin'; command: 'experience'; rawInput: string; playtestFeedback?: PlaytestFeedback };
+}
+
+export function playtestCriterion(binding: ExperienceBinding, selection: string) {
+  if (selection === '0') return null;
+  if (!/^[1-9]\d{0,2}$/.test(selection)) return undefined;
+  return binding.acceptanceScope.experienceCriteria?.[Number(selection) - 1];
+}
+
+export function validPlaytestObservation(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= 1000 && [...value].length <= 500 && !!value.trim() && value.trim() !== 'cancel'
+    && !/[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u.test(value);
+}
+
+function validFeedback(binding: ExperienceBinding, feedback: PlaytestFeedback | undefined) {
+  if (typeof feedback?.selection !== 'string' || !validPlaytestObservation(feedback.observation)) return false;
+  const criterion = playtestCriterion(binding, feedback.selection);
+  return criterion !== undefined && sameValue(feedback, { selection: feedback.selection, criterionId: criterion?.criterionId ?? null, observation: feedback.observation });
 }
 
 /** The complete original confirmation is the authority for experience scope, never report/model fields. */
@@ -141,9 +159,13 @@ async function receipt(root: string, binding: ExperienceBinding): Promise<Experi
   const id = bindingId(binding); let value: ExperienceReceipt;
   try { value = decode(await regularFile(root, `delivery/experience/${id}.json`)); }
   catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; }
-  if (value?.formatVersion !== 'user-experience-1' || value.bindingId !== id || !sameValue(value.binding, binding) || value.actorId !== 'local-user'
+  if (!value || value.bindingId !== id || !sameValue(value.binding, binding) || value.actorId !== 'local-user'
     || !timestamp(value.decidedAt) || !['approved', 'rejected'].includes(value.decision) || value.source?.kind !== 'cli-stdin' || value.source.command !== 'experience'
     || typeof value.source.rawInput !== 'string' || value.source.rawInput.trim() !== (value.decision === 'approved' ? 'approve' : 'reject')) throw new Error('Experience receipt source or exact version binding is invalid; preserve the original receipt.');
+  const noted = value.formatVersion === 'user-experience-2';
+  if ((!noted && value.formatVersion !== 'user-experience-1') || Object.keys(value).some(key => !['formatVersion', 'bindingId', 'binding', 'actorId', 'decidedAt', 'decision', 'source'].includes(key))
+    || Object.keys(value.source).some(key => !['kind', 'command', 'rawInput'].includes(key) && !(noted && key === 'playtestFeedback'))
+    || (noted && (value.source.rawInput !== 'reject' || !validFeedback(binding, value.source.playtestFeedback)))) throw new Error('Invalid playtest feedback in the experience receipt.');
   return value;
 }
 function view(binding: ExperienceBinding, decision: ExperienceReceipt | null) {
@@ -187,7 +209,7 @@ export async function readCompletedGeneration(root: string, requirement: Require
   await idle();
   if (!selected.equals(await regularFile(root, 'delivery/current-report.json')) || !snapshotBytes.equals(await regularFile(root, 'snapshot.json'))) throw new Error('Completed delivery changed during read-only resume.');
   return { ...report, report: binding.report.location, userExperience: status.userExperience, finalCompletion: status.finalCompletion,
-    completionTiming: status.completionTiming, humanWaiting: status.humanWaiting,
+    completionTiming: status.completionTiming, humanWaiting: status.humanWaiting, playtestFeedback: status.decision?.source.playtestFeedback,
     ...(status.completionTiming.required && !status.completionTiming.eligible ? { outcome: 'incomplete' } : {}),
     experienceTiming: { automaticReportedAt: report.reportedAt, decidedAt: status.decision?.decidedAt ?? null,
       elapsedSinceAutomaticReportMs: Math.max(0, (status.decision ? Date.parse(status.decision.decidedAt) : Date.now()) - Date.parse(report.reportedAt)) } };
@@ -208,10 +230,11 @@ export async function readExperienceStatus(root: string) {
 }
 
 /** Called only by the stdin collector. One complete write-once receipt is the durable decision. */
-export async function recordExperience(root: string, expected: ExperienceBinding, rawInput: string, signal?: AbortSignal) {
+export async function recordExperience(root: string, expected: ExperienceBinding, rawInput: string, signal?: AbortSignal, feedback?: PlaytestFeedback) {
   signal?.throwIfAborted();
   const action = rawInput.trim();
   if (!['approve', 'reject'].includes(action) || rawInput.length > 4096) throw new Error('An explicit experience stdin decision is required.');
+  if (feedback !== undefined && (rawInput !== 'reject' || !validFeedback(expected, feedback))) throw new Error('Invalid playtest feedback or final rejection.');
   root = resolve(root); await safePath(root, '.controller.lock');
   signal?.throwIfAborted();
   const runOwner = await OwnerLock.acquire(root, '.controller.lock');
@@ -227,9 +250,12 @@ export async function recordExperience(root: string, expected: ExperienceBinding
     if (!sameValue(current, expected)) throw new Error('Current report or candidate changed while waiting; view and try the current version before deciding.');
     const existing = await receipt(root, current), decision = action === 'approve' ? 'approved' : 'rejected';
     signal?.throwIfAborted();
-    if (existing) { if (existing.decision !== decision) throw new Error('Experience decision conflicts with the immutable original receipt.'); return view(current, existing); }
-    const id = bindingId(current), value: ExperienceReceipt = { formatVersion: 'user-experience-1', bindingId: id, binding: current, actorId: 'local-user', decidedAt: new Date().toISOString(),
-      decision, source: { kind: 'cli-stdin', command: 'experience', rawInput } };
+    if (existing) {
+      if (existing.decision !== decision || (feedback && !sameValue(existing.source.playtestFeedback, feedback))) throw new Error('Experience decision conflicts with the immutable original receipt.');
+      return view(current, existing);
+    }
+    const id = bindingId(current), value: ExperienceReceipt = { formatVersion: feedback ? 'user-experience-2' : 'user-experience-1', bindingId: id, binding: current, actorId: 'local-user', decidedAt: new Date().toISOString(),
+      decision, source: { kind: 'cli-stdin', command: 'experience', rawInput, ...(feedback && { playtestFeedback: feedback }) } };
     await directory(root, 'delivery/experience'); signal?.throwIfAborted();
     const path = await safePath(root, `delivery/experience/${id}.json`); signal?.throwIfAborted();
     await publishReceipt(path, value, signal);
