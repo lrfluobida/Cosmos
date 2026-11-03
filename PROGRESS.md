@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-11-03 [COS169 / #170](https://github.com/lrfluobida/Cosmos/issues/170) 已登记。`public_real_host_review` 独立核对固定规格，Root 批准 `public_real_host_probe` 实施，最终源码已获独审及 Root 精确批准，待离线集成。用独立 TEMP 需求源驱动编译后的公开 `runCli(new --requirements-from)` 和生产 ProductHost，串联真实 Pi SDK 工具、构建、浏览器验收和交付。模型决策与传输使用本地脚本响应。设计作者通过实际工具写入草稿并纠正验收编号，独立角色读取固定产物与宿主证据。 [分支规格](docs/specs/cos169-ordinary-cli-real-browser.md)
+
 2026-11-03 COS168 的离线源码范围已完成。`provider_handoff_reviewer` 独立批准最终源码 `0e2b392df40174d5ae518bd9f36cb5c4a54182d7`，无剩余 finding。Root 授权唯一 merger 合入 `codex/gameplay-offline`。 运行时提交 `3a4f9ef292f4b0bb27bfb64a8de047cf7ff10211`。作者响应报错时，只有可信 PiSessionError 对象报告 author_output_budget 或 author_review_reserve，才进入原有预算收尾资格检查。已解析的作者提案确有 remaining 或 uncertainty 且因此被拒时，持久反馈才记录作者声明未完成。其他作者阶段异常保留真实错误分类或使用中性提示。 GitHub #169 已关闭，父 #19 保持开放，62 项子任务中 60 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/169#issuecomment-6602093672)
 
 5 个批准文件与候选逐字节一致，离线集成 typecheck、build 通过。使用真实普通 host 和 Pi SDK、本地 fake transport 的集成代表 1/1、无跳过：仅模拟发送一次，原回执为 unknown，持久 checkId 为 provider_error，故障分类为 external_service。没有收尾派发、作者提案或捕获回执。独审另核错误对象身份与探测次数 7/7，作者端到端及正反例 4/4，原有合格未发送预算拒绝的证据复用。 本次发布修复后续运行的反馈归因。R27 既有记录表明设计请求返回错误且未提供用量，不能从该记录推断当次 HTTP 状态、服务方处理结果或实际费用。历史记录保留，目标游戏与用户体验验收仍待完成。

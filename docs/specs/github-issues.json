@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 62,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168"],
+      "verifiedNativeSubIssues": 63,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169"],
       "verifiedCompletedSubIssues": 60,
       "dependsOn": [
         {
@@ -13141,9 +13141,69 @@
       "sourceScope": "Future failure provenance. Original R27 upstream HTTP status and server handling unknown.",
       "actualGameGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-169",
+      "title": "复用需求后的普通 CLI 交付与真实浏览器联验",
+      "number": 170,
+      "id": 6181903847,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/170",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-130",
+        "COS-163",
+        "COS-166"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-130",
+          "number": 131,
+          "id": 6044003264,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/131"
+        },
+        {
+          "taskId": "COS-163",
+          "number": 164,
+          "id": 6177505838,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/164"
+        },
+        {
+          "taskId": "COS-166",
+          "number": 167,
+          "id": 6180748326,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/167"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-169 · 复用需求后的普通 CLI 交付与真实浏览器联验](https://github.com/lrfluobida/Cosmos/issues/170)",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-approved-awaiting-integration",
+      "implementationPhase": "awaiting-offline-integration",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "implementationBaseCommit": "3e2cfe334780834cc91eb3688a48e86cfd4d750f",
+      "sourceBaseCommit": "3a4f9ef292f4b0bb27bfb64a8de047cf7ff10211",
+      "integrationBranch": "codex/gameplay-offline",
+      "formalSpecPath": "docs/specs/cos169-ordinary-cli-real-browser.md",
+      "approvedSpecSha256": "b3cd7ff717abf89d20a8f181da3e419350fa59a553d2257f9f7bebbfd8531584",
+      "rootImplementationApproved": true,
+      "designReviewStatus": "APPROVED_DESIGN",
+      "designReviewer": "public_real_host_review",
+      "implementer": "public_real_host_probe",
+      "reviewer": "public_real_host_review",
+      "merger": "planning_budget_merger",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 63,
+      "verifiedParentCompletedSubIssues": 60,
+      "sourceReviewedCommit": "0c4e3bffdfb048928629c7a95cf2b1087c7ffbcc",
+      "rootSourceIntegrationApproved": true
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 168,
+  "totalTaskCount": 169,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
