@@ -116,6 +116,24 @@ test('frame-enabled reuse rejects changes to the origin before host preparation'
   assert.equal(prepares, 1);
 });
 
+test('active frame-enabled reuse cannot bypass planning allocation checks with a validation ledger', async t => {
+  const source = await confirmedSource(t, { frames: true }), root = await temporaryRun(t);
+  let actions = 0;
+  const host = { ...noInterviewHost(),
+    async prepare() { actions++; return { environmentReady: true, executionReady: true }; },
+    async execute() { actions++; return {}; } };
+  const io = () => ({ host, input: Readable.from([]), output: silentOutput() });
+  await runCli([...newArgs(root, source.root), '--max-cny', '1'], io());
+  const state = await snapshot(root), before = actions;
+  assert.equal(state.formatVersion, 1);
+  state.ledger.scope = 'validation';
+  await writeFile(join(root, 'snapshot.json'), JSON.stringify(state), 'utf8');
+  const path = join(root, 'intake-origin.json'), origin = JSON.parse(await readFile(path, 'utf8'));
+  await writeFile(path, JSON.stringify({ ...origin, planningAllocation: 'other' }), 'utf8');
+  await assert.rejects(runCli(['resume', root], io()), /public generation/i);
+  assert.equal(actions, before);
+});
+
 for (const mode of ['unconfirmed', 'revision', 'nested', 'same', 'frames', 'mixed']) test(`invalid public requirements ${mode} rejects before preparing a host`, async t => {
   const source = await confirmedSource(t, { unconfirmed: mode === 'unconfirmed' }), root = await temporaryRun(t);
   const args = newArgs(mode === 'same' ? source.root : mode === 'nested' ? join(source.root, 'child') : root, source.root);

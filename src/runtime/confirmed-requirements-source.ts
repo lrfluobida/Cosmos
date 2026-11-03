@@ -56,7 +56,7 @@ export async function readReferencedRequirements(root: string, snapshot: IntakeS
   const source = snapshot.requirementsSource; validateConfirmedRequirementsSource(source);
   requireSeparateRequirementsRoot(root, source);
   const origin = await json(root, 'intake-origin.json');
-  requirePublicRunLimits(snapshot, origin, true);
+  if (!requirePublicRunLimits(snapshot, origin, true)) throw new Error('Referenced requirements require a public generation run and ledger.');
   const original = await readConfirmedRequirementsSource({ root: source.root, revision: source.revision, specVersion: snapshot.run.specVersion, expected: source });
   if (snapshot.run.runId === source.runId || snapshot.ledger.ledgerId === original.ledgerId
     || !sameValue(origin.requirementsSource, source) || origin.brief !== original.draft.brief || origin.draftMode !== undefined
