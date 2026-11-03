@@ -1,0 +1,13 @@
+# COS170 · 交付包双击试玩
+
+[COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已登记。Root 已批准固定设计，`portable_play_reviewer` 独审批准 `portable_play_implementer` 的最终源码 `dc62ab464066ff937e3f87e15340a0e0d795831f`，待唯一 merger 集成到 `codex/gameplay-offline`。玩家可在新交付包中双击 `Play.cmd` 启动独立本地服务，并在默认浏览器中打开实际游戏 URL。
+
+原生父 COS18/#19、[ ]，直接依赖 [COS65 / #66](https://github.com/lrfluobida/Cosmos/issues/66) 的可信打包与干净目录启动。验收范围含真实 Windows 批处理、HTTP 内容与 MIME、关闭清理，桌面打开调用使用替身。
+
+批准规格原稿 SHA256 为 `2396434fde9afc34c3853946a529dd2b1bd96b26a191167efe84171957e5216f`。
+
+玩家拿到已构建的游戏目录之后，在已安装 Node 22 的 Windows 电脑上应能双击 Play.cmd，在默认桌面浏览器里打开本机游戏。启动工具和使用说明由可信打包器在候选封存前提供，跟随源码、dist、素材和许可证共同交付。
+
+使用已有 standalone-launcher.mjs 的只读本机静态服务，先成功绑定随机 loopback 端口，再把实际 URL 传给 Windows 的默认浏览器。批处理固定指向其所在包，适应空格、中文及文件名特殊字符；系统打开操作用固定系统路径和参数，不接受游戏提供的命令。打开浏览器失败时仍显示可访问 URL，Ctrl+C 可关闭服务。保留既有手动启动、指定端口与只读服务导入的行为。现有封存候选不做原地更新，冲突文件不覆盖。
+
+在普通交付路径证明启动文件属于候选与审查副本，用独立干净目录里的 Play.cmd 实际启动 HTTP 服务、读取 dist 内容、检查 MIME 与清理，并用替身覆盖 OS 浏览器调用和失败回退，避免弹出用户图形界面。范围为新的离线交付能力，不代表真实用户试玩或模型新生成游戏。

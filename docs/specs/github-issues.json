@@ -653,9 +653,9 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 63,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169"],
-      "verifiedCompletedSubIssues": 60,
+      "verifiedNativeSubIssues": 64,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170"],
+      "verifiedCompletedSubIssues": 61,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -13152,7 +13152,7 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
+      "parentCheckboxChecked": true,
       "dependsOn": [
         "COS-130",
         "COS-163",
@@ -13179,11 +13179,11 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/167"
         }
       ],
-      "parentChecklistLine": "- [ ] [COS-169 · 复用需求后的普通 CLI 交付与真实浏览器联验](https://github.com/lrfluobida/Cosmos/issues/170)",
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-approved-awaiting-integration",
-      "implementationPhase": "awaiting-offline-integration",
+      "parentChecklistLine": "- [x] [COS-169 · 复用需求后的普通 CLI 交付与真实浏览器联验](https://github.com/lrfluobida/Cosmos/issues/170)",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-integrated-gameplay-offline",
+      "implementationPhase": "offline-source-scoped-complete",
       "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "implementationBaseCommit": "3e2cfe334780834cc91eb3688a48e86cfd4d750f",
       "sourceBaseCommit": "3a4f9ef292f4b0bb27bfb64a8de047cf7ff10211",
@@ -13197,13 +13197,63 @@
       "reviewer": "public_real_host_review",
       "merger": "planning_budget_merger",
       "verifiedRootDirectSubIssues": 100,
-      "verifiedParentNativeSubIssues": 63,
-      "verifiedParentCompletedSubIssues": 60,
-      "sourceReviewedCommit": "0c4e3bffdfb048928629c7a95cf2b1087c7ffbcc",
+      "verifiedParentNativeSubIssues": 64,
+      "verifiedParentCompletedSubIssues": 61,
+      "sourceReviewedCommit": "e8c6de4d3370264092ad1f47f2c3cd42dee45f23",
+      "rootSourceIntegrationApproved": true,
+      "stateReason": "completed",
+      "sourceIntegratedCommit": "e567bb828a20eceedd92062f32170063cd32e223",
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/170#issuecomment-6603307470",
+      "verification": "两份测试及夹具与批准版本逐字节一致。完整离线用例 1/1，构建、生产类型检查、两个测试文件 strict 检查及既有 fixture 调用代表通过。独立操作系统子进程使用集成分支的编译 CLI，在没有模型凭据、禁止模型派发和网络连接的环境下执行 `resume`，恢复同一交付并保留需求源、运行快照及报告的原字节。最终状态为 `awaiting_user_experience`。",
+      "scope": "复用的原确认来源在 TEMP 留证。完整双 Edge 验收使用受控模型回复，没有进行真实用户试玩或付费模型自主生成。",
+      "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-170",
+      "title": "交付包双击试玩",
+      "number": 171,
+      "id": 6182088095,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/171",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "parentChecklistLine": "- [ ] [COS-170 · 交付包双击试玩](https://github.com/lrfluobida/Cosmos/issues/171)",
+      "dependsOn": [
+        "COS-65"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-65",
+          "number": 66,
+          "id": 5716669042,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/66"
+        }
+      ],
+      "state": "open",
+      "scopedComplete": false,
+      "designReviewStatus": "APPROVED_DESIGN",
+      "rootImplementationApproved": true,
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "dc62ab464066ff937e3f87e15340a0e0d795831f",
+      "integrationStatus": "source-approved-awaiting-integration",
+      "implementationPhase": "awaiting-offline-integration",
+      "integrationBranch": "codex/gameplay-offline",
+      "sourceBaseCommit": "3e2cfe334780834cc91eb3688a48e86cfd4d750f",
+      "approvedSpecSha256": "2396434fde9afc34c3853946a529dd2b1bd96b26a191167efe84171957e5216f",
+      "formalSpecPath": "docs/specs/cos170-windows-playable-package.md",
+      "implementer": "portable_play_implementer",
+      "reviewer": "portable_play_reviewer",
+      "merger": "planning_budget_merger",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 64,
+      "verifiedParentCompletedSubIssues": 61,
       "rootSourceIntegrationApproved": true
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 169,
+  "totalTaskCount": 170,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

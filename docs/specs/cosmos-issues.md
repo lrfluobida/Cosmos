@@ -1,6 +1,10 @@
 # Cosmos 父任务与子任务发布稿
 
-2026-11-03 [COS169 / #170](https://github.com/lrfluobida/Cosmos/issues/170) 已登记。`public_real_host_review` 独立核对固定规格，Root 批准 `public_real_host_probe` 实施，最终源码已获独审及 Root 精确批准，待离线集成。用独立 TEMP 需求源驱动编译后的公开 `runCli(new --requirements-from)` 和生产 ProductHost，串联真实 Pi SDK 工具、构建、浏览器验收和交付。模型决策与传输使用本地脚本响应。设计作者通过实际工具写入草稿并纠正验收编号，独立角色读取固定产物与宿主证据。 原生父任务63项，其中60项已关闭。
+2026-11-03 [COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已登记。Root 已批准固定设计，`portable_play_reviewer` 独审批准 `portable_play_implementer` 的最终源码 `dc62ab464066ff937e3f87e15340a0e0d795831f`，待唯一 merger 集成到 `codex/gameplay-offline`。玩家可在新交付包中双击 `Play.cmd` 启动独立本地服务，并在默认浏览器中打开实际游戏 URL。 [规格](cos170-windows-playable-package.md)
+
+2026-11-03 [COS169 / #170](https://github.com/lrfluobida/Cosmos/issues/170) 已在 `codex/gameplay-offline` 离线源码范围完成。`public_real_host_review` 独立审查 `e8c6de4d3370264092ad1f47f2c3cd42dee45f23`，Root 放行后由唯一 merger 集成到 `e567bb828a20eceedd92062f32170063cd32e223`。公开 `runCli(new --requirements-from)` 在编译件的进程内 API 进入生产 ProductHost。模型只提供 23 次脚本 SDK 回复。作者实际使用工具纠正验收编号，构建、素材验收和交付走生产路径。合成游戏在两个不同的真实 Edge 进程中接受正常输入，两个进程均退出，关闭前的可见存档状态与重开恢复匹配。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/170#issuecomment-6603307470)
+
+两份测试及夹具与批准版本逐字节一致。完整离线用例 1/1，构建、生产类型检查、两个测试文件 strict 检查及既有 fixture 调用代表通过。独立操作系统子进程使用集成分支的编译 CLI，在没有模型凭据、禁止模型派发和网络连接的环境下执行 `resume`，恢复同一交付并保留需求源、运行快照及报告的原字节。最终状态为 `awaiting_user_experience`。 复用的原确认来源在 TEMP 留证。完整双 Edge 验收使用受控模型回复，没有进行真实用户试玩或付费模型自主生成。
 
 2026-11-03 COS168 的离线源码范围已完成。`provider_handoff_reviewer` 独立批准最终源码 `0e2b392df40174d5ae518bd9f36cb5c4a54182d7`，无剩余 finding。Root 授权唯一 merger 合入 `codex/gameplay-offline`。 运行时提交 `3a4f9ef292f4b0bb27bfb64a8de047cf7ff10211`。作者响应报错时，只有可信 PiSessionError 对象报告 author_output_budget 或 author_review_reserve，才进入原有预算收尾资格检查。已解析的作者提案确有 remaining 或 uncertainty 且因此被拒时，持久反馈才记录作者声明未完成。其他作者阶段异常保留真实错误分类或使用中性提示。 GitHub #169 已关闭，父 #19 保持开放，62 项子任务中 60 项已关闭。[发布及验证记录](https://github.com/lrfluobida/Cosmos/issues/169#issuecomment-6602093672)
 
@@ -2421,13 +2425,17 @@ GitHub ID `6181172690`，原生父 COS18/#19、[x]，依赖 COS03/#4、COS11/#12
 
 ### COS-169 · 复用需求后的普通 CLI 交付与真实浏览器联验
 
-[COS169 / #170](https://github.com/lrfluobida/Cosmos/issues/170) 已登记。`public_real_host_review` 独立核对固定规格，Root 批准 `public_real_host_probe` 实施，最终源码已获独审及 Root 精确批准，待离线集成。用独立 TEMP 需求源驱动编译后的公开 `runCli(new --requirements-from)` 和生产 ProductHost，串联真实 Pi SDK 工具、构建、浏览器验收和交付。模型决策与传输使用本地脚本响应。设计作者通过实际工具写入草稿并纠正验收编号，独立角色读取固定产物与宿主证据。
+[COS169 / #170](https://github.com/lrfluobida/Cosmos/issues/170) 已在 `codex/gameplay-offline` 离线源码范围完成。`public_real_host_review` 独立审查 `e8c6de4d3370264092ad1f47f2c3cd42dee45f23`，Root 放行后由唯一 merger 集成到 `e567bb828a20eceedd92062f32170063cd32e223`。公开 `runCli(new --requirements-from)` 在编译件的进程内 API 进入生产 ProductHost。模型只提供 23 次脚本 SDK 回复。作者实际使用工具纠正验收编号，构建、素材验收和交付走生产路径。合成游戏在两个不同的真实 Edge 进程中接受正常输入，两个进程均退出，关闭前的可见存档状态与重开恢复匹配。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/170#issuecomment-6603307470)
 
-同一次运行须用正常输入验证关闭前存档、首进程真实退出、同源同 profile 的第二个 Edge 进程重开及恢复，接着核验媒体、干净目录启动、候选绑定和最终报告。公开 resume 应返回同一交付，保持模型派发数与快照字节。启用留证时保存原始需求确认来源，以便复核。 父任务为 [COS18 / #19](https://github.com/lrfluobida/Cosmos/issues/19)。直接依赖 [COS130 / #131](https://github.com/lrfluobida/Cosmos/issues/131) 的离线验证与交接检查、[COS163 / #164](https://github.com/lrfluobida/Cosmos/issues/164) 的按步骤验收编号纠正和 [COS166 / #167](https://github.com/lrfluobida/Cosmos/issues/167) 的关闭前存档核验。
+两份测试及夹具与批准版本逐字节一致。完整离线用例 1/1，构建、生产类型检查、两个测试文件 strict 检查及既有 fixture 调用代表通过。独立操作系统子进程使用集成分支的编译 CLI，在没有模型凭据、禁止模型派发和网络连接的环境下执行 `resume`，恢复同一交付并保留需求源、运行快照及报告的原字节。最终状态为 `awaiting_user_experience`。 复用的原确认来源在 TEMP 留证。完整双 Edge 验收使用受控模型回复，没有进行真实用户试玩或付费模型自主生成。
 
-批准规格原稿 SHA256 为 `b3cd7ff717abf89d20a8f181da3e419350fa59a553d2257f9f7bebbfd8531584`。
+GitHub ID `6181903847`，原生父 COS18/#19、[x]，直接依赖 COS-130/#131、COS-163/#164、COS-166/#167。[正式规格](cos169-ordinary-cli-real-browser.md)
 
-GitHub ID `6181903847`，源码基线 `3a4f9ef292f4b0bb27bfb64a8de047cf7ff10211`，状态 `source-approved-awaiting-integration`。[正式规格](cos169-ordinary-cli-real-browser.md)
+### COS-170 · 交付包双击试玩
+
+[COS170 / #171](https://github.com/lrfluobida/Cosmos/issues/171) 已登记。Root 已批准固定设计，`portable_play_reviewer` 独审批准 `portable_play_implementer` 的最终源码 `dc62ab464066ff937e3f87e15340a0e0d795831f`，待唯一 merger 集成到 `codex/gameplay-offline`。玩家可在新交付包中双击 `Play.cmd` 启动独立本地服务，并在默认浏览器中打开实际游戏 URL。
+
+原生父 COS18/#19、[ ]，直接依赖 [COS65 / #66](https://github.com/lrfluobida/Cosmos/issues/66) 的可信打包与干净目录启动。验收范围含真实 Windows 批处理、HTTP 内容与 MIME、关闭清理，桌面打开调用使用替身。 GitHub ID `6182088095`。[正式规格](cos170-windows-playable-package.md)
 
 ## 5. 任务与上下文包模板
 
