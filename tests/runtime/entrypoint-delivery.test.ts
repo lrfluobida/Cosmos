@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -126,6 +126,46 @@ test('Node-only launcher starts outside package cwd and rejects unsafe paths and
     const other = spawn(process.execPath, [launcher, ...args], { env: roleToolEnvironment(), windowsHide: true, stdio: 'ignore' }); assert.notEqual((await once(other, 'close'))[0], 0);
   }
   await stopBrowserProcess(child, 3000); await closed; assert.ok(exited(child.pid!));
+});
+
+test('packaging rejects case-insensitive collisions with the trusted play files', async t => {
+  const f = await fixture(t);
+  for (const name of ['pLaY.CmD', 'Standalone-Launcher.mjs']) {
+    const path = join(f.project, name);
+    await writeFile(path, 'untrusted input', 'utf8');
+    await assert.rejects(f.pack(), /reserved play file/i);
+    assert.equal(await readFile(path, 'utf8'), 'untrusted input');
+    await unlink(path);
+  }
+});
+
+test('packaged Play.cmd opens only its live loopback URL and keeps serving on browser failure', { skip: process.platform !== 'win32' }, async t => {
+  const f = await fixture(t); await f.pack();
+  const project = join(f.root, '试玩 & Play !');
+  await cp(f.project, project, { recursive: true });
+  await writeFile(join(project, 'node.exe'), 'fixture: local executable must not win PATH lookup');
+  const preload = fileURLToPath(new URL('./entrypoint-play-opener.fixture.cjs', import.meta.url)).replaceAll('\\', '/');
+  const child = spawn(process.env.ComSpec!, ['/d', '/c', 'Play.cmd'], { cwd: project, windowsHide: true,
+    env: { ...roleToolEnvironment(), NODE_OPTIONS: `--require "${preload}"` }, stdio: 'pipe' });
+  const closed = once(child, 'close');
+  t.after(async () => { if (child.exitCode === null && child.signalCode === null) await stopBrowserProcess(child, 3000); await closed; });
+  let stdout = '', stderr = '';
+  child.stdout.on('data', value => { stdout += value; }); child.stderr.on('data', value => { stderr += value; });
+  const deadline = Date.now() + 5000;
+  while (!stderr.includes('browser')) {
+    if (child.exitCode !== null || Date.now() >= deadline) assert.fail(`Play.cmd failed to announce browser fallback: ${stdout} ${stderr}`);
+    await sleep(25);
+  }
+  const [url, opened] = stdout.trim().split(/\r?\n/);
+  assert.match(url, /^http:\/\/127\.0\.0\.1:[1-9]\d*$/);
+  const system = join(process.env.SystemRoot!, 'System32');
+  assert.deepEqual(JSON.parse(opened), { file: join(system, 'rundll32.exe'), args: [join(system, 'url.dll') + ',FileProtocolHandler', url], shell: false });
+  assert.ok(stderr.includes(url));
+  const response = await fetch(url); assert.equal(response.status, 200); assert.equal(await response.text(), html);
+  assert.equal(response.headers.get('content-type'), 'text/html; charset=utf-8');
+  child.stdin.end('stop\n');
+  const [code] = await once(child, 'close', { signal: AbortSignal.timeout(3000) });
+  assert.equal(code, 0); await assert.rejects(fetch(url));
 });
 
 test('explicit stop drains the actual clean server and preserves failure evidence', async t => {

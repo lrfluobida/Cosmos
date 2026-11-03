@@ -117,6 +117,10 @@ test('standalone package is present in the final review snapshot before promotio
   assert.equal(task.evidence[0].outcome, 'passed');
   const candidate = task.artifacts[0];
   assert.match(await readFile(join(root, candidate.location, 'standalone-launcher.mjs'), 'utf8'), /node:http/);
+  const play = await readFile(join(root, candidate.location, 'Play.cmd'), 'utf8');
+  assert.match(play, /"%~dp0standalone-launcher\.mjs" --open/);
+  assert.equal(await readFile(join(root, `reviews/${task.taskId}`, candidate.location, 'Play.cmd'), 'utf8'), play);
+  assert.match(await readFile(join(root, candidate.location, 'README.zh-CN.md'), 'utf8'), /双击.*Play\.cmd/);
   assert.match(await readFile(join(root, candidate.location, 'README.zh-CN.md'), 'utf8'), /node standalone-launcher\.mjs/);
   const packaged = JSON.parse(await readFile(join(root, candidate.location, '_cosmos/delivery.json'), 'utf8'));
   assert.deepEqual(packaged.candidate, candidate);

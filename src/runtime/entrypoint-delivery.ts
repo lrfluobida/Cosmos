@@ -15,12 +15,31 @@ import type { HostExecutionAuthority } from './entrypoint-host.ts';
 const decode = (bytes: Buffer) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
 const equalFiles = (left: Map<string, Buffer>, right: Map<string, Buffer>) => left.size === right.size && [...left].every(([name, bytes]) => right.get(name)?.equals(bytes));
 
+const windowsPlay = [
+  '@echo off',
+  'setlocal EnableExtensions DisableDelayedExpansion',
+  'cd /d "%SystemRoot%\\System32" || exit /b 1',
+  'for %%I in (node.exe) do set "nodeExe=%%~$PATH:I"',
+  'if not defined nodeExe (',
+  '  echo Install Node.js 22 and open Play.cmd again.',
+  '  pause',
+  '  exit /b 1',
+  ')',
+  '"%nodeExe%" "%~dp0standalone-launcher.mjs" --open',
+  'if errorlevel 1 (',
+  '  pause',
+  '  exit /b 1',
+  ')',
+  '',
+].join('\r\n');
+
 /** Called inside the original unsealed candidate build callback. */
 export async function packageStandalone(input: { root: string; project: string; candidate: ArtifactReference; task: Readonly<TaskContract>; registry: ArtifactRegistry; signal: AbortSignal }) {
   const { root, project, candidate, task, registry, signal } = input;
   if (await safePath(root, candidate.location) !== project) throw new Error('Delivery project differs from its fixed candidate.');
   const sealed = await lstat(await safePath(root, `${dirname(candidate.location).replaceAll('\\', '/')}/sealed.json`)).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
   if (sealed) throw new Error('Sealed candidates cannot be packaged.');
+  if ((await readdir(project)).some(name => ['play.cmd', 'standalone-launcher.mjs'].includes(name.toLowerCase()))) throw new Error('Candidate contains a reserved play file.');
   for (const name of ['src/main.ts', 'index.html', 'dist/index.html', 'package.json', 'package-lock.json']) await regularFile(project, name);
   const captures = await Promise.all((await registry.getCandidate(candidate)).inputs.map(ref => registry.getCapture(ref)));
   for (const capture of captures.filter(value => value.metadata.kind === 'media')) for (const item of capture.files.filter(file => file.destination.startsWith('public/assets/'))) {
@@ -54,11 +73,12 @@ export async function packageStandalone(input: { root: string; project: string; 
   signal.throwIfAborted();
   await directory(project, '_cosmos');
   await writeFile(await safePath(project, 'standalone-launcher.mjs'), await regularFile(dirname(fileURLToPath(import.meta.url)), 'standalone-launcher.mjs'), { flag: 'wx' });
+  await writeFile(await safePath(project, 'Play.cmd'), windowsPlay, { encoding: 'utf8', flag: 'wx' });
   await publishReceipt(await safePath(project, '_cosmos/delivery.json'), { formatVersion: 'standalone-delivery/1', runId: task.runId, taskId: task.taskId, candidate,
     source: ['src', 'index.html'], build: 'dist', dependencies: ['package.json', 'package-lock.json'], captures: captures.map(capture => capture.artifactRef) }, signal);
   await publishReceipt(await safePath(project, '_cosmos/sources.json'), { formatVersion: 'delivery-sources/1', candidate,
     captures: captures.map(capture => ({ artifact: capture.artifactRef, kind: capture.metadata.kind, provenance: capture.metadata.provenance })), dependencies }, signal);
-  await writeFile(await safePath(project, 'README.zh-CN.md'), `# 游戏启动说明\n\n交付版本：${candidate.artifactId}@${candidate.version}；运行：${task.runId}。\n\n已有 Node 22 和桌面浏览器即可离线运行。完整复制此目录，在终端执行：\n\n\`\`\`powershell\nnode standalone-launcher.mjs\n\`\`\`\n\n在浏览器打开终端显示的本机 URL。指定端口可执行 \`node standalone-launcher.mjs --port 4173\`；端口占用会报错，请换端口。按 Ctrl+C 停止服务。\n\n源码位于 src/ 与 index.html，已构建游戏位于 dist/。运行不需要安装依赖。重建时使用 package-lock.json 锁定依赖，安装后运行 package.json 的 build 命令。素材与依赖来源见 _cosmos/sources.json，依赖许可文本见 _cosmos/licenses/。\n\n自动验收报告在原 Cosmos 运行目录的 delivery/current-report.json 中引用，接受后才发布。单独复制本游戏目录时，可另带该引用对应的报告 sidecar；该报告与最终试玩记录按交付版本绑定。\n`, { encoding: 'utf8', flag: 'wx' });
+  await writeFile(await safePath(project, 'README.zh-CN.md'), `# 游戏启动说明\n\n交付版本：${candidate.artifactId}@${candidate.version}；运行：${task.runId}。\n\n已有 Node 22 和桌面浏览器即可离线运行。完整复制此目录，在 Windows 上双击 \`Play.cmd\` 即可试玩。游戏运行时请保留启动窗口，按 Ctrl+C 可停止服务。如果浏览器未自动打开，请打开窗口中显示的本机 URL。\n\n也可以在此目录的终端执行：\n\n\`\`\`powershell\nnode standalone-launcher.mjs\n\`\`\`\n\n在浏览器打开终端显示的本机 URL。指定端口可执行 \`node standalone-launcher.mjs --port 4173\`；端口占用会报错，请换端口。按 Ctrl+C 停止服务。\n\n源码位于 src/ 与 index.html，已构建游戏位于 dist/。运行不需要安装依赖。重建时使用 package-lock.json 锁定依赖，安装后运行 package.json 的 build 命令。素材与依赖来源见 _cosmos/sources.json，依赖许可文本见 _cosmos/licenses/。\n\n自动验收报告在原 Cosmos 运行目录的 delivery/current-report.json 中引用，接受后才发布。单独复制本游戏目录时，可另带该引用对应的报告 sidecar；该报告与最终试玩记录按交付版本绑定。\n`, { encoding: 'utf8', flag: 'wx' });
 }
 
 export interface CleanDelivery {

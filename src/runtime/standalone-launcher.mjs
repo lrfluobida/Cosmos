@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { execFile } from 'node:child_process';
 import { lstat, readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -43,11 +44,20 @@ export async function startStaticServer({ root = dirname(fileURLToPath(import.me
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const args = process.argv.slice(2);
-    if (args.length && (args.length !== 2 || args[0] !== '--port' || !/^\d+$/.test(args[1]))) throw new Error('Usage: node standalone-launcher.mjs [--port 4173]');
+    const args = process.argv.slice(2), open = args[0] === '--open';
+    if (open) args.shift();
+    if (args.length && (args.length !== 2 || args[0] !== '--port' || !/^\d+$/.test(args[1]))) throw new Error('Usage: node standalone-launcher.mjs [--open] [--port 4173]');
     const server = await startStaticServer({ port: args.length ? Number(args[1]) : 0 });
     console.log(server.url);
     const stop = () => { void server.close().catch(error => { console.error(error.message); process.exitCode = 1; }); };
     process.once('SIGINT', stop); process.once('SIGTERM', stop);
+    if (open) {
+      const fallback = () => console.error(`Open this URL in your browser: ${server.url}`);
+      if (process.platform === 'win32' && process.env.SystemRoot) {
+        const system = join(process.env.SystemRoot, 'System32');
+        execFile(join(system, 'rundll32.exe'), [join(system, 'url.dll') + ',FileProtocolHandler', server.url],
+          { cwd: system, windowsHide: true, timeout: 5000 }, error => { if (error) fallback(); });
+      } else fallback();
+    }
   } catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; }
 }
