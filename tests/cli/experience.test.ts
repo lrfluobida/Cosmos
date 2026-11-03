@@ -95,6 +95,59 @@ test('EOF, cancellation and ambiguous input never create a human decision', asyn
   }
 });
 
+test('overall playtest feedback is write-once and rejects incompatible receipt data', async t => {
+  const f = await fixture(t), answer = 'changes\n0\n节奏太快\nreject';
+  const { result } = await f.command(answer);
+  const feedback = { selection: '0', criterionId: null, observation: '节奏太快' };
+  assert.deepEqual(result.decision.source.playtestFeedback, feedback);
+  const dir = join(f.root, 'delivery/experience'), path = join(dir, (await readdir(dir))[0]), bytes = await readFile(path);
+  for (const repeat of [answer, 'reject']) assert.deepEqual((await f.command(repeat)).result.decision, result.decision);
+  await assert.rejects(f.command(answer.replace('太快', '太慢')), /conflict/i);
+  assert.deepEqual(await readFile(path), bytes);
+  for (const override of [
+    { decision: 'approved', source: { ...result.decision.source, rawInput: 'approve' } },
+    { formatVersion: 'user-experience-1' },
+    { source: { ...result.decision.source, kind: 'model-output' } },
+    { source: { ...result.decision.source, playtestFeedback: { ...feedback, criterionId: 'wrong-id' } } },
+  ]) {
+    await writeFile(path, JSON.stringify({ ...result.decision, ...override }), 'utf8');
+    assert.equal((await readRunStatus(f.root)).delivery?.userExperience, 'not_confirmed');
+  }
+  const plain = await fixture(t), existing = (await plain.command('reject')).result.decision;
+  await assert.rejects(plain.command(answer), /conflict/i);
+  assert.deepEqual((await plain.command('reject')).result.decision, existing);
+});
+
+test('unconfirmed and unsafe playtest feedback never creates a receipt', async t => {
+  const f = await fixture(t), dir = join(f.root, 'delivery/experience');
+  for (const lines of ['changes', 'changes\ncancel', 'changes\n1\nnote\nreject', 'changes\n0', 'changes\n0\ncancel\nreject',
+    'changes\n0\n \nreject', 'changes\n0\n' + 'x'.repeat(501) + '\nreject', 'changes\n0\nline\u2028two\nreject',
+    'changes\n0\nunsafe\x1b[31m\nreject', 'changes\n0\nnote', 'changes\n0\nnote\napprove', 'changes\n0\nnote\ncancel']) {
+    assert.equal((await f.command(lines)).result.outcome, 'unconfirmed');
+  }
+  await assert.rejects(readdir(dir), { code: 'ENOENT' });
+});
+
+test('a signal or candidate change at the playtest feedback preview prevents publication', async t => {
+  const f = await fixture(t);
+  for (const event of ['interrupt', 'candidate']) {
+    const input = new PassThrough(), output = new PassThrough();
+    const preview = new Promise<void>(resolve => output.on('data', part => {
+      if (part.toString().includes('确认拒绝当前交付')) resolve();
+    }));
+    input.write('changes\n0\n试玩时目标不明显\n');
+    const pending = runCli(['experience', f.root], { input, output });
+    await Promise.race([preview, pending.then(() => assert.fail('CLI did not wait for confirmation'))]);
+    if (event === 'interrupt') {
+      process.emit('SIGINT'); input.end('reject\n');
+      assert.equal((await pending as { outcome: string }).outcome, 'unconfirmed');
+    } else {
+      await f.replaceCandidate(); input.end('reject\n'); await assert.rejects(pending, /candidate/i);
+    }
+    await assert.rejects(readdir(join(f.root, 'delivery/experience')), { code: 'ENOENT' });
+  }
+});
+
 test('automatic failure, missing accepted candidate and non-independent review cannot enter the experience gate', async t => {
   for (const failure of ['automatic', 'candidate', 'review', 'legacy', 'validation']) {
     const f = await fixture(t);
