@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
+import { hasPackagedLauncher } from '../runtime/entrypoint-delivery.ts';
 import { loadExperienceBinding, playtestCriterion, readBoundExperienceStatus, recordExperience, validPlaytestObservation } from '../runtime/experience.ts';
 
 /** A final playtest decision comes from this stdin session, never from model or report text. */
@@ -8,12 +9,19 @@ export async function runExperienceSession(options: { root: string; input: Reada
   const root = resolve(options.root), binding = await loadExperienceBinding(root), { output } = options;
   const status = await readBoundExperienceStatus(root, binding), experience = status.userExperience === 'approved' ? '已通过' : status.userExperience === 'rejected' ? '已拒绝' : '等待确认';
   const canApprove = !status.completionTiming.required || status.completionTiming.eligible === true;
-  output.write(`当前游戏：${binding.acceptedCandidate.candidateRef.artifactId} / ${binding.acceptedCandidate.candidateRef.version}\n试玩工程：${resolve(root, binding.acceptedCandidate.targetRoot)}\n自动验收报告：${resolve(root, binding.report.location)}\n自动验收：通过；最终体验：${experience}。\n已验收范围：\n`);
+  const project = resolve(root, binding.acceptedCandidate.candidateRef.location);
+  output.write(`当前游戏：${binding.acceptedCandidate.candidateRef.artifactId} / ${binding.acceptedCandidate.candidateRef.version}\n试玩工程：${project}\n`);
+  if (!status.decision) {
+    output.write(status.completionTiming.eligible === true && await hasPackagedLauncher(project)
+      ? `启动文件：${resolve(project, 'Play.cmd')}\n在已安装 Node.js 22 的 Windows 上，双击 Play.cmd。试玩时保留启动窗口，结束后按 Ctrl+C 关闭服务。\n`
+      : '请查看试玩工程目录中的交付说明，了解此版本的启动方式。\n');
+  }
+  output.write(`自动验收报告：${resolve(root, binding.report.location)}\n自动验收：通过；最终体验：${experience}。\n已验收范围：\n`);
   for (const item of binding.acceptanceScope.acceptance) output.write(`- ${item.description}\n`);
   if (binding.acceptanceScope.experienceCriteria) {
-    output.write('当前确认版本的体验要求（整体 approve/reject 覆盖以下完整清单）：\n');
+    output.write('当前确认版本的体验要求（最终决定覆盖以下完整清单）：\n');
     for (const [index, item] of binding.acceptanceScope.experienceCriteria.entries()) output.write(`${index + 1}. ${item.description}\n  试玩：${item.steps.join('；')}\n  期望：${item.expected}\n`);
-    if (!binding.acceptanceScope.experienceCriteria.length) output.write('- 没有额外体验条目；请确认整体试玩体验。\n');
+    if (!binding.acceptanceScope.experienceCriteria.length) output.write('- 此次试玩仅评估整体体验。\n');
   }
   output.write('未覆盖范围：\n'); for (const item of binding.acceptanceScope.notCovered) output.write(`- ${item}\n`);
   output.write(`交付完成计时：${status.completionTiming.current.status}；结束时间：${status.completionTiming.current.endedAt ?? '未核实'}。\n`);
@@ -28,10 +36,13 @@ export async function runExperienceSession(options: { root: string; input: Reada
     const line = await iterator.next();
     return cancellation.signal.aborted || line.done ? undefined : line.value;
   };
-  const unconfirmed = () => { output.write('未记录体验决定。\n'); return { outcome: 'unconfirmed' }; };
+  const unconfirmed = () => { output.write(status.decision ? `本次未新增体验决定，原决定为${experience}。\n` : '未记录体验决定。\n'); return { outcome: 'unconfirmed' }; };
   try {
-    output.write('若要在拒绝时记录玩家观察，请输入 changes。\n');
-    output.write(canApprove ? '完成当前版本试玩后，认可请输入 approve，拒绝请输入 reject，退出请输入 cancel。\n' : '完整交付计时或费用尚未核实；当前不能确认最终完成。拒绝请输入 reject，退出请输入 cancel。\n');
+    if (status.decision) output.write(`此版本已有最终决定（${experience}），已保存的决定无法更改。退出请输入 cancel。\n`);
+    else {
+      output.write('若要在拒绝时记录玩家观察，请输入 changes。\n');
+      output.write(canApprove ? '完成当前版本试玩后，认可请输入 approve，拒绝请输入 reject，退出请输入 cancel。\n' : '完整交付计时或费用尚未核实；当前不能确认最终完成。拒绝请输入 reject，退出请输入 cancel。\n');
+    }
     let answer = await readLine(), feedback;
     if (answer === 'changes') {
       output.write('输入体验要求编号，或输入 0 选择整体体验。输入 cancel 退出。\n');

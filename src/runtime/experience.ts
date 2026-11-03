@@ -6,10 +6,10 @@ import type { AcceptedCandidate } from '../artifacts/index.ts';
 import { directory, regularFile, safePath } from '../artifacts/paths.ts';
 import type { ArtifactReference, RequirementContract, TaskContract } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
-import { readRunSnapshot } from '../cli/control.ts';
+import { playtestAction, readRunSnapshot } from '../cli/control.ts';
 import { OwnerLock } from './recovery/ownership.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
-import { readCompletionTiming } from './completion-timing.ts';
+import { readCompletionTiming, type finishCompletion } from './completion-timing.ts';
 import { ordinaryDraftSha256, readOrdinaryProfile } from './ordinary-profile-source.ts';
 import type { ExperienceCriterion, OrdinaryProfile } from '../roles/ordinary-profile.ts';
 import type { RunSnapshot } from './run-types.ts';
@@ -168,6 +168,16 @@ async function receipt(root: string, binding: ExperienceBinding): Promise<Experi
     || (noted && (value.source.rawInput !== 'reject' || !validFeedback(binding, value.source.playtestFeedback)))) throw new Error('Invalid playtest feedback in the experience receipt.');
   return value;
 }
+/** The issuing host already proved the timing and package signature during cleanup. */
+export async function freshPlaytestAction(root: string, outcome: string, timing: Awaited<ReturnType<typeof finishCompletion>>) {
+  if (outcome !== 'awaiting_user_experience' || !('eligible' in timing) || !timing.eligible || !timing.binding.candidate || !timing.binding.report) return {};
+  try {
+    const binding = await loadExperienceBinding(root);
+    if (binding.reportSha256 === timing.binding.report.sha256 && !await receipt(root, binding)) return { nextAction: playtestAction(root) };
+  } catch { /* Preserve the original generation result when the playtest cannot be verified. */ }
+  return {};
+}
+
 function view(binding: ExperienceBinding, decision: ExperienceReceipt | null) {
   return { automaticAcceptance: 'passed' as const, userExperience: decision?.decision ?? 'not_confirmed',
     finalCompletion: decision?.decision === 'approved' ? 'complete_for_report_scope' : 'pending',
@@ -208,7 +218,11 @@ export async function readCompletedGeneration(root: string, requirement: Require
   const status = await readBoundExperienceStatus(root, binding);
   await idle();
   if (!selected.equals(await regularFile(root, 'delivery/current-report.json')) || !snapshotBytes.equals(await regularFile(root, 'snapshot.json'))) throw new Error('Completed delivery changed during read-only resume.');
-  return { ...report, report: binding.report.location, userExperience: status.userExperience, finalCompletion: status.finalCompletion,
+  const awaitingPlayer = !status.decision && status.completionTiming.eligible === true;
+  // Display actions always come from this invocation, including when reading an older report.
+  const { nextAction: _storedAction, ...reportFields } = report as Report & { nextAction?: unknown };
+  return { ...(awaitingPlayer ? { nextAction: playtestAction(root) } : {}), ...reportFields,
+    report: binding.report.location, userExperience: status.userExperience, finalCompletion: status.finalCompletion,
     completionTiming: status.completionTiming, humanWaiting: status.humanWaiting, playtestFeedback: status.decision?.source.playtestFeedback,
     ...(status.completionTiming.required && !status.completionTiming.eligible ? { outcome: 'incomplete' } : {}),
     experienceTiming: { automaticReportedAt: report.reportedAt, decidedAt: status.decision?.decidedAt ?? null,
