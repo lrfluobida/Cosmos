@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 58,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164"],
+      "verifiedNativeSubIssues": 59,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165"],
       "verifiedCompletedSubIssues": 56,
       "dependsOn": [
         {
@@ -12889,9 +12889,59 @@
       "knownBaselineFailure": "COS136 F1 supported continuation at ordinary-design-budget-finalization.test.ts:225 fails on both previous baseline and candidate; excluded from passing counts.",
       "actualGameGeneration": "incomplete",
       "userExperience": "not_confirmed"
+    },
+    {
+      "taskId": "COS-165",
+      "title": "在追加窗口核验历史设计写入策略",
+      "number": 166,
+      "id": 6177808752,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/166",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-147",
+        "COS-136"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-147",
+          "number": 148,
+          "id": 6093554669,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/148"
+        },
+        {
+          "taskId": "COS-136",
+          "number": 137,
+          "id": 6049797585,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/137"
+        }
+      ],
+      "parentChecklistLine": "- [ ] [COS-165 · 在追加窗口核验历史设计写入策略](https://github.com/lrfluobida/Cosmos/issues/166)",
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "implementationPhase": "source-pending",
+      "sourceReviewStatus": "pending",
+      "sourceBaseCommit": "2021750d901bc2c719cabde9116aa4230ea6e9d8",
+      "integrationBranch": "codex/gameplay-offline",
+      "formalSpecPath": "docs/specs/cos165-continuation-historical-authoring.md",
+      "approvedSpecSha256": "aee24c5a3a62f8901d5fd98425b6de320b1961e84f9efd7e20b8f25387a56c22",
+      "rootImplementationApproved": true,
+      "designReviewStatus": "APPROVED_DESIGN",
+      "designReviewer": "offline_repair_origin_reviewer",
+      "implementer": "continuation_history_implementer",
+      "reviewer": "offline_repair_origin_reviewer",
+      "merger": "planning_budget_merger",
+      "verifiedRootDirectSubIssues": 100,
+      "verifiedParentNativeSubIssues": 59,
+      "verifiedParentCompletedSubIssues": 56
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 164,
+  "totalTaskCount": 165,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
