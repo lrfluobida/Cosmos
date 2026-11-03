@@ -198,7 +198,37 @@ test('COS136 F1 existing coding repair authenticates design policy without gaini
 });
 
 
-test('COS136 F1 supported continuation authenticates historical design without granting new window followup', async t => {
+async function activateTestWindow(root: string) {
+  const stopped = await RunController.open({ root }); await stopped.stop('Synthetic continuation source only.'); await stopped.close();
+  const quote = await buildContinuationQuote({ root, additionalMicroCny: 0, additionalDurationMs: 600000 });
+  const confirmation = { decisionId: 'cos136-window', actorId: 'synthetic-user', decidedAt: new Date().toISOString(),
+    source: { artifactId: 'synthetic-confirmation', version: 'v1', location: 'synthetic-continuation.json' } };
+  await writeFile(join(root, confirmation.source.location), JSON.stringify({ formatVersion: 'continuation-confirmation-1',
+    decisionId: confirmation.decisionId, actorId: confirmation.actorId, decidedAt: confirmation.decidedAt, confirmed: true, quote }), 'utf8');
+  return RunController.activateContinuation({ root, quote, confirmation });
+}
+
+test('COS165 marker-free continuation reuses a passed generic design repair', async t => {
+  const f = await ordinaryHostFixture(t, { pause: true, fault: 'json', sessionFactory: async (config, fallback) => {
+    if (JSON.parse(config.context!).taskId === 'coding-task-successor') return { ...fallback, prompt: async () => ({
+      text: JSON.stringify({ summary: 'Controlled partial coding.', remaining: ['Coding remains unfinished.'], uncertainty: [] }),
+    }) };
+    return fallback;
+  } });
+  await f.execute();
+  const execution = JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8'));
+  assert.equal(execution.ordinaryPlanAuthoringPolicy, undefined); assert.equal(execution.ordinaryDesignFinalizationPolicy, undefined);
+  const args = { root: f.root, requirement: execution.requirement, draft: f.draft, resume: true };
+  const repaired = await f.host.execute(args), state = await readRunSnapshot(f.root);
+  assert.equal(state.tasks.find(task => task.taskId === 'design-task-repair')?.state, 'passed', JSON.stringify(repaired.gaps));
+  const window = await activateTestWindow(f.root);
+  const result = await f.host.execute({ ...args, windowId: window.windowId });
+  assert.deepEqual(result.reusedTaskIds.toSorted(), ['art-task-successor', 'design-task-repair'], JSON.stringify(result.gaps));
+  assert.equal((await readRunSnapshot(f.root)).tasks.find(task => task.taskId === window.grants[0].taskId)?.state, 'passed');
+});
+
+for (const drift of [false, true]) test(drift ? 'COS165 continuation rejects changed planning policy before dispatch'
+  : 'COS136 F1 supported continuation authenticates historical design without granting new window followup', async t => {
   let continued = false; const windowConfigs: any[] = [];
   const f = await ordinaryHostFixture(t, { productionDefault: true, limits: { limitMicroCny: 5000000, durationMs: 1800000 }, sessionFactory: async (config, fallback) => {
     const packet = JSON.parse(config.context);
@@ -211,23 +241,34 @@ test('COS136 F1 supported continuation authenticates historical design without g
   await f.execute(); const original: any = await readRunSnapshot(f.root);
   assert.equal(original.requirementsSource, undefined); assert.equal(original.validationFunding, undefined);
   assert.equal(original.tasks.find((row: any) => row.taskId === 'design-task').state, 'passed');
-  const oldOrigin = await readFile(join(f.root, 'journal/task-design-task/origin.json'));
-  const stopped = await RunController.open({ root: f.root }); await stopped.stop('Synthetic continuation source only.'); await stopped.close();
-  const quote = await buildContinuationQuote({ root: f.root, additionalMicroCny: 0, additionalDurationMs: 600000 });
-  const confirmation = { decisionId: 'cos136-window', actorId: 'synthetic-user', decidedAt: new Date().toISOString(),
-    source: { artifactId: 'synthetic-confirmation', version: 'v1', location: 'synthetic-continuation.json' } };
-  await writeFile(join(f.root, confirmation.source.location), JSON.stringify({ formatVersion: 'continuation-confirmation-1',
-    decisionId: confirmation.decisionId, actorId: confirmation.actorId, decidedAt: confirmation.decidedAt, confirmed: true, quote }), 'utf8');
-  const window = await RunController.activateContinuation({ root: f.root, quote, confirmation }); continued = true;
+  const originalDesignFiles = ['execution.json', 'ordinary-design-selection.json', 'journal/task-design-task/origin.json', 'journal/task-design-task/author.json'];
+  const readDesignFiles = () => Promise.all(originalDesignFiles.map(path => readFile(join(f.root, path))));
+  const before = await readDesignFiles();
+  const window = await activateTestWindow(f.root); continued = true;
   const execution = JSON.parse(await readFile(join(f.root, 'execution.json'), 'utf8'));
+  if (drift) {
+    const path = join(f.root, 'planning-started.json'), planning = JSON.parse(await readFile(path, 'utf8'));
+    assert.equal(planning.ordinaryPlanAuthoringPolicy, 'structured-design-plan/3');
+    planning.ordinaryPlanAuthoringPolicy = 'structured-design-plan/2';
+    await writeFile(path, JSON.stringify(planning), 'utf8');
+  }
+  const packetsBeforeWindow = f.packets.length;
   const result = await f.host.execute({ root: f.root, draft: f.draft, requirement: execution.requirement, resume: false, windowId: window.windowId });
   const after: any = await readRunSnapshot(f.root), coding = after.tasks.find((row: any) => row.taskId === window.grants[0].taskId);
+  if (drift) {
+    assert.equal(coding, undefined); assert.equal(f.packets.length, packetsBeforeWindow);
+    assert.deepEqual(after.ledger.entries, original.ledger.entries);
+    assert.deepEqual(await readDesignFiles(), before);
+    return;
+  }
   assert.ok(coding, JSON.stringify(result.gaps)); assert.equal(coding.state, 'passed', JSON.stringify(result.gaps));
   assert.equal(windowConfigs.length, 1); assert.equal(windowConfigs[0].ordinaryDesignFinalizationPolicy, undefined);
+  assert.ok(windowConfigs[0].tools.every((tool: { name: string }) => !['write-game-design', 'write-game-plan'].includes(tool.name)));
+  assert.deepEqual(result.reusedTaskIds.toSorted(), ['art-task', 'design-task']);
   const origin = JSON.parse(await readFile(join(f.root, 'journal/task-' + coding.taskId + '/origin.json'), 'utf8'));
   assert.equal(origin.formatVersion, 2); assert.equal(origin.ordinaryDesignFinalizationPolicy, undefined);
   assert.equal(origin.ordinaryDesignRevisionPolicy, undefined); assert.equal(JSON.parse(windowConfigs[0].context).designConcernReview, undefined);
   assert.equal(JSON.parse(await readFile(join(f.root, 'journal/task-design-task/author.json'), 'utf8')).value.proposal.remaining.length, 1);
-  assert.deepEqual(await readFile(join(f.root, 'journal/task-design-task/origin.json')), oldOrigin);
+  assert.deepEqual(await readDesignFiles(), before);
   assert.equal(f.packets.filter(row => row.role === 'design').length, 1);
 });

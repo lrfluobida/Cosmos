@@ -9,7 +9,7 @@ import { createArtifactRegistry } from '../artifacts/index.ts';
 import type { PassedEvidence } from '../artifacts/index.ts';
 import { directory, owns, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
 import { createRoleFactory } from '../roles/factory.ts';
-import { createGamePlanWriter, GAME_PLAN_WRITE, hasDesignWriter, isOrdinaryPlanAuthoringPolicy, ORDINARY_PLAN_AUTHORING_RULE, ORDINARY_PLAN_REPAIR_RULE, preservesValidDraft, requirePlanAuthoringTasks } from './entrypoint-plan-authoring.ts';
+import { createGamePlanWriter, GAME_PLAN_WRITE, hasDesignWriter, isOrdinaryPlanAuthoringPolicy, ORDINARY_PLAN_AUTHORING_RULE, ORDINARY_PLAN_REPAIR_RULE, preservesValidDraft, readPlanAuthoringPolicy, requirePlanAuthoringTasks } from './entrypoint-plan-authoring.ts';
 import { createGameDesignWriter, GAME_DESIGN_SOURCE, GAME_DESIGN_WRITE, ORDINARY_DESIGN_AUTHORING_RULE, ORDINARY_DRAFT_PRESERVATION_RULE } from './entrypoint-design-authoring.ts';
 import { requestDesignDraft, requestDesignQuestions } from '../roles/interview.ts';
 import { requireBrowserDraft, validateGameDraft, confirmRequirements, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID, MODULE_ACCEPTANCE_IDS } from '../roles/requirements.ts';
@@ -371,7 +371,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const mediaPolicy = input.ordinaryMediaObservationPolicy;
   if (mediaPolicy !== undefined && (mediaPolicy !== 'audio-state/1' || !ordinaryDraft || preparation || validation || human)) throw new Error('Invalid ordinary media observation policy for this host.');
   const modular = !!(draft as BrowserGameDraft).codeProfile;
-  const budgetEligible = !!ordinaryDraft && !modular && !validation && !preparation && !human && !binding && !historical;
+  const ordinaryAuthoring = !!ordinaryDraft && !modular && !validation && !preparation && !human && !historical;
+  const budgetEligible = ordinaryAuthoring && !binding;
   const ordinaryPlanAuthoringPolicy = input.ordinaryPlanAuthoringPolicy;
   if (ordinaryPlanAuthoringPolicy !== undefined && (!isOrdinaryPlanAuthoringPolicy(ordinaryPlanAuthoringPolicy) || !budgetEligible)) throw new Error('Invalid ordinary plan authoring policy for this host.');
   if (input.ordinaryDesignBudgetPolicy !== undefined && (input.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !budgetEligible)) throw new Error('Invalid ordinaryDesignBudgetPolicy for this host.');
@@ -430,9 +431,20 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     || ![DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID].every(id => requirement.acceptance.some(item => item.acceptanceId === id))) throw new Error('The browser-input host requires separately confirmed design, media and gameplay checks.');
   const gameplayIds = gameplayAcceptance(draft).map(item => item.acceptanceId);
   const state = await controller.read();
+  let historicalDesign: { source: PreparedTask; policy: NonNullable<HostInput['ordinaryPlanAuthoringPolicy']> } | undefined;
   if (binding) {
     if (!input.resume) throw new Error('A continuation host must reuse its existing registry inputs.');
     await requireContinuationInputs(state, binding.tasks, root);
+    if (ordinaryAuthoring) {
+      const execution = await json(root, 'execution.json');
+      const policy = readPlanAuthoringPolicy(execution, await optionalDesignJson(root, 'planning-started.json'), true);
+      const design = binding.tasks.find(item => item.role === 'design');
+      if (policy && design && !state.continuation!.windows[0].grants.some(grant => grant.taskId === design.task.taskId)) {
+        if (!execution.tasks.some((source: PreparedTask) => sameValue(source, design))) throw new Error('Historical design differs from the original execution.');
+        // Only this passed ancestor is checked under the original selection. Window dispatch keeps its own policy.
+        historicalDesign = { source: design, policy };
+      }
+    }
     for (const item of binding.tasks) {
       if (validateTask(item.task).length || item.task.state !== 'not_started') throw new Error('Host binding requires the fixed prepared task contracts.');
       if (state.continuation!.windows[0].grants.some(grant => grant.taskId === item.task.taskId)) {
@@ -827,7 +839,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Expose a non-configurable getter window.cosmosDebug returning frozen plain data. Its media.characters array follows manifest order: {id,loadedFrames,states:[{name,seen}]}; media.audio follows manifest order: {id,decoded,started}. Derive loadedFrames/decoded from actual Phaser texture/audio-cache readiness, states seen from actual displayed animation transitions, and started from successful sound start after normal user input. Preserve cumulative observations across scene changes in this document. Never fill these fields with declared constants or fabricate them; independent review checks their source. The host checks every declared state and audio clip on the frozen normal-input path and reports missing coverage as incomplete.',
         'The host builds, runs normal inputs, captures immutable output and asks a separate reviewer. Return only the required author handoff JSON after writing files.'] }],
     validateTasks(tasks) {
-      requirePlanAuthoringTasks(tasks, ordinaryPlanAuthoringPolicy);
+      for (const item of tasks) requirePlanAuthoringTasks([item], historicalDesign && sameValue(historicalDesign.source, item)
+        ? historicalDesign.policy : ordinaryPlanAuthoringPolicy);
       if (human && !binding) for (const item of tasks) {
         const policy = host.taskPolicies.find(policy => policy.role === item.role);
         if (!policy || validateTask(item.task).length || resolve(item.workspace) !== resolve(policy.workspace)
