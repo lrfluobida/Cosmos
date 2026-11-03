@@ -655,7 +655,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
       "verifiedNativeSubIssues": 62,
       "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168"],
-      "verifiedCompletedSubIssues": 59,
+      "verifiedCompletedSubIssues": 60,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -13085,7 +13085,7 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
+      "parentCheckboxChecked": true,
       "dependsOn": [
         "COS-03",
         "COS-11",
@@ -13112,11 +13112,11 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/137"
         }
       ],
-      "parentChecklistLine": "- [ ] [COS-168 · 保留设计作者的真实服务故障分类](https://github.com/lrfluobida/Cosmos/issues/169)",
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-approved-awaiting-integration",
-      "implementationPhase": "awaiting-offline-integration",
+      "parentChecklistLine": "- [x] [COS-168 · 保留设计作者的真实服务故障分类](https://github.com/lrfluobida/Cosmos/issues/169)",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-integrated-gameplay-offline",
+      "implementationPhase": "offline-source-scoped-complete",
       "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "sourceReviewedCommit": "0e2b392df40174d5ae518bd9f36cb5c4a54182d7",
       "rootSourceIntegrationApproved": true,
@@ -13133,7 +13133,14 @@
       "merger": "planning_budget_merger",
       "verifiedRootDirectSubIssues": 100,
       "verifiedParentNativeSubIssues": 62,
-      "verifiedParentCompletedSubIssues": 59
+      "verifiedParentCompletedSubIssues": 60,
+      "stateReason": "completed",
+      "sourceIntegratedCommit": "3a4f9ef292f4b0bb27bfb64a8de047cf7ff10211",
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/169#issuecomment-6602093672",
+      "verification": "Five approved paths exact. Offline typecheck/build, ordinary host with real SDK and fake transport1/1, no skips. One simulated send retained unknown and provider_error/external_service, without author proposal or followup. Independent error identity and probe counts7/7; author focused4/4.",
+      "sourceScope": "Future failure provenance. Original R27 upstream HTTP status and server handling unknown.",
+      "actualGameGeneration": "incomplete",
+      "userExperience": "not_confirmed"
     }
   ],
   "verifiedNativeSubIssues": 100,
