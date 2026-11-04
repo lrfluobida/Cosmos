@@ -7,6 +7,18 @@ import { createWorkspaceTools } from '../../src/providers/workspace-tools.ts';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 import type { PiSessionOptions } from '../../src/providers/pi.ts';
 
+for (const legacy of [false, true]) test(`COS175 host selects rejected-write compaction only for protected ordinary design (${legacy ? 'legacy' : 'current'})`, async t => {
+  let designSeen = false;
+  const f = await ordinaryHostFixture(t, { fault: 'review', ...(legacy ? { pause: true, frozenPlanAuthoringPolicy: 'structured-design-plan/1' as const } : {}),
+    sessionFactory: async (config, fallback) => {
+      const design = JSON.parse(config.context!).role === 'design';
+      if (design) designSeen = true;
+      assert.equal(config.compactRejectedDesignWrites, design && !legacy ? true : undefined);
+      return fallback;
+    } });
+  await f.execute(); assert.ok(designSeen);
+});
+
 const designPath = 'authors/design/design.json', planPath = 'authors/design/acceptance-plan.json';
 const design = { summary: '原创鼠标游戏', implementationNotes: ['通过正常鼠标操作显示结果'], acceptanceMapping: { light: '点击后显示完成' },
   experienceMapping: { readable: '状态清楚呈现' }, characters: [{ id: 'target', purpose: '目标', states: ['idle'] }], audio: [] };

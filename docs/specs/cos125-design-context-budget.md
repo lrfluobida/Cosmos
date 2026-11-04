@@ -80,6 +80,8 @@ requestCompactionAdmission?: (input: Readonly<{
 
 保留现非错误 toolUse 边界、readonly 排除、同投影去重、压缩后至少增加 32768 bytes 才再考虑、无收益停止后续压缩等约束。
 
+后续 [COS175](cos175-rejected-design-compaction.md) 将这一边界窄化扩展到启用草稿保护的普通 design 作者：仅可信主机在提交前拒绝候选、保留当前有效草稿的验证错误可继续沿原预算策略考虑压缩。原 `isError`、最新完整调用和诊断保留；任意工具错误、越权访问、模型文本和 provider 错误不能获得该资格。未选择该策略的会话仍保持本节原非错误边界。
+
 新策略只在当前原 authority 下同时满足以下两点时返回 true：
 
 1. 完整 32768 cap 的 clone quote 不可承担；

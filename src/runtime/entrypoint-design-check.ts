@@ -2,6 +2,7 @@ import { relative, resolve } from 'node:path';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { regularFile } from '../artifacts/paths.ts';
+import { PreservedDesignDraftError } from '../providers/workspace-tools.ts';
 import { identifier } from '../media/validation.ts';
 import { validateDesign } from './entrypoint-media.ts';
 import { validateModuleContracts } from './modular-code.ts';
@@ -188,7 +189,7 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
       const result = target === FILE ? evaluate(candidate) : evaluatePlan(input.ordinary, decode(candidate), true);
       if (!result.passed) {
         const diagnostics = result.ordinaryDiagnostics ?? result.errors.map(({ path, message }) => path === FILE ? message : `${path}: ${message}`);
-        throw new Error(ordinaryWriteFeedback('Proposed write rejected; current draft preserved. This change was not saved.', diagnostics, target));
+        throw new PreservedDesignDraftError(ordinaryWriteFeedback('Proposed write rejected; current draft preserved. This change was not saved.', diagnostics, target));
       }
     }
   }

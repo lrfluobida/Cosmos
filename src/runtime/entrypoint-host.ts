@@ -931,6 +931,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       ...(ordinary ? { authorThinkingLevel: { design: 'off' } as const, authorMaxRequests: { design: 32 } } : {}),
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
         ? { authorMaxRequests: { design: 64 }, authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
+          ...(preservesValidDraft(ordinaryPlanAuthoringPolicy) ? { ordinaryDesignRejectedWriteCompaction: true as const } : {}),
           ordinaryPlanningOutputFloor: 4096,
           ordinaryDesignReviewMaxOutputTokens: 16384,
           ordinaryPlanningAcceptanceIndex: async roleInput => {
