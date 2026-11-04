@@ -6,7 +6,7 @@ import { AgentSession, ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { createPiSession } from '../../src/providers/pi.ts';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 
-test('ordinary initial and unique revision inherit high in native compaction with total-output charging', async t => {
+test('ordinary initial and unique revision inherit low in native compaction with total-output charging', async t => {
   const requests: any[] = [], summaries: any[] = [], configs: any[] = [], timeouts: any[] = [];
   let native: AgentSession, active: any, round = 0;
   const prompt = AgentSession.prototype.prompt;
@@ -40,7 +40,7 @@ test('ordinary initial and unique revision inherit high in native compaction wit
     const packet = JSON.parse(active.context), summary = native.isCompacting;
     const state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8')), entry = state.ledger.entries.at(-1);
     assert.equal(body.model, 'deepseek-flash');
-    assert.deepEqual(body.thinking, { type: 'enabled' }); assert.equal(body.reasoning_effort, 'high');
+    assert.deepEqual(body.thinking, { type: 'enabled' }); assert.equal(body.reasoning_effort, 'low');
     assert.equal(entry.status, 'reserved'); assert.equal(entry.taskId, packet.taskId);
     assert.equal(state.requests.at(-1).requestId, entry.requestId);
     assert.ok(entry.reservedMicroCny > body.max_tokens * 8);
@@ -65,10 +65,10 @@ test('ordinary initial and unique revision inherit high in native compaction wit
     return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
   });
   const result: any = await f.execute(), state = JSON.parse(await readFile(join(f.root, 'snapshot.json'), 'utf8'));
-  assert.equal(configs[0].thinkingLevel, 'high');
+  assert.equal(configs[0].thinkingLevel, 'low');
   assert.equal(result.outcome, 'incomplete'); assert.match(result.gaps.join(' '), /design_revision_limit/);
   assert.deepEqual(state.tasks.map((task: any) => [task.taskId, task.state]), [['design-task', 'needs_changes'], ['design-task-revision', 'needs_changes']]);
-  assert.deepEqual(configs.map(config => [JSON.parse(config.context).taskId, config.thinkingLevel]), [['design-task', 'high'], ['design-task-revision', 'high']]);
+  assert.deepEqual(configs.map(config => [JSON.parse(config.context).taskId, config.thinkingLevel]), [['design-task', 'low'], ['design-task-revision', 'low']]);
   for (const config of configs) {
     const packet = JSON.parse(config.context);
     assert.equal(config.maxOutputTokens, 32768); assert.equal(config.maxRequests, 64); assert.equal(config.requestTimeoutMs, 600000);
