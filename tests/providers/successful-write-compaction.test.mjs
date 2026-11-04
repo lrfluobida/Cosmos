@@ -13,6 +13,7 @@ import { createGamePlanWriter } from '../../src/runtime/entrypoint-plan-authorin
 import { createWorkspaceTools, PreservedDesignDraftError } from '../../src/providers/workspace-tools.ts';
 import { createRoleFactory } from '../../src/roles/factory.ts';
 import { options as factoryOptions } from '../roles/author-output-budget.fixture.ts';
+import { BUDGET_FINALIZATION_PROMPT } from '../../src/runtime/repair/author-protocol.ts';
 
 const thinking = 'private size fixture '.repeat(4350);
 const written = 'Observable saved design fixture. '.repeat(590);
@@ -37,12 +38,15 @@ async function fixture(t, mode = 'success') {
       const summary = native.isCompacting;
       if (summary) summaryPrefix = structuredClone(native.sessionManager.getEntries());
       if (summary) summaries++; else ordinary++;
-      const request = { summary, context: structuredClone(context), inputBytes: requestInputBytes(context), maxOutputTokens: options.maxTokens };
+      const request = { summary, context: structuredClone(context), inputBytes: requestInputBytes(context), maxOutputTokens: options.maxTokens,
+        activeTools: native.getActiveToolNames(), callableTools: native.getCallableToolNames() };
       dispatched.push(request);
-      const content = summary ? [{ type: 'text', text: summaryText }] : ordinary === 1
+      const content = summary ? [{ type: 'text', text: summaryText + (mode === 'finalization-summary' ? ' s'.repeat(18000) : '') }] : ordinary === 1
         ? [{ type: 'thinking', thinking }, { type: 'text', text: 'Saving the observable draft; acceptance remains pending.' },
           { type: 'toolCall', id: 'owned-write', name: 'write', arguments: { path: 'game/draft.txt', content: written } }]
-        : [{ type: 'text', text: '{"summary":"Synthetic continuation only","remaining":["Independent acceptance is not exercised"],"uncertainty":[]}' }];
+        : [{ type: 'text', text: mode.startsWith('finalization')
+          ? '{"summary":"Synthetic continuation only; independent acceptance is pending","remaining":["acceptance-plan.json remains missing"],"uncertainty":[]}'
+          : '{"summary":"Synthetic continuation only","remaining":["Independent acceptance is not exercised"],"uncertainty":[]}' }];
       if (!summary && ordinary === 1) {
         if (mode === 'read') content[2] = { type: 'toolCall', id: 'read-only', name: 'read', arguments: { path: 'game/read.txt' } };
         if (mode === 'error') content[2].arguments.path = '../outside.txt';
@@ -54,7 +58,7 @@ async function fixture(t, mode = 'success') {
       const stopReason = summary && mode === 'length' ? 'length' : summary || ordinary > 1 ? 'stop' : 'toolUse';
       return lazyStream(model, async () => (async function* () {
         if (summary && mode === 'abort') { controller.abort(); throw new Error('Real fixture signal abort'); }
-        const usage = { input: summary ? request.inputBytes : ordinary === 1 ? 120684 : 1,
+        const usage = { input: summary ? request.inputBytes : ordinary === 1 ? mode === 'finalization' ? 110000 : 120684 : 1,
           output: summary ? options.maxTokens : 1, cacheRead: 0, cacheWrite: 0, totalTokens: 1,
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
         if (mode !== 'unknown' && !(summary && mode === 'summary-unknown')) await options.onProviderStreamEvent({ model: 'deepseek-flash', usage: { prompt_tokens: usage.input, completion_tokens: usage.output } }, model);
@@ -66,6 +70,7 @@ async function fixture(t, mode = 'success') {
   });
   const role = await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1',
     ordinaryDesignSuccessfulWriteCompaction: mode === 'legacy' ? undefined : true,
+    ...(mode.startsWith('finalization') ? { ordinaryDesignFinalizationPolicy: 'budget-followup/1', authorMaxRequests: { design: 64 } } : {}),
     ...(mode === 'rejected' ? { ordinaryDesignRejectedWriteCompaction: true,
       beforeDesignFileWrite: () => async () => { throw new PreservedDesignDraftError('Exact rejected diagnostic: current draft preserved.'); } } : {}),
     hostTools: async supplied => mode === 'structured' ? [await createGameDesignWriter({ workspace: supplied.workspace, onWriteCommitted: supplied.onWriteCommitted,
@@ -73,14 +78,53 @@ async function fixture(t, mode = 'success') {
       : mode === 'spoof' ? [{ readOnly: false, tool: { name: 'pretend-save', label: 'Spoof fixture', description: 'No actual write.', parameters: { type: 'object', properties: {} },
         execute: async () => ({ content: [{ type: 'text', text: 'Successfully saved game/draft.txt' }], details: { writtenPaths: ['game/draft.txt'], committed: true } }) } }] : [],
     sessionFactory: config => createPiSession({ ...config,
-      ...(mode === 'skip' ? { requestCompactionAdmission: async () => 'skip' } : {}),
+      ...(['skip', 'finalization'].includes(mode) ? { requestCompactionAdmission: async () => 'skip' } : {}),
       ...(mode === 'authority-error' ? { successfulWriteCompaction: { ...config.successfulWriteCompaction, requireAuthority: async () => { throw new Error('Original authority unavailable'); } } } : {}),
       budget: { ...config.budget,
       beforeRequest: async request => { charges.push(request); await config.budget.beforeRequest(request); } } }) });
   try { await (mode === 'readonly' ? role.readonlyPrompt : role.prompt)('Save the draft and continue the original task.', { signal: controller.signal }); } catch (caught) { error = caught; }
   assert.equal(network, 0);
-  return { f, native, ordinary, summaries, dispatched, charges, error, summaryPrefix, state: await f.controller.read() };
+  return { f, role, native, ordinary, summaries, dispatched, charges, error, summaryPrefix, state: await f.controller.read() };
 }
+
+for (const mode of ['finalization', 'finalization-summary']) test(`COS181 ${mode} preserves one native budget finalization after an unsent ordinary floor refusal`, async t => {
+  const r = await fixture(t, mode), summaries = mode === 'finalization-summary' ? 1 : 0;
+  assert.equal(r.error?.code, 'author_review_reserve');
+  assert.equal(r.ordinary, 1); assert.equal(r.summaries, summaries); assert.equal(r.charges.length, 1 + summaries);
+  const source = await r.role.budgetFinalization(r.error);
+  assert.ok(source, 'The unsent ordinary refusal must retain its original finalization source.');
+  assert.equal(source.stage, 'ordinary_output_limit'); assert.equal(source.floor, 8192);
+  assert.equal(source.requests, 2 + summaries); assert.equal(source.maxRequests, 64);
+  const spent = summaries ? 241376 + estimate(r.dispatched.find(row => row.summary)) : 220008;
+  assert.equal(r.state.ledger.entries.length, 1 + summaries); assert.equal(r.state.run.fees.settledMicroCny, spent);
+  assert.equal(r.state.run.fees.reservedMicroCny, 0); assert.ok(r.state.ledger.entries.every(row => row.status === 'settled'));
+  const entries = r.native.sessionManager.getEntries(), refused = entries.at(-1);
+  assert.equal(refused.id, source.native.entryId); assert.equal(refused.message.stopReason, 'error');
+  assert.equal(refused.message.usage.totalTokens, 0);
+  assert.equal(entries.filter(entry => entry.type === 'compaction').length, summaries);
+  const available = 749250 - 249750 - r.state.run.fees.settledMicroCny;
+  assert.ok(estimate({ inputBytes: source.inputBytes, maxOutputTokens: 8192 }) > available);
+  const answer = await r.role.finalizeBudget(r.error, BUDGET_FINALIZATION_PROMPT);
+  assert.deepEqual(JSON.parse(answer.text).remaining, ['acceptance-plan.json remains missing']);
+  await assert.rejects(readFile(join(r.f.root, 'acceptance-plan.json')), { code: 'ENOENT' });
+  assert.equal(r.dispatched.length, 2 + summaries); assert.equal(r.charges.length, 2 + summaries);
+  const final = r.dispatched.at(-1), quote = r.charges.at(-1).estimatedMaxCostMicroCny;
+  assert.equal(final.maxOutputTokens, 4096); assert.deepEqual(final.context.tools ?? [], []);
+  assert.deepEqual(final.activeTools, []); assert.deepEqual(final.callableTools, []);
+  assert.equal(quote, estimate(final)); assert.ok(quote <= available);
+  assert.equal(await readFile(join(r.f.root, 'game/draft.txt'), 'utf8'), written);
+  assert.deepEqual(r.native.sessionManager.getEntries().slice(0, entries.length), entries);
+  const after = await r.f.controller.read();
+  assert.equal(after.ledger.entries.length, 2 + summaries); assert.equal(after.run.fees.settledMicroCny, spent + 10);
+  assert.equal(after.run.fees.reservedMicroCny, 0);
+  assert.equal(after.run.originalDeadlineAt, r.state.run.originalDeadlineAt);
+  assert.deepEqual(after.ledger.allocations, r.state.ledger.allocations);
+  assert.equal(after.ledger.limitMicroCny, r.state.ledger.limitMicroCny);
+  assert.ok(749250 - after.run.fees.settledMicroCny >= 249750);
+  assert.equal(await r.role.budgetFinalization(r.error), null);
+  await assert.rejects(r.role.finalizeBudget(r.error, 'No second finalization.'));
+  assert.equal(r.dispatched.length, 2 + summaries);
+});
 
 test('COS180 successful owned write checkpoints a complete native turn and continues within the unchanged review reserve', async t => {
   const r = await fixture(t);

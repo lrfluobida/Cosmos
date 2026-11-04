@@ -435,11 +435,12 @@ export async function createPiSession(config: PiSessionOptions) {
       pendingCheckpoint = undefined;
       try {
         const writes = config.successfulWriteCompaction!.takeWrites();
-        requireCompactionActive();
         if (readonlyRequests !== undefined || autoCompactionDisabled || records.at(-1)?.outcome !== 'settled'
           || records.at(-1)?.stopReason !== 'toolUse') return;
         const content = successfulWriteNote(event, writes);
-        if (!content || !await config.successfulWriteCompaction!.requireAuthority()) return;
+        if (!content) return;
+        requireCompactionActive();
+        if (!await config.successfulWriteCompaction!.requireAuthority()) return;
         requireCompactionActive();
         if (!await selectCompaction(projection())) return;
         const token = randomUUID();
