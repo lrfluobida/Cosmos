@@ -4,6 +4,16 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R32 已独立 `PASS_R32_CLOSED_R30_PENDING`：6笔全已知，结算317905微元、释放本案未用3332095微元，child37/shared3431，C41175962/H480004。生成与清理208473ms、签名结果in_time；实际阻塞是下一请求发送前的author_review_reserve。2026-11-04T19:22:02.281Z持久化的deadline来自截止后的结算重开，不是生成失败原因。R30原child32、五份回执、unknown407922微元预留和暂停来源仍保持，财务待核。
+
+[COS179 / #180](https://github.com/lrfluobida/Cosmos/issues/180#issuecomment-6641163054) 已按配置、原生传输与真实low已知结果范围关闭。R32正常toolUse保存design.json并完成原生摘要，但下一输入139111B在发送前触发独审预留保护；没有验收计划、捕获、独审或游戏。low是启用thinking的努力等级，不是token硬额度，已有文件不代表语义质量通过。
+
+新 [COS180 / #181](https://github.com/lrfluobida/Cosmos/issues/181) 已登记，Root批准有界范围：只在可信、完整且全成功的设计写入批次建立原生检查点，仅过滤摘要准备副本中的assistant thinking；保留原journal、文件、公开内容与调用/结果，复用已包装计费stream和原预算。禁止前置挪用预算损害coding repair，不增模型、请求槽、额度或财务机制。作者 `r32_design_envelope_diagnosis`，具体设计和源码独审 `successful_checkpoint_reviewer`，唯一merger `cos175_resume_merger`；基线 `fae95916fa8a98f650eb06911de7708e86b1a356`，实施前须完成具体设计审查，SOURCE pending。
+
+源码与实际余额核对后，下一轮完整room12v2最多3330000微元/30分钟，C41175962+H480004+3330000=44985966，phase45余14034微元。原需求、输出上限、独审/修复分配及R30财务待核状态保持；当前没有新派发或费用。
+
+以下保留此前阶段记录；当前任务状态、财务占用和下一轮上限以前述R32审计及COS180记录为准。
+
 R31 已独立 `PASS_R31_CLOSED_R30_PENDING`：7笔全已知，结算346396微元、释放本案未用3653604微元，child41/shared3429，C40858057/H480004。R30原child32、五份回执、unknown407922微元预留与暂停来源保持，财务仍待核；原R30 allocation没有关闭或零差额结算。phase45当前可用3661939微元。
 
 [COS177 / #178](https://github.com/lrfluobida/Cosmos/issues/178#issuecomment-6638943802) 已按源码与真实延长等待范围关闭：R31请求 `a40f1465-b3b2-4a28-8e2c-1c54a4bfc318` 在165014.926ms返回已知length回执，越过旧120000ms上限；32768总输出中32679为reasoning，不完整工具调用未执行，无设计产物、捕获、独审或后续角色。[COS178 / #179](https://github.com/lrfluobida/Cosmos/issues/179#issuecomment-6638945213) 已按真实暂停应用及后续R31正常准入/结算范围关闭：独立`PASS_APPLIED_SUSPENSION_ONLY`核对shared3427仅增加一次暂停，后续R31独审继续确认R30原字节和H480004保持。两项功能完成不代表游戏通过或R30财务结清。
@@ -11,8 +21,6 @@ R31 已独立 `PASS_R31_CLOSED_R30_PENDING`：7笔全已知，结算346396微元
 [COS179 / #180](https://github.com/lrfluobida/Cosmos/issues/180#issuecomment-6639023452) 已独审集成，任务保持open。作者 `r31_reasoning_budget_diagnosis` 的 `986b8a8a038d865699cd969c5939ee6426c62a4c` 经 `cos179_low_reasoning_reviewer` 实际四文件审查批准、无findings；唯一merger `cos175_resume_merger` 合入 `dfa96c6851de7cb4a2f58f738ada8da962c707eb`，四文件与批准版本一致。生产仅普通design作者high→low，原生thinking仍启用，不是独立推理token硬额度。主线初始/修订/摘要计费代表1/1、0 skip（22303.6354ms），14次合成请求/4次摘要/112840微元，types/build退出0；作者15/15与未变证据复用，不累加重叠。
 
 下一轮完整room12v2最多3650000微元/30分钟，C40858057+H480004+3650000=44988061，phase45剩余11939微元。原模型、600000ms及截止裁剪、32768作者/8192摘要上限、独审和全部需求保持；较低金额不构成严格A/B比较，low的真实语义质量仍待验证。没有阶段增额、R30/R31重开或merger账本操作。
-
-以下保留此前阶段记录；当前任务状态、财务占用和下一轮上限以前述R31审计及COS179记录为准。
 
 R30 在固定源码 `f791c334b4709610a9ab1c09179fdb310dce13b6` 上执行结束，结果 incomplete，生成至清理结束169480ms。真实设计作者已使用high；第三次设计请求520.635ms收到首个服务流事件，120019.259ms时被原120000ms绝对请求计时器取消。该证据只确认请求上限到期，不归因为供应商故障或high模式；没有设计写入、捕获、独审、摘要、美术、编码或浏览器验收。
 

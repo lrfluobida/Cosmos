@@ -2521,11 +2521,17 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-179 · 普通设计作者使用低推理努力等级
 
-[COS179 / #180](https://github.com/lrfluobida/Cosmos/issues/180#issuecomment-6639023452)，ID `6209053105`，父COS18/#19、[ ]，原生依赖COS176/#177、COS177/#178与COS178/#179。Root批准生产仅普通design作者high→low，实际wire仍启用thinking，不是独立推理token硬额度；原600000ms/截止裁剪、32768作者/8192摘要上限、模型、独审、计费和完整需求保持。
+[COS179 / #180](https://github.com/lrfluobida/Cosmos/issues/180#issuecomment-6641163054)，ID `6209053105`，已按配置与真实low已知结果范围complete/closed，父COS18/#19、[x]，原生依赖COS176/#177、COS177/#178与COS178/#179。生产仅普通design作者high→low，实际wire仍启用thinking，不是独立推理token硬额度；原600000ms/截止裁剪、32768作者/8192摘要上限、模型、独审、计费和完整需求保持。
 
 作者 `r31_reasoning_budget_diagnosis` 的 `986b8a8a038d865699cd969c5939ee6426c62a4c` 经 `cos179_low_reasoning_reviewer` 独审APPROVED_SOURCE_SCOPED、无findings，唯一merger `cos175_resume_merger` 合入 `dfa96c6851de7cb4a2f58f738ada8da962c707eb`；四文件与批准版本一致。主线原生初始/修订/摘要与计费代表1/1、0 skip（22303.6354ms），14次合成请求/4次摘要/112840微元，types/build退出0；作者15/15及未变证据复用。[源码规格](cos179-ordinary-design-low-reasoning.md) 限定配置与传输证明，真实质量未定。
 
-基线 `18e2d04d921dc6efe56759c851b8cbfc426530b5`，批准计划摘要 `24b11ba6dc69b437ad1146ecfc81188ed594f80affb5f215874595f7cb6ce834`。任务保持open，下一轮最多3650000微元/30分钟，C40858057+H480004+3650000=44988061仍在phase45；较低金额不构成严格A/B比较。R30财务pending、R31永久结案，不增加预算或重开旧运行。
+基线 `18e2d04d921dc6efe56759c851b8cbfc426530b5`，批准计划摘要 `24b11ba6dc69b437ad1146ecfc81188ed594f80affb5f215874595f7cb6ce834`。R32正常toolUse保存design.json、原生摘要完成，下一输入139111B被author_review_reserve在发送前拒绝，无验收计划/捕获/独审/游戏。生成清理208473ms且in_time，后续会计重开的deadline不作生成失败归因。独立`PASS_R32_CLOSED_R30_PENDING`确认6笔317905/释放3332095微元，child37/shared3431/C41175962/H480004；R30仍pending，真实语义质量未通过。
+
+### COS-180 · 成功设计写入后的原生上下文压缩
+
+[COS180 / #181](https://github.com/lrfluobida/Cosmos/issues/181)，ID `6210685217`，父COS18/#19、[ ]，原生依赖COS125/#126、COS175/#176与COS179/#180。Root批准仅可信成功写入的原生检查点与摘要准备副本thinking过滤；保留完整原journal、公开内容和调用/结果，使用已包装计费stream，COS175拒绝配对、原预算/修复分配、独审和全部验收保持。不实施前置预算拆分，不增额度、请求槽、模型或财务机制。
+
+作者 `r32_design_envelope_diagnosis`，独审 `successful_checkpoint_reviewer`，唯一merger `cos175_resume_merger`；基线 `fae95916fa8a98f650eb06911de7708e86b1a356`，分支 `codex/successful-write-compaction`，批准范围摘要 `9a194b09db40b8564581eb544c90ccff869691d71eeb90423f703a02c32c1999`，完整计划在issue正文。具体原生时机、handler与计费设计须在代码前独审；SOURCE pending。源码与余额检查后下一轮最多3330000微元/30分钟，预计阶段暴露44985966微元，仍在phase45；R30财务pending、旧运行不重开。
 
 ## 5. 任务与上下文包模板
 
