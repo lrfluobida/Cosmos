@@ -2,16 +2,23 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
-import { AgentSession } from '@earendil-works/pi-coding-agent';
+import { AgentSession, ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { createPiSession } from '../../src/providers/pi.ts';
 import { ordinaryHostFixture } from './ordinary-design.fixture.ts';
 
 test('ordinary initial and unique revision inherit high in native compaction with total-output charging', async t => {
-  const requests: any[] = [], summaries: any[] = [], configs: any[] = [];
+  const requests: any[] = [], summaries: any[] = [], configs: any[] = [], timeouts: any[] = [];
   let native: AgentSession, active: any, round = 0;
   const prompt = AgentSession.prototype.prompt;
   t.mock.method(AgentSession.prototype, 'prompt', function(this: AgentSession, ...args: Parameters<typeof prompt>) {
     native = this; return prompt.apply(this, args);
+  });
+  const stream = ModelRuntime.prototype.streamSimple;
+  t.mock.method(ModelRuntime.prototype, 'streamSimple', function(this: ModelRuntime, ...args: Parameters<typeof stream>) {
+    const options = args[2];
+    assert.equal(options?.timeoutMs, 600000); assert.equal(options?.maxRetries, 0);
+    timeouts.push({ taskId: JSON.parse(active.context).taskId, summary: native.isCompacting });
+    return stream.apply(this, args);
   });
   const f = await ordinaryHostFixture(t, { productionDefault: true, revisionPolicy: 'independent-review/2', fault: 'review',
     limits: { limitMicroCny: 4480000, durationMs: 1800000 }, sessionFactory: async (config, fallback) => {
@@ -64,11 +71,14 @@ test('ordinary initial and unique revision inherit high in native compaction wit
   assert.deepEqual(configs.map(config => [JSON.parse(config.context).taskId, config.thinkingLevel]), [['design-task', 'high'], ['design-task-revision', 'high']]);
   for (const config of configs) {
     const packet = JSON.parse(config.context);
-    assert.equal(config.maxOutputTokens, 32768); assert.equal(config.maxRequests, 64); assert.equal(config.requestTimeoutMs, 120000);
+    assert.equal(config.maxOutputTokens, 32768); assert.equal(config.maxRequests, 64); assert.equal(config.requestTimeoutMs, 600000);
     assert.equal(config.compactionKeepRecentTokens, 8000); assert.equal(packet.budget.originalDeadlineAt, state.run.originalDeadlineAt);
     assert.ok(summaries.some(summary => summary.taskId === packet.taskId), 'Both original and revision must perform real native compaction.');
     assert.ok(requests.some(request => request.taskId === packet.taskId && request.summary));
+    assert.ok(timeouts.some(request => request.taskId === packet.taskId && request.summary));
+    assert.ok(timeouts.some(request => request.taskId === packet.taskId && !request.summary));
   }
+  assert.equal(timeouts.length, requests.length);
   assert.equal(state.ledger.limitMicroCny, 4480000); assert.equal(state.ledger.entries.length, requests.length);
   assert.ok(state.ledger.entries.every((entry: any) => entry.status === 'settled' && entry.reservedMicroCny === 0 && !entry.unknown));
   for (const request of requests) {

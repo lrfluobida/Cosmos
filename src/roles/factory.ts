@@ -84,6 +84,8 @@ export interface RoleFactoryOptions {
   requestTimeoutMs: number;
   /** Trusted coding author cap; planning and reviewers retain requestTimeoutMs. */
   codingAuthorRequestTimeoutMs?: number;
+  /** Trusted non-validation design author cap; planning and reviewers retain requestTimeoutMs. */
+  designAuthorRequestTimeoutMs?: number;
   estimatedMaxCostMicroCny: PiSessionOptions['estimatedMaxCostMicroCny'];
   thinkingLevel?: PiSessionOptions['thinkingLevel'];
   /** Author overrides only; planning, review and fixed validation retain thinkingLevel. */
@@ -158,6 +160,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (Object.entries(authorThinking).some(([role, level]) => !['cosmos', 'design', 'coding', 'art'].includes(role) || !['off', 'low', 'high', 'max'].includes(level))) throw new Error('authorThinkingLevel requires valid author roles and supported thinking levels.');
   const codingTimeout = options.codingAuthorRequestTimeoutMs;
   if (codingTimeout !== undefined && (!Number.isSafeInteger(codingTimeout) || codingTimeout <= 0)) throw new Error('codingAuthorRequestTimeoutMs requires a positive safe integer.');
+  const designTimeout = options.designAuthorRequestTimeoutMs;
+  if (designTimeout !== undefined && (!Number.isSafeInteger(designTimeout) || designTimeout <= 0)) throw new Error('designAuthorRequestTimeoutMs requires a positive safe integer.');
   if (options.ordinaryPlanningAcceptanceIndex !== undefined && typeof options.ordinaryPlanningAcceptanceIndex !== 'function') throw new Error('ordinaryPlanningAcceptanceIndex requires a trusted source verifier.');
   return async input => {
     if (finalizationPolicy && input.validation) throw new Error('Ordinary design finalization cannot authorize validation roles.');
@@ -263,7 +267,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       context: JSON.stringify(packet), thinkingLevel: (purpose === 'author' && !validation && input.role !== 'reviewer' ? authorThinking[input.role] : undefined) ?? options.thinkingLevel ?? 'low', env: options.env,
       ...(purpose === 'planning' ? { jsonOutput: true } : {}),
       maxOutputTokens: designReviewBudget ? designReviewMaxOutputTokens : planningOutputBudget ? 8192 : validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
-      maxRequests, requestTimeoutMs: input.role === 'coding' && purpose === 'author' ? codingTimeout ?? options.requestTimeoutMs : options.requestTimeoutMs,
+      maxRequests, requestTimeoutMs: (purpose === 'author' ? input.role === 'coding' ? codingTimeout : input.role === 'design' && !validation ? designTimeout : undefined : undefined) ?? options.requestTimeoutMs,
       requestWindow: async () => {
         input.controller.signal.throwIfAborted();
         const current = validation ? await input.controller.validationAuthority(task.taskId, purpose) : await input.controller.executionAuthority(task.taskId);
