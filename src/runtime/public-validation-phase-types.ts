@@ -39,3 +39,15 @@ export interface PublicValidationPhaseSuccessorReceipt {
   activationAllowed: false; appliedAt: string; quote: PublicValidationPhaseSuccessorQuote;
   operatorDecision: PublicValidationPhaseSuccessorDecision & { sourceSha256: string };
 }
+
+export interface PublicValidationPhaseFollowupQuote extends Omit<PublicValidationPhaseSuccessorQuote, 'formatVersion' | 'fromMicroCny'> {
+  formatVersion: 'public-validation-phase-followup-quote/1'; fromMicroCny: number;
+}
+export interface PublicValidationPhaseFollowupDecision extends Omit<PublicValidationPhaseSuccessorDecision, 'kind'> {
+  kind: 'operator_public_validation_phase_followup';
+}
+export interface PublicValidationPhaseFollowupReceipt {
+  activationAllowed: false; appliedAt: string; quote: PublicValidationPhaseFollowupQuote;
+  operatorDecision: PublicValidationPhaseFollowupDecision & { sourceSha256: string };
+}
+export type PublicValidationPhase = PublicValidationPhaseReceipt | PublicValidationPhaseSuccessorReceipt | PublicValidationPhaseFollowupReceipt;

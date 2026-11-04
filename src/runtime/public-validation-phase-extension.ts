@@ -8,6 +8,10 @@ import { validateSnapshot } from './run-validation.ts';
 import { requireNoRegistryWriter } from './window-idle.ts';
 import { sharedSources } from './public-validation-funding.ts';
 import { phaseDecisionIds, phaseHash, phaseHistoryHash, phaseSuccessorHistoryHash, requirePhaseHistoryStopped, validatePhaseQuote, validatePhaseSuccessorQuote, verifyPhaseDecision, verifyPhaseSuccessorDecision } from './public-validation-phase-validation.ts';
+import { publicFundingExposure } from './public-validation-funding-validation.ts';
+import { requireCurrentAccountingReviews } from './public-funding-charge-resolution.ts';
+import { publicValidationPhases, phaseFollowupHistoryHash, validatePhaseFollowupQuote, verifyPhaseFollowupDecision } from './public-validation-phase-validation.ts';
+import type { PublicValidationPhaseFollowupQuote, PublicValidationPhaseFollowupDecision, PublicValidationPhaseFollowupReceipt } from './public-validation-phase-types.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { PublicValidationPhaseDecision, PublicValidationPhaseOptions, PublicValidationPhaseQuote, PublicValidationPhaseReceipt, PublicValidationPhaseSuccessorDecision, PublicValidationPhaseSuccessorQuote, PublicValidationPhaseSuccessorReceipt } from './public-validation-phase-types.ts';
 
@@ -143,6 +147,66 @@ export async function applyPublicValidationPhaseSuccessor(options: PublicValidat
     const receipt: PublicValidationPhaseSuccessorReceipt = { activationAllowed: false, appliedAt: new Date(now()).toISOString(), quote, operatorDecision };
     const next = structuredClone(state); next.publicValidationPhaseSuccessor = receipt; next.revision++;
     next.events.push({ sequence: next.events.length + 1, at: receipt.appliedAt, type: 'public_validation_phase_successor_applied', requestId: null,
+      reason: JSON.stringify({ quoteId: quote.quoteId, decisionId: decision.decisionId }) });
+    validateSnapshot(next); await store.write(next); return structuredClone(receipt);
+  } finally { await store.close(); }
+}
+
+async function followupQuoteFor(options: PublicValidationPhaseOptions & { toMicroCny: number }, state: RunSnapshot, bytes: Buffer, owned: boolean): Promise<PublicValidationPhaseFollowupQuote> {
+  const original = publicValidationPhases(state).at(-1);
+  if (!state.publicValidationPhaseSuccessor || !original) throw new Error('Public validation phase followup requires the original successor.');
+  requirePhaseHistoryStopped(state, true); await idle(options, state, owned); await sharedSources(options.root, state);
+  await requireCurrentAccountingReviews(options.root, state);
+  const basis: PublicValidationPhaseFollowupQuote['basis'] = {
+    runId: state.run.runId, ledgerId: state.ledger.ledgerId, revision: state.revision, snapshotSha256: phaseHash(bytes),
+    committedMicroCny: budgetSummary(state.ledger).committedMicroCny, heldMicroCny: publicFundingExposure(state).heldMicroCny, allocatedMicroCny: budgetCapacity(state.ledger).allocatedMicroCny,
+    allocationCount: state.ledger.allocations.length, entryCount: state.ledger.entries.length, requestCount: state.requests.length,
+    caseCount: state.validation!.cases.length, taskCount: state.tasks.length, closureCount: state.ledger.allocationClosures?.length ?? 0,
+    fundingCount: state.publicValidationFundings?.length ?? 0, eventCount: state.events.length, historySha256: '',
+  };
+  basis.historySha256 = phaseFollowupHistoryHash(state, basis, state.publicValidationPhaseFollowups?.length ?? 0);
+  const value: Omit<PublicValidationPhaseFollowupQuote, 'quoteId'> = {
+    formatVersion: 'public-validation-phase-followup-quote/1', scope: 'public_validation_funding', activationAllowed: false,
+    sharedRoot: options.root, repositoryRoot: options.repositoryRoot,
+    fromMicroCny: original.quote.toMicroCny, toMicroCny: options.toMicroCny, lifetimeMicroCny: 150_000_000, maxRunMicroCny: 5_000_000, maxDurationMs: 1_800_000,
+    predecessor: { quoteId: original.quote.quoteId, decisionId: original.operatorDecision.decisionId,
+      receiptSha256: phaseHash(JSON.stringify(original)), sourceSha256: original.operatorDecision.sourceSha256 }, basis,
+  };
+  const quote = { ...value, quoteId: `pvpfq1-${phaseHash(JSON.stringify(value))}` }; validatePhaseFollowupQuote(quote, state);
+  await idle(options, state, owned);
+  if (!bytes.equals(await regularFile(options.root, 'snapshot.json'))) throw new Error('Public phase snapshot changed during preparation.');
+  return quote;
+}
+
+/** Read-only followup proposal; no implicit target or new run authority. */
+export async function preparePublicValidationPhaseFollowup(options: PublicValidationPhaseOptions & { toMicroCny: number }): Promise<PublicValidationPhaseFollowupQuote> {
+  const bytes = await regularFile(options.root, 'snapshot.json'), state = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+  validateSnapshot(state); return followupQuoteFor(options, state, bytes, false);
+}
+
+/** Append only a fresh exact operator decision; historical retries return their original receipt. */
+export async function applyPublicValidationPhaseFollowup(options: PublicValidationPhaseOptions & { quote: PublicValidationPhaseFollowupQuote; decision: PublicValidationPhaseFollowupDecision }): Promise<PublicValidationPhaseFollowupReceipt> {
+  const quote = structuredClone(options.quote), decision = structuredClone(options.decision), now = options.now ?? Date.now;
+  if (quote.sharedRoot !== options.root || quote.repositoryRoot !== options.repositoryRoot) throw new Error('Public phase followup quote roots changed.');
+  const store = await SnapshotStore.acquire(options.root);
+  try {
+    const state = await store.read(); validateSnapshot(state); validatePhaseFollowupQuote(quote, state);
+    const operatorDecision = await verifyPhaseFollowupDecision(store.root, quote, decision, state, now());
+    const decisions = await sharedSources(store.root, state), existing = state.publicValidationPhaseFollowups?.find(r => r.quote.quoteId === quote.quoteId || r.operatorDecision.decisionId === decision.decisionId);
+    if (existing) {
+      if (!sameValue(existing.quote, quote) || !sameValue(existing.operatorDecision, operatorDecision)) throw new Error('Public phase followup conflicts with its original decision.');
+      return structuredClone(existing);
+    }
+    if (publicValidationPhases(state).some(r => r.operatorDecision.decisionId === decision.decisionId) || decisions.has(decision.decisionId) || phaseDecisionIds(state).includes(decision.decisionId)) throw new Error('Public phase decision identity was already consumed.');
+    const bytes = await regularFile(store.root, 'snapshot.json');
+    if (state.revision !== quote.basis.revision || phaseHash(bytes) !== quote.basis.snapshotSha256) throw new Error('Public phase followup quote is stale.');
+    if (!sameValue(await followupQuoteFor({ ...options, toMicroCny: quote.toMicroCny }, state, bytes, true), quote)) throw new Error('Public phase followup quote or history changed.');
+    await sharedSources(store.root, state); await requireCurrentAccountingReviews(store.root, state); await idle(options, state, true);
+    if (!sameValue(await verifyPhaseFollowupDecision(store.root, quote, decision, state, now()), operatorDecision)
+      || !bytes.equals(await regularFile(store.root, 'snapshot.json'))) throw new Error('Public phase decision or snapshot changed before commit.');
+    const receipt: PublicValidationPhaseFollowupReceipt = { activationAllowed: false, appliedAt: new Date(now()).toISOString(), quote, operatorDecision };
+    const next = structuredClone(state); next.publicValidationPhaseFollowups = [...(next.publicValidationPhaseFollowups ?? []), receipt]; next.revision++;
+    next.events.push({ sequence: next.events.length + 1, at: receipt.appliedAt, type: 'public_validation_phase_followup_applied', requestId: null,
       reason: JSON.stringify({ quoteId: quote.quoteId, decisionId: decision.decisionId }) });
     validateSnapshot(next); await store.write(next); return structuredClone(receipt);
   } finally { await store.close(); }

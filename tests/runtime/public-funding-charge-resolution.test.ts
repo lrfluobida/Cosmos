@@ -7,10 +7,12 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { crc32 } from 'node:zlib';
 import test from 'node:test';
 import { signedOrdinaryIncompleteFunding } from './public-validation-funding.fixture.ts';
+import { followupFixture } from './public-validation-phase-followups.fixture.ts';
 import {
   acquirePublicFundingGate,
   settlePublicValidationFunding,
   reservePublicValidationFunding,
+  suspendPublicValidationFunding,
 } from '../../src/runtime/public-validation-funding.ts';
 import {
   previewPublicFundingChargeResolution,
@@ -56,9 +58,13 @@ function zip(members: [string, string][], reverse: boolean) {
   return Buffer.concat([...data, d, end]);
 }
 test('funded unknown requires three external approvals; exact closed-hour attribution settles once and gates later paid work', async (t) => {
-  const f = await signedOrdinaryIncompleteFunding(t, 'external-charge'),
+  const phase = await followupFixture(t);
+  const f = await signedOrdinaryIncompleteFunding(t, 'external-charge', phase),
     target = { runRoot: f.runRoot, sharedRoot: f.sharedRoot, fundingId: f.binding.fundingId };
   const second = await signedOrdinaryIncompleteFunding(t, 'external-charge', f.f, 'second-history');
+  for (const value of [f, second]) await suspendPublicValidationFunding({ runRoot: value.runRoot, sharedRoot: value.sharedRoot, fundingId: value.binding.fundingId });
+  const phaseReceipt = await phase.follow(50_000_000);
+  const { sourceSha256: _phaseHash, ...phaseDecision } = phaseReceipt.operatorDecision;
   const initial = await f.snapshot(),
     sharedBefore = await f.f.snapshot();
   await assert.rejects(settlePublicValidationFunding(target), /unknown|reserved/);
@@ -352,6 +358,9 @@ test('funded unknown requires three external approvals; exact closed-hour attrib
   assert.deepEqual(await fs.readFile(f.receiptPath), completion);
   assert.deepEqual(await RunController.applyPublicFundingChargeResolution(target), closed);
   assert.deepEqual(await f.snapshot(), after);
+  const sharedAfterResolution = await fs.readFile(join(f.sharedRoot, 'snapshot.json'));
+  assert.deepEqual(await phase.apply(phaseReceipt.quote, phaseDecision), phaseReceipt);
+  assert.deepEqual(await fs.readFile(join(f.sharedRoot, 'snapshot.json')), sharedAfterResolution);
   const firstClaimPath = join(f.sharedRoot, 'public-funding-accounting/claims', target.fundingId + '.json');
   const firstClaim = await fs.readFile(firstClaimPath);
   for (const fault of ['overlap', 'tampered', 'missing']) {
