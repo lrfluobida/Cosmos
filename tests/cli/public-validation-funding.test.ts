@@ -47,7 +47,7 @@ for (const when of ['before-stop', 'after-close', 'after-settlement']) test(`v2 
 
 test('v2 funding wrapper binds the original complete requirements without a new interview', async t => {
   const phases: string[] = [];
-  const generated = await ordinaryHostFixture(t, { sessionFactory: async config => ({ close: async () => {}, async prompt() {
+  const generated = await ordinaryHostFixture(t, { productionDefault: true, sessionFactory: async config => ({ close: async () => {}, async prompt() {
     const packet = JSON.parse(config.context!); phases.push(packet.role);
     const requestId = 'reused-planning';
     await config.budget.beforeRequest({ requestId, modelId: 'deepseek-flash', maxOutputTokens: config.maxOutputTokens, inputBytes: 100, hasImages: false, estimatedMaxCostMicroCny: 200 });
