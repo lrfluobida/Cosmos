@@ -3,7 +3,7 @@ import { Type } from 'typebox';
 import type { ArtifactReference, TaskContract } from '../contracts/types.ts';
 import { sameValue } from '../contracts/validation.ts';
 import { regularFile } from '../artifacts/paths.ts';
-import { createWorkspaceTools, type BeforeFileWrite } from '../providers/workspace-tools.ts';
+import { createWorkspaceTools, type BeforeFileWrite, type WriteCommitted } from '../providers/workspace-tools.ts';
 import { ORDINARY_PLAN_SOURCE } from './entrypoint-acceptance-plan.ts';
 import { GAME_DESIGN_WRITE, ORDINARY_DESIGN_AUTHORING_RULE, ORDINARY_DRAFT_PRESERVATION_RULE } from './entrypoint-design-authoring.ts';
 import { requireAuthorJson } from './structured-author-json.ts';
@@ -96,11 +96,11 @@ function repairAcceptanceIds(plan: JsonObject, args: JsonObject, gameplayIds: Se
 }
 
 /** Writes only the mutable author draft. Validation and approval stay with the original host. */
-export async function createGamePlanWriter(input: { workspace: string; requirement: ArtifactReference; seededRevision?: boolean; beforeFileWrite?: BeforeFileWrite;
+export async function createGamePlanWriter(input: { workspace: string; requirement: ArtifactReference; seededRevision?: boolean; beforeFileWrite?: BeforeFileWrite; onWriteCommitted?: WriteCommitted;
   repairGameplayIds?: readonly string[]; guard(signal: AbortSignal): Promise<void>; afterFileWrite(signal: AbortSignal): Promise<string> }) {
   const requirement = structuredClone(input.requirement);
   const gameplayIds = input.repairGameplayIds && new Set(input.repairGameplayIds);
-  const writer = (await createWorkspaceTools({ workspace: input.workspace, readPaths: [], writePaths: [ORDINARY_PLAN_SOURCE], beforeFileWrite: input.beforeFileWrite })).find(tool => tool.name === 'write')!;
+  const writer = (await createWorkspaceTools({ workspace: input.workspace, readPaths: [], writePaths: [ORDINARY_PLAN_SOURCE], beforeFileWrite: input.beforeFileWrite, onWriteCommitted: input.onWriteCommitted })).find(tool => tool.name === 'write')!;
   return { readOnly: false, tool: defineTool({ name: GAME_PLAN_WRITE, label: 'Save game acceptance plan draft', executionMode: 'sequential',
     description: `Save structured scenario data or append main/reopen steps to ${ORDINARY_PLAN_SOURCE}. Save replaces the entire scenario, including viewport, all steps and reopen; omitted content is not retained. Append adds steps to the chosen stage in order. Optional append-only afterStepId inserts the whole batch immediately after that unique existing step ID in the chosen stage; omitted means append at the end. The stage and anchor must already exist. Reusing anchor A to insert B then C yields A,C,B; to continue a batch, use its last inserted step ID as the next anchor. Supply game-specific values yourself. The host fixes the envelope and requirement reference. ${input.beforeFileWrite ? ORDINARY_DRAFT_PRESERVATION_RULE : 'Save may record an incomplete draft; diagnostics, capture and independent review still decide validity and acceptance.'} No path, reference, authority or script arguments.`
       + (input.seededRevision ? ' Revision workspace: editable authors/design/design.json and authors/design/acceptance-plan.json are seeded from the previous capture and remain unapproved drafts. Read the current drafts and actual review findings first. Prefer targeted edits that preserve unaffected coverage and reopen structure; do not save an empty plan just to start revision. Intentional full replacement remains allowed: supply the full replacement and pass the existing checks. Raw read/write/edit remain available. For complete JSON reads, use null for unspecified offset/limit when the schema requires them; before exact-text edits, read numeric pages for exact source anchors.' : '')

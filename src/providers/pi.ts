@@ -3,12 +3,13 @@ import { mkdir, realpath, stat } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { InMemoryCredentialStore, lazyStream, normalizeContext, type AssistantMessage, type AssistantMessageEvent, type ImageContent, type Usage } from '@earendil-works/pi-ai';
 import {
-  createAgentSession, createExtensionRuntime, convertToLlm, ModelRuntime, SessionManager, SettingsManager,
+  compact, createAgentSession, createExtensionRuntime, convertToLlm, ModelRuntime, SessionManager, SettingsManager,
   type AgentSessionEvent, type ResourceLoader, type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { regularFile } from '../artifacts/paths.ts';
 import { requestInputBytes } from './request-input.ts';
 import { PreservedDesignDraftError } from './workspace-tools.ts';
+import { successfulWriteExtension, successfulWriteNote, summaryWithoutThinking, type SuccessfulWriteCompaction } from './successful-write-compaction.ts';
 
 export { createWorkspaceTools } from './workspace-tools.ts';
 export const PI_VERSION = '0.99.2';
@@ -85,6 +86,7 @@ export interface PiSessionOptions {
   requestCompaction?: (request: PiCompactionBounds) => Promise<boolean | 'budget_pressure'>;
   /** Host-only ordinary design selection; serialized tool output never grants eligibility. */
   compactRejectedDesignWrites?: true;
+  successfulWriteCompaction?: SuccessfulWriteCompaction;
   /** Read-only optional summary preflight; only budget insufficiency may preserve the ordinary turn. */
   requestCompactionAdmission?: (input: Readonly<{ summary: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>;
     ordinary: PiCompactionBounds }>, signal?: AbortSignal) => Promise<'admit' | 'skip'>;
@@ -117,6 +119,9 @@ export async function createPiSession(config: PiSessionOptions) {
   if (config.requestCompactionAdmission && !config.requestCompaction) throw new Error('Compaction admission requires a compaction policy');
   if (config.compactRejectedDesignWrites !== undefined && (config.compactRejectedDesignWrites !== true || !config.requestCompactionAdmission
     || !config.requestCompaction || !config.requestOutputLimit || config.maxOutputTokens !== 32768)) throw new Error('Invalid rejected design write compaction configuration.');
+  if (config.successfulWriteCompaction && (!config.requestCompactionAdmission || !config.requestCompaction || !config.requestOutputLimit
+    || config.maxOutputTokens !== 32768 || typeof config.successfulWriteCompaction.takeWrites !== 'function'
+    || typeof config.successfulWriteCompaction.requireAuthority !== 'function')) throw new Error('Invalid successful write compaction configuration.');
   if (config.readonlyMaxOutputTokens !== undefined && (config.readonlyMaxOutputTokens !== 4096 || config.maxOutputTokens < 4096)) throw new Error('Invalid readonly output cap');
   if (config.ordinaryDesignFinalizationPolicy !== undefined && (config.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || config.maxOutputTokens !== 32768
     || ![32, 64].includes(config.maxRequests) || config.readonlyMaxOutputTokens !== 4096 || !config.requestOutputLimit)) throw new Error('Invalid ordinary design finalization configuration.');
@@ -153,7 +158,8 @@ export async function createPiSession(config: PiSessionOptions) {
   let closed = false;
   let pendingFinalization: { error: PiSessionError; source: Omit<PiBudgetFinalizationSource, 'native'>; beforeLeaf: string | null; native?: PiBudgetFinalizationSource['native'] } | undefined;
   let finalizationActive = false, finalizationUsed = false;
-  let optionalCompaction: { ordinary: PiCompactionBounds; skippedRequestId?: string; truncatedRequestId?: string; rejected: boolean } | undefined;
+  let optionalCompaction: { ordinary: PiCompactionBounds; skippedRequestId?: string; truncatedRequestId?: string; rejected: boolean;
+    checkpointId?: string; batch?: string[]; controlledCancellation?: AbortSignal } | undefined;
   const records: PiResponse[] = [];
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
   const admissionFailure = (error: unknown, message: string) => error instanceof PiSessionError && ['author_output_budget', 'author_review_reserve', 'review_output_budget'].includes(error.code)
@@ -345,8 +351,12 @@ export async function createPiSession(config: PiSessionOptions) {
     return guardedStream();
   });
   const extensionRuntime = createExtensionRuntime();
+  const successHandlers: Parameters<typeof successfulWriteExtension>[0] = {
+    turnEnd: async () => undefined, beforeCompact: async () => undefined,
+  };
+  const extensions = config.successfulWriteCompaction ? [successfulWriteExtension(successHandlers)] : [];
   const loader: ResourceLoader = {
-    getExtensions: () => ({ extensions: [], errors: [], runtime: extensionRuntime }),
+    getExtensions: () => ({ extensions, errors: [], runtime: extensionRuntime }),
     getSkills: () => ({ skills: [], diagnostics: [] }),
     getPrompts: () => ({ prompts: [], diagnostics: [] }),
     getThemes: () => ({ themes: [], diagnostics: [] }),
@@ -386,7 +396,8 @@ export async function createPiSession(config: PiSessionOptions) {
     session.subscribe(event => {
       if (event.type !== 'compaction_end') return;
       if ((optionalCompaction?.truncatedRequestId || optionalCompaction?.skippedRequestId) && !optionalCompaction.rejected && !failure
-        && event.reason === 'threshold' && !event.aborted && !event.result && event.errorMessage) {
+        && event.reason === 'threshold' && !event.result && (!event.aborted && event.errorMessage
+          || optionalCompaction?.controlledCancellation && !optionalCompaction.controlledCancellation.aborted && !callerSignal?.aborted && !closed)) {
         optionalCompaction.rejected = true;
         return;
       }
@@ -400,12 +411,77 @@ export async function createPiSession(config: PiSessionOptions) {
     };
     const projectedCost = ({ serialized: _serialized, ...bounds }: ReturnType<typeof projection>) =>
       estimateRequest({ ...bounds, requestId: randomUUID(), modelId: DEEPSEEK_MODEL });
+    const requireCompactionActive = () => {
+      throwIfFailed();
+      if (closed || callerSignal?.aborted) throw fail('cancelled', 'Session was cancelled at the compaction boundary');
+    };
+    const selectCompaction = async (before: ReturnType<typeof projection>) => {
+      if (readonlyRequests !== undefined || autoCompactionDisabled || before.serialized === lastProjection
+        || config.requestCompactionAdmission && config.maxRequests - requests < 3) return false;
+      const cooling = lastCompactedBytes !== undefined && before.inputBytes < lastCompactedBytes + 32768;
+      const { serialized: _serialized, ...bounds } = before;
+      let selected: boolean | 'budget_pressure';
+      try { selected = await config.requestCompaction!(Object.freeze(bounds)); }
+      catch (error) { throw admissionFailure(error, 'Native compaction authority rejected; no summary request sent'); }
+      requireCompactionActive();
+      if (typeof selected !== 'boolean' && selected !== 'budget_pressure') throw fail('invalid_request', 'Native compaction decision must be a boolean or budget_pressure');
+      if (!selected || cooling && (selected !== 'budget_pressure' || pressureExceptionUsed)) return false;
+      if (cooling) pressureExceptionUsed = true;
+      lastProjection = before.serialized;
+      return true;
+    };
+    let pendingCheckpoint: { token: string; parentId: string; batch: string[]; content: string } | undefined;
+    successHandlers.turnEnd = async event => {
+      pendingCheckpoint = undefined;
+      try {
+        const writes = config.successfulWriteCompaction!.takeWrites();
+        requireCompactionActive();
+        if (readonlyRequests !== undefined || autoCompactionDisabled || records.at(-1)?.outcome !== 'settled'
+          || records.at(-1)?.stopReason !== 'toolUse') return;
+        const content = successfulWriteNote(event, writes);
+        if (!content || !await config.successfulWriteCompaction!.requireAuthority()) return;
+        requireCompactionActive();
+        if (!await selectCompaction(projection())) return;
+        const token = randomUUID();
+        pendingCheckpoint = { token, parentId: event.toolResultEntryIds.at(-1)!, content,
+          batch: [event.message, ...event.toolResults].map(message => JSON.stringify(message)) };
+        return { entries: [{ type: 'custom_message', customType: 'cosmos-successful-write-checkpoint', content, display: false, details: { token } }] };
+      } catch (error) {
+        pendingCheckpoint = undefined;
+        admissionFailure(error, 'Successful write checkpoint authority failed; no summary request sent.');
+        return;
+      }
+    };
+    successHandlers.beforeCompact = async event => {
+      const operation = optionalCompaction;
+      if (!operation?.checkpointId) return;
+      try {
+        requireCompactionActive(); event.signal.throwIfAborted();
+        const preparation = event.preparation;
+        if (event.reason !== 'threshold' || preparation.firstKeptEntryId !== operation.checkpointId || preparation.isSplitTurn
+          || operation.batch!.some(message => !preparation.messagesToSummarize.some(item => JSON.stringify(item) === message))) {
+          throw fail('compaction_failed', 'Native compaction did not select its complete successful write checkpoint.');
+        }
+        const result = await compact(summaryWithoutThinking(preparation), model, undefined, undefined, event.customInstructions,
+          event.signal, config.thinkingLevel ?? 'low', session.agent.streamFunction, undefined, session.settingsManager.getRetrySettings());
+        requireCompactionActive(); event.signal.throwIfAborted();
+        return { compaction: result };
+      } catch (error) {
+        if ((operation.skippedRequestId || operation.truncatedRequestId) && !failure && !closed && !callerSignal?.aborted && !event.signal.aborted) {
+          operation.controlledCancellation = event.signal;
+        } else if (!failure) fail(event.signal.aborted || callerSignal?.aborted ? 'cancelled' : 'compaction_failed',
+          error instanceof Error ? error.message : 'Successful write compaction failed.');
+        // The SDK swallows thrown extension errors and otherwise starts its default summary.
+        return { cancel: true };
+      }
+    };
     const previous = session.agent.prepareNextTurnWithContext!;
     session.agent.prepareNextTurnWithContext = async (turn, signal) => {
       const requireActive = () => {
         throwIfFailed();
         if (closed || signal?.aborted || callerSignal?.aborted) throw fail('cancelled', 'Session was cancelled at the compaction boundary');
       };
+      const checkpoint = pendingCheckpoint; pendingCheckpoint = undefined;
       requireActive();
       const rejected = new Map(rejectedWrites); rejectedWrites.clear();
       const errors = turn.toolResults.filter(result => result.isError);
@@ -420,23 +496,23 @@ export async function createPiSession(config: PiSessionOptions) {
         });
       if (readonlyRequests !== undefined || autoCompactionDisabled || turn.message.stopReason !== 'toolUse'
         || !turn.toolResults.length || errors.length > 0 && !recoverable) return previous(turn, signal);
-      if (config.requestCompactionAdmission && config.maxRequests - requests < 3) return previous(turn, signal);
       const before = projection();
-      if (before.serialized === lastProjection) return previous(turn, signal);
-      const cooling = lastCompactedBytes !== undefined && before.inputBytes < lastCompactedBytes + 32768;
-      let selected: boolean | 'budget_pressure';
       const { serialized: _serialized, ...bounds } = before;
-      try { selected = await config.requestCompaction!(Object.freeze(bounds)); }
-      catch (error) { throw admissionFailure(error, 'Native compaction authority rejected; no summary request sent'); }
+      const entry = checkpoint && manager.getLeafEntry();
+      if (checkpoint && (!entry || entry.type !== 'custom_message' || entry.parentId !== checkpoint.parentId
+        || entry.customType !== 'cosmos-successful-write-checkpoint' || entry.content !== checkpoint.content
+        || JSON.stringify(entry.details) !== JSON.stringify({ token: checkpoint.token })
+        || JSON.stringify([turn.message, ...turn.toolResults].map(message => JSON.stringify(message))) !== JSON.stringify(checkpoint.batch))) {
+        throw fail('compaction_failed', 'Successful write checkpoint differs from its native completed batch.');
+      }
+      if (!checkpoint && !await selectCompaction(before)) return previous(turn, signal);
       requireActive();
-      if (typeof selected !== 'boolean' && selected !== 'budget_pressure') throw fail('invalid_request', 'Native compaction decision must be a boolean or budget_pressure');
-      if (!selected || cooling && (selected !== 'budget_pressure' || pressureExceptionUsed)) return previous(turn, signal);
-      if (cooling) pressureExceptionUsed = true;
       lastProjection = before.serialized;
       const beforeCost = projectedCost(before), completed = compactions, settings = session.settingsManager.getCompactionSettings(model);
-      const leaf = manager.getLeafId(), operation = { ordinary: Object.freeze(bounds), rejected: false } as NonNullable<typeof optionalCompaction>;
+      const leaf = manager.getLeafId(), operation = { ordinary: Object.freeze(bounds), rejected: false,
+        ...(checkpoint ? { checkpointId: entry!.id, batch: checkpoint.batch } : {}) } as NonNullable<typeof optionalCompaction>;
       optionalCompaction = operation;
-      session.settingsManager.applyOverrides({ compaction: { enabled: true, reserveTokens: model.contextWindow, keepRecentTokens: settings.keepRecentTokens } });
+      session.settingsManager.applyOverrides({ compaction: { enabled: true, reserveTokens: model.contextWindow, keepRecentTokens: checkpoint ? 0 : settings.keepRecentTokens } });
       try {
         const result = await previous(turn, signal);
         requireActive();
