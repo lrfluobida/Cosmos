@@ -2489,11 +2489,17 @@ R28 已独立 PASS_CLOSED：child113/shared3423、25 笔费用全部已知，结
 
 ### COS-175 · 可恢复设计校验拒绝后的预算内上下文压缩
 
-[COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176#issuecomment-6635332366) 已 APPROVED_SOURCE_SCOPED，任务仍 open、父项未勾选。接续实现者 `cos175_resume_implementer` 的 `274645d120b5a9783da54acdb0d75c88f077489e` 经 `cos175_resume_reviewer` 独立批准，唯一 merger `cos175_resume_merger` 合入 `925835a5f11bfabbed5d6ad4bbbeb68837dddb57`；9 个文件与批准版本一致，主线定向集成 3/3、0 skip，typecheck/build 退出 0。作者既有正反例和独审 raw write/raw edit 各 1/1 证据复用；原基线同样失败的 COS161 unsafe-companion 夹具保持为已知缺口。
+[COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176#issuecomment-6636312579) 已按源码及真实拒绝后压缩分支范围 complete/closed。接续实现者 `cos175_resume_implementer` 的 `274645d120b5a9783da54acdb0d75c88f077489e` 经 `cos175_resume_reviewer` 独立批准，唯一 merger `cos175_resume_merger` 合入 `925835a5f11bfabbed5d6ad4bbbeb68837dddb57`；9 个文件与批准版本一致，主线定向集成 3/3、0 skip，typecheck/build 退出 0。作者既有正反例和独审 raw write/raw edit 各 1/1 证据复用；原基线同样失败的 COS161 unsafe-companion 夹具保持为已知缺口。
 
-仅可信、可恢复设计写入校验拒绝接通既有预算内压缩，保留拒绝事实、完整工具调用/结果、journal 和有效草稿。任意错误、越权访问与模型文本不能取得资格；原 review reserve、次数、预算、截止和独审继续生效。[源码规格](cos175-rejected-design-compaction.md) 仅覆盖免费 SOURCE；R28 不重启，R29 尚未启动，真实模型与游戏验收仍待验证。下一次完整5M阶段暴露44194662微元低于45M仅为准入算术，不是新支出。
+仅可信、可恢复设计写入校验拒绝接通既有预算内压缩，保留拒绝事实、完整工具调用/结果、journal 和有效草稿。任意错误、越权访问与模型文本不能取得资格；原 review reserve、次数、预算、截止和独审继续生效。[源码规格](cos175-rejected-design-compaction.md) 的分支已在 R29 初始设计和唯一修订实际触发，均到达捕获与独审；两次 changes_requested 后最终 incomplete/design_revision_limit，无美术、编码或浏览器验收。独立结案 PASS_CLOSED：child309/shared3425，71笔结算1316999/释放3683001微元，C40511661/H0；功能完成不代表游戏通过。后续最多4.48M/30分钟仍在phase45，R28/R29均不重启。
 
-GitHub ID `6202133484`，原生父 COS18/#19、[ ]；依赖 COS125/#126、COS161/#162、COS163/#164。批准规格摘要 `28287cabaa77b54352b682b48b57c5f70a211569e04bfe6687d6ef350989a2f0`，完整规格与计划保存在 issue 正文。
+GitHub ID `6202133484`，原生父 COS18/#19、[x]；依赖 COS125/#126、COS161/#162、COS163/#164。批准规格摘要 `28287cabaa77b54352b682b48b57c5f70a211569e04bfe6687d6ef350989a2f0`，完整规格与计划保存在 issue 正文。
+
+### COS-176 · 普通设计作者启用高推理
+
+[COS176 / #177](https://github.com/lrfluobida/Cosmos/issues/177)，ID `6207128135`，Root 已批准有界源码实施，原生父 COS18/#19、[ ]，原生依赖 COS113/#114 与 COS175/#176。仅普通 design 作者 thinking off→high，核验初始作者、唯一修订、原生摘要的实际传输及兼容分支；原模型、输出上限、预算、请求次数、期限和独审保持。无需新工具、校验器或压缩机制；配置和 SOURCE 通过不保证真实质量。
+
+实现者 `r29_revision_diagnosis`，独审 `cos176_reasoning_reviewer`，唯一 merger `cos175_resume_merger`。基线 `319e2a472b3c3b05d5d233e5bef0f2e58d493c5c`；批准规格摘要 `66428a5358a8cf75664fcb62299607b566f8fc9bb0949be553002400184665c5`，完整计划在 issue 正文。SOURCE pending；源码验证后下一轮最多4.48M/30分钟，完整room12v2要求不变，C40511661/H0→预计44991661微元仍在phase45，不扩阶段、不重启R29。
 
 ## 5. 任务与上下文包模板
 
