@@ -2497,11 +2497,27 @@ GitHub ID `6202133484`，原生父 COS18/#19、[x]；依赖 COS125/#126、COS161
 
 ### COS-176 · 普通设计作者启用高推理
 
-[COS176 / #177](https://github.com/lrfluobida/Cosmos/issues/177)，ID `6207128135`，Root 已批准有界源码实施，原生父 COS18/#19、[ ]，原生依赖 COS113/#114 与 COS175/#176。仅普通 design 作者 thinking off→high，核验初始作者、唯一修订、原生摘要的实际传输及兼容分支；原模型、输出上限、预算、请求次数、期限和独审保持。无需新工具、校验器或压缩机制；配置和 SOURCE 通过不保证真实质量。
+[COS176 / #177](https://github.com/lrfluobida/Cosmos/issues/177#issuecomment-6637798113)，ID `6207128135`，已按源码与真实high配置观察范围complete/closed，原生父 COS18/#19、[x]，原生依赖 COS113/#114 与 COS175/#176。仅普通 design 作者 thinking off→high，核验初始作者、唯一修订、原生摘要的实际传输及兼容分支；原模型、输出上限、预算、请求次数、期限和独审保持。无需新工具、校验器或压缩机制；配置和 SOURCE 通过不保证真实质量，任务关闭不关闭R30财务。
 
 实现者 `r29_revision_diagnosis` 的 `7d9919e46e38b58a37fbb171740d3bfb4dcd9d77` 经独审 `cos176_reasoning_reviewer` APPROVED_SOURCE_SCOPED、无 findings；唯一 merger `cos175_resume_merger` 合入 `9a4e602f231108fdc30cd0fa8556224ef9fb652a`。四文件与批准版本一致，最终无插桩原生集成1/1、0 skip，14次合成请求/4次摘要/112840微元，types/build退出0；作者15/15兼容证据复用。首次同例控制器关闭失败未确定根因，后续隔离与并行两次诊断及最终无插桩均通过，不累计为不同用例，也不声称已修复。
 
-基线 `319e2a472b3c3b05d5d233e5bef0f2e58d493c5c`；批准规格摘要 `66428a5358a8cf75664fcb62299607b566f8fc9bb0949be553002400184665c5`，完整计划在 issue 正文，[源码规格](cos176-ordinary-design-reasoning.md) 已登记。任务保持open；下一轮最多4.48M/30分钟，完整room12v2要求不变，C40511661/H0→预计44991661微元仍在phase45，不扩阶段、不重启R29；真实语义质量及游戏验收待验证。
+基线 `319e2a472b3c3b05d5d233e5bef0f2e58d493c5c`；批准规格摘要 `66428a5358a8cf75664fcb62299607b566f8fc9bb0949be553002400184665c5`，完整计划在 issue 正文，[源码规格](cos176-ordinary-design-reasoning.md) 已登记。R30真实作者已观察到high；执行169480ms后incomplete，第三次设计请求在收到首个事件后被原120000ms绝对计时器取消，不证明服务故障或high因果。无设计写入、捕获、独审、摘要或后续角色；真实语义质量及游戏验收未通过。
+
+R30财务未关闭：child32已结72082微元，未知请求保留407922微元预留；shared3426/C40511661仍占用原整笔4480000微元。配置范围完成不表示费用结清，不复用R27零差额决定。后续时限与暂停占用工作分别由COS177/COS178承接，尚未应用新的占用或启动R31。
+
+### COS-177 · 普通设计作者的原期限内请求时限
+
+[COS177 / #178](https://github.com/lrfluobida/Cosmos/issues/178)，ID `6208223531`，父COS18/#19、[ ]，依赖COS59/#60与COS176/#177。Root批准仅普通design作者选择600000ms请求上限；初始、唯一修订与原生摘要沿用同一包装，原预算、输出上限、零重试、运行截止及5000ms清理裁剪保持。R30原120000ms计时器事实不被归因为服务故障或high因果，费用未知不由本卡处理。
+
+实现者 `r30_timeout_diagnosis`，独审 `cos177_timeout_reviewer`，唯一merger `cos175_resume_merger`。基线 `f791c334b4709610a9ab1c09179fdb310dce13b6`，批准规格摘要 `173a6734860c036b5514a465ba911e53a1f6d204276768b661d78745557f5789`。精确源码 `4dfc033259bf23366e9690e1434d6008076052b8` 已独审APPROVED_SOURCE_SCOPED、无findings，尚未集成；原生绝对时限负例1/1与作者相关证据按原范围复用，不触碰真实R30或派发付费。
+
+### COS-178 · 已结束运行的有界暂停资金占用
+
+[COS178 / #179](https://github.com/lrfluobida/Cosmos/issues/179)，ID `6208238968`，父COS18/#19、[ ]，依赖COS109/#110、COS162/#163与COS174/#175。`suspended_exposure_reviewer` 已PLAN_APPROVED具体锁定与对账设计；Root批准实现者 `r30_bounded_exposure_assessment` 在隔离工作树实施，实际源码仍须独审，唯一merger `cos175_resume_merger`。
+
+只从可信原费用与未知预留推导不可变暂停占用，永久撤销旧派发，保留原child/unknown/cleanup/allocation及phase45/lifetime150；普通重开拒绝，受支持的已有私有零差额路径须在共享锁内且另有真实授权。候选H480004不是已结算、退款或allocation关闭，不复用R27决定。源码独审集成后，由Root实际只读预览、检查、单次应用并独审；之前不启动R31。
+
+基线 `f791c334b4709610a9ab1c09179fdb310dce13b6`，规格摘要 `9e44fa275a10575ade91fc44e486588faa576450077837949502f3892a4da283`，实现设计摘要 `1803d28ffba7537c8fbef5f4f93d7f2422209c469ac624fb878b27193348f973`，完整内容在issue正文。SOURCE pending；若后续真实应用和审计通过，新完整room12v2运行最多4M/30分钟，预计总阶段暴露44991665微元，仍非当前授权派发。
 
 ## 5. 任务与上下文包模板
 

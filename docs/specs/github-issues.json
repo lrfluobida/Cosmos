@@ -13573,7 +13573,7 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
+      "parentCheckboxChecked": true,
       "dependsOn": [
         "COS-113",
         "COS-175"
@@ -13593,9 +13593,9 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/176"
         }
       ],
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-integrated",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-and-actual-configuration-scope-complete",
       "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "rootImplementationApproved": true,
       "implementationBaseCommit": "319e2a472b3c3b05d5d233e5bef0f2e58d493c5c",
@@ -13611,10 +13611,130 @@
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/177#issuecomment-6636672265",
       "verification": "Four files byte-identical to approved SHA; final uninstrumented native host integration1/1, zero skip, TAP20448.6907ms,14synthetic requests/4compactions/112840micro-CNY; main typecheck/build exit0. Author15/15 compatibility evidence reused without additive counting.",
       "knownGaps": "Initial same-case integration failed with Run controller is closed or persistence failed. Two diagnostic runs (isolated and matching parallel typecheck/build) and final uninstrumented run passed without source/test changes; first failure cause remains unresolved and is not claimed fixed. Actual model quality and game acceptance remain unverified.",
-      "actualExecutionStatus": "R29 independently PASS_CLOSED, product incomplete. Next unchanged room12v2 trial capped at4480000 micro-CNY/1800000ms after source verification; C40511661/H0 plus4480000 equals44991661 within phase45000000. No phase extension or new funding applied."
+      "actualExecutionStatus": "R30 real design author high observed; execution ended incomplete at original120000ms absolute request timer. No design writes/capture/review/summary/art/coding/browser. Financially pending; no settlement or release.",
+      "stateReason": "completed",
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/177#issuecomment-6637798113",
+      "actualResult": {
+        "source": "f791c334b4709610a9ab1c09179fdb310dce13b6",
+        "executionEndedAt": "2026-11-04T17:06:11.890Z",
+        "generationCleanupElapsedMs": 169480,
+        "childRevision": 32,
+        "childSha256": "8afc7f4de54933e0405f1dc4c146e5deba5ba89c86fdddd1f77d1ad8200ec13e",
+        "childSettledMicroCny": 72082,
+        "unknownRequestId": "f96dcde3-8471-4382-bde4-749a4ee155de",
+        "unknownReservedMicroCny": 407922,
+        "sharedRevision": 3426,
+        "sharedCommittedMicroCny": 40511661,
+        "sharedHeldMicroCny": 4480000,
+        "financialState": "pending",
+        "firstStreamEventMs": 520.635,
+        "requestTimerElapsedMs": 120019.259,
+        "requestTimeoutMs": 120000,
+        "designCaptureReviewSummaryOccurred": false,
+        "artCodingBrowserStarted": false
+      }
+    },
+    {
+      "taskId": "COS-177",
+      "title": "普通设计作者的原期限内请求时限",
+      "number": 178,
+      "id": 6208223531,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/178",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-59",
+        "COS-176"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-59",
+          "number": 60,
+          "id": 5706469248,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/60"
+        },
+        {
+          "taskId": "COS-176",
+          "number": 177,
+          "id": 6207128135,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/177"
+        }
+      ],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-approved-pending-integration",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "rootImplementationApproved": true,
+      "implementationBaseCommit": "f791c334b4709610a9ab1c09179fdb310dce13b6",
+      "approvedSpecSha256": "173a6734860c036b5514a465ba911e53a1f6d204276768b661d78745557f5789",
+      "implementer": "r30_timeout_diagnosis",
+      "reviewer": "cos177_timeout_reviewer",
+      "merger": "cos175_resume_merger",
+      "implementationBranch": "codex/ordinary-design-timeout",
+      "implementationWorktree": "E:/CodexData/.codex/worktrees/cos177-design-timeout/Cosmos",
+      "sourceReviewedCommit": "4dfc033259bf23366e9690e1434d6008076052b8",
+      "actualExecutionStatus": "R30 original120000ms request timer observed; new600000ms ordinary design author path SOURCE only. R30 financially pending; no retry or new paid run."
+    },
+    {
+      "taskId": "COS-178",
+      "title": "已结束运行的有界暂停资金占用",
+      "number": 179,
+      "id": 6208238968,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/179",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-109",
+        "COS-162",
+        "COS-174"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-109",
+          "number": 110,
+          "id": 5943672677,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/110"
+        },
+        {
+          "taskId": "COS-162",
+          "number": 163,
+          "id": 6170708134,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/163"
+        },
+        {
+          "taskId": "COS-174",
+          "number": 175,
+          "id": 6200889330,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/175"
+        }
+      ],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "sourceReviewStatus": "pending",
+      "rootImplementationApproved": true,
+      "implementationBaseCommit": "f791c334b4709610a9ab1c09179fdb310dce13b6",
+      "approvedSpecSha256": "9e44fa275a10575ade91fc44e486588faa576450077837949502f3892a4da283",
+      "implementer": "r30_bounded_exposure_assessment",
+      "reviewer": "pending_assignment",
+      "merger": "cos175_resume_merger",
+      "implementationBranch": "codex/suspended-funding-exposure",
+      "implementationWorktree": "E:/CodexData/.codex/worktrees/cos178-suspended-funding/Cosmos",
+      "designReviewStatus": "PLAN_APPROVED",
+      "designReviewer": "suspended_exposure_reviewer",
+      "approvedImplementationDesignSha256": "1803d28ffba7537c8fbef5f4f93d7f2422209c469ac624fb878b27193348f973",
+      "actualExecutionStatus": "No real suspension applied. R30 shared3426 C40511661/H4480000 remains financially pending. Proposed authenticated bound480004 and subsequent4M trial require reviewed source, operator preview/apply and independent audit; no phase increase or R31 dispatch."
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 176,
+  "totalTaskCount": 178,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

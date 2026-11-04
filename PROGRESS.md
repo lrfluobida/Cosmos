@@ -4,11 +4,17 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R30 在固定源码 `f791c334b4709610a9ab1c09179fdb310dce13b6` 上执行结束，结果 incomplete，生成至清理结束169480ms。真实设计作者已使用high；第三次设计请求520.635ms收到首个服务流事件，120019.259ms时被原120000ms绝对请求计时器取消。该证据只确认请求上限到期，不归因为供应商故障或high模式；没有设计写入、捕获、独审、摘要、美术、编码或浏览器验收。
+
+R30 财务仍待核：child32、stopReason=null，4笔已结72082微元；请求 `f96dcde3-8471-4382-bde4-749a4ee155de` 保持unknown和完整407922微元预留。shared3426/C40511661/H4480000，原整笔4480000微元资金尚未结算或释放。R27旧零差额决定不适用于本案，不重试未知请求或重开旧执行。
+
+Root 已批准两项有界源码工作：COS177仅将普通设计作者请求上限调为600000ms，保留原运行期限裁剪；COS178以可信已结费用与未知请求原预留推导暂停占用，并永久撤销旧派发权限。候选H480004、阶段暴露40991665仅为待验证算术，原child、unknown、allocation与phase45/lifetime150保持。两项源码独审、集成和真实预览/应用审计完成前，不启动R31；没有阶段增额或实际暂停应用。
+
 2026-11-05 [COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176#issuecomment-6636312579) 按“已审源码及真实拒绝后压缩分支”范围完成。R29 固定源码 `319e2a472b3c3b05d5d233e5bef0f2e58d493c5c`，初始设计和唯一修订均真实经历校验拒绝后的原生压缩，保留最新工具调用/错误结果及有效草稿，并推进到捕获与独审。两次独审均 changes_requested，最终 incomplete/design_revision_limit，无美术、编码或浏览器验收；功能完成不代表游戏通过。
 
 独立 `r29_closure_auditor` 的 `closure-readonly-audit.json` 为 PASS_CLOSED：child309/shared3425，71 笔全部已知，结算1316999微元、释放3683001微元，C40511661/H0、reserved/unknown/open funding均0，资源已关闭，生成至清理结束1058614ms。COS18 与目标游戏继续 open/partial。现有 phase45 剩余4488339微元，下一次按 Root 批准最多4480000微元/30分钟，预计暴露44991661微元；完整 room12v2 要求不变，不增加阶段额度、不分配5M、不重启 R29。
 
-[COS176 / #177](https://github.com/lrfluobida/Cosmos/issues/177#issuecomment-6636672265) 已 APPROVED_SOURCE_SCOPED 并集成，任务保持 open。作者 `r29_revision_diagnosis` 的 `7d9919e46e38b58a37fbb171740d3bfb4dcd9d77` 经 `cos176_reasoning_reviewer` 实际四文件独审批准、无 findings；Root 放行后唯一 merger `cos175_resume_merger` 合入 `9a4e602f231108fdc30cd0fa8556224ef9fb652a`。生产仅普通 design 作者 thinking off→high；原模型、其他角色、要求、工具、独审、请求和输出上限、预算与截止保持。四文件与批准版本一致。
+[COS176 / #177](https://github.com/lrfluobida/Cosmos/issues/177#issuecomment-6637798113) 已按已审源码及R30真实high配置观察范围完成并关闭，R30财务仍待核。作者 `r29_revision_diagnosis` 的 `7d9919e46e38b58a37fbb171740d3bfb4dcd9d77` 经 `cos176_reasoning_reviewer` 实际四文件独审批准、无 findings；Root 放行后唯一 merger `cos175_resume_merger` 合入 `9a4e602f231108fdc30cd0fa8556224ef9fb652a`。生产仅普通 design 作者 thinking off→high；原模型、其他角色、要求、工具、独审、请求和输出上限、预算与截止保持。四文件与批准版本一致。
 
 最终无插桩原生集成1/1、0 skip（20448.6907ms），初始设计、唯一修订及4次摘要均high，14次合成请求按总输出计费112840微元，无推理重复收费；typecheck/build退出0，作者15/15兼容证据复用。首次同用例在并行typecheck时出现 `Run controller is closed or persistence failed.`；隔离及复刻并行环境的两次诊断随后通过，最终无插桩通过。源码和夹具未改，首次失败根因仍未确定，不声称已修复，同例不累计。详见[规格](docs/specs/cos176-ordinary-design-reasoning.md)；high 的实际语义质量与游戏完成仍待后续4.48M/30分钟有界验证。
 
