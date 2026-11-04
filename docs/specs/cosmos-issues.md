@@ -2489,7 +2489,9 @@ R28 已独立 PASS_CLOSED：child113/shared3423、25 笔费用全部已知，结
 
 ### COS-175 · 可恢复设计校验拒绝后的预算内上下文压缩
 
-新 [COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176) 已登记并获 Root 批准实施：只在可信、可恢复设计写入校验拒绝后接通既有预算内压缩，保留拒绝事实、最后一组工具调用/结果及原有效草稿。任意错误、越界文件操作和模型文本不能取得资格；原 review reserve、次数、预算、截止和独审继续生效。实现者 `r28_context_recovery_diagnosis`，独审 `rejected_compaction_reviewer`，唯一 merger `validation_recovery_merger`。SOURCE pending；R28 不重启，R29 尚未启动。下一次完整5M阶段暴露44194662微元低于45M仅为准入算术，不是新支出。
+[COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176#issuecomment-6635332366) 已 APPROVED_SOURCE_SCOPED，任务仍 open、父项未勾选。接续实现者 `cos175_resume_implementer` 的 `274645d120b5a9783da54acdb0d75c88f077489e` 经 `cos175_resume_reviewer` 独立批准，唯一 merger `cos175_resume_merger` 合入 `925835a5f11bfabbed5d6ad4bbbeb68837dddb57`；9 个文件与批准版本一致，主线定向集成 3/3、0 skip，typecheck/build 退出 0。作者既有正反例和独审 raw write/raw edit 各 1/1 证据复用；原基线同样失败的 COS161 unsafe-companion 夹具保持为已知缺口。
+
+仅可信、可恢复设计写入校验拒绝接通既有预算内压缩，保留拒绝事实、完整工具调用/结果、journal 和有效草稿。任意错误、越权访问与模型文本不能取得资格；原 review reserve、次数、预算、截止和独审继续生效。[源码规格](cos175-rejected-design-compaction.md) 仅覆盖免费 SOURCE；R28 不重启，R29 尚未启动，真实模型与游戏验收仍待验证。下一次完整5M阶段暴露44194662微元低于45M仅为准入算术，不是新支出。
 
 GitHub ID `6202133484`，原生父 COS18/#19、[ ]；依赖 COS125/#126、COS161/#162、COS163/#164。批准规格摘要 `28287cabaa77b54352b682b48b57c5f70a211569e04bfe6687d6ef350989a2f0`，完整规格与计划保存在 issue 正文。
 

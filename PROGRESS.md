@@ -8,7 +8,9 @@
 
 [COS174 / #175](https://github.com/lrfluobida/Cosmos/issues/175#issuecomment-6629904621) 已按源码、R27 实际结案及随后 R28 真实结果的约定范围关闭。[COS162 / #163](https://github.com/lrfluobida/Cosmos/issues/163#issuecomment-6629906787) 亦按外部证据实际应用范围关闭：本案明确使用 local_operator_record，受保护模式只有已有 SOURCE/TEMP 证据，不声称真实受管签名或部署通过。R27 原 unknown/error/无用量事实、cleanup 和 13 笔已知记录保持，实际结算229003/释放4770997微元。COS18 与目标游戏仍 open/partial。
 
-新 [COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176) 已登记并获 Root 批准实施：只在可信、可恢复设计写入校验拒绝后接通既有预算内压缩，保留拒绝事实、最后一组工具调用/结果及原有效草稿。任意错误、越界文件操作和模型文本不能取得资格；原 review reserve、次数、预算、截止和独审继续生效。实现者 `r28_context_recovery_diagnosis`，独审 `rejected_compaction_reviewer`，唯一 merger `validation_recovery_merger`。SOURCE pending；R28 不重启，R29 尚未启动。下一次完整5M阶段暴露44194662微元低于45M仅为准入算术，不是新支出。
+2026-11-04 [COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176#issuecomment-6635332366) 源码已独审集成，任务保持 open。接续实现者 `cos175_resume_implementer` 提交 `274645d120b5a9783da54acdb0d75c88f077489e`，经独立 `cos175_resume_reviewer` 批准 APPROVED_SOURCE_SCOPED、无待修问题，Root 放行后唯一 merger `cos175_resume_merger` 合入 `925835a5f11bfabbed5d6ad4bbbeb68837dddb57`。只在可信、可恢复设计写入校验拒绝后接通既有预算内压缩，保留拒绝事实、完整工具调用/结果、journal 和原有效草稿；任意错误、越权访问与模型文本不取得资格，原 review reserve、次数、预算、截止与独审保持。
+
+9 个文件与批准版本逐字节一致；主线原生拒绝后压缩/续写及当前/旧策略主机选择 3/3、0 skip（15154.7372ms），typecheck/build 退出 0。作者 native 8/8、host 2/2、加强正例与原非错误压缩 2/2、基线 RED，以及独审 raw write/raw edit 各 1/1 按原范围复用，重叠证据不累加。旧 COS161 unsafe-companion 夹具失败已在原基线复现，保留为已知缺口。详见[规格](docs/specs/cos175-rejected-design-compaction.md)。R28 不重启，R29 尚未启动；真实模型修复、设计独审与游戏验收未由 SOURCE 证据替代。共享 C39194662/H0，下一次完整5M阶段暴露44194662微元低于45M仅为准入算术，不是新支出。
 
 2026-11-04 [COS174 / #175](https://github.com/lrfluobida/Cosmos/issues/175) 源码已独审集成，任务保持开放。`local_accounting_reviewer` 批准 `b2d5bd532f145a7fac0f62cdc70bffadf8035776`，唯一 merger 合入 `9e4185923195925877ae52136009434d8af3094b`。显式本地 operator 授权沿用原财务核验与结算路径，受保护模式保持默认，不自动回退。
 
