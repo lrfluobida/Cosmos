@@ -57,7 +57,7 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
     ...(state.validationFunding ? ['public_intake_work_started', 'public_intake_work_finished', 'public_intake_work_recovered', 'public_intake_drained', 'public_execution_started', 'ordinary_design_budget_owner_started', 'ordinary_design_revision_budget_activated'] : []),
     ...(state.formatVersion !== 3 ? ['run_owner_drained'] : []),
     ...(state.formatVersion === 2 ? ['continuation_activated', 'window_stopped', 'window_owner_drained', 'window_owner_resumed'] : []),
-    ...(state.formatVersion === 3 ? ['validation_case_claimed', 'validation_case_stopped', 'validation_repair_claimed', 'validation_allocation_closed', 'validation_group_supplemented', 'public_funding_reserved', 'public_funding_settled', 'public_funding_charge_claimed', 'public_validation_phase_extended', 'public_validation_phase_successor_applied'] : [])];
+    ...(state.formatVersion === 3 ? ['validation_case_claimed', 'validation_case_stopped', 'validation_repair_claimed', 'validation_allocation_closed', 'validation_group_supplemented', 'public_funding_reserved', 'public_funding_settled', 'public_funding_suspended', 'public_funding_charge_claimed', 'public_validation_phase_extended', 'public_validation_phase_successor_applied'] : [])];
   if (!state.events.length || state.events[0].type !== 'created') throw new Error('Missing snapshot creation history.');
   state.events.forEach((event, i) => {
     if (!event || event.sequence !== i + 1 || !timestamp(event.at) || !eventTypes.includes(event.type) || typeof event.reason !== 'string' || (event.requestId !== null && !ledger.entries.some(entry => entry.requestId === event.requestId))) throw new Error('Invalid snapshot event history.');

@@ -26,6 +26,7 @@ import { publicValidationPhaseLimit, requirePhaseFundingAuthorization, verifyPub
 import { requirePublicRunLimits } from '../cli/run-limits.ts';
 import { verifyOrdinaryDesignRevisionBudget } from './ordinary-design-revision-budget.ts';
 import { verifyOrdinaryBudgetOwnerHistory } from './ordinary-design-revision-lifecycle.ts';
+import { prepareFundingSuspension, suspensionReference, verifyFundingSuspension } from './public-funding-suspension.ts';
 
 const intentName = 'public-validation-origin.json';
 const decode = (bytes: Uint8Array): any => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -91,6 +92,7 @@ export async function sharedSources(root: string, state: RunSnapshot) {
     if ([state.publicValidationPhaseExtension, state.publicValidationPhaseSuccessor].some(phase => authorization.decisionId === phase?.operatorDecision.decisionId)) throw new Error('Public funding cannot reuse the phase decision identity.');
     if (decisions.has(authorization.decisionId)) throw new Error('Public funding operator decision was already consumed.');
     decisions.add(authorization.decisionId);
+    await verifyFundingSuspension(record);
     if (record.settlement) {
       const bytes = await referenceBytes(record.binding.sharedRoot, record.settlement.source), saved = decode(bytes);
       if (fundingHash(bytes) !== record.settlement.sourceSha256 || !sameValue(saved.binding, record.binding)
@@ -198,7 +200,7 @@ export async function readPublicFundingBinding(root: string, snapshot: IntakeSna
 /** Caller already owns the child root. The returned read lock covers the local reserve/admit write. */
 export async function acquirePublicFundingGate(root: string, snapshot: IntakeSnapshot | RunSnapshot, dispatch: boolean) {
   const binding = await readPublicFundingBinding(root, snapshot, dispatch);
-  if (!binding) return { async close() {} };
+  if (!binding) return { suspended: false, async close() {} };
   const store = await SnapshotStore.acquire(binding.sharedRoot);
   try {
     const state = await store.read(); validateSnapshot(state);
@@ -207,17 +209,19 @@ export async function acquirePublicFundingGate(root: string, snapshot: IntakeSna
     if (!record || !sameValue(record.binding, binding)) throw new Error('Public funding has not been reserved in the shared ledger.');
     await source(binding);
     if (dispatch) await (await import('./public-funding-charge-resolution.ts')).requireCurrentAccountingReviews(binding.sharedRoot, state);
+    if (dispatch && record.suspension) throw new Error('Public funding is permanently suspended.');
     if (dispatch && (record.settlement || publicFundingExposure(state).overrun)) throw new Error('Public funding is closed or has an unresolved overrun.');
     if (dispatch && snapshot.formatVersion === 'intake-1') {
       const owner = decode(await regularFile(root, '.controller.lock'));
       if (fundedIntakeWork(snapshot).pending.some(work => work.ownerToken !== owner.token)) throw new Error('Public intake previous owner cleanup is unconfirmed.');
     }
-    return { close: () => store.close() };
+    return { suspended: !!record.suspension, close: () => store.close() };
   } catch (error) { await store.close(); throw error; }
 }
 export async function verifyPublicValidationFunding(options: { root: string; snapshot: IntakeSnapshot | RunSnapshot; dispatch: boolean }) {
   const gate = await acquirePublicFundingGate(options.root, options.snapshot, options.dispatch);
   await gate.close();
+  return { suspended: gate.suspended };
 }
 export async function rejectFundedContinuation(root: string, snapshot: RunSnapshot | IntakeSnapshot) {
   if (snapshot.validationFunding || await optional(root, intentName) || (await optional(root, 'intake-origin.json'))?.validationFunding) throw new Error('Public funding does not authorize a continuation window.');
@@ -270,6 +274,63 @@ export async function verifyFundingIntakeClose(root: string, state: IntakeSnapsh
   if (!proof || proof.formatVersion !== 'public-funding-intake-close/1' || proof.runId !== state.run.runId || proof.ledgerId !== state.ledger.ledgerId
     || proof.fundingId !== state.validationFunding?.fundingId || proof.snapshotSha256 !== fundingHash(bytes) || proof.anchorSequence !== anchor.sequence
     || typeof proof.nonce !== 'string' || JSON.parse(anchor.reason).nonceSha256 !== fundingHash(proof.nonce)) throw new Error('Public intake original owner-close proof is missing or changed.');
+}
+
+type FundingSuspensionTarget = { sharedRoot: string; runRoot: string; fundingId: string };
+async function suspensionTarget(options: FundingSuspensionTarget) {
+  fundingFields(options, ['sharedRoot', 'runRoot', 'fundingId']);
+  const root = resolve(options.runRoot), bytes = await regularFile(root, 'snapshot.json'), snapshot = decode(bytes) as RunSnapshot;
+  validateSnapshot(snapshot);
+  const binding = await readPublicFundingBinding(root, snapshot, false);
+  if (!binding || binding.sharedRoot !== resolve(options.sharedRoot) || binding.fundingId !== options.fundingId) throw new Error('Public funding suspension selects a different run.');
+  await verifyOrdinaryBudgetOwnerHistory(root, snapshot);
+  return { root, bytes, snapshot, binding };
+}
+async function suspensionRecord(binding: PublicValidationFundingBinding, state: RunSnapshot) {
+  validateSnapshot(state); await sharedSources(binding.sharedRoot, state);
+  const record = state.publicValidationFundings?.find(row => row.binding.fundingId === binding.fundingId);
+  if (!record || !sameValue(record.binding, binding)) throw new Error('Public funding suspension has no original shared grant.');
+  if (!record.suspension && (record.settlement || record.chargeClaimSha256
+    || await optional(binding.sharedRoot, `public-funding-accounting/claims/${binding.fundingId}.json`) !== undefined)) throw new Error('Public funding suspension cannot replace settlement or an accounting claim.');
+  return record;
+}
+async function suspensionIdle(root: string) {
+  for (const name of ['.controller.lock', 'registry/.commit.lock']) {
+    if (await lstat(await safePath(root, name)).then(() => true, error => { if (error.code === 'ENOENT') return false; throw error; })) throw new Error('Public funding suspension requires an unowned child and registry.');
+  }
+}
+/** Advisory read-only quote; apply rederives it under the original ownership locks. */
+export async function previewPublicValidationFundingSuspension(options: FundingSuspensionTarget) {
+  const { root, bytes, snapshot, binding } = await suspensionTarget(options);
+  await suspensionIdle(root);
+  const sharedBytes = await regularFile(binding.sharedRoot, 'snapshot.json'), state = decode(sharedBytes) as RunSnapshot;
+  const record = await suspensionRecord(binding, state);
+  const heldMicroCny = record.suspension?.heldMicroCny ?? (await prepareFundingSuspension(root, snapshot, bytes)).heldMicroCny;
+  await suspensionIdle(root);
+  if (!bytes.equals(await regularFile(root, 'snapshot.json')) || !sharedBytes.equals(await regularFile(binding.sharedRoot, 'snapshot.json'))) throw new Error('Public funding suspension preview changed.');
+  return { fundingId: binding.fundingId, heldMicroCny, phaseReleasedMicroCny: binding.limits.limitMicroCny - heldMicroCny,
+    alreadySuspended: !!record.suspension };
+}
+/** End dispatch authority without settling an unknown charge or closing its ledger allocation. */
+export async function suspendPublicValidationFunding(options: FundingSuspensionTarget) {
+  await suspensionTarget(options); // Require an existing bound root before acquiring ownership.
+  const child = await SnapshotStore.acquire(resolve(options.runRoot));
+  let registry: OwnerLock | undefined, shared: SnapshotStore | undefined;
+  try {
+    registry = await OwnerLock.acquire(await safePath(child.root, 'registry'), '.commit.lock');
+    const { root, bytes, snapshot, binding } = await suspensionTarget(options);
+    shared = await SnapshotStore.acquire(binding.sharedRoot);
+    const previous = await shared.read() as RunSnapshot, current = await suspensionRecord(binding, previous);
+    if (current.suspension) return structuredClone(current.suspension);
+    const { evidence, heldMicroCny } = await prepareFundingSuspension(root, snapshot, bytes), reference = suspensionReference(binding.fundingId);
+    await writeOnce(binding.sharedRoot, reference.location, evidence);
+    if (!bytes.equals(await regularFile(root, 'snapshot.json'))) throw new Error('Public funding suspension source changed.');
+    const next = structuredClone(previous), record = next.publicValidationFundings!.find(row => row.binding.fundingId === binding.fundingId)!;
+    record.suspension = { suspendedAt: new Date().toISOString(), basisRevision: snapshot.revision, source: reference,
+      sourceSha256: fundingHash(await regularFile(binding.sharedRoot, reference.location)), heldMicroCny };
+    next.events.push({ sequence: next.events.length + 1, type: 'public_funding_suspended', at: record.suspension.suspendedAt, requestId: null, reason: binding.fundingId });
+    await commitShared(shared, previous, next); return structuredClone(record.suspension);
+  } finally { await shared?.close(); await registry?.close(); await child.close(); }
 }
 
 /** Accounting closure reads the child's real evidence; it never reopens execution or guesses charges. */
@@ -330,6 +391,7 @@ export async function settlePublicValidationFunding(options: { sharedRoot: strin
       return structuredClone(current.settlement);
     }
     const amount = snapshot.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny, 0), outcome = amount > binding.limits.limitMicroCny ? 'overrun' as const : 'closed' as const;
+    if (current.suspension && amount > current.suspension.heldMicroCny) throw new Error('Public funding settlement exceeds its suspended exposure.');
     const reference = { artifactId: 'public-funding-settlement', version: binding.fundingId, location: `public-funding/${binding.fundingId}/settlement.json` };
     await writeOnce(binding.sharedRoot, reference.location, evidence);
     if (!bytes.equals(await regularFile(root, 'snapshot.json'))) throw new Error('Public funding source changed while closing.');
