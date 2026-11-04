@@ -8,7 +8,9 @@
 
 独立 `r29_closure_auditor` 的 `closure-readonly-audit.json` 为 PASS_CLOSED：child309/shared3425，71 笔全部已知，结算1316999微元、释放3683001微元，C40511661/H0、reserved/unknown/open funding均0，资源已关闭，生成至清理结束1058614ms。COS18 与目标游戏继续 open/partial。现有 phase45 剩余4488339微元，下一次按 Root 批准最多4480000微元/30分钟，预计暴露44991661微元；完整 room12v2 要求不变，不增加阶段额度、不分配5M、不重启 R29。
 
-新 [COS176 / #177](https://github.com/lrfluobida/Cosmos/issues/177) 已登记并获 Root 批准：仅将普通 design 作者的 thinking 从 off 调为 high，核验初始作者、唯一修订与原生摘要的真实传输。原模型、要求、角色职责、输出上限、独审和预算保持，不新增工具或校验机制。实现者 `r29_revision_diagnosis`，独审 `cos176_reasoning_reviewer`，唯一 merger `cos175_resume_merger`；源码基线 `319e2a472b3c3b05d5d233e5bef0f2e58d493c5c`，独立工作树 `E:/CodexData/.codex/worktrees/cos176-design-reasoning-0275/Cosmos`。SOURCE pending；high 是否改善真实质量仍需后续有界验证。
+[COS176 / #177](https://github.com/lrfluobida/Cosmos/issues/177#issuecomment-6636672265) 已 APPROVED_SOURCE_SCOPED 并集成，任务保持 open。作者 `r29_revision_diagnosis` 的 `7d9919e46e38b58a37fbb171740d3bfb4dcd9d77` 经 `cos176_reasoning_reviewer` 实际四文件独审批准、无 findings；Root 放行后唯一 merger `cos175_resume_merger` 合入 `9a4e602f231108fdc30cd0fa8556224ef9fb652a`。生产仅普通 design 作者 thinking off→high；原模型、其他角色、要求、工具、独审、请求和输出上限、预算与截止保持。四文件与批准版本一致。
+
+最终无插桩原生集成1/1、0 skip（20448.6907ms），初始设计、唯一修订及4次摘要均high，14次合成请求按总输出计费112840微元，无推理重复收费；typecheck/build退出0，作者15/15兼容证据复用。首次同用例在并行typecheck时出现 `Run controller is closed or persistence failed.`；隔离及复刻并行环境的两次诊断随后通过，最终无插桩通过。源码和夹具未改，首次失败根因仍未确定，不声称已修复，同例不累计。详见[规格](docs/specs/cos176-ordinary-design-reasoning.md)；high 的实际语义质量与游戏完成仍待后续4.48M/30分钟有界验证。
 
 2026-11-04 R28 已独立 PASS_CLOSED：child113/shared3423、25 笔费用全部已知，结算 500653 微元、释放 4499347 微元，shared C39194662/H0。设计仍不完整，未有通过的设计捕获/独审，也未进入美术、编码或浏览器验收；费用结清不改变游戏失败结论。独审原件摘要 `6fec11ffc5af8c6a600cb51621107cf61137403d89ac6a953691b713876bd763`。
 

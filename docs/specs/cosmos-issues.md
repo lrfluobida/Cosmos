@@ -2499,7 +2499,9 @@ GitHub ID `6202133484`，原生父 COS18/#19、[x]；依赖 COS125/#126、COS161
 
 [COS176 / #177](https://github.com/lrfluobida/Cosmos/issues/177)，ID `6207128135`，Root 已批准有界源码实施，原生父 COS18/#19、[ ]，原生依赖 COS113/#114 与 COS175/#176。仅普通 design 作者 thinking off→high，核验初始作者、唯一修订、原生摘要的实际传输及兼容分支；原模型、输出上限、预算、请求次数、期限和独审保持。无需新工具、校验器或压缩机制；配置和 SOURCE 通过不保证真实质量。
 
-实现者 `r29_revision_diagnosis`，独审 `cos176_reasoning_reviewer`，唯一 merger `cos175_resume_merger`。基线 `319e2a472b3c3b05d5d233e5bef0f2e58d493c5c`；批准规格摘要 `66428a5358a8cf75664fcb62299607b566f8fc9bb0949be553002400184665c5`，完整计划在 issue 正文。SOURCE pending；源码验证后下一轮最多4.48M/30分钟，完整room12v2要求不变，C40511661/H0→预计44991661微元仍在phase45，不扩阶段、不重启R29。
+实现者 `r29_revision_diagnosis` 的 `7d9919e46e38b58a37fbb171740d3bfb4dcd9d77` 经独审 `cos176_reasoning_reviewer` APPROVED_SOURCE_SCOPED、无 findings；唯一 merger `cos175_resume_merger` 合入 `9a4e602f231108fdc30cd0fa8556224ef9fb652a`。四文件与批准版本一致，最终无插桩原生集成1/1、0 skip，14次合成请求/4次摘要/112840微元，types/build退出0；作者15/15兼容证据复用。首次同例控制器关闭失败未确定根因，后续隔离与并行两次诊断及最终无插桩均通过，不累计为不同用例，也不声称已修复。
+
+基线 `319e2a472b3c3b05d5d233e5bef0f2e58d493c5c`；批准规格摘要 `66428a5358a8cf75664fcb62299607b566f8fc9bb0949be553002400184665c5`，完整计划在 issue 正文，[源码规格](cos176-ordinary-design-reasoning.md) 已登记。任务保持open；下一轮最多4.48M/30分钟，完整room12v2要求不变，C40511661/H0→预计44991661微元仍在phase45，不扩阶段、不重启R29；真实语义质量及游戏验收待验证。
 
 ## 5. 任务与上下文包模板
 

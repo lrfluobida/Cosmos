@@ -13595,8 +13595,8 @@
       ],
       "state": "open",
       "scopedComplete": false,
-      "integrationStatus": "source-pending",
-      "sourceReviewStatus": "pending",
+      "integrationStatus": "source-integrated",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "rootImplementationApproved": true,
       "implementationBaseCommit": "319e2a472b3c3b05d5d233e5bef0f2e58d493c5c",
       "approvedSpecSha256": "66428a5358a8cf75664fcb62299607b566f8fc9bb0949be553002400184665c5",
@@ -13605,6 +13605,12 @@
       "merger": "cos175_resume_merger",
       "implementationBranch": "codex/ordinary-design-high-reasoning",
       "implementationWorktree": "E:/CodexData/.codex/worktrees/cos176-design-reasoning-0275/Cosmos",
+      "formalSpecPath": "docs/specs/cos176-ordinary-design-reasoning.md",
+      "sourceReviewedCommit": "7d9919e46e38b58a37fbb171740d3bfb4dcd9d77",
+      "sourceIntegratedCommit": "9a4e602f231108fdc30cd0fa8556224ef9fb652a",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/177#issuecomment-6636672265",
+      "verification": "Four files byte-identical to approved SHA; final uninstrumented native host integration1/1, zero skip, TAP20448.6907ms,14synthetic requests/4compactions/112840micro-CNY; main typecheck/build exit0. Author15/15 compatibility evidence reused without additive counting.",
+      "knownGaps": "Initial same-case integration failed with Run controller is closed or persistence failed. Two diagnostic runs (isolated and matching parallel typecheck/build) and final uninstrumented run passed without source/test changes; first failure cause remains unresolved and is not claimed fixed. Actual model quality and game acceptance remain unverified.",
       "actualExecutionStatus": "R29 independently PASS_CLOSED, product incomplete. Next unchanged room12v2 trial capped at4480000 micro-CNY/1800000ms after source verification; C40511661/H0 plus4480000 equals44991661 within phase45000000. No phase extension or new funding applied."
     }
   ],
