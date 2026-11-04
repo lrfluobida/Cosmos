@@ -52,7 +52,7 @@ for (const [label, gameplayIds, experienceIds] of [
   await f.execute(); assert.equal(inspected, true); assert.equal(f.packets.length, 0); assert.equal(f.plays.length, 0);
 });
 
-test('ordinary design alone disables thinking in native SDK payload while original admission and host gates remain', async t => {
+test('ordinary design alone uses high thinking in native SDK payload while original admission and host gates remain', async t => {
   const f = await ordinaryHostFixture(t), scripted = f.hostOptions.sessionFactory!, payloads: any[] = [], configs: any[] = [];
   const fetchMock = mock.method(globalThis, 'fetch', async (input: any, init?: RequestInit) => {
     const request = input instanceof Request ? input : new Request(input, init), body = JSON.parse(await request.text());
@@ -81,8 +81,8 @@ test('ordinary design alone disables thinking in native SDK payload while origin
   assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
   assert.equal(payloads.length, 7);
   for (const { role, taskId, body } of payloads) {
-    assert.deepEqual(body.thinking, { type: role === 'design' ? 'disabled' : 'enabled' });
-    assert.equal(body.reasoning_effort, role === 'design' ? undefined : 'low');
+    assert.deepEqual(body.thinking, { type: 'enabled' });
+    assert.equal(body.reasoning_effort, role === 'design' ? 'high' : 'low');
     assert.equal(body.max_tokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : role === 'reviewer' && taskId === 'design-task' ? 16384 : 8192);
   }
   const state: any = await readRunSnapshot(f.root);
