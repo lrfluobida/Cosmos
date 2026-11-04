@@ -54,7 +54,7 @@ export function fundingBinding(input: PublicValidationAuthorization, authorizati
 }
 export function publicFundingExposure(state: Pick<RunSnapshot, 'publicValidationFundings'>) {
   const records = state.publicValidationFundings ?? [];
-  return { heldMicroCny: records.filter(record => record.settlement?.outcome !== 'closed').reduce((sum, record) => sum + record.binding.limits.limitMicroCny, 0),
+  return { heldMicroCny: records.filter(record => record.settlement?.outcome !== 'closed').reduce((sum, record) => sum + (record.suspension?.heldMicroCny ?? record.binding.limits.limitMicroCny), 0),
     overrun: records.some(record => record.settlement?.outcome === 'overrun') };
 }
 export function requireLegacyFundingAvailable(state: Pick<RunSnapshot, 'publicValidationFundings' | 'publicValidationPhaseExtension'>) {
@@ -111,7 +111,7 @@ export function validatePublicValidationFundings(state: RunSnapshot): void {
     || state.validationFunding !== undefined || !['3.0.0', '4.0.0', '5.0.0'].includes(state.ledger.contractVersion)) throw new Error('Invalid shared public funding profile.');
   const names = new Set<string>(), roots = new Set<string>(), requests = new Set<string>();
   for (const record of records) {
-    fundingFields(record, ['binding', 'taskId', 'claimedAt', 'basisRevision', ...(record.phaseDecisionId !== undefined ? ['phaseDecisionId'] : []), ...(record.chargeClaimSha256 !== undefined ? ['chargeClaimSha256'] : []), ...(record.settlement ? ['settlement'] : [])]);
+    fundingFields(record, ['binding', 'taskId', 'claimedAt', 'basisRevision', ...(record.phaseDecisionId !== undefined ? ['phaseDecisionId'] : []), ...(record.chargeClaimSha256 !== undefined ? ['chargeClaimSha256'] : []), ...(record.suspension !== undefined ? ['suspension'] : []), ...(record.settlement ? ['settlement'] : [])]);
     validateFundingBinding(record.binding); fundingTime(record.claimedAt);
     const b = record.binding;
     if (names.has(b.fundingId) || roots.has(b.runRoot.toLowerCase()) || record.taskId !== fundingTaskId(b.fundingId)
@@ -125,6 +125,16 @@ export function validatePublicValidationFundings(state: RunSnapshot): void {
     if (matches.length !== 1 || matches[0].at !== record.claimedAt || matches[0].requestId !== null) throw new Error('Missing public funding reservation event.');
     const claims = state.events.filter(e => e.type === 'public_funding_charge_claimed' && e.requestId === null && e.reason === b.fundingId + ':' + record.chargeClaimSha256);
     if (record.chargeClaimSha256 !== undefined) { digest(record.chargeClaimSha256); if (claims.length !== 1) throw new Error('Funding evidence claim has no unique shared anchor.'); }
+    if (record.suspension !== undefined) {
+      const s = record.suspension;
+      fundingFields(s, ['suspendedAt', 'basisRevision', 'source', 'sourceSha256', 'heldMicroCny']);
+      fundingTime(s.suspendedAt); evidenceReferences([s.source]); digest(s.sourceSha256);
+      const events = state.events.filter(e => e.type === 'public_funding_suspended' && e.reason === b.fundingId);
+      if (!Number.isSafeInteger(s.basisRevision) || s.basisRevision < 1 || !Number.isSafeInteger(s.heldMicroCny)
+        || s.heldMicroCny <= 0 || s.heldMicroCny >= b.limits.limitMicroCny || events.length !== 1 || events[0].at !== s.suspendedAt
+        || events[0].requestId !== null || Date.parse(s.suspendedAt) < Date.parse(record.claimedAt)
+        || record.settlement && (record.settlement.outcome !== 'closed' || record.settlement.settledMicroCny > s.heldMicroCny)) throw new Error('Invalid public funding suspension.');
+    }
     const settled = record.settlement;
     if (!settled) {
       if (state.ledger.entries.some(entry => entry.taskId === record.taskId) || state.ledger.allocationClosures?.some(row => row.taskId === record.taskId)) throw new Error('Open public funding cannot release or import costs.');
@@ -160,6 +170,7 @@ export function validatePublicValidationFundings(state: RunSnapshot): void {
   }
   for (const row of state.requests.filter(row => row.publicFunding)) if (!requests.has(row.requestId)) throw new Error('Unowned public funding request.');
   if (state.events.filter(event => event.type === 'public_funding_charge_claimed').length !== records.filter(row => row.chargeClaimSha256 !== undefined).length
+    || state.events.filter(event => event.type === 'public_funding_suspended').length !== records.filter(row => row.suspension !== undefined).length
     || state.events.filter(event => event.type === 'public_funding_reserved').length !== records.length
     || state.events.filter(event => event.type === 'public_funding_settled').length !== records.filter(row => row.settlement).length
     || budgetSummary(state.ledger).committedMicroCny + publicFundingExposure(state).heldMicroCny > publicValidationPhaseLimit(state)) throw new Error('Public funding exceeds the authorized phase or event history.');

@@ -8,8 +8,10 @@ import {
   acquirePublicFundingGate,
   settlePublicValidationFunding,
   reservePublicValidationFunding,
+  suspendPublicValidationFunding,
 } from '../../src/runtime/public-validation-funding.ts';
 import { fundingHash as hash } from '../../src/runtime/public-validation-funding-validation.ts';
+import { publicFundingExposure } from '../../src/runtime/public-validation-funding-validation.ts';
 import { bucketIso } from '../../src/runtime/public-funding-billing-export.ts';
 import { SnapshotStore } from '../../src/runtime/store.ts';
 import { RunController } from '../../src/runtime/run.ts';
@@ -146,6 +148,39 @@ async function localCase(t: TestContext) {
 }
 const previewLocal = (target: any) => (resolution as any).previewLocalPublicFundingChargeResolution(target);
 const applyLocal = (target: any) => (RunController as any).applyLocalPublicFundingChargeResolution(target);
+
+test('suspended funding retains its bound across shared-locked zero resolution and interrupted final import', async t => {
+  const x = await localCase(t), suspension = await suspendPublicValidationFunding(x.target);
+  const before = await x.f.f.snapshot(), next = await x.f.f.authorization('parallel-suspension');
+  const write = SnapshotStore.prototype.write;
+  let enter!: () => void, release!: () => void;
+  const entered = new Promise<void>(resolve => { enter = resolve; }), released = new Promise<void>(resolve => { release = resolve; });
+  const fault = t.mock.method(SnapshotStore.prototype, 'write', async function(this: SnapshotStore, snapshot: any) {
+    if (this.root === resolve(x.f.runRoot) && snapshot.ledger.entries.find((r: any) => r.requestId === x.unknown.requestId)?.status === 'settled') {
+      enter(); await released;
+    }
+    if (this.root === resolve(x.f.sharedRoot) && snapshot.events.at(-1)?.type === 'public_funding_settled') throw new Error('Injected suspended import failure');
+    return write.call(this, snapshot);
+  });
+  const application = assert.rejects(applyLocal(x.target), /Injected suspended import failure/);
+  try {
+    await entered;
+    await assert.rejects(reservePublicValidationFunding(next), /owner|lock/i);
+    assert.equal(publicFundingExposure(await x.f.f.snapshot()).heldMicroCny, suspension.heldMicroCny);
+  } finally { release(); await application; fault.mock.restore(); }
+  const gap = await x.f.f.snapshot();
+  assert.equal(publicFundingExposure(gap).heldMicroCny, suspension.heldMicroCny);
+  assert.deepEqual(gap.ledger, before.ledger);
+  await assert.rejects(RunController.open({ root: x.f.runRoot }), /suspend/i);
+  await assert.rejects(reservePublicValidationFunding(next), /awaits shared settlement/i);
+  const closed = await applyLocal(x.target), after = await x.f.f.snapshot();
+  assert.equal(closed.settledMicroCny, 2); assert.equal(closed.releasedMicroCny, 4_999_998);
+  assert.equal(publicFundingExposure(after).heldMicroCny, 0);
+  assert.deepEqual(after.publicValidationFundings[0].suspension, suspension);
+  assert.equal(after.ledger.allocationClosures.length, before.ledger.allocationClosures.length + 1);
+  assert.deepEqual(await applyLocal(x.target), closed); assert.deepEqual(await x.f.f.snapshot(), after);
+  assert.deepEqual(await x.receipt(x.unknown), x.original); assert.deepEqual(await fs.readFile(x.f.receiptPath), x.completion);
+});
 
 test('local operator recovery keeps protected default, exact replay and unknown source', async t => {
   const x = await localCase(t);

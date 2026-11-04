@@ -28,6 +28,10 @@ export interface PublicValidationFundingRecord {
   phaseDecisionId?: string;
   chargeClaimSha256?: string;
   taskId: string; claimedAt: string; basisRevision: number;
+  suspension?: {
+    suspendedAt: string; basisRevision: number;
+    source: ArtifactReference; sourceSha256: string; heldMicroCny: number;
+  };
   settlement?: {
     settledAt: string; outcome: 'closed' | 'overrun';
     source: ArtifactReference; sourceSha256: string;

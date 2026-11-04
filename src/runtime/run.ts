@@ -250,6 +250,7 @@ export class RunController {
       shared = await SnapshotStore.acquire(state.validationFunding.sharedRoot);
       const sharedState = await shared.read(); validateSnapshot(sharedState);
       await (await import('./public-validation-funding.ts')).sharedSources(shared.root, sharedState);
+      // sharedSources verifies suspended exposure before this already-locked path can publish a claim or change the child.
       const resolution = await (await import('./public-funding-charge-resolution.ts')).verifyChargeResolution(target, store, shared, true, authority);
       if (!resolution.closed) {
         const owner = new RunController(store, state, Date.now);
@@ -266,7 +267,8 @@ export class RunController {
       const snapshot = await store.read();
       validateSnapshot(snapshot);
       await verifyOrdinaryBudgetOwnerHistory(store.root, snapshot, store.ownerIdentity().token);
-      await verifyPublicValidationFunding({ root: store.root, snapshot, dispatch: false });
+      const funding = await verifyPublicValidationFunding({ root: store.root, snapshot, dispatch: false });
+      if (funding.suspended) throw new Error('Public funding is suspended; only its dedicated authorized accounting entry may change the child.');
       if (snapshot.formatVersion === 3) throw new Error('Validation profile requires explicit openValidationCase; legacy and formal entrypoints are unsupported.');
       if (snapshot.formatVersion === 2 ? options.windowId !== snapshot.continuation!.currentWindowId : options.windowId !== undefined) throw new Error('Continuation snapshot requires its explicit current execution window; ordinary execution entrypoints are unsupported.');
       const controller = new RunController(store, snapshot, options.now ?? Date.now, options.windowId);
