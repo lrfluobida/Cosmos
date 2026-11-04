@@ -753,9 +753,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     if (ordinary) designWriteChecks.set(original.taskId, { ...check, workspace: fixedWorkspace, attemptId: original.attempts.at(-1)?.attemptId });
     const beforeFileWrite = preserveValidDraft ? check.beforeFileWrite : undefined;
     return [check, ...(ordinaryPlanAuthoringPolicy ? [await createGamePlanWriter({ workspace: fixedWorkspace, requirement: requirements,
-      repairGameplayIds: repairAcceptanceIds ? gameplayIds : undefined, seededRevision: original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite })] : []),
+      repairGameplayIds: repairAcceptanceIds ? gameplayIds : undefined, seededRevision: original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite, onWriteCommitted: supplied.onWriteCommitted })] : []),
       ...(hasDesignWriter(ordinaryPlanAuthoringPolicy) ? [await createGameDesignWriter({ workspace: fixedWorkspace,
-        seededRevision: original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite })] : []),
+        seededRevision: original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite, onWriteCommitted: supplied.onWriteCommitted })] : []),
       ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
   const codingHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
@@ -931,6 +931,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       ...(ordinary ? { authorThinkingLevel: { design: 'low' } as const, authorMaxRequests: { design: 32 }, designAuthorRequestTimeoutMs: 600000 } : {}),
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
         ? { authorMaxRequests: { design: 64 }, authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
+          ordinaryDesignSuccessfulWriteCompaction: true as const,
           ...(preservesValidDraft(ordinaryPlanAuthoringPolicy) ? { ordinaryDesignRejectedWriteCompaction: true as const } : {}),
           ordinaryPlanningOutputFloor: 4096,
           ordinaryDesignReviewMaxOutputTokens: 16384,

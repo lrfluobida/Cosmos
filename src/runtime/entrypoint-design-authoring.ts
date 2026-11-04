@@ -1,7 +1,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { regularFile } from '../artifacts/paths.ts';
-import { createWorkspaceTools, type BeforeFileWrite } from '../providers/workspace-tools.ts';
+import { createWorkspaceTools, type BeforeFileWrite, type WriteCommitted } from '../providers/workspace-tools.ts';
 import { requireAuthorJson } from './structured-author-json.ts';
 
 export const GAME_DESIGN_WRITE = 'write-game-design';
@@ -16,9 +16,9 @@ function keys(value: JsonObject, allowed: string[]) {
 }
 
 /** Writes only the mutable author draft. Validation and approval stay with the original host. */
-export async function createGameDesignWriter(input: { workspace: string; seededRevision?: boolean; beforeFileWrite?: BeforeFileWrite;
+export async function createGameDesignWriter(input: { workspace: string; seededRevision?: boolean; beforeFileWrite?: BeforeFileWrite; onWriteCommitted?: WriteCommitted;
   guard(signal: AbortSignal): Promise<void>; afterFileWrite(signal: AbortSignal): Promise<string> }) {
-  const writer = (await createWorkspaceTools({ workspace: input.workspace, readPaths: [], writePaths: [GAME_DESIGN_SOURCE], beforeFileWrite: input.beforeFileWrite })).find(tool => tool.name === 'write')!;
+  const writer = (await createWorkspaceTools({ workspace: input.workspace, readPaths: [], writePaths: [GAME_DESIGN_SOURCE], beforeFileWrite: input.beforeFileWrite, onWriteCommitted: input.onWriteCommitted })).find(tool => tool.name === 'write')!;
   return { readOnly: false, tool: defineTool({ name: GAME_DESIGN_WRITE, label: 'Save game design draft', executionMode: 'sequential',
     description: `Save structured design data or replace one known top-level section at ${GAME_DESIGN_SOURCE}. Save replaces the entire design object; omitted content is not retained. Set replaces the entire selected section and preserves every other section; it does not merge nested values or append arrays. Expected design types: summary:string, implementationNotes:string[], acceptanceMapping and experienceMapping:objects mapping original IDs to strings, characters:[{id,purpose,states:string[]}], audio:[{id,trigger,loop:boolean}]. Supply game-specific values yourself. ${input.beforeFileWrite ? ORDINARY_DRAFT_PRESERVATION_RULE : 'Partial or invalid drafts may be saved; existing diagnostics, capture and independent review still decide validity and acceptance.'} Set requires an existing complete JSON object; malformed JSON requires explicit save, not automatic repair. Raw read/write/edit remain available. No path, reference, authority or script arguments.`
       + (input.seededRevision ? ' Revision workspace: this file is seeded from the previous capture and remains an unapproved draft. Read the current draft and actual review findings first. Prefer set for the affected section and retain other sections; intentional full replacement remains allowed with explicit save.' : ''),

@@ -5,6 +5,7 @@ import { createEditTool, createReadTool, createWriteTool, defineTool, detectSupp
 import { compactJsonReadBuffer } from './json-read-display.ts';
 
 export type BeforeFileWrite = (absolutePath: string, candidate: Buffer, signal: AbortSignal) => Promise<void>;
+export type WriteCommitted = (toolCallId: string, absolutePath: string) => void;
 
 /** Host validation rejected a candidate before writing; the current valid draft remains intact. */
 export class PreservedDesignDraftError extends Error {}
@@ -15,6 +16,7 @@ export interface WorkspaceToolOptions {
   writePaths: string[];
   compactFullJsonReads?: true;
   beforeFileWrite?: BeforeFileWrite;
+  onWriteCommitted?: WriteCommitted;
 }
 
 function within(root: string, path: string): boolean {
@@ -97,19 +99,21 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
     const edit = createEditTool(workspace);
     const before = options.beforeFileWrite;
     const mode = before ? { executionMode: 'sequential' as const } : {};
-    const checkedWrite = (guard: BeforeFileWrite, signal = new AbortController().signal) => async (path: string, content: string) => {
+    const checkedWrite = (id: string, signal = new AbortController().signal) => async (path: string, content: string) => {
       const bytes = Buffer.from(content, 'utf8');
       signal.throwIfAborted();
-      await guard(path, bytes, signal);
+      await before?.(path, bytes, signal);
       signal.throwIfAborted();
       await writeFile(path, bytes);
+      signal.throwIfAborted();
+      options.onWriteCommitted?.(id, path);
     };
     tools.push(defineTool({ ...write, ...mode, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, writes, signal);
       await checkEncoding(full);
       signal?.throwIfAborted();
-      const selected = before ? createWriteTool(workspace, { operations: {
-        mkdir: async dir => { await mkdir(dir, { recursive: true }); }, writeFile: checkedWrite(before, signal),
+      const selected = before || options.onWriteCommitted ? createWriteTool(workspace, { operations: {
+        mkdir: async dir => { await mkdir(dir, { recursive: true }); }, writeFile: checkedWrite(id, signal),
       } }) : write;
       return selected.execute(id, { ...args, path: full }, signal, onUpdate);
     } }));
@@ -117,9 +121,9 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
       const full = await check(args.path, writes, signal);
       await checkEncoding(full);
       signal?.throwIfAborted();
-      const selected = before ? createEditTool(workspace, { operations: {
+      const selected = before || options.onWriteCommitted ? createEditTool(workspace, { operations: {
         access: path => access(path, constants.R_OK | constants.W_OK), readFile: path => readFile(path),
-        writeFile: checkedWrite(before, signal),
+        writeFile: checkedWrite(id, signal),
       } }) : edit;
       return selected.execute(id, { ...args, path: full }, signal, onUpdate);
     } }));

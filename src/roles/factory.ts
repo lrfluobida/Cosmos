@@ -3,7 +3,7 @@ import { realpath } from 'node:fs/promises';
 import { resolve, relative, isAbsolute, sep } from 'node:path';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { ImageContent } from '@earendil-works/pi-ai';
-import type { BeforeFileWrite } from '../providers/workspace-tools.ts';
+import type { BeforeFileWrite, WriteCommitted } from '../providers/workspace-tools.ts';
 import { createPiSession, createWorkspaceTools } from '../providers/pi.ts';
 import type { PiBudgetFinalizationSource, PiSessionOptions } from '../providers/pi.ts';
 import { validateTask } from '../contracts/index.ts';
@@ -65,6 +65,7 @@ export interface RoleFactoryOptions {
   ordinaryDesignBudgetCompaction?: true;
   /** Only preserved-draft validation failures may extend the ordinary design compaction boundary. */
   ordinaryDesignRejectedWriteCompaction?: true;
+  ordinaryDesignSuccessfulWriteCompaction?: true;
   ordinaryDesignBudgetPolicy?: 'review-reserve/1';
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
@@ -93,7 +94,7 @@ export interface RoleFactoryOptions {
   env?: PiSessionOptions['env'];
   compactionKeepRecentTokens?: PiSessionOptions['compactionKeepRecentTokens'];
   /** Trusted host integrations only. Mutating tools are never supplied to a reviewer. */
-  hostTools?: (input: Readonly<{ role: Role; taskId: string; workspace: string; signal: AbortSignal; childEnv: NodeJS.ProcessEnv }>) => Promise<{ tool: ToolDefinition; readOnly: boolean }[]>;
+  hostTools?: (input: Readonly<{ role: Role; taskId: string; workspace: string; signal: AbortSignal; childEnv: NodeJS.ProcessEnv; onWriteCommitted?: WriteCommitted }>) => Promise<{ tool: ToolDefinition; readOnly: boolean }[]>;
   sessionFactory?: (options: PiSessionOptions) => Promise<RoleSession>;
   /** Optional trusted host admission immediately before an existing scoped tool. */
   beforeTool?: (input: Readonly<RoleInput>, signal: AbortSignal) => Promise<void>;
@@ -139,6 +140,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     throw new Error('ordinaryDesignBudgetCompaction requires the original design floor 8192 and cap 32768.');
   }
   const recoveryPolicy = options.ordinaryDesignBudgetPolicy;
+  if (options.ordinaryDesignSuccessfulWriteCompaction !== undefined && (options.ordinaryDesignSuccessfulWriteCompaction !== true
+    || !ordinaryDesignCompaction || recoveryPolicy !== 'review-reserve/1')) throw new Error('Successful-write compaction requires ordinary design review-reserved compaction.');
   if (options.ordinaryDesignRejectedWriteCompaction !== undefined && (options.ordinaryDesignRejectedWriteCompaction !== true
     || !ordinaryDesignCompaction || !options.beforeDesignFileWrite)) throw new Error('Rejected-write compaction requires ordinary design budget compaction and draft protection.');
   if (recoveryPolicy !== undefined && (recoveryPolicy !== 'review-reserve/1' || !ordinaryDesignCompaction)) throw new Error('Invalid ordinaryDesignBudgetPolicy.');
@@ -217,10 +220,19 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const actorId = reviewer ? `reviewer-${randomUUID()}` : task.authorId;
     const reads = reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
     const inputFiles = await roleInputFiles(workspace, [...task.inputs, ...task.context.interfaces, ...(reviewer ? [...task.artifacts, ...task.evidence.map(e => e.source)] : [])], input.controller.signal);
+    const committedWrites = new Map<string, string[]>();
+    const onWriteCommitted: WriteCommitted | undefined = designCompaction && options.ordinaryDesignSuccessfulWriteCompaction ? (id, path) => {
+      const owned = relative(workspace, path);
+      if (!owned || isAbsolute(owned) || owned === '..' || owned.startsWith(`..${sep}`)
+        || !task.ownership.writePaths.some(scope => { const rel = relative(resolve(workspace, scope), path);
+          return !isAbsolute(rel) && rel !== '..' && !rel.startsWith(`..${sep}`); })) throw new Error('Successful write is outside its original task.');
+      committedWrites.set(id, [...new Set([...(committedWrites.get(id) ?? []), owned.replaceAll('\\', '/')])]);
+    } : undefined;
     const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths,
+      ...(onWriteCommitted ? { onWriteCommitted } : {}),
       ...(input.role === 'design' && !input.purpose && !input.validation && options.beforeDesignFileWrite ? { beforeFileWrite: options.beforeDesignFileWrite(input) } : {}),
       ...(designReviewBudget || designRevisionJsonReads ? { compactFullJsonReads: true } : {}) });
-    const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment() }) ?? [];
+    const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment(), ...(onWriteCommitted ? { onWriteCommitted } : {}) }) ?? [];
     const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name)).map(tool => (designReviewBudget || designRevisionJsonReads) && tool.name === 'read'
       ? { ...tool, description: `For JSON ${designReviewBudget ? 'review' : 'revision'}, first request the complete file without numeric offset/limit: omit offset and limit when optional; if the tool schema requires them, set both to null (the SDK treats these as omitted). Do not fill in numeric defaults. If the result reports truncation or remaining lines, follow its paging instructions until complete; never treat a partial result as the full file. Keep normal paging for non-JSON files and targeted raw-source reads.\n\n` + tool.description }
       : tool);
@@ -230,6 +242,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       scoped.push(host.tool);
     }
     const tools = scoped.map(tool => ({ ...tool, async execute(id, args, signal, onUpdate, ctx) {
+      committedWrites.delete(id);
       const combined = AbortSignal.any([input.controller.signal, ...(signal ? [signal] : [])]);
       combined.throwIfAborted();
       await options.beforeTool?.(input, combined);
@@ -259,6 +272,14 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny, reviewReserve: true as const, failureCode: 'author_review_reserve' as const };
     const session = await (options.sessionFactory ?? createPiSession)({
       workspace, stateDirectory: input.stateDirectory, tools,
+      ...(onWriteCommitted ? { successfulWriteCompaction: {
+        takeWrites: () => { const writes = new Map(committedWrites); committedWrites.clear(); return writes; },
+        requireAuthority: async () => {
+          await requireOriginalAuthorBudget(recoveryBudget);
+          const current = await input.controller.read();
+          return !current.ledger.entries.some(row => row.unknown || row.reservedMicroCny || !['settled', 'cancelled'].includes(row.status));
+        },
+      } } : {}),
       systemPrompt: (input.purpose === 'planning'
         ? `You are the Cosmos task planner. Follow the host-supplied output schema and use only the host policies supplied in the prompt. Return only a JSON object without Markdown. When policies have policyId, use this shape:\n${planningJsonExample(true)}\npolicyId is required, must name a supplied policy, must match its role, and each policyId may be selected at most once. Otherwise use this shape:\n${planningJsonExample(false)}\nSelect each role at most once and do not add policyId. Cover every confirmed acceptance ID. Each dependency names a task in this plan. The host binds its declared output versions as inputs after the dependency passes. You cannot choose tools, paths, budget, acceptance steps, evidence or task state. This is a proposal, not a claim that the game passes.`
         : reviewer
