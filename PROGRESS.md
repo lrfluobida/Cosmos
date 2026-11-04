@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+2026-11-04 R28 已独立 PASS_CLOSED：child113/shared3423、25 笔费用全部已知，结算 500653 微元、释放 4499347 微元，shared C39194662/H0。设计仍不完整，未有通过的设计捕获/独审，也未进入美术、编码或浏览器验收；费用结清不改变游戏失败结论。独审原件摘要 `6fec11ffc5af8c6a600cb51621107cf61137403d89ac6a953691b713876bd763`。
+
+[COS174 / #175](https://github.com/lrfluobida/Cosmos/issues/175#issuecomment-6629904621) 已按源码、R27 实际结案及随后 R28 真实结果的约定范围关闭。[COS162 / #163](https://github.com/lrfluobida/Cosmos/issues/163#issuecomment-6629906787) 亦按外部证据实际应用范围关闭：本案明确使用 local_operator_record，受保护模式只有已有 SOURCE/TEMP 证据，不声称真实受管签名或部署通过。R27 原 unknown/error/无用量事实、cleanup 和 13 笔已知记录保持，实际结算229003/释放4770997微元。COS18 与目标游戏仍 open/partial。
+
+新 [COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176) 已登记并获 Root 批准实施：只在可信、可恢复设计写入校验拒绝后接通既有预算内压缩，保留拒绝事实、最后一组工具调用/结果及原有效草稿。任意错误、越界文件操作和模型文本不能取得资格；原 review reserve、次数、预算、截止和独审继续生效。实现者 `r28_context_recovery_diagnosis`，独审 `rejected_compaction_reviewer`，唯一 merger `validation_recovery_merger`。SOURCE pending；R28 不重启，R29 尚未启动。下一次完整5M阶段暴露44194662微元低于45M仅为准入算术，不是新支出。
+
 2026-11-04 [COS174 / #175](https://github.com/lrfluobida/Cosmos/issues/175) 源码已独审集成，任务保持开放。`local_accounting_reviewer` 批准 `b2d5bd532f145a7fac0f62cdc70bffadf8035776`，唯一 merger 合入 `9e4185923195925877ae52136009434d8af3094b`。显式本地 operator 授权沿用原财务核验与结算路径，受保护模式保持默认，不自动回退。
 
 主线 typecheck/build 通过，15 个会计文件与批准版本一致。原基线和组合的 v2 funding 夹具均因覆盖生产策略失败；独审单行修正 `d6295ac4167922528ed28d347378c54be52eacd9` 应用为 `aa586b5457c000e0251f1fb374bbd07461eb3e1a` 后，组合代表 1/1、0 skip、TAP 8590.9239ms。生产源码未变，类型检查和构建结果复用；作者 local 4/4、protected 3/3 和独审 TEMP 1/1 按原边界复用。

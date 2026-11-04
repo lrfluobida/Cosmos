@@ -2479,11 +2479,19 @@ GitHub ID `6183221235`，原生父 COS18/#19、[x]，直接依赖 COS-170/#171�
 
 ### COS-174 · 显式本地 owner 授权完成零差额结算并恢复真实验证
 
-[COS174 / #175](https://github.com/lrfluobida/Cosmos/issues/175)，ID `6200889330`，原生父 COS18/#19、[ ]，依赖 COS162/#163。实现者 `paid_validation_recovery_assessment`，独审 `local_accounting_reviewer`，唯一 merger `validation_recovery_merger`。[正式规格](cos174-local-accounting-authority.md)
+[COS174 / #175](https://github.com/lrfluobida/Cosmos/issues/175)，ID `6200889330`，原生父 COS18/#19、[x]，依赖 COS162/#163。实现者 `paid_validation_recovery_assessment`，独审 `local_accounting_reviewer`，唯一 merger `validation_recovery_merger`。[正式规格](cos174-local-accounting-authority.md)
 
 独审批准源码 `b2d5bd532f145a7fac0f62cdc70bffadf8035776`，主线合并 `9e4185923195925877ae52136009434d8af3094b`。typecheck/build 通过；v2 funding 夹具的既有生产策略覆盖问题在原基线复现，独审单行测试修正 `d6295ac4167922528ed28d347378c54be52eacd9` 应用为 `aa586b5457c000e0251f1fb374bbd07461eb3e1a`，组合代表 1/1、0 skip、TAP 8590.9239ms。原源码检查及作者 local 4/4、protected 3/3、独审 TEMP 1/1 复用。
 
-本地 operator 模式显式选择，沿用原财务核证与结算，不自动回退或宣称人员身份认证。R27 实际结案及下一真实模型运行尚未执行，任务保持开放。预算、原 unknown/cleanup 和游戏要求不变；源码与合成证据不代表实际财务或游戏完成。
+[COS174 / #175](https://github.com/lrfluobida/Cosmos/issues/175#issuecomment-6629904621) 已按源码、R27 实际结案及随后 R28 真实结果的约定范围关闭。[COS162 / #163](https://github.com/lrfluobida/Cosmos/issues/163#issuecomment-6629906787) 亦按外部证据实际应用范围关闭：本案明确使用 local_operator_record，受保护模式只有已有 SOURCE/TEMP 证据，不声称真实受管签名或部署通过。R27 原 unknown/error/无用量事实、cleanup 和 13 笔已知记录保持，实际结算229003/释放4770997微元。COS18 与目标游戏仍 open/partial。
+
+R28 已独立 PASS_CLOSED：child113/shared3423、25 笔费用全部已知，结算 500653 微元、释放 4499347 微元，shared C39194662/H0。设计仍不完整，未有通过的设计捕获/独审，也未进入美术、编码或浏览器验收；费用结清不改变游戏失败结论。独审原件摘要 `6fec11ffc5af8c6a600cb51621107cf61137403d89ac6a953691b713876bd763`。
+
+### COS-175 · 可恢复设计校验拒绝后的预算内上下文压缩
+
+新 [COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176) 已登记并获 Root 批准实施：只在可信、可恢复设计写入校验拒绝后接通既有预算内压缩，保留拒绝事实、最后一组工具调用/结果及原有效草稿。任意错误、越界文件操作和模型文本不能取得资格；原 review reserve、次数、预算、截止和独审继续生效。实现者 `r28_context_recovery_diagnosis`，独审 `rejected_compaction_reviewer`，唯一 merger `validation_recovery_merger`。SOURCE pending；R28 不重启，R29 尚未启动。下一次完整5M阶段暴露44194662微元低于45M仅为准入算术，不是新支出。
+
+GitHub ID `6202133484`，原生父 COS18/#19、[ ]；依赖 COS125/#126、COS161/#162、COS163/#164。批准规格摘要 `28287cabaa77b54352b682b48b57c5f70a211569e04bfe6687d6ef350989a2f0`，完整规格与计划保存在 issue 正文。
 
 ## 5. 任务与上下文包模板
 

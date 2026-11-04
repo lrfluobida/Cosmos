@@ -12774,10 +12774,18 @@
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
       "nativeParentLinked": true,
-      "state": "open",
+      "state": "closed",
       "trackingScope": "Cross-reference to separate accounting release",
       "releaseBranch": "codex/accounting-release-cos162",
-      "sourcePublicationComment": "https://github.com/lrfluobida/Cosmos/issues/163#issuecomment-6592892317"
+      "sourcePublicationComment": "https://github.com/lrfluobida/Cosmos/issues/163#issuecomment-6592892317",
+      "stateReason": "completed",
+      "scopedComplete": true,
+      "parentCheckboxChecked": true,
+      "implementationPhase": "scoped-actual-complete",
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/163#issuecomment-6629906787",
+      "actualExecutionStatus": "R27 local_operator_record external-evidence application independently PASS_CLOSED_LOCAL_AUTHORITY; protected mode SOURCE/TEMP only.",
+      "deploymentContractSupersededBy": "COS-174",
+      "protectedDeploymentVerified": false
     },
     {
       "taskId": "COS-163",
@@ -13449,12 +13457,14 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "dependsOn": ["COS-162"],
+      "parentCheckboxChecked": true,
+      "dependsOn": [
+        "COS-162"
+      ],
       "nativeDependenciesLinked": true,
-      "state": "open",
-      "scopedComplete": false,
-      "integrationStatus": "source-integrated-main-actual-pending",
+      "state": "closed",
+      "scopedComplete": true,
+      "integrationStatus": "source-and-actual-scope-complete",
       "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "formalSpecPath": "docs/specs/cos174-local-accounting-authority.md",
       "implementer": "paid_validation_recovery_assessment",
@@ -13465,10 +13475,72 @@
       "testDeltaReviewedCommit": "d6295ac4167922528ed28d347378c54be52eacd9",
       "testDeltaIntegratedCommit": "aa586b5457c000e0251f1fb374bbd07461eb3e1a",
       "verification": "Main typecheck/build passed; integrated v2 funding wrapper 1/1, 0 skip, TAP 8590.9239ms. Reused author local4/protected3 and independent TEMP1 evidence.",
-      "actualExecutionStatus": "R27 actual closure and following real model run pending; no actual settlement or game success claimed."
+      "actualExecutionStatus": "R27 local authority application PASS_CLOSED; following R28 PASS_CLOSED accounting with initial design incomplete and no game acceptance.",
+      "stateReason": "completed",
+      "implementationPhase": "scoped-actual-complete",
+      "completionComment": "https://github.com/lrfluobida/Cosmos/issues/175#issuecomment-6629904621",
+      "actualResult": {
+        "r27SettledMicroCny": 229003,
+        "r27ReleasedMicroCny": 4770997,
+        "r28SettledMicroCny": 500653,
+        "r28ReleasedMicroCny": 4499347,
+        "sharedRevision": 3423,
+        "sharedCommittedMicroCny": 39194662,
+        "sharedHeldMicroCny": 0,
+        "r28AuditSha256": "6fec11ffc5af8c6a600cb51621107cf61137403d89ac6a953691b713876bd763"
+      }
+    },
+    {
+      "taskId": "COS-175",
+      "title": "可恢复设计校验拒绝后的预算内上下文压缩",
+      "number": 176,
+      "id": 6202133484,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/176",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": [
+        "COS-125",
+        "COS-161",
+        "COS-163"
+      ],
+      "nativeDependenciesLinked": true,
+      "nativeDependencies": [
+        {
+          "taskId": "COS-125",
+          "number": 126,
+          "id": 6023281426,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/126"
+        },
+        {
+          "taskId": "COS-161",
+          "number": 162,
+          "id": 6167661047,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/162"
+        },
+        {
+          "taskId": "COS-163",
+          "number": 164,
+          "id": 6177505838,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/164"
+        }
+      ],
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-pending",
+      "sourceReviewStatus": "pending",
+      "rootImplementationApproved": true,
+      "implementationBaseCommit": "d218e6388e11cee777433bf5a30ad01cd38779fc",
+      "approvedSpecSha256": "28287cabaa77b54352b682b48b57c5f70a211569e04bfe6687d6ef350989a2f0",
+      "implementer": "r28_context_recovery_diagnosis",
+      "reviewer": "rejected_compaction_reviewer",
+      "merger": "validation_recovery_merger",
+      "actualExecutionStatus": "R28 independently PASS_CLOSED with initial design incomplete; R29 not started; shared C39194662/H0 and full5M exposure44194662 within phase45M."
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 174,
+  "totalTaskCount": 175,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
