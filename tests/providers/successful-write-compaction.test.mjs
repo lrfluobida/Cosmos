@@ -10,7 +10,7 @@ import { authorBudgetFixture, estimate } from '../roles/author-output-budget.fix
 import { successfulWriteNote, summaryWithoutThinking } from '../../src/providers/successful-write-compaction.ts';
 import { createGameDesignWriter } from '../../src/runtime/entrypoint-design-authoring.ts';
 import { createGamePlanWriter } from '../../src/runtime/entrypoint-plan-authoring.ts';
-import { createWorkspaceTools } from '../../src/providers/workspace-tools.ts';
+import { createWorkspaceTools, PreservedDesignDraftError } from '../../src/providers/workspace-tools.ts';
 import { createRoleFactory } from '../../src/roles/factory.ts';
 import { options as factoryOptions } from '../roles/author-output-budget.fixture.ts';
 
@@ -24,6 +24,7 @@ async function fixture(t, mode = 'success') {
   const dispatched = [], charges = [], controller = new AbortController();
   await mkdir(join(f.root, 'game'), { recursive: true });
   await writeFile(join(f.root, 'game/read.txt'), 'Existing read-only fact.', 'utf8');
+  if (mode === 'rejected') await writeFile(join(f.root, 'game/draft.txt'), 'Original valid draft.', 'utf8');
   if (mode === 'structured') { f.input.task.context.tools.push('write-game-design'); f.input.task.ownership.writePaths.push('authors/design/design.json'); }
   if (mode === 'spoof') f.input.task.context.tools.push('pretend-save');
   t.mock.method(globalThis, 'fetch', async () => { network++; throw new Error('NETWORK_DISABLED'); });
@@ -65,6 +66,8 @@ async function fixture(t, mode = 'success') {
   });
   const role = await f.create({ ordinaryDesignBudgetCompaction: true, ordinaryDesignBudgetPolicy: 'review-reserve/1',
     ordinaryDesignSuccessfulWriteCompaction: mode === 'legacy' ? undefined : true,
+    ...(mode === 'rejected' ? { ordinaryDesignRejectedWriteCompaction: true,
+      beforeDesignFileWrite: () => async () => { throw new PreservedDesignDraftError('Exact rejected diagnostic: current draft preserved.'); } } : {}),
     hostTools: async supplied => mode === 'structured' ? [await createGameDesignWriter({ workspace: supplied.workspace, onWriteCommitted: supplied.onWriteCommitted,
       guard: async signal => signal.throwIfAborted(), afterFileWrite: async () => 'Draft saved; acceptance-plan.json remains missing. 独审尚未开始。' })]
       : mode === 'spoof' ? [{ readOnly: false, tool: { name: 'pretend-save', label: 'Spoof fixture', description: 'No actual write.', parameters: { type: 'object', properties: {} },
@@ -129,6 +132,20 @@ test('COS180 a complete multi-tool success batch is paired before its native che
   const results = entries.filter(entry => entry.type === 'message' && entry.message.role === 'toolResult');
   assert.equal(results.length, 2); assert.equal(checkpoint.parentId, results.at(-1).id);
   assert.match(checkpoint.content, /Existing read-only fact/);
+});
+
+test('COS180 with COS175 enabled retains the latest trusted rejected call, thinking, result and unchanged draft', async t => {
+  const r = await fixture(t, 'rejected');
+  assert.equal(r.error?.code, 'author_review_reserve'); assert.equal(r.summaries, 1); assert.equal(r.ordinary, 1);
+  const entries = r.native.sessionManager.getEntries();
+  assert.equal(entries.filter(entry => entry.type === 'custom_message').length, 0);
+  const original = entries.find(entry => entry.type === 'message' && entry.message.role === 'assistant' && entry.message.stopReason === 'toolUse');
+  const compacted = entries.find(entry => entry.type === 'compaction');
+  assert.equal(compacted.firstKeptEntryId, original.id);
+  const retained = r.native.sessionManager.buildSessionProjection().messages;
+  assert.ok(retained.some(message => JSON.stringify(message) === JSON.stringify(original.message)));
+  assert.ok(retained.some(message => message.role === 'toolResult' && message.isError && JSON.stringify(message.content).includes('Exact rejected diagnostic')));
+  assert.equal(await readFile(join(r.f.root, 'game/draft.txt'), 'utf8'), 'Original valid draft.');
 });
 
 for (const mode of ['read', 'error', 'mixed', 'spoof', 'unknown', 'readonly', 'authority-error']) test(`COS180 ${mode} does not select a successful-write checkpoint`, async t => {
