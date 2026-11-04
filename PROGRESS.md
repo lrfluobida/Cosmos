@@ -4,6 +4,16 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R31 已独立 `PASS_R31_CLOSED_R30_PENDING`：7笔全已知，结算346396微元、释放本案未用3653604微元，child41/shared3429，C40858057/H480004。R30原child32、五份回执、unknown407922微元预留与暂停来源保持，财务仍待核；原R30 allocation没有关闭或零差额结算。phase45当前可用3661939微元。
+
+[COS177 / #178](https://github.com/lrfluobida/Cosmos/issues/178#issuecomment-6638943802) 已按源码与真实延长等待范围关闭：R31请求 `a40f1465-b3b2-4a28-8e2c-1c54a4bfc318` 在165014.926ms返回已知length回执，越过旧120000ms上限；32768总输出中32679为reasoning，不完整工具调用未执行，无设计产物、捕获、独审或后续角色。[COS178 / #179](https://github.com/lrfluobida/Cosmos/issues/179#issuecomment-6638945213) 已按真实暂停应用及后续R31正常准入/结算范围关闭：独立`PASS_APPLIED_SUSPENSION_ONLY`核对shared3427仅增加一次暂停，后续R31独审继续确认R30原字节和H480004保持。两项功能完成不代表游戏通过或R30财务结清。
+
+[COS179 / #180](https://github.com/lrfluobida/Cosmos/issues/180#issuecomment-6639023452) 已独审集成，任务保持open。作者 `r31_reasoning_budget_diagnosis` 的 `986b8a8a038d865699cd969c5939ee6426c62a4c` 经 `cos179_low_reasoning_reviewer` 实际四文件审查批准、无findings；唯一merger `cos175_resume_merger` 合入 `dfa96c6851de7cb4a2f58f738ada8da962c707eb`，四文件与批准版本一致。生产仅普通design作者high→low，原生thinking仍启用，不是独立推理token硬额度。主线初始/修订/摘要计费代表1/1、0 skip（22303.6354ms），14次合成请求/4次摘要/112840微元，types/build退出0；作者15/15与未变证据复用，不累加重叠。
+
+下一轮完整room12v2最多3650000微元/30分钟，C40858057+H480004+3650000=44988061，phase45剩余11939微元。原模型、600000ms及截止裁剪、32768作者/8192摘要上限、独审和全部需求保持；较低金额不构成严格A/B比较，low的真实语义质量仍待验证。没有阶段增额、R30/R31重开或merger账本操作。
+
+以下保留此前阶段记录；当前任务状态、财务占用和下一轮上限以前述R31审计及COS179记录为准。
+
 R30 在固定源码 `f791c334b4709610a9ab1c09179fdb310dce13b6` 上执行结束，结果 incomplete，生成至清理结束169480ms。真实设计作者已使用high；第三次设计请求520.635ms收到首个服务流事件，120019.259ms时被原120000ms绝对请求计时器取消。该证据只确认请求上限到期，不归因为供应商故障或high模式；没有设计写入、捕获、独审、摘要、美术、编码或浏览器验收。
 
 R30 财务仍待核：child32、stopReason=null，4笔已结72082微元；请求 `f96dcde3-8471-4382-bde4-749a4ee155de` 保持unknown和完整407922微元预留。shared3426/C40511661/H4480000，原整笔4480000微元资金尚未结算或释放。R27旧零差额决定不适用于本案，不重试未知请求或重开旧执行。
