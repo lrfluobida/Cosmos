@@ -226,6 +226,15 @@ export class RunController {
 
   /** A closed funding proof can authorize only zero-attribution accounting, never a dispatch-capable owner. */
   static async applyPublicFundingChargeResolution(target: import('./public-funding-charge-resolution.ts').ChargeTarget) {
+    return RunController.applyFundingResolution(target, 'protected');
+  }
+
+  /** Explicit local operator authority; absent from runtime model tools and public game commands. */
+  static async applyLocalPublicFundingChargeResolution(target: import('./public-funding-charge-resolution.ts').ChargeTarget) {
+    return RunController.applyFundingResolution(target, 'local_operator_record');
+  }
+
+  private static async applyFundingResolution(target: import('./public-funding-charge-resolution.ts').ChargeTarget, authority: 'protected' | 'local_operator_record') {
     fundingFields(target, ['sharedRoot', 'runRoot', 'fundingId']);
     await regularFile(target.runRoot, 'snapshot.json'); // Accounting cannot create a new run root.
     const store = await SnapshotStore.acquire(target.runRoot);
@@ -241,7 +250,7 @@ export class RunController {
       shared = await SnapshotStore.acquire(state.validationFunding.sharedRoot);
       const sharedState = await shared.read(); validateSnapshot(sharedState);
       await (await import('./public-validation-funding.ts')).sharedSources(shared.root, sharedState);
-      const resolution = await (await import('./public-funding-charge-resolution.ts')).verifyChargeResolution(target, store, shared, true);
+      const resolution = await (await import('./public-funding-charge-resolution.ts')).verifyChargeResolution(target, store, shared, true, authority);
       if (!resolution.closed) {
         const owner = new RunController(store, state, Date.now);
         await owner.stop('Accounting-only reconciliation after original signed cleanup.');

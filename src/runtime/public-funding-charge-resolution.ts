@@ -19,6 +19,7 @@ import {
 } from './public-funding-accounting-trust.ts';
 import type { RunSnapshot } from './run-types.ts';
 import { SnapshotStore } from './store.ts';
+import { readLocalAuthority, checkLocalApproval, ensureLocalNotFrozen, type LocalAuthority } from './public-funding-local-authority.ts';
 
 export interface ChargeTarget {
   runRoot: string;
@@ -517,6 +518,13 @@ async function approvals(v: Awaited<ReturnType<typeof evaluate>>) {
   );
 }
 export async function previewPublicFundingChargeResolution(target: ChargeTarget) {
+  return previewResolution(target, 'protected');
+}
+/** Explicit trusted-operator entry; never selected by a runtime role or a failed protected preview. */
+export async function previewLocalPublicFundingChargeResolution(target: ChargeTarget) {
+  return previewResolution(target, 'local_operator_record');
+}
+async function previewResolution(target: ChargeTarget, authority: 'protected' | 'local_operator_record') {
   try {
     fundingFields(target, ['sharedRoot', 'runRoot', 'fundingId']);
     const state = decode(await regularFile(target.runRoot, 'snapshot.json'));
@@ -532,6 +540,17 @@ export async function previewPublicFundingChargeResolution(target: ChargeTarget)
       'funding hold is not bound'
     );
     await requireExclusiveBuckets(target, v.scope, shared);
+    const prior = await getClaim(target.sharedRoot, target.fundingId);
+    check(!prior || (prior.authority?.kind ?? 'protected') === authority, 'original authority profile differs');
+    if (authority === 'local_operator_record') {
+      const local = await readLocalAuthority(target.sharedRoot, v.bind, v.e, v.hash);
+      check(!prior || sameValue(prior.authority, local), 'original local authority source changed');
+      const approvalBlockers: string[] = [];
+      try { checkLocalApproval(local, Date.now()); await ensureLocalNotFrozen(target.sharedRoot, local, v.e.reviewDueAt, Date.now()); }
+      catch { approvalBlockers.push('local_authority_expired_revoked_disputed_or_review_unavailable'); }
+      return { status: 'checked' as const, authority: local.kind, approvalsReady: !approvalBlockers.length, approvalBlockers,
+        receipt: v.receipt, expectedSettledMicroCny: v.amount, expectedReleasedMicroCny: v.bind.limits.limitMicroCny - v.amount };
+    }
     const approvalBlockers: string[] = [];
     let trust: Awaited<ReturnType<typeof machineTrust>> | undefined;
     try {
@@ -593,7 +612,8 @@ export async function verifyChargeResolution(
   target: ChargeTarget,
   childStore: SnapshotStore,
   sharedStore: SnapshotStore,
-  publish: boolean
+  publish: boolean,
+  selectedAuthority?: 'protected' | 'local_operator_record'
 ) {
   check(
     childStore.root === resolve(target.runRoot) && sharedStore.root === resolve(target.sharedRoot),
@@ -603,14 +623,21 @@ export async function verifyChargeResolution(
     shared = await sharedStore.read();
   validateSnapshot(state);
   validateSnapshot(shared);
-  const v = await evaluate(target, state),
-    trust = await machineTrust(v.bind.sharedRunId, v.bind.sharedLedgerId),
-    signatures = await approvals(v);
+  const v = await evaluate(target, state);
   check(
     shared.publicValidationFundings?.some((r) => sameValue(r.binding, v.bind)),
     'unknown shared funding'
   );
   const oldClaim = await getClaim(target.sharedRoot, target.fundingId);
+  const authorityKind = oldClaim ? oldClaim.authority?.kind ?? 'protected' : selectedAuthority ?? 'protected';
+  check(['protected', 'local_operator_record'].includes(authorityKind) && (!selectedAuthority || selectedAuthority === authorityKind), 'original authority profile differs');
+  const local = authorityKind === 'local_operator_record' ? await readLocalAuthority(target.sharedRoot, v.bind, v.e, v.hash) : undefined;
+  check(!oldClaim || sameValue(oldClaim.authority, local), 'original local authority source changed');
+  const trust = local ? undefined : await machineTrust(v.bind.sharedRunId, v.bind.sharedLedgerId);
+  const signatures = local ? [] : await approvals(v);
+  const approved = (at: number) => local ? checkLocalApproval(local, at) : checkApprovals(trust!, v.e, v.hash, signatures, at);
+  const notFrozen = () => local ? ensureLocalNotFrozen(target.sharedRoot, local, v.e.reviewDueAt, Date.now()) :
+    ensureNotFrozen(trust!, v.hash, v.e.reviewDueAt, Date.now(), v.bind.sharedRoot, v.e.followupOperator, v.e.followupReviewer);
   check(!v.closed || oldClaim, 'closed charge has no original claim');
   const authorizedAt = oldClaim?.authorizedAt ?? new Date(Date.now()).toISOString();
   fundingTime(authorizedAt);
@@ -621,12 +648,12 @@ export async function verifyChargeResolution(
     scope: v.scope,
     authorizedAt,
     reviewDueAt: v.e.reviewDueAt,
-    signatureSha256: fundingHash(contents(signatures)),
+    ...(local ? { authority: local } : { signatureSha256: fundingHash(contents(signatures)) }),
     followupOperator: v.e.followupOperator,
     followupReviewer: v.e.followupReviewer,
   };
   check(!oldClaim || sameValue(oldClaim, claim), 'conflicting prior intent');
-  checkApprovals(trust, v.e, v.hash, signatures, Date.parse(authorizedAt));
+  approved(Date.parse(authorizedAt));
   const record = shared.publicValidationFundings!.find((r) => r.binding.fundingId === target.fundingId)!;
   if (v.closed) check(record.chargeClaimSha256, 'closed child lacks registered shared accounting intent');
   if (record.chargeClaimSha256)
@@ -645,16 +672,8 @@ export async function verifyChargeResolution(
       'not an exact historical replay'
     );
   if (!record.settlement) {
-    checkApprovals(trust, v.e, v.hash, signatures, Date.now());
-    await ensureNotFrozen(
-      trust,
-      v.hash,
-      v.e.reviewDueAt,
-      Date.now(),
-      v.bind.sharedRoot,
-      v.e.followupOperator,
-      v.e.followupReviewer
-    );
+    approved(Date.now());
+    await notFrozen();
   }
   await requireExclusiveBuckets(target, v.scope, shared);
   const receipt = { ...v.receipt, claimSha256: fundingHash(contents(claim)) };
@@ -666,7 +685,7 @@ export async function verifyChargeResolution(
     };
   const relativeReceipt = supplement(v.entry.requestId);
   const sourcePath = dirname(relativeReceipt).split(sep).join('/') + '/evidence.json';
-  const archive = { receipt, evidence: v.doc.toString('utf8'), approvals: signatures, claim };
+  const archive = { receipt, evidence: v.doc.toString('utf8'), approvals: signatures, claim, ...(local ? { authority: local } : {}) };
   if (v.closed) check(sameValue(v.closedReference, reference), 'closed amount does not bind these approvals');
   for (const [name, expected] of [
     [sourcePath, v.doc],
@@ -702,6 +721,13 @@ export async function requireCurrentReleaseApproval(
 ) {
   const evidence = JSON.parse(archive.evidence);
   validateEvidence(evidence);
+  if (archive.authority) {
+    const local = await readLocalAuthority(binding.sharedRoot, binding, evidence, archive.receipt.evidenceSha256);
+    check('authority' in archive.claim && sameValue(local, archive.authority) && sameValue(local, archive.claim.authority), 'original local authority source changed');
+    checkLocalApproval(local, Date.now());
+    await ensureLocalNotFrozen(binding.sharedRoot, local, evidence.reviewDueAt, Date.now());
+    return;
+  }
   const trust = await machineTrust(binding.sharedRunId, binding.sharedLedgerId),
     now = Date.now();
   checkApprovals(trust, evidence, archive.receipt.evidenceSha256, archive.approvals, now);
@@ -737,16 +763,17 @@ export async function requireCurrentAccountingReviews(root: string, state: RunSn
           sameValue(archive.externalResolution?.claim, claim),
         'archived accounting claim differs'
       );
-    const trust = await machineTrust(r.binding.sharedRunId, r.binding.sharedLedgerId);
-    await ensureNotFrozen(
-      trust,
-      claim.evidenceSha256,
-      claim.reviewDueAt,
-      Date.now(),
-      root,
-      claim.followupOperator,
-      claim.followupReviewer
-    );
+    if (claim.authority) {
+      check(claim.authority.kind === 'local_operator_record' && (!resolved || sameValue(archive.externalResolution.authority, claim.authority)), 'original authority profile differs');
+      const local = claim.authority as LocalAuthority;
+      check(local.record.evidenceSha256 === claim.evidenceSha256 && local.record.fundingId === r.binding.fundingId &&
+        local.record.sharedRunId === r.binding.sharedRunId && local.record.sharedLedgerId === r.binding.sharedLedgerId &&
+        local.record.operator === claim.followupOperator && local.record.reviewer === claim.followupReviewer, 'local follow-up binding differs');
+      await ensureLocalNotFrozen(root, local, claim.reviewDueAt, Date.now());
+    } else {
+      const trust = await machineTrust(r.binding.sharedRunId, r.binding.sharedLedgerId);
+      await ensureNotFrozen(trust, claim.evidenceSha256, claim.reviewDueAt, Date.now(), root, claim.followupOperator, claim.followupReviewer);
+    }
     check(resolved, 'accounting claim awaits shared settlement');
   }
 }
