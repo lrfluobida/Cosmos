@@ -1,6 +1,6 @@
 # COS182: explicit public phase followups
 
-Status: design for independent review. SOURCE work only; this document, registration, preparation and tests authorize no actual limit increase, funding reservation or provider call. The existing phase remains 45,000,000 micro-CNY; lifetime authority remains 150,000,000, with a maximum new run of 5,000,000 / 1,800,000 ms. A proposed 50,000,000 phase requires a new exact user decision after the source is published and the current quote is prepared.
+Status: design independently approved at `ef137fac7ec45adc01d59990402e011c597620e9`; implementation candidate awaiting independent source review. SOURCE work only; this document, registration, preparation and tests authorize no actual limit increase, funding reservation or provider call. The existing phase remains 45,000,000 micro-CNY; lifetime authority remains 150,000,000, with a maximum new run of 5,000,000 / 1,800,000 ms. A proposed 50,000,000 phase requires a new exact user decision after the source is published and the current quote is prepared.
 
 ## Scope and representation
 
@@ -33,3 +33,11 @@ Expected production edits: `src/runtime/public-validation-phase-types.ts`, `publ
 Focused TEMP checks cover: 45 to 50 to 55 with no defaults; no-lock/no-write preparation; unchanged original 30/40/45 history/source bytes and funding associations; exact old/new retries after later funding/settlement/followups; malformed, missing, conflicting, forged, stale, lower, unsafe and over-lifetime inputs; source and predecessor tampering; latest-source new funding and historical accounting; R30-like permanent suspension with unchanged child unknown/H/limits/deadlines; preserved accounting claim/settlement after followup; rejection of ordinary open/overrun/unverified suspension. Tests use synthetic approvals under absolute TEMP roots only.
 
 Run affected phase/funding/suspension tests, typecheck and build. Report exact commands/results without combining duplicate counts. Implementer commits the reviewed source; a fresh reviewer inspects the actual diff. Only the designated merger `cos175_resume_merger` integrates/pushes. Root then prepares a real read-only quote and asks the user about a new phase decision; source acceptance and elapsed time cannot approve it.
+
+## Candidate verification
+
+- New followup tests plus the existing external charge-resolution file: 7/7, zero skips, TAP 13390.0644 ms. This includes four followup scenarios and three charge-resolution checks; the existing signed TEMP resolution scenario now suspends two synthetic runs, applies a followup and completes its real claim/settlement path, then verifies exact receipt retry without writes.
+- Additional followup chain/idle-owner test: 1/1, zero skips, TAP 4282.2978 ms. Together these cover five distinct new followup tests; earlier overlapping runs are not additional passes.
+- Existing extension, successor, funding and suspension files: 81/81, zero skips, TAP 68944.44 ms, including their imported fixture regressions.
+- Typecheck and build exit 0; `git diff --check` passes. Modified existing text remains UTF-8 with LF, and existing Chinese lines are unchanged.
+- Initial RED observed the missing API. A test-only shared evidence-array mutation and missing synthetic registry directory were corrected before final passing checks. No actual financial files or paid services were changed or invoked.

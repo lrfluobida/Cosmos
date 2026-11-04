@@ -3,7 +3,7 @@ import type { ContinuationQuote } from './continuation-quote.ts';
 import type { ValidationAllocationClosureReceipt, ValidationGroupSupplementReceipt, ValidationProfile, ValidationRequestMetadata } from './validation-types.ts';
 import type { PublicValidationFundingBinding, PublicValidationFundingRecord } from './public-validation-funding-types.ts';
 import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
-import type { PublicValidationPhaseReceipt, PublicValidationPhaseSuccessorReceipt } from './public-validation-phase-types.ts';
+import type { PublicValidationPhaseReceipt, PublicValidationPhaseSuccessorReceipt, PublicValidationPhaseFollowupReceipt } from './public-validation-phase-types.ts';
 import type { OrdinaryDesignBudgetActivation } from './ordinary-design-revision-budget.ts';
 
 export interface RequestInput {
@@ -29,7 +29,7 @@ export interface StopReason {
 export interface RunEvent {
   sequence: number;
   at: string;
-  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved' | 'generation_activated' | 'run_owner_drained' | 'continuation_activated' | 'window_stopped' | 'window_owner_drained' | 'window_owner_resumed' | 'validation_case_claimed' | 'validation_case_stopped' | 'validation_repair_claimed' | 'validation_allocation_closed' | 'validation_group_supplemented' | 'public_funding_reserved' | 'public_funding_settled' | 'public_funding_suspended' | 'public_funding_charge_claimed' | 'public_validation_phase_extended' | 'public_validation_phase_successor_applied' | 'public_intake_work_started' | 'public_intake_work_finished' | 'public_intake_work_recovered' | 'public_intake_drained' | 'public_execution_started' | 'intake_draft_successor_claimed' | 'ordinary_design_budget_owner_started' | 'ordinary_design_revision_budget_activated';
+  type: 'created' | 'reserved' | 'admitted' | 'settled' | 'unknown' | 'cancelled' | 'imported' | 'budget_warning' | 'stopped' | 'task_saved' | 'generation_activated' | 'run_owner_drained' | 'continuation_activated' | 'window_stopped' | 'window_owner_drained' | 'window_owner_resumed' | 'validation_case_claimed' | 'validation_case_stopped' | 'validation_repair_claimed' | 'validation_allocation_closed' | 'validation_group_supplemented' | 'public_funding_reserved' | 'public_funding_settled' | 'public_funding_suspended' | 'public_funding_charge_claimed' | 'public_validation_phase_extended' | 'public_validation_phase_successor_applied' | 'public_validation_phase_followup_applied' | 'public_intake_work_started' | 'public_intake_work_finished' | 'public_intake_work_recovered' | 'public_intake_drained' | 'public_execution_started' | 'intake_draft_successor_claimed' | 'ordinary_design_budget_owner_started' | 'ordinary_design_revision_budget_activated';
   requestId: string | null;
   reason: string;
 }
@@ -52,6 +52,7 @@ export interface RunSnapshot {
   publicValidationFundings?: PublicValidationFundingRecord[];
   publicValidationPhaseExtension?: PublicValidationPhaseReceipt;
   publicValidationPhaseSuccessor?: PublicValidationPhaseSuccessorReceipt;
+  publicValidationPhaseFollowups?: PublicValidationPhaseFollowupReceipt[];
   requirementsSource?: ConfirmedRequirementsSource;
   ordinaryDesignRevisionBudgetActivation?: OrdinaryDesignBudgetActivation;
 }
