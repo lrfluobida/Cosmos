@@ -58,18 +58,22 @@ export async function chargeIntake(value: Awaited<ReturnType<typeof fundedIntake
 }
 
 /** Produce the historical mismatch through real publication and signing, before any test mutation. */
-export async function signedOrdinaryIncompleteFunding(t: TestContext, fault = '') {
-  const f = await fundingFixture(t), ordinary = await ordinaryHostFixture(t, { revisionPolicy: true, sessionFactory: async (config, fallback) => {
+export async function signedOrdinaryIncompleteFunding(t: TestContext, fault = '', shared?: Awaited<ReturnType<typeof fundingFixture>>, name = 'ordinary-history') {
+  const f = shared ?? await fundingFixture(t), ordinary = await ordinaryHostFixture(t, { revisionPolicy: true, sessionFactory: async (config, fallback) => {
     const packet = JSON.parse(config.context!);
     if (packet.role !== 'design') return fallback;
     return { ...fallback, prompt: async () => {
       await config.budget.beforeRequest({ requestId: 'synthetic-design-charge', modelId: 'deepseek-flash', inputBytes: 1, hasImages: false, maxOutputTokens: 1, estimatedMaxCostMicroCny: 20 });
       await config.budget.afterResponse({ requestId: 'synthetic-design-charge', outcome: 'settled', responseModel: 'deepseek-flash', elapsedMs: 1,
-        usage: { input: 1, output: 0, cacheRead: 0, cacheWrite: 0 } as any });
+        usage: { input: 1, output: 0, cacheRead: 0, cacheWrite: 0, ...(fault === 'external-charge' ? {totalTokens:1}:{}) } as any });
+      if (fault === 'external-charge') {
+        await config.budget.beforeRequest({requestId:'synthetic-unknown',modelId:'deepseek-flash',inputBytes:10,hasImages:false,maxOutputTokens:100,estimatedMaxCostMicroCny:820});
+        await config.budget.afterResponse({requestId:'synthetic-unknown',outcome:'unknown',elapsedMs:1,stopReason:'error'});
+      }
       throw new Error('Synthetic initial design failure after settled charge');
     } };
   } });
-  const args = await f.authorization('ordinary-history');
+  const args = await f.authorization(name);
   args.runRoot = ordinary.root; args.payload.runRoot = ordinary.root; args.payload.brief = ordinary.draft.brief;
   await writeFile(join(f.root, args.authorization.location), JSON.stringify(args.payload, null, 2) + '\n', 'utf8');
   const binding = await reservePublicValidationFunding(args);
@@ -120,7 +124,7 @@ export async function signedOrdinaryIncompleteFunding(t: TestContext, fault = ''
       const close = controller.closeForCompletion.bind(controller);
       controller.closeForCompletion = async (...args) => { if (fault === 'owner-failed') await close(...args); throw new Error('Synthetic owner drain failure'); };
     }
-    completion = await finishCompletion({ root: ordinary.root, controller, work, published: published.report, cleanup: resources });
+    completion = await finishCompletion({ root: ordinary.root, controller, work, published: fault === 'external-charge' ? undefined : published.report, cleanup: resources });
     return { ...published, completionTiming: completion };
   };
   const output = new PassThrough(); output.resume();
@@ -132,7 +136,7 @@ export async function signedOrdinaryIncompleteFunding(t: TestContext, fault = ''
   if (names.length !== 1) throw new Error('Synthetic funded history must have exactly one real completion receipt.');
   const actualReceiptPath = join(ordinary.root, 'delivery', names[0]);
   const receiptBytes = await readFile(actualReceiptPath), receipt = JSON.parse(receiptBytes.toString('utf8'));
-  if (fault !== 'no-stop') {
+  if (fault !== 'no-stop' && fault !== 'external-charge') {
     const accounting = await RunController.open({ root: ordinary.root });
     if (fault === 'new-execution') await accounting.markFundingExecution();
     await accounting.stop('Permanent stop after the original signed cleanup'); await accounting.close();
