@@ -2545,7 +2545,9 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-182 · 公开验证阶段的追加显式预算决定
 
-[COS182 / #183](https://github.com/lrfluobida/Cosmos/issues/183)，ID `6211905851`，父COS18/#19、[ ]，原生依赖COS143/#144、COS157/#158与COS178/#179。作者 `phase_followups_implementer` 当前仅做具体设计，须先经新独立评审后才实施，唯一merger `cos175_resume_merger`。追加后续显式phase决定，复用原quote/owner/source协议，完整保留旧30/40/45来源、事件和历史funding身份；不得默认增额、伪造用户决定或改写R30unknown/占用。
+[COS182 / #183](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6643149506)，ID `6211905851`，父COS18/#19、[ ]，原生依赖COS143/#144、COS157/#158与COS178/#179。已APPROVED_SOURCE_SCOPED并集成，追加后续显式phase决定，复用原quote/owner/source协议，完整保留旧30/40/45来源、事件和历史funding身份；不会默认增额、伪造用户决定或改写R30unknown/占用。
+
+作者 `phase_followups_implementer` 的 `51f1cc142ac3e4fbad9574d597ef0e12aeeecd93` 经 `phase_followups_reviewer` 十文件独审批准、无findings，具体设计 `ef137fac7ec45adc01d59990402e011c597620e9` 已先行批准；唯一merger `cos175_resume_merger` 合入 `f9c03a9a673816135d3acb8181cc519b7006094a`。十文件及COS181三文件分别与批准版本一致；主线后续phase链/最新来源、暂停归因结算/历史quote重试2/2、0 skip（14574.4579ms），types/build退出0。作者旧81、新与resolution7、额外chain1证据按原范围复用，不重复累加。[源码规格](cos182-public-phase-followups.md) 仅SOURCE通过，真实50M决定和应用均未发生。
 
 基线 `11a710a06d06dc9339620591faabfcfb4b255dd7`，批准工作范围摘要 `a9c8525d954a6a5586a03a498512429a6ce921de4397782300a16de887e33c7b`，完整计划在issue正文。C41487894/H480004，phase45可用3032102；原完整5M/30分钟运行需暴露46967898，超出1967898微元。phase50未批准；源码独审和真实只读quote准备好后，Root才提出新的用户预算决定。停止继续压低试验金额，当前无实际报价应用、预留或付费调用，lifetime150和每次5M/30分钟上限保持。
 

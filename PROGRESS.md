@@ -10,7 +10,9 @@ R33 已独立 `PASS_R33_CLOSED_R30_PENDING`：8笔全已知，结算311932微元
 
 [COS181 / #182](https://github.com/lrfluobida/Cosmos/issues/182#issuecomment-6642865979) 已独审集成，任务保持open。作者 `r33_finalization_implementer` 的 `27f525bebd3ef36eb5e9acdbcb272a03431eb594` 经 `r33_finalization_reviewer` 三文件独审批准、无findings；唯一merger `cos175_resume_merger` 合入 `1af07f2bab0e3c77515635590c9cb24405d0c44c`，三文件与批准版本一致。仅先判断纯资格、再检查活动状态，保留无条件清理及所有真实权限/取消/未知失败。主线成功摘要→本地普通拒绝→一次无工具只读收尾1/1、0 skip（11659.3314ms），types/build退出0；作者RED2、GREEN6及最终affected2按原边界复用，不累加。恢复收尾资格不补齐文件或产生验收通过。
 
-[COS182 / #183](https://github.com/lrfluobida/Cosmos/issues/183) 已登记，仅推进设计及后续已审源码准备，作者 `phase_followups_implementer`，独立设计评审待指派，唯一merger `cos175_resume_merger`。当前phase45有效、lifetime150和每次5M/30分钟原上限不变；可用3032102微元，完整5M运行将暴露46967898微元，超出阶段1967898微元。停止继续降低试验金额。phase50只是未获批准的提案，须先完成源码独审和真实只读报价，再由Root提出新的用户决定；当前没有增额、预留、应用或新费用。
+[COS182 / #183](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6643149506) 已APPROVED_SOURCE_SCOPED并集成，任务保持open，phase50仍未批准。作者 `phase_followups_implementer` 的 `51f1cc142ac3e4fbad9574d597ef0e12aeeecd93` 经 `phase_followups_reviewer` 十文件实际独审批准、无findings，具体设计 `ef137fac7ec45adc01d59990402e011c597620e9` 已先行批准；唯一merger `cos175_resume_merger` 合入 `f9c03a9a673816135d3acb8181cc519b7006094a`。十文件与批准版本一致，COS181三文件仍与其批准版本一致。主线后续phase链/最新来源及暂停claim/settlement历史quote重试2/2、0 skip（14574.4579ms），types/build退出0；作者旧81/81、新与resolution7/7及额外chain1/1按原边界复用，不累加重叠。
+
+新preparePublicValidationPhaseFollowup只读生成绑定当前前驱、原来源、C/H和冻结历史的quote，activationAllowed=false；apply仍须另一份精确新owner决定。真实phase45有效、lifetime150和每次5M/30分钟原上限不变；可用3032102微元，完整5M运行将暴露46967898微元，超出阶段1967898微元。停止继续降低试验金额。Root接续准备真实只读45→50报价和具体提案后，才提出新的用户预算决定；当前没有真实quote应用、增额、预留或新费用，R30仍pending。
 
 以下保留此前阶段记录；当前任务状态与财务安排以前述R33审计和COS181/COS182记录为准。
 
