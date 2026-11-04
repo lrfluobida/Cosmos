@@ -50,11 +50,12 @@ test('fixed validation ignores author thinking overrides and retains original gl
   let seen!: PiSessionOptions;
   for (const thinkingLevel of [undefined, 'high'] as const) {
     const options = { maxOutputTokens: 8192, maxRequests: 16, requestTimeoutMs: 120000, estimatedMaxCostMicroCny: 100,
-      thinkingLevel, authorThinkingLevel: { design: 'off' as const },
+      thinkingLevel, authorThinkingLevel: { design: 'off' as const }, designAuthorRequestTimeoutMs: 600000,
       sessionFactory: async (config: PiSessionOptions) => { seen = config; return { prompt: async () => ({ text: 'Complete' }), close: async () => {} }; } };
     const session = await createRoleFactory(options)({ role: 'design', task, requirement: f.requirement, validation: f.validation,
       controller: f.controller, workspace: prepared[0].workspace, stateDirectory: join(f.root, 'sessions/thinking-attempt/author') });
     await session.close(); assert.equal(seen.thinkingLevel, thinkingLevel ?? 'low');
+    assert.equal(seen.requestTimeoutMs, 120000);
     assert.equal(seen.maxOutputTokens, (await f.controller.validationAuthority(task.taskId, 'author')).maxOutputTokens);
   }
 });
