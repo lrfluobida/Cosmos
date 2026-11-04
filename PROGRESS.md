@@ -8,7 +8,9 @@ R32 已独立 `PASS_R32_CLOSED_R30_PENDING`：6笔全已知，结算317905微元
 
 [COS179 / #180](https://github.com/lrfluobida/Cosmos/issues/180#issuecomment-6641163054) 已按配置、原生传输与真实low已知结果范围关闭。R32正常toolUse保存design.json并完成原生摘要，但下一输入139111B在发送前触发独审预留保护；没有验收计划、捕获、独审或游戏。low是启用thinking的努力等级，不是token硬额度，已有文件不代表语义质量通过。
 
-新 [COS180 / #181](https://github.com/lrfluobida/Cosmos/issues/181) 已登记，Root批准有界范围：只在可信、完整且全成功的设计写入批次建立原生检查点，仅过滤摘要准备副本中的assistant thinking；保留原journal、文件、公开内容与调用/结果，复用已包装计费stream和原预算。禁止前置挪用预算损害coding repair，不增模型、请求槽、额度或财务机制。作者 `r32_design_envelope_diagnosis`，具体设计和源码独审 `successful_checkpoint_reviewer`，唯一merger `cos175_resume_merger`；基线 `fae95916fa8a98f650eb06911de7708e86b1a356`，实施前须完成具体设计审查，SOURCE pending。
+[COS180 / #181](https://github.com/lrfluobida/Cosmos/issues/181#issuecomment-6641678141) 已APPROVED_SOURCE_SCOPED并集成，任务保持open。作者 `r32_design_envelope_diagnosis` 的最终 `ed835ca7e962815722d157aae8955a850e79ee79` 经 `successful_checkpoint_reviewer` 实际十文件独审批准、无P1/P2；具体计划 `6398d7000a58d69d8fcf3108c0e763a7954447c3` 已先行独审并获Root实施授权。唯一merger `cos175_resume_merger` 合入 `89e4f0e422e33143be3ebb511dbdc4628817ca7f`，十文件与批准版本一致。仅可信完整全成功且费用已知的设计写入建立原生检查点；只过滤摘要准备副本的assistant thinking，原journal、文件、公开内容和调用/结果保持，复用已包装计费stream。原预算分配、coding repair、独审、次数、低努力、输出上限和原期限保持。
+
+主线成功写入原生续接与COS175拒绝批次共存2/2、0 skip（15094.8088ms），types/build退出0。成功夹具摘要21182B、下一输入9781B，完整摘要预留结算后仍可继续；拒绝批次最新调用/thinking/诊断和有效草稿保留。作者19项独立新检查、COS1753/3及独审新增body-timeout1/1按原边界复用，不累加跳过或重叠项。原生夹具与旧摘要大小样本不能保证未来真实摘要大小、准确性或游戏通过；[源码规格](docs/specs/cos180-successful-write-compaction.md) 和[实施计划](docs/plans/2026-11-05-cos180-successful-write-compaction.md) 已登记，实际新运行仍待执行。
 
 源码与实际余额核对后，下一轮完整room12v2最多3330000微元/30分钟，C41175962+H480004+3330000=44985966，phase45余14034微元。原需求、输出上限、独审/修复分配及R30财务待核状态保持；当前没有新派发或费用。
 

@@ -2529,9 +2529,11 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-180 · 成功设计写入后的原生上下文压缩
 
-[COS180 / #181](https://github.com/lrfluobida/Cosmos/issues/181)，ID `6210685217`，父COS18/#19、[ ]，原生依赖COS125/#126、COS175/#176与COS179/#180。Root批准仅可信成功写入的原生检查点与摘要准备副本thinking过滤；保留完整原journal、公开内容和调用/结果，使用已包装计费stream，COS175拒绝配对、原预算/修复分配、独审和全部验收保持。不实施前置预算拆分，不增额度、请求槽、模型或财务机制。
+[COS180 / #181](https://github.com/lrfluobida/Cosmos/issues/181#issuecomment-6641678141)，ID `6210685217`，父COS18/#19、[ ]，原生依赖COS125/#126、COS175/#176与COS179/#180。已APPROVED_SOURCE_SCOPED并集成，仅可信成功写入的原生检查点与摘要准备副本thinking过滤；保留完整原journal、公开内容和调用/结果，使用已包装计费stream，COS175拒绝配对、原预算/修复分配、独审和全部验收保持。不实施前置预算拆分，不增额度、请求槽、模型或财务机制。
 
-作者 `r32_design_envelope_diagnosis`，独审 `successful_checkpoint_reviewer`，唯一merger `cos175_resume_merger`；基线 `fae95916fa8a98f650eb06911de7708e86b1a356`，分支 `codex/successful-write-compaction`，批准范围摘要 `9a194b09db40b8564581eb544c90ccff869691d71eeb90423f703a02c32c1999`，完整计划在issue正文。具体原生时机、handler与计费设计须在代码前独审；SOURCE pending。源码与余额检查后下一轮最多3330000微元/30分钟，预计阶段暴露44985966微元，仍在phase45；R30财务pending、旧运行不重开。
+作者 `r32_design_envelope_diagnosis` 最终 `ed835ca7e962815722d157aae8955a850e79ee79` 经 `successful_checkpoint_reviewer` 十文件实际独审批准、无P1/P2，唯一merger `cos175_resume_merger` 合入 `89e4f0e422e33143be3ebb511dbdc4628817ca7f`；十文件与批准版本一致。主线原生成功续接/COS175拒绝共存2/2、0 skip，types/build退出0；作者19项新检查、COS1753/3与独审body-timeout1/1复用，不累计重叠。摘要21182B/下一输入9781B仅为完整摘要预留已计费的合成夹具，不是未来摘要质量或游戏证据。
+
+基线 `fae95916fa8a98f650eb06911de7708e86b1a356`，批准范围摘要 `9a194b09db40b8564581eb544c90ccff869691d71eeb90423f703a02c32c1999`；具体[实施计划](../plans/2026-11-05-cos180-successful-write-compaction.md) `6398d7000a58d69d8fcf3108c0e763a7954447c3` 已先行独审并获Root授权。[源码规格](cos180-successful-write-compaction.md) 已登记，任务保持open、真实运行pending。实际余额核对后下一轮最多3330000微元/30分钟，预计阶段暴露44985966微元，仍在phase45；R30财务pending、旧运行不重开。
 
 ## 5. 任务与上下文包模板
 
