@@ -2509,7 +2509,7 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 [COS177 / #178](https://github.com/lrfluobida/Cosmos/issues/178)，ID `6208223531`，父COS18/#19、[ ]，依赖COS59/#60与COS176/#177。Root批准仅普通design作者选择600000ms请求上限；初始、唯一修订与原生摘要沿用同一包装，原预算、输出上限、零重试、运行截止及5000ms清理裁剪保持。R30原120000ms计时器事实不被归因为服务故障或high因果，费用未知不由本卡处理。
 
-实现者 `r30_timeout_diagnosis`，独审 `cos177_timeout_reviewer`，唯一merger `cos175_resume_merger`。基线 `f791c334b4709610a9ab1c09179fdb310dce13b6`，批准规格摘要 `173a6734860c036b5514a465ba911e53a1f6d204276768b661d78745557f5789`。精确源码 `4dfc033259bf23366e9690e1434d6008076052b8` 已独审APPROVED_SOURCE_SCOPED、无findings，尚未集成；原生绝对时限负例1/1与作者相关证据按原范围复用，不触碰真实R30或派发付费。
+实现者 `r30_timeout_diagnosis`，独审 `cos177_timeout_reviewer`，唯一merger `cos175_resume_merger`。基线 `f791c334b4709610a9ab1c09179fdb310dce13b6`，批准规格摘要 `173a6734860c036b5514a465ba911e53a1f6d204276768b661d78745557f5789`。精确源码 `4dfc033259bf23366e9690e1434d6008076052b8` 已独审APPROVED_SOURCE_SCOPED、无findings，合入 `a488654494ffeef9bda7101b20375543888de112`，七文件与批准版本一致；主线原生host与绝对时限负例2/2、0 skip、types/build退出0。作者与独审既有证据复用，不触碰真实R30或派发付费。[源码规格](cos177-ordinary-design-timeout.md) 已登记；600000ms实际路径尚未验证，任务保持open。
 
 ### COS-178 · 已结束运行的有界暂停资金占用
 

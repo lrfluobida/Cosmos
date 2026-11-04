@@ -10,6 +10,10 @@ R30 财务仍待核：child32、stopReason=null，4笔已结72082微元；请求
 
 Root 已批准两项有界源码工作：COS177仅将普通设计作者请求上限调为600000ms，保留原运行期限裁剪；COS178以可信已结费用与未知请求原预留推导暂停占用，并永久撤销旧派发权限。候选H480004、阶段暴露40991665仅为待验证算术，原child、unknown、allocation与phase45/lifetime150保持。两项源码独审、集成和真实预览/应用审计完成前，不启动R31；没有阶段增额或实际暂停应用。
 
+[COS177 / #178](https://github.com/lrfluobida/Cosmos/issues/178) 已独审集成：`cos177_timeout_reviewer` 批准作者 `r30_timeout_diagnosis` 的 `4dfc033259bf23366e9690e1434d6008076052b8`、无findings；Root放行后唯一merger `cos175_resume_merger` 合入 `a488654494ffeef9bda7101b20375543888de112`，七文件与批准版本一致。主线原生host初始/修订/摘要及绝对时限负例2/2、0 skip（21157.3835ms），types/build退出0；作者14/14、native2/2、独审1/1与未变window8/8按原范围复用，不累加重叠。600000ms仅SOURCE通过，仍按原运行剩余时间减5000ms清理余量裁剪，不延长截止、不自动重试，真实路径尚未验证。任务保持open，R30原费用和unknown不变。
+
+[COS178 / #179](https://github.com/lrfluobida/Cosmos/issues/179) 已登记，原生父COS18/#19，依赖COS109/#110、COS162/#163与COS174/#175。`suspended_exposure_reviewer` 的具体锁定/对账设计已PLAN_APPROVED，作者 `r30_bounded_exposure_assessment` 独立实施，源码仍待独审；没有真实暂停或R31派发。
+
 2026-11-05 [COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176#issuecomment-6636312579) 按“已审源码及真实拒绝后压缩分支”范围完成。R29 固定源码 `319e2a472b3c3b05d5d233e5bef0f2e58d493c5c`，初始设计和唯一修订均真实经历校验拒绝后的原生压缩，保留最新工具调用/错误结果及有效草稿，并推进到捕获与独审。两次独审均 changes_requested，最终 incomplete/design_revision_limit，无美术、编码或浏览器验收；功能完成不代表游戏通过。
 
 独立 `r29_closure_auditor` 的 `closure-readonly-audit.json` 为 PASS_CLOSED：child309/shared3425，71 笔全部已知，结算1316999微元、释放3683001微元，C40511661/H0、reserved/unknown/open funding均0，资源已关闭，生成至清理结束1058614ms。COS18 与目标游戏继续 open/partial。现有 phase45 剩余4488339微元，下一次按 Root 批准最多4480000微元/30分钟，预计暴露44991661微元；完整 room12v2 要求不变，不增加阶段额度、不分配5M、不重启 R29。

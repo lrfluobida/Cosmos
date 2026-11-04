@@ -13666,7 +13666,7 @@
       ],
       "state": "open",
       "scopedComplete": false,
-      "integrationStatus": "source-approved-pending-integration",
+      "integrationStatus": "source-integrated",
       "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "rootImplementationApproved": true,
       "implementationBaseCommit": "f791c334b4709610a9ab1c09179fdb310dce13b6",
@@ -13677,6 +13677,10 @@
       "implementationBranch": "codex/ordinary-design-timeout",
       "implementationWorktree": "E:/CodexData/.codex/worktrees/cos177-design-timeout/Cosmos",
       "sourceReviewedCommit": "4dfc033259bf23366e9690e1434d6008076052b8",
+      "sourceIntegratedCommit": "a488654494ffeef9bda7101b20375543888de112",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/178#issuecomment-6637935214",
+      "formalSpecPath": "docs/specs/cos177-ordinary-design-timeout.md",
+      "verification": "Seven files byte-identical to approved SHA. Main native host initial/revision/summary and absolute-limit negative2/2, zero skip, TAP21157.3835ms; typecheck/build exit0. Reused author14/14,native2/2,reviewer1/1 and unchanged window8/8 without additive counting.",
       "actualExecutionStatus": "R30 original120000ms request timer observed; new600000ms ordinary design author path SOURCE only. R30 financially pending; no retry or new paid run."
     },
     {
