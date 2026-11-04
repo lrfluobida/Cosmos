@@ -2529,11 +2529,25 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-180 · 成功设计写入后的原生上下文压缩
 
-[COS180 / #181](https://github.com/lrfluobida/Cosmos/issues/181#issuecomment-6641678141)，ID `6210685217`，父COS18/#19、[ ]，原生依赖COS125/#126、COS175/#176与COS179/#180。已APPROVED_SOURCE_SCOPED并集成，仅可信成功写入的原生检查点与摘要准备副本thinking过滤；保留完整原journal、公开内容和调用/结果，使用已包装计费stream，COS175拒绝配对、原预算/修复分配、独审和全部验收保持。不实施前置预算拆分，不增额度、请求槽、模型或财务机制。
+[COS180 / #181](https://github.com/lrfluobida/Cosmos/issues/181#issuecomment-6642804397)，ID `6210685217`，已按真实检查点/摘要/后续读取范围complete/closed，父COS18/#19、[x]，原生依赖COS125/#126、COS175/#176与COS179/#180。仅可信成功写入的原生检查点与摘要准备副本thinking过滤；保留完整原journal、公开内容和调用/结果，使用已包装计费stream，COS175拒绝配对、原预算/修复分配、独审和全部验收保持。不实施前置预算拆分，不增额度、请求槽、模型或财务机制。
 
 作者 `r32_design_envelope_diagnosis` 最终 `ed835ca7e962815722d157aae8955a850e79ee79` 经 `successful_checkpoint_reviewer` 十文件实际独审批准、无P1/P2，唯一merger `cos175_resume_merger` 合入 `89e4f0e422e33143be3ebb511dbdc4628817ca7f`；十文件与批准版本一致。主线原生成功续接/COS175拒绝共存2/2、0 skip，types/build退出0；作者19项新检查、COS1753/3与独审body-timeout1/1复用，不累计重叠。摘要21182B/下一输入9781B仅为完整摘要预留已计费的合成夹具，不是未来摘要质量或游戏证据。
 
-基线 `fae95916fa8a98f650eb06911de7708e86b1a356`，批准范围摘要 `9a194b09db40b8564581eb544c90ccff869691d71eeb90423f703a02c32c1999`；具体[实施计划](../plans/2026-11-05-cos180-successful-write-compaction.md) `6398d7000a58d69d8fcf3108c0e763a7954447c3` 已先行独审并获Root授权。[源码规格](cos180-successful-write-compaction.md) 已登记，任务保持open、真实运行pending。实际余额核对后下一轮最多3330000微元/30分钟，预计阶段暴露44985966微元，仍在phase45；R30财务pending、旧运行不重开。
+基线 `fae95916fa8a98f650eb06911de7708e86b1a356`，批准范围摘要 `9a194b09db40b8564581eb544c90ccff869691d71eeb90423f703a02c32c1999`；具体[实施计划](../plans/2026-11-05-cos180-successful-write-compaction.md) `6398d7000a58d69d8fcf3108c0e763a7954447c3` 已先行独审并获Root授权。[源码规格](cos180-successful-write-compaction.md) 在R33真实完成检查点、摘要和两次后续读取。随后本地author_review_reserve拒绝未发送，钩子检查次序回归使只读收尾来源为空，明确交由COS181修复。R33独审8笔311932/释放3018068微元，child45/shared3433/C41487894/H480004，游戏未通过，R30财务pending。
+
+### COS-181 · 保留检查点后的有界预算收尾
+
+[COS181 / #182](https://github.com/lrfluobida/Cosmos/issues/182#issuecomment-6642865979)，ID `6211904198`，父COS18/#19、[ ]，原生依赖COS180/#181与COS136/#137。仅将纯成功批次资格检查前置，保留无条件写入身份清理；真实活动/权限/取消/未知失败仍锁定，不增加次数、输出上限或费用额度。一次无工具4096只读收尾保留真实未完成项，不补齐设计或计划。
+
+作者 `r33_finalization_implementer` 的 `27f525bebd3ef36eb5e9acdbcb272a03431eb594` 经 `r33_finalization_reviewer` 独审APPROVED_SOURCE_SCOPED、无findings，唯一merger `cos175_resume_merger` 合入 `1af07f2bab0e3c77515635590c9cb24405d0c44c`；三文件与批准版本一致。主线成功摘要/本地拒绝/只读收尾1/1、0 skip（11659.3314ms），types/build退出0；作者RED2/GREEN6/最终affected2复用，不累计重叠。[源码规格](cos181-checkpoint-budget-finalization.md) 仅SOURCE通过，任务保持open，R33不重开。
+
+基线 `11a710a06d06dc9339620591faabfcfb4b255dd7`，批准计划摘要 `2322527080bdf25e4230a4924034d4e743b835cdc4b3a3d9e6e888779294094c`。阶段预算决定另由COS182处理，本修复不授权增额或新付费运行。
+
+### COS-182 · 公开验证阶段的追加显式预算决定
+
+[COS182 / #183](https://github.com/lrfluobida/Cosmos/issues/183)，ID `6211905851`，父COS18/#19、[ ]，原生依赖COS143/#144、COS157/#158与COS178/#179。作者 `phase_followups_implementer` 当前仅做具体设计，须先经新独立评审后才实施，唯一merger `cos175_resume_merger`。追加后续显式phase决定，复用原quote/owner/source协议，完整保留旧30/40/45来源、事件和历史funding身份；不得默认增额、伪造用户决定或改写R30unknown/占用。
+
+基线 `11a710a06d06dc9339620591faabfcfb4b255dd7`，批准工作范围摘要 `a9c8525d954a6a5586a03a498512429a6ce921de4397782300a16de887e33c7b`，完整计划在issue正文。C41487894/H480004，phase45可用3032102；原完整5M/30分钟运行需暴露46967898，超出1967898微元。phase50未批准；源码独审和真实只读quote准备好后，Root才提出新的用户预算决定。停止继续压低试验金额，当前无实际报价应用、预留或付费调用，lifetime150和每次5M/30分钟上限保持。
 
 ## 5. 任务与上下文包模板
 

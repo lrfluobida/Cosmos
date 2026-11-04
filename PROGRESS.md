@@ -4,6 +4,16 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R33 已独立 `PASS_R33_CLOSED_R30_PENDING`：8笔全已知，结算311932微元、释放本案未用3018068微元，child45/shared3433，C41487894/H480004，生成清理212475ms且in_time。R30原child32、unknown407922微元预留、五份回执和未关闭allocation保持，财务仍待核。
+
+[COS180 / #181](https://github.com/lrfluobida/Cosmos/issues/181#issuecomment-6642804397) 已按真实成功写入检查点、原生摘要和后续两次读取范围关闭，游戏仍失败。随后普通请求84066B/8192输出下限报价233668微元超过作者230338微元，在本地未发送。COS180钩子过早检查活动状态，将可收尾错误锁定，抑制一次只读收尾；此回归明确由新COS181承接，不把功能结案写成无缺陷或游戏通过。
+
+[COS181 / #182](https://github.com/lrfluobida/Cosmos/issues/182#issuecomment-6642865979) 已独审集成，任务保持open。作者 `r33_finalization_implementer` 的 `27f525bebd3ef36eb5e9acdbcb272a03431eb594` 经 `r33_finalization_reviewer` 三文件独审批准、无findings；唯一merger `cos175_resume_merger` 合入 `1af07f2bab0e3c77515635590c9cb24405d0c44c`，三文件与批准版本一致。仅先判断纯资格、再检查活动状态，保留无条件清理及所有真实权限/取消/未知失败。主线成功摘要→本地普通拒绝→一次无工具只读收尾1/1、0 skip（11659.3314ms），types/build退出0；作者RED2、GREEN6及最终affected2按原边界复用，不累加。恢复收尾资格不补齐文件或产生验收通过。
+
+[COS182 / #183](https://github.com/lrfluobida/Cosmos/issues/183) 已登记，仅推进设计及后续已审源码准备，作者 `phase_followups_implementer`，独立设计评审待指派，唯一merger `cos175_resume_merger`。当前phase45有效、lifetime150和每次5M/30分钟原上限不变；可用3032102微元，完整5M运行将暴露46967898微元，超出阶段1967898微元。停止继续降低试验金额。phase50只是未获批准的提案，须先完成源码独审和真实只读报价，再由Root提出新的用户决定；当前没有增额、预留、应用或新费用。
+
+以下保留此前阶段记录；当前任务状态与财务安排以前述R33审计和COS181/COS182记录为准。
+
 R32 已独立 `PASS_R32_CLOSED_R30_PENDING`：6笔全已知，结算317905微元、释放本案未用3332095微元，child37/shared3431，C41175962/H480004。生成与清理208473ms、签名结果in_time；实际阻塞是下一请求发送前的author_review_reserve。2026-11-04T19:22:02.281Z持久化的deadline来自截止后的结算重开，不是生成失败原因。R30原child32、五份回执、unknown407922微元预留和暂停来源仍保持，财务待核。
 
 [COS179 / #180](https://github.com/lrfluobida/Cosmos/issues/180#issuecomment-6641163054) 已按配置、原生传输与真实low已知结果范围关闭。R32正常toolUse保存design.json并完成原生摘要，但下一输入139111B在发送前触发独审预留保护；没有验收计划、捕获、独审或游戏。low是启用thinking的努力等级，不是token硬额度，已有文件不代表语义质量通过。
@@ -13,8 +23,6 @@ R32 已独立 `PASS_R32_CLOSED_R30_PENDING`：6笔全已知，结算317905微元
 主线成功写入原生续接与COS175拒绝批次共存2/2、0 skip（15094.8088ms），types/build退出0。成功夹具摘要21182B、下一输入9781B，完整摘要预留结算后仍可继续；拒绝批次最新调用/thinking/诊断和有效草稿保留。作者19项独立新检查、COS1753/3及独审新增body-timeout1/1按原边界复用，不累加跳过或重叠项。原生夹具与旧摘要大小样本不能保证未来真实摘要大小、准确性或游戏通过；[源码规格](docs/specs/cos180-successful-write-compaction.md) 和[实施计划](docs/plans/2026-11-05-cos180-successful-write-compaction.md) 已登记，实际新运行仍待执行。
 
 源码与实际余额核对后，下一轮完整room12v2最多3330000微元/30分钟，C41175962+H480004+3330000=44985966，phase45余14034微元。原需求、输出上限、独审/修复分配及R30财务待核状态保持；当前没有新派发或费用。
-
-以下保留此前阶段记录；当前任务状态、财务占用和下一轮上限以前述R32审计及COS180记录为准。
 
 R31 已独立 `PASS_R31_CLOSED_R30_PENDING`：7笔全已知，结算346396微元、释放本案未用3653604微元，child41/shared3429，C40858057/H480004。R30原child32、五份回执、unknown407922微元预留与暂停来源保持，财务仍待核；原R30 allocation没有关闭或零差额结算。phase45当前可用3661939微元。
 
