@@ -6,6 +6,9 @@ import { compactJsonReadBuffer } from './json-read-display.ts';
 
 export type BeforeFileWrite = (absolutePath: string, candidate: Buffer, signal: AbortSignal) => Promise<void>;
 
+/** Host validation rejected a candidate before writing; the current valid draft remains intact. */
+export class PreservedDesignDraftError extends Error {}
+
 export interface WorkspaceToolOptions {
   workspace: string;
   readPaths: string[];

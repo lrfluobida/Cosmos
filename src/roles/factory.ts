@@ -63,6 +63,8 @@ export interface RoleFactoryOptions {
   authorBudgetOutputFloor?: Partial<Record<AuthorRole, number>>;
   /** Trusted ordinary design selection; original budget quotes govern optional summaries. */
   ordinaryDesignBudgetCompaction?: true;
+  /** Only preserved-draft validation failures may extend the ordinary design compaction boundary. */
+  ordinaryDesignRejectedWriteCompaction?: true;
   ordinaryDesignBudgetPolicy?: 'review-reserve/1';
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
@@ -135,6 +137,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     throw new Error('ordinaryDesignBudgetCompaction requires the original design floor 8192 and cap 32768.');
   }
   const recoveryPolicy = options.ordinaryDesignBudgetPolicy;
+  if (options.ordinaryDesignRejectedWriteCompaction !== undefined && (options.ordinaryDesignRejectedWriteCompaction !== true
+    || !ordinaryDesignCompaction || !options.beforeDesignFileWrite)) throw new Error('Rejected-write compaction requires ordinary design budget compaction and draft protection.');
   if (recoveryPolicy !== undefined && (recoveryPolicy !== 'review-reserve/1' || !ordinaryDesignCompaction)) throw new Error('Invalid ordinaryDesignBudgetPolicy.');
   const authorRequestLimits = { ...options.authorMaxRequests };
   const finalizationPolicy = options.ordinaryDesignFinalizationPolicy;
@@ -307,6 +311,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         task, authority: authority!, floor: planningFloor, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny }) } : {}),
       ...(designCompaction ? authorBudgetCompaction({ controller: input.controller, original: snapshot, task, authority: authority!,
         floor: authorFloor!, maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny, ...(reviewReserve ? { reviewReserve: true, failureCode: 'author_review_reserve' } : {}) }) : {}),
+      ...(designCompaction && options.ordinaryDesignRejectedWriteCompaction ? { compactRejectedDesignWrites: true as const } : {}),
       ...(reviewReserve ? { readonlyMaxOutputTokens: 4096 as const, ...(finalizationPolicy && !input.disableDesignFinalization ? { ordinaryDesignFinalizationPolicy: finalizationPolicy } : {}) } : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
       compactionKeepRecentTokens: designCompaction ? 8000 : options.compactionKeepRecentTokens,

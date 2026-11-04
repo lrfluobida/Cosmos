@@ -8,6 +8,7 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { regularFile } from '../artifacts/paths.ts';
 import { requestInputBytes } from './request-input.ts';
+import { PreservedDesignDraftError } from './workspace-tools.ts';
 
 export { createWorkspaceTools } from './workspace-tools.ts';
 export const PI_VERSION = '0.99.2';
@@ -80,8 +81,10 @@ export interface PiSessionOptions {
   requestWindow?: () => Promise<{ deadlineAt: number; cleanupMs: number }>;
   /** Trusted host policy using actual input bounds; may only reduce the configured output cap. */
   requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>, signal?: AbortSignal) => Promise<number>;
-  /** Trusted host decision at a successful tool boundary; actual summary requests still need admission. */
+  /** Trusted host decision at an eligible completed tool boundary; summaries still need admission. */
   requestCompaction?: (request: PiCompactionBounds) => Promise<boolean | 'budget_pressure'>;
+  /** Host-only ordinary design selection; serialized tool output never grants eligibility. */
+  compactRejectedDesignWrites?: true;
   /** Read-only optional summary preflight; only budget insufficiency may preserve the ordinary turn. */
   requestCompactionAdmission?: (input: Readonly<{ summary: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>;
     ordinary: PiCompactionBounds }>, signal?: AbortSignal) => Promise<'admit' | 'skip'>;
@@ -112,6 +115,8 @@ export async function createPiSession(config: PiSessionOptions) {
   positive(config.maxRequests, 'maxRequests');
   positive(config.requestTimeoutMs, 'requestTimeoutMs');
   if (config.requestCompactionAdmission && !config.requestCompaction) throw new Error('Compaction admission requires a compaction policy');
+  if (config.compactRejectedDesignWrites !== undefined && (config.compactRejectedDesignWrites !== true || !config.requestCompactionAdmission
+    || !config.requestCompaction || !config.requestOutputLimit || config.maxOutputTokens !== 32768)) throw new Error('Invalid rejected design write compaction configuration.');
   if (config.readonlyMaxOutputTokens !== undefined && (config.readonlyMaxOutputTokens !== 4096 || config.maxOutputTokens < 4096)) throw new Error('Invalid readonly output cap');
   if (config.ordinaryDesignFinalizationPolicy !== undefined && (config.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || config.maxOutputTokens !== 32768
     || ![32, 64].includes(config.maxRequests) || config.readonlyMaxOutputTokens !== 4096 || !config.requestOutputLimit)) throw new Error('Invalid ordinary design finalization configuration.');
@@ -351,9 +356,20 @@ export async function createPiSession(config: PiSessionOptions) {
     getAppendSystemPrompt: () => [], getAppendSystemPromptSources: () => [],
     extendResources: () => {}, reload: async () => {},
   };
+  const rejectedWrites = new Map<string, { name: string; message: string }>();
+  const customTools = config.compactRejectedDesignWrites ? config.tools.map(tool => ({ ...tool, async execute(id, args, signal, onUpdate, ctx) {
+    rejectedWrites.delete(id);
+    try { return await tool.execute(id, args, signal, onUpdate, ctx); }
+    catch (error) {
+      if (error instanceof PreservedDesignDraftError && ['write', 'edit', 'write-game-plan', 'write-game-design'].includes(tool.name)) {
+        rejectedWrites.set(id, { name: tool.name, message: error.message });
+      }
+      throw error;
+    }
+  } } as ToolDefinition)) : config.tools;
   const { session, modelFallbackMessage } = await createAgentSession({
     cwd: workspace, agentDir: stateDirectory, modelRuntime, model, thinkingLevel: config.thinkingLevel ?? 'low',
-    resourceLoader: loader, tools: config.tools.map(tool => tool.name), customTools: config.tools,
+    resourceLoader: loader, tools: config.tools.map(tool => tool.name), customTools,
     sessionManager: manager,
     settingsManager: SettingsManager.inMemory({
       compaction: { enabled: false, keepRecentTokens: config.compactionKeepRecentTokens ?? 16000 },
@@ -391,8 +407,19 @@ export async function createPiSession(config: PiSessionOptions) {
         if (closed || signal?.aborted || callerSignal?.aborted) throw fail('cancelled', 'Session was cancelled at the compaction boundary');
       };
       requireActive();
+      const rejected = new Map(rejectedWrites); rejectedWrites.clear();
+      const errors = turn.toolResults.filter(result => result.isError);
+      const calls = turn.message.content.filter(block => block.type === 'toolCall');
+      const recoverable = config.compactRejectedDesignWrites && errors.length > 0
+        && calls.length === turn.toolResults.length && new Set(calls.map(call => call.id)).size === calls.length
+        && calls.every(call => turn.toolResults.some(result => result.toolCallId === call.id && result.toolName === call.name))
+        && errors.every(result => {
+          const source = rejected.get(result.toolCallId);
+          return source?.name === result.toolName && result.content.length === 1
+            && result.content[0].type === 'text' && result.content[0].text === source.message;
+        });
       if (readonlyRequests !== undefined || autoCompactionDisabled || turn.message.stopReason !== 'toolUse'
-        || !turn.toolResults.length || turn.toolResults.some(result => result.isError)) return previous(turn, signal);
+        || !turn.toolResults.length || errors.length > 0 && !recoverable) return previous(turn, signal);
       if (config.requestCompactionAdmission && config.maxRequests - requests < 3) return previous(turn, signal);
       const before = projection();
       if (before.serialized === lastProjection) return previous(turn, signal);
@@ -421,6 +448,12 @@ export async function createPiSession(config: PiSessionOptions) {
         }
         // Native preparation may be a no-op: only a saved successful checkpoint updates the baseline.
         if (compactions > completed) {
+          if (recoverable) {
+            const retained = new Set(manager.buildSessionProjection().messages.map(message => JSON.stringify(message)));
+            if ([turn.message, ...turn.toolResults].some(message => !retained.has(JSON.stringify(message)))) {
+              throw fail('compaction_failed', 'Native compaction did not retain the rejected tool batch; session cannot continue');
+            }
+          }
           const after = projection(); lastCompactedBytes = after.inputBytes;
           autoCompactionDisabled = projectedCost(after) >= beforeCost;
         }
