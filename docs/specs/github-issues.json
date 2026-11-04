@@ -13438,8 +13438,37 @@
       "verification": "7 个文件与批准版本逐字节一致。离线集成类型检查、构建和公开 CLI 的特殊路径代表 1/1 通过，无跳过。测试覆盖含空格路径、命令参数分离和同一交付的只读状态。P2 已修复：即使报告内容摘要相同，如果报告引用不同，仍拒绝给出操作提示。作者最终代表 1/1、strict/build 及无变更部分既有 22/22 证据复用，重叠用例不累加。 独立只读复核还用最终源码的编译 CLI 对待决定、已拒绝两份保留的合成运行各执行 status、resume、experience EOF，共六个禁写、禁网络的独立进程。待决定的 JSON 返回精确命令与独立路径参数；已拒绝的运行保留原观察，没有待决定提示。两次运行及其确认来源的快照和全部 delivery JSON 均逐字节一致。",
       "userExperience": "not_confirmed"
     }
+    ,
+    {
+      "taskId": "COS-174",
+      "title": "显式本地 owner 授权完成零差额结算并恢复真实验证",
+      "number": 175,
+      "id": 6200889330,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/175",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": ["COS-162"],
+      "nativeDependenciesLinked": true,
+      "state": "open",
+      "scopedComplete": false,
+      "integrationStatus": "source-integrated-main-actual-pending",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "formalSpecPath": "docs/specs/cos174-local-accounting-authority.md",
+      "implementer": "paid_validation_recovery_assessment",
+      "reviewer": "local_accounting_reviewer",
+      "merger": "validation_recovery_merger",
+      "sourceReviewedCommit": "b2d5bd532f145a7fac0f62cdc70bffadf8035776",
+      "sourceIntegratedCommit": "9e4185923195925877ae52136009434d8af3094b",
+      "testDeltaReviewedCommit": "d6295ac4167922528ed28d347378c54be52eacd9",
+      "testDeltaIntegratedCommit": "aa586b5457c000e0251f1fb374bbd07461eb3e1a",
+      "verification": "Main typecheck/build passed; integrated v2 funding wrapper 1/1, 0 skip, TAP 8590.9239ms. Reused author local4/protected3 and independent TEMP1 evidence.",
+      "actualExecutionStatus": "R27 actual closure and following real model run pending; no actual settlement or game success claimed."
+    }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 173,
+  "totalTaskCount": 174,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

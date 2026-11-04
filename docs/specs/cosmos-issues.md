@@ -2477,6 +2477,14 @@ GitHub ID `6182891998`，原生父 COS18/#19、[x]，直接依赖 COS-170/#171�
 
 GitHub ID `6183221235`，原生父 COS18/#19、[x]，直接依赖 COS-170/#171、COS-171/#172、COS-63/#64。[正式规格](cos173-playtest-next-action.md)
 
+### COS-174 · 显式本地 owner 授权完成零差额结算并恢复真实验证
+
+[COS174 / #175](https://github.com/lrfluobida/Cosmos/issues/175)，ID `6200889330`，原生父 COS18/#19、[ ]，依赖 COS162/#163。实现者 `paid_validation_recovery_assessment`，独审 `local_accounting_reviewer`，唯一 merger `validation_recovery_merger`。[正式规格](cos174-local-accounting-authority.md)
+
+独审批准源码 `b2d5bd532f145a7fac0f62cdc70bffadf8035776`，主线合并 `9e4185923195925877ae52136009434d8af3094b`。typecheck/build 通过；v2 funding 夹具的既有生产策略覆盖问题在原基线复现，独审单行测试修正 `d6295ac4167922528ed28d347378c54be52eacd9` 应用为 `aa586b5457c000e0251f1fb374bbd07461eb3e1a`，组合代表 1/1、0 skip、TAP 8590.9239ms。原源码检查及作者 local 4/4、protected 3/3、独审 TEMP 1/1 复用。
+
+本地 operator 模式显式选择，沿用原财务核证与结算，不自动回退或宣称人员身份认证。R27 实际结案及下一真实模型运行尚未执行，任务保持开放。预算、原 unknown/cleanup 和游戏要求不变；源码与合成证据不代表实际财务或游戏完成。
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。
