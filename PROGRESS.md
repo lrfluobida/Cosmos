@@ -12,7 +12,9 @@ Root 已批准两项有界源码工作：COS177仅将普通设计作者请求上
 
 [COS177 / #178](https://github.com/lrfluobida/Cosmos/issues/178) 已独审集成：`cos177_timeout_reviewer` 批准作者 `r30_timeout_diagnosis` 的 `4dfc033259bf23366e9690e1434d6008076052b8`、无findings；Root放行后唯一merger `cos175_resume_merger` 合入 `a488654494ffeef9bda7101b20375543888de112`，七文件与批准版本一致。主线原生host初始/修订/摘要及绝对时限负例2/2、0 skip（21157.3835ms），types/build退出0；作者14/14、native2/2、独审1/1与未变window8/8按原范围复用，不累加重叠。600000ms仅SOURCE通过，仍按原运行剩余时间减5000ms清理余量裁剪，不延长截止、不自动重试，真实路径尚未验证。任务保持open，R30原费用和unknown不变。
 
-[COS178 / #179](https://github.com/lrfluobida/Cosmos/issues/179) 已登记，原生父COS18/#19，依赖COS109/#110、COS162/#163与COS174/#175。`suspended_exposure_reviewer` 的具体锁定/对账设计已PLAN_APPROVED，作者 `r30_bounded_exposure_assessment` 独立实施，源码仍待独审；没有真实暂停或R31派发。
+[COS178 / #179](https://github.com/lrfluobida/Cosmos/issues/179) 已APPROVED_SOURCE_SCOPED并集成，真实应用仍待执行，任务保持open。`suspended_exposure_reviewer` 批准作者 `r30_bounded_exposure_assessment` 的 `26769eafd3e81d94071b9860f1591b03bdc813fb`，无P1/P2；Root放行后唯一merger `cos175_resume_merger` 合入 `ea0d1a9f04d4bf5e34c38a72437096ec21a85cbd`。十文件与批准版本一致，COS177七文件仍与其批准版本一致。主线共享锁归因/中断导入及普通作者high/600000ms组合2/2、0 skip（22234.2674ms），types/build退出0；作者11/11、phase1/1、legacy6/6和独审八条额外路径TEMP1/1按原范围复用，重叠不累加。
+
+暂停来源保留原unknown和全部可能费用，禁止旧派发；已有私有对账仍须单独授权及共享锁，原allocation不关闭。R30当前仍child32/shared3426/C40511661/H4480000，候选H480004不是实际结算或已经释放。Root须在发布源码上真实只读预览、检查、单次应用并独审后，才可准备下一次最多4M/30分钟的新运行；当前没有真实暂停或R31派发。
 
 2026-11-05 [COS175 / #176](https://github.com/lrfluobida/Cosmos/issues/176#issuecomment-6636312579) 按“已审源码及真实拒绝后压缩分支”范围完成。R29 固定源码 `319e2a472b3c3b05d5d233e5bef0f2e58d493c5c`，初始设计和唯一修订均真实经历校验拒绝后的原生压缩，保留最新工具调用/错误结果及有效草稿，并推进到捕获与独审。两次独审均 changes_requested，最终 incomplete/design_revision_limit，无美术、编码或浏览器验收；功能完成不代表游戏通过。
 

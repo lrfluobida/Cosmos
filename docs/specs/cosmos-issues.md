@@ -2513,11 +2513,11 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-178 · 已结束运行的有界暂停资金占用
 
-[COS178 / #179](https://github.com/lrfluobida/Cosmos/issues/179)，ID `6208238968`，父COS18/#19、[ ]，依赖COS109/#110、COS162/#163与COS174/#175。`suspended_exposure_reviewer` 已PLAN_APPROVED具体锁定与对账设计；Root批准实现者 `r30_bounded_exposure_assessment` 在隔离工作树实施，实际源码仍须独审，唯一merger `cos175_resume_merger`。
+[COS178 / #179](https://github.com/lrfluobida/Cosmos/issues/179)，ID `6208238968`，父COS18/#19、[ ]，依赖COS109/#110、COS162/#163与COS174/#175。`suspended_exposure_reviewer` 已批准实际源码 `26769eafd3e81d94071b9860f1591b03bdc813fb`，APPROVED_SOURCE_SCOPED、无P1/P2；作者 `r30_bounded_exposure_assessment`，唯一merger `cos175_resume_merger` 合入 `ea0d1a9f04d4bf5e34c38a72437096ec21a85cbd`。十文件与批准版本一致，COS177七文件仍一致；主线共享锁/中断导入与普通原生作者组合2/2、0 skip，types/build退出0。作者与独审既有证据按原边界复用。
 
 只从可信原费用与未知预留推导不可变暂停占用，永久撤销旧派发，保留原child/unknown/cleanup/allocation及phase45/lifetime150；普通重开拒绝，受支持的已有私有零差额路径须在共享锁内且另有真实授权。候选H480004不是已结算、退款或allocation关闭，不复用R27决定。源码独审集成后，由Root实际只读预览、检查、单次应用并独审；之前不启动R31。
 
-基线 `f791c334b4709610a9ab1c09179fdb310dce13b6`，规格摘要 `9e44fa275a10575ade91fc44e486588faa576450077837949502f3892a4da283`，实现设计摘要 `1803d28ffba7537c8fbef5f4f93d7f2422209c469ac624fb878b27193348f973`，完整内容在issue正文。SOURCE pending；若后续真实应用和审计通过，新完整room12v2运行最多4M/30分钟，预计总阶段暴露44991665微元，仍非当前授权派发。
+基线 `f791c334b4709610a9ab1c09179fdb310dce13b6`，规格摘要 `9e44fa275a10575ade91fc44e486588faa576450077837949502f3892a4da283`，实现设计摘要 `1803d28ffba7537c8fbef5f4f93d7f2422209c469ac624fb878b27193348f973`，完整内容在issue正文，[源码规格](cos178-suspended-funding-exposure.md) 已登记。SOURCE已集成，任务保持open、真实应用pending；若后续真实应用和审计通过，新完整room12v2运行最多4M/30分钟，预计总阶段暴露44991665微元，仍非当前授权派发。
 
 ## 5. 任务与上下文包模板
 
