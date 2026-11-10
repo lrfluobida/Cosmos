@@ -74,14 +74,14 @@ export interface PiSessionOptions {
   resumeFile?: string;
   maxOutputTokens: number;
   maxRequests: number;
-  /** Only the existing tool-free format correction may use this smaller cap. */
+  /** Maximum for the existing tool-free follow-up shared by correction and finalization. */
   readonlyMaxOutputTokens?: 4096;
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   requestTimeoutMs: number;
   /** Trusted host authority, refreshed before admission and immediately before dispatch. */
   requestWindow?: () => Promise<{ deadlineAt: number; cleanupMs: number }>;
   /** Trusted host policy using actual input bounds; may only reduce the configured output cap. */
-  requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'>>, signal?: AbortSignal) => Promise<number>;
+  requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'> & { finalizationOutputFloor?: 1024 }>, signal?: AbortSignal) => Promise<number>;
   /** Trusted host decision at an eligible completed tool boundary; summaries still need admission. */
   requestCompaction?: (request: PiCompactionBounds) => Promise<boolean | 'budget_pressure'>;
   /** Host-only ordinary design selection; serialized tool output never grants eligibility. */
@@ -225,8 +225,10 @@ export async function createPiSession(config: PiSessionOptions) {
       countRequest();
     }
     if (config.requestOutputLimit) {
+      const finalizationFloor = finalizationActive && readonlyRequests !== undefined && !session.isCompacting ? 1024 : undefined;
       let limit: number;
-      try { limit = await config.requestOutputLimit(Object.freeze({ ...request }), options?.signal); }
+      try { limit = await config.requestOutputLimit(Object.freeze({ ...request,
+        ...(finalizationFloor ? { finalizationOutputFloor: finalizationFloor } : {}) }), options?.signal); }
       catch (error) {
         if (config.ordinaryDesignFinalizationPolicy && !session.isCompacting && readonlyRequests === undefined && !pendingFinalization
           && !failure && !closed && !options?.signal?.aborted && !callerSignal?.aborted && requests < config.maxRequests
@@ -240,7 +242,7 @@ export async function createPiSession(config: PiSessionOptions) {
       }
       throwIfFailed();
       if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled before output limit admission');
-      if (!Number.isSafeInteger(limit) || limit <= 0 || limit > request.maxOutputTokens) throw fail('invalid_request', 'Request output limit must be a positive safe integer within the configured cap');
+      if (!Number.isSafeInteger(limit) || limit < (finalizationFloor ?? 1) || limit > request.maxOutputTokens) throw fail('invalid_request', 'Request output limit must be a positive safe integer within the configured cap');
       requireUnchangedInput();
       request.maxOutputTokens = limit;
     }

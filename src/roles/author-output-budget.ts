@@ -69,18 +69,19 @@ function requireCap(request: QuoteRequest, input: AuthorBudgetInput) {
 
 /** Read-only quotes against the original grant. Real reserve/admit still decides dispatch. */
 export function authorBudgetOutputLimit(input: AuthorBudgetInput): NonNullable<PiSessionOptions['requestOutputLimit']> {
-  return async (request, requestSignal) => {
+  return async ({ finalizationOutputFloor, ...request }, requestSignal) => {
     const { quote, requireActive, signal } = await originalQuotes(input, requestSignal);
     requireCap(request, input);
     // Injected estimates need not be monotone. A fresh clone makes each candidate independent.
-    for (let cap = request.maxOutputTokens; cap >= Math.min(input.floor, request.maxOutputTokens); cap--) {
+    const floor = Math.min(finalizationOutputFloor ?? input.floor, request.maxOutputTokens);
+    for (let cap = request.maxOutputTokens; cap >= floor; cap--) {
       if (quote({ ...request, maxOutputTokens: cap })) return cap;
       if ((request.maxOutputTokens - cap + 1) % 64 === 0) {
         requireActive(); await yieldToTimers(0, undefined, { signal }); requireActive();
       }
     }
     requireActive();
-    throw insufficient(input.reviewReserve && !quote({ ...request, maxOutputTokens: Math.min(input.floor, request.maxOutputTokens) }, false)
+    throw insufficient(input.reviewReserve && !quote({ ...request, maxOutputTokens: floor }, false)
       ? { ...input, failureCode: 'author_output_budget' } : input);
   };
 }
