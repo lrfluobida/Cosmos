@@ -12,7 +12,9 @@ R34 的 19 笔实际费用合计 617413 微元，释放本次未用的 4382587 �
 
 普通设计和媒体验收夹具默认清理本次创建的临时目录及浏览器 profile，设置 `COSMOS_KEEP_EVIDENCE=1` 可保留。作者 `4d81d7755ce836e49639059faa9d90f04269174f` 经独审批准，由唯一 merger 合入 `8b15bfb3969bab9078c05f7c1b307c67e84727f8`，合入树与批准树相同。已审的 5 个定向用例全部通过，覆盖真实 Edge、默认清理、显式保留和 CLI 调用方。另核对了初始化失败清理及 junction 外的文件保留。 [COS183 清理结果](https://github.com/lrfluobida/Cosmos/issues/184#issuecomment-6762906816)
 
-R34 的离线报价复现使用 94576 字节输入和作者剩余的 203105 微元。原定 4096 个输出 token 超出余额，1744 个可容纳。COS184 跟踪一次无工具只读收尾在 1024 至 4096 之间选择可负担上限。[COS184](https://github.com/lrfluobida/Cosmos/issues/185)
+COS184 已合入 `51cde1c123d7305888e63e5a306efd1ff82e53f8`。一次无工具只读收尾可在 1024 至 4096 个输出 token 内按作者余额选择上限。R34 离线报价输入 94576 字节、余 203105 微元时，1744 个 token 报价 203104 微元，1745 个报价 203112 微元。主线构建通过，独审的 provider 40/40、运行时 2/2 和类型检查结果已复用。[COS184 集成记录](https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6763189627)
+
+后续真实运行仍需观察作者收尾回复，并验证执行计划能否覆盖一次实际关闭、重开及恢复后的操作与观测。[父任务的下一步](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6763193035)
 
 ## R33 与 2026-11-05 的源码集成记录
 

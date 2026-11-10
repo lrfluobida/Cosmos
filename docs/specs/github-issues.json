@@ -14114,7 +14114,14 @@
       "state": "open",
       "scopedComplete": false,
       "implementer": "handoff_implementer",
-      "merger": "batch_merger"
+      "reviewer": "handoff_reviewer",
+      "merger": "batch_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "integrationStatus": "source-integrated",
+      "sourceReviewedCommit": "52ad1987860e65565063fa6298cd84bf377a0318",
+      "sourceIntegratedCommit": "51cde1c123d7305888e63e5a306efd1ff82e53f8",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6763189627",
+      "verification": "Merged src and tests match the reviewed commit. Main CLI build passed. Reused provider 40/40, runtime 2/2 and typecheck. Offline R34 quote at 94576 bytes and 203105 micro-CNY available: 1744 outputs cost 203104, 1745 cost 203112. Actual generated handoff and reopen remain unverified."
     }
   ],
   "verifiedNativeSubIssues": 100,
