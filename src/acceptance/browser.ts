@@ -40,7 +40,7 @@ export async function observeDebugScalars(page: Pick<Page, 'evaluate'>, paths: s
   }, paths);
 }
 
-export async function observe(page: Page, observation: Observation, timeoutMs: number): Promise<Scalar> {
+export async function observe(page: Page, observation: Extract<Observation, { kind: 'text' | 'visible' | 'debug' }>, timeoutMs: number): Promise<Scalar> {
   if (observation.kind === 'text') return page.locator(observation.selector).filter({ visible: true }).innerText({ timeout: timeoutMs });
   if (observation.kind === 'visible') return page.locator(observation.selector).isVisible();
   return page.evaluate((path: string[]) => {
