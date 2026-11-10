@@ -1,0 +1,4764 @@
+{
+  "formatVersion": "ordinary-acceptance-plan/1",
+  "requirement": {
+    "artifactId": "requirement-bundle",
+    "version": "v2",
+    "location": "registry/captures/requirement-bundle/v2/files"
+  },
+  "scenario": {
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "steps": [
+      {
+        "id": "s001-bgm-cozy-loop-id",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "id"
+          ]
+        },
+        "expected": "bgm-cozy-loop",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s002-bgm-cozy-loop-decoded",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "decoded"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s003-bgm-cozy-loop-started",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "started"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s004-bgm-cozy-loop-outputActive",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActive"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s005-sfx-collect-id",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "id"
+          ]
+        },
+        "expected": "sfx-collect",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s006-sfx-collect-decoded",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "decoded"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s007-sfx-collect-started",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "started"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s008-sfx-collect-outputActive",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActive"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s009-sfx-door-open-id",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "id"
+          ]
+        },
+        "expected": "sfx-door-open",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s010-sfx-door-open-decoded",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "decoded"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s011-sfx-door-open-started",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "started"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s012-sfx-door-open-outputActive",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActive"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s013-bgm-cozy-loop-playing",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "playing"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s014-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 0,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s015-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 0,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s016-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 0,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s017-progress-text",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 0/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s018-collected-list",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s019-item-crystal",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-crystal"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s020-item-key",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-key"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s021-item-gear",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-gear"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s022-crystal-name",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#item-crystal .item-name"
+        },
+        "expected": "蓝色水晶",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s023-key-name",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#item-key .item-name"
+        },
+        "expected": "金钥匙",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s024-gear-name",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#item-gear .item-name"
+        },
+        "expected": "红色齿轮",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s025-door-state",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#door-state"
+        },
+        "expected": "门状态：关闭",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s026-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s027-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：暂无存档",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s028-last-save-names",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-names"
+        },
+        "expected": "最近保存：暂无存档",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s029-btn-save-enabled",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "visible",
+          "selector": "#btn-save:enabled"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s030-btn-continue-disabled",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "visible",
+          "selector": "#btn-continue:disabled"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s031-btn-restart-enabled",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "visible",
+          "selector": "#btn-restart:enabled"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s032-btn-sound-enabled",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "visible",
+          "selector": "#btn-sound:enabled"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s033-game-title",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "text",
+          "selector": "#game-title"
+        },
+        "expected": "小屋寻物",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s034-door",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "visible",
+          "selector": "#door"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s035-controls",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "visible",
+          "selector": "#controls"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s036-btn-save",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "text",
+          "selector": "#btn-save"
+        },
+        "expected": "保存",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s037-btn-continue",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "text",
+          "selector": "#btn-continue"
+        },
+        "expected": "继续",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s038-btn-restart",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "text",
+          "selector": "#btn-restart"
+        },
+        "expected": "重新开始",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s039-btn-sound",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "text",
+          "selector": "#btn-sound"
+        },
+        "expected": "声音：开",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s040-no-timer-health-or-loss-text",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "visible",
+          "selector": "#stage :text-matches(\"倒计时|剩余时间|生命值|游戏失败|惩罚\")"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s041-crystal-slot-layout",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "visible",
+          "selector": "#slot-crystal:right-of(#hud):below(#hint-text):above(#controls):left-of(#slot-key)"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s042-key-slot-layout",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "visible",
+          "selector": "#slot-key:right-of(#hud):below(#hint-text):above(#controls):left-of(#slot-gear)"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s043-gear-slot-layout",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "visible",
+          "selector": "#slot-gear:right-of(#hud):below(#hint-text):above(#controls):left-of(#door)"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s044-click-btn-continue",
+        "kind": "mouse-click",
+        "selector": "#btn-continue",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s045-progress-text",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 0/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s046-collected-list",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s047-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "initial-no-save-state",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：暂无存档",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s048-bgm-cozy-loop-playing",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "playing"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s049-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 0,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s050-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 0,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s051-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 0,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s052-click-crystal",
+        "kind": "mouse-click",
+        "x": 468,
+        "y": 468
+      },
+      {
+        "id": "s053-progress-text",
+        "kind": "assert",
+        "acceptanceId": "collect-no-double-count",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 1/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s054-collected-list",
+        "kind": "assert",
+        "acceptanceId": "collect-no-double-count",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s055-item-crystal",
+        "kind": "assert",
+        "acceptanceId": "collect-no-double-count",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-crystal"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s056-btn-sound",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "text",
+          "selector": "#btn-sound"
+        },
+        "expected": "声音：开",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s057-bgm-cozy-loop-playing",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "playing"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s058-bgm-cozy-loop-looping",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "looping"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s059-bgm-cozy-loop-outputActive",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActive"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s060-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s061-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s062-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 0,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s063-click-crystal",
+        "kind": "mouse-click",
+        "x": 468,
+        "y": 468
+      },
+      {
+        "id": "s064-progress-text",
+        "kind": "assert",
+        "acceptanceId": "collect-no-double-count",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 1/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s065-collected-list",
+        "kind": "assert",
+        "acceptanceId": "collect-no-double-count",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s066-click-blank",
+        "kind": "mouse-click",
+        "x": 950,
+        "y": 80
+      },
+      {
+        "id": "s067-progress-text",
+        "kind": "assert",
+        "acceptanceId": "collect-no-double-count",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 1/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s068-collected-list",
+        "kind": "assert",
+        "acceptanceId": "collect-no-double-count",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s069-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s070-click-door",
+        "kind": "mouse-click",
+        "selector": "#door",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s071-hint-text",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#hint-text"
+        },
+        "expected": "门锁着，请集齐三件物品。",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s072-door-state",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#door-state"
+        },
+        "expected": "门状态：关闭",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s073-progress-text",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 1/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s074-collected-list",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s075-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s076-click-btn-save",
+        "kind": "mouse-click",
+        "selector": "#btn-save",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s077-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：蓝色水晶 1/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s078-click-key",
+        "kind": "mouse-click",
+        "x": 648,
+        "y": 518
+      },
+      {
+        "id": "s079-progress-text",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s080-collected-list",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶、金钥匙",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s081-item-key",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-key"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s082-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：蓝色水晶 1/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s083-click-door",
+        "kind": "mouse-click",
+        "selector": "#door",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s084-hint-text",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#hint-text"
+        },
+        "expected": "门锁着，请集齐三件物品。",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s085-door-state",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#door-state"
+        },
+        "expected": "门状态：关闭",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s086-progress-text",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s087-collected-list",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶、金钥匙",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s088-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s089-click-btn-save",
+        "kind": "mouse-click",
+        "selector": "#btn-save",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s090-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s091-click-gear",
+        "kind": "mouse-click",
+        "x": 828,
+        "y": 468
+      },
+      {
+        "id": "s092-progress-text",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 3/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s093-collected-list",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶、金钥匙、红色齿轮",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s094-item-gear",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-gear"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s095-door-state",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#door-state"
+        },
+        "expected": "门状态：打开",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s096-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s097-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s098-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s099-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 3,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s100-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 0,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s101-click-btn-continue",
+        "kind": "mouse-click",
+        "selector": "#btn-continue",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s102-progress-text",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s103-collected-list",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶、金钥匙",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s104-item-crystal",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-crystal"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s105-item-key",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-key"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s106-item-gear",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-gear"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s107-door-state",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#door-state"
+        },
+        "expected": "门状态：关闭",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s108-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s109-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s110-last-save-names",
+        "kind": "assert",
+        "acceptanceId": "save-display-and-partial-load-same-session",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-names"
+        },
+        "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s111-btn-sound",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "text",
+          "selector": "#btn-sound"
+        },
+        "expected": "声音：开",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s112-bgm-cozy-loop-playing",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "playing"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s113-bgm-cozy-loop-looping",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "looping"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s114-bgm-cozy-loop-outputActive",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActive"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s115-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s116-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 3,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s117-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 0,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s118-click-gear",
+        "kind": "mouse-click",
+        "x": 828,
+        "y": 468
+      },
+      {
+        "id": "s119-door-state",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "text",
+          "selector": "#door-state"
+        },
+        "expected": "门状态：打开",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s120-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s121-click-door",
+        "kind": "mouse-click",
+        "selector": "#door",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s122-unobstructed-victory",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel:right-of(#hud):left-of(#door):above(#hint-text)"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s123-victory-title",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "text",
+          "selector": "#victory-title"
+        },
+        "expected": "寻物成功！",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s124-victory-count",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "text",
+          "selector": "#victory-count"
+        },
+        "expected": "已收集 3/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s125-btn-save-enabled",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "visible",
+          "selector": "#btn-save:enabled"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s126-btn-continue-enabled",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "visible",
+          "selector": "#btn-continue:enabled"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s127-btn-restart-enabled",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "visible",
+          "selector": "#btn-restart:enabled"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s128-btn-sound-enabled",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "visible",
+          "selector": "#btn-sound:enabled"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s129-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s130-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 4,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s131-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s132-click-door",
+        "kind": "mouse-click",
+        "selector": "#door",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s133-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "open-door-victory",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s134-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s135-click-btn-sound",
+        "kind": "mouse-click",
+        "selector": "#btn-sound",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s136-btn-sound",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "text",
+          "selector": "#btn-sound"
+        },
+        "expected": "声音：关",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s137-bgm-cozy-loop-outputActive",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActive"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s138-sfx-collect-outputActive",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActive"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s139-sfx-door-open-outputActive",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActive"
+          ]
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s140-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s141-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 4,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s142-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s143-click-btn-sound",
+        "kind": "mouse-click",
+        "selector": "#btn-sound",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s144-btn-sound",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "text",
+          "selector": "#btn-sound"
+        },
+        "expected": "声音：开",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s145-bgm-cozy-loop-playing",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "playing"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s146-bgm-cozy-loop-looping",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "looping"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s147-bgm-cozy-loop-outputActive",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActive"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s148-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 2,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s149-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 4,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s150-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s151-click-btn-restart",
+        "kind": "mouse-click",
+        "selector": "#btn-restart",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s152-progress-text",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 0/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s153-collected-list",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s154-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：暂无存档",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s155-last-save-names",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-names"
+        },
+        "expected": "最近保存：暂无存档",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s156-item-crystal",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-crystal"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s157-item-key",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-key"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s158-item-gear",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "visible",
+          "selector": "#item-gear"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s159-door-state",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#door-state"
+        },
+        "expected": "门状态：关闭",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s160-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s161-btn-continue-disabled",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "visible",
+          "selector": "#btn-continue:disabled"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s162-click-btn-continue",
+        "kind": "mouse-click",
+        "selector": "#btn-continue",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s163-progress-text",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 0/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s164-collected-list",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s165-crystal-name",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#item-crystal .item-name"
+        },
+        "expected": "蓝色水晶",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s166-key-name",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#item-key .item-name"
+        },
+        "expected": "金钥匙",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s167-gear-name",
+        "kind": "assert",
+        "acceptanceId": "restart-clears-progress-and-save",
+        "observation": {
+          "kind": "text",
+          "selector": "#item-gear .item-name"
+        },
+        "expected": "红色齿轮",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s168-crystal-slot-layout",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "visible",
+          "selector": "#slot-crystal:right-of(#hud):below(#hint-text):above(#controls):left-of(#slot-key)"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s169-key-slot-layout",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "visible",
+          "selector": "#slot-key:right-of(#hud):below(#hint-text):above(#controls):left-of(#slot-gear)"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s170-gear-slot-layout",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "visible",
+          "selector": "#slot-gear:right-of(#hud):below(#hint-text):above(#controls):left-of(#door)"
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s171-btn-sound",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "text",
+          "selector": "#btn-sound"
+        },
+        "expected": "声音：开",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s172-bgm-cozy-loop-playing",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "playing"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s173-bgm-cozy-loop-looping",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "looping"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s174-bgm-cozy-loop-outputActive",
+        "kind": "wait-for",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActive"
+          ]
+        },
+        "expected": true,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s175-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 2,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s176-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 4,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s177-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s178-click-door",
+        "kind": "mouse-click",
+        "selector": "#door",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s179-hint-text",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#hint-text"
+        },
+        "expected": "门锁着，请集齐三件物品。",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s180-door-state",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#door-state"
+        },
+        "expected": "门状态：关闭",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s181-progress-text",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 0/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s182-collected-list",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s183-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "locked-door-before-complete",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s184-click-crystal",
+        "kind": "mouse-click",
+        "x": 468,
+        "y": 468
+      },
+      {
+        "id": "s185-click-key",
+        "kind": "mouse-click",
+        "x": 648,
+        "y": 518
+      },
+      {
+        "id": "s186-progress-text",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s187-collected-list",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶、金钥匙",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s188-click-btn-save",
+        "kind": "mouse-click",
+        "selector": "#btn-save",
+        "x": 0.5,
+        "y": 0.5
+      },
+      {
+        "id": "s189-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s190-last-save-names",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-names"
+        },
+        "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s191-click-gear",
+        "kind": "mouse-click",
+        "x": 828,
+        "y": 468
+      },
+      {
+        "id": "s192-progress-text",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "text",
+          "selector": "#progress-text"
+        },
+        "expected": "当前进度 3/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s193-collected-list",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "text",
+          "selector": "#collected-list"
+        },
+        "expected": "已收集：蓝色水晶、金钥匙、红色齿轮",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s194-door-state",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "text",
+          "selector": "#door-state"
+        },
+        "expected": "门状态：打开",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s195-victory-panel",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "visible",
+          "selector": "#victory-panel"
+        },
+        "expected": false,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s196-last-save-text",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s197-last-save-names",
+        "kind": "assert",
+        "acceptanceId": "cross-process-partial-load-once",
+        "observation": {
+          "kind": "text",
+          "selector": "#last-save-names"
+        },
+        "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s198-bgm-cozy-loop-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_bgm_cozy_loop",
+            "outputActivations"
+          ]
+        },
+        "expected": 2,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s199-sfx-collect-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_collect",
+            "outputActivations"
+          ]
+        },
+        "expected": 7,
+        "timeoutMs": 10000
+      },
+      {
+        "id": "s200-sfx-door-open-outputActivations",
+        "kind": "assert",
+        "acceptanceId": "audio-enable-and-toggle",
+        "observation": {
+          "kind": "debug",
+          "path": [
+            "media",
+            "audioById",
+            "clip_sfx_door_open",
+            "outputActivations"
+          ]
+        },
+        "expected": 1,
+        "timeoutMs": 10000
+      }
+    ],
+    "reopen": {
+      "checkpoint": {
+        "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+        "snapshot": {
+          "kind": "text",
+          "selector": "#last-save-text"
+        },
+        "savedSnapshot": {
+          "kind": "text",
+          "selector": "#last-save-names"
+        }
+      },
+      "steps": [
+        {
+          "id": "r001-bgm-cozy-loop-id",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "id"
+            ]
+          },
+          "expected": "bgm-cozy-loop",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r002-bgm-cozy-loop-decoded",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "decoded"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r003-bgm-cozy-loop-started",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "started"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r004-bgm-cozy-loop-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r005-sfx-collect-id",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "id"
+            ]
+          },
+          "expected": "sfx-collect",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r006-sfx-collect-decoded",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "decoded"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r007-sfx-collect-started",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "started"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r008-sfx-collect-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r009-sfx-door-open-id",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "id"
+            ]
+          },
+          "expected": "sfx-door-open",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r010-sfx-door-open-decoded",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "decoded"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r011-sfx-door-open-started",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "started"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r012-sfx-door-open-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r013-bgm-cozy-loop-playing",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "playing"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r014-bgm-cozy-loop-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r015-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r016-sfx-door-open-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r017-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r018-btn-continue-enabled",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-continue:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r019-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：开",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r020-controls",
+          "kind": "assert",
+          "acceptanceId": "mouse-only-chinese-local-no-timing",
+          "observation": {
+            "kind": "visible",
+            "selector": "#controls"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r021-no-timer-health-or-loss-text",
+          "kind": "assert",
+          "acceptanceId": "mouse-only-chinese-local-no-timing",
+          "observation": {
+            "kind": "visible",
+            "selector": "#stage :text-matches(\"倒计时|剩余时间|生命值|游戏失败|惩罚\")"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r022-crystal-slot-layout",
+          "kind": "assert",
+          "acceptanceId": "mouse-only-chinese-local-no-timing",
+          "observation": {
+            "kind": "visible",
+            "selector": "#slot-crystal:right-of(#hud):below(#hint-text):above(#controls):left-of(#slot-key)"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r023-key-slot-layout",
+          "kind": "assert",
+          "acceptanceId": "mouse-only-chinese-local-no-timing",
+          "observation": {
+            "kind": "visible",
+            "selector": "#slot-key:right-of(#hud):below(#hint-text):above(#controls):left-of(#slot-gear)"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r024-gear-slot-layout",
+          "kind": "assert",
+          "acceptanceId": "mouse-only-chinese-local-no-timing",
+          "observation": {
+            "kind": "visible",
+            "selector": "#slot-gear:right-of(#hud):below(#hint-text):above(#controls):left-of(#door)"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r025-click-btn-sound",
+          "kind": "mouse-click",
+          "selector": "#btn-sound",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r026-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：关",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r027-bgm-cozy-loop-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r028-sfx-collect-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r029-sfx-door-open-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r030-bgm-cozy-loop-playing",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "playing"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r031-bgm-cozy-loop-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r032-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r033-sfx-door-open-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r034-click-btn-continue",
+          "kind": "mouse-click",
+          "selector": "#btn-continue",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r035-progress-text",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 2/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r036-collected-list",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：蓝色水晶、金钥匙",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r037-item-crystal",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-crystal"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r038-item-key",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-key"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r039-item-gear",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-gear"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r040-door-state",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "text",
+            "selector": "#door-state"
+          },
+          "expected": "门状态：关闭",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r041-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r042-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r043-last-save-names",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-names"
+          },
+          "expected": "最近保存：蓝色水晶、金钥匙 2/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r044-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：关",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r045-bgm-cozy-loop-playing",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "playing"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r046-bgm-cozy-loop-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r047-click-door",
+          "kind": "mouse-click",
+          "selector": "#door",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r048-hint-text",
+          "kind": "assert",
+          "acceptanceId": "locked-door-before-complete",
+          "observation": {
+            "kind": "text",
+            "selector": "#hint-text"
+          },
+          "expected": "门锁着，请集齐三件物品。",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r049-door-state",
+          "kind": "assert",
+          "acceptanceId": "locked-door-before-complete",
+          "observation": {
+            "kind": "text",
+            "selector": "#door-state"
+          },
+          "expected": "门状态：关闭",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r050-progress-text",
+          "kind": "assert",
+          "acceptanceId": "locked-door-before-complete",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 2/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r051-collected-list",
+          "kind": "assert",
+          "acceptanceId": "locked-door-before-complete",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：蓝色水晶、金钥匙",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r052-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "locked-door-before-complete",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r053-click-gear",
+          "kind": "mouse-click",
+          "x": 828,
+          "y": 468
+        },
+        {
+          "id": "r054-progress-text",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r055-collected-list",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：蓝色水晶、金钥匙、红色齿轮",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r056-item-gear",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-gear"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r057-door-state",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#door-state"
+          },
+          "expected": "门状态：打开",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r058-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：关",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r059-bgm-cozy-loop-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r060-sfx-collect-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r061-sfx-door-open-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r062-bgm-cozy-loop-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r063-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r064-sfx-door-open-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r065-click-door",
+          "kind": "mouse-click",
+          "selector": "#door",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r066-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r067-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：关",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r068-bgm-cozy-loop-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r069-sfx-collect-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r070-sfx-door-open-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r071-bgm-cozy-loop-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r072-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r073-sfx-door-open-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r074-click-btn-restart",
+          "kind": "mouse-click",
+          "selector": "#btn-restart",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r075-progress-text",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 0/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r076-collected-list",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r077-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：暂无存档",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r078-last-save-names",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-names"
+          },
+          "expected": "最近保存：暂无存档",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r079-item-crystal",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-crystal"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r080-item-key",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-key"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r081-item-gear",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-gear"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r082-door-state",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#door-state"
+          },
+          "expected": "门状态：关闭",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r083-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r084-btn-continue-disabled",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-continue:disabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r085-click-btn-continue",
+          "kind": "mouse-click",
+          "selector": "#btn-continue",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r086-progress-text",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 0/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r087-collected-list",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r088-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：关",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r089-bgm-cozy-loop-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r090-click-btn-save",
+          "kind": "mouse-click",
+          "selector": "#btn-save",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r091-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：0/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r092-last-save-names",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-names"
+          },
+          "expected": "最近保存：0/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r093-btn-continue-enabled",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-continue:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r094-click-btn-continue",
+          "kind": "mouse-click",
+          "selector": "#btn-continue",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r095-progress-text",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 0/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r096-collected-list",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r097-item-crystal",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-crystal"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r098-item-key",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-key"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r099-item-gear",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-gear"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r100-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：0/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r101-door-state",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#door-state"
+          },
+          "expected": "门状态：关闭",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r102-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r103-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：关",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r104-bgm-cozy-loop-outputActive",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r105-click-btn-sound",
+          "kind": "mouse-click",
+          "selector": "#btn-sound",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r106-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：开",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r107-bgm-cozy-loop-playing",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "playing"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r108-bgm-cozy-loop-looping",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "looping"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r109-bgm-cozy-loop-outputActive",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r110-bgm-cozy-loop-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActivations"
+            ]
+          },
+          "expected": 1,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r111-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r112-sfx-door-open-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r113-click-crystal",
+          "kind": "mouse-click",
+          "x": 468,
+          "y": 468
+        },
+        {
+          "id": "r114-progress-text",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 1/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r115-collected-list",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：蓝色水晶",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r116-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 1,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r117-click-key",
+          "kind": "mouse-click",
+          "x": 648,
+          "y": 518
+        },
+        {
+          "id": "r118-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 2,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r119-click-gear",
+          "kind": "mouse-click",
+          "x": 828,
+          "y": 468
+        },
+        {
+          "id": "r120-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 3,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r121-progress-text",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r122-collected-list",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：蓝色水晶、金钥匙、红色齿轮",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r123-door-state",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#door-state"
+          },
+          "expected": "门状态：打开",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r124-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r125-click-btn-save",
+          "kind": "mouse-click",
+          "selector": "#btn-save",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r126-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：蓝色水晶、金钥匙、红色齿轮 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r127-last-save-names",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-names"
+          },
+          "expected": "最近保存：蓝色水晶、金钥匙、红色齿轮 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r128-click-door",
+          "kind": "mouse-click",
+          "selector": "#door",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r129-unobstructed-victory",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel:right-of(#hud):left-of(#door):above(#hint-text)"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r130-victory-title",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "text",
+            "selector": "#victory-title"
+          },
+          "expected": "寻物成功！",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r131-victory-count",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "text",
+            "selector": "#victory-count"
+          },
+          "expected": "已收集 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r132-btn-save-enabled",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-save:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r133-btn-continue-enabled",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-continue:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r134-btn-restart-enabled",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-restart:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r135-btn-sound-enabled",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-sound:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r136-bgm-cozy-loop-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActivations"
+            ]
+          },
+          "expected": 1,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r137-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 3,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r138-sfx-door-open-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActivations"
+            ]
+          },
+          "expected": 1,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r139-click-btn-continue",
+          "kind": "mouse-click",
+          "selector": "#btn-continue",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r140-progress-text",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r141-collected-list",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：蓝色水晶、金钥匙、红色齿轮",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r142-item-crystal",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-crystal"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r143-item-key",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-key"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r144-item-gear",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#item-gear"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r145-door-state",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#door-state"
+          },
+          "expected": "门状态：打开",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r146-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r147-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：蓝色水晶、金钥匙、红色齿轮 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r148-last-save-names",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-names"
+          },
+          "expected": "最近保存：蓝色水晶、金钥匙、红色齿轮 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r149-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：开",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r150-bgm-cozy-loop-playing",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "playing"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r151-bgm-cozy-loop-looping",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "looping"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r152-bgm-cozy-loop-outputActive",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r153-bgm-cozy-loop-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActivations"
+            ]
+          },
+          "expected": 1,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r154-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 3,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r155-sfx-door-open-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActivations"
+            ]
+          },
+          "expected": 1,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r156-click-door",
+          "kind": "mouse-click",
+          "selector": "#door",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r157-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r158-sfx-door-open-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActivations"
+            ]
+          },
+          "expected": 2,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r159-click-btn-restart",
+          "kind": "mouse-click",
+          "selector": "#btn-restart",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r160-progress-text",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 0/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r161-collected-list",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r162-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：暂无存档",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r163-door-state",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "text",
+            "selector": "#door-state"
+          },
+          "expected": "门状态：关闭",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r164-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r165-btn-continue-disabled",
+          "kind": "assert",
+          "acceptanceId": "restart-clears-progress-and-save",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-continue:disabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r166-btn-sound",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "text",
+            "selector": "#btn-sound"
+          },
+          "expected": "声音：开",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r167-bgm-cozy-loop-playing",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "playing"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r168-bgm-cozy-loop-looping",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "looping"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r169-bgm-cozy-loop-outputActive",
+          "kind": "wait-for",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActive"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r170-click-crystal",
+          "kind": "mouse-click",
+          "x": 468,
+          "y": 468
+        },
+        {
+          "id": "r171-click-key",
+          "kind": "mouse-click",
+          "x": 648,
+          "y": 518
+        },
+        {
+          "id": "r172-click-gear",
+          "kind": "mouse-click",
+          "x": 828,
+          "y": 468
+        },
+        {
+          "id": "r173-click-door",
+          "kind": "mouse-click",
+          "selector": "#door",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r174-unobstructed-victory",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel:right-of(#hud):left-of(#door):above(#hint-text)"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r175-victory-title",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "text",
+            "selector": "#victory-title"
+          },
+          "expected": "寻物成功！",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r176-victory-count",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "text",
+            "selector": "#victory-count"
+          },
+          "expected": "已收集 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r177-btn-save-enabled",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-save:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r178-btn-continue-disabled",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-continue:disabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r179-btn-restart-enabled",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-restart:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r180-btn-sound-enabled",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-sound:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r181-click-btn-continue",
+          "kind": "mouse-click",
+          "selector": "#btn-continue",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r182-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r183-progress-text",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r184-collected-list",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：蓝色水晶、金钥匙、红色齿轮",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r185-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：暂无存档",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r186-click-btn-save",
+          "kind": "mouse-click",
+          "selector": "#btn-save",
+          "x": 0.5,
+          "y": 0.5
+        },
+        {
+          "id": "r187-last-save-text",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：蓝色水晶、金钥匙、红色齿轮 3/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r188-btn-continue-enabled",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#btn-continue:enabled"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r189-victory-panel",
+          "kind": "assert",
+          "acceptanceId": "open-door-victory",
+          "observation": {
+            "kind": "visible",
+            "selector": "#victory-panel"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r190-bgm-cozy-loop-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_bgm_cozy_loop",
+              "outputActivations"
+            ]
+          },
+          "expected": 1,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r191-sfx-collect-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 6,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r192-sfx-door-open-outputActivations",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_door_open",
+              "outputActivations"
+            ]
+          },
+          "expected": 3,
+          "timeoutMs": 10000
+        }
+      ]
+    }
+  }
+}
