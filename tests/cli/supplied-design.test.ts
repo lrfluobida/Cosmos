@@ -21,13 +21,35 @@ for (const outcome of ['approved', 'changes_requested', 'altered']) test(`public
     sessionFactory: async (config, fallback) => {
       const packet = JSON.parse(config.context!);
       if (packet.role === 'design') return { ...fallback, prompt: async () => {
+        assert.match(config.systemPrompt, /Use validate-game-design/);
         assert.match(config.systemPrompt, /Hand off the existing files unchanged/);
         assert.deepEqual(config.tools!.map(tool => tool.name).sort(), ['read', 'validate-game-design']);
         for (const [name, content] of files) assert.equal((await read(config.workspace, 'authors/design/' + name)).toString(), content);
         if (outcome === 'altered') await writeFile(join(config.workspace, 'authors/design/design.json'), files.get('design.json') + ' ');
         return { text: JSON.stringify({ summary: 'Checked the supplied files', remaining: [], uncertainty: [] }) };
       } };
+      if (packet.role === 'reviewer' && packet.taskId === 'design-task') {
+        const rules = packet.rules.join('\n');
+        assert.match(rules, /Capture file layout:/);
+        assert.match(rules, /omitted objective rules/);
+        assert.match(rules, /create the save before reopening it/);
+        assert.match(rules, /required first post-reopen input/);
+        assert.match(rules, /text substituted for actual audio/);
+        assert.match(rules, /outputActivations/);
+        assert.doesNotMatch(rules, /validate-game-design|authors\/design\//);
+        assert.deepEqual(packet.tools, ['read']);
+        assert.deepEqual(config.tools!.map(tool => tool.name), ['read']);
+        assert.deepEqual(packet.ownership.writePaths, []);
+        const captured = packet.inputFiles.find((ref: any) => ref.artifactId === 'design');
+        assert.deepEqual(captured.files.sort(), ['_cosmos/acceptance-plan.json', '_cosmos/design.json']);
+        for (const [name, content] of files) assert.equal((await read(config.workspace, captured.location + '/_cosmos/' + name)).toString(), content);
+        for (const sourceId of ['requirement-draft', 'user-confirmation']) {
+          assert.ok(packet.inputFiles.some((ref: any) => ref.artifactId === sourceId && ref.kind === 'file'));
+        }
+        assert.ok(packet.evidence.length && packet.evidence.every((item: any) => packet.inputFiles.some((ref: any) => ref.location === item.source.location && ref.kind !== 'missing')));
+      }
       if (['art', 'coding'].includes(packet.role)) {
+        assert.match(packet.rules.join('\n'), /operator-supplied design/);
         const ref = packet.inputs.find((item: any) => item.artifactId === 'design');
         for (const [name, content] of files) assert.equal((await read(config.workspace, ref.location + '/_cosmos/' + name)).toString(), content);
         consumers.add(packet.role);
@@ -75,6 +97,13 @@ for (const outcome of ['approved', 'changes_requested', 'altered']) test(`public
   assert.deepEqual(report.ordinaryDesignReview?.suppliedDesign, state.designDraftReview);
   assert.equal(next.packets.filter(packet => packet.role === 'design').length, 1);
   assert.equal(next.packets.filter(packet => packet.role === 'reviewer' && packet.taskId === 'design-task').length, outcome === 'altered' ? 0 : 1, JSON.stringify(report.gaps));
+  if (outcome !== 'altered') {
+    const design = state.tasks.find((task: any) => task.taskId === 'design-task');
+    const captured = await json(next.root, 'registry/captures/design/v1/capture.json');
+    assert.deepEqual(captured.metadata.provenance, { kind: 'original-procedural', generator: 'Operator-supplied design, native design role handoff',
+      sourceRefs: [design.attempts[0].sessionRef, ...design.inputs.filter((ref: any) => ['requirement-draft', 'user-confirmation'].includes(ref.artifactId)).map((ref: any) => ref.location),
+        state.designDraftReview.artifactId + '@' + state.designDraftReview.version, directory] });
+  }
   if (outcome !== 'approved') {
     assert.deepEqual(state.tasks.map((task: any) => task.taskId), ['design-task']);
     assert.equal(consumers.size, 0);

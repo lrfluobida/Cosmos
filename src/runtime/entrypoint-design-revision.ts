@@ -17,7 +17,7 @@ import type { RecoveryReport } from './recovery/task-journal.ts';
 import { budgetDigest, deriveDesignBudgetIntent, readConservedBudgetPolicy } from './ordinary-design-revision-budget.ts';
 import type { ConservedDesignBudgetPolicy, OrdinaryDesignBudgetIntent } from './ordinary-design-revision-budget.ts';
 import type { OrdinaryDesignBudgetLifecycle } from './ordinary-design-revision-lifecycle.ts';
-import { suppliedDesignBytes, SUPPLIED_DESIGN } from './supplied-design.ts';
+import { suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { reviewedDraftRules, REVIEWED_DRAFT_POLICY, type OrdinaryPlanAuthoringPolicy } from './entrypoint-plan-authoring.ts';
 
 export const ORDINARY_DESIGN_REVISION_POLICY = 'independent-review/2' as const;
@@ -122,6 +122,8 @@ export async function authenticateDesign(root: string, controller: Pick<RunContr
     if (!sameValue(task.handoff, designReviewedHandoff(task, packet, checked))) fail('reviewed_design_handoff_changed');
   }
   const fixed = await new ArtifactRegistry(root, 'registry').getCapture(task.artifacts[0]);
+  if (state.designDraftReview?.artifactId === SUPPLIED_DESIGN && !sameValue(fixed.metadata.provenance,
+    suppliedDesignProvenance(state.designDraftReview, [attempt.sessionRef, ...execution.requirement.sources.map(ref => ref.location)]))) fail('capture_provenance_changed');
   const dependencies = execution.availableArtifacts.filter(ref => !execution.requirement.sources.some(source => sameValue(source, ref)));
   if (fixed.taskId !== task.taskId || !fixed.metadata.provenance.sourceRefs.includes(attempt.sessionRef) || !sameValue(fixed.dependencies, dependencies)) fail('capture_provenance_changed');
   const receipts: Record<string, string> = {};

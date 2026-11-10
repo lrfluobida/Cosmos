@@ -11,6 +11,11 @@ import { ordinaryDraftSha256 } from './ordinary-profile-source.ts';
 export const SUPPLIED_DESIGN = 'ordinary-supplied-design';
 const filenames = ['design.json', 'acceptance-plan.json'] as const;
 
+export function suppliedDesignProvenance(ref: ArtifactReference, sourceRefs: string[]) {
+  return { kind: 'original-procedural' as const, generator: 'Operator-supplied design, native design role handoff',
+    sourceRefs: [...sourceRefs, `${ref.artifactId}@${ref.version}`, ref.location] };
+}
+
 export async function suppliedDesignBytes(directory: string, source: ConfirmedRequirementsSource) {
   const contents = new Map(await Promise.all(filenames.map(async name => [name, await regularFile(directory, name)] as const)));
   const version = ordinaryDraftSha256(Buffer.from(JSON.stringify([SUPPLIED_DESIGN, source.formatVersion, source.root, source.runId,
