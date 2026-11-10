@@ -20,6 +20,14 @@ npm start -- resume <run-dir>
 
 `--max-cny` 为访谈与生成共用的总上限，接受大于 0、最多 6 位小数且不超过 200 元；`--max-minutes` 为确认且环境就绪后开始的生成时长，接受 1..720 的整数分钟。两项可各自省略，默认 ¥200 / 720 分钟。极小预算可能不足以预留一次调用；恢复使用原限额和时钟，仅 `new` 接受这两个选项。
 
+若要在新运行中修订已被独审要求修改的普通游戏设计，可指定原始需求确认和对应的设计审查回执：
+
+```powershell
+npm start -- new <新运行目录> --requirements-from <原始确认目录> --requirements-revision <版本号> --design-draft-from <旧设计任务的review.json路径> --max-cny 5 --max-minutes 30
+```
+
+新作者从该版封存的设计稿和执行验收计划开始，并读取当时的独审意见。修订结果须在本次运行重新捕获并通过独审。[回执选择与拨款验证说明](probes/public-cli/README.md)
+
 ## 推箱子准备模式
 
 安装仓库依赖与通用模板工具链后，可从公开 CLI 开始：

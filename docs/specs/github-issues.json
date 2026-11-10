@@ -14139,7 +14139,13 @@
       "scopedComplete": false,
       "implementer": "reviewed_seed_implementer",
       "reviewer": "reviewed_seed_reviewer",
-      "merger": "stage_merger"
+      "merger": "stage_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "integrationStatus": "source-integrated",
+      "sourceReviewedCommit": "aca027a3e2729095edd2ef1ecc989ea4d28aa046",
+      "sourceIntegratedCommit": "35c5e6fac8a61d619e5ef9a42628530c4f819dbe",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/186#issuecomment-6764972968",
+      "verification": "Main build passed. Scripted CLI test 1/1 passed with native Windows TEMP. Compiled reader returned 10 findings, 147 main and 47 reopen steps from R29/v2. Live revision and review remain pending."
     }
   ],
   "verifiedNativeSubIssues": 100,
