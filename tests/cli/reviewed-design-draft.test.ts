@@ -65,6 +65,8 @@ test('an explicit rejected capture seeds a new design, recovers after capture an
     if (packet.taskId !== 'design-task') return { ...fallback, prompt: async () => {
       assert.ok(packet.rules.includes(ORDINARY_PLAN_AUTHORING_RULE));
       assert.match(config.systemPrompt, /finish each file or section before starting the next/);
+      assert.match(config.tools!.find(tool => tool.name === 'validate-game-design')!.description, /Write all listed outputs before calling/);
+      assert.match(packet.rules.join('\n'), /Write authors\/design\/design\.json with exactly/);
       const writer = config.tools!.find(tool => tool.name === 'write-game-design')!;
       await writer.execute('correct-summary', { operation: 'set', section: 'summary', value: '点击目标后显示完成' }, undefined, undefined, undefined as any);
       return { text: JSON.stringify({ summary: 'Corrected design summary', remaining: [], uncertainty: [] }) };
@@ -80,8 +82,12 @@ test('an explicit rejected capture seeds a new design, recovers after capture an
         const rules = packet.rules.join('\n');
         assert.doesNotMatch(rules, /First write authors\/design\/design.json|to establish the (structured design|acceptance plan) draft|write all outputs then/);
         assert.match(rules, /plan first/i);
+        assert.doesNotMatch(rules, /Write authors\/design\/(design|acceptance-plan)\.json with exactly/);
+        for (const name of ['design', 'acceptance-plan']) assert.ok(rules.includes(`Existing authors/design/${name}.json must have exactly`));
         assert.doesNotMatch(config.systemPrompt, /finish each file or section before starting the next/);
         const tool = (name: string) => config.tools!.find(item => item.name === name)!;
+        assert.doesNotMatch(tool('validate-game-design').description, /Write all listed outputs before calling/);
+        assert.match(tool('validate-game-design').description, /Check the existing files directly/);
         assert.doesNotMatch(tool('read').description, /first request the complete file/);
         assert.match(tool('write-game-plan').description, /seeded/);
         assert.match(tool('write-game-design').description, /seeded/);

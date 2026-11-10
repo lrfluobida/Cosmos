@@ -760,6 +760,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const preserveValidDraft = preservesValidDraft(ordinaryPlanAuthoringPolicy);
     const repairAcceptanceIds = repairsPlanAcceptanceIds(ordinaryPlanAuthoringPolicy);
     const check = createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard, preserveValidDraft, repairAcceptanceIds,
+      reviewedDraftAuthor: reviewedDraftAuthoring && original.taskId !== ordinaryRevisionTaskId,
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
       ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
     if (ordinary) designWriteChecks.set(original.taskId, { ...check, workspace: fixedWorkspace, attemptId: original.attempts.at(-1)?.attemptId });
@@ -1515,7 +1516,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Wrap each real instance play/resume as a narrow synchronous startup transaction, preserving this, arguments, return value and exceptions. During real applyConfig, MUTE then VOLUME can expose intermediate states after isPlaying becomes true: update facts but do not count them. Only after a successful real buffer-source start and successful method completion, settle the final committed immediate output-control state at most once. Initial volume=1 followed by play({volume:0}) counts zero, normal first play counts exactly one; successful replay or pause/resume may add one each, never one per intermediate event. An unsuccessful start cannot count merely because isPlaying=true. Outside the transaction, count each actual false-to-true output transition, including unmute/context resume; loops and repeated getters do not add counts. The transaction ends when play/resume returns: a following manager.mute=true is a separate event and cannot erase a prior activation. Internally playing while manager mute or volume=0 is allowed: started/playing may be true with outputActive=false and no activation.',
         'Independent coding review must trace each field and count to real media objects, connected output chain and actual successful events; reject constants, DOM labels, omitted instances, or business soundEnabled booleans used as audio evidence. Check play/resume transaction boundaries, manager event names and stop/pause/end/destroy handling. Additional native output paths, unobserved direct node writes or future gain automation need equivalent actual observations; otherwise report insufficient evidence. An event count alone does not establish human audibility of same-turn play then mute. Keep existing raw reports, media coverage and visible acceptance; final listening quality remains user experience.');
     }
-    if (reviewedDraftAuthoring) design.rules = reviewedDraftRules(design.rules!, 'initial');
+    if (reviewedDraftAuthoring) design.rules = reviewedDraftRules(design.rules!, 'initial', requirement.sources[0].location);
     const preAuthor = host.preAuthor;
     host.preAuthor = async (task, signal) => {
       await requireDispatch(task, signal); await preAuthor?.(task, signal);

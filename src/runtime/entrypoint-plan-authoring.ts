@@ -17,9 +17,12 @@ const ordinaryCheckPrefix = 'Before finishing, write all outputs then call ';
 const reviewedCheckPrefix = 'Before finishing, check the complete current outputs. Call ';
 
 /** Keep the original same-run revision instructions when deriving its task from a seeded initial task. */
-export function reviewedDraftRules(rules: string[], stage: 'initial' | 'revision'): string[] {
+export function reviewedDraftRules(rules: string[], stage: 'initial' | 'revision', requirementLocation: string): string[] {
+  const readRequirement = `Read ${requirementLocation}. `;
   const pairs = [[ORDINARY_PLAN_AUTHORING_RULE, REVIEWED_PLAN_RULE], [ORDINARY_DESIGN_AUTHORING_RULE, REVIEWED_DESIGN_RULE],
-    [ordinaryCheckPrefix, reviewedCheckPrefix]];
+    [ordinaryCheckPrefix, reviewedCheckPrefix],
+    [readRequirement + 'Write authors/design/design.json with exactly ', readRequirement + 'Existing authors/design/design.json must have exactly '],
+    [`Write ${ORDINARY_PLAN_SOURCE} with exactly `, `Existing ${ORDINARY_PLAN_SOURCE} must have exactly `]];
   return rules.map(rule => {
     for (const pair of pairs) {
       const [from, to] = stage === 'initial' ? pair : [pair[1], pair[0]];
