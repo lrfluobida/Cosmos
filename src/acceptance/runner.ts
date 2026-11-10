@@ -7,6 +7,7 @@ import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import type { EvidenceContract } from '../contracts/types.ts';
 import { input, observe, observeDebugScalars } from './browser.ts';
+import { observeLayout, observePixelPattern } from './visual-observations.ts';
 import type { ReadonlyMediaObservationRequest, MediaObservationSample } from './browser.ts';
 import { validatePlan } from './plan.ts';
 import type { AcceptancePlan, Scalar, Step } from './plan.ts';
@@ -188,10 +189,32 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     }
     if (lifecycle) report.browser.version = browser!.version();
     const origin = new URL(plan.url).origin;
+    let externalRequests = 0;
+    const blocked = (kind: 'request' | 'WebSocket', origin: string) => {
+      externalRequests++;
+      recordError(`Blocked non-project ${kind}: ${origin}`);
+    };
+    const checkNetwork = plan.steps.some(step => isCheck(step) && step.observation.kind === 'external-requests');
+    if (checkNetwork) {
+      // Playwright routes the first URL in an HTTP redirect chain. Keep later hops observable too.
+      context!.on('request', request => {
+        if (!request.redirectedFrom()) return;
+        const target = new URL(request.url());
+        if (['http:', 'https:'].includes(target.protocol) && target.origin !== origin) {
+          externalRequests++; recordError(`Non-project redirect request: ${target.origin}`);
+        }
+      });
+      await run(() => context!.routeWebSocket('**/*', async socket => {
+        const target = new URL(socket.url());
+        target.protocol = target.protocol === 'wss:' ? 'https:' : 'http:';
+        if (target.origin === origin) socket.connectToServer();
+        else { blocked('WebSocket', target.origin); await socket.close({ code: 1008, reason: 'Non-project origin' }); }
+      }), 2000, 'WebSocket route setup');
+    }
     await run(() => context!.route('**/*', async route => {
       const target = new URL(route.request().url());
       if (['data:', 'blob:'].includes(target.protocol) || target.origin === origin) await route.continue();
-      else { recordError(`Blocked non-project request: ${target.origin}`); await route.abort(); }
+      else { blocked('request', target.origin); await route.abort(); }
     }), 2000, 'Route setup');
     page = await run(() => context!.newPage(), 5000, 'Page creation'); video = page.video();
     if (lifecycle) {
@@ -210,6 +233,16 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     page.on('crash', () => recordError('Page crashed'));
     page.on('requestfailed', request => log('requestfailed', `${request.url()}: ${request.failure()?.errorText}`));
     const sourceSession = await run(() => context!.newCDPSession(page!), 5000, 'Exception source connection');
+    let networkGap = false;
+    if (checkNetwork) {
+      // Worker WebSockets bypass the page/frame WebSocket route. A partial count cannot certify an offline stage.
+      sourceSession.on('Target.targetCreated', ({ targetInfo }) => {
+        networkGap = true;
+        recordError(`External request evidence incomplete for Chromium ${targetInfo.type}`, 'unknown');
+      });
+      await run(() => sourceSession.send('Target.setDiscoverTargets', { discover: true,
+        filter: [{ type: 'worker' }, { type: 'shared_worker' }, { type: 'service_worker' }, { exclude: true }] }), 2000, 'Network target observation');
+    }
     sourceSession.on('Runtime.exceptionThrown', event => exceptions.push(event.exceptionDetails));
     await run(() => sourceSession.send('Runtime.enable'), 2000, 'Exception source setup');
     if (nativeSegment) {
@@ -227,6 +260,7 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     }
     for (const [index, step] of plan.steps.entries()) {
       const result = report.steps[index];
+      const screenshotName = `${String(index + 1).padStart(3, '0')}-${step.id}.png`;
       try {
         if (isCheck(step)) {
           const localDeadline = Date.now() + step.timeoutMs, checkDeadline = Math.min(deadline, localDeadline);
@@ -234,7 +268,20 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
           let lastError: string | null = null;
           do {
             try {
-              result.actual = await run(() => observe(page!, step.observation, Math.max(1, checkDeadline - Date.now())), checkDeadline - Date.now(), `Observation ${step.id}`);
+              result.actual = await run(async () => {
+                const observation = step.observation, timeout = Math.max(1, checkDeadline - Date.now());
+                if (observation.kind === 'external-requests') {
+                  if (networkGap) throw new Error('External request count unavailable for worker targets');
+                  return externalRequests;
+                }
+                if (observation.kind === 'layout') return observeLayout(sourceSession, observation.selectors);
+                if (observation.kind === 'pixel-pattern') {
+                  const pixels = await page!.screenshot({ path: join(directory, screenshotName), scale: 'css', timeout });
+                  if (!result.screenshot) { result.screenshot = path(screenshotName); report.files.push(result.screenshot); }
+                  return observePixelPattern(sourceSession, pixels, plan.viewport, observation);
+                }
+                return observe(page!, observation, timeout);
+              }, checkDeadline - Date.now(), `Observation ${step.id}`);
               result.observation.completed++; lastError = null;
             } catch (error) {
               if (error instanceof DeadlineError) {
@@ -271,7 +318,7 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
         }
       }
       log('step', JSON.stringify(result));
-      if (isCheck(step) || result.outcome === 'failed') result.screenshot = await screenshot(`${String(index + 1).padStart(3, '0')}-${step.id}.png`);
+      if (!result.screenshot && (isCheck(step) || result.outcome === 'failed')) result.screenshot = await screenshot(screenshotName);
       if (failureFacts.termination?.kind === 'project_mismatch') break;
     }
     if (options.mediaObservations && report.steps.every(row => row.outcome === 'passed') && !report.errors.length) {

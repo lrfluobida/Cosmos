@@ -171,7 +171,8 @@ export function validateBrowserScenario(draft: Pick<BrowserGameDraft, 'acceptanc
   }
   for (const item of gameplay) {
     if (!stages.some(steps => steps.some((step, index) => (step.kind === 'assert' || step.kind === 'wait-for') && step.acceptanceId === item.acceptanceId
-      && step.observation.kind !== 'debug' && steps.slice(0, index).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind))))) {
+      && step.observation.kind !== 'debug' && step.observation.kind !== 'external-requests'
+      && steps.slice(0, index).some(previous => ['mouse-click', 'locator-click'].includes(previous.kind))))) {
       throw new Error(`Unsupported acceptance ${item.acceptanceId}: require player input followed by a visible assertion.`);
     }
   }

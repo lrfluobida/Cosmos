@@ -90,7 +90,18 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
       for (const step of stage.steps) {
         if (step.kind === 'locator-click') lines.push(`- 点击界面目标 ${step.selector}`);
         else if (step.kind === 'mouse-click' || step.kind === 'mouse-move') lines.push(`- ${step.kind === 'mouse-click' ? '点击' : '移动鼠标到'} ${step.selector ?? '画面'}（${step.x}, ${step.y}）`);
-        else if (step.kind === 'assert' || step.kind === 'wait-for') lines.push(`- ${step.kind === 'wait-for' ? '等待并检查' : '检查'} ${step.observation.kind === 'debug' ? `辅助观测 ${step.observation.path.join('.')}` : `界面 ${step.observation.selector}`}：应为 ${String(step.expected)}`);
+        else if (step.kind === 'assert' || step.kind === 'wait-for') {
+          const observation = step.observation;
+          let label: string;
+          switch (observation.kind) {
+            case 'debug': label = `辅助观测 ${observation.path.join('.')}`; break;
+            case 'layout': label = `布局 ${observation.selectors.join('、')}`; break;
+            case 'pixel-pattern': label = `画面色形 ${JSON.stringify(observation)}`; break;
+            case 'external-requests': label = '外部请求次数'; break;
+            default: label = `界面 ${observation.selector}`;
+          }
+          lines.push(`- ${step.kind === 'wait-for' ? '等待并检查' : '检查'} ${label}：应为 ${String(step.expected)}`);
+        }
       }
     }
   }

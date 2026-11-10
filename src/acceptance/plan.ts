@@ -1,7 +1,9 @@
 import type { ArtifactReference } from '../contracts/types.ts';
 
 export type Scalar = string | number | boolean | null;
-export type Observation = { kind: 'debug'; path: string[] } | { kind: 'text'; selector: string } | { kind: 'visible'; selector: string };
+export type PixelPattern = { kind: 'pixel-pattern'; x: number; y: number; width: number; height: number; color: string; tolerance: number; rows: string[] };
+export type Observation = { kind: 'debug'; path: string[] } | { kind: 'text'; selector: string } | { kind: 'visible'; selector: string }
+  | PixelPattern | { kind: 'layout'; selectors: string[] } | { kind: 'external-requests' };
 export type Step = { id: string } & (
   | { kind: 'mouse-click' | 'mouse-move'; x: number; y: number; selector?: string }
   | { kind: 'locator-click'; selector: string; timeoutMs: number }
@@ -89,6 +91,25 @@ export function validatePlan(value: unknown): string[] {
         keys(observation, ['kind', 'selector'], path);
         fail(path, text(observation.selector), 'Expected a selector');
         if (observation.kind === 'visible') fail(path, typeof step.expected === 'boolean', 'Visibility expects a boolean');
+      } else if (observation.kind === 'external-requests') {
+        keys(observation, ['kind'], path);
+        fail(path, Number.isSafeInteger(step.expected) && step.expected >= 0, 'Expected a nonnegative external request count');
+      } else if (observation.kind === 'layout') {
+        keys(observation, ['kind', 'selectors'], path);
+        const selectors = observation.selectors;
+        fail(path, Array.isArray(selectors) && selectors.length >= 2 && selectors.length <= 32 && selectors.every(text)
+          && new Set(selectors).size === selectors.length, 'Expected 2..32 distinct CSS selectors');
+        fail(path, typeof step.expected === 'boolean', 'Layout expects a boolean');
+      } else if (observation.kind === 'pixel-pattern') {
+        keys(observation, ['kind', 'x', 'y', 'width', 'height', 'color', 'tolerance', 'rows'], path);
+        const { x, y, width, height, color, tolerance, rows } = observation;
+        fail(path, integer(x, 0, 4095) && integer(y, 0, 4095) && integer(width, 1, 4096) && integer(height, 1, 4096)
+          && x + width <= value.viewport?.width && y + height <= value.viewport?.height, 'Pixel region must fit inside the CSS viewport');
+        fail(path, typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color) && integer(tolerance, 0, 96), 'Expected #RRGGBB and tolerance 0..96');
+        fail(path, Array.isArray(rows) && rows.length > 0 && rows.length <= Math.min(16, height)
+          && rows.every(row => typeof row === 'string' && /^[.+-]{1,16}$/.test(row) && row.length <= width && row.length === rows[0]?.length)
+          && rows.some(row => /[+-]/.test(row)), 'Expected a rectangular grid with at least one constrained cell and at most 16x16 cells');
+        fail(path, typeof step.expected === 'boolean', 'Pixel pattern expects a boolean');
       } else issues.push(`${path}: Unknown observation kind`);
     } else issues.push(`${path}: Unsupported step kind`);
   });
