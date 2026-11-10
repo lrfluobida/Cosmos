@@ -14108,11 +14108,11 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
+      "parentCheckboxChecked": true,
       "dependsOn": ["COS-181"],
       "nativeDependenciesLinked": true,
-      "state": "open",
-      "scopedComplete": false,
+      "state": "closed",
+      "scopedComplete": true,
       "implementer": "handoff_implementer",
       "reviewer": "handoff_reviewer",
       "merger": "batch_merger",
@@ -14121,8 +14121,9 @@
       "sourceReviewedCommit": "52ad1987860e65565063fa6298cd84bf377a0318",
       "sourceIntegratedCommit": "51cde1c123d7305888e63e5a306efd1ff82e53f8",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6763189627",
-      "verification": "Merged src and tests match the reviewed commit. Main CLI build passed. Reused provider 40/40, runtime 2/2 and typecheck. Offline R34 quote at 94576 bytes and 203105 micro-CNY available: 1744 outputs cost 203104, 1745 cost 203112. R35 stopped on provider_output_truncated before a budget handoff. Actual generated handoff and reopen remain unverified.",
-      "actualRunComment": "https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6764577422"
+      "verification": "Merged src and tests match the reviewed commit. Main CLI build passed. Reused provider 40/40, runtime 2/2 and typecheck. Offline R34 quote at 94576 bytes and 203105 micro-CNY available: 1744 outputs cost 203104, 1745 cost 203112. R35 stopped on provider_output_truncated before a budget handoff. R36 confirmed the actual handoff; playable reopen remains unverified.",
+      "actualRunComment": "https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6765384158",
+      "closure": "R36 chose 1641 output tokens and completed one read-only handoff using 1050 output tokens."
     },
     {
       "taskId": "COS-185",
@@ -14134,9 +14135,9 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "implementer": "reviewed_seed_implementer",
       "reviewer": "reviewed_seed_reviewer",
       "merger": "stage_merger",
@@ -14145,10 +14146,28 @@
       "sourceReviewedCommit": "aca027a3e2729095edd2ef1ecc989ea4d28aa046",
       "sourceIntegratedCommit": "35c5e6fac8a61d619e5ef9a42628530c4f819dbe",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/186#issuecomment-6764972968",
-      "verification": "Main build passed. Scripted CLI test 1/1 passed with native Windows TEMP. Compiled reader returned 10 findings, 147 main and 47 reopen steps from R29/v2. Live revision and review remain pending."
+      "verification": "Main build passed. Scripted CLI test 1/1 passed with native Windows TEMP. Compiled reader returned 10 findings, 147 main and 47 reopen steps from R29/v2. R36 imported both artifacts and the findings, captured a changed design with the same plan and reached its own independent review. Review bindings failed; no downstream execution.",
+      "actualRunComment": "https://github.com/lrfluobida/Cosmos/issues/186#issuecomment-6765384893"
+    },
+    {
+      "taskId": "COS-186",
+      "title": "让独审显式引用主机固定的输入版本清单",
+      "number": 187,
+      "id": 6305282919,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/187",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "implementer": "review_binding_implementer",
+      "reviewer": "review_binding_reviewer",
+      "merger": "stage_merger"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 185,
+  "totalTaskCount": 186,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

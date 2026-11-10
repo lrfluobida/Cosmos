@@ -2565,11 +2565,19 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 R35 在设计作者输出截断时停止，本次未触发预算收尾。真实收尾回复仍待验证。 [R35 观察](https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6764577422)
 
+R36 实际触发一次只读收尾，所选上限 1641 个输出 token，成功返回并使用 1050 个。COS184 按此范围结案。 [R36 结案](https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6765384158)
+
 ### COS-185 · 在新运行中按已封存设计的独审意见修订
 
 在同一原始确认下，核对已封存设计、执行计划与针对该版的独审修改意见，供新运行从这些输入开始修订。新运行使用自己的授权、预算、期限、作者和独审流程。R29/v2 有封存产物及审查意见，R34 缺少捕获。 [COS185 / #186](https://github.com/lrfluobida/Cosmos/issues/186)
 
 作者 `aca027a3e2729095edd2ef1ecc989ea4d28aa046` 经独审批准并合入 `35c5e6fac8a61d619e5ef9a42628530c4f819dbe`。主线构建与脚本化 CLI 用例通过。编译版从 R29/v2 读到 10 条审查意见、重开前 147 步与重开后 47 步；真实修订与新独审待验证。 [源码和回执读取记录](https://github.com/lrfluobida/Cosmos/issues/186#issuecomment-6764972968)
+
+R36 从 R29/v2 的捕获与意见修订出新设计，原计划字节相同。两次独审均要求修改，输入版本绑定校验未通过，下游未启动。COS185 按已验证的新运行修订入口与独审范围结案。 [R36 结案](https://github.com/lrfluobida/Cosmos/issues/186#issuecomment-6765384893)
+
+### COS-186 · 让独审显式引用主机固定的输入版本清单
+
+R36 暴露了独审重复抄写清单产生的顶层与逐条证据绑定错误。使独审可显式引用本任务固定的 `inputVersions`，展开后仍走现有严格校验。错误数组继续拒绝，由独审提供结论和证据。 [COS186 / #187](https://github.com/lrfluobida/Cosmos/issues/187)
 
 ## 5. 任务与上下文包模板
 

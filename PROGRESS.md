@@ -4,6 +4,14 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R36 在 `0ea27ed72df64c3b13fc2c8efae8f235b31950b4` 上使用 R29/v2 封存的设计、含重开前 147 步和重开后 47 步的计划，以及针对该版的 10 条独审意见。新作者修正了金钥匙与底部控件重叠及最近保存提示的措辞，新捕获的设计稿有变更，执行计划字节相同。只读收尾选定上限 1641 个输出 token，实际使用 1050 个并成功返回。COS184 和 COS185 均按各自范围结案。 [收尾回执](https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6765384158) · [新捕获与独审](https://github.com/lrfluobida/Cosmos/issues/186#issuecomment-6765384893)
+
+R36 停在独立设计审查。两次独审输出均要求修改，首次顶层输入清单多出两个引用，第二次顶层已纠正，但 `host_evidence` 第 10 和 11 行仍与主机固定输入不符。未启动正式设计修订、美术或编码，未交付可玩游戏。COS186 跟进显式引用本次固定输入版本清单。 [COS186 任务](https://github.com/lrfluobida/Cosmos/issues/187)
+
+R36 生成与清理用时 520053 ms，结果 `CLOSED_INCOMPLETE`。20 笔合计 ¥0.812871，释放 ¥4.187129；结算后 child 96、shared 3440，累计已付 ¥43.566695、占用 ¥0.480004，R30 费用待核。已清理本次 E 盘临时目录，保留 `.cosmos/public-validation/room-20261110-reuse-36/` 下的产物和回执。 [R36 结算](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6765385520)
+
+## R35 与 2026-11-10 的源码集成记录
+
 R35 在 `a1c4de492354890d40e888ed716fd06e8228dac3` 上复用已确认的 room12 v2。生成与清理用时 518707 ms。设计作者已写入设计稿，随后因 `provider_output_truncated` 停止，未完成执行验收计划，也未触发 COS184 预算收尾。美术、编码和可玩候选均未产出。11 笔实际费用合计 ¥0.648517，释放 ¥4.351483。独立核对结算后 child 57、shared 3438，累计已付 ¥42.753824、占用 ¥0.480004，阶段额度 ¥50；R30 费用仍待核。回执保存在 `.cosmos/public-validation/room-20261110-reuse-35/`。 [R35 运行与结算](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6764576620) · [COS184 真实观察](https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6764577422)
 
 阶段清理规则经独审后合入 `8be989f06f99a572000d4fda72812d1d3ad9d42b`，合入树与作者 `e693a4b4a88817b7fd4ed60b40a9d2d70f0b0e57` 的树一致。C 盘清除 19 份历史依赖和 2 个空目录，共 53,086 个文件、3,908,542,725 字节（3.64 GiB），同期可用空间增加 3.76 GiB。保留运行、账本和验证证据；已清理 R35 的 E 盘临时目录及已合并且干净的规则实现工作树。 [阶段清理记录](https://github.com/lrfluobida/Cosmos/issues/184#issuecomment-6764575709)
