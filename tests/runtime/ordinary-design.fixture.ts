@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Readable, Writable } from 'node:stream';
 import type { TestContext } from 'node:test';
+import { removeOwned } from '../../src/artifacts/paths.ts';
 import { createBrowserHost, createProductHost } from '../../src/runtime/entrypoint-host.ts';
 import { runProductSession } from '../../src/cli/session.ts';
 import { withHostStages } from '../../src/roles/requirements.ts';
@@ -25,7 +26,10 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
   mediaPolicy?: 'audio-state/1'; configure?: (draft: OrdinaryGameDraft, scenario: BrowserScenario) => void;
   limits?: Parameters<typeof runProductSession>[0]['limits'];
   sessionFactory?: (config: PiSessionOptions, fallback: RoleSession) => Promise<RoleSession> } = {}) {
-  const root = await mkdtemp(join(tmpdir(), 'cos112-')), modular = !!options.modular, fault = options.fault ?? '';
+  const parent = tmpdir(), root = await mkdtemp(join(parent, 'cos112-')), modular = !!options.modular, fault = options.fault ?? '';
+  const keepEvidence = !!process.env.COSMOS_KEEP_EVIDENCE;
+  if (keepEvidence) t.diagnostic(`SOURCE only; fake provider/browser; ${root}`);
+  else t.after(() => removeOwned(parent, root));
   const id = modular ? 'count' : 'light', selector = modular ? '#counter' : '#light';
   const draft: OrdinaryGameDraft = withHostStages({ ordinaryProfile: 'ordinary-design/1', brief: modular ? '鼠标增加计数' : '鼠标点亮目标',
     questions: [{ id: 'goal', prompt: '操作目标？' }], answers: { goal: '点击后显示完成' }, unsupported: [], ...(modular ? { codeProfile: 'modular-code/1' as const } : {}),
@@ -69,7 +73,9 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
     },
     async playPersistent(series: any, args: any, authority: any) {
       plays.push({ series: structuredClone(series), options: structuredClone({ deadlineAt: args.deadlineAt, segmentRenderFrames: args.segmentRenderFrames }), authority: structuredClone(authority) });
-      return ordinaryPersistentReport(series, args);
+      const report = await ordinaryPersistentReport(series, args), { profileRoot } = report;
+      if (profileRoot && !keepEvidence) t.after(() => removeOwned(parent, profileRoot));
+      return report;
     },
   } as any, sessionFactory: async config => {
     const packet = JSON.parse(config.context!), taskId = packet.taskId; packets.push(packet);
@@ -188,6 +194,5 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
   let output = ''; const sink = new Writable({ write(chunk, _encoding, done) { output += chunk; done(); } });
   const execute = () => runProductSession({ command: 'new', root, brief: draft.brief, host, ...(options.limits ? { limits: options.limits } : {}), ...(options.renderFrames ? { renderFrames: true } : {}),
     input: Readable.from([`点击后显示完成\n${options.persistent || options.classic ? '正常保存并关闭浏览器进程后恢复。\n' : ''}confirm 1\n`]), output: sink });
-  t.after(() => { t.diagnostic(`SOURCE only; fake provider/browser; ${root}`); });
   return { root, draft, scenario, packets, plays, checks, execute, host, hostOptions, output: () => output };
 }

@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough, Readable } from 'node:stream';
 import test from 'node:test';
-import { removeOwned } from '../../src/artifacts/paths.ts';
 import { loadExperienceBinding, publishGenerationReport, readCompletedGeneration, readExperienceStatus } from '../../src/runtime/experience.ts';
 import { runCli } from '../../src/cli/index.ts';
 import { readRunSnapshot } from '../../src/cli/control.ts';
@@ -14,7 +12,6 @@ import { ordinaryHostFixture } from '../runtime/ordinary-design.fixture.ts';
 
 async function fixture(t: test.TestContext) {
   const generated = await ordinaryHostFixture(t, { productionDefault: true }), { root, draft } = generated;
-  t.after(() => removeOwned(tmpdir(), root));
   const report: any = await generated.execute();
   const failure = !report.acceptedCandidate ? JSON.parse(await readFile(join(root, 'evidence/coding-task/host-report.json'), 'utf8')).evidence.summary : undefined;
   assert.ok(report.acceptedCandidate, JSON.stringify({ gaps: report.gaps, failure }));

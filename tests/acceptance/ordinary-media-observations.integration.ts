@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { after, before, test } from 'node:test';
 import type { TestContext } from 'node:test';
+import { removeOwned } from '../../src/artifacts/paths.ts';
 import type { BrowserScenario } from '../../src/roles/requirements.ts';
 import type { Step as PlanStep } from '../../src/acceptance/plan.ts';
 import { createGenericPersistentSeries, verifyGenericPersistentEvidence } from '../../src/runtime/entrypoint-persistent.ts';
@@ -21,6 +22,7 @@ import { synthesizeWav } from '../../src/media/audio.ts';
 import type { MediaMetadata } from '../../src/artifacts/types.ts';
 
 let buildRoot: string, url: string, server: ReturnType<typeof createServer>, media: MediaMetadata;
+const parent = tmpdir(), keepEvidence = !!process.env.COSMOS_KEEP_EVIDENCE;
 const ids = ['prototype', 'constructor', 'a-b', 'bgm-soft']; // Art order intentionally differs from the design's BGM-first order.
 const json = async (path: string) => JSON.parse(await readFile(path, 'utf8'));
 function command(args: string[], cwd: string) {
@@ -32,7 +34,7 @@ function command(args: string[], cwd: string) {
   });
 }
 before(async () => {
-  buildRoot = await mkdtemp(join(tmpdir(), 'cos133-media-'));
+  buildRoot = await mkdtemp(join(parent, 'cos133-media-'));
   const template = resolve(process.env.COSMOS_TEMPLATE_ROOT ?? fileURLToPath(new URL('../../templates/2d', import.meta.url)));
   const repositoryTemplate = fileURLToPath(new URL('../../templates/2d', import.meta.url));
   assert.deepEqual(await readFile(join(template, 'package-lock.json')), await readFile(join(repositoryTemplate, 'package-lock.json')));
@@ -73,8 +75,14 @@ before(async () => {
   const address = server.address(); assert.ok(address && typeof address !== 'string'); url = `http://127.0.0.1:${address.port}`;
 });
 after(async () => {
-  if (server) await new Promise<void>(done => { server.closeAllConnections(); server.close(() => done()); });
-  if (buildRoot) await writeFile(join(buildRoot, 'server-cleanup.json'), JSON.stringify({ listening: server?.listening ?? false, providerCalls: 0 }), 'utf8');
+  try {
+    if (server) await new Promise<void>(done => { server.closeAllConnections(); server.close(() => done()); });
+  } finally {
+    if (buildRoot) {
+      if (keepEvidence) await writeFile(join(buildRoot, 'server-cleanup.json'), JSON.stringify({ listening: server?.listening ?? false, providerCalls: 0 }), 'utf8');
+      else await removeOwned(parent, buildRoot);
+    }
+  }
 });
 
 function scenario(overwriteSave: boolean): BrowserScenario {
@@ -140,12 +148,14 @@ async function run(t: TestContext, fault = '') {
       verifyBinding: async () => controller.signal.throwIfAborted(), ownedChild: { prepare: async launch => {
         const handle = await owned.prepare(launch); return { ...handle, register: async (pid, lifetime) => { pids.push(pid); await handle.register(pid, lifetime); } };
       } } });
+    const { profileRoot } = report;
+    if (profileRoot && !keepEvidence) t.after(() => removeOwned(parent, profileRoot));
     await work.cancelAndDrain('Source media test complete');
     assert.ok(pids.length > 0); assert.ok(pids.every(browserProcessAbsent));
     assert.ok(report.segments.every(segment => segment.report.cleanup.processExited && segment.report.session?.exitConfirmed));
     assert.deepEqual((await controller.read()).ledger.entries, []);
     await writeFile(join(root, 'summary.json'), JSON.stringify({ fault, buildRoot, providerCalls: 0, pids, absent: pids.map(browserProcessAbsent), report }, null, 2), 'utf8');
-    t.diagnostic('SOURCE real Phaser/Edge evidence: ' + root);
+    if (keepEvidence) t.diagnostic('SOURCE real Phaser/Edge evidence: ' + root);
     return { root, report, series, evidenceRoot, manifestSha256, deadlineAt, ref, pids };
   } finally { await work.cancelAndDrain('Source fixture final cleanup'); await controller.close(); }
 }
