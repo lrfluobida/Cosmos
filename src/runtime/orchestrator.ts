@@ -481,13 +481,13 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       if (!sameValue(task, (await controller.read()).tasks.find(t => t.taskId === task.taskId))) await save(task);
       signal.throwIfAborted();
       failureStage = 'independent_review';
-      const parseVerdict = (text: string) => designConcerns ? parseDesignConcernReview(text, task, requirement, designConcerns, parseReview)
+      const parseVerdict = (text: string, source: 'receipt' | 'model_reply') => designConcerns ? parseDesignConcernReview(text, task, requirement, designConcerns, parseReview, source)
         : codingConcerns ? parseCodingConcernReview(text, task, requirement, codingConcerns, parseReview) : parseReview(text, task);
       type ReviewReceipt = { verdict: ReviewProposal | DesignReviewProposal; reviewerId: string; contextId: string; completedAt: string; signature: ContentSignature };
       let review = continuing ? await journal!.read<ReviewReceipt>('review', attemptId) : null;
       if (review) {
         try {
-          parseVerdict(JSON.stringify(review.verdict));
+          parseVerdict(JSON.stringify(review.verdict), 'receipt');
           if (!review.reviewerId?.trim() || !review.contextId?.trim() || review.reviewerId === task.authorId || review.contextId === task.context.contextId
             || !Number.isFinite(Date.parse(review.completedAt)) || new Date(review.completedAt).toISOString() !== review.completedAt) throw new Error();
           const started = await journal!.read<{ reviewerId: string; contextId: string }>('review-started', attemptId);
@@ -510,7 +510,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         if (journal) await journal.write('review-started', attemptId, { reviewerId: reviewer.actorId, contextId: reviewer.contextId });
         const verdict = await requestReview({ reviewer, controller, taskId: task.taskId, signal, now: options.now, validation: options.validation ? { binding: options.validation, requirement } : undefined,
           attemptId, correctionRecordPath: join(directory, 'review-correction.json'),
-          maxCorrections: options.reviewProtocolCorrections ?? 0, parse: parseVerdict,
+          maxCorrections: options.reviewProtocolCorrections ?? 0, parse: text => parseVerdict(text, 'model_reply'),
           ...(designConcerns || codingConcerns ? { correctionPrompt: `${designConcerns ? designConcernReviewProtocol : codingConcernReviewProtocol} This is the only protocol correction allowed in this same reviewer session.` } : {}),
           prompt: `Review the frozen outputs against the supplied acceptance and host evidence. ${designConcerns ? designConcernReviewProtocol : codingConcerns ? codingConcernReviewProtocol : 'Return the required JSON.'} Image sources in attachment order: ${JSON.stringify(images.map(item => item.source))}`,
           images: images.length ? images.map(item => item.image) : undefined });
