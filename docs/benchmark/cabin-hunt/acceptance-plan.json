@@ -290,34 +290,91 @@
         "timeoutMs": 10000
       },
       {
-        "id": "s019-item-crystal",
+        "id": "s019-crystal-pixels",
         "kind": "assert",
         "acceptanceId": "initial-no-save-state",
         "observation": {
-          "kind": "visible",
-          "selector": "#item-crystal"
+          "kind": "pixel-pattern",
+          "x": 420,
+          "y": 420,
+          "width": 96,
+          "height": 96,
+          "color": "#3684DF",
+          "tolerance": 25,
+          "rows": [
+            "------------",
+            "-----..-----",
+            "----.++.----",
+            "---.++++.---",
+            "--.++++++.--",
+            "-.++++++++.-",
+            "-.++++++++.-",
+            "--.++++++.--",
+            "---.++++.---",
+            "----.++.----",
+            "-----..-----",
+            "------------"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
       },
       {
-        "id": "s020-item-key",
+        "id": "s020-key-pixels",
         "kind": "assert",
         "acceptanceId": "initial-no-save-state",
         "observation": {
-          "kind": "visible",
-          "selector": "#item-key"
+          "kind": "pixel-pattern",
+          "x": 600,
+          "y": 470,
+          "width": 96,
+          "height": 96,
+          "color": "#E3AF30",
+          "tolerance": 25,
+          "rows": [
+            "------------",
+            "------------",
+            "-.++.-------",
+            ".++++.------",
+            ".+.-+++++++.",
+            ".+.-+++++++.",
+            ".++++.--+.+.",
+            "-.++.---....",
+            "------------",
+            "------------",
+            "------------",
+            "------------"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
       },
       {
-        "id": "s021-item-gear",
+        "id": "s021-gear-pixels",
         "kind": "assert",
         "acceptanceId": "initial-no-save-state",
         "observation": {
-          "kind": "visible",
-          "selector": "#item-gear"
+          "kind": "pixel-pattern",
+          "x": 780,
+          "y": 420,
+          "width": 96,
+          "height": 96,
+          "color": "#CE493E",
+          "tolerance": 25,
+          "rows": [
+            "-----..-----",
+            "--.--++--.--",
+            "-.++++++++.-",
+            "--++++++++--",
+            "--++++++++--",
+            ".++++--++++.",
+            ".++++--++++.",
+            "--++++++++--",
+            "--++++++++--",
+            "-.++++++++.-",
+            "--.--++--.--",
+            "-----..-----"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
@@ -444,34 +501,53 @@
         "timeoutMs": 10000
       },
       {
-        "id": "s033-hud-visible",
+        "id": "s033-room-layout",
         "kind": "assert",
         "acceptanceId": "mouse-only-chinese-local-no-timing",
         "observation": {
-          "kind": "visible",
-          "selector": "#hud"
+          "kind": "layout",
+          "selectors": [
+            "#progress-text",
+            "#collected-list",
+            "#last-save-text",
+            "#door-state",
+            "#door",
+            "#btn-save",
+            "#btn-continue",
+            "#btn-restart",
+            "#btn-sound",
+            "#item-crystal .item-hit",
+            "#item-crystal .item-name",
+            "#item-key .item-hit",
+            "#item-key .item-name",
+            "#item-gear .item-hit",
+            "#item-gear .item-name"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
       },
       {
-        "id": "s034-door",
+        "id": "s034-closed-door-pixels",
         "kind": "assert",
         "acceptanceId": "mouse-only-chinese-local-no-timing",
         "observation": {
-          "kind": "visible",
-          "selector": "#door"
-        },
-        "expected": true,
-        "timeoutMs": 10000
-      },
-      {
-        "id": "s035-controls",
-        "kind": "assert",
-        "acceptanceId": "mouse-only-chinese-local-no-timing",
-        "observation": {
-          "kind": "visible",
-          "selector": "#controls"
+          "kind": "pixel-pattern",
+          "x": 1080,
+          "y": 250,
+          "width": 130,
+          "height": 210,
+          "color": "#A56536",
+          "tolerance": 18,
+          "rows": [
+            "-----",
+            "-+++-",
+            "-+++-",
+            "-+++-",
+            "-+++-",
+            "-+++-",
+            "-----"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
@@ -521,12 +597,12 @@
         "timeoutMs": 10000
       },
       {
-        "id": "s040-no-timer-health-or-loss-text",
+        "id": "s040-no-timer-health-loss-or-foreign-text",
         "kind": "assert",
         "acceptanceId": "mouse-only-chinese-local-no-timing",
         "observation": {
           "kind": "visible",
-          "selector": "#stage :text-matches(\"倒计时|剩余时间|生命值|游戏失败|惩罚\")"
+          "selector": "body :text-matches(\"倒计时|剩余时间|时间剩余|限时|时间限制|生命值|游戏失败|惩罚|[0-9]{1,2}[：:][0-5][0-9]|[A-Za-z]\"):visible, body [role=timer]:visible"
         },
         "expected": false,
         "timeoutMs": 10000
@@ -938,12 +1014,12 @@
         "timeoutMs": 10000
       },
       {
-        "id": "s075-victory-panel",
+        "id": "s075-no-victory-timer-or-loss",
         "kind": "assert",
         "acceptanceId": "locked-door-before-complete",
         "observation": {
           "kind": "visible",
-          "selector": "#victory-panel"
+          "selector": "#victory-panel:visible, body :text-matches(\"倒计时|剩余时间|时间剩余|限时|时间限制|生命值|游戏失败|惩罚|[0-9]{1,2}[：:][0-5][0-9]|[A-Za-z]\"):visible, body [role=timer]:visible"
         },
         "expected": false,
         "timeoutMs": 10000
@@ -1498,45 +1574,89 @@
         "timeoutMs": 10000
       },
       {
-        "id": "s125-btn-save-enabled",
+        "id": "s125-victory-layout-and-controls",
         "kind": "assert",
         "acceptanceId": "open-door-victory",
         "observation": {
-          "kind": "visible",
-          "selector": "#btn-save:enabled"
+          "kind": "layout",
+          "selectors": [
+            "#progress-text",
+            "#collected-list",
+            "#last-save-text",
+            "#door-state",
+            "#door",
+            "#btn-save:enabled",
+            "#btn-continue:enabled",
+            "#btn-restart:enabled",
+            "#btn-sound:enabled",
+            "#victory-panel"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
       },
       {
-        "id": "s126-btn-continue-enabled",
+        "id": "s126-open-door-pixels",
         "kind": "assert",
         "acceptanceId": "open-door-victory",
         "observation": {
-          "kind": "visible",
-          "selector": "#btn-continue:enabled"
+          "kind": "pixel-pattern",
+          "x": 1080,
+          "y": 250,
+          "width": 130,
+          "height": 210,
+          "color": "#453144",
+          "tolerance": 18,
+          "rows": [
+            "-----",
+            "-+++-",
+            "-+++-",
+            "-+++-",
+            "-+++-",
+            "-+++-",
+            "-----"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
       },
       {
-        "id": "s127-btn-restart-enabled",
+        "id": "s127-no-timer-health-loss-or-foreign-text",
         "kind": "assert",
-        "acceptanceId": "open-door-victory",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
         "observation": {
           "kind": "visible",
-          "selector": "#btn-restart:enabled"
+          "selector": "body :text-matches(\"倒计时|剩余时间|时间剩余|限时|时间限制|生命值|游戏失败|惩罚|[0-9]{1,2}[：:][0-5][0-9]|[A-Za-z]\"):visible, body [role=timer]:visible"
         },
-        "expected": true,
+        "expected": false,
         "timeoutMs": 10000
       },
       {
-        "id": "s128-btn-sound-enabled",
+        "id": "s128-empty-gear-pixels",
         "kind": "assert",
         "acceptanceId": "open-door-victory",
         "observation": {
-          "kind": "visible",
-          "selector": "#btn-sound:enabled"
+          "kind": "pixel-pattern",
+          "x": 780,
+          "y": 420,
+          "width": 96,
+          "height": 96,
+          "color": "#CE493E",
+          "tolerance": 25,
+          "rows": [
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "------------",
+            "------------"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
@@ -1903,34 +2023,91 @@
         "timeoutMs": 10000
       },
       {
-        "id": "s156-item-crystal",
+        "id": "s156-crystal-pixels",
         "kind": "assert",
         "acceptanceId": "restart-clears-progress-and-save",
         "observation": {
-          "kind": "visible",
-          "selector": "#item-crystal"
+          "kind": "pixel-pattern",
+          "x": 420,
+          "y": 420,
+          "width": 96,
+          "height": 96,
+          "color": "#3684DF",
+          "tolerance": 25,
+          "rows": [
+            "------------",
+            "-----..-----",
+            "----.++.----",
+            "---.++++.---",
+            "--.++++++.--",
+            "-.++++++++.-",
+            "-.++++++++.-",
+            "--.++++++.--",
+            "---.++++.---",
+            "----.++.----",
+            "-----..-----",
+            "------------"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
       },
       {
-        "id": "s157-item-key",
+        "id": "s157-key-pixels",
         "kind": "assert",
         "acceptanceId": "restart-clears-progress-and-save",
         "observation": {
-          "kind": "visible",
-          "selector": "#item-key"
+          "kind": "pixel-pattern",
+          "x": 600,
+          "y": 470,
+          "width": 96,
+          "height": 96,
+          "color": "#E3AF30",
+          "tolerance": 25,
+          "rows": [
+            "------------",
+            "------------",
+            "-.++.-------",
+            ".++++.------",
+            ".+.-+++++++.",
+            ".+.-+++++++.",
+            ".++++.--+.+.",
+            "-.++.---....",
+            "------------",
+            "------------",
+            "------------",
+            "------------"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
       },
       {
-        "id": "s158-item-gear",
+        "id": "s158-gear-pixels",
         "kind": "assert",
         "acceptanceId": "restart-clears-progress-and-save",
         "observation": {
-          "kind": "visible",
-          "selector": "#item-gear"
+          "kind": "pixel-pattern",
+          "x": 780,
+          "y": 420,
+          "width": 96,
+          "height": 96,
+          "color": "#CE493E",
+          "tolerance": 25,
+          "rows": [
+            "-----..-----",
+            "--.--++--.--",
+            "-.++++++++.-",
+            "--++++++++--",
+            "--++++++++--",
+            ".++++--++++.",
+            ".++++--++++.",
+            "--++++++++--",
+            "--++++++++--",
+            "-.++++++++.-",
+            "--.--++--.--",
+            "-----..-----"
+          ]
         },
         "expected": true,
         "timeoutMs": 10000
@@ -2414,6 +2591,16 @@
         },
         "expected": 1,
         "timeoutMs": 10000
+      },
+      {
+        "id": "s201-external-requests",
+        "kind": "assert",
+        "acceptanceId": "mouse-only-chinese-local-no-timing",
+        "observation": {
+          "kind": "external-requests"
+        },
+        "expected": 0,
+        "timeoutMs": 10000
       }
     ],
     "reopen": {
@@ -2719,23 +2906,33 @@
           "timeoutMs": 10000
         },
         {
-          "id": "r020-controls",
+          "id": "r020-room-layout",
           "kind": "assert",
           "acceptanceId": "mouse-only-chinese-local-no-timing",
           "observation": {
-            "kind": "visible",
-            "selector": "#controls"
+            "kind": "layout",
+            "selectors": [
+              "#progress-text",
+              "#collected-list",
+              "#last-save-text",
+              "#door-state",
+              "#door",
+              "#btn-save",
+              "#btn-continue",
+              "#btn-restart",
+              "#btn-sound"
+            ]
           },
           "expected": true,
           "timeoutMs": 10000
         },
         {
-          "id": "r021-no-timer-health-or-loss-text",
+          "id": "r021-no-timer-health-loss-or-foreign-text",
           "kind": "assert",
           "acceptanceId": "mouse-only-chinese-local-no-timing",
           "observation": {
             "kind": "visible",
-            "selector": "#stage :text-matches(\"倒计时|剩余时间|生命值|游戏失败|惩罚\")"
+            "selector": "body :text-matches(\"倒计时|剩余时间|时间剩余|限时|时间限制|生命值|游戏失败|惩罚|[0-9]{1,2}[：:][0-5][0-9]|[A-Za-z]\"):visible, body [role=timer]:visible"
           },
           "expected": false,
           "timeoutMs": 10000
@@ -2955,12 +3152,102 @@
           "timeoutMs": 10000
         },
         {
+          "id": "r038a-empty-crystal-pixels",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "pixel-pattern",
+            "x": 420,
+            "y": 420,
+            "width": 96,
+            "height": 96,
+            "color": "#3684DF",
+            "tolerance": 25,
+            "rows": [
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r038b-empty-key-pixels",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "pixel-pattern",
+            "x": 600,
+            "y": 470,
+            "width": 96,
+            "height": 96,
+            "color": "#E3AF30",
+            "tolerance": 25,
+            "rows": [
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------",
+              "------------"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
           "id": "r039-item-gear",
           "kind": "assert",
           "acceptanceId": "cross-process-partial-load-once",
           "observation": {
             "kind": "visible",
             "selector": "#item-gear"
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r039a-restored-gear-pixels",
+          "kind": "assert",
+          "acceptanceId": "cross-process-partial-load-once",
+          "observation": {
+            "kind": "pixel-pattern",
+            "x": 780,
+            "y": 420,
+            "width": 96,
+            "height": 96,
+            "color": "#CE493E",
+            "tolerance": 25,
+            "rows": [
+              "-----..-----",
+              "--.--++--.--",
+              "-.++++++++.-",
+              "--++++++++--",
+              "--++++++++--",
+              ".++++--++++.",
+              ".++++--++++.",
+              "--++++++++--",
+              "--++++++++--",
+              "-.++++++++.-",
+              "--.--++--.--",
+              "-----..-----"
+            ]
           },
           "expected": true,
           "timeoutMs": 10000
@@ -3104,12 +3391,12 @@
           "timeoutMs": 10000
         },
         {
-          "id": "r052-victory-panel",
+          "id": "r052-no-victory-timer-or-loss",
           "kind": "assert",
           "acceptanceId": "locked-door-before-complete",
           "observation": {
             "kind": "visible",
-            "selector": "#victory-panel"
+            "selector": "#victory-panel:visible, body :text-matches(\"倒计时|剩余时间|时间剩余|限时|时间限制|生命值|游戏失败|惩罚|[0-9]{1,2}[：:][0-5][0-9]|[A-Za-z]\"):visible, body [role=timer]:visible"
           },
           "expected": false,
           "timeoutMs": 10000
@@ -3448,34 +3735,118 @@
           "timeoutMs": 10000
         },
         {
-          "id": "r079-item-crystal",
+          "id": "r079-crystal-pixels",
           "kind": "assert",
           "acceptanceId": "restart-clears-progress-and-save",
           "observation": {
-            "kind": "visible",
-            "selector": "#item-crystal"
+            "kind": "pixel-pattern",
+            "x": 420,
+            "y": 420,
+            "width": 96,
+            "height": 96,
+            "color": "#3684DF",
+            "tolerance": 25,
+            "rows": [
+              "------------",
+              "-----..-----",
+              "----.++.----",
+              "---.++++.---",
+              "--.++++++.--",
+              "-.++++++++.-",
+              "-.++++++++.-",
+              "--.++++++.--",
+              "---.++++.---",
+              "----.++.----",
+              "-----..-----",
+              "------------"
+            ]
           },
           "expected": true,
           "timeoutMs": 10000
         },
         {
-          "id": "r080-item-key",
+          "id": "r080-key-pixels",
           "kind": "assert",
           "acceptanceId": "restart-clears-progress-and-save",
           "observation": {
-            "kind": "visible",
-            "selector": "#item-key"
+            "kind": "pixel-pattern",
+            "x": 600,
+            "y": 470,
+            "width": 96,
+            "height": 96,
+            "color": "#E3AF30",
+            "tolerance": 25,
+            "rows": [
+              "------------",
+              "------------",
+              "-.++.-------",
+              ".++++.------",
+              ".+.-+++++++.",
+              ".+.-+++++++.",
+              ".++++.--+.+.",
+              "-.++.---....",
+              "------------",
+              "------------",
+              "------------",
+              "------------"
+            ]
           },
           "expected": true,
           "timeoutMs": 10000
         },
         {
-          "id": "r081-item-gear",
+          "id": "r081-gear-pixels",
           "kind": "assert",
           "acceptanceId": "restart-clears-progress-and-save",
           "observation": {
-            "kind": "visible",
-            "selector": "#item-gear"
+            "kind": "pixel-pattern",
+            "x": 780,
+            "y": 420,
+            "width": 96,
+            "height": 96,
+            "color": "#CE493E",
+            "tolerance": 25,
+            "rows": [
+              "-----..-----",
+              "--.--++--.--",
+              "-.++++++++.-",
+              "--++++++++--",
+              "--++++++++--",
+              ".++++--++++.",
+              ".++++--++++.",
+              "--++++++++--",
+              "--++++++++--",
+              "-.++++++++.-",
+              "--.--++--.--",
+              "-----..-----"
+            ]
+          },
+          "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r081a-restored-room-layout",
+          "kind": "assert",
+          "acceptanceId": "mouse-only-chinese-local-no-timing",
+          "observation": {
+            "kind": "layout",
+            "selectors": [
+              "#progress-text",
+              "#collected-list",
+              "#last-save-text",
+              "#door-state",
+              "#door",
+              "#btn-save",
+              "#btn-continue",
+              "#btn-restart",
+              "#btn-sound",
+              "#item-crystal .item-hit",
+              "#item-crystal .item-name",
+              "#item-key .item-hit",
+              "#item-key .item-name",
+              "#item-gear .item-hit",
+              "#item-gear .item-name"
+            ]
           },
           "expected": true,
           "timeoutMs": 10000
@@ -4102,45 +4473,48 @@
           "timeoutMs": 10000
         },
         {
-          "id": "r132-btn-save-enabled",
+          "id": "r132-victory-layout-and-controls",
           "kind": "assert",
           "acceptanceId": "open-door-victory",
           "observation": {
-            "kind": "visible",
-            "selector": "#btn-save:enabled"
+            "kind": "layout",
+            "selectors": [
+              "#progress-text",
+              "#collected-list",
+              "#last-save-text",
+              "#door-state",
+              "#door",
+              "#btn-save:enabled",
+              "#btn-continue:enabled",
+              "#btn-restart:enabled",
+              "#btn-sound:enabled",
+              "#victory-panel"
+            ]
           },
           "expected": true,
           "timeoutMs": 10000
         },
         {
-          "id": "r133-btn-continue-enabled",
+          "id": "r133-open-door-pixels",
           "kind": "assert",
           "acceptanceId": "open-door-victory",
           "observation": {
-            "kind": "visible",
-            "selector": "#btn-continue:enabled"
-          },
-          "expected": true,
-          "timeoutMs": 10000
-        },
-        {
-          "id": "r134-btn-restart-enabled",
-          "kind": "assert",
-          "acceptanceId": "open-door-victory",
-          "observation": {
-            "kind": "visible",
-            "selector": "#btn-restart:enabled"
-          },
-          "expected": true,
-          "timeoutMs": 10000
-        },
-        {
-          "id": "r135-btn-sound-enabled",
-          "kind": "assert",
-          "acceptanceId": "open-door-victory",
-          "observation": {
-            "kind": "visible",
-            "selector": "#btn-sound:enabled"
+            "kind": "pixel-pattern",
+            "x": 1080,
+            "y": 250,
+            "width": 130,
+            "height": 210,
+            "color": "#453144",
+            "tolerance": 18,
+            "rows": [
+              "-----",
+              "-+++-",
+              "-+++-",
+              "-+++-",
+              "-+++-",
+              "-+++-",
+              "-----"
+            ]
           },
           "expected": true,
           "timeoutMs": 10000
@@ -4631,45 +5005,23 @@
           "timeoutMs": 10000
         },
         {
-          "id": "r177-btn-save-enabled",
+          "id": "r177-victory-layout-and-controls",
           "kind": "assert",
           "acceptanceId": "open-door-victory",
           "observation": {
-            "kind": "visible",
-            "selector": "#btn-save:enabled"
-          },
-          "expected": true,
-          "timeoutMs": 10000
-        },
-        {
-          "id": "r178-btn-continue-disabled",
-          "kind": "assert",
-          "acceptanceId": "open-door-victory",
-          "observation": {
-            "kind": "visible",
-            "selector": "#btn-continue:disabled"
-          },
-          "expected": true,
-          "timeoutMs": 10000
-        },
-        {
-          "id": "r179-btn-restart-enabled",
-          "kind": "assert",
-          "acceptanceId": "open-door-victory",
-          "observation": {
-            "kind": "visible",
-            "selector": "#btn-restart:enabled"
-          },
-          "expected": true,
-          "timeoutMs": 10000
-        },
-        {
-          "id": "r180-btn-sound-enabled",
-          "kind": "assert",
-          "acceptanceId": "open-door-victory",
-          "observation": {
-            "kind": "visible",
-            "selector": "#btn-sound:enabled"
+            "kind": "layout",
+            "selectors": [
+              "#progress-text",
+              "#collected-list",
+              "#last-save-text",
+              "#door-state",
+              "#door",
+              "#btn-save:enabled",
+              "#btn-continue:disabled",
+              "#btn-restart:enabled",
+              "#btn-sound:enabled",
+              "#victory-panel"
+            ]
           },
           "expected": true,
           "timeoutMs": 10000
@@ -4766,6 +5118,17 @@
           "timeoutMs": 10000
         },
         {
+          "id": "r189a-no-timer-health-loss-or-foreign-text",
+          "kind": "assert",
+          "acceptanceId": "mouse-only-chinese-local-no-timing",
+          "observation": {
+            "kind": "visible",
+            "selector": "body :text-matches(\"倒计时|剩余时间|时间剩余|限时|时间限制|生命值|游戏失败|惩罚|[0-9]{1,2}[：:][0-5][0-9]|[A-Za-z]\"):visible, body [role=timer]:visible"
+          },
+          "expected": false,
+          "timeoutMs": 10000
+        },
+        {
           "id": "r190-bgm-cozy-loop-outputActivations",
           "kind": "assert",
           "acceptanceId": "audio-enable-and-toggle",
@@ -4811,6 +5174,16 @@
             ]
           },
           "expected": 3,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r193-external-requests",
+          "kind": "assert",
+          "acceptanceId": "mouse-only-chinese-local-no-timing",
+          "observation": {
+            "kind": "external-requests"
+          },
+          "expected": 0,
           "timeoutMs": 10000
         }
       ]
