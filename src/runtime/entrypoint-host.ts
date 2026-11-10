@@ -35,6 +35,7 @@ import { diagnosePersistentBrowser } from './adapters/transfer/persistent-diagno
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
+import { selectSuppliedDesign, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readReviewedDesignDraft } from './reviewed-design-draft.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 import { createOrdinaryAcceptanceScope, validateOrdinaryAcceptancePlan, ORDINARY_PLAN_FILE, ORDINARY_PLAN_SOURCE } from './entrypoint-acceptance-plan.ts';
@@ -433,7 +434,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const gameplayIds = gameplayAcceptance(draft).map(item => item.acceptanceId);
   const state = await controller.read();
   if (state.designDraftReview && (!budgetEligible || !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
-  const reviewedDraft = state.designDraftReview ? await readReviewedDesignDraft(state.designDraftReview, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
+  const suppliedDesign = state.designDraftReview?.artifactId === SUPPLIED_DESIGN
+    ? await selectSuppliedDesign(state.designDraftReview.location, state.requirementsSource!, root, state.designDraftReview) : undefined;
+  if (suppliedDesign && ordinaryPlanAuthoringPolicy) throw new Error('Supplied design requires a fixed read-only handoff.');
+  const reviewedDraft = state.designDraftReview && !suppliedDesign ? await readReviewedDesignDraft(state.designDraftReview, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
   const reviewedDraftAuthoring = ordinaryPlanAuthoringPolicy === REVIEWED_DRAFT_POLICY;
   if (reviewedDraftAuthoring && !reviewedDraft) throw new Error('Reviewed draft authoring requires its verified design draft.');
   if (reviewedDraft && !input.resume) await publishReceiptBytes(await safePath(root, reviewedDraft.feedback.location), reviewedDraft.feedbackBytes);
@@ -760,7 +764,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const preserveValidDraft = preservesValidDraft(ordinaryPlanAuthoringPolicy);
     const repairAcceptanceIds = repairsPlanAcceptanceIds(ordinaryPlanAuthoringPolicy);
     const check = createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard, preserveValidDraft, repairAcceptanceIds,
-      reviewedDraftAuthor: reviewedDraftAuthoring && original.taskId !== ordinaryRevisionTaskId,
+      reviewedDraftAuthor: !!suppliedDesign || reviewedDraftAuthoring && original.taskId !== ordinaryRevisionTaskId,
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
       ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
     if (ordinary) designWriteChecks.set(original.taskId, { ...check, workspace: fixedWorkspace, attemptId: original.attempts.at(-1)?.attemptId });
@@ -822,7 +826,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     taskPolicies: [
       { policyId: 'game-design', role: 'design', workspace: root, allocationMicroCny: Math.floor(pool * (ordinaryDesignBudgetPolicy ? 0.25 : 0.15)), writePaths: ['authors/design/design.json', ...(classicEntries?.selection.measurement ? ['authors/design/classic-entry-plan.json'] : [])],
         readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit', GAME_DESIGN_CHECK], outputs: [{ ...designOutput, destination: designOutput.location, type: 'design', schema: 'game-design/1' }],
-        rules: [`Cover only ${DESIGN_ACCEPTANCE_ID}; no dependencies. This is a design deliverable, not proof the game passes.`, captureLayout(designLayout),
+        rules: suppliedDesign ? [captureLayout(designLayout),
+          `The independent reviewer checks the captured design and acceptance plan against the complete original confirmation at ${requirement.sources.map(ref => ref.location).join(' and ')} and the host evidence in the reviewer packet. Both files must preserve every confirmed actor, action, audio trigger and acceptance criterion.`]
+          : [`Cover only ${DESIGN_ACCEPTANCE_ID}; no dependencies. This is a design deliverable, not proof the game passes.`, captureLayout(designLayout),
           `Read ${requirement.sources[0].location}. Write authors/design/design.json with exactly {summary:string,implementationNotes:string[],acceptanceMapping:object,characters:[{id,purpose,states:string[]}],audio:[{id,trigger,loop:boolean}]${ordinary ? ',experienceMapping:object' : ''}}. Map every gameplay ID ${JSON.stringify(gameplayIds)}. Declare 1-128 original characters and 0-64 audio clips required by the confirmed brief; preserve every requested actor, action and audio trigger.`,
           `The mapping fields are JSON objects whose keys are exactly the actual confirmed IDs and whose values are non-empty strings describing the concrete design for each ID (at most 16000 characters), not arrays or nested objects. Replace every example description with your own design explanation; placeholders are not completed design or acceptance evidence.`,
           `Mapping JSON example (replace all placeholder descriptions): ${JSON.stringify({ acceptanceMapping: Object.fromEntries(gameplayIds.map(id => [id, 'REPLACE with the concrete design explanation for this gameplay ID.'])),
@@ -852,7 +858,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Expose a non-configurable getter window.cosmosDebug returning frozen plain data. Its media.characters array follows manifest order: {id,loadedFrames,states:[{name,seen}]}; media.audio follows manifest order: {id,decoded,started}. Derive loadedFrames/decoded from actual Phaser texture/audio-cache readiness, states seen from actual displayed animation transitions, and started from successful sound start after normal user input. Preserve cumulative observations across scene changes in this document. Never fill these fields with declared constants or fabricate them; independent review checks their source. The host checks every declared state and audio clip on the frozen normal-input path and reports missing coverage as incomplete.',
         'The host builds, runs normal inputs, captures immutable output and asks a separate reviewer. Return only the required author handoff JSON after writing files.'] }],
     validateTasks(tasks) {
-      const designInterfaces = tasks.find(item => item.role === 'design')?.task.context.interfaces.filter(ref => ref.artifactId === 'ordinary-design-draft-feedback');
+      const designTask = tasks.find(item => item.role === 'design')?.task;
+      if (suppliedDesign && !sameValue(designTask?.context.tools, ['read', GAME_DESIGN_CHECK])) throw new Error('Fixed supplied design requires read-only author tools.');
+      const designInterfaces = designTask?.context.interfaces.filter(ref => ref.artifactId === 'ordinary-design-draft-feedback');
       if (!sameValue(designInterfaces ?? [], reviewedDraft ? [reviewedDraft.feedback] : [])) throw new Error('Original design task differs from its fixed reviewed draft.');
       for (const item of tasks) requirePlanAuthoringTasks([item], historicalDesign && sameValue(historicalDesign.source, item)
         ? historicalDesign.policy : ordinaryPlanAuthoringPolicy);
@@ -1006,7 +1014,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         if (preparation) { await preparation.captureDesignExtras(task, workspace(task)); await requireDispatch(task, signal); }
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: sourceRoot(task, 'authors/design'), files: [{ source: 'design.json', destination: '_cosmos/design.json' }, ...(ordinary ? [{ source: 'acceptance-plan.json', destination: ORDINARY_PLAN_FILE }] : []), ...(classicEntries?.selection.measurement ? [{ source: 'classic-entry-plan.json', destination: '_cosmos/classic-entry-plan.json' }] : []), ...(modular ? [{ source: 'module-contracts.d.ts', destination: MODULE_CONTRACTS }] : [])],
-          ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: captures, metadata: { kind: 'data', provenance: origin } });
+          ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: captures, metadata: { kind: 'data', provenance: suppliedDesign ? suppliedDesignProvenance(suppliedDesign.reference, origin.sourceRefs) : origin } });
       } else if (kind === 'art') {
         const design = await designFor(task), value = await readDeclaredOutput(task, 'authors/art/media.json', value => { validateDeclaredMedia(value, design); });
         const rendered = await renderDeclaredMedia(root, `rendered/${task.taskId}`, value, design, signal);
@@ -1498,9 +1506,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     }
     if (preservesValidDraft(ordinaryPlanAuthoringPolicy)) design.rules!.push(ORDINARY_DRAFT_PRESERVATION_RULE);
     if (repairsPlanAcceptanceIds(ordinaryPlanAuthoringPolicy)) design.rules!.push(ORDINARY_PLAN_REPAIR_RULE);
-    design.rules!.push(ordinaryPlanAuthoringPolicy ? ORDINARY_PLAN_AUTHORING_RULE : 'First write authors/design/design.json. Then write authors/design/acceptance-plan.json in bounded write/edit chunks, completing each section before the next. Run the existing validate-game-design self-check after both files are complete and correct any reported defects within this author session.',
-      `Map exactly the original experience criterion IDs ${JSON.stringify(ordinaryDraft.experienceCriteria.map(item => item.criterionId))} in experienceMapping ({} for an empty list). Read the complete brief/questions/answers and both criteria lists. Independent review must reject omitted objective rules, objective requirements recategorized as experience, insufficient visible assertions, or unsupported behavior; schema success alone is not semantic proof.`,
-      `Write ${ORDINARY_PLAN_SOURCE} with exactly {formatVersion:"ordinary-acceptance-plan/1",requirement:${JSON.stringify(requirements)},scenario:{viewport:{width,height},steps:[...],reopen?:{steps:[...],checkpoint:{expected:string,snapshot:{kind:"text",selector:string},savedSnapshot:{kind:"text",selector:string}}}}. Use existing mouse-click/mouse-move {x,y,selector?}, locator-click {selector,timeoutMs}, assert/wait-for {acceptanceId,observation:{kind:"text",selector}|{kind:"visible",selector}${mediaPolicy ? '|{kind:"debug",path:string[]}' : ''},expected,timeoutMs}; every step has a unique id and kind. Coordinates are inside the viewport, or normalized [0,1) when selector is present; viewport dimensions are 100..4096, timeoutMs is 1..60000, each stage has 1..200 steps, and visible expected is boolean. Each objective gameplay AC requires normal click input followed by a visible assertion. Preserve the exact confirmed requirements, including normal save/reopen when required. Do not supply execution identities, URL, candidate, scripts, or state setters. The host supplies actual execution binding.`,
+    if (!suppliedDesign) design.rules!.push(ordinaryPlanAuthoringPolicy ? ORDINARY_PLAN_AUTHORING_RULE : 'First write authors/design/design.json. Then write authors/design/acceptance-plan.json in bounded write/edit chunks, completing each section before the next. Run the existing validate-game-design self-check after both files are complete and correct any reported defects within this author session.');
+    const planSchema = suppliedDesign ? `The captured ${ORDINARY_PLAN_FILE} must have exactly` : `Write ${ORDINARY_PLAN_SOURCE} with exactly`;
+    design.rules!.push(`Map exactly the original experience criterion IDs ${JSON.stringify(ordinaryDraft.experienceCriteria.map(item => item.criterionId))} in experienceMapping ({} for an empty list). Read the complete brief/questions/answers and both criteria lists. Independent review must reject omitted objective rules, objective requirements recategorized as experience, insufficient visible assertions, or unsupported behavior; schema success alone is not semantic proof.`,
+      `${planSchema} {formatVersion:"ordinary-acceptance-plan/1",requirement:${JSON.stringify(requirements)},scenario:{viewport:{width,height},steps:[...],reopen?:{steps:[...],checkpoint:{expected:string,snapshot:{kind:"text",selector:string},savedSnapshot:{kind:"text",selector:string}}}}. Use existing mouse-click/mouse-move {x,y,selector?}, locator-click {selector,timeoutMs}, assert/wait-for {acceptanceId,observation:{kind:"text",selector}|{kind:"visible",selector}${mediaPolicy ? '|{kind:"debug",path:string[]}' : ''},expected,timeoutMs}; every step has a unique id and kind. Coordinates are inside the viewport, or normalized [0,1) when selector is present; viewport dimensions are 100..4096, timeoutMs is 1..60000, each stage has 1..200 steps, and visible expected is boolean. Each objective gameplay AC requires normal click input followed by a visible assertion. Preserve the exact confirmed requirements, including normal save/reopen when required. Do not supply execution identities, URL, candidate, scripts, or state setters. The host supplies actual execution binding.`,
       'For save/reopen, each stage must contain normal click input followed by assertions of the same checkpoint expected string at the two distinct visible text selectors snapshot and savedSnapshot; the two stages together cover all gameplay acceptance IDs. The host closes the browser process and reopens the same private profile/origin. Checkpoint evidence is recorded at those assertion steps; later steps in the second stage may continue to victory or reset without retaining the checkpoint as the final state.',
       'For selector-only clicks use locator-click with selector and timeoutMs. mouse-click/mouse-move require both x and y even when selector is present. Sequence checks from the state reached by prior normal inputs: create the save before reopening it, and do not expect a cleared save to reappear. Reuse earlier inputs and assertions when they already establish the required state.',
       mediaPolicy ? 'Available plans are static normal mouse/locator inputs and visible equality checks, supplemented only by the fixed read-only media debug observations below with scalar expected values. Arbitrary hidden gameplay state, observation-dependent random decisions, numeric intervals and elapsed-duration assertions remain unsupported. wait-for timeoutMs is a wait bound, not evidence of exact elapsed time. Do not change random games into fixed sequences, weaken timing requirements, or move automatic failures into experience criteria. Report unresolved capability/coverage as uncertainty so downstream work remains blocked.'
@@ -1516,13 +1525,20 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Wrap each real instance play/resume as a narrow synchronous startup transaction, preserving this, arguments, return value and exceptions. During real applyConfig, MUTE then VOLUME can expose intermediate states after isPlaying becomes true: update facts but do not count them. Only after a successful real buffer-source start and successful method completion, settle the final committed immediate output-control state at most once. Initial volume=1 followed by play({volume:0}) counts zero, normal first play counts exactly one; successful replay or pause/resume may add one each, never one per intermediate event. An unsuccessful start cannot count merely because isPlaying=true. Outside the transaction, count each actual false-to-true output transition, including unmute/context resume; loops and repeated getters do not add counts. The transaction ends when play/resume returns: a following manager.mute=true is a separate event and cannot erase a prior activation. Internally playing while manager mute or volume=0 is allowed: started/playing may be true with outputActive=false and no activation.',
         'Independent coding review must trace each field and count to real media objects, connected output chain and actual successful events; reject constants, DOM labels, omitted instances, or business soundEnabled booleans used as audio evidence. Check play/resume transaction boundaries, manager event names and stop/pause/end/destroy handling. Additional native output paths, unobserved direct node writes or future gain automation need equivalent actual observations; otherwise report insufficient evidence. An event count alone does not establish human audibility of same-turn play then mute. Keep existing raw reports, media coverage and visible acceptance; final listening quality remains user experience.');
     }
+    if (suppliedDesign) {
+      design.tools = ['read', GAME_DESIGN_CHECK];
+      for (const policy of host.taskPolicies.filter(item => item.role === 'art' || item.role === 'coding')) {
+        policy.rules!.push(`Use the independently reviewed capture of the operator-supplied design (${suppliedDesign.reference.artifactId}@${suppliedDesign.reference.version}) from the design input in this packet.`);
+      }
+    }
     if (reviewedDraftAuthoring) design.rules = reviewedDraftRules(design.rules!, 'initial', requirement.sources[0].location);
     const preAuthor = host.preAuthor;
     host.preAuthor = async (task, signal) => {
       await requireDispatch(task, signal); await preAuthor?.(task, signal);
-      if (reviewedDraft && role(task) === 'design') {
+      const seed = suppliedDesign ?? reviewedDraft;
+      if (seed && role(task) === 'design') {
         if (task.attempts.length || workspace(task) !== root) throw new Error('Only an unstarted original design can receive a reviewed draft.');
-        await seedDesignFiles(root, task, reviewedDraft.contents);
+        await seedDesignFiles(root, task, seed.contents);
       }
     };
   }
@@ -1583,10 +1599,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     host.verify = async (...args) => {
       const revision = await readDesignRevisionPlan(root, controller, await json(root, 'execution.json'));
       if (revision?.task.task.taskId === args[0].taskId) await requireDesignProgress(root, revision);
-      if (reviewedDraft && role(args[0]) === 'design' && args[0].taskId !== ordinaryRevisionTaskId) {
+      const seed = suppliedDesign ?? reviewedDraft;
+      if (seed && role(args[0]) === 'design' && args[0].taskId !== ordinaryRevisionTaskId) {
         const ref = taskOutput(args[0]);
-        const matches = await Promise.all([...reviewedDraft.contents].map(async ([name, bytes]) => (await regularFile(root, ref.location + '/_cosmos/' + name)).equals(bytes)));
-        if (matches.every(Boolean)) throw new Error('Reviewed design draft has no output change.');
+        const matches = await Promise.all([...seed.contents].map(async ([name, bytes]) => (await regularFile(root, ref.location + '/_cosmos/' + name)).equals(bytes)));
+        if (suppliedDesign && !matches.every(Boolean)) throw new Error('Captured design differs from the fixed supplied design.');
+        if (reviewedDraft && matches.every(Boolean)) throw new Error('Reviewed design draft has no output change.');
       }
       const evidence = await verify(...args);
       if (revision?.task.task.taskId === args[0].taskId) {

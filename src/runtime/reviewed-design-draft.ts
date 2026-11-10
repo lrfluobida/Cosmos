@@ -9,11 +9,14 @@ import type { ConfirmedRequirementsSource } from './confirmed-requirements-sourc
 import type { PublicValidationAuthorization } from './public-validation-funding-types.ts';
 import { ordinaryDraftSha256 } from './ordinary-profile-source.ts';
 
+import { SUPPLIED_DESIGN } from './supplied-design.ts';
+
 const reviewId = 'ordinary-design-draft-review';
 export function validateDesignDraftReview(ref: ArtifactReference, requirements?: ConfirmedRequirementsSource) {
-  if (!requirements || !ref || ref.artifactId !== reviewId || typeof ref.version !== 'string' || !/^[a-f0-9]{64}$/.test(ref.version)
+  if (!requirements || !ref || ![reviewId, SUPPLIED_DESIGN].includes(ref.artifactId) || typeof ref.version !== 'string' || !/^[a-f0-9]{64}$/.test(ref.version)
     || typeof ref.location !== 'string' || !isAbsolute(ref.location) || resolve(ref.location) !== ref.location
     || !sameValue(Object.keys(ref).sort(), ['artifactId', 'location', 'version'])) throw new Error('Invalid ordinary design draft review reference.');
+  if (ref.artifactId === SUPPLIED_DESIGN) return;
   const directory = dirname(ref.location), name = basename(directory);
   if (basename(ref.location) !== 'review.json' || !name.startsWith('task-') || basename(dirname(directory)) !== 'journal') throw new Error('Select a fixed task journal review.json.');
   return { root: dirname(dirname(directory)), taskId: id(name.slice(5)) };
@@ -25,16 +28,18 @@ export async function selectDesignDraftReview(location: string, requirements: Co
   return ref;
 }
 export function fundingDesignDraftReview(payload: PublicValidationAuthorization) {
-  const refs = payload.sourceRefs.filter(ref => ref.artifactId === reviewId);
+  const refs = payload.sourceRefs.filter(ref => [reviewId, SUPPLIED_DESIGN].includes(ref.artifactId));
   if (!refs.length) return undefined;
-  if (refs.length !== 1) throw new Error('Select exactly one reviewed design draft.');
+  if (refs.length !== 1) throw new Error('Select exactly one supplied design or reviewed draft.');
   validateDesignDraftReview(refs[0], payload.requirementsSource);
   return refs[0];
 }
 
 /** Authenticate an old rejected capture without acquiring its controller or funding authority. */
 export async function readReviewedDesignDraft(ref: ArtifactReference, requirements: ConfirmedRequirementsSource, target: { root: string; runId: string; ledgerId: string }) {
-  const { root, taskId } = validateDesignDraftReview(ref, requirements);
+  const journal = validateDesignDraftReview(ref, requirements);
+  if (!journal) throw new Error('Historical draft requires its independent review.');
+  const { root, taskId } = journal;
   if (within(root, target.root) || within(target.root, root) || await realpath(root) !== root) throw new Error('The reviewed design and new run require separate canonical roots.');
   const { readRunSnapshot } = await import('../cli/control.ts');
   const state = await readRunSnapshot(root);

@@ -28,6 +28,14 @@ npm start -- new <新运行目录> --requirements-from <原始确认目录> --re
 
 新作者从该版封存的设计稿和执行验收计划开始，并读取当时的独审意见。修订结果须在本次运行重新捕获并通过独审。[回执选择与拨款验证说明](probes/public-cli/README.md)
 
+已有设计稿和执行验收计划时，把两份 UTF-8 文件 `design.json` 和 `acceptance-plan.json` 放在同一目录，使用原始需求确认启动：
+
+```powershell
+npm start -- new <新运行目录> --requirements-from <原始确认目录> --requirements-revision <版本号> --design-input <设计目录> --max-cny 5 --max-minutes 30
+```
+
+本次独立审查通过后，美术和编码读取指定文件的原始字节。独审要求修改时，当前运行停止并保留审查结果，修订稿须另行选定。
+
 ## 推箱子准备模式
 
 安装仓库依赖与通用模板工具链后，可从公开 CLI 开始：
