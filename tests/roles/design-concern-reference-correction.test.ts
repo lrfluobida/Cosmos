@@ -78,6 +78,29 @@ function r24Fixture() {
   return f;
 }
 
+test('only model replies may bind current versions at the top level and on host evidence rows', () => {
+  const f = r24Fixture(), binding = 'current_inputs_and_artifacts';
+  const parseReply = (reply: unknown) => parseDesignConcernReview(JSON.stringify(reply), f.task, f.requirement, f.packet, parseReview, 'model_reply');
+  const reply = { ...f.valid, inputVersions: binding, concernResolutions: f.valid.concernResolutions.map(row => ({
+    ...row, inputVersions: row.basis === 'host_evidence' ? binding : row.inputVersions,
+  })) };
+  assert.deepEqual(parseReply(reply), f.valid);
+  assert.deepEqual(parseReply(f.valid), f.valid);
+  assert.throws(() => parseReply(f.invalid), /current passing host proof/);
+  assert.throws(() => parseReply({ ...reply, inputVersions: f.task.artifacts }), /stale or incomplete/);
+  assert.throws(() => parseReply({ ...reply, inputVersions: binding.toUpperCase() }), /stale or incomplete/);
+  assert.throws(() => f.parse(reply), /stale or incomplete/);
+  assert.throws(() => f.parse({ ...reply, inputVersions: f.valid.inputVersions }), /exact fixed references/);
+  const host = reply.concernResolutions[0];
+  for (const basis of ['fixed_input', 'captured_output']) {
+    assert.throws(() => parseReply({ ...reply, concernResolutions: [{ ...host, basis, evidenceIds: [], evidenceRefs: [] }, ...reply.concernResolutions.slice(1)] }), /exact fixed references/);
+  }
+  for (const invalid of [{ evidenceRefs: [] }, { evidenceIds: [] }, { rationale: '' }]) {
+    assert.throws(() => parseReply({ ...reply, concernResolutions: [{ ...host, ...invalid }, ...reply.concernResolutions.slice(1)] }));
+  }
+  assert.throws(() => parseReply({ ...reply, verdict: 'approved', findings: [] }), /Unresolved design concerns/);
+});
+
 async function setup(t: test.TestContext, f = fixture()) {
   const root = await mkdtemp(join(tmpdir(), 'cosmos-concern-reference-'));
   const controller = await RunController.create({ root: join(root, 'state'), runId: f.task.runId, ledgerId: f.task.budget.ledgerId,

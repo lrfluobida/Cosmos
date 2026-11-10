@@ -23,10 +23,10 @@ for (const revisionPolicy of ['independent-review/1', 'independent-review/2'] as
     if (packet.role === 'design') return { ...fallback, prompt: async (...args) => { await fallback.prompt(...args); return { text: JSON.stringify(proposal) }; } };
     if (packet.role === 'reviewer' && packet.taskId === 'design-task') return { ...fallback, prompt: async () => {
       assert.deepEqual(packet.designConcernReview.proposal, proposal);
-      return { text: JSON.stringify({ verdict: 'approved', findings: [], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((row: any) => row.evidenceId),
+      return { text: JSON.stringify({ verdict: 'approved', findings: [], inputVersions: 'current_inputs_and_artifacts', evidenceIds: packet.evidence.map((row: any) => row.evidenceId),
         concernResolutions: packet.designConcernReview.concerns.map((concern: any) => ({ concernId: concern.concernId, concernText: proposal[concern.field as 'remaining' | 'uncertainty'][concern.index],
           status: 'resolved', basis: 'host_evidence', rationale: 'light/readable: 当前 host-report.json 核对最终 acceptance-plan 的结构和 light 条目；完整范围另行独审。',
-          acceptanceIds: packet.acceptance.map((row: any) => row.acceptanceId), inputVersions: packet.inputs, evidenceIds: packet.evidence.map((row: any) => row.evidenceId), evidenceRefs: packet.evidence.map((row: any) => row.source) })) }) };
+          acceptanceIds: packet.acceptance.map((row: any) => row.acceptanceId), inputVersions: 'current_inputs_and_artifacts', evidenceIds: packet.evidence.map((row: any) => row.evidenceId), evidenceRefs: packet.evidence.map((row: any) => row.source) })) }) };
     } };
     return fallback;
   } });
@@ -38,6 +38,10 @@ for (const revisionPolicy of ['independent-review/1', 'independent-review/2'] as
     assert.equal(f.packets.filter(packet => packet.role === 'reviewer' && packet.taskId === 'design-task').length, 1, JSON.stringify(result.gaps));
     assert.equal(result.outcome, 'awaiting_user_experience', JSON.stringify(result.gaps));
     const author = JSON.parse(await readFile(join(f.root, 'journal/task-design-task/author.json'), 'utf8'));
+    const { value: { verdict } } = JSON.parse(await readFile(join(f.root, 'journal/task-design-task/review.json'), 'utf8'));
+    const versions = [...state.tasks[0].inputs, ...state.tasks[0].artifacts];
+    assert.deepEqual(verdict.inputVersions, versions);
+    for (const row of verdict.concernResolutions) assert.deepEqual(row.inputVersions, versions);
     assert.deepEqual(author.value.proposal, proposal); assert.deepEqual(state.tasks[0].handoff.remaining, []); assert.deepEqual(state.tasks[0].handoff.uncertainty, []);
   }
 });
