@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough, Readable } from 'node:stream';
 import test from 'node:test';
-import { removeOwned } from '../../src/artifacts/paths.ts';
 import { runCli } from '../../src/cli/index.ts';
 import { hasPackagedLauncher } from '../../src/runtime/entrypoint-delivery.ts';
 import { freshPlaytestAction } from '../../src/runtime/experience.ts';
@@ -13,7 +11,6 @@ import { ordinaryHostFixture } from '../runtime/ordinary-design.fixture.ts';
 
 test('public new, resume and status lead to the same undecided playable delivery', async t => {
   const f = await ordinaryHostFixture(t), source = await confirmedSource(t, { draft: f.draft });
-  t.after(() => removeOwned(tmpdir(), f.root));
   async function cli(args: string[], answer = '') {
     const output = new PassThrough(), chunks: string[] = [];
     output.on('data', chunk => chunks.push(chunk.toString('utf8')));
