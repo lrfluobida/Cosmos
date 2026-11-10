@@ -653,9 +653,9 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 78,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184"],
-      "verifiedCompletedSubIssues": 75,
+      "verifiedNativeSubIssues": 82,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188"],
+      "verifiedCompletedSubIssues": 78,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -14195,9 +14195,32 @@
       "sourceIntegratedCommit": "1a88dc1c20107ae8296ea83eb5bfc160a15a7a34",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/188#issuecomment-6766460989",
       "verification": "Main build and scripted public CLI 1/1 passed. First write changed a single expected value in the plan, preserving all other plan bytes and the captured design. All 21 R38 frozen rules restored exactly. Post-fix live use pending."
+    },
+    {
+      "taskId": "COS-188",
+      "title": "修订并独立审查「小屋寻物」完整设计与验收计划",
+      "number": 189,
+      "id": 6306533428,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/189",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
+      "implementer": "cabin_design_author",
+      "reviewer": "cabin_design_reviewer",
+      "merger": "cabin_design_merger",
+      "reviewStatus": "APPROVED_DESIGN_ONLY",
+      "reviewedCommit": "4ce5bf142be1363a0b9b723936c8f755a1f7d4b5",
+      "mergeCommit": "36def27ad8cc08202949a0407bc913be9073ce3d",
+      "approvalComment": "https://github.com/lrfluobida/Cosmos/issues/189#issuecomment-6767268670",
+      "integrationComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6767298642",
+      "verification": "Host design and plan validation and original v2 binding passed. Independent state replay covered 200 steps before reopen and 197 after, with 48 inputs and 349 assertions. Game generation, actual media, persistence and player experience remain unverified."
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 187,
+  "totalTaskCount": 188,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

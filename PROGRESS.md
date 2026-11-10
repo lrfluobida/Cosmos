@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS188「小屋寻物」的设计说明、玩法与素材契约、两阶段验收计划已合入 `36def27ad8cc08202949a0407bc913be9073ce3d`。独审批准 `4ce5bf142be1363a0b9b723936c8f755a1f7d4b5`，核对了已确认 v2 需求、宿主结构和 397 步状态推演，其中唯一重开后 197 步。复审确认空存档可从当前 1/3 恢复到 0/3，可选标题已改验 HUD 可见性。已释放作者工作树，本地保留独审报告及核对脚本。游戏生成、真实图像与声音、跨进程存档及最终试玩待验证。 [设计与计划](docs/benchmark/cabin-hunt/README.md) · [独审及合入记录](https://github.com/lrfluobida/Cosmos/issues/189#issuecomment-6767268670)
+
+主线 `validate-game-design` 读取 room12/v2 原始引用，返回 `passed: true`、`errors: []`。相同三件文件的状态回放再次通过 48 次输入与 349 条断言。本机保留宿主输出 `.cosmos/planning/cabin-design-review/mainline-host-check.json`。 [主线验证记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6767298642)
+
 COS187 已合入 `1a88dc1c20107ae8296ea83eb5bfc160a15a7a34`。主线构建通过。离线公开 CLI 从已认证旧稿开始，作者首次实际写入将计划中一项预期由“等待”改为“完成”，新捕获设计稿和计划其余字节与旧稿一致。R38 的旧策略及 21 条冻结规则已逐条核实。自检工具与两条格式说明中的重写指令已修正并通过复审。修后尚无真实付费运行。 [COS187 源码与用例](https://github.com/lrfluobida/Cosmos/issues/188#issuecomment-6766460989) · [父任务进度](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6766461701)
 
 本阶段已清理实现工作树和集成用例的 93 个临时文件，保留实现验证日志。实现阶段的 `r38-seed-first/tmp` 下另有 `cosmos-validation-group-ybFAeC`（13 个文件，35967 字节）和 `node-compile-cache`（93 个文件，1597724 字节）。阶段结束后核实目录内容和占用情况，常规清理仍被自动命令审查拒绝，两目录共 1633691 字节保留。 [阶段记录](https://github.com/lrfluobida/Cosmos/issues/188#issuecomment-6766460989)
