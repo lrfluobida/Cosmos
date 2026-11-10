@@ -444,14 +444,14 @@
         "timeoutMs": 10000
       },
       {
-        "id": "s033-game-title",
+        "id": "s033-hud-visible",
         "kind": "assert",
         "acceptanceId": "mouse-only-chinese-local-no-timing",
         "observation": {
-          "kind": "text",
-          "selector": "#game-title"
+          "kind": "visible",
+          "selector": "#hud"
         },
-        "expected": "小屋寻物",
+        "expected": true,
         "timeoutMs": 10000
       },
       {
@@ -3607,6 +3607,61 @@
             "selector": "#btn-continue:enabled"
           },
           "expected": true,
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r093a-click-crystal",
+          "kind": "mouse-click",
+          "x": 468,
+          "y": 468
+        },
+        {
+          "id": "r093b-progress-one-unsaved",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#progress-text"
+          },
+          "expected": "当前进度 1/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r093c-list-one-unsaved",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#collected-list"
+          },
+          "expected": "已收集：蓝色水晶",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r093d-empty-save-retained",
+          "kind": "assert",
+          "acceptanceId": "full-3of3-load-and-victory-same-session",
+          "observation": {
+            "kind": "text",
+            "selector": "#last-save-text"
+          },
+          "expected": "最近保存：0/3",
+          "timeoutMs": 10000
+        },
+        {
+          "id": "r093e-muted-collect-count",
+          "kind": "assert",
+          "acceptanceId": "audio-enable-and-toggle",
+          "observation": {
+            "kind": "debug",
+            "path": [
+              "media",
+              "audioById",
+              "clip_sfx_collect",
+              "outputActivations"
+            ]
+          },
+          "expected": 0,
           "timeoutMs": 10000
         },
         {
