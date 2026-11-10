@@ -2545,11 +2545,21 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-182 · 公开验证阶段的追加显式预算决定
 
+2026-11-10，公开阶段 ¥45→¥50 已按新的业主决定实际应用，R34 引用该来源并已结算。每次 ¥5 / 30 分钟、总计 ¥150。COS182 已按此范围关闭。以下为应用前的源码集成历史。[阶段回执记录](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744)
+
 [COS182 / #183](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6643149506)，ID `6211905851`，父COS18/#19、[ ]，原生依赖COS143/#144、COS157/#158与COS178/#179。已APPROVED_SOURCE_SCOPED并集成，追加后续显式phase决定，复用原quote/owner/source协议，完整保留旧30/40/45来源、事件和历史funding身份；不会默认增额、伪造用户决定或改写R30unknown/占用。
 
 作者 `phase_followups_implementer` 的 `51f1cc142ac3e4fbad9574d597ef0e12aeeecd93` 经 `phase_followups_reviewer` 十文件独审批准、无findings，具体设计 `ef137fac7ec45adc01d59990402e011c597620e9` 已先行批准；唯一merger `cos175_resume_merger` 合入 `f9c03a9a673816135d3acb8181cc519b7006094a`。十文件及COS181三文件分别与批准版本一致；主线后续phase链/最新来源、暂停归因结算/历史quote重试2/2、0 skip（14574.4579ms），types/build退出0。作者旧81、新与resolution7、额外chain1证据按原范围复用，不重复累加。[源码规格](cos182-public-phase-followups.md) 仅SOURCE通过，真实50M决定和应用均未发生。
 
 基线 `11a710a06d06dc9339620591faabfcfb4b255dd7`，批准工作范围摘要 `a9c8525d954a6a5586a03a498512429a6ce921de4397782300a16de887e33c7b`，完整计划在issue正文。C41487894/H480004，phase45可用3032102；原完整5M/30分钟运行需暴露46967898，超出1967898微元。phase50未批准；源码独审和真实只读quote准备好后，Root才提出新的用户预算决定。停止继续压低试验金额，当前无实际报价应用、预留或付费调用，lifetime150和每次5M/30分钟上限保持。
+
+### COS-183 · 测试结束后清理普通设计和媒体验收夹具的临时目录
+
+普通设计和媒体验收夹具默认清理本次创建的临时目录及浏览器 profile，设置 `COSMOS_KEEP_EVIDENCE=1` 可保留。作者 `4d81d7755ce836e49639059faa9d90f04269174f` 经独审批准，由唯一 merger 合入 `8b15bfb3969bab9078c05f7c1b307c67e84727f8`，合入树与批准树相同。已审的 5 个定向用例全部通过，覆盖真实 Edge、默认清理、显式保留和 CLI 调用方。另核对了初始化失败清理及 junction 外的文件保留。 [COS183 结案](https://github.com/lrfluobida/Cosmos/issues/184#issuecomment-6762906816)
+
+### COS-184 · 在设计作者剩余额度内缩小只读交接的输出上限
+
+父 COS18，依赖 COS181。R34 离线报价用 94576 字节输入及作者余下 203105 微元复现了 4096 输出下限被拒，1744 可容纳。该卡在作者原分配额内为这一次无工具只读收尾选择 1024 至 4096 的上限。保留独审额度以及现有单次、超时和取消约束。[COS184 / #185](https://github.com/lrfluobida/Cosmos/issues/185)
 
 ## 5. 任务与上下文包模板
 

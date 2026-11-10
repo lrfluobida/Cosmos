@@ -1,8 +1,20 @@
 # Cosmos 进度
 
-更新时间：2026-11-05
+更新时间：2026-11-10
 
 ## 当前继续通用游戏开发 agent 能力
+
+R34 复用已确认的 room12 v2。生成与清理用时 515945 ms。设计稿和执行验收计划均已写盘并通过本地结构检查，但计划的 118 步全部在 `main`，缺少实际关闭后重开的阶段。下一次普通作者请求在发送前触发 `author_review_reserve`，运行记录了一次 `budget_finalization` 纠正事件，未收到作者收尾回复。独立设计审查、美术和编码均未开始，可玩游戏尚未交付。 [R34 运行记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6762886573)
+
+R34 的 19 笔实际费用合计 617413 微元，释放本次未用的 4382587 微元。结算后 child 89、shared 3436，累计已付 42105307 微元、占用 480004 微元。R30 仍有费用待核。 回执位于 `.cosmos/public-validation/room-20261110-reuse-34/generation-closure.json`。
+
+业主已通过新的显式决定将公开验证阶段额度从 ¥45 调至 ¥50。R34 使用这一决定，单次限额 ¥5、限时 30 分钟，能力验证总限额 ¥150。 [COS182 阶段应用](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744)
+
+普通设计和媒体验收夹具默认清理本次创建的临时目录及浏览器 profile，设置 `COSMOS_KEEP_EVIDENCE=1` 可保留。作者 `4d81d7755ce836e49639059faa9d90f04269174f` 经独审批准，由唯一 merger 合入 `8b15bfb3969bab9078c05f7c1b307c67e84727f8`，合入树与批准树相同。已审的 5 个定向用例全部通过，覆盖真实 Edge、默认清理、显式保留和 CLI 调用方。另核对了初始化失败清理及 junction 外的文件保留。 [COS183 清理结果](https://github.com/lrfluobida/Cosmos/issues/184#issuecomment-6762906816)
+
+R34 的离线报价复现使用 94576 字节输入和作者剩余的 203105 微元。原定 4096 个输出 token 超出余额，1744 个可容纳。COS184 跟踪一次无工具只读收尾在 1024 至 4096 之间选择可负担上限。[COS184](https://github.com/lrfluobida/Cosmos/issues/185)
+
+## R33 与 2026-11-05 的源码集成记录
 
 R33 已独立 `PASS_R33_CLOSED_R30_PENDING`：8笔全已知，结算311932微元、释放本案未用3018068微元，child45/shared3433，C41487894/H480004，生成清理212475ms且in_time。R30原child32、unknown407922微元预留、五份回执和未关闭allocation保持，财务仍待核。
 
@@ -14,7 +26,7 @@ R33 已独立 `PASS_R33_CLOSED_R30_PENDING`：8笔全已知，结算311932微元
 
 新preparePublicValidationPhaseFollowup只读生成绑定当前前驱、原来源、C/H和冻结历史的quote，activationAllowed=false；apply仍须另一份精确新owner决定。真实phase45有效、lifetime150和每次5M/30分钟原上限不变；可用3032102微元，完整5M运行将暴露46967898微元，超出阶段1967898微元。停止继续降低试验金额。Root接续准备真实只读45→50报价和具体提案后，才提出新的用户预算决定；当前没有真实quote应用、增额、预留或新费用，R30仍pending。
 
-以下保留此前阶段记录；当前任务状态与财务安排以前述R33审计和COS181/COS182记录为准。
+以下为 R32 及此前阶段的记录。
 
 R32 已独立 `PASS_R32_CLOSED_R30_PENDING`：6笔全已知，结算317905微元、释放本案未用3332095微元，child37/shared3431，C41175962/H480004。生成与清理208473ms、签名结果in_time；实际阻塞是下一请求发送前的author_review_reserve。2026-11-04T19:22:02.281Z持久化的deadline来自截止后的结算重开，不是生成失败原因。R30原child32、五份回执、unknown407922微元预留和暂停来源仍保持，财务待核。
 

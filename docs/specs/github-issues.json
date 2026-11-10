@@ -653,9 +653,9 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 67,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173"],
-      "verifiedCompletedSubIssues": 65,
+      "verifiedNativeSubIssues": 78,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184"],
+      "verifiedCompletedSubIssues": 75,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -14004,7 +14004,7 @@
       "sourceIntegratedCommit": "1af07f2bab0e3c77515635590c9cb24405d0c44c",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/182#issuecomment-6642865979",
       "verification": "Three files byte-identical to approved SHA; main native successful-summary/local-unsent-floor-refusal/single-tool-free-readonly finalization1/1, zero skip,TAP11659.3314ms; typecheck/build exit0. Reused author baselineRED2,affectedGREEN6 and finalregression2 with unchanged negatives; no additive counts.",
-      "actualExecutionStatus": "SOURCE-only restored finalization eligibility; R33 remains closed and R30 pending. No actual retry, fee, budget, source artifact or ledger mutation. Phase50 unapproved; future full5M run awaits separate explicit phase decision."
+      "actualExecutionStatus": "R34 recorded one budget_finalization correction after a local author_review_reserve rejection; no author finalization reply was obtained. R33 remains closed; R30 financially pending."
     },
     {
       "taskId": "COS-182",
@@ -14016,7 +14016,7 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
+      "parentCheckboxChecked": true,
       "dependsOn": [
         "COS-143",
         "COS-157",
@@ -14043,8 +14043,8 @@
           "taskId": "COS-178"
         }
       ],
-      "state": "open",
-      "scopedComplete": false,
+      "state": "closed",
+      "scopedComplete": true,
       "integrationStatus": "source-integrated",
       "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
       "rootScopeApproved": true,
@@ -14056,7 +14056,7 @@
       "rootImplementationApproved": true,
       "designReviewStatus": "APPROVED_PLAN",
       "implementationPlanReviewedCommit": "ef137fac7ec45adc01d59990402e011c597620e9",
-      "implementationPhase": "source-integrated-quote-preparation-pending",
+      "implementationPhase": "actual-phase-followup-applied",
       "implementationBranch": "codex/public-phase-followups",
       "implementationWorktree": "E:/CodexData/.codex/worktrees/public-phase-followups/Cosmos",
       "formalSpecPath": "docs/specs/cos182-public-phase-followups.md",
@@ -14064,18 +14064,60 @@
       "sourceIntegratedCommit": "f9c03a9a673816135d3acb8181cc519b7006094a",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6643149506",
       "verification": "Ten COS182 files byte-identical to approved51f1cc1; three COS181 files remain exact27f525b. Main followup-chain/latest-source and suspended-claim/settlement historical-quote-retry2/2, zero skip,TAP14574.4579ms; typecheck/build exit0. Author old81/81,new+resolution7/7 and extra chain1/1 reused without additive counting; all approvals and accounting are TEMP synthetic fixtures.",
-      "budgetIncreaseApproved": false,
-      "currentPhaseMicroCny": 45000000,
+      "budgetIncreaseApproved": true,
+      "currentPhaseMicroCny": 50000000,
       "proposedPhaseMicroCny": 50000000,
       "lifetimeLimitMicroCny": 150000000,
       "maxRunMicroCny": 5000000,
       "maxDurationMs": 1800000,
-      "actualQuotePrepared": false,
-      "actualApplicationPerformed": false,
-      "actualExecutionStatus": "SOURCE integrated; no actual quote prepared by merger and no phase increase approved or applied. C41487894/H480004 leaves3032102 under current45M; original5M run exposure46967898 exceeds currentphase by1967898. Stop reducing trial caps. Root next prepares the real readonly45-to-50 quote and proposal, then seeks a new explicit user decision. No real apply, funding reserve or paid calls."
+      "actualQuotePrepared": true,
+      "actualApplicationPerformed": true,
+      "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744",
+      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. Original R30 remains pending."
+    },
+    {
+      "taskId": "COS-183",
+      "title": "测试结束后清理普通设计和媒体验收夹具的临时目录",
+      "number": 184,
+      "id": 6303057966,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/184",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "dependsOn": [],
+      "state": "closed",
+      "scopedComplete": true,
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "implementer": "temp_implementer",
+      "reviewer": "temp_reviewer",
+      "merger": "batch_merger",
+      "sourceReviewedCommit": "4d81d7755ce836e49639059faa9d90f04269174f",
+      "sourceIntegratedCommit": "8b15bfb3969bab9078c05f7c1b307c67e84727f8",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/184#issuecomment-6762906816",
+      "verification": "Merged tree equals the approved tree. Five targeted fixture and CLI tests passed, including both real Edge modes. Partial setup cleanup and external junction marker preservation checked separately."
+    },
+    {
+      "taskId": "COS-184",
+      "title": "在设计作者剩余额度内缩小只读交接的输出上限",
+      "number": 185,
+      "id": 6303397885,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/185",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "dependsOn": ["COS-181"],
+      "nativeDependenciesLinked": true,
+      "state": "open",
+      "scopedComplete": false,
+      "implementer": "handoff_implementer",
+      "merger": "batch_merger"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 182,
+  "totalTaskCount": 184,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
