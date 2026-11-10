@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R40 的四项改动意见已复核。实际 Edge 中原相对布局和文本选择器可运行，保留其有效检查。新宿主观察画面色形、布局遮挡及外部请求；新版计划（200 + 198 步）直接携带取证参数，全部四项体验原文进入设计捕获。主线构建通过，固定原需求的供稿指纹为 `c8f012c763cb5a9ff4e9a1f657337cc0635aef9953ba2a01122789a33d350aa9`。修订和离线验证未发生模型费用，尚无采用新版的运行内批准或可玩游戏。 [宿主实证](https://github.com/lrfluobida/Cosmos/issues/192#issuecomment-6772670278) · [设计与选择器核验](https://github.com/lrfluobida/Cosmos/issues/193#issuecomment-6772672071)
+
+已释放两个已合入工作树和集成临时目录，保留 `.cosmos/planning/r40-independent-visual-review/` 中的浏览器核验证据及作者指定的截图、设计审校记录。
+
 R40 已取得正式的运行内独审裁决 `changes_requested`。只读交接角色与独审分别用三页和两页读完同一份 397 步计划；本轮 `design/v1` 与原供稿逐字节相同。独审认可音频与唯一重开链，要求完善四项体验映射、图像与布局、排除项和离线证据。未启动美术、编码或真实游戏验收。[运行结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6772254330)
 
 本轮用时 404,570 ms，14 笔费用已结算 ¥0.449242，释放 ¥4.330758；子账本修订 73，共享修订 3449。阶段上限已按业主决定从 ¥50 提高到 ¥50.70，累计已结算 ¥45.258601，原待核占用 ¥1.106974，阶段余 ¥4.334425。R40 的 E 盘临时目录已清理。[宿主取证任务](https://github.com/lrfluobida/Cosmos/issues/192) · [设计修订任务](https://github.com/lrfluobida/Cosmos/issues/193)

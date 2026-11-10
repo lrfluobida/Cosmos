@@ -653,9 +653,9 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 84,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190"],
-      "verifiedCompletedSubIssues": 80,
+      "verifiedNativeSubIssues": 86,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192"],
+      "verifiedCompletedSubIssues": 82,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -14266,9 +14266,67 @@
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/191#issuecomment-6769668718",
       "integrationComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6769670320",
       "verification": "Main build and native SDK smoke passed. All 30 reviewed tests passed. Both read-only roles reconstructed all 397 R39 steps and plan attributes in two pages. Review verdict and game delivery require a live run."
+    },
+    {
+      "taskId": "COS-191",
+      "title": "让普通浏览器验收读取画面、布局及网络证据",
+      "number": 192,
+      "id": 6310594471,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/192",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
+      "dependsOn": [
+        {
+          "id": "COS-190",
+          "number": 191,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/191"
+        }
+      ],
+      "implementer": "r40_harness",
+      "reviewer": "r40_quality",
+      "merger": "root",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "f2a9d6750a25081144cca08696dc09dcb68cef52",
+      "sourceIntegratedCommit": "7ddb12461635c6a3fa675c41dc87cb76a4c8dbc0",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/192#issuecomment-6772670278",
+      "verification": "宿主在真实 Edge 取样画面、检查 DOM 遮挡、记录可观测的外源 HTTP(S) 和页面/框架 WebSocket。合成页面证实错色、错形、遮罩、外部通信及 Worker 缺证会被分别识别。原 Playwright 选择器的正反例也已验证；跨源重定向后续跳可判失败，不保证预先全拦。两项旧角色用例在相同基线也失败。"
+    },
+    {
+      "taskId": "COS-192",
+      "title": "修订小屋寻物设计并逐项对照 R40 裁决",
+      "number": 193,
+      "id": 6310596820,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/193",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
+      "dependsOn": [
+        {
+          "id": "COS-191",
+          "number": 192,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/192"
+        }
+      ],
+      "implementer": "r40_design",
+      "reviewer": "r40_quality",
+      "merger": "root",
+      "sourceReviewStatus": "APPROVED_DESIGN_ONLY",
+      "sourceReviewedCommit": "bd5b8a0085379b8fa8bceae611fb9e73ef5be17b",
+      "sourceIntegratedCommit": "cbda440ae39405b44d48fda4c780c0db09e15624",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/193#issuecomment-6772672071",
+      "verification": "四项体验原文的描述、步骤与预期全部进入设计文件。398 步计划直接声明视觉、布局与网络观察，保留原 48 次鼠标输入、126 条媒体观察和唯一重开检查点。正式选择器以原 room12/v2 绑定两份文件。真实游戏的音画、网络、存档和最终体验仍须对候选实测。"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 190,
+  "totalTaskCount": 192,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
