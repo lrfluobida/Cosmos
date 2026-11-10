@@ -14164,7 +14164,13 @@
       "scopedComplete": false,
       "implementer": "review_binding_implementer",
       "reviewer": "review_binding_reviewer",
-      "merger": "stage_merger"
+      "merger": "stage_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "integrationStatus": "source-integrated",
+      "sourceReviewedCommit": "a075466f9a22ffb7d19b3b66f1cebb6a3ea56397",
+      "sourceIntegratedCommit": "6cc2ef2e7c39f705848c520cc266bbab25779b6d",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6765543748",
+      "verification": "Main build passed, targeted parser 1/1 and scripted independent-review/2 candidate 1/1. Persisted arrays remain strict. Actual model use and review result pending."
     }
   ],
   "verifiedNativeSubIssues": 100,

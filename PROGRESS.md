@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS186 已合入 `6cc2ef2e7c39f705848c520cc266bbab25779b6d`。普通 `independent-review/2` 设计独审的实时回复可在顶层及 `host_evidence` 行用 `current_inputs_and_artifacts` 指定本任务固定输入与捕获。主机展开后校验并保存完整数组。主线构建、定向解析和脚本化设计候选测试通过。真实独审是否使用该引用、该次设计能否通过，待运行验证。 [COS186 源码与测试](https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6765543748)
+
 R36 在 `0ea27ed72df64c3b13fc2c8efae8f235b31950b4` 上使用 R29/v2 封存的设计、含重开前 147 步和重开后 47 步的计划，以及针对该版的 10 条独审意见。新作者修正了金钥匙与底部控件重叠及最近保存提示的措辞，新捕获的设计稿有变更，执行计划字节相同。只读收尾选定上限 1641 个输出 token，实际使用 1050 个并成功返回。COS184 和 COS185 均按各自范围结案。 [收尾回执](https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6765384158) · [新捕获与独审](https://github.com/lrfluobida/Cosmos/issues/186#issuecomment-6765384893)
 
 R36 停在独立设计审查。两次独审输出均要求修改，首次顶层输入清单多出两个引用，第二次顶层已纠正，但 `host_evidence` 第 10 和 11 行仍与主机固定输入不符。未启动正式设计修订、美术或编码，未交付可玩游戏。COS186 跟进显式引用本次固定输入版本清单。 [COS186 任务](https://github.com/lrfluobida/Cosmos/issues/187)

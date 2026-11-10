@@ -2579,6 +2579,8 @@ R36 从 R29/v2 的捕获与意见修订出新设计，原计划字节相同。�
 
 R36 暴露了独审重复抄写清单产生的顶层与逐条证据绑定错误。使独审可显式引用本任务固定的 `inputVersions`，展开后仍走现有严格校验。错误数组继续拒绝，由独审提供结论和证据。 [COS186 / #187](https://github.com/lrfluobida/Cosmos/issues/187)
 
+作者 `a075466f9a22ffb7d19b3b66f1cebb6a3ea56397` 经独审批准后合入 `6cc2ef2e7c39f705848c520cc266bbab25779b6d`。主线构建、定向清单解析和脚本化 `independent-review/2` 设计候选用例通过。历史清单、显式数组和其他证据类型继续严格校验。真实使用结果待验证。 [源码集成](https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6765543748)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。
