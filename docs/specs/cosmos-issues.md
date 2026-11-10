@@ -2581,6 +2581,12 @@ R36 暴露了独审重复抄写清单产生的顶层与逐条证据绑定错误�
 
 作者 `a075466f9a22ffb7d19b3b66f1cebb6a3ea56397` 经独审批准后合入 `6cc2ef2e7c39f705848c520cc266bbab25779b6d`。主线构建、定向清单解析和脚本化 `independent-review/2` 设计候选用例通过。历史清单、显式数组和其他证据类型继续严格校验。真实使用结果待验证。 [源码集成](https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6765543748)
 
+R37 与 R38 均止于设计作者阶段，真实独审清单引用仍待验证。 [两次运行观察](https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6766027622)
+
+### COS-187 · 从已认证设计草稿按独审意见定点修订
+
+R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证来源的初始设计作者调整首次建稿规则，使其可按意见先修改计划或设计。空白初始设计、历史冻结规则和全部门禁保持。离线公开 CLI 用例须验证首次定点写入确实修改计划。 [COS187 / #188](https://github.com/lrfluobida/Cosmos/issues/188)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

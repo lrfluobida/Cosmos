@@ -4,6 +4,14 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R37 与 R38 使用 `01a4e6cb2fc044070db5d435721547861dfff46a` 和 R29/v2 的已审旧稿。R37 在新写入前遇到 `provider_error`。5 笔已知费用共 ¥0.088822，另 1 笔缺 usage，保留预留 ¥0.538148。暂停后保留原 child 36，本次占用 ¥0.626970、释放阶段额度 ¥4.373030；和 R30 合计占用 ¥1.106974。R37 最终结算待核。 [两次运行及账务](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6766026927)
+
+R38 的作者修改 6 个设计字段，包含末次 2/3 和首击静音的说明。计划没有写入，SHA-256 `cc485f0e33b575e52bc47d9d46438f808236f87b191d9f0f8aed49357d777b28` 与 R29/v2 相同，仍为重开前 147 步、重开后 47 步。191765 字节的普通请求因 `author_review_reserve` 在发送前被拒，作者也未返回收尾回复。两次均未进入独审、美术或编码，未交付游戏。COS186 的真实清单引用待验证，COS187 跟进已认证旧稿的定点修改顺序。 [COS186 观察](https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6766027622) · [COS187 任务](https://github.com/lrfluobida/Cosmos/issues/188)
+
+R38 用时 350240 ms，12 笔费用合计 ¥0.542878，释放 ¥4.457122。结算后 child 61、shared 3444，累计已付 ¥44.109573、占用 ¥1.106974，¥50 阶段可用 ¥4.783453，低于又一次完整 ¥5 运行所需额度。已清理两次运行的 E 盘临时目录。R37 暂停和 R38 结算回执分别保存在 `.cosmos/public-validation/room-20261110-reuse-37/funding-suspension/` 和 `.cosmos/public-validation/room-20261110-reuse-38/`。 [账务记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6766026927)
+
+## R36 与 2026-11-10 的源码集成记录
+
 COS186 已合入 `6cc2ef2e7c39f705848c520cc266bbab25779b6d`。普通 `independent-review/2` 设计独审的实时回复可在顶层及 `host_evidence` 行用 `current_inputs_and_artifacts` 指定本任务固定输入与捕获。主机展开后校验并保存完整数组。主线构建、定向解析和脚本化设计候选测试通过。真实独审是否使用该引用、该次设计能否通过，待运行验证。 [COS186 源码与测试](https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6765543748)
 
 R36 在 `0ea27ed72df64c3b13fc2c8efae8f235b31950b4` 上使用 R29/v2 封存的设计、含重开前 147 步和重开后 47 步的计划，以及针对该版的 10 条独审意见。新作者修正了金钥匙与底部控件重叠及最近保存提示的措辞，新捕获的设计稿有变更，执行计划字节相同。只读收尾选定上限 1641 个输出 token，实际使用 1050 个并成功返回。COS184 和 COS185 均按各自范围结案。 [收尾回执](https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6765384158) · [新捕获与独审](https://github.com/lrfluobida/Cosmos/issues/186#issuecomment-6765384893)

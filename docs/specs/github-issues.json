@@ -14170,10 +14170,28 @@
       "sourceReviewedCommit": "a075466f9a22ffb7d19b3b66f1cebb6a3ea56397",
       "sourceIntegratedCommit": "6cc2ef2e7c39f705848c520cc266bbab25779b6d",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6765543748",
-      "verification": "Main build passed, targeted parser 1/1 and scripted independent-review/2 candidate 1/1. Persisted arrays remain strict. Actual model use and review result pending."
+      "verification": "Main build passed, targeted parser 1/1 and scripted independent-review/2 candidate 1/1. Persisted arrays remain strict. R37 and R38 stopped before review. Actual model use and review result pending.",
+      "actualRunComment": "https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6766027622"
+    },
+    {
+      "taskId": "COS-187",
+      "title": "从已认证设计草稿按独审意见定点修订",
+      "number": 188,
+      "id": 6305786846,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/188",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "implementer": "seed_rules_implementer",
+      "reviewer": "seed_rules_reviewer",
+      "merger": "stage_merger"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 186,
+  "totalTaskCount": 187,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
