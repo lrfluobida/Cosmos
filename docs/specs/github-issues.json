@@ -14188,7 +14188,13 @@
       "scopedComplete": false,
       "implementer": "seed_rules_implementer",
       "reviewer": "seed_rules_reviewer",
-      "merger": "stage_merger"
+      "merger": "stage_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "integrationStatus": "source-integrated",
+      "sourceReviewedCommit": "acf71ef62aaf42a3768fe60430d78285b4f3fd51",
+      "sourceIntegratedCommit": "1a88dc1c20107ae8296ea83eb5bfc160a15a7a34",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/188#issuecomment-6766460989",
+      "verification": "Main build and scripted public CLI 1/1 passed. First write changed a single expected value in the plan, preserving all other plan bytes and the captured design. All 21 R38 frozen rules restored exactly. Post-fix live use pending."
     }
   ],
   "verifiedNativeSubIssues": 100,

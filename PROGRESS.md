@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS187 已合入 `1a88dc1c20107ae8296ea83eb5bfc160a15a7a34`。主线构建通过。离线公开 CLI 从已认证旧稿开始，作者首次实际写入将计划中一项预期由“等待”改为“完成”，新捕获设计稿和计划其余字节与旧稿一致。R38 的旧策略及 21 条冻结规则已逐条核实。自检工具与两条格式说明中的重写指令已修正并通过复审。修后尚无真实付费运行。 [COS187 源码与用例](https://github.com/lrfluobida/Cosmos/issues/188#issuecomment-6766460989) · [父任务进度](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6766461701)
+
+本阶段已清理实现工作树和集成用例的 93 个临时文件，保留实现验证日志。实现阶段的 `r38-seed-first/tmp` 下另有 `cosmos-validation-group-ybFAeC`（13 个文件，35967 字节）和 `node-compile-cache`（93 个文件，1597724 字节）。阶段结束后核实目录内容和占用情况，常规清理仍被自动命令审查拒绝，两目录共 1633691 字节保留。 [阶段记录](https://github.com/lrfluobida/Cosmos/issues/188#issuecomment-6766460989)
+
 R37 与 R38 使用 `01a4e6cb2fc044070db5d435721547861dfff46a` 和 R29/v2 的已审旧稿。R37 在新写入前遇到 `provider_error`。5 笔已知费用共 ¥0.088822，另 1 笔缺 usage，保留预留 ¥0.538148。暂停后保留原 child 36，本次占用 ¥0.626970、释放阶段额度 ¥4.373030；和 R30 合计占用 ¥1.106974。R37 最终结算待核。 [两次运行及账务](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6766026927)
 
 R38 的作者修改 6 个设计字段，包含末次 2/3 和首击静音的说明。计划没有写入，SHA-256 `cc485f0e33b575e52bc47d9d46438f808236f87b191d9f0f8aed49357d777b28` 与 R29/v2 相同，仍为重开前 147 步、重开后 47 步。191765 字节的普通请求因 `author_review_reserve` 在发送前被拒，作者也未返回收尾回复。两次均未进入独审、美术或编码，未交付游戏。COS186 的真实清单引用待验证，COS187 跟进已认证旧稿的定点修改顺序。 [COS186 观察](https://github.com/lrfluobida/Cosmos/issues/187#issuecomment-6766027622) · [COS187 任务](https://github.com/lrfluobida/Cosmos/issues/188)
