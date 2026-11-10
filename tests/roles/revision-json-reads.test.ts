@@ -14,13 +14,14 @@ test('COS146 revision display selector is trusted, snapshotted, and limited to o
   await mkdir(join(f.root, 'requirements')); await writeFile(join(f.root, 'requirements/v1.json'), '{ "value": 1 }', 'utf8');
   for (const selector of [true, false, null, 'revision']) assert.throws(() => createRoleFactory({ ...options, ordinaryDesignRevisionJsonReads: selector } as unknown as RoleFactoryOptions), /trusted selector/);
   let calls = 0;
-  const mutable: RoleFactoryOptions = { ...options, sessionFactory: f.sessionFactory, ordinaryDesignRevisionJsonReads: async task => {
+  const mutable: RoleFactoryOptions = { ...options, sessionFactory: f.sessionFactory, ordinarySuppliedDesign: true, ordinaryDesignRevisionJsonReads: async task => {
     calls++; assert.ok(Object.isFrozen(task)); assert.ok(Object.isFrozen(task.acceptanceIds)); assert.notEqual(task, f.input.task); return true;
   } };
   const factory = createRoleFactory(mutable); mutable.ordinaryDesignRevisionJsonReads = async () => false;
   for (const [role, purpose] of [['design', undefined], ['design', 'planning'], ['reviewer', undefined], ['art', undefined], ['coding', undefined], ['cosmos', undefined]] as const) {
     const session = await factory({ ...f.input, role, purpose }); await session.close();
     const config = f.configs.at(-1)!, read = config.tools!.find(tool => tool.name === 'read')!;
+    assert.ok(!Object.hasOwn(read.parameters.properties, 'planOffset'));
     if (role === 'design' && !purpose) assert.match(read.description, /^For JSON revision,/);
     else assert.doesNotMatch(read.description, /^For JSON (review|revision),/);
     const result = await read.execute('selection', { path: 'requirements/v1.json' }, undefined, undefined, undefined as never);
@@ -83,4 +84,32 @@ for (const role of ['design', 'reviewer'] as const) test('COS146 native factory 
   assert.equal(requests.length, 2);
   assert.match(requests[0].tools.find((tool: any) => tool.function.name === 'read').function.description, /compact display.*exact-text/);
   assert.equal(await readFile(join(f.root, path), 'utf8'), source);
+});
+
+test('native design review follows compact plan continuation with strict-schema nullable arguments', async t => {
+  const f = await authorBudgetFixture(t), task = f.input.task;
+  task.outputs[0].schema = 'game-design/2';
+  const folder = task.artifacts[0].location + '/_cosmos', path = folder + '/acceptance-plan.json';
+  const source = await readFile(new URL('../../docs/benchmark/cabin-hunt/acceptance-plan.json', import.meta.url));
+  await mkdir(join(f.root, folder), { recursive: true }); await writeFile(join(f.root, path), source);
+  let calls = 0;
+  t.mock.method(globalThis, 'fetch', async (input: any, init?: RequestInit) => {
+    const request = input instanceof Request ? input : new Request(input, init), body = JSON.parse(await request.text());
+    assert.equal(new URL(request.url).origin, 'https://api.deepseek.com');
+    assert.ok(++calls <= 3);
+    const schema = body.tools.find((tool: any) => tool.function.name === 'read').function.parameters;
+    assert.ok(schema.properties.planOffset);
+    const pages = body.messages.filter((message: any) => message.role === 'tool').map((message: any) => message.content);
+    const notice = /\n\n\[[^\n]*Use planOffset=(\d+) to continue\.\]$/;
+    const next = !pages.length ? null : Number(notice.exec(pages[0])![1]);
+    if (pages.length === 2) assert.deepEqual(JSON.parse(pages[0].replace(notice, '') + '\n' + pages[1]), JSON.parse(source.toString('utf8')));
+    const delta = pages.length === 2 ? { content: 'Both pages received.' } : { tool_calls: [{ index: 0, id: 'page-' + calls, type: 'function',
+      function: { name: 'read', arguments: JSON.stringify({ path, offset: null, limit: null, planOffset: next }) } }] };
+    const chunk = { id: 'offline-plan', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: pages.length === 2 ? 'stop' : 'tool_calls' }],
+      usage: { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40 } };
+    return new Response('data: ' + JSON.stringify(chunk) + '\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
+  });
+  const session = await f.create({ ordinaryDesignReviewBudget: () => true, sessionFactory: config => createPiSession(config) }, { ...f.input, role: 'reviewer' });
+  assert.equal((await session.prompt('Read the complete plan.')).text, 'Both pages received.');
+  assert.equal(calls, 3);
 });
