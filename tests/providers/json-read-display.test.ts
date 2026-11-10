@@ -131,3 +131,53 @@ test('COS146 whole read rejects escaping paths, symlink scopes, and cancellation
   const cancelled = new AbortController(), pending = f.read(f.compact, {}, cancelled.signal); cancelled.abort();
   await assert.rejects(pending, /abort/i);
 });
+
+test('read-only plan pages retain all 397 steps and metadata across native byte and explicit line limits', async t => {
+  const f = await fixture(t), path = 'input.json';
+  const source = await readFile(new URL('../../docs/benchmark/cabin-hunt/acceptance-plan.json', import.meta.url));
+  await writeFile(join(f.root, path), source);
+  const [tool] = await createWorkspaceTools({ workspace: f.root, readPaths: [path], writePaths: [], planReadPaths: [path] });
+  const page = async (args: Record<string, number>) => {
+    const result = await tool.execute('page', { path, ...args }, undefined, undefined, undefined as never);
+    assert.equal(result.content[0].type, 'text'); return result.content[0].text;
+  };
+  for (const limit of [undefined, 100]) {
+    const parts: string[] = [];
+    let next = 1;
+    for (;;) {
+      const text = await page(limit ? { planOffset: next, limit } : next === 1 ? {} : { planOffset: next });
+      const notice = /\n\n\[[^\n]*Use planOffset=(\d+) to continue\.\]$/.exec(text);
+      parts.push(notice ? text.slice(0, notice.index) : text);
+      if (!notice) break;
+      assert.equal(Number(notice[1]), next + parts.at(-1)!.split('\n').length);
+      next = Number(notice[1]);
+    }
+    assert.ok(parts.length > 1);
+    const restored = JSON.parse(parts.join('\n'));
+    assert.deepEqual(restored, JSON.parse(source.toString('utf8')));
+    assert.equal(restored.scenario.steps.length + restored.scenario.reopen.steps.length, 397);
+  }
+  const raw = await f.read(f.original, { offset: 1624, limit: 2 });
+  assert.equal(await page({ offset: 1624, limit: 2 }), raw.content[0].type === 'text' && raw.content[0].text);
+  assert.deepEqual(await readFile(join(f.root, path)), source);
+});
+
+test('plan paging preserves lexical JSON and uses source paging when a display line exceeds the SDK limit', async t => {
+  const f = await fixture(t), path = 'input.json';
+  const [tool] = await createWorkspaceTools({ workspace: f.root, readPaths: [path], writePaths: [], planReadPaths: [path] });
+  const invoke = (args: Record<string, unknown>) => tool.execute('plan', { path, ...args }, undefined, undefined, undefined as never);
+  const format = (step: string) => '{ "formatVersion": "ordinary-acceptance-plan/1", "scenario":{"steps":[\n' + step + '\n]} }';
+  const lexical = '{"escaped":"  },[ \\"中文\\u4e2d\\\\ ", "n":9007199254740993, "n":-0, "e":1.20e+03}';
+  await writeFile(join(f.root, path), format(lexical));
+  const result = await invoke({ planOffset: 2, limit: 1 });
+  assert.match(result.content[0].text, /9007199254740993,"n":-0,"e":1.20e\+03/);
+  assert.ok(result.content[0].text.includes('  },[ \\"中文\\u4e2d\\\\ '));
+  assert.match(result.content[0].text, /Use planOffset=3/);
+  await assert.rejects(invoke({ planOffset: 2, offset: 2 }), /offset/i);
+  for (const limit of [0, -1, 1.5]) await assert.rejects(invoke({ planOffset: 2, limit }), /limit/i);
+  const huge = format('{\n' + Array.from({ length: 1000 }, (_, i) => JSON.stringify('property' + i) + ': "' + '中'.repeat(20) + '"').join(',\n') + '\n}');
+  await writeFile(join(f.root, path), huge);
+  assert.deepEqual(await invoke({}), await f.read(f.original));
+  await assert.rejects(invoke({ planOffset: 2 }), /source.*offset/i);
+  await assert.rejects(invoke({ path: '../elsewhere', planOffset: 1 }), /outside allowed/);
+});

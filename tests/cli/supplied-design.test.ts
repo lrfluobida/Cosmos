@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import test from 'node:test';
+import type { PiSessionOptions } from '../../src/providers/pi.ts';
 import { runCli } from '../../src/cli/index.ts';
 import { runPublicValidationCli } from '../../probes/public-cli/validation.ts';
 import { confirmedSource, silentOutput } from '../runtime/confirmed-requirements.fixture.ts';
@@ -15,6 +16,18 @@ import { fundingFixture } from '../runtime/public-validation-funding.fixture.ts'
 const io = () => ({ input: Readable.from([]), output: silentOutput() });
 const read = (root: string, file: string) => readFile(join(root, file));
 const json = async (root: string, file: string) => JSON.parse((await read(root, file)).toString('utf8'));
+async function checkReadPlan(config: PiSessionOptions, path: string, source: string) {
+  const read = config.tools!.find(tool => tool.name === 'read')!;
+  assert.match(read.description, /planOffset counts display lines/);
+  const invoke = (args: object) => read.execute('plan', { path, ...args }, undefined, undefined, undefined as never);
+  const all = await invoke({});
+  assert.deepEqual(JSON.parse(all.content[0].text), JSON.parse(source));
+  const second = await invoke({ planOffset: 2, limit: 1 });
+  assert.equal(second.content[0].text.split('\n')[0], all.content[0].text.split('\n')[1]);
+  assert.match(second.content[0].text, /Use planOffset=3/);
+  const raw = await invoke({ offset: 2, limit: 1 });
+  assert.equal(raw.content[0].text.split('\n')[0], source.split('\n')[1]);
+}
 for (const outcome of ['approved', 'changes_requested', 'altered']) test(`public supplied design: ${outcome}`, async t => {
   const files = new Map<string, string>(), consumers = new Set<string>();
   const next = await ordinaryHostFixture(t, { productionDefault: true, fault: outcome === 'changes_requested' ? 'review' : undefined,
@@ -24,6 +37,7 @@ for (const outcome of ['approved', 'changes_requested', 'altered']) test(`public
         assert.match(config.systemPrompt, /Use validate-game-design/);
         assert.match(config.systemPrompt, /Hand off the existing files unchanged/);
         assert.deepEqual(config.tools!.map(tool => tool.name).sort(), ['read', 'validate-game-design']);
+        if (outcome === 'approved') await checkReadPlan(config, 'authors/design/acceptance-plan.json', files.get('acceptance-plan.json')!);
         for (const [name, content] of files) assert.equal((await read(config.workspace, 'authors/design/' + name)).toString(), content);
         if (outcome === 'altered') await writeFile(join(config.workspace, 'authors/design/design.json'), files.get('design.json') + ' ');
         return { text: JSON.stringify({ summary: 'Checked the supplied files', remaining: [], uncertainty: [] }) };
@@ -42,6 +56,7 @@ for (const outcome of ['approved', 'changes_requested', 'altered']) test(`public
         assert.deepEqual(packet.ownership.writePaths, []);
         const captured = packet.inputFiles.find((ref: any) => ref.artifactId === 'design');
         assert.deepEqual(captured.files.sort(), ['_cosmos/acceptance-plan.json', '_cosmos/design.json']);
+        if (outcome === 'approved') await checkReadPlan(config, captured.location + '/_cosmos/acceptance-plan.json', files.get('acceptance-plan.json')!);
         for (const [name, content] of files) assert.equal((await read(config.workspace, captured.location + '/_cosmos/' + name)).toString(), content);
         for (const sourceId of ['requirement-draft', 'user-confirmation']) {
           assert.ok(packet.inputFiles.some((ref: any) => ref.artifactId === sourceId && ref.kind === 'file'));
@@ -49,6 +64,7 @@ for (const outcome of ['approved', 'changes_requested', 'altered']) test(`public
         assert.ok(packet.evidence.length && packet.evidence.every((item: any) => packet.inputFiles.some((ref: any) => ref.location === item.source.location && ref.kind !== 'missing')));
       }
       if (['art', 'coding'].includes(packet.role)) {
+        assert.ok(!Object.hasOwn(config.tools!.find(tool => tool.name === 'read')!.parameters.properties, 'planOffset'));
         assert.match(packet.rules.join('\n'), /operator-supplied design/);
         const ref = packet.inputs.find((item: any) => item.artifactId === 'design');
         for (const [name, content] of files) assert.equal((await read(config.workspace, ref.location + '/_cosmos/' + name)).toString(), content);

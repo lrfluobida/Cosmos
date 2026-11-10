@@ -958,6 +958,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           ...(preservesValidDraft(ordinaryPlanAuthoringPolicy) ? { ordinaryDesignRejectedWriteCompaction: true as const } : {}),
           ordinaryPlanningOutputFloor: 4096,
           ordinaryDesignReviewMaxOutputTokens: 16384,
+          ...(suppliedDesign ? { ordinarySuppliedDesign: true as const } : {}),
           ordinaryPlanningAcceptanceIndex: async roleInput => {
             await ordinary.requireCurrent();
             if (!sameValue(roleInput.requirement, requirement) || roleInput.controller !== controller

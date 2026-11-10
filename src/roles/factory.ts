@@ -18,6 +18,7 @@ import { requireValidationScope } from '../runtime/validation-scope.ts';
 import type { ValidationExecutionBinding } from '../runtime/validation-scope.ts';
 import { validationReservation, validationRole } from '../runtime/validation-validation.ts';
 import { requireOriginalTask } from '../runtime/recovery/task-journal.ts';
+import { ORDINARY_PLAN_FILE, ORDINARY_PLAN_SOURCE } from '../runtime/entrypoint-acceptance-plan.ts';
 import { codingConcernReviewProtocol } from '../runtime/repair/coding-concerns.ts';
 import type { CodingConcernReview } from '../runtime/repair/coding-concerns.ts';
 import { designConcernReviewProtocol, isOrdinaryDesignRevisionPolicy } from '../runtime/repair/design-concerns.ts';
@@ -71,6 +72,8 @@ export interface RoleFactoryOptions {
   ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
   /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote down to the 4096 floor. */
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
+  /** The host bound an operator-supplied design to its read-only handoff. */
+  ordinarySuppliedDesign?: true;
   /** Trusted host selects an authenticated draft or the fixed same-run design revision. */
   ordinaryDesignRevisionJsonReads?: (task: Readonly<TaskContract>) => Promise<boolean | 'reviewed-draft'>;
   /** Explicit trusted reviewer ceiling; omitted callers retain the original 8192 cap. */
@@ -150,6 +153,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (finalizationPolicy !== undefined && (finalizationPolicy !== 'budget-followup/1' || recoveryPolicy !== 'review-reserve/1' || ![32, 64].includes(authorRequestLimits.design!))) throw new Error('Invalid ordinaryDesignFinalizationPolicy.');
   const ordinaryDesignReviewBudget = options.ordinaryDesignReviewBudget;
   const ordinaryDesignRevisionJsonReads = options.ordinaryDesignRevisionJsonReads;
+  const suppliedPlanHandoff = options.ordinarySuppliedDesign === true;
   if (ordinaryDesignRevisionJsonReads !== undefined && typeof ordinaryDesignRevisionJsonReads !== 'function') throw new Error('ordinaryDesignRevisionJsonReads requires a trusted selector.');
   if (ordinaryDesignReviewBudget !== undefined && (typeof ordinaryDesignReviewBudget !== 'function' || options.maxOutputTokens !== 8192)) {
     throw new Error('ordinaryDesignReviewBudget requires a trusted selector and the original 8192 output cap.');
@@ -230,7 +234,11 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
           return !isAbsolute(rel) && rel !== '..' && !rel.startsWith(`..${sep}`); })) throw new Error('Successful write is outside its original task.');
       committedWrites.set(id, [...new Set([...(committedWrites.get(id) ?? []), owned.replaceAll('\\', '/')])]);
     } : undefined;
-    const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths,
+    const planReadPaths = designReviewBudget ? task.artifacts.filter(ref =>
+      task.outputs.some(output => output.schema === 'game-design/2' && output.destination === ref.location)).map(ref => ref.location + '/' + ORDINARY_PLAN_FILE)
+      : suppliedPlanHandoff && input.role === 'design' && !input.purpose && !input.validation
+        && sameValue(task.context.tools, ['read', 'validate-game-design']) ? [ORDINARY_PLAN_SOURCE] : [];
+    const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths, planReadPaths,
       ...(onWriteCommitted ? { onWriteCommitted } : {}),
       ...(input.role === 'design' && !input.purpose && !input.validation && options.beforeDesignFileWrite ? { beforeFileWrite: options.beforeDesignFileWrite(input) } : {}),
       ...(designReviewBudget || designRevisionJsonReads ? { compactFullJsonReads: true } : {}) });

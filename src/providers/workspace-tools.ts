@@ -2,7 +2,8 @@ import { constants } from 'node:fs';
 import { access, lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { createEditTool, createReadTool, createWriteTool, defineTool, detectSupportedImageMimeTypeFromFile, type ToolDefinition } from '@earendil-works/pi-coding-agent';
-import { compactJsonReadBuffer } from './json-read-display.ts';
+import { Type } from 'typebox';
+import { compactJsonReadBuffer, pagedPlanReadBuffer } from './json-read-display.ts';
 
 export type BeforeFileWrite = (absolutePath: string, candidate: Buffer, signal: AbortSignal) => Promise<void>;
 export type WriteCommitted = (toolCallId: string, absolutePath: string) => void;
@@ -15,6 +16,7 @@ export interface WorkspaceToolOptions {
   readPaths: string[];
   writePaths: string[];
   compactFullJsonReads?: true;
+  planReadPaths?: string[];
   beforeFileWrite?: BeforeFileWrite;
   onWriteCommitted?: WriteCommitted;
 }
@@ -74,13 +76,25 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
   const tools: ToolDefinition[] = [];
   if (reads.length) {
     const read = createReadTool(workspace);
+    const plans = scopes(options.planReadPaths ?? []);
+    const parameters = plans.length ? Type.Object({ ...read.parameters.properties,
+      planOffset: Type.Optional(Type.Integer({ minimum: 1, description: '1-based compact plan display line. Omit offset when using planOffset.' })) }) : read.parameters;
     const description = read.description + (options.compactFullJsonReads
-      ? ' Whole-file JSON may use compact display; source formatting is unchanged. Before exact-text edits, use explicit offset/limit reads to obtain raw source text.' : '');
-    tools.push(defineTool({ ...read, description, async execute(id, args, signal, onUpdate) {
+      ? ' Whole-file JSON may use compact display; source formatting is unchanged. Before exact-text edits, use explicit offset/limit reads to obtain raw source text.' : '')
+      + (plans.length ? ' For the fixed acceptance plan, start with path alone (omit optional numbers, or use null if required). Follow each continuation once until complete. planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.' : '');
+    tools.push(defineTool({ ...read, description, parameters, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, reads, signal);
       await access(full);
-      // Each invocation owns its operations; a concurrent paged read must still see raw bytes.
-      const selected = options.compactFullJsonReads && args.offset === undefined && args.limit === undefined
+      const planOffset = 'planOffset' in args ? args.planOffset as number | undefined : undefined;
+      const planPath = plans.some(path => relative(path, full) === '');
+      if (planOffset != null && (!planPath || args.offset != null || !Number.isSafeInteger(planOffset) || planOffset < 1))
+        throw new Error('Use planOffset only on the fixed acceptance plan, without a source offset.');
+      if (planOffset != null && args.limit != null && (!Number.isSafeInteger(args.limit) || args.limit < 1))
+        throw new Error('Plan display limit must be a positive integer.');
+      const whole = args.offset == null && args.limit == null;
+      const planRead = planPath && (whole || planOffset != null);
+      let displayLines = false;
+      const selected = planRead || options.compactFullJsonReads && whole
         ? createReadTool(workspace, { operations: {
           access: path => access(path, constants.R_OK),
           detectImageMimeType: detectSupportedImageMimeTypeFromFile,
@@ -88,10 +102,21 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
             signal?.throwIfAborted();
             const buffer = await readFile(path, { signal });
             signal?.throwIfAborted();
+            if (planRead) {
+              const display = pagedPlanReadBuffer(buffer);
+              if (display) { displayLines = true; return display; }
+              if (planOffset != null) throw new Error('Plan display unavailable. Read source lines with offset=1.');
+              return buffer;
+            }
             return compactJsonReadBuffer(buffer);
           },
         } }) : read;
-      return selected.execute(id, { ...args, path: full }, signal, onUpdate);
+      const result = await selected.execute(id, { path: full, offset: planOffset ?? args.offset ?? undefined, limit: args.limit ?? undefined }, signal, onUpdate);
+      if (displayLines) {
+        for (const block of result.content) if (block.type === 'text')
+          block.text = block.text.replace(/Use offset=(\d+) to continue\.\]$/, 'Use planOffset=$1 to continue.]');
+      }
+      return result;
     } }));
   }
   if (writes.length) {
