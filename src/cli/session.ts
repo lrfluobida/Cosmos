@@ -26,6 +26,7 @@ import { publishFundedOrigin, verifyFundedNew, verifyPublicValidationFunding } f
 import { DEFAULT_RUN_LIMITS, displayRunLimits, requirePreparationRunLimits, requirePublicRunLimits, validateRunLimits } from './run-limits.ts';
 import type { RunLimits } from './run-limits.ts';
 import { readConfirmedGeneration, readConfirmedRequirementsSource, readReferencedRequirements, requireSeparateRequirementsRoot } from '../runtime/confirmed-requirements-source.ts';
+import { readReviewedDesignDraft, selectDesignDraftReview } from '../runtime/reviewed-design-draft.ts';
 import { publicBaseAllocations } from '../runtime/public-base-allocations.ts';
 
 export interface ProductHost {
@@ -97,7 +98,7 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
 }
 
 /** The only confirmation author is actual stdin; model output never reaches this branch. */
-export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; requirementsFrom?: { root: string; revision: number }; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
+export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; requirementsFrom?: { root: string; revision: number }; designDraftFrom?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
   if (options.limits !== undefined) {
     if (options.command !== 'new') throw new Error('Run limits can only be selected for new.');
     validateRunLimits(options.limits);
@@ -112,6 +113,8 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   await safePath(root);
   if (options.requirementsFrom && (options.command !== 'new' || options.brief !== undefined || selectedMode)) throw new Error('Requirements source and ordinary brief are exclusive new modes.');
   const referenced = options.requirementsFrom ? await readConfirmedRequirementsSource({ ...options.requirementsFrom, specVersion: '1.0' }) : undefined;
+  if (options.designDraftFrom !== undefined && (!referenced || !options.designDraftFrom.trim() || referenced.draft.codeProfile || referenced.draft.preparation)) throw new Error('A reviewed design draft requires an exact non-modular ordinary confirmation.');
+  const designDraftReview = options.designDraftFrom ? await selectDesignDraftReview(options.designDraftFrom, referenced!.source) : undefined;
   if (referenced) {
     requireSeparateRequirementsRoot(root, referenced.source);
     if (options.renderFrames !== undefined && options.renderFrames !== !!referenced.renderFrameSelection) throw new Error('Cannot replace the original render-frame selection.');
@@ -147,9 +150,10 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (!brief?.trim()) throw new Error('A one-sentence --brief or confirmed requirements source is required.');
       const entries: string[] = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
       const initialization = referenced && entries.length ? await optionalJson(root, 'intake-origin.json') : null;
-      if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source);
+      if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source, designDraftReview);
       else if (entries.length && !initialization) throw new Error('Choose an empty run directory; existing runs require resume.');
       const runId = options.funding?.runId ?? initialization?.runId ?? `game-${randomUUID()}`; id(runId);
+      if (designDraftReview) await readReviewedDesignDraft(designDraftReview, referenced!.source, { root, runId, ledgerId: options.funding?.ledgerId ?? `${runId}-budget` });
       if (referenced && (runId === referenced.source.runId || options.funding?.ledgerId === referenced.ledgerId)) throw new Error('New attempt must have independent run and ledger identities.');
       frames = referenced ? referenced.renderFrameSelection : options.renderFrames ? await selectRenderFrames() : undefined;
       policy = referenced ? referenced.modularRepairPolicy : currentModularRepairPolicy();
@@ -158,6 +162,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       const origin = { runId, brief, ...((options.limits && !selectedMode || referenced) ? { limits } : {}), ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), ...(policy ? { modularRepairPolicy: policy } : {}),
         ...allocationSelection,
         ...(referenced ? { requirementsSource: referenced.source } : {}),
+        ...(designDraftReview ? { designDraftReview } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(options.funding ? { validationFunding: options.funding } : {}) };
       const allocations = publicBaseAllocations(limits.limitMicroCny, origin);
@@ -191,6 +196,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...(selectedMode ? { draftMode: options.draftMode } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(referenced ? { requirementsSource: referenced.source } : {}),
+        ...(designDraftReview ? { designDraftReview } : {}),
         ...(frames ? { renderFrames: frames } : {}),
         modularRepairPolicy: policy, ...(options.funding ? { validationFunding: options.funding } : {}),
         allocations });
@@ -236,6 +242,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     let current = state.draft, requirement = state.requirementsSource ? (await readReferencedRequirements(root, state)).requirement : state.confirmation?.requirement;
     if (state.requirementsSource) {
       say(`新生成尝试 ${state.run.runId}；完整需求来源 ${state.requirementsSource.runId} / v${state.requirementsSource.revision}；原确认人 ${requirement!.confirmedBy}，原确认时间 ${requirement!.confirmedAt}。`);
+      if (state.designDraftReview) say(`设计作者将从已捕获的待修草稿开始，独审回执 ${state.designDraftReview.location}，SHA-256 ${state.designDraftReview.version}。`);
       say(displayDraft(current!, frames, policy));
     }
     control = await startControl(root, state.run.runId, stop);

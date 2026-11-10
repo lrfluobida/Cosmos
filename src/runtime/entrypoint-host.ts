@@ -17,7 +17,7 @@ import type { AcceptancePlan } from '../acceptance/plan.ts';
 import type { AcceptanceReport } from '../acceptance/runner.ts';
 import type { GenericMediaObservationRequest } from '../acceptance/browser.ts';
 import { runOwnedNode } from './recovery/owned-command.ts';
-import { publishReceipt } from './recovery/receipt-file.ts';
+import { publishReceipt, publishReceiptBytes } from './recovery/receipt-file.ts';
 import { authenticatedOrdinaryFunding, CONSERVED_DESIGN_BUDGET, ordinaryUnallocated } from './ordinary-design-revision-budget.ts';
 import { HostFailure } from './repair/feedback.ts';
 import type { RepairFeedback } from './repair/feedback.ts';
@@ -35,6 +35,7 @@ import { diagnosePersistentBrowser } from './adapters/transfer/persistent-diagno
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
+import { readReviewedDesignDraft } from './reviewed-design-draft.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 import { createOrdinaryAcceptanceScope, validateOrdinaryAcceptancePlan, ORDINARY_PLAN_FILE, ORDINARY_PLAN_SOURCE } from './entrypoint-acceptance-plan.ts';
 import type { ExecutionRequirement, ValidationRequirement } from '../roles/execution-input.ts';
@@ -74,7 +75,7 @@ import type { ModularCompilerInputs, ModuleSlot } from './modular-code.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './modular-repair-policy.ts';
 import { associateNativeReadSignal, createNativeSnapshotValidationWaits, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
 import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
-import { optionalDesignJson, readDesignRevisionPlan, readDesignSelection, requireDesignExecution, requireDesignMirrors, requireDesignProgress, seedDesignRevision } from './entrypoint-design-revision.ts';
+import { optionalDesignJson, readDesignRevisionPlan, readDesignSelection, requireDesignExecution, requireDesignMirrors, requireDesignProgress, seedDesignFiles, seedDesignRevision } from './entrypoint-design-revision.ts';
 import { isOrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
@@ -431,6 +432,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     || ![DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID].every(id => requirement.acceptance.some(item => item.acceptanceId === id))) throw new Error('The browser-input host requires separately confirmed design, media and gameplay checks.');
   const gameplayIds = gameplayAcceptance(draft).map(item => item.acceptanceId);
   const state = await controller.read();
+  if (state.designDraftReview && (!budgetEligible || !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
+  const reviewedDraft = state.designDraftReview ? await readReviewedDesignDraft(state.designDraftReview, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
+  if (reviewedDraft && !input.resume) await publishReceiptBytes(await safePath(root, reviewedDraft.feedback.location), reviewedDraft.feedbackBytes);
+  const requireDraftFeedback = async () => {
+    if (reviewedDraft && !(await regularFile(root, reviewedDraft.feedback.location)).equals(reviewedDraft.feedbackBytes)) throw new Error('Fixed reviewed design feedback changed.');
+  };
+  await requireDraftFeedback();
   let historicalDesign: { source: PreparedTask; policy: NonNullable<HostInput['ordinaryPlanAuthoringPolicy']> } | undefined;
   if (binding) {
     if (!input.resume) throw new Error('A continuation host must reuse its existing registry inputs.');
@@ -546,6 +554,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     if (ordinaryDesignRevisionPolicy) {
       const execution = await json(root, 'execution.json'); await requireDesignExecution(root, controller, execution);
       boundTask(task);
+      if (reviewedDraft && role(task) === 'design') await requireDraftFeedback();
       const revision = await readDesignRevisionPlan(root, controller, execution);
       if (revision && task.taskId === revision.task.task.taskId && task.attempts.length) {
         await requireDesignMirrors(root, workspace(task), [...task.inputs, ...task.context.interfaces]);
@@ -753,9 +762,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     if (ordinary) designWriteChecks.set(original.taskId, { ...check, workspace: fixedWorkspace, attemptId: original.attempts.at(-1)?.attemptId });
     const beforeFileWrite = preserveValidDraft ? check.beforeFileWrite : undefined;
     return [check, ...(ordinaryPlanAuthoringPolicy ? [await createGamePlanWriter({ workspace: fixedWorkspace, requirement: requirements,
-      repairGameplayIds: repairAcceptanceIds ? gameplayIds : undefined, seededRevision: original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite, onWriteCommitted: supplied.onWriteCommitted })] : []),
+      repairGameplayIds: repairAcceptanceIds ? gameplayIds : undefined, seededRevision: !!reviewedDraft || original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite, onWriteCommitted: supplied.onWriteCommitted })] : []),
       ...(hasDesignWriter(ordinaryPlanAuthoringPolicy) ? [await createGameDesignWriter({ workspace: fixedWorkspace,
-        seededRevision: original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite, onWriteCommitted: supplied.onWriteCommitted })] : []),
+        seededRevision: !!reviewedDraft || original.taskId === ordinaryRevisionTaskId, guard, beforeFileWrite, afterFileWrite: check.afterFileWrite, onWriteCommitted: supplied.onWriteCommitted })] : []),
       ...(preparation?.designHostTools ? await preparation.designHostTools.create(supplied) : [])];
   };
   const codingHostTools: NonNullable<RoleFactoryOptions['hostTools']> = async supplied => {
@@ -839,6 +848,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Expose a non-configurable getter window.cosmosDebug returning frozen plain data. Its media.characters array follows manifest order: {id,loadedFrames,states:[{name,seen}]}; media.audio follows manifest order: {id,decoded,started}. Derive loadedFrames/decoded from actual Phaser texture/audio-cache readiness, states seen from actual displayed animation transitions, and started from successful sound start after normal user input. Preserve cumulative observations across scene changes in this document. Never fill these fields with declared constants or fabricate them; independent review checks their source. The host checks every declared state and audio clip on the frozen normal-input path and reports missing coverage as incomplete.',
         'The host builds, runs normal inputs, captures immutable output and asks a separate reviewer. Return only the required author handoff JSON after writing files.'] }],
     validateTasks(tasks) {
+      const designInterfaces = tasks.find(item => item.role === 'design')?.task.context.interfaces.filter(ref => ref.artifactId === 'ordinary-design-draft-feedback');
+      if (!sameValue(designInterfaces ?? [], reviewedDraft ? [reviewedDraft.feedback] : [])) throw new Error('Original design task differs from its fixed reviewed draft.');
       for (const item of tasks) requirePlanAuthoringTasks([item], historicalDesign && sameValue(historicalDesign.source, item)
         ? historicalDesign.policy : ordinaryPlanAuthoringPolicy);
       if (human && !binding) for (const item of tasks) {
@@ -948,7 +959,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 },
             ordinaryDesignRevisionJsonReads: async task => {
               await requireDispatch(task, controller.signal);
-              return task.taskId === ordinaryRevisionTaskId && role(task) === 'design';
+              return (reviewedDraft !== undefined || task.taskId === ordinaryRevisionTaskId) && role(task) === 'design';
             } } : {}) } : {}),
       sessionFactory: input.sessionFactory,
       hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],
@@ -1470,6 +1481,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   };
   if (ordinary && ordinaryDraft) {
     const design = host.taskPolicies.find(policy => policy.role === 'design')!;
+    if (reviewedDraft) {
+      design.interfaces = [reviewedDraft.feedback];
+      design.rules!.push('The editable design and acceptance plan start from a previously rejected capture. Read design-draft-feedback.json for independent model advice, check it against the entire original confirmation, and revise the affected sections while retaining valid coverage. Report unresolved issues. Only this run’s capture and independent review can approve the new design.');
+    }
     design.writePaths.push(ORDINARY_PLAN_SOURCE); design.outputs[0].schema = 'game-design/2';
     if (ordinaryPlanAuthoringPolicy) design.tools.push(GAME_PLAN_WRITE);
     if (hasDesignWriter(ordinaryPlanAuthoringPolicy)) {
@@ -1496,7 +1511,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Independent coding review must trace each field and count to real media objects, connected output chain and actual successful events; reject constants, DOM labels, omitted instances, or business soundEnabled booleans used as audio evidence. Check play/resume transaction boundaries, manager event names and stop/pause/end/destroy handling. Additional native output paths, unobserved direct node writes or future gain automation need equivalent actual observations; otherwise report insufficient evidence. An event count alone does not establish human audibility of same-turn play then mute. Keep existing raw reports, media coverage and visible acceptance; final listening quality remains user experience.');
     }
     const preAuthor = host.preAuthor;
-    host.preAuthor = async (task, signal) => { await requireDispatch(task, signal); await preAuthor?.(task, signal); };
+    host.preAuthor = async (task, signal) => {
+      await requireDispatch(task, signal); await preAuthor?.(task, signal);
+      if (reviewedDraft && role(task) === 'design') {
+        if (task.attempts.length || workspace(task) !== root) throw new Error('Only an unstarted original design can receive a reviewed draft.');
+        await seedDesignFiles(root, task, reviewedDraft.contents);
+      }
+    };
   }
   if (modular) {
     const design = host.taskPolicies.find(policy => policy.role === 'design')!, coding = host.taskPolicies.find(policy => policy.role === 'coding')!;
@@ -1555,6 +1576,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     host.verify = async (...args) => {
       const revision = await readDesignRevisionPlan(root, controller, await json(root, 'execution.json'));
       if (revision?.task.task.taskId === args[0].taskId) await requireDesignProgress(root, revision);
+      if (reviewedDraft && role(args[0]) === 'design' && args[0].taskId !== ordinaryRevisionTaskId) {
+        const ref = taskOutput(args[0]);
+        const matches = await Promise.all([...reviewedDraft.contents].map(async ([name, bytes]) => (await regularFile(root, ref.location + '/_cosmos/' + name)).equals(bytes)));
+        if (matches.every(Boolean)) throw new Error('Reviewed design draft has no output change.');
+      }
       const evidence = await verify(...args);
       if (revision?.task.task.taskId === args[0].taskId) {
         await requireDispatch(args[0], args[1]);

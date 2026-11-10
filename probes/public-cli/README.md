@@ -20,6 +20,10 @@ node --experimental-strip-types probes/public-cli/validation.ts settle <run-dir>
 
 已有完整普通需求确认时，可使用 `public-validation-authorization/2`：保留 v1 全部字段，新增必填 `requirementsSource`（`confirmed-requirements-source/1` 的 root/runId/revision/draftSha256/confirmationSha256）。授权的 brief/renderFrames 必须等于原确认版本。wrapper 在占用新拨款前只读核验来源，再调用公开 `new --requirements-from <source-run-dir> --requirements-revision <N>`；不再访谈或创建新的需求确认决定。
 
+普通设计需要沿用一版已捕获的待修草稿时，可在上述公开命令追加 `--design-draft-from <旧运行>/journal/task-<设计任务ID>/review.json`。选择原设计或其修订任务的精确回执，系统核对同一原始需求确认及两份捕获文件的字节。新作者从旧版 `design.json` 和 `acceptance-plan.json` 开始，在只读的 `design-draft-feedback.json` 查看该版独审意见。新运行须重新捕获、检查和独审，批准后才能派发美术和编码。恢复时使用已固定的来源。
+
+使用拨款 wrapper 时，将一条 `artifactId` 为 `ordinary-design-draft-review` 的引用加入 v2 授权的 `sourceRefs`，其 `location` 为上述回执的规范绝对路径，`version` 为回执原始字节的 64 位小写 SHA-256。wrapper 在占用额度前核验它，再将选择传给公开 CLI。
+
 v2 的限额、runId 和 ledgerId 属于新尝试，原来源的停止、费用、时钟和体验决定保持原状。授权文件 hash 继续固定完整输入，v1/v2 不可互换；未确认版本、来源漂移、递归引用或缺摘要均拒绝。初始化中断可沿同一 intent 和来源恢复，已有需求副本必须逐字节相同，绑定后缺文件不能重建。
 
 实时需求来源核验用于新拨款和当前执行派发。历史账务读取继续核验原授权 hash、身份、账单与清理证据；旧需求文件变化不会阻止安全停止、结清已发生费用，或创建另一笔独立拨款。

@@ -6,6 +6,7 @@ import { regularFile } from '../../src/artifacts/paths.ts';
 import { runCli } from '../../src/cli/index.ts';
 import type { ProductHost } from '../../src/cli/session.ts';
 import { readPublicFundingIntent, reservePublicValidationFunding, settlePublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
+import { fundingDesignDraftReview } from '../../src/runtime/reviewed-design-draft.ts';
 import { validateFundingAuthorization } from '../../src/runtime/public-validation-funding-validation.ts';
 
 const usage = 'Usage: validation.ts new <run-dir> --shared-root <original-ledger> --authorization <decision.json> | resume <run-dir> | settle <run-dir>';
@@ -29,6 +30,8 @@ export async function runPublicValidationCli(args: string[], io: { input?: Reada
     if (saved) return runCli(['resume', root], io);
     const selection = payload.formatVersion === 'public-validation-authorization/2'
       ? ['--requirements-from', payload.requirementsSource.root, '--requirements-revision', String(payload.requirementsSource.revision)] : ['--brief', payload.brief];
+    const draftReview = fundingDesignDraftReview(payload);
+    if (draftReview) selection.push('--design-draft-from', draftReview.location);
     return runCli(['new', root, ...selection, '--max-cny', (payload.limits.limitMicroCny / 1_000_000).toFixed(6),
       '--max-minutes', String(payload.limits.durationMs / 60_000), '--render-frames', String(payload.renderFrames)], { ...io, funding: binding });
   }

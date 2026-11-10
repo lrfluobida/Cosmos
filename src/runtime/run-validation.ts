@@ -9,6 +9,7 @@ import { validateValidationGroupSupplements } from './validation-group-supplemen
 import { validatePublicValidationFundings } from './public-validation-funding-validation.ts';
 import { intakeSuccessorClaims } from './intake-successor.ts';
 import { validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
+import { validateDesignDraftReview } from './reviewed-design-draft.ts';
 import { validatePublicValidationPhaseExtension } from './public-validation-phase-validation.ts';
 import { validateOrdinaryDesignBudget } from './ordinary-design-revision-budget.ts';
 
@@ -31,6 +32,7 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
   const issues = [...validateRun(state.run), ...ledgerIssues.filter(issue => !(acceptedOverrun && ['budget_exceeded', 'allocation_exceeded'].includes(issue.code) || groupOverrun && issue.code === 'group_budget_exceeded'))];
   if (issues.length) throw new Error(`Invalid run snapshot: ${issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
   const { run, ledger } = state;
+  if (state.designDraftReview !== undefined) validateDesignDraftReview(state.designDraftReview, state.requirementsSource);
   if (state.requirementsSource !== undefined) {
     validateConfirmedRequirementsSource(state.requirementsSource);
     if (state.formatVersion !== 1 || run.kind !== 'runtime_generation' || state.requirementsSource.runId === run.runId

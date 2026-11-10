@@ -19,6 +19,7 @@ import { publishReceipt, publishReceiptBytes } from './recovery/receipt-file.ts'
 import { readReferencedRequirements, validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import { validateSnapshot } from './run-validation.ts';
+import { validateDesignDraftReview } from './reviewed-design-draft.ts';
 import type { RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
 import { frameConfirmationVersion, frameIntakeReason, readFrameSelection, requireCurrentFrameSource, validateFrameSelection } from './render-frame-selection.ts';
 import type { RenderFrameSelection } from './render-frame-selection.ts';
@@ -44,6 +45,7 @@ export interface IntakeSnapshot {
   confirmation: { revision: number; requirement: RequirementContract; source: ArtifactReference } | null;
   validationFunding?: PublicValidationFundingBinding;
   requirementsSource?: ConfirmedRequirementsSource;
+  designDraftReview?: ArtifactReference;
 }
 export interface CreateIntakeOptions {
   root: string; runId: string; ledgerId: string; specVersion: string; allocations: BudgetLedger['allocations'];
@@ -54,6 +56,7 @@ export interface CreateIntakeOptions {
   modularRepairPolicy?: ModularRepairPolicy;
   validationFunding?: PublicValidationFundingBinding;
   requirementsSource?: ConfirmedRequirementsSource;
+  designDraftReview?: ArtifactReference;
 }
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 const draftRef = (revision: number): ArtifactReference => ({ artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` });
@@ -74,6 +77,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   const mode = modeFromSelection(state.draftMode);
   validateOrdinaryProfile(state.ordinaryProfile);
   if (state.ordinaryProfile && state.draftMode) throw new Error('Ordinary profile cannot select preparation mode.');
+  if (state.designDraftReview !== undefined) validateDesignDraftReview(state.designDraftReview, state.requirementsSource);
   if (state.requirementsSource !== undefined) {
     validateConfirmedRequirementsSource(state.requirementsSource);
     if (state.ordinaryProfile !== 'ordinary-design/1' || state.confirmation !== null || state.requirementsSource.runId === state.run.runId
@@ -163,6 +167,7 @@ export class IntakeController {
       ...(options.modularRepairPolicy ? { modularRepairPolicy: structuredClone(options.modularRepairPolicy) } : {}),
       ...(options.validationFunding ? { validationFunding: structuredClone(options.validationFunding) } : {}),
       ...(options.requirementsSource ? { requirementsSource: structuredClone(options.requirementsSource) } : {}),
+      ...(options.designDraftReview ? { designDraftReview: structuredClone(options.designDraftReview) } : {}),
     };
     validateIntakeSnapshot(state);
     const store = await SnapshotStore.acquire(options.root);
@@ -398,6 +403,7 @@ export class IntakeController {
         formatVersion: 1, revision: prior.revision + 1, ledger: structuredClone(prior.ledger), requests: structuredClone(prior.requests), events: structuredClone(prior.events), stopReason: null, tasks: [],
         ...(prior.validationFunding ? { validationFunding: structuredClone(prior.validationFunding) } : {}),
         ...(prior.requirementsSource ? { requirementsSource: structuredClone(prior.requirementsSource) } : {}),
+        ...(prior.designDraftReview ? { designDraftReview: structuredClone(prior.designDraftReview) } : {}),
         run: { contractVersion: '1.0.0', ...prior.run, ledgerId: prior.ledger.ledgerId, originalStartedAt: startedAt,
           originalDeadlineAt: new Date(Date.parse(startedAt) + prior.durationMs).toISOString(), state: 'running', taskIds: prior.ledger.allocations.map(item => item.taskId),
           fees: { settledMicroCny: prior.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny, 0), reservedMicroCny: 0, unknownRequestIds: [] }, artifacts: [],
