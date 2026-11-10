@@ -26,6 +26,7 @@ import { publishFundedOrigin, verifyFundedNew, verifyPublicValidationFunding } f
 import { DEFAULT_RUN_LIMITS, displayRunLimits, requirePreparationRunLimits, requirePublicRunLimits, validateRunLimits } from './run-limits.ts';
 import type { RunLimits } from './run-limits.ts';
 import { readConfirmedGeneration, readConfirmedRequirementsSource, readReferencedRequirements, requireSeparateRequirementsRoot } from '../runtime/confirmed-requirements-source.ts';
+import { selectSuppliedDesign, SUPPLIED_DESIGN } from '../runtime/supplied-design.ts';
 import { readReviewedDesignDraft, selectDesignDraftReview } from '../runtime/reviewed-design-draft.ts';
 import { publicBaseAllocations } from '../runtime/public-base-allocations.ts';
 
@@ -98,7 +99,7 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
 }
 
 /** The only confirmation author is actual stdin; model output never reaches this branch. */
-export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; requirementsFrom?: { root: string; revision: number }; designDraftFrom?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
+export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; requirementsFrom?: { root: string; revision: number }; designDraftFrom?: string; designInput?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
   if (options.limits !== undefined) {
     if (options.command !== 'new') throw new Error('Run limits can only be selected for new.');
     validateRunLimits(options.limits);
@@ -114,7 +115,9 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   if (options.requirementsFrom && (options.command !== 'new' || options.brief !== undefined || selectedMode)) throw new Error('Requirements source and ordinary brief are exclusive new modes.');
   const referenced = options.requirementsFrom ? await readConfirmedRequirementsSource({ ...options.requirementsFrom, specVersion: '1.0' }) : undefined;
   if (options.designDraftFrom !== undefined && (!referenced || !options.designDraftFrom.trim() || referenced.draft.codeProfile || referenced.draft.preparation)) throw new Error('A reviewed design draft requires an exact non-modular ordinary confirmation.');
-  const designDraftReview = options.designDraftFrom ? await selectDesignDraftReview(options.designDraftFrom, referenced!.source) : undefined;
+  if (options.designInput !== undefined && (!referenced || !options.designInput.trim() || options.designDraftFrom)) throw new Error('Select a single design input with its confirmed requirements.');
+  const designDraftReview = options.designInput ? (await selectSuppliedDesign(options.designInput, referenced!.source, root)).reference
+    : options.designDraftFrom ? await selectDesignDraftReview(options.designDraftFrom, referenced!.source) : undefined;
   if (referenced) {
     requireSeparateRequirementsRoot(root, referenced.source);
     if (options.renderFrames !== undefined && options.renderFrames !== !!referenced.renderFrameSelection) throw new Error('Cannot replace the original render-frame selection.');
@@ -153,7 +156,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source, designDraftReview);
       else if (entries.length && !initialization) throw new Error('Choose an empty run directory; existing runs require resume.');
       const runId = options.funding?.runId ?? initialization?.runId ?? `game-${randomUUID()}`; id(runId);
-      if (designDraftReview) await readReviewedDesignDraft(designDraftReview, referenced!.source, { root, runId, ledgerId: options.funding?.ledgerId ?? `${runId}-budget` });
+      if (options.designDraftFrom && designDraftReview) await readReviewedDesignDraft(designDraftReview, referenced!.source, { root, runId, ledgerId: options.funding?.ledgerId ?? `${runId}-budget` });
       if (referenced && (runId === referenced.source.runId || options.funding?.ledgerId === referenced.ledgerId)) throw new Error('New attempt must have independent run and ledger identities.');
       frames = referenced ? referenced.renderFrameSelection : options.renderFrames ? await selectRenderFrames() : undefined;
       policy = referenced ? referenced.modularRepairPolicy : currentModularRepairPolicy();
@@ -204,6 +207,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     } else {
       const snapshot = await readRunSnapshot(root);
       requirePublicRunLimits(snapshot, await optionalJson(root, 'intake-origin.json'), snapshot.formatVersion === 'intake-1');
+      if (snapshot.designDraftReview?.artifactId === SUPPLIED_DESIGN) await selectSuppliedDesign(snapshot.designDraftReview.location, snapshot.requirementsSource!, root, snapshot.designDraftReview);
       frames = await readFrameSelection(root, snapshot, options.renderFrames);
       policy = await readModularRepairPolicy(root, snapshot);
       if (snapshot.formatVersion === 2) throw new Error('This run has an authorized continuation window; select it explicitly with resume --window <id>.');
@@ -242,7 +246,8 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
     let current = state.draft, requirement = state.requirementsSource ? (await readReferencedRequirements(root, state)).requirement : state.confirmation?.requirement;
     if (state.requirementsSource) {
       say(`新生成尝试 ${state.run.runId}；完整需求来源 ${state.requirementsSource.runId} / v${state.requirementsSource.revision}；原确认人 ${requirement!.confirmedBy}，原确认时间 ${requirement!.confirmedAt}。`);
-      if (state.designDraftReview) say(`设计作者将从已捕获的待修草稿开始，独审回执 ${state.designDraftReview.location}，SHA-256 ${state.designDraftReview.version}。`);
+      if (state.designDraftReview?.artifactId === SUPPLIED_DESIGN) say(`本次使用指定设计稿 ${state.designDraftReview.location}，绑定 SHA-256 ${state.designDraftReview.version}。须经本次独审通过后执行。`);
+      else if (state.designDraftReview) say(`设计作者将从已捕获的待修草稿开始，独审回执 ${state.designDraftReview.location}，SHA-256 ${state.designDraftReview.version}。`);
       say(displayDraft(current!, frames, policy));
     }
     control = await startControl(root, state.run.runId, stop);

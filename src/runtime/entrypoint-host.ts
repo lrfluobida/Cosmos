@@ -35,6 +35,7 @@ import { diagnosePersistentBrowser } from './adapters/transfer/persistent-diagno
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
+import { selectSuppliedDesign, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readReviewedDesignDraft } from './reviewed-design-draft.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 import { createOrdinaryAcceptanceScope, validateOrdinaryAcceptancePlan, ORDINARY_PLAN_FILE, ORDINARY_PLAN_SOURCE } from './entrypoint-acceptance-plan.ts';
@@ -433,7 +434,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const gameplayIds = gameplayAcceptance(draft).map(item => item.acceptanceId);
   const state = await controller.read();
   if (state.designDraftReview && (!budgetEligible || !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
-  const reviewedDraft = state.designDraftReview ? await readReviewedDesignDraft(state.designDraftReview, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
+  const suppliedDesign = state.designDraftReview?.artifactId === SUPPLIED_DESIGN
+    ? await selectSuppliedDesign(state.designDraftReview.location, state.requirementsSource!, root, state.designDraftReview) : undefined;
+  if (suppliedDesign && ordinaryPlanAuthoringPolicy) throw new Error('Supplied design requires a fixed read-only handoff.');
+  const reviewedDraft = state.designDraftReview && !suppliedDesign ? await readReviewedDesignDraft(state.designDraftReview, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
   const reviewedDraftAuthoring = ordinaryPlanAuthoringPolicy === REVIEWED_DRAFT_POLICY;
   if (reviewedDraftAuthoring && !reviewedDraft) throw new Error('Reviewed draft authoring requires its verified design draft.');
   if (reviewedDraft && !input.resume) await publishReceiptBytes(await safePath(root, reviewedDraft.feedback.location), reviewedDraft.feedbackBytes);
@@ -760,7 +764,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const preserveValidDraft = preservesValidDraft(ordinaryPlanAuthoringPolicy);
     const repairAcceptanceIds = repairsPlanAcceptanceIds(ordinaryPlanAuthoringPolicy);
     const check = createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard, preserveValidDraft, repairAcceptanceIds,
-      reviewedDraftAuthor: reviewedDraftAuthoring && original.taskId !== ordinaryRevisionTaskId,
+      reviewedDraftAuthor: !!suppliedDesign || reviewedDraftAuthoring && original.taskId !== ordinaryRevisionTaskId,
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
       ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
     if (ordinary) designWriteChecks.set(original.taskId, { ...check, workspace: fixedWorkspace, attemptId: original.attempts.at(-1)?.attemptId });
@@ -852,7 +856,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Expose a non-configurable getter window.cosmosDebug returning frozen plain data. Its media.characters array follows manifest order: {id,loadedFrames,states:[{name,seen}]}; media.audio follows manifest order: {id,decoded,started}. Derive loadedFrames/decoded from actual Phaser texture/audio-cache readiness, states seen from actual displayed animation transitions, and started from successful sound start after normal user input. Preserve cumulative observations across scene changes in this document. Never fill these fields with declared constants or fabricate them; independent review checks their source. The host checks every declared state and audio clip on the frozen normal-input path and reports missing coverage as incomplete.',
         'The host builds, runs normal inputs, captures immutable output and asks a separate reviewer. Return only the required author handoff JSON after writing files.'] }],
     validateTasks(tasks) {
-      const designInterfaces = tasks.find(item => item.role === 'design')?.task.context.interfaces.filter(ref => ref.artifactId === 'ordinary-design-draft-feedback');
+      const designTask = tasks.find(item => item.role === 'design')?.task;
+      if (suppliedDesign && !sameValue(designTask?.context.tools, ['read', GAME_DESIGN_CHECK])) throw new Error('Fixed supplied design requires read-only author tools.');
+      const designInterfaces = designTask?.context.interfaces.filter(ref => ref.artifactId === 'ordinary-design-draft-feedback');
       if (!sameValue(designInterfaces ?? [], reviewedDraft ? [reviewedDraft.feedback] : [])) throw new Error('Original design task differs from its fixed reviewed draft.');
       for (const item of tasks) requirePlanAuthoringTasks([item], historicalDesign && sameValue(historicalDesign.source, item)
         ? historicalDesign.policy : ordinaryPlanAuthoringPolicy);
@@ -1516,13 +1522,18 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Wrap each real instance play/resume as a narrow synchronous startup transaction, preserving this, arguments, return value and exceptions. During real applyConfig, MUTE then VOLUME can expose intermediate states after isPlaying becomes true: update facts but do not count them. Only after a successful real buffer-source start and successful method completion, settle the final committed immediate output-control state at most once. Initial volume=1 followed by play({volume:0}) counts zero, normal first play counts exactly one; successful replay or pause/resume may add one each, never one per intermediate event. An unsuccessful start cannot count merely because isPlaying=true. Outside the transaction, count each actual false-to-true output transition, including unmute/context resume; loops and repeated getters do not add counts. The transaction ends when play/resume returns: a following manager.mute=true is a separate event and cannot erase a prior activation. Internally playing while manager mute or volume=0 is allowed: started/playing may be true with outputActive=false and no activation.',
         'Independent coding review must trace each field and count to real media objects, connected output chain and actual successful events; reject constants, DOM labels, omitted instances, or business soundEnabled booleans used as audio evidence. Check play/resume transaction boundaries, manager event names and stop/pause/end/destroy handling. Additional native output paths, unobserved direct node writes or future gain automation need equivalent actual observations; otherwise report insufficient evidence. An event count alone does not establish human audibility of same-turn play then mute. Keep existing raw reports, media coverage and visible acceptance; final listening quality remains user experience.');
     }
+    if (suppliedDesign) {
+      design.tools = ['read', GAME_DESIGN_CHECK];
+      design.rules = [`Read ${requirement.sources[0].location} and the operator-supplied authors/design/design.json and authors/design/acceptance-plan.json. Both files are fixed inputs. Use ${GAME_DESIGN_CHECK} and report coverage, omissions and uncertainty against the complete confirmation. Hand off these exact bytes for independent review. A required change stops this run for a revised design.`];
+    }
     if (reviewedDraftAuthoring) design.rules = reviewedDraftRules(design.rules!, 'initial', requirement.sources[0].location);
     const preAuthor = host.preAuthor;
     host.preAuthor = async (task, signal) => {
       await requireDispatch(task, signal); await preAuthor?.(task, signal);
-      if (reviewedDraft && role(task) === 'design') {
+      const seed = suppliedDesign ?? reviewedDraft;
+      if (seed && role(task) === 'design') {
         if (task.attempts.length || workspace(task) !== root) throw new Error('Only an unstarted original design can receive a reviewed draft.');
-        await seedDesignFiles(root, task, reviewedDraft.contents);
+        await seedDesignFiles(root, task, seed.contents);
       }
     };
   }
@@ -1583,10 +1594,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     host.verify = async (...args) => {
       const revision = await readDesignRevisionPlan(root, controller, await json(root, 'execution.json'));
       if (revision?.task.task.taskId === args[0].taskId) await requireDesignProgress(root, revision);
-      if (reviewedDraft && role(args[0]) === 'design' && args[0].taskId !== ordinaryRevisionTaskId) {
+      const seed = suppliedDesign ?? reviewedDraft;
+      if (seed && role(args[0]) === 'design' && args[0].taskId !== ordinaryRevisionTaskId) {
         const ref = taskOutput(args[0]);
-        const matches = await Promise.all([...reviewedDraft.contents].map(async ([name, bytes]) => (await regularFile(root, ref.location + '/_cosmos/' + name)).equals(bytes)));
-        if (matches.every(Boolean)) throw new Error('Reviewed design draft has no output change.');
+        const matches = await Promise.all([...seed.contents].map(async ([name, bytes]) => (await regularFile(root, ref.location + '/_cosmos/' + name)).equals(bytes)));
+        if (suppliedDesign && !matches.every(Boolean)) throw new Error('Captured design differs from the fixed supplied design.');
+        if (reviewedDraft && matches.every(Boolean)) throw new Error('Reviewed design draft has no output change.');
       }
       const evidence = await verify(...args);
       if (revision?.task.task.taskId === args[0].taskId) {

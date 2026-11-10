@@ -39,6 +39,7 @@ import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 import { executeOrdinaryDesign, prepareDesignOrigins, optionalDesignJson } from './entrypoint-design-revision.ts';
 import { isOrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 import type { OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
+import { SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readPlanAuthoringPolicy, REVIEWED_DRAFT_POLICY } from './entrypoint-plan-authoring.ts';
 import type { OrdinaryPlanAuthoringPolicy } from './entrypoint-plan-authoring.ts';
 import { authenticatedOrdinaryFunding, CONSERVED_DESIGN_BUDGET, readConservedBudgetPolicy } from './ordinary-design-revision-budget.ts';
@@ -132,7 +133,7 @@ export async function executeGeneration(options: GenerationOptions) {
   const ordinary = 'ordinaryProfile' in draft && draft.ordinaryProfile === 'ordinary-design/1';
   const ordinaryPlanAuthoringPolicy = options.resume
     ? originalExecution ? readPlanAuthoringPolicy(originalExecution, await optionalJson(root, 'planning-started.json'), ordinary && !draft.codeProfile && !draft.preparation) : undefined
-    : ordinary && !draft.codeProfile && !draft.preparation ? (original.designDraftReview ? REVIEWED_DRAFT_POLICY : 'structured-design-plan/3' as const) : undefined;
+    : ordinary && !draft.codeProfile && !draft.preparation && original.designDraftReview?.artifactId !== SUPPLIED_DESIGN ? (original.designDraftReview ? REVIEWED_DRAFT_POLICY : 'structured-design-plan/3' as const) : undefined;
   if (ordinaryPlanAuthoringPolicy === REVIEWED_DRAFT_POLICY && !original.designDraftReview) throw new Error('Reviewed draft authoring requires its fixed design draft review.');
   if (originalExecution?.ordinaryDesignRevisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(originalExecution.ordinaryDesignRevisionPolicy)
     || originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !ordinary || draft.codeProfile || draft.preparation)) throw new Error('Invalid ordinary design revision policy.');
@@ -314,6 +315,7 @@ export async function executeGeneration(options: GenerationOptions) {
       const passed = !state.stopReason && !result.blocked.length && effective.length > 0 && effective.every(task => task.state === 'passed') && final.gaps.length === 0 && !!final.delivery;
       return { outcome: passed ? 'awaiting_user_experience' : 'incomplete', runId: state.run.runId, ledgerId: state.ledger.ledgerId, currentProject: root, ...final,
         ...(designBranch ? { ordinaryDesignReview: { authority: 'independent_model_review', sourceTaskId: execution.tasks.find(item => item.role === 'design')!.task.taskId,
+          ...(state.designDraftReview?.artifactId === SUPPLIED_DESIGN ? { suppliedDesign: state.designDraftReview } : {}),
           revisionAttempted: effectiveTasks[0].task.taskId !== execution.tasks.find(item => item.role === 'design')!.task.taskId,
           selectedVersion: designBranch.selection?.design.version ?? null, blocked: result.blocked } } : {}),
         gaps: [...final.gaps, ...result.blocked.map(item => `${item.taskId}: ${item.reason}`), ...effective.filter(task => task.state !== 'passed').flatMap(task => task.handoff.remaining)],

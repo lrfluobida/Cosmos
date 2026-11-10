@@ -17,6 +17,7 @@ import type { RecoveryReport } from './recovery/task-journal.ts';
 import { budgetDigest, deriveDesignBudgetIntent, readConservedBudgetPolicy } from './ordinary-design-revision-budget.ts';
 import type { ConservedDesignBudgetPolicy, OrdinaryDesignBudgetIntent } from './ordinary-design-revision-budget.ts';
 import type { OrdinaryDesignBudgetLifecycle } from './ordinary-design-revision-lifecycle.ts';
+import { suppliedDesignBytes, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { reviewedDraftRules, REVIEWED_DRAFT_POLICY, type OrdinaryPlanAuthoringPolicy } from './entrypoint-plan-authoring.ts';
 
 export const ORDINARY_DESIGN_REVISION_POLICY = 'independent-review/2' as const;
@@ -88,6 +89,10 @@ export async function authenticateDesign(root: string, controller: Pick<RunContr
   const attempt = task.attempts[0], approved = task.state === 'passed', candidate = execution.ordinaryDesignRevisionPolicy === 'independent-review/2';
   if (attempt.outcome !== 'passed' || !attempt.endedAt || task.review.verdict !== (approved ? 'approved' : 'changes_requested')
     || task.artifacts.length !== 1 || !sameValue(task.artifacts, prepared.expectedArtifacts) || !candidate && task.handoff.uncertainty.length) fail('source_result_changed');
+  if (state.designDraftReview?.artifactId === SUPPLIED_DESIGN) {
+    const { version } = await suppliedDesignBytes(join(root, task.artifacts[0].location, '_cosmos'), state.requirementsSource!);
+    if (prepared.task.taskId !== execution.tasks.find(item => item.role === 'design')?.task.taskId || version !== state.designDraftReview.version) fail('supplied_design_changed');
+  }
   const journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin(root, state, execution, prepared), true);
   const author = await journal.read<any>('author', attempt.attemptId), capture = await journal.read<any>('capture', attempt.attemptId);
   const verified = await journal.read<any>('verified', attempt.attemptId), started = await journal.read<any>('review-started', attempt.attemptId);
@@ -264,6 +269,7 @@ export async function executeOrdinaryDesign(input: { root: string; controller: R
     if (!current || !['passed', 'needs_changes'].includes(current.state)) fail('initial_design_incomplete');
     let approved = await authenticateDesign(root, controller, execution, source), revision = await readDesignRevisionPlan(root, controller, execution);
     if (current.state === 'needs_changes') {
+      if ((await controller.read()).designDraftReview?.artifactId === SUPPLIED_DESIGN) fail('supplied_design_requires_revision');
       if (!revision) {
         const state = await controller.read(); signal.throwIfAborted();
         if (state.stopReason || state.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny) || Date.now() + 185000 >= Date.parse(state.run.originalDeadlineAt)) fail('revision_resources_or_deadline');
