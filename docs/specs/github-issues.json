@@ -14121,10 +14121,28 @@
       "sourceReviewedCommit": "52ad1987860e65565063fa6298cd84bf377a0318",
       "sourceIntegratedCommit": "51cde1c123d7305888e63e5a306efd1ff82e53f8",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6763189627",
-      "verification": "Merged src and tests match the reviewed commit. Main CLI build passed. Reused provider 40/40, runtime 2/2 and typecheck. Offline R34 quote at 94576 bytes and 203105 micro-CNY available: 1744 outputs cost 203104, 1745 cost 203112. Actual generated handoff and reopen remain unverified."
+      "verification": "Merged src and tests match the reviewed commit. Main CLI build passed. Reused provider 40/40, runtime 2/2 and typecheck. Offline R34 quote at 94576 bytes and 203105 micro-CNY available: 1744 outputs cost 203104, 1745 cost 203112. R35 stopped on provider_output_truncated before a budget handoff. Actual generated handoff and reopen remain unverified.",
+      "actualRunComment": "https://github.com/lrfluobida/Cosmos/issues/185#issuecomment-6764577422"
+    },
+    {
+      "taskId": "COS-185",
+      "title": "在新运行中按已封存设计的独审意见修订",
+      "number": 186,
+      "id": 6304632056,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/186",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "implementer": "reviewed_seed_implementer",
+      "reviewer": "reviewed_seed_reviewer",
+      "merger": "stage_merger"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 184,
+  "totalTaskCount": 185,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
