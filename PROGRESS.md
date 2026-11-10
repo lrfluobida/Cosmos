@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS189 在普通 CLI 增加了 `--design-input`。操作者可提交精确的设计与验收计划，绑定此前确认的需求，并交给本轮独审。源码 `0d2a1e2b75c47c5ae8ff63b8017b30137e28c394` 经独立源码审查后合入 `f079defd5dec0ad31fd89911d14dc604d98ce5f7`。主线构建、批准、要求修改和内容变动三个离线 CLI 用例均通过。批准用例的清理钩子最初受 TEMP 路径分隔符影响，改用 Windows 原生路径后复跑通过。小屋寻物两份真实输入通过 room12/v2 只读选择，引用版本 `8f7ca948a94d84d89462651b230476b6704a609bd20d3c6e6099e634e14a033c`。本卡按源码与离线入口范围关闭，运行内批准与游戏实测另行登记。 [COS189 集成证据](https://github.com/lrfluobida/Cosmos/issues/190#issuecomment-6767896871)
+
+已释放 COS189 作者工作树和本次 154 个编译产物，保留作者 8 份验证日志。合入阶段专用 E 盘暂存中的 13 个合成夹具文件与 93 个 Node 缓存文件已核明来源且句柄已关闭。自动命令审查拒绝清理，保留这 106 个文件，共 1,633,504 字节。
+
 COS188「小屋寻物」的设计说明、玩法与素材契约、两阶段验收计划已合入 `36def27ad8cc08202949a0407bc913be9073ce3d`。独审批准 `4ce5bf142be1363a0b9b723936c8f755a1f7d4b5`，核对了已确认 v2 需求、宿主结构和 397 步状态推演，其中唯一重开后 197 步。复审确认空存档可从当前 1/3 恢复到 0/3，可选标题已改验 HUD 可见性。已释放作者工作树，本地保留独审报告及核对脚本。游戏生成、真实图像与声音、跨进程存档及最终试玩待验证。 [设计与计划](docs/benchmark/cabin-hunt/README.md) · [独审及合入记录](https://github.com/lrfluobida/Cosmos/issues/189#issuecomment-6767268670)
 
 主线 `validate-game-design` 读取 room12/v2 原始引用，返回 `passed: true`、`errors: []`。相同三件文件的状态回放再次通过 48 次输入与 349 条断言。本机保留宿主输出 `.cosmos/planning/cabin-design-review/mainline-host-check.json`。 [主线验证记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6767298642)
