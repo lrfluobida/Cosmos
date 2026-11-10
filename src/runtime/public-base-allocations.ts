@@ -4,7 +4,7 @@ import type { IntakeSnapshot } from './intake.ts';
 import type { RunSnapshot } from './run-types.ts';
 
 export interface PublicAllocationOrigin {
-  planningAllocation?: unknown; requirementsSource?: unknown; ordinaryProfile?: unknown; draftMode?: unknown;
+  planningAllocation?: unknown; requirementsSource?: unknown; designDraftReview?: unknown; ordinaryProfile?: unknown; draftMode?: unknown;
 }
 
 /** A missing marker always means the original two equal shares, including origin-only recovery. */
@@ -20,7 +20,7 @@ export function publicBaseAllocations(limitMicroCny: number, origin: PublicAlloc
 /** Pure local check; accounting must not depend on rereading a historical requirement source. */
 export function requirePublicBaseAllocations(state: IntakeSnapshot | RunSnapshot, origin: PublicAllocationOrigin): void {
   const expected = publicBaseAllocations(state.ledger.limitMicroCny, origin);
-  if (!sameValue(origin.requirementsSource, state.requirementsSource)
+  if (!sameValue(origin.requirementsSource, state.requirementsSource) || !sameValue(origin.designDraftReview, state.designDraftReview)
     || !sameValue(state.ledger.allocations.filter(row => row.taskId === 'intake' || row.taskId === 'planning'), expected)
     || state.formatVersion === 'intake-1' && state.ledger.allocations.length !== expected.length) {
     throw new Error('Original public intake/planning allocations differ from their saved source.');

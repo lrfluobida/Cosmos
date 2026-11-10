@@ -54,6 +54,7 @@ export interface RunSnapshot {
   publicValidationPhaseSuccessor?: PublicValidationPhaseSuccessorReceipt;
   publicValidationPhaseFollowups?: PublicValidationPhaseFollowupReceipt[];
   requirementsSource?: ConfirmedRequirementsSource;
+  designDraftReview?: ArtifactReference;
   ordinaryDesignRevisionBudgetActivation?: OrdinaryDesignBudgetActivation;
 }
 

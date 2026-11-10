@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, readdir, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, sep } from 'node:path';
 import { ArtifactRegistry } from '../artifacts/index.ts';
 import { regularFile, safePath, snapshot } from '../artifacts/paths.ts';
@@ -8,7 +8,7 @@ import { validateTask } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
 import type { PreparedTask } from './orchestrator.ts';
 import type { RunController, RunSnapshot } from './run.ts';
-import { publishReceipt } from './recovery/receipt-file.ts';
+import { publishReceipt, publishReceiptBytes } from './recovery/receipt-file.ts';
 import { designConcernPacket, designOriginPolicy, designReviewedHandoff, isOrdinaryDesignRevisionPolicy, parseDesignConcernReview } from './repair/design-concerns.ts';
 import type { DesignConcernReview, OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 import { parseProposal, parseReview } from './orchestrator.ts';
@@ -178,12 +178,15 @@ export async function requireDesignMirrors(root: string, workspace: string, refs
 }
 export async function seedDesignRevision(root: string, plan: RevisionPlan) {
   const source = plan.task.task.context.interfaces.find(ref => ref.artifactId === 'design')!;
-  for (const [path, bytes] of await snapshot(join(root, source.location, '_cosmos'))) {
+  await seedDesignFiles(plan.task.workspace, plan.task.task, await snapshot(join(root, source.location, '_cosmos')));
+}
+export async function seedDesignFiles(workspace: string, task: Readonly<TaskContract>, files: Map<string, Buffer>) {
+  for (const [path, bytes] of files) {
     const location = `authors/design/${path}`;
-    if (!plan.task.task.ownership.writePaths.includes(location)) fail('seed_outside_write_scope');
-    const target = await safePath(plan.task.workspace, location); await mkdir(dirname(target), { recursive: true });
-    try { await writeFile(target, bytes, { flag: 'wx' }); }
-    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST' || !(await regularFile(plan.task.workspace, location)).equals(bytes)) fail('unstarted_revision_output_changed'); }
+    if (!task.ownership.writePaths.includes(location)) fail('seed_outside_write_scope');
+    const target = await safePath(workspace, location); await mkdir(dirname(target), { recursive: true });
+    try { await publishReceiptBytes(target, bytes); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST' || !(await regularFile(workspace, location)).equals(bytes)) fail('unstarted_revision_output_changed'); }
   }
 }
 export async function requireDesignProgress(root: string, plan: RevisionPlan) {
