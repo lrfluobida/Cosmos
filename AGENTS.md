@@ -17,6 +17,9 @@
 - Fix actionable review findings in the implementer's branch, then review the affected changes again.
 - The merger checks approved SHAs, combines them, runs integration checks appropriate to the changes and records the merge outcome.
 - Reuse passing evidence until code, environment, dependencies or requirements materially change. Keep later verification focused on the affected behavior.
+- Keep stage scratch files in a project- or batch-specific directory on `E:` and set child processes' `TEMP` and `TMP` to that directory before launch.
+- At the end of each stage, wait for its processes to exit and file handles to close, then remove temporary files owned by that stage that are no longer in use or referenced. Retain required progress records, ledgers and evidence needed for verification. Briefly record what was removed or retained in the stage handoff.
+- Before removing an older temporary directory, verify its ownership and that its contents are no longer needed. A matching name prefix alone is insufficient.
 - Continue authorized work across batches. Ask only for missing decisions or external prerequisites that actually block the remaining work.
 
 ## Project scope and budgets
