@@ -113,7 +113,7 @@ export function gameDesignCheckFiles(scope: { ordinary?: boolean; modular?: bool
 }
 
 /** Advisory author feedback only. Capture and independent review still validate actual output. */
-export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean; preserveValidDraft?: boolean; repairAcceptanceIds?: boolean;
+export function createGameDesignCheck(input: { workspace: string; gameplayIds: string[]; modular?: boolean; preserveValidDraft?: boolean; repairAcceptanceIds?: boolean; reviewedDraftAuthor?: boolean;
   ordinary?: { draft: OrdinaryGameDraft; requirement: ArtifactReference };
   classicEntry?: { selection: ClassicEntrySelection; viewport?: AcceptancePlan['viewport'] }; guard(signal: AbortSignal): Promise<void> }) {
   const gameplayIds = [...input.gameplayIds];
@@ -231,7 +231,7 @@ export function createGameDesignCheck(input: { workspace: string; gameplayIds: s
         ...diagnostics.map(message => `- ${message}`)].join('\n').slice(0, 4096);
     },
     tool: defineTool({ name: GAME_DESIGN_CHECK, label: 'Check current game design',
-    description: `Read and validate the current ${gameDesignCheckFiles({ ordinary: !!input.ordinary, modular: input.modular, classicEntry: !!input.classicEntry }).join(', ')}. Write all listed outputs before calling and repair reported errors in the same author session. Returns advisory field errors; does not change files or establish acceptance. No arguments.`,
+    description: `Read and validate the current ${gameDesignCheckFiles({ ordinary: !!input.ordinary, modular: input.modular, classicEntry: !!input.classicEntry }).join(', ')}. ${input.reviewedDraftAuthor ? 'Check the existing files directly' : 'Write all listed outputs before calling'} and repair reported errors in the same author session. Returns advisory field errors; does not change files or establish acceptance. No arguments.`,
     parameters: Type.Object({}, { additionalProperties: false }),
     async execute(_id, args, signal) {
       if (!args || typeof args !== 'object' || Array.isArray(args) || Object.keys(args).length) throw new Error('Game design check accepts no arguments.');

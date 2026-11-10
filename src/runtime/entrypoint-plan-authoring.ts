@@ -10,16 +10,40 @@ import { requireAuthorJson } from './structured-author-json.ts';
 
 export const GAME_PLAN_WRITE = 'write-game-plan';
 export const ORDINARY_PLAN_AUTHORING_RULE = 'First write authors/design/design.json. Prefer write-game-plan with {operation:"save",scenario:{viewport,steps,reopen?}} to establish the acceptance plan draft, then {operation:"append",stage:"main"|"reopen",steps:[...],checkpoint?} for bounded ordered batches. The host supplies the fixed formatVersion and original requirement reference and nests reopen inside scenario. The first reopen append requires your checkpoint; a different checkpoint requires explicit save or local edit. Raw read/write/edit remain available for local corrections. Saving a draft does not establish structural validity, coverage, capture, independent approval or acceptance. Run validate-game-design after both files are complete and correct its diagnostics within this author session.';
+export const REVIEWED_DRAFT_POLICY = 'reviewed-draft-design-plan/1';
+const REVIEWED_PLAN_RULE = 'Both editable drafts already exist. Use the review findings and complete confirmed requirements to locate each defect. Start with the affected file, including the plan first for a scenario defect. Read the relevant range for an exact edit, or use write-game-plan append (afterStepId for insertion) for missing steps. Retain unaffected actions, assertions and reopen coverage. Use full save only when the whole scenario needs replacement. Run validate-game-design on the complete pair and correct its diagnostics. New capture and independent review are required.';
+const REVIEWED_DESIGN_RULE = 'Keep valid design sections. When a finding requires a design change, use a local edit or write-game-design set for the affected top-level section. Use full save only when the entire design needs replacement. Keep the existing design when the required correction is confined to the plan.';
+const ordinaryCheckPrefix = 'Before finishing, write all outputs then call ';
+const reviewedCheckPrefix = 'Before finishing, check the complete current outputs. Call ';
+
+/** Keep the original same-run revision instructions when deriving its task from a seeded initial task. */
+export function reviewedDraftRules(rules: string[], stage: 'initial' | 'revision', requirementLocation: string): string[] {
+  const readRequirement = `Read ${requirementLocation}. `;
+  const pairs = [[ORDINARY_PLAN_AUTHORING_RULE, REVIEWED_PLAN_RULE], [ORDINARY_DESIGN_AUTHORING_RULE, REVIEWED_DESIGN_RULE],
+    [ordinaryCheckPrefix, reviewedCheckPrefix],
+    [readRequirement + 'Write authors/design/design.json with exactly ', readRequirement + 'Existing authors/design/design.json must have exactly '],
+    [`Write ${ORDINARY_PLAN_SOURCE} with exactly `, `Existing ${ORDINARY_PLAN_SOURCE} must have exactly `]];
+  return rules.map(rule => {
+    for (const pair of pairs) {
+      const [from, to] = stage === 'initial' ? pair : [pair[1], pair[0]];
+      if (rule.startsWith(from)) return to + rule.slice(from.length);
+    }
+    return rule;
+  });
+}
 export const ORDINARY_PLAN_REPAIR_RULE = 'For invalid assertion acceptanceIds, use write-game-plan repair-acceptance-ids with explicit step IDs and original gameplay criterion IDs.';
-export type OrdinaryPlanAuthoringPolicy = 'structured-plan/1' | 'structured-design-plan/1' | 'structured-design-plan/2' | 'structured-design-plan/3';
+export type OrdinaryPlanAuthoringPolicy = 'structured-plan/1' | 'structured-design-plan/1' | 'structured-design-plan/2' | 'structured-design-plan/3' | typeof REVIEWED_DRAFT_POLICY;
 export function preservesValidDraft(selected?: OrdinaryPlanAuthoringPolicy): boolean {
-  return selected === 'structured-design-plan/2' || selected === 'structured-design-plan/3';
+  return selected === 'structured-design-plan/2' || repairsPlanAcceptanceIds(selected);
+}
+export function repairsPlanAcceptanceIds(selected?: OrdinaryPlanAuthoringPolicy): boolean {
+  return selected === 'structured-design-plan/3' || selected === REVIEWED_DRAFT_POLICY;
 }
 export function hasDesignWriter(selected?: OrdinaryPlanAuthoringPolicy): boolean {
   return selected === 'structured-design-plan/1' || preservesValidDraft(selected);
 }
 export function isOrdinaryPlanAuthoringPolicy(value: unknown): value is OrdinaryPlanAuthoringPolicy {
-  return value === 'structured-plan/1' || value === 'structured-design-plan/1' || value === 'structured-design-plan/2' || value === 'structured-design-plan/3';
+  return value === 'structured-plan/1' || value === 'structured-design-plan/1' || value === 'structured-design-plan/2' || value === 'structured-design-plan/3' || value === REVIEWED_DRAFT_POLICY;
 }
 
 /** A missing selection is legacy only when the frozen task has no new author surface. */
@@ -27,13 +51,17 @@ export function requirePlanAuthoringTasks(tasks: { role: string; task: TaskContr
   if (selected !== undefined && !isOrdinaryPlanAuthoringPolicy(selected)) throw new Error('Invalid ordinary plan authoring policy.');
   for (const { role, task } of tasks) {
     const preserve = preservesValidDraft(selected) && role === 'design';
-    const repair = selected === 'structured-design-plan/3' && role === 'design';
+    const repair = repairsPlanAcceptanceIds(selected) && role === 'design';
+    const reviewed = selected === REVIEWED_DRAFT_POLICY && role === 'design';
+    if (reviewed && !task.context.interfaces.some(ref => ref.artifactId === 'ordinary-design-draft-feedback')
+      || task.context.rules.some(rule => reviewed ? rule === ORDINARY_PLAN_AUTHORING_RULE || rule === ORDINARY_DESIGN_AUTHORING_RULE
+        : rule === REVIEWED_PLAN_RULE || rule === REVIEWED_DESIGN_RULE)) throw new Error('Frozen task differs from its ordinary plan authoring policy.');
     if (task.context.rules.filter(rule => rule === ORDINARY_DRAFT_PRESERVATION_RULE).length !== Number(preserve)
       || task.context.rules.filter(rule => rule === ORDINARY_PLAN_REPAIR_RULE).length !== Number(repair)) {
       throw new Error('Frozen task differs from its ordinary plan authoring policy.');
     }
-    for (const [tool, rule, enabled] of [[GAME_PLAN_WRITE, ORDINARY_PLAN_AUTHORING_RULE, !!selected],
-      [GAME_DESIGN_WRITE, ORDINARY_DESIGN_AUTHORING_RULE, hasDesignWriter(selected)]] as const) {
+    for (const [tool, rule, enabled] of [[GAME_PLAN_WRITE, reviewed ? REVIEWED_PLAN_RULE : ORDINARY_PLAN_AUTHORING_RULE, !!selected],
+      [GAME_DESIGN_WRITE, reviewed ? REVIEWED_DESIGN_RULE : ORDINARY_DESIGN_AUTHORING_RULE, hasDesignWriter(selected)]] as const) {
       const count = enabled && role === 'design' ? 1 : 0;
       if (task.context.tools.filter(name => name === tool).length !== count || task.context.rules.filter(value => value === rule).length !== count) {
         throw new Error('Frozen task differs from its ordinary plan authoring policy.');
