@@ -9,7 +9,7 @@ import { createArtifactRegistry } from '../artifacts/index.ts';
 import type { PassedEvidence } from '../artifacts/index.ts';
 import { directory, owns, regularFile, safePath, snapshot } from '../artifacts/paths.ts';
 import { createRoleFactory } from '../roles/factory.ts';
-import { createGamePlanWriter, GAME_PLAN_WRITE, hasDesignWriter, isOrdinaryPlanAuthoringPolicy, ORDINARY_PLAN_AUTHORING_RULE, ORDINARY_PLAN_REPAIR_RULE, preservesValidDraft, readPlanAuthoringPolicy, requirePlanAuthoringTasks } from './entrypoint-plan-authoring.ts';
+import { createGamePlanWriter, GAME_PLAN_WRITE, hasDesignWriter, isOrdinaryPlanAuthoringPolicy, ORDINARY_PLAN_AUTHORING_RULE, ORDINARY_PLAN_REPAIR_RULE, preservesValidDraft, readPlanAuthoringPolicy, repairsPlanAcceptanceIds, requirePlanAuthoringTasks, reviewedDraftRules, REVIEWED_DRAFT_POLICY } from './entrypoint-plan-authoring.ts';
 import { createGameDesignWriter, GAME_DESIGN_SOURCE, GAME_DESIGN_WRITE, ORDINARY_DESIGN_AUTHORING_RULE, ORDINARY_DRAFT_PRESERVATION_RULE } from './entrypoint-design-authoring.ts';
 import { requestDesignDraft, requestDesignQuestions } from '../roles/interview.ts';
 import { requireBrowserDraft, validateGameDraft, confirmRequirements, withHostStages, gameplayAcceptance, DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID, MODULE_ACCEPTANCE_IDS } from '../roles/requirements.ts';
@@ -434,6 +434,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const state = await controller.read();
   if (state.designDraftReview && (!budgetEligible || !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
   const reviewedDraft = state.designDraftReview ? await readReviewedDesignDraft(state.designDraftReview, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
+  const reviewedDraftAuthoring = ordinaryPlanAuthoringPolicy === REVIEWED_DRAFT_POLICY;
+  if (reviewedDraftAuthoring && !reviewedDraft) throw new Error('Reviewed draft authoring requires its verified design draft.');
   if (reviewedDraft && !input.resume) await publishReceiptBytes(await safePath(root, reviewedDraft.feedback.location), reviewedDraft.feedbackBytes);
   const requireDraftFeedback = async () => {
     if (reviewedDraft && !(await regularFile(root, reviewedDraft.feedback.location)).equals(reviewedDraft.feedbackBytes)) throw new Error('Fixed reviewed design feedback changed.');
@@ -735,7 +737,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     if (supplied.role !== 'design') return [];
     const original = (await controller.read()).tasks.find(task => task.taskId === supplied.taskId);
     if (!original || role(original) !== 'design') throw new Error('Game design check requires its original design author task.');
-    requirePlanAuthoringTasks([{ role: 'design', task: original }], ordinaryPlanAuthoringPolicy);
+    requirePlanAuthoringTasks([{ role: 'design', task: original }],
+      reviewedDraftAuthoring && original.taskId === ordinaryRevisionTaskId ? 'structured-design-plan/3' : ordinaryPlanAuthoringPolicy);
     if (ordinaryPlanAuthoringPolicy) owns(original.ownership, ORDINARY_PLAN_SOURCE);
     if (hasDesignWriter(ordinaryPlanAuthoringPolicy)) owns(original.ownership, GAME_DESIGN_SOURCE);
     const fixedWorkspace = await realpath(workspace(original));
@@ -755,7 +758,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       signal.throwIfAborted(); work.signal.throwIfAborted(); controller.signal.throwIfAborted();
     };
     const preserveValidDraft = preservesValidDraft(ordinaryPlanAuthoringPolicy);
-    const repairAcceptanceIds = ordinaryPlanAuthoringPolicy === 'structured-design-plan/3';
+    const repairAcceptanceIds = repairsPlanAcceptanceIds(ordinaryPlanAuthoringPolicy);
     const check = createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard, preserveValidDraft, repairAcceptanceIds,
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
       ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
@@ -959,7 +962,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 },
             ordinaryDesignRevisionJsonReads: async task => {
               await requireDispatch(task, controller.signal);
-              return (reviewedDraft !== undefined || task.taskId === ordinaryRevisionTaskId) && role(task) === 'design';
+              if (role(task) !== 'design') return false;
+              if (reviewedDraftAuthoring && task.taskId !== ordinaryRevisionTaskId) return 'reviewed-draft';
+              return reviewedDraft !== undefined || task.taskId === ordinaryRevisionTaskId;
             } } : {}) } : {}),
       sessionFactory: input.sessionFactory,
       hostTools: async supplied => [...await designHostTools(supplied), ...await codingHostTools(supplied)],
@@ -1491,7 +1496,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       design.tools.push(GAME_DESIGN_WRITE); design.rules!.push(ORDINARY_DESIGN_AUTHORING_RULE);
     }
     if (preservesValidDraft(ordinaryPlanAuthoringPolicy)) design.rules!.push(ORDINARY_DRAFT_PRESERVATION_RULE);
-    if (ordinaryPlanAuthoringPolicy === 'structured-design-plan/3') design.rules!.push(ORDINARY_PLAN_REPAIR_RULE);
+    if (repairsPlanAcceptanceIds(ordinaryPlanAuthoringPolicy)) design.rules!.push(ORDINARY_PLAN_REPAIR_RULE);
     design.rules!.push(ordinaryPlanAuthoringPolicy ? ORDINARY_PLAN_AUTHORING_RULE : 'First write authors/design/design.json. Then write authors/design/acceptance-plan.json in bounded write/edit chunks, completing each section before the next. Run the existing validate-game-design self-check after both files are complete and correct any reported defects within this author session.',
       `Map exactly the original experience criterion IDs ${JSON.stringify(ordinaryDraft.experienceCriteria.map(item => item.criterionId))} in experienceMapping ({} for an empty list). Read the complete brief/questions/answers and both criteria lists. Independent review must reject omitted objective rules, objective requirements recategorized as experience, insufficient visible assertions, or unsupported behavior; schema success alone is not semantic proof.`,
       `Write ${ORDINARY_PLAN_SOURCE} with exactly {formatVersion:"ordinary-acceptance-plan/1",requirement:${JSON.stringify(requirements)},scenario:{viewport:{width,height},steps:[...],reopen?:{steps:[...],checkpoint:{expected:string,snapshot:{kind:"text",selector:string},savedSnapshot:{kind:"text",selector:string}}}}. Use existing mouse-click/mouse-move {x,y,selector?}, locator-click {selector,timeoutMs}, assert/wait-for {acceptanceId,observation:{kind:"text",selector}|{kind:"visible",selector}${mediaPolicy ? '|{kind:"debug",path:string[]}' : ''},expected,timeoutMs}; every step has a unique id and kind. Coordinates are inside the viewport, or normalized [0,1) when selector is present; viewport dimensions are 100..4096, timeoutMs is 1..60000, each stage has 1..200 steps, and visible expected is boolean. Each objective gameplay AC requires normal click input followed by a visible assertion. Preserve the exact confirmed requirements, including normal save/reopen when required. Do not supply execution identities, URL, candidate, scripts, or state setters. The host supplies actual execution binding.`,
@@ -1510,6 +1515,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Wrap each real instance play/resume as a narrow synchronous startup transaction, preserving this, arguments, return value and exceptions. During real applyConfig, MUTE then VOLUME can expose intermediate states after isPlaying becomes true: update facts but do not count them. Only after a successful real buffer-source start and successful method completion, settle the final committed immediate output-control state at most once. Initial volume=1 followed by play({volume:0}) counts zero, normal first play counts exactly one; successful replay or pause/resume may add one each, never one per intermediate event. An unsuccessful start cannot count merely because isPlaying=true. Outside the transaction, count each actual false-to-true output transition, including unmute/context resume; loops and repeated getters do not add counts. The transaction ends when play/resume returns: a following manager.mute=true is a separate event and cannot erase a prior activation. Internally playing while manager mute or volume=0 is allowed: started/playing may be true with outputActive=false and no activation.',
         'Independent coding review must trace each field and count to real media objects, connected output chain and actual successful events; reject constants, DOM labels, omitted instances, or business soundEnabled booleans used as audio evidence. Check play/resume transaction boundaries, manager event names and stop/pause/end/destroy handling. Additional native output paths, unobserved direct node writes or future gain automation need equivalent actual observations; otherwise report insufficient evidence. An event count alone does not establish human audibility of same-turn play then mute. Keep existing raw reports, media coverage and visible acceptance; final listening quality remains user experience.');
     }
+    if (reviewedDraftAuthoring) design.rules = reviewedDraftRules(design.rules!, 'initial');
     const preAuthor = host.preAuthor;
     host.preAuthor = async (task, signal) => {
       await requireDispatch(task, signal); await preAuthor?.(task, signal);

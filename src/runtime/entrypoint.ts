@@ -39,7 +39,7 @@ import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 import { executeOrdinaryDesign, prepareDesignOrigins, optionalDesignJson } from './entrypoint-design-revision.ts';
 import { isOrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 import type { OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
-import { readPlanAuthoringPolicy } from './entrypoint-plan-authoring.ts';
+import { readPlanAuthoringPolicy, REVIEWED_DRAFT_POLICY } from './entrypoint-plan-authoring.ts';
 import type { OrdinaryPlanAuthoringPolicy } from './entrypoint-plan-authoring.ts';
 import { authenticatedOrdinaryFunding, CONSERVED_DESIGN_BUDGET, readConservedBudgetPolicy } from './ordinary-design-revision-budget.ts';
 import type { ConservedDesignBudgetPolicy } from './ordinary-design-revision-budget.ts';
@@ -132,7 +132,8 @@ export async function executeGeneration(options: GenerationOptions) {
   const ordinary = 'ordinaryProfile' in draft && draft.ordinaryProfile === 'ordinary-design/1';
   const ordinaryPlanAuthoringPolicy = options.resume
     ? originalExecution ? readPlanAuthoringPolicy(originalExecution, await optionalJson(root, 'planning-started.json'), ordinary && !draft.codeProfile && !draft.preparation) : undefined
-    : ordinary && !draft.codeProfile && !draft.preparation ? 'structured-design-plan/3' as const : undefined;
+    : ordinary && !draft.codeProfile && !draft.preparation ? (original.designDraftReview ? REVIEWED_DRAFT_POLICY : 'structured-design-plan/3' as const) : undefined;
+  if (ordinaryPlanAuthoringPolicy === REVIEWED_DRAFT_POLICY && !original.designDraftReview) throw new Error('Reviewed draft authoring requires its fixed design draft review.');
   if (originalExecution?.ordinaryDesignRevisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(originalExecution.ordinaryDesignRevisionPolicy)
     || originalExecution.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !ordinary || draft.codeProfile || draft.preparation)) throw new Error('Invalid ordinary design revision policy.');
   if (originalExecution && Object.hasOwn(originalExecution, 'ordinaryDesignFinalizationPolicy')
