@@ -653,9 +653,9 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 83,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189"],
-      "verifiedCompletedSubIssues": 79,
+      "verifiedNativeSubIssues": 84,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190"],
+      "verifiedCompletedSubIssues": 80,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -14240,9 +14240,35 @@
       "sourceIntegratedCommit": "f079defd5dec0ad31fd89911d14dc604d98ce5f7",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/190#issuecomment-6767896871",
       "verification": "Main build and three scripted CLI outcomes passed. Read-only room12/v2 selection bound the actual cabin design and plan. Runtime review and game acceptance require a separate run."
+    },
+    {
+      "taskId": "COS-190",
+      "title": "普通设计独审分页读取完整执行验收计划",
+      "number": 191,
+      "id": 6308305920,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/191",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
+      "dependsOn": [
+        { "id": "COS-189", "number": 190, "url": "https://github.com/lrfluobida/Cosmos/issues/190" }
+      ],
+      "implementer": "review_pages_author",
+      "reviewer": "review_pages_reviewer",
+      "merger": "review_pages_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "60bfe1eddc5ab65f65b5d6992d65c0495ceda32a",
+      "sourceIntegratedCommit": "a3ad63dc93372b656dd1f1875cc341352b95d993",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/191#issuecomment-6769668718",
+      "integrationComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6769670320",
+      "verification": "Main build and native SDK smoke passed. All 30 reviewed tests passed. Both read-only roles reconstructed all 397 R39 steps and plan attributes in two pages. Review verdict and game delivery require a live run."
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 189,
+  "totalTaskCount": 190,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
