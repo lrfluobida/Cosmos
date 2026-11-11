@@ -3,7 +3,7 @@ import { realpath } from 'node:fs/promises';
 import { resolve, relative, isAbsolute, sep } from 'node:path';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { ImageContent } from '@earendil-works/pi-ai';
-import type { BeforeFileWrite, WriteCommitted } from '../providers/workspace-tools.ts';
+import type { ArtFrameRead, BeforeFileWrite, WriteCommitted } from '../providers/workspace-tools.ts';
 import { createPiSession, createWorkspaceTools } from '../providers/pi.ts';
 import type { PiBudgetFinalizationSource, PiSessionOptions, PiVerdictCorrection } from '../providers/pi.ts';
 import { validateTask } from '../contracts/index.ts';
@@ -97,6 +97,7 @@ export interface RoleFactoryOptions {
   artAuthorRequestTimeoutMs?: number;
   /** Select the independently approved design bound to this ordinary art task. */
   ordinaryArtDesignInput?: (task: Readonly<TaskContract>) => ArtifactReference;
+  ordinaryArtFrameRead?: (input: Readonly<RoleInput>) => ArtFrameRead;
   estimatedMaxCostMicroCny: PiSessionOptions['estimatedMaxCostMicroCny'];
   thinkingLevel?: PiSessionOptions['thinkingLevel'];
   /** Author overrides only; planning, review and fixed validation retain thinkingLevel. */
@@ -253,14 +254,19 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       task.outputs.some(output => output.schema === 'game-design/2' && output.destination === ref.location)).map(ref => ref.location + '/' + ORDINARY_PLAN_FILE)
       : [];
     const rules = [...task.context.rules];
+    let artFrameRead: ArtFrameRead | undefined;
     if (ordinaryArtDesignInput && purpose === 'author' && input.role === 'art' && !validation) {
       const artDesign = ordinaryArtDesignInput(task);
       if (!task.inputs.some(ref => sameValue(ref, artDesign))) throw new Error('Art plan display requires the selected design input.');
       const planPath = artDesign.location + '/' + ORDINARY_PLAN_FILE;
       planReadPaths.push(planPath);
-      rules.push(`Start with ${artDesign.location}/_cosmos/design.json for the required characters, states, visuals, audio triggers and loops. Consult ${planPath} for graphics and audio constraints, including colours and silhouettes. Follow the displayed planOffset to check remaining pages as you work. Write completed asset batches to authors/art/media.json promptly, preserving earlier batches when adding the remaining assets. Before handing off, check the full roster against the file. Avoid transcribing the scenario or rereading completed pages.`);
+      artFrameRead = options.ordinaryArtFrameRead?.(input);
+      rules.push(`Start with ${artDesign.location}/_cosmos/design.json for the required characters, states, visuals, audio triggers and loops. ${artFrameRead
+        ? `Read ${planPath} with artFrames:[] for the compact pixel-pattern index. Where a mask describes a frame, check the current draft against the representative steps together using artFrames:[{stepId,characterId,state,background?:{characterId,state}}]. On a seeded draft check existing frames before handoff. Use measured cells to revise the assets and recheck affected mappings. Read raw plan pages only for additional context. These are asset compositions; gameplay capture and independent review follow separately.`
+        : `Consult ${planPath} for graphics and audio constraints, including colours and silhouettes. Follow the displayed planOffset to check remaining pages as you work.`} Write completed asset batches to authors/art/media.json promptly, preserving earlier batches when adding the remaining assets. Before handing off, check the full roster against the file. Avoid transcribing the scenario or rereading completed pages.`);
     }
     const fileTools = handoff ? [] : await createWorkspaceTools({ workspace, readPaths: reads, writePaths, planReadPaths,
+      artFrameRead,
       ...(input.role === 'art' ? { planReadPurpose: 'art' } : {}),
       ...(onWriteCommitted ? { onWriteCommitted } : {}),
       ...(input.role === 'design' && !input.purpose && !input.validation && options.beforeDesignFileWrite ? { beforeFileWrite: options.beforeDesignFileWrite(input) } : {}),

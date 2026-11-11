@@ -7,6 +7,10 @@ import { compactJsonReadBuffer, pagedPlanReadBuffer } from './json-read-display.
 
 export type BeforeFileWrite = (absolutePath: string, candidate: Buffer, signal: AbortSignal) => Promise<void>;
 export type WriteCommitted = (toolCallId: string, absolutePath: string) => void;
+export type ArtFrameRead = (checks: unknown[], offset: number, signal: AbortSignal) => Promise<unknown>;
+const frameFields = { characterId: Type.String(), state: Type.String(), frame: Type.Optional(Type.Integer({ minimum: 0, maximum: 63 })) };
+const artFrames = Type.Array(Type.Object({ ...frameFields, stepId: Type.String(), stage: Type.Optional(Type.Union([Type.Literal('main'), Type.Literal('reopen')])),
+  background: Type.Optional(Type.Object(frameFields, { additionalProperties: false })) }, { additionalProperties: false }), { maxItems: 8 });
 
 /** Host validation rejected a candidate before writing; the current valid draft remains intact. */
 export class PreservedDesignDraftError extends Error {}
@@ -18,6 +22,7 @@ export interface WorkspaceToolOptions {
   compactFullJsonReads?: true;
   planReadPaths?: string[];
   planReadPurpose?: 'art';
+  artFrameRead?: ArtFrameRead;
   beforeFileWrite?: BeforeFileWrite;
   onWriteCommitted?: WriteCommitted;
 }
@@ -78,16 +83,24 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
   if (reads.length) {
     const read = createReadTool(workspace);
     const plans = scopes(options.planReadPaths ?? []);
-    const parameters = plans.length ? Type.Object({ ...read.parameters.properties,
+    const parameters = plans.length ? Type.Object({ ...read.parameters.properties, ...(options.artFrameRead ? { artFrames: Type.Optional(artFrames) } : {}),
       planOffset: Type.Optional(Type.Integer({ minimum: 1, description: '1-based compact plan display line. Omit offset when using planOffset.' })) }) : read.parameters;
     const description = read.description + (options.compactFullJsonReads
       ? ' Whole-file JSON may use compact display; source formatting is unchanged. Before exact-text edits, use explicit offset/limit reads to obtain raw source text.' : '')
-      + (plans.length ? ` For the fixed acceptance plan, start with path alone (omit optional numbers, or use null if required). ${options.planReadPurpose === 'art' ? 'Use the displayed continuation when more steps are needed.' : 'Follow each continuation once until complete.'} planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.` : '');
+      + (options.artFrameRead ? ' On the fixed acceptance plan use artFrames:[] for a compact pixel-pattern index (offset=nextOffset for more). Supply 1..8 frame mappings for measured native art compositions. Each selects an approved stepId, characterId, state, optional zero-based frame and optional full-viewport background frame. Use stage to distinguish repeated step IDs. Omit artFrames or set it to null for ordinary file reads.' : '')
+      + (plans.length ? ` For a full plan read, start with path alone (omit optional numbers, or use null if required). ${options.planReadPurpose === 'art' ? 'Use the displayed continuation when more steps are needed.' : 'Follow each continuation once until complete.'} planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.` : '');
     tools.push(defineTool({ ...read, description, parameters, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, reads, signal);
       await access(full);
       const planOffset = 'planOffset' in args ? args.planOffset as number | undefined : undefined;
       const planPath = plans.some(path => relative(path, full) === '');
+      if ('artFrames' in args && args.artFrames != null) {
+        if (!options.artFrameRead || !planPath || !Array.isArray(args.artFrames) || args.artFrames.length > 8
+          || planOffset != null || args.limit != null || (args.offset != null && (args.artFrames.length || !Number.isSafeInteger(args.offset) || args.offset < 1)))
+          throw new Error('Read artFrames only on the fixed art plan. Use [] for the index or 1..8 mappings; only the index accepts offset.');
+        const report = await options.artFrameRead(args.artFrames, args.offset ?? 1, signal ?? new AbortController().signal);
+        return { content: [{ type: 'text', text: JSON.stringify(report) }], details: {} };
+      }
       if (planOffset != null && (!planPath || args.offset != null || !Number.isSafeInteger(planOffset) || planOffset < 1))
         throw new Error('Use planOffset only on the fixed acceptance plan, without a source offset.');
       if (planOffset != null && args.limit != null && (!Number.isSafeInteger(args.limit) || args.limit < 1))

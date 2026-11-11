@@ -30,7 +30,8 @@ async function visibleLayout(selectors: string[]): Promise<boolean> {
   });
 }
 
-async function matchesPixels(png: string, viewport: { width: number; height: number }, pattern: PixelPattern): Promise<boolean> {
+export type MeasuredCell = [row: number, column: number, matchingPixels: number, totalPixels: number];
+async function matchesPixels(png: string, viewport: { width: number; height: number }, pattern: PixelPattern, measure = false) {
   const bytes = Uint8Array.from(atob(png), c => c.charCodeAt(0));
   const image = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
   const { x, y, width, height, rows, tolerance } = pattern;
@@ -42,6 +43,7 @@ async function matchesPixels(png: string, viewport: { width: number; height: num
   image.close();
   const rgba = context.getImageData(0, 0, width, height).data;
   const color = [1, 3, 5].map(start => parseInt(pattern.color.slice(start, start + 2), 16));
+  const failedCells: MeasuredCell[] = [], matchingCells: MeasuredCell[] = [];
   for (const [r, row] of rows.entries()) {
     for (let c = 0; c < row.length; c++) {
       if (row[c] === '.') continue;
@@ -55,19 +57,27 @@ async function matchesPixels(png: string, viewport: { width: number; height: num
           && Math.abs(rgba[i + 2] - color[2]) <= tolerance) matches++;
       }
       const pixels = (right - left) * (bottom - top);
-      if (row[c] === '+' ? matches * 100 < pixels * 35 : matches * 100 > pixels * 10) return false;
+      const fails = row[c] === '+' ? matches * 100 < pixels * 35 : matches * 100 > pixels * 10;
+      if (!measure && fails) return false;
+      if (measure) (fails ? failedCells : matchingCells).push([r, c, matches, pixels]);
     }
   }
-  return true;
+  return measure ? { failedCells, matchingCells } : true;
 }
 
-async function isolatedCheck(session: CDPSession, implementation: string, args: unknown[]): Promise<boolean> {
+async function isolatedResult(session: CDPSession, implementation: string, args: unknown[]) {
   const { frameTree } = await session.send('Page.getFrameTree');
   const { executionContextId } = await session.send('Page.createIsolatedWorld', { frameId: frameTree.frame.id, worldName: 'cosmos-visual-observations' });
   const { result, exceptionDetails } = await session.send('Runtime.callFunctionOn', { executionContextId, functionDeclaration: implementation,
     arguments: args.map(value => ({ value })), returnByValue: true, awaitPromise: true });
-  if (exceptionDetails || typeof result.value !== 'boolean') throw new Error(exceptionDetails?.exception?.description ?? 'Browser visual observation unavailable');
+  if (exceptionDetails) throw new Error(exceptionDetails.exception?.description ?? 'Browser visual observation unavailable');
   return result.value;
+}
+
+async function isolatedCheck(session: CDPSession, implementation: string, args: unknown[]): Promise<boolean> {
+  const result = await isolatedResult(session, implementation, args);
+  if (typeof result !== 'boolean') throw new Error('Browser visual observation unavailable');
+  return result;
 }
 
 export function observeLayout(session: CDPSession, selectors: string[]): Promise<boolean> {
@@ -75,4 +85,9 @@ export function observeLayout(session: CDPSession, selectors: string[]): Promise
 }
 export function observePixelPattern(session: CDPSession, screenshot: Buffer, viewport: { width: number; height: number }, pattern: PixelPattern): Promise<boolean> {
   return isolatedCheck(session, matchesPixels.toString(), [screenshot.toString('base64'), viewport, pattern]);
+}
+export async function measurePixelPattern(session: CDPSession, screenshot: Buffer, viewport: { width: number; height: number }, pattern: PixelPattern) {
+  const result = await isolatedResult(session, matchesPixels.toString(), [screenshot.toString('base64'), viewport, pattern, true]);
+  if (!Array.isArray(result?.failedCells) || !Array.isArray(result.matchingCells)) throw new Error('Browser pixel measurements unavailable');
+  return result as { failedCells: MeasuredCell[]; matchingCells: MeasuredCell[] };
 }
