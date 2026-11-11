@@ -35,6 +35,17 @@ test('COS134 exact ordinary marker authorizes both art and coding adaptive caps 
   assert.equal(typeof createRoleFactory({ ...options, authorBudgetOutputFloor: undefined, authorMaxOutputTokens: { art: 65536, coding: 65536 } }), 'function');
 });
 
+test('ordinary coding quotes an affordable output cap within the remaining R52 replay grant', async t => {
+  const f = await authorBudgetFixture(t, 692861);
+  await f.spend(147901); // Settled first eleven R52 coding receipts, replayed under the ¥1.39 run limit.
+  await f.create({ ...revisionOptions, authorBudgetOutputFloor: { ...revisionOptions.authorBudgetOutputFloor, coding: 4096 } }, { ...f.input, role: 'coding' });
+  const select = f.configs[0].requestOutputLimit!, before = await f.controller.read();
+  assert.equal(await select({ ...request, inputBytes: 254251, maxOutputTokens: 65536 }), 4557);
+  assert.equal(await select({ ...request, inputBytes: 256096, maxOutputTokens: 65536 }), 4096);
+  await assert.rejects(select({ ...request, inputBytes: 256097, maxOutputTokens: 65536 }), /cannot afford/);
+  assert.deepEqual(await f.controller.read(), before);
+});
+
 test('COS124 room6 request12 chooses 32621 after fixed 32K rejects, without changing the ledger', async t => {
   const f = await authorBudgetFixture(t); await f.spend(170761); await f.create();
   const before = await f.controller.read(), reserve = (cap: number) => reserveEntry(structuredClone(before.ledger), {

@@ -43,21 +43,23 @@ test('COS146 revision display selector is trusted, snapshotted, and limited to o
   assert.deepEqual((await f.controller.read()).ledger.entries, []);
 });
 
-test('fixed validation design and art authors retain the original timeout and read tools', async t => {
+test('fixed validation authors retain the original timeout and read tools', async t => {
   const f = await validationRoutingFixture(t);
-  const planned = await planTaskDag({ ...f.planning, roles: { ...f.roles, design: { ...f.roles.design, tools: ['read'] }, art: { ...f.roles.art, tools: ['read'] } } } as any);
+  const planned = await planTaskDag({ ...f.planning, roles: { ...f.roles, design: { ...f.roles.design, tools: ['read'] }, art: { ...f.roles.art, tools: ['read'] }, coding: { ...f.roles.coding, tools: ['read'] } } } as any);
   await f.controller.registerTasks(planned.tasks.map(item => item.task));
   let calls = 0;
   const factory = createRoleFactory({ ...options, ordinaryDesignRevisionJsonReads: async () => { calls++; return true; },
     designAuthorRequestTimeoutMs: 600000, artAuthorRequestTimeoutMs: 600000, ordinaryArtDesignInput: () => assert.fail('Unexpected validation art selection'),
+    ordinaryCodingDesignInput: () => assert.fail('Unexpected validation coding selection'), authorThinkingLevel: { coding: 'off' },
     sessionFactory: async config => {
       const read = config.tools!.find(tool => tool.name === 'read')!;
       assert.doesNotMatch(read.description, /^For JSON (review|revision),|compact display/);
       assert.ok(!Object.hasOwn((read.parameters as { properties: object }).properties, 'planOffset'));
       assert.equal(config.requestTimeoutMs, 120000);
+      assert.equal(config.thinkingLevel, 'low');
       return { prompt: async () => ({ text: '' }), close: async () => {} };
     } });
-  for (const role of ['design', 'art'] as const) {
+  for (const role of ['design', 'art', 'coding'] as const) {
     const item = planned.tasks.find(item => item.role === role)!;
     const session = await factory({ controller: f.controller, validation: f.binding, requirement: f.requirement, role, task: item.task,
       workspace: item.workspace, stateDirectory: join(f.planning.sessionRoot, 'validation-' + role) });
@@ -92,12 +94,12 @@ for (const role of ['design', 'reviewer'] as const) test('COS146 native factory 
   assert.equal(await readFile(join(f.root, path), 'utf8'), source);
 });
 
-for (const role of ['reviewer', 'art'] as const) test(`native ${role} follows compact plan continuation with strict-schema nullable arguments`, async t => {
+for (const role of ['reviewer', 'art', 'coding'] as const) test(`native ${role} follows compact plan continuation with strict-schema nullable arguments`, async t => {
   const f = await authorBudgetFixture(t), task = f.input.task;
   task.outputs[0].schema = 'game-design/2';
   const design = { artifactId: 'design', version: 'v2', location: 'registry/captures/design/v2/files' };
-  if (role === 'art') task.inputs.push(design);
-  const folder = (role === 'art' ? design : task.artifacts[0]).location + '/_cosmos', path = folder + '/acceptance-plan.json';
+  if (role !== 'reviewer') task.inputs.push(design);
+  const folder = (role === 'reviewer' ? task.artifacts[0] : design).location + '/_cosmos', path = folder + '/acceptance-plan.json';
   const source = await readFile(new URL('../../docs/benchmark/cabin-hunt/acceptance-plan.json', import.meta.url));
   await mkdir(join(f.root, folder), { recursive: true }); await writeFile(join(f.root, path), source);
   let calls = 0;
@@ -121,7 +123,7 @@ for (const role of ['reviewer', 'art'] as const) test(`native ${role} follows co
       usage: { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40 } };
     return new Response('data: ' + JSON.stringify(chunk) + '\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
   });
-  const session = await f.create({ ordinaryDesignReviewBudget: () => true, ordinaryArtDesignInput: () => design,
+  const session = await f.create({ ordinaryDesignReviewBudget: () => true, ordinaryArtDesignInput: () => design, ordinaryCodingDesignInput: () => design,
     sessionFactory: config => createPiSession(config) }, { ...f.input, role });
   assert.equal((await session.prompt('Read the complete plan.')).text, 'Both pages received.');
   assert.equal(calls, 3);

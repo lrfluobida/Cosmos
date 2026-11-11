@@ -122,14 +122,14 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
       }
       if (['art', 'coding'].includes(packet.role)) {
         const schema = config.tools.find(tool => tool.name === 'read')!.parameters as { properties: object };
-        assert.equal(Object.hasOwn(schema.properties, 'planOffset'), packet.role === 'art');
+        assert.ok(Object.hasOwn(schema.properties, 'planOffset'));
         assert.match(packet.rules.join('\n'), /operator-supplied design/);
         const ref = packet.inputs.find((item: any) => item.artifactId === 'design');
+        await checkReadPlan(config, ref.location + '/_cosmos/acceptance-plan.json', files.get('acceptance-plan.json')!);
         if (packet.role === 'art') {
           assert.ok(packet.rules.some((rule: string) => rule.includes(ref.location + '/_cosmos/design.json') && rule.includes('Write completed asset batches')));
           assert.equal(config.requestTimeoutMs, 600000);
           assert.deepEqual(await config.requestWindow!(), { deadlineAt: Date.parse(packet.budget.originalDeadlineAt), cleanupMs: 5000 });
-          await checkReadPlan(config, ref.location + '/_cosmos/acceptance-plan.json', files.get('acceptance-plan.json')!);
           const media = 'authors/art/media.json', source = '{\n  "batches": []\n}\n';
           const tool = (name: string) => config.tools!.find(item => item.name === name)!;
           await tool('write').execute('draft', { path: media, content: source }, undefined, undefined, undefined as never);
@@ -429,6 +429,15 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
         return offlineNative(config);
       }
       if (packet.role === 'reviewer') assert.equal(config.thinkingLevel, 'low');
+      if (selection === 4 && packet.role === 'coding') {
+        assert.equal(config.thinkingLevel, 'off');
+        const design = packet.inputs.find((ref: any) => ref.artifactId === 'design');
+        const plan = design.location + '/_cosmos/acceptance-plan.json';
+        assert.ok(packet.rules.some((rule: string) => rule.includes(plan) && rule.includes('write the first source file')));
+        const inputBytes = Math.floor((packet.budget.allocationMicroCny - 4557 * 8) / 2);
+        assert.equal(await config.requestOutputLimit!({ requestId: 'fixed-art-coding-quote', modelId: 'deepseek-flash', hasImages: false,
+          inputBytes, maxOutputTokens: 8192 }), 4557);
+      }
       assert.equal('artFrames' in config.tools!.find(item => item.name === 'read')!.parameters.properties, false);
       return fallback;
     }
