@@ -8,7 +8,7 @@ import { synthesizeWav } from '../media/audio.ts';
 import { renderCharacter } from '../media/vector.ts';
 import { APPROVED_DESIGN, checkApprovedDesignImport, type ApprovedDesign } from './approved-design-source.ts';
 import { readReferencedRequirements, type ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
-import { validateDeclaredMedia } from './entrypoint-media.ts';
+import { validateDeclaredMedia, type DesignDocument } from './entrypoint-media.ts';
 import { ordinaryDraftSha256 } from './ordinary-profile-source.ts';
 import { fundingDesignDraftReview } from './reviewed-design-draft.ts';
 import type { PublicValidationAuthorization } from './public-validation-funding-types.ts';
@@ -29,6 +29,36 @@ export function fundingArtDraftSource(payload: PublicValidationAuthorization) {
 }
 
 const decode = (bytes: Uint8Array) => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+
+function renderableArtDraft(value: unknown, design: DesignDocument) {
+  const spec = validateDeclaredMedia(value, design, 'draft-subset');
+  for (const character of spec.characters) renderCharacter(character);
+  for (const clip of spec.audio) if (synthesizeWav(clip).manifest.peak <= 0.001) throw new Error('Art draft audio is silent: ' + clip.id);
+  return spec;
+}
+
+/** Native write/edit supplies the whole candidate, including the unchanged portion of an exact edit. */
+export async function preserveArtDraft(workspace: string, design: DesignDocument, candidate: Buffer, signal: AbortSignal) {
+  let current: Buffer;
+  try { current = await regularFile(workspace, ART_DRAFT_FILE, signal); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
+  const currentText = new TextDecoder('utf-8', { fatal: true }).decode(current);
+  let prior: ReturnType<typeof renderableArtDraft>;
+  try { prior = renderableArtDraft(JSON.parse(currentText), design); }
+  catch { return; } // An invalid working draft can still be repaired incrementally.
+  signal.throwIfAborted();
+  let next: typeof prior;
+  const rejected = 'Write rejected; current art draft preserved. ';
+  try { next = renderableArtDraft(decode(candidate), design); }
+  catch (error) { throw new Error(rejected + (error as Error).message, { cause: error }); }
+  const missing: string[] = [];
+  for (const kind of ['characters', 'audio'] as const) {
+    const ids = new Set(next[kind].map(item => item.id));
+    const lost = prior[kind].map(item => item.id).filter(id => !ids.has(id));
+    if (lost.length) missing.push(kind + ': ' + lost.slice(0, 4).join(', ') + (lost.length > 4 ? ' ...' : ''));
+  }
+  if (missing.length) throw new Error(rejected + 'Restore missing ' + missing.join('; ') + '. Use an exact edit for a single asset.');
+}
 
 /** A historical working file is an operator-selected draft, regardless of who last edited it. */
 export async function selectArtDraft(location: string, approved: ApprovedDesign, requirements: ConfirmedRequirementsSource,
@@ -59,9 +89,7 @@ export async function selectArtDraft(location: string, approved: ApprovedDesign,
     parent = ancestor.artDraftSource;
   }
   const bytes = await regularFile(root, ART_DRAFT_FILE), design = decode(approved.files.get('_cosmos/design.json')!);
-  const spec = validateDeclaredMedia(decode(bytes), design, 'draft-subset');
-  for (const character of spec.characters) renderCharacter(character);
-  for (const clip of spec.audio) if (synthesizeWav(clip).manifest.peak <= 0.001) throw new Error('Art draft audio is silent.');
+  const spec = renderableArtDraft(decode(bytes), design);
   const roster = (declared: { id: string }[], present: { id: string }[]) => {
     const existing = present.map(item => item.id);
     return { existing, missing: declared.map(item => item.id).filter(id => !existing.includes(id)) };

@@ -387,7 +387,18 @@ test('public funding resumes an editable art draft and requires a complete indep
       const full = JSON.parse(edited.toString('utf8'));
       full.audio.push({ id: 'click', sampleRate: 22050, duration: 0.1, loop: false,
         notes: [{ midi: 72, start: 0, duration: 0.1, gain: 0.2, wave: 'sine', attack: 0.01, release: 0.01 }] });
-      await tool('write').execute('complete', { path: ART_DRAFT_FILE, content: JSON.stringify(full) }, undefined, undefined, undefined as never);
+      const save = (value: unknown) => tool('write').execute('save', { path: ART_DRAFT_FILE, content: JSON.stringify(value) }, undefined, undefined, undefined as never);
+      const edit = (oldText: string, newText: string) => tool('edit').execute('change', { path: ART_DRAFT_FILE, edits: [{ oldText, newText }] }, undefined, undefined, undefined as never);
+      await assert.rejects(save({ ...full, characters: [] }), /preserved.*target/s);
+      assert.deepEqual(await read(config.workspace, ART_DRAFT_FILE), edited);
+      await save(full);
+      const complete = await read(config.workspace, ART_DRAFT_FILE);
+      await assert.rejects(save({ ...full, audio: [] }), /preserved.*click/s);
+      await assert.rejects(edit('"gain":0.2', '"gain":0'), /silent/i);
+      await assert.rejects(edit('"absent":true', 'null'), /find|match/i);
+      assert.deepEqual(await read(config.workspace, ART_DRAFT_FILE), complete);
+      await edit('"gain":0.2', '"gain":0.3');
+      assert.equal((await json(config.workspace, ART_DRAFT_FILE)).audio[0].notes[0].gain, 0.3);
       return { text: JSON.stringify({ summary: 'Finished visual and audio roster', remaining: [], uncertainty: [] }) };
     } };
   } });

@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import * as media from '../../src/runtime/entrypoint-media.ts';
+import * as draft from '../../src/runtime/art-draft-source.ts';
 const design = { summary: '原创收集游戏', implementationNotes: ['点击星星增加得分'], acceptanceMapping: { win: '点击星星后显示胜利' },
   characters: [{ id: 'star', purpose: '可点击的目标', states: ['idle'] }], audio: [{ id: 'bell', trigger: '点击成功', loop: false }] };
 const specification = { characters: [{ id: 'star', width: 32, height: 32, anchor: { x: 16, y: 16 },
@@ -20,6 +21,32 @@ test('generic art adapter renders real SVG and WAV from the exact dynamic design
   assert.equal((await readFile(join(root, 'rendered/public/assets/audio/bell.wav'))).subarray(0, 4).toString(), 'RIFF');
   assert.ok(result.media.audio[0].manifest.peak > 0.001);
 });
+test('preserve renderable art across batches, allow recovery from missing or broken draft', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'cosmos-art-write-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const file = join(root, draft.ART_DRAFT_FILE); await mkdir(join(root, 'authors/art'), { recursive: true });
+  const signal = new AbortController().signal;
+  const check = (candidate: unknown) => draft.preserveArtDraft(root, design, Buffer.from(JSON.stringify(candidate)), signal);
+  const visual = { ...specification, audio: [] }, sound = { ...specification, characters: [] };
+  await check(visual);
+  for (const old of ['{', JSON.stringify({ ...sound, audio: [{ ...sound.audio[0], notes: [] }] }),
+    JSON.stringify({ ...sound, audio: [{ ...sound.audio[0], notes: [{ ...sound.audio[0].notes[0], gain: 0 }] }] })]) {
+    await writeFile(file, old); await check(visual);
+  }
+  await writeFile(file, JSON.stringify(visual));
+  const batches = { formatVersion: 'batched-media/1', batches: [sound, visual] };
+  await check(batches);
+  await writeFile(file, JSON.stringify(batches));
+  await check(specification);
+  const changed = structuredClone(specification); changed.characters[0].states[0].frames = [{}, {}];
+  await check(changed);
+  await assert.rejects(check(visual), /preserved.*bell/s);
+  await assert.rejects(check(sound), /preserved.*star/s);
+  changed.characters[0].states[0].name = 'wrong';
+  await assert.rejects(check(changed), /states.*design/i);
+  await writeFile(file, Buffer.from([0xff]));
+  await assert.rejects(check(visual), /encoding|encoded/i);
+});
+
 test('art cannot omit a design-declared character, action or audio clip', () => {
   assert.equal(typeof media.validateDeclaredMedia, 'function');
   for (const changed of [{ ...specification, audio: [] }, { ...specification, characters: [] },
