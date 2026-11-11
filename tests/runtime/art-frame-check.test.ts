@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { checkArtFrames, artPatternIndex } from '../../src/runtime/art-frame-check.ts';
+import { fitArtFrame } from '../../src/runtime/art-layer-fit.ts';
 import type { BrowserScenario } from '../../src/roles/requirements.ts';
 import type { DesignDocument } from '../../src/runtime/entrypoint-media.ts';
 
@@ -37,4 +38,22 @@ test('Edge checks real frames, explicit background, false expectation and per-it
   assert.match(results[6].error!, /frame/i);
   await assert.rejects(checkArtFrames(scenario, design, media, [{ ...frame, url: 'file:///etc' }]), /field/i);
   await assert.rejects(checkArtFrames(scenario, design, { ...media, script: 'alert(1)' }, [frame]), /batch/i);
+});
+
+test('an empty scene measures the viewport background at the approved ROI, leaving the foreground absent', async () => {
+  const background = { characterId: 'target', state: 'idle' };
+  // The ROI lies outside the top-left quarter of the viewport. Scaling this layer to the ROI would put blue pixels inside it.
+  const smallLayer = { ...character.layers[0], width: 8, height: 8 };
+  const draft = { characters: [{ ...character, layers: [smallLayer] }], audio: [] };
+  const location = { ...pattern, x: 95, y: 68, rows: ['-'] };
+  const scene = { ...scenario, steps: [{ ...step, observation: location }] };
+  const empty = { stepId: 'blue', stage: 'main', background };
+  const { results } = await checkArtFrames(scene, design, draft, [empty, { ...empty, ...background },
+    { ...empty, characterId: null, state: null, frame: null }]);
+  assert.deepEqual(results.map(row => row.passed), [true, false, true]);
+  assert.deepEqual(results[1].failedCells, [[0, 0, 225, 960]]);
+  assert.deepEqual(results[1].failedCellSigns, ['-']);
+  for (const invalid of [{ stepId: 'blue' }, { ...empty, characterId: 'target' }, { ...empty, state: 'idle' }, { ...empty, frame: 1 },
+    { ...empty, background: {} }]) await assert.rejects(checkArtFrames(scene, design, draft, [invalid]));
+  await assert.rejects(fitArtFrame(scene, [], empty), /foreground/i);
 });

@@ -3,16 +3,17 @@ import { pixelPatternPercent, type MeasuredCell } from '../acceptance/visual-obs
 import { identifier, list, number, object, unique } from '../media/validation.ts';
 import { validateCharacter, type CharacterSpec, type Layer } from '../media/vector.ts';
 import type { BrowserScenario } from '../roles/requirements.ts';
-import { artMappings, frameSvg, mappedPattern, withFrameMeasurement, type Mapping } from './art-frame-check.ts';
+import { artMappings, frameSvg, mappedPattern, withFrameMeasurement, type ForegroundMapping } from './art-frame-check.ts';
 
 const axes = ['x', 'y', 'width', 'height'] as const;
 type Axis = typeof axes[number];
 type Change = { layerId: string } & Partial<Record<Axis, number>>;
-export type LayerFit = { inputSha256: string; mapping: Mapping; changes: Change[] };
+export type LayerFit = { inputSha256: string; mapping: ForegroundMapping; changes: Change[] };
 const maxDelta = 3, maxEditedLayers = 8, maxMeasurements = 1024;
 
 function fitTarget(scenario: BrowserScenario, characters: CharacterSpec[], input: unknown) {
   const [mapping] = artMappings([input]);
+  if (!('characterId' in mapping)) throw new Error('Fit requires an editable foreground frame.');
   const step = mappedPattern(scenario, mapping);
   if (!step.expected) throw new Error('Fit requires a pixel pattern expected to match.');
   const character = characters.find(item => item.id === mapping.characterId);
