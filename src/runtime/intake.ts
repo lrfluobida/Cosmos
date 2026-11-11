@@ -48,6 +48,7 @@ export interface IntakeSnapshot {
   requirementsSource?: ConfirmedRequirementsSource;
   designDraftReview?: ArtifactReference;
   artDraftSource?: ArtifactReference;
+  approvedDesignAllocation?: RunSnapshot['approvedDesignAllocation'];
 }
 export interface CreateIntakeOptions {
   root: string; runId: string; ledgerId: string; specVersion: string; allocations: BudgetLedger['allocations'];
@@ -60,6 +61,7 @@ export interface CreateIntakeOptions {
   requirementsSource?: ConfirmedRequirementsSource;
   designDraftReview?: ArtifactReference;
   artDraftSource?: ArtifactReference;
+  approvedDesignAllocation?: RunSnapshot['approvedDesignAllocation'];
 }
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 const draftRef = (revision: number): ArtifactReference => ({ artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` });
@@ -172,6 +174,7 @@ export class IntakeController {
       ...(options.validationFunding ? { validationFunding: structuredClone(options.validationFunding) } : {}),
       ...(options.requirementsSource ? { requirementsSource: structuredClone(options.requirementsSource) } : {}),
       ...(options.designDraftReview ? { designDraftReview: structuredClone(options.designDraftReview) } : {}),
+      ...(options.approvedDesignAllocation ? { approvedDesignAllocation: options.approvedDesignAllocation } : {}),
       ...(options.artDraftSource ? { artDraftSource: structuredClone(options.artDraftSource) } : {}),
     };
     validateIntakeSnapshot(state);
@@ -409,6 +412,7 @@ export class IntakeController {
         ...(prior.validationFunding ? { validationFunding: structuredClone(prior.validationFunding) } : {}),
         ...(prior.requirementsSource ? { requirementsSource: structuredClone(prior.requirementsSource) } : {}),
         ...(prior.designDraftReview ? { designDraftReview: structuredClone(prior.designDraftReview) } : {}),
+        ...(prior.approvedDesignAllocation ? { approvedDesignAllocation: prior.approvedDesignAllocation } : {}),
         ...(prior.artDraftSource ? { artDraftSource: structuredClone(prior.artDraftSource) } : {}),
         run: { contractVersion: '1.0.0', ...prior.run, ledgerId: prior.ledger.ledgerId, originalStartedAt: startedAt,
           originalDeadlineAt: new Date(Date.parse(startedAt) + prior.durationMs).toISOString(), state: 'running', taskIds: prior.ledger.allocations.map(item => item.taskId),

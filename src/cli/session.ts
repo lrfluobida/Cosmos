@@ -182,10 +182,12 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       policy = referenced ? referenced.modularRepairPolicy : currentModularRepairPolicy();
       const allocationSelection = initialization ? (Object.hasOwn(initialization, 'planningAllocation') ? { planningAllocation: initialization.planningAllocation } : {})
         : referenced && limits.limitMicroCny >= 20 ? { planningAllocation: 'reuse-intake-share' } : {};
+      const approvedDesignAllocation = initialization ? initialization.approvedDesignAllocation : approvedDesign ? 'downstream-share/1' : undefined;
       const origin = { runId, brief, ...((options.limits && !selectedMode || referenced) ? { limits } : {}), ...(selectedMode ? { draftMode: selectedMode } : {}), ...(frames ? { renderFrames: frames } : {}), ...(policy ? { modularRepairPolicy: policy } : {}),
         ...allocationSelection,
         ...(referenced ? { requirementsSource: referenced.source } : {}),
         ...(designDraftReview ? { designDraftReview } : {}),
+        ...(approvedDesignAllocation !== undefined ? { approvedDesignAllocation } : {}),
         ...(artDraftSource ? { artDraftSource } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(options.funding ? { validationFunding: options.funding } : {}) };
@@ -221,6 +223,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(referenced ? { requirementsSource: referenced.source } : {}),
         ...(designDraftReview ? { designDraftReview } : {}),
+        ...(approvedDesignAllocation !== undefined ? { approvedDesignAllocation } : {}),
         ...(artDraftSource ? { artDraftSource } : {}),
         ...(frames ? { renderFrames: frames } : {}),
         modularRepairPolicy: policy, ...(options.funding ? { validationFunding: options.funding } : {}),

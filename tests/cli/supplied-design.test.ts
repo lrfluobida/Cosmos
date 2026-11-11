@@ -36,6 +36,30 @@ async function checkReadPlan(config: PiSessionOptions, path: string, source: str
   const raw = await invoke({ offset: 2, limit: 1 });
   assert.equal(raw.split('\n')[0], source.split('\n')[1]);
 }
+// Replay only recorded R46 metering, using the real role's price selection and ledger hooks.
+async function replayArtRequests(config: PiSessionOptions) {
+  const receipts = [
+    // input bytes, metered input/cache-read/output tokens, affordable new cap
+    [13633, 3411, 128, 228, 61235], [48966, 10297, 3712, 166, 51321],
+    [53184, 901, 14080, 469, 47507], [57751, 1216, 15360, 145, 45601],
+    [60465, 503, 16640, 6414, 44396], [79957, 181, 23424, 1219, 32900],
+    [84017, 173, 24704, 353, 30504], [87291, 650, 25216, 3359, 29166],
+    [97024, 222, 29056, 339, 23085],
+  ];
+  const estimate = config.estimatedMaxCostMicroCny;
+  assert.ok(typeof estimate === 'function');
+  for (const [inputBytes, input, cacheRead, output, expectedCap] of receipts) {
+    const request = { requestId: 'offline-art-' + inputBytes, modelId: 'deepseek-flash' as const, inputBytes, maxOutputTokens: 65536, hasImages: false };
+    request.maxOutputTokens = await config.requestOutputLimit!(request);
+    assert.equal(request.maxOutputTokens, expectedCap);
+    await config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: estimate(request) });
+    await config.budget.afterResponse({ requestId: request.requestId, outcome: 'settled', responseModel: 'deepseek-flash',
+      elapsedMs: 1, usage: { input, cacheRead, output, cacheWrite: 0 } });
+  }
+  const next = { requestId: 'offline-art-never-sent', modelId: 'deepseek-flash' as const, inputBytes: 100322, maxOutputTokens: 65536, hasImages: false };
+  assert.equal(await config.requestOutputLimit!(next), 21720);
+}
+
 for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift', 'handoff-gap', 'native-failure', 'seed-drift']) test(`public supplied design: ${outcome}`, async t => {
   const files = new Map<string, string>(), consumers = new Set<string>();
   let authorRounds = 0;
@@ -241,11 +265,30 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
   } });
   await assert.rejects(runPublicValidationCli(historicalArgs, historicalIO), /Simulated interrupted/);
   assert.equal(reuse.packets.length, 0);
+  const marked = await json(reuse.root, 'intake-origin.json');
+  assert.equal(marked.approvedDesignAllocation, 'downstream-share/1');
+  assert.equal((await json(reuse.root, 'snapshot.json')).approvedDesignAllocation, marked.approvedDesignAllocation);
+  // A pre-policy run interrupted before its plan existed retains its original grants on cold and normal resume.
+  for (const name of ['intake-origin.json', 'snapshot.json']) {
+    const legacy = await json(reuse.root, name);
+    delete legacy.approvedDesignAllocation;
+    await writeFile(join(reuse.root, name), JSON.stringify(legacy));
+    if (name === 'intake-origin.json') await assert.rejects(runPublicValidationCli(['resume', reuse.root], historicalIO), /allocation changed/);
+  }
   const templatePath = join(reuse.root, 'registry/captures/generic-template/v1/files/package.json'), templateBytes = await readFile(templatePath);
   await writeFile(templatePath, Buffer.concat([templateBytes, Buffer.from(' ')]));
   reuse.host.execute = input => executeGeneration({ ...input, createHost: hostInput => createBrowserHost({ ...hostInput, ...reuse.hostOptions }) });
   await assert.rejects(runPublicValidationCli(['resume', reuse.root], historicalIO), /dependency bytes changed/);
   await writeFile(templatePath, templateBytes);
+  const resumeHost = reuse.host.execute;
+  reuse.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => {
+    const host = await createBrowserHost({ ...hostInput, ...reuse.hostOptions });
+    host.bindPreparedTasks = async () => { throw new Error('Interrupted after legacy plan publication'); };
+    return host;
+  } });
+  assert.equal((await runPublicValidationCli(['resume', reuse.root], historicalIO) as any).outcome, 'incomplete');
+  assert.equal(reuse.packets.length, 0);
+  reuse.host.execute = resumeHost;
   const reused: any = await runPublicValidationCli(['resume', reuse.root], historicalIO);
   assert.deepEqual(reuse.packets.map(packet => packet.role), ['art', 'reviewer', 'coding', 'reviewer'], JSON.stringify(reused.gaps));
   assert.equal(reused.outcome, 'awaiting_user_experience', JSON.stringify(reused.gaps));
@@ -307,11 +350,16 @@ test('public funding resumes an editable art draft and requires a complete indep
   const common = ['--requirements-from', original.root, '--requirements-revision', '2', '--max-cny', '2.30', '--max-minutes', '30'];
   const first: any = await runCli(['new', previous.root, ...common, '--design-input', supplied], { ...io(), host: previous.host });
   assert.equal(first.ordinaryDesignReview?.selectedVersion, 'v1', JSON.stringify(first.gaps));
+  const fullPlan = await json(previous.root, 'execution.json');
+  assert.deepEqual(fullPlan.tasks.map((item: any) => [item.role, item.task.budget.allocationMicroCny]),
+    [['design', 517500], ['art', 517500], ['coding', 828000]]);
   const fresh = await ordinaryHostFixture(t, options); // Its art author supplies only the required visual asset.
   const result: any = await runCli(['new', fresh.root, ...common, '--approved-design-from', previous.root], { ...io(), host: fresh.host });
   assert.deepEqual(fresh.packets.map(packet => packet.role), ['art'], JSON.stringify(result.gaps));
   assert.equal(result.historicalDesign.sourceRunId, first.runId);
   assert.equal(result.outcome, 'incomplete');
+  assert.deepEqual((await json(fresh.root, 'snapshot.json')).ledger.allocations.map((row: any) => row.amountMicroCny),
+    [0, 230000, 716538, 1146461]);
   const partial = await read(fresh.root, ART_DRAFT_FILE), edited = Buffer.concat([partial, Buffer.from('\n')]);
   const funded = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
     const packet = JSON.parse(config.context!);
@@ -319,6 +367,7 @@ test('public funding resumes an editable art draft and requires a complete indep
       assert.equal('artFrames' in config.tools!.find(item => item.name === 'read')!.parameters.properties, false);
       return fallback;
     }
+    await replayArtRequests(config);
     assert.match(packet.rules.join('\n'), /operator-selected unreviewed draft/);
     assert.match(packet.rules.join('\n'), /"characters":\{"existing":\["target"\],"missing":\[\]\},"audio":\{"existing":\[\],"missing":\["click"\]\}/);
     const tool = (name: string) => config.tools!.find(item => item.name === name)!;
@@ -351,7 +400,7 @@ test('public funding resumes an editable art draft and requires a complete indep
   await assert.rejects(selectArtDraft(fresh.root, approved, sourceState.requirementsSource, target), /Cyclic art draft/);
   await writeFile(join(fresh.root, 'snapshot.json'), savedState);
   await writeFile(join(fresh.root, 'intake-origin.json'), sourceOrigin);
-  const f = await (await fundingFixture(t)).authorization('editable-art', 2300000);
+  const f = await (await fundingFixture(t)).authorization('editable-art', 1660000);
   const auth = join(f.sharedRoot, f.authorization.location), command = ['new', funded.root, '--shared-root', f.sharedRoot, '--authorization', auth];
   const payload = { ...f.payload, formatVersion: 'public-validation-authorization/2', brief: funded.draft.brief, runRoot: funded.root, renderFrames: false,
     requirementsSource: sourceState.requirementsSource, sourceRefs: [...f.payload.sourceRefs, approved.reference, sourceDraft.reference] };
@@ -380,6 +429,11 @@ test('public funding resumes an editable art draft and requires a complete indep
   funded.host.execute = execute;
   const final: any = await runPublicValidationCli(['resume', funded.root], fundedIO);
   assert.deepEqual(funded.packets.map(packet => packet.role), ['art', 'reviewer', 'coding', 'reviewer'], JSON.stringify(final.gaps));
+  const finalLedger = (await json(funded.root, 'snapshot.json')).ledger;
+  assert.deepEqual(finalLedger.entries.map((entry: any) => entry.settledMicroCny), [8652, 22071, 6118, 4207, 52984, 11051, 4159, 29181, 4319]);
+  assert.ok(finalLedger.entries.every((entry: any) => entry.status === 'settled' && !entry.reservedMicroCny && !entry.unknown));
+  assert.deepEqual(finalLedger.allocations.map((row: any) => row.amountMicroCny), [0, 166000, 517153, 827446]);
+  assert.equal(finalLedger.limitMicroCny - finalLedger.allocations.reduce((sum: number, row: any) => sum + row.amountMicroCny, 0), 149401);
   const capture = await json(funded.root, 'registry/captures/media/v1/capture.json');
   assert.ok(capture.metadata.provenance.sourceRefs.includes('ordinary-art-draft@' + sourceDraft.reference.version));
   assert.equal(capture.metadata.media.audio[0].manifest.id, 'click');
@@ -439,6 +493,7 @@ test('public approved design resumes interrupted classic and render-frame input 
   assert.match(JSON.stringify(artRequests[0].messages), /artFrames/);
   assert.equal(result.outcome, 'incomplete');
   const art = (await json(fresh.root, 'snapshot.json')).tasks.find((task: any) => task.taskId === 'art-task');
+  assert.equal(art.budget.allocationMicroCny, 716538);
   assert.deepEqual(art.artifacts, []);
   const failure = await json(art.attempts[0].sessionRef, 'failure.json');
   assert.equal(failure.issues[0].checkId, 'role-output-missing_output');

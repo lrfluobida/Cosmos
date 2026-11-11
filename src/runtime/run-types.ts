@@ -56,6 +56,7 @@ export interface RunSnapshot {
   requirementsSource?: ConfirmedRequirementsSource;
   designDraftReview?: ArtifactReference;
   artDraftSource?: ArtifactReference;
+  approvedDesignAllocation?: 'downstream-share/1';
   ordinaryDesignRevisionBudgetActivation?: OrdinaryDesignBudgetActivation;
 }
 
