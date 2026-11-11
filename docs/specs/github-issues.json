@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261112-verdict-52",
+      "latestLiveValidationCaseId": "room-20261112-coding-53",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6801743478",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6802325018",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14460,6 +14460,9 @@
       "title": "在普通新运行中复用原生已批准设计",
       "number": 198,
       "id": 6320343769,
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-212"],
+      "verifiedCompletedSubIssues": 0,
       "url": "https://github.com/lrfluobida/Cosmos/issues/198",
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
@@ -14938,9 +14941,39 @@
       "sourceIntegratedCommit": "791131ca70306b695e90faf23dc87822d3759e23",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/212#issuecomment-6802028010",
       "verification": "主线构建通过。普通编码作者关闭推理，R52 计划 398 步完整分页读回。离线写入、编译和 ¥1.39 额度核验通过。真实编码与游戏验收待运行。"
+    },
+    {
+      "taskId": "COS-212",
+      "title": "普通带资 CLI 从真实已批准美术开始编码",
+      "number": 213,
+      "id": 6333458324,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/213",
+      "parentTaskId": "COS-197",
+      "parentIssueNumber": 198,
+      "parentIssueId": 6320343769,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-197",
+          "number": 198,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/198"
+        },
+        {
+          "id": "COS-211",
+          "number": 212,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/212"
+        }
+      ],
+      "implementer": "approved_media_author",
+      "reviewer": "r52_evidence",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 211,
+  "totalTaskCount": 212,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

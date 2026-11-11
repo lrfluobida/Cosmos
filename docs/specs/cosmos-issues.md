@@ -2687,6 +2687,10 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 归属 #19，原生父卡 #211。R52 编码作者在首次写文件前耗尽输出。作者 `coding_write_author`，独审 `r52_evidence` 批准 `c16546a`，主线合入 `791131ca`。普通编码作者关闭推理，可分页读取同任务已批准计划。主线构建及离线写入和编译通过，真实游戏编码与验收待运行。 [源码批准与集成](https://github.com/lrfluobida/Cosmos/issues/212#issuecomment-6802028010) [R52 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6801743478) · [编码修复任务](https://github.com/lrfluobida/Cosmos/issues/212)
 
+### COS-212 · 普通带资 CLI 从真实已批准美术开始编码
+
+归属 #19，原生父卡 #198。R53 重审了 R52 已批准的美术，重新评审因准入被拒，未启动编码。普通带资 CLI 需将新运行绑定到同需求、同设计及同版媒体的真实独审批准，验证捕获内容与来源后从编码开始。作者 `approved_media_author`，独审 `r52_evidence`。 [R53 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6802325018) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/213)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。
