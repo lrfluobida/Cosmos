@@ -9,7 +9,7 @@ import type { ExecutionRequirement } from '../../roles/execution-input.ts';
 import type { TaskContract } from '../../contracts/types.ts';
 import { sameValue } from '../../contracts/validation.ts';
 import { DesignConcernReferenceError } from './design-concern-reference-diagnostic.ts';
-import { ReviewReasoningExhausted } from '../../providers/pi.ts';
+import type { PiVerdictCorrection } from '../../providers/pi.ts';
 
 export class ReviewProtocolError extends Error {
   constructor() { super('Independent review did not return a valid fixed-version proposal.'); }
@@ -60,7 +60,7 @@ export async function requestReview<T>(options: {
 }): Promise<T> {
   validateProtocolCorrections(options.maxCorrections);
   let diagnostic = '';
-  let exhausted: ReviewReasoningExhausted | undefined;
+  let completeVerdict: PiVerdictCorrection | undefined;
   for (let response = 0; response <= options.maxCorrections; response++) {
     options.signal.throwIfAborted();
     if (response > 0) {
@@ -88,11 +88,12 @@ export async function requestReview<T>(options: {
     const prompt = response === 0 ? options.prompt : (options.correctionPrompt ?? correction) + diagnostic;
     let answer: { text: string };
     try {
-      answer = exhausted ? await exhausted.completeVerdict(prompt, options.signal)
+      answer = completeVerdict ? await completeVerdict(prompt, options.signal)
         : await options.reviewer.prompt(prompt, { signal: options.signal, ...(response === 0 && options.images ? { images: options.images } : {}) });
     } catch (error) {
-      if (!(error instanceof ReviewReasoningExhausted) || options.validation || response >= options.maxCorrections) throw error;
-      exhausted = error;
+      if (options.validation || response >= options.maxCorrections) throw error;
+      completeVerdict = options.reviewer.reviewVerdictCorrection?.(error);
+      if (!completeVerdict) throw error;
       diagnostic = '\nGive your own independent verdict from the fixed inputs and evidence already in this session. Return the complete visible review JSON.';
       continue;
     }

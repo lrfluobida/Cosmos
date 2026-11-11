@@ -5,7 +5,7 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { ImageContent } from '@earendil-works/pi-ai';
 import type { BeforeFileWrite, WriteCommitted } from '../providers/workspace-tools.ts';
 import { createPiSession, createWorkspaceTools } from '../providers/pi.ts';
-import type { PiBudgetFinalizationSource, PiSessionOptions } from '../providers/pi.ts';
+import type { PiBudgetFinalizationSource, PiSessionOptions, PiVerdictCorrection } from '../providers/pi.ts';
 import { validateTask } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
 import type { TaskContract } from '../contracts/index.ts';
@@ -34,6 +34,8 @@ export interface RoleSession {
   prompt(text: string, options?: { signal?: AbortSignal; images?: ImageContent[] }): Promise<{ text: string }>;
   /** Host-only format correction with native tool execution disabled. */
   readonlyPrompt?(text: string, options?: { signal?: AbortSignal }): Promise<{ text: string }>;
+  /** Only the same live ordinary reviewer can recognize its own exhausted turn. */
+  reviewVerdictCorrection?(error: unknown): PiVerdictCorrection | undefined;
   /** Host-only, idle-session boundary; native pi owns summarization and billing. */
   budgetFinalization?(error: unknown): Promise<PiBudgetFinalizationSource | null>;
   finalizeBudget?(error: unknown, text: string, options?: { signal?: AbortSignal }): Promise<{ text: string }>;
@@ -363,6 +365,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         ...(validation ? { validation: { caseId: validation.caseId, windowId: validation.windowId, purpose } } : {}) }),
     });
     return { contextId, actorId, prompt: (text, supplied = {}) => session.prompt(text, { images: supplied.images, signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }),
+      ...(designReviewBudget && session.reviewVerdictCorrection ? { reviewVerdictCorrection: (error: unknown) => session.reviewVerdictCorrection!(error) } : {}),
       ...(session.budgetFinalization && session.finalizeBudget ? { budgetFinalization: async (error: unknown) => { input.controller.signal.throwIfAborted(); return session.budgetFinalization!(error); },
         finalizeBudget: (error: unknown, text: string, supplied: { signal?: AbortSignal } = {}) => session.finalizeBudget!(error, text, { signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }) } : {}),
       ...(session.readonlyPrompt ? { readonlyPrompt: (text: string, supplied: { signal?: AbortSignal } = {}) => session.readonlyPrompt!(text, { signal: AbortSignal.any([input.controller.signal, ...(supplied.signal ? [supplied.signal] : [])]) }) } : {}),

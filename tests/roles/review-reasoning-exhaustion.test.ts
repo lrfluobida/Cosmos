@@ -8,7 +8,8 @@ import { requestReview } from '../../src/runtime/repair/protocol.ts';
 import { authorBudgetFixture } from './author-output-budget.fixture.ts';
 
 for (const mode of ['approved', 'changes_requested', 'malformed', 'no-budget', 'partial-tool', 'visible-text',
-  'mixed-usage', 'unknown', 'unselected', 'no-slot', 'request-limit', 'empty-verdict'] as const) {
+  'mixed-usage', 'unknown', 'unselected', 'no-slot', 'request-limit', 'empty-verdict',
+  'foreign-session', 'source-model-conflict', 'verdict-model-conflict', 'source-usage-conflict', 'verdict-usage-conflict'] as const) {
   test(`native design review after synthetic reasoning exhaustion: ${mode}`, async t => {
     const f = await authorBudgetFixture(t, mode === 'no-budget' ? 150000 : 675000);
     const { task } = f.input, record = join(f.root, 'review-correction.json');
@@ -54,24 +55,35 @@ for (const mode of ['approved', 'changes_requested', 'malformed', 'no-budget', '
           completion_tokens_details: { reasoning_tokens: n === 2 ? output - (mode === 'mixed-usage' ? 1 : 0) : 0 } };
         const chunk = { id: 'offline-review', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: finish }],
           ...(n === 2 && mode === 'unknown' ? {} : { usage }) };
-        return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+        const conflict = mode === 'source-model-conflict' && n === 2 || mode === 'verdict-model-conflict' && n === 3;
+        const badUsage = mode === 'source-usage-conflict' && n === 2 || mode === 'verdict-usage-conflict' && n === 3;
+        let firstChunk = conflict ? `data: ${JSON.stringify({ ...chunk, model: 'different-model', choices: [], usage: undefined })}\n\n` : '';
+        if (badUsage) {
+          firstChunk = `data: ${JSON.stringify({ ...chunk, choices: [], usage: { prompt_tokens: 30, completion_tokens: 0 } })}\n\n`;
+          Object.assign(chunk.choices[0], { usage: { ...usage, prompt_tokens: undefined } });
+          delete chunk.usage;
+        }
+        return new Response(`${firstChunk}data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
       } catch (error) { payloadFailure = error; throw error; }
     });
     const reviewer = await f.create({ ordinaryDesignReviewBudget: () => mode !== 'unselected', ordinaryDesignReviewMaxOutputTokens: cap,
       maxRequests: mode === 'request-limit' ? 2 : 3, sessionFactory: createPiSession }, { ...f.input, role: 'reviewer' });
-    const result = requestReview({ reviewer, controller: f.controller, taskId: task.taskId, attemptId: 'attempt-1',
+    const other = mode === 'foreign-session' ? await f.create({ ordinaryDesignReviewBudget: () => true, sessionFactory: createPiSession },
+      { ...f.input, role: 'reviewer', stateDirectory: join(f.root, 'other-reviewer') }) : undefined;
+    const result = requestReview({ reviewer: other ? { ...other, prompt: reviewer.prompt } : reviewer,
+      controller: f.controller, taskId: task.taskId, attemptId: 'attempt-1',
       correctionRecordPath: record, maxCorrections: mode === 'no-slot' ? 0 : 1, signal: new AbortController().signal,
       parse: text => parseReview(text, task), prompt: 'Independently review the fixed inputs.', correctionPrompt: correction });
     if (mode === 'approved' || mode === 'changes_requested') assert.deepEqual(await result.catch(error => { throw payloadFailure ?? error; }), verdict);
     else await assert.rejects(result);
     assert.ifError(payloadFailure);
-    const corrected = ['approved', 'changes_requested', 'malformed', 'empty-verdict'].includes(mode);
+    const corrected = ['approved', 'changes_requested', 'malformed', 'empty-verdict', 'verdict-model-conflict', 'verdict-usage-conflict'].includes(mode);
     assert.equal(calls, corrected ? 3 : 2);
     if (corrected || mode === 'no-budget') assert.equal(JSON.parse(await readFile(record, 'utf8')).used, 1);
     else await assert.rejects(readFile(record), { code: 'ENOENT' });
     const state = await f.controller.read();
     assert.equal(state.ledger.entries.length, calls);
-    assert.equal(state.ledger.entries.at(-1)?.status, mode === 'unknown' ? 'unknown' : 'settled');
+    assert.equal(state.ledger.entries.at(-1)?.status, mode === 'unknown' || mode.endsWith('-conflict') ? 'unknown' : 'settled');
     if (corrected) {
       const files = (await readdir(f.input.stateDirectory)).filter(file => file.endsWith('.jsonl'));
       assert.equal(files.length, 1);

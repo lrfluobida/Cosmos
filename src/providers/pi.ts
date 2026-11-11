@@ -107,14 +107,7 @@ export class PiSessionError extends Error {
 }
 class OptionalSummarySkipped extends Error {}
 
-/** Live, single-use access to the original review session after a settled reasoning-only length stop. */
-export class ReviewReasoningExhausted extends PiSessionError {
-  readonly completeVerdict: (text: string, signal: AbortSignal) => Promise<{ text: string }>;
-  constructor(completeVerdict: ReviewReasoningExhausted['completeVerdict']) {
-    super('incomplete', 'Independent review exhausted its output on reasoning without a visible verdict.');
-    this.completeVerdict = completeVerdict;
-  }
-}
+export type PiVerdictCorrection = (text: string, signal: AbortSignal) => Promise<{ text: string }>;
 
 function positive(value: number, name: string) {
   if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive safe integer`);
@@ -166,7 +159,7 @@ export async function createPiSession(config: PiSessionOptions) {
   let failure: PiSessionError | undefined;
   let callerSignal: AbortSignal | undefined;
   let readonlyRequests: number | undefined;
-  let pendingReview: ReviewReasoningExhausted | undefined;
+  let pendingReview: { error: PiSessionError; signal?: AbortSignal } | undefined;
   let closed = false;
   let pendingFinalization: { error: PiSessionError; source: Omit<PiBudgetFinalizationSource, 'native'>; beforeLeaf: string | null; native?: PiBudgetFinalizationSource['native'] } | undefined;
   let finalizationActive = false, finalizationUsed = false;
@@ -176,7 +169,7 @@ export async function createPiSession(config: PiSessionOptions) {
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
   const admissionFailure = (error: unknown, message: string) => error instanceof PiSessionError && ['author_output_budget', 'author_review_reserve', 'review_output_budget'].includes(error.code)
     ? fail(error.code, 'Original request resource capacity is insufficient; no provider request sent.') : fail('admission_rejected', message);
-  const throwIfFailed = () => { if (failure) throw failure; if (pendingReview) throw pendingReview; if (pendingFinalization && !finalizationActive) throw pendingFinalization.error; };
+  const throwIfFailed = () => { if (failure) throw failure; if (pendingReview) throw pendingReview.error; if (pendingFinalization && !finalizationActive) throw pendingFinalization.error; };
   function estimateRequest(request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) {
     try {
       const estimate = typeof config.estimatedMaxCostMicroCny === 'function' ? config.estimatedMaxCostMicroCny(request) : config.estimatedMaxCostMicroCny;
@@ -318,10 +311,16 @@ export async function createPiSession(config: PiSessionOptions) {
           onProviderStreamEvent: async (data, model) => {
             firstResponseMs ??= performance.now() - started;
             if (data && typeof data === 'object') {
-              const chunk = data as { model?: unknown; usage?: { prompt_tokens?: unknown; completion_tokens?: unknown } };
+              type RawUsage = { prompt_tokens?: unknown; completion_tokens?: unknown };
+              const chunk = data as { model?: unknown; usage?: RawUsage; choices?: { usage?: RawUsage }[] };
               if (typeof chunk.model === 'string') responseModel = chunk.model;
-              receivedUsage ||= Number.isSafeInteger(chunk.usage?.prompt_tokens) && Number.isSafeInteger(chunk.usage?.completion_tokens)
-                && Number(chunk.usage?.prompt_tokens) >= 0 && Number(chunk.usage?.completion_tokens) >= 0;
+              // The native parser replaces its usage on each report, preferring chunk.usage to choice.usage.
+              const usage = chunk.usage || (config.ordinaryDesignReview ? chunk.choices?.[0]?.usage : undefined);
+              if (usage) {
+                const complete = Number.isSafeInteger(usage.prompt_tokens) && Number.isSafeInteger(usage.completion_tokens)
+                  && Number(usage.prompt_tokens) >= 0 && Number(usage.completion_tokens) >= 0;
+                receivedUsage = config.ordinaryDesignReview ? complete : receivedUsage || complete;
+              }
             }
             await options?.onProviderStreamEvent?.(data, model);
           },
@@ -330,6 +329,8 @@ export async function createPiSession(config: PiSessionOptions) {
           if (event.type === 'done' || event.type === 'error') {
             clearTimeout(timeout);
             const message = event.type === 'done' ? event.message : event.error;
+            // The SDK retains the first conflicting model ID even if later chunks return to the configured one.
+            if (config.ordinaryDesignReview && message.responseModel) responseModel = message.responseModel;
             await report(message);
             if (responseModel && responseModel !== DEEPSEEK_MODEL) fail('model_mismatch', 'Provider returned an unexpected model');
             if (message.stopReason === 'length') {
@@ -337,13 +338,7 @@ export async function createPiSession(config: PiSessionOptions) {
                 && !failure && !closed && !signal.aborted && requests < config.maxRequests && readonlyRequests === undefined
                 && message.usage.output > 0 && message.usage.reasoning === message.usage.output
                 && message.content.every(block => block.type === 'thinking' || block.type === 'text' && block.text === '')) {
-                const originalSignal = callerSignal;
-                const exhausted = new ReviewReasoningExhausted((text, signal) => {
-                  if (pendingReview !== exhausted || busy || closed || failure) throw failure ?? exhausted;
-                  pendingReview = undefined;
-                  return readonly(text, originalSignal ? AbortSignal.any([originalSignal, signal]) : signal, true);
-                });
-                pendingReview = exhausted;
+                pendingReview = { error: new PiSessionError('incomplete', 'Independent review exhausted its output on reasoning without a visible verdict.'), signal: callerSignal };
                 // Keep the terminal usage and all prior evidence, without replaying truncated private reasoning.
                 yield { type: 'done', reason: 'length', message: { ...message, content: [] } };
                 return;
@@ -637,6 +632,17 @@ export async function createPiSession(config: PiSessionOptions) {
     }, signal);
   }
   return {
+    ...(config.ordinaryDesignReview ? { reviewVerdictCorrection(error: unknown): PiVerdictCorrection | undefined {
+      const source = pendingReview;
+      if (!source || error !== source.error || busy || closed || failure) return;
+      return (text, signal) => {
+        if (pendingReview !== source || busy || closed || failure) throw failure ?? source.error;
+        const combined = source.signal ? AbortSignal.any([source.signal, signal]) : signal;
+        combined.throwIfAborted();
+        pendingReview = undefined;
+        return readonly(text, combined, true);
+      };
+    } } : {}),
     ...(config.ordinaryDesignFinalizationPolicy ? { budgetFinalization,
       async finalizeBudget(error: unknown, text: string, options: { signal?: AbortSignal } = {}) {
         options.signal?.throwIfAborted();
