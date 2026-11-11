@@ -19,6 +19,7 @@ import type { ValidationExecutionBinding } from '../runtime/validation-scope.ts'
 import { validationReservation, validationRole } from '../runtime/validation-validation.ts';
 import { requireOriginalTask } from '../runtime/recovery/task-journal.ts';
 import { ORDINARY_PLAN_FILE } from '../runtime/entrypoint-acceptance-plan.ts';
+import type { FixedArtHandoff } from '../runtime/art-draft-source.ts';
 import type { SuppliedDesignHandoff } from '../runtime/supplied-design.ts';
 import { codingConcernReviewProtocol } from '../runtime/repair/coding-concerns.ts';
 import type { CodingConcernReview } from '../runtime/repair/coding-concerns.ts';
@@ -77,6 +78,7 @@ export interface RoleFactoryOptions {
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
   ordinaryCodingReviewImageQuote?: (task: Readonly<TaskContract>) => boolean;
   /** Check the pinned operator inputs and staged author bytes before projecting the fixed handoff. */
+  ordinaryFixedArt?: (input: Readonly<RoleInput>) => Promise<FixedArtHandoff>;
   ordinarySuppliedDesign?: (input: Readonly<RoleInput>) => Promise<SuppliedDesignHandoff>;
   /** Trusted host selects an authenticated draft or the fixed same-run design revision. */
   ordinaryDesignRevisionJsonReads?: (task: Readonly<TaskContract>) => Promise<boolean | 'reviewed-draft'>;
@@ -238,8 +240,11 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     }
     const workspace = await realpath(input.workspace);
     assertOwnership(task, workspace);
-    const handoff = checkSuppliedHandoff && purpose === 'author' && input.role === 'design' && !input.validation
+    const designHandoff = checkSuppliedHandoff && purpose === 'author' && input.role === 'design' && !input.validation
       && sameValue(task.context.tools, ['read', 'validate-game-design']) ? await checkSuppliedHandoff(input) : undefined;
+    const artHandoff = options.ordinaryFixedArt && purpose === 'author' && input.role === 'art' && !input.validation
+      ? await options.ordinaryFixedArt(input) : undefined;
+    const handoff = artHandoff ?? designHandoff;
     const reviewer = input.role === 'reviewer';
     const contextId = reviewer ? `review-${randomUUID()}` : task.context.contextId;
     const actorId = reviewer ? `reviewer-${randomUUID()}` : task.authorId;
@@ -259,7 +264,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       : [];
     const rules = [...task.context.rules];
     let artFrameRead: ArtFrameRead | undefined, beforeArtFileWrite: BeforeFileWrite | undefined;
-    if (ordinaryArtDesignInput && purpose === 'author' && input.role === 'art' && !validation) {
+    if (!handoff && ordinaryArtDesignInput && purpose === 'author' && input.role === 'art' && !validation) {
       const artDesign = ordinaryArtDesignInput(task);
       if (!task.inputs.some(ref => sameValue(ref, artDesign))) throw new Error('Art plan display requires the selected design input.');
       const planPath = artDesign.location + '/' + ORDINARY_PLAN_FILE;
@@ -304,11 +309,11 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const snapshot = await input.controller.read();
     const acceptance = requirement.acceptance.filter(item => task.acceptanceIds.includes(item.acceptanceId));
     const packet = freeze({ role: input.role, contextId, taskId: task.taskId,
-      objective: handoff ? 'Hand off the two existing operator-supplied files identified by the host.' : task.objective, specVersion: requirement.specVersion,
+      objective: artHandoff ? 'Hand off the existing fixed media identified by the host for independent art review.' : designHandoff ? 'Hand off the two existing operator-supplied files identified by the host.' : task.objective, specVersion: requirement.specVersion,
       acceptance: planningAcceptanceIndex || handoff ? acceptance.map(({ acceptanceId }) => ({ acceptanceId })) : acceptance,
       inputs: reviewer ? [...task.inputs, ...task.artifacts] : task.inputs, inputFiles,
-      rules: handoff ? ['Use the verified input identity, file digests and structural counts in suppliedDesignHandoff. Report any discrepancy that prevents handing off the listed pair.'] : rules,
-      interfaces: task.context.interfaces, knownFailures: task.context.knownFailures, ...(handoff ? { suppliedDesignHandoff: handoff } : {}),
+      rules: artHandoff ? ['Use the host-verified source, media digest and roster counts in fixedArtHandoff. Report any discrepancy that blocks this handoff.'] : designHandoff ? ['Use the verified input identity, file digests and structural counts in suppliedDesignHandoff. Report any discrepancy that prevents handing off the listed pair.'] : rules,
+      interfaces: task.context.interfaces, knownFailures: task.context.knownFailures, ...(designHandoff ? { suppliedDesignHandoff: designHandoff } : {}), ...(artHandoff ? { fixedArtHandoff: artHandoff } : {}),
       tools: tools.map(tool => tool.name), ownership: { readPaths: reads, writePaths },
       budget: { ...task.budget, committedMicroCny: snapshot.ledger.entries.filter(e => e.taskId === task.taskId).reduce((total, e) => total + e.reservedMicroCny + e.settledMicroCny, 0),
         ...(validation ? { validationCase: { ...validation } } : authority!.windowId ? { executionWindow: { windowId: authority!.windowId, deadlineAt: authority!.deadlineAt,
@@ -327,7 +332,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
           return !current.ledger.entries.some(row => row.unknown || row.reservedMicroCny || !['settled', 'cancelled'].includes(row.status));
         },
       } } : {}),
-      systemPrompt: handoff ? 'You are the Cosmos design handoff author. The host checked the two staged files against the pinned operator source and original confirmation. Use the suppliedDesignHandoff facts to identify the files you are handing off. Return one JSON object {summary:string,remaining:string[],uncertainty:string[]}. Report every unfinished handoff item or blocking uncertainty you identify. Use empty arrays when the handoff is complete. The independent reviewer evaluates semantic coverage after fresh capture. Claim only the structural and identity checks supported by this packet.'
+      systemPrompt: artHandoff ? 'You are the Cosmos art handoff author. The host verified the complete renderable media file against the pinned selection, original confirmation and independently approved design. Identify the fixed unreviewed media you hand off using fixedArtHandoff. Return one JSON object {summary:string,remaining:string[],uncertainty:string[]}. Report actual missing handoff work or blocking uncertainty. Use empty arrays when the handoff is complete. A separate reviewer will assess the captured art.'
+        : designHandoff ? 'You are the Cosmos design handoff author. The host checked the two staged files against the pinned operator source and original confirmation. Use the suppliedDesignHandoff facts to identify the files you are handing off. Return one JSON object {summary:string,remaining:string[],uncertainty:string[]}. Report every unfinished handoff item or blocking uncertainty you identify. Use empty arrays when the handoff is complete. The independent reviewer evaluates semantic coverage after fresh capture. Claim only the structural and identity checks supported by this packet.'
         : (input.purpose === 'planning'
         ? `You are the Cosmos task planner. Follow the host-supplied output schema and use only the host policies supplied in the prompt. Return only a JSON object without Markdown. When policies have policyId, use this shape:\n${planningJsonExample(true)}\npolicyId is required, must name a supplied policy, must match its role, and each policyId may be selected at most once. Otherwise use this shape:\n${planningJsonExample(false)}\nSelect each role at most once and do not add policyId. Cover every confirmed acceptance ID. Each dependency names a task in this plan. The host binds its declared output versions as inputs after the dependency passes. You cannot choose tools, paths, budget, acceptance steps, evidence or task state. This is a proposal, not a claim that the game passes.`
         : reviewer
@@ -335,7 +341,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         : `You are Cosmos role ${input.role}. Work only within the declared scope. Requirements are fixed. ${readOnlyDesign ? 'Read the fixed authors/design/design.json and authors/design/acceptance-plan.json. Use validate-game-design and report coverage, omissions and uncertainty against the complete confirmation. Hand off the existing files unchanged.' : reviewedDraftAuthor ? 'Revise the existing drafts with bounded changes to the affected sections identified from the findings and requirements.' : 'Write deliverables incrementally in small complete chunks using the declared tools; finish each file or section before starting the next.'} Keep each tool call bounded instead of placing the whole deliverable in one large call. Preserve every required action, audio item and acceptance criterion. Return JSON {summary:string,remaining:string[],uncertainty:string[]}. remaining contains only unfinished required deliverables owned by this role. uncertainty contains only unresolved facts that block this role's assigned acceptance. Pending host capture, build, verification or independent review, other roles not yet running, and future choices permitted by the requirements are not your unfinished work: mention them in summary only. When this role's deliverable is complete, return empty arrays; never hide a real defect or unresolved requirement to obtain empty arrays. You are not the task planner unless explicitly assigned planning. Model text is a proposal; the host captures outputs and verifies evidence.`) + (authorRequestLimit === undefined ? '' : `\n\nThis author session permits at most ${maxRequests} model requests (model response rounds, not files or individual tool calls). Reserve requests for complete self-checks and the final JSON handoff. If defects remain, report the real unfinished work in remaining; never claim completion solely to finish within this limit.`) + (planningAcceptanceIndex ? '\n\nPlanning acceptance is an exact ID index. Read every complete fixed requirement source at the exact version and location in inputs/inputFiles before producing the plan; continue any partial read until complete. Preserve all descriptions, steps, expected outcomes, evidence kinds, brief, questions, answers and experience criteria from those sources. Do not infer missing content from IDs.' : '') + `\n\n${inputFilesProtocol}`,
       context: JSON.stringify(packet), thinkingLevel: (purpose === 'author' && !validation && input.role !== 'reviewer' ? authorThinking[input.role] : undefined) ?? options.thinkingLevel ?? 'low', env: options.env,
       ...(purpose === 'planning' ? { jsonOutput: true } : {}),
-      maxOutputTokens: designReviewBudget ? designReviewMaxOutputTokens : planningOutputBudget ? 8192 : validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
+      maxOutputTokens: artHandoff ? 1024 : designReviewBudget ? designReviewMaxOutputTokens : planningOutputBudget ? 8192 : validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
       maxRequests, requestTimeoutMs: authorTimeout ?? options.requestTimeoutMs,
       requestWindow: async () => {
         input.controller.signal.throwIfAborted();

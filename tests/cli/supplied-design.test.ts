@@ -14,7 +14,7 @@ import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
 import { selectApprovedDesign } from '../../src/runtime/approved-design-source.ts';
 import { checkSuppliedDesignHandoff } from '../../src/runtime/supplied-design.ts';
-import { ART_DRAFT_FILE, selectArtDraft, selectArtDraftSelection } from '../../src/runtime/art-draft-source.ts';
+import { ART_DRAFT_FILE, selectArtDraft, selectArtDraftSelection, selectArtReviewInput } from '../../src/runtime/art-draft-source.ts';
 import { RecoveryBlocked } from '../../src/runtime/recovery/task-journal.ts';
 import { fundingFixture } from '../runtime/public-validation-funding.fixture.ts';
 
@@ -330,7 +330,7 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
   assert.equal(funded.validationFunding.fundingId, 'supplied');
 });
 
-for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected items from two art drafts'], [2, 'selected items from three art drafts'], [3, 'a locally fitted art draft']] as const) test('public funding resumes ' + label + ' and requires a complete independently reviewed output', async t => {
+for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected items from two art drafts'], [2, 'selected items from three art drafts'], [3, 'a locally fitted art draft'], [4, 'a fixed art review input']] as const) test('public funding resumes ' + label + ' and requires a complete independently reviewed output', async t => {
   const options: NonNullable<Parameters<typeof ordinaryHostFixture>[1]> = { productionDefault: true, configure(_draft, scenario) {
     scenario.steps.push({ id: 'target-pixels', kind: 'assert', acceptanceId: 'light', expected: true, timeoutMs: 1000,
       observation: { kind: 'pixel-pattern', x: 40, y: 50, width: 32, height: 32, color: '#FFD700', tolerance: 0, rows: ['+'] } });
@@ -362,11 +362,51 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
     [0, 230000, 716538, 1146461]);
   const partial = await read(fresh.root, ART_DRAFT_FILE);
   let seed = partial, edited = Buffer.concat([seed, Buffer.from('\n')]);
+  const nativeRounds: string[] = [];
+  let nativeReview: object | undefined;
+  if (selection === 4) t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+    const request = new Request(input, init), body = await request.json();
+    assert.equal(new URL(request.url).origin, 'https://api.deepseek.com');
+    const tools = (body.tools ?? []).map((tool: any) => tool.function.name);
+    assert.deepEqual(tools, nativeReview ? ['read'] : []);
+    if (!nativeReview) {
+      assert.match(body.messages[0].content, /fixedArtHandoff/);
+      assert.doesNotMatch(body.messages[0].content, /artFrames|Write completed asset batches|点击后显示完成/);
+    }
+    nativeRounds.push(nativeReview ? 'reviewer' : 'art');
+    const text = JSON.stringify(nativeReview ?? { summary: 'Handed off fixed media', remaining: [], uncertainty: [] });
+    const chunk = { id: 'offline-art', model: 'deepseek-flash', choices: [{ index: 0, delta: { content: text }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 100, completion_tokens: 30, total_tokens: 130 } };
+    return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+  });
+  const offlineNative = (config: PiSessionOptions) => createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-art-handoff' } });
   const funded = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
     const packet = JSON.parse(config.context!);
     assert.equal(config.maxRequests, packet.role === 'art' ? 32 : 16);
     assert.equal(config.ordinaryCodingReviewImageQuote, packet.role === 'reviewer' && packet.taskId === 'coding-task' ? true : undefined);
+    if (selection === 4 && packet.role === 'art') {
+      assert.deepEqual(config.tools, []);
+      assert.deepEqual(packet.inputFiles, []);
+      assert.deepEqual(packet.ownership, { readPaths: [], writePaths: [] });
+      assert.equal(packet.fixedArtHandoff.media.sha256, createHash('sha256').update(seed).digest('hex'));
+      assert.deepEqual([packet.fixedArtHandoff.media.characters, packet.fixedArtHandoff.media.audio], [1, 1]);
+      assert.equal(packet.fixedArtHandoff.designFiles.length, 2);
+      assert.equal(config.maxOutputTokens, 1024);
+      return offlineNative(config);
+    }
     if (packet.role !== 'art') {
+      if (selection === 4 && packet.taskId === 'art-task') {
+        assert.equal(packet.fixedArtHandoff, undefined);
+        assert.deepEqual(config.tools!.map(tool => tool.name), ['read']);
+        const read = config.tools![0];
+        for (const path of ['registry/captures/design/v1/files/_cosmos/design.json', 'registry/captures/design/v1/files/_cosmos/acceptance-plan.json',
+          'registry/captures/media/v1/files/_cosmos/mediaSpec.json', packet.evidence[0].source.location]) {
+          const actual = await read.execute('check', { path }, undefined, undefined, undefined as never);
+          assert.ok(actual.content[0].text.length > 10);
+        }
+        nativeReview = { verdict: 'approved', findings: [], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((item: { evidenceId: string }) => item.evidenceId) };
+        return offlineNative(config);
+      }
       assert.equal('artFrames' in config.tools!.find(item => item.name === 'read')!.parameters.properties, false);
       return fallback;
     }
@@ -419,28 +459,31 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   await writeFile(join(fresh.root, 'snapshot.json'), savedState);
   await writeFile(join(fresh.root, 'intake-origin.json'), sourceOrigin);
   let selected = sourceDraft.reference, resumeDriftRoot = fresh.root;
-  const manifestPath = join(selection === 3 ? await temporaryRun(t) : original.root, 'art-selection.json');
+  const manifestPath = join(selection >= 3 ? await temporaryRun(t) : original.root, 'art-selection.json');
   if (selection) {
     const overlay = await ordinaryHostFixture(t, options);
     await runCli(['new', overlay.root, ...common, '--approved-design-from', previous.root, '--art-draft-from', fresh.root], { ...io(), host: overlay.host });
     const other = JSON.parse(partial.toString());
     other.characters[0].anchor.x += 1;
-    if (selection === 3) other.characters[0].layers[0].x = 20.8;
+    if (selection >= 3) other.characters[0].layers[0].x = 20.8;
     other.audio.push({ id: 'click', sampleRate: 22050, duration: 0.1, loop: false,
       notes: [{ midi: 70, start: 0, duration: 0.1, gain: 0.2, wave: 'sine', attack: 0.01, release: 0.01 }] });
     await writeFile(join(overlay.root, ART_DRAFT_FILE), JSON.stringify({ formatVersion: 'batched-media/1', batches: [other] }));
     const overlayDraft = await selectArtDraft(overlay.root, approved, sourceState.requirementsSource, target);
     let composition: Awaited<ReturnType<typeof selectArtDraftSelection>>;
-    const rejectCompleteSeed = async () => {
+    const rejectCompleteSeed = async (failure: 'review' | 'handoff' | 'drift' = 'review') => {
       const rejected = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
         const packet = JSON.parse(config.context!);
-        if (packet.role === 'art') return { ...fallback, prompt: async () => ({ text: JSON.stringify({ summary: 'Submitted the complete seed for review', remaining: [], uncertainty: [] }) }) };
+        if (packet.role === 'art') return { ...fallback, prompt: async () => {
+          if (failure === 'drift') await writeFile(join(config.workspace, ART_DRAFT_FILE), Buffer.concat([await read(config.workspace, ART_DRAFT_FILE), Buffer.from(' ')]));
+          return { text: JSON.stringify({ summary: 'Submitted the complete seed for review', remaining: [], uncertainty: failure === 'handoff' ? ['Blocked on input identity'] : [] }) };
+        } };
         if (packet.role === 'reviewer') return { ...fallback, prompt: async () => ({ text: JSON.stringify({ verdict: 'changes_requested', findings: ['Artwork needs revision'],
           inputVersions: packet.inputs, evidenceIds: packet.evidence.map((item: { evidenceId: string }) => item.evidenceId) }) }) };
         return fallback;
       } });
-      const denied: any = await runCli(['new', rejected.root, ...common, '--approved-design-from', previous.root, '--art-draft-selection', manifestPath], { ...io(), host: rejected.host });
-      assert.deepEqual(rejected.packets.map(packet => packet.role), ['art', 'reviewer']);
+      const denied: any = await runCli(['new', rejected.root, ...common, '--approved-design-from', previous.root, selection === 4 ? '--art-review-input' : '--art-draft-selection', manifestPath], { ...io(), host: rejected.host });
+      assert.deepEqual(rejected.packets.map(packet => packet.role), failure === 'review' ? ['art', 'reviewer'] : ['art']);
       assert.equal(denied.outcome, 'incomplete');
     };
     if (selection === 2) {
@@ -473,7 +516,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
       await rejectCompleteSeed();
       await assert.rejects(selectArtDraftSelection(manifestPath, approved, sourceState.requirementsSource, { ...target, ledgerId: audioDraft.proof.ledgerId }), /independent source run/);
       await assert.rejects(selectArtDraftSelection(manifestPath, approved, sourceState.requirementsSource, { root: third.root }), /separate canonical roots/);
-    } else if (selection === 3) {
+    } else if (selection >= 3) {
       const overlays = [{ source: overlayDraft.reference, characterIds: ['target'], audioIds: ['click'] }];
       const input = manifestPath + '.input', mapping = manifestPath + '.frame';
       await writeFile(input, JSON.stringify({ formatVersion: 'ordinary-art-draft-selection/2', base: sourceDraft.reference, overlays }));
@@ -487,6 +530,10 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
       assert.deepEqual(JSON.parse(composition.bytes.toString()), revised);
       assert.deepEqual(composition.fit?.changes, report.changes);
       await rejectCompleteSeed();
+      if (selection === 4) {
+        await rejectCompleteSeed('handoff');
+        await rejectCompleteSeed('drift');
+      }
     } else {
       const manifest = { formatVersion: 'ordinary-art-draft-selection/1', base: sourceDraft.reference, overlay: overlayDraft.reference, characterIds: ['target'], audioIds: [] };
       const choose = async (fields: object) => {
@@ -503,8 +550,16 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
       await rejectCompleteSeed();
       composition = await choose({});
       assert.deepEqual(JSON.parse(composition.bytes.toString()), { characters: other.characters, audio: [] });
+      await assert.rejects(runCli(['new', funded.root, ...common, '--approved-design-from', previous.root, '--art-review-input', manifestPath], { ...io(), host: funded.host }), /match the design roster/);
     }
-    selected = composition.reference;
+    selected = selection === 4 ? (await selectArtReviewInput(manifestPath, approved, sourceState.requirementsSource, target)).reference : composition.reference;
+    if (selection === 4) {
+      assert.notDeepEqual(selected, composition.reference);
+      for (const args of [['--art-review-input', manifestPath], ['--approved-design-from', previous.root, '--art-review-input', manifestPath, '--art-draft-from', fresh.root],
+        ['--approved-design-from', previous.root, '--art-review-input', manifestPath, '--art-draft-selection', manifestPath]]) {
+        await assert.rejects(runCli(['new', funded.root, ...common, ...args], { ...io(), host: funded.host }), /Usage/);
+      }
+    }
     seed = composition.bytes;
     edited = Buffer.concat([seed, Buffer.from('\n')]);
     await assert.rejects(runCli(['new', funded.root, ...common, '--art-draft-selection', manifestPath], { ...io(), host: funded.host }), /Usage/);
@@ -541,7 +596,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   assert.deepEqual(await read(funded.root, ART_DRAFT_FILE), seed);
   assert.deepEqual((await json(funded.root, 'snapshot.json')).artDraftSource, selected);
   // An existing edit must survive restarting the host. The old working file is still pinned.
-  await writeFile(join(funded.root, ART_DRAFT_FILE), edited);
+  if (selection !== 4) await writeFile(join(funded.root, ART_DRAFT_FILE), edited);
   const driftPath = join(resumeDriftRoot, ART_DRAFT_FILE), pinnedBytes = await readFile(driftPath);
   await writeFile(driftPath, Buffer.concat([pinnedBytes, Buffer.from('\n')]));
   await assert.rejects(runPublicValidationCli(['resume', funded.root], fundedIO), /Pinned art draft/);
@@ -556,7 +611,24 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   assert.equal(finalLedger.limitMicroCny - finalLedger.allocations.reduce((sum: number, row: any) => sum + row.amountMicroCny, 0), 149401);
   const capture = await json(funded.root, 'registry/captures/media/v1/capture.json');
   assert.ok(capture.metadata.provenance.sourceRefs.includes(selected.artifactId + '@' + selected.version));
-  assert.match(capture.metadata.provenance.generator, /operator-selected unreviewed draft/);
+  assert.match(capture.metadata.provenance.generator, selection === 4 ? /operator-fixed unreviewed art/ : /operator-selected unreviewed draft/);
+  if (selection === 4) {
+    assert.deepEqual(nativeRounds, ['art', 'reviewer']);
+    assert.ok(finalLedger.entries.length >= 2 && finalLedger.entries.every((row: any) => row.status === 'settled'));
+    assert.deepEqual(await read(funded.root, ART_DRAFT_FILE), seed);
+    assert.deepEqual(await read(funded.root, 'registry/captures/media/v1/files/_cosmos/mediaSpec.json'), seed);
+    const resume = () => runCli(['resume', funded.root], fundedIO);
+    await writeFile(join(funded.root, ART_DRAFT_FILE), edited);
+    await assert.rejects(resume(), /Staged art differs/);
+    await writeFile(join(funded.root, ART_DRAFT_FILE), seed);
+    const manifest = join(funded.root, 'registry/captures/media/v1/capture.json'), recorded = await readFile(manifest);
+    await writeFile(manifest, JSON.stringify({ ...capture, metadata: { ...capture.metadata, provenance: { ...capture.metadata.provenance, generator: 'Prior native art' } } }));
+    await assert.rejects(resume(), /Capture differs/);
+    await writeFile(manifest, recorded);
+    const receipt = join(funded.root, 'journal/task-art-task/review.json'), value = JSON.parse(await readFile(receipt, 'utf8'));
+    await writeFile(receipt, JSON.stringify({ ...value, value: { ...value.value, reviewerId: (await json(funded.root, 'snapshot.json')).tasks[0].authorId } }));
+    await assert.rejects(resume(), /review receipts changed/);
+  }
   if (selection === 3) assert.match(capture.metadata.provenance.generator, /local geometry offsets/);
   assert.equal(capture.metadata.media.audio[0].manifest.id, 'click');
   assert.equal(final.outcome, 'awaiting_user_experience', JSON.stringify(final.gaps));

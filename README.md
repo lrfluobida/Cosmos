@@ -51,6 +51,8 @@ CLI 集中提问、展示完整草稿，只有真实 stdin 的 `confirm <revisio
 
 ## 从多份美术草稿选材
 
+已有完整选稿时，可在 `--approved-design-from` 下使用 `--art-review-input <manifest.json>`。宿主核对设计两份文件、原始需求和全部媒体，原生美术作者只交接固定稿。本轮独审批准后才进入编码。资金 wrapper 的 v2 授权在 `sourceRefs` 中加入 `selectArtReviewInput(...).reference`。
+
 普通生成在 `--approved-design-from` 下可加 `--art-draft-selection <manifest.json>`。清单保存在目标运行外。v2 的 `base` 指定基础稿，`overlays` 可列 1 至 4 个覆盖稿。以下示例中的版本和路径需换成实际工作稿的固定引用。
 
 ```json

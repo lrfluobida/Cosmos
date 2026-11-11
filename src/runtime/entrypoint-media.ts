@@ -1,13 +1,13 @@
 import { writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import { directory, snapshot } from '../artifacts/paths.ts';
 import type { MediaMetadata } from '../artifacts/types.ts';
 import { renderCharacter, validateCharacter } from '../media/vector.ts';
 import { synthesizeWav, validateAudio } from '../media/audio.ts';
 import { identifier } from '../media/validation.ts';
-import { publishReceipt } from './recovery/receipt-file.ts';
+import { publishReceiptBytes } from './recovery/receipt-file.ts';
 import { validatePlan } from '../acceptance/plan.ts';
 import type { AcceptancePlan, Scalar } from '../acceptance/plan.ts';
 import type { GenericMediaObservationRequest, MediaObservationRequest, ReadonlyMediaObservationRequest, MediaObservationSample } from '../acceptance/browser.ts';
@@ -215,20 +215,41 @@ export function validateDeclaredMedia(value: unknown, design: DesignDocument, co
   for (const clip of audio) if (clip.loop !== design.audio.find(item => item.id === clip.id)!.loop) throw new Error('Art audio loop must match the design.');
   return { characters, audio };
 }
-/** Renders only runtime art-role data using the existing bounded vector/PCM tools. */
-export async function renderDeclaredMedia(root: string, folder: string, value: unknown, design: DesignDocument, signal: AbortSignal) {
-  const spec = validateDeclaredMedia(value, design), destination = await directory(root, folder), media: MediaMetadata = { characters: [], audio: [] };
+const jsonBytes = (value: unknown) => Buffer.from(JSON.stringify(value, null, 2) + '\n');
+
+function* declaredMediaFiles(value: unknown, spec: ReturnType<typeof validateDeclaredMedia>, media: MediaMetadata, signal?: AbortSignal): Generator<[string, Uint8Array]> {
   for (const character of spec.characters) {
-    signal.throwIfAborted(); const output = renderCharacter(character), path = `public/assets/${character.id}`; await directory(destination, path);
-    for (const file of output.files) await writeFile(join(destination, path, file.name), file.svg, { encoding: 'utf8', flag: 'wx' });
-    await publishReceipt(join(destination, path, 'manifest.json'), output.manifest); media.characters.push({ directory: path, manifest: output.manifest });
+    signal?.throwIfAborted();
+    const output = renderCharacter(character), path = `public/assets/${character.id}`;
+    for (const file of output.files) yield [path + '/' + file.name, Buffer.from(file.svg)];
+    yield [path + '/manifest.json', jsonBytes(output.manifest)];
+    media.characters.push({ directory: path, manifest: output.manifest });
   }
   for (const clip of spec.audio) {
-    signal.throwIfAborted(); const output = synthesizeWav(clip), path = 'public/assets/audio';
+    signal?.throwIfAborted();
+    const output = synthesizeWav(clip), path = 'public/assets/audio';
     if (output.manifest.peak <= 0.001) throw new Error('Art audio is silent.');
-    await directory(destination, path); await writeFile(join(destination, path, output.manifest.file), output.bytes, { flag: 'wx' }); media.audio.push({ directory: path, manifest: output.manifest });
+    yield [path + '/' + output.manifest.file, output.bytes];
+    media.audio.push({ directory: path, manifest: output.manifest });
   }
-  await publishReceipt(join(destination, 'public/assets/manifest.json'), media);
-  await directory(destination, '_cosmos'); await publishReceipt(join(destination, '_cosmos/mediaSpec.json'), value);
+  yield ['public/assets/manifest.json', jsonBytes(media)];
+  yield ['_cosmos/mediaSpec.json', jsonBytes(value)];
+}
+
+/** Bind every rendered frame, clip, manifest and the spec to the selected input before dispatch. */
+export function fingerprintDeclaredMedia(value: unknown, design: DesignDocument) {
+  const media: MediaMetadata = { characters: [], audio: [] }, files = new Map<string, string>();
+  for (const [path, bytes] of declaredMediaFiles(value, validateDeclaredMedia(value, design), media)) files.set(path, createHash('sha256').update(bytes).digest('hex'));
+  return { files, media };
+}
+
+export async function renderDeclaredMedia(root: string, folder: string, value: unknown, design: DesignDocument, signal: AbortSignal) {
+  const spec = validateDeclaredMedia(value, design), destination = await directory(root, folder), media: MediaMetadata = { characters: [], audio: [] }, directories = new Set<string>();
+  for (const [path, bytes] of declaredMediaFiles(value, spec, media, signal)) {
+    const parent = posix.dirname(path);
+    if (!directories.has(parent)) { await directory(destination, parent); directories.add(parent); }
+    if (path.endsWith('.json')) await publishReceiptBytes(join(destination, path), bytes);
+    else await writeFile(join(destination, path), bytes, { flag: 'wx' });
+  }
   signal.throwIfAborted(); return { media, files: [...(await snapshot(destination)).keys()] };
 }

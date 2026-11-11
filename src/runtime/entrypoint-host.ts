@@ -36,7 +36,8 @@ import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
 import { publishMatchingBytes } from './fixed-host-input.ts';
-import { ART_DRAFT_FILE, preserveArtDraft, readPinnedArtDraft } from './art-draft-source.ts';
+import { fixedArtBytes, fixedArtProvenance, requireFixedArtCapture, requireFixedArtApproval } from './fixed-art-review.ts';
+import { ART_DRAFT_FILE, isFixedArt, preserveArtDraft, readPinnedArtDraft, selectArtReviewInput } from './art-draft-source.ts';
 import { artMappings, artPatternIndex } from './art-frame-check.ts';
 import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
@@ -443,6 +444,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, approvedSource) : undefined;
   const artDraft = state.artDraftSource ? await readPinnedArtDraft(state.artDraftSource, importedDesign!, state.requirementsSource!,
     { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
+  const fixedArt = isFixedArt(artDraft) ? artDraft : undefined;
   if (state.designDraftReview && (!budgetEligible || !importedDesign && !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
   const suppliedDesign = state.designDraftReview?.artifactId === SUPPLIED_DESIGN
     ? await selectSuppliedDesign(state.designDraftReview.location, state.requirementsSource!, root, state.designDraftReview) : undefined;
@@ -532,6 +534,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     await directory(root, 'authors/art');
     await publishMatchingBytes(root, ART_DRAFT_FILE, artDraft.bytes);
   }
+  if (fixedArt && input.resume) await fixedArtBytes(root, fixedArt);
+  const currentFixedArt = () => selectArtReviewInput(fixedArt!.reference.location, importedDesign!, state.requirementsSource!,
+    { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, fixedArt!.reference);
   const availableArtifacts = [...requirement.sources, ...captures, ...(importedDesign ? [importedDesign.proof.design] : [])];
   if (validation) for (const ref of captures) await registry.getCapture(ref);
   if (!binding && !validation) { await directory(root, 'authors/coding/src'); await directory(root, 'authors/design'); await directory(root, 'authors/art'); }
@@ -1027,6 +1032,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           ...(preservesValidDraft(ordinaryPlanAuthoringPolicy) ? { ordinaryDesignRejectedWriteCompaction: true as const } : {}),
           ordinaryPlanningOutputFloor: 4096,
           ordinaryDesignReviewMaxOutputTokens: 16384,
+          ...(fixedArt ? { ordinaryFixedArt: async (roleInput: Readonly<RoleInput>) => {
+            await artAuthorWorkspace(roleInput);
+            if (!sameValue(roleInput.requirement, requirement) || !sameValue(selected(roleInput.task, 'design'), importedDesign!.proof.design)
+              || !sameValue(roleInput.task.context.tools, ['read'])) throw new Error('Fixed art requires its approved design and read-only task.');
+            await fixedArtBytes(root, fixedArt);
+            return (await currentFixedArt()).handoff;
+          } } : {}),
           ...(suppliedDesign ? { ordinarySuppliedDesign: async (roleInput: Readonly<RoleInput>) => {
             const current = (await controller.read()).tasks.find(task => task.taskId === roleInput.task.taskId);
             if (roleInput.controller !== controller || roleInput.task.taskId === ordinaryRevisionTaskId || role(roleInput.task) !== 'design'
@@ -1093,11 +1105,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: sourceRoot(task, 'authors/design'), files: [{ source: 'design.json', destination: '_cosmos/design.json' }, ...(ordinary ? [{ source: 'acceptance-plan.json', destination: ORDINARY_PLAN_FILE }] : []), ...(classicEntries?.selection.measurement ? [{ source: 'classic-entry-plan.json', destination: '_cosmos/classic-entry-plan.json' }] : []), ...(modular ? [{ source: 'module-contracts.d.ts', destination: MODULE_CONTRACTS }] : [])],
           ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: captures, metadata: { kind: 'data', provenance: suppliedDesign ? suppliedDesignProvenance(suppliedDesign.reference, origin.sourceRefs) : origin } });
       } else if (kind === 'art') {
-        const design = await designFor(task), value = await readDeclaredOutput(task, 'authors/art/media.json', value => { validateDeclaredMedia(value, design); });
+        if (fixedArt) await currentFixedArt();
+        const design = await designFor(task), value = fixedArt ? JSON.parse((await fixedArtBytes(root, fixedArt)).toString('utf8'))
+          : await readDeclaredOutput(task, ART_DRAFT_FILE, value => { validateDeclaredMedia(value, design); });
         const rendered = await renderDeclaredMedia(root, `rendered/${task.taskId}`, value, design, signal);
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: `rendered/${task.taskId}`, files: rendered.files.map(name => ({ source: name, destination: name })),
-          ownership: { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }, dependencies: artDependencies(task), metadata: { kind: 'media', provenance: artDraft ? { ...origin,
+          ownership: { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }, dependencies: artDependencies(task), metadata: { kind: 'media', provenance: fixedArt ? fixedArtProvenance(task, fixedArt, requirement) : artDraft ? { ...origin,
             generator: 'Native art handoff from an operator-selected unreviewed draft' + ('fit' in artDraft && artDraft.fit ? ' with local geometry offsets' : ''),
             sourceRefs: [...origin.sourceRefs, artDraft.reference.artifactId + '@' + artDraft.reference.version, artDraft.reference.location] } : origin, media: rendered.media } });
       } else if (modular && moduleSlot(task)) {
@@ -1190,6 +1204,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           if (preparation) { await preparation.verifyDesignExtras(task); await requireDispatch(task, signal); } passed = true;
         } else if (kind === 'art') {
           const captured = await registry.getCapture(ref), design = await designFor(task);
+          if (fixedArt) await requireFixedArtCapture(root, task, ref, fixedArt, requirement);
           validateDeclaredMedia(await json(root, `${ref.location}/_cosmos/mediaSpec.json`), design);
           if (!captured.metadata.media) throw new Error('Missing generated media manifest.');
           await validateMedia(captured.metadata.media, join(root, ref.location), captured.files.map(file => file.destination)); passed = true;
@@ -1484,6 +1499,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
               || !sameValue(accepted?.review.evidenceIds, task.review.evidenceIds)) return null;
           }
         } else {
+          if (fixedArt && kind === 'art') await requireFixedArtCapture(root, task, ref, fixedArt, requirement);
           const capture = await registry.getCapture(ref), dependencies = kind === 'art' ? artDependencies(task) : captures;
           if (capture.taskId !== task.taskId || !capture.metadata.provenance.sourceRefs.includes(task.attempts.at(-1)!.sessionRef) || !sameValue(capture.dependencies, dependencies)) return null;
         }
@@ -1885,9 +1901,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         policy.allocationMicroCny = Math.floor(pool * 9 * weight / 130);
       }
     }
-    if (artDraft) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
+    if (fixedArt) {
+      const art = host.taskPolicies.find(policy => policy.role === 'art')!;
+      art.tools = ['read'];
+      art.rules = [captureLayout(designLayout, mediaLayout),
+        'Independently review the entire operator-fixed unreviewed media capture against the approved design, acceptance plan, original confirmation and host evidence. Report unresolved defects in the captured visuals, animations and audio.'];
+    }
+    if (!fixedArt && artDraft) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
       `Continue the operator-selected unreviewed draft already in ${ART_DRAFT_FILE}. Retain valid existing work and add the missing media. Initial roster: ${JSON.stringify(artDraft.roster)}. Read the current file before editing. The complete output requires host checks and independent review.`);
-    if (artDraft && 'overlays' in artDraft) {
+    if (!fixedArt && artDraft && 'overlays' in artDraft) {
       const { overlays } = artDraft;
       if (artDraft.fit) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
         `The selected draft includes unreviewed local geometry offsets for ${artDraft.fit.mapping.characterId}, mapped to plan step ${artDraft.fit.mapping.stepId}. Recheck the frame before submitting it for independent review.`);
@@ -1903,6 +1925,20 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     host.roleFactory = async input => {
       if (input.purpose === 'planning' || !['art', 'coding', 'reviewer'].includes(input.role)) throw new Error('Historical design admits only fresh downstream work.');
       await requireDispatch(input.task, controller.signal);
+      if (fixedArt && input.role === 'coding') {
+        const art = host.historicalDesignPlan!.tasks.find(item => item.role === 'art')!;
+        await requireFixedArtApproval(root, await controller.read(), await currentFixedArt(), art, requirement);
+      }
+      if (fixedArt && input.role === 'reviewer' && role(input.task) === 'art') {
+        const check = async () => {
+          await fixedArtBytes(root, fixedArt);
+          await requireFixedArtCapture(root, input.task, taskOutput(input.task), fixedArt, requirement);
+          await requireDesignMirrors(root, input.workspace, [...input.task.inputs, ...input.task.artifacts, ...input.task.evidence.map(item => item.source)]);
+        };
+        await check();
+        const session = await native(input);
+        return { ...session, prompt: async (...args) => { const reply = await session.prompt(...args); await check(); return reply; } };
+      }
       return native(input);
     };
     host.historicalDesignPlan = { proof: importedDesign.proof, tasks: approvedDownstreamPlan(importedDesign, state, host.taskPolicies, availableArtifacts) };

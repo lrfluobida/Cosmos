@@ -9,21 +9,23 @@ import { renderCharacter } from '../media/vector.ts';
 import { replayLayerFit, type LayerFit } from './art-layer-fit.ts';
 import { APPROVED_DESIGN, checkApprovedDesignImport, type ApprovedDesign } from './approved-design-source.ts';
 import { readReferencedRequirements, type ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
-import { validateDeclaredMedia, type DesignDocument } from './entrypoint-media.ts';
+import { fingerprintDeclaredMedia, validateDeclaredMedia, type DesignDocument } from './entrypoint-media.ts';
 import { ordinaryDraftSha256 } from './ordinary-profile-source.ts';
 import { fundingDesignDraftReview } from './reviewed-design-draft.ts';
 import type { PublicValidationAuthorization } from './public-validation-funding-types.ts';
 
 export const ART_DRAFT = 'ordinary-art-draft';
 export const ART_DRAFT_SELECTION = 'ordinary-art-draft-selection';
+export const ART_REVIEW_INPUT = 'ordinary-art-review-input';
+const artSources = [ART_DRAFT, ART_DRAFT_SELECTION, ART_REVIEW_INPUT];
 export const ART_DRAFT_FILE = 'authors/art/media.json';
 export function validateArtDraftSource(ref: ArtifactReference, design?: ArtifactReference) {
-  if (design?.artifactId !== APPROVED_DESIGN || !ref || ![ART_DRAFT, ART_DRAFT_SELECTION].includes(ref.artifactId) || typeof ref.version !== 'string' || !/^[a-f0-9]{64}$/.test(ref.version)
+  if (design?.artifactId !== APPROVED_DESIGN || !ref || !artSources.includes(ref.artifactId) || typeof ref.version !== 'string' || !/^[a-f0-9]{64}$/.test(ref.version)
     || typeof ref.location !== 'string' || !isAbsolute(ref.location) || resolve(ref.location) !== ref.location
     || !sameValue(Object.keys(ref).sort(), ['artifactId', 'location', 'version'])) throw new Error('An art draft requires a pinned source and approved design.');
 }
 export function fundingArtDraftSource(payload: PublicValidationAuthorization) {
-  const refs = payload.sourceRefs.filter(ref => [ART_DRAFT, ART_DRAFT_SELECTION].includes(ref.artifactId));
+  const refs = payload.sourceRefs.filter(ref => artSources.includes(ref.artifactId));
   if (!refs.length) return undefined;
   if (refs.length !== 1 || payload.formatVersion !== 'public-validation-authorization/2') throw new Error('Select exactly one art draft with the original confirmation.');
   validateArtDraftSource(refs[0], fundingDesignDraftReview(payload));
@@ -41,9 +43,10 @@ function draftRoster(declared: { id: string }[], present: { id: string }[]) {
 async function checkAncestors(parent: ArtifactReference | undefined, seen: string[], approved: ApprovedDesign,
   requirements: ConfirmedRequirementsSource): Promise<void> {
   while (parent) {
-    if (parent.artifactId === ART_DRAFT_SELECTION) {
+    if (parent.artifactId === ART_DRAFT_SELECTION || parent.artifactId === ART_REVIEW_INPUT) {
       // Authenticate the pinned selection and each of its source runs.
-      await selectArtDraftSelection(parent.location, approved, requirements, { root: seen.at(-1)! }, parent, seen);
+      const select = parent.artifactId === ART_REVIEW_INPUT ? selectArtReviewInput : selectArtDraftSelection;
+      await select(parent.location, approved, requirements, { root: seen.at(-1)! }, parent, seen);
       return;
     }
     const path = parent.location;
@@ -214,8 +217,31 @@ export async function selectArtDraftSelection(location: string, approved: Approv
     roster: { characters: draftRoster(design.characters, characters), audio: draftRoster(design.audio, audio) } };
 }
 
-export function readPinnedArtDraft(ref: ArtifactReference, approved: ApprovedDesign, requirements: ConfirmedRequirementsSource, target: DraftTarget) {
+/** The same selected bytes require distinct funding authority for a fixed native handoff. */
+export async function selectArtReviewInput(location: string, approved: ApprovedDesign, requirements: ConfirmedRequirementsSource,
+  target: DraftTarget, expected?: ArtifactReference, ancestors: string[] = []) {
+  const selection = await selectArtDraftSelection(location, approved, requirements, target, undefined, ancestors);
+  const design = decode(approved.files.get('_cosmos/design.json')!);
+  const value = decode(selection.bytes);
+  const rendered = fingerprintDeclaredMedia(value, design);
+  const reference = { artifactId: ART_REVIEW_INPUT, location: selection.reference.location,
+    version: ordinaryDraftSha256(Buffer.from(JSON.stringify([ART_REVIEW_INPUT, selection.reference, approved.reference, requirements]))) };
+  if (expected && !sameValue(expected, reference)) throw new Error('Pinned art draft selection for fixed review changed.');
+  const handoff = { selection: selection.reference, fixedInput: reference, confirmation: requirements, approvedDesign: approved.reference,
+    designFiles: approved.proof.files, media: { path: ART_DRAFT_FILE, bytes: selection.bytes.length, sha256: selection.proof.sha256,
+      characters: rendered.media.characters.length, audio: rendered.media.audio.length } };
+  return { ...selection, reference, handoff, rendered };
+}
+export type FixedArt = Awaited<ReturnType<typeof selectArtReviewInput>>;
+export type FixedArtHandoff = FixedArt['handoff'];
+
+export function isFixedArt(source: Awaited<ReturnType<typeof readPinnedArtDraft>> | undefined): source is FixedArt {
+  return source?.reference.artifactId === ART_REVIEW_INPUT;
+}
+
+export function readPinnedArtDraft(ref: ArtifactReference, approved: ApprovedDesign, requirements: ConfirmedRequirementsSource, target: DraftTarget): Promise<
+  Awaited<ReturnType<typeof selectArtDraft>> | Awaited<ReturnType<typeof selectArtDraftSelection>> | FixedArt> {
   validateArtDraftSource(ref, approved.reference);
-  const select = ref.artifactId === ART_DRAFT_SELECTION ? selectArtDraftSelection : selectArtDraft;
+  const select = ref.artifactId === ART_REVIEW_INPUT ? selectArtReviewInput : ref.artifactId === ART_DRAFT_SELECTION ? selectArtDraftSelection : selectArtDraft;
   return select(ref.location, approved, requirements, target, ref);
 }

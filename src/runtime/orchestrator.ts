@@ -93,7 +93,7 @@ export function parseReview(text: string, task: TaskContract) {
   return value as { verdict: 'approved' | 'changes_requested'; inputVersions: ArtifactReference[]; evidenceIds: string[]; findings: string[] };
 }
 
-function requirePassingEvidence(task: TaskContract, requirement: ExecutionRequirement, selectedIds = task.evidence.map(e => e.evidenceId)): void {
+export function requirePassingEvidence(task: TaskContract, requirement: ExecutionRequirement, selectedIds = task.evidence.map(e => e.evidenceId)): void {
   for (const id of task.acceptanceIds) {
     const accepted = requirement.acceptance.find(a => a.acceptanceId === id)!;
     if (!task.evidence.some(e => selectedIds.includes(e.evidenceId) && e.outcome === 'passed' && e.acceptanceIds.includes(id) && accepted.evidenceKinds.includes(e.kind) && [...task.inputs, ...task.artifacts].every(ref => e.artifactVersions.some(version => sameValue(ref, version))))) throw new Error(`Missing selected host evidence for ${id} at the fixed input and output versions.`);

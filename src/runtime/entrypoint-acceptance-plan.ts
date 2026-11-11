@@ -1,3 +1,6 @@
+import type { PreparedTask } from './orchestrator.ts';
+import { ART_REVIEW_INPUT, selectArtReviewInput } from './art-draft-source.ts';
+import { requireFixedArtApproval } from './fixed-art-review.ts';
 import { APPROVED_DESIGN, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { join } from 'node:path';
 import type { ArtifactReference, EvidenceContract, RequirementContract, TaskContract } from '../contracts/types.ts';
@@ -116,6 +119,12 @@ export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, t
   if (!requirementCapture || !design || (!historical && !author)) throw new Error('Ordinary delivery is missing its original plan sources.');
   let dependencies = author?.inputs.filter(ref => !confirmed.requirement.sources.some(source => sameValue(source, ref))) ?? [];
   const execution = await json(root, 'execution.json');
+  if (state.artDraftSource?.artifactId === ART_REVIEW_INPUT) {
+    const ref = state.artDraftSource, prepared = execution.tasks.find((item: PreparedTask) => item.role === 'art');
+    if (!historical || !prepared || !task.inputs.some(input => sameValue(input, prepared.expectedArtifacts?.[0]))) throw new Error('Delivery fixed art binding changed.');
+    const source = await selectArtReviewInput(ref.location, historical, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, ref);
+    await requireFixedArtApproval(root, state, source, prepared, confirmed.requirement);
+  }
   if (execution.ordinaryDesignRevisionPolicy !== undefined) {
     const { readDesignSelection } = await import('./entrypoint-design-revision.ts');
     const selected = await readDesignSelection(root, { read: async () => structuredClone(state) }, execution);
