@@ -2699,6 +2699,10 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 归属 #19，原生父卡 #214。R55 草稿可启动，独立 Edge 实测发现六个 SVG 请求 404，原执行计划 s002 的音频 decoded 在 10 秒内未满足。让续写作者接收与实际草稿和来源绑定的简短浏览器诊断，修复、编译并按原机制交接。作者 `draft_feedback_author`，独审 `r52_evidence` 批准 `8b91268`，主线合入 `d6533373`。R56 将四条真实诊断传入编码会话，修改两个文件；独立预览确认六个 SVG 404 已消除，正式候选待后续运行。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/215#issuecomment-6807088836) · [R56 实测](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6807425531) [R55 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6806852815) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/215)
 
+### COS-215 · 有界保留带反馈编码会话中的历史读取正文
+
+归属 #19，原生父卡 #215。R57 的带反馈编码作者读取 16 次，下笔因输出额度准入被拒。对该类会话中先前读取的长正文做有界保留，保留当前工具结果、写入、审批与完整原始 journal，以 SDK 实际将发送的数据核价。作者 `read_context_author`，独审 `r52_evidence`。 [R57 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6807702019) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/216)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。
