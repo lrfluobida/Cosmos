@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R47 复用 R43 的原生批准设计，在 R46 美术草稿上续作。真实运行内的素材帧检查通过水晶、关门和开门。终稿用独立 Edge 按真实房间背景和设计位置复查，五个有物目标中通过三项，钥匙仍差 2 格、齿轮仍差 18 格；另三项空位检查均通过，合计 6/8。原房间背景和三段音频保持原内容。素材预览位于 `.cosmos/public-validation/room-20261111-art-draft-47/preview/`。本轮没有正式媒体捕获、美术独审、编码或可玩游戏。 [真实帧检查与终稿复核](https://github.com/lrfluobida/Cosmos/issues/201#issuecomment-6788066855)
+
+R47 上限 ¥1.66 / 30 分钟，耗时 323,994 ms。16 笔费用均已结清，共 ¥0.136007，释放 ¥1.523993，未知费用 0 笔。美术分配 ¥0.517153，剩余 ¥0.381146；第 17 笔投影输入 97,686 字节、最低 8,192 输出 token 报价 ¥0.260908，低于余额 ¥0.120238。普通美术作者因 `request_limit` 达到 16 次上限，该笔未派发。子账本修订 84，共享修订 3463；已结算 ¥46.968381，占用 ¥2.206428，阶段余额 ¥1.525191。 [结案记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788066815) · [实际额度](https://github.com/lrfluobida/Cosmos/issues/202#issuecomment-6788066811) · [普通美术请求上限任务](https://github.com/lrfluobida/Cosmos/issues/204)
+
 普通编码独审的截图报价已审合入 `5d30396`。对可核定的最终 Pi/SDK 请求，宿主保留全部 PNG 截图，以文本包保守上界加逐图最多 1,024 个输入 token 计算预留；未知请求使用原有保守回退。无图与旧验证路径继续采用原规则。主线构建、SDK 和账本 5/5、公开 CLI 1/1 通过，覆盖多图历史、工具结果、未发释放与实际 usage 结算。 [源码与离线验证](https://github.com/lrfluobida/Cosmos/issues/203#issuecomment-6787792114) · [DeepSeek Vision 图像计费](https://api-docs.deepseek.com/zh-cn/guides/vision/#token-用量)
 
 独审以真实 RunController 离线回放历史长上下文与 8 张完整截图，预留 ¥0.521508。在 ¥1.66 新运行的 ¥0.827446 编码额度内，该请求可容纳的前序费用和占用合计为 ¥0.305938。R47 可在现有阶段内按 ¥1.66 尝试，实际请求大小、已用额度和候选截图裁决仍须按运行证据登记。本次集成未发付费请求。 [父任务记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6787792137)
