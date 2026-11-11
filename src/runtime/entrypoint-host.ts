@@ -980,6 +980,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     } } : {}),
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, estimatedMaxCostMicroCny: requestReservation,
       ...(ordinary ? { authorThinkingLevel: { design: 'low', art: 'off' } as const, authorMaxRequests: { design: 32 }, designAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, artAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS,
+        ordinaryCodingReviewImageQuote: task => role(task) === 'coding',
         ordinaryArtDesignInput: task => {
           if (role(task) !== 'art') throw new Error('Art plan display requires the ordinary art task.');
           return selected(task, 'design');
