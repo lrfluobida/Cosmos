@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+未审美术草稿续作已审合入 `a1d44e1`。主线编译版只读核对了 R43 的批准设计 `df44145a765a98ccd09f1e465106432cfa862179f60baa1329bc5f332ba5f45b` 和 R44 的部分草稿 `49ca0216a8243d95f3d79d2e5663dba8b0968c0a9ace0271d0b90df0c3c28dbe`。4,699 字节草稿已有 `cabin-room`，还缺水晶、钥匙、齿轮、房门，以及背景循环、收集、开门三项音频。 [来源与独审](https://github.com/lrfluobida/Cosmos/issues/200#issuecomment-6786149214)
+
+主线构建及新旧入口的离线组合用例 2/2 通过。新运行把批准设计与未审草稿共同绑定到授权，恢复时保留合法编辑，拒绝源内容漂移。普通美术作者以关闭推理的原生 SDK 请求交接；补齐全部素材后仍须完整捕获并通过本轮独审，旧入口仍会拒绝缺文件的交接。真实美术补全与游戏交付待新运行。保留 3,216 字节组合探针、TAP 和真实输入证据。 [父任务记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6786149308)
+
 普通原生美术作者关闭推理的改动已合入 `518d33a`。真实 SDK 的离线请求发出 `thinking.type=disabled`，保留读、写、编辑工具。已批准设计复用后的美术作者若只宣称完成而未写文件，仍因 `role-output-missing_output` 无法捕获。主线构建与公开 CLI 定向用例 1/1 通过。扩展角色用例 8/9，旧模块化宿主的设计压缩配置错误在合入前主线 `d3eb5b8` 同样复现。作者此前的清理钩子改用规范路径后通过，旧夹具 26 个文件共 39,497 字节保留在 `E:/CosmosStage/r44-art-output-20261111/temp/` 供诊断。 [审查与验证](https://github.com/lrfluobida/Cosmos/issues/199#issuecomment-6786010221)
 
 下轮可用的部分美术草稿须与所选原生批准设计严格匹配。R44 的 `cabin-room` 草稿已能由生产渲染器生成预览，完整素材仍需新运行捕获、校验与独立评审。本次集成没有付费调用。 [草稿续作任务](https://github.com/lrfluobida/Cosmos/issues/200)
