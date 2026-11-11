@@ -11,7 +11,9 @@ import { validationHash } from './validation-validation.ts';
 
 type Stage = 'main' | 'reopen';
 type Frame = { characterId: string; state: string; frame?: number };
-export type Mapping = Frame & { stepId: string; stage?: Stage; background?: Frame };
+type StepRef = { stepId: string; stage?: Stage };
+export type ForegroundMapping = StepRef & Frame & { background?: Frame };
+export type Mapping = ForegroundMapping | (StepRef & { background: Frame });
 type PatternStep = { stage: Stage; stepId: string; expected: boolean; pattern: PixelPattern };
 const frameKeys = ['characterId', 'state', 'frame'];
 const frame = (data: Record<string, unknown>): Frame => ({ characterId: identifier(data.characterId), state: identifier(data.state),
@@ -23,8 +25,11 @@ export function artMappings(input: unknown): Mapping[] {
     const data = object(value, [...frameKeys, 'stepId', 'stage', 'background']);
     if (typeof data.stepId !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/.test(data.stepId)) throw new Error('Expected a plan stepId.');
     if (data.stage != null && data.stage !== 'main' && data.stage !== 'reopen') throw new Error('Use stage main or reopen.');
-    return { ...frame(data), stepId: data.stepId, ...(data.stage ? { stage: data.stage } : {}),
-      ...(data.background != null ? { background: frame(object(data.background, frameKeys)) } : {}) };
+    const step: StepRef = { stepId: data.stepId, ...(data.stage ? { stage: data.stage } : {}) };
+    const background = data.background != null ? frame(object(data.background, frameKeys)) : undefined;
+    if (frameKeys.some(key => data[key] != null)) return { ...frame(data), ...step, ...(background ? { background } : {}) };
+    if (!background) throw new Error('Select a foreground frame or an explicit viewport background.');
+    return { ...step, background };
   });
 }
 
@@ -47,7 +52,8 @@ export function artPatternIndex(scenario: BrowserScenario, offset = 1) {
     else distinct.set(key, { stage, stepId, expected, count: 1, ...pattern });
   }
   if (!Number.isSafeInteger(offset) || offset < 1 || offset > Math.max(distinct.size, 1)) throw new Error('Art pattern index offset is out of range.');
-  return { viewport: scenario.viewport, totalPatterns: distinct.size, patterns: [...distinct.values()].slice(offset - 1, offset + 7),
+  return { viewport: scenario.viewport, guidance: 'An all-minus mask matches when each cell contains at most 10% target colour. Use the intended scene: for a removed item supply only {stepId,background:{characterId,state}}. Check the complete roster and representative compositions before handing off the existing draft.',
+    totalPatterns: distinct.size, patterns: [...distinct.values()].slice(offset - 1, offset + 7),
     ...(offset + 7 < distinct.size ? { nextOffset: offset + 8 } : {}) };
 }
 
@@ -57,10 +63,8 @@ export function mappedPattern(scenario: BrowserScenario, mapping: Mapping) {
   return candidates[0];
 }
 
-interface FrameResult {
-  stepId: string; characterId: string; state: string; passed: boolean; expected?: boolean; matched?: boolean;
-  failedCells?: MeasuredCell[]; matchingCells?: MeasuredCell[]; error?: string;
-}
+type FrameResult = Mapping & { passed: boolean; expected?: boolean; matched?: boolean; color?: string;
+  failedCells?: MeasuredCell[]; failedCellSigns?: string[]; matchingCells?: MeasuredCell[]; error?: string };
 
 export function frameSvg(characters: CharacterSpec[], ref: Frame) {
   const character = characters.find(item => item.id === ref.characterId);
@@ -72,7 +76,7 @@ export function frameSvg(characters: CharacterSpec[], ref: Frame) {
   return renderCharacter({ ...character, states: [{ ...state, frames: [pose] }] }).files[0].svg;
 }
 
-type MeasureFrame = (pattern: PixelPattern, foreground: string, background?: string) => ReturnType<typeof measurePixelPattern>;
+type MeasureFrame = (pattern: PixelPattern, foreground: string | undefined, background?: string) => ReturnType<typeof measurePixelPattern>;
 
 /** All callers supply SVG from frameSvg. Reuse the same offline Edge context throughout a search. */
 export async function withFrameMeasurement<T>(viewport: BrowserScenario['viewport'], run: (measure: MeasureFrame) => Promise<T>) {
@@ -85,7 +89,7 @@ export async function withFrameMeasurement<T>(viewport: BrowserScenario['viewpor
       + 'px" src="data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64') + '">';
     return await run(async (pattern, foreground, background) => {
       const layers = (background ? image(background, 0, 0, viewport.width, viewport.height) : '')
-        + image(foreground, pattern.x, pattern.y, pattern.width, pattern.height);
+        + (foreground ? image(foreground, pattern.x, pattern.y, pattern.width, pattern.height) : '');
       await page.setContent('<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'">' + layers);
       await page.evaluate(async () => { await Promise.all(Array.from(document.images, img => img.decode())); });
       return measurePixelPattern(session, await page.screenshot({ scale: 'css' }), viewport, pattern);
@@ -101,20 +105,24 @@ export async function checkArtFrames(scenario: BrowserScenario, design: DesignDo
     for (const mapping of mappings) {
       const row: FrameResult = { ...mapping, passed: false };
       results.push(row);
-      let step: PatternStep, foreground: string, background: string | undefined;
+      let step: PatternStep, foreground: string | undefined, background: string | undefined;
       try {
         step = mappedPattern(scenario, mapping);
-        foreground = frameSvg(characters, mapping);
+        if ('characterId' in mapping) foreground = frameSvg(characters, mapping);
         if (mapping.background) background = frameSvg(characters, mapping.background);
       } catch (error) { row.error = (error as Error).message; continue; }
       const { pattern, expected } = step;
       const pixels = await measure(pattern, foreground, background);
       row.expected = expected; row.matched = pixels.failedCells.length === 0; row.passed = row.matched === expected;
       if (!row.passed && row.matched) row.matchingCells = pixels.matchingCells;
-      if (!row.passed && !row.matched) row.failedCells = pixels.failedCells;
+      if (!row.passed && !row.matched) {
+        row.color = pattern.color;
+        row.failedCells = pixels.failedCells;
+        row.failedCellSigns = pixels.failedCells.map(([r, c]) => pattern.rows[r][c]);
+      }
     }
-    return { method: 'Native frame at pattern ROI over white or explicit viewport background. Advisory art composition.',
-      cells: 'Zero-based [row,column,matchingPixels,totalPixels]; + >=35%, - <=10%.', results };
+    return { method: 'Measure the approved ROI after rendering the optional foreground there over white or the explicit full-viewport background. Advisory art composition.',
+      cells: 'Zero-based [row,column,matchingPixels,totalPixels]. failedCellSigns follows failedCells in order: + needs more target colour (>=35%), - needs less (<=10%).', results };
   });
 }
 

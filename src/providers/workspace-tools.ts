@@ -9,7 +9,9 @@ export type BeforeFileWrite = (absolutePath: string, candidate: Buffer, signal: 
 export type WriteCommitted = (toolCallId: string, absolutePath: string) => void;
 export type ArtFrameRead = (checks: unknown[], offset: number, signal: AbortSignal) => Promise<unknown>;
 const frameFields = { characterId: Type.String(), state: Type.String(), frame: Type.Optional(Type.Integer({ minimum: 0, maximum: 63 })) };
-const artFrames = Type.Array(Type.Object({ ...frameFields, stepId: Type.String(), stage: Type.Optional(Type.Union([Type.Literal('main'), Type.Literal('reopen')])),
+// Keep a single object schema: the native provider makes omitted fields nullable in strict tool calls.
+const artFrames = Type.Array(Type.Object({ characterId: Type.Optional(frameFields.characterId), state: Type.Optional(frameFields.state), frame: frameFields.frame,
+  stepId: Type.String(), stage: Type.Optional(Type.Union([Type.Literal('main'), Type.Literal('reopen')])),
   background: Type.Optional(Type.Object(frameFields, { additionalProperties: false })) }, { additionalProperties: false }), { maxItems: 8 });
 
 /** Host validation rejected a candidate before writing; the current valid draft remains intact. */
@@ -87,7 +89,7 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
       planOffset: Type.Optional(Type.Integer({ minimum: 1, description: '1-based compact plan display line. Omit offset when using planOffset.' })) }) : read.parameters;
     const description = read.description + (options.compactFullJsonReads
       ? ' Whole-file JSON may use compact display; source formatting is unchanged. Before exact-text edits, use explicit offset/limit reads to obtain raw source text.' : '')
-      + (options.artFrameRead ? ' On the fixed acceptance plan use artFrames:[] for a compact pixel-pattern index (offset=nextOffset for more). Supply 1..8 frame mappings for measured native art compositions. Each selects an approved stepId, characterId, state, optional zero-based frame and optional full-viewport background frame. Use stage to distinguish repeated step IDs. Omit artFrames or set it to null for ordinary file reads.' : '')
+      + (options.artFrameRead ? ' On the fixed acceptance plan use artFrames:[] for the pixel-pattern index (offset=nextOffset for more). Check 1..8 approved stepIds per batch. A visible item uses characterId,state, optional zero-based frame and optional full-viewport background. For a removed item supply only stepId and background:{characterId,state,frame?}. An all-minus mask limits the target colour in each cell. Use stage to distinguish repeated step IDs. Hand off a complete draft once the intended compositions pass. Omit artFrames or set it to null for ordinary file reads.' : '')
       + (plans.length ? ` For a full plan read, start with path alone (omit optional numbers, or use null if required). ${options.planReadPurpose === 'art' ? 'Use the displayed continuation when more steps are needed.' : 'Follow each continuation once until complete.'} planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.` : '');
     tools.push(defineTool({ ...read, description, parameters, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, reads, signal);

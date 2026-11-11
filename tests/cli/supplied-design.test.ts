@@ -385,8 +385,10 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
     await assert.rejects(inspect({ path: ART_DRAFT_FILE, artFrames: [] }), /fixed art plan/);
     const index = JSON.parse((await inspect({ path, artFrames: [] })).content[0].text);
     assert.equal(index.patterns[0].stepId, 'target-pixels');
-    const checked = JSON.parse((await inspect({ path, artFrames: [{ stepId: index.patterns[0].stepId, characterId: 'target', state: 'idle' }] })).content[0].text);
+    const checked = JSON.parse((await inspect({ path, artFrames: [{ stepId: index.patterns[0].stepId, characterId: 'target', state: 'idle' },
+      { stepId: index.patterns[0].stepId, background: { characterId: 'target', state: 'idle' } }] })).content[0].text);
     assert.equal(checked.results[0].passed, true);
+    assert.equal(typeof checked.results[1].matched, 'boolean');
     assert.deepEqual(await read(config.workspace, ART_DRAFT_FILE), edited);
     return { ...fallback, prompt: async () => {
       const full = JSON.parse(edited.toString('utf8'));
