@@ -14,6 +14,7 @@ import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
 import { selectApprovedDesign } from '../../src/runtime/approved-design-source.ts';
 import { checkSuppliedDesignHandoff } from '../../src/runtime/supplied-design.ts';
+import { ART_DRAFT_FILE, selectArtDraft } from '../../src/runtime/art-draft-source.ts';
 import { RecoveryBlocked } from '../../src/runtime/recovery/task-journal.ts';
 import { fundingFixture } from '../runtime/public-validation-funding.fixture.ts';
 
@@ -284,6 +285,93 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
   const funded = await json(f.runRoot, 'snapshot.json');
   assert.deepEqual(funded.designDraftReview, state.designDraftReview);
   assert.equal(funded.validationFunding.fundingId, 'supplied');
+});
+
+test('public funding resumes an editable art draft and requires a complete independently reviewed output', async t => {
+  const options = { productionDefault: true };
+  const previous = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
+    const role = JSON.parse(config.context!).role;
+    if (role === 'design') return { ...fallback, prompt: async () => ({ text: JSON.stringify({ summary: 'Fixed supplied files', remaining: [], uncertainty: [] }) }) };
+    if (role === 'art') throw new Error('Stop the original after design approval.');
+    return fallback;
+  } });
+  const original = await confirmedSource(t, { draft: previous.draft });
+  const supplied = join(original.root, 'supplied'); await mkdir(supplied);
+  await writeFile(join(supplied, 'design.json'), JSON.stringify({ summary: 'Target', implementationNotes: ['Click it'], acceptanceMapping: { light: 'Click the target' },
+    experienceMapping: { readable: 'Visible status' }, characters: [{ id: 'target', purpose: 'Target', states: ['idle'] }], audio: [{ id: 'click', trigger: 'Click target', loop: false }] }));
+  await writeFile(join(supplied, 'acceptance-plan.json'), JSON.stringify({ formatVersion: 'ordinary-acceptance-plan/1', requirement: {
+    artifactId: 'requirement-bundle', version: 'v2', location: 'registry/captures/requirement-bundle/v2/files' }, scenario: previous.scenario }));
+  const common = ['--requirements-from', original.root, '--requirements-revision', '2', '--max-cny', '2.30', '--max-minutes', '30'];
+  const first: any = await runCli(['new', previous.root, ...common, '--design-input', supplied], { ...io(), host: previous.host });
+  assert.equal(first.ordinaryDesignReview?.selectedVersion, 'v1', JSON.stringify(first.gaps));
+  const fresh = await ordinaryHostFixture(t, options); // Its art author supplies only the required visual asset.
+  const result: any = await runCli(['new', fresh.root, ...common, '--approved-design-from', previous.root], { ...io(), host: fresh.host });
+  assert.deepEqual(fresh.packets.map(packet => packet.role), ['art'], JSON.stringify(result.gaps));
+  assert.equal(result.historicalDesign.sourceRunId, first.runId);
+  assert.equal(result.outcome, 'incomplete');
+  const partial = await read(fresh.root, ART_DRAFT_FILE), edited = Buffer.concat([partial, Buffer.from('\n')]);
+  const funded = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
+    const packet = JSON.parse(config.context!);
+    if (packet.role !== 'art') return fallback;
+    assert.match(packet.rules.join('\n'), /operator-selected unreviewed draft/);
+    assert.match(packet.rules.join('\n'), /"characters":\{"existing":\["target"\],"missing":\[\]\},"audio":\{"existing":\[\],"missing":\["click"\]\}/);
+    const tool = (name: string) => config.tools!.find(item => item.name === name)!;
+    const readResult = await tool('read').execute('seed', { path: ART_DRAFT_FILE }, undefined, undefined, undefined as never);
+    assert.equal(JSON.parse(readResult.content[0].text).characters[0].id, 'target');
+    assert.deepEqual(await read(config.workspace, ART_DRAFT_FILE), edited);
+    return { ...fallback, prompt: async () => {
+      const full = JSON.parse(edited.toString('utf8'));
+      full.audio.push({ id: 'click', sampleRate: 22050, duration: 0.1, loop: false,
+        notes: [{ midi: 72, start: 0, duration: 0.1, gain: 0.2, wave: 'sine', attack: 0.01, release: 0.01 }] });
+      await tool('write').execute('complete', { path: ART_DRAFT_FILE, content: JSON.stringify(full) }, undefined, undefined, undefined as never);
+      return { text: JSON.stringify({ summary: 'Finished visual and audio roster', remaining: [], uncertainty: [] }) };
+    } };
+  } });
+  const sourceState = await json(fresh.root, 'snapshot.json'), target = { root: funded.root };
+  const approved = await selectApprovedDesign(previous.root, sourceState.requirementsSource, target, sourceState.designDraftReview);
+  await assert.rejects(selectArtDraft(fresh.root, approved, sourceState.requirementsSource, { root: fresh.root }), /separate canonical/);
+  const sourceDraft = await selectArtDraft(fresh.root, approved, sourceState.requirementsSource, target);
+  assert.deepEqual(sourceDraft.bytes, partial);
+  const sourceOrigin = await read(fresh.root, 'intake-origin.json'), savedState = await read(fresh.root, 'snapshot.json');
+  await writeFile(join(fresh.root, 'snapshot.json'), JSON.stringify({ ...sourceState, artDraftSource: sourceDraft.reference }));
+  await writeFile(join(fresh.root, 'intake-origin.json'), JSON.stringify({ ...JSON.parse(sourceOrigin.toString()), artDraftSource: sourceDraft.reference }));
+  await assert.rejects(selectArtDraft(fresh.root, approved, sourceState.requirementsSource, target), /Cyclic art draft/);
+  await writeFile(join(fresh.root, 'snapshot.json'), savedState);
+  await writeFile(join(fresh.root, 'intake-origin.json'), sourceOrigin);
+  const f = await (await fundingFixture(t)).authorization('editable-art', 2300000);
+  const auth = join(f.sharedRoot, f.authorization.location), command = ['new', funded.root, '--shared-root', f.sharedRoot, '--authorization', auth];
+  const payload = { ...f.payload, formatVersion: 'public-validation-authorization/2', brief: funded.draft.brief, runRoot: funded.root, renderFrames: false,
+    requirementsSource: sourceState.requirementsSource, sourceRefs: [...f.payload.sourceRefs, approved.reference, sourceDraft.reference] };
+  await writeFile(auth, JSON.stringify(payload));
+  const fundedIO = { ...io(), host: funded.host }, sharedBefore = await read(f.sharedRoot, 'snapshot.json');
+  await writeFile(join(fresh.root, ART_DRAFT_FILE), edited);
+  await assert.rejects(runPublicValidationCli(command, fundedIO), /Pinned art draft/);
+  assert.deepEqual(await read(f.sharedRoot, 'snapshot.json'), sharedBefore);
+  await writeFile(join(fresh.root, ART_DRAFT_FILE), partial);
+  const execute = funded.host.execute;
+  funded.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => {
+    const host = await createBrowserHost({ ...hostInput, ...funded.hostOptions });
+    host.bindPreparedTasks = async () => { throw new Error('Interrupted after execution plan publication'); };
+    return host;
+  } });
+  const interrupted: any = await runPublicValidationCli(command, fundedIO);
+  assert.equal(interrupted.outcome, 'incomplete');
+  assert.deepEqual(funded.packets, []);
+  assert.deepEqual(await read(funded.root, ART_DRAFT_FILE), partial);
+  assert.deepEqual((await json(funded.root, 'snapshot.json')).artDraftSource, sourceDraft.reference);
+  // An existing edit must survive restarting the host. The old working file is still pinned.
+  await writeFile(join(funded.root, ART_DRAFT_FILE), edited);
+  await writeFile(join(fresh.root, ART_DRAFT_FILE), edited);
+  await assert.rejects(runPublicValidationCli(['resume', funded.root], fundedIO), /Pinned art draft/);
+  await writeFile(join(fresh.root, ART_DRAFT_FILE), partial);
+  funded.host.execute = execute;
+  const final: any = await runPublicValidationCli(['resume', funded.root], fundedIO);
+  assert.deepEqual(funded.packets.map(packet => packet.role), ['art', 'reviewer', 'coding', 'reviewer'], JSON.stringify(final.gaps));
+  const capture = await json(funded.root, 'registry/captures/media/v1/capture.json');
+  assert.ok(capture.metadata.provenance.sourceRefs.includes('ordinary-art-draft@' + sourceDraft.reference.version));
+  assert.equal(capture.metadata.media.audio[0].manifest.id, 'click');
+  assert.equal(final.outcome, 'awaiting_user_experience', JSON.stringify(final.gaps));
+  assert.deepEqual(await read(fresh.root, ART_DRAFT_FILE), partial);
 });
 
 test('public approved design resumes interrupted classic and render-frame input setup', async t => {
