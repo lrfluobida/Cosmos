@@ -2615,7 +2615,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-194 · 固定供稿独审在仅推理输出截断后有界恢复
 
-父任务 #19，依赖 COS193。R42 原生独审的最后 16,384 个输出 token 均用于推理，未形成裁决。在固定供稿、原预算与期限内有界恢复，仅合法独审裁决可放行下游。作者 `verdict_recovery_author`，独审 `verdict_recovery_reviewer`，源码待审。 [COS194 / #195](https://github.com/lrfluobida/Cosmos/issues/195)
+父任务 #19，依赖 COS193。R42 原生独审的最后 16,384 个输出 token 均用于推理，未形成裁决。在固定供稿、原预算与期限内有界恢复，仅合法独审裁决可放行下游。作者 `verdict_recovery_author`，独审 `verdict_recovery_reviewer`。独审批准 `eb5a130`，主线合入 `f20d6c9`。主线构建及原生 SDK 定向用例 18/18 通过。离线重放用合成的 length 事件和裁决检验恢复，固定读取、单次纠正、报价及严格解析均已验证。新运行实付与正式裁决待验证。 [COS194 / #195](https://github.com/lrfluobida/Cosmos/issues/195#issuecomment-6784641175)
 
 ## 5. 任务与上下文包模板
 

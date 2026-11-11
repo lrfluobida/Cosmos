@@ -655,7 +655,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
       "verifiedNativeSubIssues": 88,
       "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192", "COS-193", "COS-194"],
-      "verifiedCompletedSubIssues": 83,
+      "verifiedCompletedSubIssues": 84,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -14372,8 +14372,8 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
+      "parentCheckboxChecked": true,
+      "state": "closed",
       "dependsOn": [
         {
           "id": "COS-193",
@@ -14384,8 +14384,14 @@
       "implementer": "verdict_recovery_author",
       "reviewer": "verdict_recovery_reviewer",
       "merger": "r41_merger",
-      "sourceReviewStatus": "pending",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6784355268"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6784355268",
+      "scopedComplete": true,
+      "sourceReviewedCommit": "eb5a130c0da05afa0e91d76d0aea2281adfe44b0",
+      "sourceIntegratedCommit": "f20d6c9fdc440704be28859443b413bf488f5f7a",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/195#issuecomment-6784641175",
+      "integrationComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6784646400",
+      "verification": "主线构建及原生 SDK 定向用例 18/18 通过。离线重放用合成的 length 事件和裁决检验恢复，固定读取、单次纠正、报价及严格解析均已验证。新运行实付与正式裁决待验证。"
     }
   ],
   "verifiedNativeSubIssues": 100,
