@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 99,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192", "COS-193", "COS-194", "COS-195", "COS-196", "COS-197", "COS-198", "COS-199", "COS-200", "COS-201", "COS-202", "COS-203", "COS-204", "COS-205"],
+      "verifiedNativeSubIssues": 100,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192", "COS-193", "COS-194", "COS-195", "COS-196", "COS-197", "COS-198", "COS-199", "COS-200", "COS-201", "COS-202", "COS-203", "COS-204", "COS-205", "COS-206"],
       "verifiedCompletedSubIssues": 95,
       "dependsOn": [
         {
@@ -14740,9 +14740,34 @@
       "verification": "组合树经作者与独审复核后，构建及单源/双源 funded CLI 2/2 通过。编译版只读真实选择引用 6230a28d…，工作稿 9aab300f…；离线素材 7/8，仅齿轮 18 格。",
       "liveVerification": "R49 的起始稿与该组合逐字节一致。结案后从 R47 基础稿仅选入 R49 的钥匙与齿轮，另做免费 Edge 检查，通过 7/8，仅齿轮失败 13 格。该选材样本仍待原生美术独审。",
       "liveVerificationComment": "https://github.com/lrfluobida/Cosmos/issues/206#issuecomment-6788800442"
+    },
+    {
+      "taskId": "COS-206",
+      "title": "按明确来源从多份原生未审美术稿选取整项素材",
+      "number": 207,
+      "id": 6323933818,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/207",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-205",
+          "number": 206,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/206"
+        }
+      ],
+      "implementer": "layered_selection_author",
+      "reviewer": "layered_selection_review",
+      "merger": "r49_merger",
+      "sourceReviewStatus": "PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 205,
+  "totalTaskCount": 206,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

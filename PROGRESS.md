@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+#207 已登记。R45 齿轮失败 6 格，R47 基础稿搭配 R49 的钥匙、齿轮时齿轮失败 13 格。COS-206 扩展既有未审草稿选材入口，允许从同一批准设计的有界多份工作稿按明确来源选取整项素材。作者 `layered_selection_author`，独审 `layered_selection_review`。 [任务与验收范围](https://github.com/lrfluobida/Cosmos/issues/207)
+
 R49 已闭账。阶段上限经批准调至 ¥51.67，单次运行上限 ¥2.30 / 30 分钟。美术作者在 603,078 ms 内用完 32 笔请求，因 `request_limit` 停止。32 笔已知费用共 ¥0.183401，释放 ¥2.116599。子账本修订 153、共享修订 3468，累计已结算 ¥47.345168、占用 ¥2.206428，阶段余额 ¥2.118404。美术稿未捕获，原生美术独审和编码均未开始，无游戏候选，自动验收未通过。 [运行与资金结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788800426)
 
 R49 从 R47 草稿与 R48 钥匙的组合开始，初始 Edge 形色检查通过 7/8，只有齿轮失败 18 格。写入保护拦下会丢失素材的整稿覆盖，作者完成 10 次精确编辑。水晶曾达到 0 个失败格，终稿水晶 2 格、齿轮 13 格。独立 Edge 终稿检查通过 6/8，钥匙、门的两种状态与三项清空检查通过，三段音频均可合成为非静音。 [写入保护](https://github.com/lrfluobida/Cosmos/issues/205#issuecomment-6788800411) · [选材与实测](https://github.com/lrfluobida/Cosmos/issues/206#issuecomment-6788800442)
