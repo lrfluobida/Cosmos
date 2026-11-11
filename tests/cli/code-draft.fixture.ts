@@ -29,6 +29,7 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     const original = JSON.parse(config.context!);
     assert.equal(original.role, 'coding');
     assert.equal(original.codeDraftFeedback, undefined);
+    assert.equal(config.feedbackReadWritePaths, undefined);
     assert.ok(original.rules.some((rule: string) => rule.includes('Follow each planOffset continuation')));
     return { ...session, prompt: async () => {
       const write = config.tools!.find(tool => tool.name === 'write')!;
@@ -45,9 +46,11 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     const packet = JSON.parse(config.context!);
     if (packet.role !== 'coding') {
       assert.equal(packet.codeDraftFeedback, undefined);
+      assert.equal(config.feedbackReadWritePaths, undefined);
       return session;
     }
     assert.deepEqual(packet.codeDraftFeedback, findings);
+    assert.deepEqual(config.feedbackReadWritePaths, packet.ownership.writePaths);
     assert.ok(!packet.rules.some((rule: string) => rule.includes('Follow each planOffset continuation')));
     assert.doesNotMatch(config.tools!.find(tool => tool.name === 'read')!.description, /Follow each continuation once until complete/);
     assert.ok(packet.ownership.readPaths.includes('toolchain/node_modules/phaser/src'));

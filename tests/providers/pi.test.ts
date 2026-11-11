@@ -3,8 +3,10 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mock, test } from 'node:test';
+import type { Context } from '@earendil-works/pi-ai';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { createPiSession, createWorkspaceTools } from '../../src/providers/pi.ts';
+import { requestInputBytes } from '../../src/providers/request-input.ts';
 import { validationReservation } from '../../src/runtime/validation-validation.ts';
 import type { PiRequest } from '../../src/providers/pi.ts';
 
@@ -236,6 +238,62 @@ test('real tool content increases transport and quotes and remains subject to bu
   assert.equal(f.admissions.length, 6);
   assert.equal(f.requests.length, 5, 'rejected large content must not reach fetch');
   assert.equal(f.settlements.length, 5);
+});
+
+for (const mode of ['feedback', 'ordinary', 'insufficient', 'changed-original'] as const) test(`coding read history on native transport: ${mode}`, async t => {
+  const recent = call('read', { path: 'last.txt', offset: 1 }, 'recent');
+  recent.delta.tool_calls.push({ ...call('read', { path: 'output.txt' }, 'also-recent').delta.tool_calls[0], index: 1 });
+  const failed = call('read', { path: 'missing.txt' }, 'failed');
+  failed.delta.tool_calls.push({ ...call('read', null, 'invalid').delta.tool_calls[0], index: 1 });
+  const f = await fixture(t, [call('read', { path: 'output.txt' }, 'source'), call('read', { path: 'first.txt' }, 'old'),
+    failed, recent, reply()]);
+  const source = '可编辑文件。'.repeat(250), first = '旧依赖内容。'.repeat(900), last = '近期依赖。'.repeat(300);
+  const omitted = '[Earlier read output omitted. Use the original read arguments to read this file again.]';
+  const createRuntime = ModelRuntime.create;
+  let runtime!: ModelRuntime, original!: Context;
+  t.mock.method(ModelRuntime, 'create', async (...args: Parameters<typeof createRuntime>) => (runtime = await createRuntime(...args)));
+  for (const [path, data] of [['output.txt', source], ['first.txt', first], ['last.txt', last]]) await writeFile(join(f.workspace, path), data);
+  const session = await f.create({
+    ...(mode === 'ordinary' ? {} : { feedbackReadWritePaths: ['output.txt'] }),
+    estimatedMaxCostMicroCny: validationReservation,
+    requestOutputLimit: async (request: PiRequest) => request.maxOutputTokens,
+    budget: { ...f.config.budget, beforeRequest: async (request: PiRequest) => {
+      f.admissions.push(request);
+      assert.equal(request.estimatedMaxCostMicroCny, validationReservation(request));
+      if (f.admissions.length === 5) {
+        const expected = structuredClone(original);
+        for (const message of expected.messages) {
+          if (mode !== 'ordinary' && message.role === 'toolResult' && message.toolCallId === 'old') message.content = [{ type: 'text', text: omitted }];
+        }
+        assert.equal(request.inputBytes, requestInputBytes(expected));
+        if (mode === 'insufficient') throw Error('Insufficient budget');
+        if (mode === 'changed-original') {
+          const old = original.messages.find(m => m.role === 'toolResult' && m.toolCallId === 'old');
+          if (old?.role === 'toolResult') old.content = [{ type: 'text', text: 'Changed during admission' }];
+        }
+      }
+    } },
+  });
+  const stream = runtime.streamSimple.bind(runtime);
+  t.mock.method(runtime, 'streamSimple', (...args: Parameters<typeof stream>) => { original = args[1]; return stream(...args); });
+  if (mode === 'insufficient') await assert.rejects(session.prompt('绑定反馈'), { code: 'admission_rejected' });
+  else if (mode === 'changed-original') await assert.rejects(session.prompt('绑定反馈'), { code: 'invalid_request' });
+  else await session.prompt('绑定反馈');
+  const rejected = mode === 'insufficient' || mode === 'changed-original';
+  assert.equal(f.requests.length, rejected ? 4 : 5);
+  assert.equal(f.settlements.filter(row => row.outcome === 'settled').length, f.requests.length);
+  if (mode === 'changed-original') assert.equal(f.settlements.at(-1).outcome, 'not_sent');
+  const entries = (await readFile(session.sessionFile!, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  assert.equal(entries.find(row => row.message?.toolCallId === 'old').message.content[0].text, first);
+  if (rejected) return;
+  const messages = f.requests.at(-1).messages, result = (id: string) => messages.find((m: any) => m.tool_call_id === id).content;
+  assert.equal(result('source'), source);
+  assert.match(result('failed'), /missing.txt/);
+  assert.ok(result('invalid'));
+  assert.equal(result('recent'), last);
+  assert.equal(result('also-recent'), source);
+  assert.equal(result('old'), mode === 'ordinary' ? first : omitted);
+  assert.ok(messages.some((m: any) => m.tool_calls?.some((c: any) => c.id === 'old' && JSON.parse(c.function.arguments).path === 'first.txt')));
 });
 
 test('tool errors return to the model for a bounded repair without expanding write scope', async t => {
