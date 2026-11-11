@@ -4,7 +4,9 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-COS-207 已登记。R45 至 R49 的 13 个不同原生齿轮帧中，R45 的失败格最少，仍有 6 格。作者 `fit_implementer`、独审 `fit_reviewer` 负责在固定验收规则下对既有图层做有界几何调整，并从显式选择复现独立的未审稿。#19 已有 100 个直接原生子任务，其清单登记 #208，原生路径为 #19 → #207 → #208。 [任务与验收范围](https://github.com/lrfluobida/Cosmos/issues/208)
+COS-207 已合入主线 `2e20d14`。`fit-art` 对显式指定的单状态、单帧角色，在固定验收规则下有界调整既有图层。独审 `fit_reviewer` 批准 `5dc056c`。九个集成文件与批准版本一致，主线构建通过。独审回放两个旧 v1 引用、原 v2 引用和新 v3 引用，无解样例在 1,024 次测量后退出。 [审查与实测](https://github.com/lrfluobida/Cosmos/issues/208#issuecomment-6793583264)
+
+主线编译版从上次三源选择开始，经 433 次免费 Edge 渲染，将四个齿尖的六个坐标分量各移动 1 像素。齿轮失败格从 6 降至 0，像素缺口从 20 降至 0。两张完整构图的 8 项形色检查全部通过，其余五帧 SVG 与三段 WAV 和原稿逐字节相同。可复现的未审清单为 `.cosmos/planning/r49-art-review/gear-fitted.json`，引用 `43a20f781038ce331cfa38884fdcd4bc07ce43151fc8fd740d98ad27c41a7d9a`，工作稿 SHA-256 为 `07841e51638d66ece596c2f2bc4f673d3fe327d143d426da6aa58d900bfc4ccd`。`fitted-preview/` 保留图集、素材及 `report.json`。本次核验未增加模型请求，正式美术捕获、原生独审、编码与游戏验收仍待后续运行。
 
 COS-206 已合入主线 `cee037b`。美术选材清单 v2 支持从一个基础稿和 1 至 4 个同一批准设计的覆盖稿中，按明确的来源和 ID 选取整项素材。独审 `layered_selection_review` 批准 `0684fd7`，核对了两份旧 v1 引用、15 个拒绝用例及三源工作稿。五个集成文件与批准版本一致，主线构建通过。 [源码审查与验证](https://github.com/lrfluobida/Cosmos/issues/207#issuecomment-6790329956)
 

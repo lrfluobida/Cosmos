@@ -14749,7 +14749,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/207",
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-207"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
@@ -14786,9 +14786,9 @@
       "parentIssueNumber": 207,
       "parentIssueId": 6323933818,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-206",
@@ -14804,7 +14804,14 @@
       "implementer": "fit_implementer",
       "reviewer": "fit_reviewer",
       "merger": "r49_merger",
-      "sourceReviewStatus": "PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "5dc056cf048c62b946baf74f11d25e8eeaac661a",
+      "sourceIntegratedCommit": "2e20d14c10aeac5a20d59bf2c063b482e45b840f",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/208#issuecomment-6793583264",
+      "verification": "九个文件与批准源一致，主线构建通过。独审回放旧 v1/v2 和新 v3 引用，另一个无解样例在 1024 次测量后正常退出。",
+      "liveVerification": "主线 fit-art 在原三源稿上测量 433 次，四层六个坐标分量各移动 1 像素，齿轮从 6 格失败降至 0。Edge 完整构图通过全部 8 项，产物仍待原生美术验收。",
+      "selectionVersion": "43a20f781038ce331cfa38884fdcd4bc07ce43151fc8fd740d98ad27c41a7d9a",
+      "selectedDraftSha256": "07841e51638d66ece596c2f2bc4f673d3fe327d143d426da6aa58d900bfc4ccd"
     }
   ],
   "verifiedNativeSubIssues": 100,
