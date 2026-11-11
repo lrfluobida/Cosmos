@@ -37,6 +37,7 @@ import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
 import { publishMatchingBytes } from './fixed-host-input.ts';
 import { fixedArtBytes, fixedArtProvenance, requireFixedArtCapture, requireFixedArtApproval } from './fixed-art-review.ts';
+import { selectCodeDraftFeedback } from './code-draft-feedback.ts';
 import { selectCodeDraft, stageCodeDraft } from './code-draft-source.ts';
 import { selectApprovedArt, checkApprovedArtImport, requireApprovedArtCandidate } from './approved-art-source.ts';
 import { APPROVED_ART, ART_DRAFT_FILE, isFixedArt, preserveArtDraft, readPinnedArtDraft, selectArtReviewInput } from './art-draft-source.ts';
@@ -450,6 +451,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const importedArt = artRef?.artifactId === APPROVED_ART ? await currentApprovedArt() : undefined;
   const codeRef = state.codeDraftSource;
   const codeDraft = codeRef && importedArt ? await selectCodeDraft(codeRef.location, importedDesign!, importedArt, state.requirementsSource!, target, codeRef) : undefined;
+  const feedbackRef = state.codeDraftFeedback;
+  const feedback = feedbackRef && codeDraft ? await selectCodeDraftFeedback(feedbackRef.location, codeDraft.reference, root, feedbackRef) : undefined;
   const artDraft = artRef && !importedArt ? await readPinnedArtDraft(artRef, importedDesign!, state.requirementsSource!, target) : undefined;
   const fixedArt = isFixedArt(artDraft) ? artDraft : undefined;
   if (state.designDraftReview && (!budgetEligible || !importedDesign && !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
@@ -890,11 +893,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           'CharacterSpec: {id,width:16..512,height:16..512,anchor:{x,y},layers:[{id,shape:"rect"|"ellipse",x,y,width,height,fill:"#RRGGBB",stroke:"#RRGGBB",strokeWidth,radius?}],states:[{name,fps:1..60,loop:boolean,frames:[{layerId:{dx?,dy?,rotation?,scaleX?,scaleY?,opacity?}}]}]}. Up to 64 layers, 16 states, 256 total frames; every frame is a pose map and may be {}.',
           'AudioSpec: {id,sampleRate:22050|44100|48000,duration:0.02..30,loop:boolean,notes:[{midi:24..96,start,duration,gain:0..0.5,wave:"sine"|"triangle",attack,release}]}. Notes fit the clip; attack/release each >=0.002, their sum <=note duration. Produce audible original audio. The trusted host renders and validates actual files. Never copy reference artwork/audio.'] },
       { policyId: 'game-code', role: 'coding', workspace: root, allocationMicroCny: Math.floor(pool * 0.40), writePaths: ['authors/coding/src', 'authors/coding/index.html'],
-      readOnlyPaths: ['requirements', 'registry', 'repair-feedback'], tools: ['read', 'write', 'edit', GAME_BUILD_CHECK],
+      readOnlyPaths: ['requirements', 'registry', 'repair-feedback', ...(feedback ? ['toolchain/node_modules/phaser/src'] : [])], tools: ['read', 'write', 'edit', GAME_BUILD_CHECK],
       outputs: [{ ...output, destination: output.location, type: 'game-project', schema: 'browser-game/1' }],
       rules: [`Cover exactly the gameplay IDs ${JSON.stringify(gameplayIds)}; ${importedArt ? 'use the imported approved design and media inputs' : importedDesign ? 'use the imported approved design input and depend on art' : 'depend on both design and art tasks'}. Implement the actual confirmed brief: ${draft.brief}`, captureLayout(designLayout, mediaLayout, gameLayout),
         ...(classicEntries?.selection.measurement ? ['Read the fixed classic entry sidecar and reference evidence. Independent review must inspect actual source and the reserved assertion screenshot to establish that the visible control represents the selected object and metric; selector names or constant labels alone are insufficient. This observation never proves mechanism or numeric implementation correctness.'] : []),
         preparation ? `Read ${requirement.sources[0].location} for the fixed operator preparation proposal, then the complete captured execution requirement and prepared design plans.`
+          : feedback ? `Refer to ${requirement.sources[0].location} and the approved design capture ${ORDINARY_PLAN_FILE} for the original contracts relevant to each reported defect.`
           : ordinary ? `Read ${requirement.sources[0].location} for the complete confirmed answers and criteria, and the approved design capture ${ORDINARY_PLAN_FILE} for the fixed browser scenario.`
           : `Read ${requirement.sources[0].location} for the exact user answers and browser scenario.`,
         'Write only authors/coding/index.html and authors/coding/src/main.ts plus necessary files below src. Use the pinned Phaser template and the independent art capture: public/assets/manifest.json gives actual SVG frames and WAV files, served as /assets/... . Read the exact design and media input snapshots. Do not replace art output with coding-only art, modify dependencies or change acceptance.',
@@ -1002,6 +1006,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     } } : {}),
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, estimatedMaxCostMicroCny: requestReservation,
       ...(ordinary ? { authorThinkingLevel: { design: 'low', art: 'off', ...(budgetEligible ? { coding: 'off' } as const : {}) } as const, authorMaxRequests: { design: 32 }, designAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, artAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS,
+        ...(feedback && codeDraft ? { ordinaryCodeDraftFeedback: { taskId: codeDraft.proof.taskId, findings: feedback.findings } } : {}),
         ...(budgetEligible ? { ordinaryCodingDesignInput: task => selected(task, 'design') } : {}),
         ordinaryCodingReviewImageQuote: task => role(task) === 'coding',
         ordinaryArtDesignInput: task => {
@@ -1920,7 +1925,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Independently review the entire operator-fixed unreviewed media capture against the approved design, acceptance plan, original confirmation and host evidence. Report unresolved defects in the captured visuals, animations and audio.'];
     }
     if (codeDraft) host.taskPolicies.find(policy => policy.role === 'coding')!.rules!.push(
-      `Continue the editable, unreviewed code draft in your workspace: ${JSON.stringify([...codeDraft.files.keys()])}. Read its entry page and source modules together using parallel read calls. Wire any missing entry and run check-game-build as soon as the first buildable version is ready. Then complete and verify the remaining approved plan steps before handoff.`);
+      feedback ? `Continue the editable, unreviewed code draft. Existing sources: ${JSON.stringify([...codeDraft.files.keys()])}.`
+      : `Continue the editable, unreviewed code draft in your workspace: ${JSON.stringify([...codeDraft.files.keys()])}. Read its entry page and source modules together using parallel read calls. Wire any missing entry and run check-game-build as soon as the first buildable version is ready. Then complete and verify the remaining approved plan steps before handoff.`);
     if (!fixedArt && artDraft) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
       `Continue the operator-selected unreviewed draft already in ${ART_DRAFT_FILE}. Retain valid existing work and add the missing media. Initial roster: ${JSON.stringify(artDraft.roster)}. Read the current file before editing. The complete output requires host checks and independent review.`);
     if (!fixedArt && artDraft && 'overlays' in artDraft) {
