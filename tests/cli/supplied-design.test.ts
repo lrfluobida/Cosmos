@@ -208,6 +208,7 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
       assert.equal(config.maxOutputTokens, 65536);
       assert.ok(config.requestOutputLimit);
       if (role === 'art') {
+        assert.equal(config.thinkingLevel, 'off');
         const request = { requestId: 'historical-art-quote', modelId: 'deepseek-flash' as const, hasImages: false, inputBytes: 103857, maxOutputTokens: 65536 };
         assert.equal(await config.requestOutputLimit(request), 38723);
         const cost = { ...request, requestId: 'offline-prior-art-usage', inputBytes: 36762, maxOutputTokens: 8192, estimatedMaxCostMicroCny: 139060 };
@@ -302,8 +303,16 @@ test('public approved design resumes interrupted classic and render-frame input 
   const common = ['--requirements-from', original.root, '--requirements-revision', '2', '--max-cny', '2.30', '--max-minutes', '30'];
   const first: any = await runCli(['new', previous.root, ...common, '--design-input', supplied], { ...io(), host: previous.host });
   assert.equal(first.ordinaryDesignReview?.selectedVersion, 'v1', JSON.stringify(first.gaps));
+  const artRequests: any[] = [];
+  t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+    artRequests.push(await new Request(input, init).json());
+    const chunk = { id: 'offline-art', model: 'deepseek-flash', choices: [{ index: 0, delta: { content:
+      JSON.stringify({ summary: 'All media complete', remaining: [], uncertainty: [] }) }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 100, completion_tokens: 30, total_tokens: 130 } };
+    return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+  });
   const fresh = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
-    if (JSON.parse(config.context!).role === 'art') throw new Error('End test after fresh art dispatch.');
+    if (JSON.parse(config.context!).role === 'art') return createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-art' } });
     return fallback;
   } });
   const nativeExecute = fresh.host.execute;
@@ -321,6 +330,15 @@ test('public approved design resumes interrupted classic and render-frame input 
   await assert.rejects(runCli(['resume', fresh.root], runIO), /Fixed historical import record changed/);
   await writeFile(classicPath, classic);
   const result: any = await runCli(['resume', fresh.root], runIO);
+  assert.equal(artRequests.length, 1);
+  assert.deepEqual(artRequests[0].thinking, { type: 'disabled' });
+  assert.equal(Object.hasOwn(artRequests[0], 'reasoning_effort'), false);
+  assert.deepEqual(artRequests[0].tools.map((tool: any) => tool.function.name).sort(), ['edit', 'read', 'write']);
+  assert.equal(result.outcome, 'incomplete');
+  const art = (await json(fresh.root, 'snapshot.json')).tasks.find((task: any) => task.taskId === 'art-task');
+  assert.deepEqual(art.artifacts, []);
+  const failure = await json(art.attempts[0].sessionRef, 'failure.json');
+  assert.equal(failure.issues[0].checkId, 'role-output-missing_output');
   assert.deepEqual(fresh.packets.map(packet => packet.role), ['art'], JSON.stringify(result.gaps));
   assert.equal(result.historicalDesign.sourceRunId, first.runId);
 });
