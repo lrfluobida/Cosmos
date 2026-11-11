@@ -36,7 +36,7 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     '--approved-art-from', art.reference.location], { ...io(), host: previous.host });
   assert.equal(first.outcome, 'incomplete');
   const oldSnapshot = await readFile(join(previous.root, 'snapshot.json'));
-  const next = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, session) => {
+  const next = await ordinaryHostFixture(t, { ...options, fullToolchain: true, sessionFactory: async (config, session) => {
     const packet = JSON.parse(config.context!);
     if (packet.role !== 'coding') return session;
     assert.equal(config.maxRequests, 32);
@@ -68,8 +68,14 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
       type: 'function', function: { name, arguments: JSON.stringify(args) } });
     const calls = rounds === 0 ? [tool('read', { path: page }), tool('read', { path: helper }, 1)]
       : rounds === 1 ? [tool('edit', { path: helper, edits: [{ oldText: partial, newText: revised }] }),
-        tool('write', { path: entry, content: "import {status} from './helper'; document.querySelector('#status')!.textContent=status;" }, 1)] : [];
+        tool('write', { path: entry, content: "import {status} from './helper'; document.querySelector('#status')!.textContent=status;" }, 1)]
+      : rounds === 2 ? [tool('check-game-build', {})] : [];
     if (rounds === 1) assert.ok(results.some((item: any) => item.content.includes('等待')) && results.some((item: any) => item.content.includes('/src/main.ts')));
+    if (rounds === 3) {
+      const check = JSON.parse(results.at(-1).content);
+      assert.ok(check.passed, check.diagnostics);
+      assert.deepEqual(check.results.map((result: { code: number }) => result.code), [0, 0]);
+    }
     rounds++;
     const delta = calls.length ? { tool_calls: calls } : { content: JSON.stringify({ summary: 'Completed the entry and helper', remaining: [], uncertainty: [] }) };
     const chunk = { id: 'offline-code', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: calls.length ? 'tool_calls' : 'stop' }],
@@ -108,7 +114,7 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   const report = await resume();
   assert.equal(report.outcome, 'awaiting_user_experience', JSON.stringify(report.gaps));
   assert.deepEqual(next.packets.map(p => p.role), ['coding', 'reviewer']);
-  assert.equal(rounds, 3);
+  assert.equal(rounds, 4);
   assert.equal(await readFile(join(next.root, helper), 'utf8'), revised);
   const capture = JSON.parse(await readFile(join(next.root, 'registry/captures/game-source/v1/capture.json'), 'utf8'));
   assert.ok(capture.metadata.provenance.sourceRefs.includes(reference.artifactId + '@' + reference.version));
@@ -116,6 +122,6 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   const state = JSON.parse(await readFile(join(next.root, 'snapshot.json'), 'utf8'));
   assert.equal(state.ledger.limitMicroCny, 1060000);
   assert.deepEqual(state.ledger.allocations.map((row: any) => row.amountMicroCny), [0, 0, 954000]);
-  assert.ok(state.ledger.entries.length === 3 && state.ledger.entries.every((row: any) => row.status === 'settled'));
+  assert.ok(state.ledger.entries.length === 4 && state.ledger.entries.every((row: any) => row.status === 'settled'));
   await invoke(['settle', next.root]);
 }
