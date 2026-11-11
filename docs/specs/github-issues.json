@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261112-focused-57",
+      "latestLiveValidationCaseId": "room-20261112-retained-58",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6807702019",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -15018,7 +15018,7 @@
       "id": 6336999379,
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-215"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/215",
       "parentTaskId": "COS-213",
       "parentIssueNumber": 214,
@@ -15048,14 +15048,17 @@
       "title": "有界保留带反馈编码会话中的历史读取正文",
       "number": 216,
       "id": 6337631537,
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-216"],
+      "verifiedCompletedSubIssues": 0,
       "url": "https://github.com/lrfluobida/Cosmos/issues/216",
       "parentTaskId": "COS-214",
       "parentIssueNumber": 215,
       "parentIssueId": 6336999379,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-214",
@@ -15066,10 +15069,36 @@
       "implementer": "read_context_author",
       "reviewer": "r52_evidence",
       "merger": "r52_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "6a5ad77484b01840dfbc252bf7feea2255fc14c3",
+      "sourceIntegratedCommit": "b6b5be383aea0e61bb01a788d9c7ba07911cffeb",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/216#issuecomment-6807892972",
+      "verification": "主线构建通过，本机 SDK 4/4、带资 CLI 1/1 通过。R58 19 笔、26 次读取、0 写入，末稿与 R57 相同。"
+    },
+    {
+      "taskId": "COS-216",
+      "title": "为显式选定的反馈草稿作者持续提供真实初始源码",
+      "number": 217,
+      "id": 6337975999,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/217",
+      "parentTaskId": "COS-215",
+      "parentIssueNumber": 216,
+      "parentIssueId": 6337631537,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-215",
+          "number": 216,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/216"
+        }
+      ],
       "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 215,
+  "totalTaskCount": 216,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

@@ -2701,7 +2701,11 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-215 · 有界保留带反馈编码会话中的历史读取正文
 
-归属 #19，原生父卡 #215。R57 的带反馈编码作者读取 16 次，下笔因输出额度准入被拒。对该类会话中先前读取的长正文做有界保留，保留当前工具结果、写入、审批与完整原始 journal，以 SDK 实际将发送的数据核价。作者 `read_context_author`，独审 `r52_evidence`。 [R57 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6807702019) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/216)
+归属 #19，原生父卡 #215。R57 的带反馈编码作者读取 16 次，下笔因输出额度准入被拒。对该类会话中先前读取的长正文做有界保留，保留当前工具结果、写入、审批与完整原始 journal，以 SDK 实际将发送的数据核价。作者 `read_context_author`，独审 `r52_evidence` 批准 `6a5ad77`，主线合入 `b6b5be38`。真实 SDK 本机检查和带资 CLI 通过，R58 产生 26 次读取，正式候选未捕获。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/216#issuecomment-6807892972) [R57 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6807702019) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/216)
+
+### COS-216 · 为显式选定的反馈草稿作者持续提供真实初始源码
+
+归属 #19，原生父卡 #216。R58 反复读取后没有写入。为明确选择紧凑反馈草稿的编码作者持续提供已核实来源和范围的真实初始源码，同时保留实际编辑、读取、原 journal 和真实请求核价。只做离线实现与核验，R59 待独审和用户的新阶段报价决定。 [R58 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/217)
 
 ## 5. 任务与上下文包模板
 

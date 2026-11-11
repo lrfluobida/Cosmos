@@ -4,9 +4,15 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R58 在 `b6b5be38` 上以 ¥0.43 上限运行。19 笔请求、26 次工具读取、0 次写入，下笔因 `admission_rejected` 在派发前被拒。七份最终源码与 R57 逐字节一致，未产生正式候选，自动验收未通过。继续沿用原编译和 R56 的 Edge 观测。 [开发预览](.cosmos/public-validation/room-20261112-retained-58/development-preview/Play.cmd) · [R58 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539)
+
+本轮耗时 462,963 ms，19 笔共结算 ¥0.222169，释放 ¥0.207831。子修订 87、共享修订 3486，累计结算 ¥49.252921、历史待核占用 ¥2.206428、阶段余额 ¥0.210651。运行临时目录已清理。下一项通过离线修改让反馈草稿作者持续读取已核实的真实初始源码。R59 未启动，待独审及用户对新阶段报价的决定。 [闭账审计](.cosmos/public-validation/room-20261112-retained-58/closure-readonly-audit.json) · [后续修复](https://github.com/lrfluobida/Cosmos/issues/217)
+
+COS-215 已合入 `b6b5be38`，独审批准 `6a5ad77`。主线构建通过，真实 SDK 本机请求 4/4、带资 CLI 1/1 通过。独审回放 R57 第 11 笔输入从 173,141 降至 62,939 字节，加入历史写入、编辑及编译后的交接投影上限为 4,413 token。作者工作树已摘除两处依赖联接并清理，主仓和模板四个依赖入口完好。作者临时目录 `E:/develop/Cosmos-stage/r58-read-context-author` 的 148 个文件（3,758,734 字节）和 13 个下级目录仍保留，含一处指向已移除阶段夹具的联接。自动审批两次仅返回 `blocked by policy`。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/216#issuecomment-6807892972)
+
 R57 在 `046cb224` 上从 R56 最终七份源码和四条绑定反馈开始。普通编码作者执行 16 次读取，10 笔请求后，下笔因输出额度准入在发送前被拒。无源码改动、作者编译或候选捕获，自动验收未通过。末稿与 R56 逐字节相同，复用了原构建和 Edge 验证。 [开发预览](.cosmos/public-validation/room-20261112-focused-57/development-preview/Play.cmd) · [R57 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6807702019)
 
-本轮耗时 246,545 ms，10 笔结算 ¥0.103876，释放 ¥0.426124。子账本修订 51、共享修订 3484，累计结算 ¥49.030752、历史待核占用 ¥2.206428、阶段余额 ¥0.432820。运行临时目录已清理。R58 待有界保留旧读取正文的离线验证与实际请求核价回放后评估。 [闭账审计](.cosmos/public-validation/room-20261112-focused-57/closure-readonly-audit.json) · [历史读取正文修复任务](https://github.com/lrfluobida/Cosmos/issues/216)
+本轮耗时 246,545 ms，10 笔结算 ¥0.103876，释放 ¥0.426124。子账本修订 51、共享修订 3484，累计结算 ¥49.030752、历史待核占用 ¥2.206428、阶段余额 ¥0.432820。运行临时目录已清理。R58 在离线验证及回放后按 ¥0.43 上限运行。 [闭账审计](.cosmos/public-validation/room-20261112-focused-57/closure-readonly-audit.json) · [历史读取正文修复任务](https://github.com/lrfluobida/Cosmos/issues/216)
 
 R56 的《小屋寻物》开发预览可在装有 Node.js 22 的 Windows 上双击 [Play.cmd](.cosmos/public-validation/room-20261112-feedback-56/development-preview/Play.cmd) 启动。最终七份源码离线编译通过。独立 Edge 中六帧美术全部加载，SVG 404 从六个降到零，收集、开门胜利和跨浏览器进程读档均通过。精灵尺寸、收集后隐藏、HUD 与存档子节点仍有问题。原计划 s001 通过，s002 等待 10 秒仍未观测到音频 decoded。 [浏览器观测](.cosmos/public-validation/room-20261112-feedback-56/preview-smoke/observations.json) · [实测画面](.cosmos/public-validation/room-20261112-feedback-56/preview-smoke/after-door.png) · [最终源码复建](.cosmos/public-validation/room-20261112-feedback-56/final-draft-build.json)
 
