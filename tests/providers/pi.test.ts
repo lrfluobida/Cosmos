@@ -3,11 +3,13 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mock, test } from 'node:test';
+import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { createPiSession, createWorkspaceTools } from '../../src/providers/pi.ts';
 import { validationReservation } from '../../src/runtime/validation-validation.ts';
 import type { PiRequest } from '../../src/providers/pi.ts';
 
 const usage = { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40, prompt_cache_hit_tokens: 5 };
+const historicalScreenshot = new URL('../../docs/research/assets/c14-independent-gameplay.png', import.meta.url);
 const reply = (content = '完成', finish_reason = 'stop') => ({ delta: { content }, finish_reason });
 const call = (name: string, args: unknown, id = 'tool-1') => ({
   delta: { reasoning_content: '需要使用工具', tool_calls: [{ index: 0, id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] },
@@ -84,6 +86,84 @@ test('native DeepSeek request uses fixed model, low effort, explicit tools and r
   assert.equal(stateFiles.some(name => /auth|settings|models/.test(name)), false);
   const transcript = await readFile(session.sessionFile!, 'utf8');
   assert.equal(transcript.includes('offline-test-key'), false);
+});
+
+test('coding review quotes every screenshot in the final wire body, including tool results and correction history', async t => {
+  const f = await fixture(t, [call('read', { path: 'frame.png' }), reply(), reply(), reply()]);
+  const frame = { type: 'image' as const, mimeType: 'image/png', data: (await readFile(historicalScreenshot)).toString('base64') };
+  const imageOptions = { ordinaryCodingReviewImageQuote: true, estimatedMaxCostMicroCny: validationReservation, maxOutputTokens: 8192 };
+  const read = { ...f.config.tools.find(tool => tool.name === 'read')!, async execute() {
+    return { content: [{ type: 'text', text: '工具截图' }, frame], details: { hidden: 'not on wire' } };
+  } };
+  const session = await f.create({ ...imageOptions, tools: [read] });
+  await session.prompt('检查截图', { images: Array(8).fill(frame) });
+  await session.readonlyPrompt('纠正裁决');
+  await session.close();
+  await (await f.create({ ...imageOptions, resumeFile: session.sessionFile, tools: [read] })).prompt('复查原始记录');
+  for (const [index, body] of f.requests.entries()) {
+    const wire = JSON.stringify(body), images = wire.split(frame.data).length - 1;
+    assert.equal(images, index === 0 ? 8 : 9);
+    const request = f.admissions[index];
+    assert.equal(request.hasImages, true);
+    assert.ok(request.inputBytes >= frame.data.length * images);
+    const minimum = (Buffer.byteLength(wire.replaceAll(frame.data, '')) + images * 1024) * 2 + 8192 * 8;
+    assert.ok(request.estimatedMaxCostMicroCny >= minimum, 'entire wire non-image content plus every image and output');
+    assert.ok(request.estimatedMaxCostMicroCny < 200000, 'normal grant can admit these eight or nine historical screenshots');
+    assert.equal(request.requestId, f.settlements[index].requestId);
+    t.diagnostic(`turn ${index + 1}: ${images} screenshots, ${request.inputBytes} native bytes, reserve ${request.estimatedMaxCostMicroCny} micro-CNY`);
+  }
+  assert.equal(f.requests.length, 4);
+  assert.equal(f.requests[2].tools?.length ?? 0, 0);
+});
+
+for (const condition of ['one-frame', 'legacy', 'custom-transport', 'short-png', 'unknown-media', 'external-url', 'unknown-block', 'unknown-field', 'grown-text',
+  'above-context', 'changed-input', 'expired-window', 'sdk-error', 'changed-cap', 'timeout', 'low-balance'] as const) test(`screenshot admission at native HTTP boundary: ${condition}`, async t => {
+  const f = await fixture(t, [reply()]);
+  const createRuntime = ModelRuntime.create;
+  let runtime!: ModelRuntime;
+  t.mock.method(ModelRuntime, 'create', async (...args: Parameters<typeof createRuntime>) => (runtime = await createRuntime(...args)));
+  const data = (await readFile(historicalScreenshot)).toString('base64');
+  const frame = { type: 'image' as const, mimeType: condition === 'unknown-media' ? 'image/tiff' : 'image/png',
+    data: condition === 'short-png' ? data.slice(0, -32) : data };
+  const context = { messages: [{ role: 'user' as const, content: [frame], timestamp: 0 }] };
+  const session = await f.create({ ordinaryCodingReviewImageQuote: condition !== 'legacy', estimatedMaxCostMicroCny: validationReservation, maxOutputTokens: 8192,
+    ...(condition === 'timeout' ? { requestTimeoutMs: 50 } : {}),
+    requestWindow: async () => ({ deadlineAt: condition === 'expired-window' && f.admissions.length ? 1 : Date.now() + 30000, cleanupMs: 5000 }),
+    budget: { ...f.config.budget, beforeRequest: async (request: PiRequest) => {
+      f.admissions.push(request);
+      if (condition === 'changed-input') context.messages[0].content.push(frame);
+      if (condition === 'low-balance') throw Error('Remaining grant cannot cover this request');
+    } } });
+  const model = runtime.getModel('deepseek', 'deepseek-flash')!;
+  const message = await runtime.streamSimple(model, context, { ...(condition === 'custom-transport' ? { fetch: globalThis.fetch } : {}), async onPayload(payload) {
+    const body = payload as any;
+    if (condition === 'external-url') body.messages[0].content[0].image_url.url = 'https://example.invalid/unbounded.png';
+    if (condition === 'unknown-block') body.messages[0].content.push({ type: 'file', file_id: 'external' });
+    if (condition === 'unknown-field') body.extra_media = { file_id: 'external' };
+    if (condition === 'grown-text' || condition === 'above-context') body.messages.push({ role: 'system', content: '追加'.repeat(condition === 'grown-text' ? 8192 : 200000) });
+    if (condition === 'changed-cap') body.max_tokens++;
+    if (condition === 'sdk-error') throw Error('Cannot prepare request');
+    if (condition === 'timeout') await new Promise(resolve => setTimeout(resolve, 90));
+  } }).result();
+  const early = ['sdk-error', 'changed-cap', 'timeout'].includes(condition);
+  const unsent = early || ['changed-input', 'expired-window', 'low-balance'].includes(condition);
+  assert.equal(message.stopReason, unsent ? 'error' : 'stop');
+  assert.equal(f.requests.length, unsent ? 0 : 1);
+  assert.equal(f.admissions.length, early ? 0 : 1);
+  assert.equal(session.requestRecords.length, early || condition === 'low-balance' ? 0 : 1);
+  if (early) return;
+  if (unsent) {
+    assert.ok(f.admissions[0].estimatedMaxCostMicroCny < 100000);
+    assert.deepEqual(f.settlements.map(row => row.outcome), condition === 'low-balance' ? [] : ['not_sent']);
+  } else if (condition === 'one-frame') {
+    assert.ok(f.admissions[0].estimatedMaxCostMicroCny < 100000);
+    t.diagnostic(`one screenshot: reserve ${f.admissions[0].estimatedMaxCostMicroCny} micro-CNY`);
+  } else if (condition === 'grown-text') {
+    assert.ok(f.admissions[0].estimatedMaxCostMicroCny >= 8192 * 8 + 8192 * 6 * 2 + 1024 * 2);
+    assert.equal(f.requests[0].messages.at(-1).content.length, 16384);
+  } else {
+    assert.equal(f.admissions[0].estimatedMaxCostMicroCny, 2065536);
+  }
 });
 
 test('SDK executes tools, returns their results and reasoning, and restores the conversation', async t => {

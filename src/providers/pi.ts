@@ -8,6 +8,7 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { regularFile } from '../artifacts/paths.ts';
 import { requestInputBytes } from './request-input.ts';
+import { reviewImageInputTokens } from './review-image-quote.ts';
 import { PreservedDesignDraftError } from './workspace-tools.ts';
 import { successfulWriteExtension, successfulWriteNote, summaryWithoutThinking, type SuccessfulWriteCompaction } from './successful-write-compaction.ts';
 
@@ -78,6 +79,8 @@ export interface PiSessionOptions {
   readonlyMaxOutputTokens?: 4096;
   /** Selected only for the ordinary independent design reviewer. */
   ordinaryDesignReview?: true;
+  /** Ordinary coding reviewer only. Price its screenshot requests at the serialized HTTP boundary. */
+  ordinaryCodingReviewImageQuote?: true;
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   requestTimeoutMs: number;
   /** Trusted host authority, refreshed before admission and immediately before dispatch. */
@@ -204,7 +207,9 @@ export async function createPiSession(config: PiSessionOptions) {
       catch { throw fail('invalid_request', 'Native compaction output limit must be a positive safe integer'); }
       maxOutputTokens = Math.min(maxOutputTokens, 8192, options!.maxTokens!);
     }
-    const checkInput = config.requestOutputLimit || config.requestCompactionAdmission;
+    const hasImages = context.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image'));
+    const quoteWireImages = config.ordinaryCodingReviewImageQuote === true && !session.isCompacting && hasImages;
+    const checkInput = config.requestOutputLimit || config.requestCompactionAdmission || quoteWireImages;
     const requestContext = checkInput ? structuredClone(context) : context;
     const inputJson = JSON.stringify(requestContext);
     const requireUnchangedInput = () => {
@@ -213,7 +218,7 @@ export async function createPiSession(config: PiSessionOptions) {
     const request: Omit<PiRequest, 'estimatedMaxCostMicroCny'> = {
       requestId: randomUUID(), modelId: DEEPSEEK_MODEL, maxOutputTokens,
       inputBytes: requestInputBytes(requestContext),
-      hasImages: requestContext.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image')),
+      hasImages,
     };
     if (compaction && config.requestCompactionAdmission) {
       let decision: 'admit' | 'skip';
@@ -251,15 +256,19 @@ export async function createPiSession(config: PiSessionOptions) {
       requireUnchangedInput();
       request.maxOutputTokens = limit;
     }
-    const estimate = estimateRequest(request);
-    await effectiveRequestTimeout();
-    throwIfFailed();
-    if (closed || options?.signal?.aborted) throw fail('cancelled', 'Session was cancelled before admission');
-    try {
-      await config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: estimate });
-    } catch (error) {
-      throw admissionFailure(error, 'Budget admission rejected; no provider request sent');
+    let admitted = false;
+    async function admit(estimate: number) {
+      await effectiveRequestTimeout();
+      throwIfFailed();
+      if (closed || options?.signal?.aborted || callerSignal?.aborted) throw fail('cancelled', 'Session was cancelled before admission');
+      try {
+        await config.budget.beforeRequest({ ...request, estimatedMaxCostMicroCny: estimate });
+        admitted = true;
+      } catch (error) {
+        throw admissionFailure(error, 'Budget admission rejected; no provider request sent');
+      }
     }
+    if (!quoteWireImages) await admit(estimateRequest(request));
     const started = performance.now();
     let firstResponseMs: number | undefined;
     let responseModel: string | undefined;
@@ -267,7 +276,7 @@ export async function createPiSession(config: PiSessionOptions) {
     let sent = false;
     let reported = false;
     async function report(message?: AssistantMessage) {
-      if (reported) return;
+      if (!admitted || reported) return;
       reported = true;
       const knownUsage = message && receivedUsage;
       const knownCharge = knownUsage && responseModel === DEEPSEEK_MODEL;
@@ -300,9 +309,29 @@ export async function createPiSession(config: PiSessionOptions) {
           fail('timeout', 'Provider stream exceeded requestTimeoutMs');
           deadline.abort();
         }, requestTimeoutMs);
-        sent = true;
+        sent = !quoteWireImages;
+        let wireAttempted = false;
         const stream = originalStream(requestModel, requestContext, {
           ...options, signal, maxTokens: request.maxOutputTokens, maxRetries: 0, timeoutMs: requestTimeoutMs,
+          ...(quoteWireImages ? { fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+            // Pi 0.99.2 passes the final OpenAI request here, after onPayload and JSON serialization.
+            if (wireAttempted || typeof init?.body !== 'string') throw fail('invalid_request', 'Unexpected screenshot review transport.');
+            wireAttempted = true;
+            const wire = init.body, body = JSON.parse(wire);
+            if (body?.model !== request.modelId || body.max_tokens !== request.maxOutputTokens || 'max_completion_tokens' in body)
+              throw fail('invalid_request', 'Screenshot review model or output limit changed before dispatch.');
+            const url = input instanceof Request ? input.url : String(input);
+            const tokens = !options?.fetch && url === 'https://api.deepseek.com/chat/completions'
+              ? reviewImageInputTokens(body, Buffer.byteLength(wire)) : 1_000_000;
+            requireUnchangedInput();
+            await admit(tokens * 2 + request.maxOutputTokens * 8);
+            await effectiveRequestTimeout();
+            throwIfFailed();
+            if (closed || signal.aborted || init.signal?.aborted) throw fail('cancelled', 'Session was cancelled before dispatch');
+            requireUnchangedInput();
+            sent = true;
+            return (options?.fetch ?? globalThis.fetch)(input, { ...init, body: wire });
+          } } : {}),
           onPayload: config.jsonOutput ? async (payload, model) => {
             const replacement = await options?.onPayload?.(payload, model);
             const body = (replacement === undefined ? payload : replacement) as Record<string, unknown>;

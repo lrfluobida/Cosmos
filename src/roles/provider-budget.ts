@@ -44,7 +44,7 @@ export function requireAuthorReviewReserve(state: Awaited<ReturnType<AccountingC
 }
 
 /** Uses the existing run only. Every SDK request, including compaction, gets durable admission. */
-export function createRoleBudget(input: { controller: AccountingController; taskId: string; evidenceDirectory: string; recordRequest?: boolean; authorReviewReserve?: AuthorReviewReserve; validation?: { caseId: string; windowId: string; purpose: ValidationPurpose } }): PiBudget {
+export function createRoleBudget(input: { controller: AccountingController; taskId: string; evidenceDirectory: string; recordRequest?: boolean; cancelUnsentImageAdmission?: true; authorReviewReserve?: AuthorReviewReserve; validation?: { caseId: string; windowId: string; purpose: ValidationPurpose } }): PiBudget {
   const { controller, taskId, evidenceDirectory } = input;
   const validation = input.validation && structuredClone(input.validation);
   const reviewReserve = input.authorReviewReserve && { ...input.authorReviewReserve };
@@ -53,13 +53,14 @@ export function createRoleBudget(input: { controller: AccountingController; task
   return {
     async beforeRequest(request) {
       return controller.coordinateAccounting(async () => {
-      if (validation && !/^[\w-]+$/.test(request.requestId)) throw new Error('Invalid validation SDK request identity.');
+      const cancelUnsent = validation || input.cancelUnsentImageAdmission && request.hasImages;
+      if (cancelUnsent && !/^[\w-]+$/.test(request.requestId)) throw new Error('Invalid SDK request identity.');
       if (reviewReserve) { await reviewReserve.requireAuthority(); requireAuthorReviewReserve(await controller.read(), taskId, reviewReserve, request.estimatedMaxCostMicroCny); }
       await controller.reserve({ requestId: request.requestId, taskId, provider: 'deepseek', pricingVersion: ROLE_PRICING_VERSION, estimatedMaxCostMicroCny: request.estimatedMaxCostMicroCny,
         ...(validation ? { validation: { ...validation, modelId: request.modelId, maxOutputTokens: request.maxOutputTokens, inputBytes: request.inputBytes, hasImages: request.hasImages } } : {}) });
       try { await controller.admit(request.requestId); }
       catch (error) {
-        if (validation) {
+        if (cancelUnsent) {
           // The SDK cannot dispatch until this hook returns. This is host lifecycle evidence, not provider usage.
           const before = await controller.read(), entry = before.ledger.entries.find(entry => entry.requestId === request.requestId)!;
           await mkdir(evidenceDirectory, { recursive: true });

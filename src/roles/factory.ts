@@ -75,6 +75,7 @@ export interface RoleFactoryOptions {
   ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
   /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote down to the 4096 floor. */
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
+  ordinaryCodingReviewImageQuote?: (task: Readonly<TaskContract>) => boolean;
   /** Check the pinned operator inputs and staged author bytes before projecting the fixed handoff. */
   ordinarySuppliedDesign?: (input: Readonly<RoleInput>) => Promise<SuppliedDesignHandoff>;
   /** Trusted host selects an authenticated draft or the fixed same-run design revision. */
@@ -220,6 +221,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const maxRequests = authorRequestLimit ?? options.maxRequests;
     const authorTimeout = purpose === 'author' && (!validation || input.role === 'coding') ? authorTimeouts[input.role] : undefined;
     const authority = validation ? undefined : await input.controller.executionAuthority(task.taskId);
+    const codingReviewImageQuote = purpose === 'reviewer' && !validation && !authority?.windowId
+      && options.ordinaryCodingReviewImageQuote?.(freeze(structuredClone(task))) === true;
     if (input.designConcernReview && authority?.windowId) throw new Error('A continuation reviewer cannot acquire ordinary design candidate authority.');
     input.controller.signal.throwIfAborted();
     if (validation ? !validation.admissionAllowed : authority!.windowId && !authority!.admissionAllowed) throw new Error('Role task has no active execution window authority.');
@@ -381,8 +384,10 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       ...(designCompaction && options.ordinaryDesignRejectedWriteCompaction ? { compactRejectedDesignWrites: true as const } : {}),
       ...(reviewReserve ? { readonlyMaxOutputTokens: 4096 as const, ...(finalizationPolicy && !input.disableDesignFinalization ? { ordinaryDesignFinalizationPolicy: finalizationPolicy } : {}) } : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
+      ...(codingReviewImageQuote ? { ordinaryCodingReviewImageQuote: true as const } : {}),
       compactionKeepRecentTokens: designCompaction ? 8000 : options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,
+        ...(codingReviewImageQuote ? { cancelUnsentImageAdmission: true } : {}),
         ...(reviewReserve ? { authorReviewReserve: { runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId, allocationMicroCny: task.budget.allocationMicroCny,
           requireAuthority: () => requireOriginalAuthorBudget(recoveryBudget) } } : {}),
         ...(authorFloor === undefined && !designReviewBudget && !planningOutputBudget ? {} : { recordRequest: true }),
