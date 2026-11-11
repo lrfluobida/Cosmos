@@ -2689,7 +2689,11 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-212 · 普通带资 CLI 从真实已批准美术开始编码
 
-归属 #19，原生父卡 #198。R53 重审了 R52 已批准的美术，重新评审因准入被拒，未启动编码。普通带资 CLI 需将新运行绑定到同需求、同设计及同版媒体的真实独审批准，验证捕获内容与来源后从编码开始。作者 `approved_media_author`，独审 `r52_evidence`。 [R53 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6802325018) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/213)
+归属 #19，原生父卡 #198。R53 重审了 R52 已批准的美术，重新评审因准入被拒，未启动编码。普通带资 CLI 需将新运行绑定到同需求、同设计及同版媒体的真实独审批准，验证捕获内容与来源后从编码开始。作者 `approved_media_author`，独审 `r52_evidence` 批准 `eaec08b`，主线合入 `835afa79`。主线构建和带资 CLI 2/2 通过，R54 成功从批准美术进入编码。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/213#issuecomment-6803486608) [R53 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6802325018) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/213)
+
+### COS-213 · 普通带资编码从真实源码草稿续写并完成编译
+
+归属 #19，原生父卡 #213。R54 产生三个源码文件，触及请求上限前未完成编译。新运行须在同需求、同版设计和媒体下绑定真实编码草稿及来源内容，继续写入并提交真实编译检查，保留候选的宿主验收与独审。 [R54 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6803759843) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/214)
 
 ## 5. 任务与上下文包模板
 

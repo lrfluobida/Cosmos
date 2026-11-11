@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261112-coding-53",
+      "latestLiveValidationCaseId": "room-20261112-approved-media-54",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6802325018",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6803759843",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14462,7 +14462,7 @@
       "id": 6320343769,
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-212"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/198",
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
@@ -14947,14 +14947,17 @@
       "title": "普通带资 CLI 从真实已批准美术开始编码",
       "number": 213,
       "id": 6333458324,
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-213"],
+      "verifiedCompletedSubIssues": 0,
       "url": "https://github.com/lrfluobida/Cosmos/issues/213",
       "parentTaskId": "COS-197",
       "parentIssueNumber": 198,
       "parentIssueId": 6320343769,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-197",
@@ -14970,10 +14973,36 @@
       "implementer": "approved_media_author",
       "reviewer": "r52_evidence",
       "merger": "r52_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "eaec08bdc43451f231770d4c0e10dfaa0240b7c6",
+      "sourceIntegratedCommit": "835afa79fdd4ac0e757c5d03f5583f8c81eb11f7",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/213#issuecomment-6803486608",
+      "verification": "主线构建及普通带资 CLI 2/2 通过。R52 原生批准可复用，R53 未审媒体被拒，R54 从已批准来源仅派发编码。"
+    },
+    {
+      "taskId": "COS-213",
+      "title": "普通带资编码从真实源码草稿续写并完成编译",
+      "number": 214,
+      "id": 6334560617,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/214",
+      "parentTaskId": "COS-212",
+      "parentIssueNumber": 213,
+      "parentIssueId": 6333458324,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-212",
+          "number": 213,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/213"
+        }
+      ],
       "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 212,
+  "totalTaskCount": 213,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

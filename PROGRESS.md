@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R54 在冻结主线 `835afa79` 复用 R52 的已批准美术和 R43 的已批准设计，仅派发编码作者。16 笔请求均未产生推理 token，生成 `index.html`（7,510 字节）、`src/audioObserve.ts`（9,279 字节）和 `src/game.ts`（3,742 字节）。第 17 笔在派发前因请求上限被拒。草稿缺少 `src/main.ts`，未编译、未进入浏览器或独审，无可试玩候选，自动验收未通过。 [R54 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6803759843) · [编码草稿续写](https://github.com/lrfluobida/Cosmos/issues/214)
+
+本轮上限 ¥1.31 / 30 分钟，耗时 281,912 ms。16 笔结算 ¥0.247243，释放 ¥1.062757。子账本修订 75、共享修订 3478，累计已结算 ¥48.397471、历史待核占用 ¥2.206428、阶段余额 ¥1.066101。草稿清单和各文件哈希见 `.cosmos/public-validation/room-20261112-approved-media-54/coding-evidence.json`。闭账审计已保留，运行临时目录已清理。
+
+COS-212 已合入 `835afa79`，独审批准 `eaec08b`。普通带资 CLI 可以通过 `--approved-art-from` 从同需求、同设计的已批准媒体开始编码。独审核实 R52 的 16 份捕获文件均对应原生批准；R53 相同字节因缺少批准被拒。主线构建及带资 CLI 用例 2/2 通过，覆盖中断恢复、修复、篡改拒绝、资金结算和原草稿回归。README 已补充实际用例和预算分配。作者工作树的两处依赖联接已验证并摘除，工作树已删除，主仓与模板依赖入口完整。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/213#issuecomment-6803486608)
+
 R53 在主线 `d8b42664` 使用 R52 已批准的同一固定美术稿。固定稿入口重新捕获媒体并通过主机检查，原生美术独审读取 13 次，下一笔在派发前因 `admission_rejected` 停止。当时美术分配 ¥0.433038，剩余 ¥0.350382。本轮未取得裁决，编码未启动，无可试玩候选，自动验收未通过。 [R53 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6802325018) · [复用已批准媒体](https://github.com/lrfluobida/Cosmos/issues/213)
 
 本轮上限 ¥1.39 / 30 分钟，耗时 78,825 ms。4 笔共结算 ¥0.082656，释放 ¥1.307344。子账本修订 31、共享修订 3476，累计已结算 ¥48.150228、历史待核占用 ¥2.206428、阶段余额 ¥1.313344。完成、准入与闭账审计保存在 `.cosmos/public-validation/room-20261112-coding-53/`，本轮运行临时目录已清理。
