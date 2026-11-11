@@ -14747,6 +14747,9 @@
       "number": 207,
       "id": 6323933818,
       "url": "https://github.com/lrfluobida/Cosmos/issues/207",
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-207"],
+      "verifiedCompletedSubIssues": 0,
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
@@ -14772,9 +14775,39 @@
       "liveVerification": "免费三源选材，R47 基础稿搭配 R48 钥匙和 R45 齿轮。Edge 检查通过 7/8，仅齿轮 6 格各多 2 至 6 个红像素。未审素材，未发模型请求。",
       "selectionVersion": "7255506a4c78bcd71191d758553267729eadd735ebfe2116ff78359f7c4db2df",
       "selectedDraftSha256": "0d3b2886650187b4b48a66320aec80eec5b1eb6c847d4f8dee16649fe73279a1"
+    },
+    {
+      "taskId": "COS-207",
+      "title": "在固定形色验收下对未审素材做有界图层几何拟合",
+      "number": 208,
+      "id": 6326333830,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/208",
+      "parentTaskId": "COS-206",
+      "parentIssueNumber": 207,
+      "parentIssueId": 6323933818,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-206",
+          "number": 207,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/207"
+        },
+        {
+          "id": "COS-200",
+          "number": 201,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/201"
+        }
+      ],
+      "implementer": "fit_implementer",
+      "reviewer": "fit_reviewer",
+      "merger": "r49_merger",
+      "sourceReviewStatus": "PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 206,
+  "totalTaskCount": 207,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
