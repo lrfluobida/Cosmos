@@ -14854,7 +14854,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/210",
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-210"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "parentTaskId": "COS-207",
       "parentIssueNumber": 208,
       "parentIssueId": 6326333830,
@@ -14888,9 +14888,9 @@
       "parentIssueNumber": 210,
       "parentIssueId": 6328442964,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-209",
@@ -14901,7 +14901,11 @@
       "implementer": "art_verdict_author",
       "reviewer": "art_verdict_reviewer",
       "merger": "r51_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "40ce15a50d1415bd4f73905d54dd756575c589c3",
+      "sourceIntegratedCommit": "9166429516b25631aa8fd0c6590dc7921ab9fb2c",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/211#issuecomment-6796760215",
+      "verification": "主线构建通过。固定稿公开 CLI 在本机 HTTP 发送 1 笔作者请求和 4 笔独审请求。独审保留 read、8192 上限，关闭推理且省略 effort；真实文件读回、格式纠正、批准与要求修改均经离线验证。真实裁决待新运行。"
     }
   ],
   "verifiedNativeSubIssues": 100,
