@@ -4,15 +4,21 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R49 已闭账。阶段上限经批准调至 ¥51.67，单次运行上限 ¥2.30 / 30 分钟。美术作者在 603,078 ms 内用完 32 笔请求，因 `request_limit` 停止。32 笔已知费用共 ¥0.183401，释放 ¥2.116599。子账本修订 153、共享修订 3468，累计已结算 ¥47.345168、占用 ¥2.206428，阶段余额 ¥2.118404。美术稿未捕获，原生美术独审和编码均未开始，无游戏候选，自动验收未通过。 [运行与资金结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788800426)
+
+R49 从 R47 草稿与 R48 钥匙的组合开始，初始 Edge 形色检查通过 7/8，只有齿轮失败 18 格。写入保护拦下会丢失素材的整稿覆盖，作者完成 10 次精确编辑。水晶曾达到 0 个失败格，终稿水晶 2 格、齿轮 13 格。独立 Edge 终稿检查通过 6/8，钥匙、门的两种状态与三项清空检查通过，三段音频均可合成为非静音。 [写入保护](https://github.com/lrfluobida/Cosmos/issues/205#issuecomment-6788800411) · [选材与实测](https://github.com/lrfluobida/Cosmos/issues/206#issuecomment-6788800442)
+
+R49 结案后的免费选材以 R47 为基础，仅换入 R49 的钥匙与齿轮。新引用 `3da5a2fe1eb5830ed75ea80837b19eaa46d021ecd2b067d07a0ab447dffd8e76`，合成稿 SHA-256 为 `a3d48edf3be880fe460c0bf5d199acee4097566ea5773aa847ec75a091db0c85`。固定位置的 Edge 形色检查通过 7/8，仅齿轮失败 13 格。该样本保留为未审草稿。预览的 6 帧 SVG、3 段 WAV 及 `visual-audit.json` 位于 `.cosmos/planning/r49-art-review/preview/`。运行和预览临时目录已清理，闭账审计保存在 `.cosmos/public-validation/room-20261111-art-selection-49/closure-readonly-audit.json`。
+
 R48 已结案。美术作者复用 R43 获批设计和 R47 未审草稿，一度修好钥匙，随后整稿写入丢失水晶。末稿恢复了门，只余 4 项视觉、3 项音频；钥匙实测 0 个失败格，齿轮仍有 37 格。第 14 笔投影输入 127,492 字节，最低报价 ¥0.320520，超过美术余额 ¥0.280152 共 ¥0.040368，在派发前被拒。共发 13 笔，未触及 32 笔上限；未捕获、未独审、未进入编码，无可玩游戏。 [运行与资金结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788757844) · [请求次数边界](https://github.com/lrfluobida/Cosmos/issues/204#issuecomment-6788757879)
 
 R48 上限 ¥1.52 / 30 分钟，耗时 312,233 ms。13 笔已知费用共 ¥0.193386，释放 ¥1.326614。子账本修订 68、共享修订 3465，累计已结算 ¥47.161767、占用 ¥2.206428，阶段余额 ¥1.331805。运行临时目录已清理，原始工作稿与结算证据保留。
 
 普通美术工作稿在 write/edit 前保护既有可渲染素材，独审批准 `1afdadb`，合入 `77583e4`。同一批准设计下，两份未审草稿可按明确的素材 ID 组成新输入；独审批准 `0bb5a78`，主线合入 `bea1a64`。两处源码冲突经作者和独审核对组合树 `9efbccc`。主线构建、单源与双源 funded CLI 均通过。第一次守卫单独集成时公开 CLI 有一次失败，最终组合的两条通过记录保存在 `.cosmos/planning/r48-visual-repair/integration/`。 [写入保护](https://github.com/lrfluobida/Cosmos/issues/205#issuecomment-6788800411) · [两源选材](https://github.com/lrfluobida/Cosmos/issues/206#issuecomment-6788800442)
 
-主线编译版以 R47 为基础，只替换 R48 的钥匙。选择引用为 `6230a28d4dfddd2668131860de58e35b1e94556b2a9f63f5db0f5442206b9f3b`，工作稿 SHA-256 为 `9aab300fc8a3e32cad3d8a8fa92235b3a8f3520afd22094e4288b24a31efc6b4`。该未审样本在真实 Edge 离线检查中通过 7/8，只有齿轮还差 18 格。可打开本地 `.cosmos/planning/r48-visual-repair/preview/index.html` 查看并试听；6 帧 SVG、3 个 WAV 与编译版从组合工作稿生成的字节相符。修复后未再实跑，尚无正式美术批准或游戏候选。 [选材实证](https://github.com/lrfluobida/Cosmos/issues/201#issuecomment-6788757851)
+主线编译版以 R47 为基础，只替换 R48 的钥匙。选择引用为 `6230a28d4dfddd2668131860de58e35b1e94556b2a9f63f5db0f5442206b9f3b`，工作稿 SHA-256 为 `9aab300fc8a3e32cad3d8a8fa92235b3a8f3520afd22094e4288b24a31efc6b4`。该未审样本在真实 Edge 离线检查中通过 7/8，只有齿轮还差 18 格。可打开本地 `.cosmos/planning/r48-visual-repair/preview/index.html` 查看并试听；6 帧 SVG、3 个 WAV 与编译版从组合工作稿生成的字节相符。该组合随后用于 R49。 [选材实证](https://github.com/lrfluobida/Cosmos/issues/201#issuecomment-6788757851)
 
-当前仅有只读预算提案，拟将阶段上限从 ¥50.70 提至 ¥51.67，以预留一次 ¥2.30 / 30 分钟的运行。按 R48 的同轨费用，¥1.33 时美术分配 ¥0.414346，扣除 ¥0.193386 后，比末笔最低报价 ¥0.320520 少 ¥0.099560；¥2.30 时同轨预留后可余 ¥0.202632。提案尚未应用，R49 未发起。 [测算记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788800426)
+R49 批准前曾用 R48 的同轨费用测算阶段预算。¥1.33 时美术分配 ¥0.414346，扣除 ¥0.193386 后，比末笔最低报价 ¥0.320520 少 ¥0.099560；¥2.30 时同轨预留后可余 ¥0.202632。 [测算与实际结算](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788800426)
 
 普通美术作者的请求上限已从 16 调至 32，独审批准 `0466640`，主线合入 `c156c7e`。主线构建和两个定向检查通过；原生 SDK 在第 33 笔传输与记账前拒派，普通角色接线验证了美术上限 32、原 600,000 ms 时限及其他角色的原配置。已有的 7 项离线检查及正常公开 CLI 证据保留。 [源码批准与验证](https://github.com/lrfluobida/Cosmos/issues/204#issuecomment-6788139267)
 

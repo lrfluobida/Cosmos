@@ -681,6 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
+      "latestLiveValidationCaseId": "room-20261111-art-selection-49",
+      "latestLiveValidationStatus": "closed-incomplete",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788800426",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14701,7 +14704,9 @@
       "combinedTree": "9efbcccfad2dcff94958adabd7207f48c0854684",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/205#issuecomment-6788800411",
       "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788757844",
-      "verification": "主线构建通过，单源和双源 funded CLI 均验证写前守卫。实际原生选材样本拒绝删水晶，合法编辑齿轮保留其余七项。修后实际生成待验证。"
+      "verification": "主线构建通过，单源和双源 funded CLI 均验证写前守卫。实际原生选材样本拒绝删水晶，合法编辑齿轮保留其余七项。",
+      "liveVerification": "R49 的写入保护拦截了会丢失素材的整稿覆盖，允许 10 次精确编辑。作者用完 32 笔请求后未能交接。终稿独立 Edge 检查通过 6/8，水晶失败 2 格，齿轮失败 13 格。",
+      "liveVerificationComment": "https://github.com/lrfluobida/Cosmos/issues/205#issuecomment-6788800411"
     },
     {
       "taskId": "COS-205",
@@ -14732,7 +14737,9 @@
       "combinedTree": "9efbcccfad2dcff94958adabd7207f48c0854684",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/206#issuecomment-6788800442",
       "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788757844",
-      "verification": "组合树经作者与独审复核后，构建及单源/双源 funded CLI 2/2 通过。编译版只读真实选择引用 6230a28d…，工作稿 9aab300f…；离线素材 7/8，仅齿轮 18 格。修复后未实跑。"
+      "verification": "组合树经作者与独审复核后，构建及单源/双源 funded CLI 2/2 通过。编译版只读真实选择引用 6230a28d…，工作稿 9aab300f…；离线素材 7/8，仅齿轮 18 格。",
+      "liveVerification": "R49 的起始稿与该组合逐字节一致。结案后从 R47 基础稿仅选入 R49 的钥匙与齿轮，另做免费 Edge 检查，通过 7/8，仅齿轮失败 13 格。该选材样本仍待原生美术独审。",
+      "liveVerificationComment": "https://github.com/lrfluobida/Cosmos/issues/206#issuecomment-6788800442"
     }
   ],
   "verifiedNativeSubIssues": 100,
