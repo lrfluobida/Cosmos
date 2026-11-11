@@ -1,11 +1,11 @@
-import { writeFile } from 'node:fs/promises';
+import { captureFixedHostFile } from './fixed-host-input.ts';
 import { dirname, join } from 'node:path';
 import { cpus, platform, release, totalmem } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import type { ArtifactReference, TaskContract } from '../contracts/types.ts';
 import type { ArtifactRegistry } from '../artifacts/index.ts';
-import { directory, regularFile } from '../artifacts/paths.ts';
+import { regularFile } from '../artifacts/paths.ts';
 import { validationHash } from './validation-validation.ts';
 import { RENDER_OBSERVER_MODULE, assessRenderFrames } from '../acceptance/render-frames.ts';
 import type { RenderFrameRequest } from '../acceptance/render-frames.ts';
@@ -22,15 +22,14 @@ export function renderFrameBuildArguments(toolchain: string, enabled: boolean): 
 }
 
 /** Selected source module is copied once to a host capture, never to author writable paths. */
-export async function createRenderFrameScope(input: { root: string; registry: ArtifactRegistry; template: ArtifactReference; resume: boolean }) {
+export async function createRenderFrameScope(input: { root: string; registry: ArtifactRegistry; template: ArtifactReference; resume: boolean; recoverInputs?: boolean }) {
   const { root, registry } = input, ref = registry.artifactRef('render-frame-observer', 'v1');
   const source = fileURLToPath(new URL('../../templates/rendering/render-frame-observer.ts', import.meta.url)), bytes = await regularFile(fileURLToPath(new URL('../../templates/rendering/', import.meta.url)), 'render-frame-observer.ts');
   new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   if (!input.resume) {
-    const folder = await directory(root, 'host-render-frame-observer'); await writeFile(join(folder, 'render-frame-observer.ts'), bytes, { flag: 'wx' });
-    await registry.registerCapture({ taskId: 'host-render-frame-observer', artifactRef: ref, sourceRoot: 'host-render-frame-observer',
+    await captureFixedHostFile(root, registry, { taskId: 'host-render-frame-observer', artifactRef: ref, sourceRoot: 'host-render-frame-observer',
       files: [{ source: 'render-frame-observer.ts', destination: OBSERVER_SOURCE }], dependencies: [input.template], ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] },
-      metadata: { kind: 'code', provenance: { kind: 'original-procedural', generator: 'Cosmos native Phaser rendered-frame observer', sourceRefs: [source, `${input.template.artifactId}@${input.template.version}`] } } });
+      metadata: { kind: 'code', provenance: { kind: 'original-procedural', generator: 'Cosmos native Phaser rendered-frame observer', sourceRefs: [source, `${input.template.artifactId}@${input.template.version}`] } } }, bytes, input.recoverInputs);
   }
   const capture = await registry.getCapture(ref);
   const requireCurrent = async (project?: string) => {

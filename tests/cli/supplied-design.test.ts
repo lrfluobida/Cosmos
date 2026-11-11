@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import test from 'node:test';
@@ -268,4 +268,44 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
   const funded = await json(f.runRoot, 'snapshot.json');
   assert.deepEqual(funded.designDraftReview, state.designDraftReview);
   assert.equal(funded.validationFunding.fundingId, 'supplied');
+});
+
+test('public approved design resumes interrupted classic and render-frame input setup', async t => {
+  const options = { productionDefault: true, persistent: true, configure(draft: { benchmark?: string }) { draft.benchmark = 'classic-pc-runtime-policy/1'; } };
+  const previous = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
+    const role = JSON.parse(config.context!).role;
+    if (role === 'design') return { ...fallback, prompt: async () => ({ text: JSON.stringify({ summary: 'Fixed supplied files', remaining: [], uncertainty: [] }) }) };
+    if (role === 'art') throw new Error('Stop the original after design approval.');
+    return fallback;
+  } });
+  const original = await confirmedSource(t, { draft: previous.draft, frames: true });
+  const supplied = join(original.root, 'supplied'); await mkdir(supplied);
+  await writeFile(join(supplied, 'design.json'), JSON.stringify({ summary: 'Target', implementationNotes: ['Click it'], acceptanceMapping: { light: 'Click the target' },
+    experienceMapping: { readable: 'Visible status' }, characters: [{ id: 'target', purpose: 'Target', states: ['idle'] }], audio: [] }));
+  await writeFile(join(supplied, 'acceptance-plan.json'), JSON.stringify({ formatVersion: 'ordinary-acceptance-plan/1', requirement: {
+    artifactId: 'requirement-bundle', version: 'v2', location: 'registry/captures/requirement-bundle/v2/files' }, scenario: previous.scenario }));
+  const common = ['--requirements-from', original.root, '--requirements-revision', '2', '--max-cny', '2.30', '--max-minutes', '30'];
+  const first: any = await runCli(['new', previous.root, ...common, '--design-input', supplied], { ...io(), host: previous.host });
+  assert.equal(first.ordinaryDesignReview?.selectedVersion, 'v1', JSON.stringify(first.gaps));
+  const fresh = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
+    if (JSON.parse(config.context!).role === 'art') throw new Error('End test after fresh art dispatch.');
+    return fallback;
+  } });
+  const nativeExecute = fresh.host.execute;
+  fresh.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => {
+    await createBrowserHost({ ...hostInput, ...fresh.hostOptions });
+    throw new Error('Interrupted after optional captures.');
+  } });
+  const runIO = { ...io(), host: fresh.host };
+  await assert.rejects(runCli(['new', fresh.root, ...common, '--approved-design-from', previous.root], runIO), /Interrupted after optional captures/);
+  fresh.host.execute = nativeExecute;
+  const observer = join(fresh.root, 'registry/captures/render-frame-observer/v1');
+  await rename(observer, join(fresh.root, 'interrupted-observer-fixture'));
+  const classicPath = join(fresh.root, 'host-classic-policy/reference/reference.json'), classic = await readFile(classicPath);
+  await writeFile(classicPath, Buffer.concat([classic, Buffer.from(' ')]));
+  await assert.rejects(runCli(['resume', fresh.root], runIO), /Fixed historical import record changed/);
+  await writeFile(classicPath, classic);
+  const result: any = await runCli(['resume', fresh.root], runIO);
+  assert.deepEqual(fresh.packets.map(packet => packet.role), ['art'], JSON.stringify(result.gaps));
+  assert.equal(result.historicalDesign.sourceRunId, first.runId);
 });

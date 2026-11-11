@@ -12,7 +12,7 @@ import type { OrdinaryExecution } from './entrypoint-design-revision.ts';
 import { ordinaryDraftSha256 } from './ordinary-profile-source.ts';
 import { selectSuppliedDesign, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { fundingDesignDraftReview } from './reviewed-design-draft.ts';
-import { publishReceiptBytes } from './recovery/receipt-file.ts';
+import { publishMatchingBytes } from './fixed-host-input.ts';
 import type { RunSnapshot } from './run-types.ts';
 
 export const APPROVED_DESIGN = 'ordinary-approved-design';
@@ -53,12 +53,6 @@ export async function selectApprovedDesign(location: string, requirements: Confi
   return { proof: { ...proof, source: reference }, reference, selection, acceptanceIds: task.acceptanceIds, dependencies, manifestPath, manifest, files };
 }
 export type ApprovedDesign = Awaited<ReturnType<typeof selectApprovedDesign>>;
-
-export async function publishMatchingBytes(root: string, name: string, bytes: Buffer) {
-  const prior = await regularFile(root, name).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
-  if (prior && !prior.equals(bytes)) throw new Error('Fixed historical import record changed: ' + name);
-  if (!prior) await publishReceiptBytes(join(root, name), bytes);
-}
 
 /** Import only the original immutable design capture and retain its original manifest. */
 export async function checkApprovedDesignImport(root: string, source: ApprovedDesign, create = false) {

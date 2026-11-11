@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { captureFixedHostFile } from './fixed-host-input.ts';
+import { mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
@@ -42,7 +43,7 @@ interface Execution { series: GenericPersistentAcceptanceSeries; ready: { pid: n
 
 /** Only the host reads the source catalog and binds the original confirmed inputs. */
 export async function createClassicPolicyScope(input: { root: string; registry: ArtifactRegistry; requirement: RequirementContract;
-  draft: BrowserGameDraft | OrdinaryGameDraft; requirementCapture: ArtifactReference; resume: boolean; sourceRoot?: string; scenario?(design: ArtifactReference): Promise<BrowserScenario> }) {
+  draft: BrowserGameDraft | OrdinaryGameDraft; requirementCapture: ArtifactReference; resume: boolean; recoverInputs?: boolean; sourceRoot?: string; scenario?(design: ArtifactReference): Promise<BrowserScenario> }) {
   const { root, registry, requirement, requirementCapture } = input, draft = structuredClone(input.draft);
   if (draft.benchmark !== 'classic-pc-runtime-policy/1' || (draft.ordinaryProfile ? !input.scenario : !draft.scenario.reopen)) throw new Error('Classic policy selection or normal reopen is missing.');
   const scenario = async (design: ArtifactReference) => {
@@ -55,11 +56,10 @@ export async function createClassicPolicyScope(input: { root: string; registry: 
   const captures: Capture[] = [];
   for (const [index, name] of ['reference', 'catalog'].entries()) {
     if (!input.resume) {
-      const folder = await directory(root, `${source}/${name}`); await writeFile(join(folder, `${name}.json`), bytes[index], { flag: 'wx' });
-      await registry.registerCapture({ taskId: 'host-classic-policy', artifactRef: refs[index], sourceRoot: `${source}/${name}`,
+      await captureFixedHostFile(root, registry, { taskId: 'host-classic-policy', artifactRef: refs[index], sourceRoot: `${source}/${name}`,
         files: [{ source: `${name}.json`, destination: `_cosmos/classic/${name}.json` }], dependencies: [requirementCapture],
         ownership: { writePaths: ['_cosmos/classic'], readOnlyPaths: [] }, metadata: { kind: 'data',
-          provenance: { kind: 'original-procedural', generator: 'Cosmos fixed provisional classic policy source', sourceRefs: requirement.sources.map(ref => `${ref.artifactId}@${ref.version}`) } } });
+          provenance: { kind: 'original-procedural', generator: 'Cosmos fixed provisional classic policy source', sourceRefs: requirement.sources.map(ref => `${ref.artifactId}@${ref.version}`) } } }, bytes[index], input.recoverInputs);
     }
     captures.push(await registry.getCapture(refs[index]));
   }

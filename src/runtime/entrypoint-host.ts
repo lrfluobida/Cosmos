@@ -35,7 +35,8 @@ import { diagnosePersistentBrowser } from './adapters/transfer/persistent-diagno
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
-import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, publishMatchingBytes, selectApprovedDesign } from './approved-design-source.ts';
+import { publishMatchingBytes } from './fixed-host-input.ts';
+import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readReviewedDesignDraft } from './reviewed-design-draft.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
@@ -478,9 +479,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const name = (value: string) => validation ? `${validation.caseId}-${value}` : value;
   const template = inherited?.template ?? registry.artifactRef(name('generic-template'), 'v1'), requirements = registry.artifactRef(name('requirement-bundle'), requirement.sources[0].version);
   const captures = [...(inherited ? [template, inherited.requirementCapture] : [template]), requirements], provenance = { kind: 'original-procedural' as const, generator: 'Cosmos trusted host inputs', sourceRefs: requirement.sources.map(ref => `${ref.artifactId}@${ref.version}`) };
-  if (input.resume) {
+  if (input.resume || importedDesign) {
     const lock = await lstat(join(root, 'registry/.commit.lock')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
     if (lock) await registry.recoverOwnership();
+  }
+  if (input.resume) {
     await registry.getCapture(template); await registry.getCapture(requirements);
   }
   else {
@@ -506,7 +509,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     requirementCapture: requirements, dependencies: captures }) : undefined;
   if (ordinary) await ordinary.requireCurrent();
   const classic = !preparation && !validation && (draft as BrowserGameDraft).benchmark
-    ? await createClassicPolicyScope({ root, registry, requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft | OrdinaryGameDraft, requirementCapture: requirements, resume: input.resume, sourceRoot: input.classicSourceRoot,
+    ? await createClassicPolicyScope({ root, registry, requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft | OrdinaryGameDraft, requirementCapture: requirements, resume: input.resume, recoverInputs: !!importedDesign, sourceRoot: input.classicSourceRoot,
       ...(ordinary ? { scenario: async design => (await ordinary.approved(design)).scenario } : {}) }) : undefined;
   if (classic) captures.push(...classic.refs);
   const classicEntries = classic && (draft as BrowserGameDraft).classicEntry ? await createClassicEntryScope({ root, registry,
@@ -514,7 +517,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     ...(ordinary ? { scenario: async design => (await ordinary.approved(design)).scenario } : {}),
     sourceRoot: input.classicSourceRoot, resume: input.resume }) : undefined;
   if (classicEntries) captures.push(...classicEntries.refs);
-  const frames = input.renderFrames ? await createRenderFrameScope({ root, registry, template, resume: input.resume }) : undefined;
+  const frames = input.renderFrames ? await createRenderFrameScope({ root, registry, template, resume: input.resume, recoverInputs: !!importedDesign }) : undefined;
   if (frames) captures.push(frames.ref);
   if (importedDesign) {
     if (!sameValue(importedDesign.dependencies.map(item => item.ref), captures)) throw new Error('Historical design capture dependency references changed.');
