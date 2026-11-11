@@ -4,7 +4,9 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-#207 已登记。R45 齿轮失败 6 格，R47 基础稿搭配 R49 的钥匙、齿轮时齿轮失败 13 格。COS-206 扩展既有未审草稿选材入口，允许从同一批准设计的有界多份工作稿按明确来源选取整项素材。作者 `layered_selection_author`，独审 `layered_selection_review`。 [任务与验收范围](https://github.com/lrfluobida/Cosmos/issues/207)
+COS-206 已合入主线 `cee037b`。美术选材清单 v2 支持从一个基础稿和 1 至 4 个同一批准设计的覆盖稿中，按明确的来源和 ID 选取整项素材。独审 `layered_selection_review` 批准 `0684fd7`，核对了两份旧 v1 引用、15 个拒绝用例及三源工作稿。五个集成文件与批准版本一致，主线构建通过。 [源码审查与验证](https://github.com/lrfluobida/Cosmos/issues/207#issuecomment-6790329956)
+
+主线编译版以 R47 为基础，选入 R48 钥匙和 R45 齿轮。免费 Edge 形色检查通过 7/8，仅齿轮的 6 个格子各多出 2 至 6 个红像素。选择引用 `7255506a4c78bcd71191d758553267729eadd735ebfe2116ff78359f7c4db2df`，工作稿 SHA-256 为 `0d3b2886650187b4b48a66320aec80eec5b1eb6c847d4f8dee16649fe73279a1`。6 帧 SVG、3 段 WAV、截图及 `report.json` 位于 `.cosmos/planning/r49-art-review/three-source-preview/`。这份组合仍待原生美术验收。本次核验未增加模型请求。
 
 R49 已闭账。阶段上限经批准调至 ¥51.67，单次运行上限 ¥2.30 / 30 分钟。美术作者在 603,078 ms 内用完 32 笔请求，因 `request_limit` 停止。32 笔已知费用共 ¥0.183401，释放 ¥2.116599。子账本修订 153、共享修订 3468，累计已结算 ¥47.345168、占用 ¥2.206428，阶段余额 ¥2.118404。美术稿未捕获，原生美术独审和编码均未开始，无游戏候选，自动验收未通过。 [运行与资金结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788800426)
 

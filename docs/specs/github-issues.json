@@ -655,7 +655,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
       "verifiedNativeSubIssues": 100,
       "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192", "COS-193", "COS-194", "COS-195", "COS-196", "COS-197", "COS-198", "COS-199", "COS-200", "COS-201", "COS-202", "COS-203", "COS-204", "COS-205", "COS-206"],
-      "verifiedCompletedSubIssues": 95,
+      "verifiedCompletedSubIssues": 96,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -14751,9 +14751,9 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-205",
@@ -14764,7 +14764,14 @@
       "implementer": "layered_selection_author",
       "reviewer": "layered_selection_review",
       "merger": "r49_merger",
-      "sourceReviewStatus": "PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "0684fd7254e5b5c2a74bef0d3d403596de5c6873",
+      "sourceIntegratedCommit": "cee037b973239197af4662f0a7d0fac128f08fdc",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/207#issuecomment-6790329956",
+      "verification": "主线构建通过，五个文件与批准版本一致。两份 v1 引用及工作稿摘要、15 个拒绝用例、三源公开 CLI 已复核。",
+      "liveVerification": "免费三源选材，R47 基础稿搭配 R48 钥匙和 R45 齿轮。Edge 检查通过 7/8，仅齿轮 6 格各多 2 至 6 个红像素。未审素材，未发模型请求。",
+      "selectionVersion": "7255506a4c78bcd71191d758553267729eadd735ebfe2116ff78359f7c4db2df",
+      "selectedDraftSha256": "0d3b2886650187b4b48a66320aec80eec5b1eb6c847d4f8dee16649fe73279a1"
     }
   ],
   "verifiedNativeSubIssues": 100,
