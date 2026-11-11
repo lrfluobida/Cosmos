@@ -35,7 +35,7 @@ import { diagnosePersistentBrowser } from './adapters/transfer/persistent-diagno
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
-import { selectSuppliedDesign, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
+import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readReviewedDesignDraft } from './reviewed-design-draft.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
 import { createOrdinaryAcceptanceScope, validateOrdinaryAcceptancePlan, ORDINARY_PLAN_FILE, ORDINARY_PLAN_SOURCE } from './entrypoint-acceptance-plan.ts';
@@ -764,7 +764,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const preserveValidDraft = preservesValidDraft(ordinaryPlanAuthoringPolicy);
     const repairAcceptanceIds = repairsPlanAcceptanceIds(ordinaryPlanAuthoringPolicy);
     const check = createGameDesignCheck({ workspace: fixedWorkspace, gameplayIds, modular, guard, preserveValidDraft, repairAcceptanceIds,
-      reviewedDraftAuthor: !!suppliedDesign || reviewedDraftAuthoring && original.taskId !== ordinaryRevisionTaskId,
+      reviewedDraftAuthor: reviewedDraftAuthoring && original.taskId !== ordinaryRevisionTaskId,
       ...(ordinaryDraft ? { ordinary: { draft: ordinaryDraft, requirement: requirements } } : {}),
       ...(classicEntries?.selection.measurement ? { classicEntry: { selection: classicEntries.selection, ...(!ordinaryDraft ? { viewport: (draft as BrowserGameDraft).scenario.viewport } : {}) } } : {}) });
     if (ordinary) designWriteChecks.set(original.taskId, { ...check, workspace: fixedWorkspace, attemptId: original.attempts.at(-1)?.attemptId });
@@ -958,7 +958,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           ...(preservesValidDraft(ordinaryPlanAuthoringPolicy) ? { ordinaryDesignRejectedWriteCompaction: true as const } : {}),
           ordinaryPlanningOutputFloor: 4096,
           ordinaryDesignReviewMaxOutputTokens: 16384,
-          ...(suppliedDesign ? { ordinarySuppliedDesign: true as const } : {}),
+          ...(suppliedDesign ? { ordinarySuppliedDesign: async (roleInput: Readonly<RoleInput>) => {
+            const current = (await controller.read()).tasks.find(task => task.taskId === roleInput.task.taskId);
+            if (roleInput.controller !== controller || roleInput.task.taskId === ordinaryRevisionTaskId || role(roleInput.task) !== 'design'
+              || !sameValue(current, roleInput.task) || current?.state !== 'running' || current.attempts.at(-1)?.outcome !== 'running'
+              || !sameValue(roleInput.requirement, requirement) || !current.inputs.some(ref => sameValue(ref, requirements))
+              || resolve(roleInput.workspace) !== resolve(root)) throw new Error('Supplied design handoff requires its original active author and confirmation.');
+            return checkSuppliedDesignHandoff(root, suppliedDesign.reference, state.requirementsSource!);
+          } } : {}),
           ordinaryPlanningAcceptanceIndex: async roleInput => {
             await ordinary.requireCurrent();
             if (!sameValue(roleInput.requirement, requirement) || roleInput.controller !== controller
@@ -1608,6 +1615,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         const ref = taskOutput(args[0]);
         const matches = await Promise.all([...seed.contents].map(async ([name, bytes]) => (await regularFile(root, ref.location + '/_cosmos/' + name)).equals(bytes)));
         if (suppliedDesign && !matches.every(Boolean)) throw new Error('Captured design differs from the fixed supplied design.');
+        if (suppliedDesign && (await suppliedDesignBytes(suppliedDesign.reference.location, state.requirementsSource!)).version !== suppliedDesign.reference.version) {
+          throw new Error('Supplied design source changed before review.');
+        }
         if (reviewedDraft && matches.every(Boolean)) throw new Error('Reviewed design draft has no output change.');
       }
       const evidence = await verify(...args);

@@ -18,7 +18,8 @@ import { requireValidationScope } from '../runtime/validation-scope.ts';
 import type { ValidationExecutionBinding } from '../runtime/validation-scope.ts';
 import { validationReservation, validationRole } from '../runtime/validation-validation.ts';
 import { requireOriginalTask } from '../runtime/recovery/task-journal.ts';
-import { ORDINARY_PLAN_FILE, ORDINARY_PLAN_SOURCE } from '../runtime/entrypoint-acceptance-plan.ts';
+import { ORDINARY_PLAN_FILE } from '../runtime/entrypoint-acceptance-plan.ts';
+import type { SuppliedDesignHandoff } from '../runtime/supplied-design.ts';
 import { codingConcernReviewProtocol } from '../runtime/repair/coding-concerns.ts';
 import type { CodingConcernReview } from '../runtime/repair/coding-concerns.ts';
 import { designConcernReviewProtocol, isOrdinaryDesignRevisionPolicy } from '../runtime/repair/design-concerns.ts';
@@ -72,8 +73,8 @@ export interface RoleFactoryOptions {
   ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
   /** Trusted ordinary design reviewer selection; compact complete JSON reads and quote down to the 4096 floor. */
   ordinaryDesignReviewBudget?: (task: Readonly<TaskContract>) => boolean;
-  /** The host bound an operator-supplied design to its read-only handoff. */
-  ordinarySuppliedDesign?: true;
+  /** Check the pinned operator inputs and staged author bytes before projecting the fixed handoff. */
+  ordinarySuppliedDesign?: (input: Readonly<RoleInput>) => Promise<SuppliedDesignHandoff>;
   /** Trusted host selects an authenticated draft or the fixed same-run design revision. */
   ordinaryDesignRevisionJsonReads?: (task: Readonly<TaskContract>) => Promise<boolean | 'reviewed-draft'>;
   /** Explicit trusted reviewer ceiling; omitted callers retain the original 8192 cap. */
@@ -153,7 +154,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (finalizationPolicy !== undefined && (finalizationPolicy !== 'budget-followup/1' || recoveryPolicy !== 'review-reserve/1' || ![32, 64].includes(authorRequestLimits.design!))) throw new Error('Invalid ordinaryDesignFinalizationPolicy.');
   const ordinaryDesignReviewBudget = options.ordinaryDesignReviewBudget;
   const ordinaryDesignRevisionJsonReads = options.ordinaryDesignRevisionJsonReads;
-  const suppliedPlanHandoff = options.ordinarySuppliedDesign === true;
+  const checkSuppliedHandoff = options.ordinarySuppliedDesign;
   if (ordinaryDesignRevisionJsonReads !== undefined && typeof ordinaryDesignRevisionJsonReads !== 'function') throw new Error('ordinaryDesignRevisionJsonReads requires a trusted selector.');
   if (ordinaryDesignReviewBudget !== undefined && (typeof ordinaryDesignReviewBudget !== 'function' || options.maxOutputTokens !== 8192)) {
     throw new Error('ordinaryDesignReviewBudget requires a trusted selector and the original 8192 output cap.');
@@ -221,11 +222,14 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     }
     const workspace = await realpath(input.workspace);
     assertOwnership(task, workspace);
+    const handoff = checkSuppliedHandoff && purpose === 'author' && input.role === 'design' && !input.validation
+      && sameValue(task.context.tools, ['read', 'validate-game-design']) ? await checkSuppliedHandoff(input) : undefined;
     const reviewer = input.role === 'reviewer';
     const contextId = reviewer ? `review-${randomUUID()}` : task.context.contextId;
     const actorId = reviewer ? `reviewer-${randomUUID()}` : task.authorId;
-    const reads = reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
-    const inputFiles = await roleInputFiles(workspace, [...task.inputs, ...task.context.interfaces, ...(reviewer ? [...task.artifacts, ...task.evidence.map(e => e.source)] : [])], input.controller.signal);
+    const reads = handoff ? [] : reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
+    const writePaths = reviewer || handoff ? [] : task.ownership.writePaths;
+    const inputFiles = handoff ? [] : await roleInputFiles(workspace, [...task.inputs, ...task.context.interfaces, ...(reviewer ? [...task.artifacts, ...task.evidence.map(e => e.source)] : [])], input.controller.signal);
     const committedWrites = new Map<string, string[]>();
     const onWriteCommitted: WriteCommitted | undefined = designCompaction && options.ordinaryDesignSuccessfulWriteCompaction ? (id, path) => {
       const owned = relative(workspace, path);
@@ -236,13 +240,12 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     } : undefined;
     const planReadPaths = designReviewBudget ? task.artifacts.filter(ref =>
       task.outputs.some(output => output.schema === 'game-design/2' && output.destination === ref.location)).map(ref => ref.location + '/' + ORDINARY_PLAN_FILE)
-      : suppliedPlanHandoff && input.role === 'design' && !input.purpose && !input.validation
-        && sameValue(task.context.tools, ['read', 'validate-game-design']) ? [ORDINARY_PLAN_SOURCE] : [];
-    const fileTools = await createWorkspaceTools({ workspace, readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths, planReadPaths,
+      : [];
+    const fileTools = handoff ? [] : await createWorkspaceTools({ workspace, readPaths: reads, writePaths, planReadPaths,
       ...(onWriteCommitted ? { onWriteCommitted } : {}),
       ...(input.role === 'design' && !input.purpose && !input.validation && options.beforeDesignFileWrite ? { beforeFileWrite: options.beforeDesignFileWrite(input) } : {}),
       ...(designReviewBudget || designRevisionJsonReads ? { compactFullJsonReads: true } : {}) });
-    const hostTools = await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment(), ...(onWriteCommitted ? { onWriteCommitted } : {}) }) ?? [];
+    const hostTools = handoff ? [] : await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment(), ...(onWriteCommitted ? { onWriteCommitted } : {}) }) ?? [];
     const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name)).map(tool => (designReviewBudget || designRevisionJsonReads) && tool.name === 'read'
       ? { ...tool, description: (reviewedDraftAuthor ? 'Use offset/limit for the part of the existing draft identified by a finding or an exact edit. For a complete JSON read omit both (or use null when required). Follow any truncation notice when the entire file is needed.\n\n' : `For JSON ${designReviewBudget ? 'review' : 'revision'}, first request the complete file without numeric offset/limit: omit offset and limit when optional; if the tool schema requires them, set both to null (the SDK treats these as omitted). Do not fill in numeric defaults. If the result reports truncation or remaining lines, follow its paging instructions until complete; never treat a partial result as the full file. Keep normal paging for non-JSON files and targeted raw-source reads.\n\n`) + tool.description }
       : tool);
@@ -268,11 +271,13 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     } } as ToolDefinition));
     const snapshot = await input.controller.read();
     const acceptance = requirement.acceptance.filter(item => task.acceptanceIds.includes(item.acceptanceId));
-    const packet = freeze({ role: input.role, contextId, taskId: task.taskId, objective: task.objective, specVersion: requirement.specVersion,
-      acceptance: planningAcceptanceIndex ? acceptance.map(({ acceptanceId }) => ({ acceptanceId })) : acceptance,
+    const packet = freeze({ role: input.role, contextId, taskId: task.taskId,
+      objective: handoff ? 'Hand off the two existing operator-supplied files identified by the host.' : task.objective, specVersion: requirement.specVersion,
+      acceptance: planningAcceptanceIndex || handoff ? acceptance.map(({ acceptanceId }) => ({ acceptanceId })) : acceptance,
       inputs: reviewer ? [...task.inputs, ...task.artifacts] : task.inputs, inputFiles,
-      rules: task.context.rules, interfaces: task.context.interfaces, knownFailures: task.context.knownFailures,
-      tools: tools.map(tool => tool.name), ownership: { readPaths: reads, writePaths: reviewer ? [] : task.ownership.writePaths },
+      rules: handoff ? ['Use the verified input identity, file digests and structural counts in suppliedDesignHandoff. Report any discrepancy that prevents handing off the listed pair.'] : task.context.rules,
+      interfaces: task.context.interfaces, knownFailures: task.context.knownFailures, ...(handoff ? { suppliedDesignHandoff: handoff } : {}),
+      tools: tools.map(tool => tool.name), ownership: { readPaths: reads, writePaths },
       budget: { ...task.budget, committedMicroCny: snapshot.ledger.entries.filter(e => e.taskId === task.taskId).reduce((total, e) => total + e.reservedMicroCny + e.settledMicroCny, 0),
         ...(validation ? { validationCase: { ...validation } } : authority!.windowId ? { executionWindow: { windowId: authority!.windowId, deadlineAt: authority!.deadlineAt,
           effectiveLimitMicroCny: authority!.effectiveLimitMicroCny, taskGrantMicroCny: authority!.taskGrantMicroCny } } : {}) },
@@ -290,7 +295,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
           return !current.ledger.entries.some(row => row.unknown || row.reservedMicroCny || !['settled', 'cancelled'].includes(row.status));
         },
       } } : {}),
-      systemPrompt: (input.purpose === 'planning'
+      systemPrompt: handoff ? 'You are the Cosmos design handoff author. The host checked the two staged files against the pinned operator source and original confirmation. Use the suppliedDesignHandoff facts to identify the files you are handing off. Return one JSON object {summary:string,remaining:string[],uncertainty:string[]}. Report every unfinished handoff item or blocking uncertainty you identify. Use empty arrays when the handoff is complete. The independent reviewer evaluates semantic coverage after fresh capture. Claim only the structural and identity checks supported by this packet.'
+        : (input.purpose === 'planning'
         ? `You are the Cosmos task planner. Follow the host-supplied output schema and use only the host policies supplied in the prompt. Return only a JSON object without Markdown. When policies have policyId, use this shape:\n${planningJsonExample(true)}\npolicyId is required, must name a supplied policy, must match its role, and each policyId may be selected at most once. Otherwise use this shape:\n${planningJsonExample(false)}\nSelect each role at most once and do not add policyId. Cover every confirmed acceptance ID. Each dependency names a task in this plan. The host binds its declared output versions as inputs after the dependency passes. You cannot choose tools, paths, budget, acceptance steps, evidence or task state. This is a proposal, not a claim that the game passes.`
         : reviewer
         ? input.designConcernReview ? `You are the independent Cosmos design reviewer. ${designConcernReviewProtocol}` : input.codingConcernReview ? `You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. ${codingConcernReviewProtocol} Your verdict is a proposal checked by the host.` : 'You are the independent Cosmos reviewer. Read only the fixed requirements, artifacts and host evidence. Return JSON {verdict:"approved"|"changes_requested",inputVersions:all packet inputs,evidenceIds:host evidence IDs,findings:string[]}. findings contains only unresolved actionable defects, not successful checks, positive observations or explanations. approved requires findings:[]; changes_requested requires at least one such defect with the unmet requirement and actual versus expected behavior. Do not hide actual defects to produce an empty array. Return only these JSON fields. Your verdict is a proposal checked by the host. Do not infer success from author claims.'
