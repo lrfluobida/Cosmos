@@ -403,7 +403,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   const offlineNative = (config: PiSessionOptions) => createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-art-handoff' } });
   const funded = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
     const packet = JSON.parse(config.context!);
-    assert.equal(config.maxRequests, packet.role === 'art' ? 32 : 16);
+    assert.equal(config.maxRequests, ['art', 'coding'].includes(packet.role) ? 32 : 16);
     assert.equal(config.ordinaryCodingReviewImageQuote, packet.role === 'reviewer' && packet.taskId === 'coding-task' ? true : undefined);
     if (selection === 4 && packet.role === 'art') {
       assert.deepEqual(config.tools, []);
@@ -708,6 +708,8 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
     const settlement: any = await runPublicValidationCli(['settle', successor.root], nextIO);
     assert.equal(settlement.settledMicroCny, current.ledger.entries.reduce((sum: number, entry: any) => sum + entry.settledMicroCny, 0));
     assert.deepEqual(await read(funded.root, 'snapshot.json'), oldSnapshot);
+    const { exerciseCodeDraft } = await import('./code-draft.fixture.ts');
+    await exerciseCodeDraft(t, options, common, approved, reused, payload.requirementsSource);
     const resume = () => runCli(['resume', funded.root], fundedIO);
     await writeFile(join(funded.root, ART_DRAFT_FILE), edited);
     await assert.rejects(resume(), /Staged art differs/);

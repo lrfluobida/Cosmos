@@ -26,6 +26,7 @@ import { publishFundedOrigin, verifyFundedNew, verifyPublicValidationFunding } f
 import { DEFAULT_RUN_LIMITS, displayRunLimits, requirePreparationRunLimits, requirePublicRunLimits, validateRunLimits } from './run-limits.ts';
 import type { RunLimits } from './run-limits.ts';
 import { readConfirmedGeneration, readConfirmedRequirementsSource, readReferencedRequirements, requireSeparateRequirementsRoot } from '../runtime/confirmed-requirements-source.ts';
+import { selectCodeDraft } from '../runtime/code-draft-source.ts';
 import { readPinnedArtSource, selectApprovedArt } from '../runtime/approved-art-source.ts';
 import { APPROVED_ART, ART_REVIEW_INPUT, selectArtReviewInput, selectArtDraft, selectArtDraftSelection } from '../runtime/art-draft-source.ts';
 import { selectApprovedDesign, APPROVED_DESIGN } from '../runtime/approved-design-source.ts';
@@ -113,7 +114,7 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
 }
 
 /** The only confirmation author is actual stdin; model output never reaches this branch. */
-export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; requirementsFrom?: { root: string; revision: number }; designDraftFrom?: string; designInput?: string; approvedDesignFrom?: string; artDraftFrom?: string; artDraftSelection?: string; artReviewInput?: string; approvedArtFrom?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
+export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; requirementsFrom?: { root: string; revision: number }; designDraftFrom?: string; designInput?: string; approvedDesignFrom?: string; artDraftFrom?: string; artDraftSelection?: string; artReviewInput?: string; approvedArtFrom?: string; codeDraftFrom?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
   if (options.limits !== undefined) {
     if (options.command !== 'new') throw new Error('Run limits can only be selected for new.');
     validateRunLimits(options.limits);
@@ -137,6 +138,9 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   const selectArt = options.approvedArtFrom ? selectApprovedArt : options.artReviewInput ? selectArtReviewInput : options.artDraftSelection ? selectArtDraftSelection : selectArtDraft;
   const artDraft = artLocation ? await selectArt(artLocation, approvedDesign!, referenced!.source, { root }) : undefined;
   const artDraftSource = artDraft?.reference;
+  if (options.codeDraftFrom !== undefined && (!options.codeDraftFrom.trim() || !artDraft || !('manifestPath' in artDraft))) throw new Error('Select a code draft with its approved art.');
+  const codeDraft = options.codeDraftFrom && artDraft && 'manifestPath' in artDraft ? await selectCodeDraft(options.codeDraftFrom, approvedDesign!, artDraft, referenced!.source, { root }) : undefined;
+  const codeDraftSource = codeDraft?.reference;
   const designDraftReview = approvedDesign ? approvedDesign.reference : options.designInput ? (await selectSuppliedDesign(options.designInput, referenced!.source, root)).reference
     : options.designDraftFrom ? await selectDesignDraftReview(options.designDraftFrom, referenced!.source) : undefined;
   if (referenced) {
@@ -174,10 +178,11 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (!brief?.trim()) throw new Error('A one-sentence --brief or confirmed requirements source is required.');
       const entries: string[] = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
       const initialization = referenced && entries.length ? await optionalJson(root, 'intake-origin.json') : null;
-      if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source, designDraftReview, artDraftSource);
+      if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source, designDraftReview, artDraftSource, codeDraftSource);
       else if (entries.length && !initialization) throw new Error('Choose an empty run directory; existing runs require resume.');
       const runId = options.funding?.runId ?? initialization?.runId ?? `game-${randomUUID()}`; id(runId);
       if (approvedDesign && (approvedDesign.proof.sourceRunId === runId || approvedDesign.proof.sourceLedgerId === (options.funding?.ledgerId ?? `${runId}-budget`))) throw new Error('Historical design requires an independent new run and ledger.');
+      if (codeDraft && (codeDraft.proof.runId === runId || codeDraft.proof.ledgerId === (options.funding?.ledgerId ?? `${runId}-budget`))) throw new Error('Code draft requires an independent target run and ledger.');
       if (artDraft?.origins.some(origin => origin.runId === runId || origin.ledgerId === (options.funding?.ledgerId ?? `${runId}-budget`))) throw new Error('Art draft requires an independent target run and ledger.');
       if (options.designDraftFrom && designDraftReview) await readReviewedDesignDraft(designDraftReview, referenced!.source, { root, runId, ledgerId: options.funding?.ledgerId ?? `${runId}-budget` });
       if (referenced && (runId === referenced.source.runId || options.funding?.ledgerId === referenced.ledgerId)) throw new Error('New attempt must have independent run and ledger identities.');
@@ -192,6 +197,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...(designDraftReview ? { designDraftReview } : {}),
         ...(approvedDesignAllocation !== undefined ? { approvedDesignAllocation } : {}),
         ...(artDraftSource ? { artDraftSource } : {}),
+        ...(codeDraftSource ? { codeDraftSource } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(options.funding ? { validationFunding: options.funding } : {}) };
       const allocations = publicBaseAllocations(limits.limitMicroCny, origin);
@@ -228,6 +234,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...(designDraftReview ? { designDraftReview } : {}),
         ...(approvedDesignAllocation !== undefined ? { approvedDesignAllocation } : {}),
         ...(artDraftSource ? { artDraftSource } : {}),
+        ...(codeDraftSource ? { codeDraftSource } : {}),
         ...(frames ? { renderFrames: frames } : {}),
         modularRepairPolicy: policy, ...(options.funding ? { validationFunding: options.funding } : {}),
         allocations });
@@ -239,7 +246,8 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (snapshot.designDraftReview?.artifactId === APPROVED_DESIGN) {
         const target = { root, runId: snapshot.run.runId, ledgerId: snapshot.ledger.ledgerId };
         const approved = await selectApprovedDesign(snapshot.designDraftReview.location, snapshot.requirementsSource!, target, snapshot.designDraftReview);
-        if (snapshot.artDraftSource) await readPinnedArtSource(snapshot.artDraftSource, approved, snapshot.requirementsSource!, target);
+        const art = snapshot.artDraftSource && await readPinnedArtSource(snapshot.artDraftSource, approved, snapshot.requirementsSource!, target);
+        if (snapshot.codeDraftSource && art && 'manifestPath' in art) await selectCodeDraft(snapshot.codeDraftSource.location, approved, art, snapshot.requirementsSource!, target, snapshot.codeDraftSource);
       }
       frames = await readFrameSelection(root, snapshot, options.renderFrames);
       policy = await readModularRepairPolicy(root, snapshot);
@@ -282,6 +290,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (state.designDraftReview?.artifactId === SUPPLIED_DESIGN) say(`本次使用指定设计稿 ${state.designDraftReview.location}，绑定 SHA-256 ${state.designDraftReview.version}。须经本次独审通过后执行。`);
       else if (state.designDraftReview?.artifactId === APPROVED_DESIGN) say(`复用已独审通过的指定设计稿，来源运行 ${state.designDraftReview.location}，SHA-256 ${state.designDraftReview.version}。本次从${state.artDraftSource?.artifactId === APPROVED_ART ? '编码' : '美术'}开始。`);
       else if (state.designDraftReview) say(`设计作者将从已捕获的待修草稿开始，独审回执 ${state.designDraftReview.location}，SHA-256 ${state.designDraftReview.version}。`);
+      if (state.codeDraftSource) say(`编码作者将继续编辑未审源码，来源 ${state.codeDraftSource.location}，来源摘要 ${state.codeDraftSource.version}。`);
       if (state.artDraftSource?.artifactId === APPROVED_ART) say(`复用已独审通过的固定美术，来源运行 ${state.artDraftSource.location}，SHA-256 ${state.artDraftSource.version}。`);
       else if (state.artDraftSource?.artifactId === ART_REVIEW_INPUT) say(`本次固定美术送审稿来自 ${state.artDraftSource.location}，来源摘要 ${state.artDraftSource.version}。美术作者交接后须经本次宿主检查与独审。`);
       else if (state.artDraftSource) say(`美术作者将继续编辑未审草稿，来源 ${state.artDraftSource.location}，来源摘要 ${state.artDraftSource.version}。完整媒体须经本次宿主检查与独审。`);
