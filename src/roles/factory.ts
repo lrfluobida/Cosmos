@@ -414,6 +414,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       ...(designCompaction && options.ordinaryDesignRejectedWriteCompaction ? { compactRejectedDesignWrites: true as const } : {}),
       ...(reviewReserve ? { readonlyMaxOutputTokens: 4096 as const, ...(finalizationPolicy && !input.disableDesignFinalization ? { ordinaryDesignFinalizationPolicy: finalizationPolicy } : {}) } : {}),
       estimatedMaxCostMicroCny: options.estimatedMaxCostMicroCny,
+      ...(codeDraftFeedback ? { feedbackReadWritePaths: writePaths } : {}),
       ...(codingReviewImageQuote ? { ordinaryCodingReviewImageQuote: true as const } : {}),
       compactionKeepRecentTokens: designCompaction ? 8000 : options.compactionKeepRecentTokens,
       budget: createRoleBudget({ controller: input.controller, taskId: task.taskId, evidenceDirectory: input.stateDirectory,

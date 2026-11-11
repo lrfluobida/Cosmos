@@ -7,7 +7,7 @@ import {
   type AgentSessionEvent, type ResourceLoader, type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { regularFile } from '../artifacts/paths.ts';
-import { requestInputBytes } from './request-input.ts';
+import { requestInputBytes, withRecentReadResults } from './request-input.ts';
 import { reviewImageInputTokens } from './review-image-quote.ts';
 import { PreservedDesignDraftError } from './workspace-tools.ts';
 import { successfulWriteExtension, successfulWriteNote, summaryWithoutThinking, type SuccessfulWriteCompaction } from './successful-write-compaction.ts';
@@ -81,6 +81,8 @@ export interface PiSessionOptions {
   ordinaryDesignReview?: true;
   /** Ordinary coding reviewer only. Price its screenshot requests at the serialized HTTP boundary. */
   ordinaryCodingReviewImageQuote?: true;
+  /** Only for the ordinary coding author with bound draft feedback. */
+  feedbackReadWritePaths?: readonly string[];
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   requestTimeoutMs: number;
   /** Trusted host authority, refreshed before admission and immediately before dispatch. */
@@ -209,9 +211,11 @@ export async function createPiSession(config: PiSessionOptions) {
     }
     const hasImages = context.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image'));
     const quoteWireImages = config.ordinaryCodingReviewImageQuote === true && !session.isCompacting && hasImages;
-    const checkInput = config.requestOutputLimit || config.requestCompactionAdmission || quoteWireImages;
-    const requestContext = checkInput ? structuredClone(context) : context;
-    const inputJson = JSON.stringify(requestContext);
+    const feedbackPaths = session.isCompacting ? undefined : config.feedbackReadWritePaths;
+    const checkInput = config.requestOutputLimit || config.requestCompactionAdmission || quoteWireImages || feedbackPaths;
+    const inputJson = checkInput ? JSON.stringify(context) : undefined;
+    const snapshot = checkInput ? structuredClone(context) : context;
+    const requestContext = feedbackPaths ? withRecentReadResults(snapshot, workspace, feedbackPaths) : snapshot;
     const requireUnchangedInput = () => {
       if (checkInput && JSON.stringify(context) !== inputJson) throw fail('invalid_request', 'Request input changed during output limit admission; no provider request sent');
     };
