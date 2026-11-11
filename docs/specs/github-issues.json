@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261111-art-selection-49",
+      "latestLiveValidationCaseId": "room-20261111-fit-50",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6788800426",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6795877024",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14068,15 +14068,16 @@
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6643149506",
       "verification": "Ten COS182 files byte-identical to approved51f1cc1; three COS181 files remain exact27f525b. Main followup-chain/latest-source and suspended-claim/settlement historical-quote-retry2/2, zero skip,TAP14574.4579ms; typecheck/build exit0. Author old81/81,new+resolution7/7 and extra chain1/1 reused without additive counting; all approvals and accounting are TEMP synthetic fixtures.",
       "budgetIncreaseApproved": true,
-      "currentPhaseMicroCny": 50000000,
-      "proposedPhaseMicroCny": 50000000,
+      "currentPhaseMicroCny": 51670000,
+      "proposedPhaseMicroCny": 51670000,
       "lifetimeLimitMicroCny": 150000000,
       "maxRunMicroCny": 5000000,
       "maxDurationMs": 1800000,
       "actualQuotePrepared": true,
       "actualApplicationPerformed": true,
-      "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744",
-      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. Original R30 remains pending."
+      "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6795876235",
+      "phase50ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744",
+      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. R49 applied the explicit 50.70-to-51.67 CNY follow-up. R49 and R50 hold separate run decisions. R50 closed at shared revision 3470, C47534304/H2206428; R30, R37 and R43 remain pending."
     },
     {
       "taskId": "COS-183",
@@ -14782,6 +14783,9 @@
       "number": 208,
       "id": 6326333830,
       "url": "https://github.com/lrfluobida/Cosmos/issues/208",
+      "verifiedNativeSubIssues": 2,
+      "subTaskIds": ["COS-208", "COS-209"],
+      "verifiedCompletedSubIssues": 0,
       "parentTaskId": "COS-206",
       "parentIssueNumber": 207,
       "parentIssueId": 6323933818,
@@ -14812,9 +14816,59 @@
       "liveVerification": "主线 fit-art 在原三源稿上测量 433 次，四层六个坐标分量各移动 1 像素，齿轮从 6 格失败降至 0。Edge 完整构图通过全部 8 项，产物仍待原生美术验收。",
       "selectionVersion": "43a20f781038ce331cfa38884fdcd4bc07ce43151fc8fd740d98ad27c41a7d9a",
       "selectedDraftSha256": "07841e51638d66ece596c2f2bc4f673d3fe327d143d426da6aa58d900bfc4ccd"
+    },
+    {
+      "taskId": "COS-208",
+      "title": "在美术分格检查中表达清空后的无前景空槽",
+      "number": 209,
+      "id": 6328438288,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/209",
+      "parentTaskId": "COS-207",
+      "parentIssueNumber": 208,
+      "parentIssueId": 6326333830,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-200",
+          "number": 201,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/201"
+        }
+      ],
+      "implementer": "empty_scene_author",
+      "reviewer": "absence_semantics",
+      "merger": "r50_merger",
+      "sourceReviewStatus": "PENDING"
+    },
+    {
+      "taskId": "COS-209",
+      "title": "将固定美术草稿交给本轮原生独审",
+      "number": 210,
+      "id": 6328442964,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/210",
+      "parentTaskId": "COS-207",
+      "parentIssueNumber": 208,
+      "parentIssueId": 6326333830,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-207",
+          "number": 208,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/208"
+        }
+      ],
+      "implementer": "fixed_art_handoff_author",
+      "reviewer": "absence_semantics",
+      "merger": "r50_merger",
+      "sourceReviewStatus": "PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 207,
+  "totalTaskCount": 209,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

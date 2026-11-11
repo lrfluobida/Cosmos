@@ -2545,6 +2545,8 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-182 · 公开验证阶段的追加显式预算决定
 
+2026-11-11，R49 的阶段报价已应用，阶段上限由 ¥50.70 调至 ¥51.67。R49 和 R50 各自以单次授权运行，原 R30、R37、R43 继续待核。 [报价与应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6795876235)
+
 2026-11-10，公开阶段 ¥45→¥50 已按新的业主决定实际应用，R34 引用该来源并已结算。每次 ¥5 / 30 分钟、总计 ¥150。COS182 已按此范围关闭。以下为应用前的源码集成历史。[阶段回执记录](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744)
 
 [COS182 / #183](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6643149506)，ID `6211905851`，父COS18/#19、[ ]，原生依赖COS143/#144、COS157/#158与COS178/#179。已APPROVED_SOURCE_SCOPED并集成，追加后续显式phase决定，复用原quote/owner/source协议，完整保留旧30/40/45来源、事件和历史funding身份；不会默认增额、伪造用户决定或改写R30unknown/占用。
@@ -2668,6 +2670,14 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 ### COS-207 · 在固定形色验收下对未审素材做有界图层几何拟合
 
 #19 的清单列有本卡，原生层级为 #19 → #207 → #208。作者 `fit_implementer`，独审 `fit_reviewer` 批准 `5dc056c`，主线合入 `2e20d14`。`fit-art` 通过固定验收步骤拟合单状态、单帧角色的既有图层，选择清单 v3 可复现结果。主线构建通过，实际三源稿经 433 次 Edge 测量后，四个既有图层共调整六个坐标分量。完整构图检查从 7/8 提高到 8/8，齿轮零失败格。原生美术批准及游戏验收待后续运行。 [源码与实测](https://github.com/lrfluobida/Cosmos/issues/208#issuecomment-6793583264)
+
+### COS-208 · 在美术分格检查中表达清空后的无前景空槽
+
+归属 #19，原生父卡 #208。真实背景上的空槽可省略前景，在批准区域内检查像素。范围覆盖普通美术原生工具、独立的区域测量和无效参数拒绝。作者 `empty_scene_author`，独审 `absence_semantics`。 [GitHub 任务](https://github.com/lrfluobida/Cosmos/issues/209)
+
+### COS-209 · 将固定美术草稿交给本轮原生独审
+
+归属 #19，原生父卡 #208。仅对显式提供的固定美术草稿使用轻量原生交接，绑定捕获并完成本轮完整语义美术独审，通过后才能进入编码。作者 `fixed_art_handoff_author`，独审 `absence_semantics`。 [GitHub 任务](https://github.com/lrfluobida/Cosmos/issues/210)
 
 ## 5. 任务与上下文包模板
 

@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R50 使用 R43 的已批设计和 v3 选材清单 `43a20f78…`，起始稿 `07841e51…` 在完整构图检查中通过 8/8。运行仅派发美术作者。作者为收集后的空槽再次绘入物品，测出 82 个错误格，随后改动了部分稿件。795,021 ms 后耗尽 32 笔请求，以 `request_limit` 停止。无正式美术捕获、原生独审、编码或可玩候选，自动游戏验收未通过。
+
+R50 末稿 SHA-256 为 `1904a321c740b27f2571ba37bff045483fd52e2ca9f7b1553cc85afabde0a653`。结案后独立 Edge 渲染有物与清空场景，8 个固定位置均通过。6 帧、3 项音频的报告和两张截图位于 `.cosmos/public-validation/room-20261111-fit-50/final-art-check/`。本次上限 ¥2.11 / 30 分钟，32 笔共结算 ¥0.189136，释放 ¥1.920864。子账本修订 150，共享修订 3470，累计已结算 ¥47.534304、待核占用 ¥2.206428（R30、R37、R43），阶段余额 ¥1.929268。闭账审计保存在本轮的 `closure-readonly-audit.json`，运行临时目录已清理。 [R50 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6795877024)
+
+R49 的阶段报价在 2026-11-11 07:08:13 UTC 应用，将 ¥50.70 调至 ¥51.67。报价、明确决定和回执位于 `.cosmos/planning/r48-visual-repair/`，R49 与 R50 各自引用独立的运行授权。 [阶段报价应用](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6795876235)
+
 COS-207 已合入主线 `2e20d14`。`fit-art` 对显式指定的单状态、单帧角色，在固定验收规则下有界调整既有图层。独审 `fit_reviewer` 批准 `5dc056c`。九个集成文件与批准版本一致，主线构建通过。独审回放两个旧 v1 引用、原 v2 引用和新 v3 引用，无解样例在 1,024 次测量后退出。 [审查与实测](https://github.com/lrfluobida/Cosmos/issues/208#issuecomment-6793583264)
 
 主线编译版从上次三源选择开始，经 433 次免费 Edge 渲染，将四个齿尖的六个坐标分量各移动 1 像素。齿轮失败格从 6 降至 0，像素缺口从 20 降至 0。两张完整构图的 8 项形色检查全部通过，其余五帧 SVG 与三段 WAV 和原稿逐字节相同。可复现的未审清单为 `.cosmos/planning/r49-art-review/gear-fitted.json`，引用 `43a20f781038ce331cfa38884fdcd4bc07ce43151fc8fd740d98ad27c41a7d9a`，工作稿 SHA-256 为 `07841e51638d66ece596c2f2bc4f673d3fe327d143d426da6aa58d900bfc4ccd`。`fitted-preview/` 保留图集、素材及 `report.json`。本次核验未增加模型请求，正式美术捕获、原生独审、编码与游戏验收仍待后续运行。
