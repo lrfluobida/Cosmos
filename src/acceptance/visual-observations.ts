@@ -31,7 +31,8 @@ async function visibleLayout(selectors: string[]): Promise<boolean> {
 }
 
 export type MeasuredCell = [row: number, column: number, matchingPixels: number, totalPixels: number];
-async function matchesPixels(png: string, viewport: { width: number; height: number }, pattern: PixelPattern, measure = false) {
+export const pixelPatternPercent = { positiveMinimum: 35, negativeMaximum: 10 } as const;
+async function matchesPixels(png: string, viewport: { width: number; height: number }, pattern: PixelPattern, percent: typeof pixelPatternPercent, measure = false) {
   const bytes = Uint8Array.from(atob(png), c => c.charCodeAt(0));
   const image = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
   const { x, y, width, height, rows, tolerance } = pattern;
@@ -57,7 +58,7 @@ async function matchesPixels(png: string, viewport: { width: number; height: num
           && Math.abs(rgba[i + 2] - color[2]) <= tolerance) matches++;
       }
       const pixels = (right - left) * (bottom - top);
-      const fails = row[c] === '+' ? matches * 100 < pixels * 35 : matches * 100 > pixels * 10;
+      const fails = row[c] === '+' ? matches * 100 < pixels * percent.positiveMinimum : matches * 100 > pixels * percent.negativeMaximum;
       if (!measure && fails) return false;
       if (measure) (fails ? failedCells : matchingCells).push([r, c, matches, pixels]);
     }
@@ -84,10 +85,10 @@ export function observeLayout(session: CDPSession, selectors: string[]): Promise
   return isolatedCheck(session, visibleLayout.toString(), [selectors]);
 }
 export function observePixelPattern(session: CDPSession, screenshot: Buffer, viewport: { width: number; height: number }, pattern: PixelPattern): Promise<boolean> {
-  return isolatedCheck(session, matchesPixels.toString(), [screenshot.toString('base64'), viewport, pattern]);
+  return isolatedCheck(session, matchesPixels.toString(), [screenshot.toString('base64'), viewport, pattern, pixelPatternPercent]);
 }
 export async function measurePixelPattern(session: CDPSession, screenshot: Buffer, viewport: { width: number; height: number }, pattern: PixelPattern) {
-  const result = await isolatedResult(session, matchesPixels.toString(), [screenshot.toString('base64'), viewport, pattern, true]);
+  const result = await isolatedResult(session, matchesPixels.toString(), [screenshot.toString('base64'), viewport, pattern, pixelPatternPercent, true]);
   if (!Array.isArray(result?.failedCells) || !Array.isArray(result.matchingCells)) throw new Error('Browser pixel measurements unavailable');
   return result as { failedCells: MeasuredCell[]; matchingCells: MeasuredCell[] };
 }

@@ -6,6 +6,7 @@ import type { ArtifactReference } from '../contracts/types.ts';
 import { sameValue } from '../contracts/validation.ts';
 import { synthesizeWav } from '../media/audio.ts';
 import { renderCharacter } from '../media/vector.ts';
+import { replayLayerFit, type LayerFit } from './art-layer-fit.ts';
 import { APPROVED_DESIGN, checkApprovedDesignImport, type ApprovedDesign } from './approved-design-source.ts';
 import { readReferencedRequirements, type ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import { validateDeclaredMedia, type DesignDocument } from './entrypoint-media.ts';
@@ -118,7 +119,8 @@ interface SelectedIds { characterIds: string[]; audioIds: string[] }
 interface Overlay extends SelectedIds { source: ArtifactReference }
 type DraftSelection =
   | ({ formatVersion: 'ordinary-art-draft-selection/1'; base: ArtifactReference; overlay: ArtifactReference } & SelectedIds)
-  | { formatVersion: 'ordinary-art-draft-selection/2'; base: ArtifactReference; overlays: Overlay[] };
+  | { formatVersion: 'ordinary-art-draft-selection/2'; base: ArtifactReference; overlays: Overlay[] }
+  | { formatVersion: 'ordinary-art-draft-selection/3'; base: ArtifactReference; overlays: Overlay[]; fit: LayerFit };
 
 function selectionOverlays(manifest: DraftSelection): Overlay[] {
   const invalid = 'Invalid art draft selection manifest.';
@@ -126,7 +128,8 @@ function selectionOverlays(manifest: DraftSelection): Overlay[] {
   let overlays: Overlay[];
   if (manifest?.formatVersion === 'ordinary-art-draft-selection/1' && keys(manifest, ['audioIds', 'base', 'characterIds', 'formatVersion', 'overlay'])) {
     overlays = [{ source: manifest.overlay, characterIds: manifest.characterIds, audioIds: manifest.audioIds }];
-  } else if (manifest?.formatVersion === 'ordinary-art-draft-selection/2' && keys(manifest, ['base', 'formatVersion', 'overlays'])
+  } else if ((manifest?.formatVersion === 'ordinary-art-draft-selection/2' && keys(manifest, ['base', 'formatVersion', 'overlays'])
+    || manifest?.formatVersion === 'ordinary-art-draft-selection/3' && keys(manifest, ['base', 'fit', 'formatVersion', 'overlays']))
     && Array.isArray(manifest.overlays) && manifest.overlays.length >= 1 && manifest.overlays.length <= 4) {
     overlays = manifest.overlays;
   } else throw new Error(invalid);
@@ -153,7 +156,16 @@ function selectedItems<T extends { id: string }>(base: T[], overlay: T[], ids: s
   return [...items.values()];
 }
 
-/** Only the listed whole items are imported from each verified working file. */
+function selectedMedia({ characters, audio }: ReturnType<typeof validateDeclaredMedia>) {
+  const batches = [];
+  for (let i = 0; i < Math.max(characters.length, audio.length); i += 16) {
+    batches.push({ characters: characters.slice(i, i + 16), audio: audio.slice(i, i + 16) });
+  }
+  return batches.length === 1 ? batches[0] : { formatVersion: 'batched-media/1', batches };
+}
+const mediaBytes = (media: ReturnType<typeof selectedMedia>) => Buffer.from(JSON.stringify(media, null, 2) + '\n');
+
+/** Import whole items from verified files, then replay an optional bounded geometry revision. */
 export async function selectArtDraftSelection(location: string, approved: ApprovedDesign, requirements: ConfirmedRequirementsSource,
   target: DraftTarget, expected?: ArtifactReference, ancestors: string[] = []) {
   const path = resolve(location);
@@ -180,22 +192,25 @@ export async function selectArtDraftSelection(location: string, approved: Approv
     characters = selectedItems(characters, overlay.spec.characters, characterIds);
     audio = selectedItems(audio, overlay.spec.audio, audioIds);
   }
-  const batches = [];
-  for (let i = 0; i < Math.max(characters.length, audio.length); i += 16) {
-    batches.push({ characters: characters.slice(i, i + 16), audio: audio.slice(i, i + 16) });
+  let media = selectedMedia({ characters, audio }), fit: LayerFit | undefined;
+  if (manifest.formatVersion === 'ordinary-art-draft-selection/3') {
+    const plan = decode(approved.files.get('_cosmos/acceptance-plan.json')!);
+    const revision = replayLayerFit(plan.scenario, characters, manifest.fit, ordinaryDraftSha256(mediaBytes(media)));
+    fit = revision.fit;
+    characters = characters.map(item => item.id === revision.character.id ? revision.character : item);
+    media = selectedMedia({ characters, audio });
   }
-  const media = batches.length === 1 ? batches[0] : { formatVersion: 'batched-media/1', batches };
   const design = decode(approved.files.get('_cosmos/design.json')!);
   validateDeclaredMedia(media, design, 'draft-subset');
-  const bytes = Buffer.from(JSON.stringify(media, null, 2) + '\n');
+  const bytes = mediaBytes(media);
   // The v1 proof is serialized into existing authorization and recovery references.
   const sources = manifest.formatVersion === 'ordinary-art-draft-selection/1'
     ? { overlay: pinnedOverlays[0].source, characterIds: manifest.characterIds, audioIds: manifest.audioIds }
-    : { overlays: pinnedOverlays };
+    : { overlays: pinnedOverlays, ...(fit ? { fit } : {}) };
   const proof = { manifestSha256: ordinaryDraftSha256(manifestBytes), base: base.reference, ...sources, sha256: ordinaryDraftSha256(bytes) };
   const reference = { artifactId: ART_DRAFT_SELECTION, version: ordinaryDraftSha256(Buffer.from(JSON.stringify(proof))), location: path };
   if (expected && !sameValue(reference, expected)) throw new Error('Pinned art draft selection changed.');
-  return { reference, bytes, proof, origins, overlays,
+  return { reference, bytes, proof, origins, overlays, fit,
     roster: { characters: draftRoster(design.characters, characters), audio: draftRoster(design.audio, audio) } };
 }
 
