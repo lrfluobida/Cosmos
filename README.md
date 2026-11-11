@@ -49,6 +49,24 @@ CLI 集中提问、展示完整草稿，只有真实 stdin 的 `confirm <revisio
 
 准备模式保持原 ¥200 / 720 分钟限额；显式选择相同默认值可用，非默认限额会在访谈和目录创建前拒绝。
 
+## 从多份美术草稿选材
+
+普通生成在 `--approved-design-from` 下可加 `--art-draft-selection <manifest.json>`。清单保存在目标运行外。v2 的 `base` 指定基础稿，`overlays` 可列 1 至 4 个覆盖稿。以下示例中的版本和路径需换成实际工作稿的固定引用。
+
+```json
+{
+  "formatVersion": "ordinary-art-draft-selection/2",
+  "base": { "artifactId": "ordinary-art-draft", "version": "<基础稿版本哈希>", "location": "<基础稿运行的规范绝对路径>" },
+  "overlays": [{
+    "source": { "artifactId": "ordinary-art-draft", "version": "<覆盖稿版本哈希>", "location": "<覆盖稿运行的规范绝对路径>" },
+    "characterIds": ["room-key"],
+    "audioIds": []
+  }]
+}
+```
+
+所有来源须绑定同一原确认与同一已批准设计，各自使用独立运行和账本。每个覆盖稿至少选一项，整个清单内每个 ID 只指定一次。作者收到选定的完整角色和音轨，其他素材沿用基础稿。导入后仍是未审草稿，完整产物须重新捕获并独立评审。旧版双源清单继续使用原引用。
+
 ## 渲染帧采样
 
 普通生成可用 `new <run-dir> --brief "点击星星获胜" --render-frames true` 启用实际帧采样。确认前会展示范围；`resume` 与首个 `continue` 恢复原选择，省略选项不会关闭已选择的采样。准备模式不能启用；帧率样本不表示完整性能政策通过。完整命令与恢复说明见 [Windows CLI 指南](docs/development/quickstart.md)。

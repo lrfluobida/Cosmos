@@ -1886,8 +1886,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     }
     if (artDraft) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
       `Continue the operator-selected unreviewed draft already in ${ART_DRAFT_FILE}. Retain valid existing work and add the missing media. Initial roster: ${JSON.stringify(artDraft.roster)}. Read the current file before editing. The complete output requires host checks and independent review.`);
-    if (artDraft && 'characterIds' in artDraft.proof) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
-      `The overlay supplied these character IDs ${JSON.stringify(artDraft.proof.characterIds)} and audio IDs ${JSON.stringify(artDraft.proof.audioIds)}. All other initial items came from the base. Inspect the approved plan's pixel-pattern steps with artFrames before changing existing visuals. Preserve existing items unless a check or the approved design identifies a specific gap.`);
+    if (artDraft && 'overlays' in artDraft) {
+      const { overlays } = artDraft;
+      host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
+        `The ${overlays.length === 1 ? 'overlay' : 'overlays'} supplied these character IDs ${JSON.stringify(overlays.flatMap(item => item.characterIds))} and audio IDs ${JSON.stringify(overlays.flatMap(item => item.audioIds))}. All other initial items came from the base. Inspect the approved plan's pixel-pattern steps with artFrames before changing existing visuals. Preserve existing items unless a check or the approved design identifies a specific gap.`);
+    }
     host.bindPreparedTasks = async tasks => {
       const plan = await optionalDesignJson(root, 'repair-plan.json');
       if (!sameValue(tasks, plan?.tasks ?? host.historicalDesignPlan!.tasks)) throw new Error('Historical downstream task binding changed.');

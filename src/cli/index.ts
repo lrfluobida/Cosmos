@@ -19,7 +19,7 @@ const usage = `Usage:
     [--design-input <directory>]     Use fixed design.json and acceptance-plan.json for fresh review
     [--approved-design-from <source-run-dir>]  Reuse that independently approved supplied design and start at art
     [--art-draft-from <source-run-dir>]  Start art with an editable, unreviewed draft for that approved design
-    [--art-draft-selection <manifest.json>]  Start art with selected whole items from two pinned drafts
+    [--art-draft-selection <manifest.json>]  Start art with selected whole items from pinned drafts (v2: base plus 1-4 overlays)
     [--design-draft-from <source-run/journal/task-ID/review.json>]  Start from that reviewed design draft
   new [--max-cny N] [--max-minutes N]  Original limits: >0..200 CNY (up to 6 decimals), 1..720 whole minutes
   new/resume/continue [--render-frames true|false]  Select samples; recovery preserves the original choice
