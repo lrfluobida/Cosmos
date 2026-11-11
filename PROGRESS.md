@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R45 使用 R43 批准设计和 R44 未审草稿直接派发美术作者。原背景首批的 4,633 字节完整保留，4 笔调用的推理 token 均为 0。作者补齐 5 个视觉对象和 3 条音轨，工作稿共 15,538 字节；生产渲染器输出 6 帧 SVG 和 3 个 WAV。将实际素材放到设计指定位置后，宿主 Edge 的 `observePixelPattern` 对水晶、钥匙、齿轮、关门、开门的轮廓均未匹配（0/5）。素材预览和逐项检查保存在本地 `.cosmos/public-validation/room-20261111-art-draft-45/preview/` 的 `index.html`、`assets.png` 和 `visual-audit.json`。 [关闭推理实证](https://github.com/lrfluobida/Cosmos/issues/199#issuecomment-6786455693) · [草稿续作与视觉实测](https://github.com/lrfluobida/Cosmos/issues/200#issuecomment-6786455674)
+
+下一请求在准入阶段被拒，未发出。生产 SDK 离线重放的计价输入为 151,996 字节，最低 8,192 输出 token 报价 ¥0.369528，超过美术余额 ¥0.310425 共 ¥0.059103。运行未取得作者交接、正式媒体捕获或独审，编码 0 次尝试，未生成可玩游戏。R45 上限 ¥1.92 / 30 分钟，耗时 110,115 ms。4 笔费用已结清，共 ¥0.121575，释放 ¥1.798425。子账本修订 29，共享修订 3459；共享已结算 ¥46.689632、占用 ¥2.206428，阶段余额 ¥1.803940。运行及预览的临时目录已清理，保留媒体工作稿、渲染与审计产物、结算回执。 [R45 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6786455681)
+
 未审美术草稿续作已审合入 `a1d44e1`。主线编译版只读核对了 R43 的批准设计 `df44145a765a98ccd09f1e465106432cfa862179f60baa1329bc5f332ba5f45b` 和 R44 的部分草稿 `49ca0216a8243d95f3d79d2e5663dba8b0968c0a9ace0271d0b90df0c3c28dbe`。4,699 字节草稿已有 `cabin-room`，还缺水晶、钥匙、齿轮、房门，以及背景循环、收集、开门三项音频。 [来源与独审](https://github.com/lrfluobida/Cosmos/issues/200#issuecomment-6786149214)
 
 主线构建及新旧入口的离线组合用例 2/2 通过。新运行把批准设计与未审草稿共同绑定到授权，恢复时保留合法编辑，拒绝源内容漂移。普通美术作者以关闭推理的原生 SDK 请求交接；补齐全部素材后仍须完整捕获并通过本轮独审，旧入口仍会拒绝缺文件的交接。真实美术补全与游戏交付待新运行。保留 3,216 字节组合探针、TAP 和真实输入证据。 [父任务记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6786149308)
