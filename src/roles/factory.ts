@@ -258,7 +258,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       if (!task.inputs.some(ref => sameValue(ref, artDesign))) throw new Error('Art plan display requires the selected design input.');
       const planPath = artDesign.location + '/' + ORDINARY_PLAN_FILE;
       planReadPaths.push(planPath);
-      rules.push(`Start with ${artDesign.location}/_cosmos/design.json for the required characters, states, visuals, audio triggers and loops. Consult ${planPath} for the graphics and audio constraints that apply to each batch, including colours and silhouettes. Write completed asset batches to authors/art/media.json as you work; avoid transcribing the scenario or rereading completed pages.`);
+      rules.push(`Start with ${artDesign.location}/_cosmos/design.json for the required characters, states, visuals, audio triggers and loops. Consult ${planPath} for graphics and audio constraints, including colours and silhouettes. Follow the displayed planOffset to check remaining pages as you work. Write completed asset batches to authors/art/media.json promptly, preserving earlier batches when adding the remaining assets. Before handing off, check the full roster against the file. Avoid transcribing the scenario or rereading completed pages.`);
     }
     const fileTools = handoff ? [] : await createWorkspaceTools({ workspace, readPaths: reads, writePaths, planReadPaths,
       ...(input.role === 'art' ? { planReadPurpose: 'art' } : {}),
