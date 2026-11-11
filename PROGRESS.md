@@ -4,9 +4,13 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS-216 已合入主线 `90a7e86c`，独审批准 `edd3acb`。选用紧凑反馈草稿的编码作者在每次请求中均可读取真实初始源码，后续定点读取反映当前编辑结果。R56 七份源码导入后逐字节相同，序列化为 46,927 字节；实际候选回放的首笔输入为 86,458 字节。主线构建、边界检查 2/2 与本机带资 CLI 1/1 均通过，覆盖首次编辑和写入、真实 tsc/Vite 编译、独审隔离及恢复。付费请求为零。R59 未启动，阶段余额 ¥0.210651，新阶段报价待用户决定。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/217#issuecomment-6808495833)
+
+作者工作树的两处依赖联接已摘除，工作树已清理，主仓 TypeScript/Pi 与模板 TypeScript/Vite 入口均已复核。作者验证摘要在 `E:/develop/Cosmos-stage/compact-feedback-draft-author/verification.json`；临时项 55 个文件共 2,161,178 字节并含一处指向已移除夹具的联接。自动审批三次返回 `blocked by policy`，该批临时项保留。
+
 R58 在 `b6b5be38` 上以 ¥0.43 上限运行。19 笔请求、26 次工具读取、0 次写入，下笔因 `admission_rejected` 在派发前被拒。七份最终源码与 R57 逐字节一致，未产生正式候选，自动验收未通过。继续沿用原编译和 R56 的 Edge 观测。 [开发预览](.cosmos/public-validation/room-20261112-retained-58/development-preview/Play.cmd) · [R58 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539)
 
-本轮耗时 462,963 ms，19 笔共结算 ¥0.222169，释放 ¥0.207831。子修订 87、共享修订 3486，累计结算 ¥49.252921、历史待核占用 ¥2.206428、阶段余额 ¥0.210651。运行临时目录已清理。下一项通过离线修改让反馈草稿作者持续读取已核实的真实初始源码。R59 未启动，待独审及用户对新阶段报价的决定。 [闭账审计](.cosmos/public-validation/room-20261112-retained-58/closure-readonly-audit.json) · [后续修复](https://github.com/lrfluobida/Cosmos/issues/217)
+本轮耗时 462,963 ms，19 笔共结算 ¥0.222169，释放 ¥0.207831。子修订 87、共享修订 3486，累计结算 ¥49.252921、历史待核占用 ¥2.206428、阶段余额 ¥0.210651。运行临时目录已清理。后续初始源码修复已完成离线独审。 [闭账审计](.cosmos/public-validation/room-20261112-retained-58/closure-readonly-audit.json) · [后续修复](https://github.com/lrfluobida/Cosmos/issues/217)
 
 COS-215 已合入 `b6b5be38`，独审批准 `6a5ad77`。主线构建通过，真实 SDK 本机请求 4/4、带资 CLI 1/1 通过。独审回放 R57 第 11 笔输入从 173,141 降至 62,939 字节，加入历史写入、编辑及编译后的交接投影上限为 4,413 token。作者工作树已摘除两处依赖联接并清理，主仓和模板四个依赖入口完好。作者临时目录 `E:/develop/Cosmos-stage/r58-read-context-author` 的 148 个文件（3,758,734 字节）和 13 个下级目录仍保留，含一处指向已移除阶段夹具的联接。自动审批两次仅返回 `blocked by policy`。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/216#issuecomment-6807892972)
 

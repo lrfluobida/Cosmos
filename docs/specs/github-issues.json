@@ -15050,7 +15050,7 @@
       "id": 6337631537,
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-216"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/216",
       "parentTaskId": "COS-214",
       "parentIssueNumber": 215,
@@ -15085,9 +15085,9 @@
       "parentIssueNumber": 216,
       "parentIssueId": 6337631537,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-215",
@@ -15095,7 +15095,14 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/216"
         }
       ],
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "implementer": "compact_draft_author",
+      "reviewer": "r52_evidence",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "edd3acb03f32b5c25243077e792a3ff896e92c93",
+      "sourceIntegratedCommit": "90a7e86c92b9af62ab3057409d896ef75c178265",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/217#issuecomment-6808495833",
+      "verification": "主线构建、边界 2/2、本机带资 CLI 1/1 通过；首笔编辑/写入、编译、独审隔离、恢复和真实 R56 七份初始源码已核验。无付费请求。"
     }
   ],
   "verifiedNativeSubIssues": 100,

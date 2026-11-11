@@ -2705,7 +2705,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-216 · 为显式选定的反馈草稿作者持续提供真实初始源码
 
-归属 #19，原生父卡 #216。R58 反复读取后没有写入。为明确选择紧凑反馈草稿的编码作者持续提供已核实来源和范围的真实初始源码，同时保留实际编辑、读取、原 journal 和真实请求核价。只做离线实现与核验，R59 待独审和用户的新阶段报价决定。 [R58 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/217)
+归属 #19，原生父卡 #216。R58 反复读取后没有写入。为明确选择紧凑反馈草稿的编码作者持续提供已核实来源和范围的真实初始源码，同时保留实际编辑、读取、原 journal 和真实请求核价。作者 `compact_draft_author`，独审 `r52_evidence` 批准 `edd3acb`，主线合入 `90a7e86c`。边界 2/2、带资 CLI 1/1 及主线构建通过，真实七份源码逐字节匹配。付费请求为零，R59 待用户的新阶段报价决定。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/217#issuecomment-6808495833) [R58 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/217)
 
 ## 5. 任务与上下文包模板
 
