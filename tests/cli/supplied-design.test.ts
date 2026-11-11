@@ -363,19 +363,40 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   const partial = await read(fresh.root, ART_DRAFT_FILE);
   let seed = partial, edited = Buffer.concat([seed, Buffer.from('\n')]);
   const nativeRounds: string[] = [];
-  let nativeReview: object | undefined;
+  const reviewThinking: unknown[] = [];
+  let nativeReview: { verdict: string; findings: string[]; inputVersions: unknown; evidenceIds: string[] } | undefined;
   if (selection === 4) t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
     const request = new Request(input, init), body = await request.json();
     assert.equal(new URL(request.url).origin, 'https://api.deepseek.com');
     const tools = (body.tools ?? []).map((tool: any) => tool.function.name);
     assert.deepEqual(tools, nativeReview ? ['read'] : []);
+    let delta: object = { content: JSON.stringify(nativeReview ?? { summary: 'Handed off fixed media', remaining: [], uncertainty: [] }) };
+    let finish = 'stop';
     if (!nativeReview) {
       assert.match(body.messages[0].content, /fixedArtHandoff/);
       assert.doesNotMatch(body.messages[0].content, /artFrames|Write completed asset batches|点击后显示完成/);
+      nativeRounds.push('art');
+    } else {
+      reviewThinking.push([body.thinking, Object.hasOwn(body, 'reasoning_effort')]);
+      assert.equal(body.max_tokens, 8192);
+      if (nativeReview.verdict === 'changes_requested') nativeRounds.push('refusal');
+      else if (!body.messages.some((message: { role: string }) => message.role === 'tool')) {
+        nativeRounds.push('read');
+        delta = { tool_calls: [{ index: 0, id: 'read-design', type: 'function', function: { name: 'read',
+          arguments: JSON.stringify({ path: 'registry/captures/design/v1/files/_cosmos/design.json' }) } }] };
+        finish = 'tool_calls';
+      } else {
+        assert.match(body.messages.find((message: { role: string }) => message.role === 'tool').content, /Click the target/);
+        if (body.messages.at(-1).role === 'tool') {
+          nativeRounds.push('malformed');
+          delta = { content: '{}' };
+        } else {
+          assert.match(JSON.stringify(body.messages.at(-1).content), /only protocol correction/);
+          nativeRounds.push('correction');
+        }
+      }
     }
-    nativeRounds.push(nativeReview ? 'reviewer' : 'art');
-    const text = JSON.stringify(nativeReview ?? { summary: 'Handed off fixed media', remaining: [], uncertainty: [] });
-    const chunk = { id: 'offline-art', model: 'deepseek-flash', choices: [{ index: 0, delta: { content: text }, finish_reason: 'stop' }],
+    const chunk = { id: 'offline-art', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: finish }],
       usage: { prompt_tokens: 100, completion_tokens: 30, total_tokens: 130 } };
     return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
   });
@@ -407,6 +428,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
         nativeReview = { verdict: 'approved', findings: [], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((item: { evidenceId: string }) => item.evidenceId) };
         return offlineNative(config);
       }
+      if (packet.role === 'reviewer') assert.equal(config.thinkingLevel, 'low');
       assert.equal('artFrames' in config.tools!.find(item => item.name === 'read')!.parameters.properties, false);
       return fallback;
     }
@@ -480,13 +502,23 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
           if (failure === 'drift') await writeFile(join(config.workspace, ART_DRAFT_FILE), Buffer.concat([await read(config.workspace, ART_DRAFT_FILE), Buffer.from(' ')]));
           return { text: JSON.stringify({ summary: 'Submitted the complete seed for review', remaining: [], uncertainty: failure === 'handoff' ? ['Blocked on input identity'] : [] }) };
         } };
-        if (packet.role === 'reviewer') return { ...fallback, prompt: async () => ({ text: JSON.stringify({ verdict: 'changes_requested', findings: ['Artwork needs revision'],
-          inputVersions: packet.inputs, evidenceIds: packet.evidence.map((item: { evidenceId: string }) => item.evidenceId) }) }) };
+        if (packet.role === 'reviewer') {
+          const refusal = { verdict: 'changes_requested', findings: ['Artwork needs revision'],
+            inputVersions: packet.inputs, evidenceIds: packet.evidence.map((item: { evidenceId: string }) => item.evidenceId) };
+          if (selection === 4) { nativeReview = refusal; return offlineNative(config); }
+          return { ...fallback, prompt: async () => ({ text: JSON.stringify(refusal) }) };
+        }
         return fallback;
       } });
       const denied: any = await runCli(['new', rejected.root, ...common, '--approved-design-from', previous.root, selection === 4 ? '--art-review-input' : '--art-draft-selection', manifestPath], { ...io(), host: rejected.host });
       assert.deepEqual(rejected.packets.map(packet => packet.role), failure === 'review' ? ['art', 'reviewer'] : ['art']);
       assert.equal(denied.outcome, 'incomplete');
+      if (failure === 'review') {
+        const art = (await json(rejected.root, 'snapshot.json')).tasks.find((task: any) => task.taskId === 'art-task');
+        assert.equal(art.review.verdict, 'changes_requested');
+        assert.deepEqual(art.handoff.remaining, ['Artwork needs revision']);
+        nativeReview = undefined;
+      }
     };
     if (selection === 2) {
       const third = await ordinaryHostFixture(t, options);
@@ -615,7 +647,8 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   assert.ok(capture.metadata.provenance.sourceRefs.includes(selected.artifactId + '@' + selected.version));
   assert.match(capture.metadata.provenance.generator, selection === 4 ? /operator-fixed unreviewed art/ : /operator-selected unreviewed draft/);
   if (selection === 4) {
-    assert.deepEqual(nativeRounds, ['art', 'reviewer']);
+    assert.deepEqual(nativeRounds, ['refusal', 'art', 'read', 'malformed', 'correction']);
+    assert.deepEqual(reviewThinking, Array.from({ length: 4 }, () => [{ type: 'disabled' }, false]));
     assert.ok(finalLedger.entries.length >= 2 && finalLedger.entries.every((row: any) => row.status === 'settled'));
     assert.deepEqual(await read(funded.root, ART_DRAFT_FILE), seed);
     assert.deepEqual(await read(funded.root, 'registry/captures/media/v1/files/_cosmos/mediaSpec.json'), seed);
