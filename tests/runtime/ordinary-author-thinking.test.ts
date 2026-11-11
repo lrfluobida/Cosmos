@@ -52,8 +52,8 @@ for (const [label, gameplayIds, experienceIds] of [
   await f.execute(); assert.equal(inspected, true); assert.equal(f.packets.length, 0); assert.equal(f.plays.length, 0);
 });
 
-test('ordinary art disables thinking while other native role payloads and host gates retain their settings', async t => {
-  const f = await ordinaryHostFixture(t), scripted = f.hostOptions.sessionFactory!, payloads: any[] = [], configs: any[] = [];
+test('ordinary art and coding disable thinking and coding writes and compiles through native tools', async t => {
+  const f = await ordinaryHostFixture(t, { fullToolchain: true }), scripted = f.hostOptions.sessionFactory!, payloads: any[] = [], configs: any[] = [];
   const fetchMock = mock.method(globalThis, 'fetch', async (input: any, init?: RequestInit) => {
     const request = input instanceof Request ? input : new Request(input, init), body = JSON.parse(await request.text());
     const state: any = await readRunSnapshot(f.root), config = configs.at(-1), packet = JSON.parse(config.context);
@@ -62,8 +62,27 @@ test('ordinary art disables thinking while other native role payloads and host g
     const entry = state.ledger.entries.at(-1); assert.equal(entry.status, 'reserved'); assert.equal(entry.taskId, packet.taskId);
     assert.ok(entry.reservedMicroCny > body.max_tokens * 8, 'The existing estimator reserves input and the unchanged output cap before dispatch.');
     const design = packet.role === 'design', output = design ? Math.min(body.max_tokens, 9001) : 10;
-    const chunk = { id: 'offline-cos113', model: 'deepseek-flash', choices: [{ index: 0, delta: { content: design ? '完整设计内容。'.repeat(5000) : 'Complete' },
-      finish_reason: design && body.max_tokens < 9001 ? 'length' : 'stop' }],
+    let delta: object = { content: design ? '完整设计内容。'.repeat(5000) : 'Complete' };
+    let finish = design && body.max_tokens < 9001 ? 'length' : 'stop';
+    if (packet.role === 'coding') {
+      const results = body.messages.filter((message: any) => message.role === 'tool');
+      const calls = results.length === 0 ? [
+        ['write', { path: 'authors/coding/index.html', content: '<div id="status"></div><script type="module" src="/src/main.ts"></script>' }],
+        ['write', { path: 'authors/coding/src/main.ts', content: "document.querySelector('#status')!.textContent = '完成';\n" }],
+      ] : results.length === 2 ? [['check-game-build', {}]] : [];
+      if (calls.length) {
+        delta = { tool_calls: calls.map(([name, args], index) => ({ index, id: 'tool-' + (results.length + index),
+          type: 'function', function: { name, arguments: JSON.stringify(args) } })) };
+        finish = 'tool_calls';
+      } else {
+        assert.equal(results.length, 3);
+        const report = JSON.parse(results[2].content);
+        assert.ok(report.passed, report.diagnostics);
+        assert.equal(report.results.length, 2);
+        delta = { content: JSON.stringify({ summary: 'Compiled fixture source', remaining: [], uncertainty: [] }) };
+      }
+    }
+    const chunk = { id: 'offline-cos113', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: finish }],
       usage: { prompt_tokens: 30, completion_tokens: output, total_tokens: 30 + output } };
     return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
   });
@@ -71,6 +90,7 @@ test('ordinary art disables thinking while other native role payloads and host g
   f.hostOptions.sessionFactory = async config => {
     configs.push(config);
     const native = await createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-cos113' } });
+    if (JSON.parse(config.context).role === 'coding') return native;
     try { await native.prompt('Exercise the original role request configuration.'); }
     catch (error) { t.diagnostic(`Controlled native response failure: ${(error as Error & { code?: string }).code}: ${(error as Error).message}`); throw error; }
     finally { await native.close(); }
@@ -79,10 +99,11 @@ test('ordinary art disables thinking while other native role payloads and host g
   const result: any = await f.execute();
   t.diagnostic(JSON.stringify(payloads.map(({ role, taskId, body }) => ({ role, taskId, model: body.model, thinking: body.thinking, reasoning_effort: body.reasoning_effort, max_tokens: body.max_tokens }))));
   assert.ok(result.acceptedCandidate, JSON.stringify(result.gaps));
-  assert.equal(payloads.length, 7);
+  assert.equal(payloads.length, 9);
   for (const { role, taskId, body } of payloads) {
-    assert.deepEqual(body.thinking, { type: role === 'art' ? 'disabled' : 'enabled' });
-    if (role === 'art') assert.equal(Object.hasOwn(body, 'reasoning_effort'), false);
+    const disabled = role === 'art' || role === 'coding';
+    assert.deepEqual(body.thinking, { type: disabled ? 'disabled' : 'enabled' });
+    if (disabled) assert.equal(Object.hasOwn(body, 'reasoning_effort'), false);
     else assert.equal(body.reasoning_effort, 'low');
     assert.equal(body.max_tokens, role === 'art' || role === 'coding' ? 65536 : role === 'design' ? 32768 : role === 'reviewer' && taskId === 'design-task' ? 16384 : 8192);
   }
@@ -99,7 +120,7 @@ test('ordinary art disables thinking while other native role payloads and host g
     assert.equal(packet.budget.originalDeadlineAt, state.run.originalDeadlineAt);
     if (task) assert.equal(packet.budget.allocationMicroCny, task.budget.allocationMicroCny);
   }
-  assert.equal(state.ledger.limitMicroCny, 200000000); assert.equal(state.ledger.entries.length, 7);
+  assert.equal(state.ledger.limitMicroCny, 200000000); assert.equal(state.ledger.entries.length, 9);
   assert.ok(state.ledger.entries.every((entry: any) => entry.status === 'settled'));
   const design = configs.find(config => JSON.parse(config.context).role === 'design'), rules = JSON.parse(design.context).rules.join('\n');
   assert.match(rules, /First write authors\/design\/design\.json/);

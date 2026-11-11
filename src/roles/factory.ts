@@ -101,6 +101,7 @@ export interface RoleFactoryOptions {
   artAuthorRequestTimeoutMs?: number;
   /** Select the independently approved design bound to this ordinary art task. */
   ordinaryArtDesignInput?: (task: Readonly<TaskContract>) => ArtifactReference;
+  ordinaryCodingDesignInput?: (task: Readonly<TaskContract>) => ArtifactReference;
   ordinaryArtFrameRead?: (input: Readonly<RoleInput>) => ArtFrameRead;
   beforeArtFileWrite?: (input: Readonly<RoleInput>) => BeforeFileWrite;
   estimatedMaxCostMicroCny: PiSessionOptions['estimatedMaxCostMicroCny'];
@@ -144,7 +145,8 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   const revisionPolicy = options.ordinaryDesignRevisionPolicy;
   if (revisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(revisionPolicy) || options.ordinaryDesignBudgetPolicy !== 'review-reserve/1'
     || options.ordinaryDesignBudgetCompaction !== true || authorFloors.design !== 8192 || authorLimits.design !== 32768
-    || authorFloors.art !== 8192 || authorLimits.art !== 65536 || authorFloors.coding !== 8192 || authorLimits.coding !== 65536)) throw new Error('Invalid ordinaryDesignRevisionPolicy output configuration.');
+    || authorFloors.art !== 8192 || authorLimits.art !== 65536 || (authorFloors.coding !== 8192 && authorFloors.coding !== 4096)
+    || authorLimits.coding !== 65536)) throw new Error('Invalid ordinaryDesignRevisionPolicy output configuration.');
   for (const [role, floor] of Object.entries(authorFloors)) {
     const cap = authorLimits[role as AuthorRole] ?? options.maxOutputTokens;
     if (!['cosmos', 'design', 'coding', 'art'].includes(role) || !Number.isSafeInteger(floor) || floor <= 0
@@ -186,6 +188,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (artTimeout !== undefined && (!Number.isSafeInteger(artTimeout) || artTimeout <= 0)) throw new Error('artAuthorRequestTimeoutMs requires a positive safe integer.');
   const authorTimeouts: Partial<Record<Role, number>> = { coding: codingTimeout, design: designTimeout, art: artTimeout };
   const ordinaryArtDesignInput = options.ordinaryArtDesignInput;
+  const ordinaryCodingDesignInput = options.ordinaryCodingDesignInput;
   if (options.ordinaryPlanningAcceptanceIndex !== undefined && typeof options.ordinaryPlanningAcceptanceIndex !== 'function') throw new Error('ordinaryPlanningAcceptanceIndex requires a trusted source verifier.');
   return async input => {
     if (finalizationPolicy && input.validation) throw new Error('Ordinary design finalization cannot authorize validation roles.');
@@ -267,6 +270,13 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       task.outputs.some(output => output.schema === 'game-design/2' && output.destination === ref.location)).map(ref => ref.location + '/' + ORDINARY_PLAN_FILE)
       : [];
     const rules = [...task.context.rules];
+    if (ordinaryCodingDesignInput && purpose === 'author' && input.role === 'coding' && !validation && !authority?.windowId) {
+      const design = ordinaryCodingDesignInput(task);
+      if (!task.inputs.some(ref => sameValue(ref, design))) throw new Error('Coding plan display requires the selected design input.');
+      const planPath = design.location + '/' + ORDINARY_PLAN_FILE;
+      planReadPaths.push(planPath);
+      rules.push(`Read ${planPath} with path alone (or null optional arguments) for one complete step per display line. Follow each planOffset continuation once. Group independent reads of the confirmed requirements, design and media manifest together. As soon as their relevant contracts are known, write the first source file. Implement in small complete files using write/edit, consulting remaining steps as you implement them. Check every required step and run check-game-build before handoff.`);
+    }
     let artFrameRead: ArtFrameRead | undefined, beforeArtFileWrite: BeforeFileWrite | undefined;
     if (!handoff && ordinaryArtDesignInput && purpose === 'author' && input.role === 'art' && !validation) {
       const artDesign = ordinaryArtDesignInput(task);

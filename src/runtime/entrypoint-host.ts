@@ -992,7 +992,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       signal.throwIfAborted();
     } } : {}),
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, estimatedMaxCostMicroCny: requestReservation,
-      ...(ordinary ? { authorThinkingLevel: { design: 'low', art: 'off' } as const, authorMaxRequests: { design: 32 }, designAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, artAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS,
+      ...(ordinary ? { authorThinkingLevel: { design: 'low', art: 'off', ...(budgetEligible ? { coding: 'off' } as const : {}) } as const, authorMaxRequests: { design: 32 }, designAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, artAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS,
+        ...(budgetEligible ? { ordinaryCodingDesignInput: task => selected(task, 'design') } : {}),
         ordinaryCodingReviewImageQuote: task => role(task) === 'coding',
         ordinaryArtDesignInput: task => {
           if (role(task) !== 'art') throw new Error('Art plan display requires the ordinary art task.');
@@ -1057,7 +1058,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             }
           },
           ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}), ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
-          ...((ordinaryDesignRevisionPolicy || importedDesign) ? { ordinaryDesignRevisionPolicy: ordinaryDesignRevisionPolicy ?? importedDesign!.selection.policy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 },
+          ...((ordinaryDesignRevisionPolicy || importedDesign) ? { ordinaryDesignRevisionPolicy: ordinaryDesignRevisionPolicy ?? importedDesign!.selection.policy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 4096 },
             ordinaryDesignRevisionJsonReads: async task => {
               await requireDispatch(task, controller.signal);
               if (role(task) !== 'design') return false;

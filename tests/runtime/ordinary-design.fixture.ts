@@ -21,6 +21,7 @@ import type { RoleSession } from '../../src/roles/factory.ts';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 
 export async function ordinaryHostFixture(t: TestContext, options: { modular?: boolean; fault?: string; persistent?: boolean; classic?: boolean; renderFrames?: boolean; pause?: boolean; productionDefault?: boolean;
+  fullToolchain?: boolean;
   frozenPlanAuthoringPolicy?: 'structured-plan/1' | 'structured-design-plan/1' | 'structured-design-plan/2';
   revisionPolicy?: boolean | 'independent-review/1' | 'independent-review/2';
   mediaPolicy?: 'audio-state/1'; configure?: (draft: OrdinaryGameDraft, scenario: BrowserScenario) => void;
@@ -149,7 +150,7 @@ export async function ordinaryHostFixture(t: TestContext, options: { modular?: b
       if (prepared) return { environmentReady: true, executionReady: true };
       await mkdir(join(root, 'toolchain'), { recursive: true });
       for (const name of ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts']) await cp(join(template, name), join(root, 'toolchain', name));
-      if (modular) await cp(await realpath(join(template, 'node_modules')), join(root, 'toolchain/node_modules'), { recursive: true, dereference: true });
+      if (modular || options.fullToolchain) await cp(await realpath(join(template, 'node_modules')), join(root, 'toolchain/node_modules'), { recursive: true, dereference: true });
       else for (const name of ['phaser', 'eventemitter3']) {
         const folder = join(template, 'node_modules', name), files = (await readdir(folder)).filter(file => file === 'package.json' || /^licen[sc]e(?:\.[a-z]+)?$/i.test(file));
         if (name === 'phaser') files.push('src/geom/polygon/Earcut.js', 'src/geom/polygon/Simplify.js', 'src/physics/matter-js/lib/license.js', 'src/polyfills/AudioContextMonkeyPatch.js');
