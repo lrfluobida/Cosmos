@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R51 在主线 `0b87488` 导入 R43 的已批设计与固定美术稿 `11857bcf…`。原生作者完成交接，`media@v1` 捕获与主机检查通过，独立美术评审读取了实际文件。最后一笔的 8192 个输出 token 全部用于 reasoning，运行因 `provider_output_truncated` 停止。独审无裁决，编码未启动，无可玩候选，自动游戏验收未通过。固定稿原生独审的输出控制由 [COS-210](https://github.com/lrfluobida/Cosmos/issues/211) 跟进。
+
+本轮耗时 184,002 ms，9 笔共结算 ¥0.143902，释放 ¥1.776098。子账本修订 52、共享修订 3472，阶段累计已结算 ¥47.678206、历史待核占用 ¥2.206428、可用 ¥1.785366。闭账审计位于 `.cosmos/public-validation/room-20261111-art-review-51/closure-readonly-audit.json`，运行临时目录已清理。 [R51 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6796572349)
+
 两项 R50 后续修复已合入主线。空槽检查可直接测量真实背景，原生输入的五项有前景和三项已清空检查全部通过。显式 `--art-review-input` 使用零工具原生美术作者交接，当前捕获经本轮完整语义独审批准后才进入编码。独审核对了原稿 `07841e51…` 的 16 个渲染文件，均与旧实现逐字节一致。固定输入版本为 `11857bcf09bdc410ea67c0a81f8be635eece58602893063fa7c9fa55a0f2b14d`。 [空槽核验](https://github.com/lrfluobida/Cosmos/issues/209#issuecomment-6796324318) · [固定稿交接](https://github.com/lrfluobida/Cosmos/issues/210#issuecomment-6796325712)
 
 组合源码 `0294ba0` 构建通过。普通可编辑稿资金 CLI 通过。首次同进程运行的固定稿用例在设计夹具准备阶段报告控制器关闭，异常处理中的再次读取掩盖了底层错误码和路径。固定稿用例另起单进程，54.299 秒通过，文件操作观察未见异常。模板的 tsc、vite 和 Phaser 入口已核实；本批固定稿工作树在作者移除两处依赖联接后已清理。
