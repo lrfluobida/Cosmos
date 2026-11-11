@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R56 的《小屋寻物》开发预览可在装有 Node.js 22 的 Windows 上双击 [Play.cmd](.cosmos/public-validation/room-20261112-feedback-56/development-preview/Play.cmd) 启动。最终七份源码离线编译通过。独立 Edge 中六帧美术全部加载，SVG 404 从六个降到零，收集、开门胜利和跨浏览器进程读档均通过。精灵尺寸、收集后隐藏、HUD 与存档子节点仍有问题。原计划 s001 通过，s002 等待 10 秒仍未观测到音频 decoded。 [浏览器观测](.cosmos/public-validation/room-20261112-feedback-56/preview-smoke/observations.json) · [实测画面](.cosmos/public-validation/room-20261112-feedback-56/preview-smoke/after-door.png) · [最终源码复建](.cosmos/public-validation/room-20261112-feedback-56/final-draft-build.json)
+
+原生运行 `d6533373` 复用 R55 七份源码，编码会话收到四条绑定诊断，修改 `src/scene.ts` 和 `src/audioObserve.ts`。17 笔已发送，下笔因输出额度准入被拒，未进行作者编译、交接或正式候选捕获，自动验收未通过。本轮耗时 397,248 ms，结算 ¥0.185741，释放 ¥0.534259。子账本修订 79、共享修订 3482，累计已结算 ¥48.926876、历史待核占用 ¥2.206428、阶段余额 ¥0.536696。运行临时目录已清理。 [闭账审计](.cosmos/public-validation/room-20261112-feedback-56/closure-readonly-audit.json) · [R56 结案与 R57 验证安排](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6807425531)
+
+COS-214 已合入 `d6533373`，独审批准 `8b91268`。普通带资 CLI 将浏览器诊断绑定到准确的来源草稿。主线构建和本机原生 CLI 1/1 通过，覆盖错误草稿、摘要、目标路径拒绝及实际编译、独审、恢复与结算。作者工作树和临时目录已清理，保留作者验证摘要。R57 沿用该入口，待绑定 R56 实测的简短反馈并完成预算重放后决定是否派发。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/215#issuecomment-6807088836)
+
 R55 已生成可在 Windows 上启动的《小屋寻物》开发预览。安装 Node.js 22 后，双击本地 [Play.cmd](.cosmos/public-validation/room-20261112-code-draft-55/development-preview/Play.cmd)。该预览由同一模板对最后七份源码离线重编译得到。独立 Edge 实点通过锁门提示、收集三件物品、开门胜利，以及在 1/3 时保存后关闭浏览器进程、重开并继续。六个 SVG 的请求路径含 `undefined`，返回 404。按原计划回放 s001 通过，s002 等待 10 秒仍未观测到音频 decoded。 [冒烟记录](.cosmos/public-validation/room-20261112-code-draft-55/preview-smoke/observations.json) · [实测画面](.cosmos/public-validation/room-20261112-code-draft-55/preview-smoke/after-door.png) · [最终源码复建](.cosmos/public-validation/room-20261112-code-draft-55/final-draft-offline-build.json)
 
 原生运行 `78f75957` 复用 R54 三份真实草稿，补齐 `src/main.ts` 等源码。首次编译报类型错误，作者修正后三次 tsc/Vite 均通过。第 32 笔在派发前因 `admission_rejected` 被拒，未完成作者正式交接、候选捕获或独审，自动游戏验收未通过。本轮耗时 732,757 ms，31 笔结算 ¥0.343664，释放 ¥0.716336。子账本修订 142、共享修订 3480，累计已结算 ¥48.741135、历史待核占用 ¥2.206428、阶段余额 ¥0.722437。运行临时目录已清理。 [R55 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6806852815) · [浏览器诊断修复](https://github.com/lrfluobida/Cosmos/issues/215)

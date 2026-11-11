@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261112-code-draft-55",
+      "latestLiveValidationCaseId": "room-20261112-feedback-56",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6806852815",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6807425531",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14986,7 +14986,7 @@
       "id": 6334560617,
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-214"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/214",
       "parentTaskId": "COS-212",
       "parentIssueNumber": 213,
@@ -15021,9 +15021,9 @@
       "parentIssueNumber": 214,
       "parentIssueId": 6334560617,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-213",
@@ -15034,7 +15034,11 @@
       "implementer": "draft_feedback_author",
       "reviewer": "r52_evidence",
       "merger": "r52_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "8b91268909116957d4dc027334c4f8ced368beb7",
+      "sourceIntegratedCommit": "d6533373fc9e2c242ddb285da1a71115f78a5ab2",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/215#issuecomment-6807088836",
+      "verification": "主线构建及本机原生带资 CLI 1/1 通过。R56 编辑两个源码文件，独立预览确认六帧美术均加载，正式候选尚未捕获。"
     }
   ],
   "verifiedNativeSubIssues": 100,
