@@ -4,6 +4,12 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R55 已生成可在 Windows 上启动的《小屋寻物》开发预览。安装 Node.js 22 后，双击本地 [Play.cmd](.cosmos/public-validation/room-20261112-code-draft-55/development-preview/Play.cmd)。该预览由同一模板对最后七份源码离线重编译得到。独立 Edge 实点通过锁门提示、收集三件物品、开门胜利，以及在 1/3 时保存后关闭浏览器进程、重开并继续。六个 SVG 的请求路径含 `undefined`，返回 404。按原计划回放 s001 通过，s002 等待 10 秒仍未观测到音频 decoded。 [冒烟记录](.cosmos/public-validation/room-20261112-code-draft-55/preview-smoke/observations.json) · [实测画面](.cosmos/public-validation/room-20261112-code-draft-55/preview-smoke/after-door.png) · [最终源码复建](.cosmos/public-validation/room-20261112-code-draft-55/final-draft-offline-build.json)
+
+原生运行 `78f75957` 复用 R54 三份真实草稿，补齐 `src/main.ts` 等源码。首次编译报类型错误，作者修正后三次 tsc/Vite 均通过。第 32 笔在派发前因 `admission_rejected` 被拒，未完成作者正式交接、候选捕获或独审，自动游戏验收未通过。本轮耗时 732,757 ms，31 笔结算 ¥0.343664，释放 ¥0.716336。子账本修订 142、共享修订 3480，累计已结算 ¥48.741135、历史待核占用 ¥2.206428、阶段余额 ¥0.722437。运行临时目录已清理。 [R55 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6806852815) · [浏览器诊断修复](https://github.com/lrfluobida/Cosmos/issues/215)
+
+COS-213 已合入 `78f75957`，独审批准 `57cadab`。普通带资 CLI 能从同输入的真实源码草稿继续编写，首次派发前拒绝已篡改的草稿，允许合法编辑后的恢复。主线构建及带资 CLI 四轮用例 1/1 通过，覆盖真实编译、独审和结算。作者专用工作树和临时目录已清理，主仓及模板依赖入口已核实。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/214#issuecomment-6806500617)
+
 R54 在冻结主线 `835afa79` 复用 R52 的已批准美术和 R43 的已批准设计，仅派发编码作者。16 笔请求均未产生推理 token，生成 `index.html`（7,510 字节）、`src/audioObserve.ts`（9,279 字节）和 `src/game.ts`（3,742 字节）。第 17 笔在派发前因请求上限被拒。草稿缺少 `src/main.ts`，未编译、未进入浏览器或独审，无可试玩候选，自动验收未通过。 [R54 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6803759843) · [编码草稿续写](https://github.com/lrfluobida/Cosmos/issues/214)
 
 本轮上限 ¥1.31 / 30 分钟，耗时 281,912 ms。16 笔结算 ¥0.247243，释放 ¥1.062757。子账本修订 75、共享修订 3478，累计已结算 ¥48.397471、历史待核占用 ¥2.206428、阶段余额 ¥1.066101。草稿清单和各文件哈希见 `.cosmos/public-validation/room-20261112-approved-media-54/coding-evidence.json`。闭账审计已保留，运行临时目录已清理。

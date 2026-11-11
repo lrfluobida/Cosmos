@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261112-approved-media-54",
+      "latestLiveValidationCaseId": "room-20261112-code-draft-55",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6803759843",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6806852815",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14949,7 +14949,7 @@
       "id": 6333458324,
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-213"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/213",
       "parentTaskId": "COS-197",
       "parentIssueNumber": 198,
@@ -14984,14 +14984,17 @@
       "title": "普通带资编码从真实源码草稿续写并完成编译",
       "number": 214,
       "id": 6334560617,
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-214"],
+      "verifiedCompletedSubIssues": 0,
       "url": "https://github.com/lrfluobida/Cosmos/issues/214",
       "parentTaskId": "COS-212",
       "parentIssueNumber": 213,
       "parentIssueId": 6333458324,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-212",
@@ -14999,10 +15002,42 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/213"
         }
       ],
+      "implementer": "code_draft_author",
+      "reviewer": "r52_evidence",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "57cadab53520db9886577a1255f2ed6ff7e843e1",
+      "sourceIntegratedCommit": "78f759579ab8e06d4bbc86ea4f2ec79adb7de008",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/214#issuecomment-6806500617",
+      "verification": "主线构建和带资 CLI 用例 1/1 通过。R55 从三份真实草稿续写为七份源码并通过编译，正式作者交接前被准入拒绝。"
+    },
+    {
+      "taskId": "COS-214",
+      "title": "普通编码作者按绑定浏览器诊断修复草稿并交接",
+      "number": 215,
+      "id": 6336999379,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/215",
+      "parentTaskId": "COS-213",
+      "parentIssueNumber": 214,
+      "parentIssueId": 6334560617,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-213",
+          "number": 214,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/214"
+        }
+      ],
+      "implementer": "draft_feedback_author",
+      "reviewer": "r52_evidence",
+      "merger": "r52_merger",
       "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 213,
+  "totalTaskCount": 214,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

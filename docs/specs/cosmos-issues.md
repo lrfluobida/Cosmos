@@ -2693,7 +2693,11 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-213 · 普通带资编码从真实源码草稿续写并完成编译
 
-归属 #19，原生父卡 #213。R54 产生三个源码文件，触及请求上限前未完成编译。新运行须在同需求、同版设计和媒体下绑定真实编码草稿及来源内容，继续写入并提交真实编译检查，保留候选的宿主验收与独审。 [R54 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6803759843) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/214)
+归属 #19，原生父卡 #213。R54 产生三个源码文件，触及请求上限前未完成编译。作者 `code_draft_author`，独审 `r52_evidence` 批准 `57cadab`，主线合入 `78f75957`。带资 CLI 核验已批准输入下草稿复用、篡改拒绝和合法编辑后恢复。R55 从 R54 草稿继续并通过编译，正式交接前准入被拒。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/214#issuecomment-6806500617) [R54 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6803759843) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/214)
+
+### COS-214 · 普通编码作者按绑定浏览器诊断修复草稿并交接
+
+归属 #19，原生父卡 #214。R55 草稿可启动，独立 Edge 实测发现六个 SVG 请求 404，原执行计划 s002 的音频 decoded 在 10 秒内未满足。让续写作者接收与实际草稿和来源绑定的简短浏览器诊断，修复、编译并按原机制交接。作者 `draft_feedback_author`，独审 `r52_evidence`。 [R55 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6806852815) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/215)
 
 ## 5. 任务与上下文包模板
 
