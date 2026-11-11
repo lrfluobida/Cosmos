@@ -8,7 +8,7 @@ import { createPiSession, createWorkspaceTools } from '../providers/pi.ts';
 import type { PiBudgetFinalizationSource, PiSessionOptions, PiVerdictCorrection } from '../providers/pi.ts';
 import { validateTask } from '../contracts/index.ts';
 import { sameValue } from '../contracts/validation.ts';
-import type { TaskContract } from '../contracts/index.ts';
+import type { ArtifactReference, TaskContract } from '../contracts/index.ts';
 import type { RunController } from '../runtime/run.ts';
 import { createRoleBudget } from './provider-budget.ts';
 import { freeze } from './requirements.ts';
@@ -93,6 +93,10 @@ export interface RoleFactoryOptions {
   codingAuthorRequestTimeoutMs?: number;
   /** Trusted non-validation design author cap; planning and reviewers retain requestTimeoutMs. */
   designAuthorRequestTimeoutMs?: number;
+  /** Trusted non-validation art author cap; planning and reviewers retain requestTimeoutMs. */
+  artAuthorRequestTimeoutMs?: number;
+  /** Select the independently approved design bound to this ordinary art task. */
+  ordinaryArtDesignInput?: (task: Readonly<TaskContract>) => ArtifactReference;
   estimatedMaxCostMicroCny: PiSessionOptions['estimatedMaxCostMicroCny'];
   thinkingLevel?: PiSessionOptions['thinkingLevel'];
   /** Author overrides only; planning, review and fixed validation retain thinkingLevel. */
@@ -172,6 +176,10 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
   if (codingTimeout !== undefined && (!Number.isSafeInteger(codingTimeout) || codingTimeout <= 0)) throw new Error('codingAuthorRequestTimeoutMs requires a positive safe integer.');
   const designTimeout = options.designAuthorRequestTimeoutMs;
   if (designTimeout !== undefined && (!Number.isSafeInteger(designTimeout) || designTimeout <= 0)) throw new Error('designAuthorRequestTimeoutMs requires a positive safe integer.');
+  const artTimeout = options.artAuthorRequestTimeoutMs;
+  if (artTimeout !== undefined && (!Number.isSafeInteger(artTimeout) || artTimeout <= 0)) throw new Error('artAuthorRequestTimeoutMs requires a positive safe integer.');
+  const authorTimeouts: Partial<Record<Role, number>> = { coding: codingTimeout, design: designTimeout, art: artTimeout };
+  const ordinaryArtDesignInput = options.ordinaryArtDesignInput;
   if (options.ordinaryPlanningAcceptanceIndex !== undefined && typeof options.ordinaryPlanningAcceptanceIndex !== 'function') throw new Error('ordinaryPlanningAcceptanceIndex requires a trusted source verifier.');
   return async input => {
     if (finalizationPolicy && input.validation) throw new Error('Ordinary design finalization cannot authorize validation roles.');
@@ -209,6 +217,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const designCompaction = ordinaryDesignCompaction && purpose === 'author' && input.role === 'design' && !validation;
     const reviewReserve = !!(recoveryPolicy && designCompaction);
     const maxRequests = authorRequestLimit ?? options.maxRequests;
+    const authorTimeout = purpose === 'author' && (!validation || input.role === 'coding') ? authorTimeouts[input.role] : undefined;
     const authority = validation ? undefined : await input.controller.executionAuthority(task.taskId);
     if (input.designConcernReview && authority?.windowId) throw new Error('A continuation reviewer cannot acquire ordinary design candidate authority.');
     input.controller.signal.throwIfAborted();
@@ -243,7 +252,16 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const planReadPaths = designReviewBudget ? task.artifacts.filter(ref =>
       task.outputs.some(output => output.schema === 'game-design/2' && output.destination === ref.location)).map(ref => ref.location + '/' + ORDINARY_PLAN_FILE)
       : [];
+    const rules = [...task.context.rules];
+    if (ordinaryArtDesignInput && purpose === 'author' && input.role === 'art' && !validation) {
+      const artDesign = ordinaryArtDesignInput(task);
+      if (!task.inputs.some(ref => sameValue(ref, artDesign))) throw new Error('Art plan display requires the selected design input.');
+      const planPath = artDesign.location + '/' + ORDINARY_PLAN_FILE;
+      planReadPaths.push(planPath);
+      rules.push(`Start with ${artDesign.location}/_cosmos/design.json for the required characters, states, visuals, audio triggers and loops. Consult ${planPath} for the graphics and audio constraints that apply to each batch, including colours and silhouettes. Write completed asset batches to authors/art/media.json as you work; avoid transcribing the scenario or rereading completed pages.`);
+    }
     const fileTools = handoff ? [] : await createWorkspaceTools({ workspace, readPaths: reads, writePaths, planReadPaths,
+      ...(input.role === 'art' ? { planReadPurpose: 'art' } : {}),
       ...(onWriteCommitted ? { onWriteCommitted } : {}),
       ...(input.role === 'design' && !input.purpose && !input.validation && options.beforeDesignFileWrite ? { beforeFileWrite: options.beforeDesignFileWrite(input) } : {}),
       ...(designReviewBudget || designRevisionJsonReads ? { compactFullJsonReads: true } : {}) });
@@ -277,7 +295,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       objective: handoff ? 'Hand off the two existing operator-supplied files identified by the host.' : task.objective, specVersion: requirement.specVersion,
       acceptance: planningAcceptanceIndex || handoff ? acceptance.map(({ acceptanceId }) => ({ acceptanceId })) : acceptance,
       inputs: reviewer ? [...task.inputs, ...task.artifacts] : task.inputs, inputFiles,
-      rules: handoff ? ['Use the verified input identity, file digests and structural counts in suppliedDesignHandoff. Report any discrepancy that prevents handing off the listed pair.'] : task.context.rules,
+      rules: handoff ? ['Use the verified input identity, file digests and structural counts in suppliedDesignHandoff. Report any discrepancy that prevents handing off the listed pair.'] : rules,
       interfaces: task.context.interfaces, knownFailures: task.context.knownFailures, ...(handoff ? { suppliedDesignHandoff: handoff } : {}),
       tools: tools.map(tool => tool.name), ownership: { readPaths: reads, writePaths },
       budget: { ...task.budget, committedMicroCny: snapshot.ledger.entries.filter(e => e.taskId === task.taskId).reduce((total, e) => total + e.reservedMicroCny + e.settledMicroCny, 0),
@@ -306,7 +324,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       context: JSON.stringify(packet), thinkingLevel: (purpose === 'author' && !validation && input.role !== 'reviewer' ? authorThinking[input.role] : undefined) ?? options.thinkingLevel ?? 'low', env: options.env,
       ...(purpose === 'planning' ? { jsonOutput: true } : {}),
       maxOutputTokens: designReviewBudget ? designReviewMaxOutputTokens : planningOutputBudget ? 8192 : validation?.maxOutputTokens ?? (input.role !== 'reviewer' && input.purpose !== 'planning' ? authorLimits[input.role] ?? options.maxOutputTokens : options.maxOutputTokens),
-      maxRequests, requestTimeoutMs: (purpose === 'author' ? input.role === 'coding' ? codingTimeout : input.role === 'design' && !validation ? designTimeout : undefined : undefined) ?? options.requestTimeoutMs,
+      maxRequests, requestTimeoutMs: authorTimeout ?? options.requestTimeoutMs,
       requestWindow: async () => {
         input.controller.signal.throwIfAborted();
         const current = validation ? await input.controller.validationAuthority(task.taskId, purpose) : await input.controller.executionAuthority(task.taskId);

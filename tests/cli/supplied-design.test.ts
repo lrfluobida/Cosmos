@@ -96,9 +96,24 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
       }
       if (['art', 'coding'].includes(packet.role)) {
         const schema = config.tools.find(tool => tool.name === 'read')!.parameters as { properties: object };
-        assert.ok(!Object.hasOwn(schema.properties, 'planOffset'));
+        assert.equal(Object.hasOwn(schema.properties, 'planOffset'), packet.role === 'art');
         assert.match(packet.rules.join('\n'), /operator-supplied design/);
         const ref = packet.inputs.find((item: any) => item.artifactId === 'design');
+        if (packet.role === 'art') {
+          assert.ok(packet.rules.some((rule: string) => rule.includes(ref.location + '/_cosmos/design.json') && rule.includes('Write completed asset batches')));
+          assert.equal(config.requestTimeoutMs, 600000);
+          assert.deepEqual(await config.requestWindow!(), { deadlineAt: Date.parse(packet.budget.originalDeadlineAt), cleanupMs: 5000 });
+          await checkReadPlan(config, ref.location + '/_cosmos/acceptance-plan.json', files.get('acceptance-plan.json')!);
+          const media = 'authors/art/media.json', source = '{\n  "batches": []\n}\n';
+          const tool = (name: string) => config.tools!.find(item => item.name === name)!;
+          await tool('write').execute('draft', { path: media, content: source }, undefined, undefined, undefined as never);
+          const raw = await tool('read').execute('draft-read', { path: media, offset: 2, limit: 1 }, undefined, undefined, undefined as never);
+          assert.ok(raw.content[0].type === 'text' && raw.content[0].text.startsWith('  "batches": []'));
+          for (const other of [media, ref.location + '/_cosmos/design.json']) {
+            await assert.rejects(tool('read').execute('other', { path: other, planOffset: 2 }, undefined, undefined, undefined as never), /only on the fixed acceptance plan/);
+          }
+          await assert.rejects(tool('write').execute('protected', { path: ref.location + '/_cosmos/acceptance-plan.json', content: '{}' }, undefined, undefined, undefined as never), /outside allowed task paths/);
+        }
         for (const [name, content] of files) assert.equal((await read(config.workspace, ref.location + '/_cosmos/' + name)).toString(), content);
         consumers.add(packet.role);
       }
