@@ -14,14 +14,14 @@ test('COS146 revision display selector is trusted, snapshotted, and limited to o
   await mkdir(join(f.root, 'requirements')); await writeFile(join(f.root, 'requirements/v1.json'), '{ "value": 1 }', 'utf8');
   for (const selector of [true, false, null, 'revision']) assert.throws(() => createRoleFactory({ ...options, ordinaryDesignRevisionJsonReads: selector } as unknown as RoleFactoryOptions), /trusted selector/);
   let calls = 0;
-  const mutable: RoleFactoryOptions = { ...options, sessionFactory: f.sessionFactory, ordinarySuppliedDesign: true, ordinaryDesignRevisionJsonReads: async task => {
+  const mutable: RoleFactoryOptions = { ...options, sessionFactory: f.sessionFactory, ordinarySuppliedDesign: async () => assert.fail('Unexpected supplied design handoff'), ordinaryDesignRevisionJsonReads: async task => {
     calls++; assert.ok(Object.isFrozen(task)); assert.ok(Object.isFrozen(task.acceptanceIds)); assert.notEqual(task, f.input.task); return true;
   } };
   const factory = createRoleFactory(mutable); mutable.ordinaryDesignRevisionJsonReads = async () => false;
   for (const [role, purpose] of [['design', undefined], ['design', 'planning'], ['reviewer', undefined], ['art', undefined], ['coding', undefined], ['cosmos', undefined]] as const) {
     const session = await factory({ ...f.input, role, purpose }); await session.close();
     const config = f.configs.at(-1)!, read = config.tools!.find(tool => tool.name === 'read')!;
-    assert.ok(!Object.hasOwn(read.parameters.properties, 'planOffset'));
+    assert.ok(!Object.hasOwn((read.parameters as { properties: object }).properties, 'planOffset'));
     if (role === 'design' && !purpose) assert.match(read.description, /^For JSON revision,/);
     else assert.doesNotMatch(read.description, /^For JSON (review|revision),/);
     const result = await read.execute('selection', { path: 'requirements/v1.json' }, undefined, undefined, undefined as never);
