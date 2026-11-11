@@ -19,10 +19,14 @@ const usage = `Usage:
     [--design-input <directory>]     Use fixed design.json and acceptance-plan.json for fresh review
     [--approved-design-from <source-run-dir>]  Reuse that independently approved supplied design and start at art
     [--art-draft-from <source-run-dir>]  Start art with an editable, unreviewed draft for that approved design
-    [--art-draft-selection <manifest.json>]  Start art with selected whole items from pinned drafts (v2: base plus 1-4 overlays)
+    [--art-draft-selection <manifest.json>]  Start art from pinned drafts (v2: up to 4 overlays; v3: local geometry offsets)
     [--design-draft-from <source-run/journal/task-ID/review.json>]  Start from that reviewed design draft
   new [--max-cny N] [--max-minutes N]  Original limits: >0..200 CNY (up to 6 decimals), 1..720 whole minutes
   new/resume/continue [--render-frames true|false]  Select samples; recovery preserves the original choice
+  cosmos fit-art <selection.json> <frame.json> <new-manifest.json>
+                                   Fit one single-frame asset to a matching plan step in local Edge.
+                                   Supply a v1/v2 selection and an artFrames mapping object.
+                                   A new v3 unreviewed manifest is written only for a successful adjustment.
   cosmos status <run-dir>           Read the original run identity, cost, deadline and gaps
   cosmos experience <run-dir>       Review the current delivery and record a final stdin playtest decision
   cosmos stop <run-dir>             Persist a hard stop and wait for owned work to drain
@@ -106,6 +110,13 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     return;
   }
   const [command, path, ...supplied] = args;
+  if (command === 'fit-art') {
+    if (!path?.trim() || supplied.length !== 2 || supplied.some(value => !value.trim())) throw new Error(usage);
+    const { fitArtSelection } = await import('./fit-art.ts');
+    const result = await fitArtSelection(path, supplied[0], supplied[1]);
+    (io.output ?? process.stdout).write(JSON.stringify(result, null, 2) + '\n');
+    return result;
+  }
   let renderFrames: boolean | undefined, maxCny: string | undefined, maxMinutes: string | undefined;
   const options: string[] = [];
   for (let index = 0; index < supplied.length; index++) {

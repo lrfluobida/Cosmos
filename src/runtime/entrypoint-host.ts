@@ -1098,7 +1098,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: `rendered/${task.taskId}`, files: rendered.files.map(name => ({ source: name, destination: name })),
           ownership: { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }, dependencies: artDependencies(task), metadata: { kind: 'media', provenance: artDraft ? { ...origin,
-            generator: 'Native art handoff from an operator-selected unreviewed draft', sourceRefs: [...origin.sourceRefs, artDraft.reference.artifactId + '@' + artDraft.reference.version, artDraft.reference.location] } : origin, media: rendered.media } });
+            generator: 'Native art handoff from an operator-selected unreviewed draft' + ('fit' in artDraft && artDraft.fit ? ' with local geometry offsets' : ''),
+            sourceRefs: [...origin.sourceRefs, artDraft.reference.artifactId + '@' + artDraft.reference.version, artDraft.reference.location] } : origin, media: rendered.media } });
       } else if (modular && moduleSlot(task)) {
         const slot = moduleSlot(task)!, source = moduleSource(slot), authored = await snapshot(join(workspace(task), source));
         validateModuleFiles(authored, slot); await modularInputs(task);
@@ -1888,6 +1889,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       `Continue the operator-selected unreviewed draft already in ${ART_DRAFT_FILE}. Retain valid existing work and add the missing media. Initial roster: ${JSON.stringify(artDraft.roster)}. Read the current file before editing. The complete output requires host checks and independent review.`);
     if (artDraft && 'overlays' in artDraft) {
       const { overlays } = artDraft;
+      if (artDraft.fit) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
+        `The selected draft includes unreviewed local geometry offsets for ${artDraft.fit.mapping.characterId}, mapped to plan step ${artDraft.fit.mapping.stepId}. Recheck the frame before submitting it for independent review.`);
       host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
         `The ${overlays.length === 1 ? 'overlay' : 'overlays'} supplied these character IDs ${JSON.stringify(overlays.flatMap(item => item.characterIds))} and audio IDs ${JSON.stringify(overlays.flatMap(item => item.audioIds))}. All other initial items came from the base. Inspect the approved plan's pixel-pattern steps with artFrames before changing existing visuals. Preserve existing items unless a check or the approved design identifies a specific gap.`);
     }

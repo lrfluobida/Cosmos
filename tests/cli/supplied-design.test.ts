@@ -8,7 +8,7 @@ import type { PiSessionOptions } from '../../src/providers/pi.ts';
 import { createPiSession } from '../../src/providers/pi.ts';
 import { runCli } from '../../src/cli/index.ts';
 import { runPublicValidationCli } from '../../probes/public-cli/validation.ts';
-import { confirmedSource, silentOutput } from '../runtime/confirmed-requirements.fixture.ts';
+import { confirmedSource, silentOutput, temporaryRun } from '../runtime/confirmed-requirements.fixture.ts';
 import { ordinaryHostFixture } from '../runtime/ordinary-design.fixture.ts';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
@@ -330,7 +330,7 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
   assert.equal(funded.validationFunding.fundingId, 'supplied');
 });
 
-for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected items from two art drafts'], [2, 'selected items from three art drafts']] as const) test('public funding resumes ' + label + ' and requires a complete independently reviewed output', async t => {
+for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected items from two art drafts'], [2, 'selected items from three art drafts'], [3, 'a locally fitted art draft']] as const) test('public funding resumes ' + label + ' and requires a complete independently reviewed output', async t => {
   const options: NonNullable<Parameters<typeof ordinaryHostFixture>[1]> = { productionDefault: true, configure(_draft, scenario) {
     scenario.steps.push({ id: 'target-pixels', kind: 'assert', acceptanceId: 'light', expected: true, timeoutMs: 1000,
       observation: { kind: 'pixel-pattern', x: 40, y: 50, width: 32, height: 32, color: '#FFD700', tolerance: 0, rows: ['+'] } });
@@ -374,7 +374,8 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
     assert.match(packet.rules.join('\n'), /operator-selected unreviewed draft/);
     if (selection === 2) assert.match(packet.rules.join('\n'), /overlays supplied these character IDs \["target"\] and audio IDs \["click"\]/);
     if (selection === 1) assert.match(packet.rules.join('\n'), /overlay supplied these character IDs \["target"\]/);
-    if (selection === 2) assert.match(packet.rules.join('\n'), /"audio":\{"existing":\["click"\],"missing":\[\]\}/);
+    if (selection === 3) assert.match(packet.rules.join('\n'), /unreviewed local geometry offsets for target/);
+    if (selection >= 2) assert.match(packet.rules.join('\n'), /"audio":\{"existing":\["click"\],"missing":\[\]\}/);
     else assert.match(packet.rules.join('\n'), /"characters":\{"existing":\["target"\],"missing":\[\]\},"audio":\{"existing":\[\],"missing":\["click"\]\}/);
     const tool = (name: string) => config.tools!.find(item => item.name === name)!;
     const readResult = await tool('read').execute('seed', { path: ART_DRAFT_FILE }, undefined, undefined, undefined as never);
@@ -389,7 +390,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
     assert.deepEqual(await read(config.workspace, ART_DRAFT_FILE), edited);
     return { ...fallback, prompt: async () => {
       const full = JSON.parse(edited.toString('utf8'));
-      if (selection !== 2) full.audio.push({ id: 'click', sampleRate: 22050, duration: 0.1, loop: false,
+      if (selection < 2) full.audio.push({ id: 'click', sampleRate: 22050, duration: 0.1, loop: false,
         notes: [{ midi: 72, start: 0, duration: 0.1, gain: 0.2, wave: 'sine', attack: 0.01, release: 0.01 }] });
       const save = (value: unknown) => tool('write').execute('save', { path: ART_DRAFT_FILE, content: JSON.stringify(value) }, undefined, undefined, undefined as never);
       const edit = (oldText: string, newText: string) => tool('edit').execute('change', { path: ART_DRAFT_FILE, edits: [{ oldText, newText }] }, undefined, undefined, undefined as never);
@@ -418,12 +419,13 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   await writeFile(join(fresh.root, 'snapshot.json'), savedState);
   await writeFile(join(fresh.root, 'intake-origin.json'), sourceOrigin);
   let selected = sourceDraft.reference, resumeDriftRoot = fresh.root;
-  const manifestPath = join(original.root, 'art-selection.json');
+  const manifestPath = join(selection === 3 ? await temporaryRun(t) : original.root, 'art-selection.json');
   if (selection) {
     const overlay = await ordinaryHostFixture(t, options);
     await runCli(['new', overlay.root, ...common, '--approved-design-from', previous.root, '--art-draft-from', fresh.root], { ...io(), host: overlay.host });
     const other = JSON.parse(partial.toString());
     other.characters[0].anchor.x += 1;
+    if (selection === 3) other.characters[0].layers[0].x = 20.8;
     other.audio.push({ id: 'click', sampleRate: 22050, duration: 0.1, loop: false,
       notes: [{ midi: 70, start: 0, duration: 0.1, gain: 0.2, wave: 'sine', attack: 0.01, release: 0.01 }] });
     await writeFile(join(overlay.root, ART_DRAFT_FILE), JSON.stringify({ formatVersion: 'batched-media/1', batches: [other] }));
@@ -471,6 +473,20 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
       await rejectCompleteSeed();
       await assert.rejects(selectArtDraftSelection(manifestPath, approved, sourceState.requirementsSource, { ...target, ledgerId: audioDraft.proof.ledgerId }), /independent source run/);
       await assert.rejects(selectArtDraftSelection(manifestPath, approved, sourceState.requirementsSource, { root: third.root }), /separate canonical roots/);
+    } else if (selection === 3) {
+      const overlays = [{ source: overlayDraft.reference, characterIds: ['target'], audioIds: ['click'] }];
+      const input = manifestPath + '.input', mapping = manifestPath + '.frame';
+      await writeFile(input, JSON.stringify({ formatVersion: 'ordinary-art-draft-selection/2', base: sourceDraft.reference, overlays }));
+      await writeFile(mapping, JSON.stringify({ stepId: 'target-pixels', state: 'idle', characterId: 'target' }));
+      const report: any = await runCli(['fit-art', input, mapping, manifestPath], io());
+      assert.equal(report.outcome, 'unreviewed-fit');
+      assert.deepEqual(report.changes, [{ layerId: 'body', x: -1 }]);
+      composition = await selectArtDraftSelection(manifestPath, approved, sourceState.requirementsSource, target);
+      const revised = structuredClone(other);
+      revised.characters[0].layers[0].x -= 1;
+      assert.deepEqual(JSON.parse(composition.bytes.toString()), revised);
+      assert.deepEqual(composition.fit?.changes, report.changes);
+      await rejectCompleteSeed();
     } else {
       const manifest = { formatVersion: 'ordinary-art-draft-selection/1', base: sourceDraft.reference, overlay: overlayDraft.reference, characterIds: ['target'], audioIds: [] };
       const choose = async (fields: object) => {
@@ -541,6 +557,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   const capture = await json(funded.root, 'registry/captures/media/v1/capture.json');
   assert.ok(capture.metadata.provenance.sourceRefs.includes(selected.artifactId + '@' + selected.version));
   assert.match(capture.metadata.provenance.generator, /operator-selected unreviewed draft/);
+  if (selection === 3) assert.match(capture.metadata.provenance.generator, /local geometry offsets/);
   assert.equal(capture.metadata.media.audio[0].manifest.id, 'click');
   assert.equal(final.outcome, 'awaiting_user_experience', JSON.stringify(final.gaps));
   assert.deepEqual(await read(fresh.root, ART_DRAFT_FILE), partial);
