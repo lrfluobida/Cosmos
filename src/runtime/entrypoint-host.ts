@@ -1032,7 +1032,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           ...(preservesValidDraft(ordinaryPlanAuthoringPolicy) ? { ordinaryDesignRejectedWriteCompaction: true as const } : {}),
           ordinaryPlanningOutputFloor: 4096,
           ordinaryDesignReviewMaxOutputTokens: 16384,
-          ...(fixedArt ? { ordinaryFixedArt: async (roleInput: Readonly<RoleInput>) => {
+          ...(fixedArt ? { ordinaryFixedArtReview: task => role(task) === 'art', ordinaryFixedArt: async (roleInput: Readonly<RoleInput>) => {
             await artAuthorWorkspace(roleInput);
             if (!sameValue(roleInput.requirement, requirement) || !sameValue(selected(roleInput.task, 'design'), importedDesign!.proof.design)
               || !sameValue(roleInput.task.context.tools, ['read'])) throw new Error('Fixed art requires its approved design and read-only task.');
