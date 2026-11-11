@@ -315,7 +315,7 @@ export async function createPiSession(config: PiSessionOptions) {
               const chunk = data as { model?: unknown; usage?: RawUsage; choices?: { usage?: RawUsage }[] };
               if (typeof chunk.model === 'string') responseModel = chunk.model;
               // The native parser replaces its usage on each report, preferring chunk.usage to choice.usage.
-              const usage = chunk.usage || (config.ordinaryDesignReview ? chunk.choices?.[0]?.usage : undefined);
+              const usage = chunk.usage || (config.ordinaryDesignReview && Array.isArray(chunk.choices) ? chunk.choices[0]?.usage : undefined);
               if (usage) {
                 const complete = Number.isSafeInteger(usage.prompt_tokens) && Number.isSafeInteger(usage.completion_tokens)
                   && Number(usage.prompt_tokens) >= 0 && Number(usage.completion_tokens) >= 0;

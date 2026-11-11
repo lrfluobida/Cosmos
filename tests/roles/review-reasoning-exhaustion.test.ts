@@ -9,7 +9,8 @@ import { authorBudgetFixture } from './author-output-budget.fixture.ts';
 
 for (const mode of ['approved', 'changes_requested', 'malformed', 'no-budget', 'partial-tool', 'visible-text',
   'mixed-usage', 'unknown', 'unselected', 'no-slot', 'request-limit', 'empty-verdict',
-  'foreign-session', 'source-model-conflict', 'verdict-model-conflict', 'source-usage-conflict', 'verdict-usage-conflict'] as const) {
+  'foreign-session', 'source-model-conflict', 'verdict-model-conflict', 'source-usage-conflict', 'verdict-usage-conflict',
+  'malformed-choices-conflict'] as const) {
   test(`native design review after synthetic reasoning exhaustion: ${mode}`, async t => {
     const f = await authorBudgetFixture(t, mode === 'no-budget' ? 150000 : 675000);
     const { task } = f.input, record = join(f.root, 'review-correction.json');
@@ -56,14 +57,16 @@ for (const mode of ['approved', 'changes_requested', 'malformed', 'no-budget', '
         const chunk = { id: 'offline-review', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: finish }],
           ...(n === 2 && mode === 'unknown' ? {} : { usage }) };
         const conflict = mode === 'source-model-conflict' && n === 2 || mode === 'verdict-model-conflict' && n === 3;
-        const badUsage = mode === 'source-usage-conflict' && n === 2 || mode === 'verdict-usage-conflict' && n === 3;
+        const badUsage = ['source-usage-conflict', 'malformed-choices-conflict'].includes(mode) && n === 2 || mode === 'verdict-usage-conflict' && n === 3;
         let firstChunk = conflict ? `data: ${JSON.stringify({ ...chunk, model: 'different-model', choices: [], usage: undefined })}\n\n` : '';
         if (badUsage) {
           firstChunk = `data: ${JSON.stringify({ ...chunk, choices: [], usage: { prompt_tokens: 30, completion_tokens: 0 } })}\n\n`;
           Object.assign(chunk.choices[0], { usage: { ...usage, prompt_tokens: undefined } });
           delete chunk.usage;
         }
-        return new Response(`${firstChunk}data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+        const ignored = n === 2 && mode === 'malformed-choices-conflict'
+          ? `data: ${JSON.stringify({ model: chunk.model, choices: { 0: { usage } } })}\n\n` : '';
+        return new Response(`${firstChunk}data: ${JSON.stringify(chunk)}\n\n${ignored}data: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
       } catch (error) { payloadFailure = error; throw error; }
     });
     const reviewer = await f.create({ ordinaryDesignReviewBudget: () => mode !== 'unselected', ordinaryDesignReviewMaxOutputTokens: cap,
