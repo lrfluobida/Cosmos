@@ -2631,7 +2631,11 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-198 · 普通原生美术作者关闭推理输出
 
-父任务 #19，依赖 COS196。R44 的第二笔普通原生美术请求实际输出 41,805 个 token，其中推理占 39,829 个。为普通美术作者关闭推理，用原生 SDK 检查实际请求设置，保留真实分批生成、原有准入、媒体捕获和独审。作者 `art_output_implementer`，独审 `art_output_review`，源码待审。 [COS198 / #199](https://github.com/lrfluobida/Cosmos/issues/199)
+父任务 #19，依赖 COS196。R44 的第二笔普通原生美术请求实际输出 41,805 个 token，其中推理占 39,829 个。为普通美术作者关闭推理，用原生 SDK 检查实际请求设置，保留真实分批生成、原有准入、媒体捕获和独审。作者 `art_output_implementer`，独审 `art_output_review` 批准 `a9283c0`，主线合入 `518d33a`。主线构建和公开 CLI 已批准设计复用后的原生美术缺文件阻断用例 1/1 通过。原生 SDK 实测 thinking disabled，保留 read/write/edit，美术未写文件时不能捕获。扩展角色 8/9，旧模块化设计压缩配置的失败在合入前主线同样复现。 [源码与证据](https://github.com/lrfluobida/Cosmos/issues/199#issuecomment-6786010221)
+
+### COS-199 · 在新运行中从同版已批准设计的部分美术草稿续作
+
+父任务 #19，依赖 COS197。新运行可显式选择来自同一已批准设计的部分美术草稿，绑定来源和精确内容。草稿保留未审身份，新运行的完整素材仍须捕获、校验和独审；付费授权须覆盖草稿来源。作者 `partial_art_author`，独审 `art_output_review`，源码待审。 [COS199 / #200](https://github.com/lrfluobida/Cosmos/issues/200)
 
 ## 5. 任务与上下文包模板
 

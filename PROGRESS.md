@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+普通原生美术作者关闭推理的改动已合入 `518d33a`。真实 SDK 的离线请求发出 `thinking.type=disabled`，保留读、写、编辑工具。已批准设计复用后的美术作者若只宣称完成而未写文件，仍因 `role-output-missing_output` 无法捕获。主线构建与公开 CLI 定向用例 1/1 通过。扩展角色用例 8/9，旧模块化宿主的设计压缩配置错误在合入前主线 `d3eb5b8` 同样复现。作者此前的清理钩子改用规范路径后通过，旧夹具 26 个文件共 39,497 字节保留在 `E:/CosmosStage/r44-art-output-20261111/temp/` 供诊断。 [审查与验证](https://github.com/lrfluobida/Cosmos/issues/199#issuecomment-6786010221)
+
+下轮可用的部分美术草稿须与所选原生批准设计严格匹配。R44 的 `cabin-room` 草稿已能由生产渲染器生成预览，完整素材仍需新运行捕获、校验与独立评审。本次集成没有付费调用。 [草稿续作任务](https://github.com/lrfluobida/Cosmos/issues/200)
+
 R44 复用 R43 原生独审批准的设计 v1，直接派发新美术作者，规划、设计与重复设计独审均为 0 次。第二笔美术请求在 240,939 ms 正常返回。上限 41,922 个输出 token，实际 41,805，其中推理 39,829、可见 1,976。作者写入 4,699 字节的 `batched-media/1` 草稿，首批 `cabin-room` 有 27 层、1 帧。生产 `renderCharacter` 已渲染出 512×288 的预览；PNG、SVG 和来源记录位于 `.cosmos/public-validation/room-20261111-approved-44/preview/`。余下 4 项视觉和 3 项音频未完成。下一笔请求在准入时被拒，未发送；美术没有捕获或独审，编码 0 次尝试，未生成可玩游戏。 [批准设计复用实证](https://github.com/lrfluobida/Cosmos/issues/198#issuecomment-6785763441) · [美术请求实证](https://github.com/lrfluobida/Cosmos/issues/197#issuecomment-6785763476)
 
 R44 上限 ¥2.30 / 30 分钟，耗时 288,954 ms。两笔费用已结清，共 ¥0.379465，释放 ¥1.920535。子账本修订 21，共享修订 3457，累计已结算 ¥46.568057、占用 ¥2.206428，阶段余额 ¥1.925515。运行临时目录已清理，保留首批草稿、预览与结案回执。 [结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6785763439) · [普通美术作者推理设置](https://github.com/lrfluobida/Cosmos/issues/199)
