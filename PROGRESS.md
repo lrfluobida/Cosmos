@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS200 已审合入 `1f4886f`。普通美术作者仅能在任务绑定的已批准计划路径上用 `read` 的 `artFrames` 模式读取紧凑索引和检查当前素材帧。选择帧和背景后，宿主返回该素材合成画面的分格差异，供作者修订。正式媒体独审和游戏候选的验收仍各自取证。 [源码批准与验证](https://github.com/lrfluobida/Cosmos/issues/201#issuecomment-6786893470)
+
+R45 的 5 项历史映射共 97 个失败格，分别为水晶 58、钥匙 6、齿轮 6、关门 10、开门 17。独审逐格对照了两张原始截图，并核对 6 个 SVG 字节。主线构建通过，编译版从 R45 的固定计划读出 8 个不同检查项（2,709 字节），拒绝在其他文件路径使用帧模式，单次复核开门的 17 个失败格与留存结果完全一致。原宿主报告及回放脚本保留在 `E:/CosmosStage/art-frame-check-20261111/`。本次集成没有付费调用；R46 准入按独立免费费用回放另行判断。 [父任务记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6786893459)
+
 已登记普通美术作者的只读素材帧检查任务。从已批准计划列出 `pixel-pattern` 检查索引，按选定背景和位置渲染当前 SVG，返回各格的实际与预期差异。R45 的 5 项轮廓均未匹配。检查工具不调用模型；正式美术捕获、独审和游戏验收仍各自取证。 [COS200 / #201](https://github.com/lrfluobida/Cosmos/issues/201)
 
 R45 使用 R43 批准设计和 R44 未审草稿直接派发美术作者。原背景首批的 4,633 字节完整保留，4 笔调用的推理 token 均为 0。作者补齐 5 个视觉对象和 3 条音轨，工作稿共 15,538 字节；生产渲染器输出 6 帧 SVG 和 3 个 WAV。将实际素材放到设计指定位置后，宿主 Edge 的 `observePixelPattern` 对水晶、钥匙、齿轮、关门、开门的轮廓均未匹配（0/5）。素材预览和逐项检查保存在本地 `.cosmos/public-validation/room-20261111-art-draft-45/preview/` 的 `index.html`、`assets.png` 和 `visual-audit.json`。 [关闭推理实证](https://github.com/lrfluobida/Cosmos/issues/199#issuecomment-6786455693) · [草稿续作与视觉实测](https://github.com/lrfluobida/Cosmos/issues/200#issuecomment-6786455674)
