@@ -653,8 +653,8 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 87,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192", "COS-193"],
+      "verifiedNativeSubIssues": 88,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192", "COS-193", "COS-194"],
       "verifiedCompletedSubIssues": 83,
       "dependsOn": [
         {
@@ -14358,10 +14358,37 @@
       "sourceIntegratedCommit": "112d8d084dc7db0bb40217c73445ef0b67a5fcff",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/194#issuecomment-6784062307",
       "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6783821387",
-      "verification": "主线构建及离线公开 CLI 批准用例通过。以 R41 原件与原确认进入真实 SDK 并本地截流，作者一次请求、零工具、3516 字节、32768 输出 token，报价 269176µ；已到达评审入口。新运行的实付、正式裁决及游戏交付待验证。"
+      "verification": "主线构建及离线公开 CLI 批准用例通过。以 R41 原件与原确认进入真实 SDK 并本地截流，作者一次请求、零工具、3516 字节、32768 输出 token，报价 269176µ；已到达评审入口。",
+      "liveVerification": "R42 真实作者 1 笔结算 8138µ，398 步原字节捕获、主机检查通过。独审 5 笔后仅推理输出截断，未产生正式裁决，无下游。",
+      "liveVerificationComment": "https://github.com/lrfluobida/Cosmos/issues/194#issuecomment-6784343028"
+    },
+    {
+      "taskId": "COS-194",
+      "title": "固定供稿独审在仅推理输出截断后有界恢复",
+      "number": 195,
+      "id": 6319619469,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/195",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "dependsOn": [
+        {
+          "id": "COS-193",
+          "number": 194,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/194"
+        }
+      ],
+      "implementer": "verdict_recovery_author",
+      "reviewer": "verdict_recovery_reviewer",
+      "merger": "r41_merger",
+      "sourceReviewStatus": "pending",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6784355268"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 193,
+  "totalTaskCount": 194,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
