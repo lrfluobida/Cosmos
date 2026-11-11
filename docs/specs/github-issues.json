@@ -14785,7 +14785,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/208",
       "verifiedNativeSubIssues": 2,
       "subTaskIds": ["COS-208", "COS-209"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 2,
       "parentTaskId": "COS-206",
       "parentIssueNumber": 207,
       "parentIssueId": 6323933818,
@@ -14827,9 +14827,9 @@
       "parentIssueNumber": 208,
       "parentIssueId": 6326333830,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-200",
@@ -14840,7 +14840,11 @@
       "implementer": "empty_scene_author",
       "reviewer": "absence_semantics",
       "merger": "r50_merger",
-      "sourceReviewStatus": "PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "cf3c718b04f8ca635e05819efce049c0e7ee957f",
+      "sourceIntegratedCommit": "b618f0e218a0162316bc874a977ef66477691b26",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/209#issuecomment-6796324318",
+      "verification": "空槽单独测量真实背景。主线 Edge 3/3，实际选材稿的五项有前景和三项仅背景检查通过 8/8。组合源码的普通可编辑资金 CLI 通过。"
     },
     {
       "taskId": "COS-209",
@@ -14852,9 +14856,9 @@
       "parentIssueNumber": 208,
       "parentIssueId": 6326333830,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-207",
@@ -14865,7 +14869,11 @@
       "implementer": "fixed_art_handoff_author",
       "reviewer": "absence_semantics",
       "merger": "r50_merger",
-      "sourceReviewStatus": "PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "409860567c259f6e66320bf24f8921986cfc5945",
+      "sourceIntegratedCommit": "0294ba082807f1aa748eea0d3271d0e8b0857b38",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/210#issuecomment-6796325712",
+      "verification": "显式固定稿由零工具原生作者交接，本轮完整语义独审通过后进入编码。实稿 16 个渲染产物与原实现逐字节一致。主线构建通过，固定稿资金 CLI 在独立进程通过。"
     }
   ],
   "verifiedNativeSubIssues": 100,

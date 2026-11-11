@@ -2673,11 +2673,11 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-208 · 在美术分格检查中表达清空后的无前景空槽
 
-归属 #19，原生父卡 #208。真实背景上的空槽可省略前景，在批准区域内检查像素。范围覆盖普通美术原生工具、独立的区域测量和无效参数拒绝。作者 `empty_scene_author`，独审 `absence_semantics`。 [GitHub 任务](https://github.com/lrfluobida/Cosmos/issues/209)
+归属 #19，原生父卡 #208。真实背景上的空槽可省略前景，在批准区域内检查像素。范围覆盖普通美术原生工具、独立的区域测量和无效参数拒绝。作者 `empty_scene_author`，独审 `absence_semantics`。 已独审批准 `cf3c718`，主线合入 `b618f0e`。空槽单独测量真实背景。主线 Edge 3/3，实际选材稿的五项有前景和三项仅背景检查通过 8/8。组合源码的普通可编辑资金 CLI 通过。 [源码与验证](https://github.com/lrfluobida/Cosmos/issues/209#issuecomment-6796324318)
 
 ### COS-209 · 将固定美术草稿交给本轮原生独审
 
-归属 #19，原生父卡 #208。仅对显式提供的固定美术草稿使用轻量原生交接，绑定捕获并完成本轮完整语义美术独审，通过后才能进入编码。作者 `fixed_art_handoff_author`，独审 `absence_semantics`。 [GitHub 任务](https://github.com/lrfluobida/Cosmos/issues/210)
+归属 #19，原生父卡 #208。仅对显式提供的固定美术草稿使用轻量原生交接，绑定捕获并完成本轮完整语义美术独审，通过后才能进入编码。作者 `fixed_art_handoff_author`，独审 `absence_semantics`。 已独审批准 `4098605`，主线合入 `0294ba0`。显式固定稿由零工具原生作者交接，本轮完整语义独审通过后进入编码。实稿 16 个渲染产物与原实现逐字节一致。主线构建通过，固定稿资金 CLI 在独立进程通过。 [源码与验证](https://github.com/lrfluobida/Cosmos/issues/210#issuecomment-6796325712)
 
 ## 5. 任务与上下文包模板
 
