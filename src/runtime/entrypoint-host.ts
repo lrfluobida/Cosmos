@@ -36,7 +36,7 @@ import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
 import { publishMatchingBytes } from './fixed-host-input.ts';
-import { ART_DRAFT_FILE, selectArtDraft } from './art-draft-source.ts';
+import { ART_DRAFT_FILE, preserveArtDraft, selectArtDraft } from './art-draft-source.ts';
 import { artMappings, artPatternIndex } from './art-frame-check.ts';
 import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
@@ -705,6 +705,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     const ref = selected(task, 'design'); await registry.getCapture(ref);
     const design = await json(root, `${ref.location}/_cosmos/design.json`); validateDesign(design, gameplayIds, modular, ordinaryDraft?.experienceCriteria); return design;
   };
+  async function artAuthorWorkspace(roleInput: Readonly<RoleInput>) {
+    const { task } = roleInput, originalWorkspace = workspace(task);
+    const current = (await controller.read()).tasks.find(item => item.taskId === task.taskId);
+    if (roleInput.controller !== controller || roleInput.role !== 'art' || roleInput.purpose || roleInput.validation || role(task) !== 'art' || !sameValue(task, current)
+      || current?.state !== 'running' || current.attempts.at(-1)?.outcome !== 'running' || relative(originalWorkspace, resolve(roleInput.workspace)) !== ''
+      || !sameValue(current.ownership.writePaths, [ART_DRAFT_FILE])) throw new Error('Media tools require the active ordinary art author and workspace.');
+    return originalWorkspace;
+  }
   const requireReviewDecision = (task: TaskContract, review: { verdict?: { verdict: string; findings: string[]; inputVersions: ArtifactReference[]; evidenceIds: string[] } }) => {
     const decision = review.verdict, refs = [...task.inputs, ...task.artifacts];
     if (!decision || decision.verdict !== 'approved' || !Array.isArray(decision.findings) || decision.findings.length
@@ -985,13 +993,15 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           if (role(task) !== 'art') throw new Error('Art plan display requires the ordinary art task.');
           return selected(task, 'design');
         },
+        beforeArtFileWrite: roleInput => async (path, bytes, signal) => {
+          const originalWorkspace = await artAuthorWorkspace(roleInput);
+          if (relative(resolve(originalWorkspace, ART_DRAFT_FILE), path) !== '') throw new Error('Art writes require the declared media file.');
+          // beforeTool authenticated the selected design and original dispatch for this write.
+          await preserveArtDraft(originalWorkspace, await designFor(roleInput.task), bytes, signal);
+        },
         ordinaryArtFrameRead: roleInput => async (checks, offset, signal) => work.run(async ownedSignal => {
           const active = AbortSignal.any([signal, ownedSignal, controller.signal]);
-          const { task } = roleInput, originalWorkspace = workspace(task);
-          const current = (await controller.read()).tasks.find(item => item.taskId === task.taskId);
-          if (roleInput.controller !== controller || roleInput.role !== 'art' || role(task) !== 'art' || !sameValue(task, current)
-            || current?.state !== 'running' || current.attempts.at(-1)?.outcome !== 'running' || resolve(roleInput.workspace) !== resolve(originalWorkspace)
-            || !sameValue(current.ownership.writePaths, [ART_DRAFT_FILE])) throw new Error('Frame checks require the active ordinary art author and workspace.');
+          const { task } = roleInput, originalWorkspace = await artAuthorWorkspace(roleInput);
           // beforeTool authenticated the selected design and original dispatch for this read.
           const ref = selected(task, 'design');
           const planBytes = await regularFile(root, ref.location + '/' + ORDINARY_PLAN_FILE, active);

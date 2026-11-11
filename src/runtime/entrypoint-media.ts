@@ -205,7 +205,13 @@ export function validateDeclaredMedia(value: unknown, design: DesignDocument, co
   if (new Set(ids).size !== ids.length) throw new Error('Duplicate art media IDs.');
   const required = <T extends { id: string }>(roster: T[], supplied: { id: string }[]) => roster.filter(item => coverage === 'complete' || supplied.some(spec => spec.id === item.id)).map(item => item.id);
   if (!sameIds(characters.map(item => item.id), required(design.characters, characters)) || !sameIds(audio.map(item => item.id), required(design.audio, audio))) throw new Error('Art IDs must match the design roster.');
-  for (const character of characters) if (!sameIds(character.states.map(state => state.name), design.characters.find(item => item.id === character.id)!.states)) throw new Error('Art states must match the design.');
+  for (const character of characters) {
+    const states = character.states.map(state => state.name), required = design.characters.find(item => item.id === character.id)!.states;
+    if (!sameIds(states, required)) {
+      const missing = required.filter(state => !states.includes(state)).slice(0, 4);
+      throw new Error('Art states must match the design for ' + character.id + (missing.length ? '. Missing: ' + missing.join(', ') : '') + '.');
+    }
+  }
   for (const clip of audio) if (clip.loop !== design.audio.find(item => item.id === clip.id)!.loop) throw new Error('Art audio loop must match the design.');
   return { characters, audio };
 }
