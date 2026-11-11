@@ -37,6 +37,7 @@ import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
 import { publishMatchingBytes } from './fixed-host-input.ts';
 import { fixedArtBytes, fixedArtProvenance, requireFixedArtCapture, requireFixedArtApproval } from './fixed-art-review.ts';
+import { selectCodeDraft, stageCodeDraft } from './code-draft-source.ts';
 import { selectApprovedArt, checkApprovedArtImport, requireApprovedArtCandidate } from './approved-art-source.ts';
 import { APPROVED_ART, ART_DRAFT_FILE, isFixedArt, preserveArtDraft, readPinnedArtDraft, selectArtReviewInput } from './art-draft-source.ts';
 import { artMappings, artPatternIndex } from './art-frame-check.ts';
@@ -447,6 +448,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const artRef = state.artDraftSource;
   const currentApprovedArt = () => selectApprovedArt(artRef!.location, importedDesign!, state.requirementsSource!, target, artRef);
   const importedArt = artRef?.artifactId === APPROVED_ART ? await currentApprovedArt() : undefined;
+  const codeRef = state.codeDraftSource;
+  const codeDraft = codeRef && importedArt ? await selectCodeDraft(codeRef.location, importedDesign!, importedArt, state.requirementsSource!, target, codeRef) : undefined;
   const artDraft = artRef && !importedArt ? await readPinnedArtDraft(artRef, importedDesign!, state.requirementsSource!, target) : undefined;
   const fixedArt = isFixedArt(artDraft) ? artDraft : undefined;
   if (state.designDraftReview && (!budgetEligible || !importedDesign && !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
@@ -535,6 +538,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     await checkApprovedDesignImport(root, importedDesign, !input.resume);
   }
   if (importedArt) await checkApprovedArtImport(root, importedArt, !input.resume);
+  if (codeDraft && !state.tasks.find(task => task.taskId === codeDraft.proof.taskId)?.attempts.length) await stageCodeDraft(root, codeDraft.files, !input.resume);
   if (artDraft && !input.resume) {
     await directory(root, 'authors/art');
     await publishMatchingBytes(root, ART_DRAFT_FILE, artDraft.bytes);
@@ -1033,7 +1037,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           return JSON.parse(result.stdout);
         }) } : {}),
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
-        ? { authorMaxRequests: { design: 64, art: 32 }, authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
+        ? { authorMaxRequests: { design: 64, art: 32, ...(budgetEligible ? { coding: 32 } : {}) }, authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
           ordinaryDesignSuccessfulWriteCompaction: true as const,
           ...(preservesValidDraft(ordinaryPlanAuthoringPolicy) ? { ordinaryDesignRejectedWriteCompaction: true as const } : {}),
           ordinaryPlanningOutputFloor: 4096,
@@ -1148,7 +1152,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           ...(classicEntries ? await classicEntries.captureMapping(task, ref, selected(task, 'design')) : [])], media = await registry.getCapture(selected(task, 'media'));
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: source, sourceRoot: sourceRoot(task, 'authors/coding'), files: files.map(name => ({ source: name, destination: name })),
-          ownership: { writePaths: ['src', 'index.html'], readOnlyPaths: ['_cosmos'] }, dependencies: inputs, metadata: { kind: 'code', provenance: origin } });
+          ownership: { writePaths: ['src', 'index.html'], readOnlyPaths: ['_cosmos'] }, dependencies: inputs, metadata: { kind: 'code', provenance: codeRef ? { ...origin,
+            generator: 'Native coding handoff from an operator-selected unreviewed draft', sourceRefs: [...origin.sourceRefs, `${codeRef.artifactId}@${codeRef.version}`] } : origin } });
         if (validation) await requireDispatch(task, signal);
         await registry.stageCandidate({ taskId: task.taskId, authorId: task.authorId, contextId: task.context.contextId, candidateRef: ref, targetRoot: ref.location,
           inputs: [...inputs, source], expectedDeps: [...inputs, source], ownership: { writePaths: ['.'], readOnlyPaths: [] }, mediaRequirements: [{ artifactRef: selected(task, 'media'), media: media.metadata.media! }] });
@@ -1914,6 +1919,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       art.rules = [captureLayout(designLayout, mediaLayout),
         'Independently review the entire operator-fixed unreviewed media capture against the approved design, acceptance plan, original confirmation and host evidence. Report unresolved defects in the captured visuals, animations and audio.'];
     }
+    if (codeDraft) host.taskPolicies.find(policy => policy.role === 'coding')!.rules!.push(
+      `Continue the editable, unreviewed code draft in your workspace: ${JSON.stringify([...codeDraft.files.keys()])}. Read its entry page and source modules together using parallel read calls. Wire any missing entry and run check-game-build as soon as the first buildable version is ready. Then complete and verify the remaining approved plan steps before handoff.`);
     if (!fixedArt && artDraft) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
       `Continue the operator-selected unreviewed draft already in ${ART_DRAFT_FILE}. Retain valid existing work and add the missing media. Initial roster: ${JSON.stringify(artDraft.roster)}. Read the current file before editing. The complete output requires host checks and independent review.`);
     if (!fixedArt && artDraft && 'overlays' in artDraft) {

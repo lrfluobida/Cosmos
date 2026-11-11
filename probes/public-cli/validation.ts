@@ -7,6 +7,7 @@ import { runCli } from '../../src/cli/index.ts';
 import type { ProductHost } from '../../src/cli/session.ts';
 import { readPublicFundingIntent, reservePublicValidationFunding, settlePublicValidationFunding } from '../../src/runtime/public-validation-funding.ts';
 import { APPROVED_ART, ART_REVIEW_INPUT, ART_DRAFT_SELECTION, fundingArtDraftSource } from '../../src/runtime/art-draft-source.ts';
+import { fundingCodeDraftSource } from '../../src/runtime/code-draft-source.ts';
 import { APPROVED_DESIGN } from '../../src/runtime/approved-design-source.ts';
 import { SUPPLIED_DESIGN } from '../../src/runtime/supplied-design.ts';
 import { fundingDesignDraftReview } from '../../src/runtime/reviewed-design-draft.ts';
@@ -37,6 +38,8 @@ export async function runPublicValidationCli(args: string[], io: { input?: Reada
     if (draftReview) selection.push(draftReview.artifactId === SUPPLIED_DESIGN ? '--design-input' : draftReview.artifactId === APPROVED_DESIGN ? '--approved-design-from' : '--design-draft-from', draftReview.location);
     const artDraft = fundingArtDraftSource(payload);
     if (artDraft) selection.push(artDraft.artifactId === APPROVED_ART ? '--approved-art-from' : artDraft.artifactId === ART_REVIEW_INPUT ? '--art-review-input' : artDraft.artifactId === ART_DRAFT_SELECTION ? '--art-draft-selection' : '--art-draft-from', artDraft.location);
+    const codeDraft = fundingCodeDraftSource(payload);
+    if (codeDraft) selection.push('--code-draft-from', codeDraft.location);
     return runCli(['new', root, ...selection, '--max-cny', (payload.limits.limitMicroCny / 1_000_000).toFixed(6),
       '--max-minutes', String(payload.limits.durationMs / 60_000), '--render-frames', String(payload.renderFrames)], { ...io, funding: binding });
   }

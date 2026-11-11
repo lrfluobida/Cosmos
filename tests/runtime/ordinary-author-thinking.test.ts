@@ -110,12 +110,12 @@ test('ordinary art and coding disable thinking and coding writes and compiles th
   const state: any = await readRunSnapshot(f.root);
   for (const config of configs) {
     const packet = JSON.parse(config.context), task = state.tasks.find((task: any) => task.taskId === packet.taskId);
-    assert.equal(config.maxRequests, packet.role === 'design' ? 64 : packet.role === 'art' ? 32 : 16); assert.equal(config.requestTimeoutMs, ['design', 'art', 'coding'].includes(packet.role) ? 600000 : 120000);
+    assert.equal(config.maxRequests, packet.role === 'design' ? 64 : ['art', 'coding'].includes(packet.role) ? 32 : 16); assert.equal(config.requestTimeoutMs, ['design', 'art', 'coding'].includes(packet.role) ? 600000 : 120000);
     assert.equal(typeof config.requestCompactionAdmission, packet.role === 'design' ? 'function' : 'undefined');
     assert.equal(typeof config.requestCompaction, packet.role === 'design' ? 'function' : 'undefined');
     assert.equal(config.compactionKeepRecentTokens, packet.role === 'design' ? 8000 : undefined);
     if (packet.role === 'design') assert.match(config.systemPrompt, /at most 64 model requests/);
-    else if (packet.role === 'art') assert.match(config.systemPrompt, /at most 32 model requests/);
+    else if (['art', 'coding'].includes(packet.role)) assert.match(config.systemPrompt, /at most 32 model requests/);
     else assert.doesNotMatch(config.systemPrompt, /model requests/);
     assert.equal(packet.budget.originalDeadlineAt, state.run.originalDeadlineAt);
     if (task) assert.equal(packet.budget.allocationMicroCny, task.budget.allocationMicroCny);
