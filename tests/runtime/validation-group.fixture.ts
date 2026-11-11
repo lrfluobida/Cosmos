@@ -1,9 +1,9 @@
-import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestContext } from 'node:test';
+import { removeOwned } from '../../src/artifacts/paths.ts';
 import { RunController } from '../../src/runtime/run.ts';
 import { prepareValidationCase, validationInputHash } from '../../src/runtime/validation-window.ts';
 import { prepareValidationAllocationClosure, applyValidationAllocationClosure } from '../../src/runtime/validation-allocations.ts';
@@ -16,10 +16,13 @@ const evidence = [{ artifactId: 'offline-billing', version: 'v1', location: 'off
 
 /** Synthetic original allocations. No private snapshot, provider or generated game is used. */
 export async function groupFixture(t: TestContext, initialChargeMicroCny = 1_116_402) {
-  const base = await mkdtemp(join(tmpdir(), 'cosmos-validation-group-')), root = join(base, 'ledger'), repositoryRoot = join(base, 'repository');
+  const parent = tmpdir(), base = await mkdtemp(join(parent, 'cosmos-validation-group-')), root = join(base, 'ledger'), repositoryRoot = join(base, 'repository');
   let clock = Date.parse('2026-10-01T06:16:16.857Z'), serial = 0, current: any;
   const now = () => clock, owners: RunController[] = [];
-  t.after(async () => { for (const owner of owners) await owner.close().catch(() => {}); assert.ok(base.startsWith(tmpdir())); await rm(base, { recursive: true, force: true }); });
+  t.after(async () => {
+    for (const owner of owners) await owner.close().catch(() => {});
+    await removeOwned(parent, base);
+  });
   const original = await RunController.create({ root, runId: 'validation-2026-10-01', ledgerId: 'cosmos-validation', specVersion: '1.0', kind: 'evaluation', scope: 'validation', now,
     allocations: [{ taskId: 'COS-16', amountMicroCny: 10_000_000 }, { taskId: 'offline-other-legacy', amountMicroCny: 74_596_040 }] });
   await original.importSettled({ requestId: 'prior-deepseek-direct-probes', taskId: 'offline-other-legacy', provider: 'offline', pricingVersion: 'fixture', actualCostMicroCny: initialChargeMicroCny, evidence });
