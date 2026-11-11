@@ -1866,6 +1866,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   }
   if (importedDesign) {
     host.taskPolicies = host.taskPolicies.filter(policy => policy.role === 'art' || policy.role === 'coding');
+    if (state.approvedDesignAllocation === 'downstream-share/1') {
+      // Keep 10% for repair. Divide the other 90% in the existing art:coding ratio (5:8).
+      for (const policy of host.taskPolicies) {
+        const weight = policy.role === 'art' ? 5 : 8;
+        policy.allocationMicroCny = Math.floor(pool * 9 * weight / 130);
+      }
+    }
     if (artDraft) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
       `Continue the operator-selected unreviewed draft already in ${ART_DRAFT_FILE}. Retain valid existing work and add the missing media. Initial roster: ${JSON.stringify(artDraft.roster)}. Read the current file before editing. The complete output requires host checks and independent review.`);
     host.bindPreparedTasks = async tasks => {
