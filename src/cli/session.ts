@@ -27,6 +27,7 @@ import { DEFAULT_RUN_LIMITS, displayRunLimits, requirePreparationRunLimits, requ
 import type { RunLimits } from './run-limits.ts';
 import { readConfirmedGeneration, readConfirmedRequirementsSource, readReferencedRequirements, requireSeparateRequirementsRoot } from '../runtime/confirmed-requirements-source.ts';
 import { selectCodeDraft } from '../runtime/code-draft-source.ts';
+import { selectCodeDraftFeedback } from '../runtime/code-draft-feedback.ts';
 import { readPinnedArtSource, selectApprovedArt } from '../runtime/approved-art-source.ts';
 import { APPROVED_ART, ART_REVIEW_INPUT, selectArtReviewInput, selectArtDraft, selectArtDraftSelection } from '../runtime/art-draft-source.ts';
 import { selectApprovedDesign, APPROVED_DESIGN } from '../runtime/approved-design-source.ts';
@@ -114,7 +115,7 @@ function displayDraft(draft: StoredDraft, frames?: RenderFrameSelection, policy?
 }
 
 /** The only confirmation author is actual stdin; model output never reaches this branch. */
-export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; requirementsFrom?: { root: string; revision: number }; designDraftFrom?: string; designInput?: string; approvedDesignFrom?: string; artDraftFrom?: string; artDraftSelection?: string; artReviewInput?: string; approvedArtFrom?: string; codeDraftFrom?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
+export async function runProductSession(options: { command: 'new' | 'resume'; root: string; brief?: string; requirementsFrom?: { root: string; revision: number }; designDraftFrom?: string; designInput?: string; approvedDesignFrom?: string; artDraftFrom?: string; artDraftSelection?: string; artReviewInput?: string; approvedArtFrom?: string; codeDraftFrom?: string; codeDraftFeedback?: string; draftMode?: DraftMode; renderFrames?: boolean; limits?: RunLimits; funding?: PublicValidationFundingBinding; host: ProductHost; input: Readable; output: Writable }) {
   if (options.limits !== undefined) {
     if (options.command !== 'new') throw new Error('Run limits can only be selected for new.');
     validateRunLimits(options.limits);
@@ -141,6 +142,8 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   if (options.codeDraftFrom !== undefined && (!options.codeDraftFrom.trim() || !artDraft || !('manifestPath' in artDraft))) throw new Error('Select a code draft with its approved art.');
   const codeDraft = options.codeDraftFrom && artDraft && 'manifestPath' in artDraft ? await selectCodeDraft(options.codeDraftFrom, approvedDesign!, artDraft, referenced!.source, { root }) : undefined;
   const codeDraftSource = codeDraft?.reference;
+  if (options.codeDraftFeedback !== undefined && (!codeDraftSource || !options.codeDraftFeedback.trim())) throw new Error('Select code draft feedback with its code draft.');
+  const codeDraftFeedback = options.codeDraftFeedback && codeDraftSource ? (await selectCodeDraftFeedback(options.codeDraftFeedback, codeDraftSource, root)).reference : undefined;
   const designDraftReview = approvedDesign ? approvedDesign.reference : options.designInput ? (await selectSuppliedDesign(options.designInput, referenced!.source, root)).reference
     : options.designDraftFrom ? await selectDesignDraftReview(options.designDraftFrom, referenced!.source) : undefined;
   if (referenced) {
@@ -178,7 +181,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
       if (!brief?.trim()) throw new Error('A one-sentence --brief or confirmed requirements source is required.');
       const entries: string[] = await readdir(root).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return []; throw error; });
       const initialization = referenced && entries.length ? await optionalJson(root, 'intake-origin.json') : null;
-      if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source, designDraftReview, artDraftSource, codeDraftSource);
+      if (options.funding) await verifyFundedNew(root, options.funding, brief, limits, referenced ? !!referenced.renderFrameSelection : options.renderFrames === true, referenced?.source, designDraftReview, artDraftSource, codeDraftSource, codeDraftFeedback);
       else if (entries.length && !initialization) throw new Error('Choose an empty run directory; existing runs require resume.');
       const runId = options.funding?.runId ?? initialization?.runId ?? `game-${randomUUID()}`; id(runId);
       if (approvedDesign && (approvedDesign.proof.sourceRunId === runId || approvedDesign.proof.sourceLedgerId === (options.funding?.ledgerId ?? `${runId}-budget`))) throw new Error('Historical design requires an independent new run and ledger.');
@@ -198,6 +201,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...(approvedDesignAllocation !== undefined ? { approvedDesignAllocation } : {}),
         ...(artDraftSource ? { artDraftSource } : {}),
         ...(codeDraftSource ? { codeDraftSource } : {}),
+        ...(codeDraftFeedback ? { codeDraftFeedback } : {}),
         ...(ordinaryProfile ? { ordinaryProfile } : {}),
         ...(options.funding ? { validationFunding: options.funding } : {}) };
       const allocations = publicBaseAllocations(limits.limitMicroCny, origin);
@@ -235,6 +239,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         ...(approvedDesignAllocation !== undefined ? { approvedDesignAllocation } : {}),
         ...(artDraftSource ? { artDraftSource } : {}),
         ...(codeDraftSource ? { codeDraftSource } : {}),
+        ...(codeDraftFeedback ? { codeDraftFeedback } : {}),
         ...(frames ? { renderFrames: frames } : {}),
         modularRepairPolicy: policy, ...(options.funding ? { validationFunding: options.funding } : {}),
         allocations });
@@ -248,6 +253,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         const approved = await selectApprovedDesign(snapshot.designDraftReview.location, snapshot.requirementsSource!, target, snapshot.designDraftReview);
         const art = snapshot.artDraftSource && await readPinnedArtSource(snapshot.artDraftSource, approved, snapshot.requirementsSource!, target);
         if (snapshot.codeDraftSource && art && 'manifestPath' in art) await selectCodeDraft(snapshot.codeDraftSource.location, approved, art, snapshot.requirementsSource!, target, snapshot.codeDraftSource);
+        if (snapshot.codeDraftFeedback) await selectCodeDraftFeedback(snapshot.codeDraftFeedback.location, snapshot.codeDraftSource!, root, snapshot.codeDraftFeedback);
       }
       frames = await readFrameSelection(root, snapshot, options.renderFrames);
       policy = await readModularRepairPolicy(root, snapshot);

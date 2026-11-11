@@ -10,6 +10,7 @@ import { validatePublicValidationFundings } from './public-validation-funding-va
 import { intakeSuccessorClaims } from './intake-successor.ts';
 import { validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import { validateCodeDraftSource } from './code-draft-source.ts';
+import { validateCodeDraftFeedback } from './code-draft-feedback.ts';
 import { validateArtDraftSource } from './art-draft-source.ts';
 import { validateDesignDraftReview } from './reviewed-design-draft.ts';
 import { validatePublicValidationPhaseExtension } from './public-validation-phase-validation.ts';
@@ -35,6 +36,7 @@ export function validateSnapshot(value: unknown): asserts value is RunSnapshot {
   if (issues.length) throw new Error(`Invalid run snapshot: ${issues.map(issue => `${issue.path}: ${issue.message}`).join('; ')}`);
   const { run, ledger } = state;
   if (state.codeDraftSource !== undefined) validateCodeDraftSource(state.codeDraftSource, state.artDraftSource);
+  if (state.codeDraftFeedback !== undefined) validateCodeDraftFeedback(state.codeDraftFeedback, state.codeDraftSource);
   if (state.artDraftSource !== undefined) validateArtDraftSource(state.artDraftSource, state.designDraftReview);
   if (state.designDraftReview !== undefined) validateDesignDraftReview(state.designDraftReview, state.requirementsSource);
   if (state.requirementsSource !== undefined) {

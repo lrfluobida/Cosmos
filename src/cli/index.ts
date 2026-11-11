@@ -20,6 +20,7 @@ const usage = `Usage:
     [--approved-design-from <source-run-dir>]  Reuse that independently approved supplied design and start at art
     [--art-draft-from <source-run-dir>]  Start art with an editable, unreviewed draft for that approved design
     [--code-draft-from <source-run-dir>]  Continue an unreviewed coding draft with its approved design and art
+    [--code-draft-feedback <file>]  Supply observed defects for this exact code draft
     [--approved-art-from <source-run-dir>]  Reuse independently approved fixed art with the approved design and start at coding
     [--art-review-input <manifest.json>]  Hand off a complete fixed art selection for fresh independent review
     [--art-draft-selection <manifest.json>]  Start art from pinned drafts (v2: up to 4 overlays; v3: local geometry offsets)
@@ -167,15 +168,16 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
       output.write(JSON.stringify(result, null, 2) + '\n'); return result;
     }
     let brief: string | undefined, draftMode: 'cos16-input/1' | undefined, requirementsRoot: string | undefined, requirementsRevision: number | undefined, designDraftFrom: string | undefined, designInput: string | undefined, approvedDesignFrom: string | undefined, artDraftFrom: string | undefined;
-    let artDraftSelection: string | undefined, artReviewInput: string | undefined, approvedArtFrom: string | undefined, codeDraftFrom: string | undefined;
+    let artDraftSelection: string | undefined, artReviewInput: string | undefined, approvedArtFrom: string | undefined, codeDraftFrom: string | undefined, codeDraftFeedback: string | undefined;
     if (!windowId) for (let i = 0; i < options.length; i += 2) {
       const key = options[i], value = options[i + 1];
-      if (!value?.trim() || !['--brief', '--adapter', '--requirements-from', '--requirements-revision', '--design-draft-from', '--design-input', '--approved-design-from', '--art-draft-from', '--art-draft-selection', '--art-review-input', '--approved-art-from', '--code-draft-from'].includes(key) || key === '--brief' && (command !== 'new' || brief !== undefined)
+      if (!value?.trim() || !['--brief', '--adapter', '--requirements-from', '--requirements-revision', '--design-draft-from', '--design-input', '--approved-design-from', '--art-draft-from', '--art-draft-selection', '--art-review-input', '--approved-art-from', '--code-draft-from', '--code-draft-feedback'].includes(key) || key === '--brief' && (command !== 'new' || brief !== undefined)
         || key === '--adapter' && (draftMode !== undefined || value !== 'sokoban')) throw new Error(usage);
       if (key === '--brief') brief = value;
       else if (key === '--adapter') draftMode = 'cos16-input/1';
       else if (key === '--art-draft-from') { if (command !== 'new' || artDraftFrom !== undefined) throw new Error(usage); artDraftFrom = resolve(value); }
       else if (key === '--code-draft-from') { if (command !== 'new' || codeDraftFrom !== undefined) throw new Error(usage); codeDraftFrom = resolve(value); }
+      else if (key === '--code-draft-feedback') { if (command !== 'new' || codeDraftFeedback !== undefined) throw new Error(usage); codeDraftFeedback = resolve(value); }
       else if (key === '--approved-art-from') { if (command !== 'new' || approvedArtFrom !== undefined) throw new Error(usage); approvedArtFrom = resolve(value); }
       else if (key === '--art-review-input') { if (command !== 'new' || artReviewInput !== undefined) throw new Error(usage); artReviewInput = resolve(value); }
       else if (key === '--art-draft-selection') { if (command !== 'new' || artDraftSelection !== undefined) throw new Error(usage); artDraftSelection = resolve(value); }
@@ -186,7 +188,7 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
       else { if (command !== 'new' || requirementsRevision !== undefined || !/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value))) throw new Error(usage); requirementsRevision = Number(value); }
     }
     const requirementsFrom = requirementsRoot !== undefined && requirementsRevision !== undefined ? { root: requirementsRoot, revision: requirementsRevision } : undefined;
-    if (codeDraftFrom && !approvedArtFrom) throw new Error(usage);
+    if (codeDraftFeedback && !codeDraftFrom || codeDraftFrom && !approvedArtFrom) throw new Error(usage);
     if ([artDraftFrom, artDraftSelection, artReviewInput, approvedArtFrom].filter(Boolean).length > 1 || (artDraftFrom || artDraftSelection || artReviewInput || approvedArtFrom) && !approvedDesignFrom || (designDraftFrom || designInput || approvedDesignFrom) && !requirementsFrom || [designDraftFrom, designInput, approvedDesignFrom].filter(Boolean).length > 1) throw new Error(usage);
     if ((requirementsRoot !== undefined || requirementsRevision !== undefined) && (!requirementsFrom || brief !== undefined || draftMode)) throw new Error(usage);
     if (command === 'new' && (windowId || !brief && !requirementsFrom)) throw new Error(usage);
@@ -196,7 +198,7 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)), selectedFrames ? { renderFrames: true } : {});
     if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, renderFrames, host, input: io.input ?? process.stdin, output });
     const { runProductSession } = await import('./session.ts');
-    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, requirementsFrom, designDraftFrom, designInput, approvedDesignFrom, artDraftFrom, artDraftSelection, artReviewInput, approvedArtFrom, codeDraftFrom, draftMode, renderFrames, limits, funding: io.funding, host, input: io.input ?? process.stdin, output });
+    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, requirementsFrom, designDraftFrom, designInput, approvedDesignFrom, artDraftFrom, artDraftSelection, artReviewInput, approvedArtFrom, codeDraftFrom, codeDraftFeedback, draftMode, renderFrames, limits, funding: io.funding, host, input: io.input ?? process.stdin, output });
   }
   if (!path?.trim() || !['init', 'run-dir', 'build', 'preview'].includes(command)
     || (command !== 'preview' && options.length)) throw new Error(usage);

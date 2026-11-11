@@ -23,7 +23,7 @@ export interface WorkspaceToolOptions {
   writePaths: string[];
   compactFullJsonReads?: true;
   planReadPaths?: string[];
-  planReadPurpose?: 'art';
+  partialPlanReads?: boolean;
   artFrameRead?: ArtFrameRead;
   beforeFileWrite?: BeforeFileWrite;
   onWriteCommitted?: WriteCommitted;
@@ -90,7 +90,7 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
     const description = read.description + (options.compactFullJsonReads
       ? ' Whole-file JSON may use compact display; source formatting is unchanged. Before exact-text edits, use explicit offset/limit reads to obtain raw source text.' : '')
       + (options.artFrameRead ? ' On the fixed acceptance plan use artFrames:[] for the pixel-pattern index (offset=nextOffset for more). Check 1..8 approved stepIds per batch. A visible item uses characterId,state, optional zero-based frame and optional full-viewport background. For a removed item supply only stepId and background:{characterId,state,frame?}. An all-minus mask limits the target colour in each cell. Use stage to distinguish repeated step IDs. Hand off a complete draft once the intended compositions pass. Omit artFrames or set it to null for ordinary file reads.' : '')
-      + (plans.length ? ` For a full plan read, start with path alone (omit optional numbers, or use null if required). ${options.planReadPurpose === 'art' ? 'Use the displayed continuation when more steps are needed.' : 'Follow each continuation once until complete.'} planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.` : '');
+      + (plans.length ? ` For a full plan read, start with path alone (omit optional numbers, or use null if required). ${options.partialPlanReads ? 'Use the displayed continuation when more steps are needed.' : 'Follow each continuation once until complete.'} planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.` : '');
     tools.push(defineTool({ ...read, description, parameters, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, reads, signal);
       await access(full);
