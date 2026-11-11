@@ -35,6 +35,8 @@ import { diagnosePersistentBrowser } from './adapters/transfer/persistent-diagno
 import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
+import { publishMatchingBytes } from './fixed-host-input.ts';
+import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readReviewedDesignDraft } from './reviewed-design-draft.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
@@ -434,11 +436,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     || ![DESIGN_ACCEPTANCE_ID, MEDIA_ACCEPTANCE_ID].every(id => requirement.acceptance.some(item => item.acceptanceId === id))) throw new Error('The browser-input host requires separately confirmed design, media and gameplay checks.');
   const gameplayIds = gameplayAcceptance(draft).map(item => item.acceptanceId);
   const state = await controller.read();
-  if (state.designDraftReview && (!budgetEligible || !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
+  const approvedSource = state.designDraftReview?.artifactId === APPROVED_DESIGN ? state.designDraftReview : undefined;
+  const importedDesign = approvedSource && state.requirementsSource ? await selectApprovedDesign(approvedSource.location, state.requirementsSource,
+    { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, approvedSource) : undefined;
+  if (state.designDraftReview && (!budgetEligible || !importedDesign && !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
   const suppliedDesign = state.designDraftReview?.artifactId === SUPPLIED_DESIGN
     ? await selectSuppliedDesign(state.designDraftReview.location, state.requirementsSource!, root, state.designDraftReview) : undefined;
   if (suppliedDesign && ordinaryPlanAuthoringPolicy) throw new Error('Supplied design requires a fixed read-only handoff.');
-  const reviewedDraft = state.designDraftReview && !suppliedDesign ? await readReviewedDesignDraft(state.designDraftReview, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
+  const reviewedDraft = state.designDraftReview && !suppliedDesign && !importedDesign ? await readReviewedDesignDraft(state.designDraftReview, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
   const reviewedDraftAuthoring = ordinaryPlanAuthoringPolicy === REVIEWED_DRAFT_POLICY;
   if (reviewedDraftAuthoring && !reviewedDraft) throw new Error('Reviewed draft authoring requires its verified design draft.');
   if (reviewedDraft && !input.resume) await publishReceiptBytes(await safePath(root, reviewedDraft.feedback.location), reviewedDraft.feedbackBytes);
@@ -475,18 +480,24 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const name = (value: string) => validation ? `${validation.caseId}-${value}` : value;
   const template = inherited?.template ?? registry.artifactRef(name('generic-template'), 'v1'), requirements = registry.artifactRef(name('requirement-bundle'), requirement.sources[0].version);
   const captures = [...(inherited ? [template, inherited.requirementCapture] : [template]), requirements], provenance = { kind: 'original-procedural' as const, generator: 'Cosmos trusted host inputs', sourceRefs: requirement.sources.map(ref => `${ref.artifactId}@${ref.version}`) };
-  if (input.resume) {
+  if (input.resume || importedDesign) {
     const lock = await lstat(join(root, 'registry/.commit.lock')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
     if (lock) await registry.recoverOwnership();
+  }
+  if (input.resume) {
     await registry.getCapture(template); await registry.getCapture(requirements);
   }
   else {
-    if (!inherited) await registry.registerCapture({ taskId: 'host-template', artifactRef: template, sourceRoot: 'toolchain', files: TEMPLATE_FILES.map(name => ({ source: name, destination: name })),
+    if (!inherited && !(importedDesign && await optionalDesignJson(root, 'registry/captures/generic-template/v1/capture.json'))) await registry.registerCapture({ taskId: 'host-template', artifactRef: template, sourceRoot: 'toolchain', files: TEMPLATE_FILES.map(name => ({ source: name, destination: name })),
       ownership: { writePaths: ['.'], readOnlyPaths: [] }, dependencies: [], metadata: { kind: 'code', provenance } });
     const folder = await directory(root, 'host-requirements');
-    for (const ref of requirement.sources) await writeFile(join(folder, `${ref.artifactId}.json`), await regularFile(root, ref.location), { flag: 'wx' });
+    for (const ref of requirement.sources) {
+      const bytes = await regularFile(root, ref.location);
+      if (importedDesign) await publishMatchingBytes(folder, ref.artifactId + '.json', bytes);
+      else await writeFile(join(folder, ref.artifactId + '.json'), bytes, { flag: 'wx' });
+    }
     if (preparation) await writeFile(join(folder, 'execution-requirement.json'), JSON.stringify(requirement, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
-    await registry.registerCapture({ taskId: 'host-requirements', artifactRef: requirements, sourceRoot: 'host-requirements',
+    if (!(importedDesign && await optionalDesignJson(root, `registry/captures/requirement-bundle/${requirements.version}/capture.json`))) await registry.registerCapture({ taskId: 'host-requirements', artifactRef: requirements, sourceRoot: 'host-requirements',
       files: [...requirement.sources.map(ref => ({ source: `${ref.artifactId}.json`, destination: `_cosmos/${ref.artifactId}.json` })),
         ...(preparation ? [{ source: 'execution-requirement.json', destination: `_cosmos/${historical ? 'current-' : ''}execution-requirement.json` }] : [])],
       ownership: { writePaths: ['_cosmos'], readOnlyPaths: [] }, dependencies: [], metadata: { kind: 'data', provenance } });
@@ -499,7 +510,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     requirementCapture: requirements, dependencies: captures }) : undefined;
   if (ordinary) await ordinary.requireCurrent();
   const classic = !preparation && !validation && (draft as BrowserGameDraft).benchmark
-    ? await createClassicPolicyScope({ root, registry, requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft | OrdinaryGameDraft, requirementCapture: requirements, resume: input.resume, sourceRoot: input.classicSourceRoot,
+    ? await createClassicPolicyScope({ root, registry, requirement: requirement as import('../contracts/types.ts').RequirementContract, draft: draft as BrowserGameDraft | OrdinaryGameDraft, requirementCapture: requirements, resume: input.resume, recoverInputs: !!importedDesign, sourceRoot: input.classicSourceRoot,
       ...(ordinary ? { scenario: async design => (await ordinary.approved(design)).scenario } : {}) }) : undefined;
   if (classic) captures.push(...classic.refs);
   const classicEntries = classic && (draft as BrowserGameDraft).classicEntry ? await createClassicEntryScope({ root, registry,
@@ -507,9 +518,13 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     ...(ordinary ? { scenario: async design => (await ordinary.approved(design)).scenario } : {}),
     sourceRoot: input.classicSourceRoot, resume: input.resume }) : undefined;
   if (classicEntries) captures.push(...classicEntries.refs);
-  const frames = input.renderFrames ? await createRenderFrameScope({ root, registry, template, resume: input.resume }) : undefined;
+  const frames = input.renderFrames ? await createRenderFrameScope({ root, registry, template, resume: input.resume, recoverInputs: !!importedDesign }) : undefined;
   if (frames) captures.push(frames.ref);
-  const availableArtifacts = [...requirement.sources, ...captures];
+  if (importedDesign) {
+    if (!sameValue(importedDesign.dependencies.map(item => item.ref), captures)) throw new Error('Historical design capture dependency references changed.');
+    await checkApprovedDesignImport(root, importedDesign, !input.resume);
+  }
+  const availableArtifacts = [...requirement.sources, ...captures, ...(importedDesign ? [importedDesign.proof.design] : [])];
   if (validation) for (const ref of captures) await registry.getCapture(ref);
   if (!binding && !validation) { await directory(root, 'authors/coding/src'); await directory(root, 'authors/design'); await directory(root, 'authors/art'); }
   const baseAllocation = state.ledger.allocations.filter(item => ['intake', 'planning'].includes(item.taskId)).reduce((sum, item) => sum + item.amountMicroCny, 0);
@@ -544,8 +559,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const boundTask = (task: TaskContract) => {
     const old = inheritedTask(task.taskId);
     if (old) { requireOriginalTask(old.task, task); if (!sameValue(old.task, task)) throw new Error('Inherited stage result changed.'); return { task: old.task, role: old.role, workspace: historical!.originalRoot, expectedArtifacts: old.task.artifacts }; }
-    const item = ordinaryDesignRevisionPolicy && ordinaryTasks.size ? ordinaryTasks.get(task.taskId) : validation || human && human.bound() ? validationTasks.get(task.taskId) : modular && modularTasks.size ? modularTasks.get(task.taskId) : binding?.tasks.find(item => item.task.taskId === task.taskId);
-    if (ordinaryDesignRevisionPolicy && ordinaryTasks.size && !item) throw new Error('Task is outside the fixed ordinary design selection.');
+    const item = (ordinaryDesignRevisionPolicy || importedDesign) && ordinaryTasks.size ? ordinaryTasks.get(task.taskId) : validation || human && human.bound() ? validationTasks.get(task.taskId) : modular && modularTasks.size ? modularTasks.get(task.taskId) : binding?.tasks.find(item => item.task.taskId === task.taskId);
+    if ((ordinaryDesignRevisionPolicy || importedDesign) && ordinaryTasks.size && !item) throw new Error('Task is outside the fixed ordinary design selection.');
     if ((binding || validation || human?.bound()) && !item) throw new Error('Task is outside the fixed host binding.');
     if (modular && modularTasks.size && !item) throw new Error('Task is outside the fixed modular host binding.');
     if (item) requireOriginalTask(item.task, task);
@@ -793,7 +808,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (current.state !== 'running' || current.attempts.at(-1)?.outcome !== 'running' || !sameValue(current.attempts, original.attempts)) throw new Error('Coding check original author attempt is inactive or changed.');
       const active = validation ? await controller.validationAuthority(original.taskId, 'author') : await controller.executionAuthority(original.taskId);
       if (!active.admissionAllowed || currentState.ledger.entries.some(entry => entry.unknown) || Date.parse(authority.deadlineAt) - Date.now() <= 5000) throw new Error('Coding check authority, charges or cleanup deadline is unavailable.');
-      for (const kind of ['design', 'art']) {
+      for (const kind of importedDesign ? ['art'] : ['design', 'art']) {
         const dependency = [...(inherited?.stages.map(stage => stage.task) ?? []), ...currentState.tasks].find(task => original.dependsOn.some(dep => dep.taskId === task.taskId) && role(task) === kind);
         if (!dependency || dependency.state !== 'passed' || dependency.review.verdict !== 'approved') throw new Error('Coding check requires passed current design and art inputs.');
       }
@@ -840,14 +855,14 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           'Use only the supported bounded SVG layer animation and procedural PCM audio formats. Do not shrink the confirmed gameplay or fabricate execution evidence.'] },
       { policyId: 'game-art', role: 'art', workspace: root, allocationMicroCny: Math.floor(pool * 0.25), writePaths: ['authors/art/media.json'],
         readOnlyPaths: ['requirements', 'registry'], tools: ['read', 'write', 'edit'], outputs: [{ ...mediaOutput, destination: mediaOutput.location, type: 'game-media', schema: 'original-media/1' }],
-        rules: [`Cover only ${MEDIA_ACCEPTANCE_ID}; depend on the design task. Read its exact _cosmos/design.json capture. Write authors/art/media.json as {formatVersion:"batched-media/1",batches:[{characters:CharacterSpec[],audio:AudioSpec[]}]}, with 1-8 nonempty batches, each at most 16 characters/16 clips; total at most 128 characters/64 clips. Use successive file write/edit calls to append completed batches to this one envelope in the same author session. Finish only after the exact unique union of all IDs, states and loops matches design. Legacy {characters:CharacterSpec[],audio:AudioSpec[]} remains supported for a single batch of at most 16/16.`, captureLayout(designLayout, mediaLayout),
+        rules: [`Cover only ${MEDIA_ACCEPTANCE_ID}; ${importedDesign ? 'use the imported approved design input' : 'depend on the design task'}. Read its exact _cosmos/design.json capture. Write authors/art/media.json as {formatVersion:"batched-media/1",batches:[{characters:CharacterSpec[],audio:AudioSpec[]}]}, with 1-8 nonempty batches, each at most 16 characters/16 clips; total at most 128 characters/64 clips. Use successive file write/edit calls to append completed batches to this one envelope in the same author session. Finish only after the exact unique union of all IDs, states and loops matches design. Legacy {characters:CharacterSpec[],audio:AudioSpec[]} remains supported for a single batch of at most 16/16.`, captureLayout(designLayout, mediaLayout),
           MEDIA_IDENTIFIER_RULE,
           'CharacterSpec: {id,width:16..512,height:16..512,anchor:{x,y},layers:[{id,shape:"rect"|"ellipse",x,y,width,height,fill:"#RRGGBB",stroke:"#RRGGBB",strokeWidth,radius?}],states:[{name,fps:1..60,loop:boolean,frames:[{layerId:{dx?,dy?,rotation?,scaleX?,scaleY?,opacity?}}]}]}. Up to 64 layers, 16 states, 256 total frames; every frame is a pose map and may be {}.',
           'AudioSpec: {id,sampleRate:22050|44100|48000,duration:0.02..30,loop:boolean,notes:[{midi:24..96,start,duration,gain:0..0.5,wave:"sine"|"triangle",attack,release}]}. Notes fit the clip; attack/release each >=0.002, their sum <=note duration. Produce audible original audio. The trusted host renders and validates actual files. Never copy reference artwork/audio.'] },
       { policyId: 'game-code', role: 'coding', workspace: root, allocationMicroCny: Math.floor(pool * 0.40), writePaths: ['authors/coding/src', 'authors/coding/index.html'],
       readOnlyPaths: ['requirements', 'registry', 'repair-feedback'], tools: ['read', 'write', 'edit', GAME_BUILD_CHECK],
       outputs: [{ ...output, destination: output.location, type: 'game-project', schema: 'browser-game/1' }],
-      rules: [`Cover exactly the gameplay IDs ${JSON.stringify(gameplayIds)}; depend on both design and art tasks. Implement the actual confirmed brief: ${draft.brief}`, captureLayout(designLayout, mediaLayout, gameLayout),
+      rules: [`Cover exactly the gameplay IDs ${JSON.stringify(gameplayIds)}; ${importedDesign ? 'use the imported approved design input and depend on art' : 'depend on both design and art tasks'}. Implement the actual confirmed brief: ${draft.brief}`, captureLayout(designLayout, mediaLayout, gameLayout),
         ...(classicEntries?.selection.measurement ? ['Read the fixed classic entry sidecar and reference evidence. Independent review must inspect actual source and the reserved assertion screenshot to establish that the visible control represents the selected object and metric; selector names or constant labels alone are insufficient. This observation never proves mechanism or numeric implementation correctness.'] : []),
         preparation ? `Read ${requirement.sources[0].location} for the fixed operator preparation proposal, then the complete captured execution requirement and prepared design plans.`
           : ordinary ? `Read ${requirement.sources[0].location} for the complete confirmed answers and criteria, and the approved design capture ${ORDINARY_PLAN_FILE} for the fixed browser scenario.`
@@ -859,6 +874,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         'Expose a non-configurable getter window.cosmosDebug returning frozen plain data. Its media.characters array follows manifest order: {id,loadedFrames,states:[{name,seen}]}; media.audio follows manifest order: {id,decoded,started}. Derive loadedFrames/decoded from actual Phaser texture/audio-cache readiness, states seen from actual displayed animation transitions, and started from successful sound start after normal user input. Preserve cumulative observations across scene changes in this document. Never fill these fields with declared constants or fabricate them; independent review checks their source. The host checks every declared state and audio clip on the frozen normal-input path and reports missing coverage as incomplete.',
         'The host builds, runs normal inputs, captures immutable output and asks a separate reviewer. Return only the required author handoff JSON after writing files.'] }],
     validateTasks(tasks) {
+      if (importedDesign) {
+        if (!sameValue(tasks, host.historicalDesignPlan?.tasks)) throw new Error('Historical design requires its fixed downstream tasks.');
+        return;
+      }
       const designTask = tasks.find(item => item.role === 'design')?.task;
       if (suppliedDesign && !sameValue(designTask?.context.tools, ['read', GAME_DESIGN_CHECK])) throw new Error('Fixed supplied design requires read-only author tools.');
       const designInterfaces = designTask?.context.interfaces.filter(ref => ref.artifactId === 'ordinary-design-draft-feedback');
@@ -981,7 +1000,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
             }
           },
           ordinaryDesignReviewBudget: task => role(task) === 'design', ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}), ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
-          ...(ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 },
+          ...((ordinaryDesignRevisionPolicy || importedDesign) ? { ordinaryDesignRevisionPolicy: ordinaryDesignRevisionPolicy ?? importedDesign!.selection.policy, authorBudgetOutputFloor: { design: 8192, art: 8192, coding: 8192 },
             ordinaryDesignRevisionJsonReads: async task => {
               await requireDispatch(task, controller.signal);
               if (role(task) !== 'design') return false;
@@ -1427,7 +1446,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     },
     async repair(task, feedback) {
       if (binding || validation) return null;
-      if (ordinaryDesignRevisionPolicy && role(task) !== 'coding') return null;
+      if ((ordinaryDesignRevisionPolicy || importedDesign) && role(task) !== 'coding') return null;
       if (modular && (moduleSlot(task) || role(task) !== 'coding' || taskOutput(task).version !== 'v1')) return null;
       const current = await controller.read(), unallocated = ordinaryUnallocated(current.ledger);
       if (unallocated <= 0) return null;
@@ -1436,7 +1455,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     },
     async continuationTargets(sources, feedback, grants) {
       if (binding || validation) return null;
-      if (ordinaryDesignRevisionPolicy && (sources.length !== 1 || sources[0].role !== 'coding')) return null;
+      if ((ordinaryDesignRevisionPolicy || importedDesign) && (sources.length !== 1 || sources[0].role !== 'coding')) return null;
       if (modular) {
         const failed = sources.find(source => source.task.taskId === feedback.sourceTaskId), slot = failed && moduleSlot(failed.task);
         if (!failed || role(failed.task) !== 'coding' || taskOutput(failed.task).version !== 'v1') return null;
@@ -1468,7 +1487,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         await readDesignSelection(root, controller, await json(root, 'execution.json'));
       }
       const task = tasks.find(task => role(task) === 'coding' && (!modular || !moduleSlot(task)));
-      if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== (modular ? 5 : 3) || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
+      if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== (modular ? 5 : importedDesign ? 2 : 3) || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
         || binding && (tasks.some(task => !binding.tasks.some(item => item.task.taskId === task.taskId)) || new Set(tasks.map(task => task.taskId)).size !== binding.tasks.length)) {
         const existing = await registry.current(); return { ...(existing ? { delivery: existing.targetRoot } : {}), gaps: ['Current tasks lack complete host checks and independent approval.'] };
       }
@@ -1809,6 +1828,21 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       }
       return nativeRoles(roleInput);
     };
+  }
+  if (importedDesign) {
+    host.taskPolicies = host.taskPolicies.filter(policy => policy.role === 'art' || policy.role === 'coding');
+    host.bindPreparedTasks = async tasks => {
+      const plan = await optionalDesignJson(root, 'repair-plan.json');
+      if (!sameValue(tasks, plan?.tasks ?? host.historicalDesignPlan!.tasks)) throw new Error('Historical downstream task binding changed.');
+      for (const item of tasks) ordinaryTasks.set(item.task.taskId, structuredClone(item));
+    };
+    const native = host.roleFactory;
+    host.roleFactory = async input => {
+      if (input.purpose === 'planning' || !['art', 'coding', 'reviewer'].includes(input.role)) throw new Error('Historical design admits only fresh downstream work.');
+      await requireDispatch(input.task, controller.signal);
+      return native(input);
+    };
+    host.historicalDesignPlan = { proof: importedDesign.proof, tasks: approvedDownstreamPlan(importedDesign, state, host.taskPolicies, availableArtifacts) };
   }
   if (inherited) host.taskPolicies = host.taskPolicies.filter(policy => policy.role === 'coding');
   return host;

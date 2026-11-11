@@ -26,6 +26,8 @@ node --experimental-strip-types probes/public-cli/validation.ts settle <run-dir>
 
 执行指定稿时，使用 `src/runtime/supplied-design.ts` 导出的 `selectSuppliedDesign(设计目录, requirementsSource, runRoot)`，把返回的 `reference` 加入 v2 授权的 `sourceRefs`。其 `artifactId` 为 `ordinary-supplied-design`，版本摘要绑定原确认和两份文件的原始字节。wrapper 在占用额度前检查该引用，再调用公开 CLI 的 `--design-input`。每笔授权只能选择一份设计来源。新运行独审通过后，美术与编码方可使用指定稿；退回时查看本次设计任务的审查回执。
 
+若旧运行的指定稿已获独审批准，可在同一原始需求确认的新运行使用 `--approved-design-from <旧运行目录>`。资金 wrapper 使用 `src/runtime/approved-design-source.ts` 中的 `selectApprovedDesign(旧运行目录, requirementsSource, { root: 新运行目录, runId, ledgerId })`，把返回的 `reference` 作为 v2 授权唯一的设计来源加入 `sourceRefs`。新运行从美术开始，随后编码。两项任务各自独审，使用本次账本与截止时间。报告的 `historicalDesign` 记录来源运行、设计尝试、审批和文件摘要。恢复时须可读取原始确认、原指定稿、历史批准回执及捕获文件。
+
 v2 的限额、runId 和 ledgerId 属于新尝试，原来源的停止、费用、时钟和体验决定保持原状。授权文件 hash 继续固定完整输入，v1/v2 不可互换；未确认版本、来源漂移、递归引用或缺摘要均拒绝。初始化中断可沿同一 intent 和来源恢复，已有需求副本必须逐字节相同，绑定后缺文件不能重建。
 
 实时需求来源核验用于新拨款和当前执行派发。历史账务读取继续核验原授权 hash、身份、账单与清理证据；旧需求文件变化不会阻止安全停止、结清已发生费用，或创建另一笔独立拨款。

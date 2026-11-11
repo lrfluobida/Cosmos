@@ -1,3 +1,4 @@
+import { APPROVED_DESIGN, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { join } from 'node:path';
 import type { ArtifactReference, EvidenceContract, RequirementContract, TaskContract } from '../contracts/types.ts';
 import { sameValue } from '../contracts/validation.ts';
@@ -51,6 +52,12 @@ export function createOrdinaryAcceptanceScope(input: { root: string; controller:
   };
   const approved = async (design: ArtifactReference, consumer?: TaskContract) => {
     const plan = await read(design), state = await controller.read(), task = state.tasks.find(task => task.artifacts.some(ref => sameValue(ref, design)));
+    if (state.designDraftReview?.artifactId === APPROVED_DESIGN) {
+      const source = await selectApprovedDesign(state.designDraftReview.location, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, state.designDraftReview);
+      await checkApprovedDesignImport(root, source);
+      if (task || !sameValue(design, source.proof.design) || consumer && !consumer.inputs.some(ref => sameValue(ref, design))) throw new Error('Historical design input binding changed.');
+      return plan;
+    }
     if (!task || task.state !== 'passed' || task.review.verdict !== 'approved' || task.attempts.at(-1)?.outcome !== 'passed'
       || task.review.reviewerId === task.authorId || task.review.contextId === task.context.contextId
       || consumer && (!consumer.inputs.some(ref => sameValue(ref, design)) || !consumer.dependsOn.some(dep => dep.taskId === task.taskId))) throw new Error('Ordinary plan requires its independently approved design dependency.');
@@ -98,13 +105,16 @@ export function createOrdinaryAcceptanceScope(input: { root: string; controller:
 }
 
 /** Completed delivery reads use the same approval gate without reopening a controller or writing a receipt. */
-export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, task: TaskContract, candidate: ArtifactReference, binding: unknown) {
+export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, task: TaskContract, candidate: ArtifactReference, binding: unknown, historicalDesign?: unknown) {
   const { readConfirmedGeneration } = await import('../cli/session.ts'), confirmed = await readConfirmedGeneration(root, state);
   if (!confirmed.draft.ordinaryProfile) throw new Error('Ordinary delivery lacks its original profile.');
   const requirementCapture = task.inputs.find(ref => ref.artifactId === 'requirement-bundle'), design = task.inputs.find(ref => ref.artifactId === 'design');
   const author = design && state.tasks.find(item => item.artifacts.some(ref => sameValue(ref, design)));
-  if (!requirementCapture || !design || !author) throw new Error('Ordinary delivery is missing its original plan sources.');
-  let dependencies = author.inputs.filter(ref => !confirmed.requirement.sources.some(source => sameValue(source, ref)));
+  const historical = state.designDraftReview?.artifactId === APPROVED_DESIGN ? await selectApprovedDesign(state.designDraftReview.location, state.requirementsSource!, {
+    root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, state.designDraftReview) : undefined;
+  if (!sameValue(historicalDesign, historical?.proof)) throw new Error('Delivery historical design proof changed.');
+  if (!requirementCapture || !design || (!historical && !author)) throw new Error('Ordinary delivery is missing its original plan sources.');
+  let dependencies = author?.inputs.filter(ref => !confirmed.requirement.sources.some(source => sameValue(source, ref))) ?? [];
   const execution = await json(root, 'execution.json');
   if (execution.ordinaryDesignRevisionPolicy !== undefined) {
     const { readDesignSelection } = await import('./entrypoint-design-revision.ts');
@@ -117,4 +127,5 @@ export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, t
     requirement: confirmed.requirement, draft: confirmed.draft, requirementCapture,
     dependencies });
   if (!sameValue(binding, await scope.bindCandidate(task, design, candidate))) throw new Error('Ordinary delivery report plan binding changed.');
+  return historical?.acceptanceIds ?? [];
 }

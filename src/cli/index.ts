@@ -17,6 +17,7 @@ const usage = `Usage:
   cosmos new <run-dir> [--adapter sokoban] --brief <text>  Interview, confirm exact requirements, then generate
   cosmos new <run-dir> --requirements-from <source-run-dir> --requirements-revision <N>  Reuse an exact original ordinary confirmation
     [--design-input <directory>]     Use fixed design.json and acceptance-plan.json for fresh review
+    [--approved-design-from <source-run-dir>]  Reuse that independently approved supplied design and start at art
     [--design-draft-from <source-run/journal/task-ID/review.json>]  Start from that reviewed design draft
   new [--max-cny N] [--max-minutes N]  Original limits: >0..200 CNY (up to 6 decimals), 1..720 whole minutes
   new/resume/continue [--render-frames true|false]  Select samples; recovery preserves the original choice
@@ -149,20 +150,21 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
       const control = await import('./control.ts'); const result = command === 'status' ? await control.readRunStatus(root) : await control.requestStop(root, windowId);
       output.write(JSON.stringify(result, null, 2) + '\n'); return result;
     }
-    let brief: string | undefined, draftMode: 'cos16-input/1' | undefined, requirementsRoot: string | undefined, requirementsRevision: number | undefined, designDraftFrom: string | undefined, designInput: string | undefined;
+    let brief: string | undefined, draftMode: 'cos16-input/1' | undefined, requirementsRoot: string | undefined, requirementsRevision: number | undefined, designDraftFrom: string | undefined, designInput: string | undefined, approvedDesignFrom: string | undefined;
     if (!windowId) for (let i = 0; i < options.length; i += 2) {
       const key = options[i], value = options[i + 1];
-      if (!value?.trim() || !['--brief', '--adapter', '--requirements-from', '--requirements-revision', '--design-draft-from', '--design-input'].includes(key) || key === '--brief' && (command !== 'new' || brief !== undefined)
+      if (!value?.trim() || !['--brief', '--adapter', '--requirements-from', '--requirements-revision', '--design-draft-from', '--design-input', '--approved-design-from'].includes(key) || key === '--brief' && (command !== 'new' || brief !== undefined)
         || key === '--adapter' && (draftMode !== undefined || value !== 'sokoban')) throw new Error(usage);
       if (key === '--brief') brief = value;
       else if (key === '--adapter') draftMode = 'cos16-input/1';
+      else if (key === '--approved-design-from') { if (command !== 'new' || approvedDesignFrom !== undefined) throw new Error(usage); approvedDesignFrom = resolve(value); }
       else if (key === '--design-input') { if (command !== 'new' || designInput !== undefined) throw new Error(usage); designInput = resolve(value); }
       else if (key === '--design-draft-from') { if (command !== 'new' || designDraftFrom !== undefined) throw new Error(usage); designDraftFrom = resolve(value); }
       else if (key === '--requirements-from') { if (command !== 'new' || requirementsRoot !== undefined) throw new Error(usage); requirementsRoot = resolve(value); }
       else { if (command !== 'new' || requirementsRevision !== undefined || !/^[1-9]\d*$/.test(value) || !Number.isSafeInteger(Number(value))) throw new Error(usage); requirementsRevision = Number(value); }
     }
     const requirementsFrom = requirementsRoot !== undefined && requirementsRevision !== undefined ? { root: requirementsRoot, revision: requirementsRevision } : undefined;
-    if ((designDraftFrom || designInput) && !requirementsFrom || designDraftFrom && designInput) throw new Error(usage);
+    if ((designDraftFrom || designInput || approvedDesignFrom) && !requirementsFrom || [designDraftFrom, designInput, approvedDesignFrom].filter(Boolean).length > 1) throw new Error(usage);
     if ((requirementsRoot !== undefined || requirementsRevision !== undefined) && (!requirementsFrom || brief !== undefined || draftMode)) throw new Error(usage);
     if (command === 'new' && (windowId || !brief && !requirementsFrom)) throw new Error(usage);
     if (draftMode) requirePreparationRunLimits(limits);
@@ -171,7 +173,7 @@ export async function runCli(args: string[], io: { host?: ProductHost; input?: R
     const host = io.host ?? (await import('../runtime/entrypoint-host.ts')).createProductHost(fileURLToPath(new URL('../../', import.meta.url)), selectedFrames ? { renderFrames: true } : {});
     if (command === 'resume' && windowId) return (await import('./continuation-session.ts')).resumeContinuation({ root, windowId, renderFrames, host, input: io.input ?? process.stdin, output });
     const { runProductSession } = await import('./session.ts');
-    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, requirementsFrom, designDraftFrom, designInput, draftMode, renderFrames, limits, funding: io.funding, host, input: io.input ?? process.stdin, output });
+    return runProductSession({ command: command === 'new' ? 'new' : 'resume', root, brief, requirementsFrom, designDraftFrom, designInput, approvedDesignFrom, draftMode, renderFrames, limits, funding: io.funding, host, input: io.input ?? process.stdin, output });
   }
   if (!path?.trim() || !['init', 'run-dir', 'build', 'preview'].includes(command)
     || (command !== 'preview' && options.length)) throw new Error(usage);
