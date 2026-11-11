@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+已登记普通美术作者的只读素材帧检查任务。从已批准计划列出 `pixel-pattern` 检查索引，按选定背景和位置渲染当前 SVG，返回各格的实际与预期差异。R45 的 5 项轮廓均未匹配。检查工具不调用模型；正式美术捕获、独审和游戏验收仍各自取证。 [COS200 / #201](https://github.com/lrfluobida/Cosmos/issues/201)
+
 R45 使用 R43 批准设计和 R44 未审草稿直接派发美术作者。原背景首批的 4,633 字节完整保留，4 笔调用的推理 token 均为 0。作者补齐 5 个视觉对象和 3 条音轨，工作稿共 15,538 字节；生产渲染器输出 6 帧 SVG 和 3 个 WAV。将实际素材放到设计指定位置后，宿主 Edge 的 `observePixelPattern` 对水晶、钥匙、齿轮、关门、开门的轮廓均未匹配（0/5）。素材预览和逐项检查保存在本地 `.cosmos/public-validation/room-20261111-art-draft-45/preview/` 的 `index.html`、`assets.png` 和 `visual-audit.json`。 [关闭推理实证](https://github.com/lrfluobida/Cosmos/issues/199#issuecomment-6786455693) · [草稿续作与视觉实测](https://github.com/lrfluobida/Cosmos/issues/200#issuecomment-6786455674)
 
 下一请求在准入阶段被拒，未发出。生产 SDK 离线重放的计价输入为 151,996 字节，最低 8,192 输出 token 报价 ¥0.369528，超过美术余额 ¥0.310425 共 ¥0.059103。运行未取得作者交接、正式媒体捕获或独审，编码 0 次尝试，未生成可玩游戏。R45 上限 ¥1.92 / 30 分钟，耗时 110,115 ms。4 笔费用已结清，共 ¥0.121575，释放 ¥1.798425。子账本修订 29，共享修订 3459；共享已结算 ¥46.689632、占用 ¥2.206428，阶段余额 ¥1.803940。运行及预览的临时目录已清理，保留媒体工作稿、渲染与审计产物、结算回执。 [R45 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6786455681)
