@@ -19,6 +19,7 @@ import type { AccountingController } from '../roles/provider-budget.ts';
 import type { IntakeSnapshot } from './intake.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
+import { fundingArtDraftSource, selectArtDraft } from './art-draft-source.ts';
 import { selectApprovedDesign, APPROVED_DESIGN } from './approved-design-source.ts';
 import { selectSuppliedDesign, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { fundingDesignDraftReview, readReviewedDesignDraft } from './reviewed-design-draft.ts';
@@ -139,9 +140,13 @@ export async function anchorPublicFundingChargeClaim(store: SnapshotStore, fundi
 export async function reservePublicValidationFunding(options: { sharedRoot: string; runRoot: string; authorization: ArtifactReference; now?: () => number }): Promise<PublicValidationFundingBinding> {
   const { payload, binding } = await readPublicValidationAuthorization(options.sharedRoot, options.authorization);
   await requireFundingRequirements(payload);
-  const draftReview = fundingDesignDraftReview(payload);
+  const draftReview = fundingDesignDraftReview(payload), artSource = fundingArtDraftSource(payload);
   if (draftReview?.artifactId === SUPPLIED_DESIGN) await selectSuppliedDesign(draftReview.location, payload.requirementsSource!, binding.runRoot, draftReview);
-  else if (draftReview?.artifactId === APPROVED_DESIGN) await selectApprovedDesign(draftReview.location, payload.requirementsSource!, { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId }, draftReview);
+  else if (draftReview?.artifactId === APPROVED_DESIGN) {
+    const target = { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId };
+    const approved = await selectApprovedDesign(draftReview.location, payload.requirementsSource!, target, draftReview);
+    if (artSource) await selectArtDraft(artSource.location, approved, payload.requirementsSource!, target, artSource);
+  }
   else if (draftReview) await readReviewedDesignDraft(draftReview, payload.requirementsSource!, { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId });
   const now = options.now ?? Date.now;
   if (binding.sharedRoot !== resolve(options.sharedRoot) || binding.runRoot !== resolve(options.runRoot) || Date.parse(payload.decidedAt) > now()) throw new Error('Public funding authorization does not match the requested roots or time.');
@@ -198,6 +203,7 @@ export async function readPublicFundingBinding(root: string, snapshot: IntakeSna
   if (binding.runRoot !== resolve(root) || binding.runId !== snapshot.run.runId || binding.ledgerId !== snapshot.ledger.ledgerId
     || binding.limits.limitMicroCny !== snapshot.ledger.limitMicroCny || binding.limits.durationMs !== duration
     || origin.brief !== intent.payload.brief || !!origin.renderFrames !== intent.payload.renderFrames
+    || !sameValue(snapshot.artDraftSource, fundingArtDraftSource(intent.payload)) || !sameValue(origin.artDraftSource, snapshot.artDraftSource)
     || !sameValue(snapshot.designDraftReview, fundingDesignDraftReview(intent.payload)) || !sameValue(origin.designDraftReview, snapshot.designDraftReview)
     || !sameValue(origin.requirementsSource, intent.payload.requirementsSource) || !sameValue(snapshot.requirementsSource, intent.payload.requirementsSource)) throw new Error('Public funding differs from the original public run.');
   requirePublicRunLimits(snapshot, origin, true);
@@ -234,11 +240,11 @@ export async function verifyPublicValidationFunding(options: { root: string; sna
 export async function rejectFundedContinuation(root: string, snapshot: RunSnapshot | IntakeSnapshot) {
   if (snapshot.validationFunding || await optional(root, intentName) || (await optional(root, 'intake-origin.json'))?.validationFunding) throw new Error('Public funding does not authorize a continuation window.');
 }
-export async function verifyFundedNew(root: string, binding: PublicValidationFundingBinding, brief: string, limits: PublicValidationFundingBinding['limits'], renderFrames: boolean, requirementsSource?: ConfirmedRequirementsSource, designDraftReview?: ArtifactReference) {
+export async function verifyFundedNew(root: string, binding: PublicValidationFundingBinding, brief: string, limits: PublicValidationFundingBinding['limits'], renderFrames: boolean, requirementsSource?: ConfirmedRequirementsSource, designDraftReview?: ArtifactReference, artDraftSource?: ArtifactReference) {
   validateFundingBinding(binding);
   const intent = await readPublicFundingIntent(root);
   if (!intent || !sameValue(intent.binding, binding) || intent.payload.brief !== brief || !sameValue(binding.limits, limits) || intent.payload.renderFrames !== renderFrames
-    || !sameValue(fundingDesignDraftReview(intent.payload), designDraftReview) || !sameValue(intent.payload.requirementsSource, requirementsSource)) throw new Error('Public funding new arguments differ from authorization.');
+    || !sameValue(fundingArtDraftSource(intent.payload), artDraftSource) || !sameValue(fundingDesignDraftReview(intent.payload), designDraftReview) || !sameValue(intent.payload.requirementsSource, requirementsSource)) throw new Error('Public funding new arguments differ from authorization.');
   const contents = await readdir(root);
   if (requirementsSource && contents.includes('intake-ordinary-profile.json') && !contents.includes('intake-origin.json')) throw new Error('Original requirements initialization origin is missing.');
   if (contents.some(name => ![intentName, 'intake-origin.json', ...(requirementsSource ? ['intake-ordinary-profile.json'] : [])].includes(name))) throw new Error('Funded new requires its original initialization files only; use resume for a saved run.');

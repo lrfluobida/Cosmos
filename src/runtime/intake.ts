@@ -19,6 +19,7 @@ import { publishReceipt, publishReceiptBytes } from './recovery/receipt-file.ts'
 import { readReferencedRequirements, validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import { validateSnapshot } from './run-validation.ts';
+import { validateArtDraftSource } from './art-draft-source.ts';
 import { validateDesignDraftReview } from './reviewed-design-draft.ts';
 import type { RequestInput, RunEvent, RunSnapshot, StopReason } from './run-types.ts';
 import { frameConfirmationVersion, frameIntakeReason, readFrameSelection, requireCurrentFrameSource, validateFrameSelection } from './render-frame-selection.ts';
@@ -46,6 +47,7 @@ export interface IntakeSnapshot {
   validationFunding?: PublicValidationFundingBinding;
   requirementsSource?: ConfirmedRequirementsSource;
   designDraftReview?: ArtifactReference;
+  artDraftSource?: ArtifactReference;
 }
 export interface CreateIntakeOptions {
   root: string; runId: string; ledgerId: string; specVersion: string; allocations: BudgetLedger['allocations'];
@@ -57,6 +59,7 @@ export interface CreateIntakeOptions {
   validationFunding?: PublicValidationFundingBinding;
   requirementsSource?: ConfirmedRequirementsSource;
   designDraftReview?: ArtifactReference;
+  artDraftSource?: ArtifactReference;
 }
 const timestamp = (value: unknown): value is string => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 const draftRef = (revision: number): ArtifactReference => ({ artifactId: 'requirement-draft', version: `v${revision}`, location: `requirements/v${revision}/draft.json` });
@@ -77,6 +80,7 @@ export function validateIntakeSnapshot(value: unknown): asserts value is IntakeS
   const mode = modeFromSelection(state.draftMode);
   validateOrdinaryProfile(state.ordinaryProfile);
   if (state.ordinaryProfile && state.draftMode) throw new Error('Ordinary profile cannot select preparation mode.');
+  if (state.artDraftSource !== undefined) validateArtDraftSource(state.artDraftSource, state.designDraftReview);
   if (state.designDraftReview !== undefined) validateDesignDraftReview(state.designDraftReview, state.requirementsSource);
   if (state.requirementsSource !== undefined) {
     validateConfirmedRequirementsSource(state.requirementsSource);
@@ -168,6 +172,7 @@ export class IntakeController {
       ...(options.validationFunding ? { validationFunding: structuredClone(options.validationFunding) } : {}),
       ...(options.requirementsSource ? { requirementsSource: structuredClone(options.requirementsSource) } : {}),
       ...(options.designDraftReview ? { designDraftReview: structuredClone(options.designDraftReview) } : {}),
+      ...(options.artDraftSource ? { artDraftSource: structuredClone(options.artDraftSource) } : {}),
     };
     validateIntakeSnapshot(state);
     const store = await SnapshotStore.acquire(options.root);
@@ -404,6 +409,7 @@ export class IntakeController {
         ...(prior.validationFunding ? { validationFunding: structuredClone(prior.validationFunding) } : {}),
         ...(prior.requirementsSource ? { requirementsSource: structuredClone(prior.requirementsSource) } : {}),
         ...(prior.designDraftReview ? { designDraftReview: structuredClone(prior.designDraftReview) } : {}),
+        ...(prior.artDraftSource ? { artDraftSource: structuredClone(prior.artDraftSource) } : {}),
         run: { contractVersion: '1.0.0', ...prior.run, ledgerId: prior.ledger.ledgerId, originalStartedAt: startedAt,
           originalDeadlineAt: new Date(Date.parse(startedAt) + prior.durationMs).toISOString(), state: 'running', taskIds: prior.ledger.allocations.map(item => item.taskId),
           fees: { settledMicroCny: prior.ledger.entries.reduce((sum, entry) => sum + entry.settledMicroCny, 0), reservedMicroCny: 0, unknownRequestIds: [] }, artifacts: [],

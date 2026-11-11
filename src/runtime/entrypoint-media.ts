@@ -182,7 +182,7 @@ export function validateDesign(value: unknown, gameplayIds: string[], modular = 
   const ids = [...design.characters.map(item => item.id), ...design.audio.map(item => item.id)];
   if (new Set(ids).size !== ids.length) throw new Error('Duplicate design media IDs.');
 }
-export function validateDeclaredMedia(value: unknown, design: DesignDocument) {
+export function validateDeclaredMedia(value: unknown, design: DesignDocument, coverage: 'complete' | 'draft-subset' = 'complete') {
   const spec = value as { formatVersion?: string; batches?: unknown[]; characters?: unknown[]; audio?: unknown[] };
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('Invalid bounded art batch.');
   let batches: unknown[];
@@ -199,11 +199,12 @@ export function validateDeclaredMedia(value: unknown, design: DesignDocument) {
       || !batch.characters.length && !batch.audio.length) throw new Error('Each bounded art batch requires at most 16 characters/16 clips and some media.');
     charactersInput.push(...batch.characters); audioInput.push(...batch.audio);
   }
-  if (charactersInput.length > 128 || audioInput.length > 64 || charactersInput.length !== design.characters.length || audioInput.length !== design.audio.length) throw new Error('Art media roster must match the bounded design.');
+  if (charactersInput.length > 128 || audioInput.length > 64) throw new Error('Art media roster exceeds the bounded design.');
   const characters = charactersInput.map(validateCharacter), audio = audioInput.map(validateAudio);
   const ids = [...characters.map(item => item.id), ...audio.map(item => item.id)];
   if (new Set(ids).size !== ids.length) throw new Error('Duplicate art media IDs.');
-  if (!sameIds(characters.map(item => item.id), design.characters.map(item => item.id)) || !sameIds(audio.map(item => item.id), design.audio.map(item => item.id))) throw new Error('Art IDs must match the design roster.');
+  const required = <T extends { id: string }>(roster: T[], supplied: { id: string }[]) => roster.filter(item => coverage === 'complete' || supplied.some(spec => spec.id === item.id)).map(item => item.id);
+  if (!sameIds(characters.map(item => item.id), required(design.characters, characters)) || !sameIds(audio.map(item => item.id), required(design.audio, audio))) throw new Error('Art IDs must match the design roster.');
   for (const character of characters) if (!sameIds(character.states.map(state => state.name), design.characters.find(item => item.id === character.id)!.states)) throw new Error('Art states must match the design.');
   for (const clip of audio) if (clip.loop !== design.audio.find(item => item.id === clip.id)!.loop) throw new Error('Art audio loop must match the design.');
   return { characters, audio };

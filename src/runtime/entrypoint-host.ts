@@ -36,6 +36,7 @@ import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
 import { publishMatchingBytes } from './fixed-host-input.ts';
+import { ART_DRAFT_FILE, selectArtDraft } from './art-draft-source.ts';
 import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readReviewedDesignDraft } from './reviewed-design-draft.ts';
@@ -439,6 +440,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const approvedSource = state.designDraftReview?.artifactId === APPROVED_DESIGN ? state.designDraftReview : undefined;
   const importedDesign = approvedSource && state.requirementsSource ? await selectApprovedDesign(approvedSource.location, state.requirementsSource,
     { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, approvedSource) : undefined;
+  const artDraft = state.artDraftSource ? await selectArtDraft(state.artDraftSource.location, importedDesign!, state.requirementsSource!,
+    { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, state.artDraftSource) : undefined;
   if (state.designDraftReview && (!budgetEligible || !importedDesign && !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
   const suppliedDesign = state.designDraftReview?.artifactId === SUPPLIED_DESIGN
     ? await selectSuppliedDesign(state.designDraftReview.location, state.requirementsSource!, root, state.designDraftReview) : undefined;
@@ -523,6 +526,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   if (importedDesign) {
     if (!sameValue(importedDesign.dependencies.map(item => item.ref), captures)) throw new Error('Historical design capture dependency references changed.');
     await checkApprovedDesignImport(root, importedDesign, !input.resume);
+  }
+  if (artDraft && !input.resume) {
+    await directory(root, 'authors/art');
+    await publishMatchingBytes(root, ART_DRAFT_FILE, artDraft.bytes);
   }
   const availableArtifacts = [...requirement.sources, ...captures, ...(importedDesign ? [importedDesign.proof.design] : [])];
   if (validation) for (const ref of captures) await registry.getCapture(ref);
@@ -1052,7 +1059,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         const rendered = await renderDeclaredMedia(root, `rendered/${task.taskId}`, value, design, signal);
         if (validation) await requireDispatch(task, signal);
         await registry.registerCapture({ taskId: task.taskId, artifactRef: ref, sourceRoot: `rendered/${task.taskId}`, files: rendered.files.map(name => ({ source: name, destination: name })),
-          ownership: { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }, dependencies: artDependencies(task), metadata: { kind: 'media', provenance: origin, media: rendered.media } });
+          ownership: { writePaths: ['public/assets', '_cosmos'], readOnlyPaths: [] }, dependencies: artDependencies(task), metadata: { kind: 'media', provenance: artDraft ? { ...origin,
+            generator: 'Native art handoff from an operator-selected unreviewed draft', sourceRefs: [...origin.sourceRefs, artDraft.reference.artifactId + '@' + artDraft.reference.version, artDraft.reference.location] } : origin, media: rendered.media } });
       } else if (modular && moduleSlot(task)) {
         const slot = moduleSlot(task)!, source = moduleSource(slot), authored = await snapshot(join(workspace(task), source));
         validateModuleFiles(authored, slot); await modularInputs(task);
@@ -1831,6 +1839,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   }
   if (importedDesign) {
     host.taskPolicies = host.taskPolicies.filter(policy => policy.role === 'art' || policy.role === 'coding');
+    if (artDraft) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
+      `Continue the operator-selected unreviewed draft already in ${ART_DRAFT_FILE}. Retain valid existing work and add the missing media. Initial roster: ${JSON.stringify(artDraft.roster)}. Read the current file before editing. The complete output requires host checks and independent review.`);
     host.bindPreparedTasks = async tasks => {
       const plan = await optionalDesignJson(root, 'repair-plan.json');
       if (!sameValue(tasks, plan?.tasks ?? host.historicalDesignPlan!.tasks)) throw new Error('Historical downstream task binding changed.');

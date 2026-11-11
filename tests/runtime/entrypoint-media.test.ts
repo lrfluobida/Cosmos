@@ -28,6 +28,22 @@ test('art cannot omit a design-declared character, action or audio clip', () => 
   }
 });
 
+test('editable draft accepts a nonempty declared subset and rejects invalid visual or audio entries', () => {
+  const check = (value: unknown) => media.validateDeclaredMedia(value, design, 'draft-subset');
+  assert.equal(check({ ...specification, audio: [] }).characters[0].id, 'star');
+  assert.equal(check({ ...specification, characters: [] }).audio[0].id, 'bell');
+  const character = specification.characters[0], clip = specification.audio[0];
+  for (const value of [
+    { characters: [], audio: [] },
+    { characters: [character, character], audio: [] },
+    { characters: [{ ...character, id: 'extra' }], audio: [] },
+    { characters: [{ ...character, states: [{ ...character.states[0], name: 'absent' }] }], audio: [] },
+    { characters: [{ ...character, layers: [] }], audio: [] },
+    { characters: [], audio: [{ ...clip, loop: true }] },
+    { formatVersion: 'batched-media/1', batches: [{ characters: [], sounds: [clip] }] },
+  ]) assert.throws(() => check(value));
+});
+
 test('runtime media checks bind dynamic IDs and actual manifest states without removing gameplay input', () => {
   assert.equal(typeof media.withMediaObservations, 'function', 'Final candidate needs runtime media observation');
   const original = { formatVersion: '1.0.0', projectId: 'game', taskId: 'coding', runId: 'game', reportId: 'report', specVersion: '1', artifact: { artifactId: 'game', version: 'v1', location: 'game/v1' }, url: 'http://127.0.0.1:1234', viewport: { width: 1280, height: 720 }, acceptanceIds: ['win'],
