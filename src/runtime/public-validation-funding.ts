@@ -19,6 +19,7 @@ import type { AccountingController } from '../roles/provider-budget.ts';
 import type { IntakeSnapshot } from './intake.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
+import { selectApprovedDesign, APPROVED_DESIGN } from './approved-design-source.ts';
 import { selectSuppliedDesign, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { fundingDesignDraftReview, readReviewedDesignDraft } from './reviewed-design-draft.ts';
 import { readConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
@@ -140,6 +141,7 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
   await requireFundingRequirements(payload);
   const draftReview = fundingDesignDraftReview(payload);
   if (draftReview?.artifactId === SUPPLIED_DESIGN) await selectSuppliedDesign(draftReview.location, payload.requirementsSource!, binding.runRoot, draftReview);
+  else if (draftReview?.artifactId === APPROVED_DESIGN) await selectApprovedDesign(draftReview.location, payload.requirementsSource!, { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId }, draftReview);
   else if (draftReview) await readReviewedDesignDraft(draftReview, payload.requirementsSource!, { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId });
   const now = options.now ?? Date.now;
   if (binding.sharedRoot !== resolve(options.sharedRoot) || binding.runRoot !== resolve(options.runRoot) || Date.parse(payload.decidedAt) > now()) throw new Error('Public funding authorization does not match the requested roots or time.');

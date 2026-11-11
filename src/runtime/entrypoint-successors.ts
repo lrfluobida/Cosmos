@@ -16,6 +16,7 @@ import { failureRecord, feedbackReference, validateHostIssues, validatePassedChe
 import type { RepairFeedback } from './repair/feedback.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy, validateModularRepairPolicy } from './modular-repair-policy.ts';
 import type { ModularRepairPolicy } from './modular-repair-policy.ts';
+import { APPROVED_DESIGN } from './approved-design-source.ts';
 import { readDesignSelection } from './entrypoint-design-revision.ts';
 import { designOriginPolicy } from './repair/design-concerns.ts';
 import type { OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
@@ -341,7 +342,10 @@ export async function prepareRepairContinuation(options: { root: string; control
   const execution = await readJson(root, 'execution.json'), policy = authorCorrectionPolicy(execution, execution.capability);
   const effective = execution.ordinaryDesignRevisionPolicy ? (await readDesignSelection(root, controller, execution)).tasks : execution.tasks;
   if (execution.ordinaryDesignRevisionPolicy && effective.find((item: PreparedTask) => item.task.taskId === plan.failedTaskId)?.role !== 'coding') blocked('Ordinary design selection reserves its repair slot for coding.');
-  if (native.status !== 'validated_proposal' || native.specVersion !== requirement.specVersion || !sameValue(native.tasks, execution.tasks)) blocked('Original native plan is missing or changed.');
+  const historical = state.designDraftReview?.artifactId === APPROVED_DESIGN;
+  if (historical && (!sameValue(native.proof?.source, state.designDraftReview) || originalPlan.location !== join(root, 'historical-design-plan.json')
+    || originals.find(item => item.task.taskId === plan.failedTaskId)?.role !== 'coding')) blocked('Historical design coding repair source changed.');
+  if (native.status !== (historical ? 'historical_design_downstream' : 'validated_proposal') || native.specVersion !== requirement.specVersion || !sameValue(native.tasks, execution.tasks)) blocked('Original native plan is missing or changed.');
   const prior = await exists(root, 'repair-plan.json') ? await readJson(root, 'repair-plan.json') : null;
   if (prior && !sameValue(prior, plan)) blocked('Write-once repair plan changed.');
   if (typeof execution.capability !== 'string' || !sameValue(execution.requirement, requirement) || !sameValue(effective, options.originals)

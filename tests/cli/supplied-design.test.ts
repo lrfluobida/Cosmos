@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import test from 'node:test';
@@ -12,6 +12,7 @@ import { confirmedSource, silentOutput } from '../runtime/confirmed-requirements
 import { ordinaryHostFixture } from '../runtime/ordinary-design.fixture.ts';
 import { executeGeneration } from '../../src/runtime/entrypoint.ts';
 import { createBrowserHost } from '../../src/runtime/entrypoint-host.ts';
+import { selectApprovedDesign } from '../../src/runtime/approved-design-source.ts';
 import { checkSuppliedDesignHandoff } from '../../src/runtime/supplied-design.ts';
 import { RecoveryBlocked } from '../../src/runtime/recovery/task-journal.ts';
 import { fundingFixture } from '../runtime/public-validation-funding.fixture.ts';
@@ -172,6 +173,9 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
         state.designDraftReview.artifactId + '@' + state.designDraftReview.version, directory] });
   }
   if (outcome !== 'approved') {
+    if (outcome === 'changes_requested' || outcome === 'native-failure') {
+      await assert.rejects(selectApprovedDesign(next.root, state.requirementsSource, { root: join(source.root, 'unused') }), /ordinary-design-selection/);
+    }
     assert.deepEqual(state.tasks.map((task: any) => task.taskId), ['design-task']);
     assert.equal(consumers.size, 0);
     if (outcome === 'changes_requested') assert.match(report.gaps.join(' '), /supplied_design_requires_revision/);
@@ -183,6 +187,73 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
     return;
   }
   assert.deepEqual([...consumers].sort(), ['art', 'coding'], JSON.stringify(report.gaps));
+  const reuse = await ordinaryHostFixture(t, { productionDefault: true, sessionFactory: async (config, fallback) => {
+    const role = JSON.parse(config.context!).role;
+    if (role === 'art' || role === 'coding') {
+      assert.equal(config.maxOutputTokens, 65536);
+      assert.ok(config.requestOutputLimit);
+      if (role === 'art') {
+        const request = { requestId: 'historical-art-quote', modelId: 'deepseek-flash' as const, hasImages: false, inputBytes: 103857, maxOutputTokens: 65536 };
+        assert.equal(await config.requestOutputLimit(request), 38723);
+        const cost = { ...request, requestId: 'offline-prior-art-usage', inputBytes: 36762, maxOutputTokens: 8192, estimatedMaxCostMicroCny: 139060 };
+        await config.budget.beforeRequest(cost);
+        await config.budget.afterResponse({ requestId: cost.requestId, outcome: 'settled', responseModel: 'deepseek-flash', elapsedMs: 1,
+          usage: { input: 36762, cacheRead: 0, cacheWrite: 0, output: 0 } });
+        assert.equal(await config.requestOutputLimit(request), 29532);
+        await assert.rejects(config.requestOutputLimit({ ...request, inputBytes: 260000 }), /floor/);
+      }
+    }
+    return fallback;
+  } });
+  const historicalFixture = await fundingFixture(t), grant = await historicalFixture.authorization('historical', 2300000);
+  const selected = await selectApprovedDesign(next.root, state.requirementsSource, { root: reuse.root });
+  const historicalAuthorization = join(grant.sharedRoot, grant.authorization.location);
+  const historicalPayload = { ...grant.payload, formatVersion: 'public-validation-authorization/2', runRoot: reuse.root, brief: next.draft.brief,
+    requirementsSource: state.requirementsSource, sourceRefs: [...grant.payload.sourceRefs, selected.reference] };
+  const historicalArgs = ['new', reuse.root, '--shared-root', grant.sharedRoot, '--authorization', historicalAuthorization];
+  const historicalIO = { ...io(), host: reuse.host };
+  const sharedBefore = await read(grant.sharedRoot, 'snapshot.json');
+  await writeFile(historicalAuthorization, JSON.stringify({ ...historicalPayload, sourceRefs: [...grant.payload.sourceRefs, { ...selected.reference, version: '0'.repeat(64) }] }));
+  await assert.rejects(runPublicValidationCli(historicalArgs, historicalIO), /Pinned historical design/);
+  assert.deepEqual(await read(grant.sharedRoot, 'snapshot.json'), sharedBefore);
+  await writeFile(historicalAuthorization, JSON.stringify(historicalPayload));
+  reuse.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => {
+    await createBrowserHost({ ...hostInput, ...reuse.hostOptions });
+    await unlink(join(reuse.root, selected.proof.design.location, '_cosmos/acceptance-plan.json'));
+    throw new Error('Simulated interrupted historical capture import');
+  } });
+  await assert.rejects(runPublicValidationCli(historicalArgs, historicalIO), /Simulated interrupted/);
+  assert.equal(reuse.packets.length, 0);
+  const templatePath = join(reuse.root, 'registry/captures/generic-template/v1/files/package.json'), templateBytes = await readFile(templatePath);
+  await writeFile(templatePath, Buffer.concat([templateBytes, Buffer.from(' ')]));
+  reuse.host.execute = input => executeGeneration({ ...input, createHost: hostInput => createBrowserHost({ ...hostInput, ...reuse.hostOptions }) });
+  await assert.rejects(runPublicValidationCli(['resume', reuse.root], historicalIO), /dependency bytes changed/);
+  await writeFile(templatePath, templateBytes);
+  const reused: any = await runPublicValidationCli(['resume', reuse.root], historicalIO);
+  assert.deepEqual(reuse.packets.map(packet => packet.role), ['art', 'reviewer', 'coding', 'reviewer'], JSON.stringify(reused.gaps));
+  assert.equal(reused.outcome, 'awaiting_user_experience', JSON.stringify(reused.gaps));
+  assert.equal(reused.historicalDesign.sourceRunId, state.run.runId);
+  assert.equal(reused.historicalDesign.source.location, next.root);
+  assert.equal(reused.ordinaryDesignReview, undefined);
+  const imported = await json(reuse.root, 'snapshot.json');
+  assert.deepEqual(imported.tasks.map((task: any) => task.taskId), ['art-task', 'coding-task']);
+  assert.ok(imported.tasks.every((task: any) => task.runId === imported.run.runId && task.budget.ledgerId === imported.ledger.ledgerId));
+  assert.deepEqual(imported.designDraftReview, reused.historicalDesign.source);
+  assert.deepEqual(imported.ledger.entries.map((row: any) => [row.taskId, row.settledMicroCny]), [['art-task', 73524]]);
+  assert.deepEqual(imported.ledger.allocations.map((row: any) => [row.taskId, row.amountMicroCny]), [
+    ['intake', 0], ['planning', 230000], ['art-task', 517500], ['coding-task', 828000],
+  ]);
+  assert.deepEqual(await runCli(['resume', reuse.root], { ...io(), host: reuse.host }).then((v: any) => v.outcome), reused.outcome);
+  await assert.rejects(selectApprovedDesign(next.root, { ...state.requirementsSource, revision: 1 }, { root: reuse.root }), /same original confirmation/);
+  const localDesign = join(reuse.root, selected.proof.design.location, '_cosmos/design.json'), localBytes = await readFile(localDesign);
+  await writeFile(localDesign, Buffer.concat([localBytes, Buffer.from(' ')]));
+  await assert.rejects(runCli(['resume', reuse.root], { ...io(), host: reuse.host }), /Imported design capture changed/);
+  await writeFile(localDesign, localBytes);
+  const selectionFile = join(next.root, 'ordinary-design-selection.json'), saved = await readFile(selectionFile);
+  await writeFile(selectionFile, JSON.stringify({ ...JSON.parse(saved.toString()), approvedAttemptId: 'changed' }));
+  await assert.rejects(runCli(['resume', reuse.root], { ...io(), host: reuse.host }), /selection_changed/);
+  await writeFile(selectionFile, saved);
+  assert.deepEqual(await json(next.root, 'snapshot.json'), state);
   const fixture = await fundingFixture(t), f = await fixture.authorization('supplied');
   const auth = join(f.sharedRoot, f.authorization.location), command = ['new', f.runRoot, '--shared-root', f.sharedRoot, '--authorization', auth];
   const payload = { ...f.payload, formatVersion: 'public-validation-authorization/2', brief: next.draft.brief,
