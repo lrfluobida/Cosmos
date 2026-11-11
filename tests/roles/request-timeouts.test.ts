@@ -130,13 +130,15 @@ for (const role of ['coding', 'design'] as const) test(`controller stop cancels 
   await assert.rejects(readFile(join(f.root, 'game/output.txt')), { code: 'ENOENT' });
 });
 
-test('design absolute timeout survives early and later stream events without extending or retrying', { timeout: 15000 }, async t => {
+for (const [role, timeout] of [['design', 600000], ['art', 600000], ['art', 200000]] as const) test(`${role} absolute timeout of ${timeout}ms survives early and later stream events without extending or retrying`, { timeout: 15000 }, async t => {
   const f = await fixture(t), responses: PiResponse[] = [];
+  if (timeout < 600000) t.mock.method(Date, 'now', () => Date.parse(f.task.budget.originalDeadlineAt) - timeout - 5000);
   let body!: ReadableStreamDefaultController<Uint8Array>, sent = 0, aborted = false, observed!: () => void;
   const firstEvent = new Promise<void>(resolve => { observed = resolve; });
   const stream = ModelRuntime.prototype.streamSimple;
   t.mock.method(ModelRuntime.prototype, 'streamSimple', function(this: ModelRuntime, ...args: Parameters<typeof stream>) {
     const options = args[2];
+    assert.equal(options?.timeoutMs, timeout); assert.equal(options?.maxRetries, 0);
     return stream.call(this, args[0], args[1], { ...options, onProviderStreamEvent: async (data, model) => {
       await options?.onProviderStreamEvent?.(data, model); observed();
     } });
@@ -151,16 +153,16 @@ test('design absolute timeout survives early and later stream events without ext
     } }), { headers: { 'content-type': 'text/event-stream' } });
   });
   const session = await f.create(createRoleFactory({ maxOutputTokens: 500, maxRequests: 2, requestTimeoutMs: 120000,
-    designAuthorRequestTimeoutMs: 600000, authorThinkingLevel: { design: 'high' }, estimatedMaxCostMicroCny: 1000,
+    designAuthorRequestTimeoutMs: 600000, artAuthorRequestTimeoutMs: 600000, authorThinkingLevel: { design: 'high' }, estimatedMaxCostMicroCny: 1000,
     env: { DEEPSEEK_API_KEY: 'offline-timeout-key' }, sessionFactory: config => createPiSession({ ...config,
-      budget: { ...config.budget, afterResponse: async response => { responses.push(response); await config.budget.afterResponse(response); } } }) }), 'design');
+      budget: { ...config.budget, afterResponse: async response => { responses.push(response); await config.budget.afterResponse(response); } } }) }), role);
   t.mock.timers.enable({ apis: ['setTimeout'] });
   try {
     const pending = session.prompt('Keep streaming within the original absolute cap').then(() => undefined, error => error);
-    await firstEvent;
-    t.mock.timers.tick(120001); assert.equal(aborted, false, 'The old 120000 ms cap must no longer abort a selected design author.');
+    await Promise.race([firstEvent, pending.then(error => assert.fail('Stream ended before first event: ' + error))]);
+    t.mock.timers.tick(120001); assert.equal(aborted, false, 'The old 120000 ms cap must no longer abort this author.');
     const laterEvent = new Promise<void>(resolve => { observed = resolve; }); progress(); await laterEvent;
-    t.mock.timers.tick(479998); assert.equal(aborted, false);
+    t.mock.timers.tick(timeout - 120002); assert.equal(aborted, false);
     const lastEvent = new Promise<void>(resolve => { observed = resolve; }); progress(); await lastEvent;
     t.mock.timers.tick(1);
     assert.equal((await pending).code, 'timeout'); assert.equal(aborted, true); assert.equal(sent, 1);

@@ -132,7 +132,7 @@ test('COS146 whole read rejects escaping paths, symlink scopes, and cancellation
   await assert.rejects(pending, /abort/i);
 });
 
-test('read-only plan pages retain all 397 steps and metadata across native byte and explicit line limits', async t => {
+test('read-only plan pages retain all 398 steps and metadata across native byte and explicit line limits', async t => {
   const f = await fixture(t), path = 'input.json';
   const source = await readFile(new URL('../../docs/benchmark/cabin-hunt/acceptance-plan.json', import.meta.url));
   await writeFile(join(f.root, path), source);
@@ -155,7 +155,7 @@ test('read-only plan pages retain all 397 steps and metadata across native byte 
     assert.ok(parts.length > 1);
     const restored = JSON.parse(parts.join('\n'));
     assert.deepEqual(restored, JSON.parse(source.toString('utf8')));
-    assert.equal(restored.scenario.steps.length + restored.scenario.reopen.steps.length, 397);
+    assert.deepEqual([restored.scenario.steps.length, restored.scenario.reopen.steps.length], [200, 198]);
   }
   const raw = await f.read(f.original, { offset: 1624, limit: 2 });
   assert.equal(await page({ offset: 1624, limit: 2 }), raw.content[0].type === 'text' && raw.content[0].text);

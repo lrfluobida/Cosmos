@@ -43,20 +43,26 @@ test('COS146 revision display selector is trusted, snapshotted, and limited to o
   assert.deepEqual((await f.controller.read()).ledger.entries, []);
 });
 
-test('COS154 fixed validation design authors do not invoke the revision selector or receive its guidance', async t => {
+test('fixed validation design and art authors retain the original timeout and read tools', async t => {
   const f = await validationRoutingFixture(t);
-  const planned = await planTaskDag({ ...f.planning, roles: { ...f.roles, design: { ...f.roles.design, tools: ['read'] } } } as any);
+  const planned = await planTaskDag({ ...f.planning, roles: { ...f.roles, design: { ...f.roles.design, tools: ['read'] }, art: { ...f.roles.art, tools: ['read'] } } } as any);
   await f.controller.registerTasks(planned.tasks.map(item => item.task));
-  const design = planned.tasks.find(item => item.role === 'design')!;
   let calls = 0;
   const factory = createRoleFactory({ ...options, ordinaryDesignRevisionJsonReads: async () => { calls++; return true; },
+    designAuthorRequestTimeoutMs: 600000, artAuthorRequestTimeoutMs: 600000, ordinaryArtDesignInput: () => assert.fail('Unexpected validation art selection'),
     sessionFactory: async config => {
-      assert.doesNotMatch(config.tools!.find(tool => tool.name === 'read')!.description, /^For JSON (review|revision),|compact display/);
+      const read = config.tools!.find(tool => tool.name === 'read')!;
+      assert.doesNotMatch(read.description, /^For JSON (review|revision),|compact display/);
+      assert.ok(!Object.hasOwn((read.parameters as { properties: object }).properties, 'planOffset'));
+      assert.equal(config.requestTimeoutMs, 120000);
       return { prompt: async () => ({ text: '' }), close: async () => {} };
     } });
-  const session = await factory({ controller: f.controller, validation: f.binding, requirement: f.requirement, role: 'design', task: design.task,
-    workspace: design.workspace, stateDirectory: join(f.planning.sessionRoot, 'revision-guidance-validation') });
-  await session.close();
+  for (const role of ['design', 'art'] as const) {
+    const item = planned.tasks.find(item => item.role === role)!;
+    const session = await factory({ controller: f.controller, validation: f.binding, requirement: f.requirement, role, task: item.task,
+      workspace: item.workspace, stateDirectory: join(f.planning.sessionRoot, 'validation-' + role) });
+    await session.close();
+  }
   assert.equal(calls, 0);
 });
 
@@ -86,10 +92,12 @@ for (const role of ['design', 'reviewer'] as const) test('COS146 native factory 
   assert.equal(await readFile(join(f.root, path), 'utf8'), source);
 });
 
-test('native design review follows compact plan continuation with strict-schema nullable arguments', async t => {
+for (const role of ['reviewer', 'art'] as const) test(`native ${role} follows compact plan continuation with strict-schema nullable arguments`, async t => {
   const f = await authorBudgetFixture(t), task = f.input.task;
   task.outputs[0].schema = 'game-design/2';
-  const folder = task.artifacts[0].location + '/_cosmos', path = folder + '/acceptance-plan.json';
+  const design = { artifactId: 'design', version: 'v2', location: 'registry/captures/design/v2/files' };
+  if (role === 'art') task.inputs.push(design);
+  const folder = (role === 'art' ? design : task.artifacts[0]).location + '/_cosmos', path = folder + '/acceptance-plan.json';
   const source = await readFile(new URL('../../docs/benchmark/cabin-hunt/acceptance-plan.json', import.meta.url));
   await mkdir(join(f.root, folder), { recursive: true }); await writeFile(join(f.root, path), source);
   let calls = 0;
@@ -102,14 +110,19 @@ test('native design review follows compact plan continuation with strict-schema 
     const pages = body.messages.filter((message: any) => message.role === 'tool').map((message: any) => message.content);
     const notice = /\n\n\[[^\n]*Use planOffset=(\d+) to continue\.\]$/;
     const next = !pages.length ? null : Number(notice.exec(pages[0])![1]);
-    if (pages.length === 2) assert.deepEqual(JSON.parse(pages[0].replace(notice, '') + '\n' + pages[1]), JSON.parse(source.toString('utf8')));
+    if (pages.length === 2) {
+      const restored = JSON.parse(pages[0].replace(notice, '') + '\n' + pages[1]);
+      assert.deepEqual(restored, JSON.parse(source.toString('utf8')));
+      assert.deepEqual([restored.scenario.steps.length, restored.scenario.reopen.steps.length], [200, 198]);
+    }
     const delta = pages.length === 2 ? { content: 'Both pages received.' } : { tool_calls: [{ index: 0, id: 'page-' + calls, type: 'function',
       function: { name: 'read', arguments: JSON.stringify({ path, offset: null, limit: null, planOffset: next }) } }] };
     const chunk = { id: 'offline-plan', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: pages.length === 2 ? 'stop' : 'tool_calls' }],
       usage: { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40 } };
     return new Response('data: ' + JSON.stringify(chunk) + '\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } });
   });
-  const session = await f.create({ ordinaryDesignReviewBudget: () => true, sessionFactory: config => createPiSession(config) }, { ...f.input, role: 'reviewer' });
+  const session = await f.create({ ordinaryDesignReviewBudget: () => true, ordinaryArtDesignInput: () => design,
+    sessionFactory: config => createPiSession(config) }, { ...f.input, role });
   assert.equal((await session.prompt('Read the complete plan.')).text, 'Both pages received.');
   assert.equal(calls, 3);
 });

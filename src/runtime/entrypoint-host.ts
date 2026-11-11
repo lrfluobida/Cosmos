@@ -80,6 +80,7 @@ import { optionalDesignJson, readDesignRevisionPlan, readDesignSelection, requir
 import { isOrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
+const AUTHOR_REQUEST_TIMEOUT_MS = 600000;
 const CAPABILITIES = 'Windows Phaser 2D with normal mouse/locator input and visible assertions; optional confirmed two-stage play/unlock/buy/save and real browser process reopen with the same private profile/origin; independent design/art/coding roles. Art uses bounded procedural SVG layer animations (1-128 characters total) and PCM synthesis (0-64 clips total, each <=30 seconds), authored in at most 8 batches of up to 16 characters/16 clips in one art session and capture. The final candidate must expose read-only actual Phaser media loading, animation-state and sound-start observations; the host checks the complete dynamic manifest across confirmed normal-input stages alongside screenshots and independent source review. User listening and visual recognizability remain final experience checks. Put unsupported keyboard/touch, external assets/services, unavailable acceptance adapters or a roster above these bounds in unsupported; do not silently shrink the brief. Full classic-PC benchmark needs its separate COS-14 trusted acceptance adapter, which this generic profile does not supply.';
 const requestReservation = (request: { inputBytes: number; maxOutputTokens: number; hasImages: boolean }) => (request.hasImages ? 1_000_000 : request.inputBytes) * 2 + request.maxOutputTokens * 8;
 async function writeJson(root: string, name: string, value: unknown) { const path = await safePath(root, name); await mkdir(dirname(path), { recursive: true }); await publishReceipt(path, value); }
@@ -950,8 +951,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       await directory(target, modular && moduleSlot(task) ? `${moduleSource(moduleSlot(task)!)}/${moduleDirectory(moduleSlot(task)!)}` : `authors/${role(task) === 'coding' ? 'coding/src' : role(task)}`);
       signal.throwIfAborted();
     } } : {}),
-    roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: 600000, estimatedMaxCostMicroCny: requestReservation,
-      ...(ordinary ? { authorThinkingLevel: { design: 'low' } as const, authorMaxRequests: { design: 32 }, designAuthorRequestTimeoutMs: 600000 } : {}),
+    roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, estimatedMaxCostMicroCny: requestReservation,
+      ...(ordinary ? { authorThinkingLevel: { design: 'low' } as const, authorMaxRequests: { design: 32 }, designAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, artAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS,
+        ordinaryArtDesignInput: task => {
+          if (role(task) !== 'art') throw new Error('Art plan display requires the ordinary art task.');
+          return selected(task, 'design');
+        } } : {}),
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
         ? { authorMaxRequests: { design: 64 }, authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
           ordinaryDesignSuccessfulWriteCompaction: true as const,

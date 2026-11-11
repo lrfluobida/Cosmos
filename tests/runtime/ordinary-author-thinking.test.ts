@@ -88,7 +88,7 @@ test('ordinary design uses enabled low thinking in native SDK payload while orig
   const state: any = await readRunSnapshot(f.root);
   for (const config of configs) {
     const packet = JSON.parse(config.context), task = state.tasks.find((task: any) => task.taskId === packet.taskId);
-    assert.equal(config.maxRequests, packet.role === 'design' ? 64 : 16); assert.equal(config.requestTimeoutMs, ['design', 'coding'].includes(packet.role) ? 600000 : 120000);
+    assert.equal(config.maxRequests, packet.role === 'design' ? 64 : 16); assert.equal(config.requestTimeoutMs, ['design', 'art', 'coding'].includes(packet.role) ? 600000 : 120000);
     assert.equal(typeof config.requestCompactionAdmission, packet.role === 'design' ? 'function' : 'undefined');
     assert.equal(typeof config.requestCompaction, packet.role === 'design' ? 'function' : 'undefined');
     assert.equal(config.compactionKeepRecentTokens, packet.role === 'design' ? 8000 : undefined);

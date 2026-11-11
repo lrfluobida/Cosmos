@@ -17,6 +17,7 @@ export interface WorkspaceToolOptions {
   writePaths: string[];
   compactFullJsonReads?: true;
   planReadPaths?: string[];
+  planReadPurpose?: 'art';
   beforeFileWrite?: BeforeFileWrite;
   onWriteCommitted?: WriteCommitted;
 }
@@ -81,7 +82,7 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
       planOffset: Type.Optional(Type.Integer({ minimum: 1, description: '1-based compact plan display line. Omit offset when using planOffset.' })) }) : read.parameters;
     const description = read.description + (options.compactFullJsonReads
       ? ' Whole-file JSON may use compact display; source formatting is unchanged. Before exact-text edits, use explicit offset/limit reads to obtain raw source text.' : '')
-      + (plans.length ? ' For the fixed acceptance plan, start with path alone (omit optional numbers, or use null if required). Follow each continuation once until complete. planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.' : '');
+      + (plans.length ? ` For the fixed acceptance plan, start with path alone (omit optional numbers, or use null if required). ${options.planReadPurpose === 'art' ? 'Use the displayed continuation when more steps are needed.' : 'Follow each continuation once until complete.'} planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.` : '');
     tools.push(defineTool({ ...read, description, parameters, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, reads, signal);
       await access(full);
