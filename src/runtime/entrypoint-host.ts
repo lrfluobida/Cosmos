@@ -1012,7 +1012,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
           return JSON.parse(result.stdout);
         }) } : {}),
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
-        ? { authorMaxRequests: { design: 64 }, authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
+        ? { authorMaxRequests: { design: 64, art: 32 }, authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
           ordinaryDesignSuccessfulWriteCompaction: true as const,
           ...(preservesValidDraft(ordinaryPlanAuthoringPolicy) ? { ordinaryDesignRejectedWriteCompaction: true as const } : {}),
           ordinaryPlanningOutputFloor: 4096,
