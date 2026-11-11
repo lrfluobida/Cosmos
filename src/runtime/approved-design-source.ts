@@ -70,8 +70,13 @@ export async function checkApprovedDesignImport(root: string, source: ApprovedDe
     || [...source.files].some(([name, bytes]) => !local.get(name)?.equals(bytes))) throw new Error('Imported design capture changed.');
 }
 
-export function approvedDownstreamPlan(source: ApprovedDesign, state: RunSnapshot, policies: PlanningTaskPolicy[], available: ArtifactReference[]) {
-  const tasks = source.selection.tasks.filter(item => item.role !== 'design').map(original => {
+export function approvedDownstreamPlan(source: ApprovedDesign, state: RunSnapshot, policies: PlanningTaskPolicy[], available: ArtifactReference[], approvedMedia?: ArtifactReference) {
+  const downstream = source.selection.tasks.filter(item => item.role !== 'design');
+  const art = downstream.find(item => item.role === 'art'), coding = downstream.find(item => item.role === 'coding');
+  const afterDesign = (item: typeof downstream[number]) => item.task.dependsOn.filter(dep => dep.taskId !== source.proof.sourceTaskId);
+  if (downstream.length !== 2 || !art || !coding || afterDesign(art).length || !sameValue(afterDesign(coding), [{ taskId: art.task.taskId, state: 'not_started', requiredState: 'passed' }])) throw new Error('Historical design requires the original art and coding dependency graph.');
+  if (approvedMedia && (!sameValue(art.expectedArtifacts, [approvedMedia]) || !available.some(ref => sameValue(ref, approvedMedia)))) throw new Error('Historical coding requires the selected media capture.');
+  return (approvedMedia ? [coding] : downstream).map(original => {
     const policy = policies.find(item => item.role === original.role)!;
     const expectedArtifacts = policy.outputs.map(({ artifactId, version, destination }) => ({ artifactId, version, location: destination }));
     const task = structuredClone(original.task);
@@ -84,11 +89,8 @@ export function approvedDownstreamPlan(source: ApprovedDesign, state: RunSnapsho
     task.budget = { ledgerId: state.ledger.ledgerId, originalDeadlineAt: state.run.originalDeadlineAt, allocationMicroCny: policy.allocationMicroCny };
     task.ownership = { writePaths: policy.writePaths, readOnlyPaths: policy.readOnlyPaths };
     task.outputs = policy.outputs.map(({ type, schema, destination }) => ({ type, schema, destination }));
-    task.dependsOn = task.dependsOn.filter(dep => dep.taskId !== source.proof.sourceTaskId);
+    task.dependsOn = approvedMedia ? [] : afterDesign(original);
     task.inputs = [...available, ...task.dependsOn.flatMap(dep => source.selection.tasks.find(item => item.task.taskId === dep.taskId)!.expectedArtifacts!)];
     return { role: original.role, workspace: policy.workspace, task, expectedArtifacts };
   });
-  const art = tasks.find(item => item.role === 'art'), coding = tasks.find(item => item.role === 'coding');
-  if (tasks.length !== 2 || !art || !coding || art.task.dependsOn.length || !sameValue(coding.task.dependsOn, [{ taskId: art.task.taskId, state: 'not_started', requiredState: 'passed' }])) throw new Error('Historical design requires the original art and coding dependency graph.');
-  return tasks;
 }

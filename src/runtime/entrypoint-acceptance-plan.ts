@@ -1,5 +1,6 @@
 import type { PreparedTask } from './orchestrator.ts';
-import { ART_REVIEW_INPUT, selectArtReviewInput } from './art-draft-source.ts';
+import { requireApprovedArtCandidate, selectApprovedArt } from './approved-art-source.ts';
+import { APPROVED_ART, ART_REVIEW_INPUT, selectArtReviewInput } from './art-draft-source.ts';
 import { requireFixedArtApproval } from './fixed-art-review.ts';
 import { APPROVED_DESIGN, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { join } from 'node:path';
@@ -108,7 +109,7 @@ export function createOrdinaryAcceptanceScope(input: { root: string; controller:
 }
 
 /** Completed delivery reads use the same approval gate without reopening a controller or writing a receipt. */
-export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, task: TaskContract, candidate: ArtifactReference, binding: unknown, historicalDesign?: unknown) {
+export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, task: TaskContract, candidate: ArtifactReference, binding: unknown, historicalDesign?: unknown, historicalArt?: unknown) {
   const { readConfirmedGeneration } = await import('../cli/session.ts'), confirmed = await readConfirmedGeneration(root, state);
   if (!confirmed.draft.ordinaryProfile) throw new Error('Ordinary delivery lacks its original profile.');
   const requirementCapture = task.inputs.find(ref => ref.artifactId === 'requirement-bundle'), design = task.inputs.find(ref => ref.artifactId === 'design');
@@ -119,6 +120,15 @@ export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, t
   if (!requirementCapture || !design || (!historical && !author)) throw new Error('Ordinary delivery is missing its original plan sources.');
   let dependencies = author?.inputs.filter(ref => !confirmed.requirement.sources.some(source => sameValue(source, ref))) ?? [];
   const execution = await json(root, 'execution.json');
+  let mediaIds: string[] = [];
+  if (state.artDraftSource?.artifactId === APPROVED_ART) {
+    if (!historical) throw new Error('Historical art requires the original approved design.');
+    const ref = state.artDraftSource;
+    const media = await selectApprovedArt(ref.location, historical, state.requirementsSource!, { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, ref);
+    if (!sameValue(historicalArt, media.proof)) throw new Error('Delivery historical art proof changed.');
+    await requireApprovedArtCandidate(root, media, task, candidate);
+    mediaIds = media.acceptanceIds;
+  } else if (historicalArt !== undefined) throw new Error('Unexpected historical art proof.');
   if (state.artDraftSource?.artifactId === ART_REVIEW_INPUT) {
     const ref = state.artDraftSource, prepared = execution.tasks.find((item: PreparedTask) => item.role === 'art');
     if (!historical || !prepared || !task.inputs.some(input => sameValue(input, prepared.expectedArtifacts?.[0]))) throw new Error('Delivery fixed art binding changed.');
@@ -136,5 +146,5 @@ export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, t
     requirement: confirmed.requirement, draft: confirmed.draft, requirementCapture,
     dependencies });
   if (!sameValue(binding, await scope.bindCandidate(task, design, candidate))) throw new Error('Ordinary delivery report plan binding changed.');
-  return historical?.acceptanceIds ?? [];
+  return [...(historical?.acceptanceIds ?? []), ...mediaIds];
 }

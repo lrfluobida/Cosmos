@@ -40,6 +40,8 @@ import { executeOrdinaryDesign, prepareDesignOrigins, optionalDesignJson } from 
 import { isOrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 import type { OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 import { publishMatchingBytes } from './fixed-host-input.ts';
+import type { ApprovedArt } from './approved-art-source.ts';
+import { APPROVED_ART } from './art-draft-source.ts';
 import { APPROVED_DESIGN, type ApprovedDesign } from './approved-design-source.ts';
 import { SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readPlanAuthoringPolicy, REVIEWED_DRAFT_POLICY } from './entrypoint-plan-authoring.ts';
@@ -55,7 +57,7 @@ export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 
   ordinaryDesignBudgetPolicy?: 'review-reserve/1';
   ordinaryDesignRevisionBudgetPolicy?: ConservedDesignBudgetPolicy;
   capability: string; availableArtifacts: ArtifactReference[]; taskPolicies: PlanningTaskPolicy[]; roleFactory: RoleFactory;
-  historicalDesignPlan?: { tasks: PreparedTask[]; proof: ApprovedDesign['proof'] };
+  historicalDesignPlan?: { tasks: PreparedTask[]; proof: ApprovedDesign['proof']; art?: ApprovedArt['proof'] };
   validateTasks?(tasks: PreparedTask[]): void;
   bindPreparedTasks?(tasks: PreparedTask[]): Promise<void>;
   closePreparation?(): Promise<void>;
@@ -187,6 +189,8 @@ export async function executeGeneration(options: GenerationOptions) {
       ...(ordinaryPlanAuthoringPolicy ? { ordinaryPlanAuthoringPolicy } : {}),
       ...(ordinaryMediaObservationPolicy ? { ordinaryMediaObservationPolicy } : {}) });
     if (!sameValue(approvedSource, host.historicalDesignPlan?.proof.source)) throw new Error('Historical design host selection differs from the original source.');
+    const approvedArt = original.artDraftSource?.artifactId === APPROVED_ART ? original.artDraftSource : undefined;
+    if (!sameValue(approvedArt, host.historicalDesignPlan?.art?.source)) throw new Error('Historical art host selection differs from the original source.');
     if (host.ordinaryPlanAuthoringPolicy !== ordinaryPlanAuthoringPolicy) throw new Error('Original ordinary plan authoring policy changed.');
     if (host.ordinaryDesignRevisionBudgetPolicy !== ordinaryDesignRevisionBudgetPolicy) throw new Error('Original ordinary revision budget policy changed.');
     if (budgetLifecycle) Object.defineProperty(host, 'roleFactory', { value: budgetLifecycle.wrapFactory(host.roleFactory), writable: false, configurable: false });
@@ -347,7 +351,7 @@ export async function executeGeneration(options: GenerationOptions) {
         taskHistory: state.tasks.map(task => ({ taskId: task.taskId, state: task.state, artifacts: task.artifacts, handoff: task.handoff })),
         replacement: null, reusedTaskIds: [], effectiveTasks: deliveryTaskProofs(state.tasks), status: await schedulerStatus(controller), userExperience: 'not_confirmed' };
     });
-    published = await publishGenerationReport(root, { ...outcome, ...(historicalPlan ? { historicalDesign: historicalPlan.proof } : {}), ...await resourceFailureReport((await controller.read()).tasks), requiresCompletionTiming: true }, { capability: host.capability, requirement, unsupported: draft.unsupported });
+    published = await publishGenerationReport(root, { ...outcome, ...(historicalPlan ? { historicalDesign: historicalPlan.proof } : {}), ...(historicalPlan?.art ? { historicalArt: historicalPlan.art } : {}), ...await resourceFailureReport((await controller.read()).tasks), requiresCompletionTiming: true }, { capability: host.capability, requirement, unsupported: draft.unsupported });
   } finally {
     process.off('SIGINT', interrupt); process.off('SIGTERM', interrupt);
     completionTiming = await finishCompletion({ root, controller, work, published: published?.report, cleanup: [
