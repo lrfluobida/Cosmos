@@ -2647,7 +2647,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-202 · 按实际请求为普通编码独审的全量截图报价
 
-父任务 #19。保留普通编码独审真实 Pi/SDK 请求的所有截图、文本和原评审要求，按可验证的实际文本包和逐图官方上界求准入报价，支持旧请求及未知输入的保守回退。以离线截流核对完整请求、单图/多图和未知形态；实际支出和真实裁决另须验证。作者 `image_quote_author`，独审 `coding_review_budget`，源码待审。 [COS202 / #203](https://github.com/lrfluobida/Cosmos/issues/203) · [DeepSeek 图像 token 上界](https://api-docs.deepseek.com/zh-cn/guides/vision/)
+父任务 #19。保留普通编码独审真实 Pi/SDK 请求的所有截图、文本和原评审要求，按可验证的实际文本包和逐图官方上界求准入报价，支持旧请求及未知输入的保守回退。以离线截流核对完整请求、单图/多图和未知形态；实际支出和真实裁决另须验证。作者 `image_quote_author`，独审 `coding_review_budget` 批准 `ede2ec8`，主线合入 `5d30396`。主线构建、原生 SDK/账本 5/5、公开 CLI 1/1 通过。独审用真实 SDK 和账本离线回放历史长包，8 张截图全部发送给本地截流端，预留 521508µ；模拟实际 usage 正常结算，模拟断线保留待核。真实候选裁决待实跑。 [批准与证据](https://github.com/lrfluobida/Cosmos/issues/203#issuecomment-6787792114) · [DeepSeek 图像 token 上界](https://api-docs.deepseek.com/zh-cn/guides/vision/)
 
 ## 5. 任务与上下文包模板
 

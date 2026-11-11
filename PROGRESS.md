@@ -4,6 +4,10 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+普通编码独审的截图报价已审合入 `5d30396`。对可核定的最终 Pi/SDK 请求，宿主保留全部 PNG 截图，以文本包保守上界加逐图最多 1,024 个输入 token 计算预留；未知请求使用原有保守回退。无图与旧验证路径继续采用原规则。主线构建、SDK 和账本 5/5、公开 CLI 1/1 通过，覆盖多图历史、工具结果、未发释放与实际 usage 结算。 [源码与离线验证](https://github.com/lrfluobida/Cosmos/issues/203#issuecomment-6787792114) · [DeepSeek Vision 图像计费](https://api-docs.deepseek.com/zh-cn/guides/vision/#token-用量)
+
+独审以真实 RunController 离线回放历史长上下文与 8 张完整截图，预留 ¥0.521508。在 ¥1.66 新运行的 ¥0.827446 编码额度内，该请求可容纳的前序费用和占用合计为 ¥0.305938。R47 可在现有阶段内按 ¥1.66 尝试，实际请求大小、已用额度和候选截图裁决仍须按运行证据登记。本次集成未发付费请求。 [父任务记录](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6787792137)
+
 已登记普通编码独审全量截图的请求报价任务。#202 记录的 ¥2.065536 是旧宿主对含图、8,192 输出 token 请求的固定预留。新任务要求保留 Pi/SDK 实际发送的全部图片与文本，用可核实的文本包及图片数求保守上界，未知形态沿用原回退。DeepSeek 当前文档规定每图最多 1,024 个输入 token，多图独立计数。 [实现任务](https://github.com/lrfluobida/Cosmos/issues/203) · [供应商图像规则](https://api-docs.deepseek.com/zh-cn/guides/vision/)
 
 COS201 已审合入 `4c08250`。¥1.66 新建批准设计运行中，规划 ¥0.166000，美术 ¥0.517153，编码 ¥0.827446，其余 ¥0.149401 留给修复。主线构建及旧批准设计恢复、新授权草稿续作两个公开 CLI 用例通过。R44、R45、R46 的原始记录均没有新分配标记，原美术/编码额度分别为 ¥0.517500/¥0.828000、¥0.432000/¥0.691200、¥0.405000/¥0.648000。 [分配与历史兼容验证](https://github.com/lrfluobida/Cosmos/issues/202#issuecomment-6787419937)
