@@ -655,7 +655,7 @@
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
       "verifiedNativeSubIssues": 95,
       "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192", "COS-193", "COS-194", "COS-195", "COS-196", "COS-197", "COS-198", "COS-199", "COS-200", "COS-201"],
-      "verifiedCompletedSubIssues": 90,
+      "verifiedCompletedSubIssues": 91,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -14594,8 +14594,8 @@
       "parentIssueNumber": 19,
       "parentIssueId": 5659696616,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
+      "parentCheckboxChecked": true,
+      "state": "closed",
       "dependsOn": [
         {
           "id": "COS-197",
@@ -14606,8 +14606,14 @@
       "implementer": "import_grants_author",
       "reviewer": "import_grants_review",
       "merger": "r41_merger",
-      "sourceReviewStatus": "pending",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6787209144"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6787209144",
+      "scopedComplete": true,
+      "sourceReviewedCommit": "99e094ff7fbe4bed414773d0a9155ee3f568e840",
+      "sourceIntegratedCommit": "4c08250f337b5026ecf767953ee692bb72c4a8d6",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/202#issuecomment-6787419937",
+      "integrationComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6787419943",
+      "verification": "主线构建和两个公开 CLI 定向用例通过。¥1.66 新运行美术 517153µ、编码 827446µ、修复 149401µ。R46 同轨离线末笔最低报价后余 108231µ，最多 21720 输出 token。R44–R46 无新标记，原额度已核。实际完整候选另受截图评审报价约束。"
     }
   ],
   "verifiedNativeSubIssues": 100,
