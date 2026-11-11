@@ -76,6 +76,8 @@ export interface PiSessionOptions {
   maxRequests: number;
   /** Maximum for the existing tool-free follow-up shared by correction and finalization. */
   readonlyMaxOutputTokens?: 4096;
+  /** Selected only for the ordinary independent design reviewer. */
+  ordinaryDesignReview?: true;
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   requestTimeoutMs: number;
   /** Trusted host authority, refreshed before admission and immediately before dispatch. */
@@ -104,6 +106,15 @@ export class PiSessionError extends Error {
   }
 }
 class OptionalSummarySkipped extends Error {}
+
+/** Live, single-use access to the original review session after a settled reasoning-only length stop. */
+export class ReviewReasoningExhausted extends PiSessionError {
+  readonly completeVerdict: (text: string, signal: AbortSignal) => Promise<{ text: string }>;
+  constructor(completeVerdict: ReviewReasoningExhausted['completeVerdict']) {
+    super('incomplete', 'Independent review exhausted its output on reasoning without a visible verdict.');
+    this.completeVerdict = completeVerdict;
+  }
+}
 
 function positive(value: number, name: string) {
   if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive safe integer`);
@@ -155,6 +166,7 @@ export async function createPiSession(config: PiSessionOptions) {
   let failure: PiSessionError | undefined;
   let callerSignal: AbortSignal | undefined;
   let readonlyRequests: number | undefined;
+  let pendingReview: ReviewReasoningExhausted | undefined;
   let closed = false;
   let pendingFinalization: { error: PiSessionError; source: Omit<PiBudgetFinalizationSource, 'native'>; beforeLeaf: string | null; native?: PiBudgetFinalizationSource['native'] } | undefined;
   let finalizationActive = false, finalizationUsed = false;
@@ -164,7 +176,7 @@ export async function createPiSession(config: PiSessionOptions) {
   const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
   const admissionFailure = (error: unknown, message: string) => error instanceof PiSessionError && ['author_output_budget', 'author_review_reserve', 'review_output_budget'].includes(error.code)
     ? fail(error.code, 'Original request resource capacity is insufficient; no provider request sent.') : fail('admission_rejected', message);
-  const throwIfFailed = () => { if (failure) throw failure; if (pendingFinalization && !finalizationActive) throw pendingFinalization.error; };
+  const throwIfFailed = () => { if (failure) throw failure; if (pendingReview) throw pendingReview; if (pendingFinalization && !finalizationActive) throw pendingFinalization.error; };
   function estimateRequest(request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) {
     try {
       const estimate = typeof config.estimatedMaxCostMicroCny === 'function' ? config.estimatedMaxCostMicroCny(request) : config.estimatedMaxCostMicroCny;
@@ -321,6 +333,21 @@ export async function createPiSession(config: PiSessionOptions) {
             await report(message);
             if (responseModel && responseModel !== DEEPSEEK_MODEL) fail('model_mismatch', 'Provider returned an unexpected model');
             if (message.stopReason === 'length') {
+              if (config.ordinaryDesignReview && event.type === 'done' && receivedUsage && responseModel === DEEPSEEK_MODEL
+                && !failure && !closed && !signal.aborted && requests < config.maxRequests && readonlyRequests === undefined
+                && message.usage.output > 0 && message.usage.reasoning === message.usage.output
+                && message.content.every(block => block.type === 'thinking' || block.type === 'text' && block.text === '')) {
+                const originalSignal = callerSignal;
+                const exhausted = new ReviewReasoningExhausted((text, signal) => {
+                  if (pendingReview !== exhausted || busy || closed || failure) throw failure ?? exhausted;
+                  pendingReview = undefined;
+                  return readonly(text, originalSignal ? AbortSignal.any([originalSignal, signal]) : signal, true);
+                });
+                pendingReview = exhausted;
+                // Keep the terminal usage and all prior evidence, without replaying truncated private reasoning.
+                yield { type: 'done', reason: 'length', message: { ...message, content: [] } };
+                return;
+              }
               if (event.type === 'done' && compaction && compaction === optionalCompaction && !failure && !closed && !signal.aborted
                 && receivedUsage && responseModel === DEEPSEEK_MODEL) {
                 // Accounting succeeded. Let native summary validation reject the partial result without poisoning the author turn.
@@ -577,22 +604,35 @@ export async function createPiSession(config: PiSessionOptions) {
     if (failure || closed || busy || finalizationUsed) return null;
     pendingFinalization.native = native; return source;
   }
-  async function readonly(text: string, signal?: AbortSignal) {
+  async function readonly(text: string, signal?: AbortSignal, verdict = false) {
     return run(async () => {
       if (!session.isIdle || session.getAllTools().some(tool => tool.exposure === 'codemode' || tool.exposure === 'deferred')) {
         throw new PiSessionError('readonly_unavailable', 'Native tool registry cannot isolate a read-only format turn');
       }
       const active = session.getActiveToolNames();
+      const thinking = session.thinkingLevel;
       try {
         session.setActiveToolsByName([]);
         if (session.getActiveToolNames().length || session.getCallableToolNames().length) throw new PiSessionError('readonly_unavailable', 'Native tools remain callable');
+        if (verdict) session.setThinkingLevel('off');
+        const beforeLeaf = manager.getLeafId();
         readonlyRequests = 0;
         await session.prompt(text, { expandPromptTemplates: false });
+        if (verdict) {
+          throwIfFailed();
+          const leaf = manager.getLeafEntry();
+          if (!leaf || leaf.id === beforeLeaf || leaf.type !== 'message' || leaf.message.role !== 'assistant'
+            || leaf.message.stopReason !== 'stop' || readonlyRequests !== 1) throw new PiSessionError('incomplete', 'No completed native verdict turn.');
+          return { text: leaf.message.content.filter(block => block.type === 'text').map(block => block.text).join('\n'), requests: records.slice() };
+        }
         return { text: session.getLastAssistantText() ?? '', requests: records.slice() };
       } finally {
         readonlyRequests = undefined;
         if (!session.isIdle) await session.abort();
-        if (!closed) session.setActiveToolsByName(active);
+        if (!closed) {
+          if (verdict) session.setThinkingLevel(thinking);
+          session.setActiveToolsByName(active);
+        }
       }
     }, signal);
   }

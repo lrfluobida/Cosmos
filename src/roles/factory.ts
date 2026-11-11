@@ -346,7 +346,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       } } : {}),
       ...(authorFloor === undefined ? {} : { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
         task, authority: authority!, floor: authorFloor, maxOutputTokens: authorLimits[input.role as AuthorRole]!, estimate: options.estimatedMaxCostMicroCny, ...(reviewReserve ? { reviewReserve: true, failureCode: 'author_review_reserve' } : {}) }) }),
-      ...(designReviewBudget ? { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
+      ...(designReviewBudget ? { ordinaryDesignReview: true as const, requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
         task, authority: authority!, floor: 4096, maxOutputTokens: designReviewMaxOutputTokens, estimate: options.estimatedMaxCostMicroCny, ...(recoveryPolicy ? { failureCode: 'review_output_budget' } : {}) }) } : {}),
       ...(planningOutputBudget ? { requestOutputLimit: authorBudgetOutputLimit({ controller: input.controller, original: snapshot,
         task, authority: authority!, floor: planningFloor, maxOutputTokens: 8192, estimate: options.estimatedMaxCostMicroCny }) } : {}),

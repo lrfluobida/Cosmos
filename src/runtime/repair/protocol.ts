@@ -9,6 +9,7 @@ import type { ExecutionRequirement } from '../../roles/execution-input.ts';
 import type { TaskContract } from '../../contracts/types.ts';
 import { sameValue } from '../../contracts/validation.ts';
 import { DesignConcernReferenceError } from './design-concern-reference-diagnostic.ts';
+import { ReviewReasoningExhausted } from '../../providers/pi.ts';
 
 export class ReviewProtocolError extends Error {
   constructor() { super('Independent review did not return a valid fixed-version proposal.'); }
@@ -47,8 +48,7 @@ export function validateProtocolCorrections(value: unknown): asserts value is 0 
 
 const correction = 'Your previous response did not satisfy the fixed review JSON protocol. Return only {verdict:"approved"|"changes_requested",inputVersions:all fixed packet inputs,evidenceIds:recorded host evidence IDs,findings:string[]}. findings contains only unresolved actionable defects, not positive observations or a review summary. If you independently conclude there are no unresolved defects, approved requires findings:[]. If defects remain, use changes_requested with nonempty findings. Preserve the exact fixed versions and evidence IDs. Do not change requirements, reinterpret failed host evidence, or remove a genuine defect to obtain approval. This is the only protocol correction allowed.';
 
-/** Correct only a parse failure, inside the existing live native session. The
- * session retains both answers and applies its normal request admission hooks. */
+/** The same live reviewer and original admission govern the single correction. */
 export async function requestReview<T>(options: {
   reviewer: CreatedRole; controller: RunController; taskId: string;
   attemptId: string; correctionRecordPath: string;
@@ -60,6 +60,7 @@ export async function requestReview<T>(options: {
 }): Promise<T> {
   validateProtocolCorrections(options.maxCorrections);
   let diagnostic = '';
+  let exhausted: ReviewReasoningExhausted | undefined;
   for (let response = 0; response <= options.maxCorrections; response++) {
     options.signal.throwIfAborted();
     if (response > 0) {
@@ -84,8 +85,17 @@ export async function requestReview<T>(options: {
       finally { await file.close(); }
     }
     options.signal.throwIfAborted();
-    // Provider/timeout/admission failures are not parse failures and never retry here.
-    const answer = await options.reviewer.prompt(response === 0 ? options.prompt : (options.correctionPrompt ?? correction) + diagnostic, { signal: options.signal, ...(response === 0 && options.images ? { images: options.images } : {}) });
+    const prompt = response === 0 ? options.prompt : (options.correctionPrompt ?? correction) + diagnostic;
+    let answer: { text: string };
+    try {
+      answer = exhausted ? await exhausted.completeVerdict(prompt, options.signal)
+        : await options.reviewer.prompt(prompt, { signal: options.signal, ...(response === 0 && options.images ? { images: options.images } : {}) });
+    } catch (error) {
+      if (!(error instanceof ReviewReasoningExhausted) || options.validation || response >= options.maxCorrections) throw error;
+      exhausted = error;
+      diagnostic = '\nGive your own independent verdict from the fixed inputs and evidence already in this session. Return the complete visible review JSON.';
+      continue;
+    }
     options.signal.throwIfAborted();
     try { return options.parse(answer.text); }
     catch (error) {
