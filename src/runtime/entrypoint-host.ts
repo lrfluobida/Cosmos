@@ -38,7 +38,7 @@ import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/re
 import { publishMatchingBytes } from './fixed-host-input.ts';
 import { fixedArtBytes, fixedArtProvenance, requireFixedArtCapture, requireFixedArtApproval } from './fixed-art-review.ts';
 import { selectCodeDraftFeedback } from './code-draft-feedback.ts';
-import { selectCodeDraft, stageCodeDraft } from './code-draft-source.ts';
+import { compactCodeDraftFiles, selectCodeDraft, stageCodeDraft } from './code-draft-source.ts';
 import { selectApprovedArt, checkApprovedArtImport, requireApprovedArtCandidate } from './approved-art-source.ts';
 import { APPROVED_ART, ART_DRAFT_FILE, isFixedArt, preserveArtDraft, readPinnedArtDraft, selectArtReviewInput } from './art-draft-source.ts';
 import { artMappings, artPatternIndex } from './art-frame-check.ts';
@@ -541,7 +541,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     await checkApprovedDesignImport(root, importedDesign, !input.resume);
   }
   if (importedArt) await checkApprovedArtImport(root, importedArt, !input.resume);
-  if (codeDraft && !state.tasks.find(task => task.taskId === codeDraft.proof.taskId)?.attempts.length) await stageCodeDraft(root, codeDraft.files, !input.resume);
+  const initialDraft = codeDraft && !state.tasks.find(task => task.taskId === codeDraft.proof.taskId)?.attempts.length ? codeDraft : undefined;
+  if (initialDraft) await stageCodeDraft(root, initialDraft.files, !input.resume);
   if (artDraft && !input.resume) {
     await directory(root, 'authors/art');
     await publishMatchingBytes(root, ART_DRAFT_FILE, artDraft.bytes);
@@ -1006,7 +1007,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     } } : {}),
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, estimatedMaxCostMicroCny: requestReservation,
       ...(ordinary ? { authorThinkingLevel: { design: 'low', art: 'off', ...(budgetEligible ? { coding: 'off' } as const : {}) } as const, authorMaxRequests: { design: 32 }, designAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, artAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS,
-        ...(feedback && codeDraft ? { ordinaryCodeDraftFeedback: { taskId: codeDraft.proof.taskId, findings: feedback.findings } } : {}),
+        ...(feedback && codeDraft ? { ordinaryCodeDraftFeedback: { taskId: codeDraft.proof.taskId, findings: feedback.findings,
+          initialFiles: initialDraft && compactCodeDraftFiles(initialDraft.files) } } : {}),
         ...(budgetEligible ? { ordinaryCodingDesignInput: task => selected(task, 'design') } : {}),
         ordinaryCodingReviewImageQuote: task => role(task) === 'coding',
         ordinaryArtDesignInput: task => {

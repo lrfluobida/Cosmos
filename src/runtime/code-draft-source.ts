@@ -1,3 +1,4 @@
+import { isUtf8 } from 'node:buffer';
 import { realpath } from 'node:fs/promises';
 import { isAbsolute, posix, resolve } from 'node:path';
 import { directory, owns, regularFile, snapshot, within } from '../artifacts/paths.ts';
@@ -15,6 +16,27 @@ import type { PublicValidationAuthorization } from './public-validation-funding-
 export const CODE_DRAFT = 'ordinary-code-draft';
 const entry = 'authors/coding/index.html';
 const sourceDirectory = 'authors/coding/src';
+
+/** Only the authenticated draft's compact editable text can accompany author feedback. */
+export function compactCodeDraftFiles(files: ReadonlyMap<string, Buffer>) {
+  const limit = 64 * 1024;
+  const result: { path: string; content: string }[] = [];
+  let size = 2; // JSON array brackets.
+  for (const path of [...files.keys()].sort()) {
+    if (path !== entry && (!path.startsWith(sourceDirectory + '/') || !/\.(?:[cm]?[jt]sx?|css|html)$/i.test(path)
+      || path.split('/').some(part => !part || part.startsWith('.') || part.toLowerCase() === 'node_modules'))) return undefined;
+    const bytes = files.get(path)!;
+    if (bytes.length > limit - size || !isUtf8(bytes)) return undefined;
+    const content = bytes.toString('utf8');
+    if (/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/u.test(content)
+      || /-----BEGIN (?:[A-Z0-9 ]* )?PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{20,}/u.test(content)) return undefined;
+    const file = { path, content };
+    size += Buffer.byteLength(JSON.stringify(file)) + (result.length ? 1 : 0);
+    if (size > limit) return undefined;
+    result.push(file);
+  }
+  return result.length ? result : undefined;
+}
 
 export function validateCodeDraftSource(ref: ArtifactReference, art?: ArtifactReference) {
   if (art?.artifactId !== APPROVED_ART || ref?.artifactId !== CODE_DRAFT || typeof ref.version !== 'string' || !/^[a-f0-9]{64}$/.test(ref.version)

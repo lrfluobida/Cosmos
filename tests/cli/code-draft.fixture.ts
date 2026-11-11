@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile, writeFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import type { TestContext } from 'node:test';
@@ -24,11 +25,12 @@ const html = '<div id="status">等待</div><script type="module" src="/src/main.
 const partial = 'export const status = "等待";', revised = 'export const status = "完成";';
 
 export async function exerciseCodeDraft(t: TestContext, options: Parameters<typeof ordinaryHostFixture>[1], common: string[],
-  design: ApprovedDesign, art: ApprovedArt, requirements: ConfirmedRequirementsSource) {
+  design: ApprovedDesign, art: ApprovedArt, requirements: ConfirmedRequirementsSource, nativeFetch: typeof fetch) {
   const previous = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, session) => {
     const original = JSON.parse(config.context!);
     assert.equal(original.role, 'coding');
     assert.equal(original.codeDraftFeedback, undefined);
+    assert.equal(original.initialCodeDraftFiles, undefined);
     assert.equal(config.feedbackReadWritePaths, undefined);
     assert.ok(original.rules.some((rule: string) => rule.includes('Follow each planOffset continuation')));
     return { ...session, prompt: async () => {
@@ -42,14 +44,20 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   assert.equal(first.outcome, 'incomplete');
   const oldSnapshot = await readFile(join(previous.root, 'snapshot.json'));
   const findings = [{ observed: 'The entry module was absent in the preview.', hint: 'Read the entry page and helper.' }];
-  const next = await ordinaryHostFixture(t, { ...options, fullToolchain: true, sessionFactory: async (config, session) => {
+  const initialFiles = [{ path: page, content: html }, { path: helper, content: partial }];
+  let reviewerVerdict: object | undefined;
+  const next = await ordinaryHostFixture(t, { ...options, fullToolchain: true, sessionFactory: async config => {
     const packet = JSON.parse(config.context!);
     if (packet.role !== 'coding') {
       assert.equal(packet.codeDraftFeedback, undefined);
+      assert.equal(packet.initialCodeDraftFiles, undefined);
       assert.equal(config.feedbackReadWritePaths, undefined);
-      return session;
+      assert.equal(packet.role, 'reviewer');
+      reviewerVerdict = { verdict: 'approved', findings: [], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((item: { evidenceId: string }) => item.evidenceId) };
+      return createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-code-draft' } });
     }
     assert.deepEqual(packet.codeDraftFeedback, findings);
+    assert.deepEqual(packet.initialCodeDraftFiles, initialFiles);
     assert.deepEqual(config.feedbackReadWritePaths, packet.ownership.writePaths);
     assert.ok(!packet.rules.some((rule: string) => rule.includes('Follow each planOffset continuation')));
     assert.doesNotMatch(config.tools!.find(tool => tool.name === 'read')!.description, /Follow each continuation once until complete/);
@@ -92,31 +100,59 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   assert.deepEqual(await readFile(join(funding.sharedRoot, 'snapshot.json')), shared);
   await writeFile(join(previous.root, helper), partial);
 
-  let rounds = 0;
-  t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
-    const request = new Request(input, init), body = await request.json();
-    assert.equal(new URL(request.url).origin, 'https://api.deepseek.com');
+  let rounds = 0, reviews = 0;
+  function reply(body: any) {
     const results = body.messages.filter((message: { role: string }) => message.role === 'tool');
     const tool = (name: string, args: object, index = 0) => ({ index, id: 'draft-' + rounds + '-' + index,
       type: 'function', function: { name, arguments: JSON.stringify(args) } });
-    const calls = rounds === 0 ? [tool('read', { path: page }), tool('read', { path: helper }, 1),
-      tool('read', { path: art.proof.media.location + '/public/assets/manifest.json' }, 2),
-      tool('read', { path: 'toolchain/node_modules/phaser/src/sound/webaudio/WebAudioSound.js', offset: 8, limit: 12 }, 3)]
-      : rounds === 1 ? [tool('edit', { path: helper, edits: [{ oldText: partial, newText: revised }] }),
+    const calls = rounds === 0 ? [tool('edit', { path: helper, edits: [{ oldText: partial, newText: revised }] }),
         tool('write', { path: entry, content: "import {status} from './helper'; document.querySelector('#status')!.textContent=status;" }, 1)]
+      : rounds === 1 ? [tool('read', { path: helper }), tool('read', { path: art.proof.media.location + '/public/assets/manifest.json' }, 1),
+        tool('read', { path: 'toolchain/node_modules/phaser/src/sound/webaudio/WebAudioSound.js', offset: 8, limit: 12 }, 2)]
       : rounds === 2 ? [tool('check-game-build', {})] : [];
-    if (rounds === 1) assert.ok(results.some((item: any) => item.content.includes('等待')) && results.some((item: any) => item.content.includes('/src/main.ts')));
-    if (rounds === 1) assert.ok(results.some((item: any) => item.content.includes('"characters"')) && results.some((item: any) => item.content.includes('@class WebAudioSound')));
+    if (reviewerVerdict) {
+      assert.doesNotMatch(body.messages[0].content, /initialCodeDraftFiles|export const status/);
+      assert.deepEqual(body.tools.map((tool: any) => tool.function.name), ['read']);
+      reviews++;
+    } else {
+      assert.ok(body.messages[0].content.includes('"initialCodeDraftFiles":' + JSON.stringify(initialFiles)));
+      assert.match(body.messages[0].content, /working files, which always take precedence/);
+    }
+    if (rounds === 2) {
+      assert.ok(results.some((item: any) => item.content.includes(revised)));
+      assert.ok(results.some((item: any) => item.content.includes('"characters"')) && results.some((item: any) => item.content.includes('@class WebAudioSound')));
+    }
     if (rounds === 3) {
       const check = JSON.parse(results.at(-1).content);
       assert.ok(check.passed, check.diagnostics);
       assert.deepEqual(check.results.map((result: { code: number }) => result.code), [0, 0]);
     }
-    rounds++;
-    const delta = calls.length ? { tool_calls: calls } : { content: JSON.stringify({ summary: 'Completed the entry and helper', remaining: [], uncertainty: [] }) };
+    if (!reviewerVerdict) rounds++;
+    const delta = calls.length ? { tool_calls: calls } : { content: JSON.stringify(reviewerVerdict ?? { summary: 'Completed the entry and helper', remaining: [], uncertainty: [] }) };
     const chunk = { id: 'offline-code', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: calls.length ? 'tool_calls' : 'stop' }],
       usage: { prompt_tokens: 120, completion_tokens: 50, total_tokens: 170 } };
-    return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+    return `data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`;
+  }
+  let wireError: unknown;
+  const server = createServer(async (request, response) => {
+    try {
+      const chunks = [];
+      for await (const chunk of request) chunks.push(chunk);
+      const events = reply(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+      response.writeHead(200, { 'content-type': 'text/event-stream' }).end(events);
+    } catch (error) {
+      wireError = error;
+      response.writeHead(400).end();
+    }
+  });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
+  const address = server.address();
+  assert.ok(address && typeof address === 'object');
+  t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+    const request = new Request(input, init);
+    assert.equal(new URL(request.url).origin, 'https://api.deepseek.com');
+    return nativeFetch('http://127.0.0.1:' + address.port, { method: 'POST', body: await request.arrayBuffer(), signal: request.signal });
   });
 
   let phase = 'before-author';
@@ -148,13 +184,16 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   await writeFile(feedbackFile, note);
   phase = 'after-capture';
   const captured = await resume();
+  if (wireError) throw wireError;
   assert.equal(phase, 'captured', JSON.stringify(captured.gaps));
   assert.equal(await readFile(join(next.root, helper), 'utf8'), revised);
   next.host.execute = execute;
   const report = await resume();
+  if (wireError) throw wireError;
   assert.equal(report.outcome, 'awaiting_user_experience', JSON.stringify(report.gaps));
   assert.deepEqual(next.packets.map(p => p.role), ['coding', 'reviewer']);
   assert.equal(rounds, 4);
+  assert.equal(reviews, 1);
   assert.equal(await readFile(join(next.root, helper), 'utf8'), revised);
   const capture = JSON.parse(await readFile(join(next.root, 'registry/captures/game-source/v1/capture.json'), 'utf8'));
   assert.ok(capture.metadata.provenance.sourceRefs.includes(reference.artifactId + '@' + reference.version));
@@ -162,6 +201,6 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   const state = JSON.parse(await readFile(join(next.root, 'snapshot.json'), 'utf8'));
   assert.equal(state.ledger.limitMicroCny, 720000);
   assert.deepEqual(state.ledger.allocations.map((row: any) => row.amountMicroCny), [0, 0, 648000]);
-  assert.ok(state.ledger.entries.length === 4 && state.ledger.entries.every((row: any) => row.status === 'settled'));
+  assert.ok(state.ledger.entries.length === 5 && state.ledger.entries.every((row: any) => row.status === 'settled'));
   await invoke(['settle', next.root]);
 }
