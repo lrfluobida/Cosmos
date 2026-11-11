@@ -41,7 +41,7 @@ async function checkAncestors(parent: ArtifactReference | undefined, seen: strin
   requirements: ConfirmedRequirementsSource): Promise<void> {
   while (parent) {
     if (parent.artifactId === ART_DRAFT_SELECTION) {
-      // A selection has two source runs. Authenticate the pinned manifest before following either branch.
+      // Authenticate the pinned selection and each of its source runs.
       await selectArtDraftSelection(parent.location, approved, requirements, { root: seen.at(-1)! }, parent, seen);
       return;
     }
@@ -114,12 +114,33 @@ export async function selectArtDraft(location: string, approved: ApprovedDesign,
     roster: { characters: draftRoster(design.characters, spec.characters), audio: draftRoster(design.audio, spec.audio) } };
 }
 
-interface DraftSelection {
-  formatVersion: 'ordinary-art-draft-selection/1';
-  base: ArtifactReference;
-  overlay: ArtifactReference;
-  characterIds: string[];
-  audioIds: string[];
+interface SelectedIds { characterIds: string[]; audioIds: string[] }
+interface Overlay extends SelectedIds { source: ArtifactReference }
+type DraftSelection =
+  | ({ formatVersion: 'ordinary-art-draft-selection/1'; base: ArtifactReference; overlay: ArtifactReference } & SelectedIds)
+  | { formatVersion: 'ordinary-art-draft-selection/2'; base: ArtifactReference; overlays: Overlay[] };
+
+function selectionOverlays(manifest: DraftSelection): Overlay[] {
+  const invalid = 'Invalid art draft selection manifest.';
+  const keys = (value: object, names: string[]) => value && sameValue(Object.keys(value).sort(), names);
+  let overlays: Overlay[];
+  if (manifest?.formatVersion === 'ordinary-art-draft-selection/1' && keys(manifest, ['audioIds', 'base', 'characterIds', 'formatVersion', 'overlay'])) {
+    overlays = [{ source: manifest.overlay, characterIds: manifest.characterIds, audioIds: manifest.audioIds }];
+  } else if (manifest?.formatVersion === 'ordinary-art-draft-selection/2' && keys(manifest, ['base', 'formatVersion', 'overlays'])
+    && Array.isArray(manifest.overlays) && manifest.overlays.length >= 1 && manifest.overlays.length <= 4) {
+    overlays = manifest.overlays;
+  } else throw new Error(invalid);
+  const ids = new Set<string>();
+  for (const overlay of overlays) {
+    if (!keys(overlay, ['audioIds', 'characterIds', 'source'])
+      || ![overlay.characterIds, overlay.audioIds].every(list => Array.isArray(list) && list.every(id => typeof id === 'string'))
+      || !overlay.characterIds.length && !overlay.audioIds.length) throw new Error(invalid);
+    for (const id of [...overlay.characterIds, ...overlay.audioIds]) {
+      if (ids.has(id)) throw new Error('Duplicate selected media ID.');
+      ids.add(id);
+    }
+  }
+  return overlays;
 }
 
 function selectedItems<T extends { id: string }>(base: T[], overlay: T[], ids: string[]) {
@@ -132,29 +153,33 @@ function selectedItems<T extends { id: string }>(base: T[], overlay: T[], ids: s
   return [...items.values()];
 }
 
-/** Only whole validated items can cross the two working-file boundaries. */
+/** Only the listed whole items are imported from each verified working file. */
 export async function selectArtDraftSelection(location: string, approved: ApprovedDesign, requirements: ConfirmedRequirementsSource,
   target: DraftTarget, expected?: ArtifactReference, ancestors: string[] = []) {
   const path = resolve(location);
   if (within(target.root, path)) throw new Error('Art selection manifest must be outside the target run.');
   const manifestBytes = await regularFile(dirname(path), basename(path));
   const manifest: DraftSelection = decode(manifestBytes);
-  if (manifest?.formatVersion !== 'ordinary-art-draft-selection/1'
-    || !sameValue(Object.keys(manifest).sort(), ['audioIds', 'base', 'characterIds', 'formatVersion', 'overlay'])
-    || ![manifest.characterIds, manifest.audioIds].every(ids => Array.isArray(ids) && ids.every(id => typeof id === 'string'))
-    || !manifest.characterIds.length && !manifest.audioIds.length) throw new Error('Invalid art draft selection manifest.');
-  const selectedIds = [...manifest.characterIds, ...manifest.audioIds];
-  if (new Set(selectedIds).size !== selectedIds.length) throw new Error('Duplicate selected media ID.');
-  for (const ref of [manifest.base, manifest.overlay]) {
+  const overlays = selectionOverlays(manifest);
+  const roots: string[] = [];
+  for (const ref of [manifest.base, ...overlays.map(item => item.source)]) {
     validateArtDraftSource(ref, approved.reference);
     if (ref.artifactId !== ART_DRAFT) throw new Error('Select pinned working files for the base and overlay.');
+    if (roots.some(root => within(root, ref.location) || within(ref.location, root))) throw new Error('Select separate base and overlay source runs.');
+    roots.push(ref.location);
   }
-  if (within(manifest.base.location, manifest.overlay.location) || within(manifest.overlay.location, manifest.base.location)) throw new Error('Select separate base and overlay source runs.');
   const base = await selectArtDraft(manifest.base.location, approved, requirements, target, manifest.base, ancestors);
-  const overlay = await selectArtDraft(manifest.overlay.location, approved, requirements, target, manifest.overlay, ancestors);
-  if (base.proof.runId === overlay.proof.runId || base.proof.ledgerId === overlay.proof.ledgerId) throw new Error('Select independent base and overlay runs and ledgers.');
-  const characters = selectedItems(base.spec.characters, overlay.spec.characters, manifest.characterIds);
-  const audio = selectedItems(base.spec.audio, overlay.spec.audio, manifest.audioIds);
+  const origins = [...base.origins];
+  const pinnedOverlays: Overlay[] = [];
+  let { characters, audio } = base.spec;
+  for (const { source, characterIds, audioIds } of overlays) {
+    const overlay = await selectArtDraft(source.location, approved, requirements, target, source, ancestors);
+    if (origins.some(origin => origin.runId === overlay.proof.runId || origin.ledgerId === overlay.proof.ledgerId)) throw new Error('Select independent base and overlay runs and ledgers.');
+    origins.push(...overlay.origins);
+    pinnedOverlays.push({ source: overlay.reference, characterIds, audioIds });
+    characters = selectedItems(characters, overlay.spec.characters, characterIds);
+    audio = selectedItems(audio, overlay.spec.audio, audioIds);
+  }
   const batches = [];
   for (let i = 0; i < Math.max(characters.length, audio.length); i += 16) {
     batches.push({ characters: characters.slice(i, i + 16), audio: audio.slice(i, i + 16) });
@@ -163,11 +188,14 @@ export async function selectArtDraftSelection(location: string, approved: Approv
   const design = decode(approved.files.get('_cosmos/design.json')!);
   validateDeclaredMedia(media, design, 'draft-subset');
   const bytes = Buffer.from(JSON.stringify(media, null, 2) + '\n');
-  const proof = { manifestSha256: ordinaryDraftSha256(manifestBytes), base: base.reference, overlay: overlay.reference,
-    characterIds: manifest.characterIds, audioIds: manifest.audioIds, sha256: ordinaryDraftSha256(bytes) };
+  // The v1 proof is serialized into existing authorization and recovery references.
+  const sources = manifest.formatVersion === 'ordinary-art-draft-selection/1'
+    ? { overlay: pinnedOverlays[0].source, characterIds: manifest.characterIds, audioIds: manifest.audioIds }
+    : { overlays: pinnedOverlays };
+  const proof = { manifestSha256: ordinaryDraftSha256(manifestBytes), base: base.reference, ...sources, sha256: ordinaryDraftSha256(bytes) };
   const reference = { artifactId: ART_DRAFT_SELECTION, version: ordinaryDraftSha256(Buffer.from(JSON.stringify(proof))), location: path };
   if (expected && !sameValue(reference, expected)) throw new Error('Pinned art draft selection changed.');
-  return { reference, bytes, proof, origins: [...base.origins, ...overlay.origins],
+  return { reference, bytes, proof, origins, overlays,
     roster: { characters: draftRoster(design.characters, characters), audio: draftRoster(design.audio, audio) } };
 }
 
