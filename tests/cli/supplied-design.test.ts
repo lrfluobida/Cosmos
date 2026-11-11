@@ -363,6 +363,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   const partial = await read(fresh.root, ART_DRAFT_FILE);
   let seed = partial, edited = Buffer.concat([seed, Buffer.from('\n')]);
   const nativeRounds: string[] = [];
+  const nativeFetch = globalThis.fetch;
   const reviewThinking: unknown[] = [];
   let nativeReview: { verdict: string; findings: string[]; inputVersions: unknown; evidenceIds: string[] } | undefined;
   if (selection === 4) t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -709,7 +710,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
     assert.equal(settlement.settledMicroCny, current.ledger.entries.reduce((sum: number, entry: any) => sum + entry.settledMicroCny, 0));
     assert.deepEqual(await read(funded.root, 'snapshot.json'), oldSnapshot);
     const { exerciseCodeDraft } = await import('./code-draft.fixture.ts');
-    await exerciseCodeDraft(t, options, common, approved, reused, payload.requirementsSource);
+    await exerciseCodeDraft(t, options, common, approved, reused, payload.requirementsSource, nativeFetch);
     const resume = () => runCli(['resume', funded.root], fundedIO);
     await writeFile(join(funded.root, ART_DRAFT_FILE), edited);
     await assert.rejects(resume(), /Staged art differs/);
