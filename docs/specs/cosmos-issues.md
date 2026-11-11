@@ -2617,6 +2617,18 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 父任务 #19，依赖 COS193。R42 原生独审的最后 16,384 个输出 token 均用于推理，未形成裁决。在固定供稿、原预算与期限内有界恢复，仅合法独审裁决可放行下游。作者 `verdict_recovery_author`，独审 `verdict_recovery_reviewer`。独审批准 `eb5a130`，主线合入 `f20d6c9`。主线构建及原生 SDK 定向用例 18/18 通过。离线重放用合成的 length 事件和裁决检验恢复，固定读取、单次纠正、报价及严格解析均已验证。新运行实付与正式裁决待验证。 [COS194 / #195](https://github.com/lrfluobida/Cosmos/issues/195#issuecomment-6784641175)
 
+### COS-195 · 删除工作树前核对并摘除所有依赖目录联接
+
+主线合入 `39f85c1`。已核对嵌套联接的目标，主库模板依赖从同锁工具链恢复。删除本批两棵工作树后，实际 tsc、vite 和 phaser 入口均存在。 [独审与清理证据](https://github.com/lrfluobida/Cosmos/issues/196#issuecomment-6785250623)
+
+### COS-196 · 普通美术作者读取已批准计划并按流式请求时限工作
+
+普通美术作者可分页读取绑定的已批准设计计划，按批写入媒体清单，单次流式请求时限 600,000 ms。主线合入 `cd10a3b`，构建及角色与公开 CLI 定向用例通过，真实美术捕获待验证。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/197#issuecomment-6785250586)
+
+### COS-197 · 在普通新运行中复用原生已批准设计
+
+父任务 #19。在新运行中核对原确认、精确捕获、宿主检查与原生批准后，复用设计开展后续美术和编码。新运行仍须自己的执行授权、预算及验收。作者 `approved_design_reuse_author`，独审 `art_timeout_review`，源码待审。 [COS197 / #198](https://github.com/lrfluobida/Cosmos/issues/198)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

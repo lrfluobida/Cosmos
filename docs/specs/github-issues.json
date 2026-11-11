@@ -653,9 +653,9 @@
       "number": 19,
       "id": 5659696616,
       "url": "https://github.com/lrfluobida/Cosmos/issues/19",
-      "verifiedNativeSubIssues": 88,
-      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192", "COS-193", "COS-194"],
-      "verifiedCompletedSubIssues": 84,
+      "verifiedNativeSubIssues": 91,
+      "subTaskIds": ["COS-107", "COS-108", "COS-109", "COS-110", "COS-111", "COS-112", "COS-113", "COS-114", "COS-115", "COS-116", "COS-117", "COS-118", "COS-119", "COS-120", "COS-121", "COS-122", "COS-123", "COS-124", "COS-125", "COS-126", "COS-127", "COS-128", "COS-129", "COS-130", "COS-131", "COS-132", "COS-133", "COS-134", "COS-135", "COS-136", "COS-137", "COS-138", "COS-139", "COS-140", "COS-141", "COS-142", "COS-143", "COS-144", "COS-145", "COS-146", "COS-147", "COS-148", "COS-149", "COS-150", "COS-151", "COS-152", "COS-153", "COS-154", "COS-155", "COS-156", "COS-157", "COS-158", "COS-159", "COS-160", "COS-161", "COS-162", "COS-163", "COS-164", "COS-165", "COS-166", "COS-167", "COS-168", "COS-169", "COS-170", "COS-171", "COS-172", "COS-173", "COS-174", "COS-175", "COS-176", "COS-177", "COS-178", "COS-179", "COS-180", "COS-181", "COS-182", "COS-183", "COS-184", "COS-185", "COS-186", "COS-187", "COS-188", "COS-189", "COS-190", "COS-191", "COS-192", "COS-193", "COS-194", "COS-195", "COS-196", "COS-197"],
+      "verifiedCompletedSubIssues": 86,
       "dependsOn": [
         {
           "id": "COS-10",
@@ -14391,10 +14391,91 @@
       "sourceIntegratedCommit": "f20d6c9fdc440704be28859443b413bf488f5f7a",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/195#issuecomment-6784641175",
       "integrationComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6784646400",
-      "verification": "主线构建及原生 SDK 定向用例 18/18 通过。离线重放用合成的 length 事件和裁决检验恢复，固定读取、单次纠正、报价及严格解析均已验证。新运行实付与正式裁决待验证。"
+      "verification": "主线构建及原生 SDK 定向用例 18/18 通过。离线重放用合成的 length 事件和裁决检验恢复，固定读取、单次纠正、报价及严格解析均已验证。新运行实付与正式裁决待验证。",
+      "liveObservation": "R43 设计 v1 真实原生批准，零条发现，正常 stop，备用纠正未触发。",
+      "liveVerificationComment": "https://github.com/lrfluobida/Cosmos/issues/195#issuecomment-6785250640"
+    },
+    {
+      "taskId": "COS-195",
+      "title": "删除工作树前核对并摘除所有依赖目录联接",
+      "number": 196,
+      "id": 6320339723,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/196",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "dependsOn": [],
+      "implementer": "worktree_teardown_rules",
+      "reviewer": "worktree_rule_review",
+      "merger": "r41_merger",
+      "sourceReviewStatus": "APPROVED_DOC_SCOPED",
+      "runObservationComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6785250735",
+      "scopedComplete": true,
+      "sourceReviewedCommit": "eb5e9beee32bb0dd05994f6d7147addfc5ea8a64",
+      "sourceIntegratedCommit": "39f85c110972fb3a4468db5250ccb65d8ab03b14",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/196#issuecomment-6785250623",
+      "verification": "本批两个工作树逐层核对后删除，两个阶段的主库及模板 tsc、模板 vite.js 与 phaser.js 均保留。"
+    },
+    {
+      "taskId": "COS-196",
+      "title": "普通美术作者读取已批准计划并按流式请求时限工作",
+      "number": 197,
+      "id": 6320341801,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/197",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "dependsOn": [
+        {
+          "id": "COS-190",
+          "number": 191,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/191"
+        }
+      ],
+      "implementer": "art_timeout_author",
+      "reviewer": "art_timeout_review",
+      "merger": "r41_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "runObservationComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6785250735",
+      "scopedComplete": true,
+      "sourceReviewedCommit": "187184d88f54276c99a19d535cdf1892668a6ae6",
+      "sourceIntegratedCommit": "cd10a3b2ebebf8e7724ec41282622c0173de7626",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/197#issuecomment-6785250586",
+      "verification": "主线构建通过，角色请求时限和读取隔离 17/17、公开 CLI 批准分支 1/1。修后真实媒体生成与游戏待验证。"
+    },
+    {
+      "taskId": "COS-197",
+      "title": "在普通新运行中复用原生已批准设计",
+      "number": 198,
+      "id": 6320343769,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/198",
+      "parentTaskId": "COS-18",
+      "parentIssueNumber": 19,
+      "parentIssueId": 5659696616,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "dependsOn": [
+        {
+          "id": "COS-189",
+          "number": 190,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/190"
+        }
+      ],
+      "implementer": "approved_design_reuse_author",
+      "reviewer": "art_timeout_review",
+      "merger": "r41_merger",
+      "sourceReviewStatus": "pending",
+      "runObservationComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6785250735"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 194,
+  "totalTaskCount": 197,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
