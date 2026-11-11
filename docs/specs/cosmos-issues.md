@@ -2685,7 +2685,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-211 · 让普通编码作者在输出额度内逐文件写入游戏
 
-归属 #19，原生父卡 #211。R52 编码作者在首次写文件前耗尽输出。普通编码作者需要在既有预算与期限内按文件写入，编译检查并提交候选供独立评审。 [R52 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6801743478) · [编码修复任务](https://github.com/lrfluobida/Cosmos/issues/212)
+归属 #19，原生父卡 #211。R52 编码作者在首次写文件前耗尽输出。作者 `coding_write_author`，独审 `r52_evidence` 批准 `c16546a`，主线合入 `791131ca`。普通编码作者关闭推理，可分页读取同任务已批准计划。主线构建及离线写入和编译通过，真实游戏编码与验收待运行。 [源码批准与集成](https://github.com/lrfluobida/Cosmos/issues/212#issuecomment-6802028010) [R52 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6801743478) · [编码修复任务](https://github.com/lrfluobida/Cosmos/issues/212)
 
 ## 5. 任务与上下文包模板
 

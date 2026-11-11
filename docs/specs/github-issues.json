@@ -14885,7 +14885,7 @@
       "id": 6329037817,
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-211"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/211",
       "parentTaskId": "COS-209",
       "parentIssueNumber": 210,
@@ -14920,9 +14920,9 @@
       "parentIssueNumber": 211,
       "parentIssueId": 6329037817,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-210",
@@ -14930,8 +14930,14 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/211"
         }
       ],
+      "implementer": "coding_write_author",
+      "reviewer": "r52_evidence",
       "merger": "r52_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "c16546a6c7900711267368faa2edee97ec099b42",
+      "sourceIntegratedCommit": "791131ca70306b695e90faf23dc87822d3759e23",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/212#issuecomment-6802028010",
+      "verification": "主线构建通过。普通编码作者关闭推理，R52 计划 398 步完整分页读回。离线写入、编译和 ¥1.39 额度核验通过。真实编码与游戏验收待运行。"
     }
   ],
   "verifiedNativeSubIssues": 100,
