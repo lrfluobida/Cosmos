@@ -288,7 +288,10 @@ for (const outcome of ['approved', 'changes_requested', 'altered', 'source-drift
 });
 
 test('public funding resumes an editable art draft and requires a complete independently reviewed output', async t => {
-  const options = { productionDefault: true };
+  const options: NonNullable<Parameters<typeof ordinaryHostFixture>[1]> = { productionDefault: true, configure(_draft, scenario) {
+    scenario.steps.push({ id: 'target-pixels', kind: 'assert', acceptanceId: 'light', expected: true, timeoutMs: 1000,
+      observation: { kind: 'pixel-pattern', x: 40, y: 50, width: 32, height: 32, color: '#FFD700', tolerance: 0, rows: ['+'] } });
+  } };
   const previous = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
     const role = JSON.parse(config.context!).role;
     if (role === 'design') return { ...fallback, prompt: async () => ({ text: JSON.stringify({ summary: 'Fixed supplied files', remaining: [], uncertainty: [] }) }) };
@@ -312,12 +315,22 @@ test('public funding resumes an editable art draft and requires a complete indep
   const partial = await read(fresh.root, ART_DRAFT_FILE), edited = Buffer.concat([partial, Buffer.from('\n')]);
   const funded = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
     const packet = JSON.parse(config.context!);
-    if (packet.role !== 'art') return fallback;
+    if (packet.role !== 'art') {
+      assert.equal('artFrames' in config.tools!.find(item => item.name === 'read')!.parameters.properties, false);
+      return fallback;
+    }
     assert.match(packet.rules.join('\n'), /operator-selected unreviewed draft/);
     assert.match(packet.rules.join('\n'), /"characters":\{"existing":\["target"\],"missing":\[\]\},"audio":\{"existing":\[\],"missing":\["click"\]\}/);
     const tool = (name: string) => config.tools!.find(item => item.name === name)!;
     const readResult = await tool('read').execute('seed', { path: ART_DRAFT_FILE }, undefined, undefined, undefined as never);
     assert.equal(JSON.parse(readResult.content[0].text).characters[0].id, 'target');
+    const path = packet.inputs.find((ref: any) => ref.artifactId === 'design').location + '/_cosmos/acceptance-plan.json';
+    const inspect = (args: Record<string, unknown>) => tool('read').execute('frames', args, undefined, undefined, undefined as never);
+    await assert.rejects(inspect({ path: ART_DRAFT_FILE, artFrames: [] }), /fixed art plan/);
+    const index = JSON.parse((await inspect({ path, artFrames: [] })).content[0].text);
+    assert.equal(index.patterns[0].stepId, 'target-pixels');
+    const checked = JSON.parse((await inspect({ path, artFrames: [{ stepId: index.patterns[0].stepId, characterId: 'target', state: 'idle' }] })).content[0].text);
+    assert.equal(checked.results[0].passed, true);
     assert.deepEqual(await read(config.workspace, ART_DRAFT_FILE), edited);
     return { ...fallback, prompt: async () => {
       const full = JSON.parse(edited.toString('utf8'));
@@ -422,6 +435,8 @@ test('public approved design resumes interrupted classic and render-frame input 
   assert.deepEqual(artRequests[0].thinking, { type: 'disabled' });
   assert.equal(Object.hasOwn(artRequests[0], 'reasoning_effort'), false);
   assert.deepEqual(artRequests[0].tools.map((tool: any) => tool.function.name).sort(), ['edit', 'read', 'write']);
+  assert.ok(artRequests[0].tools.find((tool: any) => tool.function.name === 'read').function.parameters.properties.artFrames);
+  assert.match(JSON.stringify(artRequests[0].messages), /artFrames/);
   assert.equal(result.outcome, 'incomplete');
   const art = (await json(fresh.root, 'snapshot.json')).tasks.find((task: any) => task.taskId === 'art-task');
   assert.deepEqual(art.artifacts, []);

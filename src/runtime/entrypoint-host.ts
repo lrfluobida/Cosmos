@@ -37,6 +37,7 @@ import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
 import { publishMatchingBytes } from './fixed-host-input.ts';
 import { ART_DRAFT_FILE, selectArtDraft } from './art-draft-source.ts';
+import { artMappings, artPatternIndex } from './art-frame-check.ts';
 import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readReviewedDesignDraft } from './reviewed-design-draft.ts';
@@ -982,7 +983,33 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         ordinaryArtDesignInput: task => {
           if (role(task) !== 'art') throw new Error('Art plan display requires the ordinary art task.');
           return selected(task, 'design');
-        } } : {}),
+        },
+        ordinaryArtFrameRead: roleInput => async (checks, offset, signal) => work.run(async ownedSignal => {
+          const active = AbortSignal.any([signal, ownedSignal, controller.signal]);
+          const { task } = roleInput, originalWorkspace = workspace(task);
+          const current = (await controller.read()).tasks.find(item => item.taskId === task.taskId);
+          if (roleInput.controller !== controller || roleInput.role !== 'art' || role(task) !== 'art' || !sameValue(task, current)
+            || current?.state !== 'running' || current.attempts.at(-1)?.outcome !== 'running' || resolve(roleInput.workspace) !== resolve(originalWorkspace)
+            || !sameValue(current.ownership.writePaths, [ART_DRAFT_FILE])) throw new Error('Frame checks require the active ordinary art author and workspace.');
+          // beforeTool authenticated the selected design and original dispatch for this read.
+          const ref = selected(task, 'design');
+          const planBytes = await regularFile(root, ref.location + '/' + ORDINARY_PLAN_FILE, active);
+          const mappings = artMappings(checks);
+          if (!mappings.length) return artPatternIndex(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(planBytes)).scenario, offset);
+          const artBytes = await regularFile(originalWorkspace, ART_DRAFT_FILE, active).catch(error => {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new Error('Write a valid media batch to ' + ART_DRAFT_FILE + ' before checking its frames.');
+            throw error;
+          });
+          const hashes = [planBytes, await regularFile(root, ref.location + '/_cosmos/design.json', active), artBytes].map(validationHash);
+          const worker = new URL(import.meta.url.endsWith('.ts') ? './art-frame-check.ts' : './art-frame-check.js', import.meta.url).href;
+          const source = `import {runArtFrameWorker} from ${JSON.stringify(worker)};console.log(JSON.stringify(await runArtFrameWorker(JSON.parse(process.argv[1]))));`;
+          const { windowId, deadlineAt } = await controller.executionAuthority(task.taskId);
+          const result = await ownedNode(input, { taskId: task.taskId, windowId, deadlineAt }, ['--experimental-strip-types', '--input-type=module', '-e', source,
+            JSON.stringify({ root, workspace: originalWorkspace, designLocation: ref.location, hashes, checks: mappings })], originalWorkspace, active, 30000);
+          if (!result.passed) throw new Error('Art frame composition failed: ' + result.diagnostics.slice(0, 1600));
+          if (!(await regularFile(originalWorkspace, ART_DRAFT_FILE, active)).equals(artBytes)) throw new Error('Current art changed during inspection; recheck the edited frames.');
+          return JSON.parse(result.stdout);
+        }) } : {}),
       ...(ordinary && !validation && !preparation && !human && !binding && !inherited
         ? { authorMaxRequests: { design: 64 }, authorMaxOutputTokens: { art: 65536, coding: 65536, design: 32768 }, authorBudgetOutputFloor: { design: 8192 }, ordinaryDesignBudgetCompaction: true,
           ordinaryDesignSuccessfulWriteCompaction: true as const,
