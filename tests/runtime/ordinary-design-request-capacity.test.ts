@@ -36,8 +36,8 @@ async function fixture(t: TestContext, allocation = 100000) {
   const sessions: RoleSession[] = [];
   t.after(async () => { for (const session of sessions) await session.close(); await controller.close(); assert.ok(root.startsWith(tmpdir())); await rm(root, { recursive: true, force: true }); });
   const input = { role: 'design' as const, task, requirement, controller, workspace: root, stateDirectory: join(root, 'session') };
-  const create = async (options: Partial<RoleFactoryOptions> = {}) => {
-    const session = await createRoleFactory({ ...base, authorMaxRequests: { design: 32 }, env: { DEEPSEEK_API_KEY: 'offline-cos122' }, ...options })(input);
+  const create = async (options: Partial<RoleFactoryOptions> = {}, role: 'design' | 'art' = 'design') => {
+    const session = await createRoleFactory({ ...base, authorMaxRequests: { [role]: 32 }, env: { DEEPSEEK_API_KEY: 'offline-cos122' }, ...options })({ ...input, role });
     sessions.push(session); return session;
   };
   return { root, controller, input, create };
@@ -146,8 +146,8 @@ for (const count of [17, 32]) test(`COS122 native design author reaches protocol
   }
 });
 
-test('COS122 native request 33 is denied before transport and accounting, including readonly correction', async t => {
-  const f = await nativeFixture(t, 33), session = await f.create();
+for (const role of ['design', 'art'] as const) test(`native ${role} request 33 is denied before transport and accounting, including readonly correction`, async t => {
+  const f = await nativeFixture(t, 33), session = await f.create({}, role);
   await assert.rejects(session.prompt('The final response would require request 33.'), { code: 'request_limit' });
   assert.equal(f.payloads.length, 32);
   const before = await f.controller.read();
@@ -158,8 +158,8 @@ test('COS122 native request 33 is denied before transport and accounting, includ
   assert.equal(f.payloads.length, 32); assert.deepEqual(await f.controller.read(), before);
 });
 
-test('COS122 omitted override retains the native 16 request cap', async t => {
-  const f = await nativeFixture(t, 17), session = await f.create({ authorMaxRequests: undefined });
+for (const role of ['design', 'art'] as const) test(`omitted override retains the native ${role} 16 request cap`, async t => {
+  const f = await nativeFixture(t, 17), session = await f.create({ authorMaxRequests: undefined }, role);
   await assert.rejects(session.prompt('The final response would require request 17.'), { code: 'request_limit' });
   assert.equal(f.payloads.length, 16); assert.equal((await f.controller.read()).ledger.entries.length, 16);
 });

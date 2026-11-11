@@ -363,6 +363,7 @@ test('public funding resumes an editable art draft and requires a complete indep
   const partial = await read(fresh.root, ART_DRAFT_FILE), edited = Buffer.concat([partial, Buffer.from('\n')]);
   const funded = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, fallback) => {
     const packet = JSON.parse(config.context!);
+    assert.equal(config.maxRequests, packet.role === 'art' ? 32 : 16);
     assert.equal(config.ordinaryCodingReviewImageQuote, packet.role === 'reviewer' && packet.taskId === 'coding-task' ? true : undefined);
     if (packet.role !== 'art') {
       assert.equal('artFrames' in config.tools!.find(item => item.name === 'read')!.parameters.properties, false);
