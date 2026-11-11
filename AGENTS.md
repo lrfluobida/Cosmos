@@ -20,6 +20,7 @@
 - Keep stage scratch files in a project- or batch-specific directory on `E:` and set child processes' `TEMP` and `TMP` to that directory before launch.
 - At the end of each stage, wait for its processes to exit and file handles to close, then remove temporary files owned by that stage that are no longer in use or referenced. Retain required progress records, ledgers and evidence needed for verification. Briefly record what was removed or retained in the stage handoff.
 - Before removing an older temporary directory, verify its ownership and that its contents are no longer needed. A matching name prefix alone is insufficient.
+- Before removing a worktree, verify the ownership and target of every dependency junction in it, including those in nested templates. Unlink only the junctions. Keep the worktree if safe removal is uncertain. After removal, confirm the linked dependency entry points still exist in the main checkout.
 - Continue authorized work across batches. Ask only for missing decisions or external prerequisites that actually block the remaining work.
 
 ## Project scope and budgets
