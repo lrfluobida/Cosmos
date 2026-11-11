@@ -491,7 +491,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
   await assert.rejects(selectArtDraft(fresh.root, approved, sourceState.requirementsSource, target), /Cyclic art draft/);
   await writeFile(join(fresh.root, 'snapshot.json'), savedState);
   await writeFile(join(fresh.root, 'intake-origin.json'), sourceOrigin);
-  let selected = sourceDraft.reference, resumeDriftRoot = fresh.root;
+  let selected = sourceDraft.reference, resumeDriftRoot = fresh.root, refusedArtRoot: string | undefined;
   const manifestPath = join(selection >= 3 ? await temporaryRun(t) : original.root, 'art-selection.json');
   if (selection) {
     const overlay = await ordinaryHostFixture(t, options);
@@ -524,6 +524,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
       assert.equal(denied.outcome, 'incomplete');
       if (failure === 'review') {
         const art = (await json(rejected.root, 'snapshot.json')).tasks.find((task: any) => task.taskId === 'art-task');
+        refusedArtRoot = rejected.root;
         assert.equal(art.review.verdict, 'changes_requested');
         assert.deepEqual(art.handoff.remaining, ['Artwork needs revision']);
         nativeReview = undefined;
@@ -661,6 +662,52 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
     assert.ok(finalLedger.entries.length >= 2 && finalLedger.entries.every((row: any) => row.status === 'settled'));
     assert.deepEqual(await read(funded.root, ART_DRAFT_FILE), seed);
     assert.deepEqual(await read(funded.root, 'registry/captures/media/v1/files/_cosmos/mediaSpec.json'), seed);
+    const successor = await ordinaryHostFixture(t, { ...options, fault: 'code-repair' });
+    const nextFunding = await (await fundingFixture(t)).authorization('approved-art', 1310000);
+    const decision = join(nextFunding.sharedRoot, nextFunding.authorization.location);
+    const nextCommand = ['new', successor.root, '--shared-root', nextFunding.sharedRoot, '--authorization', decision];
+    const nextIO = { ...io(), host: successor.host };
+    const { selectApprovedArt } = await import('../../src/runtime/approved-art-source.ts');
+    const oldSnapshot = await read(funded.root, 'snapshot.json');
+    const reused = await selectApprovedArt(funded.root, approved, payload.requirementsSource, { root: successor.root });
+    const authorization = { ...nextFunding.payload, formatVersion: 'public-validation-authorization/2', brief: payload.brief,
+      runRoot: successor.root, renderFrames: false, requirementsSource: payload.requirementsSource, sourceRefs: [...nextFunding.payload.sourceRefs, approved.reference, reused.reference] };
+    await writeFile(decision, JSON.stringify(authorization));
+    const imagePath = 'registry/captures/media/v1/files/public/assets/manifest.json';
+    const image = await read(funded.root, imagePath), before = await read(nextFunding.sharedRoot, 'snapshot.json');
+    await writeFile(decision, JSON.stringify({ ...authorization, sourceRefs: [...nextFunding.payload.sourceRefs, approved.reference, { ...reused.reference, location: refusedArtRoot }] }));
+    await assert.rejects(runPublicValidationCli(nextCommand, nextIO), /Missing approved fixed art task/);
+    await writeFile(decision, JSON.stringify(authorization));
+    await writeFile(join(funded.root, imagePath), Buffer.concat([image, Buffer.from(' ')]));
+    await assert.rejects(runPublicValidationCli(nextCommand, nextIO), /Capture differs/);
+    assert.deepEqual(await read(nextFunding.sharedRoot, 'snapshot.json'), before);
+    await writeFile(join(funded.root, imagePath), image);
+    const previousExecute = successor.host.execute;
+    successor.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => {
+      const host = await createBrowserHost({ ...hostInput, ...successor.hostOptions });
+      host.bindPreparedTasks = async () => { throw new Error('Interrupted before coding'); };
+      return host;
+    } });
+    const interrupted: any = await runPublicValidationCli(nextCommand, nextIO);
+    assert.equal(interrupted.outcome, 'incomplete');
+    assert.deepEqual(successor.packets, []);
+    successor.host.execute = previousExecute;
+    const nextReport: any = await runPublicValidationCli(['resume', successor.root], nextIO);
+    assert.equal(nextReport.outcome, 'awaiting_user_experience', JSON.stringify(nextReport.gaps));
+    assert.deepEqual(successor.packets.map(p => p.role), ['coding', 'coding', 'reviewer']);
+    const current = await json(successor.root, 'snapshot.json');
+    assert.deepEqual(current.tasks.map((task: any) => [task.taskId, task.state]), [['coding-task', 'failed'], ['coding-task-repair', 'passed']]);
+    assert.deepEqual(current.ledger.allocations.map((row: any) => row.amountMicroCny), [0, 0, 1179000, 131000]);
+    assert.equal(nextReport.acceptedCandidate.candidateRef.version, 'v2');
+    assert.deepEqual(nextReport.historicalArt, reused.proof);
+    assert.deepEqual(await read(successor.root, 'registry/captures/media/v1/capture.json'), await read(funded.root, 'registry/captures/media/v1/capture.json'));
+    assert.equal((await runPublicValidationCli(['resume', successor.root], nextIO) as any).outcome, 'awaiting_user_experience');
+    await writeFile(join(successor.root, imagePath), Buffer.concat([image, Buffer.from(' ')]));
+    await assert.rejects(runPublicValidationCli(['resume', successor.root], nextIO), /Imported media capture changed/);
+    await writeFile(join(successor.root, imagePath), image);
+    const settlement: any = await runPublicValidationCli(['settle', successor.root], nextIO);
+    assert.equal(settlement.settledMicroCny, current.ledger.entries.reduce((sum: number, entry: any) => sum + entry.settledMicroCny, 0));
+    assert.deepEqual(await read(funded.root, 'snapshot.json'), oldSnapshot);
     const resume = () => runCli(['resume', funded.root], fundedIO);
     await writeFile(join(funded.root, ART_DRAFT_FILE), edited);
     await assert.rejects(resume(), /Staged art differs/);

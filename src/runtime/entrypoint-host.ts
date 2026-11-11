@@ -37,7 +37,8 @@ import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
 import { publishMatchingBytes } from './fixed-host-input.ts';
 import { fixedArtBytes, fixedArtProvenance, requireFixedArtCapture, requireFixedArtApproval } from './fixed-art-review.ts';
-import { ART_DRAFT_FILE, isFixedArt, preserveArtDraft, readPinnedArtDraft, selectArtReviewInput } from './art-draft-source.ts';
+import { selectApprovedArt, checkApprovedArtImport, requireApprovedArtCandidate } from './approved-art-source.ts';
+import { APPROVED_ART, ART_DRAFT_FILE, isFixedArt, preserveArtDraft, readPinnedArtDraft, selectArtReviewInput } from './art-draft-source.ts';
 import { artMappings, artPatternIndex } from './art-frame-check.ts';
 import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
@@ -442,8 +443,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const approvedSource = state.designDraftReview?.artifactId === APPROVED_DESIGN ? state.designDraftReview : undefined;
   const importedDesign = approvedSource && state.requirementsSource ? await selectApprovedDesign(approvedSource.location, state.requirementsSource,
     { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, approvedSource) : undefined;
-  const artDraft = state.artDraftSource ? await readPinnedArtDraft(state.artDraftSource, importedDesign!, state.requirementsSource!,
-    { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
+  const target = { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId };
+  const artRef = state.artDraftSource;
+  const currentApprovedArt = () => selectApprovedArt(artRef!.location, importedDesign!, state.requirementsSource!, target, artRef);
+  const importedArt = artRef?.artifactId === APPROVED_ART ? await currentApprovedArt() : undefined;
+  const artDraft = artRef && !importedArt ? await readPinnedArtDraft(artRef, importedDesign!, state.requirementsSource!, target) : undefined;
   const fixedArt = isFixedArt(artDraft) ? artDraft : undefined;
   if (state.designDraftReview && (!budgetEligible || !importedDesign && !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
   const suppliedDesign = state.designDraftReview?.artifactId === SUPPLIED_DESIGN
@@ -530,6 +534,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     if (!sameValue(importedDesign.dependencies.map(item => item.ref), captures)) throw new Error('Historical design capture dependency references changed.');
     await checkApprovedDesignImport(root, importedDesign, !input.resume);
   }
+  if (importedArt) await checkApprovedArtImport(root, importedArt, !input.resume);
   if (artDraft && !input.resume) {
     await directory(root, 'authors/art');
     await publishMatchingBytes(root, ART_DRAFT_FILE, artDraft.bytes);
@@ -537,7 +542,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   if (fixedArt && input.resume) await fixedArtBytes(root, fixedArt);
   const currentFixedArt = () => selectArtReviewInput(fixedArt!.reference.location, importedDesign!, state.requirementsSource!,
     { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, fixedArt!.reference);
-  const availableArtifacts = [...requirement.sources, ...captures, ...(importedDesign ? [importedDesign.proof.design] : [])];
+  const availableArtifacts = [...requirement.sources, ...captures, ...(importedDesign ? [importedDesign.proof.design] : []), ...(importedArt ? [importedArt.proof.media] : [])];
   if (validation) for (const ref of captures) await registry.getCapture(ref);
   if (!binding && !validation) { await directory(root, 'authors/coding/src'); await directory(root, 'authors/design'); await directory(root, 'authors/art'); }
   const baseAllocation = state.ledger.allocations.filter(item => ['intake', 'planning'].includes(item.taskId)).reduce((sum, item) => sum + item.amountMicroCny, 0);
@@ -829,7 +834,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       if (current.state !== 'running' || current.attempts.at(-1)?.outcome !== 'running' || !sameValue(current.attempts, original.attempts)) throw new Error('Coding check original author attempt is inactive or changed.');
       const active = validation ? await controller.validationAuthority(original.taskId, 'author') : await controller.executionAuthority(original.taskId);
       if (!active.admissionAllowed || currentState.ledger.entries.some(entry => entry.unknown) || Date.parse(authority.deadlineAt) - Date.now() <= 5000) throw new Error('Coding check authority, charges or cleanup deadline is unavailable.');
-      for (const kind of importedDesign ? ['art'] : ['design', 'art']) {
+      for (const kind of importedArt ? [] : importedDesign ? ['art'] : ['design', 'art']) {
         const dependency = [...(inherited?.stages.map(stage => stage.task) ?? []), ...currentState.tasks].find(task => original.dependsOn.some(dep => dep.taskId === task.taskId) && role(task) === kind);
         if (!dependency || dependency.state !== 'passed' || dependency.review.verdict !== 'approved') throw new Error('Coding check requires passed current design and art inputs.');
       }
@@ -883,7 +888,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       { policyId: 'game-code', role: 'coding', workspace: root, allocationMicroCny: Math.floor(pool * 0.40), writePaths: ['authors/coding/src', 'authors/coding/index.html'],
       readOnlyPaths: ['requirements', 'registry', 'repair-feedback'], tools: ['read', 'write', 'edit', GAME_BUILD_CHECK],
       outputs: [{ ...output, destination: output.location, type: 'game-project', schema: 'browser-game/1' }],
-      rules: [`Cover exactly the gameplay IDs ${JSON.stringify(gameplayIds)}; ${importedDesign ? 'use the imported approved design input and depend on art' : 'depend on both design and art tasks'}. Implement the actual confirmed brief: ${draft.brief}`, captureLayout(designLayout, mediaLayout, gameLayout),
+      rules: [`Cover exactly the gameplay IDs ${JSON.stringify(gameplayIds)}; ${importedArt ? 'use the imported approved design and media inputs' : importedDesign ? 'use the imported approved design input and depend on art' : 'depend on both design and art tasks'}. Implement the actual confirmed brief: ${draft.brief}`, captureLayout(designLayout, mediaLayout, gameLayout),
         ...(classicEntries?.selection.measurement ? ['Read the fixed classic entry sidecar and reference evidence. Independent review must inspect actual source and the reserved assertion screenshot to establish that the visible control represents the selected object and metric; selector names or constant labels alone are insufficient. This observation never proves mechanism or numeric implementation correctness.'] : []),
         preparation ? `Read ${requirement.sources[0].location} for the fixed operator preparation proposal, then the complete captured execution requirement and prepared design plans.`
           : ordinary ? `Read ${requirement.sources[0].location} for the complete confirmed answers and criteria, and the approved design capture ${ORDINARY_PLAN_FILE} for the fixed browser scenario.`
@@ -1551,11 +1556,12 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         await readDesignSelection(root, controller, await json(root, 'execution.json'));
       }
       const task = tasks.find(task => role(task) === 'coding' && (!modular || !moduleSlot(task)));
-      if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== (modular ? 5 : importedDesign ? 2 : 3) || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
+      if ((validation ? currentValidationCase(current).stopReason : executionWindowView(current).executionWindow.stopReason) || !task || effectiveTasks.length !== (modular ? 5 : importedArt ? 1 : importedDesign ? 2 : 3) || effectiveTasks.some(task => task.state !== 'passed' || task.review.verdict !== 'approved')
         || binding && (tasks.some(task => !binding.tasks.some(item => item.task.taskId === task.taskId)) || new Set(tasks.map(task => task.taskId)).size !== binding.tasks.length)) {
         const existing = await registry.current(); return { ...(existing ? { delivery: existing.targetRoot } : {}), gaps: ['Current tasks lack complete host checks and independent approval.'] };
       }
       const ref = taskOutput(task), proof = proofs.get(task.taskId);
+      if (importedArt) await requireApprovedArtCandidate(root, await currentApprovedArt(), task, ref);
       let ordinaryExecution: Awaited<ReturnType<NonNullable<typeof ordinary>['bindCandidate']>> | undefined;
       if (ordinary) try { ordinaryExecution = await ordinary.bindCandidate(task, selected(task, 'design'), ref); }
       catch { return { gaps: ['Original ordinary plan, confirmation or independent design approval changed before promotion.'] }; }
@@ -1894,11 +1900,11 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     };
   }
   if (importedDesign) {
-    host.taskPolicies = host.taskPolicies.filter(policy => policy.role === 'art' || policy.role === 'coding');
+    host.taskPolicies = host.taskPolicies.filter(policy => policy.role === 'coding' || !importedArt && policy.role === 'art');
     if (state.approvedDesignAllocation === 'downstream-share/1') {
-      // Keep 10% for repair. Divide the other 90% in the existing art:coding ratio (5:8).
+      // Keep 10% for repair and divide the rest across the current tasks.
       for (const policy of host.taskPolicies) {
-        const weight = policy.role === 'art' ? 5 : 8;
+        const weight = importedArt ? 13 : policy.role === 'art' ? 5 : 8;
         policy.allocationMicroCny = Math.floor(pool * 9 * weight / 130);
       }
     }
@@ -1926,6 +1932,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     host.roleFactory = async input => {
       if (input.purpose === 'planning' || !['art', 'coding', 'reviewer'].includes(input.role)) throw new Error('Historical design admits only fresh downstream work.');
       await requireDispatch(input.task, controller.signal);
+      if (importedArt) {
+        if (role(input.task) !== 'coding' || !sameValue(selected(input.task, 'media'), importedArt.proof.media)) throw new Error('Historical media admits only coding against its exact capture.');
+        await checkApprovedArtImport(root, await currentApprovedArt());
+      }
       if (fixedArt && input.role === 'coding') {
         const art = host.historicalDesignPlan!.tasks.find(item => item.role === 'art')!;
         await requireFixedArtApproval(root, await controller.read(), await currentFixedArt(), art, requirement);
@@ -1942,7 +1952,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       }
       return native(input);
     };
-    host.historicalDesignPlan = { proof: importedDesign.proof, tasks: approvedDownstreamPlan(importedDesign, state, host.taskPolicies, availableArtifacts) };
+    host.historicalDesignPlan = { proof: importedDesign.proof, ...(importedArt ? { art: importedArt.proof } : {}),
+      tasks: approvedDownstreamPlan(importedDesign, state, host.taskPolicies, availableArtifacts, importedArt?.proof.media) };
   }
   if (inherited) host.taskPolicies = host.taskPolicies.filter(policy => policy.role === 'coding');
   return host;

@@ -1,11 +1,12 @@
 import { sameValue } from '../contracts/validation.ts';
+import { APPROVED_ART } from './art-draft-source.ts';
 import { APPROVED_DESIGN } from './approved-design-source.ts';
 import type { ArtifactReference, BudgetLedger } from '../contracts/types.ts';
 import type { IntakeSnapshot } from './intake.ts';
 import type { RunSnapshot } from './run-types.ts';
 
 export interface PublicAllocationOrigin {
-  planningAllocation?: unknown; requirementsSource?: unknown; designDraftReview?: ArtifactReference; approvedDesignAllocation?: unknown; artDraftSource?: unknown; ordinaryProfile?: unknown; draftMode?: unknown;
+  planningAllocation?: unknown; requirementsSource?: unknown; designDraftReview?: ArtifactReference; approvedDesignAllocation?: unknown; artDraftSource?: ArtifactReference; ordinaryProfile?: unknown; draftMode?: unknown;
 }
 
 /** A missing marker always means the original two equal shares, including origin-only recovery. */
@@ -18,6 +19,10 @@ export function publicBaseAllocations(limitMicroCny: number, origin: PublicAlloc
   if (origin.approvedDesignAllocation !== undefined && (origin.approvedDesignAllocation !== 'downstream-share/1'
     || origin.designDraftReview?.artifactId !== APPROVED_DESIGN || !origin.requirementsSource || origin.ordinaryProfile !== 'ordinary-design/1'
     || origin.draftMode !== undefined)) throw new Error('Invalid original approved design allocation selection.');
+  if (origin.artDraftSource?.artifactId === APPROVED_ART) {
+    if (selected || origin.approvedDesignAllocation !== 'downstream-share/1') throw new Error('Approved media requires only the downstream allocation.');
+    return [{ taskId: 'intake', amountMicroCny: 0 }, { taskId: 'planning', amountMicroCny: 0 }];
+  }
   return [{ taskId: 'intake', amountMicroCny: selected ? 0 : share }, { taskId: 'planning', amountMicroCny: selected ? 2 * share : share }];
 }
 

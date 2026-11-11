@@ -16,6 +16,7 @@ import { failureRecord, feedbackReference, validateHostIssues, validatePassedChe
 import type { RepairFeedback } from './repair/feedback.ts';
 import { readModularRepairPolicy, requireCurrentModularRepairPolicy, validateModularRepairPolicy } from './modular-repair-policy.ts';
 import type { ModularRepairPolicy } from './modular-repair-policy.ts';
+import { APPROVED_ART } from './art-draft-source.ts';
 import { APPROVED_DESIGN } from './approved-design-source.ts';
 import { readDesignSelection } from './entrypoint-design-revision.ts';
 import { designOriginPolicy } from './repair/design-concerns.ts';
@@ -343,7 +344,8 @@ export async function prepareRepairContinuation(options: { root: string; control
   const effective = execution.ordinaryDesignRevisionPolicy ? (await readDesignSelection(root, controller, execution)).tasks : execution.tasks;
   if (execution.ordinaryDesignRevisionPolicy && effective.find((item: PreparedTask) => item.task.taskId === plan.failedTaskId)?.role !== 'coding') blocked('Ordinary design selection reserves its repair slot for coding.');
   const historical = state.designDraftReview?.artifactId === APPROVED_DESIGN;
-  if (historical && (!sameValue(native.proof?.source, state.designDraftReview) || originalPlan.location !== join(root, 'historical-design-plan.json')
+  const historicalMedia = state.artDraftSource?.artifactId === APPROVED_ART ? state.artDraftSource : undefined;
+  if (historical && (!sameValue(native.art?.source, historicalMedia) || !sameValue(native.proof?.source, state.designDraftReview) || originalPlan.location !== join(root, 'historical-design-plan.json')
     || originals.find(item => item.task.taskId === plan.failedTaskId)?.role !== 'coding')) blocked('Historical design coding repair source changed.');
   if (native.status !== (historical ? 'historical_design_downstream' : 'validated_proposal') || native.specVersion !== requirement.specVersion || !sameValue(native.tasks, execution.tasks)) blocked('Original native plan is missing or changed.');
   const prior = await exists(root, 'repair-plan.json') ? await readJson(root, 'repair-plan.json') : null;

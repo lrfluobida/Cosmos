@@ -32,6 +32,7 @@ export async function requireFixedArtCapture(root: string, task: TaskContract, r
     || files.size !== expected.files.size || [...files].some(([name, bytes]) => ordinaryDraftSha256(bytes) !== expected.files.get(name))) {
     throw new Error('Capture differs from the fixed art review input or current author provenance.');
   }
+  return { capture, files };
 }
 
 /** Check the native author, current capture and independent verdict before consuming approved fixed art. */
@@ -41,7 +42,7 @@ export async function requireFixedArtApproval(root: string, state: RunSnapshot, 
     || task.attempts[0].outcome !== 'passed' || task.review.verdict !== 'approved' || !sameValue(state.artDraftSource, source.reference)) throw new Error('Missing approved fixed art task.');
   requireOriginalTask(prepared.task, task);
   await fixedArtBytes(root, source);
-  await requireFixedArtCapture(root, task, ref, source, requirement);
+  const media = await requireFixedArtCapture(root, task, ref, source, requirement);
   const attempt = task.attempts[0], id = attempt.attemptId;
   const journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, { formatVersion: 1, runId: state.run.runId,
     ledgerId: state.ledger.ledgerId, originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt,
@@ -64,4 +65,5 @@ export async function requireFixedArtApproval(root: string, state: RunSnapshot, 
   const refs = [...task.inputs, ...task.artifacts, ...task.evidence.map(item => item.source)];
   await journal.requireSignature(verified.signature, refs);
   if (!sameValue(captured.signature, verified.signature.filter(item => item.location === ref.location)) || !sameValue(review.signature, verified.signature)) throw new Error('Fixed art review signature changed.');
+  return { ...media, task, verified, author: handoff, review };
 }

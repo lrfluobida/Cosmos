@@ -17,7 +17,8 @@ import type { PublicValidationAuthorization } from './public-validation-funding-
 export const ART_DRAFT = 'ordinary-art-draft';
 export const ART_DRAFT_SELECTION = 'ordinary-art-draft-selection';
 export const ART_REVIEW_INPUT = 'ordinary-art-review-input';
-const artSources = [ART_DRAFT, ART_DRAFT_SELECTION, ART_REVIEW_INPUT];
+export const APPROVED_ART = 'ordinary-approved-art';
+const artSources = [ART_DRAFT, ART_DRAFT_SELECTION, ART_REVIEW_INPUT, APPROVED_ART];
 export const ART_DRAFT_FILE = 'authors/art/media.json';
 export function validateArtDraftSource(ref: ArtifactReference, design?: ArtifactReference) {
   if (design?.artifactId !== APPROVED_DESIGN || !ref || !artSources.includes(ref.artifactId) || typeof ref.version !== 'string' || !/^[a-f0-9]{64}$/.test(ref.version)
@@ -242,6 +243,7 @@ export function isFixedArt(source: Awaited<ReturnType<typeof readPinnedArtDraft>
 export function readPinnedArtDraft(ref: ArtifactReference, approved: ApprovedDesign, requirements: ConfirmedRequirementsSource, target: DraftTarget): Promise<
   Awaited<ReturnType<typeof selectArtDraft>> | Awaited<ReturnType<typeof selectArtDraftSelection>> | FixedArt> {
   validateArtDraftSource(ref, approved.reference);
+  if (ref.artifactId === APPROVED_ART) throw new Error('An approved capture cannot be used as an art draft.');
   const select = ref.artifactId === ART_REVIEW_INPUT ? selectArtReviewInput : ref.artifactId === ART_DRAFT_SELECTION ? selectArtDraftSelection : selectArtDraft;
   return select(ref.location, approved, requirements, target, ref);
 }

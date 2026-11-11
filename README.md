@@ -53,6 +53,8 @@ CLI 集中提问、展示完整草稿，只有真实 stdin 的 `confirm <revisio
 
 已有完整选稿时，可在 `--approved-design-from` 下使用 `--art-review-input <manifest.json>`。宿主核对设计两份文件、原始需求和全部媒体，原生美术作者只交接固定稿。本轮独审批准后才进入编码。资金 wrapper 的 v2 授权在 `sourceRefs` 中加入 `selectArtReviewInput(...).reference`。
 
+固定美术已在原运行通过宿主检查和独立评审时，保留同一组 `--requirements-from`、`--requirements-revision` 和 `--approved-design-from` 参数，加上 `--approved-art-from <原美术运行目录>`，在新运行中直接开始编码。例如，R52 的参数为 `--approved-art-from E:/develop/Cosmos/.cosmos/public-validation/room-20261112-verdict-52/run`。资金 wrapper 的 v2 授权在 `sourceRefs` 中同时列出原批准设计和 `selectApprovedArt(...).reference`（`ordinary-approved-art`）。本次运行总额的 90% 分给编码，按微元向下取整，余额留给符合条件的一次编码修复。报告保留原美术批准来源，新候选仍须通过宿主验收和独立评审。
+
 普通生成在 `--approved-design-from` 下可加 `--art-draft-selection <manifest.json>`。清单保存在目标运行外。v2 的 `base` 指定基础稿，`overlays` 可列 1 至 4 个覆盖稿。以下示例中的版本和路径需换成实际工作稿的固定引用。
 
 ```json

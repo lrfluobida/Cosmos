@@ -28,7 +28,7 @@ interface Report {
   formatVersion: 'generation-report-1'; reportedAt: string; automaticAcceptance: 'passed' | 'not_passed';
   outcome: string; runId: string; ledgerId: string; windowId: string | null; delivery?: string; gaps: string[];
   acceptedCandidate?: AcceptedCandidate; acceptanceScope: Scope; effectiveTasks: ReturnType<typeof deliveryTaskProofs>;
-  ordinaryExecution?: unknown; historicalDesign?: unknown;
+  ordinaryExecution?: unknown; historicalDesign?: unknown; historicalArt?: unknown;
   requiresCompletionTiming?: true;
 }
 export interface ExperienceBinding {
@@ -145,7 +145,7 @@ export async function loadExperienceBinding(root: string): Promise<ExperienceBin
   if (experience.ordinaryConfirmation || report.acceptanceScope.capability === 'ordinary-design-execution/1') {
     if (!experience.ordinaryConfirmation || report.acceptanceScope.capability !== 'ordinary-design-execution/1') throw new Error('Ordinary delivery capability differs from its original confirmed profile.');
     const { verifyOrdinaryDelivery } = await import('./entrypoint-acceptance-plan.ts');
-    historicalIds = await verifyOrdinaryDelivery(root, state as RunSnapshot, authorTask, accepted.candidateRef, report.ordinaryExecution, report.historicalDesign);
+    historicalIds = await verifyOrdinaryDelivery(root, state as RunSnapshot, authorTask, accepted.candidateRef, report.ordinaryExecution, report.historicalDesign, report.historicalArt);
   }
   const scopeIds = report.acceptanceScope.acceptance.map(item => item.acceptanceId), taskIds = [...historicalIds, ...(tasks as TaskContract[]).flatMap(task => task.acceptanceIds)];
   if (new Set(scopeIds).size !== scopeIds.length || scopeIds.some(id => !taskIds.includes(id)) || taskIds.some(id => !scopeIds.includes(id))) throw new Error('Automatic report acceptance scope does not match the approved tasks.');
