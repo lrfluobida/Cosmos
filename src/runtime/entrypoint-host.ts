@@ -36,7 +36,7 @@ import { validateMedia } from '../artifacts/media.ts';
 import type { DesignDocument } from './entrypoint-media.ts';
 import type { GameDraft, BrowserGameDraft, OrdinaryGameDraft } from '../roles/requirements.ts';
 import { publishMatchingBytes } from './fixed-host-input.ts';
-import { ART_DRAFT_FILE, preserveArtDraft, selectArtDraft } from './art-draft-source.ts';
+import { ART_DRAFT_FILE, preserveArtDraft, readPinnedArtDraft } from './art-draft-source.ts';
 import { artMappings, artPatternIndex } from './art-frame-check.ts';
 import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, selectApprovedDesign } from './approved-design-source.ts';
 import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
@@ -441,8 +441,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const approvedSource = state.designDraftReview?.artifactId === APPROVED_DESIGN ? state.designDraftReview : undefined;
   const importedDesign = approvedSource && state.requirementsSource ? await selectApprovedDesign(approvedSource.location, state.requirementsSource,
     { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, approvedSource) : undefined;
-  const artDraft = state.artDraftSource ? await selectArtDraft(state.artDraftSource.location, importedDesign!, state.requirementsSource!,
-    { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }, state.artDraftSource) : undefined;
+  const artDraft = state.artDraftSource ? await readPinnedArtDraft(state.artDraftSource, importedDesign!, state.requirementsSource!,
+    { root, runId: state.run.runId, ledgerId: state.ledger.ledgerId }) : undefined;
   if (state.designDraftReview && (!budgetEligible || !importedDesign && !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
   const suppliedDesign = state.designDraftReview?.artifactId === SUPPLIED_DESIGN
     ? await selectSuppliedDesign(state.designDraftReview.location, state.requirementsSource!, root, state.designDraftReview) : undefined;
@@ -1886,6 +1886,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     }
     if (artDraft) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
       `Continue the operator-selected unreviewed draft already in ${ART_DRAFT_FILE}. Retain valid existing work and add the missing media. Initial roster: ${JSON.stringify(artDraft.roster)}. Read the current file before editing. The complete output requires host checks and independent review.`);
+    if (artDraft && 'characterIds' in artDraft.proof) host.taskPolicies.find(policy => policy.role === 'art')!.rules!.push(
+      `The overlay supplied these character IDs ${JSON.stringify(artDraft.proof.characterIds)} and audio IDs ${JSON.stringify(artDraft.proof.audioIds)}. All other initial items came from the base. Inspect the approved plan's pixel-pattern steps with artFrames before changing existing visuals. Preserve existing items unless a check or the approved design identifies a specific gap.`);
     host.bindPreparedTasks = async tasks => {
       const plan = await optionalDesignJson(root, 'repair-plan.json');
       if (!sameValue(tasks, plan?.tasks ?? host.historicalDesignPlan!.tasks)) throw new Error('Historical downstream task binding changed.');

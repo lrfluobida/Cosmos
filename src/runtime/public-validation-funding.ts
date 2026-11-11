@@ -19,7 +19,7 @@ import type { AccountingController } from '../roles/provider-budget.ts';
 import type { IntakeSnapshot } from './intake.ts';
 import type { RunSnapshot } from './run-types.ts';
 import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
-import { fundingArtDraftSource, selectArtDraft } from './art-draft-source.ts';
+import { fundingArtDraftSource, readPinnedArtDraft } from './art-draft-source.ts';
 import { selectApprovedDesign, APPROVED_DESIGN } from './approved-design-source.ts';
 import { selectSuppliedDesign, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { fundingDesignDraftReview, readReviewedDesignDraft } from './reviewed-design-draft.ts';
@@ -145,7 +145,7 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
   else if (draftReview?.artifactId === APPROVED_DESIGN) {
     const target = { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId };
     const approved = await selectApprovedDesign(draftReview.location, payload.requirementsSource!, target, draftReview);
-    if (artSource) await selectArtDraft(artSource.location, approved, payload.requirementsSource!, target, artSource);
+    if (artSource) await readPinnedArtDraft(artSource, approved, payload.requirementsSource!, target);
   }
   else if (draftReview) await readReviewedDesignDraft(draftReview, payload.requirementsSource!, { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId });
   const now = options.now ?? Date.now;
