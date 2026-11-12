@@ -14987,7 +14987,7 @@
       "id": 6334560617,
       "verifiedNativeSubIssues": 2,
       "subTaskIds": ["COS-214", "COS-217"],
-      "verifiedCompletedSubIssues": 1,
+      "verifiedCompletedSubIssues": 2,
       "url": "https://github.com/lrfluobida/Cosmos/issues/214",
       "parentTaskId": "COS-212",
       "parentIssueNumber": 213,
@@ -15115,9 +15115,9 @@
       "parentIssueNumber": 214,
       "parentIssueId": 6334560617,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-216",
@@ -15128,7 +15128,11 @@
       "implementer": "build_reserve_author",
       "reviewer": "build_reserve_review",
       "merger": "r52_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "750dc164cde49b4b662a3995214a91ed6a0d0bb1",
+      "sourceIntegratedCommit": "3a2af3ff997e096b1dcaf21bc3ac88b4f0a49466",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/218#issuecomment-6814145688",
+      "verification": "主线构建、60/60 定向用例通过。带资 CLI 编译得到 TS2339，作者编辑修正，重检通过后完成无工具交接，独审 1 笔，32 笔模拟结算。无付费请求。"
     }
   ],
   "verifiedNativeSubIssues": 100,

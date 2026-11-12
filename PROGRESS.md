@@ -4,7 +4,11 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-COS-217 已登记。R59 原生作者用尽 32 笔请求，未执行编译。修复目标是在现有请求、预算和期限内为真实编译、根据诊断改动、重检及交接留出机会；浏览器验收和独立评审继续检查候选。 [离线修复任务](https://github.com/lrfluobida/Cosmos/issues/218)
+COS-217 已合入 `3a2af3ff`，独审批准 `750dc164`。在普通编码作者的请求上限内，宿主使用真实编译结果安排修复、重检与交接。本机带资 CLI 第 29 笔收到 TS2339，第 30 笔由原作者编辑修正，第 31 笔在重检通过后无工具交接。独审 1 笔，合计 32 笔模拟结算。主线构建通过，全部源码、测试和依赖清单与获批版本一致。作者的 60 个定向用例通过，无跳过；本批付费请求为零。游戏候选仍须通过独立评审与浏览器验收。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/218#issuecomment-6814145688)
+
+后续修复输入已绑定 R59 的八份真实源码，含音频加载与 TS2339、存档子节点缺失、HUD 重叠三项实测。R59 的正式结论仍为未捕获候选、未通过自动验收。 [绑定反馈](.cosmos/public-validation/room-20261112-compact-59/preview-smoke/author-feedback.json) · [原始终态报告](.cosmos/public-validation/room-20261112-compact-59/run/delivery/report-253dba50-6987-469d-aaed-c151ba857831.json)
+
+作者清理操作两次被自动审批以 `blocked by policy` 拒绝。已保留 `E:/CodexData/.codex/worktrees/r59-build-reserve/` 下的干净工作树 `Cosmos`（13,745,102 字节，1 处联接）和 `scratch`（1,322,079 字节），以及 `E:/CosmosStage/r59b`（9,869,021 字节，6 处联接）。大小统计未遍历联接。主仓及模板依赖入口已复核。
 
 R59 在冻结主线 `e32b46b6` 上从紧凑源码草稿开始，留下八份源码。作者调用工具读取 32 次、写入 2 次、编辑 10 次。第 33 笔请求在发送前触及 32 次会话上限，未执行原生作者编译、候选捕获、浏览器验收或编码独审。正式自动验收未通过。 [R59 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220)
 
