@@ -2709,6 +2709,10 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 归属 #19，原生父卡 #216。R58 反复读取后没有写入。为明确选择紧凑反馈草稿的编码作者持续提供已核实来源和范围的真实初始源码，同时保留实际编辑、读取、原 journal 和真实请求核价。作者 `compact_draft_author`，独审 `r52_evidence` 批准 `edd3acb`，主线合入 `90a7e86c`。边界 2/2、带资 CLI 1/1 及主线构建通过，真实七份源码逐字节匹配。该次离线集成的付费请求为零。获批的 R59 已结束，作者写入和编辑后触及 32 次会话上限，正式候选未捕获。 [R59 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220) [独审与集成](https://github.com/lrfluobida/Cosmos/issues/217#issuecomment-6808495833) [R58 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/217)
 
+### COS-217 · 在普通编码作者的请求上限内完成编译、修复、重检和交接
+
+归属 #19，原生父卡 #214，依赖 COS-216（#217）。R59 编码作者用完 32 笔请求，原生编译未执行，离线检查发现 TS2339。按现有请求、资金与时限为真实 `check-game-build`、修正、重检和作者交接留出机会。失败或过时的编译结果不能使候选通过。后续独立评审与原执行计划继续判定游戏验收。作者 `build_reserve_author`，独审 `build_reserve_review`。 [R59 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/218)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

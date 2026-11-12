@@ -14985,8 +14985,8 @@
       "title": "普通带资编码从真实源码草稿续写并完成编译",
       "number": 214,
       "id": 6334560617,
-      "verifiedNativeSubIssues": 1,
-      "subTaskIds": ["COS-214"],
+      "verifiedNativeSubIssues": 2,
+      "subTaskIds": ["COS-214", "COS-217"],
       "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/214",
       "parentTaskId": "COS-212",
@@ -15104,9 +15104,34 @@
       "sourceIntegratedCommit": "90a7e86c92b9af62ab3057409d896ef75c178265",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/217#issuecomment-6808495833",
       "verification": "主线构建、边界 2/2、本机带资 CLI 1/1 通过；首笔编辑/写入、编译、独审隔离、恢复和真实 R56 七份初始源码已核验。无付费请求。"
+    },
+    {
+      "taskId": "COS-217",
+      "title": "在普通编码作者的请求上限内完成编译、修复、重检和交接",
+      "number": 218,
+      "id": 6342308186,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/218",
+      "parentTaskId": "COS-213",
+      "parentIssueNumber": 214,
+      "parentIssueId": 6334560617,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-216",
+          "number": 217,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/217"
+        }
+      ],
+      "implementer": "build_reserve_author",
+      "reviewer": "build_reserve_review",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 216,
+  "totalTaskCount": 217,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

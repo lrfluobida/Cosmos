@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS-217 已登记。R59 原生作者用尽 32 笔请求，未执行编译。修复目标是在现有请求、预算和期限内为真实编译、根据诊断改动、重检及交接留出机会；浏览器验收和独立评审继续检查候选。 [离线修复任务](https://github.com/lrfluobida/Cosmos/issues/218)
+
 R59 在冻结主线 `e32b46b6` 上从紧凑源码草稿开始，留下八份源码。作者调用工具读取 32 次、写入 2 次、编辑 10 次。第 33 笔请求在发送前触及 32 次会话上限，未执行原生作者编译、候选捕获、浏览器验收或编码独审。正式自动验收未通过。 [R59 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220)
 
 最终源码的 TypeScript 检查退出码为 2，唯一错误为 `src/audioLoader.ts:16` 的 TS2339（`Phaser.Game` 没有 `load`）。保留原样单独用 Vite 打包，退出码为 0。在安装 Node.js 22 的 Windows 上可双击 [诊断预览 Play.cmd](.cosmos/public-validation/room-20261112-compact-59/diagnostic-preview/Play.cmd)。独立 Edge 加载全部六帧，无 404。初始三件物品与锁门、胜利时三处空槽与开门，八项画面对照全部通过；收集、开门胜利和跨浏览器进程读档通过。原计划 s001 通过，s002 的音频 decoded 仍为 false，未请求 WAV。HUD 左上重叠，保存子节点缺失。 [类型检查](.cosmos/public-validation/room-20261112-compact-59/final-draft-build.json) · [Vite 记录](.cosmos/public-validation/room-20261112-compact-59/diagnostic-vite-build.json) · [浏览器观测](.cosmos/public-validation/room-20261112-compact-59/preview-smoke/observations.json) · [胜利画面](.cosmos/public-validation/room-20261112-compact-59/preview-smoke/after-door.png)
