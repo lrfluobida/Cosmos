@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261112-retained-58",
+      "latestLiveValidationCaseId": "room-20261112-compact-59",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14068,16 +14068,17 @@
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6643149506",
       "verification": "Ten COS182 files byte-identical to approved51f1cc1; three COS181 files remain exact27f525b. Main followup-chain/latest-source and suspended-claim/settlement historical-quote-retry2/2, zero skip,TAP14574.4579ms; typecheck/build exit0. Author old81/81,new+resolution7/7 and extra chain1/1 reused without additive counting; all approvals and accounting are TEMP synthetic fixtures.",
       "budgetIncreaseApproved": true,
-      "currentPhaseMicroCny": 51670000,
-      "proposedPhaseMicroCny": 51670000,
+      "currentPhaseMicroCny": 52960000,
+      "proposedPhaseMicroCny": 52960000,
       "lifetimeLimitMicroCny": 150000000,
       "maxRunMicroCny": 5000000,
       "maxDurationMs": 1800000,
       "actualQuotePrepared": true,
       "actualApplicationPerformed": true,
-      "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6795876235",
+      "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6811107055",
+      "phase51ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6795876235",
       "phase50ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744",
-      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. R49 applied the explicit 50.70-to-51.67 CNY follow-up. R49 and R50 hold separate run decisions. R50 closed at shared revision 3470, C47534304/H2206428; R30, R37 and R43 remain pending."
+      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. R49 applied the explicit 50.70-to-51.67 CNY follow-up. R49 and R50 hold separate run decisions. R50 closed at shared revision 3470, C47534304/H2206428; R30, R37 and R43 remain pending. R59 applied the explicit 51.67-to-52.96 CNY follow-up and closed at shared revision 3489 with C49594406/H2206428 and phase remaining 1159166 micro-CNY."
     },
     {
       "taskId": "COS-183",

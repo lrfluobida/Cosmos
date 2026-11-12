@@ -2545,6 +2545,8 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-182 · 公开验证阶段的追加显式预算决定
 
+2026-11-12，阶段报价由 ¥51.67 调至 ¥52.96，用户同时批准运行一次 R59。R59 已按单次 ¥1.50 / 30 分钟授权闭账，阶段余额 ¥1.159166。 [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6811107055) · [R59 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220)
+
 2026-11-11，R49 的阶段报价已应用，阶段上限由 ¥50.70 调至 ¥51.67。R49 和 R50 各自以单次授权运行，原 R30、R37、R43 继续待核。 [报价与应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6795876235)
 
 2026-11-10，公开阶段 ¥45→¥50 已按新的业主决定实际应用，R34 引用该来源并已结算。每次 ¥5 / 30 分钟、总计 ¥150。COS182 已按此范围关闭。以下为应用前的源码集成历史。[阶段回执记录](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744)
@@ -2705,7 +2707,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-216 · 为显式选定的反馈草稿作者持续提供真实初始源码
 
-归属 #19，原生父卡 #216。R58 反复读取后没有写入。为明确选择紧凑反馈草稿的编码作者持续提供已核实来源和范围的真实初始源码，同时保留实际编辑、读取、原 journal 和真实请求核价。作者 `compact_draft_author`，独审 `r52_evidence` 批准 `edd3acb`，主线合入 `90a7e86c`。边界 2/2、带资 CLI 1/1 及主线构建通过，真实七份源码逐字节匹配。付费请求为零，R59 待用户的新阶段报价决定。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/217#issuecomment-6808495833) [R58 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/217)
+归属 #19，原生父卡 #216。R58 反复读取后没有写入。为明确选择紧凑反馈草稿的编码作者持续提供已核实来源和范围的真实初始源码，同时保留实际编辑、读取、原 journal 和真实请求核价。作者 `compact_draft_author`，独审 `r52_evidence` 批准 `edd3acb`，主线合入 `90a7e86c`。边界 2/2、带资 CLI 1/1 及主线构建通过，真实七份源码逐字节匹配。该次离线集成的付费请求为零。获批的 R59 已结束，作者写入和编辑后触及 32 次会话上限，正式候选未捕获。 [R59 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220) [独审与集成](https://github.com/lrfluobida/Cosmos/issues/217#issuecomment-6808495833) [R58 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6808170539) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/217)
 
 ## 5. 任务与上下文包模板
 

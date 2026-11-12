@@ -4,7 +4,13 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-COS-216 已合入主线 `90a7e86c`，独审批准 `edd3acb`。选用紧凑反馈草稿的编码作者在每次请求中均可读取真实初始源码，后续定点读取反映当前编辑结果。R56 七份源码导入后逐字节相同，序列化为 46,927 字节；实际候选回放的首笔输入为 86,458 字节。主线构建、边界检查 2/2 与本机带资 CLI 1/1 均通过，覆盖首次编辑和写入、真实 tsc/Vite 编译、独审隔离及恢复。付费请求为零。R59 未启动，阶段余额 ¥0.210651，新阶段报价待用户决定。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/217#issuecomment-6808495833)
+R59 在冻结主线 `e32b46b6` 上从紧凑源码草稿开始，留下八份源码。作者调用工具读取 32 次、写入 2 次、编辑 10 次。第 33 笔请求在发送前触及 32 次会话上限，未执行原生作者编译、候选捕获、浏览器验收或编码独审。正式自动验收未通过。 [R59 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220)
+
+最终源码的 TypeScript 检查退出码为 2，唯一错误为 `src/audioLoader.ts:16` 的 TS2339（`Phaser.Game` 没有 `load`）。保留原样单独用 Vite 打包，退出码为 0。在安装 Node.js 22 的 Windows 上可双击 [诊断预览 Play.cmd](.cosmos/public-validation/room-20261112-compact-59/diagnostic-preview/Play.cmd)。独立 Edge 加载全部六帧，无 404。初始三件物品与锁门、胜利时三处空槽与开门，八项画面对照全部通过；收集、开门胜利和跨浏览器进程读档通过。原计划 s001 通过，s002 的音频 decoded 仍为 false，未请求 WAV。HUD 左上重叠，保存子节点缺失。 [类型检查](.cosmos/public-validation/room-20261112-compact-59/final-draft-build.json) · [Vite 记录](.cosmos/public-validation/room-20261112-compact-59/diagnostic-vite-build.json) · [浏览器观测](.cosmos/public-validation/room-20261112-compact-59/preview-smoke/observations.json) · [胜利画面](.cosmos/public-validation/room-20261112-compact-59/preview-smoke/after-door.png)
+
+用户批准的阶段增额于 2026-11-12 00:35:22.894 UTC 应用，阶段上限从 ¥51.67 调至 ¥52.96。R59 单次上限 ¥1.50 / 30 分钟，耗时 603,076 ms，32 笔共结算 ¥0.341485，释放 ¥1.158515。子账本修订 139、共享修订 3489，阶段累计已结算 ¥49.594406、历史待核占用 ¥2.206428、余额 ¥1.159166。运行临时目录已清理，保留原始报告与诊断预览。本次获准的一次 R59 已结束。 [增额回执](.cosmos/planning/r58-coding-budget/applied-receipt.json) · [预算记录](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6811107055) · [闭账审计](.cosmos/public-validation/room-20261112-compact-59/closure-readonly-audit.json)
+
+COS-216 已合入主线 `90a7e86c`，独审批准 `edd3acb`。选用紧凑反馈草稿的编码作者在每次请求中均可读取真实初始源码，后续定点读取反映当前编辑结果。R56 七份源码导入后逐字节相同，序列化为 46,927 字节；实际候选回放的首笔输入为 86,458 字节。主线构建、边界检查 2/2 与本机带资 CLI 1/1 均通过，覆盖首次编辑和写入、真实 tsc/Vite 编译、独审隔离及恢复。该次离线集成的付费请求为零，当时阶段余额 ¥0.210651。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/217#issuecomment-6808495833)
 
 作者工作树的两处依赖联接已摘除，工作树已清理，主仓 TypeScript/Pi 与模板 TypeScript/Vite 入口均已复核。作者验证摘要在 `E:/develop/Cosmos-stage/compact-feedback-draft-author/verification.json`；临时项 55 个文件共 2,161,178 字节并含一处指向已移除夹具的联接。自动审批三次返回 `blocked by policy`，该批临时项保留。
 
