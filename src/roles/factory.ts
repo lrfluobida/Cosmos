@@ -349,6 +349,9 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       maxOutputTokens: authorLimits.design!, estimate: options.estimatedMaxCostMicroCny, reviewReserve: true as const, failureCode: 'author_review_reserve' as const };
     const session = await (options.sessionFactory ?? createPiSession)({
       workspace, stateDirectory: input.stateDirectory, tools,
+      ...(ordinaryCodingDesignInput && input.role === 'coding' && purpose === 'author' && !validation && !authority?.windowId
+        && task.handoff.resumeFrom === null && maxRequests === 32 && tools.some(tool => tool.name === 'check-game-build')
+        ? { ordinaryCodingBuildReserve: true as const } : {}),
       ...(onWriteCommitted ? { successfulWriteCompaction: {
         takeWrites: () => { const writes = new Map(committedWrites); committedWrites.clear(); return writes; },
         requireAuthority: async () => {

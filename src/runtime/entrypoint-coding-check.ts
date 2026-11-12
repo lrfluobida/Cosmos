@@ -11,6 +11,7 @@ import { CODING_CHECK_RESULT, CODING_TEMPLATE_FILES, codingSignature } from './c
 import type { ArtifactReference } from '../contracts/types.ts';
 import { moduleSource } from './modular-code.ts';
 import type { ModularCompilerInputs } from './modular-code.ts';
+import { MissingCodingEntryError } from '../providers/coding-build-reserve.ts';
 
 export const GAME_BUILD_CHECK = 'check-game-build';
 
@@ -28,6 +29,10 @@ export function createCodingBuildCheck(input: { controller: RunController; work:
         active.throwIfAborted(); await input.guard(active);
         const sourceRoot = input.modular && input.modular.slot !== 'integration' ? moduleSource(input.modular.slot) : 'authors/coding';
         const source = await snapshot(await safePath(input.workspace, sourceRoot));
+        if (!input.modular) {
+          const missing = ['index.html', 'src/main.ts'].filter(path => !source.has(path));
+          if (missing.length) throw new MissingCodingEntryError('Build requires these author files: ' + missing.join(', '));
+        }
         const template = new Map<string, Buffer>();
         for (const name of CODING_TEMPLATE_FILES) template.set(name, await regularFile(input.template, name));
         const media = await snapshot(await safePath(input.media, 'public/assets'));

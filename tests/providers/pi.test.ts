@@ -9,6 +9,7 @@ import { createPiSession, createWorkspaceTools } from '../../src/providers/pi.ts
 import { requestInputBytes } from '../../src/providers/request-input.ts';
 import { validationReservation } from '../../src/runtime/validation-validation.ts';
 import type { PiRequest } from '../../src/providers/pi.ts';
+import { Type } from 'typebox';
 
 const usage = { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40, prompt_cache_hit_tokens: 5 };
 const historicalScreenshot = new URL('../../docs/research/assets/c14-independent-gameplay.png', import.meta.url);
@@ -65,6 +66,66 @@ async function fixture(t: any, responses: any[]) {
   });
   return { create, config, requests, admissions, settlements, workspace };
 }
+
+function codingSession(f: Awaited<ReturnType<typeof fixture>>, build: () => { passed: boolean; diagnostics: string }) {
+  const check = { ...f.config.tools[0], name: 'check-game-build', parameters: Type.Object({}), async execute() {
+    return { content: [{ type: 'text' as const, text: JSON.stringify(build()) }], details: {} };
+  } };
+  return f.create({ maxRequests: 32, ordinaryCodingBuildReserve: true, tools: [...f.config.tools, check] });
+}
+
+for (const honest of [true, false]) test('coding build reserve keeps a persistent compiler failure visible, honest=' + honest, async t => {
+  const complete = reply(JSON.stringify({ summary: 'Handoff', remaining: [], uncertainty: [] }));
+  const f = await fixture(t, [...Array.from({ length: 31 }, (_, index) => call('read', { path: 'output.txt' }, 'read-' + index)),
+    honest ? reply(JSON.stringify({ summary: 'Handoff', remaining: ['Fix TS2339'], uncertainty: [] })) : complete]);
+  await writeFile(join(f.workspace, 'output.txt'), 'unchanged');
+  let builds = 0;
+  const session = await codingSession(f, () => {
+    builds++;
+    return { passed: false, diagnostics: 'TS2339' };
+  });
+  const result = session.prompt('Implement and check the source.');
+  if (honest) assert.deepEqual(JSON.parse((await result).text).remaining, ['Fix TS2339']);
+  else await assert.rejects(result, /TS2339/);
+  assert.equal(builds, 1, 'repeated reads do not invalidate the check');
+  assert.match(JSON.stringify(f.requests[28].messages.at(-1)), /TS2339/);
+  assert.equal(f.requests[31].tools?.length ?? 0, 0);
+  assert.equal(f.requests.length, 32);
+  assert.equal(f.settlements.length, 32);
+});
+
+for (const stale of ['errored check', 'mixed write and check']) test('coding early handoff rechecks after ' + stale, async t => {
+  const complete = reply(JSON.stringify({ summary: 'Ready', remaining: [], uncertainty: [] }));
+  const first = call('check-game-build', {}, 'first'), next = call('check-game-build', {}, 'second');
+  if (stale === 'mixed write and check') next.delta.tool_calls.push({
+    index: 1, id: 'change', type: 'function', function: { name: 'write', arguments: JSON.stringify({ path: 'output.txt', content: 'changed' }) },
+  });
+  const f = await fixture(t, [first, next, complete, complete, complete]);
+  let builds = 0;
+  const session = await codingSession(f, () => {
+    if (++builds === 2 && stale === 'errored check') throw new Error('Current source changed during compilation.');
+    return { passed: builds < 3, diagnostics: builds < 3 ? '' : 'TS2339' };
+  });
+  await assert.rejects(session.prompt('Check the final source.'), /TS2339/);
+  assert.equal(builds, 3);
+  assert.match(JSON.stringify(f.requests[3].messages.at(-1)), /TS2339/);
+  assert.equal(f.requests[4].tools?.length ?? 0, 0);
+});
+
+test('coding author reuses an unchanged passing check and hands off without tools inside the reserve', async t => {
+  const complete = reply(JSON.stringify({ summary: 'Ready', remaining: [], uncertainty: [] }));
+  const f = await fixture(t, [call('check-game-build', {}), ...Array.from({ length: 27 }, (_, i) => call('read', { path: 'output.txt' }, 'read-' + i)), complete, complete]);
+  await writeFile(join(f.workspace, 'output.txt'), 'unchanged');
+  let builds = 0;
+  const session = await codingSession(f, () => {
+    builds++;
+    return { passed: true, diagnostics: '' };
+  });
+  assert.deepEqual(JSON.parse((await session.prompt('Finish.')).text).remaining, []);
+  assert.equal(builds, 1);
+  assert.equal(f.requests.length, 30);
+  assert.equal(f.requests.at(-1).tools?.length ?? 0, 0);
+});
 
 test('native DeepSeek request uses fixed model, low effort, explicit tools and request accounting', async t => {
   const f = await fixture(t, [reply()]);

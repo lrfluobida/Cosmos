@@ -10,6 +10,7 @@ import { regularFile } from '../artifacts/paths.ts';
 import { requestInputBytes, withRecentReadResults } from './request-input.ts';
 import { reviewImageInputTokens } from './review-image-quote.ts';
 import { PreservedDesignDraftError } from './workspace-tools.ts';
+import { installCodingBuildReserve } from './coding-build-reserve.ts';
 import { successfulWriteExtension, successfulWriteNote, summaryWithoutThinking, type SuccessfulWriteCompaction } from './successful-write-compaction.ts';
 
 export { createWorkspaceTools } from './workspace-tools.ts';
@@ -81,6 +82,8 @@ export interface PiSessionOptions {
   ordinaryDesignReview?: true;
   /** Ordinary coding reviewer only. Price its screenshot requests at the serialized HTTP boundary. */
   ordinaryCodingReviewImageQuote?: true;
+  /** Reserve the final four rounds for build feedback, correction and the original coding handoff. */
+  ordinaryCodingBuildReserve?: true;
   /** Only for the ordinary coding author with bound draft feedback. */
   feedbackReadWritePaths?: readonly string[];
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
@@ -125,6 +128,8 @@ export async function createPiSession(config: PiSessionOptions) {
   positive(config.maxOutputTokens, 'maxOutputTokens');
   positive(config.maxRequests, 'maxRequests');
   positive(config.requestTimeoutMs, 'requestTimeoutMs');
+  if (config.ordinaryCodingBuildReserve && (config.maxRequests !== 32 || config.resumeFile || config.requestCompaction
+    || !config.tools.some(tool => tool.name === 'check-game-build'))) throw new Error('Coding build reserve requires the original 32-round session and its scoped compiler.');
   if (config.requestCompactionAdmission && !config.requestCompaction) throw new Error('Compaction admission requires a compaction policy');
   if (config.compactRejectedDesignWrites !== undefined && (config.compactRejectedDesignWrites !== true || !config.requestCompactionAdmission
     || !config.requestCompaction || !config.requestOutputLimit || config.maxOutputTokens !== 32768)) throw new Error('Invalid rejected design write compaction configuration.');
@@ -448,6 +453,9 @@ export async function createPiSession(config: PiSessionOptions) {
     session.dispose();
     throw new Error('SDK model fallback is forbidden');
   }
+  const codingHandoff = config.ordinaryCodingBuildReserve
+    ? installCodingBuildReserve(session, () => config.maxRequests - requests, () => readonlyRequests !== undefined, fail) : undefined;
+  const authorText = () => { const text = session.getLastAssistantText() ?? ''; return codingHandoff ? codingHandoff(text) : text; };
   if (config.requestCompaction) {
     let lastProjection: string | undefined, lastCompactedBytes: number | undefined, autoCompactionDisabled = false, compactions = 0, pressureExceptionUsed = false;
     session.subscribe(event => {
@@ -653,7 +661,7 @@ export async function createPiSession(config: PiSessionOptions) {
             || leaf.message.stopReason !== 'stop' || readonlyRequests !== 1) throw new PiSessionError('incomplete', 'No completed native verdict turn.');
           return { text: leaf.message.content.filter(block => block.type === 'text').map(block => block.text).join('\n'), requests: records.slice() };
         }
-        return { text: session.getLastAssistantText() ?? '', requests: records.slice() };
+        return { text: authorText(), requests: records.slice() };
       } finally {
         readonlyRequests = undefined;
         if (!session.isIdle) await session.abort();
@@ -689,7 +697,7 @@ export async function createPiSession(config: PiSessionOptions) {
     prompt(text: string, options: { images?: ImageContent[]; signal?: AbortSignal } = {}) {
       return run(async () => {
         await session.prompt(text, { images: options.images, expandPromptTemplates: false });
-        return { text: session.getLastAssistantText() ?? '', requests: records.slice() };
+        return { text: authorText(), requests: records.slice() };
       }, options.signal);
     },
     /** Host-only format turn. The existing native session, request guards and history remain authoritative. */

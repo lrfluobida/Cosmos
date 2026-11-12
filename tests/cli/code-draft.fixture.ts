@@ -101,15 +101,20 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   await writeFile(join(previous.root, helper), partial);
 
   let rounds = 0, reviews = 0;
+  const audioPath = 'authors/coding/src/audioLoader.ts';
+  const audioSource = 'import type Phaser from "phaser";\nexport function loader(game: Phaser.Game) { return game.load; }';
   function reply(body: any) {
     const results = body.messages.filter((message: { role: string }) => message.role === 'tool');
     const tool = (name: string, args: object, index = 0) => ({ index, id: 'draft-' + rounds + '-' + index,
       type: 'function', function: { name, arguments: JSON.stringify(args) } });
     const calls = rounds === 0 ? [tool('edit', { path: helper, edits: [{ oldText: partial, newText: revised }] }),
-        tool('write', { path: entry, content: "import {status} from './helper'; document.querySelector('#status')!.textContent=status;" }, 1)]
+        tool('write', { path: entry, content: "import {status} from './helper'; document.querySelector('#status')!.textContent=status;" }, 1),
+        tool('write', { path: audioPath, content: audioSource }, 2)]
       : rounds === 1 ? [tool('read', { path: helper }), tool('read', { path: art.proof.media.location + '/public/assets/manifest.json' }, 1),
         tool('read', { path: 'toolchain/node_modules/phaser/src/sound/webaudio/WebAudioSound.js', offset: 8, limit: 12 }, 2)]
-      : rounds === 2 ? [tool('check-game-build', {})] : [];
+      : rounds < 28 ? [tool('read', { path: helper })]
+      : rounds === 28 ? [tool('read', { path: audioPath })]
+      : rounds === 29 ? [tool('edit', { path: audioPath, edits: [{ oldText: 'game: Phaser.Game) { return game.load', newText: 'scene: Phaser.Scene) { return scene.load' }] })] : [];
     if (reviewerVerdict) {
       assert.doesNotMatch(body.messages[0].content, /initialCodeDraftFiles|export const status/);
       assert.deepEqual(body.tools.map((tool: any) => tool.function.name), ['read']);
@@ -122,10 +127,14 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
       assert.ok(results.some((item: any) => item.content.includes(revised)));
       assert.ok(results.some((item: any) => item.content.includes('"characters"')) && results.some((item: any) => item.content.includes('@class WebAudioSound')));
     }
-    if (rounds === 3) {
-      const check = JSON.parse(results.at(-1).content);
-      assert.ok(check.passed, check.diagnostics);
-      assert.deepEqual(check.results.map((result: { code: number }) => result.code), [0, 0]);
+    if (rounds === 28) {
+      assert.match(JSON.stringify(body.messages.at(-1)), /audioLoader\.ts.*TS2339.*Property 'load' does not exist on type 'Game'/);
+    }
+    if (rounds === 30 && !reviewerVerdict) {
+      assert.equal(body.tools?.length ?? 0, 0);
+      const feedback = body.messages.at(-1).content[0].text;
+      assert.match(feedback, /"passed":true/);
+      assert.match(feedback, /built in/);
     }
     if (!reviewerVerdict) rounds++;
     const delta = calls.length ? { tool_calls: calls } : { content: JSON.stringify(reviewerVerdict ?? { summary: 'Completed the entry and helper', remaining: [], uncertainty: [] }) };
@@ -192,7 +201,7 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   if (wireError) throw wireError;
   assert.equal(report.outcome, 'awaiting_user_experience', JSON.stringify(report.gaps));
   assert.deepEqual(next.packets.map(p => p.role), ['coding', 'reviewer']);
-  assert.equal(rounds, 4);
+  assert.equal(rounds, 31);
   assert.equal(reviews, 1);
   assert.equal(await readFile(join(next.root, helper), 'utf8'), revised);
   const capture = JSON.parse(await readFile(join(next.root, 'registry/captures/game-source/v1/capture.json'), 'utf8'));
@@ -201,6 +210,6 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   const state = JSON.parse(await readFile(join(next.root, 'snapshot.json'), 'utf8'));
   assert.equal(state.ledger.limitMicroCny, 720000);
   assert.deepEqual(state.ledger.allocations.map((row: any) => row.amountMicroCny), [0, 0, 648000]);
-  assert.ok(state.ledger.entries.length === 5 && state.ledger.entries.every((row: any) => row.status === 'settled'));
+  assert.ok(state.ledger.entries.length === rounds + reviews && state.ledger.entries.every((row: any) => row.status === 'settled'));
   await invoke(['settle', next.root]);
 }
