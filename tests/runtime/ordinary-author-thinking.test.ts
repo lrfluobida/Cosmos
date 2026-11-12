@@ -52,6 +52,35 @@ for (const [label, gameplayIds, experienceIds] of [
   await f.execute(); assert.equal(inspected, true); assert.equal(f.packets.length, 0); assert.equal(f.plays.length, 0);
 });
 
+test('incomplete ordinary coding entry gets a repair turn and unresolved compiler errors prevent a clean handoff', async t => {
+  const f = await ordinaryHostFixture(t, { fullToolchain: true }), scripted = f.hostOptions.sessionFactory!;
+  f.hostOptions.sessionFactory = config => JSON.parse(config.context).role === 'coding'
+    ? createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-build' } }) : scripted(config);
+  const bodies: any[] = [];
+  t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+    const request = new Request(input, init), body = JSON.parse(await request.text());
+    bodies.push(body);
+    const source = 'import type Phaser from "phaser"; export const loader = (game: Phaser.Game) => game.load;';
+    const delta = bodies.length === 2 ? { tool_calls: [
+      ['authors/coding/index.html', '<script type="module" src="/src/main.ts"></script>'], ['authors/coding/src/main.ts', source],
+    ].map(([path, content], index) => ({ index, id: 'entry-' + index, type: 'function', function: { name: 'write', arguments: JSON.stringify({ path, content }) } })) }
+      : { content: JSON.stringify({ summary: 'Finished', remaining: [], uncertainty: [] }) };
+    const chunk = { id: 'offline-build', model: 'deepseek-flash', choices: [{ index: 0, delta, finish_reason: bodies.length === 2 ? 'tool_calls' : 'stop' }],
+      usage: { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40 } };
+    return new Response(`data: ${JSON.stringify(chunk)}\n\ndata: [DONE]\n\n`, { headers: { 'content-type': 'text/event-stream' } });
+  });
+  const result: any = await f.execute();
+  assert.equal(bodies.length, 4, JSON.stringify(result.gaps));
+  assert.match(JSON.stringify(bodies[1].messages.at(-1)), /index\.html, src\/main\.ts/);
+  assert.match(JSON.stringify(bodies[2].messages.at(-1)), /TS2339.*Property 'load'/);
+  assert.equal(bodies[3].tools?.length ?? 0, 0);
+  assert.equal(result.outcome, 'incomplete');
+  const state = await readRunSnapshot(f.root), task = state.tasks.find(item => item.taskId === 'coding-task')!;
+  assert.equal(task.review.verdict, 'pending');
+  assert.deepEqual(task.artifacts, []);
+  assert.equal(f.plays.length, 0);
+});
+
 test('ordinary art and coding disable thinking and coding writes and compiles through native tools', async t => {
   const f = await ordinaryHostFixture(t, { fullToolchain: true }), scripted = f.hostOptions.sessionFactory!, payloads: any[] = [], configs: any[] = [];
   const fetchMock = mock.method(globalThis, 'fetch', async (input: any, init?: RequestInit) => {
