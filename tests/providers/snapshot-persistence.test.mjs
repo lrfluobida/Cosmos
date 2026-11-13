@@ -123,7 +123,7 @@ test('funded public CLI reports the failed generation admission and leaves the r
     await assert.rejects(runPublicValidationCli(['new', generated.root, '--shared-root', args.sharedRoot, '--authorization', authorization],
       { input: Readable.from([]), output: silentOutput(), host: generated.host }), error => {
         assert.equal(error.cause, failure);
-        assert.equal(error.message, 'Snapshot persistence failed during rename (ENOSPC).');
+        assert.equal(error.message, 'Snapshot persistence failed during rename (ENOSPC) for snapshot.json.');
         return true;
       });
     assert.equal(sends, 0);
