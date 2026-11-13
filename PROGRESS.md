@@ -1,8 +1,16 @@
 # Cosmos 进度
 
-更新时间：2026-11-13
+更新时间：2026-11-14
 
 ## 当前继续通用游戏开发 agent 能力
+
+COS-218 已合入 `fad04a02`，独审批准 `0f1651c`。普通编码作者已捕获候选、没有剩余工作且仅有需验证的疑问时，宿主检查实际候选，独审依据同版证据逐项裁决。宿主失败、证据不足、未解决疑问以及实质未完成项均继续阻断通过。既有冷恢复夹具在本批和冻结基线均失败，未计入通过项，R60 历史报告保留原结论。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/219#issuecomment-6861417060)
+
+COS-219 已合入 `08428b66`，独审批准修正版 `69b5e63`。普通新运行可将失败任务已捕获且未批准的源码作为可编辑草稿。选择器核对原候选文件清单及哈希，即使宿主后来新增打包产物，也只导入捕获清单绑定的源码。已批准或明确拒审的候选不能走此入口。修后浏览器失败及打包用例 1/1 通过，组合主线构建通过，两项共 15 个集成文件与各自批准版本一致。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/220#issuecomment-6861424756)
+
+主线编译版按正式链路核对原确认、已批准设计和美术，选中 R60 的 8 份源码，引用版本 `194e70e40e06f0fc5601d6826c28000eba121e331ea9269c0093d12dfca3f6c3`。三条绑定反馈共 1,789 字节，版本 `938134b628caf344a1e47d3ca3775e0b76cbf506285a874c7292087b57055bc5`。本批离线核验的付费请求为零。 [绑定反馈](.cosmos/public-validation/room-20261113-reserve-60/preview-smoke/author-feedback.json)
+
+作者工作树与阶段临时文件保留。只读计数未进入联接：`E:/CodexData/.codex/worktrees/cos219-ordinary-coding/Cosmos` 13,771,640 字节（2 处联接），`.tmp/cos219-ordinary-coding-author` 6,870,809 字节；`E:/CodexData/.codex/worktrees/cos220-captured-draft/Cosmos` 13,765,496 字节（2 处联接），`.tmp/cos220-captured-draft` 6,801,325 字节（2 处联接）。合并阶段未重试自动审批拒绝的清理，主仓与模板依赖入口均已核实。
 
 R60 在冻结主线 `d372eda5` 通过编译，捕获原生候选 `game@v1`。作者的 `remaining` 为空，`uncertainty` 有两项，分别涉及 HUD 布局与首次点击前的音频解码时序。运行因 `insufficient_evidence` 停止，未执行正式宿主验证或编码独审，自动验收未通过。 [R60 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6852401794) · [候选与闭账审计](.cosmos/public-validation/room-20261113-reserve-60/closure-readonly-audit.json)
 

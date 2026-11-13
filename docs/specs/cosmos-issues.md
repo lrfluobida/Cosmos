@@ -2715,11 +2715,11 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-218 · 将普通编码交接中的待验证疑问交给宿主检查与独审
 
-归属 #19，原生父卡 #218，依赖 #218、#31。R60 已编译并捕获，作者没有剩余工作但留下两项需实测的疑问。复用 `codingConcernPacket` 将原始疑问交给真实宿主与独审，逐项凭同一候选的证据裁决。缺证据、验收失败或仍有未完成工作时阻断，恢复核对原输入、证据及裁决。作者 `ordinary_handoff_author`，独审 `r52_evidence`。 [R60 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6852401794) · [交接任务](https://github.com/lrfluobida/Cosmos/issues/219)
+归属 #19，原生父卡 #218，依赖 #218、#31。R60 已编译并捕获，作者没有剩余工作但留下两项需实测的疑问。复用 `codingConcernPacket` 将原始疑问交给真实宿主与独审，逐项凭同一候选的证据裁决。缺证据、验收失败或仍有未完成工作时阻断，恢复核对原输入、证据及裁决。作者 `ordinary_handoff_author`，独审 `r52_evidence` 批准 `0f1651c`，主线合入 `fad04a02`。宿主通过后独审逐项裁决，缺失、失败或失配证据继续阻断。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/219#issuecomment-6861417060) [R60 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6852401794) · [交接任务](https://github.com/lrfluobida/Cosmos/issues/219)
 
 ### COS-219 · 从失败普通编码任务的已捕获未批准源码续写
 
-归属 #19，原生父卡与依赖为 #214。允许普通编码新运行显式选择与其确认需求、批准设计和美术一致的失败任务捕获。按 `registry/captures/game-source/…` 的来源版本和文件清单核对，只导入可编辑源码。新运行保留自身的资金准入、编译、宿主检查和独立审批，兼容已有未捕获草稿及恢复路径。 [源码续写任务](https://github.com/lrfluobida/Cosmos/issues/220)
+归属 #19，原生父卡与依赖为 #214。允许普通编码新运行显式选择与其确认需求、批准设计和美术一致的失败任务捕获。按 `registry/captures/game-source/…` 的来源版本和文件清单核对，只导入可编辑源码。新运行保留自身的资金准入、编译、宿主检查和独立审批，兼容已有未捕获草稿及恢复路径。作者 `captured_draft_author`，独审 `captured_draft_review` 批准 `69b5e63`，主线合入 `08428b66`。组合构建通过，正式选源链核对 R60 八份源码及三条反馈。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/220#issuecomment-6861424756) · [源码续写任务](https://github.com/lrfluobida/Cosmos/issues/220)
 
 ## 5. 任务与上下文包模板
 

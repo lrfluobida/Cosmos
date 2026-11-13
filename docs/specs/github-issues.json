@@ -14987,7 +14987,7 @@
       "id": 6334560617,
       "verifiedNativeSubIssues": 3,
       "subTaskIds": ["COS-214", "COS-217", "COS-219"],
-      "verifiedCompletedSubIssues": 2,
+      "verifiedCompletedSubIssues": 3,
       "url": "https://github.com/lrfluobida/Cosmos/issues/214",
       "parentTaskId": "COS-212",
       "parentIssueNumber": 213,
@@ -15112,7 +15112,7 @@
       "id": 6342308186,
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-218"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/218",
       "parentTaskId": "COS-213",
       "parentIssueNumber": 214,
@@ -15147,9 +15147,9 @@
       "parentIssueNumber": 218,
       "parentIssueId": 6342308186,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-217",
@@ -15165,7 +15165,11 @@
       "implementer": "ordinary_handoff_author",
       "reviewer": "r52_evidence",
       "merger": "r52_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "0f1651c394a6acd81a963167047a846c7d47f070",
+      "sourceIntegratedCommit": "fad04a027b0afeaffb5cccf79c5cabd1ae6bfe46",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/219#issuecomment-6861417060",
+      "verification": "12 文件与批准版本一致，主线构建通过。普通编码的原始疑问须有同版候选的真实宿主证据和独审裁决。"
     },
     {
       "taskId": "COS-219",
@@ -15177,9 +15181,9 @@
       "parentIssueNumber": 214,
       "parentIssueId": 6334560617,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-213",
@@ -15187,8 +15191,14 @@
           "url": "https://github.com/lrfluobida/Cosmos/issues/214"
         }
       ],
+      "implementer": "captured_draft_author",
+      "reviewer": "captured_draft_review",
       "merger": "r52_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "69b5e6358d56c37f7356d3099e6902ed847c874d",
+      "sourceIntegratedCommit": "08428b66bc74bb3cbbaa59b750b630b1e61cb7ee",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/220#issuecomment-6861424756",
+      "verification": "修后捕获兼容打包用例 1/1，组合构建通过，主线选中 R60 八份源码和三条绑定反馈。"
     }
   ],
   "verifiedNativeSubIssues": 100,
