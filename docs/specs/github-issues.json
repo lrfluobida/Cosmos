@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261113-reserve-60",
+      "latestLiveValidationCaseId": "room-20261114-concerns-61",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6852401794",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6861822627",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -15176,6 +15176,9 @@
       "title": "从失败普通编码任务的已捕获未批准源码续写",
       "number": 220,
       "id": 6370886433,
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-220"],
+      "verifiedCompletedSubIssues": 0,
       "url": "https://github.com/lrfluobida/Cosmos/issues/220",
       "parentTaskId": "COS-213",
       "parentIssueNumber": 214,
@@ -15199,9 +15202,28 @@
       "sourceIntegratedCommit": "08428b66bc74bb3cbbaa59b750b630b1e61cb7ee",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/220#issuecomment-6861424756",
       "verification": "修后捕获兼容打包用例 1/1，组合构建通过，主线选中 R60 八份源码和三条绑定反馈。"
+    },
+    {
+      "taskId": "COS-220",
+      "title": "保留运行快照写入的原始错误并有界重试 Windows 原子替换",
+      "number": 221,
+      "id": 6377721858,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/221",
+      "parentTaskId": "COS-219",
+      "parentIssueNumber": 220,
+      "parentIssueId": 6370886433,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [],
+      "implementer": "snapshot_failure_author",
+      "reviewer": "r52_evidence",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 219,
+  "totalTaskCount": 220,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
