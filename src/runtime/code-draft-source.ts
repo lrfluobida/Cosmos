@@ -91,7 +91,6 @@ async function capturedFiles(root: string, state: RunSnapshot, task: TaskContrac
     throw new Error('Select an unreviewed candidate with its original capture receipt.');
   }
   await journal.requireSignature(author.signature, task.inputs);
-  await journal.requireSignature(receipt.signature, task.artifacts);
   const registry = new ArtifactRegistry(root, 'registry'), candidate = await registry.getCandidate(candidateRef), capture = await registry.getCapture(source);
   const inputs = [...dependencies, source], sourceRoot = 'authors/coding';
   const provenance = [attempt.sessionRef, ...requirement.sources.map(ref => ref.location)];
@@ -103,11 +102,18 @@ async function capturedFiles(root: string, state: RunSnapshot, task: TaskContrac
     || !sameValue(capture.metadata.provenance.sourceRefs, provenance) || !sameValue(capture.dependencies, dependencies)) {
     throw new Error('Candidate or code capture provenance changed.');
   }
-  const fixed = await snapshot(join(root, source.location));
-  const paths = [...fixed.keys()].sort();
-  const signed = new Map(receipt.signature[0].files.map(row => [row.path, row.sha256]));
+  // The host builds and packages into project after capture. Only the originally mapped files belong to this receipt.
+  const [original] = receipt.signature;
+  const destinations = candidate.files.map(row => row.destination);
+  noConflicts(destinations);
+  if (receipt.signature.length !== 1 || original.location !== candidateRef.location
+    || !sameValue(original.files.map(row => row.path).sort(), destinations.sort())) throw new Error('Original candidate file mapping changed.');
+  for (const { path, sha256 } of original.files) {
+    if (ordinaryDraftSha256(await regularFile(root, candidateRef.location + '/' + path)) !== sha256) throw new Error('Original candidate file changed.');
+  }
+  const fixed = await snapshot(join(root, source.location)), paths = [...fixed.keys()].sort();
+  const signed = new Map(original.files.map(row => [row.path, row.sha256]));
   const codePath = (path: string) => path === 'index.html' || path.startsWith('src/');
-  noConflicts(candidate.files.map(row => row.destination));
   const mapped = candidate.files.filter(row => row.taskId === task.taskId || row.artifactRef.artifactId === source.artifactId || codePath(row.destination));
   if (!fixed.has('index.html') || !fixed.has('src/main.ts') || !sameValue(paths, [...signed.keys()].filter(codePath).sort())
     || !sameValue(paths, capture.files.map(row => row.destination).sort())
