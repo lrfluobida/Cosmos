@@ -385,7 +385,7 @@ export class OwnerLock {
     if (this.closed) return Promise.reject(new Error('Ownership is closed.'));
     const result = this.pending.then(action); this.pending = result.catch(() => {}); return result;
   }
-  private async assertOwner(): Promise<void> {
+  async assertOwner(): Promise<void> {
     if ((await readOwner(this.path)).record.token !== this.record.token) throw new Error('Lock ownership changed; refusing mutation.');
   }
   private async save(next: OwnerRecord): Promise<void> {

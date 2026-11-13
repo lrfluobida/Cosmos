@@ -15,6 +15,7 @@ import { validateOrdinaryProfile } from '../roles/ordinary-profile.ts';
 import type { OrdinaryProfile } from '../roles/ordinary-profile.ts';
 import { ORDINARY_PROFILE_SOURCE, ordinaryDraftSha256, readOrdinaryProfile, requireOrdinaryDraftSource } from './ordinary-profile-source.ts';
 import { SnapshotStore } from './store.ts';
+import { ownerCloseError } from './snapshot-error.ts';
 import { publishReceipt, publishReceiptBytes } from './recovery/receipt-file.ts';
 import { readReferencedRequirements, validateConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
 import type { ConfirmedRequirementsSource } from './confirmed-requirements-source.ts';
@@ -152,7 +153,7 @@ export class IntakeController {
   private pending: Promise<unknown> = Promise.resolve();
   private accounting: Promise<unknown> = Promise.resolve();
   private abort = new AbortController();
-  private failed = false;
+  private persistenceFailure?: Error;
   private closing = false;
   private closed?: Promise<void>;
   private activated?: RunSnapshot;
@@ -473,11 +474,11 @@ export class IntakeController {
           fundingId: this.snapshot.validationFunding!.fundingId, snapshotSha256: fundingHash(proof.bytes), anchorSequence: proof.anchorSequence, nonce: proof.nonce,
         });
       }
-    }).catch(error => { this.closed = undefined; throw error; }); return this.closed;
+    }).catch(error => { this.closed = undefined; throw ownerCloseError(error, this.persistenceFailure); }); return this.closed;
   }
   private serial<T>(operation: () => T | Promise<T>): Promise<T> {
-    if (this.closing || this.failed) return Promise.reject(new Error('Intake controller closed or persistence failed.'));
-    const result = this.pending.then(() => { if (this.failed) throw new Error('Intake persistence failed.'); return operation(); });
+    if (this.persistenceFailure || this.closing) return Promise.reject(this.persistenceFailure ?? new Error('Intake controller closed.'));
+    const result = this.pending.then(() => { if (this.persistenceFailure) throw this.persistenceFailure; return operation(); });
     this.pending = result.catch(() => {}); return result;
   }
   private at(): string { return new Date(this.now()).toISOString(); }
@@ -505,7 +506,10 @@ export class IntakeController {
     return bytes;
   }
   private async write(value: unknown): Promise<void> {
-    try { await this.store.write(value); } catch (error) { this.failed = true; this.abort.abort(error); throw error; }
+    try { await this.store.write(value); } catch (error) {
+      this.persistenceFailure = error instanceof Error ? error : new Error('Intake snapshot persistence failed.', { cause: error });
+      this.abort.abort(this.persistenceFailure); throw this.persistenceFailure;
+    }
   }
   private async commit(next: IntakeSnapshot): Promise<void> {
     next.revision = this.snapshot.revision + 1;
