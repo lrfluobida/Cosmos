@@ -2723,7 +2723,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-220 · 保留运行快照写入的原始错误并有界重试 Windows 原子替换
 
-归属 #19，原生父卡 #220。R61 的公开错误未揭示底层系统错误码。保留后续运行快照持久化实际失败的错误、操作和路径，只对 Windows 原子替换时识别出的暂时共享冲突有界重试。非目标错误、重试耗尽、旧快照和恢复须保持一致，避免重复派发。作者 `snapshot_failure_author`，独审 `r52_evidence`。 [R61 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6861822627) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/221)
+归属 #19，原生父卡 #220。R61 的公开错误未揭示底层系统错误码。保留后续运行快照持久化实际失败的错误、操作和路径，只对 Windows 原子替换时识别出的暂时共享冲突有界重试。非目标错误、重试耗尽、旧快照和恢复须保持一致，避免重复派发。作者 `snapshot_failure_author`，独审 `r52_evidence` 批准 `aadb0ae`，主线合入 `54537e47`。Windows 实锁短暂和持续 EPERM、派发前后 ENOSPC 与公开诊断均离线核验；R61 历史 errno 仍未知。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/221#issuecomment-6862047962) [R61 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6861822627) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/221)
 
 ## 5. 任务与上下文包模板
 

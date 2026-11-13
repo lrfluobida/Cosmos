@@ -4,11 +4,15 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS-220 已合入 `54537e47`，独审批准 `aadb0ae`。快照写入失败时，公开诊断保留首次失败的操作、固定相对目标和可安全显示的系统错误码。Windows 原子替换遇到 EPERM 时复用同一临时文件，最多尝试六次。用真实不可删除共享句柄验证：释放锁后第二次替换成功；持续锁定则六次后报告 rename/EPERM，旧快照完好。派发前后 ENOSPC、首次错误保留、安全清理与带资 CLI 定向检查 5/5 通过。主线构建通过，七个集成文件与批准版本相同。此次离线验证零付费，R61 原始 errno 仍未知。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/221#issuecomment-6862047962)
+
+作者专用工作树已摘除唯一指向主仓的依赖联接并清理，主仓和模板的四处依赖入口均已复核。保留 Windows 实锁复现用的探针、日志和原始样本，共三个文件、1,145 字节。 [实锁日志](.tmp/r61-snapshot-persistence-author/windows-share-repro.log)
+
 R61 在 `fdf2a2d0` 上导入 R60 已捕获但未批准的八份源码与三条反馈，启用普通编码交接疑问处理策略。两笔请求后运行中断，公开错误为 `controller_closed_or_persistence_failed`，历史记录未保留具体的系统错误码。第三笔仅预留，未准入、未发送。保留修订 18 快照后正式取消该笔，在同一运行恢复，产出 `incomplete` 报告，未重复派发。 [中断记录](.cosmos/public-validation/room-20261114-concerns-61/interruption-rev18.json) · [未准入请求取消](.cosmos/public-validation/room-20261114-concerns-61/unadmitted-cancellation.json) · [恢复记录](.cosmos/public-validation/room-20261114-concerns-61/resume-execution.json)
 
 R61 未捕获新候选，未到正式宿主验证或编码独审，自动验收未通过。最终八份源码、17 个 dist 文件与 R60 相同，复用 R60 的构建与 Edge 观测：原计划前 27 步通过，首个失败为 s028 的存档文字缺前缀。可在装有 Node.js 22 的 Windows 上双击 [开发预览 Play.cmd](.cosmos/public-validation/room-20261114-concerns-61/development-preview/Play.cmd)，端口 41561。 [R60 浏览器证据](.cosmos/public-validation/room-20261113-reserve-60/preview-smoke/observations.json)
 
-本轮上限 ¥0.78 / 30 分钟，实际 291,179 ms。两笔结算 ¥0.060634，释放 ¥0.719366。子账本修订 21、共享修订 3493，阶段累计结算 ¥50.033827、历史待核占用 ¥2.206428、余额 ¥0.719745。运行临时目录已清理。下一项离线修复保留下次快照持久化实际失败的操作、路径和原始错误，并对 Windows 原子替换时可识别的暂时共享冲突有界重试。 [闭账审计](.cosmos/public-validation/room-20261114-concerns-61/closure-readonly-audit.json) · [R61 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6861822627) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/221)
+本轮上限 ¥0.78 / 30 分钟，实际 291,179 ms。两笔结算 ¥0.060634，释放 ¥0.719366。子账本修订 21、共享修订 3493，阶段累计结算 ¥50.033827、历史待核占用 ¥2.206428、余额 ¥0.719745。运行临时目录已清理。该轮暴露的诊断缺口由 COS-220 跟进。 [闭账审计](.cosmos/public-validation/room-20261114-concerns-61/closure-readonly-audit.json) · [R61 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6861822627) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/221)
 
 COS-218 已合入 `fad04a02`，独审批准 `0f1651c`。普通编码作者已捕获候选、没有剩余工作且仅有需验证的疑问时，宿主检查实际候选，独审依据同版证据逐项裁决。宿主失败、证据不足、未解决疑问以及实质未完成项均继续阻断通过。既有冷恢复夹具在本批和冻结基线均失败，未计入通过项，R60 历史报告保留原结论。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/219#issuecomment-6861417060)
 
