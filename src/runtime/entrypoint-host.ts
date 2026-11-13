@@ -455,7 +455,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const codeRef = state.codeDraftSource;
   const codeDraft = codeRef && importedArt ? await selectCodeDraft(codeRef.location, importedDesign!, importedArt, state.requirementsSource!, target, codeRef) : undefined;
   const feedbackRef = state.codeDraftFeedback;
-  const feedback = feedbackRef && codeDraft ? await selectCodeDraftFeedback(feedbackRef.location, codeDraft.reference, root, feedbackRef) : undefined;
+  const feedback = feedbackRef && codeDraft ? await selectCodeDraftFeedback(feedbackRef.location, codeDraft.reference, root, feedbackRef, importedDesign) : undefined;
   const artDraft = artRef && !importedArt ? await readPinnedArtDraft(artRef, importedDesign!, state.requirementsSource!, target) : undefined;
   const fixedArt = isFixedArt(artDraft) ? artDraft : undefined;
   if (state.designDraftReview && (!budgetEligible || !importedDesign && !ordinaryDesignRevisionPolicy || !state.requirementsSource)) throw new Error('A reviewed draft requires the ordinary independent design review pipeline.');
@@ -1011,7 +1011,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
     } } : {}),
     roleFactory: createRoleFactory({ maxOutputTokens: 8192, authorMaxOutputTokens: { art: 65536, coding: 65536 }, maxRequests: scope?.window.quote.declaration.limits.maxRequests ?? 16, requestTimeoutMs: 120000, codingAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, estimatedMaxCostMicroCny: requestReservation,
       ...(ordinary ? { authorThinkingLevel: { design: 'low', art: 'off', ...(budgetEligible ? { coding: 'off' } as const : {}) } as const, authorMaxRequests: { design: 32 }, designAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS, artAuthorRequestTimeoutMs: AUTHOR_REQUEST_TIMEOUT_MS,
-        ...(feedback && codeDraft ? { ordinaryCodeDraftFeedback: { taskId: codeDraft.proof.taskId, findings: feedback.findings,
+        ...(feedback && codeDraft ? { ordinaryCodeDraftFeedback: { taskId: codeDraft.proof.taskId, findings: feedback.findings, focusedPlanSteps: feedback.focusedPlanSteps,
           initialFiles: initialDraft && compactCodeDraftFiles(initialDraft.files) } } : {}),
         ...(budgetEligible ? { ordinaryCodingDesignInput: task => selected(task, 'design') } : {}),
         ...(ordinaryCodingHandoffPolicy ? { ordinaryCodingConcernReview: (task: TaskContract) => role(task) === 'coding' && sameValue(task.artifacts, [output]) } : {}),

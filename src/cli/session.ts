@@ -143,7 +143,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
   const codeDraft = options.codeDraftFrom && artDraft && 'manifestPath' in artDraft ? await selectCodeDraft(options.codeDraftFrom, approvedDesign!, artDraft, referenced!.source, { root }) : undefined;
   const codeDraftSource = codeDraft?.reference;
   if (options.codeDraftFeedback !== undefined && (!codeDraftSource || !options.codeDraftFeedback.trim())) throw new Error('Select code draft feedback with its code draft.');
-  const codeDraftFeedback = options.codeDraftFeedback && codeDraftSource ? (await selectCodeDraftFeedback(options.codeDraftFeedback, codeDraftSource, root)).reference : undefined;
+  const codeDraftFeedback = options.codeDraftFeedback && codeDraftSource ? (await selectCodeDraftFeedback(options.codeDraftFeedback, codeDraftSource, root, undefined, approvedDesign)).reference : undefined;
   const designDraftReview = approvedDesign ? approvedDesign.reference : options.designInput ? (await selectSuppliedDesign(options.designInput, referenced!.source, root)).reference
     : options.designDraftFrom ? await selectDesignDraftReview(options.designDraftFrom, referenced!.source) : undefined;
   if (referenced) {
@@ -253,7 +253,7 @@ export async function runProductSession(options: { command: 'new' | 'resume'; ro
         const approved = await selectApprovedDesign(snapshot.designDraftReview.location, snapshot.requirementsSource!, target, snapshot.designDraftReview);
         const art = snapshot.artDraftSource && await readPinnedArtSource(snapshot.artDraftSource, approved, snapshot.requirementsSource!, target);
         if (snapshot.codeDraftSource && art && 'manifestPath' in art) await selectCodeDraft(snapshot.codeDraftSource.location, approved, art, snapshot.requirementsSource!, target, snapshot.codeDraftSource);
-        if (snapshot.codeDraftFeedback) await selectCodeDraftFeedback(snapshot.codeDraftFeedback.location, snapshot.codeDraftSource!, root, snapshot.codeDraftFeedback);
+        if (snapshot.codeDraftFeedback) await selectCodeDraftFeedback(snapshot.codeDraftFeedback.location, snapshot.codeDraftSource!, root, snapshot.codeDraftFeedback, approved);
       }
       frames = await readFrameSelection(root, snapshot, options.renderFrames);
       policy = await readModularRepairPolicy(root, snapshot);

@@ -145,11 +145,11 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
   await requireFundingRequirements(payload);
   const draftReview = fundingDesignDraftReview(payload), artSource = fundingArtDraftSource(payload), codeSource = fundingCodeDraftSource(payload);
   const feedback = fundingCodeDraftFeedback(payload);
-  if (feedback) await selectCodeDraftFeedback(feedback.location, codeSource!, binding.runRoot, feedback);
   if (draftReview?.artifactId === SUPPLIED_DESIGN) await selectSuppliedDesign(draftReview.location, payload.requirementsSource!, binding.runRoot, draftReview);
   else if (draftReview?.artifactId === APPROVED_DESIGN) {
     const target = { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId };
     const approved = await selectApprovedDesign(draftReview.location, payload.requirementsSource!, target, draftReview);
+    if (feedback) await selectCodeDraftFeedback(feedback.location, codeSource!, binding.runRoot, feedback, approved);
     const art = artSource && await readPinnedArtSource(artSource, approved, payload.requirementsSource!, target);
     if (codeSource && art && 'manifestPath' in art) await selectCodeDraft(codeSource.location, approved, art, payload.requirementsSource!, target, codeSource);
   }

@@ -45,6 +45,8 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   assert.equal(first.outcome, 'incomplete');
   const oldSnapshot = await readFile(join(previous.root, 'snapshot.json'));
   const findings = [{ observed: 'The entry module does not update the page.', hint: 'Read the entry page and helper.' }];
+  const focusedFindings = [{ ...findings[0], stepIds: ['complete'] }];
+  const focusedPlanSteps = [{ stage: 'main', step: previous.scenario.steps.find(step => step.id === 'complete')! }];
   const initialFiles = [{ path: page, content: html }, { path: helper, content: partial }];
   let reviewerVerdict: object | undefined;
   const next = await ordinaryHostFixture(t, { ...options, fullToolchain: true, sessionFactory: async config => {
@@ -52,12 +54,14 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     if (packet.role !== 'coding') {
       assert.equal(packet.codeDraftFeedback, undefined);
       assert.equal(packet.initialCodeDraftFiles, undefined);
+      assert.equal(packet.focusedPlanSteps, undefined);
       assert.equal(config.feedbackReadWritePaths, undefined);
       assert.equal(packet.role, 'reviewer');
       reviewerVerdict = { verdict: 'approved', findings: [], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((item: { evidenceId: string }) => item.evidenceId) };
       return createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-code-draft' } });
     }
-    assert.deepEqual(packet.codeDraftFeedback, findings);
+    assert.deepEqual(packet.codeDraftFeedback, focusedFindings);
+    assert.deepEqual(packet.focusedPlanSteps, focusedPlanSteps);
     assert.deepEqual(packet.initialCodeDraftFiles, initialFiles);
     assert.deepEqual(config.feedbackReadWritePaths, packet.ownership.writePaths);
     assert.ok(!packet.rules.some((rule: string) => rule.includes('Follow each planOffset continuation')));
@@ -79,9 +83,24 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   initialFiles.push(source.main);
   const funding = await (await fundingFixture(t)).authorization('coding-draft', 720000), decision = join(funding.sharedRoot, funding.authorization.location);
   const feedbackFile = join(funding.sharedRoot, 'feedback.json');
-  const note = JSON.stringify({ formatVersion: 'ordinary-code-draft-feedback/1', codeDraft: reference, findings });
+  const note = JSON.stringify({ formatVersion: 'ordinary-code-draft-feedback/1', codeDraft: reference, findings: focusedFindings });
+  const oldNote = JSON.stringify({ ...JSON.parse(note), findings });
+  await writeFile(feedbackFile, oldNote);
+  const old = await selectCodeDraftFeedback(feedbackFile, reference, next.root);
+  assert.deepEqual(old.findings, findings);
+  assert.equal(old.focusedPlanSteps, undefined);
   await writeFile(feedbackFile, note);
-  const feedback = (await selectCodeDraftFeedback(feedbackFile, reference, next.root)).reference;
+  // Exercise invalid selections without changing the original approved files.
+  const key = '_cosmos/acceptance-plan.json', plan = JSON.parse(design.files.get(key)!.toString('utf8'));
+  const step = plan.scenario.steps.find((item: { id: string }) => item.id === 'complete');
+  for (const [scenario, error] of [
+    [{ ...plan.scenario, reopen: { steps: [step] } }, /ambiguous/],
+    [{ ...plan.scenario, steps: [{ ...step, expected: '界'.repeat(1400) }] }, /exceed 4096 bytes/],
+  ] as const) {
+    const files = new Map(design.files).set(key, Buffer.from(JSON.stringify({ ...plan, scenario })));
+    await assert.rejects(selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, { ...design, files }), error);
+  }
+  const feedback = (await selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, design)).reference;
   await writeFile(decision, JSON.stringify({ ...funding.payload, formatVersion: 'public-validation-authorization/2', brief: previous.draft.brief,
     runRoot: next.root, requirementsSource: requirements, renderFrames: false, sourceRefs: [...funding.payload.sourceRefs, design.reference, art.reference, reference, feedback] }));
   const command = ['new', next.root, '--shared-root', funding.sharedRoot, '--authorization', decision];
@@ -93,10 +112,12 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     JSON.stringify({ ...JSON.parse(note), findings: Array(5).fill(findings[0]) }),
     JSON.stringify({ ...JSON.parse(note), approved: true }),
     JSON.stringify({ ...JSON.parse(note), findings: [{ observed: 'a'.repeat(513) }] }),
+    ...[[], ['complete', 'complete'], ['complete', 'click', 'target-pixels', 'a', 'b'], [42], ['unknown']].map(stepIds =>
+      JSON.stringify({ ...JSON.parse(note), findings: [{ ...findings[0], stepIds }] })),
     note.padEnd(4097),
   ]) {
     await writeFile(feedbackFile, invalid);
-    await assert.rejects(selectCodeDraftFeedback(feedbackFile, reference, next.root), /code draft feedback/i);
+    await assert.rejects(selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, design), /code draft feedback/i);
   }
   await writeFile(feedbackFile, note + ' ');
   await assert.rejects(invoke(command), /Pinned code draft feedback changed/);
@@ -124,10 +145,11 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
       : rounds === 28 ? [tool('read', { path: audioPath })]
       : rounds === 29 ? [tool('edit', { path: audioPath, edits: [{ oldText: 'game: Phaser.Game) { return game.load', newText: 'scene: Phaser.Scene) { return scene.load' }] })] : [];
     if (reviewerVerdict) {
-      assert.doesNotMatch(body.messages[0].content, /initialCodeDraftFiles|export const status/);
+      assert.doesNotMatch(body.messages[0].content, /focusedPlanSteps|initialCodeDraftFiles|export const status/);
       assert.deepEqual(body.tools.map((tool: any) => tool.function.name), ['read']);
       reviews++;
     } else {
+      assert.ok(body.messages[0].content.includes('"focusedPlanSteps":' + JSON.stringify(focusedPlanSteps)));
       assert.ok(body.messages[0].content.includes('"initialCodeDraftFiles":' + JSON.stringify(initialFiles)));
       assert.match(body.messages[0].content, /working files, which always take precedence/);
     }
