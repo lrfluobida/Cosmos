@@ -4,9 +4,15 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS-221 已合入 `d7c4a80f`，独审批准 `3952787f`。普通编码作者的显式反馈可引用已批准计划中的步骤 ID，宿主将对应操作、读取、断言和期望按原定义放入作者初始包。组合主线构建通过，6 个文件与批准版本一致，本机带资 CLI 1/1 通过，耗时 168,941 ms，零跳过。未引用步骤的旧反馈保持原样，完整计划继续用于宿主和独审。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/222#issuecomment-6862888084)
+
+主线编译版使用 R60 的真实草稿、批准设计与美术复核新反馈 `3033c52779faeb15462aa4cff9ce9d575c384a61755c72e5b7b376df7c7593ae`。精确解析五个步骤，主场景三步、重开场景两步，序列化步骤共 1,104 字节。作者工作树摘除唯一依赖联接后已清理，主仓和模板入口完整，八份复现与测试证据保存在 `E:/develop/Cosmos-stage/r62-focused-steps-author/`。本批付费请求为零。 [绑定反馈](.cosmos/public-validation/room-20261113-reserve-60/preview-smoke/author-feedback-focused-steps.json)
+
+R63 尚未预留或启动。现有只读提案拟将阶段上限由 ¥52.96 提至 ¥53.76，增加 ¥0.80，为一次 ¥1.15 / 30 分钟的运行提供额度。当前阶段余额 ¥0.357544。 [预算提案](.cosmos/planning/r62-step-feedback-budget/budget-proposal.md)
+
 R62 在 `070eee43` 上通过真实编译并捕获 `game@v1`，运行中未观察到快照持久化故障。作者未改源码，交接列有 5 项未完成工作，正式宿主验证和编码独审未启动，自动验收未通过。候选与 R60 逐字节相同，复用其构建与独立 Edge 试玩记录。 [开发预览 Play.cmd](.cosmos/public-validation/room-20261114-retry-62/development-preview/Play.cmd) · [R62 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6862681603)
 
-33 次工具读取中，31 次针对验收计划，其中 30 次正常返回，共 394,187 字节，1 次参数错误。首份紧凑页给出了继续读取所需的 `planOffset`，后续作者改用普通 `offset` 读取原始正文。交接称内容均为空，与实际返回不符。COS-221 将允许普通编码作者通过显式反馈引用少量已批准步骤，由宿主提供准确的操作、断言和期望值。 [读取轨迹](.cosmos/public-validation/room-20261114-retry-62/read-audit.json) · [离线修复](https://github.com/lrfluobida/Cosmos/issues/222)
+33 次工具读取中，31 次针对验收计划，其中 30 次正常返回，共 394,187 字节，1 次参数错误。首份紧凑页给出了继续读取所需的 `planOffset`，后续作者改用普通 `offset` 读取原始正文。交接称内容均为空，与实际返回不符。此处根因由 COS-221 跟进。 [读取轨迹](.cosmos/public-validation/room-20261114-retry-62/read-audit.json) · [离线修复](https://github.com/lrfluobida/Cosmos/issues/222)
 
 本轮上限 ¥0.71 / 30 分钟，耗时 835,645 ms。32 笔结算 ¥0.362201，释放 ¥0.347799。子账本修订 142、共享修订 3495，阶段累计结算 ¥50.396028、历史待核占用 ¥2.206428、余额 ¥0.357544。运行临时目录已清理。[R63 只读报价](.cosmos/planning/r62-step-feedback-budget/budget-53.76-quote.json) 尚待决定，未应用或派发。 [闭账审计](.cosmos/public-validation/room-20261114-retry-62/closure-readonly-audit.json)
 

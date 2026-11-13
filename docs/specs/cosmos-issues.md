@@ -2727,7 +2727,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-221 · 按反馈中的步骤 ID 向编码作者提供已批准的验收计划条目
 
-归属 #19，原生父卡和依赖为 #215。R62 的作者交接误判验收计划正文为空。普通编码作者的显式反馈可引用少量已批准步骤，宿主从同版原计划准确解析操作、读取、断言及期望值，放入作者初始包；保留旧反馈、完整计划和权限隔离。作者 `focused_steps_author`，独审 `r52_evidence`。 [R62 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6862681603) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/222)
+归属 #19，原生父卡和依赖为 #215。R62 的作者交接误判验收计划正文为空。普通编码作者的显式反馈可引用少量已批准步骤，宿主从同版原计划准确解析操作、读取、断言及期望值，放入作者初始包；保留旧反馈、完整计划和权限隔离。作者 `focused_steps_author`，独审 `r52_evidence` 批准 `3952787f`，主线合入 `d7c4a80f`。新旧反馈的本机 CLI 1/1、主线构建通过，正式选源链核对真实计划中的五项原步骤。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/222#issuecomment-6862888084) [R62 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6862681603) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/222)
 
 ## 5. 任务与上下文包模板
 
