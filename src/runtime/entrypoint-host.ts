@@ -46,7 +46,7 @@ import { APPROVED_DESIGN, approvedDownstreamPlan, checkApprovedDesignImport, sel
 import { checkSuppliedDesignHandoff, selectSuppliedDesign, suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { readReviewedDesignDraft } from './reviewed-design-draft.ts';
 import { readOrdinaryProfile } from './ordinary-profile-source.ts';
-import { createOrdinaryAcceptanceScope, validateOrdinaryAcceptancePlan, ORDINARY_PLAN_FILE, ORDINARY_PLAN_SOURCE } from './entrypoint-acceptance-plan.ts';
+import { ordinaryCodingDeliveryProof, createOrdinaryAcceptanceScope, validateOrdinaryAcceptancePlan, ORDINARY_PLAN_FILE, ORDINARY_PLAN_SOURCE } from './entrypoint-acceptance-plan.ts';
 import type { ExecutionRequirement, ValidationRequirement } from '../roles/execution-input.ts';
 import { isValidationRequirement, validateExecutionInput } from '../roles/execution-input.ts';
 import type { ValidationExecutionBinding } from './validation-scope.ts';
@@ -85,6 +85,7 @@ import { readModularRepairPolicy, requireCurrentModularRepairPolicy } from './mo
 import { associateNativeReadSignal, createNativeSnapshotValidationWaits, isNativeValidationWaits, NativeWaitDeadlineError } from '../acceptance/native-validation-waits.ts';
 import type { NativeValidationWaits } from '../acceptance/native-validation-waits.ts';
 import { optionalDesignJson, readDesignRevisionPlan, readDesignSelection, requireDesignExecution, requireDesignMirrors, requireDesignProgress, seedDesignFiles, seedDesignRevision } from './entrypoint-design-revision.ts';
+import { ORDINARY_CODING_HANDOFF } from './repair/coding-concerns.ts';
 import { isOrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
 
 const TEMPLATE_FILES = ['package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts'];
@@ -384,6 +385,8 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const modular = !!(draft as BrowserGameDraft).codeProfile;
   const ordinaryAuthoring = !!ordinaryDraft && !modular && !validation && !preparation && !human && !historical;
   const budgetEligible = ordinaryAuthoring && !binding;
+  const ordinaryCodingHandoffPolicy = input.ordinaryCodingHandoffPolicy;
+  if (ordinaryCodingHandoffPolicy !== undefined && (!budgetEligible || ordinaryCodingHandoffPolicy !== ORDINARY_CODING_HANDOFF)) throw new Error('Invalid ordinary coding handoff policy for this host.');
   const ordinaryPlanAuthoringPolicy = input.ordinaryPlanAuthoringPolicy;
   if (ordinaryPlanAuthoringPolicy !== undefined && (!isOrdinaryPlanAuthoringPolicy(ordinaryPlanAuthoringPolicy) || !budgetEligible)) throw new Error('Invalid ordinary plan authoring policy for this host.');
   if (input.ordinaryDesignBudgetPolicy !== undefined && (input.ordinaryDesignBudgetPolicy !== 'review-reserve/1' || !budgetEligible)) throw new Error('Invalid ordinaryDesignBudgetPolicy for this host.');
@@ -867,6 +870,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
   const mediaLayout = { artifactId: mediaOutput.artifactId, paths: ['_cosmos/mediaSpec.json', 'public/assets/manifest.json'] };
   const gameLayout = { artifactId: output.artifactId, paths: ['index.html', 'src/main.ts'] };
   const host: GenerationHost = {
+    ...(ordinaryCodingHandoffPolicy ? { ordinaryCodingHandoffPolicy } : {}),
     ...(ordinaryDesignRevisionBudgetPolicy ? { ordinaryDesignRevisionBudgetPolicy } : {}),
     ...(ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy } : {}),
     ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}),
@@ -1010,6 +1014,7 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
         ...(feedback && codeDraft ? { ordinaryCodeDraftFeedback: { taskId: codeDraft.proof.taskId, findings: feedback.findings,
           initialFiles: initialDraft && compactCodeDraftFiles(initialDraft.files) } } : {}),
         ...(budgetEligible ? { ordinaryCodingDesignInput: task => selected(task, 'design') } : {}),
+        ...(ordinaryCodingHandoffPolicy ? { ordinaryCodingConcernReview: (task: TaskContract) => role(task) === 'coding' && sameValue(task.artifacts, [output]) } : {}),
         ordinaryCodingReviewImageQuote: task => role(task) === 'coding',
         ordinaryArtDesignInput: task => {
           if (role(task) !== 'art') throw new Error('Art plan display requires the ordinary art task.');
@@ -1445,8 +1450,9 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
                 pictures.set(task.taskId, chosen.map((location, index) => ({ artifactId: `${task.taskId}-screenshot-${index}`, version: ref.version, location })));
               }
               if (!valid) {
-                if (frames || modular) consumerDiagnostics = integrationDiagnostics(diagnoseBrowser(task, report, plan, `evidence/${task.taskId}/browser.json`));
-                else classification = sameValue(report.plan, plan) ? 'code_defect' : 'insufficient_evidence';
+                if (frames || modular || ordinaryCodingHandoffPolicy && sameValue(ref, output) && task.handoff.uncertainty.length) {
+                  consumerDiagnostics = integrationDiagnostics(diagnoseBrowser(task, report, plan, `evidence/${task.taskId}/browser.json`));
+                } else classification = sameValue(report.plan, plan) ? 'code_defect' : 'insufficient_evidence';
                 actual = 'Normal input report failed or did not match the fixed plan and candidate.';
               }
               return { passed: valid, evidenceIds: [`${task.taskId}-host`] };
@@ -1575,8 +1581,10 @@ async function createBrowserHostCore(input: BrowserHostCoreInput): Promise<Gener
       const ref = taskOutput(task), proof = proofs.get(task.taskId);
       if (importedArt) await requireApprovedArtCandidate(root, await currentApprovedArt(), task, ref);
       let ordinaryExecution: Awaited<ReturnType<NonNullable<typeof ordinary>['bindCandidate']>> | undefined;
-      if (ordinary) try { ordinaryExecution = await ordinary.bindCandidate(task, selected(task, 'design'), ref); }
-      catch { return { gaps: ['Original ordinary plan, confirmation or independent design approval changed before promotion.'] }; }
+      if (ordinary) try {
+        ordinaryExecution = { ...await ordinary.bindCandidate(task, selected(task, 'design'), ref),
+          ...(ordinaryCodingHandoffPolicy ? await ordinaryCodingDeliveryProof(root, current, task, requirement as import('../contracts/types.ts').RequirementContract, await json(root, 'execution.json')) : {}) };
+      } catch { return { gaps: ['Original ordinary plan, confirmation or independent approval changed before promotion.'] }; }
       if (modular) try { await modularInputs(task); } catch { return { gaps: ['Original approved module inputs or review signatures changed before promotion.'] }; }
       if (preparation?.candidateConsumer || classicEntries) {
         try {

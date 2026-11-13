@@ -49,8 +49,9 @@ import type { OrdinaryPlanAuthoringPolicy } from './entrypoint-plan-authoring.ts
 import { authenticatedOrdinaryFunding, CONSERVED_DESIGN_BUDGET, readConservedBudgetPolicy } from './ordinary-design-revision-budget.ts';
 import type { ConservedDesignBudgetPolicy } from './ordinary-design-revision-budget.ts';
 import type { OrdinaryDesignBudgetLifecycle } from './ordinary-design-revision-lifecycle.ts';
+import { ORDINARY_CODING_HANDOFF, ordinaryCodingOrigin, type OrdinaryCodingPolicy } from './repair/coding-concerns.ts';
 
-export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
+export interface GenerationHost extends OrdinaryCodingPolicy, Pick<DagOptions, 'capture' | 'verify' | 'reviewImages' | 'diagnoseFailure' | 'preAuthor'> {
   ordinaryPlanAuthoringPolicy?: OrdinaryPlanAuthoringPolicy;
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy;
@@ -66,7 +67,7 @@ export interface GenerationHost extends Pick<DagOptions, 'capture' | 'verify' | 
   repair(task: TaskContract, feedback: RepairFeedback): Promise<{ outputs: TaskContract['outputs']; expectedArtifacts: ArtifactReference[]; allocationMicroCny: number } | null>;
   continuationTargets?(sources: PreparedTask[], feedback: RepairFeedback, grants: Record<string, number>): Promise<SuccessorTarget[] | null>;
 }
-export interface HostInput { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; ordinaryPlanAuthoringPolicy?: OrdinaryPlanAuthoringPolicy; ordinaryDesignFinalizationPolicy?: 'budget-followup/1'; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy; ordinaryDesignRevisionBudgetPolicy?: ConservedDesignBudgetPolicy; renderFrames?: boolean; ordinaryMediaObservationPolicy?: 'audio-state/1'; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
+export interface HostInput extends OrdinaryCodingPolicy { root: string; controller: RunController; requirement: RequirementContract; draft: GameDraft; resume: boolean; work: OwnedWork; ordinaryPlanAuthoringPolicy?: OrdinaryPlanAuthoringPolicy; ordinaryDesignFinalizationPolicy?: 'budget-followup/1'; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy; ordinaryDesignRevisionBudgetPolicy?: ConservedDesignBudgetPolicy; renderFrames?: boolean; ordinaryMediaObservationPolicy?: 'audio-state/1'; binding?: { windowId: string; tasks: PreparedTask[]; preparation?: import('./continuation-preparation.ts').HumanContinuationPreparation } }
 export interface GenerationOptions { root: string; requirement: RequirementContract; draft: GameDraft; resume: boolean; windowId?: string; renderFrames?: boolean; notify?: (message: string) => void; createHost(input: HostInput): Promise<GenerationHost> }
 async function json(root: string, name: string): Promise<any> { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, name))); }
 async function optionalJson(root: string, name: string): Promise<any | null> { try { return await json(root, name); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null; throw error; } }
@@ -140,8 +141,9 @@ export async function executeGeneration(options: GenerationOptions) {
   const rebuildHistoricalPlan = options.resume && approvedSource && !originalExecution;
   if (rebuildHistoricalPlan && (original.tasks.length || original.ledger.entries.length || original.ledger.allocations.some(grant => !['intake', 'planning'].includes(grant.taskId)))) throw new Error('Missing historical plan after dispatch.');
   const resumeExecution = options.resume && !rebuildHistoricalPlan;
+  const originalPlanning = options.resume ? await optionalJson(root, 'planning-started.json') : null;
   const ordinaryPlanAuthoringPolicy = resumeExecution
-    ? originalExecution ? readPlanAuthoringPolicy(originalExecution, await optionalJson(root, 'planning-started.json'), ordinary && !draft.codeProfile && !draft.preparation) : undefined
+    ? originalExecution ? readPlanAuthoringPolicy(originalExecution, originalPlanning, ordinary && !draft.codeProfile && !draft.preparation) : undefined
     : ordinary && !approvedSource && !draft.codeProfile && !draft.preparation && original.designDraftReview?.artifactId !== SUPPLIED_DESIGN ? (original.designDraftReview ? REVIEWED_DRAFT_POLICY : 'structured-design-plan/3' as const) : undefined;
   if (ordinaryPlanAuthoringPolicy === REVIEWED_DRAFT_POLICY && !original.designDraftReview) throw new Error('Reviewed draft authoring requires its fixed design draft review.');
   if (originalExecution?.ordinaryDesignRevisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(originalExecution.ordinaryDesignRevisionPolicy)
@@ -151,6 +153,12 @@ export async function executeGeneration(options: GenerationOptions) {
       || originalExecution.authorProtocolCorrections !== 1 || originalExecution.capability !== 'ordinary-design-execution/1' || !ordinary || draft.codeProfile || draft.preparation)) throw new Error('Invalid ordinary design finalization policy.');
   const ordinaryDesignFinalizationPolicy = resumeExecution ? originalExecution?.ordinaryDesignFinalizationPolicy
     : ordinary && !approvedSource && !draft.codeProfile && !draft.preparation ? 'budget-followup/1' as const : undefined;
+  const ordinaryCodingEligible = ordinary && !draft.codeProfile && !draft.preparation;
+  const ordinaryCodingHandoffPolicy = options.resume ? originalPlanning?.ordinaryCodingHandoffPolicy
+    : ordinaryCodingEligible ? ORDINARY_CODING_HANDOFF : undefined;
+  if (originalExecution && ordinaryCodingHandoffPolicy !== originalExecution.ordinaryCodingHandoffPolicy
+    || ordinaryCodingHandoffPolicy !== undefined && (!ordinaryCodingEligible || ordinaryCodingHandoffPolicy !== ORDINARY_CODING_HANDOFF
+      || options.resume && originalPlanning.capability !== 'ordinary-design-execution/1')) throw new Error('Invalid original ordinary coding handoff policy.');
   const ordinaryMediaObservationPolicy = resumeExecution ? mediaObservationPolicy(originalExecution, ordinary) : ordinary ? 'audio-state/1' as const : undefined;
   if (options.resume) { const completed = await readCompletedGeneration(root, requirement); if (completed) return completed; }
   await requireCurrentFrameSource(frames);
@@ -187,10 +195,12 @@ export async function executeGeneration(options: GenerationOptions) {
         ? { ordinaryDesignRevisionPolicy: resumeExecution ? originalExecution.ordinaryDesignRevisionPolicy : 'independent-review/2' as const } : {}),
       ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}),
       ...(ordinaryPlanAuthoringPolicy ? { ordinaryPlanAuthoringPolicy } : {}),
+      ...(ordinaryCodingHandoffPolicy ? { ordinaryCodingHandoffPolicy } : {}),
       ...(ordinaryMediaObservationPolicy ? { ordinaryMediaObservationPolicy } : {}) });
     if (!sameValue(approvedSource, host.historicalDesignPlan?.proof.source)) throw new Error('Historical design host selection differs from the original source.');
     const approvedArt = original.artDraftSource?.artifactId === APPROVED_ART ? original.artDraftSource : undefined;
     if (!sameValue(approvedArt, host.historicalDesignPlan?.art?.source)) throw new Error('Historical art host selection differs from the original source.');
+    if (ordinaryCodingHandoffPolicy !== host.ordinaryCodingHandoffPolicy) throw new Error('Original ordinary coding handoff policy changed.');
     if (host.ordinaryPlanAuthoringPolicy !== ordinaryPlanAuthoringPolicy) throw new Error('Original ordinary plan authoring policy changed.');
     if (host.ordinaryDesignRevisionBudgetPolicy !== ordinaryDesignRevisionBudgetPolicy) throw new Error('Original ordinary revision budget policy changed.');
     if (budgetLifecycle) Object.defineProperty(host, 'roleFactory', { value: budgetLifecycle.wrapFactory(host.roleFactory), writable: false, configurable: false });
@@ -204,7 +214,7 @@ export async function executeGeneration(options: GenerationOptions) {
     let phase = 'planning';
     const outcome = await work.run(async (signal, operation) => {
       budgetLifecycle?.bindOperation(work, operation);
-      let execution: { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1; ordinaryPlanAuthoringPolicy?: OrdinaryPlanAuthoringPolicy; ordinaryDesignFinalizationPolicy?: 'budget-followup/1'; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy; ordinaryDesignRevisionBudgetPolicy?: ConservedDesignBudgetPolicy; ordinaryMediaObservationPolicy?: 'audio-state/1' };
+      let execution: OrdinaryCodingPolicy & { capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference; authorProtocolCorrections?: 1; ordinaryPlanAuthoringPolicy?: OrdinaryPlanAuthoringPolicy; ordinaryDesignFinalizationPolicy?: 'budget-followup/1'; ordinaryDesignBudgetPolicy?: 'review-reserve/1'; ordinaryDesignRevisionPolicy?: OrdinaryDesignRevisionPolicy; ordinaryDesignRevisionBudgetPolicy?: ConservedDesignBudgetPolicy; ordinaryMediaObservationPolicy?: 'audio-state/1' };
       if (resumeExecution) {
         execution = originalExecution;
         if (historicalPlan && (!sameValue(execution.tasks, historicalPlan.tasks) || !sameValue(execution.plan, historicalPlanRef)
@@ -214,6 +224,7 @@ export async function executeGeneration(options: GenerationOptions) {
         if (execution.capability !== host.capability || !sameValue(execution.requirement, requirement) || !sameValue(execution.availableArtifacts, host.availableArtifacts)) throw new Error('Original execution host or fixed requirements changed.');
       } else {
         const planningStart = { runId: original.run.runId, ledgerId: original.ledger.ledgerId, requirement, capability: host.capability,
+          ...(ordinaryCodingHandoffPolicy ? { ordinaryCodingHandoffPolicy } : {}),
           ...(ordinaryDesignRevisionBudgetPolicy ? { ordinaryDesignRevisionBudgetPolicy, ordinaryDesignBudgetOwner: budgetLifecycle!.start,
             ordinaryDesignBudgetFunding: { fundingId: original.validationFunding!.fundingId, authorizationSha256: original.validationFunding!.authorizationSha256 } } : {}),
           ...(ordinaryPlanAuthoringPolicy ? { ordinaryPlanAuthoringPolicy } : {}) };
@@ -230,6 +241,7 @@ export async function executeGeneration(options: GenerationOptions) {
           ...(host.ordinaryDesignBudgetPolicy ? { ordinaryDesignBudgetPolicy: host.ordinaryDesignBudgetPolicy } : {}),
           ...(ordinaryPlanAuthoringPolicy ? { ordinaryPlanAuthoringPolicy } : {}),
           ...(ordinaryDesignFinalizationPolicy ? { ordinaryDesignFinalizationPolicy } : {}),
+          ...(ordinaryCodingHandoffPolicy ? { ordinaryCodingHandoffPolicy } : {}),
           ...(host.ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy: host.ordinaryDesignRevisionPolicy } : {}),
           ...(host.capability === 'ordinary-design-execution/1' ? { authorProtocolCorrections: 1 as const } : {}),
           ...(ordinaryMediaObservationPolicy ? { ordinaryMediaObservationPolicy } : {}) };
@@ -243,9 +255,11 @@ export async function executeGeneration(options: GenerationOptions) {
         await host.bindPreparedTasks?.(tasks);
         // The ordinary DAG has one design slot. Its generic replacement keeps the marker-free continuation origin.
         const replacedDesign = execution.ordinaryDesignFinalizationPolicy && tasks.some(item => item.role === 'design' && continuation?.newTaskIds.includes(item.task.taskId));
+        const codingOriginal = tasks.find(item => ordinaryCodingOrigin(execution, item).ordinaryCodingHandoffPolicy);
         const common: DagOptions = { controller, requirement, tasks, sessionRoot: join(root, 'sessions'), availableArtifacts,
           roleFactory: replacedDesign ? input => host.roleFactory(input.role === 'design' ? { ...input, disableDesignFinalization: true } : input) : host.roleFactory,
           preAuthor: host.preAuthor, capture: host.capture, verify: host.verify, reviewImages: host.reviewImages, diagnoseFailure: host.diagnoseFailure, signal,
+          ...(codingOriginal ? { ordinaryCodingTaskId: codingOriginal.task.taskId } : {}),
           reviewProtocolCorrections: 1, ...policy, ...(execution.ordinaryDesignFinalizationPolicy && !replacedDesign ? { ordinaryDesignFinalizationPolicy: execution.ordinaryDesignFinalizationPolicy } : {}),
           ...(execution.ordinaryDesignRevisionPolicy ? { ordinaryDesignRevisionPolicy: execution.ordinaryDesignRevisionPolicy } : {}),
           scheduling: { maxParallel: 2, resources: Object.fromEntries(tasks.map(item => [item.task.taskId, ['browser-build-promotion']])) },

@@ -1,3 +1,5 @@
+import { parseProposal, type AuthorProposal } from './orchestrator.ts';
+import { ordinaryCodingOrigin, requirePassedCodingConcerns, type OrdinaryCodingPolicy } from './repair/coding-concerns.ts';
 import type { PreparedTask } from './orchestrator.ts';
 import { requireApprovedArtCandidate, selectApprovedArt } from './approved-art-source.ts';
 import { APPROVED_ART, ART_REVIEW_INPUT, selectArtReviewInput } from './art-draft-source.ts';
@@ -108,6 +110,31 @@ export function createOrdinaryAcceptanceScope(input: { root: string; controller:
   return { requireCurrent, requireRequirement, read, approved, bindCandidate };
 }
 
+/** Bind the exact concern verdict to the delivered game. Older and clear handoffs retain their ordinary report shape. */
+export async function ordinaryCodingDeliveryProof(root: string, state: RunSnapshot, task: TaskContract, requirement: RequirementContract,
+  execution: OrdinaryCodingPolicy & { tasks: PreparedTask[] }) {
+  if (execution.ordinaryCodingHandoffPolicy === undefined) return {};
+  const prepared = execution.tasks.find(item => item.role === 'coding' && item.task.taskId === task.taskId);
+  if (!prepared) return {};
+  const { ordinaryCodingHandoffPolicy } = ordinaryCodingOrigin(execution, prepared);
+  const origin = await json(root, `journal/task-${encodeURIComponent(task.taskId)}/origin.json`) as RecoveryOrigin;
+  if (ordinaryCodingHandoffPolicy !== origin.ordinaryCodingHandoffPolicy) throw new Error('Original ordinary coding handoff policy changed.');
+  if (!ordinaryCodingHandoffPolicy) return {};
+  if (origin.runId !== state.run.runId || origin.ledgerId !== state.ledger.ledgerId || !sameValue(origin.requirement, requirement)
+    || origin.prepared.task.taskId !== task.taskId || !sameValue(origin.prepared.expectedArtifacts, task.artifacts)
+    || !sameValue(prepared.expectedArtifacts, task.artifacts)) throw new Error('Ordinary coding origin or candidate changed.');
+  requireOriginalTask(origin.prepared.task, task);
+  const journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin, true);
+  const attempt = task.attempts.at(-1)!, author = await journal.read<{ proposal: AuthorProposal }>('author', attempt.attemptId);
+  const proposal = parseProposal(JSON.stringify(author?.proposal));
+  if (proposal.remaining.length) throw new Error('Passed ordinary coding candidate has unfinished work.');
+  if (!proposal.uncertainty.length) {
+    if (await journal.read('coding-concerns', attempt.attemptId)) throw new Error('Original ordinary coding concerns changed.');
+    return {};
+  }
+  return { codingConcernReviewSha256: await requirePassedCodingConcerns(task, requirement, journal, origin.prepared.workspace, proposal, false, root) };
+}
+
 /** Completed delivery reads use the same approval gate without reopening a controller or writing a receipt. */
 export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, task: TaskContract, candidate: ArtifactReference, binding: unknown, historicalDesign?: unknown, historicalArt?: unknown) {
   const { readConfirmedGeneration } = await import('../cli/session.ts'), confirmed = await readConfirmedGeneration(root, state);
@@ -145,6 +172,7 @@ export async function verifyOrdinaryDelivery(root: string, state: RunSnapshot, t
   const scope = createOrdinaryAcceptanceScope({ root, controller: { read: async () => structuredClone(state) }, registry: new ArtifactRegistry(root, 'registry'),
     requirement: confirmed.requirement, draft: confirmed.draft, requirementCapture,
     dependencies });
-  if (!sameValue(binding, await scope.bindCandidate(task, design, candidate))) throw new Error('Ordinary delivery report plan binding changed.');
+  const expected = { ...await scope.bindCandidate(task, design, candidate), ...await ordinaryCodingDeliveryProof(root, state, task, confirmed.requirement, execution) };
+  if (!sameValue(binding, expected)) throw new Error('Ordinary delivery report plan binding changed.');
   return [...(historical?.acceptanceIds ?? []), ...mediaIds];
 }

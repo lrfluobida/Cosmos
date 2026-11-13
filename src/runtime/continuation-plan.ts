@@ -20,6 +20,7 @@ import { deriveHumanContinuationPreparation } from './continuation-preparation.t
 import type { HumanContinuationPreparation } from './continuation-preparation.ts';
 import { authorCorrectionPolicy } from './entrypoint-successors.ts';
 import { designOriginPolicy } from './repair/design-concerns.ts';
+import { ordinaryCodingOrigin } from './repair/coding-concerns.ts';
 import { authenticateDesign } from './entrypoint-design-revision.ts';
 
 export interface ContinuationPlan {
@@ -55,6 +56,7 @@ function origin(root: string, state: RunSnapshot, requirement: RequirementContra
   return { ...(binding ? { formatVersion: 2 as const, executionWindow: binding } : { formatVersion: 1 as const }),
     runId: state.run.runId, ledgerId: state.ledger.ledgerId, originalStartedAt: state.run.originalStartedAt, originalDeadlineAt: state.run.originalDeadlineAt,
     limitMicroCny: state.ledger.limitMicroCny, requirement, prepared, reviewProtocolCorrections: 1, ...policy,
+    ...(!binding && execution ? ordinaryCodingOrigin(execution, prepared) : {}),
     ...(!binding && execution ? designOriginPolicy(execution.ordinaryDesignRevisionPolicy, prepared.role) : {}),
     ...(!binding && prepared.role === 'design' && execution?.ordinaryDesignFinalizationPolicy === 'budget-followup/1'
       && execution.tasks.some(item => item.role === 'design' && sameValue(item, prepared)) ? { ordinaryDesignFinalizationPolicy: 'budget-followup/1' as const } : {}), artifactRoot: root, sessionRoot: join(root, 'sessions') };

@@ -5,6 +5,7 @@ import { directory, regularFile, safePath, snapshot, within } from '../../artifa
 import { sameValue } from '../../contracts/validation.ts';
 import type { ArtifactReference, TaskContract } from '../../contracts/types.ts';
 import { isValidationRequirement } from '../../roles/execution-input.ts';
+import type { OrdinaryCodingPolicy } from '../repair/coding-concerns.ts';
 import type { ExecutionRequirement } from '../../roles/execution-input.ts';
 import type { ValidationJournalBinding } from '../validation-scope.ts';
 import type { AuthorProposal, PreparedTask } from '../orchestrator.ts';
@@ -23,7 +24,7 @@ export interface RecoveryOptions {
 export interface RecoveryReport { tasks: TaskContract[]; reusedTaskIds: string[]; blocked: { taskId: string; reason: string }[] }
 export class RecoveryBlocked extends Error {}
 type Stage = 'author' | 'author-correction-started' | 'author-correction-response' | 'capture-started' | 'capture' | 'coding-concerns' | 'design-concerns' | 'verify-started' | 'verified' | 'review-started' | 'review' | 'failure-snapshot';
-export interface RecoveryOrigin {
+export interface RecoveryOrigin extends OrdinaryCodingPolicy {
   formatVersion: 1 | 2 | 3; runId: string; ledgerId: string; originalStartedAt: string; originalDeadlineAt: string;
   limitMicroCny: number; requirement: ExecutionRequirement; prepared: PreparedTask; reviewProtocolCorrections: 0 | 1;
   artifactRoot: string; sessionRoot: string;
@@ -48,6 +49,8 @@ export class TaskJournal {
   private constructor(root: string, artifactRoot: string, taskId: string) { this.root = root; this.artifactRoot = artifactRoot; this.taskId = taskId; }
   static async open(options: RecoveryOptions, origin: RecoveryOrigin, resume: boolean, callerSignal?: AbortSignal): Promise<TaskJournal> {
     const signal = resume ? callerSignal : undefined; signal?.throwIfAborted();
+    if (origin.ordinaryCodingHandoffPolicy !== undefined && (origin.ordinaryCodingHandoffPolicy !== 'host-evidence/1' || origin.formatVersion !== 1
+      || origin.prepared.role !== 'coding' || !sameValue(origin.prepared.expectedArtifacts, [{ artifactId: 'game', version: 'v1', location: 'registry/candidates/game/v1/project' }]))) throw new RecoveryBlocked('Invalid ordinary coding concern review origin.');
     if (origin.ordinaryDesignRevisionPolicy !== undefined && (origin.ordinaryDesignRevisionPolicy !== 'independent-review/2' || origin.formatVersion !== 1
       || origin.prepared.role !== 'design' || origin.authorProtocolCorrections !== 1 || origin.executionWindow || origin.validationCase)) throw new RecoveryBlocked('Invalid ordinary design candidate review origin.');
     if (origin.ordinaryDesignFinalizationPolicy !== undefined && (origin.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || origin.formatVersion !== 1
