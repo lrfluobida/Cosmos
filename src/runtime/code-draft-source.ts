@@ -1,9 +1,10 @@
 import { isUtf8 } from 'node:buffer';
-import { realpath } from 'node:fs/promises';
-import { isAbsolute, posix, resolve } from 'node:path';
-import { directory, owns, regularFile, snapshot, within } from '../artifacts/paths.ts';
+import { lstat, realpath } from 'node:fs/promises';
+import { isAbsolute, join, posix, resolve } from 'node:path';
+import { ArtifactRegistry } from '../artifacts/index.ts';
+import { directory, noConflicts, owns, regularFile, safePath, snapshot, within } from '../artifacts/paths.ts';
 import { readRunSnapshot } from '../cli/control.ts';
-import type { ArtifactReference } from '../contracts/types.ts';
+import type { ArtifactReference, RequirementContract, TaskContract } from '../contracts/types.ts';
 import { sameValue } from '../contracts/validation.ts';
 import { checkApprovedArtImport, type ApprovedArt } from './approved-art-source.ts';
 import { checkApprovedDesignImport, type ApprovedDesign } from './approved-design-source.ts';
@@ -12,6 +13,8 @@ import { readReferencedRequirements, type ConfirmedRequirementsSource } from './
 import { publishMatchingBytes } from './fixed-host-input.ts';
 import { ordinaryDraftSha256 } from './ordinary-profile-source.ts';
 import type { PublicValidationAuthorization } from './public-validation-funding-types.ts';
+import { requireOriginalTask, TaskJournal, type CapturedTask, type ContentSignature, type RecoveryOrigin } from './recovery/task-journal.ts';
+import type { RunSnapshot } from './run-types.ts';
 
 export const CODE_DRAFT = 'ordinary-code-draft';
 const entry = 'authors/coding/index.html';
@@ -61,7 +64,71 @@ async function workingFiles(root: string) {
   return files;
 }
 
-/** A selected working tree supplies editable bytes. The new author still owns its complete output. */
+async function exists(root: string, path: string) {
+  return lstat(await safePath(root, path)).then(() => true, (error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  });
+}
+
+async function capturedFiles(root: string, state: RunSnapshot, task: TaskContract, requirement: RequirementContract,
+  candidateRef: ArtifactReference, source: ArtifactReference, dependencies: ArtifactReference[]) {
+  const attempt = task.attempts.at(-1)!;
+  if (task.state !== 'failed' || attempt.outcome !== 'failed' || attempt.sessionRef !== join(root, 'sessions', attempt.attemptId)
+    || !sameValue(task.artifacts, [candidateRef])) throw new Error('Select the failed task with its original captured candidate.');
+  const origin: RecoveryOrigin = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, `journal/task-${encodeURIComponent(task.taskId)}/origin.json`)));
+  if (origin.formatVersion !== 1 || origin.runId !== state.run.runId || origin.ledgerId !== state.ledger.ledgerId
+    || origin.artifactRoot !== root || origin.sessionRoot !== join(root, 'sessions') || origin.originalStartedAt !== state.run.originalStartedAt
+    || origin.originalDeadlineAt !== state.run.originalDeadlineAt || origin.limitMicroCny !== state.ledger.limitMicroCny
+    || origin.prepared.role !== 'coding' || origin.prepared.workspace !== root || !sameValue(origin.prepared.expectedArtifacts, [candidateRef])
+    || !sameValue(origin.requirement, requirement)) throw new Error('Original coding task capture inputs changed.');
+  requireOriginalTask(origin.prepared.task, task);
+  const journal = await TaskJournal.open({ artifactRoot: root, journalRoot: join(root, 'journal') }, origin, true);
+  const author = await journal.read<{ signature: ContentSignature }>('author', attempt.attemptId);
+  const receipt = await journal.read<{ captured: CapturedTask; signature: ContentSignature }>('capture', attempt.attemptId);
+  if (!author || !receipt || !sameValue(receipt.captured, { artifacts: [candidateRef], reviewWorkspace: join(root, 'reviews', task.taskId) })
+    || await journal.read('review', attempt.attemptId) || await exists(root, posix.dirname(candidateRef.location) + '/sealed.json')) {
+    throw new Error('Select an unreviewed candidate with its original capture receipt.');
+  }
+  await journal.requireSignature(author.signature, task.inputs);
+  const registry = new ArtifactRegistry(root, 'registry'), candidate = await registry.getCandidate(candidateRef), capture = await registry.getCapture(source);
+  const inputs = [...dependencies, source], sourceRoot = 'authors/coding';
+  const provenance = [attempt.sessionRef, ...requirement.sources.map(ref => ref.location)];
+  if (state.codeDraftSource) provenance.push(state.codeDraftSource.artifactId + '@' + state.codeDraftSource.version);
+  if (candidate.taskId !== task.taskId || candidate.authorId !== task.authorId || candidate.contextId !== task.context.contextId
+    || !sameValue(candidate.inputs, inputs) || !sameValue(candidate.expectedDeps, inputs) || capture.taskId !== task.taskId
+    || !sameValue(capture.ownership, { writePaths: ['src', 'index.html'], readOnlyPaths: ['_cosmos'] })
+    || capture.sourceRoot !== sourceRoot || capture.metadata.kind !== 'code' || capture.metadata.provenance.kind !== 'original-procedural'
+    || !sameValue(capture.metadata.provenance.sourceRefs, provenance) || !sameValue(capture.dependencies, dependencies)) {
+    throw new Error('Candidate or code capture provenance changed.');
+  }
+  // The host builds and packages into project after capture. Only the originally mapped files belong to this receipt.
+  const [original] = receipt.signature;
+  const destinations = candidate.files.map(row => row.destination);
+  noConflicts(destinations);
+  if (receipt.signature.length !== 1 || original.location !== candidateRef.location
+    || !sameValue(original.files.map(row => row.path).sort(), destinations.sort())) throw new Error('Original candidate file mapping changed.');
+  for (const { path, sha256 } of original.files) {
+    if (ordinaryDraftSha256(await regularFile(root, candidateRef.location + '/' + path)) !== sha256) throw new Error('Original candidate file changed.');
+  }
+  const fixed = await snapshot(join(root, source.location)), paths = [...fixed.keys()].sort();
+  const signed = new Map(original.files.map(row => [row.path, row.sha256]));
+  const codePath = (path: string) => path === 'index.html' || path.startsWith('src/');
+  const mapped = candidate.files.filter(row => row.taskId === task.taskId || row.artifactRef.artifactId === source.artifactId || codePath(row.destination));
+  if (!fixed.has('index.html') || !fixed.has('src/main.ts') || !sameValue(paths, [...signed.keys()].filter(codePath).sort())
+    || !sameValue(paths, capture.files.map(row => row.destination).sort())
+    || capture.files.some(row => row.source !== row.destination) || !sameValue(paths, mapped.map(row => row.destination).sort())
+    || mapped.some(row => row.taskId !== task.taskId || !sameValue(row.artifactRef, source))) throw new Error('Captured code file mapping changed.');
+  const files = new Map<string, Buffer>();
+  for (const path of paths) {
+    const bytes = fixed.get(path)!;
+    if (ordinaryDraftSha256(bytes) !== signed.get(path)) throw new Error('Captured code differs from the signed candidate.');
+    files.set(sourceRoot + '/' + path, bytes);
+  }
+  return files;
+}
+
+/** Selected bytes seed an editable draft. The new author still owns its complete output. */
 export async function selectCodeDraft(location: string, design: ApprovedDesign, art: ApprovedArt, requirements: ConfirmedRequirementsSource,
   target: { root: string; runId?: string; ledgerId?: string }, expected?: ArtifactReference) {
   const root = resolve(location);
@@ -76,18 +143,27 @@ export async function selectCodeDraft(location: string, design: ApprovedDesign, 
   await checkApprovedDesignImport(root, design);
   await checkApprovedArtImport(root, art);
 
-  const id = design.selection.tasks.find(item => item.role === 'coding')!.task.taskId;
+  const planned = design.selection.tasks.find(item => item.role === 'coding')!, id = planned.task.taskId;
   const task = state.tasks.find(task => task.taskId === id);
-  const inputs = [...confirmed.requirement.sources, ...design.dependencies.map(item => item.ref), design.proof.design, art.proof.media];
-  if (!task || !task.attempts.length || task.attempts.some(attempt => attempt.outcome === 'running') || task.artifacts.length
+  const dependencies = [...design.dependencies.map(item => item.ref), design.proof.design, art.proof.media];
+  const inputs = [...confirmed.requirement.sources, ...dependencies];
+  if (!task || !task.attempts.length || task.attempts.some(attempt => attempt.outcome === 'running')
     || task.review.verdict !== 'pending' || !sameValue(task.inputs, inputs) || !sameValue(task.ownership.writePaths, [sourceDirectory, entry])) {
-    throw new Error('Select an unfinished ordinary coding task without a capture or review.');
+    throw new Error('Select an unfinished ordinary coding task with the original inputs and pending review.');
   }
-  const files = await workingFiles(root);
+  const registry = new ArtifactRegistry(root, 'registry'), candidate = planned.expectedArtifacts![0];
+  const source = registry.artifactRef('game-source', candidate.version);
+  if (!sameValue(planned.expectedArtifacts, [registry.candidateRef('game', candidate.version)])
+    || !sameValue(task.acceptance, planned.task.acceptance) || !sameValue(task.outputs, planned.task.outputs)) throw new Error('Original coding scope or candidate version changed.');
+  const captured = task.artifacts.length > 0;
+  if (!captured && (await exists(root, posix.dirname(source.location)) || await exists(root, posix.dirname(candidate.location))
+    || await exists(root, `journal/task-${encodeURIComponent(id)}/capture.json`))) throw new Error('Coding capture differs from the task artifacts.');
+  const files = captured ? await capturedFiles(root, state, task, confirmed.requirement, candidate, source, dependencies) : await workingFiles(root);
   if (!files.size) throw new Error('No editable code draft files.');
   for (const path of files.keys()) owns(task.ownership, path);
   const proof = { runId: state.run.runId, ledgerId: state.ledger.ledgerId, taskId: id, attemptId: task.attempts.at(-1)!.attemptId,
-    requirements, design: design.reference, art: art.reference, files: [...files].map(([path, bytes]) => ({ path, sha256: ordinaryDraftSha256(bytes) })) };
+    requirements, design: design.reference, art: art.reference, ...(captured ? { candidate, source } : {}),
+    files: [...files].map(([path, bytes]) => ({ path, sha256: ordinaryDraftSha256(bytes) })) };
   const reference = { artifactId: CODE_DRAFT, version: ordinaryDraftSha256(Buffer.from(JSON.stringify(proof))), location: root };
   if (expected && !sameValue(reference, expected)) throw new Error('Pinned code draft changed.');
   return { reference, files, proof };
