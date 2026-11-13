@@ -8,6 +8,7 @@ import { sameValue } from '../contracts/validation.ts';
 import { pathsOverlap } from '../roles/factory.ts';
 import type { PreparedTask } from './orchestrator.ts';
 import type { RunSnapshot } from './run-types.ts';
+import { ordinaryCodingOrigin } from './repair/coding-concerns.ts';
 import { requireOriginalTask, TaskJournal } from './recovery/task-journal.ts';
 import { publishReceipt } from './recovery/receipt-file.ts';
 import type { RunController } from './run.ts';
@@ -362,6 +363,7 @@ export async function prepareRepairContinuation(options: { root: string; control
     || options.now >= Date.parse(state.run.originalDeadlineAt) || !registered && options.now + additions.length * 60000 + 5000 >= Date.parse(state.run.originalDeadlineAt)) blocked('Original admission, charges or deadline block continuation.');
   const recovery = { journalRoot: join(root, 'journal'), artifactRoot: root };
   const origin = (prepared: PreparedTask, original = false) => ({ formatVersion: 1 as const, runId: plan.runId, ledgerId: plan.ledgerId, originalStartedAt: plan.originalStartedAt,
+    ...(original ? ordinaryCodingOrigin(execution, prepared) : {}),
     ...(original ? designOriginPolicy(execution.ordinaryDesignRevisionPolicy, prepared.role) : {}),
     originalDeadlineAt: plan.originalDeadlineAt, limitMicroCny: plan.limitMicroCny, requirement, prepared, reviewProtocolCorrections: plan.reviewProtocolCorrections,
     ...policy, ...(original && prepared.role === 'design' && execution.ordinaryDesignFinalizationPolicy === 'budget-followup/1'

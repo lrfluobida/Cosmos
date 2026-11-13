@@ -13,7 +13,7 @@ import { freeze } from '../roles/requirements.ts';
 import { decodeModelJson } from '../roles/protocol.ts';
 import { requestReview, ReviewInputVersionsError, validateProtocolCorrections } from './repair/protocol.ts';
 import { requestAuthorProposal, recoverAuthorProposal } from './repair/author-protocol.ts';
-import { codingConcernPacket, codingConcernReviewProtocol, parseCodingConcernReview, requireCodingHostEvidence } from './repair/coding-concerns.ts';
+import { codingCaptureSignature, codingConcernPacket, codingReviewInstructions, ORDINARY_CODING_HANDOFF, ordinaryCodingOrigin, parseCodingConcernReview, requireCodingHostEvidence, requirePassedCodingConcerns } from './repair/coding-concerns.ts';
 import type { CodingConcernReview, ReviewProposal } from './repair/coding-concerns.ts';
 import { designConcernPacket, designConcernReviewProtocol, designOriginPolicy, designReviewedHandoff, isOrdinaryDesignRevisionPolicy, parseDesignConcernReview, requireDesignHostEvidence } from './repair/design-concerns.ts';
 import type { DesignConcernReview, DesignReviewProposal, OrdinaryDesignRevisionPolicy } from './repair/design-concerns.ts';
@@ -67,6 +67,8 @@ export interface DagOptions {
   codingHandoffClarifications?: 0 | 1;
   /** Validation-only coding host checks precede explicit independent concern resolution. */
   hostEvidencedCodingHandoff?: 0 | 1;
+  /** Original coding slot selected by the ordinary execution host. */
+  ordinaryCodingTaskId?: string;
   /** Trusted report adapter only. Receives fixed task data, never raw exceptions. */
   diagnoseFailure?: (task: TaskContract, stage: FailureStage) => HostFailure | undefined;
   /** Explicit opt-in host receipts. Existing callers retain their original behavior. */
@@ -129,6 +131,13 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   if (options.authorProtocolCorrections === 1 && !options.recovery) throw new Error('Author protocol correction requires durable host receipts.');
   if (options.ordinaryDesignFinalizationPolicy !== undefined && (options.ordinaryDesignFinalizationPolicy !== 'budget-followup/1' || options.authorProtocolCorrections !== 1 || !options.recovery || options.validation || options.windowId)) throw new Error('Invalid ordinary design finalization scope.');
   if (options.ordinaryDesignRevisionPolicy !== undefined && (!isOrdinaryDesignRevisionPolicy(options.ordinaryDesignRevisionPolicy) || options.authorProtocolCorrections !== 1 || !options.recovery || options.validation || options.windowId)) throw new Error('Invalid ordinary design candidate review scope.');
+  if (options.ordinaryCodingTaskId !== undefined) {
+    if (!options.recovery || options.windowId || options.validation) throw new Error('Invalid ordinary coding handoff scope.');
+    const execution = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(options.recovery.artifactRoot, 'execution.json')));
+    const item = options.tasks.find(item => item.task.taskId === options.ordinaryCodingTaskId);
+    if (!item || execution.capability !== 'ordinary-design-execution/1' || !sameValue(options.requirement, execution.requirement)
+      || !ordinaryCodingOrigin(execution, item).ordinaryCodingHandoffPolicy) throw new Error('Ordinary coding task differs from the original host selection.');
+  }
   if (options.ordinaryDesignRevisionPolicy) {
     const execution = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(options.recovery!.artifactRoot, 'execution.json')));
     if (execution.ordinaryDesignRevisionPolicy !== options.ordinaryDesignRevisionPolicy || !sameValue(execution.requirement, options.requirement)) throw new Error('Original ordinary design candidate policy changed.');
@@ -219,7 +228,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
           originalDeadlineAt: initial.run.originalDeadlineAt, limitMicroCny: initial.ledger.limitMicroCny, requirement, prepared: item,
           reviewProtocolCorrections: options.reviewProtocolCorrections ?? 0, artifactRoot: options.recovery.artifactRoot, sessionRoot: resolve(options.sessionRoot),
           ...(historicalFinalization ? { ordinaryDesignFinalizationPolicy: historicalFinalization } : options.ordinaryDesignFinalizationPolicy && item.role === 'design' ? { ordinaryDesignFinalizationPolicy: options.ordinaryDesignFinalizationPolicy } : {}),
-          ...designPolicy,
+          ...designPolicy, ...(item.task.taskId === options.ordinaryCodingTaskId ? { ordinaryCodingHandoffPolicy: ORDINARY_CODING_HANDOFF } : {}),
           ...(options.authorProtocolCorrections !== undefined ? { authorProtocolCorrections: options.authorProtocolCorrections } : {}),
           ...(options.codingHandoffClarifications === 1 ? { codingHandoffClarifications: 1 as const } : {}),
           ...(options.hostEvidencedCodingHandoff === 1 ? { hostEvidencedCodingHandoff: 1 as const } : {}),
@@ -257,6 +266,11 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
     checked(validateExecutionInput({ requirement, task, ledger: current.ledger, run: current.run }));
   }
   async function requireCodingPhase(task: TaskContract) {
+    if (task.taskId === options.ordinaryCodingTaskId) {
+      const authority = await controller.executionAuthority(task.taskId);
+      if (!authority.admissionAllowed || authority.windowId || (await controller.read()).ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new RecoveryBlocked('Ordinary coding phase lacks active authority or requires charge reconciliation.');
+      return;
+    }
     const { snapshot } = await requireValidationScope(controller, requirement, options.validation!);
     const authority = await controller.validationAuthority(task.taskId, 'reviewer');
     if (!authority.executionAllowed || snapshot.ledger.entries.some(entry => entry.unknown || entry.reservedMicroCny > 0)) throw new RecoveryBlocked('Coding phase has no active case authority or has unresolved charges; no host or reviewer work was dispatched.');
@@ -310,21 +324,12 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       const execution = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(options.recovery!.artifactRoot, 'execution.json')));
       await (await import('./entrypoint-design-revision.ts')).authenticateDesign(options.recovery!.artifactRoot, controller, execution, origin.prepared);
     }
-    if (options.hostEvidencedCodingHandoff === 1 && item.role === 'coding') {
-      const packet = await codingConcernPacket({ task, proposal, requirement, journal, workspace: item.workspace, parseProposal,
-        allowScope: options.codingHandoffClarifications === 1, reuse: true });
-      const attemptId = task.attempts.at(-1)!.attemptId;
-      const review = await journal.read<{ verdict: ReviewProposal; reviewerId: string; contextId: string; completedAt: string; signature: ContentSignature }>('review', attemptId);
-      const started = await journal.read<{ reviewerId: string; contextId: string }>('review-started', attemptId);
-      if (!review || !started || review.reviewerId !== task.review.reviewerId || review.contextId !== task.review.contextId
-        || started.reviewerId !== review.reviewerId || started.contextId !== review.contextId || review.reviewerId === task.authorId || review.contextId === task.context.contextId
-        || review.completedAt !== task.attempts.at(-1)!.endedAt || task.handoff.uncertainty.length) throw new RecoveryBlocked('Passed coding task lacks its exact independent concern verdict.');
-      try { parseCodingConcernReview(JSON.stringify(review.verdict), task, requirement, packet, parseReview); }
-      catch { throw new RecoveryBlocked('Passed coding concern verdict cannot be verified.'); }
-      const { verdict, inputVersions, evidenceIds } = review.verdict;
-      if (verdict !== 'approved' || !sameValue(inputVersions, task.review.inputVersions) || !sameValue(evidenceIds, task.review.evidenceIds)) throw new RecoveryBlocked('Passed coding concern verdict differs from the recorded review.');
-      await requireCorrectionIdentity(task.attempts.at(-1)!.sessionRef, { taskId: task.taskId, attemptId, reviewerId: review.reviewerId, contextId: review.contextId });
-      await journal.requireSignature(review.signature, [...task.inputs, ...task.artifacts, ...task.evidence.map(e => e.source)]);
+    if (options.hostEvidencedCodingHandoff === 1 && item.role === 'coding' || task.taskId === options.ordinaryCodingTaskId) {
+      if (proposal.remaining.length) throw new RecoveryBlocked('Passed coding handoff contains unfinished work.');
+      if (options.hostEvidencedCodingHandoff === 1 || proposal.uncertainty.length) {
+        await requirePassedCodingConcerns(task, requirement, journal, item.workspace, proposal, options.codingHandoffClarifications === 1,
+          task.taskId === options.ordinaryCodingTaskId ? options.recovery!.artifactRoot : undefined);
+      } else if (await journal.read('coding-concerns', task.attempts.at(-1)!.attemptId)) throw new RecoveryBlocked('Original coding concerns differ from the author receipt.');
     }
     reusedTaskIds.push(task.taskId); validatedDependencies.add(task.taskId);
     for (const ref of task.artifacts) if (!available.some(existing => sameValue(existing, ref))) available.push(ref);
@@ -336,6 +341,9 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
   async function executeOne(item: PreparedTask) {
     const task = item.task;
     const journal = journals.get(task.taskId);
+    const ordinaryCoding = task.taskId === options.ordinaryCodingTaskId;
+    const validationCoding = options.hostEvidencedCodingHandoff === 1 && item.role === 'coding';
+    const codingProtocol = codingReviewInstructions(ordinaryCoding ? ORDINARY_CODING_HANDOFF : undefined);
     let author: CreatedRole | undefined, reviewer: CreatedRole | undefined;
     let failureStage: FailureStage = 'execution';
     try {
@@ -401,14 +409,16 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
             ? await options.capture(freeze(structuredClone(task)), freeze(proposal), signal)
             : await inspectCaptured(task, proposal, item.expectedArtifacts);
           if (!capture) {
-            if (candidateDesigns.has(task.taskId) && !firstCapture) throw new RecoveryBlocked('Design capture started without its original completion time; preserve the unknown capture.');
+            if ((candidateDesigns.has(task.taskId) || ordinaryCoding && proposal.uncertainty.length) && !firstCapture) throw new RecoveryBlocked('Capture started without its original completion time; preserve the unknown capture.');
             capture = { captured: recovered, signature: await journal!.signature(recovered.artifacts),
-              ...(options.hostEvidencedCodingHandoff === 1 && item.role === 'coding' || candidateDesigns.has(task.taskId) && firstCapture ? { capturedAt: at() } : {}) };
+              ...(validationCoding || (ordinaryCoding && proposal.uncertainty.length || candidateDesigns.has(task.taskId)) && firstCapture ? { capturedAt: at() } : {}) };
             await journal!.write('capture', attemptId, capture);
           }
           if (!sameValue(recovered, capture.captured)) throw new RecoveryBlocked('Recovered capture differs from its durable snapshot handoff.');
           captured = capture.captured;
-          await journal!.requireSignature(capture.signature, captured.artifacts);
+          if (ordinaryCoding && proposal.uncertainty.length && await journal!.read('verified', attemptId)) {
+            if (!sameValue(capture.signature, await codingCaptureSignature(journal!, captured.artifacts, captured.artifacts[0], options.recovery!.artifactRoot))) throw new RecoveryBlocked('Ordinary coding source differs from the original capture.');
+          } else await journal!.requireSignature(capture.signature, captured.artifacts);
           if (task.artifacts.length && !sameValue(task.artifacts, captured.artifacts)) throw new RecoveryBlocked('Capture conflicts with already recorded task artifacts.');
         } catch (error) { throw error instanceof RecoveryBlocked ? error : new RecoveryBlocked('Author or capture receipt cannot be validated.'); }
       } else {
@@ -436,7 +446,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         if (journal) await journal.write('author', attemptId, { proposal, signature: await journal.signature(task.inputs) });
         await author.close(); author = undefined;
         signal.throwIfAborted();
-        if (options.hostEvidencedCodingHandoff === 1 && item.role === 'coding') await requireCodingPhase(task);
+        if (validationCoding) await requireCodingPhase(task);
         if (journal) await journal.write('capture-started', attemptId, {});
         captured = await options.capture(freeze(structuredClone(task)), freeze(proposal), signal);
       }
@@ -446,13 +456,13 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       checked(validateTask(task));
       if (item.expectedArtifacts && (item.expectedArtifacts.length !== task.artifacts.length || item.expectedArtifacts.some(ref => !task.artifacts.some(actual => sameValue(ref, actual))))) throw new Error('Captured outputs do not match the fixed planned artifact versions.');
       if (journal && !continuing) await journal.write('capture', attemptId, { captured, signature: await journal.signature(task.artifacts),
-        ...(options.hostEvidencedCodingHandoff === 1 && item.role === 'coding' || candidateDesigns.has(task.taskId) ? { capturedAt: at() } : {}) });
+        ...(validationCoding || ordinaryCoding && proposal.uncertainty.length || candidateDesigns.has(task.taskId) ? { capturedAt: at() } : {}) });
       let codingConcerns: CodingConcernReview | undefined;
       const designConcerns = candidateDesigns.has(task.taskId) ? await designConcernPacket({ task, proposal, requirement, journal: journal!, workspace: item.workspace,
         artifactRoot: options.recovery!.artifactRoot, parseProposal, ordinaryDesignFinalizationPolicy: options.ordinaryDesignFinalizationPolicy }) : undefined;
-      if (options.hostEvidencedCodingHandoff === 1 && item.role === 'coding' && !proposal.remaining.length) {
+      if ((validationCoding || ordinaryCoding && proposal.uncertainty.length) && !proposal.remaining.length) {
         codingConcerns = await codingConcernPacket({ task, proposal, requirement, journal: journal!, workspace: item.workspace, parseProposal,
-          allowScope: options.codingHandoffClarifications === 1 });
+          allowScope: options.codingHandoffClarifications === 1, ...(ordinaryCoding ? { ordinaryRoot: options.recovery!.artifactRoot } : {}) });
         task.handoff.uncertainty = codingConcerns.concerns.map(concern => concern.text);
       }
       if (!sameValue(task, (await controller.read()).tasks.find(t => t.taskId === task.taskId))) await save(task);
@@ -482,7 +492,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       signal.throwIfAborted();
       failureStage = 'independent_review';
       const parseVerdict = (text: string, source: 'receipt' | 'model_reply') => designConcerns ? parseDesignConcernReview(text, task, requirement, designConcerns, parseReview, source)
-        : codingConcerns ? parseCodingConcernReview(text, task, requirement, codingConcerns, parseReview) : parseReview(text, task);
+        : codingConcerns ? parseCodingConcernReview(text, task, requirement, codingConcerns, parseReview, ordinaryCoding ? ORDINARY_CODING_HANDOFF : undefined) : parseReview(text, task);
       type ReviewReceipt = { verdict: ReviewProposal | DesignReviewProposal; reviewerId: string; contextId: string; completedAt: string; signature: ContentSignature };
       let review = continuing ? await journal!.read<ReviewReceipt>('review', attemptId) : null;
       if (review) {
@@ -511,8 +521,8 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
         const verdict = await requestReview({ reviewer, controller, taskId: task.taskId, signal, now: options.now, validation: options.validation ? { binding: options.validation, requirement } : undefined,
           attemptId, correctionRecordPath: join(directory, 'review-correction.json'),
           maxCorrections: options.reviewProtocolCorrections ?? 0, parse: text => parseVerdict(text, 'model_reply'),
-          ...(designConcerns || codingConcerns ? { correctionPrompt: `${designConcerns ? designConcernReviewProtocol : codingConcernReviewProtocol} This is the only protocol correction allowed in this same reviewer session.` } : {}),
-          prompt: `Review the frozen outputs against the supplied acceptance and host evidence. ${designConcerns ? designConcernReviewProtocol : codingConcerns ? codingConcernReviewProtocol : 'Return the required JSON.'} Image sources in attachment order: ${JSON.stringify(images.map(item => item.source))}`,
+          ...(designConcerns || codingConcerns ? { correctionPrompt: `${designConcerns ? designConcernReviewProtocol : codingProtocol} This is the only protocol correction allowed in this same reviewer session.` } : {}),
+          prompt: `Review the frozen outputs against the supplied acceptance and host evidence. ${designConcerns ? designConcernReviewProtocol : codingConcerns ? codingProtocol : 'Return the required JSON.'} Image sources in attachment order: ${JSON.stringify(images.map(item => item.source))}`,
           images: images.length ? images.map(item => item.image) : undefined });
         if (verdict.verdict === 'approved') requirePassingEvidence(task, requirement, verdict.evidenceIds);
         const fixed = journal ? await journal.read<{ signature: ContentSignature }>('verified', attemptId) : null;
@@ -527,7 +537,7 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       if (verdict.verdict === 'approved') requirePassingEvidence(task, requirement, verdict.evidenceIds);
       const attempt = task.attempts.at(-1)!;
       if (continuing && attempt.outcome === 'passed' && attempt.endedAt !== review.completedAt) throw new RecoveryBlocked('Completed attempt time conflicts with the original verdict receipt.');
-      if (codingConcerns) {
+      if (codingConcerns && validationCoding) {
         const expectedPrevious = structuredClone(task), completion = structuredClone(task);
         completion.attempts.at(-1)!.endedAt = review.completedAt; completion.attempts.at(-1)!.outcome = 'passed';
         completion.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;
@@ -543,7 +553,10 @@ async function executeDag(options: DagOptions, resume: boolean): Promise<Recover
       } else {
         attempt.endedAt = review.completedAt; attempt.outcome = 'passed';
         if (designConcerns) task.handoff = designReviewedHandoff(task, designConcerns, verdict as DesignReviewProposal);
-        else task.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;
+        else {
+          task.handoff.remaining = verdict.verdict === 'approved' ? proposal.remaining : verdict.findings;
+          if (codingConcerns && verdict.verdict === 'approved') task.handoff.uncertainty = [];
+        }
         await save(task);
         task.review = { reviewerId: review.reviewerId, contextId: review.contextId, inputVersions: verdict.inputVersions, verdict: verdict.verdict, evidenceIds: verdict.evidenceIds };
         task.state = verdict.verdict === 'approved' ? 'passed' : 'needs_changes';

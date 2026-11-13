@@ -19,9 +19,10 @@ import type { ConservedDesignBudgetPolicy, OrdinaryDesignBudgetIntent } from './
 import type { OrdinaryDesignBudgetLifecycle } from './ordinary-design-revision-lifecycle.ts';
 import { suppliedDesignBytes, suppliedDesignProvenance, SUPPLIED_DESIGN } from './supplied-design.ts';
 import { reviewedDraftRules, REVIEWED_DRAFT_POLICY, type OrdinaryPlanAuthoringPolicy } from './entrypoint-plan-authoring.ts';
+import { ordinaryCodingOrigin, type OrdinaryCodingPolicy } from './repair/coding-concerns.ts';
 
 export const ORDINARY_DESIGN_REVISION_POLICY = 'independent-review/2' as const;
-export interface OrdinaryExecution {
+export interface OrdinaryExecution extends OrdinaryCodingPolicy {
   ordinaryPlanAuthoringPolicy?: OrdinaryPlanAuthoringPolicy;
   capability: string; requirement: RequirementContract; tasks: PreparedTask[]; availableArtifacts: ArtifactReference[]; plan: ArtifactReference;
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
@@ -61,7 +62,7 @@ function origin(root: string, state: RunSnapshot, execution: OrdinaryExecution, 
   return { formatVersion: 1 as const, runId: state.run.runId, ledgerId: state.ledger.ledgerId, originalStartedAt: state.run.originalStartedAt,
     originalDeadlineAt: state.run.originalDeadlineAt, limitMicroCny: state.ledger.limitMicroCny, requirement: execution.requirement, prepared,
     ...(execution.ordinaryDesignFinalizationPolicy && prepared.role === 'design' ? { ordinaryDesignFinalizationPolicy: execution.ordinaryDesignFinalizationPolicy } : {}),
-    ...designOriginPolicy(execution.ordinaryDesignRevisionPolicy, prepared.role),
+    ...ordinaryCodingOrigin(execution, prepared), ...designOriginPolicy(execution.ordinaryDesignRevisionPolicy, prepared.role),
     reviewProtocolCorrections: 1 as const, authorProtocolCorrections: 1 as const, artifactRoot: root, sessionRoot: join(root, 'sessions') };
 }
 export async function requireDesignExecution(root: string, controller: Pick<RunController, 'read'>, execution: OrdinaryExecution) {

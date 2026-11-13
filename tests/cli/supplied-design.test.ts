@@ -761,6 +761,10 @@ test('public approved design resumes interrupted classic and render-frame input 
   const nativeExecute = fresh.host.execute;
   fresh.host.execute = input => executeGeneration({ ...input, createHost: async hostInput => {
     await createBrowserHost({ ...hostInput, ...fresh.hostOptions });
+    // Historical runs may stop after publishing a marker-free planning receipt, before execution.json exists.
+    const state = await hostInput.controller.read();
+    const planning = { runId: state.run.runId, ledgerId: state.ledger.ledgerId, requirement: hostInput.requirement, capability: 'ordinary-design-execution/1' };
+    await writeFile(join(fresh.root, 'planning-started.json'), JSON.stringify(planning, null, 2) + '\n', { flag: 'wx' });
     throw new Error('Interrupted after optional captures.');
   } });
   const runIO = { ...io(), host: fresh.host };
@@ -773,6 +777,7 @@ test('public approved design resumes interrupted classic and render-frame input 
   await assert.rejects(runCli(['resume', fresh.root], runIO), /Fixed historical import record changed/);
   await writeFile(classicPath, classic);
   const result: any = await runCli(['resume', fresh.root], runIO);
+  assert.equal((await json(fresh.root, 'execution.json')).ordinaryCodingHandoffPolicy, undefined);
   assert.equal(artRequests.length, 1);
   assert.deepEqual(artRequests[0].thinking, { type: 'disabled' });
   assert.equal(Object.hasOwn(artRequests[0], 'reasoning_effort'), false);
