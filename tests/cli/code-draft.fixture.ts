@@ -18,6 +18,7 @@ import { RecoveryBlocked } from '../../src/runtime/recovery/task-journal.ts';
 import { silentOutput } from '../runtime/confirmed-requirements.fixture.ts';
 import { ordinaryHostFixture } from '../runtime/ordinary-design.fixture.ts';
 import { fundingFixture } from '../runtime/public-validation-funding.fixture.ts';
+import { failedCodeCapture } from './captured-code-draft.fixture.ts';
 
 const io = () => ({ input: Readable.from([]), output: silentOutput() });
 const page = 'authors/coding/index.html', helper = 'authors/coding/src/helper.ts', entry = 'authors/coding/src/main.ts';
@@ -43,7 +44,7 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     '--approved-art-from', art.reference.location], { ...io(), host: previous.host });
   assert.equal(first.outcome, 'incomplete');
   const oldSnapshot = await readFile(join(previous.root, 'snapshot.json'));
-  const findings = [{ observed: 'The entry module was absent in the preview.', hint: 'Read the entry page and helper.' }];
+  const findings = [{ observed: 'The entry module does not update the page.', hint: 'Read the entry page and helper.' }];
   const initialFiles = [{ path: page, content: html }, { path: helper, content: partial }];
   let reviewerVerdict: object | undefined;
   const next = await ordinaryHostFixture(t, { ...options, fullToolchain: true, sessionFactory: async config => {
@@ -66,10 +67,16 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     assert.match(packet.rules.join('\n'), /editable, unreviewed code draft/);
     return createPiSession({ ...config, env: { DEEPSEEK_API_KEY: 'offline-code-draft' } });
   } });
-  const { reference, files } = await selectCodeDraft(previous.root, design, art, requirements, next);
+  const { reference: legacy, files } = await selectCodeDraft(previous.root, design, art, requirements, next);
   assert.deepEqual([...files.keys()], [page, helper]);
   await assert.rejects(selectCodeDraft(previous.root, design, art, { ...requirements, revision: requirements.revision + 1 }, next), /same confirmed/);
   await assert.rejects(selectCodeDraft(previous.root, design, { ...art, reference: { ...art.reference, version: '0'.repeat(64) } }, requirements, next), /approved art/);
+  await writeFile(join(previous.root, helper), revised);
+  await assert.rejects(selectCodeDraft(previous.root, design, art, requirements, next, legacy), /Pinned code draft changed/);
+  await writeFile(join(previous.root, helper), partial);
+  const source = await failedCodeCapture(t, options, common, design, art, requirements, previous.root, next);
+  const reference = source.reference;
+  initialFiles.push(source.main);
   const funding = await (await fundingFixture(t)).authorization('coding-draft', 720000), decision = join(funding.sharedRoot, funding.authorization.location);
   const feedbackFile = join(funding.sharedRoot, 'feedback.json');
   const note = JSON.stringify({ formatVersion: 'ordinary-code-draft-feedback/1', codeDraft: reference, findings });
@@ -95,10 +102,11 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   await assert.rejects(invoke(command), /Pinned code draft feedback changed/);
   assert.deepEqual(await readFile(join(funding.sharedRoot, 'snapshot.json')), shared);
   await writeFile(feedbackFile, note);
-  await writeFile(join(previous.root, helper), revised);
-  await assert.rejects(invoke(command), /Pinned code draft changed/);
+  const sourceHelper = join(reference.location, 'registry/captures/game-source/v1/files/src/helper.ts');
+  await writeFile(sourceHelper, revised);
+  await assert.rejects(invoke(command), /differs from the signed candidate/);
   assert.deepEqual(await readFile(join(funding.sharedRoot, 'snapshot.json')), shared);
-  await writeFile(join(previous.root, helper), partial);
+  await writeFile(sourceHelper, partial);
 
   let rounds = 0, reviews = 0;
   const audioPath = 'authors/coding/src/audioLoader.ts';
@@ -200,6 +208,7 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   const report = await resume();
   if (wireError) throw wireError;
   assert.equal(report.outcome, 'awaiting_user_experience', JSON.stringify(report.gaps));
+  await assert.rejects(selectCodeDraft(next.root, design, art, requirements, previous), /pending review/);
   assert.deepEqual(next.packets.map(p => p.role), ['coding', 'reviewer']);
   assert.equal(rounds, 31);
   assert.equal(reviews, 1);
@@ -207,6 +216,8 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   const capture = JSON.parse(await readFile(join(next.root, 'registry/captures/game-source/v1/capture.json'), 'utf8'));
   assert.ok(capture.metadata.provenance.sourceRefs.includes(reference.artifactId + '@' + reference.version));
   assert.deepEqual(await readFile(join(previous.root, 'snapshot.json')), oldSnapshot);
+  assert.deepEqual(await readFile(join(reference.location, 'snapshot.json')), source.snapshot);
+  assert.equal(await readFile(sourceHelper, 'utf8'), partial);
   const state = JSON.parse(await readFile(join(next.root, 'snapshot.json'), 'utf8'));
   assert.equal(state.ledger.limitMicroCny, 720000);
   assert.deepEqual(state.ledger.allocations.map((row: any) => row.amountMicroCny), [0, 0, 648000]);
