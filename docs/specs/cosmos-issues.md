@@ -2725,6 +2725,10 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 归属 #19，原生父卡 #220。R61 的公开错误未揭示底层系统错误码。保留后续运行快照持久化实际失败的错误、操作和路径，只对 Windows 原子替换时识别出的暂时共享冲突有界重试。非目标错误、重试耗尽、旧快照和恢复须保持一致，避免重复派发。作者 `snapshot_failure_author`，独审 `r52_evidence` 批准 `aadb0ae`，主线合入 `54537e47`。Windows 实锁短暂和持续 EPERM、派发前后 ENOSPC 与公开诊断均离线核验；R61 历史 errno 仍未知。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/221#issuecomment-6862047962) [R61 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6861822627) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/221)
 
+### COS-221 · 按反馈中的步骤 ID 向编码作者提供已批准的验收计划条目
+
+归属 #19，原生父卡和依赖为 #215。R62 的作者交接误判验收计划正文为空。普通编码作者的显式反馈可引用少量已批准步骤，宿主从同版原计划准确解析操作、读取、断言及期望值，放入作者初始包；保留旧反馈、完整计划和权限隔离。作者 `focused_steps_author`，独审 `r52_evidence`。 [R62 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6862681603) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/222)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

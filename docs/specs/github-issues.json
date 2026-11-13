@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261114-concerns-61",
+      "latestLiveValidationCaseId": "room-20261114-retry-62",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6861822627",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6862681603",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -15017,8 +15017,8 @@
       "title": "普通编码作者按绑定浏览器诊断修复草稿并交接",
       "number": 215,
       "id": 6336999379,
-      "verifiedNativeSubIssues": 1,
-      "subTaskIds": ["COS-215"],
+      "verifiedNativeSubIssues": 2,
+      "subTaskIds": ["COS-215", "COS-221"],
       "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/215",
       "parentTaskId": "COS-213",
@@ -15225,9 +15225,34 @@
       "sourceIntegratedCommit": "54537e47c54798bfb4c35695b01e59b434217e32",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/221#issuecomment-6862047962",
       "verification": "主线构建及 5/5 定向检查通过。Windows 实锁短暂 EPERM 后替换成功；持久 EPERM 六次后保留旧快照。派发前后 ENOSPC、公开错误码和首因保留已核验，零付费。"
+    },
+    {
+      "taskId": "COS-221",
+      "title": "按反馈中的步骤 ID 向编码作者提供已批准的验收计划条目",
+      "number": 222,
+      "id": 6378354070,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/222",
+      "parentTaskId": "COS-214",
+      "parentIssueNumber": 215,
+      "parentIssueId": 6336999379,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-214",
+          "number": 215,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/215"
+        }
+      ],
+      "implementer": "focused_steps_author",
+      "reviewer": "r52_evidence",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 220,
+  "totalTaskCount": 221,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
