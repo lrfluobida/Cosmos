@@ -19,7 +19,7 @@ import type { ValidationExecutionBinding } from '../runtime/validation-scope.ts'
 import { validationReservation, validationRole } from '../runtime/validation-validation.ts';
 import { requireOriginalTask } from '../runtime/recovery/task-journal.ts';
 import { ORDINARY_PLAN_FILE } from '../runtime/entrypoint-acceptance-plan.ts';
-import type { CodeDraftFinding } from '../runtime/code-draft-feedback.ts';
+import type { selectCodeDraftFeedback } from '../runtime/code-draft-feedback.ts';
 import type { FixedArtHandoff } from '../runtime/art-draft-source.ts';
 import type { SuppliedDesignHandoff } from '../runtime/supplied-design.ts';
 import { codingReviewInstructions, ORDINARY_CODING_HANDOFF } from '../runtime/repair/coding-concerns.ts';
@@ -103,7 +103,8 @@ export interface RoleFactoryOptions {
   artAuthorRequestTimeoutMs?: number;
   /** Select the independently approved design bound to this ordinary art task. */
   ordinaryArtDesignInput?: (task: Readonly<TaskContract>) => ArtifactReference;
-  ordinaryCodeDraftFeedback?: { taskId: string; findings: CodeDraftFinding[]; initialFiles?: { path: string; content: string }[] };
+  ordinaryCodeDraftFeedback?: Pick<Awaited<ReturnType<typeof selectCodeDraftFeedback>>, 'findings' | 'focusedPlanSteps'>
+    & { taskId: string; initialFiles?: { path: string; content: string }[] };
   ordinaryCodingDesignInput?: (task: Readonly<TaskContract>) => ArtifactReference;
   ordinaryArtFrameRead?: (input: Readonly<RoleInput>) => ArtFrameRead;
   beforeArtFileWrite?: (input: Readonly<RoleInput>) => BeforeFileWrite;
@@ -286,6 +287,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         const sourceRule = feedback.initialFiles
           ? `initialCodeDraftFiles contains the exact starting source for this attempt. Use it to identify and apply a focused edit directly. Your subsequent edits and writes change the working files, which always take precedence. Use targeted reads when current text or additional evidence is needed. Consult the actual asset manifests in the media input, relevant Phaser runtime files under toolchain/node_modules/phaser/src, ${planPath} and the original confirmation as needed.`
           : `Confirm the cause against the affected draft source, actual asset manifests in the media input and relevant Phaser runtime files under toolchain/node_modules/phaser/src. Use targeted reads of ${planPath} and the original confirmation when needed.`;
+        if (feedback.focusedPlanSteps) rules.push('Match each finding’s stepIds to focusedPlanSteps. These are the exact selected steps of the approved plan. Apply each expectation to its own observation and selector. Use the supplied steps directly and consult other plan pages as needed.');
         rules.push(`Start with codeDraftFeedback. Each observed field reports a prior observation and each hint suggests a place to inspect. ${sourceRule} Preserve all approved steps, inputs and working behavior. After focused edits run check-game-build immediately, correct any build errors, then return the native JSON handoff. Report unresolved work honestly. Subsequent host tests and independent review decide acceptance.`);
       } else rules.push(`Read ${planPath} with path alone (or null optional arguments) for one complete step per display line. Follow each planOffset continuation once. Group independent reads of the confirmed requirements, design and media manifest together. As soon as their relevant contracts are known, write the first source file. Implement in small complete files using write/edit, consulting remaining steps as you implement them. Check every required step and run check-game-build before handoff.`);
     }
@@ -338,6 +340,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       objective: artHandoff ? 'Hand off the existing fixed media identified by the host for independent art review.' : designHandoff ? 'Hand off the two existing operator-supplied files identified by the host.' : task.objective, specVersion: requirement.specVersion,
       acceptance: planningAcceptanceIndex || handoff ? acceptance.map(({ acceptanceId }) => ({ acceptanceId })) : acceptance,
       ...(feedback ? { codeDraftFeedback: feedback.findings } : {}),
+      ...(feedback?.focusedPlanSteps ? { focusedPlanSteps: feedback.focusedPlanSteps } : {}),
       ...(feedback?.initialFiles ? { initialCodeDraftFiles: feedback.initialFiles } : {}),
       inputs: reviewer ? [...task.inputs, ...task.artifacts] : task.inputs, inputFiles,
       rules: artHandoff ? ['Use the host-verified source, media digest and roster counts in fixedArtHandoff. Report any discrepancy that blocks this handoff.'] : designHandoff ? ['Use the verified input identity, file digests and structural counts in suppliedDesignHandoff. Report any discrepancy that prevents handing off the listed pair.'] : rules,
