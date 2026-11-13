@@ -5,6 +5,7 @@ import { DEFAULT_BUDGETS, budgetCapacity, budgetSummary, validateLedgerUpdate, v
 import type { ArtifactReference, BudgetLedger, LedgerEntry, TaskContract, TaskKind, UpdateActor } from '../contracts/index.ts';
 import { appendEvidence, evidenceReferences, findRequest, money, nonEmpty, requireOpen, reserveEntry, settleEntry } from '../budget/ledger.ts';
 import { SnapshotStore } from './store.ts';
+import { ownerCloseError } from './snapshot-error.ts';
 import { UnspawnedChildCleanupError } from './recovery/ownership.ts';
 import { validateSnapshot } from './run-validation.ts';
 import { activateContinuation } from './continuation-authority.ts';
@@ -60,7 +61,7 @@ export class RunController {
   private accounting: Promise<unknown> = Promise.resolve();
   private closing = false;
   private closePromise?: Promise<void>;
-  private failed = false;
+  private persistenceFailure?: Error;
   private abort = new AbortController();
   private timer?: ReturnType<typeof setTimeout>;
   private readonly windowId?: string;
@@ -120,9 +121,9 @@ export class RunController {
   /** Fixed host plan only. An exact committed retry never runs expiry or writes. */
   activateOrdinaryDesignRevision(capability?: object): Promise<void> {
     return this.coordinateAccounting(() => {
-      if (this.closing || this.failed) throw new Error('Ordinary design budget controller is closed.');
+      if (this.persistenceFailure || this.closing) throw this.persistenceFailure ?? new Error('Ordinary design budget controller is closed.');
       const result = this.pending.then(async () => {
-        if (this.failed || this.closing) throw new Error('Ordinary design budget controller is closed.');
+        if (this.persistenceFailure || this.closing) throw this.persistenceFailure ?? new Error('Ordinary design budget controller is closed.');
         await verifyOrdinaryBudgetOwnerHistory(this.store.root, this.snapshot, this.store.ownerIdentity().token);
         if (this.snapshot.ordinaryDesignRevisionBudgetActivation) { await verifyOrdinaryDesignRevisionBudget(this.store.root, this.snapshot); return; }
         await this.expire(); this.requireActive();
@@ -651,14 +652,15 @@ export class RunController {
   /** Drain real host work, retain a private nonce through owner close, then publish proof. */
   async closeAfterDrain(work: OwnedWork, completion?: CompletionBinding): Promise<void | ClosedCompletionProof> {
     this.requireExecutionWindow(this.windowId);
-    if (!this.windowId || !(work instanceof OwnedWork) || this.closing || this.failed) throw new Error('Idle close requires a current window and its open owned work.');
+    if (this.persistenceFailure) throw this.persistenceFailure;
+    if (!this.windowId || !(work instanceof OwnedWork) || this.closing) throw new Error('Idle close requires a current window and its open owned work.');
     if (completion) await this.drainCompletion(work);
     else { await work.cancelAndDrain('Window owner is closing.'); await this.accounting; await requireNoRegistryWriter(this.store.root); }
-    if (this.closing || this.failed) throw new Error('Window owner closed before idle proof was prepared.');
+    if (this.persistenceFailure || this.closing) throw this.persistenceFailure ?? new Error('Window owner closed before idle proof was prepared.');
     this.closing = true; clearTimeout(this.timer);
     const nonce = randomBytes(32).toString('hex');
     const anchored = this.pending.then(async () => {
-      if (this.failed) throw new Error('Window persistence failed before idle proof.');
+      if (this.persistenceFailure) throw this.persistenceFailure;
       await this.expire();
       const next = structuredClone(this.snapshot);
       this.event(next, 'window_owner_drained', null, JSON.stringify({ windowId: this.windowId, nonceSha256: idleHash(nonce), ...(completion ? { completionSha256: idleHash(JSON.stringify(completion)) } : {}) }));
@@ -676,12 +678,14 @@ export class RunController {
   async closeForCompletion(work: OwnedWork, completion: CompletionBinding): Promise<ClosedCompletionProof> {
     if (this.windowId) { const proof = await this.closeAfterDrain(work, completion); if (!proof) throw new Error('Window completion proof is missing.'); return proof; }
     this.requireOriginalExecution();
-    if (this.closing || this.failed || !(work instanceof OwnedWork)) throw new Error('Completion requires its original open owner and owned work.');
+    if (this.persistenceFailure) throw this.persistenceFailure;
+    if (this.closing || !(work instanceof OwnedWork)) throw new Error('Completion requires its original open owner and owned work.');
     await this.drainCompletion(work);
-    if (this.closing || this.failed) throw new Error('Generation owner closed before completion was prepared.');
+    if (this.persistenceFailure || this.closing) throw this.persistenceFailure ?? new Error('Generation owner closed before completion was prepared.');
     this.closing = true; clearTimeout(this.timer);
     const nonce = randomBytes(32).toString('hex');
     const anchored = this.pending.then(async () => {
+      if (this.persistenceFailure) throw this.persistenceFailure;
       await this.expire(); const next = structuredClone(this.snapshot);
       this.event(next, 'run_owner_drained', null, JSON.stringify({ windowId: null, nonceSha256: idleHash(nonce), completionSha256: idleHash(JSON.stringify(completion)) }));
       await this.commit(next); return { state: structuredClone(this.snapshot), snapshotBytes: await regularFile(this.store.root, 'snapshot.json') };
@@ -706,7 +710,7 @@ export class RunController {
     this.closePromise = this.pending.then(async () => {
       if (this.ordinaryBudgetLifecycle) { await this.accounting; await this.ordinaryBudgetLifecycle.beforeClose(); }
       await this.store.close();
-    }).catch(error => { this.closePromise = undefined; throw error; });
+    }).catch(error => { this.closePromise = undefined; throw ownerCloseError(error, this.persistenceFailure); });
     return this.closePromise;
   }
 
@@ -716,9 +720,9 @@ export class RunController {
 
   /** Revocation and existing-request facts must remain writable after execution proof is lost. */
   private serial<T>(operation: () => Promise<T>, scope: 'execution' | 'reconciliation' = 'execution'): Promise<T> {
-    if (this.closing || this.failed) return Promise.reject(new Error('Run controller is closed or persistence failed.'));
+    if (this.persistenceFailure || this.closing) return Promise.reject(this.persistenceFailure ?? new Error('Run controller is closed.'));
     const result = this.pending.then(async () => {
-      if (this.failed) throw new Error('Run controller persistence failed.');
+      if (this.persistenceFailure) throw this.persistenceFailure;
       if (scope === 'execution') await verifyOrdinaryBudgetOwnerHistory(this.store.root, this.snapshot, this.store.ownerIdentity().token);
       await this.expire();
       return operation();
@@ -876,7 +880,10 @@ export class RunController {
     if (this.snapshot.ordinaryDesignRevisionBudgetActivation && !sameValue(this.snapshot.ordinaryDesignRevisionBudgetActivation, next.ordinaryDesignRevisionBudgetActivation)) throw new Error('Ordinary design budget activation is immutable.');
     if (issues.length) throw new Error(`Invalid run update: ${issues.map(i => i.message).join('; ')}`);
     try { await this.store.write(next); }
-    catch (error) { this.failed = true; clearTimeout(this.timer); this.abort.abort(error); throw error; }
+    catch (error) {
+      this.persistenceFailure = error instanceof Error ? error : new Error('Run snapshot persistence failed.', { cause: error });
+      clearTimeout(this.timer); this.abort.abort(this.persistenceFailure); throw this.persistenceFailure;
+    }
     this.snapshot = next;
     if (this.activeStop(next)) { clearTimeout(this.timer); this.abort.abort(this.activeStop(next)); }
   }

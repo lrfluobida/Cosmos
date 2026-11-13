@@ -2,15 +2,19 @@ import { randomUUID } from 'node:crypto';
 import { lstat, mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/promises';
 import type { FileHandle } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { OwnerLock } from './recovery/ownership.ts';
 import type { OwnerRecord } from './recovery/ownership.ts';
+import { SnapshotPersistenceError } from './snapshot-error.ts';
+
+const renameRetryDelays = [25, 50, 100, 200, 400];
 
 /** One exclusive controller per explicit run root. Stale ownership fails closed. */
 export class SnapshotStore {
   readonly root: string;
   private lock: OwnerLock;
   private closed = false;
-  private failed = false;
+  private failure?: SnapshotPersistenceError;
 
   private constructor(root: string, lock: OwnerLock) { this.root = root; this.lock = lock; }
 
@@ -54,24 +58,42 @@ export class SnapshotStore {
     this.assertWritable();
     const temporary = join(this.root, `.snapshot-${randomUUID()}.tmp`);
     let file: FileHandle | undefined;
+    let operation = 'check snapshot target';
     try {
       await this.checkTarget();
+      operation = 'open';
       file = await open(temporary, 'wx');
+      operation = 'write';
       await file.writeFile(JSON.stringify(snapshot, null, 2) + '\n', 'utf8');
+      operation = 'fsync';
       await file.sync();
+      operation = 'close';
       await file.close();
-      file = undefined;
-      await rename(temporary, join(this.root, 'snapshot.json'));
+      for (let attempt = 0; ; attempt++) {
+        operation = 'rename';
+        try { await rename(temporary, join(this.root, 'snapshot.json')); return; }
+        catch (error) {
+          const wait = renameRetryDelays[attempt];
+          if (process.platform !== 'win32' || (error as NodeJS.ErrnoException).code !== 'EPERM' || wait === undefined) throw error;
+          await delay(wait);
+        }
+        this.assertWritable();
+        operation = 'verify owner';
+        await this.lock.assertOwner();
+        operation = 'check snapshot target';
+        await this.checkTarget();
+      }
     } catch (error) {
-      this.failed = true;
+      this.failure ??= new SnapshotPersistenceError(operation, error);
       await file?.close().catch(() => {});
-      await unlink(temporary).catch(() => {});
-      throw new Error('Snapshot persistence failed; controller is closed to further work.', { cause: error });
+      if (file) await unlink(temporary).catch(() => {});
+      throw this.failure;
     }
   }
 
   private assertWritable(): void {
-    if (this.closed || this.failed) throw new Error('Snapshot controller is closed or persistence failed.');
+    if (this.failure) throw this.failure;
+    if (this.closed) throw new Error('Snapshot controller is closed.');
   }
 
   async close(): Promise<void> {

@@ -7,6 +7,7 @@ import {
   type AgentSessionEvent, type ResourceLoader, type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { regularFile } from '../artifacts/paths.ts';
+import { SnapshotPersistenceError } from '../runtime/snapshot-error.ts';
 import { requestInputBytes, withRecentReadResults } from './request-input.ts';
 import { reviewImageInputTokens } from './review-image-quote.ts';
 import { PreservedDesignDraftError } from './workspace-tools.ts';
@@ -107,8 +108,8 @@ export interface PiSessionOptions {
 }
 export class PiSessionError extends Error {
   readonly code: string;
-  constructor(code: string, message: string) {
-    super(message);
+  constructor(code: string, message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'PiSessionError';
     this.code = code;
   }
@@ -176,9 +177,15 @@ export async function createPiSession(config: PiSessionOptions) {
   let optionalCompaction: { ordinary: PiCompactionBounds; skippedRequestId?: string; truncatedRequestId?: string; rejected: boolean;
     checkpointId?: string; batch?: string[]; controlledCancellation?: AbortSignal } | undefined;
   const records: PiResponse[] = [];
-  const fail = (code: string, message: string) => (failure ??= new PiSessionError(code, message));
+  const fail = (code: string, message: string, cause?: unknown) => {
+    if (cause instanceof SnapshotPersistenceError && !(failure?.cause instanceof SnapshotPersistenceError)) {
+      // The controller can synchronously abort this session before its failed write rejects.
+      failure = new PiSessionError(code, `${message}. ${cause.message}`, { cause });
+    }
+    return failure ??= new PiSessionError(code, message);
+  };
   const admissionFailure = (error: unknown, message: string) => error instanceof PiSessionError && ['author_output_budget', 'author_review_reserve', 'review_output_budget'].includes(error.code)
-    ? fail(error.code, 'Original request resource capacity is insufficient; no provider request sent.') : fail('admission_rejected', message);
+    ? fail(error.code, 'Original request resource capacity is insufficient; no provider request sent.') : fail('admission_rejected', message, error);
   const throwIfFailed = () => { if (failure) throw failure; if (pendingReview) throw pendingReview.error; if (pendingFinalization && !finalizationActive) throw pendingFinalization.error; };
   function estimateRequest(request: Omit<PiRequest, 'estimatedMaxCostMicroCny'>) {
     try {
@@ -196,7 +203,7 @@ export async function createPiSession(config: PiSessionOptions) {
       const remaining = window.deadlineAt - Date.now() - window.cleanupMs;
       positive(remaining, 'remaining request time');
       return Math.min(config.requestTimeoutMs, remaining);
-    } catch { throw fail('admission_rejected', 'Request window authority or cleanup time is unavailable; no provider request sent'); }
+    } catch (error) { throw fail('admission_rejected', 'Request window authority or cleanup time is unavailable; no provider request sent', error); }
   }
   modelRuntime.streamSimple = (requestModel, context, options) => lazyStream(requestModel, async () => {
     throwIfFailed();
@@ -300,7 +307,7 @@ export async function createPiSession(config: PiSessionOptions) {
       };
       records.push(record);
       try { await config.budget.afterResponse(record); }
-      catch { throw fail('accounting_error', 'Request accounting failed; session cannot continue'); }
+      catch (error) { throw fail('accounting_error', 'Request accounting failed; session cannot continue', error); }
     }
     async function* guardedStream(): AsyncGenerator<AssistantMessageEvent> {
       const deadline = new AbortController();
