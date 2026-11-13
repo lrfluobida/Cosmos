@@ -2713,6 +2713,14 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 归属 #19，原生父卡 #214，依赖 COS-216（#217）。R59 编码作者用完 32 笔请求，原生编译未执行，离线检查发现 TS2339。按现有请求、资金与时限为真实 `check-game-build`、修正、重检和作者交接留出机会。失败或过时的编译结果不能使候选通过。后续独立评审与原执行计划继续判定游戏验收。作者 `build_reserve_author`，独审 `build_reserve_review` 批准 `750dc164`，主线合入 `3a2af3ff`。本机带资 CLI 第 29 笔收到 TS2339，作者修正后实际重检通过并无工具交接，独审 1 笔。主线构建通过，离线定向用例 60/60、本批零付费。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/218#issuecomment-6814145688) [R59 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/218)
 
+### COS-218 · 将普通编码交接中的待验证疑问交给宿主检查与独审
+
+归属 #19，原生父卡 #218，依赖 #218、#31。R60 已编译并捕获，作者没有剩余工作但留下两项需实测的疑问。复用 `codingConcernPacket` 将原始疑问交给真实宿主与独审，逐项凭同一候选的证据裁决。缺证据、验收失败或仍有未完成工作时阻断，恢复核对原输入、证据及裁决。作者 `ordinary_handoff_author`，独审 `r52_evidence`。 [R60 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6852401794) · [交接任务](https://github.com/lrfluobida/Cosmos/issues/219)
+
+### COS-219 · 从失败普通编码任务的已捕获未批准源码续写
+
+归属 #19，原生父卡与依赖为 #214。允许普通编码新运行显式选择与其确认需求、批准设计和美术一致的失败任务捕获。按 `registry/captures/game-source/…` 的来源版本和文件清单核对，只导入可编辑源码。新运行保留自身的资金准入、编译、宿主检查和独立审批，兼容已有未捕获草稿及恢复路径。 [源码续写任务](https://github.com/lrfluobida/Cosmos/issues/220)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

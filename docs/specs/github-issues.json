@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261112-compact-59",
+      "latestLiveValidationCaseId": "room-20261113-reserve-60",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6852401794",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14985,8 +14985,8 @@
       "title": "普通带资编码从真实源码草稿续写并完成编译",
       "number": 214,
       "id": 6334560617,
-      "verifiedNativeSubIssues": 2,
-      "subTaskIds": ["COS-214", "COS-217"],
+      "verifiedNativeSubIssues": 3,
+      "subTaskIds": ["COS-214", "COS-217", "COS-219"],
       "verifiedCompletedSubIssues": 2,
       "url": "https://github.com/lrfluobida/Cosmos/issues/214",
       "parentTaskId": "COS-212",
@@ -15110,6 +15110,9 @@
       "title": "在普通编码作者的请求上限内完成编译、修复、重检和交接",
       "number": 218,
       "id": 6342308186,
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-218"],
+      "verifiedCompletedSubIssues": 0,
       "url": "https://github.com/lrfluobida/Cosmos/issues/218",
       "parentTaskId": "COS-213",
       "parentIssueNumber": 214,
@@ -15133,9 +15136,62 @@
       "sourceIntegratedCommit": "3a2af3ff997e096b1dcaf21bc3ac88b4f0a49466",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/218#issuecomment-6814145688",
       "verification": "主线构建、60/60 定向用例通过。带资 CLI 编译得到 TS2339，作者编辑修正，重检通过后完成无工具交接，独审 1 笔，32 笔模拟结算。无付费请求。"
+    },
+    {
+      "taskId": "COS-218",
+      "title": "将普通编码交接中的待验证疑问交给宿主检查与独审",
+      "number": 219,
+      "id": 6370774673,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/219",
+      "parentTaskId": "COS-217",
+      "parentIssueNumber": 218,
+      "parentIssueId": 6342308186,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-217",
+          "number": 218,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/218"
+        },
+        {
+          "id": "COS-30",
+          "number": 31,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/31"
+        }
+      ],
+      "implementer": "ordinary_handoff_author",
+      "reviewer": "r52_evidence",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "SOURCE_PENDING"
+    },
+    {
+      "taskId": "COS-219",
+      "title": "从失败普通编码任务的已捕获未批准源码续写",
+      "number": 220,
+      "id": 6370886433,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/220",
+      "parentTaskId": "COS-213",
+      "parentIssueNumber": 214,
+      "parentIssueId": 6334560617,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-213",
+          "number": 214,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/214"
+        }
+      ],
+      "merger": "r52_merger",
+      "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 217,
+  "totalTaskCount": 219,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
