@@ -4,17 +4,23 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R63 在冻结主线 `66417b6b` 上完成真实编译、候选捕获、交付打包和正式浏览器 save 段。五条批准步骤已进入作者初始包。作者交接声称编辑，实际记录为 38 次读取、零次写入或编辑，八份源码与 R60 相同。正式 save 段的 200 步全部执行，167 步通过、33 步失败，首失 s028 的存档文本仍缺“最近保存：”前缀。 [R63 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6874434649) · [正式浏览器报告](.cosmos/public-validation/room-20261114-focused-63/run/evidence/game-code/browser.json)
+
+浏览器另记三条 `External request evidence incomplete for Chromium service_worker`。聚合判定为 `insufficient_evidence`，阻止重开浏览器、独审及修复后继，自动验收未通过。网络观察缺口根因待独立诊断。正式候选已含 `dist/` 和 [Play.cmd](.cosmos/public-validation/room-20261114-focused-63/run/registry/candidates/game/v1/project/Play.cmd)，另有端口 41563 的 [开发预览](.cosmos/public-validation/room-20261114-focused-63/development-preview/Play.cmd)。原始报告及逐步截图保存在本轮 `run/browser-evidence/`。 [宿主结论审计](.cosmos/public-validation/room-20261114-focused-63/host-outcome-audit.json)
+
+用户批准的阶段增额在 2026-11-14 07:52:17.694 UTC 应用，上限从 ¥52.96 调至 ¥53.76。R63 单次上限 ¥1.15 / 30 分钟，耗时 875,629 ms，32 笔结算 ¥0.468932，释放 ¥0.681068。子修订 146、共享修订 3498，阶段累计结算 ¥50.864960、历史待核占用 ¥2.206428、余额 ¥0.688612。运行临时目录已清理，保留候选和完整验收证据。 [阶段回执](.cosmos/planning/r62-step-feedback-budget/applied-receipt.json) · [预算登记](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6874432771) · [闭账审计](.cosmos/public-validation/room-20261114-focused-63/closure-readonly-audit.json)
+
 COS-221 已合入 `d7c4a80f`，独审批准 `3952787f`。普通编码作者的显式反馈可引用已批准计划中的步骤 ID，宿主将对应操作、读取、断言和期望按原定义放入作者初始包。组合主线构建通过，6 个文件与批准版本一致，本机带资 CLI 1/1 通过，耗时 168,941 ms，零跳过。未引用步骤的旧反馈保持原样，完整计划继续用于宿主和独审。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/222#issuecomment-6862888084)
 
 主线编译版使用 R60 的真实草稿、批准设计与美术复核新反馈 `3033c52779faeb15462aa4cff9ce9d575c384a61755c72e5b7b376df7c7593ae`。精确解析五个步骤，主场景三步、重开场景两步，序列化步骤共 1,104 字节。作者工作树摘除唯一依赖联接后已清理，主仓和模板入口完整，八份复现与测试证据保存在 `E:/develop/Cosmos-stage/r62-focused-steps-author/`。本批付费请求为零。 [绑定反馈](.cosmos/public-validation/room-20261113-reserve-60/preview-smoke/author-feedback-focused-steps.json)
 
-R63 尚未预留或启动。现有只读提案拟将阶段上限由 ¥52.96 提至 ¥53.76，增加 ¥0.80，为一次 ¥1.15 / 30 分钟的运行提供额度。当前阶段余额 ¥0.357544。 [预算提案](.cosmos/planning/r62-step-feedback-budget/budget-proposal.md)
+R63 阶段增额与一次运行已获明确批准并执行。 [原预算提案](.cosmos/planning/r62-step-feedback-budget/budget-proposal.md)
 
 R62 在 `070eee43` 上通过真实编译并捕获 `game@v1`，运行中未观察到快照持久化故障。作者未改源码，交接列有 5 项未完成工作，正式宿主验证和编码独审未启动，自动验收未通过。候选与 R60 逐字节相同，复用其构建与独立 Edge 试玩记录。 [开发预览 Play.cmd](.cosmos/public-validation/room-20261114-retry-62/development-preview/Play.cmd) · [R62 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6862681603)
 
 33 次工具读取中，31 次针对验收计划，其中 30 次正常返回，共 394,187 字节，1 次参数错误。首份紧凑页给出了继续读取所需的 `planOffset`，后续作者改用普通 `offset` 读取原始正文。交接称内容均为空，与实际返回不符。此处根因由 COS-221 跟进。 [读取轨迹](.cosmos/public-validation/room-20261114-retry-62/read-audit.json) · [离线修复](https://github.com/lrfluobida/Cosmos/issues/222)
 
-本轮上限 ¥0.71 / 30 分钟，耗时 835,645 ms。32 笔结算 ¥0.362201，释放 ¥0.347799。子账本修订 142、共享修订 3495，阶段累计结算 ¥50.396028、历史待核占用 ¥2.206428、余额 ¥0.357544。运行临时目录已清理。[R63 只读报价](.cosmos/planning/r62-step-feedback-budget/budget-53.76-quote.json) 尚待决定，未应用或派发。 [闭账审计](.cosmos/public-validation/room-20261114-retry-62/closure-readonly-audit.json)
+本轮上限 ¥0.71 / 30 分钟，耗时 835,645 ms。32 笔结算 ¥0.362201，释放 ¥0.347799。子账本修订 142、共享修订 3495，阶段累计结算 ¥50.396028、历史待核占用 ¥2.206428、余额 ¥0.357544。运行临时目录已清理。[R63 只读报价](.cosmos/planning/r62-step-feedback-budget/budget-53.76-quote.json) 已按后续明确决定应用。 [闭账审计](.cosmos/public-validation/room-20261114-retry-62/closure-readonly-audit.json)
 
 COS-220 已合入 `54537e47`，独审批准 `aadb0ae`。快照写入失败时，公开诊断保留首次失败的操作、固定相对目标和可安全显示的系统错误码。Windows 原子替换遇到 EPERM 时复用同一临时文件，最多尝试六次。用真实不可删除共享句柄验证：释放锁后第二次替换成功；持续锁定则六次后报告 rename/EPERM，旧快照完好。派发前后 ENOSPC、首次错误保留、安全清理与带资 CLI 定向检查 5/5 通过。主线构建通过，七个集成文件与批准版本相同。此次离线验证零付费，R61 原始 errno 仍未知。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/221#issuecomment-6862047962)
 
