@@ -256,7 +256,7 @@ export async function createPiSession(config: PiSessionOptions) {
       countRequest();
     }
     if (config.requestOutputLimit) {
-      const finalizationFloor = finalizationActive && readonlyRequests !== undefined && !session.isCompacting ? 1024 : undefined;
+      const finalizationFloor = finalCodingHandoff || finalizationActive && readonlyRequests !== undefined && !session.isCompacting ? 1024 : undefined;
       let limit: number;
       try { limit = await config.requestOutputLimit(Object.freeze({ ...request,
         ...(finalizationFloor ? { finalizationOutputFloor: finalizationFloor } : {}) }), options?.signal); }
