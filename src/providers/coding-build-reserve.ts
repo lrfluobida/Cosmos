@@ -67,7 +67,7 @@ export function installCodingBuildReserve(session: AgentSession, requestsLeft: (
       return { action: 'end' };
     }
   };
-  return (text: string) => {
+  const validateText = (text: string) => {
     if (build?.passed !== false) return text;
     let proposal;
     try { proposal = decodeModelJson(text) as { remaining?: unknown; uncertainty?: unknown }; }
@@ -78,4 +78,5 @@ export function installCodingBuildReserve(session: AgentSession, requestsLeft: (
     }
     return text;
   };
+  return { validateText, isHandoff: () => handoff };
 }
