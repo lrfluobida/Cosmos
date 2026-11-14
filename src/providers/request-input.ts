@@ -1,42 +1,37 @@
-import { resolve } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import type { Context } from '@earendil-works/pi-ai';
-import { within } from '../artifacts/paths.ts';
 
-/** Project older file reads for an ordinary feedback coder. Keep the most recent read batch
- * and up to 12 KiB of earlier editable source, newest first. The native journal stays intact. */
-export function withRecentReadResults(context: Context, workspace: string, writePaths: readonly string[]): Context {
-  const writable = writePaths.map(path => resolve(workspace, path));
-  const reads = new Map<string, string>();
-  const older: { index: number; batch: number; path: string }[] = [];
-  let batch = 0, latestRead = -1;
+/** Omit only identical repeated reads for a feedback coder. Distinct files/pages and
+ * observations across writes or errors stay visible; the native journal stays intact. */
+export function withRecentReadResults(context: Context): Context {
+  const reads = new Map<string, Record<string, unknown>>();
+  const previous: { index: number; args: Record<string, unknown>; text: string }[] = [];
+  const messages = [...context.messages];
   for (const [index, message] of context.messages.entries()) {
     if (message.role !== 'toolResult') {
       reads.clear();
       if (message.role === 'assistant') {
-        batch = index;
+        // Even a failed write or an unknown tool can separate different observations.
+        if (message.content.some(call => call.type === 'toolCall' && call.name !== 'read')) previous.length = 0;
         for (const call of message.content) {
-          if (call.type === 'toolCall' && call.name === 'read' && typeof call.arguments?.path === 'string') reads.set(call.id, call.arguments.path);
+          if (call.type === 'toolCall' && call.name === 'read' && typeof call.arguments?.path === 'string') reads.set(call.id, call.arguments);
         }
       }
       continue;
     }
-    const path = reads.get(message.toolCallId);
-    if (!path || message.toolName !== 'read' || message.isError) continue;
-    latestRead = batch;
+    const args = reads.get(message.toolCallId);
     const [block] = message.content;
-    if (message.content.length === 1 && block.type === 'text' && Buffer.byteLength(block.text) > 1024) older.push({ index, batch, path });
-  }
-  const messages = [...context.messages];
-  let sourceBytes = 12 * 1024;
-  for (const item of older.reverse()) {
-    const message = context.messages[item.index];
-    if (item.batch === latestRead || message.role !== 'toolResult') continue;
-    const bytes = Buffer.byteLength(JSON.stringify(message.content));
-    if (bytes <= sourceBytes && writable.some(root => within(root, resolve(workspace, item.path)))) {
-      sourceBytes -= bytes;
+    if (!args || message.toolName !== 'read' || message.isError || message.content.length !== 1 || block.type !== 'text') {
+      previous.length = 0;
       continue;
     }
-    messages[item.index] = { ...message, content: [{ type: 'text', text: '[Earlier read output omitted. Use the original read arguments to read this file again.]' }] };
+    const match = previous.findIndex(item => isDeepStrictEqual(item.args, args));
+    if (match !== -1) {
+      const [item] = previous.splice(match, 1), earlier = context.messages[item.index];
+      if (item.text === block.text && earlier.role === 'toolResult') messages[item.index] = { ...earlier,
+        content: [{ type: 'text', text: '[Earlier identical read output omitted; the later matching read retains the complete text.]' }] };
+    }
+    previous.push({ index, args, text: block.text });
   }
   return { ...context, messages };
 }

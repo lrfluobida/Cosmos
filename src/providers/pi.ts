@@ -85,7 +85,7 @@ export interface PiSessionOptions {
   ordinaryCodingReviewImageQuote?: true;
   /** Reserve the final four rounds for build feedback, correction and the original coding handoff. */
   ordinaryCodingBuildReserve?: true;
-  /** Only for the ordinary coding author with bound draft feedback. */
+  /** Bound feedback coder opt-in; paths remain caller metadata, not a filter on retained read content. */
   feedbackReadWritePaths?: readonly string[];
   ordinaryDesignFinalizationPolicy?: 'budget-followup/1';
   requestTimeoutMs: number;
@@ -227,7 +227,7 @@ export async function createPiSession(config: PiSessionOptions) {
     const checkInput = config.requestOutputLimit || config.requestCompactionAdmission || quoteWireImages || feedbackPaths;
     const inputJson = checkInput ? JSON.stringify(context) : undefined;
     const snapshot = checkInput ? structuredClone(context) : context;
-    const requestContext = feedbackPaths ? withRecentReadResults(snapshot, workspace, feedbackPaths) : snapshot;
+    const requestContext = feedbackPaths ? withRecentReadResults(snapshot) : snapshot;
     const requireUnchangedInput = () => {
       if (checkInput && JSON.stringify(context) !== inputJson) throw fail('invalid_request', 'Request input changed during output limit admission; no provider request sent');
     };

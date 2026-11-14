@@ -2,11 +2,71 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Context, ToolResultMessage } from '@earendil-works/pi-ai';
 import { Type } from 'typebox';
-import { requestInputBytes } from '../../src/providers/request-input.ts';
+import { requestInputBytes, withRecentReadResults } from '../../src/providers/request-input.ts';
 import type { PiRequest } from '../../src/providers/pi.ts';
 import { outputLimitFixture } from './request-output-limit.fixture.mjs';
 
 const usage = { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+function readHistory(rows: { args: Record<string, string | number | null>; text?: string; name?: string; error?: boolean; content?: ToolResultMessage['content'] }[]): Context {
+  return { messages: rows.flatMap((row, index): Context['messages'] => [
+    { role: 'assistant', content: [{ type: 'toolCall', id: String(index), name: row.name ?? 'read', arguments: row.args }],
+      api: 'openai-completions', provider: 'deepseek', model: 'deepseek-flash', usage, stopReason: 'toolUse', timestamp: 0 },
+    { role: 'toolResult', toolCallId: String(index), toolName: row.name ?? 'read',
+      content: row.content ?? [{ type: 'text', text: row.text ?? '独立正文。'.repeat(600) }], isError: row.error ?? false, timestamp: 0 },
+  ]) };
+}
+
+test('feedback reads retain independent dependencies and adjacent source pages', () => {
+  const context = readHistory([
+    { args: { path: 'phaser/WebAudioSound.js', offset: 1, limit: 400 } },
+    { args: { path: 'phaser/BaseSoundManager.js' } },
+    { args: { path: 'phaser/WebAudioSound.js', offset: 401, limit: 400 } },
+    { args: { path: 'src/audioObserve.ts' } },
+  ]);
+  assert.deepEqual(withRecentReadResults(context), context);
+});
+
+test('feedback reads omit only earlier identical successful reads with equal parsed arguments', () => {
+  const context = readHistory([
+    { args: { path: 'phaser/source.js', offset: 1, limit: 400 } },
+    { args: { limit: 400, path: 'phaser/source.js', offset: 1 } },
+    { args: { path: 'phaser/source.js', offset: 1, limit: 400 } },
+  ]), original = structuredClone(context), projected = withRecentReadResults(context);
+  for (const index of [1, 3]) {
+    const [block] = (projected.messages[index] as ToolResultMessage).content;
+    assert.equal(block.type, 'text');
+    if (block.type === 'text') assert.match(block.text, /identical.*later/i);
+  }
+  assert.deepEqual(projected.messages[5], context.messages[5]);
+  assert.deepEqual(context, original);
+});
+
+test('feedback reads preserve changed bytes, different modes, errors and non-text content', () => {
+  for (const middle of [
+    { args: { path: 'source.js' }, name: 'write' },
+    { args: { path: 'source.js' }, name: 'edit', error: true },
+    { args: { path: 'source.js' }, error: true },
+  ]) {
+    const context = readHistory([{ args: { path: 'source.js' } }, middle, { args: { path: 'source.js' } }]);
+    assert.deepEqual(withRecentReadResults(context), context);
+  }
+  for (const content of [
+    [{ type: 'image' as const, data: 'AA==', mimeType: 'image/png' }],
+    [{ type: 'text' as const, text: '正文'.repeat(1000) }, { type: 'image' as const, data: 'AA==', mimeType: 'image/png' }],
+    [{ type: 'unknown', value: '未知结果保留' }] as unknown as ToolResultMessage['content'],
+  ]) {
+    const context = readHistory([{ args: { path: 'source.js' }, content }, { args: { path: 'source.js' }, content }]);
+    assert.deepEqual(withRecentReadResults(context), context);
+  }
+  const context = readHistory([
+    { args: { path: 'source.js', offset: 1 }, text: '旧正文'.repeat(1000) },
+    { args: { path: 'source.js', offset: 1 }, text: '新正文'.repeat(1000) },
+    { args: { path: 'source.js', planOffset: 1 } },
+    { args: { path: 'source.js', offset: null } },
+    { args: { path: 'source.js' } },
+  ]);
+  assert.deepEqual(withRecentReadResults(context), context);
+});
 function richContext(): Context {
   const tool = { name: 'inspect', description: '保留工具说明 details', parameters: Type.Object({ details: Type.String({ description: '保留参数' }) }) };
   return { systemPrompt: '保留系统提示', tools: [tool], messages: [
