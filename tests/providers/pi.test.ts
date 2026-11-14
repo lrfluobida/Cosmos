@@ -282,6 +282,55 @@ test('coding review quotes every screenshot in the final wire body, including to
   assert.equal(f.requests[2].tools?.length ?? 0, 0);
 });
 
+for (const mode of ['reduce', 'floor-reject', 'cap-conflict', 'admission-reject'] as const) test(`coding review wire output limit: ${mode}`, async t => {
+  const f = await fixture(t, [call('read', { path: 'output.txt' }), reply('changes_requested')]);
+  const source = '// 当前源码和未解决缺陷必须完整保留\nconst value = 1;';
+  await writeFile(join(f.workspace, 'output.txt'), source);
+  const frame = { type: 'image' as const, mimeType: 'image/png', data: (await readFile(historicalScreenshot)).toString('base64') };
+  const createRuntime = ModelRuntime.create;
+  const originalBodies: any[] = [];
+  t.mock.method(ModelRuntime, 'create', async (...args: Parameters<typeof createRuntime>) => {
+    const runtime = await createRuntime(...args), dispatch = runtime.streamSimple.bind(runtime);
+    t.mock.method(runtime, 'streamSimple', (...args: Parameters<typeof dispatch>) => {
+      return dispatch(args[0], args[1], { ...args[2], onPayload: async (payload, model) => {
+        const result = await args[2]?.onPayload?.(payload, model);
+        originalBodies.push(JSON.parse(JSON.stringify(result ?? payload)));
+        return result;
+      } });
+    });
+    return runtime;
+  });
+  const quotes: number[] = [];
+  const session = await f.create({ ordinaryCodingReviewImageQuote: true, maxOutputTokens: 8192,
+    requestImageOutputLimit: async (request: Omit<PiRequest, 'estimatedMaxCostMicroCny'> & { imageInputTokens: number }) => {
+      assert.ok(Object.isFrozen(request));
+      assert.equal(request.hasImages, true);
+      assert.ok(request.inputBytes > request.imageInputTokens, 'the image quote uses tokens, not base64 bytes');
+      quotes.push(request.imageInputTokens);
+      if (mode === 'floor-reject') throw Error('Original task cannot afford 4096');
+      return mode === 'cap-conflict' ? 8193 : 6287;
+    }, budget: { ...f.config.budget, beforeRequest: async (request: PiRequest) => {
+      f.admissions.push(request);
+      assert.equal(request.maxOutputTokens, 6287);
+      assert.equal(request.estimatedMaxCostMicroCny, quotes.at(-1)! * 2 + 6287 * 8);
+      if (mode === 'admission-reject') throw Error('Actual authority changed');
+    } } });
+  if (mode === 'reduce') {
+    assert.equal((await session.prompt('Review the actual source and all screenshots.', { images: Array(8).fill(frame) })).text, 'changes_requested');
+    assert.equal(f.requests.length, 2);
+    for (const [index, body] of f.requests.entries()) {
+      assert.equal(body.max_tokens, 6287);
+      assert.equal(JSON.stringify(body).split(frame.data).length - 1, 8);
+      assert.deepEqual(body, { ...originalBodies[index], max_tokens: 6287 }, 'only the output cap changes');
+    }
+    assert.ok(f.requests[1].messages.some((message: any) => message.role === 'tool' && message.content === source));
+  } else {
+    await assert.rejects(session.prompt('Review.', { images: Array(8).fill(frame) }));
+    assert.equal(f.requests.length, 0);
+    assert.equal(f.admissions.length, mode === 'admission-reject' ? 1 : 0);
+  }
+});
+
 for (const condition of ['one-frame', 'legacy', 'custom-transport', 'short-png', 'unknown-media', 'external-url', 'unknown-block', 'unknown-field', 'grown-text',
   'above-context', 'changed-input', 'expired-window', 'sdk-error', 'changed-cap', 'timeout', 'low-balance'] as const) test(`screenshot admission at native HTTP boundary: ${condition}`, async t => {
   const f = await fixture(t, [reply()]);

@@ -93,6 +93,8 @@ export interface PiSessionOptions {
   requestWindow?: () => Promise<{ deadlineAt: number; cleanupMs: number }>;
   /** Trusted host policy using actual input bounds; may only reduce the configured output cap. */
   requestOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'> & { finalizationOutputFloor?: 1024 }>, signal?: AbortSignal) => Promise<number>;
+  /** Ordinary screenshot review only; quote the complete serialized body before admission. */
+  requestImageOutputLimit?: (request: Readonly<Omit<PiRequest, 'estimatedMaxCostMicroCny'> & { imageInputTokens: number }>, signal?: AbortSignal) => Promise<number>;
   /** Trusted host decision at an eligible completed tool boundary; summaries still need admission. */
   requestCompaction?: (request: PiCompactionBounds) => Promise<boolean | 'budget_pressure'>;
   /** Host-only ordinary design selection; serialized tool output never grants eligibility. */
@@ -129,6 +131,7 @@ export async function createPiSession(config: PiSessionOptions) {
   positive(config.maxOutputTokens, 'maxOutputTokens');
   positive(config.maxRequests, 'maxRequests');
   positive(config.requestTimeoutMs, 'requestTimeoutMs');
+  if (config.requestImageOutputLimit && (!config.ordinaryCodingReviewImageQuote || config.maxOutputTokens !== 8192)) throw new Error('Image output selection requires the ordinary coding review cap.');
   if (config.ordinaryCodingBuildReserve && (config.maxRequests !== 32 || config.resumeFile || config.requestCompaction
     || !config.tools.some(tool => tool.name === 'check-game-build'))) throw new Error('Coding build reserve requires the original 32-round session and its scoped compiler.');
   if (config.requestCompactionAdmission && !config.requestCompaction) throw new Error('Compaction admission requires a compaction policy');
@@ -335,13 +338,29 @@ export async function createPiSession(config: PiSessionOptions) {
             // Pi 0.99.2 passes the final OpenAI request here, after onPayload and JSON serialization.
             if (wireAttempted || typeof init?.body !== 'string') throw fail('invalid_request', 'Unexpected screenshot review transport.');
             wireAttempted = true;
-            const wire = init.body, body = JSON.parse(wire);
+            let wire = init.body;
+            const body = JSON.parse(wire);
             if (body?.model !== request.modelId || body.max_tokens !== request.maxOutputTokens || 'max_completion_tokens' in body)
               throw fail('invalid_request', 'Screenshot review model or output limit changed before dispatch.');
             const url = input instanceof Request ? input.url : String(input);
             const tokens = !options?.fetch && url === 'https://api.deepseek.com/chat/completions'
               ? reviewImageInputTokens(body, Buffer.byteLength(wire)) : 1_000_000;
             requireUnchangedInput();
+            if (config.requestImageOutputLimit) {
+              let limit: number;
+              try { limit = await config.requestImageOutputLimit(Object.freeze({ ...request, imageInputTokens: tokens }), signal); }
+              catch (error) { throw admissionFailure(error, 'Image output limit authority rejected; no provider request sent'); }
+              throwIfFailed();
+              if (closed || signal.aborted || init.signal?.aborted) throw fail('cancelled', 'Session was cancelled before image admission');
+              requireUnchangedInput();
+              if (!Number.isSafeInteger(limit) || limit < 4096 || limit > request.maxOutputTokens) throw fail('invalid_request', 'Image output limit must remain within 4096 and the original cap');
+              request.maxOutputTokens = body.max_tokens = limit;
+              wire = JSON.stringify(body);
+              // Both permitted caps have four digits; recheck the complete final body anyway.
+              const finalTokens = !options?.fetch && url === 'https://api.deepseek.com/chat/completions'
+                ? reviewImageInputTokens(body, Buffer.byteLength(wire)) : 1_000_000;
+              if (finalTokens !== tokens) throw fail('invalid_request', 'Image quote changed while selecting the output cap');
+            }
             await admit(tokens * 2 + request.maxOutputTokens * 8);
             await effectiveRequestTimeout();
             throwIfFailed();
