@@ -4,7 +4,11 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-R63 之后的免费独立实验使用同启动 flags、全新隔离 Edge profile，在初始 `about:blank` 阶段发现三个 `chrome-extension://` 的 service worker，与页面同 context 且无 opener。当前浏览器级 Target discovery 将这些目标一并判成项目网络观察缺口。COS-222 将保存目标来源证据并区分浏览器自有、项目与未知 worker，通过真实 save/reopen 双段 runner 验证。R63 的目标身份没有保存在原报告中，该次实验不回填历史证据；游戏 s028 等失败仍成立。 [独立目标记录](.cosmos/planning/r63-worker-attribution/targets.json) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/223)
+COS-222 已合入 `6e00ffc7`，独审批准 `b7f79a92`。网络观察器保存原生 CDP target 的身份、类型、URL、上下文、opener 和归属依据。合法 `chrome-extension:` URL 且无 opener 的 worker 被标为浏览器扩展来源，项目和未知来源继续报告网络观察缺口。单元 19/19、真实 save/reopen 双段正反 1/1、项目 worker 网络回归 2/2 均通过。主线构建通过，三份文件与批准版本一致。本批零模型请求、零费用，R64 未启动。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/223#issuecomment-6874623134)
+
+作者工作树保留原始报告、截图、视频和日志。临时目录 `E:/CodexData/.codex/worktrees/r63-worker-attribution/Cosmos/.cosmos/r63-worker-attribution/tmp` 的删除被自动审批以 `blocked by policy` 拒绝，保留 94 个文件、1,598,125 字节；该父证据目录合计 144 个文件、2,601,963 字节。真实四个浏览器进程和 profile 均已退出、清理。独审结束后仅摘除了已核实的唯一根依赖联接，主仓和模板四处入口完好。
+
+R63 之后的免费独立实验使用同启动 flags、全新隔离 Edge profile，在初始 `about:blank` 阶段发现三个 `chrome-extension://` 的 service worker，与页面同 context 且无 opener。当前浏览器级 Target discovery 将这些目标一并判成项目网络观察缺口。COS-222 已保存目标来源证据并完成真实 save/reopen 双段 runner 核验。R63 的目标身份没有保存在原报告中，该次实验不回填历史证据；游戏 s028 等失败仍成立。 [独立目标记录](.cosmos/planning/r63-worker-attribution/targets.json) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/223)
 
 R63 在冻结主线 `66417b6b` 上完成真实编译、候选捕获、交付打包和正式浏览器 save 段。五条批准步骤已进入作者初始包。作者交接声称编辑，实际记录为 38 次读取、零次写入或编辑，八份源码与 R60 相同。正式 save 段的 200 步全部执行，167 步通过、33 步失败，首失 s028 的存档文本仍缺“最近保存：”前缀。 [R63 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6874434649) · [正式浏览器报告](.cosmos/public-validation/room-20261114-focused-63/run/evidence/game-code/browser.json)
 

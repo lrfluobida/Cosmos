@@ -14280,7 +14280,7 @@
       "id": 6310594471,
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-222"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/192",
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
@@ -15269,9 +15269,9 @@
       "parentIssueNumber": 192,
       "parentIssueId": 6310594471,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-191",
@@ -15282,7 +15282,11 @@
       "implementer": "worker_attribution_author",
       "reviewer": "r52_evidence",
       "merger": "r52_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "b7f79a924c1c5cddaf2a0857c2e9786a34b839ee",
+      "sourceIntegratedCommit": "6e00ffc786549144df4607c03c00bc16afb0b82a",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/223#issuecomment-6874623134",
+      "verification": "主线构建、单元 19/19、真实双段正反 1/1、项目 worker 网络回归 2/2 通过。原始 CDP target 证据保留，项目和未知来源仍报网络观察缺口。零模型费用。"
     }
   ],
   "verifiedNativeSubIssues": 100,
