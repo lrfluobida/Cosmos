@@ -14638,6 +14638,9 @@
       "title": "按实际请求为普通编码独审的全量截图报价",
       "number": 203,
       "id": 6322030047,
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-227"],
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/203",
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
@@ -15182,9 +15185,9 @@
       "title": "从失败普通编码任务的已捕获未批准源码续写",
       "number": 220,
       "id": 6370886433,
-      "verifiedNativeSubIssues": 1,
-      "subTaskIds": ["COS-220"],
-      "verifiedCompletedSubIssues": 1,
+      "verifiedNativeSubIssues": 2,
+      "subTaskIds": ["COS-220", "COS-226"],
+      "verifiedCompletedSubIssues": 2,
       "url": "https://github.com/lrfluobida/Cosmos/issues/220",
       "parentTaskId": "COS-213",
       "parentIssueNumber": 214,
@@ -15376,9 +15379,67 @@
       "sourceIntegratedCommit": "5ef56ae19213569aa7cd01a94fd3170baba279d4",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/226#issuecomment-6880569634",
       "verification": "主线构建、参数边界复审及准确 R67 免费回放通过。R68 第21笔作者自然交接未触发强制投影；正式浏览器398步通过但独审仍无裁决。"
+    },
+    {
+      "taskId": "COS-226",
+      "title": "续写终态未批准任务中的已捕获源码",
+      "number": 227,
+      "id": 6396645586,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/227",
+      "parentTaskId": "COS-219",
+      "parentIssueNumber": 220,
+      "parentIssueId": 6370886433,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
+      "dependsOn": [
+        {
+          "id": "COS-219",
+          "number": 220,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/220"
+        }
+      ],
+      "implementer": "review_finish_author",
+      "reviewer": "review_finish_review",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "32c5f591d0ec087cef1eaef1c8b2007ca755d362",
+      "sourceIntegratedCommit": "2b1dd1729416695507cb4efa80d6878c00b4d887",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/227#issuecomment-6885234337",
+      "verification": "普通 CLI 1/1 及真实 R60/R67/R68 选源通过。联合构建、主线正式 R68 九源码与 HUD 反馈核对通过。"
+    },
+    {
+      "taskId": "COS-227",
+      "title": "在原预算内调整普通编码独审的输出上限",
+      "number": 228,
+      "id": 6396658507,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/228",
+      "parentTaskId": "COS-202",
+      "parentIssueNumber": 203,
+      "parentIssueId": 6322030047,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
+      "dependsOn": [
+        {
+          "id": "COS-202",
+          "number": 203,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/203"
+        }
+      ],
+      "implementer": "review_finish_author",
+      "reviewer": "review_finish_review",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "3a04483834a03a06d23118777e378f1374a123cb",
+      "sourceIntegratedCommit": "8100f8c60ba4f92faa7962422b5564d2348bd230",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/228#issuecomment-6885238388",
+      "verification": "实际 SDK 保留八图及读取正文，报价和发送cap一致；R68 第14笔校准及第15笔可付cap6287核验。最低不可付继续拒发，联合构建通过。"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 225,
+  "totalTaskCount": 227,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

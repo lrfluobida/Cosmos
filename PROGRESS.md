@@ -4,6 +4,14 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS-226 已合入 `2b1dd172`，独审批准 `32c5f591`。已终结失败的 attempt，在 task 为 waiting_user、独审 pending、候选 unsealed 时，可通过原未审源码入口继续编辑。原确认、设计、美术、捕获及用户接受状态均继续核对。主线选中 R68 九份源码，版本 `5b31749f61e772e789a47c94b519468e0b3d3fd805d94f1001ee7b6f694ba046`，紧凑包 61,316 字节。HUD 反馈为 1,453 字节，版本 `1c5ecfceb886cb481827b33213b669b2136aa4385d24bd78a180fe8d018407cb`。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/227#issuecomment-6885234337) · [绑定 HUD 反馈](.cosmos/planning/r68-hud-feedback/author-feedback.json)
+
+COS-227 已合入 `8100f8c6`，独审批准 `3a044838`。普通编码独审根据最终 SDK 的含图请求，在 8,192 与 4,096 之间选择原预算可支付的输出上限。八张图片、原读取文本及原有请求次数上限保留，报价与实际发送 cap 一致。R68 第 14 笔真实报价 516,028 微元校准通过；第 15 笔原报价 543,742 微元高于余额 528,505，最低输出上限报价为 510,974 微元，最大可付 cap 为 6,287。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/228#issuecomment-6885238388) · [真实请求回放](.cosmos/planning/r68-review-finish-evidence/replay.json)
+
+两项使用独立提交，联合主线构建通过，六份集成文件与批准版本相同，正式 R68 选源及 HUD 反馈核验通过。已有普通 CLI、SDK、provider 与 role 证据已复用，本批零供应商请求。R68 原报告仍为 incomplete/not_passed，原生独审 pending、用户体验未确认。R69 的 ¥1.15 / 30 分钟及阶段上限 ¥55.72 提案尚待预算决定，未拨款或启动。 [预算提案](.cosmos/planning/r68-review-finish-budget/budget-proposal.md)
+
+作者源码树已核实干净、两项 tip 已合入且无使用进程。全树仅两处依赖联接，分别指向主仓和模板 node_modules，单独摘除后工作树已清理，四个依赖入口复核通过。自动审批两次以 `blocked by policy` 拒绝清理的 `.cosmos/planning/review-finish-author-temp` 保留 618 个自有文件、4,849,775 字节及两处联接，统计未跟随联接。主仓外层的作者与独审证据保留。
+
 R68 在冻结主线 `5ef56ae1` 完成原生源码修改、编译、交接和候选捕获。正式浏览器 save 200 步、真实进程重开的 resume 198 步全部通过，两个错误列表均为空。作者第 21 笔完成自然交接，remaining/uncertainty 为空，没有触发 #226 的强制最终交接投影。原生独审执行 14 笔只读请求，第 15 笔因报价准入被拒，尚无最终裁决。正式报告仍为 `incomplete/not_passed`，用户体验未确认。 [R68 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880989495) · [398 步正式浏览器报告](.cosmos/public-validation/room-20261115-final-handoff-68/run/evidence/game-code/browser.json) · [原生交付报告](.cosmos/public-validation/room-20261115-final-handoff-68/run/delivery/report-518961ce-329b-408c-a5fc-2f4b6092e32d.json)
 
 当前可在装有 Node.js 22 的 Windows 上双击 [Play.cmd](.cosmos/public-validation/room-20261115-final-handoff-68/development-preview/Play.cmd)，端口 41568。独立 Edge 补测两种快速首次关声再开声时序，实际间隔 38.4/519.9 ms，均观测到 outputActive=true/count1，无页面异常、404 或外部请求。九份源码、15 份媒体和 17 份 dist 与候选逐字节相同。HUD 说明与进度仍重叠约 11 px，补测总结果因该缺陷未通过。 [独立补测](.cosmos/planning/r68-independent-observation/edge-targeted.json) · [初始画面](.cosmos/planning/r68-independent-observation/initial.png) · [胜利画面](.cosmos/planning/r68-independent-observation/victory.png)

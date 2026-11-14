@@ -2749,6 +2749,14 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 归属 #19，原生父卡与依赖为 #218。R67 的最终无工具 JSON 未发，4,096 输出下限报价比编码余额高 27,805 微元。仅在既有 ordinary coding reserve 的 final handoff 且 tools 为空时，省略已授权固定 toolchain/node_modules 下成功纯文本 read 正文；保留参数、完整 journal 与其余证据，真实报价和派发同体，4096 下限不变。作者 `final_handoff_author`，独审 `no_edit_review` 批准修正版 `9638e7ab`，主线合入 `5ef56ae1`。主线构建、参数边界复审和准确 R67 免费回放通过。R68 作者第 21 笔自然交接，未触发强制最终投影。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/226#issuecomment-6880569634) · [R68 结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880989495) [R67 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880438267) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/226)
 
+### COS-226 · 续写终态未批准任务中的已捕获源码
+
+归属 #19，原生父卡和依赖为 #220。允许终结失败 attempt 下 waiting_user/pending/unsealed 的捕获进入未审草稿续写，保留同版确认、设计、美术和完整来源。排除已批准、已封存及用户已接受交付。作者 `review_finish_author`，独审 `review_finish_review` 批准 `32c5f591`，主线合入 `2b1dd172`。真实 R68 九份源码及 HUD 反馈已由合并后正式选择器核验。 [审批与集成](https://github.com/lrfluobida/Cosmos/issues/227#issuecomment-6885234337)
+
+### COS-227 · 在原预算内调整普通编码独审的输出上限
+
+归属 #19，原生父卡和依赖为 #203。在 8192 上限和 4096 下限之间，根据最终含图 SDK 请求选择原预算内 cap，保持八图、原文本、原请求次数和裁决门禁，最低不可付继续拒发。作者 `review_finish_author`，独审 `review_finish_review` 批准 `3a044838`，主线合入 `8100f8c6`。真实 R68 第 14 笔报价对齐，下一笔 cap 6287 可付，真实 SDK cap 同体已验证。 [审批与集成](https://github.com/lrfluobida/Cosmos/issues/228#issuecomment-6885238388)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。
