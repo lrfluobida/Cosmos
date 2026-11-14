@@ -2735,6 +2735,10 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 归属 #19，原生父卡和依赖为 #192。独立 Edge 空白页实验显示浏览器自有扩展 worker 被浏览器级发现事件归入项目网络观察缺口。修复保留 target 来源证据，区分浏览器自有、项目及未知 worker，保持项目与未知目标的缺口语义。真实双段 runner 核验保存和进程重开。本卡免费验证，不重写 R63 历史结论。作者 `worker_attribution_author`，独审 `r52_evidence` 批准 `b7f79a92`，主线合入 `6e00ffc7`。单元 19/19、真实双段正反 1/1、项目 worker 网络回归 2/2、主线构建通过，模型费用为零。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/223#issuecomment-6874623134) [独立证据](../../.cosmos/planning/r63-worker-attribution/targets.json) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/223)
 
+### COS-223 · 仅省略可证明重复的成功读取正文
+
+归属 #19，原生父卡和依赖为 #216。R63 的旧 read 投影丢失了相邻依赖分页，七次重复读取的先前正文均已省略。只去除可证明重复的成功 read 内容，保留各文件不同页、原生错误及跨写入前后的文本。原始 journal 完整，报价与真实发送包一致。本卡不增加提示、浏览器行为或配置，八份初始源码和工具本来可用。作者 `no_edit_author`，独审 `no_edit_review`。 [修复任务](https://github.com/lrfluobida/Cosmos/issues/224)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

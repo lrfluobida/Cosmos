@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R63 无写入的进一步诊断发现旧 read 投影会丢弃相邻依赖和分页：第 18 轮读取 WebAudioSound 的 401..800 行后，先前的 1..400 行已被省略，下一轮再读 1..400；七次原样重复读取前的正文均已省略。初始八份源码与四个工具始终可用，此缺口只解释部分重复读取。COS-223 将仅省略可证明重复的成功读取正文，保留不同页、原生错误及写入前后文本，并保持报价和实际请求一致、原 journal 完整。 [免费修复任务](https://github.com/lrfluobida/Cosmos/issues/224)
+
 COS-222 已合入 `6e00ffc7`，独审批准 `b7f79a92`。网络观察器保存原生 CDP target 的身份、类型、URL、上下文、opener 和归属依据。合法 `chrome-extension:` URL 且无 opener 的 worker 被标为浏览器扩展来源，项目和未知来源继续报告网络观察缺口。单元 19/19、真实 save/reopen 双段正反 1/1、项目 worker 网络回归 2/2 均通过。主线构建通过，三份文件与批准版本一致。本批零模型请求、零费用，R64 未启动。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/223#issuecomment-6874623134)
 
 作者工作树保留原始报告、截图、视频和日志。临时目录 `E:/CodexData/.codex/worktrees/r63-worker-attribution/Cosmos/.cosmos/r63-worker-attribution/tmp` 的删除被自动审批以 `blocked by policy` 拒绝，保留 94 个文件、1,598,125 字节；该父证据目录合计 144 个文件、2,601,963 字节。真实四个浏览器进程和 profile 均已退出、清理。独审结束后仅摘除了已核实的唯一根依赖联接，主仓和模板四处入口完好。

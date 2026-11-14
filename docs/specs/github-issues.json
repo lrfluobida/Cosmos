@@ -15053,8 +15053,8 @@
       "title": "有界保留带反馈编码会话中的历史读取正文",
       "number": 216,
       "id": 6337631537,
-      "verifiedNativeSubIssues": 1,
-      "subTaskIds": ["COS-216"],
+      "verifiedNativeSubIssues": 2,
+      "subTaskIds": ["COS-216", "COS-223"],
       "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/216",
       "parentTaskId": "COS-214",
@@ -15287,9 +15287,34 @@
       "sourceIntegratedCommit": "6e00ffc786549144df4607c03c00bc16afb0b82a",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/223#issuecomment-6874623134",
       "verification": "主线构建、单元 19/19、真实双段正反 1/1、项目 worker 网络回归 2/2 通过。原始 CDP target 证据保留，项目和未知来源仍报网络观察缺口。零模型费用。"
+    },
+    {
+      "taskId": "COS-223",
+      "title": "仅省略可证明重复的成功读取正文",
+      "number": 224,
+      "id": 6387860173,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/224",
+      "parentTaskId": "COS-215",
+      "parentIssueNumber": 216,
+      "parentIssueId": 6337631537,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-215",
+          "number": 216,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/216"
+        }
+      ],
+      "implementer": "no_edit_author",
+      "reviewer": "no_edit_review",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 222,
+  "totalTaskCount": 223,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
