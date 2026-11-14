@@ -6,7 +6,7 @@ import { mock, test } from 'node:test';
 import type { Context } from '@earendil-works/pi-ai';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { createPiSession, createWorkspaceTools } from '../../src/providers/pi.ts';
-import { requestInputBytes } from '../../src/providers/request-input.ts';
+import { requestInputBytes, withRecentReadResults } from '../../src/providers/request-input.ts';
 import { validationReservation } from '../../src/runtime/validation-validation.ts';
 import type { PiRequest } from '../../src/providers/pi.ts';
 import { Type } from 'typebox';
@@ -309,7 +309,6 @@ for (const mode of ['feedback', 'ordinary', 'insufficient', 'changed-original'] 
   const f = await fixture(t, [call('read', { path: 'output.txt' }, 'source'), call('read', { path: 'first.txt' }, 'old'),
     failed, recent, reply()]);
   const source = '可编辑文件。'.repeat(250), first = '旧依赖内容。'.repeat(900), last = '近期依赖。'.repeat(300);
-  const omitted = '[Earlier read output omitted. Use the original read arguments to read this file again.]';
   const createRuntime = ModelRuntime.create;
   let runtime!: ModelRuntime, original!: Context;
   t.mock.method(ModelRuntime, 'create', async (...args: Parameters<typeof createRuntime>) => (runtime = await createRuntime(...args)));
@@ -323,9 +322,6 @@ for (const mode of ['feedback', 'ordinary', 'insufficient', 'changed-original'] 
       assert.equal(request.estimatedMaxCostMicroCny, validationReservation(request));
       if (f.admissions.length === 5) {
         const expected = structuredClone(original);
-        for (const message of expected.messages) {
-          if (mode !== 'ordinary' && message.role === 'toolResult' && message.toolCallId === 'old') message.content = [{ type: 'text', text: omitted }];
-        }
         assert.equal(request.inputBytes, requestInputBytes(expected));
         if (mode === 'insufficient') throw Error('Insufficient budget');
         if (mode === 'changed-original') {
@@ -353,8 +349,72 @@ for (const mode of ['feedback', 'ordinary', 'insufficient', 'changed-original'] 
   assert.ok(result('invalid'));
   assert.equal(result('recent'), last);
   assert.equal(result('also-recent'), source);
-  assert.equal(result('old'), mode === 'ordinary' ? first : omitted);
+  assert.equal(result('old'), first);
   assert.ok(messages.some((m: any) => m.tool_calls?.some((c: any) => c.id === 'old' && JSON.parse(c.function.arguments).path === 'first.txt')));
+});
+
+for (const repeated of [false, true]) test(`feedback coder retains two file reads through native edit and check: repeated=${repeated}`, async t => {
+  const source = '// 当前源码\n'.repeat(300) + 'const value = 0;\n', dependency = '// 依赖约定\n'.repeat(1000);
+  const f = await fixture(t, [call('read', { path: 'output.txt' }, 'source'),
+    ...(repeated ? [call('read', { path: 'output.txt' }, 'repeat')] : []),
+    call('read', { path: 'dependency.txt' }, 'dependency'),
+    call('edit', { path: 'output.txt', edits: [{ oldText: 'const value = 0;', newText: 'const value = 1;' }] }, 'edit'),
+    call('check-game-build', {}, 'check'), reply('{"summary":"edited and checked","remaining":[],"uncertainty":[]}')]);
+  await writeFile(join(f.workspace, 'output.txt'), source);
+  await writeFile(join(f.workspace, 'dependency.txt'), dependency);
+  const createRuntime = ModelRuntime.create;
+  let runtime!: ModelRuntime, original!: Context, checked = false;
+  t.mock.method(ModelRuntime, 'create', async (...args: Parameters<typeof createRuntime>) => (runtime = await createRuntime(...args)));
+  const check = { ...f.config.tools[0], name: 'check-game-build', parameters: Type.Object({}), async execute() {
+    assert.equal(await readFile(join(f.workspace, 'output.txt'), 'utf8'), source.replace('const value = 0;', 'const value = 1;'));
+    checked = true;
+    return { content: [{ type: 'text' as const, text: '{"passed":true,"diagnostics":"Current edited file checked"}' }], details: {} };
+  } };
+  const session = await f.create({ feedbackReadWritePaths: ['output.txt'], tools: [...f.config.tools, check],
+    estimatedMaxCostMicroCny: validationReservation,
+    budget: { ...f.config.budget, beforeRequest: async (request: PiRequest) => {
+      f.admissions.push(request);
+      assert.equal(request.inputBytes, requestInputBytes(withRecentReadResults(original)));
+      assert.equal(request.estimatedMaxCostMicroCny, validationReservation(request));
+    } },
+  });
+  const stream = runtime.streamSimple.bind(runtime);
+  t.mock.method(runtime, 'streamSimple', (...args: Parameters<typeof stream>) => { original = args[1]; return stream(...args); });
+  await session.prompt('按当前源码和依赖修改后自检');
+  const messages = f.requests[repeated ? 3 : 2].messages;
+  const result = (id: string) => messages.find((message: any) => message.tool_call_id === id).content;
+  assert.equal(result('dependency'), dependency);
+  assert.equal(result(repeated ? 'repeat' : 'source'), source);
+  if (repeated) assert.match(result('source'), /identical.*later/i);
+  assert.equal(checked, true);
+  assert.equal(f.requests.length, repeated ? 6 : 5);
+  const entries = (await readFile(session.sessionFile!, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  assert.equal(entries.find(row => row.message?.toolCallId === 'source').message.content[0].text, source);
+});
+
+test('native feedback transport preserves reads across writes and repeated mixed image results', async t => {
+  const source = '跨写入读取保留。'.repeat(300), text = '图文结果保留。'.repeat(300);
+  const frame = { type: 'image' as const, mimeType: 'image/png', data: (await readFile(historicalScreenshot)).toString('base64') };
+  const mixed = [{ type: 'text' as const, text }, frame];
+  const f = await fixture(t, [call('read', { path: 'output.txt' }, 'before'),
+    call('write', { path: 'output.txt', content: source }, 'write'), call('read', { path: 'output.txt' }, 'after'),
+    call('read', { path: 'mixed.png' }, 'image1'), call('read', { path: 'mixed.png' }, 'image2'), reply()]);
+  await writeFile(join(f.workspace, 'output.txt'), source);
+  const read = f.config.tools.find(tool => tool.name === 'read')!;
+  const session = await f.create({ feedbackReadWritePaths: ['output.txt'], tools: f.config.tools.map(tool => tool !== read ? tool : {
+    ...read, async execute(...args: Parameters<typeof read.execute>) {
+      return (args[1] as { path: string }).path === 'mixed.png' ? { content: mixed, details: {} } : read.execute(...args);
+    },
+  }) });
+  await session.prompt('保留原始观察');
+  const messages = f.requests.at(-1).messages;
+  for (const id of ['before', 'after']) assert.equal(messages.find((message: any) => message.tool_call_id === id).content, source);
+  const wire = JSON.stringify(messages);
+  assert.equal(wire.split(frame.data).length - 1, 2);
+  assert.equal(wire.split(text).length - 1, 2);
+  const entries = (await readFile(session.sessionFile!, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  for (const id of ['before', 'after']) assert.equal(entries.find(row => row.message?.toolCallId === id).message.content[0].text, source);
+  for (const id of ['image1', 'image2']) assert.deepEqual(entries.find(row => row.message?.toolCallId === id).message.content, mixed);
 });
 
 test('tool errors return to the model for a bounded repair without expanding write scope', async t => {
