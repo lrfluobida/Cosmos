@@ -143,6 +143,13 @@ test('final coding projection preserves source, feedback, malformed, ambiguous, 
   const library = 'toolchain/node_modules/phaser/src/sound.js';
   const cases = [
     { path: library, omit: true }, { path: library.replaceAll('/', '\\'), omit: true },
+    { path: library, extra: { offset: 1, limit: 100 }, omit: true },
+    { path: library, extra: { offset: null, limit: null, planOffset: null }, omit: true },
+    { path: library, extra: { offset: -1 } }, { path: library, extra: { limit: '100' } },
+    { path: library, extra: { planOffset: 1 } }, { path: library, extra: { unexpected: true } },
+    { path: library, extra: { offset: 0 } }, { path: library, extra: { limit: 1.5 } },
+    { path: library, extra: { offset: Number.MAX_SAFE_INTEGER + 1 } },
+    { path: library, extra: { artFrames: [] } }, { path: library, extra: { artFrames: null } },
     { path: 'requirements/original.json' }, { path: 'registry/captures/design/v1/files/_cosmos/acceptance-plan.json' },
     { path: 'repair-feedback/issues.json' }, { path: 'authors/coding/src/game.ts' }, { path: 'authors/coding/src/note.md' },
     { path: 'toolchain/node_modules/../../repair-feedback/issues.json' }, { path: './' + library },
@@ -153,7 +160,7 @@ test('final coding projection preserves source, feedback, malformed, ambiguous, 
   const messages: Context['messages'] = [];
   for (const [index, item] of cases.entries()) {
     const id = 'boundary-' + index, toolName = item.toolName ?? 'read';
-    const tool = { type: 'toolCall', id, name: toolName, arguments: { path: item.path } };
+    const tool = { type: 'toolCall', id, name: toolName, arguments: { path: item.path, ...item.extra } };
     messages.push({ role: 'assistant', content: item.unmatched ? [] : [tool, ...(item.duplicate ? [tool] : [])] } as any,
       { role: 'toolResult', toolCallId: id, toolName, isError: item.isError ?? false, content: [
         { type: 'text', text: 'Unresolved source and feedback ' + index }, ...(item.image ? [{ type: 'image', data: 'AQ==', mimeType: 'image/png' }] : [])] } as any);

@@ -11,6 +11,9 @@ export function withFinalCodingReadResults(context: Context): Context {
       if (message.role === 'assistant') for (const call of message.content) {
         if (call.type !== 'toolCall' || call.name !== 'read' || typeof call.arguments?.path !== 'string') continue;
         if (message.content.filter(block => block.type === 'toolCall' && block.id === call.id).length !== 1) continue;
+        const args = call.arguments;
+        if (Object.keys(args).some(key => !['path', 'offset', 'limit', 'planOffset'].includes(key)) || args.planOffset != null
+          || ['offset', 'limit'].some(key => args[key] != null && (typeof args[key] !== 'number' || !Number.isSafeInteger(args[key]) || args[key] < 1))) continue;
         const path = call.arguments.path.replaceAll('\\', '/');
         // The scoped reader already checked access. Reject aliases/traversal here so a
         // task source or feedback file cannot be mistaken for a toolchain dependency.
