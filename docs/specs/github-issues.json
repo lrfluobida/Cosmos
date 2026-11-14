@@ -15359,7 +15359,7 @@
       "id": 6392487109,
       "verifiedNativeSubIssues": 1,
       "subTaskIds": ["COS-228"],
-      "verifiedCompletedSubIssues": 0,
+      "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/226",
       "parentTaskId": "COS-217",
       "parentIssueNumber": 218,
@@ -15452,9 +15452,9 @@
       "parentIssueNumber": 226,
       "parentIssueId": 6392487109,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-225",
@@ -15465,7 +15465,11 @@
       "implementer": "concise_handoff_author",
       "reviewer": "review_finish_review",
       "merger": "r52_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "a3ab6a6f1322c8c4c22b5411cdd15423c314264b",
+      "sourceIntegratedCommit": "5fe437f6bd9696b6b91c0122ed13c341e5f1bcba",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/229#issuecomment-6885931817",
+      "verification": "主线构建、16/16目标检查和6/6既有回归通过。仅最终无工具交接复用1024下限，真实R69输入的最高可付cap2693报价740466微元，预算不变。 合并后正式链核实R69九份源码及单一裁切反馈，R70预算提案未应用。"
     }
   ],
   "verifiedNativeSubIssues": 100,
