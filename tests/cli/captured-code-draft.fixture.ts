@@ -35,6 +35,23 @@ export async function failedCodeCapture(t: TestContext, options: Parameters<type
   assert.equal(files.get(main)?.toString(), content);
   assert.deepEqual([...files.keys()].sort(), ['authors/coding/index.html', 'authors/coding/src/helper.ts', main]);
   const taskId = design.selection.tasks.find(item => item.role === 'coding')!.task.taskId;
+  const snapshotPath = join(previous.root, 'snapshot.json'), snapshot = JSON.parse(await readFile(snapshotPath, 'utf8'));
+  const task = snapshot.tasks.find((item: any) => item.taskId === taskId);
+  assert.equal(task.attempts.at(-1).outcome, 'failed');
+  assert.ok(task.attempts.at(-1).endedAt);
+  assert.equal(task.review.verdict, 'pending');
+  task.state = 'waiting_user';
+  await writeFile(snapshotPath, JSON.stringify(snapshot));
+  const waiting = await select();
+  assert.deepEqual(waiting.reference, reference);
+  assert.deepEqual(waiting.files, files);
+  for (const state of ['cancelled', 'needs_changes']) {
+    task.state = state;
+    await writeFile(snapshotPath, JSON.stringify(snapshot));
+    await assert.rejects(select, /failed task/);
+  }
+  task.state = 'waiting_user';
+  await writeFile(snapshotPath, JSON.stringify(snapshot));
   for (const [file, change] of [
     [source + 'capture.json', (doc: any) => { doc.metadata.provenance.sourceRefs[0] += '-other-attempt'; }],
     [source + 'capture.json', (doc: any) => { doc.files.pop(); }],

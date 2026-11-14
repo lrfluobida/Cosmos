@@ -74,7 +74,7 @@ async function exists(root: string, path: string) {
 async function capturedFiles(root: string, state: RunSnapshot, task: TaskContract, requirement: RequirementContract,
   candidateRef: ArtifactReference, source: ArtifactReference, dependencies: ArtifactReference[]) {
   const attempt = task.attempts.at(-1)!;
-  if (task.state !== 'failed' || attempt.outcome !== 'failed' || attempt.sessionRef !== join(root, 'sessions', attempt.attemptId)
+  if (!['failed', 'waiting_user'].includes(task.state) || attempt.outcome !== 'failed' || attempt.sessionRef !== join(root, 'sessions', attempt.attemptId)
     || !sameValue(task.artifacts, [candidateRef])) throw new Error('Select the failed task with its original captured candidate.');
   const origin: RecoveryOrigin = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await regularFile(root, `journal/task-${encodeURIComponent(task.taskId)}/origin.json`)));
   if (origin.formatVersion !== 1 || origin.runId !== state.run.runId || origin.ledgerId !== state.ledger.ledgerId
