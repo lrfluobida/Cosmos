@@ -14278,6 +14278,9 @@
       "title": "让普通浏览器验收读取画面、布局及网络证据",
       "number": 192,
       "id": 6310594471,
+      "verifiedNativeSubIssues": 1,
+      "subTaskIds": ["COS-222"],
+      "verifiedCompletedSubIssues": 0,
       "url": "https://github.com/lrfluobida/Cosmos/issues/192",
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
@@ -15255,9 +15258,34 @@
       "sourceIntegratedCommit": "d7c4a80f9cd1a520cd9adaf9b65e02a82b4a1850",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/222#issuecomment-6862888084",
       "verification": "主线构建、本机带资 CLI 1/1 通过，组合选源链准确解析原计划五项（主场景三项、重开两项），共 1104 字节。旧反馈继续兼容。零付费。"
+    },
+    {
+      "taskId": "COS-222",
+      "title": "区分浏览器扩展 worker 与项目 worker 的网络观察证据",
+      "number": 223,
+      "id": 6387506569,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/223",
+      "parentTaskId": "COS-191",
+      "parentIssueNumber": 192,
+      "parentIssueId": 6310594471,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-191",
+          "number": 192,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/192"
+        }
+      ],
+      "implementer": "worker_attribution_author",
+      "reviewer": "r52_evidence",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 221,
+  "totalTaskCount": 222,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

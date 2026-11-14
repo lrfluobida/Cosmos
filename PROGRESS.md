@@ -4,9 +4,11 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R63 之后的免费独立实验使用同启动 flags、全新隔离 Edge profile，在初始 `about:blank` 阶段发现三个 `chrome-extension://` 的 service worker，与页面同 context 且无 opener。当前浏览器级 Target discovery 将这些目标一并判成项目网络观察缺口。COS-222 将保存目标来源证据并区分浏览器自有、项目与未知 worker，通过真实 save/reopen 双段 runner 验证。R63 的目标身份没有保存在原报告中，该次实验不回填历史证据；游戏 s028 等失败仍成立。 [独立目标记录](.cosmos/planning/r63-worker-attribution/targets.json) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/223)
+
 R63 在冻结主线 `66417b6b` 上完成真实编译、候选捕获、交付打包和正式浏览器 save 段。五条批准步骤已进入作者初始包。作者交接声称编辑，实际记录为 38 次读取、零次写入或编辑，八份源码与 R60 相同。正式 save 段的 200 步全部执行，167 步通过、33 步失败，首失 s028 的存档文本仍缺“最近保存：”前缀。 [R63 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6874434649) · [正式浏览器报告](.cosmos/public-validation/room-20261114-focused-63/run/evidence/game-code/browser.json)
 
-浏览器另记三条 `External request evidence incomplete for Chromium service_worker`。聚合判定为 `insufficient_evidence`，阻止重开浏览器、独审及修复后继，自动验收未通过。网络观察缺口根因待独立诊断。正式候选已含 `dist/` 和 [Play.cmd](.cosmos/public-validation/room-20261114-focused-63/run/registry/candidates/game/v1/project/Play.cmd)，另有端口 41563 的 [开发预览](.cosmos/public-validation/room-20261114-focused-63/development-preview/Play.cmd)。原始报告及逐步截图保存在本轮 `run/browser-evidence/`。 [宿主结论审计](.cosmos/public-validation/room-20261114-focused-63/host-outcome-audit.json)
+浏览器另记三条 `External request evidence incomplete for Chromium service_worker`。聚合判定为 `insufficient_evidence`，阻止重开浏览器、独审及修复后继，自动验收未通过。后续独立实验已记录浏览器自有扩展 worker 的来源，原 R63 目标身份仍无法从历史报告重建。正式候选已含 `dist/` 和 [Play.cmd](.cosmos/public-validation/room-20261114-focused-63/run/registry/candidates/game/v1/project/Play.cmd)，另有端口 41563 的 [开发预览](.cosmos/public-validation/room-20261114-focused-63/development-preview/Play.cmd)。原始报告及逐步截图保存在本轮 `run/browser-evidence/`。 [宿主结论审计](.cosmos/public-validation/room-20261114-focused-63/host-outcome-audit.json)
 
 用户批准的阶段增额在 2026-11-14 07:52:17.694 UTC 应用，上限从 ¥52.96 调至 ¥53.76。R63 单次上限 ¥1.15 / 30 分钟，耗时 875,629 ms，32 笔结算 ¥0.468932，释放 ¥0.681068。子修订 146、共享修订 3498，阶段累计结算 ¥50.864960、历史待核占用 ¥2.206428、余额 ¥0.688612。运行临时目录已清理，保留候选和完整验收证据。 [阶段回执](.cosmos/planning/r62-step-feedback-budget/applied-receipt.json) · [预算登记](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6874432771) · [闭账审计](.cosmos/public-validation/room-20261114-focused-63/closure-readonly-audit.json)
 

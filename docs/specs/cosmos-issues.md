@@ -2731,6 +2731,10 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 归属 #19，原生父卡和依赖为 #215。R62 的作者交接误判验收计划正文为空。普通编码作者的显式反馈可引用少量已批准步骤，宿主从同版原计划准确解析操作、读取、断言及期望值，放入作者初始包；保留旧反馈、完整计划和权限隔离。作者 `focused_steps_author`，独审 `r52_evidence` 批准 `3952787f`，主线合入 `d7c4a80f`。新旧反馈的本机 CLI 1/1、主线构建通过，正式选源链核对真实计划中的五项原步骤。R63 五项进入作者初始包，源码未改动；正式浏览器执行 200 步后因证据观察缺口停止。 [R63 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6874434649) [独审与集成](https://github.com/lrfluobida/Cosmos/issues/222#issuecomment-6862888084) [R62 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6862681603) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/222)
 
+### COS-222 · 区分浏览器扩展 worker 与项目 worker 的网络观察证据
+
+归属 #19，原生父卡和依赖为 #192。独立 Edge 空白页实验显示浏览器自有扩展 worker 被浏览器级发现事件归入项目网络观察缺口。修复保留 target 来源证据，区分浏览器自有、项目及未知 worker，保持项目与未知目标的缺口语义。真实双段 runner 核验保存和进程重开。本卡免费验证，不重写 R63 历史结论。作者 `worker_attribution_author`，独审 `r52_evidence`。 [独立证据](../../.cosmos/planning/r63-worker-attribution/targets.json) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/223)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。
