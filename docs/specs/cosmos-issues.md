@@ -2545,6 +2545,8 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-182 · 公开验证阶段的追加显式预算决定
 
+2026-11-14，phase9 已按明确批准从 ¥53.76 调至 ¥55.21，执行 R65。该轮被 Windows 重启中断，按原截止恢复止付后，以新身份 R66 在原 ¥2 总额内继续。两轮已结算 ¥0.563858，阶段余额 ¥1.440525。 [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6879326458) · [R65 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879328962) · [R66 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879677283)
+
 2026-11-14，用户批准阶段上限从 ¥52.96 调至 ¥53.76，运行一次 R63。已结算 32 笔 ¥0.468932，阶段余额 ¥0.688612。 [增额回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6874432771) · [R63 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6874434649)
 
 2026-11-12，阶段报价由 ¥51.67 调至 ¥52.96，用户同时批准运行一次 R59。R59 已按单次 ¥1.50 / 30 分钟授权闭账，阶段余额 ¥1.159166。 [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6811107055) · [R59 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6811110220)
@@ -2738,6 +2740,10 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 ### COS-223 · 仅省略可证明重复的成功读取正文
 
 归属 #19，原生父卡和依赖为 #216。R63 的旧 read 投影丢失了相邻依赖分页，七次重复读取的先前正文均已省略。只去除可证明重复的成功 read 内容，保留各文件不同页、原生错误及跨写入前后的文本。原始 journal 完整，报价与真实发送包一致。本卡不增加提示、浏览器行为或配置，八份初始源码和工具本来可用。作者 `no_edit_author`，独审 `no_edit_review` 批准 `8d4866cb`，主线合入 `c9ebed95`。主线构建/typecheck、63/63 定向检查和 2/2 真实预算拒发通过。R64 实测 11 次读取全部保留，第七笔因预算不足拒发，未写源码。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875074045) · [R64 验证](https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875211709) [修复任务](https://github.com/lrfluobida/Cosmos/issues/224)
+
+### COS-224 · 在紧凑反馈草稿中保留已认证源码说明文件
+
+归属 #19，原生父卡 #214，依赖 #217。R66 捕获的 `src/audioProbeNote.md` 触发紧凑源码整体回退。仅将已认证 owned src 中的普通 UTF-8 Markdown 说明纳入紧凑包，保留 64 KiB 总上限、隐藏路径、非 UTF-8、控制字符及密钥排除规则，原捕获文件不变。作者 `source_notes_author`，独审 `no_edit_review`。GitHub 七层子任务限制使原生挂接在 #214。 [兼容任务](https://github.com/lrfluobida/Cosmos/issues/225)
 
 ## 5. 任务与上下文包模板
 

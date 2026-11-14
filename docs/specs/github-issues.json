@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261114-read-retained-64",
+      "latestLiveValidationCaseId": "room-20261114-restart-66",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6875209709",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879677283",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14068,18 +14068,19 @@
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6643149506",
       "verification": "Ten COS182 files byte-identical to approved51f1cc1; three COS181 files remain exact27f525b. Main followup-chain/latest-source and suspended-claim/settlement historical-quote-retry2/2, zero skip,TAP14574.4579ms; typecheck/build exit0. Author old81/81,new+resolution7/7 and extra chain1/1 reused without additive counting; all approvals and accounting are TEMP synthetic fixtures.",
       "budgetIncreaseApproved": true,
-      "currentPhaseMicroCny": 53760000,
-      "proposedPhaseMicroCny": 53760000,
+      "currentPhaseMicroCny": 55210000,
+      "proposedPhaseMicroCny": 55210000,
       "lifetimeLimitMicroCny": 150000000,
       "maxRunMicroCny": 5000000,
       "maxDurationMs": 1800000,
       "actualQuotePrepared": true,
       "actualApplicationPerformed": true,
-      "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6874432771",
+      "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6879326458",
+      "phase53ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6874432771",
       "phase52ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6811107055",
       "phase51ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6795876235",
       "phase50ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744",
-      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. R49 applied the explicit 50.70-to-51.67 CNY follow-up. R49 and R50 hold separate run decisions. R50 closed at shared revision 3470, C47534304/H2206428; R30, R37 and R43 remain pending. R59 applied the explicit 51.67-to-52.96 CNY follow-up and closed at shared revision 3489 with C49594406/H2206428 and phase remaining 1159166 micro-CNY. R63 applied the explicit 52.96-to-53.76 CNY follow-up and closed at shared revision 3498 with C50864960/H2206428 and phase remaining 688612 micro-CNY."
+      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. R49 applied the explicit 50.70-to-51.67 CNY follow-up. R49 and R50 hold separate run decisions. R50 closed at shared revision 3470, C47534304/H2206428; R30, R37 and R43 remain pending. R59 applied the explicit 51.67-to-52.96 CNY follow-up and closed at shared revision 3489 with C49594406/H2206428 and phase remaining 1159166 micro-CNY. R63 applied the explicit 52.96-to-53.76 CNY follow-up and closed at shared revision 3498 with C50864960/H2206428 and phase remaining 688612 micro-CNY. R65 applied the explicit 53.76-to-55.21 CNY follow-up. After the Windows reboot, R65 deadline recovery settled 117608 micro-CNY without new provider requests. R66 settled 446250 micro-CNY at shared revision 3505, C51563047/H2206428, leaving phase remaining 1440525. Both runs total 563858 micro-CNY within the original 2000000 ceiling."
     },
     {
       "taskId": "COS-183",
@@ -14989,8 +14990,8 @@
       "title": "普通带资编码从真实源码草稿续写并完成编译",
       "number": 214,
       "id": 6334560617,
-      "verifiedNativeSubIssues": 3,
-      "subTaskIds": ["COS-214", "COS-217", "COS-219"],
+      "verifiedNativeSubIssues": 4,
+      "subTaskIds": ["COS-214", "COS-217", "COS-219", "COS-224"],
       "verifiedCompletedSubIssues": 3,
       "url": "https://github.com/lrfluobida/Cosmos/issues/214",
       "parentTaskId": "COS-212",
@@ -15316,9 +15317,34 @@
       "sourceIntegratedCommit": "c9ebed95bba7a75a960b653b85d51f92c4af4bb6",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875074045",
       "verification": "主线构建/typecheck、63/63 定向检查、2/2 预算拒发通过。R64 六笔供应商请求与 11 次读取均无正文遗漏，没有源码改动，第七笔因预算不足拒发。"
+    },
+    {
+      "taskId": "COS-224",
+      "title": "在紧凑反馈草稿中保留已认证源码说明文件",
+      "number": 225,
+      "id": 6391951574,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/225",
+      "parentTaskId": "COS-213",
+      "parentIssueNumber": 214,
+      "parentIssueId": 6334560617,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-216",
+          "number": 217,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/217"
+        }
+      ],
+      "implementer": "source_notes_author",
+      "reviewer": "no_edit_review",
+      "merger": "r52_merger",
+      "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 223,
+  "totalTaskCount": 224,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

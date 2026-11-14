@@ -4,11 +4,21 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+R66 使用新身份继续原验证，保持主线 `8e3d9c85`。原生作者写入 4 次、编辑 12 次，通过真实编译，交接 remaining/uncertainty 均为空，捕获候选。正式 save 段 125 步通过、10 步失败、65 步跳过；s028、s059、s060 已通过，首失 s061 的首次收集音效激活计数。s136 页面栈溢出被归类为 `code_defect`，自动修复发出首笔后因后续报价被拒停止，未到 reopen 或独审。 [R66 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879677283) · [正式验收](.cosmos/public-validation/room-20261114-restart-66/run/evidence/game-code/browser.json)
+
+独立 Edge 复现了首次收集漏声、第三件和读档时提前门声、mute 事件递归，以及 HUD 说明与进度文字重叠。最新候选可在 Node.js 22 的 Windows 上双击 [Play.cmd](.cosmos/public-validation/room-20261114-restart-66/development-preview/Play.cmd)，端口 41566。 [独立观测](.cosmos/planning/r66-independent-observation/edge-targeted.json) · [绑定反馈](.cosmos/planning/r66-independent-observation/author-feedback-v1-audio-hud.json)
+
+R66 上限 ¥1.88 / 30 分钟，耗时 764,584 ms，33 笔结算 ¥0.446250，其中编码 ¥0.425663、一次修复 ¥0.020587，释放 ¥1.433750。子修订 158、共享修订 3505，阶段累计结算 ¥51.563047、历史待核占用 ¥2.206428、余额 ¥1.440525。R65 与 R66 累计实付 ¥0.563858。拟在原 ¥2 总额内以最多 ¥1.43 / 30 分钟继续 R67，三轮最高 ¥1.993858；待反馈与兼容修复独审后派发。两轮运行临时目录已清理。 [R66 闭账审计](.cosmos/public-validation/room-20261114-restart-66/closure-readonly-audit.json) · [源码说明兼容任务](https://github.com/lrfluobida/Cosmos/issues/225)
+
+R65 的最后原生日志为 2026-11-14 09:54:10.782 UTC，Windows 重启于 09:54:35.500 UTC。恢复时原截止 10:18:38.831 UTC 已过，通过正式旧 owner 恢复路径止付并签出 deadline/incomplete 报告，恢复新增供应商请求为零，公开 resume 再次因资金已关闭而拒绝。10 笔实付 ¥0.117608、释放 ¥1.882392，子修订 51、共享修订 3503。R65 未改源码或捕获候选。 [R65 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879328962) · [独立重启时间线](.cosmos/planning/r65-independent-observation/system-timeline.json)
+
+phase9 在 2026-11-14 09:46:21.889 UTC 按明确批准将阶段上限由 ¥53.76 提至 ¥55.21，原 R65 授权为 ¥2 / 30 分钟。R65 中断后的新身份恢复在原总额内安排，各运行分别记账并保留原截止与报告。 [阶段应用回执](.cosmos/planning/r64-read-retention-budget/applied-receipt.json) · [预算记录](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6879326458)
+
 R64 在冻结主线 `c9ebed95` 上发送六笔请求，读取了 11 个不同文件，没有重复读取，所有读取正文均保留，省略数为零。作者没有写入源码或产生新候选。第七笔的待发输入为 233,566 字节，4,096 token 输出下限报价 499,900 微元，高于当时编码余额 477,771 微元，在派发前被拒。 [R64 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6875209709) · [请求准入审计](.cosmos/public-validation/room-20261114-read-retained-64/admission-audit.json)
 
 源码和 17 个 dist 文件延用 R60 的游戏版本，继续复用 R63 相同源码的正式浏览器证据。没有新的宿主验收或独审，s028 等原失败仍在。当前开发预览可在装有 Node.js 22 的 Windows 上双击 [Play.cmd](.cosmos/public-validation/room-20261114-read-retained-64/development-preview/Play.cmd)。 [本次信息保留验证范围](https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875211709)
 
-本轮上限 ¥0.68 / 30 分钟，耗时 209,229 ms，六笔结算 ¥0.134229，释放 ¥0.545771。子修订 35、共享修订 3500，阶段累计结算 ¥50.999189、历史待核占用 ¥2.206428、余额 ¥0.554383。运行临时目录已清理。下一次 R65 只读报价拟以 ¥2.00 / 30 分钟运行，并将阶段上限由 ¥53.76 提至 ¥55.21；报价尚待用户决定，R65 未启动。 [闭账审计](.cosmos/public-validation/room-20261114-read-retained-64/closure-readonly-audit.json) · [只读报价](.cosmos/planning/r64-read-retention-budget/budget-55.21-quote.json)
+本轮上限 ¥0.68 / 30 分钟，耗时 209,229 ms，六笔结算 ¥0.134229，释放 ¥0.545771。子修订 35、共享修订 3500，阶段累计结算 ¥50.999189、历史待核占用 ¥2.206428、余额 ¥0.554383。运行临时目录已清理。后续 phase9 报价已按明确批准应用，R65 及其中断后的 R66 分别记账。 [闭账审计](.cosmos/public-validation/room-20261114-read-retained-64/closure-readonly-audit.json) · [只读报价](.cosmos/planning/r64-read-retention-budget/budget-55.21-quote.json)
 
 COS-223 已合入 `c9ebed95`，独审批准 `8d4866cb`。投影只省略参数与正文都相同的成功读取，不同文件、分页、错误和写入边界继续保留，原 journal 完整。主线构建和 typecheck 通过，四份集成文件与批准版本相同，编译后 API 检查通过；作者定向检查 63/63、真实预算拒发负例 2/2 通过，独立回放保持原准入限制。作者工作树的唯一依赖联接核实摘除后已清理，主仓及模板入口完整。保留作者和独审实物，本批离线平台工作零付费。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875074045) · [诊断与预算限制](.cosmos/planning/r63-read-context-review/source-review.md)
 
