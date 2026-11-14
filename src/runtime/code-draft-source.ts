@@ -26,7 +26,7 @@ export function compactCodeDraftFiles(files: ReadonlyMap<string, Buffer>) {
   const result: { path: string; content: string }[] = [];
   let size = 2; // JSON array brackets.
   for (const path of [...files.keys()].sort()) {
-    if (path !== entry && (!path.startsWith(sourceDirectory + '/') || !/\.(?:[cm]?[jt]sx?|css|html)$/i.test(path)
+    if (path !== entry && (!path.startsWith(sourceDirectory + '/') || !/\.(?:[cm]?[jt]sx?|css|html|md)$/i.test(path)
       || path.split('/').some(part => !part || part.startsWith('.') || part.toLowerCase() === 'node_modules'))) return undefined;
     const bytes = files.get(path)!;
     if (bytes.length > limit - size || !isUtf8(bytes)) return undefined;
