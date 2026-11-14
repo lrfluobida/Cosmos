@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261114-restart-66",
+      "latestLiveValidationCaseId": "room-20261114-audio-fix-67",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879677283",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880438267",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14992,7 +14992,7 @@
       "id": 6334560617,
       "verifiedNativeSubIssues": 4,
       "subTaskIds": ["COS-214", "COS-217", "COS-219", "COS-224"],
-      "verifiedCompletedSubIssues": 3,
+      "verifiedCompletedSubIssues": 4,
       "url": "https://github.com/lrfluobida/Cosmos/issues/214",
       "parentTaskId": "COS-212",
       "parentIssueNumber": 213,
@@ -15115,8 +15115,8 @@
       "title": "在普通编码作者的请求上限内完成编译、修复、重检和交接",
       "number": 218,
       "id": 6342308186,
-      "verifiedNativeSubIssues": 1,
-      "subTaskIds": ["COS-218"],
+      "verifiedNativeSubIssues": 2,
+      "subTaskIds": ["COS-218", "COS-225"],
       "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/218",
       "parentTaskId": "COS-213",
@@ -15328,9 +15328,9 @@
       "parentIssueNumber": 214,
       "parentIssueId": 6334560617,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-216",
@@ -15341,10 +15341,39 @@
       "implementer": "source_notes_author",
       "reviewer": "no_edit_review",
       "merger": "r52_merger",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "1b5393bae341dea443a9b216d3d6a8b89c38b7cc",
+      "sourceIntegratedCommit": "963e088a39d419853cf459be4299ecad7f34f7ab",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/225#issuecomment-6879759809",
+      "verification": "主线构建与实际9份源码完整紧凑包核对通过，共59797字节。R67原生输入亦验证包含说明文件；没有手工修改游戏。"
+    },
+    {
+      "taskId": "COS-225",
+      "title": "在编码最终交接中省略已授权工具链的成功读取正文",
+      "number": 226,
+      "id": 6392487109,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/226",
+      "parentTaskId": "COS-217",
+      "parentIssueNumber": 218,
+      "parentIssueId": 6342308186,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-217",
+          "number": 218,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/218"
+        }
+      ],
+      "implementer": "final_handoff_author",
+      "reviewer": "no_edit_review",
+      "merger": "r52_merger",
       "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 224,
+  "totalTaskCount": 225,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

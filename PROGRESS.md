@@ -1,14 +1,22 @@
 # Cosmos 进度
 
-更新时间：2026-11-14
+更新时间：2026-11-15
 
 ## 当前继续通用游戏开发 agent 能力
+
+R67 在 `963e088a` 上实际写入 `src/audio.ts`、编辑 `src/main.ts`，其余七份文件未变，宿主三次编译均通过。最后进入无工具 JSON 交接时，458,095 字节的请求加 4,096 输出下限报价 948,958 微元，高于编码余额 921,153 微元，差 27,805 微元，第 32 笔未发送。尚无正式交接、候选捕获、完整宿主验收或独审，自动验收未通过。 [R67 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880438267) · [闭账审计](.cosmos/public-validation/room-20261114-audio-fix-67/closure-readonly-audit.json)
+
+独立 Edge 短流程确认首次收集计数恢复，三次收集为 1/2/3；集齐而未点门时门声为 0，点门胜利后为 1；重复点门不增加。正常开关声已无递归异常，3/3 存档真实进程重开后继续也没有提前门声。HUD 重叠仍在，快速首次关声再开声仍有时序缺口：约 30 ms 间隔时 outputActive=false/count0 持续 10 秒，等待 500 ms 再开则为 true/count1。完整 200+198 步未执行。 [开发预览 Play.cmd](.cosmos/public-validation/room-20261114-audio-fix-67/development-preview/Play.cmd) · [独立观察](.cosmos/planning/r67-independent-observation/review.md) · [开关时序复现](.cosmos/planning/r67-independent-observation/edge-toggle.json)
+
+R67 耗时 859,508 ms，31 笔结算 ¥0.365847，释放 ¥1.064153。子修订 141、共享修订 3507，阶段累计结算 ¥51.928894、历史待核占用 ¥2.206428、余额 ¥1.074678。R65、R66、R67 合计已付 ¥0.929705，处于原批准 ¥2 内。运行临时目录已清理，原源码与编译预览保留。下一项免费兼容修复针对最终无工具交接阶段的已授权工具链读取投影。 [交接任务](https://github.com/lrfluobida/Cosmos/issues/226)
+
+COS-224 已合入 `963e088a`，独审批准 `1b5393ba`。已认证 owned src 下的普通 UTF-8 Markdown 说明与代码一同保留在紧凑包，原编码、隐藏路径和 64 KiB 规则继续生效。主线构建通过，实际 R66 九份文件逐字节匹配，紧凑包 59,797 字节；R67 原生输入也已核实完整入包。作者工作树核实唯一依赖联接后清理，主仓及模板入口完好，验证证据保留。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/225#issuecomment-6879759809) · [真实运行验证](https://github.com/lrfluobida/Cosmos/issues/225#issuecomment-6880441000)
 
 R66 使用新身份继续原验证，保持主线 `8e3d9c85`。原生作者写入 4 次、编辑 12 次，通过真实编译，交接 remaining/uncertainty 均为空，捕获候选。正式 save 段 125 步通过、10 步失败、65 步跳过；s028、s059、s060 已通过，首失 s061 的首次收集音效激活计数。s136 页面栈溢出被归类为 `code_defect`，自动修复发出首笔后因后续报价被拒停止，未到 reopen 或独审。 [R66 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879677283) · [正式验收](.cosmos/public-validation/room-20261114-restart-66/run/evidence/game-code/browser.json)
 
 独立 Edge 复现了首次收集漏声、第三件和读档时提前门声、mute 事件递归，以及 HUD 说明与进度文字重叠。最新候选可在 Node.js 22 的 Windows 上双击 [Play.cmd](.cosmos/public-validation/room-20261114-restart-66/development-preview/Play.cmd)，端口 41566。 [独立观测](.cosmos/planning/r66-independent-observation/edge-targeted.json) · [绑定反馈](.cosmos/planning/r66-independent-observation/author-feedback-v1-audio-hud.json)
 
-R66 上限 ¥1.88 / 30 分钟，耗时 764,584 ms，33 笔结算 ¥0.446250，其中编码 ¥0.425663、一次修复 ¥0.020587，释放 ¥1.433750。子修订 158、共享修订 3505，阶段累计结算 ¥51.563047、历史待核占用 ¥2.206428、余额 ¥1.440525。R65 与 R66 累计实付 ¥0.563858。拟在原 ¥2 总额内以最多 ¥1.43 / 30 分钟继续 R67，三轮最高 ¥1.993858；待反馈与兼容修复独审后派发。两轮运行临时目录已清理。 [R66 闭账审计](.cosmos/public-validation/room-20261114-restart-66/closure-readonly-audit.json) · [源码说明兼容任务](https://github.com/lrfluobida/Cosmos/issues/225)
+R66 上限 ¥1.88 / 30 分钟，耗时 764,584 ms，33 笔结算 ¥0.446250，其中编码 ¥0.425663、一次修复 ¥0.020587，释放 ¥1.433750。子修订 158、共享修订 3505，阶段累计结算 ¥51.563047、历史待核占用 ¥2.206428、余额 ¥1.440525。R65 与 R66 累计实付 ¥0.563858。其后 R67 已按最多 ¥1.43 / 30 分钟继续。两轮运行临时目录已清理。 [R66 闭账审计](.cosmos/public-validation/room-20261114-restart-66/closure-readonly-audit.json) · [源码说明兼容任务](https://github.com/lrfluobida/Cosmos/issues/225)
 
 R65 的最后原生日志为 2026-11-14 09:54:10.782 UTC，Windows 重启于 09:54:35.500 UTC。恢复时原截止 10:18:38.831 UTC 已过，通过正式旧 owner 恢复路径止付并签出 deadline/incomplete 报告，恢复新增供应商请求为零，公开 resume 再次因资金已关闭而拒绝。10 笔实付 ¥0.117608、释放 ¥1.882392，子修订 51、共享修订 3503。R65 未改源码或捕获候选。 [R65 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879328962) · [独立重启时间线](.cosmos/planning/r65-independent-observation/system-timeline.json)
 

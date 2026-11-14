@@ -2743,7 +2743,11 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-224 · 在紧凑反馈草稿中保留已认证源码说明文件
 
-归属 #19，原生父卡 #214，依赖 #217。R66 捕获的 `src/audioProbeNote.md` 触发紧凑源码整体回退。仅将已认证 owned src 中的普通 UTF-8 Markdown 说明纳入紧凑包，保留 64 KiB 总上限、隐藏路径、非 UTF-8、控制字符及密钥排除规则，原捕获文件不变。作者 `source_notes_author`，独审 `no_edit_review`。GitHub 七层子任务限制使原生挂接在 #214。 [兼容任务](https://github.com/lrfluobida/Cosmos/issues/225)
+归属 #19，原生父卡 #214，依赖 #217。R66 捕获的 `src/audioProbeNote.md` 触发紧凑源码整体回退。仅将已认证 owned src 中的普通 UTF-8 Markdown 说明纳入紧凑包，保留 64 KiB 总上限、隐藏路径、非 UTF-8、控制字符及密钥排除规则，原捕获文件不变。作者 `source_notes_author`，独审 `no_edit_review` 批准 `1b5393ba`，主线合入 `963e088a`。主线构建和实际九源码的 59,797 字节紧凑包核对通过，R67 输入已验证生效。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/225#issuecomment-6879759809)GitHub 七层子任务限制使原生挂接在 #214。 [兼容任务](https://github.com/lrfluobida/Cosmos/issues/225)
+
+### COS-225 · 在编码最终交接中省略已授权工具链的成功读取正文
+
+归属 #19，原生父卡与依赖为 #218。R67 的最终无工具 JSON 未发，4,096 输出下限报价比编码余额高 27,805 微元。仅在既有 ordinary coding reserve 的 final handoff 且 tools 为空时，省略已授权固定 toolchain/node_modules 下成功纯文本 read 正文；保留参数、完整 journal 与其余证据，真实报价和派发同体，4096 下限不变。作者 `final_handoff_author`，独审 `no_edit_review`。 [R67 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880438267) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/226)
 
 ## 5. 任务与上下文包模板
 
