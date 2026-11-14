@@ -8,7 +8,7 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { regularFile } from '../artifacts/paths.ts';
 import { SnapshotPersistenceError } from '../runtime/snapshot-error.ts';
-import { requestInputBytes, withRecentReadResults } from './request-input.ts';
+import { requestInputBytes, withFinalCodingReadResults, withRecentReadResults } from './request-input.ts';
 import { reviewImageInputTokens } from './review-image-quote.ts';
 import { PreservedDesignDraftError } from './workspace-tools.ts';
 import { installCodingBuildReserve } from './coding-build-reserve.ts';
@@ -224,10 +224,12 @@ export async function createPiSession(config: PiSessionOptions) {
     const hasImages = context.messages.some(message => 'content' in message && Array.isArray(message.content) && message.content.some(block => block.type === 'image'));
     const quoteWireImages = config.ordinaryCodingReviewImageQuote === true && !session.isCompacting && hasImages;
     const feedbackPaths = session.isCompacting ? undefined : config.feedbackReadWritePaths;
-    const checkInput = config.requestOutputLimit || config.requestCompactionAdmission || quoteWireImages || feedbackPaths;
+    const finalCodingHandoff = !session.isCompacting && readonlyRequests === undefined && codingHandoff?.isHandoff()
+      && !context.tools?.length && !session.getCallableToolNames().length;
+    const checkInput = config.requestOutputLimit || config.requestCompactionAdmission || quoteWireImages || feedbackPaths || finalCodingHandoff;
     const inputJson = checkInput ? JSON.stringify(context) : undefined;
     const snapshot = checkInput ? structuredClone(context) : context;
-    const requestContext = feedbackPaths ? withRecentReadResults(snapshot) : snapshot;
+    const requestContext = finalCodingHandoff ? withFinalCodingReadResults(snapshot) : feedbackPaths ? withRecentReadResults(snapshot) : snapshot;
     const requireUnchangedInput = () => {
       if (checkInput && JSON.stringify(context) !== inputJson) throw fail('invalid_request', 'Request input changed during output limit admission; no provider request sent');
     };
@@ -462,7 +464,7 @@ export async function createPiSession(config: PiSessionOptions) {
   }
   const codingHandoff = config.ordinaryCodingBuildReserve
     ? installCodingBuildReserve(session, () => config.maxRequests - requests, () => readonlyRequests !== undefined, fail) : undefined;
-  const authorText = () => { const text = session.getLastAssistantText() ?? ''; return codingHandoff ? codingHandoff(text) : text; };
+  const authorText = () => { const text = session.getLastAssistantText() ?? ''; return codingHandoff ? codingHandoff.validateText(text) : text; };
   if (config.requestCompaction) {
     let lastProjection: string | undefined, lastCompactedBytes: number | undefined, autoCompactionDisabled = false, compactions = 0, pressureExceptionUsed = false;
     session.subscribe(event => {

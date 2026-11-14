@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mock, test } from 'node:test';
 import type { Context } from '@earendil-works/pi-ai';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { createPiSession, createWorkspaceTools } from '../../src/providers/pi.ts';
-import { requestInputBytes, withRecentReadResults } from '../../src/providers/request-input.ts';
+import { requestInputBytes, withFinalCodingReadResults, withRecentReadResults } from '../../src/providers/request-input.ts';
 import { validationReservation } from '../../src/runtime/validation-validation.ts';
 import type { PiRequest } from '../../src/providers/pi.ts';
 import { Type } from 'typebox';
+import { reserveEntry } from '../../src/budget/ledger.ts';
+import { ledger } from '../contracts/fixtures.ts';
+import type { BudgetLedger } from '../../src/contracts/index.ts';
 
 const usage = { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40, prompt_cache_hit_tokens: 5 };
 const historicalScreenshot = new URL('../../docs/research/assets/c14-independent-gameplay.png', import.meta.url);
@@ -73,6 +76,99 @@ function codingSession(f: Awaited<ReturnType<typeof fixture>>, build: () => { pa
   } };
   return f.create({ maxRequests: 32, ordinaryCodingBuildReserve: true, tools: [...f.config.tools, check] });
 }
+
+for (const mode of ['handoff', 'ordinary', 'insufficient', 'changed-original'] as const) test(`final coding library reads on native transport: ${mode}`, async t => {
+  const dependencyPath = 'toolchain/node_modules/phaser/src/sound.js', dependency = '// Library reference only\n'.repeat(500);
+  const source = '// 当前游戏缺陷仍待解决\nconst value = 0;\n', requirements = '原需求、验收计划和反馈：音效仍须实测。';
+  const final = { summary: 'Changed source; build only', remaining: ['音效仍须实测'], uncertainty: ['Gameplay not independently verified'] };
+  const f = await fixture(t, [call('read', { path: dependencyPath }, 'library'), call('read', { path: 'requirements.txt' }, 'requirements'),
+    call('read', { path: 'output.txt' }, 'source'), call('read', { path: 'toolchain/node_modules/phaser/src/missing.js' }, 'missing'),
+    ...Array.from({ length: 25 }, (_, i) => call('read', { path: 'output.txt' }, 'repeat-' + i)),
+    call('write', { path: 'output.txt', content: source }, 'write'),
+    call('edit', { path: 'output.txt', edits: [{ oldText: 'const value = 0;', newText: 'const value = 1;' }] }, 'edit'), reply(JSON.stringify(final))]);
+  await mkdir(join(f.workspace, 'toolchain/node_modules/phaser/src'), { recursive: true });
+  for (const [path, data] of [[dependencyPath, dependency], ['output.txt', source], ['requirements.txt', requirements]]) await writeFile(join(f.workspace, path), data);
+  const createRuntime = ModelRuntime.create;
+  let runtime!: ModelRuntime, original!: Context, quoted = 0;
+  t.mock.method(ModelRuntime, 'create', async (...args: Parameters<typeof createRuntime>) => {
+    runtime = await createRuntime(...args);
+    const dispatch = runtime.streamSimple.bind(runtime);
+    t.mock.method(runtime, 'streamSimple', (...args: Parameters<typeof dispatch>) => {
+      assert.equal(requestInputBytes(args[1]), quoted, 'quote and native dispatch must use the same projected body');
+      return dispatch(...args);
+    });
+    return runtime;
+  });
+  const check = { ...f.config.tools[0], name: 'check-game-build', parameters: Type.Object({}), async execute() {
+    return { content: [{ type: 'text' as const, text: '{"passed":true,"diagnostics":"Current source compiled; gameplay unverified"}' }], details: {} };
+  } };
+  const session = await f.create({ maxRequests: 32, maxOutputTokens: 4096, tools: [...f.config.tools, check],
+    ...(mode !== 'ordinary' ? { ordinaryCodingBuildReserve: true } : {}), estimatedMaxCostMicroCny: validationReservation,
+    requestOutputLimit: async (request: PiRequest) => { quoted = request.inputBytes; return request.maxOutputTokens; },
+    budget: { ...f.config.budget, beforeRequest: async (request: PiRequest) => {
+      f.admissions.push(request);
+      if (f.admissions.length !== 32) return;
+      if (mode === 'insufficient') {
+        const budget = ledger() as BudgetLedger;
+        budget.limitMicroCny = request.estimatedMaxCostMicroCny - 1;
+        reserveEntry(budget, { requestId: request.requestId, taskId: budget.allocations[0].taskId, provider: 'deepseek', pricingVersion: 'fixture', estimatedMaxCostMicroCny: request.estimatedMaxCostMicroCny });
+      }
+      if (mode === 'changed-original') {
+        const read = original.messages.find(m => m.role === 'toolResult' && m.toolCallId === 'library');
+        if (read?.role === 'toolResult') read.content = [{ type: 'text', text: 'Changed during admission' }];
+      }
+    } },
+  });
+  const stream = runtime.streamSimple.bind(runtime);
+  t.mock.method(runtime, 'streamSimple', (...args: Parameters<typeof stream>) => { original = args[1]; return stream(...args); });
+  const rejected = mode === 'insufficient' || mode === 'changed-original';
+  if (rejected) await assert.rejects(session.prompt('Preserve the original task, inputs and every unresolved defect.'), { code: mode === 'insufficient' ? 'admission_rejected' : 'invalid_request' });
+  else assert.deepEqual(JSON.parse((await session.prompt('Preserve the original task, inputs and every unresolved defect.')).text), final);
+  assert.equal(f.requests.length, rejected ? 31 : 32);
+  assert.equal(f.requests[30].messages.find((m: any) => m.tool_call_id === 'library').content, dependency, 'editable rounds retain complete library text');
+  const journal = (await readFile(session.sessionFile!, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  assert.equal(journal.find(e => e.message?.toolCallId === 'library').message.content[0].text, dependency);
+  if (rejected) return;
+  const body = f.requests[31], result = (id: string) => body.messages.find((m: any) => m.tool_call_id === id).content;
+  if (mode === 'ordinary') assert.equal(result('library'), dependency);
+  else { assert.match(result('library'), /native session journal/); assert.equal(body.tools?.length ?? 0, 0); }
+  assert.equal(result('source'), source); assert.equal(result('requirements'), requirements);
+  assert.match(result('missing'), /missing.js/); assert.ok(result('write')); assert.ok(result('edit'));
+  assert.ok(body.messages.some((m: any) => m.tool_calls?.some((c: any) => c.id === 'library' && JSON.parse(c.function.arguments).path === dependencyPath)));
+  if (mode !== 'ordinary') assert.match(JSON.stringify(body.messages), /Current source compiled; gameplay unverified/);
+  assert.equal(body.max_tokens, 4096);
+});
+
+test('final coding projection preserves source, feedback, malformed, ambiguous, failed and image reads without mutation', () => {
+  const library = 'toolchain/node_modules/phaser/src/sound.js';
+  const cases = [
+    { path: library, omit: true }, { path: library.replaceAll('/', '\\'), omit: true },
+    { path: 'requirements/original.json' }, { path: 'registry/captures/design/v1/files/_cosmos/acceptance-plan.json' },
+    { path: 'repair-feedback/issues.json' }, { path: 'authors/coding/src/game.ts' }, { path: 'authors/coding/src/note.md' },
+    { path: 'toolchain/node_modules/../../repair-feedback/issues.json' }, { path: './' + library },
+    { path: 'E:/run/' + library }, { path: '' }, { path: null }, { path: library, duplicate: true },
+    { path: library, isError: true }, { path: library, image: true }, { path: library, unmatched: true },
+    { path: library, toolName: 'write' }, { path: library, toolName: 'edit' },
+  ];
+  const messages: Context['messages'] = [];
+  for (const [index, item] of cases.entries()) {
+    const id = 'boundary-' + index, toolName = item.toolName ?? 'read';
+    const tool = { type: 'toolCall', id, name: toolName, arguments: { path: item.path } };
+    messages.push({ role: 'assistant', content: item.unmatched ? [] : [tool, ...(item.duplicate ? [tool] : [])] } as any,
+      { role: 'toolResult', toolCallId: id, toolName, isError: item.isError ?? false, content: [
+        { type: 'text', text: 'Unresolved source and feedback ' + index }, ...(item.image ? [{ type: 'image', data: 'AQ==', mimeType: 'image/png' }] : [])] } as any);
+  }
+  messages.push({ role: 'user', content: 'Current build failure TS2339; all unresolved issues remain.', timestamp: 1 });
+  const original: Context = { systemPrompt: 'Original task and inputs', messages }, before = structuredClone(original);
+  const projected = withFinalCodingReadResults(original);
+  assert.deepEqual(original, before);
+  for (const [index, item] of cases.entries()) {
+    assert.deepEqual(projected.messages[index * 2], original.messages[index * 2]);
+    if (item.omit) assert.match(JSON.stringify(projected.messages[index * 2 + 1]), /native session journal/);
+    else assert.deepEqual(projected.messages[index * 2 + 1], original.messages[index * 2 + 1]);
+  }
+  assert.deepEqual(projected.messages.at(-1), original.messages.at(-1));
+});
 
 for (const honest of [true, false]) test('coding build reserve keeps a persistent compiler failure visible, honest=' + honest, async t => {
   const complete = reply(JSON.stringify({ summary: 'Handoff', remaining: [], uncertainty: [] }));

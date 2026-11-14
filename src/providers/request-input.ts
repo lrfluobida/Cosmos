@@ -1,6 +1,31 @@
 import { isDeepStrictEqual } from 'node:util';
 import type { Context } from '@earendil-works/pi-ai';
 
+/** Only the host's tool-free coding handoff may omit successful library lookups.
+ * Task/feedback/source reads, writes, errors and all original journal entries remain intact. */
+export function withFinalCodingReadResults(context: Context): Context {
+  const reads = new Set<string>();
+  const messages = context.messages.map(message => {
+    if (message.role !== 'toolResult') {
+      reads.clear();
+      if (message.role === 'assistant') for (const call of message.content) {
+        if (call.type !== 'toolCall' || call.name !== 'read' || typeof call.arguments?.path !== 'string') continue;
+        if (message.content.filter(block => block.type === 'toolCall' && block.id === call.id).length !== 1) continue;
+        const path = call.arguments.path.replaceAll('\\', '/');
+        // The scoped reader already checked access. Reject aliases/traversal here so a
+        // task source or feedback file cannot be mistaken for a toolchain dependency.
+        if (path.startsWith('toolchain/node_modules/') && path.split('/').every(part => part && part !== '.' && part !== '..')) reads.add(call.id);
+      }
+      return message;
+    }
+    if (!reads.delete(message.toolCallId) || message.toolName !== 'read' || message.isError !== false
+      || message.content.length !== 1 || message.content[0].type !== 'text') return message;
+    return { ...message, content: [{ type: 'text' as const,
+      text: '[Library reference read omitted for the final tool-free handoff; full text remains in the native session journal. This is not evidence of completed work or acceptance.]' }] };
+  });
+  return { ...context, messages };
+}
+
 /** Omit only identical repeated reads for a feedback coder. Distinct files/pages and
  * observations across writes or errors stay visible; the native journal stays intact. */
 export function withRecentReadResults(context: Context): Context {
