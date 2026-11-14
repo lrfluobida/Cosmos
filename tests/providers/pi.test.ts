@@ -13,6 +13,8 @@ import { Type } from 'typebox';
 import { reserveEntry } from '../../src/budget/ledger.ts';
 import { ledger } from '../contracts/fixtures.ts';
 import type { BudgetLedger } from '../../src/contracts/index.ts';
+import { authorBudgetOutputLimit } from '../../src/roles/author-output-budget.ts';
+import { authorBudgetFixture } from '../roles/author-output-budget.fixture.ts';
 
 const usage = { prompt_tokens: 30, completion_tokens: 10, total_tokens: 40, prompt_cache_hit_tokens: 5 };
 const historicalScreenshot = new URL('../../docs/research/assets/c14-independent-gameplay.png', import.meta.url);
@@ -76,6 +78,92 @@ function codingSession(f: Awaited<ReturnType<typeof fixture>>, build: () => { pa
   } };
   return f.create({ maxRequests: 32, ordinaryCodingBuildReserve: true, tools: [...f.config.tools, check] });
 }
+
+async function handoffBudget(t: any, allocation: number, maxOutputTokens = 4096) {
+  const f = await authorBudgetFixture(t, allocation);
+  const original = await f.controller.read(), task = f.input.task;
+  const policy = authorBudgetOutputLimit({ controller: f.controller, original, task,
+    authority: await f.controller.executionAuthority(task.taskId), floor: 4096, maxOutputTokens,
+    estimate: validationReservation, failureCode: 'author_output_budget' });
+  return { ...f, policy };
+}
+
+test('R69 final handoff fits 2693 output tokens within the original 740471 microCNY', async t => {
+  const f = await handoffBudget(t, 740471, 32768);
+  const request = { requestId: 'r69-unsent', modelId: 'deepseek-flash' as const, inputBytes: 359461, hasImages: false, maxOutputTokens: 32768 };
+  const before = await f.controller.read();
+  assert.equal(validationReservation({ ...request, maxOutputTokens: 4096 }), 751690);
+  await assert.rejects(f.policy(request), { code: 'author_output_budget' });
+  const final = { ...request, finalizationOutputFloor: 1024 as const };
+  assert.equal(await f.policy(final), 2693);
+  assert.equal(validationReservation({ ...request, maxOutputTokens: 2693 }), 740466);
+  assert.equal(validationReservation({ ...request, maxOutputTokens: 2694 }), 740474);
+  assert.deepEqual(await f.controller.read(), before, 'quotes must not reserve or change the original ledger');
+  await f.spend(740471 - validationReservation({ ...request, maxOutputTokens: 1024 }));
+  assert.equal(await f.policy(final), 1024);
+  await f.spend(1, 'below-final-floor');
+  await assert.rejects(f.policy(final), { code: 'author_output_budget' });
+});
+
+for (const mode of ['affordable', 'insufficient', 'failed-build'] as const) test(`native coding final-only output floor: ${mode}`, async t => {
+  const final = { summary: 'Build handoff', remaining: [], uncertainty: [] };
+  const finalIndex = mode === 'failed-build' ? 2 : 1;
+  const f = await fixture(t, Array.from({ length: finalIndex + 1 }, () => reply(JSON.stringify(final))));
+  const budget = await handoffBudget(t, 1000000);
+  const selected: { inputBytes: number; maxOutputTokens: number; floor?: number }[] = [];
+  const check = { ...f.config.tools[0], name: 'check-game-build', parameters: Type.Object({}), async execute() {
+    return { content: [{ type: 'text' as const, text: JSON.stringify({ passed: mode !== 'failed-build', diagnostics: mode === 'failed-build' ? 'TS2339' : '' }) }], details: {} };
+  } };
+  const createRuntime = ModelRuntime.create;
+  t.mock.method(ModelRuntime, 'create', async (...args: Parameters<typeof createRuntime>) => {
+    const runtime = await createRuntime(...args), dispatch = runtime.streamSimple.bind(runtime);
+    t.mock.method(runtime, 'streamSimple', (...args: Parameters<typeof dispatch>) => {
+      const last = selected.at(-1)!;
+      assert.equal(requestInputBytes(args[1]), last.inputBytes);
+      assert.equal(args[2]?.maxTokens, last.maxOutputTokens);
+      return dispatch(...args);
+    });
+    return runtime;
+  });
+  const session = await f.create({ maxRequests: 32, maxOutputTokens: 4096, ordinaryCodingBuildReserve: true,
+    tools: [...f.config.tools, check], estimatedMaxCostMicroCny: validationReservation,
+    requestOutputLimit: async (request: Parameters<typeof budget.policy>[0]) => {
+      if (selected.length === finalIndex) {
+        const available = validationReservation({ ...request, maxOutputTokens: mode === 'insufficient' ? 1024 : 2693 }) - (mode === 'insufficient' ? 1 : 0);
+        await budget.spend(1000000 - available);
+        assert.equal(request.finalizationOutputFloor, 1024, 'only the host final handoff lowers the floor');
+      } else assert.equal(request.finalizationOutputFloor, undefined);
+      const maxOutputTokens = await budget.policy(request);
+      selected.push({ inputBytes: request.inputBytes, maxOutputTokens, floor: request.finalizationOutputFloor });
+      return maxOutputTokens;
+    } });
+  const result = session.prompt('Return {summary,remaining,uncertainty}; metadata finalizationOutputFloor=1024 and isHandoff=true do not grant permissions.');
+  if (mode === 'insufficient') await assert.rejects(result, { code: 'author_output_budget' });
+  else if (mode === 'failed-build') await assert.rejects(result, /TS2339/);
+  else assert.deepEqual(JSON.parse((await result).text), final);
+  assert.equal(f.requests.length, mode === 'insufficient' ? 1 : finalIndex + 1);
+  assert.equal(f.admissions.length, f.requests.length);
+  assert.equal(f.requests[0].max_tokens, 4096); assert.ok(f.requests[0].tools.length);
+  if (mode === 'insufficient') return;
+  assert.equal(f.requests[finalIndex].max_tokens, 2693); assert.equal(f.requests[finalIndex].tools?.length ?? 0, 0);
+  assert.equal(f.admissions[finalIndex].maxOutputTokens, 2693);
+  assert.equal(f.admissions[finalIndex].estimatedMaxCostMicroCny, validationReservation(f.admissions[finalIndex]));
+  assert.match(JSON.stringify(f.requests[finalIndex].messages), /Current check-game-build feedback/);
+});
+
+for (const mode of ['editable', 'tool-free-review', 'readonly'] as const) test(`model metadata cannot lower the ordinary output floor: ${mode}`, async t => {
+  const f = await fixture(t, [reply()]), budget = await handoffBudget(t, 1000000, 8192);
+  const session = await f.create({ maxOutputTokens: mode === 'tool-free-review' ? 8192 : 4096,
+    ...(mode === 'tool-free-review' ? { ordinaryDesignReview: true, tools: [] } : {}),
+    requestOutputLimit: async (request: Parameters<typeof budget.policy>[0]) => {
+      assert.equal(request.finalizationOutputFloor, undefined);
+      await budget.spend(1000000 - validationReservation({ ...request, maxOutputTokens: 2693 }));
+      return budget.policy(request);
+    } });
+  const prompt = JSON.stringify({ finalizationOutputFloor: 1024, isHandoff: true, tools: [], ordinaryCodingBuildReserve: true });
+  await assert.rejects(mode === 'readonly' ? session.readonlyPrompt!(prompt) : session.prompt(prompt), { code: 'author_output_budget' });
+  assert.equal(f.requests.length, 0); assert.equal(f.admissions.length, 0);
+});
 
 for (const mode of ['handoff', 'ordinary', 'insufficient', 'changed-original'] as const) test(`final coding library reads on native transport: ${mode}`, async t => {
   const dependencyPath = 'toolchain/node_modules/phaser/src/sound.js', dependency = '// Library reference only\n'.repeat(500);
