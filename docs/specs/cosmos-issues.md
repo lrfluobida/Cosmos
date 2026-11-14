@@ -2545,6 +2545,8 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-182 · 公开验证阶段的追加显式预算决定
 
+2026-11-15，phase10 按明确批准将阶段上限由 ¥55.21 调至 ¥55.72，R69 单次 ¥1.15 / 30 分钟已结算 ¥0.294529，阶段余额 ¥0.864654。 [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6885833845) · [R69 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6885835896)
+
 2026-11-14，phase9 已按明确批准从 ¥53.76 调至 ¥55.21，执行 R65。该轮被 Windows 重启中断，按原截止恢复止付后，以新身份 R66 在原 ¥2 总额内继续。该批准总额内继续了 R67、R68，四轮累计实付 ¥1.355200；R68 后阶段余额 ¥0.649183。 [四轮费用与 R68 结案](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6880987463) [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6879326458) · [R65 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879328962) · [R66 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879677283)
 
 2026-11-14，用户批准阶段上限从 ¥52.96 调至 ¥53.76，运行一次 R63。已结算 32 笔 ¥0.468932，阶段余额 ¥0.688612。 [增额回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6874432771) · [R63 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6874434649)
@@ -2756,6 +2758,10 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 ### COS-227 · 在原预算内调整普通编码独审的输出上限
 
 归属 #19，原生父卡和依赖为 #203。在 8192 上限和 4096 下限之间，根据最终含图 SDK 请求选择原预算内 cap，保持八图、原文本、原请求次数和裁决门禁，最低不可付继续拒发。作者 `review_finish_author`，独审 `review_finish_review` 批准 `3a044838`，主线合入 `8100f8c6`。真实 R68 第 14 笔报价对齐，下一笔 cap 6287 可付，真实 SDK cap 同体已验证。 [审批与集成](https://github.com/lrfluobida/Cosmos/issues/228#issuecomment-6885238388)
+
+### COS-228 · 在无工具编码最终交接中复用现有定稿输出下限
+
+归属 #19，原生父卡与依赖为 #226。R69 无工具最终交接的 4096 下限报价比余额高 11219 微元。仅在 ordinaryCodingBuildReserve.isHandoff 已成立且工具为空时，复用已有 1024 finalization floor，仍以原helper选最高可付 cap，报价与发送同体。编辑回合、独审、期限与验收规则保持适用。作者 `concise_handoff_author`，独审 `review_finish_review`。 [R69 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6885835896) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/229)
 
 ## 5. 任务与上下文包模板
 
