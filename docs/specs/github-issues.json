@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261114-focused-63",
+      "latestLiveValidationCaseId": "room-20261114-read-retained-64",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6874434649",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6875209709",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -15055,7 +15055,7 @@
       "id": 6337631537,
       "verifiedNativeSubIssues": 2,
       "subTaskIds": ["COS-216", "COS-223"],
-      "verifiedCompletedSubIssues": 1,
+      "verifiedCompletedSubIssues": 2,
       "url": "https://github.com/lrfluobida/Cosmos/issues/216",
       "parentTaskId": "COS-214",
       "parentIssueNumber": 215,
@@ -15298,9 +15298,9 @@
       "parentIssueNumber": 216,
       "parentIssueId": 6337631537,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-215",
@@ -15311,7 +15311,11 @@
       "implementer": "no_edit_author",
       "reviewer": "no_edit_review",
       "merger": "r52_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "8d4866cb75c1b1c8d9a771c661a4449c8469f4fb",
+      "sourceIntegratedCommit": "c9ebed95bba7a75a960b653b85d51f92c4af4bb6",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875074045",
+      "verification": "主线构建/typecheck、63/63 定向检查、2/2 预算拒发通过。R64 六笔供应商请求与 11 次读取均无正文遗漏，没有源码改动，第七笔因预算不足拒发。"
     }
   ],
   "verifiedNativeSubIssues": 100,

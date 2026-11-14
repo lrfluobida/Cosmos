@@ -2737,7 +2737,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-223 · 仅省略可证明重复的成功读取正文
 
-归属 #19，原生父卡和依赖为 #216。R63 的旧 read 投影丢失了相邻依赖分页，七次重复读取的先前正文均已省略。只去除可证明重复的成功 read 内容，保留各文件不同页、原生错误及跨写入前后的文本。原始 journal 完整，报价与真实发送包一致。本卡不增加提示、浏览器行为或配置，八份初始源码和工具本来可用。作者 `no_edit_author`，独审 `no_edit_review`。 [修复任务](https://github.com/lrfluobida/Cosmos/issues/224)
+归属 #19，原生父卡和依赖为 #216。R63 的旧 read 投影丢失了相邻依赖分页，七次重复读取的先前正文均已省略。只去除可证明重复的成功 read 内容，保留各文件不同页、原生错误及跨写入前后的文本。原始 journal 完整，报价与真实发送包一致。本卡不增加提示、浏览器行为或配置，八份初始源码和工具本来可用。作者 `no_edit_author`，独审 `no_edit_review` 批准 `8d4866cb`，主线合入 `c9ebed95`。主线构建/typecheck、63/63 定向检查和 2/2 真实预算拒发通过。R64 实测 11 次读取全部保留，第七笔因预算不足拒发，未写源码。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875074045) · [R64 验证](https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875211709) [修复任务](https://github.com/lrfluobida/Cosmos/issues/224)
 
 ## 5. 任务与上下文包模板
 

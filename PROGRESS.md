@@ -4,7 +4,15 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-R63 无写入的进一步诊断发现旧 read 投影会丢弃相邻依赖和分页：第 18 轮读取 WebAudioSound 的 401..800 行后，先前的 1..400 行已被省略，下一轮再读 1..400；七次原样重复读取前的正文均已省略。初始八份源码与四个工具始终可用，此缺口只解释部分重复读取。COS-223 将仅省略可证明重复的成功读取正文，保留不同页、原生错误及写入前后文本，并保持报价和实际请求一致、原 journal 完整。 [免费修复任务](https://github.com/lrfluobida/Cosmos/issues/224)
+R64 在冻结主线 `c9ebed95` 上发送六笔请求，读取了 11 个不同文件，没有重复读取，所有读取正文均保留，省略数为零。作者没有写入源码或产生新候选。第七笔的待发输入为 233,566 字节，4,096 token 输出下限报价 499,900 微元，高于当时编码余额 477,771 微元，在派发前被拒。 [R64 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6875209709) · [请求准入审计](.cosmos/public-validation/room-20261114-read-retained-64/admission-audit.json)
+
+源码和 17 个 dist 文件延用 R60 的游戏版本，继续复用 R63 相同源码的正式浏览器证据。没有新的宿主验收或独审，s028 等原失败仍在。当前开发预览可在装有 Node.js 22 的 Windows 上双击 [Play.cmd](.cosmos/public-validation/room-20261114-read-retained-64/development-preview/Play.cmd)。 [本次信息保留验证范围](https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875211709)
+
+本轮上限 ¥0.68 / 30 分钟，耗时 209,229 ms，六笔结算 ¥0.134229，释放 ¥0.545771。子修订 35、共享修订 3500，阶段累计结算 ¥50.999189、历史待核占用 ¥2.206428、余额 ¥0.554383。运行临时目录已清理。下一次 R65 只读报价拟以 ¥2.00 / 30 分钟运行，并将阶段上限由 ¥53.76 提至 ¥55.21；报价尚待用户决定，R65 未启动。 [闭账审计](.cosmos/public-validation/room-20261114-read-retained-64/closure-readonly-audit.json) · [只读报价](.cosmos/planning/r64-read-retention-budget/budget-55.21-quote.json)
+
+COS-223 已合入 `c9ebed95`，独审批准 `8d4866cb`。投影只省略参数与正文都相同的成功读取，不同文件、分页、错误和写入边界继续保留，原 journal 完整。主线构建和 typecheck 通过，四份集成文件与批准版本相同，编译后 API 检查通过；作者定向检查 63/63、真实预算拒发负例 2/2 通过，独立回放保持原准入限制。作者工作树的唯一依赖联接核实摘除后已清理，主仓及模板入口完整。保留作者和独审实物，本批离线平台工作零付费。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/224#issuecomment-6875074045) · [诊断与预算限制](.cosmos/planning/r63-read-context-review/source-review.md)
+
+R63 无写入的进一步诊断发现旧 read 投影会丢弃相邻依赖和分页：第 18 轮读取 WebAudioSound 的 401..800 行后，先前的 1..400 行已被省略，下一轮再读 1..400；七次原样重复读取前的正文均已省略。初始八份源码与四个工具始终可用，此缺口只解释部分重复读取。COS-223 已收窄为仅省略可证明重复的成功读取正文，保留不同页、原生错误及写入前后文本，并保持报价和实际请求一致、原 journal 完整。 [免费修复任务](https://github.com/lrfluobida/Cosmos/issues/224)
 
 COS-222 已合入 `6e00ffc7`，独审批准 `b7f79a92`。网络观察器保存原生 CDP target 的身份、类型、URL、上下文、opener 和归属依据。合法 `chrome-extension:` URL 且无 opener 的 worker 被标为浏览器扩展来源，项目和未知来源继续报告网络观察缺口。单元 19/19、真实 save/reopen 双段正反 1/1、项目 worker 网络回归 2/2 均通过。主线构建通过，三份文件与批准版本一致。本批零模型请求、零费用，R64 未启动。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/223#issuecomment-6874623134)
 
