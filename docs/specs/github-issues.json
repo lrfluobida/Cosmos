@@ -681,9 +681,9 @@
       "nativeParentLinked": true,
       "state": "open",
       "integrationStatus": "partial-offline-verified",
-      "latestLiveValidationCaseId": "room-20261114-audio-fix-67",
+      "latestLiveValidationCaseId": "room-20261115-final-handoff-68",
       "latestLiveValidationStatus": "closed-incomplete",
-      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880438267",
+      "runClosureComment": "https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880989495",
       "reviewStatus": "COMBINED_SOURCE_READY",
       "reviewedCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f",
       "mergeCommit": "73ec63a99a29725d90a6c4437ae6c26be3fd233f"
@@ -14076,11 +14076,12 @@
       "actualQuotePrepared": true,
       "actualApplicationPerformed": true,
       "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6879326458",
+      "phase55RunOutcomesComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6880987463",
       "phase53ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6874432771",
       "phase52ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6811107055",
       "phase51ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6795876235",
       "phase50ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744",
-      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. R49 applied the explicit 50.70-to-51.67 CNY follow-up. R49 and R50 hold separate run decisions. R50 closed at shared revision 3470, C47534304/H2206428; R30, R37 and R43 remain pending. R59 applied the explicit 51.67-to-52.96 CNY follow-up and closed at shared revision 3489 with C49594406/H2206428 and phase remaining 1159166 micro-CNY. R63 applied the explicit 52.96-to-53.76 CNY follow-up and closed at shared revision 3498 with C50864960/H2206428 and phase remaining 688612 micro-CNY. R65 applied the explicit 53.76-to-55.21 CNY follow-up. After the Windows reboot, R65 deadline recovery settled 117608 micro-CNY without new provider requests. R66 settled 446250 micro-CNY at shared revision 3505, C51563047/H2206428, leaving phase remaining 1440525. Both runs total 563858 micro-CNY within the original 2000000 ceiling."
+      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. R49 applied the explicit 50.70-to-51.67 CNY follow-up. R49 and R50 hold separate run decisions. R50 closed at shared revision 3470, C47534304/H2206428; R30, R37 and R43 remain pending. R59 applied the explicit 51.67-to-52.96 CNY follow-up and closed at shared revision 3489 with C49594406/H2206428 and phase remaining 1159166 micro-CNY. R63 applied the explicit 52.96-to-53.76 CNY follow-up and closed at shared revision 3498 with C50864960/H2206428 and phase remaining 688612 micro-CNY. R65 applied the explicit 53.76-to-55.21 CNY follow-up. After the Windows reboot, R65 deadline recovery settled 117608 micro-CNY without new provider requests. R66 settled 446250 micro-CNY at shared revision 3505, C51563047/H2206428, leaving phase remaining 1440525. Both runs total 563858 micro-CNY within the original 2000000 ceiling. R65 through R68 completed at shared revision 3509 with aggregate actual 1355200 micro-CNY, C52354389/H2206428, and phase remaining 649183 micro-CNY under the same 55.21 CNY phase. No R69 was started."
     },
     {
       "taskId": "COS-183",
@@ -15117,7 +15118,7 @@
       "id": 6342308186,
       "verifiedNativeSubIssues": 2,
       "subTaskIds": ["COS-218", "COS-225"],
-      "verifiedCompletedSubIssues": 1,
+      "verifiedCompletedSubIssues": 2,
       "url": "https://github.com/lrfluobida/Cosmos/issues/218",
       "parentTaskId": "COS-213",
       "parentIssueNumber": 214,
@@ -15357,9 +15358,9 @@
       "parentIssueNumber": 218,
       "parentIssueId": 6342308186,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-217",
@@ -15370,7 +15371,11 @@
       "implementer": "final_handoff_author",
       "reviewer": "no_edit_review",
       "merger": "r52_merger",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "9638e7abcda7dbd45998996ee61d728193486559",
+      "sourceIntegratedCommit": "5ef56ae19213569aa7cd01a94fd3170baba279d4",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/226#issuecomment-6880569634",
+      "verification": "主线构建、参数边界复审及准确 R67 免费回放通过。R68 第21笔作者自然交接未触发强制投影；正式浏览器398步通过但独审仍无裁决。"
     }
   ],
   "verifiedNativeSubIssues": 100,

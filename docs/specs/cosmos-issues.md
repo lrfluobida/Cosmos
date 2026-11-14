@@ -2545,7 +2545,7 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-182 · 公开验证阶段的追加显式预算决定
 
-2026-11-14，phase9 已按明确批准从 ¥53.76 调至 ¥55.21，执行 R65。该轮被 Windows 重启中断，按原截止恢复止付后，以新身份 R66 在原 ¥2 总额内继续。两轮已结算 ¥0.563858，阶段余额 ¥1.440525。 [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6879326458) · [R65 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879328962) · [R66 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879677283)
+2026-11-14，phase9 已按明确批准从 ¥53.76 调至 ¥55.21，执行 R65。该轮被 Windows 重启中断，按原截止恢复止付后，以新身份 R66 在原 ¥2 总额内继续。该批准总额内继续了 R67、R68，四轮累计实付 ¥1.355200；R68 后阶段余额 ¥0.649183。 [四轮费用与 R68 结案](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6880987463) [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6879326458) · [R65 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879328962) · [R66 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879677283)
 
 2026-11-14，用户批准阶段上限从 ¥52.96 调至 ¥53.76，运行一次 R63。已结算 32 笔 ¥0.468932，阶段余额 ¥0.688612。 [增额回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6874432771) · [R63 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6874434649)
 
@@ -2747,7 +2747,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-225 · 在编码最终交接中省略已授权工具链的成功读取正文
 
-归属 #19，原生父卡与依赖为 #218。R67 的最终无工具 JSON 未发，4,096 输出下限报价比编码余额高 27,805 微元。仅在既有 ordinary coding reserve 的 final handoff 且 tools 为空时，省略已授权固定 toolchain/node_modules 下成功纯文本 read 正文；保留参数、完整 journal 与其余证据，真实报价和派发同体，4096 下限不变。作者 `final_handoff_author`，独审 `no_edit_review`。 [R67 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880438267) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/226)
+归属 #19，原生父卡与依赖为 #218。R67 的最终无工具 JSON 未发，4,096 输出下限报价比编码余额高 27,805 微元。仅在既有 ordinary coding reserve 的 final handoff 且 tools 为空时，省略已授权固定 toolchain/node_modules 下成功纯文本 read 正文；保留参数、完整 journal 与其余证据，真实报价和派发同体，4096 下限不变。作者 `final_handoff_author`，独审 `no_edit_review` 批准修正版 `9638e7ab`，主线合入 `5ef56ae1`。主线构建、参数边界复审和准确 R67 免费回放通过。R68 作者第 21 笔自然交接，未触发强制最终投影。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/226#issuecomment-6880569634) · [R68 结果](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880989495) [R67 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6880438267) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/226)
 
 ## 5. 任务与上下文包模板
 
