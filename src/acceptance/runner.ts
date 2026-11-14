@@ -237,6 +237,20 @@ async function runAcceptanceInternal(value: unknown, options: AcceptanceOptions,
     if (checkNetwork) {
       // Worker WebSockets bypass the page/frame WebSocket route. A partial count cannot certify an offline stage.
       sourceSession.on('Target.targetCreated', ({ targetInfo }) => {
+        // Discovery covers the browser, including extension workers in the page's own context.
+        // Only trusted CDP extension URLs without an opener prove non-project ownership.
+        let browserExtension = false;
+        try {
+          const url = new URL(targetInfo.url);
+          browserExtension = ['worker', 'shared_worker', 'service_worker'].includes(targetInfo.type)
+            && url.protocol === 'chrome-extension:' && /^[a-p]{32}$/.test(url.hostname)
+            && !url.username && !url.password && !url.port && !targetInfo.openerId && !targetInfo.openerFrameId;
+        } catch { /* Unknown URLs remain an evidence gap. */ }
+        log('network-target', JSON.stringify({ targetId: targetInfo.targetId, type: targetInfo.type, url: targetInfo.url,
+          browserContextId: targetInfo.browserContextId ?? null, openerId: targetInfo.openerId ?? null, openerFrameId: targetInfo.openerFrameId ?? null,
+          attribution: browserExtension ? 'browser-extension' : 'unresolved',
+          reason: browserExtension ? 'chrome-extension URL without an opener' : 'Project network coverage cannot exclude this target' }));
+        if (browserExtension) return;
         networkGap = true;
         recordError(`External request evidence incomplete for Chromium ${targetInfo.type}`, 'unknown');
       });
