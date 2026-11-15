@@ -2545,6 +2545,8 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-182 · 公开验证阶段的追加显式预算决定
 
+2026-11-15，phase12 已将阶段上限从 ¥56.86 调至 ¥57.79，按单次 ¥1.50 / 30 分钟执行 R73。33 笔结算 ¥0.477290，阶段余额 ¥1.031251；R71 未知费用保留。 [应用与结算](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6890732396) · [R73 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6890736006)
+
 2026-11-15，phase11 按明确批准将阶段上限从 ¥55.72 调至 ¥56.86。R70/R71/R72 已知费用共 ¥0.786837，另保留 R71 未知预留 ¥0.639276，处于原 ¥2 内。R72 后共享修订 3519，阶段余 ¥0.578541。 [阶段记录](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6886840290) · [后续结算](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6887818430)
 
 2026-11-15，phase10 按明确批准将阶段上限由 ¥55.21 调至 ¥55.72，R69 单次 ¥1.15 / 30 分钟已结算 ¥0.294529，阶段余额 ¥0.864654。 [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6885833845) · [R69 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6885835896)
@@ -2775,7 +2777,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-231 · 让普通编码独审直接定位验收结果
 
-归属 #19，原生父卡 #203，依赖 #203/#228。设计与计划 `73b2fe02` 先获独审批准并合入 `20ee9e84`；作者 `review_evidence_author` 的源码 `1165da45` 经 `review_evidence_reviewer` 独审批准，主线合入 `e4e3cb3a`。完整结果导航和精确详情保留候选绑定、原报告、截图、源码、权限与实际计价。八份批准文件一致，主线构建及真实 factory/native SDK 关键调用 1/1 通过。部署 strict SDK 的 A8192/4096 报价 732242/699474 微元，B 为 1054504/1021736；原 R72 起始余额 679274 不足，合成结算后 A 下限仍缺 92584。五项预算拒发通过。完成范围仅为免费平台源码和正确性/容量证据，R72 独审及用户体验未批准。 [源码批准回执](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888631456) · [生产容量证据](../../.cosmos/planning/review-evidence-index-author/actual-caller-capacity.json) · [设计](cos231-coding-review-evidence-navigation.md) · [计划](../plans/2026-11-15-coding-review-evidence-navigation.md)
+归属 #19，原生父卡 #203，依赖 #203/#228。设计与计划 `73b2fe02` 先获独审批准并合入 `20ee9e84`；作者 `review_evidence_author` 的源码 `1165da45` 经 `review_evidence_reviewer` 独审批准，主线合入 `e4e3cb3a`。完整结果导航和精确详情保留候选绑定、原报告、截图、源码、权限与实际计价。八份批准文件一致，主线构建及真实 factory/native SDK 关键调用 1/1 通过。部署 strict SDK 的 A8192/4096 报价 732242/699474 微元，B 为 1054504/1021736；原 R72 起始余额 679274 不足，合成结算后 A 下限仍缺 92584。五项预算拒发通过。完成范围仅为免费平台源码和正确性/容量证据。后续 R73 原生完整读取 398 条索引，第12笔最低输出报价仍高于任务余额3146微元，未形成独审裁决；用户体验未确认。 [真实索引范围](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6890739592) [源码批准回执](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888631456) · [生产容量证据](../../.cosmos/planning/review-evidence-index-author/actual-caller-capacity.json) · [设计](cos231-coding-review-evidence-navigation.md) · [计划](../plans/2026-11-15-coding-review-evidence-navigation.md)
 
 ## 5. 任务与上下文包模板
 
