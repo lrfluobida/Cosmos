@@ -4,6 +4,7 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { createEditTool, createReadTool, createWriteTool, defineTool, detectSupportedImageMimeTypeFromFile, type ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { compactJsonReadBuffer, pagedPlanReadBuffer } from './json-read-display.ts';
+import { evidenceReadDescription, evidenceReadPage, reviewEvidenceDisplay } from './review-evidence-display.ts';
 
 export type BeforeFileWrite = (absolutePath: string, candidate: Buffer, signal: AbortSignal) => Promise<void>;
 export type WriteCommitted = (toolCallId: string, absolutePath: string) => void;
@@ -23,6 +24,7 @@ export interface WorkspaceToolOptions {
   writePaths: string[];
   compactFullJsonReads?: true;
   planReadPaths?: string[];
+  reviewEvidencePaths?: string[];
   partialPlanReads?: boolean;
   artFrameRead?: ArtFrameRead;
   beforeFileWrite?: BeforeFileWrite;
@@ -85,17 +87,28 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
   if (reads.length) {
     const read = createReadTool(workspace);
     const plans = scopes(options.planReadPaths ?? []);
-    const parameters = plans.length ? Type.Object({ ...read.parameters.properties, ...(options.artFrameRead ? { artFrames: Type.Optional(artFrames) } : {}),
-      planOffset: Type.Optional(Type.Integer({ minimum: 1, description: '1-based compact plan display line. Omit offset when using planOffset.' })) }) : read.parameters;
+    const evidencePaths = scopes(options.reviewEvidencePaths ?? []);
+    const parameters = plans.length || evidencePaths.length ? Type.Object({ ...read.parameters.properties, ...(options.artFrameRead ? { artFrames: Type.Optional(artFrames) } : {}),
+      ...(plans.length ? { planOffset: Type.Optional(Type.Integer({ minimum: 1, description: '1-based compact plan display line. Omit offset when using planOffset.' })) } : {}),
+      ...(evidencePaths.length ? { evidenceOffset: Type.Optional(Type.Integer({ minimum: 1, description: '1-based evidence display line. Do not combine with raw offset.' })),
+        evidenceDetails: Type.Optional(Type.Array(Type.String(), { minItems: 1, maxItems: 8, description: '1..8 exact detail keys advertised by this evidence index, in display order.' })) } : {}) }) : read.parameters;
     const description = read.description + (options.compactFullJsonReads
       ? ' Whole-file JSON may use compact display; source formatting is unchanged. Before exact-text edits, use explicit offset/limit reads to obtain raw source text.' : '')
       + (options.artFrameRead ? ' On the fixed acceptance plan use artFrames:[] for the pixel-pattern index (offset=nextOffset for more). Check 1..8 approved stepIds per batch. A visible item uses characterId,state, optional zero-based frame and optional full-viewport background. For a removed item supply only stepId and background:{characterId,state,frame?}. An all-minus mask limits the target colour in each cell. Use stage to distinguish repeated step IDs. Hand off a complete draft once the intended compositions pass. Omit artFrames or set it to null for ordinary file reads.' : '')
-      + (plans.length ? ` For a full plan read, start with path alone (omit optional numbers, or use null if required). ${options.partialPlanReads ? 'Use the displayed continuation when more steps are needed.' : 'Follow each continuation once until complete.'} planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.` : '');
+      + (plans.length ? ` For a full plan read, start with path alone (omit optional numbers, or use null if required). ${options.partialPlanReads ? 'Use the displayed continuation when more steps are needed.' : 'Follow each continuation once until complete.'} planOffset counts display lines with one step per line; offset counts original file lines. Never infer unread steps.` : '')
+      + (evidencePaths.length ? evidenceReadDescription : '');
     tools.push(defineTool({ ...read, description, parameters, async execute(id, args, signal, onUpdate) {
       const full = await check(args.path, reads, signal);
       await access(full);
       const planOffset = 'planOffset' in args ? args.planOffset as number | undefined : undefined;
       const planPath = plans.some(path => relative(path, full) === '');
+      const evidenceOffset = 'evidenceOffset' in args ? args.evidenceOffset as number | undefined : undefined;
+      const evidenceDetails = 'evidenceDetails' in args ? args.evidenceDetails as string[] | undefined : undefined;
+      const evidenceRequested = evidenceOffset != null || evidenceDetails != null;
+      const evidencePath = evidencePaths.some(path => relative(path, full) === '');
+      if (evidenceRequested && (!evidencePath || args.offset != null || planOffset != null || 'artFrames' in args && args.artFrames != null
+        || evidenceOffset != null && (!Number.isSafeInteger(evidenceOffset) || evidenceOffset < 1)
+        || args.limit != null && (!Number.isSafeInteger(args.limit) || args.limit < 1))) throw new Error('Evidence reads require a selected path, positive display offset/limit and cannot combine raw, plan or art fields.');
       if ('artFrames' in args && args.artFrames != null) {
         if (!options.artFrameRead || !planPath || !Array.isArray(args.artFrames) || args.artFrames.length > 8
           || planOffset != null || args.limit != null || (args.offset != null && (args.artFrames.length || !Number.isSafeInteger(args.offset) || args.offset < 1)))
@@ -108,6 +121,18 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
       if (planOffset != null && args.limit != null && (!Number.isSafeInteger(args.limit) || args.limit < 1))
         throw new Error('Plan display limit must be a positive integer.');
       const whole = args.offset == null && args.limit == null;
+      let evidenceUnavailable = false;
+      if (evidencePath && (whole && planOffset == null || evidenceRequested)) {
+        const display = reviewEvidenceDisplay(await readFile(full, { signal }), args.path);
+        signal?.throwIfAborted();
+        if (display) {
+          const page = evidenceReadPage(display, args.path, evidenceDetails ?? undefined, evidenceOffset ?? 1, args.limit ?? undefined);
+          return createReadTool(workspace, { operations: { access: path => access(path, constants.R_OK), detectImageMimeType: async () => null,
+            readFile: async () => { signal?.throwIfAborted(); return page; } } }).execute(id, { path: full }, signal, onUpdate);
+        }
+        if (evidenceRequested) throw new Error('Evidence index unavailable for this format; read raw source with offset/limit.');
+        evidenceUnavailable = true;
+      }
       const planRead = planPath && (whole || planOffset != null);
       let displayLines = false;
       const selected = planRead || options.compactFullJsonReads && whole
@@ -128,6 +153,7 @@ export async function createWorkspaceTools(options: WorkspaceToolOptions): Promi
           },
         } }) : read;
       const result = await selected.execute(id, { path: full, offset: planOffset ?? args.offset ?? undefined, limit: args.limit ?? undefined }, signal, onUpdate);
+      if (evidenceUnavailable) result.content.push({ type: 'text', text: 'Evidence index unavailable for this format. This is the existing raw/whole-JSON read, not a complete navigation index; follow its original paging instructions.' });
       if (displayLines) {
         for (const block of result.content) if (block.type === 'text')
           block.text = block.text.replace(/Use offset=(\d+) to continue\.\]$/, 'Use planOffset=$1 to continue.]');

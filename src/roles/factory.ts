@@ -264,6 +264,9 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const reads = handoff ? [] : reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
     let writePaths = reviewer || handoff ? [] : task.ownership.writePaths;
     const inputFiles = handoff ? [] : await roleInputFiles(workspace, [...task.inputs, ...task.context.interfaces, ...(reviewer ? [...task.artifacts, ...task.evidence.map(e => e.source)] : [])], input.controller.signal);
+    const reviewEvidencePaths = codingReviewImageQuote ? [...new Set(inputFiles.filter(entry => task.evidence.some(e => sameValue(e.source,
+      { artifactId: entry.artifactId, version: entry.version, location: entry.location }))).flatMap(entry => entry.kind === 'missing' ? []
+      : entry.files.map(file => file ? `${entry.location}/${file}` : entry.location).filter(file => file.endsWith('.json'))))] : [];
     const committedWrites = new Map<string, string[]>();
     const onWriteCommitted: WriteCommitted | undefined = designCompaction && options.ordinaryDesignSuccessfulWriteCompaction ? (id, path) => {
       const owned = relative(workspace, path);
@@ -276,6 +279,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       task.outputs.some(output => output.schema === 'game-design/2' && output.destination === ref.location)).map(ref => ref.location + '/' + ORDINARY_PLAN_FILE)
       : [];
     const rules = [...task.context.rules];
+    if (reviewEvidencePaths.length) rules.push('reviewEvidenceFiles lists selected host evidence paths, not new authority. Read the parent persistent/browser and media navigation indexes completely; follow evidenceOffset and use evidenceDetails for 1..8 exact keys per file. Read every non-pass, missing, extra, unknown or anomalous row and related screenshot/audio/save/reopen plan/result details, plus all media coverage details. Read complete requirements, approved design, source, manifest, host and delivery reports. Navigation omits observations: other plan/result details remain unread and available through exact details or raw offset/limit. Host outcomes do not replace independent semantic review. Preserve all original input/evidence identities and report unresolved defects honestly.');
     let feedback: typeof options.ordinaryCodeDraftFeedback;
     if (ordinaryCodingDesignInput && purpose === 'author' && input.role === 'coding' && !validation && !authority?.windowId) {
       const design = ordinaryCodingDesignInput(task);
@@ -308,12 +312,12 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
         ? `Read ${planPath} with artFrames:[] for the compact pixel-pattern index. Check representative steps together (up to eight per read). Use {stepId,characterId,state,background?:{characterId,state}} for a visible item. An all-minus mask limits only the specified colour. When the scene calls for a removed item, draw just the viewport background using {stepId,background:{characterId,state}}. For a failed check, verify the composition first, then revise the affected asset only if needed. When the roster is complete, the intended compositions pass and the draft meets the design, hand off the existing draft for independent review. Consult raw plan pages for additional context.`
         : `Consult ${planPath} for graphics and audio constraints, including colours and silhouettes. Follow the displayed planOffset to check remaining pages as you work.`} Write completed asset batches to authors/art/media.json promptly, preserving earlier batches when adding the remaining assets. Before handing off, check the full roster against the file. Avoid transcribing the scenario or rereading completed pages.`);
     }
-    const fileTools = handoff ? [] : await createWorkspaceTools({ workspace, readPaths: reads, writePaths, planReadPaths,
+    const fileTools = handoff ? [] : await createWorkspaceTools({ workspace, readPaths: reads, writePaths, planReadPaths, reviewEvidencePaths,
       artFrameRead, ...(beforeArtFileWrite ? { beforeFileWrite: beforeArtFileWrite } : {}),
       ...(input.role === 'art' || feedback ? { partialPlanReads: true } : {}),
       ...(onWriteCommitted ? { onWriteCommitted } : {}),
       ...(input.role === 'design' && !input.purpose && !input.validation && options.beforeDesignFileWrite ? { beforeFileWrite: options.beforeDesignFileWrite(input) } : {}),
-      ...(designReviewBudget || designRevisionJsonReads ? { compactFullJsonReads: true } : {}) });
+      ...(designReviewBudget || designRevisionJsonReads || codingReviewImageQuote ? { compactFullJsonReads: true } : {}) });
     const hostTools = handoff ? [] : await options.hostTools?.({ role: input.role, taskId: task.taskId, workspace, signal: input.controller.signal, childEnv: roleToolEnvironment(), ...(onWriteCommitted ? { onWriteCommitted } : {}) }) ?? [];
     const scoped = fileTools.filter(tool => task.context.tools.includes(tool.name)).map(tool => (designReviewBudget || designRevisionJsonReads) && tool.name === 'read'
       ? { ...tool, description: (reviewedDraftAuthor ? 'Use offset/limit for the part of the existing draft identified by a finding or an exact edit. For a complete JSON read omit both (or use null when required). Follow any truncation notice when the entire file is needed.\n\n' : `For JSON ${designReviewBudget ? 'review' : 'revision'}, first request the complete file without numeric offset/limit: omit offset and limit when optional; if the tool schema requires them, set both to null (the SDK treats these as omitted). Do not fill in numeric defaults. If the result reports truncation or remaining lines, follow its paging instructions until complete; never treat a partial result as the full file. Keep normal paging for non-JSON files and targeted raw-source reads.\n\n`) + tool.description }
@@ -348,6 +352,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       ...(feedback?.focusedPlanSteps ? { focusedPlanSteps: feedback.focusedPlanSteps } : {}),
       ...(feedback?.initialFiles ? { initialCodeDraftFiles: feedback.initialFiles } : {}),
       inputs: reviewer ? [...task.inputs, ...task.artifacts] : task.inputs, inputFiles,
+      ...(reviewEvidencePaths.length ? { reviewEvidenceFiles: reviewEvidencePaths } : {}),
       rules: artHandoff ? ['Use the host-verified source, media digest and roster counts in fixedArtHandoff. Report any discrepancy that blocks this handoff.'] : designHandoff ? ['Use the verified input identity, file digests and structural counts in suppliedDesignHandoff. Report any discrepancy that prevents handing off the listed pair.'] : rules,
       interfaces: task.context.interfaces, knownFailures: task.context.knownFailures, ...(designHandoff ? { suppliedDesignHandoff: designHandoff } : {}), ...(artHandoff ? { fixedArtHandoff: artHandoff } : {}),
       tools: tools.map(tool => tool.name), ownership: { readPaths: reads, writePaths },
