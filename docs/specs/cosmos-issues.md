@@ -2775,7 +2775,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-231 · 让普通编码独审直接定位验收结果
 
-归属 #19，原生父卡 #203，依赖 #203/#228。R72 独审累计读取源码及部分报告后，下一请求输入上界已超原余额。先独立审查完整设计与实施计划，再实现准确的逐项结果导航及原文定位，优先复用现有 read 与分页能力。保留成功、失败、跳过、缺失、错误、清理和重开状态，全部原始报告、截图及源码持续可读，权限、验收、图片、预算与期限不变。免费容量检查须覆盖全部必要材料及最终裁决请求，明确合成路径的限制，不能据此保证真实模型裁决。作者 `review_evidence_author`，独审 `review_evidence_reviewer`，设计与计划 `73b2fe02` 已经独审批准，合入 `20ee9e84`，当前免费源码实施中。完整 A 路径实际 SDK 报价 683768 微元超过原起始余额 679274 微元，合成结算后仍缺 76878 微元。源码尚未批准。 [设计批准回执](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888284026) · [批准设计](cos231-coding-review-evidence-navigation.md) · [批准计划](../plans/2026-11-15-coding-review-evidence-navigation.md) [任务](https://github.com/lrfluobida/Cosmos/issues/232) · [独立容量比较](../../.cosmos/planning/r72-independent-observation/review-capacity-comparison.json)
+归属 #19，原生父卡 #203，依赖 #203/#228。设计与计划 `73b2fe02` 先获独审批准并合入 `20ee9e84`；作者 `review_evidence_author` 的源码 `1165da45` 经 `review_evidence_reviewer` 独审批准，主线合入 `e4e3cb3a`。完整结果导航和精确详情保留候选绑定、原报告、截图、源码、权限与实际计价。八份批准文件一致，主线构建及真实 factory/native SDK 关键调用 1/1 通过。部署 strict SDK 的 A8192/4096 报价 732242/699474 微元，B 为 1054504/1021736；原 R72 起始余额 679274 不足，合成结算后 A 下限仍缺 92584。五项预算拒发通过。完成范围仅为免费平台源码和正确性/容量证据，R72 独审及用户体验未批准。 [源码批准回执](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888631456) · [生产容量证据](../../.cosmos/planning/review-evidence-index-author/actual-caller-capacity.json) · [设计](cos231-coding-review-evidence-navigation.md) · [计划](../plans/2026-11-15-coding-review-evidence-navigation.md)
 
 ## 5. 任务与上下文包模板
 

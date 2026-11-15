@@ -4,7 +4,11 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-COS-231 的设计与实施计划已获独审批准，准确版本 `73b2fe02` 合入 `20ee9e84`，当前免费源码实施中。R72 前 12 笔真实独审已离线校准，未发第 13 笔的输入费用上界 500,944 微元高于余额 491,744 微元。批准设计采用完整材料导航和精确详情读取，保留原始报告、图片、源码与真实计价。完整 A 路径的最终实际 SDK 报价 683,768 微元仍超过原独审起始余额 679,274 微元，明确合成结算后的缺口为 76,878 微元。源码尚未批准，设计通过不保证旧额度可付或真实模型裁决。本次仅合入两份 UTF-8/LF 文稿，生产源码未变，零付费、R73 未启动。 [批准回执](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888284026) · [设计](docs/specs/cos231-coding-review-evidence-navigation.md) · [实施计划](docs/plans/2026-11-15-coding-review-evidence-navigation.md) · [原始诊断](.cosmos/planning/r72-independent-observation/review.md)
+COS-231 源码已按独审批准的 `1165da45` 合入 `e4e3cb3a`，完成平台源码范围。普通编码独审获得完整验收结果导航和精确有界详情读取，保留原始报告、截图、源码及原权限。八份文件与批准版本相同，主线构建通过，真实 factory/native SDK 关键调用 1/1 通过；八张图、strict nullable 工具参数、索引与详情都进入实际 SDK 请求，三笔结算为截获传输的合成用例，网络和费用为零。已复用 47 项 focused、最终 provider 11 项与独立 3 项有效证据。 [源码批准回执](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888631456) · [主线集成证据](.cosmos/planning/review-evidence-merger-temp/integration.json)
+
+部署版本的完整材料回放保留八张原 PNG（521,680 字节）、398 条导航、38 项步骤详情、31 项 coverage 详情、九份源码和需求，剩余 360 项步骤详情明确标为未读。实际 factory/tools 与 strict SDK 的 A 路径最终 8192/4096 输出报价为 732,242/699,474 微元，B 路径为 1,054,504/1,021,736 微元。原 R72 独审起始余额 679,274 微元仍不足；明确合成结算后余额为 606,890 微元，A 下限缺 92,584 微元。五项生产预算拒发核验通过，ledger 不变、network=0。原型 strict=false 的历史数字不能作为部署报价。本卡不保证真实模型裁决，R72 原生独审仍 pending、用户体验未确认，R73 尚未启动，阶段上限 ¥56.86 保持。 [生产调用容量证据](.cosmos/planning/review-evidence-index-author/actual-caller-capacity.json) · [批准设计](docs/specs/cos231-coding-review-evidence-navigation.md) · [实施计划](docs/plans/2026-11-15-coding-review-evidence-navigation.md)
+
+原始容量脚本仍引用作者工作树 `E:/CodexData/.codex/worktrees/review-evidence-index/Cosmos`，该树及唯一根依赖联接保留供复现。全树含模板已核对，联接目标为主仓 node_modules，主仓与模板入口完好。自动审批以 blocked by policy 拒绝清理的 `.cosmos/planning/review-evidence-index-author/node-compile-cache` 保留 93 个文件、1,597,788 字节，无联接。RED/GREEN、容量脚本与数字报告、主线集成记录均保留。
 
 R72 在冻结主线 `c57cdc95` 完成原生编译、候选捕获、干净目录交付检查和正式 save 200 步、resume 198 步。398 步全部通过，errors=[]；保存检查点同 profile、同 origin、不同进程，31 项媒体检查 valid/complete。九份源码、17 份 dist 和 15 份媒体与已核版本相同，可复用 R71 三态 HUD 无重叠、无裁切的证据。原生独审已执行 12 笔请求，下一笔因最低输出报价不可付而未发，尚无裁决。报告仍为 incomplete/not_passed，用户体验未确认。 [R72 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6887820382) · [正式浏览器报告](.cosmos/public-validation/room-20261115-native-review-72/run/evidence/game-code/browser.json)
 

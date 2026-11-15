@@ -14646,7 +14646,7 @@
       "id": 6322030047,
       "verifiedNativeSubIssues": 2,
       "subTaskIds": ["COS-227", "COS-231"],
-      "verifiedCompletedSubIssues": 1,
+      "verifiedCompletedSubIssues": 2,
       "url": "https://github.com/lrfluobida/Cosmos/issues/203",
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
@@ -15554,9 +15554,9 @@
       "parentIssueNumber": 203,
       "parentIssueId": 6322030047,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-202",
@@ -15576,7 +15576,11 @@
       "designReviewedCommit": "73b2fe026ee90ec002a2efc34844c15143eec1f6",
       "designIntegratedCommit": "20ee9e84595a9be0f01cbbe129a7a803a97ba4cc",
       "designApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888284026",
-      "sourceReviewStatus": "SOURCE_IN_PROGRESS"
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "1165da45295c8bf978e5b5f94ba01346981a7567",
+      "sourceIntegratedCommit": "e4e3cb3a44bcd7e16dd836de58c315ec8f9ac807",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888631456",
+      "verification": "八份批准文件一致，主线构建和真实factory/native SDK关键调用1/1通过；47focused/最终provider11/独审3有效证据复用。实际strict SDK A8192/4096报价732242/699474、B1054504/1021736，五项生产预算拒发通过。原R72额度仍不足，零网络/费用，不代表原生游戏独审通过。"
     }
   ],
   "verifiedNativeSubIssues": 100,
