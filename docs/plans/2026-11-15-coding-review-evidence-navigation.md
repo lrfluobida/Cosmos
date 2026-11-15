@@ -12,7 +12,11 @@
 
 **Gate:** This file is a design/plan candidate. No production or test implementation before root reports independent design/plan approval. No paid requests, API-key access, acceptance changes or branch integration by the implementer.
 
+Execution update: independent design approval at `73b2fe026ee90ec002a2efc34844c15143eec1f6` and root's explicit free-source authorization were received before implementation. Source verification and prototype limitations are recorded in the linked specification; final source review/sole-merger integration remain pending.
+
 **Current capacity state:** The selected navigation-only/batch-8 prototype is measured with the actual new SDK schema. A (complete requirements/design/source/index, 38 selected step details, all 31 coverage details, eight images) final quotes 716,536/683,768 at caps 8,192/4,096, against 679,274 before any earlier settlement. It improves the equivalent scalar-index quote by 274,560 but remains unaffordable in R72. B with the entire acceptance-plan quotes 1,039,444/1,006,676. These failures are retained. The independent design review must approve the complete semantics and measured limits before production work; source acceptance does not promise a future paid result.
+
+Production update: the prototype omitted `Tool.constrainedSampling` and used `strict:false`; do not reuse its quotes as deployed-wire evidence. Actual factory/read/SDK replay preserves strict nullable serialization and yields A **732,242/699,474**, B **1,054,504/1,021,736**, with zero network and real budget-selector refusal checks. These superseding results are still unaffordable under R72's original small allocation; source correctness/navigation improvement is distinct from paid-run success.
 
 ## File map
 
