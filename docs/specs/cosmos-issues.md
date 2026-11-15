@@ -2545,6 +2545,8 @@ R30财务未关闭：child32已结72082微元，未知请求保留407922微元�
 
 ### COS-182 · 公开验证阶段的追加显式预算决定
 
+2026-11-15，phase11 按明确批准将阶段上限从 ¥55.72 调至 ¥56.86。R70/R71/R72 已知费用共 ¥0.786837，另保留 R71 未知预留 ¥0.639276，处于原 ¥2 内。R72 后共享修订 3519，阶段余 ¥0.578541。 [阶段记录](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6886840290) · [后续结算](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6887818430)
+
 2026-11-15，phase10 按明确批准将阶段上限由 ¥55.21 调至 ¥55.72，R69 单次 ¥1.15 / 30 分钟已结算 ¥0.294529，阶段余额 ¥0.864654。 [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6885833845) · [R69 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6885835896)
 
 2026-11-14，phase9 已按明确批准从 ¥53.76 调至 ¥55.21，执行 R65。该轮被 Windows 重启中断，按原截止恢复止付后，以新身份 R66 在原 ¥2 总额内继续。该批准总额内继续了 R67、R68，四轮累计实付 ¥1.355200；R68 后阶段余额 ¥0.649183。 [四轮费用与 R68 结案](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6880987463) [应用回执](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6879326458) · [R65 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879328962) · [R66 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6879677283)
@@ -2762,6 +2764,14 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 ### COS-228 · 在无工具编码最终交接中复用现有定稿输出下限
 
 归属 #19，原生父卡与依赖为 #226。R69 无工具最终交接的 4096 下限报价比余额高 11219 微元。仅在 ordinaryCodingBuildReserve.isHandoff 已成立且工具为空时，复用已有 1024 finalization floor，仍以原helper选最高可付 cap，报价与发送同体。编辑回合、独审、期限与验收规则保持适用。作者 `concise_handoff_author`，独审 `review_finish_review` 批准 `a3ab6a6f`，主线合入 `5fe437f6`。真实 R69 相同输入可选最高 2693 token，原编辑/独审门禁与验收保护保留，16/16+6/6 和主线构建通过。 [独审与集成](https://github.com/lrfluobida/Cosmos/issues/229#issuecomment-6885931817) [R69 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6885835896) · [修复任务](https://github.com/lrfluobida/Cosmos/issues/229)
+
+### COS-229 · 按显式反馈限制普通草稿作者的编辑路径
+
+归属 #19，原生父卡 #215，依赖 #215/#220。作者 `scoped_feedback_author`，独审 `scoped_feedback_review` 批准 `bdd2eb84`，主线合入 `c57cdc95`。可选 editPaths 仅收紧已拥有写入范围，完整读取、验收与旧无 scope 路径继续适用。本机原生资金用例 1/1、联合构建通过；R71 实际只改授权 HTML。 [源码审批](https://github.com/lrfluobida/Cosmos/issues/230#issuecomment-6886904406) · [R71 实测](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6887433153)
+
+### COS-230 · 正确分类无输入启动阶段的完整验收失败证据
+
+归属 #19，原生父卡 #40，依赖 #40/#192。作者 `startup_diagnostic_author`，独审 `startup_diagnostic_review` 批准 `a06762b4`，主线合入 `174b5071`。启动前没有输入但报告完整健康时，失败断言可按原规则归为代码缺陷；不完整证据仍阻断。独立 9/9、作者 24/24 和联合构建通过。R70 固定 74 文件回放仍 failed，原报告不变。 [源码审批](https://github.com/lrfluobida/Cosmos/issues/231#issuecomment-6886910295)
 
 ## 5. 任务与上下文包模板
 
