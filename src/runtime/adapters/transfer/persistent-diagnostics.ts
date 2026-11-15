@@ -266,7 +266,12 @@ export async function diagnosePersistentBrowser(task: TaskContract, value: unkno
       check(diagnostic.reportValid && (index === report.segments.length - 1 || segment.report.outcome === 'passed'));
       for (const issue of diagnostic.issues) if (issue.classification === 'code_defect') {
         const at = plan.steps.findIndex(step => issue.checkId === 'browser/' + step.id);
-        check(at >= 0 && completedObservation(segment.report.steps[at]) && deliveredInputs(segment.report, plan, at));
+        const startupMismatch = at >= 0 && segment.report.steps[at].failure === 'mismatch'
+          && segment.report.failureFacts?.termination === null && segment.report.errors.length === 0
+          && plan.steps.slice(0, at).every(step => ['assert', 'wait-for'].includes(step.kind))
+          && segment.report.steps.every(row => ['assert', 'wait-for'].includes(row.kind) ? row.outcome !== 'skipped'
+            : row.outcome === 'passed' && row.actual === 'input delivered');
+        check(at >= 0 && completedObservation(segment.report.steps[at]) && (startupMismatch || deliveredInputs(segment.report, plan, at)));
       }
       diagnostics.issues.push(...diagnostic.issues.map(issue => ({ ...issue, checkId: `persistent/${segment.id}/${issue.checkId}` })));
       diagnostics.passedChecks.push(...diagnostic.passedChecks.map(check => ({ ...check, checkId: `persistent/${segment.id}/${check.checkId}` })));
