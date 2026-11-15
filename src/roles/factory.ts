@@ -103,7 +103,7 @@ export interface RoleFactoryOptions {
   artAuthorRequestTimeoutMs?: number;
   /** Select the independently approved design bound to this ordinary art task. */
   ordinaryArtDesignInput?: (task: Readonly<TaskContract>) => ArtifactReference;
-  ordinaryCodeDraftFeedback?: Pick<Awaited<ReturnType<typeof selectCodeDraftFeedback>>, 'findings' | 'focusedPlanSteps'>
+  ordinaryCodeDraftFeedback?: Pick<Awaited<ReturnType<typeof selectCodeDraftFeedback>>, 'findings' | 'focusedPlanSteps' | 'editPaths'>
     & { taskId: string; initialFiles?: { path: string; content: string }[] };
   ordinaryCodingDesignInput?: (task: Readonly<TaskContract>) => ArtifactReference;
   ordinaryArtFrameRead?: (input: Readonly<RoleInput>) => ArtFrameRead;
@@ -262,7 +262,7 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const contextId = reviewer ? `review-${randomUUID()}` : task.context.contextId;
     const actorId = reviewer ? `reviewer-${randomUUID()}` : task.authorId;
     const reads = handoff ? [] : reviewer ? [...task.inputs, ...task.artifacts, ...task.context.interfaces, ...task.evidence.map(e => e.source)].map(ref => ref.location) : [...task.ownership.readOnlyPaths, ...task.ownership.writePaths, ...task.inputs.map(ref => ref.location), ...task.context.interfaces.map(ref => ref.location)];
-    const writePaths = reviewer || handoff ? [] : task.ownership.writePaths;
+    let writePaths = reviewer || handoff ? [] : task.ownership.writePaths;
     const inputFiles = handoff ? [] : await roleInputFiles(workspace, [...task.inputs, ...task.context.interfaces, ...(reviewer ? [...task.artifacts, ...task.evidence.map(e => e.source)] : [])], input.controller.signal);
     const committedWrites = new Map<string, string[]>();
     const onWriteCommitted: WriteCommitted | undefined = designCompaction && options.ordinaryDesignSuccessfulWriteCompaction ? (id, path) => {
@@ -284,8 +284,12 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
       planReadPaths.push(planPath);
       if (options.ordinaryCodeDraftFeedback?.taskId === task.taskId) feedback = options.ordinaryCodeDraftFeedback;
       if (feedback) {
+        if (feedback.editPaths) {
+          writePaths = feedback.editPaths;
+          rules.push('codeDraftEditPaths is the fixed edit scope for this repair. You can read other existing source files, but write/edit can modify only these selected files and cannot expand the scope. Keep the original full-game requirements, acceptance plan and independent review. If a fix needs another file, report the remaining work.');
+        }
         const sourceRule = feedback.initialFiles
-          ? `initialCodeDraftFiles contains the exact starting source for this attempt. Use it to identify and apply a focused edit directly. Your subsequent edits and writes change the working files, which always take precedence. Use targeted reads when current text or additional evidence is needed. Consult the actual asset manifests in the media input, relevant Phaser runtime files under toolchain/node_modules/phaser/src, ${planPath} and the original confirmation as needed.`
+          ? `initialCodeDraftFiles contains ${feedback.editPaths ? 'the complete contents of only the selected editPaths, not the entire project' : 'the exact starting source for this attempt'}. Use it to identify and apply a focused edit directly. Your subsequent edits and writes change the working files, which always take precedence. Use targeted reads when current text or additional evidence is needed. Consult the actual asset manifests in the media input, relevant Phaser runtime files under toolchain/node_modules/phaser/src, ${planPath} and the original confirmation as needed.`
           : `Confirm the cause against the affected draft source, actual asset manifests in the media input and relevant Phaser runtime files under toolchain/node_modules/phaser/src. Use targeted reads of ${planPath} and the original confirmation when needed.`;
         if (feedback.focusedPlanSteps) rules.push('Match each finding’s stepIds to focusedPlanSteps. These are the exact selected steps of the approved plan. Apply each expectation to its own observation and selector. Use the supplied steps directly and consult other plan pages as needed.');
         rules.push(`Start with codeDraftFeedback. Each observed field reports a prior observation and each hint suggests a place to inspect. ${sourceRule} Preserve all approved steps, inputs and working behavior. After focused edits run check-game-build immediately, correct any build errors, then return the native JSON handoff. Report unresolved work honestly. Subsequent host tests and independent review decide acceptance.`);
@@ -337,9 +341,10 @@ export function createRoleFactory(options: RoleFactoryOptions): RoleFactory {
     const snapshot = await input.controller.read();
     const acceptance = requirement.acceptance.filter(item => task.acceptanceIds.includes(item.acceptanceId));
     const packet = freeze({ role: input.role, contextId, taskId: task.taskId,
-      objective: artHandoff ? 'Hand off the existing fixed media identified by the host for independent art review.' : designHandoff ? 'Hand off the two existing operator-supplied files identified by the host.' : task.objective, specVersion: requirement.specVersion,
+      objective: feedback?.editPaths ? 'Repair the observed defects in codeDraftFeedback by editing only codeDraftEditPaths, then check the game build and hand off the full game for original acceptance and independent review.' : artHandoff ? 'Hand off the existing fixed media identified by the host for independent art review.' : designHandoff ? 'Hand off the two existing operator-supplied files identified by the host.' : task.objective, specVersion: requirement.specVersion,
       acceptance: planningAcceptanceIndex || handoff ? acceptance.map(({ acceptanceId }) => ({ acceptanceId })) : acceptance,
       ...(feedback ? { codeDraftFeedback: feedback.findings } : {}),
+      ...(feedback?.editPaths ? { codeDraftEditPaths: feedback.editPaths } : {}),
       ...(feedback?.focusedPlanSteps ? { focusedPlanSteps: feedback.focusedPlanSteps } : {}),
       ...(feedback?.initialFiles ? { initialCodeDraftFiles: feedback.initialFiles } : {}),
       inputs: reviewer ? [...task.inputs, ...task.artifacts] : task.inputs, inputFiles,

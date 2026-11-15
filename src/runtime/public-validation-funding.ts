@@ -149,9 +149,9 @@ export async function reservePublicValidationFunding(options: { sharedRoot: stri
   else if (draftReview?.artifactId === APPROVED_DESIGN) {
     const target = { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId };
     const approved = await selectApprovedDesign(draftReview.location, payload.requirementsSource!, target, draftReview);
-    if (feedback) await selectCodeDraftFeedback(feedback.location, codeSource!, binding.runRoot, feedback, approved);
     const art = artSource && await readPinnedArtSource(artSource, approved, payload.requirementsSource!, target);
-    if (codeSource && art && 'manifestPath' in art) await selectCodeDraft(codeSource.location, approved, art, payload.requirementsSource!, target, codeSource);
+    const codeDraft = codeSource && art && 'manifestPath' in art ? await selectCodeDraft(codeSource.location, approved, art, payload.requirementsSource!, target, codeSource) : undefined;
+    if (feedback) await selectCodeDraftFeedback(feedback.location, codeSource!, binding.runRoot, feedback, approved, codeDraft);
   }
   else if (draftReview) await readReviewedDesignDraft(draftReview, payload.requirementsSource!, { root: binding.runRoot, runId: binding.runId, ledgerId: binding.ledgerId });
   const now = options.now ?? Date.now;

@@ -26,7 +26,9 @@ const html = '<div id="status">等待</div><script type="module" src="/src/main.
 const partial = 'export const status = "等待";', revised = 'export const status = "完成";';
 
 export async function exerciseCodeDraft(t: TestContext, options: Parameters<typeof ordinaryHostFixture>[1], common: string[],
-  design: ApprovedDesign, art: ApprovedArt, requirements: ConfirmedRequirementsSource, nativeFetch: typeof fetch) {
+  design: ApprovedDesign, art: ApprovedArt, requirements: ConfirmedRequirementsSource, nativeFetch: typeof fetch, scoped = false) {
+  const editPaths = [page, helper];
+  const scopedHtml = '<div id="status">完成</div><script type="module" src="/src/main.ts"></script>';
   const previous = await ordinaryHostFixture(t, { ...options, sessionFactory: async (config, session) => {
     const original = JSON.parse(config.context!);
     assert.equal(original.role, 'coding');
@@ -55,6 +57,7 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
       assert.equal(packet.codeDraftFeedback, undefined);
       assert.equal(packet.initialCodeDraftFiles, undefined);
       assert.equal(packet.focusedPlanSteps, undefined);
+      assert.equal(packet.codeDraftEditPaths, undefined);
       assert.equal(config.feedbackReadWritePaths, undefined);
       assert.equal(packet.role, 'reviewer');
       reviewerVerdict = { verdict: 'approved', findings: [], inputVersions: packet.inputs, evidenceIds: packet.evidence.map((item: { evidenceId: string }) => item.evidenceId) };
@@ -64,6 +67,14 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     assert.deepEqual(packet.focusedPlanSteps, focusedPlanSteps);
     assert.deepEqual(packet.initialCodeDraftFiles, initialFiles);
     assert.deepEqual(config.feedbackReadWritePaths, packet.ownership.writePaths);
+    if (scoped) {
+      assert.match(packet.objective, /Repair the observed defects/);
+      assert.deepEqual(packet.codeDraftEditPaths, editPaths);
+      assert.deepEqual(packet.ownership.writePaths, editPaths);
+      assert.ok(packet.ownership.readPaths.includes('authors/coding/src'));
+      assert.match(packet.rules.join('\n'), /complete contents of only the selected editPaths/);
+      assert.match(packet.rules.join('\n'), /cannot expand/);
+    } else assert.equal(packet.codeDraftEditPaths, undefined);
     assert.ok(!packet.rules.some((rule: string) => rule.includes('Follow each planOffset continuation')));
     assert.doesNotMatch(config.tools!.find(tool => tool.name === 'read')!.description, /Follow each continuation once until complete/);
     assert.ok(packet.ownership.readPaths.includes('toolchain/node_modules/phaser/src'));
@@ -80,11 +91,12 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   await writeFile(join(previous.root, helper), partial);
   const source = await failedCodeCapture(t, options, common, design, art, requirements, previous.root, next);
   const reference = source.reference;
-  initialFiles.push(source.main);
+  if (!scoped) initialFiles.push(source.main);
+  const selectedDraft = await selectCodeDraft(reference.location, design, art, requirements, next, reference);
   const funding = await (await fundingFixture(t)).authorization('coding-draft', 720000), decision = join(funding.sharedRoot, funding.authorization.location);
   const feedbackFile = join(funding.sharedRoot, 'feedback.json');
-  const note = JSON.stringify({ formatVersion: 'ordinary-code-draft-feedback/1', codeDraft: reference, findings: focusedFindings });
-  const oldNote = JSON.stringify({ ...JSON.parse(note), findings });
+  const note = JSON.stringify({ formatVersion: 'ordinary-code-draft-feedback/1', codeDraft: reference, findings: focusedFindings, ...(scoped ? { editPaths } : {}) });
+  const oldNote = JSON.stringify({ formatVersion: 'ordinary-code-draft-feedback/1', codeDraft: reference, findings });
   await writeFile(feedbackFile, oldNote);
   const old = await selectCodeDraftFeedback(feedbackFile, reference, next.root);
   assert.deepEqual(old.findings, findings);
@@ -98,9 +110,9 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     [{ ...plan.scenario, steps: [{ ...step, expected: '界'.repeat(1400) }] }, /exceed 4096 bytes/],
   ] as const) {
     const files = new Map(design.files).set(key, Buffer.from(JSON.stringify({ ...plan, scenario })));
-    await assert.rejects(selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, { ...design, files }), error);
+    await assert.rejects(selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, { ...design, files }, selectedDraft), error);
   }
-  const feedback = (await selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, design)).reference;
+  const feedback = (await selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, design, selectedDraft)).reference;
   await writeFile(decision, JSON.stringify({ ...funding.payload, formatVersion: 'public-validation-authorization/2', brief: previous.draft.brief,
     runRoot: next.root, requirementsSource: requirements, renderFrames: false, sourceRefs: [...funding.payload.sourceRefs, design.reference, art.reference, reference, feedback] }));
   const command = ['new', next.root, '--shared-root', funding.sharedRoot, '--authorization', decision];
@@ -117,7 +129,25 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     note.padEnd(4097),
   ]) {
     await writeFile(feedbackFile, invalid);
-    await assert.rejects(selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, design), /code draft feedback/i);
+    await assert.rejects(selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, design, selectedDraft), /code draft feedback/i);
+  }
+  if (scoped) for (const paths of [[], [helper, helper], ['authors/coding/src'], ['authors/art/media.json'], ['authors/coding/src/unknown.ts'],
+    [page, helper, entry, 'a', 'b'], ['authors/coding/src/../index.html'], ['AUTHORS/CODING/INDEX.HTML'], [42]]) {
+    const invalidNote = JSON.stringify({ ...JSON.parse(note), editPaths: paths });
+    await writeFile(feedbackFile, invalidNote);
+    await assert.rejects(selectCodeDraftFeedback(feedbackFile, reference, next.root, undefined, design, selectedDraft), /editPaths/);
+  }
+  if (scoped) {
+    await writeFile(feedbackFile, JSON.stringify({ ...JSON.parse(note), editPaths: ['authors/coding/src/unknown.ts'] }));
+    const { createHash } = await import('node:crypto');
+    const invalidRef = { ...feedback, version: createHash('sha256').update(await readFile(feedbackFile)).digest('hex') };
+    const authorized = await readFile(decision);
+    const invalidAuthorization = JSON.parse(authorized.toString());
+    invalidAuthorization.sourceRefs = invalidAuthorization.sourceRefs.map((ref: any) => ref.artifactId === feedback.artifactId ? invalidRef : ref);
+    await writeFile(decision, JSON.stringify(invalidAuthorization));
+    await assert.rejects(invoke(command), /editPaths/);
+    assert.deepEqual(await readFile(join(funding.sharedRoot, 'snapshot.json')), shared);
+    await writeFile(decision, authorized);
   }
   await writeFile(feedbackFile, note + ' ');
   await assert.rejects(invoke(command), /Pinned code draft feedback changed/);
@@ -136,7 +166,13 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
     const results = body.messages.filter((message: { role: string }) => message.role === 'tool');
     const tool = (name: string, args: object, index = 0) => ({ index, id: 'draft-' + rounds + '-' + index,
       type: 'function', function: { name, arguments: JSON.stringify(args) } });
-    const calls = rounds === 0 ? [tool('edit', { path: helper, edits: [{ oldText: partial, newText: revised }] }),
+    const calls = scoped ? rounds === 0 ? [tool('write', { path: audioPath, content: audioSource }),
+      tool('edit', { path: helper, edits: [{ oldText: partial, newText: revised }] }, 1),
+      tool('edit', { path: page, edits: [{ oldText: html, newText: scopedHtml }] }, 2),
+      tool('edit', { path: entry, edits: [{ oldText: source.main.content, newText: '// unauthorized replacement' }] }, 3)]
+      : rounds === 1 ? [tool('read', { path: entry })]
+      : rounds === 2 ? [tool('check-game-build', {})] : []
+      : rounds === 0 ? [tool('edit', { path: helper, edits: [{ oldText: partial, newText: revised }] }),
         tool('write', { path: entry, content: "import {status} from './helper'; document.querySelector('#status')!.textContent=status;" }, 1),
         tool('write', { path: audioPath, content: audioSource }, 2)]
       : rounds === 1 ? [tool('read', { path: helper }), tool('read', { path: art.proof.media.location + '/public/assets/manifest.json' }, 1),
@@ -153,7 +189,12 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
       assert.ok(body.messages[0].content.includes('"initialCodeDraftFiles":' + JSON.stringify(initialFiles)));
       assert.match(body.messages[0].content, /working files, which always take precedence/);
     }
-    if (rounds === 2) {
+    if (scoped && rounds === 1 && !reviewerVerdict) {
+      assert.equal(results.filter((item: any) => item.content.includes('outside allowed task paths')).length, 2);
+    }
+    if (scoped && rounds === 2 && !reviewerVerdict) assert.ok(results.some((item: any) => item.content.includes(source.main.content.trim())));
+    if (scoped && rounds === 3 && !reviewerVerdict) assert.match(JSON.stringify(results.at(-1)), /\\"passed\\":true/);
+    if (!scoped && rounds === 2) {
       assert.ok(results.some((item: any) => item.content.includes(revised)));
       assert.ok(results.some((item: any) => item.content.includes('"characters"')) && results.some((item: any) => item.content.includes('@class WebAudioSound')));
     }
@@ -232,15 +273,30 @@ export async function exerciseCodeDraft(t: TestContext, options: Parameters<type
   assert.equal(report.outcome, 'awaiting_user_experience', JSON.stringify(report.gaps));
   await assert.rejects(selectCodeDraft(next.root, design, art, requirements, previous), /pending review/);
   assert.deepEqual(next.packets.map(p => p.role), ['coding', 'reviewer']);
-  assert.equal(rounds, 31);
+  assert.equal(rounds, scoped ? 4 : 31);
   assert.equal(reviews, 1);
   assert.equal(await readFile(join(next.root, helper), 'utf8'), revised);
   const capture = JSON.parse(await readFile(join(next.root, 'registry/captures/game-source/v1/capture.json'), 'utf8'));
+  if (scoped) {
+    assert.equal(await readFile(join(next.root, page), 'utf8'), scopedHtml);
+    assert.equal(await readFile(join(next.root, entry), 'utf8'), source.main.content);
+    await assert.rejects(readFile(join(next.root, audioPath)), { code: 'ENOENT' });
+    for (const [path, expected] of [[page, scopedHtml], [helper, revised], [entry, source.main.content]]) {
+      assert.equal(await readFile(join(next.root, 'registry/captures/game-source/v1/files', path.slice('authors/coding/'.length)), 'utf8'), expected);
+    }
+  }
   assert.ok(capture.metadata.provenance.sourceRefs.includes(reference.artifactId + '@' + reference.version));
   assert.deepEqual(await readFile(join(previous.root, 'snapshot.json')), oldSnapshot);
   assert.deepEqual(await readFile(join(reference.location, 'snapshot.json')), source.snapshot);
   assert.equal(await readFile(sourceHelper, 'utf8'), partial);
   const state = JSON.parse(await readFile(join(next.root, 'snapshot.json'), 'utf8'));
+  if (scoped) {
+    const original = JSON.parse(source.snapshot.toString()).tasks.find((task: any) => task.taskId === selectedDraft.proof.taskId);
+    const current = state.tasks.find((task: any) => task.taskId === selectedDraft.proof.taskId);
+    assert.deepEqual(current.ownership.writePaths, original.ownership.writePaths);
+    assert.deepEqual(current.acceptanceIds, original.acceptanceIds);
+    assert.deepEqual(current.acceptance, original.acceptance);
+  }
   assert.equal(state.ledger.limitMicroCny, 720000);
   assert.deepEqual(state.ledger.allocations.map((row: any) => row.amountMicroCny), [0, 0, 648000]);
   assert.ok(state.ledger.entries.length === rounds + reviews && state.ledger.entries.every((row: any) => row.status === 'settled'));

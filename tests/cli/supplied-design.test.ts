@@ -711,6 +711,7 @@ for (const [selection, label] of [[0, 'an editable art draft'], [1, 'selected it
     assert.deepEqual(await read(funded.root, 'snapshot.json'), oldSnapshot);
     const { exerciseCodeDraft } = await import('./code-draft.fixture.ts');
     await exerciseCodeDraft(t, options, common, approved, reused, payload.requirementsSource, nativeFetch);
+    await exerciseCodeDraft(t, options, common, approved, reused, payload.requirementsSource, nativeFetch, true);
     const resume = () => runCli(['resume', funded.root], fundedIO);
     await writeFile(join(funded.root, ART_DRAFT_FILE), edited);
     await assert.rejects(resume(), /Staged art differs/);
