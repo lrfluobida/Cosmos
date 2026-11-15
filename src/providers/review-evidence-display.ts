@@ -151,7 +151,7 @@ export function reviewEvidenceDisplay(bytes: Buffer, source: string): ReviewEvid
     if (has(raw, 'coverage') && (!object(raw.coverage) || !Array.isArray(raw.coverage.checks))) anomaly(key, 'Missing or malformed coverage checks');
     if (Array.isArray(raw.checks)) raw.checks.forEach((check: unknown, i: number) => {
       const detailKey = `section:checks:${i + 1}`;
-      add({ normalCheck: object(check) ? { ordinal: i + 1, stepId: check.stepId ?? null, kind: check.kind ?? null, mediaId: check.mediaId ?? null,
+      add({ normalCheck: object(check) ? { ordinal: i + 1, stepId: check.stepId ?? null, kind: check.kind ?? null, mediaId: check.mediaId ?? null, state: present(check, 'state'),
         outcome: object(check.result) ? check.result.outcome ?? 'unknown' : 'missing' } : { ordinal: i + 1, outcome: 'unknown' }, detailKey,
         detailRequired: !object(check) || !object(check.result) || check.result.outcome !== 'passed' || check.result.error != null || check.result.failure != null });
     });
@@ -174,7 +174,7 @@ export function reviewEvidenceDisplay(bytes: Buffer, source: string): ReviewEvid
       if (requests.length && (!Array.isArray(check.observations) || !check.observations.length || !Array.isArray(check.witnesses) || !check.witnesses.length)) anomaly(detailKey, 'Missing coverage observations/witnesses');
       for (const collection of ['observations', 'witnesses']) if (Array.isArray(check[collection])) for (const ref of check[collection]) {
         if (!object(ref) || typeof ref.reportPath !== 'string' || !ref.reportPath) anomaly(detailKey, 'Missing coverage reference', { collection, ref });
-        else if (requests.some((r: any) => r.segmentId != null) && !requests.some((r: any) => r.segmentId === ref.segmentId)) anomaly(detailKey, 'Coverage references unknown segment', { collection, ref });
+        else if (requests.some((r: unknown) => object(r) && r.segmentId != null) && !requests.some((r: unknown) => object(r) && r.segmentId === ref.segmentId)) anomaly(detailKey, 'Coverage references unknown segment', { collection, ref });
       }
       for (const row of matching) if (!isDeepStrictEqual(row.field.path, check.path) || !isDeepStrictEqual(row.field.expected, check.expected)) anomaly(detailKey, 'Request and coverage identity/expected differs');
     });

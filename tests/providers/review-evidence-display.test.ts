@@ -156,10 +156,13 @@ test('COS231 normal media checks and foreign witness references are visible', as
   const check = { id: 'c1', path: ['media', 'audio', '0'], expected: true, actual: true, kind: 'audio', mediaId: 'm',
     observations: [{ segmentId: 'foreign', reportPath: 'outside/report.json', value: true }], witnesses: [{ segmentId: 'foreign', reportPath: 'outside/report.json' }] };
   const media = { candidate: {}, media: {}, scope: 'test', requests: [{ segmentId: 'save', request: { fields: [{ id: 'c1', path: check.path, expected: true }] } }],
-    coverage: { valid: true, complete: true, checks: [check] }, checks: [{ stepId: 'browser-media-1', kind: 'audio', mediaId: 'm', result: { outcome: 'failed', error: 'real failure' } }] };
+    coverage: { valid: true, complete: true, checks: [check] }, checks: [
+      { stepId: 'browser-media-1', kind: 'state_seen', mediaId: 'm', state: 'idle', result: { outcome: 'failed', error: 'real failure' } },
+      { stepId: 'browser-media-2', kind: 'state_seen', mediaId: 'm', state: 'walk', result: { outcome: 'passed', error: null } }] };
   const f = await fixture(t, media), all = rows(await f.read());
   assert.ok(all.some(r => r.anomaly === 'Coverage references unknown segment'));
   assert.ok(all.some(r => r.normalCheck?.stepId === 'browser-media-1' && r.normalCheck.outcome === 'failed' && r.detailRequired));
+  assert.deepEqual(all.filter(r => r.normalCheck).map(r => r.normalCheck.state), [{ present: true, value: 'idle' }, { present: true, value: 'walk' }]);
 });
 
 test('COS231 oversized navigation retains stable identity, failure and mandatory anomaly detail', async t => {
@@ -169,4 +172,16 @@ test('COS231 oversized navigation retains stable identity, failure and mandatory
   assert.ok(all.some(r => r.complete === false && r.identity?.segment === 1 && r.identity?.ordinal === 1 && r.identity?.outcome === 'failed' && r.detailKey === 'step:1:1'));
   assert.ok(all.some(r => r.anomaly === 'Result has error/failure' && r.detailRequired === true && r.detailKey === 'step:1:1'));
   assert.equal(await readFile(join(f.root, 'report.json'), 'utf8'), f.bytes);
+});
+
+test('COS231 a null media request remains visible without crashing valid coverage navigation', async t => {
+  const field = { id: 'c1', path: ['media', 'id'], expected: 'm' };
+  const media = { candidate: {}, media: {}, scope: 'test', requests: [null, { segmentId: 'save', request: { fields: [field] } }],
+    coverage: { valid: false, complete: false, checks: [{ ...field, actual: 'm', kind: 'audio', mediaId: 'm',
+      observations: [{ segmentId: 'save', reportPath: 'save/report.json', value: 'm' }], witnesses: [{ segmentId: 'save', reportPath: 'save/report.json' }] }] } };
+  const f = await fixture(t, media), all = rows(await f.read());
+  assert.ok(all.some(r => r.anomaly === 'Missing request fields' && r.value.request === 1));
+  assert.ok(all.some(r => Array.isArray(r) && r.includes('coverage:1')));
+  assert.equal(rows(await f.read({ evidenceDetails: ['section:requests:1'] }))[1].value, null);
+  assert.deepEqual(rows(await f.read({ evidenceDetails: ['coverage:1'] }))[1].value.check, media.coverage.checks[0]);
 });
