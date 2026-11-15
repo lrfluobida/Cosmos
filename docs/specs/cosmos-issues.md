@@ -2773,6 +2773,10 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 归属 #19，原生父卡 #40，依赖 #40/#192。作者 `startup_diagnostic_author`，独审 `startup_diagnostic_review` 批准 `a06762b4`，主线合入 `174b5071`。启动前没有输入但报告完整健康时，失败断言可按原规则归为代码缺陷；不完整证据仍阻断。独立 9/9、作者 24/24 和联合构建通过。R70 固定 74 文件回放仍 failed，原报告不变。 [源码审批](https://github.com/lrfluobida/Cosmos/issues/231#issuecomment-6886910295)
 
+### COS-231 · 让普通编码独审直接定位验收结果
+
+归属 #19，原生父卡 #203，依赖 #203/#228。R72 独审累计读取源码及部分报告后，下一请求输入上界已超原余额。先独立审查完整设计与实施计划，再实现准确的逐项结果导航及原文定位，优先复用现有 read 与分页能力。保留成功、失败、跳过、缺失、错误、清理和重开状态，全部原始报告、截图及源码持续可读，权限、验收、图片、预算与期限不变。免费容量检查须覆盖全部必要材料及最终裁决请求，明确合成路径的限制，不能据此保证真实模型裁决。作者 `review_evidence_author`，独审 `review_evidence_reviewer`，当前设计待审、源码未批准。 [任务](https://github.com/lrfluobida/Cosmos/issues/232) · [独立容量比较](../../.cosmos/planning/r72-independent-observation/review-capacity-comparison.json)
+
 ## 5. 任务与上下文包模板
 
 以下是字段约定草稿，COS-02 将其变成可验证 schema；凭据与完整历史对话不得写入任务包。

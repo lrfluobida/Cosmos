@@ -14644,8 +14644,8 @@
       "title": "按实际请求为普通编码独审的全量截图报价",
       "number": 203,
       "id": 6322030047,
-      "verifiedNativeSubIssues": 1,
-      "subTaskIds": ["COS-227"],
+      "verifiedNativeSubIssues": 2,
+      "subTaskIds": ["COS-227", "COS-231"],
       "verifiedCompletedSubIssues": 1,
       "url": "https://github.com/lrfluobida/Cosmos/issues/203",
       "parentTaskId": "COS-18",
@@ -15543,9 +15543,40 @@
       "sourceIntegratedCommit": "174b50716f6e86e782c75f52d361af9c5588edf4",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/231#issuecomment-6886910295",
       "verification": "独立9/9、作者24/24及联合构建通过。R70原74文件固定回放识别2代码缺陷和175通过观察，整体仍失败，历史报告未改。"
+    },
+    {
+      "taskId": "COS-231",
+      "title": "让普通编码独审直接定位验收结果",
+      "number": 232,
+      "id": 6399028175,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/232",
+      "parentTaskId": "COS-202",
+      "parentIssueNumber": 203,
+      "parentIssueId": 6322030047,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-202",
+          "number": 203,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/203"
+        },
+        {
+          "id": "COS-227",
+          "number": 228,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/228"
+        }
+      ],
+      "implementer": "review_evidence_author",
+      "reviewer": "review_evidence_reviewer",
+      "merger": "r52_merger",
+      "designReviewStatus": "PENDING",
+      "sourceReviewStatus": "SOURCE_PENDING"
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 230,
+  "totalTaskCount": 231,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }

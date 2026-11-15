@@ -4,6 +4,8 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
+COS-231 已登记，处于设计与免费容量验证阶段。R72 前 12 笔真实独审请求已由离线 SDK 回放逐笔校准；未发第 13 笔的输入费用上界 500,944 微元已高于余额 491,744 微元，4,096 输出下限总报价为 533,712 微元，缺口 41,968 微元。没有同页重复或旧会话回灌的证据。任务先独审完整设计与计划，再实现固定候选的验收结果导航和精确详情读取；容量验证需覆盖全部必要材料及最终裁决请求。本轮设计候选尚未批准，源码未合入，未新增模型费用或启动 R73。 [任务](https://github.com/lrfluobida/Cosmos/issues/232) · [独立诊断](.cosmos/planning/r72-independent-observation/review.md) · [准确报价](.cosmos/planning/r72-independent-observation/review-final-quote.json)
+
 R72 在冻结主线 `c57cdc95` 完成原生编译、候选捕获、干净目录交付检查和正式 save 200 步、resume 198 步。398 步全部通过，errors=[]；保存检查点同 profile、同 origin、不同进程，31 项媒体检查 valid/complete。九份源码、17 份 dist 和 15 份媒体与已核版本相同，可复用 R71 三态 HUD 无重叠、无裁切的证据。原生独审已执行 12 笔请求，下一笔因最低输出报价不可付而未发，尚无裁决。报告仍为 incomplete/not_passed，用户体验未确认。 [R72 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6887820382) · [正式浏览器报告](.cosmos/public-validation/room-20261115-native-review-72/run/evidence/game-code/browser.json)
 
 在装有 Node.js 22 的 Windows 上双击 [R72 Play.cmd](.cosmos/public-validation/room-20261115-native-review-72/development-preview/Play.cmd)，端口 41572。候选带 README 和体验检查清单，干净启动检查 bytesMatched/helperExited 均为 true。 [独立候选比对](.cosmos/planning/r72-independent-observation/candidate-binding.json) · [同源 HUD 三态](.cosmos/planning/r71-independent-observation/edge-hud.json) · [满存档画面](.cosmos/planning/r71-independent-observation/saved-three.png)
