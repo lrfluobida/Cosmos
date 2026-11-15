@@ -36,11 +36,14 @@ function series(): PersistentAcceptanceSeries {
       origin: 'http://127.0.0.1:32123', expected: 'saved-state', snapshot: { kind: 'debug', path: ['transfer', 'snapshot'] },
       savedSnapshot: { kind: 'debug', path: ['transfer', 'saveSnapshot'] } } };
 }
-type FixtureKind = 'pass' | 'mismatch' | 'exception' | 'unknown' | 'input' | 'no-input';
+type FixtureKind = 'pass' | 'mismatch' | 'exception' | 'unknown' | 'input' | 'startup-mismatch';
 async function fixture(kind: FixtureKind = 'mismatch', failureAt = 0, native: boolean | 'snapshot' = false) {
   const root = await mkdtemp(join(tmpdir(), 'cos39-diagnostic-')), expectedSeries = series(), deadlineAt = Date.now() + (native === 'snapshot' ? 60_000 : 30_000); let calls = 0;
-  if (kind === 'no-input') expectedSeries.segments[0].plan.steps[0] = { id: 'click', kind: 'assert', acceptanceId: 'save',
-    observation: { kind: 'visible', selector: '#save' }, expected: true, timeoutMs: 100 };
+  if (kind === 'startup-mismatch') {
+    expectedSeries.segments[0].plan.steps[0] = { id: 'startup', kind: 'assert', acceptanceId: 'save',
+      observation: { kind: 'visible', selector: '#save' }, expected: true, timeoutMs: 100 };
+    expectedSeries.segments[0].plan.steps.push({ id: 'later-click', kind: 'locator-click', selector: '#save', timeoutMs: 100 });
+  }
   const work = new OwnedWork(), input = { caseId: 'case', windowId: 'window', taskId: task.taskId,
     deadlineAt, signal: work.signal, trackRaw: <T>(start: (signal: AbortSignal) => Promise<T>) => work.run(start) };
   const waits = native === 'snapshot' ? createNativeSnapshotValidationWaits({ ...input, requireExecution: async () => {} }) : native ? createNativeValidationWaits(input) : undefined;
@@ -248,8 +251,43 @@ test('COS39 reliable failures at the save and reopened segments retain only actu
   }
 });
 
+test('COS39 complete healthy startup mismatch retains a code defect before the first input', async () => {
+  const f = await fixture('startup-mismatch');
+  try {
+    const before = await readFile(join(f.root, f.report.reportPath), 'utf8'), result = await diagnostic(f);
+    assert.equal(result.reportValid, true);
+    assert.deepEqual(result.issues.map(issue => [issue.checkId, issue.classification]), [['persistent/start/browser/snapshot', 'code_defect']]);
+    assert.equal(result.passedChecks.length, 3);
+    assert.equal(f.report.outcome, 'failed'); assert.equal(f.report.checkpoint.outcome, 'skipped');
+    assert.equal(await readFile(join(f.root, f.report.reportPath), 'utf8'), before);
+  } finally { await f.cleanup(); }
+});
+
+test('COS39 startup mismatch still requires completed observation, delivered later inputs and a complete healthy report', async () => {
+  const f = await fixture('startup-mismatch');
+  try {
+    for (const mutate of [
+      (r: AcceptanceReport) => { delete r.steps[1].observation; },
+      (r: AcceptanceReport) => { r.steps[1].observation!.completed = 0; },
+      (r: AcceptanceReport) => { r.steps[1].failure = 'observation_budget'; },
+      (r: AcceptanceReport) => { Object.assign(r.steps[0], { outcome: 'skipped', actual: null, error: null }); },
+      (r: AcceptanceReport) => { Object.assign(r.steps.at(-1)!, { outcome: 'failed', actual: null, error: 'input failed', failure: 'input' }); },
+      (r: AcceptanceReport) => { Object.assign(r.steps.at(-1)!, { outcome: 'skipped', actual: null, error: null }); },
+      (r: AcceptanceReport) => { r.steps.pop(); },
+      (r: AcceptanceReport) => { r.failureFacts!.termination = { kind: 'lifecycle' }; },
+      (r: AcceptanceReport) => { r.failureFacts!.termination = { kind: 'project_mismatch', stepId: 'snapshot' }; },
+      (r: AcceptanceReport) => { r.errors.push('unknown'); r.failureFacts!.errors.push({ errorIndex: 0, error: 'unknown', kind: 'unknown' }); },
+      (r: AcceptanceReport) => { r.cleanup.forced = true; },
+      (r: AcceptanceReport) => { r.session!.exitConfirmed = false; },
+    ]) {
+      const changed = structuredClone(f.report); mutate(changed.segments[0].report);
+      await f.persist(changed); insufficient(await diagnostic(f, changed));
+    }
+  } finally { await f.cleanup(); }
+});
+
 test('COS39 unknown lifecycle and undelivered input cannot retain code defects', async () => {
-  for (const kind of ['unknown', 'input', 'no-input'] as const) {
+  for (const kind of ['unknown', 'input'] as const) {
     const f = await fixture(kind);
     try { insufficient(await diagnostic(f)); } finally { await f.cleanup(); }
   }
