@@ -15572,8 +15572,11 @@
       "implementer": "review_evidence_author",
       "reviewer": "review_evidence_reviewer",
       "merger": "r52_merger",
-      "designReviewStatus": "PENDING",
-      "sourceReviewStatus": "SOURCE_PENDING"
+      "designReviewStatus": "APPROVED_DESIGN",
+      "designReviewedCommit": "73b2fe026ee90ec002a2efc34844c15143eec1f6",
+      "designIntegratedCommit": "20ee9e84595a9be0f01cbbe129a7a803a97ba4cc",
+      "designApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888284026",
+      "sourceReviewStatus": "SOURCE_IN_PROGRESS"
     }
   ],
   "verifiedNativeSubIssues": 100,

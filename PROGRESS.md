@@ -4,7 +4,7 @@
 
 ## 当前继续通用游戏开发 agent 能力
 
-COS-231 已登记，处于设计与免费容量验证阶段。R72 前 12 笔真实独审请求已由离线 SDK 回放逐笔校准；未发第 13 笔的输入费用上界 500,944 微元已高于余额 491,744 微元，4,096 输出下限总报价为 533,712 微元，缺口 41,968 微元。没有同页重复或旧会话回灌的证据。任务先独审完整设计与计划，再实现固定候选的验收结果导航和精确详情读取；容量验证需覆盖全部必要材料及最终裁决请求。本轮设计候选尚未批准，源码未合入，未新增模型费用或启动 R73。 [任务](https://github.com/lrfluobida/Cosmos/issues/232) · [独立诊断](.cosmos/planning/r72-independent-observation/review.md) · [准确报价](.cosmos/planning/r72-independent-observation/review-final-quote.json)
+COS-231 的设计与实施计划已获独审批准，准确版本 `73b2fe02` 合入 `20ee9e84`，当前免费源码实施中。R72 前 12 笔真实独审已离线校准，未发第 13 笔的输入费用上界 500,944 微元高于余额 491,744 微元。批准设计采用完整材料导航和精确详情读取，保留原始报告、图片、源码与真实计价。完整 A 路径的最终实际 SDK 报价 683,768 微元仍超过原独审起始余额 679,274 微元，明确合成结算后的缺口为 76,878 微元。源码尚未批准，设计通过不保证旧额度可付或真实模型裁决。本次仅合入两份 UTF-8/LF 文稿，生产源码未变，零付费、R73 未启动。 [批准回执](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888284026) · [设计](docs/specs/cos231-coding-review-evidence-navigation.md) · [实施计划](docs/plans/2026-11-15-coding-review-evidence-navigation.md) · [原始诊断](.cosmos/planning/r72-independent-observation/review.md)
 
 R72 在冻结主线 `c57cdc95` 完成原生编译、候选捕获、干净目录交付检查和正式 save 200 步、resume 198 步。398 步全部通过，errors=[]；保存检查点同 profile、同 origin、不同进程，31 项媒体检查 valid/complete。九份源码、17 份 dist 和 15 份媒体与已核版本相同，可复用 R71 三态 HUD 无重叠、无裁切的证据。原生独审已执行 12 笔请求，下一笔因最低输出报价不可付而未发，尚无裁决。报告仍为 incomplete/not_passed，用户体验未确认。 [R72 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6887820382) · [正式浏览器报告](.cosmos/public-validation/room-20261115-native-review-72/run/evidence/game-code/browser.json)
 
