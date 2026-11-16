@@ -14078,7 +14078,8 @@
       "maxDurationMs": 1800000,
       "actualQuotePrepared": true,
       "actualApplicationPerformed": true,
-      "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6919595440",
+      "actualResultComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6920763915",
+      "phase59_76ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6919595440",
       "phase57_79ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6890732396",
       "phase56_86ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6886840290",
       "phase55_72ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6885833845",
@@ -14089,7 +14090,7 @@
       "phase52ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6811107055",
       "phase51ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6795876235",
       "phase50ApplicationComment": "https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6762899744",
-      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. R49 applied the explicit 50.70-to-51.67 CNY follow-up. R49 and R50 hold separate run decisions. R50 closed at shared revision 3470, C47534304/H2206428; R30, R37 and R43 remain pending. R59 applied the explicit 51.67-to-52.96 CNY follow-up and closed at shared revision 3489 with C49594406/H2206428 and phase remaining 1159166 micro-CNY. R63 applied the explicit 52.96-to-53.76 CNY follow-up and closed at shared revision 3498 with C50864960/H2206428 and phase remaining 688612 micro-CNY. R65 applied the explicit 53.76-to-55.21 CNY follow-up. After the Windows reboot, R65 deadline recovery settled 117608 micro-CNY without new provider requests. R66 settled 446250 micro-CNY at shared revision 3505, C51563047/H2206428, leaving phase remaining 1440525. Both runs total 563858 micro-CNY within the original 2000000 ceiling. R65 through R68 completed at shared revision 3509 with aggregate actual 1355200 micro-CNY, C52354389/H2206428, and phase remaining 649183 micro-CNY under the same 55.21 CNY phase. No R69 was started. R69 applied phase10 from 55.21 to 55.72 CNY and closed at shared revision 3512, settled 294529 micro-CNY, released 855471, C52648918/H2206428, phase remaining 864654. Phase11 explicitly raised the cap to 56.86 CNY. R70 settled 507519 micro-CNY; R71 suspended 671054 including known31778/unknown639276; R72 settled247540 at shared3519 with C53403977/H2877482, phase available578541. Original2CNY bound retained; no R73. Phase12 explicitly raised the cap to 57.79 CNY; R73 settled477290/released1022710 at child153/shared3522 with C53881267/H2877482 and phase available1031251 micro-CNY. R71unknown639276/held671054 retained. Phase13 explicitly raised the cap to 59.76 CNY on 2026-11-15T07:13:08.144Z; R74 ran under cap3000000/30min. On 2026-11-16, expired-owner accounting-only recovery closed R74 at child97/shared3525 with 19 settled requests totaling329690/released2670310, C54210957/H2877482 and phase available2671561 micro-CNY. R74 unknown/reserved0; R71unknown639276/held671054 retained. Recovery made no provider calls and did not resume execution; native reviewpending and humanunconfirmed remain. R75 not started."
+      "actualExecutionStatus": "The explicit 45M-to-50M phase decision was applied on 2026-11-10. R34 used the new source and settled 617413 micro-CNY across 19 requests; 4382587 released. Shared revision 3436, C42105307/H480004. R49 applied the explicit 50.70-to-51.67 CNY follow-up. R49 and R50 hold separate run decisions. R50 closed at shared revision 3470, C47534304/H2206428; R30, R37 and R43 remain pending. R59 applied the explicit 51.67-to-52.96 CNY follow-up and closed at shared revision 3489 with C49594406/H2206428 and phase remaining 1159166 micro-CNY. R63 applied the explicit 52.96-to-53.76 CNY follow-up and closed at shared revision 3498 with C50864960/H2206428 and phase remaining 688612 micro-CNY. R65 applied the explicit 53.76-to-55.21 CNY follow-up. After the Windows reboot, R65 deadline recovery settled 117608 micro-CNY without new provider requests. R66 settled 446250 micro-CNY at shared revision 3505, C51563047/H2206428, leaving phase remaining 1440525. Both runs total 563858 micro-CNY within the original 2000000 ceiling. R65 through R68 completed at shared revision 3509 with aggregate actual 1355200 micro-CNY, C52354389/H2206428, and phase remaining 649183 micro-CNY under the same 55.21 CNY phase. No R69 was started. R69 applied phase10 from 55.21 to 55.72 CNY and closed at shared revision 3512, settled 294529 micro-CNY, released 855471, C52648918/H2206428, phase remaining 864654. Phase11 explicitly raised the cap to 56.86 CNY. R70 settled 507519 micro-CNY; R71 suspended 671054 including known31778/unknown639276; R72 settled247540 at shared3519 with C53403977/H2877482, phase available578541. Original2CNY bound retained; no R73. Phase12 explicitly raised the cap to 57.79 CNY; R73 settled477290/released1022710 at child153/shared3522 with C53881267/H2877482 and phase available1031251 micro-CNY. R71unknown639276/held671054 retained. Phase13 explicitly raised the cap to 59.76 CNY on 2026-11-15T07:13:08.144Z; R74 ran under cap3000000/30min. On 2026-11-16, expired-owner accounting-only recovery closed R74 at child97/shared3525 with 19 settled requests totaling329690/released2670310, C54210957/H2877482 and phase available2671561 micro-CNY. R74 unknown/reserved0; R71unknown639276/held671054 retained. Recovery made no provider calls and did not resume execution; native reviewpending and humanunconfirmed remain. R75 subsequently ran under a separate explicit2500000/30min approval without increasing phase59.76; settled489866 across21requests (author5/31693,review16/458173), released2010134, child106/shared3527, C54700823/H2877482, phase available2181695. No unknown/reserved. Native termination was request_limit before dispatch17, not budget/deadline; reviewpending and humanunconfirmed remain. Native signed completion was in_time at2026-11-16T15:13:38.171Z, but the later permanent manualstop changed snapshot bytes so current readCompletionTiming is unconfirmed; authenticated funding cleanup remains valid. R71unknown639276/held671054 and R74closed unchanged; no R76."
     },
     {
       "taskId": "COS-183",
@@ -14646,8 +14647,8 @@
       "title": "按实际请求为普通编码独审的全量截图报价",
       "number": 203,
       "id": 6322030047,
-      "verifiedNativeSubIssues": 2,
-      "subTaskIds": ["COS-227", "COS-231"],
+      "verifiedNativeSubIssues": 3,
+      "subTaskIds": ["COS-227", "COS-231", "COS-232"],
       "verifiedCompletedSubIssues": 2,
       "url": "https://github.com/lrfluobida/Cosmos/issues/203",
       "parentTaskId": "COS-18",
@@ -15582,11 +15583,44 @@
       "sourceReviewedCommit": "1165da45295c8bf978e5b5f94ba01346981a7567",
       "sourceIntegratedCommit": "e4e3cb3a44bcd7e16dd836de58c315ec8f9ac807",
       "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888631456",
-      "actualUsageComment": "https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6919597756",
-      "verification": "八份批准文件一致，主线构建和真实factory/native SDK关键调用1/1通过；47focused/最终provider11/独审3有效证据复用。实际strict SDK A8192/4096报价732242/699474、B1054504/1021736，五项生产预算拒发通过。原R72额度仍不足，零网络/费用，不代表原生游戏独审通过。 R73 native reviewer read all406 lines/398 indexed rows, but request12 floor875856 exceeded remaining872710; no native verdict. R74 reviewer15 requests/24 raw reads used index0/detail0/batch0; eight images remained in the input. Expired-owner accounting closure added no native verdict or human confirmation and is not new navigation validation."
+      "actualUsageComment": "https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6920766481",
+      "r74ActualUsageComment": "https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6919597756",
+      "verification": "八份批准文件一致，主线构建和真实factory/native SDK关键调用1/1通过；47focused/最终provider11/独审3有效证据复用。实际strict SDK A8192/4096报价732242/699474、B1054504/1021736，五项生产预算拒发通过。原R72额度仍不足，零网络/费用，不代表原生游戏独审通过。 R73 native reviewer read all406 lines/398 indexed rows, but request12 floor875856 exceeded remaining872710; no native verdict. R74 reviewer15 requests/24 raw reads used index0/detail0/batch0; eight images remained in the input. Expired-owner accounting closure added no native verdict or human confirmation and is not new navigation validation. R75 completely read save203/resume201/media34/series406 index lines with exact source projection binding, but its six-key detail batch read only lines1-1419 of5291. All16 paid reviewer calls ended toolUse; request17 was locally rejected by request_limit with no dispatch/charge. Reviewpending and humanunconfirmed remain; not all details were read."
+    },
+    {
+      "taskId": "COS-232",
+      "title": "在普通编码独审上限内保留裁决回合",
+      "number": 233,
+      "id": 6424541460,
+      "url": "https://github.com/lrfluobida/Cosmos/issues/233",
+      "parentTaskId": "COS-202",
+      "parentIssueNumber": 203,
+      "parentIssueId": 6322030047,
+      "nativeParentLinked": true,
+      "parentCheckboxChecked": false,
+      "state": "open",
+      "scopedComplete": false,
+      "dependsOn": [
+        {
+          "id": "COS-231",
+          "number": 232,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/232"
+        },
+        {
+          "id": "COS-227",
+          "number": 228,
+          "url": "https://github.com/lrfluobida/Cosmos/issues/228"
+        }
+      ],
+      "implementer": "review_rounds_author",
+      "reviewer": "review_rounds_reviewer",
+      "merger": "r74_recovery_merger",
+      "designReviewStatus": "AWAITING_INDEPENDENT_DESIGN_REVIEW",
+      "registrationBaseCommit": "6a1852e334f0f6cb0abe97c136893cfcb7ef0732",
+      "scope": "Free diagnosis and complete design first; independent design approval required before source changes. Ordinary coding review only, original16-request cap/budget/deadline retained, raw tool results/eight images/unread-evidence honesty retained, same request accounting as format correction and read-only recovery. No R76 authorization."
     }
   ],
   "verifiedNativeSubIssues": 100,
-  "totalTaskCount": 231,
+  "totalTaskCount": 232,
   "completedAt": "2026-09-30T18:15:15.151Z"
 }
