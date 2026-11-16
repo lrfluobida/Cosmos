@@ -2781,7 +2781,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-232 · 在普通编码独审上限内保留裁决回合
 
-归属 #19，原生父卡 #203，依赖 #232/#228。任务 [#233](https://github.com/lrfluobida/Cosmos/issues/233)，ID `6424541460`，保持 open；作者 `review_rounds_author`、独审 `review_rounds_reviewer`、唯一 merger `r74_recovery_merger`。设计最终 `b90f6dfc` 经独审 APPROVED_DESIGN 和 Root 批准，主线合入 `30748244`，两份文档与批准版逐字节一致；源码阶段已获免费授权并进行中，尚未独审。批准策略为最多 14 次工具响应、15 最终无工具输出、16 唯一既有格式纠正；早期自然 stop 保留，第 14 次自然 malformed stop 只用第 15 次纠正，不再获得第 16 次。仅用于 ordinary coding review，原 16 次上限、费用、期限、原始工具结果、八图及未读诚实边界保持。R75 仍缺裁决，无 R76 授权。 [设计批准](https://github.com/lrfluobida/Cosmos/issues/233#issuecomment-6921096058) · [设计](cos232-coding-review-final-reserve.md) · [计划](../plans/2026-11-16-coding-review-final-reserve.md)
+归属 #19，原生父卡 #203，依赖 #232/#228。任务 [#233](https://github.com/lrfluobida/Cosmos/issues/233#issuecomment-6922016472)，ID `6424541460`，源码范围 complete/closed；作者 `review_rounds_author`、独审 `review_rounds_reviewer`、唯一 merger `r74_recovery_merger`。设计 `b90f6dfc` 已独审并合入 `30748244`；源码 `dd909f7e` 经 APPROVED_SOURCE_SCOPED 和 Root 批准，合入 `fad5500b`。七份文件与批准版本逐字节一致，主线构建和真实 factory/Pi/requestReview 的 14+15+16、八图、本地结算代表 1/1 通过；作者 209 与独审 6 项证据复用，真实 incomplete 负例保留。原 16 次上限、费用、期限、工具结果、八图和未读诚实边界不变，合成回复与结算不代表 R75 获批，无 R76 授权。作者 13 份日志/交接已归档，因两处缓存清理被自动审批拒绝，工作树与已核唯一依赖联接保留，不绕过删除。 [主线集成](../../.cosmos/planning/cos232-source-merger-20261117/integration.json) · [源码独审](../../.cosmos/planning/cos232-independent-source-review/review.json) · [设计](cos232-coding-review-final-reserve.md) · [计划](../plans/2026-11-16-coding-review-final-reserve.md)
 
 ## 5. 任务与上下文包模板
 

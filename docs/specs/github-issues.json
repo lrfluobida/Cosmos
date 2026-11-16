@@ -14649,7 +14649,7 @@
       "id": 6322030047,
       "verifiedNativeSubIssues": 3,
       "subTaskIds": ["COS-227", "COS-231", "COS-232"],
-      "verifiedCompletedSubIssues": 2,
+      "verifiedCompletedSubIssues": 3,
       "url": "https://github.com/lrfluobida/Cosmos/issues/203",
       "parentTaskId": "COS-18",
       "parentIssueNumber": 19,
@@ -15597,9 +15597,9 @@
       "parentIssueNumber": 203,
       "parentIssueId": 6322030047,
       "nativeParentLinked": true,
-      "parentCheckboxChecked": false,
-      "state": "open",
-      "scopedComplete": false,
+      "parentCheckboxChecked": true,
+      "state": "closed",
+      "scopedComplete": true,
       "dependsOn": [
         {
           "id": "COS-231",
@@ -15623,9 +15623,14 @@
       "implementationPlanPath": "docs/plans/2026-11-16-coding-review-final-reserve.md",
       "implementationWorktree": "E:/CodexData/.codex/worktrees/review-final-turn-reserve/Cosmos",
       "implementationBranch": "codex/review-final-turn-reserve",
-      "sourceStatus": "IN_PROGRESS",
+      "sourceStatus": "SCOPED_COMPLETE",
+      "sourceReviewStatus": "APPROVED_SOURCE_SCOPED",
+      "sourceReviewedCommit": "dd909f7e14bbc0f26ce7b250262251d29f472fe4",
+      "sourceIntegratedCommit": "fad5500b33cd11a9201f77c7238fb5ad36035e1d",
+      "sourceApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/233#issuecomment-6922016472",
+      "verification": "Seven approved files byte-identical; main build exit0, actual factory/Pi/requestReview 14+15+16/eight-image/local-ledger representative1/1 passed. Author209 and independent6 valid checks reused; honest incomplete negatives retained. Synthetic replies/usage are not R75 approval. Author13 evidence files77720bytes archived; policy-blocked caches405files2362860B and3files2519B retained with the managed worktree and verified dependency junction. No external provider/browser calls or R76 authority.",
       "registrationBaseCommit": "6a1852e334f0f6cb0abe97c136893cfcb7ef0732",
-      "scope": "Design approved and integrated byte-exact; free source implementation authorized, independent source review pending. Selected ordinary coding review only: up to14 tool responses, final15 tool-free, existing correction16 at most; early malformed stop14 uses correction15 only. Original16-request cap/budget/deadline, raw tool results/eight images/unread-evidence honesty and shared correction accounting retained. No R75 approval or R76 authorization."
+      "scope": "Design and source independently approved and integrated; free platform source scope complete. Selected ordinary coding review only: up to14 tool responses, final15 tool-free, existing correction16 at most; early malformed stop14 uses correction15 only. Original16-request cap/budget/deadline, raw tool results/eight images/unread-evidence honesty and shared correction accounting retained. No R75 approval or R76 authorization."
     }
   ],
   "verifiedNativeSubIssues": 100,
