@@ -15615,9 +15615,17 @@
       "implementer": "review_rounds_author",
       "reviewer": "review_rounds_reviewer",
       "merger": "r74_recovery_merger",
-      "designReviewStatus": "AWAITING_INDEPENDENT_DESIGN_REVIEW",
+      "designReviewStatus": "APPROVED_DESIGN",
+      "designReviewedCommit": "b90f6dfc5ba3ffb01d3c3c8d7ea6e6b961792416",
+      "designIntegratedCommit": "30748244f88bb1dab97b87cf73ee61ce10c1d73d",
+      "designApprovalComment": "https://github.com/lrfluobida/Cosmos/issues/233#issuecomment-6921096058",
+      "formalSpecPath": "docs/specs/cos232-coding-review-final-reserve.md",
+      "implementationPlanPath": "docs/plans/2026-11-16-coding-review-final-reserve.md",
+      "implementationWorktree": "E:/CodexData/.codex/worktrees/review-final-turn-reserve/Cosmos",
+      "implementationBranch": "codex/review-final-turn-reserve",
+      "sourceStatus": "IN_PROGRESS",
       "registrationBaseCommit": "6a1852e334f0f6cb0abe97c136893cfcb7ef0732",
-      "scope": "Free diagnosis and complete design first; independent design approval required before source changes. Ordinary coding review only, original16-request cap/budget/deadline retained, raw tool results/eight images/unread-evidence honesty retained, same request accounting as format correction and read-only recovery. No R76 authorization."
+      "scope": "Design approved and integrated byte-exact; free source implementation authorized, independent source review pending. Selected ordinary coding review only: up to14 tool responses, final15 tool-free, existing correction16 at most; early malformed stop14 uses correction15 only. Original16-request cap/budget/deadline, raw tool results/eight images/unread-evidence honesty and shared correction accounting retained. No R75 approval or R76 authorization."
     }
   ],
   "verifiedNativeSubIssues": 100,

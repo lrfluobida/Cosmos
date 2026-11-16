@@ -2781,7 +2781,7 @@ R38 修改 6 个设计字段，计划仍为原版 147+47 步。为已有认证�
 
 ### COS-232 · 在普通编码独审上限内保留裁决回合
 
-归属 #19，原生父卡 #203，依赖 #232/#228。任务 [#233](https://github.com/lrfluobida/Cosmos/issues/233)，ID `6424541460`，保持 open；作者 `review_rounds_author`、独审 `review_rounds_reviewer`、唯一 merger `r74_recovery_merger`。当前仅免费诊断与完整设计，策略尚未批准，先独立审设计再实施。R75 的 16 笔独审全为 toolUse，下一笔 request_limit 本地未发，六项 key 详情仍有未读部分。设计必须仅用于 ordinary coding review，在原 16 次上限、原费用和期限内保留诚实裁决或证据不足停点，保留原始工具结果、八图和未读事实，与既有格式纠正/只读恢复共享请求计数。不得额外派发、自动批准或把合成证据当作 R75 裁决；无 R76 授权。
+归属 #19，原生父卡 #203，依赖 #232/#228。任务 [#233](https://github.com/lrfluobida/Cosmos/issues/233)，ID `6424541460`，保持 open；作者 `review_rounds_author`、独审 `review_rounds_reviewer`、唯一 merger `r74_recovery_merger`。设计最终 `b90f6dfc` 经独审 APPROVED_DESIGN 和 Root 批准，主线合入 `30748244`，两份文档与批准版逐字节一致；源码阶段已获免费授权并进行中，尚未独审。批准策略为最多 14 次工具响应、15 最终无工具输出、16 唯一既有格式纠正；早期自然 stop 保留，第 14 次自然 malformed stop 只用第 15 次纠正，不再获得第 16 次。仅用于 ordinary coding review，原 16 次上限、费用、期限、原始工具结果、八图及未读诚实边界保持。R75 仍缺裁决，无 R76 授权。 [设计批准](https://github.com/lrfluobida/Cosmos/issues/233#issuecomment-6921096058) · [设计](cos232-coding-review-final-reserve.md) · [计划](../plans/2026-11-16-coding-review-final-reserve.md)
 
 ## 5. 任务与上下文包模板
 
