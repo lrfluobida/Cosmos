@@ -12,6 +12,7 @@ import { requestInputBytes, withFinalCodingReadResults, withRecentReadResults } 
 import { reviewImageInputTokens } from './review-image-quote.ts';
 import { PreservedDesignDraftError } from './workspace-tools.ts';
 import { installCodingBuildReserve } from './coding-build-reserve.ts';
+import { codingReviewCorrectionGuidance, installCodingReviewReserve } from './coding-review-reserve.ts';
 import { successfulWriteExtension, successfulWriteNote, summaryWithoutThinking, type SuccessfulWriteCompaction } from './successful-write-compaction.ts';
 
 export { createWorkspaceTools } from './workspace-tools.ts';
@@ -83,6 +84,8 @@ export interface PiSessionOptions {
   ordinaryDesignReview?: true;
   /** Ordinary coding reviewer only. Price its screenshot requests at the serialized HTTP boundary. */
   ordinaryCodingReviewImageQuote?: true;
+  /** Original ordinary coding review: fourteen tool rounds, a decision and one correction. */
+  ordinaryCodingReviewFinalReserve?: true;
   /** Reserve the final four rounds for build feedback, correction and the original coding handoff. */
   ordinaryCodingBuildReserve?: true;
   /** Bound feedback coder opt-in; paths remain caller metadata, not a filter on retained read content. */
@@ -131,6 +134,9 @@ export async function createPiSession(config: PiSessionOptions) {
   positive(config.maxOutputTokens, 'maxOutputTokens');
   positive(config.maxRequests, 'maxRequests');
   positive(config.requestTimeoutMs, 'requestTimeoutMs');
+  if (config.ordinaryCodingReviewFinalReserve && (config.maxRequests !== 16 || !config.ordinaryCodingReviewImageQuote
+    || config.resumeFile || config.requestCompaction || config.ordinaryCodingBuildReserve
+    || config.ordinaryDesignFinalizationPolicy || config.ordinaryDesignReview)) throw new Error('Coding review reserve requires the original sixteen-round coding review.');
   if (config.requestImageOutputLimit && (!config.ordinaryCodingReviewImageQuote || config.maxOutputTokens !== 8192)) throw new Error('Image output selection requires the ordinary coding review cap.');
   if (config.ordinaryCodingBuildReserve && (config.maxRequests !== 32 || config.resumeFile || config.requestCompaction
     || !config.tools.some(tool => tool.name === 'check-game-build'))) throw new Error('Coding build reserve requires the original 32-round session and its scoped compiler.');
@@ -483,6 +489,8 @@ export async function createPiSession(config: PiSessionOptions) {
   }
   const codingHandoff = config.ordinaryCodingBuildReserve
     ? installCodingBuildReserve(session, () => config.maxRequests - requests, () => readonlyRequests !== undefined, fail) : undefined;
+  const codingReviewReserve = config.ordinaryCodingReviewFinalReserve
+    ? installCodingReviewReserve(session, () => config.maxRequests - requests, fail) : undefined;
   const authorText = () => { const text = session.getLastAssistantText() ?? ''; return codingHandoff ? codingHandoff.validateText(text) : text; };
   if (config.requestCompaction) {
     let lastProjection: string | undefined, lastCompactedBytes: number | undefined, autoCompactionDisabled = false, compactions = 0, pressureExceptionUsed = false;
@@ -670,6 +678,10 @@ export async function createPiSession(config: PiSessionOptions) {
   }
   async function readonly(text: string, signal?: AbortSignal, verdict = false) {
     return run(async () => {
+      if (codingReviewReserve) {
+        codingReviewReserve.correct();
+        text += '\n\n' + codingReviewCorrectionGuidance;
+      }
       if (!session.isIdle || session.getAllTools().some(tool => tool.exposure === 'codemode' || tool.exposure === 'deferred')) {
         throw new PiSessionError('readonly_unavailable', 'Native tool registry cannot isolate a read-only format turn');
       }
@@ -723,7 +735,9 @@ export async function createPiSession(config: PiSessionOptions) {
     get requestRecords(): readonly PiResponse[] { return records.slice(); },
     subscribe(listener: (event: AgentSessionEvent) => void) { return session.subscribe(listener); },
     prompt(text: string, options: { images?: ImageContent[]; signal?: AbortSignal } = {}) {
+      if (codingReviewReserve?.hasReturned()) return readonly(text, options.signal);
       return run(async () => {
+        codingReviewReserve?.start();
         await session.prompt(text, { images: options.images, expandPromptTemplates: false });
         return { text: authorText(), requests: records.slice() };
       }, options.signal);
