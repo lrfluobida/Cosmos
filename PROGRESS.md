@@ -1,8 +1,16 @@
 # Cosmos 进度
 
-更新时间：2026-11-15
+更新时间：2026-11-16
 
 ## 当前继续通用游戏开发 agent 能力
+
+R74 已按此前明确批准在冻结主线 `9b2ccbe1` 执行，宿主编译、候选捕获、干净交付检查、save 200 步 / resume 198 步及 31 项媒体验收均通过，九份源码未改。作者 4 笔请求后交接；独审 15 笔请求、24 次原始报告/源码读取仍未形成裁决，未使用结果索引或有界详情读取。八张截图已进入独审输入。 [R74 恢复结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6919596582) · [真实读取范围](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6919597756) · [原生浏览器报告](.cosmos/public-validation/room-20261115-review-margin-74/run/evidence/game-code/browser.json) · [候选版本比对](.cosmos/planning/r74-independent-observation/candidate-binding.json) · [独立恢复复核](.cosmos/planning/r74-independent-observation/recovery-review-after.json)
+
+本次对话恢复时原进程已退出，原截止时间 `2026-11-15T07:47:03.424Z` 已过。2026-11-16 仅通过既有恢复与结算入口完成 dead-owner/deadline 收尾，没有续跑、供应商请求或游戏修改。此前 stopReason 为 null，最后一笔独审仍为 toolUse，无最终裁决；本次才记录 deadline stop，不能倒推昨日因预算、请求数或期限触发停止。原任务 awaiting_review、独审 pending 及历史 attempt running/无 endedAt 保留；新正式报告仍为 incomplete/not_passed，用户体验未确认，没有 accepted candidate。late cleanup 的 112,597,536 ms 是从原起点到本次恢复清理的墙钟时间，包含对话中断后的间隔，不代表模型持续运行约 31 小时，也不延长原 30 分钟期限。 [恢复报告](.cosmos/public-validation/room-20261115-review-margin-74/run/delivery/report-6983c9d2-f9b2-4d76-b878-0be3559af487.json) · [闭账审计](.cosmos/planning/r74-expired-recovery-20261116/final-audit.json)
+
+phase13 于 2026-11-15 07:13:08.144 UTC 按明确批准将阶段上限从 ¥57.79 提至 ¥59.76，R74 单次上限 ¥3 / 30 分钟。原 19 笔请求结算 ¥0.329690（作者 4 笔 ¥0.034269、独审 15 笔 ¥0.295421），释放 ¥2.670310，child97/shared3525；本轮未知和在途预留均为零。阶段累计结算 ¥54.210957、历史待核及暂停占用 ¥2.877482，可用 ¥2.671561；R71 未知预留 ¥0.639276、整体暂停占用 ¥0.671054 原样保留。R74 已闭账，R75 未启动。 [预算登记](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6919595440) · [阶段回执](.cosmos/planning/r73-review-margin-budget/applied-receipt.json) · [正式结算](.cosmos/public-validation/room-20261115-review-margin-74/generation-closure.json)
+
+恢复阶段自有空 tmp 在进程退出后移除。R74 原 tmp 经所有权、进程及候选保留核对，先摘除唯一依赖联接，再一次清理 443 个文件、22,832,602 字节；运行工具链、主仓和模板依赖入口仍完整，45 份候选文件及结算后账本保持。三份诊断日志共 57,828 字节转存 `scratch-diagnostics`，原始会话、报告和恢复证据保留；此前自动审批拒绝清理的 R73 tmp 与旧缓存未重试。 [清理交接](.cosmos/planning/r74-expired-recovery-20261116/stage-cleanup.json) · [R74 清理结果](.cosmos/planning/r74-expired-recovery-20261116/scratch-cleanup-result.json) · [清理复核](.cosmos/planning/r74-expired-recovery-20261116/scratch-cleanup-verification.json)
 
 R73 在冻结主线 `97c9a5c5` 完成原生编译、候选捕获、干净交付检查、save200/resume198 和 31 项媒体验收，全部通过，源码未变。独审真实读取了 persistent 结果索引的全部 406 行、398 条步骤导航。其后已发 11 笔独审请求仍未裁决，第 12 笔因原任务输出下限预算不足而未发。正式报告仍为 incomplete/not_passed，原生独审 pending、用户体验未确认。 [R73 结案](https://github.com/lrfluobida/Cosmos/issues/19#issuecomment-6890736006) · [真实索引调用范围](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6890739592) · [正式浏览器报告](.cosmos/public-validation/room-20261115-indexed-review-73/run/evidence/game-code/browser.json)
 
@@ -10,7 +18,7 @@ R73 在冻结主线 `97c9a5c5` 完成原生编译、候选捕获、干净交付�
 
 当前可在装有 Node.js 22 的 Windows 上双击 [R73 Play.cmd](.cosmos/public-validation/room-20261115-indexed-review-73/development-preview/Play.cmd)，端口 41573。候选与同源预览逐字节核对，复用已有三态 HUD 无重叠、无裁切的证据。 [独立版本比对](.cosmos/planning/r73-independent-observation/candidate-binding.json) · [同源 HUD 实图](.cosmos/planning/r71-independent-observation/saved-three.png)
 
-phase12 于 2026-11-15 06:12:06.253 UTC 按明确批准将阶段上限由 ¥56.86 提至 ¥57.79，R73 单次上限 ¥1.50 / 30 分钟。实际耗时 1,454,216 ms，33 笔结算 ¥0.477290（作者22笔 ¥0.189313、独审11笔 ¥0.287977），释放 ¥1.022710，child153/shared3522。阶段累计结算 ¥53.881267、历史待核及暂停占用 ¥2.877482，可用 ¥1.031251；R71 未知预留 ¥0.639276、整体暂停占用 ¥0.671054 保持。本轮所有进程退出，但自动审批以 blocked by policy 拒绝清理 `.cosmos/public-validation/room-20261115-indexed-review-73/tmp`，保留 441 个自有文件、22,372,978 字节和一处联接，统计未跟随联接。R74 未启动。 [阶段回执](.cosmos/planning/r72-review-evidence-budget/applied-receipt.json) · [预算登记](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6890732396) · [R73 闭账审计](.cosmos/public-validation/room-20261115-indexed-review-73/closure-readonly-audit.json)
+phase12 于 2026-11-15 06:12:06.253 UTC 按明确批准将阶段上限由 ¥56.86 提至 ¥57.79，R73 单次上限 ¥1.50 / 30 分钟。实际耗时 1,454,216 ms，33 笔结算 ¥0.477290（作者22笔 ¥0.189313、独审11笔 ¥0.287977），释放 ¥1.022710，child153/shared3522。阶段累计结算 ¥53.881267、历史待核及暂停占用 ¥2.877482，可用 ¥1.031251；R71 未知预留 ¥0.639276、整体暂停占用 ¥0.671054 保持。本轮所有进程退出，但自动审批以 blocked by policy 拒绝清理 `.cosmos/public-validation/room-20261115-indexed-review-73/tmp`，保留 441 个自有文件、22,372,978 字节和一处联接，统计未跟随联接。后续 R74 已按明确的新阶段批准执行并闭账。 [阶段回执](.cosmos/planning/r72-review-evidence-budget/applied-receipt.json) · [预算登记](https://github.com/lrfluobida/Cosmos/issues/183#issuecomment-6890732396) · [R73 闭账审计](.cosmos/public-validation/room-20261115-indexed-review-73/closure-readonly-audit.json)
 
 COS-231 源码已按独审批准的 `1165da45` 合入 `e4e3cb3a`，完成平台源码范围。普通编码独审获得完整验收结果导航和精确有界详情读取，保留原始报告、截图、源码及原权限。八份文件与批准版本相同，主线构建通过，真实 factory/native SDK 关键调用 1/1 通过；八张图、strict nullable 工具参数、索引与详情都进入实际 SDK 请求，三笔结算为截获传输的合成用例，网络和费用为零。已复用 47 项 focused、最终 provider 11 项与独立 3 项有效证据。 [源码批准回执](https://github.com/lrfluobida/Cosmos/issues/232#issuecomment-6888631456) · [主线集成证据](.cosmos/planning/review-evidence-merger-temp/integration.json)
 
