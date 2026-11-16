@@ -57,6 +57,8 @@ The helper tracks one monotonic phase: reading → final → returned → correc
 
 For the longest successful trajectory, `14 tool responses + 1 completed final + 1 correction = 16`. If final 15 is valid, only fifteen requests are sent. An early response and its correction consume only their actual request count; the unused reserved capacity is not an invitation to resume reading. The read-only path's per-call single request and the selected session's once-only local correction claim both apply. The correction record remains the existing `review-correction.json`, written durably by `requestReview` before dispatch. Native prompt claims do not substitute for that durable record; they prevent direct/multiple APIs from reopening this session's phase.
 
+In particular, if response 14 is a natural `stop` with malformed JSON rather than a tool reply, return it immediately. The outer protocol correction is then request 15 with tools disabled, consumes the only correction, and cannot be followed by request 16. Test this boundary explicitly as well as an earlier malformed response; reaching the threshold never bypasses the external-prompt correction rule.
+
 Both final and correction preserve the original coding thinking level (`low` unless already configured otherwise), 8192 output maximum, unchanged 4096 affordability floor, timeout and serialized image quote. Use the existing read-only path without the design verdict mode that turns thinking off. Add strict terminal checks through the selected helper instead. No extra monetary reserve, forced lower floor, automatic summary or history compaction is introduced.
 
 ## Prompt and evidence semantics
